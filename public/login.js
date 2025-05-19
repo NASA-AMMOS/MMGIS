@@ -10,7 +10,7 @@ function login() {
 
   $.ajax({
     type: "POST",
-    url: "API/users/login",
+    url: "api/users/login",
     data: {
       username: document.getElementById("username").value,
       password: document.getElementById("pwd").value,

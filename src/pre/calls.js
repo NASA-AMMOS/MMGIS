@@ -5,6 +5,10 @@ const c = {
         type: 'GET',
         url: 'api/configure/get',
     },
+    get_generaloptions: {
+        type: 'GET',
+        url: 'api/configure/getGeneralOptions',
+    },
     missions: {
         type: 'GET',
         url: 'api/configure/missions',
@@ -30,6 +34,11 @@ const c = {
         url: 'api/utils/getprofile',
         pathprefix: '',
     },
+    getminmax: {
+        type: 'POST',
+        url: 'api/utils/getminmax',
+        pathprefix: '',
+    },
     ll2aerll: {
         type: 'POST',
         url: 'api/utils/ll2aerll',
@@ -44,103 +53,111 @@ const c = {
     },
     draw_add: {
         type: 'POST',
-        url: 'API/draw/add',
+        url: 'api/draw/add',
     },
     draw_edit: {
         type: 'POST',
-        url: 'API/draw/edit',
+        url: 'api/draw/edit',
     },
     draw_remove: {
         type: 'POST',
-        url: 'API/draw/remove',
+        url: 'api/draw/remove',
     },
     draw_undo: {
         type: 'POST',
-        url: 'API/draw/undo',
+        url: 'api/draw/undo',
     },
     draw_merge: {
         type: 'POST',
-        url: 'API/draw/merge',
+        url: 'api/draw/merge',
     },
     draw_split: {
         type: 'POST',
-        url: 'API/draw/split',
+        url: 'api/draw/split',
     },
     files_getfiles: {
         type: 'POST',
-        url: 'API/files/getfiles',
+        url: 'api/files/getfiles',
     },
     files_getfile: {
         type: 'POST',
-        url: 'API/files/getfile',
+        url: 'api/files/getfile',
     },
     files_make: {
         type: 'POST',
-        url: 'API/files/make',
+        url: 'api/files/make',
     },
     files_remove: {
         type: 'POST',
-        url: 'API/files/remove',
+        url: 'api/files/remove',
     },
     files_restore: {
         type: 'POST',
-        url: 'API/files/restore',
+        url: 'api/files/restore',
     },
     files_change: {
         type: 'POST',
-        url: 'API/files/change',
+        url: 'api/files/change',
     },
     files_modifykeyword: {
         type: 'POST',
-        url: 'API/files/modifykeyword',
+        url: 'api/files/modifykeyword',
     },
     files_compile: {
         type: 'GET',
-        url: 'API/files/compile',
+        url: 'api/files/compile',
     },
     files_publish: {
         type: 'POST',
-        url: 'API/files/publish',
+        url: 'api/files/publish',
     },
     files_gethistory: {
         type: 'POST',
-        url: 'API/files/gethistory',
+        url: 'api/files/gethistory',
     },
     shortener_shorten: {
         type: 'POST',
-        url: 'API/shortener/shorten',
+        url: 'api/shortener/shorten',
     },
     shortener_expand: {
         type: 'POST',
-        url: 'API/shortener/expand',
+        url: 'api/shortener/expand',
     },
     clear_test: {
         type: 'POST',
-        url: 'API/draw/clear_test',
+        url: 'api/draw/clear_test',
     },
     tactical_targets: {
         type: 'GET',
-        url: 'API/tactical/targets',
+        url: 'api/tactical/targets',
     },
     datasets_get: {
         type: 'POST',
-        url: 'API/datasets/get',
+        url: 'api/datasets/get',
     },
     geodatasets_get: {
         type: 'GET',
-        url: 'API/geodatasets/get',
+        url: 'api/geodatasets/get',
+    },
+    geodatasets_intersect: {
+        type: 'POST',
+        url: 'api/geodatasets/intersect',
+    },
+    geodatasets_aggregations: {
+        type: 'GET',
+        url: 'api/geodatasets/aggregations',
     },
     geodatasets_search: {
         type: 'POST',
-        url: 'API/geodatasets/search',
+        url: 'api/geodatasets/search',
     },
     spatial_published: {
         type: 'POST',
-        url: 'API/spatial/published',
+        url: 'api/spatial/published',
     },
     query_tileset_times: {
         type: 'GET',
-        url: 'API/utils/queryTilesetTimes',
+        url: 'api/utils/queryTilesetTimes',
     },
 }
 

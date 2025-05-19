@@ -6,7 +6,7 @@ let setup = {
   //Once the app initializes
   onceInit: (s) => {
     s.app.use(
-      s.ROOT_PATH + "/API/geodatasets",
+      s.ROOT_PATH + "/api/geodatasets",
       s.ensureAdmin(),
       s.checkHeadersCodeInjection,
       s.setContentType,

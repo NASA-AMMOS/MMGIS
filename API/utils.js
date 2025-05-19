@@ -37,8 +37,11 @@ const Utils = {
     }
     return index;
   },
+  isNumeric: function (value) {
+    return /^\d+$/.test(value);
+  },
   setIn: function (obj, keyArray, value, splice, assumeLayerHierarchy) {
-    if (keyArray == null || keyArray === []) return false;
+    if (keyArray == null || keyArray.length === 0) return false;
     if (typeof keyArray === "string") keyArray = keyArray.split(".");
     let object = obj;
     for (let i = 0; i < keyArray.length - 1; i++) {
@@ -59,6 +62,34 @@ const Utils = {
       object.splice(parseInt(finalKey), 0, value);
     else object[keyArray[keyArray.length - 1]] = value;
     return true;
+  },
+  setIn2: function (obj, keyArray, value, force) {
+    if (keyArray == null || keyArray.length === 0) return null;
+    if (typeof keyArray === "string") keyArray = keyArray.split(".");
+    let object = obj;
+    for (let i = 0; i < keyArray.length - 1; i++) {
+      if (force) {
+        // If string but setting a number index at the end of keyArray, turn into array
+        if (i === keyArray.length - 2) {
+          if (
+            Utils.isNumeric(keyArray[i + 1]) &&
+            !Array.isArray(object[keyArray[i]])
+          )
+            object[keyArray[i]] = Array(object[keyArray[i]]);
+        }
+        if (!object.hasOwnProperty(keyArray[i])) {
+          object[keyArray[i]] =
+            i === keyArray.length - 2 && Utils.isNumeric(keyArray[i + 1])
+              ? []
+              : {};
+        }
+        object = object[keyArray[i]];
+      } else {
+        if (object.hasOwnProperty(keyArray[i])) object = object[keyArray[i]];
+        else return null;
+      }
+    }
+    object[keyArray[keyArray.length - 1]] = value;
   },
   traverseLayers: function (layers, onLayer) {
     let removedUUIDs = [];

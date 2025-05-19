@@ -17,6 +17,7 @@ var Kinds = {
         lastFeatureLayers
     ) {
         L_.setActiveFeature(layer)
+
         if (typeof kind !== 'string') return
 
         let layerVar = {}

@@ -296,6 +296,25 @@ router.post("/getbands", function (req, res) {
   );
 });
 
+//utils getminmax
+router.post("/getminmax", function (req, res) {
+  const path = encodeURIComponent(req.body.path);
+  const bands = encodeURIComponent(req.body.bands);
+
+  execFile(
+    "python",
+    ["private/api/gdalinfoMinMax.py", path, bands],
+    function (error, stdout, stderr) {
+      if (error) {
+        logger("warn", error);
+        res.status(400).send();
+      } else {
+        res.send(stdout);
+      }
+    }
+  );
+});
+
 //utils ll2aerll
 router.post("/ll2aerll", function (req, res) {
   const lng = encodeURIComponent(req.body.lng);

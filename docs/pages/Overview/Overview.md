@@ -25,6 +25,9 @@ nav_order: 0
 - Elevation profiler
 - Custom projections
 - Tiling scripts
+- COGs
+- TiTiler
+- STAC
 - And so much more...
 
 ## Contacts

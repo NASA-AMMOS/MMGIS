@@ -117,6 +117,7 @@ var IdentifierTool = {
         this.MMWebGISInterface.separateFromMMWebGIS()
         this.targetId = null
         L_.unsubscribeOnLayerToggle('IdentifierTool')
+        delete L_._toolCopyables.IdentifierTool
         this.made = false
     },
     fillURLParameters: function (url, layerUUID) {
@@ -203,8 +204,11 @@ var IdentifierTool = {
 
         for (let n in L_.layers.on) {
             if (L_.layers.on[n] == true) {
-                //We only want the tile layers
-                if (L_.layers.data[n].type == 'tile') {
+                //We only want the tile and image layers
+                if (
+                    L_.layers.data[n].type == 'tile' ||
+                    L_.layers.data[n].type == 'image'
+                ) {
                     let url =
                         L_.layers.data[n].url.indexOf('stac-collection:') ===
                             0 || L_.layers.data[n].url.indexOf('COG:') === 0
@@ -232,7 +236,9 @@ var IdentifierTool = {
                 IdentifierTool.activeLayerURLs[i].indexOf(
                     'stac-collection:'
                 ) === 0 ||
-                IdentifierTool.activeLayerURLs[i].indexOf('COG:') === 0
+                IdentifierTool.activeLayerURLs[i].indexOf('COG:') === 0 ||
+                L_.layers.data[IdentifierTool.activeLayerNames[i]].type ===
+                    'image'
             ) {
                 IdentifierTool.imageData[i] = false
                 trueValue = true
@@ -314,6 +320,7 @@ var IdentifierTool = {
         var value
         var liEls = []
         var colorString
+        let copyableValues = {}
         for (var i = 0; i < IdentifierTool.imageData.length; i++) {
             colorString = 'transparent'
             value = ''
@@ -334,7 +341,9 @@ var IdentifierTool = {
                 (IdentifierTool.activeLayerURLs[i].startsWith(
                     'stac-collection:'
                 ) ||
-                    IdentifierTool.activeLayerURLs[i].startsWith('COG:'))
+                    IdentifierTool.activeLayerURLs[i].startsWith('COG:') ||
+                    L_.layers.data[IdentifierTool.activeLayerNames[i]].type ===
+                        'image')
             ) {
                 IdentifierTool.vars.data[IdentifierTool.activeLayerNames[i]] =
                     IdentifierTool.vars.data[
@@ -360,7 +369,6 @@ var IdentifierTool = {
             ) {
                 const data =
                     IdentifierTool.vars.data[IdentifierTool.activeLayerNames[i]]
-
                 for (let j = 0; j < data.data.length; j++) {
                     const d = data.data[j]
                     if (pxRGBA) {
@@ -379,6 +387,7 @@ var IdentifierTool = {
                                                     i
                                                 ]
                                             ].data[j]
+
                                         let htmlValues = ''
                                         // first empty it
                                         $(
@@ -429,6 +438,23 @@ var IdentifierTool = {
                                             }
                                             cnt++
                                         }
+                                        copyableValues[
+                                            `${
+                                                d.name ||
+                                                L_.layers.data[
+                                                    IdentifierTool
+                                                        .activeLayerNames[i]
+                                                ].display_name
+                                            }`
+                                        ] = value
+                                        L_._toolCopyables.IdentifierTool = {
+                                            title: 'Copy Last Identified Values',
+                                            copyable: {
+                                                lng: lnglatzoom[0],
+                                                lat: lnglatzoom[1],
+                                                identified: copyableValues,
+                                            },
+                                        }
                                         $(
                                             `#identifierToolIdPixelCursorInfo_${i}_${j}`
                                         ).html(htmlValues)
@@ -468,28 +494,28 @@ var IdentifierTool = {
 
                     // prettier-ignore
                     liEls.push(
-                        [`<li style="padding: 4px 9px; border-top: ${liEls.length === 1 ? 'none' : '1px solid var(--color-a2)'};">`,
-                            `<div style="display: flex;">`,
-                                `<div style='width: 14px; height: 14px; margin-right: 8px; margin-top: 2px; background: ${colorString};'></div>`,
-                                `<div style="letter-spacing: 0.5px; white-space: nowrap;">`,
-                                    d.name ||
-                                        L_.layers.data[
-                                            IdentifierTool.activeLayerNames[i]
-                                        ].display_name,
-                                `</div>`,
+                    [`<li style="padding: 4px 9px; border-top: ${liEls.length === 1 ? 'none' : '1px solid var(--color-a2)'};">`,
+                        `<div style="display: flex;">`,
+                            `<div style='width: 14px; height: 14px; margin-right: 8px; margin-top: 2px; background: ${colorString};'></div>`,
+                            `<div style="letter-spacing: 0.5px; white-space: nowrap;">`,
+                                d.name ||
+                                    L_.layers.data[
+                                        IdentifierTool.activeLayerNames[i]
+                                    ].display_name,
                             `</div>`,
-                            `<div id='identifierToolIdPixelCursorInfo_${i}_${j}' style='padding-left: 20px;'>`,
-                            
-                                (trueValue || value == null || value == '') ? [
-                                    '<div style="width: 100%; height: 22px; display: flex; justify-content: space-between;">',
-                                        '<div></div>',
-                                        '<div style="width: calc(100% - 2px); margin: 4px 2px 4px 0px; background: var(--color-a1);">&nbsp;</div>',
-                                    '</div>'].join('') : value,
-                                    
-                            `</div>`,
-                        '</li>',
-                        ].join('')
-                    )
+                        `</div>`,
+                        `<div id='identifierToolIdPixelCursorInfo_${i}_${j}' style='padding-left: 20px;'>`,
+                        
+                            (trueValue || value == null || value == '') ? [
+                                '<div style="width: 100%; height: 22px; display: flex; justify-content: space-between;">',
+                                    '<div></div>',
+                                    '<div style="width: calc(100% - 2px); margin: 4px 2px 4px 0px; background: var(--color-a1);">&nbsp;</div>',
+                                '</div>'].join('') : value,
+                                
+                        `</div>`,
+                    '</li>',
+                    ].join('')
+                )
                 }
             }
         }
@@ -772,7 +798,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
             })
             .catch((err) => {})
         return
-    } else if (url != null && url.startsWith('/vsicurl/')) {
+    } else if (url.startsWith('/vsicurl/') || url.startsWith('Missions/')) {
         dataPath = url
     } else {
         dataPath = 'Missions/' + L_.mission + '/' + url
@@ -791,7 +817,19 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
             path: dataPath,
         },
         (data) => {
-            if (typeof callback === 'function') callback(data)
+            //Convert python's Nones to nulls
+            if (typeof data === 'string') {
+                data = data.replace(/none/gi, 'null')
+                if (data.length > 2) {
+                    data = JSON.parse(data)
+                    if (typeof callback === 'function') callback(data)
+                }
+            }
+            if (typeof data === 'object') {
+                if (data.length > 0) {
+                    if (typeof callback === 'function') callback(data)
+                }
+            }
         },
         function () {
             console.warn('IdentifierTool: Failed to query bands.')

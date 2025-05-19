@@ -20,7 +20,10 @@ var colorFilterExtension = {
     getTileUrl: function (coords) {
         let url = L.TileLayer.prototype.getTileUrl.call(this, coords)
 
-        if (this.options.splitColonType === 'stac-collection') {
+        if (
+            this.options.splitColonType === 'stac-collection' ||
+            this.options.splitColonType === 'COG'
+        ) {
             let datetime
             if (this.options.endtime != null) {
                 if (this.options.starttime != null) {
@@ -32,12 +35,19 @@ var colorFilterExtension = {
             if (datetime != null)
                 url += `${
                     url.indexOf('?') === -1 ? '?' : '&'
-                }datetime=${datetime}&exitwhenfull=false&skipcovered=false`
-            else
+                }datetime=${datetime}`
+
+            if (this.options.splitColonType === 'stac-collection') {
                 url += `${
                     url.indexOf('?') === -1 ? '?' : '&'
                 }exitwhenfull=false&skipcovered=false`
-            if (this.options.cogMin != null && this.options.cogMax != null) {
+            }
+
+            if (
+                this.options.cogTransform === true &&
+                this.options.cogMin != null &&
+                this.options.cogMax != null
+            ) {
                 url += `${url.indexOf('?') === -1 ? '?' : '&'}rescale=[${
                     this.options.currentCogMin != null
                         ? this.options.currentCogMin
@@ -52,6 +62,22 @@ var colorFilterExtension = {
                         url.indexOf('?') === -1 ? '?' : '&'
                     }colormap_name=${this.options.cogColormap}`
                 }
+            }
+
+            if (mmgisglobal.options?.stac?.mosaicItemLimit != null) {
+                url += `${url.indexOf('?') === -1 ? '?' : '&'}items_limit=${
+                    mmgisglobal.options.stac.mosaicItemLimit
+                }`
+            }
+            if (mmgisglobal.options?.stac?.mosaicScanLimit != null) {
+                url += `${url.indexOf('?') === -1 ? '?' : '&'}scan_limit=${
+                    mmgisglobal.options.stac.mosaicScanLimit
+                }`
+            }
+            if (mmgisglobal.options?.stac?.mosaicTimeLimit != null) {
+                url += `${url.indexOf('?') === -1 ? '?' : '&'}time_limit=${
+                    mmgisglobal.options.stac.mosaicTimeLimit
+                }`
             }
         }
 

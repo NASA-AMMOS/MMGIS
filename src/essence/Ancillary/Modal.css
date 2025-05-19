@@ -38,3 +38,14 @@
     left: 50%;
     top: 50%;
 }
+
+.mmgisModal .dropdown {
+    background-color: #2c2f30;
+    border: none;
+    margin: 1px 0px;
+    width: 120px;
+    height: 28px;
+    font-size: 14px;
+    color: var(--color-f);
+    padding: 0px 2px;
+}

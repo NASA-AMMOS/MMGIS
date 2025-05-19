@@ -109,6 +109,7 @@ function getClientEnvironment(publicUrl) {
         THIRD_PARTY_COOKIES: process.env.THIRD_PARTY_COOKIES || "",
         SKIP_CLIENT_INITIAL_LOGIN: process.env.SKIP_CLIENT_INITIAL_LOGIN || "",
         IS_DOCKER: process.env.IS_DOCKER,
+        WITH_TITILER: process.env.WITH_TITILER,
       }
     );
   // Stringify all values so we can feed into webpack DefinePlugin

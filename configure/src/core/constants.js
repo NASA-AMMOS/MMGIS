@@ -1,6 +1,6 @@
 export const publicUrl = `${window.location.pathname
-  .replace(`configure-beta`, "")
-  .replace(/^\//g, "")}configure-beta`;
+  .replace(`configure`, "")
+  .replace(/^\//g, "")}configure`;
 
 export const endpoints = {};
 

@@ -38,9 +38,10 @@ export const setIn = (obj, keyArray, value, force) => {
         if (isNumeric(keyArray[i + 1]) && !Array.isArray(object[keyArray[i]]))
           object[keyArray[i]] = Array(object[keyArray[i]]);
       }
-      if (!object.hasOwnProperty(keyArray[i]))
+      if (!object.hasOwnProperty(keyArray[i])) {
         object[keyArray[i]] =
           i === keyArray.length - 2 && isNumeric(keyArray[i + 1]) ? [] : {};
+      }
       object = object[keyArray[i]];
     } else {
       if (object.hasOwnProperty(keyArray[i])) object = object[keyArray[i]];
@@ -195,4 +196,11 @@ export const downloadObject = (
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
   }
+};
+
+export const trimString = (string, length) => {
+  if (typeof string !== "string") return string;
+  return string.length > length
+    ? string.substring(0, length).trimEnd() + "..."
+    : string;
 };

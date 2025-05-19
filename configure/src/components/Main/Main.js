@@ -40,6 +40,7 @@ import Datasets from "../../pages/Datasets/Datasets";
 import WebHooks from "../../pages/WebHooks/WebHooks";
 import APIs from "../../pages/APIs/APIs";
 import STAC from "../../pages/STAC/STAC";
+import GeneralOptions from "../../pages/GeneralOptions/GeneralOptions";
 
 const useStyles = makeStyles((theme) => ({
   Main: {
@@ -141,6 +142,22 @@ export default function Main() {
         "get",
         { mission: mission },
         (res) => {
+          // This fixes an issue where the default configure template wrongly
+          // had time as an array instead of an object, which made it uneditable.
+          // This can probably be safely removed at some later point
+          if (res && res.time && Array.isArray(res.time)) res.time = {};
+
+          // Similar issue but with the panels array to an object as well
+          if (res && res.panels && Array.isArray(res.panels)) {
+            const hasViewer = res.panels.indexOf("viewer") !== -1;
+            const hasMap = res.panels.indexOf("map") !== -1;
+            const hasGlobe = res.panels.indexOf("globe") !== -1;
+            res.panels = {};
+            res.panels.viewer = hasViewer;
+            res.panels.map = hasMap;
+            res.panels.globe = hasGlobe;
+          }
+
           dispatch(setConfiguration(res));
           dispatch(clearLockConfig({}));
         },
@@ -174,6 +191,9 @@ export default function Main() {
       break;
     case "stac":
       Page = <STAC />;
+      break;
+    case "general_options":
+      Page = <GeneralOptions />;
       break;
     default:
   }

@@ -1,0 +1,4686 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "MMGIS",
+    "version": "4.0.0",
+    "description": "A web-based mapping and localization solution for science operation on planetary missions."
+  },
+  "tags": [],
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "MMGIS",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "example": "<!DOCTYPE html><html></html>"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["Webpages"]
+      }
+    },
+    "/configure": {
+      "get": {
+        "summary": "MMGIS Configure CMS",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "example": "<!DOCTYPE html><html></html>"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["Webpages"]
+      }
+    },
+    "/configure-legacy": {
+      "get": {
+        "summary": "MMGIS Configure CMS (legacy)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "example": "<!DOCTYPE html><html></html>"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["Webpages"]
+      }
+    },
+    "/api/docs": {
+      "get": {
+        "summary": "MMGIS API Documentation",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "example": "<!DOCTYPE html><html></html>"
+                }
+              }
+            }
+          }
+        },
+        "tags": ["Webpages"]
+      }
+    },
+    "/api/configure/get": {
+      "get": {
+        "summary": "Get mission configuration",
+        "tags": ["Configure"],
+        "parameters": [
+          {
+            "name": "mission",
+            "in": "query",
+            "description": "The name of a pre-existing MMGIS configured mission.",
+            "example": "ExampleMission",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "description": "The version number of the provided mission's configuration object. If unset, gets the latest version.",
+            "example": 3,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "full",
+            "in": "query",
+            "description": "If true, return a fuller response of which the configuration object will be in the 'config' key, otherwise return the raw configuration object directly.",
+            "example": true,
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get mission config response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": "example_config",
+                    "status": "success"
+                  },
+                  "success_full": {
+                    "summary": "Success: Full",
+                    "value": {
+                      "status": "success",
+                      "mission": "ExampleMission",
+                      "config": "example_config",
+                      "version": 1
+                    }
+                  },
+                  "failure_not_found": {
+                    "summary": "Failure: Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Mission not found."
+                    }
+                  },
+                  "failure_version_not_found": {
+                    "summary": "Failure: Version Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Mission 'ExampleMission v3' not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/add": {
+      "post": {
+        "summary": "Add a new mission configuration",
+        "tags": ["Configure"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mission": {
+                    "type": "string"
+                  },
+                  "config": {
+                    "type": "object"
+                  },
+                  "makedir": {
+                    "type": "string"
+                  }
+                },
+                "required": ["mission"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Add mission config response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "mission": "example_mission",
+                      "version": 1
+                    }
+                  },
+                  "failure_bad_name": {
+                    "summary": "Failure: Bad Mission Name",
+                    "value": {
+                      "status": "failure",
+                      "message": "Bad mission name."
+                    }
+                  },
+                  "failure_exists": {
+                    "summary": "Failure: Mission Exists",
+                    "value": {
+                      "status": "failure",
+                      "message": "Mission already exists."
+                    }
+                  },
+                  "failure_create": {
+                    "summary": "Failure: Create Mission",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to create new mission."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/upsert": {
+      "post": {
+        "summary": "Upsert a mission configuration",
+        "tags": ["Configure"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mission": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "integer"
+                  },
+                  "config": {
+                    "type": "object"
+                  },
+                  "forceClientUpdate": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["mission"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upsert mission config response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "mission": "example_mission",
+                      "version": 2,
+                      "newlyAddedUUIDs": "example_uuids"
+                    }
+                  },
+                  "failure_invalid_config": {
+                    "summary": "Failure: Invalid Config",
+                    "value": {
+                      "status": "failure",
+                      "message": "Configuration object is invalid."
+                    }
+                  },
+                  "failure_bad_uuids": {
+                    "summary": "Failure: Bad UUIDs",
+                    "value": {
+                      "status": "failure",
+                      "message": "There are duplicate or bad UUIDs.",
+                      "badUUIDs": "example_bad_uuids"
+                    }
+                  },
+                  "failure_create": {
+                    "summary": "Failure: Create Config",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to update mission."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/missions": {
+      "get": {
+        "summary": "Get all missions",
+        "tags": ["Configure"],
+        "parameters": [
+          {
+            "name": "full",
+            "in": "query",
+            "description": "If true, return a fuller response of which the configuration object will be in the 'config' key, otherwise return the raw configuration object directly.",
+            "example": true,
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get missions response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success_full": {
+                    "summary": "Success: Full",
+                    "value": {
+                      "status": "success",
+                      "missions": ["example_mission_1", "example_mission_2"]
+                    }
+                  },
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "missions": ["example_mission_1", "example_mission_2"]
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to find missions."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/versions": {
+      "get": {
+        "summary": "Get all versions of a mission",
+        "tags": ["Configure"],
+        "parameters": [
+          {
+            "name": "mission",
+            "in": "query",
+            "description": "The name of a pre-existing MMGIS configured mission.",
+            "example": "ExampleMission",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get mission versions response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "versions": [
+                        {
+                          "mission": "ExampleMission",
+                          "version": 0,
+                          "createdAt": "2022-05-04T17:28:55.735Z"
+                        },
+                        {
+                          "mission": "ExampleMission",
+                          "version": 1,
+                          "createdAt": "2022-05-04T17:32:32.543Z"
+                        }
+                      ]
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to find versions."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/clone": {
+      "post": {
+        "summary": "Clone a mission configuration",
+        "tags": ["Configure"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "existingMission": {
+                    "type": "string"
+                  },
+                  "cloneMission": {
+                    "type": "string"
+                  },
+                  "hasPaths": {
+                    "type": "string"
+                  }
+                },
+                "required": ["existingMission", "cloneMission"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Clone mission config response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "mission": "cloned_mission",
+                      "version": 1
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to clone mission."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/destroy": {
+      "post": {
+        "summary": "Delete a mission configuration",
+        "tags": ["Configure"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mission": {
+                    "type": "string"
+                  }
+                },
+                "required": ["mission"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Delete mission config response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully Deleted Mission: example_mission"
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to delete mission example_mission."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/validate": {
+      "post": {
+        "summary": "Validate a mission configuration",
+        "tags": ["Configure"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "config": {
+                    "type": "object"
+                  }
+                },
+                "required": ["config"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validate mission config response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Configuration object is valid."
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Configuration object is invalid.",
+                      "errors": "example_errors"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/addLayer": {
+      "post": {
+        "summary": "Add a layer to a mission configuration",
+        "tags": ["Configure"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mission": {
+                    "type": "string"
+                  },
+                  "layer": {
+                    "type": "object"
+                  },
+                  "placement": {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      }
+                    }
+                  },
+                  "forceClientUpdate": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["mission", "layer"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Add layer response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Added layer to the example_mission mission. Configuration versioned 2.",
+                      "mission": "example_mission",
+                      "version": 2,
+                      "newlyAddedUUIDs": "example_uuids"
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to add layer. setIn() operation failed."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/updateLayer": {
+      "post": {
+        "summary": "Update a layer in a mission configuration",
+        "tags": ["Configure"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mission": {
+                    "type": "string"
+                  },
+                  "layerUUID": {
+                    "type": "string"
+                  },
+                  "layer": {
+                    "type": "object"
+                  },
+                  "placement": {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      }
+                    }
+                  },
+                  "forceClientUpdate": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["mission", "layerUUID", "layer"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Update layer response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Updated layer 'example_layer_uuid' in the example_mission mission. Configuration versioned 2."
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to update layer 'example_layer_uuid'. Uncaught reason."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/removeLayer": {
+      "post": {
+        "summary": "Remove a layer from a mission configuration",
+        "tags": ["Configure"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mission": {
+                    "type": "string"
+                  },
+                  "layerUUID": {
+                    "type": "string"
+                  },
+                  "forceClientUpdate": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["mission", "layerUUID"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Remove layer response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully removed layers. Configuration versioned 2.",
+                      "removedUUIDs": "example_removed_uuids",
+                      "unableToRemoveUUIDs": "example_unable_to_remove_uuids"
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to remove layers. Layer not found.",
+                      "unableToRemoveUUIDs": "example_unable_to_remove_uuids"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/getGeneralOptions": {
+      "get": {
+        "summary": "Get the system-wide configured options",
+        "tags": ["Configure"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Get general options response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "options": {},
+                    "status": "success"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/updateGeneralOptions": {
+      "post": {
+        "summary": "Update the system-wide configured options. Fully replaces the existing general options.",
+        "tags": ["Configure"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Update general options response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "status": "success"
+                  },
+                  "failure": {
+                    "status": "failure",
+                    "message": "Failed to update the general options."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/updateInitialView": {
+      "post": {
+        "summary": "Update the initial view of a mission configuration",
+        "tags": ["Configure"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mission": {
+                    "type": "string"
+                  },
+                  "latitude": {
+                    "type": "number"
+                  },
+                  "longitude": {
+                    "type": "number"
+                  },
+                  "zoom": {
+                    "type": "integer"
+                  }
+                },
+                "required": ["mission"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Update initial view response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully updated initial view of the 'example_mission' mission."
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to update the initial view of the 'example_mission' mission. Uncaught reason."
+                    }
+                  },
+                  "no_change": {
+                    "summary": "No Change",
+                    "value": {
+                      "status": "success",
+                      "message": "The initial view of the 'example_mission' mission needs no changes."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/datasets/get": {
+      "post": {
+        "summary": "Get dataset rows based on search",
+        "tags": ["Datasets"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "queries": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "dataset": {
+                          "type": "string"
+                        },
+                        "column": {
+                          "type": "string"
+                        },
+                        "search": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["dataset", "column", "search"]
+                    }
+                  }
+                },
+                "required": ["queries"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Get dataset rows response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": [
+                        {
+                          "dataset": "example_dataset",
+                          "column": "example_column",
+                          "search": "example_search",
+                          "table": "example_table",
+                          "results": "example_results"
+                        }
+                      ]
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/datasets/entries": {
+      "post": {
+        "summary": "Get a list of entries in the datasets table",
+        "tags": ["Datasets"],
+        "responses": {
+          "200": {
+            "description": "Get entries response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": {
+                        "entries": [
+                          {
+                            "name": "example_name",
+                            "updated": "example_updated",
+                            "occurrences": "example_occurrences"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/datasets/search": {
+      "post": {
+        "summary": "Search through a dataset",
+        "tags": ["Datasets"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "layer": {
+                    "type": "string"
+                  },
+                  "key": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": ["layer", "key", "value"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search dataset response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": "example_search_results"
+                    }
+                  },
+                  "failure_layer_not_found": {
+                    "summary": "Failure: Layer Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Layer not found."
+                    }
+                  },
+                  "failure_sql_error": {
+                    "summary": "Failure: SQL Error",
+                    "value": {
+                      "status": "failure",
+                      "message": "SQL error."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/datasets/download": {
+      "get": {
+        "summary": "Download a dataset",
+        "tags": ["Datasets"],
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "query",
+            "description": "The name of the Dataset to download.",
+            "example": "ExampleDataset",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Download dataset response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": "ExampleDataset"
+                    }
+                  },
+                  "failure_layer_not_found": {
+                    "summary": "Failure: Layer Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Layer not found."
+                    }
+                  },
+                  "failure_sql_error": {
+                    "summary": "Failure: SQL Error",
+                    "value": {
+                      "status": "failure",
+                      "message": "SQL error."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/datasets/upload": {
+      "post": {
+        "summary": "Upload a dataset",
+        "tags": ["Datasets"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "header": {
+                    "type": "string"
+                  },
+                  "upsert": {
+                    "type": "string"
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": ["name", "header", "upsert", "file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upload dataset response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "example_message",
+                      "body": {}
+                    }
+                  },
+                  "failure_header": {
+                    "summary": "Failure: Invalid Header",
+                    "value": {
+                      "status": "failed",
+                      "message": "The field 'header' is not valid json array."
+                    }
+                  },
+                  "failure_remove_duplicates": {
+                    "summary": "Failure: Remove Duplicates",
+                    "value": {
+                      "status": "failed",
+                      "message": "Upload but failed to remove duplicated rows."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/datasets/recreate": {
+      "post": {
+        "summary": "Recreate a dataset",
+        "tags": ["Datasets"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "header": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": ["full", "append"]
+                  },
+                  "csv": {
+                    "type": "string"
+                  }
+                },
+                "required": ["name", "header", "mode", "csv"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recreate dataset response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "",
+                      "body": {}
+                    }
+                  },
+                  "failure_table_name": {
+                    "summary": "Failure: Malformed Table Name",
+                    "value": {
+                      "status": "failed",
+                      "message": "Malformed table name"
+                    }
+                  },
+                  "failure_recreation": {
+                    "summary": "Failure: Recreation Error",
+                    "value": {
+                      "status": "failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/draw": {
+      "post": {
+        "summary": "Test draw endpoint",
+        "tags": ["Drawing"],
+        "responses": {
+          "200": {
+            "description": "Test draw response",
+            "content": {
+              "text/plain": {
+                "example": "test draw"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/draw/add": {
+      "post": {
+        "summary": "Add a feature",
+        "tags": ["Drawing"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file_id": {
+                    "type": "number"
+                  },
+                  "parent": {
+                    "type": "number"
+                  },
+                  "order": {
+                    "type": "string",
+                    "enum": ["min", "max"]
+                  },
+                  "keywords": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "intent": {
+                    "type": "string"
+                  },
+                  "properties": {
+                    "type": "object"
+                  },
+                  "geometry": {
+                    "type": "object"
+                  },
+                  "clip": {
+                    "type": "string",
+                    "enum": ["under", "over"]
+                  },
+                  "to_history": {
+                    "type": "boolean"
+                  },
+                  "test": {
+                    "type": "string"
+                  }
+                },
+                "required": ["file_id", "geometry"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Add feature response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully added a new feature.",
+                      "body": {
+                        "id": "example_id",
+                        "intent": "example_intent"
+                      }
+                    }
+                  },
+                  "failure_access_file": {
+                    "summary": "Failure: Access File",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to access file.",
+                      "body": {}
+                    }
+                  },
+                  "failure_add_feature": {
+                    "summary": "Failure: Add Feature",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to add new feature.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/draw/edit": {
+      "post": {
+        "summary": "Edit a feature",
+        "tags": ["Drawing"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file_id": {
+                    "type": "number"
+                  },
+                  "feature_id": {
+                    "type": "number"
+                  },
+                  "parent": {
+                    "type": "number"
+                  },
+                  "keywords": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "intent": {
+                    "type": "string"
+                  },
+                  "properties": {
+                    "type": "object"
+                  },
+                  "geometry": {
+                    "type": "object"
+                  },
+                  "to_history": {
+                    "type": "boolean"
+                  },
+                  "reassignUUID": {
+                    "type": "string",
+                    "enum": ["true", "false"]
+                  },
+                  "addIfNotFound": {
+                    "type": "boolean"
+                  },
+                  "test": {
+                    "type": "string"
+                  }
+                },
+                "required": ["file_id", "feature_id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Edit feature response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully edited feature.",
+                      "body": {
+                        "id": "example_id",
+                        "uuid": "example_uuid",
+                        "intent": "example_intent"
+                      }
+                    }
+                  },
+                  "failure_edit_feature": {
+                    "summary": "Failure: Edit Feature",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to edit feature.",
+                      "body": {
+                        "error": "example_error"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/draw/remove": {
+      "post": {
+        "summary": "Remove a feature",
+        "tags": ["Drawing"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file_id": {
+                    "type": "number"
+                  },
+                  "feature_id": {
+                    "type": "number"
+                  },
+                  "test": {
+                    "type": "string"
+                  }
+                },
+                "required": ["file_id", "feature_id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Remove feature response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Feature removed.",
+                      "body": {}
+                    }
+                  },
+                  "failure_access_file": {
+                    "summary": "Failure: Access File",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to access file.",
+                      "body": {}
+                    }
+                  },
+                  "failure_remove_feature": {
+                    "summary": "Failure: Remove Feature",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to remove feature.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/draw/undo": {
+      "post": {
+        "summary": "Undo drawings",
+        "tags": ["Drawing"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file_id": {
+                    "type": "number"
+                  },
+                  "undo_time": {
+                    "type": "number"
+                  },
+                  "test": {
+                    "type": "string"
+                  }
+                },
+                "required": ["file_id", "undo_time"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Undo drawings response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Undo successful.",
+                      "body": {}
+                    }
+                  },
+                  "failure_access_file": {
+                    "summary": "Failure: Access File",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to access file.",
+                      "body": {}
+                    }
+                  },
+                  "failure_undo": {
+                    "summary": "Failure: Undo",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to undo.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/draw/merge": {
+      "post": {
+        "summary": "Merge features",
+        "tags": ["Drawing"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file_id": {
+                    "type": "number"
+                  },
+                  "prop_id": {
+                    "type": "number"
+                  },
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  "test": {
+                    "type": "string"
+                  }
+                },
+                "required": ["file_id", "prop_id", "ids"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Merge features response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully merged features.",
+                      "body": {
+                        "ids": "example_new_ids"
+                      }
+                    }
+                  },
+                  "failure_access_file": {
+                    "summary": "Failure: Access File",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to access file.",
+                      "body": {}
+                    }
+                  },
+                  "failure_merge": {
+                    "summary": "Failure: Merge",
+                    "value": {
+                      "status": "failure",
+                      "message": "Merge failure.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/draw/split": {
+      "post": {
+        "summary": "Split features",
+        "tags": ["Drawing"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file_id": {
+                    "type": "number"
+                  },
+                  "split": {
+                    "type": "object"
+                  },
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  "test": {
+                    "type": "string"
+                  }
+                },
+                "required": ["file_id", "split", "ids"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Split features response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully split features.",
+                      "body": {
+                        "ids": "example_new_ids"
+                      }
+                    }
+                  },
+                  "failure_access_file": {
+                    "summary": "Failure: Access File",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to access file.",
+                      "body": {}
+                    }
+                  },
+                  "failure_split": {
+                    "summary": "Failure: Split",
+                    "value": {
+                      "status": "failure",
+                      "message": "Split failure.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/draw/replace": {
+      "post": {
+        "summary": "Replace features",
+        "tags": ["Drawing"],
+        "responses": {
+          "200": {
+            "description": "Replace features response",
+            "content": {
+              "text/plain": {
+                "example": "test draw replace"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/draw/sendtofront": {
+      "post": {
+        "summary": "Send feature to front",
+        "tags": ["Drawing"],
+        "responses": {
+          "200": {
+            "description": "Send feature to front response",
+            "content": {
+              "text/plain": {
+                "example": "test draw front"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/draw/sendtoback": {
+      "post": {
+        "summary": "Send feature to back",
+        "tags": ["Drawing"],
+        "responses": {
+          "200": {
+            "description": "Send feature to back response",
+            "content": {
+              "text/plain": {
+                "example": "test draw back"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/draw/clear_test": {
+      "post": {
+        "summary": "Clear testing tables",
+        "tags": ["Drawing"],
+        "responses": {
+          "200": {
+            "description": "Clear testing tables response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully cleared tables.",
+                      "body": {}
+                    }
+                  },
+                  "failure_clear_table": {
+                    "summary": "Failure: Clear Table",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to clear table.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files": {
+      "post": {
+        "summary": "Test files endpoint",
+        "tags": ["Drawing Files"],
+        "responses": {
+          "200": {
+            "description": "Test files response",
+            "content": {
+              "text/plain": {
+                "example": "test files"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/getfiles": {
+      "post": {
+        "summary": "Get all owned or public files",
+        "tags": ["Drawing Files"],
+        "requestBody": {
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "description": "Get files response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully got files.",
+                      "body": "example_files"
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to get files.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/getfile": {
+      "post": {
+        "summary": "Get a geojson of a file",
+        "tags": ["Drawing Files"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  },
+                  "time": {
+                    "type": "number"
+                  },
+                  "published": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Get file response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully got file.",
+                      "body": "example_geojson"
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to get file.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/make": {
+      "post": {
+        "summary": "Make a new file",
+        "tags": ["Drawing Files"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file_owner": {
+                    "type": "string"
+                  },
+                  "file_name": {
+                    "type": "string"
+                  },
+                  "file_description": {
+                    "type": "string"
+                  },
+                  "intent": {
+                    "type": "string"
+                  },
+                  "geojson": {
+                    "type": "object"
+                  },
+                  "template": {
+                    "type": "string"
+                  },
+                  "test": {
+                    "type": "string"
+                  }
+                },
+                "required": ["file_owner", "file_name"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Make file response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success_geojson": {
+                    "summary": "Success: GeoJSON",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully made a new file from geojson.",
+                      "body": {
+                        "file_id": "example_id"
+                      }
+                    }
+                  },
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully made a new file.",
+                      "body": {
+                        "file_id": "example_id"
+                      }
+                    }
+                  },
+                  "failure_owner_group": {
+                    "summary": "Failure: Owner Group",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to make a new file. Owner can't be \"group\".",
+                      "body": {}
+                    }
+                  },
+                  "failure_geojson_history": {
+                    "summary": "Failure: GeoJSON History",
+                    "value": {
+                      "status": "failure",
+                      "message": "Upload GeoJSON but failed to update history!",
+                      "body": {}
+                    }
+                  },
+                  "failure_geojson": {
+                    "summary": "Failure: GeoJSON",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to upload GeoJSON!",
+                      "body": {}
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to make a new file.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/remove": {
+      "post": {
+        "summary": "Remove/Hide a file",
+        "tags": ["Drawing Files"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  },
+                  "test": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Remove file response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "File removed.",
+                      "body": {}
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to find and remove file.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/restore": {
+      "post": {
+        "summary": "Restore/Unhide a file",
+        "tags": ["Drawing Files"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  },
+                  "test": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Restore file response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "File restored.",
+                      "body": {}
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to find and restore file.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/change": {
+      "post": {
+        "summary": "Update a file's name and/or description",
+        "tags": ["Drawing Files"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  },
+                  "file_name": {
+                    "type": "string"
+                  },
+                  "file_description": {
+                    "type": "string"
+                  },
+                  "public": {
+                    "type": "integer",
+                    "enum": [0, 1]
+                  },
+                  "template": {
+                    "type": "string"
+                  },
+                  "publicity_type": {
+                    "type": "string",
+                    "enum": [null, "read_only", "list_edit", "all_edit"]
+                  },
+                  "public_editors": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "test": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Change file response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "File edited.",
+                      "body": {}
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to edit file.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/modifykeyword": {
+      "post": {
+        "summary": "Rename tags/folders/efolders",
+        "tags": ["Drawing Files"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "keyword": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["tags", "folders", "efolders"]
+                  },
+                  "newKeyword": {
+                    "type": "string"
+                  },
+                  "test": {
+                    "type": "string"
+                  }
+                },
+                "required": ["keyword", "type"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Modify keyword response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully modified keyword.",
+                      "body": {}
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to modify keyword.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/compile": {
+      "get": {
+        "summary": "Compile Lead file",
+        "tags": ["Drawing Files"],
+        "parameters": [
+          {
+            "name": "time",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "verbose",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "test",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Compile file response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "File compiled.",
+                      "body": "example_body"
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to compile file.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/publish": {
+      "post": {
+        "summary": "Publish Lead file",
+        "tags": ["Drawing Files"],
+        "requestBody": {
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "description": "Publish file response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Published.",
+                      "body": {}
+                    }
+                  },
+                  "failure_unauthorized": {
+                    "summary": "Failure: Unauthorized",
+                    "value": {
+                      "status": "failure",
+                      "message": "Unauthorized to publish.",
+                      "body": {}
+                    }
+                  },
+                  "failure_publish": {
+                    "summary": "Failure: Publish",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to publish.",
+                      "body": {}
+                    }
+                  },
+                  "failure_issues": {
+                    "summary": "Failure: Issues",
+                    "value": {
+                      "status": "failure",
+                      "message": "File has unresolved issues.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/gethistory": {
+      "post": {
+        "summary": "Get a file's history",
+        "tags": ["Drawing Files"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  },
+                  "test": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Get file history response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully got history.",
+                      "body": "example_histories"
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to get history.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/get/{layer}": {
+      "get": {
+        "summary": "Get a geodataset table as geojson",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "The name of a GeoDataset to get.",
+            "example": "ExampleGeoDataset",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Whether to return a geojson response or Mapbox vector tiles. Defaults to 'geojson'.",
+            "example": "geojson",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["geojson", "mvt"]
+            }
+          },
+          {
+            "name": "x",
+            "in": "query",
+            "description": "In the case of type=mvt, the x of the vector tile to return.",
+            "example": 28,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "y",
+            "in": "query",
+            "description": "In the case of type=mvt, the y of the vector tile to return.",
+            "example": 12,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "z",
+            "in": "query",
+            "description": "In the case of type=mvt, the z of the vector tile to return.",
+            "example": 4,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "minx",
+            "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the minimum x/longitude of such bounding box.",
+            "example": -83.6,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "miny",
+            "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the minimum y/latitude of such bounding box.",
+            "example": -23.8,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "maxx",
+            "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the maximum x/longitude of such bounding box.",
+            "example": -32.6,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "maxy",
+            "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the maximum y/latitude of such bounding box.",
+            "example": 10.5,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "starttime",
+            "in": "query",
+            "description": "In the case of type=geojson, if only a certain temporal extent is desired, the start time of the window. If unset but 'endtime' is set, defaults to '1970-01-01T00:00:00Z'",
+            "example": "2024-08-01T00:00:00.000Z",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endtime",
+            "in": "query",
+            "description": "In the case of type=geojson, if only a certain temporal extent is desired, the end time of the window.",
+            "example": "2025-04-03T21:55:06.013Z",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startProp",
+            "in": "query",
+            "description": "In the case of type=geojson and a temporal query, the start time column defined at the GeoDataset's creation. Defaults to 'start_time'",
+            "example": "start_time",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endProp",
+            "in": "query",
+            "description": "In the case of type=geojson and a temporal query, the end time column defined at the GeoDataset's creation. Defaults to 'end_time'",
+            "example": "end_time",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "noDuplicates",
+            "in": "query",
+            "description": "Returns only DISTINCT features. Uses the group_id field, if set, for distinctness else uses the geometry field.",
+            "example": false,
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "_source",
+            "in": "query",
+            "description": "Return only certain feature properties fields, otherwise return them all.",
+            "example": "prop1,prop2,prop3",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "description": "Filter based on feature properties. The input is of the form: key+op+type+value,key+op+type+value,... 'key' is a properties field key. 'op' is '>', '<', '=', or 'in'. If 'op' is 'in', 'value' is a list separated by dollar signs. 'type' is either 'string' or 'number'.",
+            "example": "passDirection+=+string+Ascending,fractionLand+<+number+0.10274648744404924",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limited",
+            "in": "query",
+            "description": "In the case of type=geojson and if true, returns only the first three features.",
+            "example": false,
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Geodataset table",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "geojson_success": {
+                    "summary": "GeoJSON Success",
+                    "value": {
+                      "type": "FeatureCollection",
+                      "features": [
+                        {
+                          "type": "Feature",
+                          "geometry": {
+                            "type": "Point",
+                            "coordinates": [102.0, 0.5]
+                          },
+                          "properties": {
+                            "name": "example_feature",
+                            "_": {
+                              "idx": 1
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "mvt_success": {
+                    "summary": "MVT Success",
+                    "value": {
+                      "status": "success",
+                      "body": "binary_data"
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to query Geodataset."
+                    }
+                  },
+                  "not_found": {
+                    "summary": "Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Not Found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/get": {
+      "get": {
+        "summary": "Get a geodataset table as geojson",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "query",
+            "description": "The name of a GeoDataset to get.",
+            "example": "ExampleGeoDataset",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Whether to return a geojson response or Mapbox vector tiles. Defaults to 'geojson'.",
+            "example": "geojson",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["geojson", "mvt"]
+            }
+          },
+          {
+            "name": "x",
+            "in": "query",
+            "description": "In the case of type=mvt, the x of the vector tile to return.",
+            "example": 28,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "y",
+            "in": "query",
+            "description": "In the case of type=mvt, the y of the vector tile to return.",
+            "example": 12,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "z",
+            "in": "query",
+            "description": "In the case of type=mvt, the z of the vector tile to return.",
+            "example": 4,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "minx",
+            "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the minimum x/longitude of such bounding box.",
+            "example": -83.6,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "miny",
+            "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the minimum y/latitude of such bounding box.",
+            "example": -23.8,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "maxx",
+            "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the maximum x/longitude of such bounding box.",
+            "example": -32.6,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "maxy",
+            "in": "query",
+            "description": "In the case of type=geojson, if only a certain spatial extent is desired, the maximum y/latitude of such bounding box.",
+            "example": 10.5,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "starttime",
+            "in": "query",
+            "description": "In the case of type=geojson, if only a certain temporal extent is desired, the start time of the window. If unset but 'endtime' is set, defaults to '1970-01-01T00:00:00Z'",
+            "example": "2024-08-01T00:00:00.000Z",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endtime",
+            "in": "query",
+            "description": "In the case of type=geojson, if only a certain temporal extent is desired, the end time of the window.",
+            "example": "2025-04-03T21:55:06.013Z",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startProp",
+            "in": "query",
+            "description": "In the case of type=geojson and a temporal query, the start time column defined at the GeoDataset's creation. Defaults to 'start_time'",
+            "example": "start_time",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endProp",
+            "in": "query",
+            "description": "In the case of type=geojson and a temporal query, the end time column defined at the GeoDataset's creation. Defaults to 'end_time'",
+            "example": "end_time",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "noDuplicates",
+            "in": "query",
+            "description": "Returns only DISTINCT features. Uses the group_id field, if set, for distinctness else uses the geometry field.",
+            "example": false,
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "_source",
+            "in": "query",
+            "description": "Return only certain feature properties fields, otherwise return them all.",
+            "example": "prop1,prop2,prop3",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filters",
+            "in": "query",
+            "description": "Filter based on feature properties. The input is of the form: key+op+type+value,key+op+type+value,... 'key' is a properties field key. 'op' is '>', '<', '=', or 'in'. If 'op' is 'in', 'value' is a list separated by dollar-signs. 'type' is either 'string' or 'number'.",
+            "example": "passDirection+=+string+Ascending,fractionLand+<+number+0.10274648744404924",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limited",
+            "in": "query",
+            "description": "In the case of type=geojson and if true, returns only the first three features.",
+            "example": false,
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Geodataset table",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "geojson_success": {
+                    "summary": "GeoJSON Success",
+                    "value": {
+                      "type": "FeatureCollection",
+                      "features": [
+                        {
+                          "type": "Feature",
+                          "geometry": {
+                            "type": "Point",
+                            "coordinates": [102.0, 0.5]
+                          },
+                          "properties": {
+                            "name": "example_feature",
+                            "_": {
+                              "idx": 1
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "mvt_success": {
+                    "summary": "MVT Success",
+                    "value": {
+                      "status": "success",
+                      "body": "binary_data"
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to query Geodataset."
+                    }
+                  },
+                  "not_found": {
+                    "summary": "Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Not Found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/entries": {
+      "post": {
+        "summary": "Get list of entries in the geodatasets table",
+        "tags": ["GeoDatasets"],
+        "responses": {
+          "200": {
+            "description": "List of geodataset entries",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": {
+                        "entries": [
+                          {
+                            "name": "example_dataset",
+                            "updated": "2025-02-28T19:53:14.000Z",
+                            "filename": "example_file",
+                            "num_features": 100,
+                            "start_time_field": "start_time",
+                            "end_time_field": "end_time",
+                            "occurrences": {
+                              "example_mission": [
+                                {
+                                  "name": "example_layer",
+                                  "uuid": "example_uuid",
+                                  "path": "example_path"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/search": {
+      "post": {
+        "summary": "Search through a geodataset",
+        "tags": ["GeoDatasets"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "layer": {
+                    "type": "string"
+                  },
+                  "key": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "integer"
+                  },
+                  "orderBy": {
+                    "type": "string"
+                  },
+                  "restrictToGeometryType": {
+                    "type": "string",
+                    "enum": [
+                      "Point",
+                      "LineString",
+                      "Polygon",
+                      "MultiPoint",
+                      "MultiLineString",
+                      "MultiPolygon"
+                    ]
+                  },
+                  "offset": {
+                    "type": "integer"
+                  },
+                  "minx": {
+                    "type": "number"
+                  },
+                  "miny": {
+                    "type": "number"
+                  },
+                  "maxx": {
+                    "type": "number"
+                  },
+                  "maxy": {
+                    "type": "number"
+                  }
+                },
+                "required": ["layer"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": [
+                        {
+                          "type": "Feature",
+                          "geometry": {
+                            "type": "Point",
+                            "coordinates": [102.0, 0.5]
+                          },
+                          "properties": {
+                            "name": "example_feature",
+                            "_": {
+                              "idx": 1
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "invalid_parameters": {
+                    "summary": "Invalid Parameters",
+                    "value": {
+                      "status": "failure",
+                      "message": "If 'offset' is set, 'id' must also be set."
+                    }
+                  },
+                  "sql_error": {
+                    "summary": "SQL Error",
+                    "value": {
+                      "status": "failure",
+                      "message": "SQL error."
+                    }
+                  },
+                  "layer_not_found": {
+                    "summary": "Layer Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Layer not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/aggregations": {
+      "get": {
+        "summary": "Return the histograms/aggregations of values for the feature properties within a GeoDataset.",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "query",
+            "description": "The name of a GeoDataset for which to get aggregations.",
+            "example": "ExampleGeoDataset",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Construct the aggregations based on a random sample of 'limit' features. Default 500",
+            "example": 100,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "minx",
+            "in": "query",
+            "description": "If only a certain spatial extent is desired, the minimum x/longitude of such bounding box.",
+            "example": -83.6,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "miny",
+            "in": "query",
+            "description": "If only a certain spatial extent is desired, the minimum y/latitude of such bounding box.",
+            "example": -23.8,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "maxx",
+            "in": "query",
+            "description": "If only a certain spatial extent is desired, the maximum x/longitude of such bounding box.",
+            "example": -32.6,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "maxy",
+            "in": "query",
+            "description": "If only a certain spatial extent is desired, the maximum y/latitude of such bounding box.",
+            "example": 10.5,
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "starttime",
+            "in": "query",
+            "description": "If only a certain temporal extent is desired, the start time of the window. If unset but 'endtime' is set, defaults to '1970-01-01T00:00:00Z'",
+            "example": "2024-08-01T00:00:00.000Z",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endtime",
+            "in": "query",
+            "description": "If only a certain temporal extent is desired, the end time of the window.",
+            "example": "2025-04-03T21:55:06.013Z",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GeoDataset aggregations",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "aggregations": [
+                        {
+                          "passDirection": {
+                            "type": "string",
+                            "aggs": { "Descending": 252, "Ascending": 248 }
+                          }
+                        },
+                        {
+                          "crossesDateline": {
+                            "type": "boolean",
+                            "aggs": { "true": 2, "false": 498 }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failure querying geodataset aggregations"
+                    }
+                  },
+                  "not_found": {
+                    "summary": "Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Not Found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/append/{name}": {
+      "post": {
+        "summary": "Append to a geodataset",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "start_prop",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "end_prop",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "geojson": {
+                    "type": "object"
+                  }
+                },
+                "required": ["geojson"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Append response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "",
+                      "body": {}
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failure: Malformed file.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/append/{name}/{start_end_prop}": {
+      "post": {
+        "summary": "Append to a geodataset with start and end properties",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "start_end_prop",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "geojson": {
+                    "type": "object"
+                  }
+                },
+                "required": ["geojson"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Append response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "",
+                      "body": {}
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failure: Malformed file.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/recreate": {
+      "post": {
+        "summary": "Recreate a geodataset",
+        "tags": ["GeoDatasets"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "startProp": {
+                    "type": "string"
+                  },
+                  "endProp": {
+                    "type": "string"
+                  },
+                  "geojson": {
+                    "type": "object"
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": ["append", "recreate"]
+                  }
+                },
+                "required": ["name", "geojson"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recreate response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "",
+                      "body": {}
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failure: Malformed file.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/recreate/{name}": {
+      "post": {
+        "summary": "Recreate a geodataset",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "geojson": {
+                    "type": "object"
+                  },
+                  "startProp": {
+                    "type": "string"
+                  },
+                  "endProp": {
+                    "type": "string"
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": ["append", "recreate"]
+                  }
+                },
+                "required": ["geojson"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recreate response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "",
+                      "body": {}
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failure: Malformed file.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/recreate/{name}/{start_end_prop}": {
+      "post": {
+        "summary": "Recreate a geodataset with start and end properties",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "start_end_prop",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "geojson": {
+                    "type": "object"
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": ["append", "recreate"]
+                  }
+                },
+                "required": ["geojson"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recreate response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "",
+                      "body": {}
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failure: Malformed file.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/remove/{name}": {
+      "delete": {
+        "summary": "Remove a geodataset",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Remove response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully deleted geodataset 'example_name'."
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to delete geodataset 'example_name'."
+                    }
+                  },
+                  "not_found": {
+                    "summary": "Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "No geodataset named 'example_name' to delete."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/longtermtoken/get": {
+      "get": {
+        "summary": "Get all long term tokens",
+        "tags": ["API Tokens"],
+        "responses": {
+          "200": {
+            "description": "Get tokens response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "tokens": [
+                        {
+                          "id": 1,
+                          "token": "example_token1",
+                          "period": "example_period1",
+                          "createdAt": "2025-02-28T20:00:00Z",
+                          "updatedAt": "2025-02-28T20:00:00Z"
+                        },
+                        {
+                          "id": 2,
+                          "token": "example_token2",
+                          "period": "example_period2",
+                          "createdAt": "2025-02-28T20:00:00Z",
+                          "updatedAt": "2025-02-28T20:00:00Z"
+                        }
+                      ]
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to get tokens."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/longtermtoken/generate": {
+      "post": {
+        "summary": "Generate a new long term token",
+        "tags": ["API Tokens"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "period": {
+                    "type": "string"
+                  }
+                },
+                "required": ["period"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generate token response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully created long term token.",
+                      "body": {
+                        "token": "example_token",
+                        "period": "example_period"
+                      }
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to create long term token!",
+                      "body": {
+                        "err": "example_error"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/longtermtoken/clear": {
+      "post": {
+        "summary": "Clear (delete) a long term token",
+        "tags": ["API Tokens"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  }
+                },
+                "required": ["id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Clear token response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully deleted long term token with id 1."
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to delete long term token with id 1!",
+                      "body": {
+                        "err": "example_error"
+                      }
+                    }
+                  },
+                  "invalid_id": {
+                    "summary": "Invalid ID",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to delete long term token. body.id is undefined."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shortener/shorten": {
+      "post": {
+        "summary": "Create and save a shortened URL",
+        "tags": ["URL Shortener"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": ["url"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Shorten URL response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully shortened URL.",
+                      "body": {
+                        "url": "shortened_url"
+                      }
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to shorten URL.",
+                      "body": {}
+                    }
+                  },
+                  "disabled": {
+                    "summary": "Disabled",
+                    "value": {
+                      "status": "failure",
+                      "message": "Won't shorten.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shortener/expand": {
+      "post": {
+        "summary": "Expand a shortened URL",
+        "tags": ["URL Shortener"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "short": {
+                    "type": "string"
+                  }
+                },
+                "required": ["short"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Expand URL response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully shortened URL.",
+                      "body": {
+                        "url": "expanded_url"
+                      }
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to expand URL.",
+                      "body": {}
+                    }
+                  },
+                  "not_defined": {
+                    "summary": "Not Defined",
+                    "value": {
+                      "status": "failure",
+                      "message": "Short URL not defined in body.",
+                      "body": {}
+                    }
+                  },
+                  "not_found": {
+                    "summary": "Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failure to find URL.",
+                      "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/has": {
+      "post": {
+        "summary": "Check if any user exists",
+        "tags": ["Users"],
+        "responses": {
+          "200": {
+            "description": "Check users response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "has": true
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/first_signup": {
+      "post": {
+        "summary": "Sign up the first user",
+        "tags": ["Users"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": ["username", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "First sign up response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully signed up"
+                    }
+                  },
+                  "failure_permission_denied": {
+                    "summary": "Permission Denied",
+                    "value": {
+                      "status": "failure",
+                      "message": "Permission denied"
+                    }
+                  },
+                  "failure_validation_error": {
+                    "summary": "Validation Error",
+                    "value": {
+                      "status": "failure",
+                      "message": "Validation error"
+                    }
+                  },
+                  "failure_signup": {
+                    "summary": "Sign Up Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to sign up"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/signup": {
+      "post": {
+        "summary": "Sign up a new user",
+        "tags": ["Users"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": ["username", "email", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sign up response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "username": "new_username",
+                      "token": "new_user_token",
+                      "groups": []
+                    }
+                  },
+                  "failure_permission": {
+                    "summary": "Permission Denied",
+                    "value": {
+                      "status": "failure",
+                      "message": "Currently set so only administrators may create accounts."
+                    }
+                  },
+                  "failure_user_exists": {
+                    "summary": "User Exists",
+                    "value": {
+                      "status": "failure",
+                      "message": "User already exists."
+                    }
+                  },
+                  "failure_signup": {
+                    "summary": "Sign Up Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to sign up."
+                    }
+                  },
+                  "partial_signup": {
+                    "summary": "Partial Sign Up",
+                    "value": {
+                      "status": "failure",
+                      "message": "Only partially signed up. Try logging in."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/login": {
+      "post": {
+        "summary": "User login",
+        "tags": ["Users"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "useToken": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["username"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "username": "logged_in_username",
+                      "token": "session_token",
+                      "groups": [],
+                      "additional": ""
+                    }
+                  },
+                  "failure_invalid": {
+                    "summary": "Invalid",
+                    "value": {
+                      "status": "failure",
+                      "message": "Invalid username or password."
+                    }
+                  },
+                  "failure_no_username": {
+                    "summary": "No Username",
+                    "value": {
+                      "status": "failure",
+                      "message": "No username provided."
+                    }
+                  },
+                  "failure_malformed_cookie": {
+                    "summary": "Malformed Cookie",
+                    "value": {
+                      "status": "failure",
+                      "message": "Malformed MMGISUser cookie."
+                    }
+                  },
+                  "failure_bad_token": {
+                    "summary": "Bad Token",
+                    "value": {
+                      "status": "failure",
+                      "message": "Bad token."
+                    }
+                  },
+                  "failure_login": {
+                    "summary": "Login Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Login failed."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/logout": {
+      "post": {
+        "summary": "User logout",
+        "tags": ["Users"],
+        "responses": {
+          "200": {
+            "description": "Logout response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success"
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Logout Failed."
+                    }
+                  },
+                  "no_user": {
+                    "summary": "No User",
+                    "value": {
+                      "status": "failure",
+                      "message": "No user."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/logged_in": {
+      "get": {
+        "summary": "Check if a user is logged in",
+        "tags": ["Users"],
+        "responses": {
+          "200": {
+            "description": "Check login response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "logged_in": {
+                    "summary": "Logged In",
+                    "value": {
+                      "status": "success",
+                      "message": "'username' is logged in to this session.",
+                      "body": {
+                        "loggedIn": true,
+                        "user": "username"
+                      }
+                    }
+                  },
+                  "not_logged_in": {
+                    "summary": "Not Logged In",
+                    "value": {
+                      "status": "failure",
+                      "message": "No user is logged in to this session.",
+                      "body": {
+                        "loggedIn": false,
+                        "user": null
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/utils/queryTilesetTimes": {
+      "get": {
+        "summary": "Query tileset times",
+        "tags": ["Utilities"],
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "starttime",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endtime",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "stacCollection",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Query tileset times response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": {
+                        "times": [
+                          {
+                            "t": "2025-02-28T20:00:00Z",
+                            "n": "Z-example"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "failure_start_end_time": {
+                    "summary": "Failure: Start or End Time",
+                    "value": {
+                      "status": "failure",
+                      "message": "'starttime' or 'endtime' are null or 'starttime' occurs after 'endtime'."
+                    }
+                  },
+                  "failure_path": {
+                    "summary": "Failure: Path",
+                    "value": {
+                      "status": "failure",
+                      "message": "Only paths beginning with '/Missions' are supported."
+                    }
+                  },
+                  "failure_times_range": {
+                    "summary": "Failure: Times Range",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to get times in range."
+                    }
+                  },
+                  "failure_no_stac_db": {
+                    "summary": "Failure: No STAC Database",
+                    "value": {
+                      "status": "failure",
+                      "message": "No STAC Database"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/utils/healthcheck": {
+      "get": {
+        "summary": "Health check",
+        "tags": ["Utilities"],
+        "responses": {
+          "200": {
+            "description": "Health check response",
+            "content": {
+              "text/plain": {
+                "example": "Alive and Well!"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/utils/getprofile": {
+      "post": {
+        "summary": "Get profile",
+        "tags": ["Utilities"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "lat1": {
+                    "type": "string"
+                  },
+                  "lon1": {
+                    "type": "string"
+                  },
+                  "lat2": {
+                    "type": "string"
+                  },
+                  "lon2": {
+                    "type": "string"
+                  },
+                  "steps": {
+                    "type": "string"
+                  },
+                  "axes": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "lat1",
+                  "lon1",
+                  "lat2",
+                  "lon2",
+                  "steps",
+                  "axes"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Get profile response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": [
+                      [
+                        137.3841404914856, -4.788970052851372,
+                        -3719.488525390625
+                      ],
+                      [
+                        137.38425731647186, -4.788977073412585,
+                        -3718.595947265625
+                      ]
+                    ]
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/utils/getbands": {
+      "post": {
+        "summary": "Get bands",
+        "tags": ["Utilities"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "x": {
+                    "type": "string"
+                  },
+                  "y": {
+                    "type": "string"
+                  },
+                  "xyorll": {
+                    "type": "string"
+                  },
+                  "bands": {
+                    "type": "string"
+                  }
+                },
+                "required": ["path", "x", "y", "xyorll", "bands"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Get bands response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": [[1.0, -3709.4365234375]]
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/utils/ll2aerll": {
+      "post": {
+        "summary": "Convert Lat/Lon to aeronautical Lat/Lon",
+        "tags": ["Utilities"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lng": {
+                    "type": "string"
+                  },
+                  "lat": {
+                    "type": "string"
+                  },
+                  "height": {
+                    "type": "string"
+                  },
+                  "target": {
+                    "type": "string"
+                  },
+                  "time": {
+                    "type": "string"
+                  },
+                  "obsRefFrame": {
+                    "type": "string"
+                  },
+                  "obsBody": {
+                    "type": "string"
+                  },
+                  "includeSunEarth": {
+                    "type": "string"
+                  },
+                  "isCustom": {
+                    "type": "string"
+                  },
+                  "customAz": {
+                    "type": "string"
+                  },
+                  "customEl": {
+                    "type": "string"
+                  },
+                  "customRange": {
+                    "type": "string"
+                  }
+                },
+                "required": ["lng", "lat", "height", "target", "time"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Convert Lat/Lon to aeronautical Lat/Lon response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "azimuth": 191.17744306249563,
+                      "elevation": -45.4859750699031,
+                      "range": 5166.627261717188,
+                      "longitude": 7.48097842042331,
+                      "latitude": -75.54934840621075,
+                      "altitude": 253.27393520309107,
+                      "horizontal_altitude": -5698067.895290766,
+                      "ancillary": {
+                        "sun_az": 28.19882168843999,
+                        "sun_el": 62.11075361222813,
+                        "earth_az": 309.46653868627635,
+                        "earth_el": 70.63581738464735
+                      }
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/utils/chronice": {
+      "post": {
+        "summary": "SPICE time converter",
+        "tags": ["Utilities"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {
+                    "type": "string"
+                  },
+                  "target": {
+                    "type": "string"
+                  },
+                  "from": {
+                    "type": "string"
+                  },
+                  "time": {
+                    "type": "string"
+                  }
+                },
+                "required": ["body", "target", "from", "time"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SPICE time converter response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": { "result": "SOL-04471M11:09:24" }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/utils/proj42wkt": {
+      "get": {
+        "summary": "Convert Proj4 to WKT",
+        "tags": ["Utilities"],
+        "parameters": [
+          {
+            "name": "proj4",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Convert Proj4 to WKT response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "wkt": "example_wkt_string"
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhooks/save": {
+      "post": {
+        "summary": "Save webhooks config",
+        "tags": ["Webhooks"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "config": {
+                    "type": "object"
+                  }
+                },
+                "required": ["config"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Save webhooks config response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully saved webhooks config."
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to save webhooks config!",
+                      "body": {
+                        "err": "example_error"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhooks/entries": {
+      "get": {
+        "summary": "Get webhook entries",
+        "tags": ["Webhooks"],
+        "responses": {
+          "200": {
+            "description": "Get webhook entries response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "entries": "example_entries_data"
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhooks/config": {
+      "post": {
+        "summary": "Update webhooks config",
+        "tags": ["Webhooks"],
+        "responses": {
+          "200": {
+            "description": "Update webhooks config response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully updated webhooks config."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -43,8 +43,9 @@ module.exports = {
     logourl: "",
     helpurl: "",
   },
-  panels: ["viewer", "map", "globe"],
-  time: ["enabled"],
+  panelSettings: {},
+  panels: { viewer: true, map: true, globe: true },
+  time: { enabled: true },
   tools: [
     {
       name: "Layers",

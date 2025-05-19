@@ -104,6 +104,15 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                 ''
                             ),
                             zoom: zoom,
+                            noDuplicates:
+                                layerData?.variables?.noDuplicates === true,
+                            _source:
+                                layerData?.variables
+                                    ?.getFeaturePropertiesOnClick === true
+                                    ? ['group_id', 'feature_id']
+                                          .concat(L_.getDynamicProps(layerData))
+                                          .filter(Boolean)
+                                    : null,
                         }
 
                         if (layerData.time?.enabled === true) {
@@ -119,6 +128,13 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             }
                         }
 
+                        // filters
+                        if (layerData._filterEncoded?.filters)
+                            body.filters = layerData._filterEncoded.filters
+                        if (layerData._filterEncoded?.spatialFilter)
+                            body.spatialFilter =
+                                layerData._filterEncoded.spatialFilter
+
                         const dateNow = new Date().getTime()
 
                         _geodatasetRequestLastTimestamp[layerObj.name] =
@@ -128,6 +144,8 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                 ] || 0,
                                 dateNow
                             )
+
+                        layerData._lastGeodatasetRequestBody = body
 
                         calls.api(
                             'geodatasets_get',
@@ -173,7 +191,12 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                 ) {
                                     layerData._ignoreDynamicExtentMoveThreshold = false
                                     L_.clearVectorLayer(layerObj.name)
-                                    L_.updateVectorLayer(layerObj.name, data)
+                                    L_.updateVectorLayer(
+                                        layerObj.name,
+                                        data,
+                                        null,
+                                        layerData._stopLoops
+                                    )
                                     _geodatasetRequestLastLoc[layerObj.name] =
                                         nowLoc
 
@@ -190,11 +213,11 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             (data) => {
                                 console.warn(
                                     'ERROR: ' +
-                                        data.status +
+                                        data?.status +
                                         ' in geodatasets_get:' +
                                         layerObj.display_name +
                                         ' /// ' +
-                                        data.message
+                                        data?.message
                                 )
                             }
                         )
@@ -328,7 +351,12 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             ) {
                                 layerData._ignoreDynamicExtentMoveThreshold = false
                                 L_.clearVectorLayer(layerObj.name)
-                                L_.updateVectorLayer(layerObj.name, data)
+                                L_.updateVectorLayer(
+                                    layerObj.name,
+                                    data,
+                                    null,
+                                    layerData._stopLoops
+                                )
                                 _layerRequestLastLoc[layerObj.name] = nowLoc
 
                                 if (L_?._timeLayerReloadFinishSubscriptions)
@@ -369,7 +397,14 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                     body.starttime = layerData.time.start
                     body.endtime = layerData.time.end
                 }
-
+                body.noDuplicates = layerData?.variables?.noDuplicates === true
+                body._source =
+                    layerData?.variables?.getFeaturePropertiesOnClick === true
+                        ? ['group_id', 'feature_id']
+                              .concat(L_.getDynamicProps(layerData))
+                              .filter(Boolean)
+                        : null
+                layerData._lastGeodatasetRequestBody = body
                 calls.api(
                     'geodatasets_get',
                     body,

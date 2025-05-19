@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { makeStyles } from "@mui/styles";
 
 import { calls } from "../../core/calls";
-import { downloadObject } from "../../core/utils";
+import { copyToClipboard, downloadObject, trimString } from "../../core/utils";
 import {
   setSnackBarText,
   setGeodatasets,
@@ -101,7 +101,7 @@ const useStyles = makeStyles((theme) => ({
     "& td:first-child": {
       fontWeight: "bold",
       letterSpacing: "1px",
-      fontSize: "16px",
+      fontSize: "15px",
       color: `${theme.palette.swatches.p[13]}`,
     },
   },
@@ -183,8 +183,9 @@ const useStyles = makeStyles((theme) => ({
   },
   th: {
     fontWeight: "bold !important",
+    lineHeight: "1rem !important",
+    fontSize: "12px !important",
     textTransform: "uppercase",
-    letterSpacing: "1px !important",
     backgroundColor: `${theme.palette.swatches.grey[1000]} !important`,
     borderRight: `1px solid ${theme.palette.swatches.grey[900]}`,
   },
@@ -214,6 +215,14 @@ const headCells = [
   {
     id: "end_time_field",
     label: "End Time Field",
+  },
+  {
+    id: "group_id_field",
+    label: "Group Id Field",
+  },
+  {
+    id: "feature_id_field",
+    label: "Feature Id Field",
   },
   {
     id: "actions",
@@ -390,6 +399,8 @@ export default function GeoDatasets() {
     [order, orderBy, page, rowsPerPage, geodatasets]
   );
 
+  const LIMIT_COL_TO_N_CHARS = 37;
+
   return (
     <>
       <Box className={c.GeoDatasets}>
@@ -427,18 +438,52 @@ export default function GeoDatasets() {
                       key={row.id}
                       selected={false}
                     >
-                      <TableCell align="left">{row.name}</TableCell>
+                      <TableCell
+                        align="left"
+                        title={`${row.name} - Click to Copy`}
+                        onClick={() => {
+                          copyToClipboard(row.name);
+
+                          dispatch(
+                            setSnackBarText({
+                              text: "Copied to Clipboard!",
+                              severity: "success",
+                            })
+                          );
+                        }}
+                      >
+                        {trimString(row.name, LIMIT_COL_TO_N_CHARS)}
+                      </TableCell>
                       <TableCell align="right">
                         {row.updated
                           ? new Date(row.updated).toLocaleString()
                           : row.updated}
                       </TableCell>
-                      <TableCell align="right">{row.filename}</TableCell>
+                      <TableCell
+                        align="right"
+                        title={`${row.filename} - Click to Copy`}
+                        onClick={() => {
+                          copyToClipboard(row.filename);
+
+                          dispatch(
+                            setSnackBarText({
+                              text: "Copied to Clipboard!",
+                              severity: "success",
+                            })
+                          );
+                        }}
+                      >
+                        {trimString(row.filename, LIMIT_COL_TO_N_CHARS)}
+                      </TableCell>
                       <TableCell align="right">{row.num_features}</TableCell>
                       <TableCell align="right">
                         {row.start_time_field}
                       </TableCell>
                       <TableCell align="right">{row.end_time_field}</TableCell>
+                      <TableCell align="right">{row.group_id_field}</TableCell>
+                      <TableCell align="right">
+                        {row.feature_id_field}
+                      </TableCell>
                       <TableCell align="right">
                         <div className={c.actions}>
                           <Tooltip title={"Used By"} placement="top" arrow>

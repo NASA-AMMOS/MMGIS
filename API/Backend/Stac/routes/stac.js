@@ -13,10 +13,14 @@ const Utils = require("../../../utils.js");
 
 // Wraps /stac/collections to include occurrences
 router.get("/collections", function (req, res, next) {
+  // Pass a query parameters along
+  const queryString = req.originalUrl.split("?")[1] || "";
+  const fullQueryString = queryString ? `?${queryString}` : "";
+
   fetch(
     `http://${
       process.env.IS_DOCKER === "true" ? "stac-fastapi" : "localhost"
-    }:${process.env.STAC_PORT || 8881}/collections`,
+    }:${process.env.STAC_PORT || 8881}/collections${fullQueryString}`,
     {
       method: "GET",
       headers: { "content-type": "application/json" },

@@ -39,6 +39,7 @@ import UploadIcon from "@mui/icons-material/Upload";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import AddIcon from "@mui/icons-material/Add";
 import HorizontalSplitIcon from "@mui/icons-material/HorizontalSplit";
+import SettingsIcon from "@mui/icons-material/Settings";
 
 import NewStacCollectionModal from "./Modals/NewStacCollectionModal/NewStacCollectionModal";
 import DeleteStacCollectionModal from "./Modals/DeleteStacCollectionModal/DeleteStacCollectionModal";
@@ -313,7 +314,9 @@ export default function STAC() {
   const querySTAC = () => {
     calls.api(
       "stac_collections",
-      {},
+      {
+        limit: 2000,
+      },
       (res) => {
         if (res?.body?.collections != null)
           dispatch(setStacCollections(res.body.collections));
@@ -443,7 +446,7 @@ export default function STAC() {
                                 window
                                   .open(
                                     `${window.location.pathname
-                                      .replace(`/configure-beta`, "")
+                                      .replace(`/configure`, "")
                                       .replace(/^\//g, "")}/stac/collections/${
                                       row.id
                                     }`,
@@ -465,7 +468,7 @@ export default function STAC() {
                                 window
                                   .open(
                                     `${window.location.pathname
-                                      .replace(`/configure-beta`, "")
+                                      .replace(`/configure`, "")
                                       .replace(/^\//g, "")}/stac/collections/${
                                       row.id
                                     }/items`,

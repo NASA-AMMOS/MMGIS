@@ -40,33 +40,33 @@
                             {
                                 "field": "name",
                                 "name": "Name",
-                                "description": "Name of site",
+                                "description": "Name of site. Required.",
                                 "type": "text",
                                 "width": 4
                             },
                             {
                                 "field": "code",
                                 "name": "Code",
-                                "description": "Unique identifier. Can match header layer to toggle its sublayers.",
+                                "description": "Unique identifier. Can match header layer to toggle its sublayers. Required.",
                                 "type": "text",
                                 "width": 2
                             },
                             {
-                                "field": "view.0",
+                                "field": "lat",
                                 "name": "Latitude",
                                 "description": "",
                                 "type": "number",
                                 "width": 2
                             },
                             {
-                                "field": "view.1",
+                                "field": "lng",
                                 "name": "Longitude",
                                 "description": "",
                                 "type": "number",
                                 "width": 2
                             },
                             {
-                                "field": "view.2",
+                                "field": "zoom",
                                 "name": "Zoom Level",
                                 "description": "",
                                 "type": "number",

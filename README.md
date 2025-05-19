@@ -7,7 +7,9 @@
 
 <pre align="center">Spatial Data Infrastructure for Planetary Missions</pre>
 
-<span style="display:block;text-align:center">![Example](/documentation/images/Full_Example.png)</span>
+<span style="display:block;text-align:center">![Example](/docs/assets/images/Full_Example.png)</span>
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15237385.svg)](https://doi.org/10.5281/zenodo.15237385)
 
 ---
 
@@ -23,6 +25,9 @@
 - Elevation profiler
 - Custom projections
 - Tiling scripts
+- COGs
+- TiTiler
+- STAC
 - And so much more...
 
 ---
@@ -182,7 +187,7 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 
 1. Run `npm run build` to bundle up the code (first time or if there are any changes)
 
-1. Go into /configure and run `npm install` followed by `npm run build` to build the beta configuration site.
+1. Go into /configure and run `npm install` followed by `npm run build` to build the configuration site.
 
 1. Go back to the root `/` directory
 

@@ -11,11 +11,14 @@ import ApiIcon from "@mui/icons-material/Api";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 const apiCards = {
-  "MMGIS Backend API": {
-    title: "MMGIS Backend API",
-    subtitle: "An incomplete list of supported backend endpoints.",
+  "MMGIS API": {
+    title: "MMGIS API",
+    subtitle:
+      "The Core MMGIS API provides a series of robust endpoints for managing mission configurations, datasets, geodatasets, drawing functionalities, file operations, user management and geospatial operations.",
     description: "",
-    link: `https://nasa-ammos.github.io/MMGIS/apis/backend`,
+    link: `${window.location.pathname
+      .replace(`/configure`, "")
+      .replace(/^\//g, "")}/api/docs`,
     active: true,
   },
   "MMGIS JavaScript API": {
@@ -26,27 +29,12 @@ const apiCards = {
     link: `https://nasa-ammos.github.io/MMGIS/apis/javascript`,
     active: true,
   },
-  "MMGIS Configure API": {
-    title: "MMGIS Configure API",
-    subtitle: "Enables programmatic control over configuration endpoints.",
-    description: "",
-    link: `https://nasa-ammos.github.io/MMGIS/apis/configure`,
-    active: true,
-  },
-  "MMGIS GeoDatasets API": {
-    title: "MMGIS GeoDatasets API",
-    subtitle:
-      "Enables programmatic control over GeoDataset layers. GeoDatasets are GeoJSON files uploaded and managed by MMGIS and stored in MMGIS’ Postgres/PostGIS database.",
-    description: "",
-    link: `https://nasa-ammos.github.io/MMGIS/apis/geodatasets`,
-    active: true,
-  },
   STAC: {
     title: "STAC",
     subtitle: "FastAPI implementation of the STAC API spec.",
     description: "",
     link: `${window.location.pathname
-      .replace(`/configure-beta`, "")
+      .replace(`/configure`, "")
       .replace(/^\//g, "")}/stac/api.html`,
     active: window.mmgisglobal.WITH_STAC === "true",
   },
@@ -56,7 +44,7 @@ const apiCards = {
       "A modern dynamic tile server built on top of FastAPI and Rasterio/GDAL.",
     description: "",
     link: `${window.location.pathname
-      .replace(`/configure-beta`, "")
+      .replace(`/configure`, "")
       .replace(/^\//g, "")}/titiler/api.html`,
     active: window.mmgisglobal.WITH_TITILER === "true",
   },
@@ -66,7 +54,7 @@ const apiCards = {
       "TiTiler-PgSTAC is a TiTiler extension that connects to a PgSTAC database to create dynamic mosaics based on search queries.",
     description: "",
     link: `${window.location.pathname
-      .replace(`/configure-beta`, "")
+      .replace(`/configure`, "")
       .replace(/^\//g, "")}/titilerpgstac/api.html`,
     active: window.mmgisglobal.WITH_TITILER_PGSTAC === "true",
   },
@@ -76,7 +64,7 @@ const apiCards = {
       "Simple and Fast Geospatial OGC Features and Tiles API for PostGIS.",
     description: "",
     link: `${window.location.pathname
-      .replace(`/configure-beta`, "")
+      .replace(`/configure`, "")
       .replace(/^\//g, "")}/tipg/api.html`,
     active: window.mmgisglobal.WITH_TIPG === "true",
   },
@@ -118,7 +106,7 @@ const useStyles = makeStyles((theme) => ({
       "rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px",
     transition: "background 0.2s ease-in-out",
     "&:hover": {
-      background: theme.palette.swatches.grey[850],
+      background: theme.palette.swatches.grey[800],
       cursor: "pointer",
     },
   },

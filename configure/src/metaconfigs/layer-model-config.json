@@ -15,6 +15,7 @@
               "options": [
                 "data",
                 "header",
+                "image",
                 "model",
                 "query",
                 "tile",
@@ -27,7 +28,7 @@
               "field": "name",
               "name": "Layer Name",
               "description": "A display name for the layer.",
-              "type": "text",
+              "type": "textnotrim",
               "width": 6
             },
             {
@@ -834,6 +835,13 @@
                   "description": "This is a property key already within the features properties. It's value will be searched for in the specified dataset column.",
                   "type": "text",
                   "width": 3
+                },
+                {
+                  "field": "displayProp",
+                  "name": "Connecting Feature Display Name Property",
+                  "description": "This is a property key within the returned dataset feature properties. This is effectively an optional second-order property key. In the case of multiple dataset row entries being returned, this is useful for users of the UI to be able to distinguish between them. If unset, defaults to the value of 'Connecting Feature Property'.",
+                  "type": "text",
+                  "width": 3
                 }
               ]
             }
@@ -1080,7 +1088,7 @@
               "name": "Angle Property",
               "description": "The dot.notated path to the feature properties that contains the desired rotation angle. Ex. headings.yaw.",
               "type": "text",
-              "width": 6
+              "width": 4
             },
             {
               "field": "variables.markerAttachments.bearing.angleUnit",
@@ -1095,7 +1103,15 @@
               "name": "Color",
               "description": "A color for the directional arrow for non-markerIcon bearings.",
               "type": "colorpicker",
-              "width": 4
+              "width": 3
+            },
+            {
+              "field": "variables.markerAttachments.bearing.useCustomShape",
+              "name": "Use Custom Marker Shapes",
+              "description": "If true, the bearing marker's style does not default to being a directional-circle. This reenables setting the 'Shape' dropdown in the Style Tab instead of forcing it to be 'DIRECTIONAL-CIRCLE'.",
+              "type": "checkbox",
+              "width": 3,
+              "defaultChecked": false
             }
           ]
         },
@@ -1530,7 +1546,7 @@
               "name": "Color Ramp",
               "description": "Array of css colors indicating the color ramp. The first color represents the min value and the last color represents the max value in the layer.",
               "type": "textarray",
-              "width": 10
+              "width": 8
             },
             {
               "field": "variables.pathAttachments.gradient.weight",
@@ -1539,6 +1555,14 @@
               "type": "number",
               "min": 1,
               "width": 2
+            },
+            {
+              "field": "variables.pathAttachments.gradient.connectAllPoints",
+              "name": "Connect all Points",
+              "description": "Draws a gradient path line between all such point features in order the appear in the file. Expects the geojson file to be a series of Point features. Otherwise expects an enhanced per-coordinate properties geojson format.",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
             }
           ]
         }

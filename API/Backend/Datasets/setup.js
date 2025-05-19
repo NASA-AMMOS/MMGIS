@@ -3,7 +3,7 @@ let setup = {
   //Once the app initializes
   onceInit: (s) => {
     s.app.use(
-      s.ROOT_PATH + "/API/datasets",
+      s.ROOT_PATH + "/api/datasets",
       s.ensureAdmin(),
       s.checkHeadersCodeInjection,
       s.setContentType,

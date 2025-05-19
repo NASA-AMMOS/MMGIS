@@ -47,13 +47,13 @@ script(type='text/javascript' src='config/js/websocket.js')
 script(type='text/javascript' src='config/pre/RefreshAuth.js')
 
 #leftPanel
-  #seeBeta
-    a(target='__blank' href='/configure-beta') Check Out Configure-BETA
+  #seeBeta(style='background: orangered;')
+    a(target='__blank' href='/configure') Head back to the main Configure
   #tbtitle
       //i.logout#config_logout.mdi.mdi-logout.mdi-24px
       a.logout#tbmmgis
         img(src='public/images/logos/mmgis.png' height='24px' style='position: relative; top: 13px;')
-      span#tbconfig  Configuration
+      span#tbconfig  LEGACY Configuration
   a#new_mission.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') New Mission
   ul#missions.mmgisScrollbar
   a#manage_keys.btn.waves-effect.waves-light.col.s12.truncate(style='background-color: rgba(255,255,255,0.12);') API Tokens

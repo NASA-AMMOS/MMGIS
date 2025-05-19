@@ -201,16 +201,19 @@
     background: var(--color-a1-5);
     color: var(--color-a7);
 }
+.drawToolTemplaterLiBody_text_default,
 .drawToolTemplaterLiBody_slider_default,
-.drawToolTemplaterLiBody_number_default,
+.drawToolTemplaterLiBody_number_default {
+    flex: 1
+}
 .drawToolTemplaterLiBody_text_regex {
-    flex: 1;
+    flex: unset;
 }
 
 .drawToolTemplaterLi {
     list-style-type: none;
     padding-bottom: 5px;
-    margin: 0px 12px 4px 12px;
+    margin: 0px 12px 8px 12px;
     background: var(--color-a);
     box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.8);
 }
@@ -268,6 +271,9 @@
 .drawToolTemplaterLiType > div .dropy__title > i {
     transform: translateY(30%);
 }
+.drawToolTemplaterLiBody_date_default {
+    flex: 1 !important;
+}
 .drawToolTemplaterLiBody_date_default > input {
     width: 125px;
 }
@@ -285,11 +291,12 @@
 }
 
 .drawToolTemplaterLiBody {
-    height: 30px;
+    height: 60px;
     padding: 0px 5px 0px 1px;
 }
 .drawToolTemplaterLiBody > div {
     display: flex;
+    padding-bottom: 4px;
 }
 .drawToolTemplaterLiBody > div > div {
     display: flex;
@@ -311,7 +318,7 @@
     flex: 1;
 }
 .drawToolTemplaterLiBody_text_default input {
-    width: 130px !important;
+    flex: 1;
 }
 .drawToolTemplaterLiBody_number_default {
 }
@@ -325,7 +332,8 @@
     margin: 5px 3px !important;
 }
 .drawToolTemplaterLiBody_text_regex input {
-    width: 70px !important;
+    width: 130px !important;
+    flex: unset !important;
 }
 
 .drawToolTemplaterLiBody input[type='number'] {

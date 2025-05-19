@@ -4,6 +4,8 @@ import { useSelector, useDispatch } from "react-redux";
 import {
   getToolFromConfiguration,
   updateToolInConfiguration,
+  getIn,
+  setIn,
 } from "../../../../../core/utils";
 
 import { setModal, setConfiguration } from "../../../../../core/ConfigureStore";
@@ -179,6 +181,62 @@ const ToolModal = (props) => {
   const dispatch = useDispatch();
 
   const handleClose = () => {
+    const nextConfiguration = JSON.parse(JSON.stringify(configuration));
+    nextConfiguration.tools.forEach((currentTool, idx) => {
+      if (currentTool.name === toolName && toolConfig?.config?.rows) {
+        toolConfig.config.rows.forEach((r) => {
+          r.components.forEach((c) => {
+            // Skip non-field components and unchangeable ones
+            if (
+              c.field == null ||
+              c.field === "name" ||
+              c.field === "js" ||
+              c.field === "variables"
+            )
+              return;
+
+            const currentValue = getIn(currentTool, c.field.split("."), null);
+            if (currentValue != null)
+              setIn(currentTool, c.field.split("."), currentValue, true);
+
+            if (c.type === "dropdown" || c.type === "colordropdown") {
+              const currentValue = getIn(currentTool, c.field);
+              if (currentValue == null) {
+                setIn(currentTool, c.field.split("."), c.options[0], true);
+              }
+            } else if (c.type === "checkbox" || c.type === "switch") {
+              const currentValue = getIn(currentTool, c.field);
+              if (currentValue == null && c.defaultChecked != null) {
+                setIn(currentTool, c.field.split("."), c.defaultChecked, true);
+              }
+            } else if (c.type === "slider") {
+              const currentValue = getIn(currentTool, c.field);
+              if (currentValue == null && c.default != null) {
+                setIn(
+                  currentTool,
+                  c.field.split("."),
+                  c.default || c.min || 0,
+                  true
+                );
+              }
+            } else if (c.type === "colorpicker") {
+              const currentValue = getIn(currentTool, c.field);
+              if (currentValue == null) {
+                setIn(
+                  currentTool,
+                  c.field.split("."),
+                  c.default || "#FFFFFF",
+                  true
+                );
+              }
+            }
+          });
+        });
+        nextConfiguration.tools[idx] = currentTool;
+        dispatch(setConfiguration(nextConfiguration));
+      }
+    });
+
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };

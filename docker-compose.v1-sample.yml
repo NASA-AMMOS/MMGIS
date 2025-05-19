@@ -15,6 +15,7 @@ services:
     image: ghcr.io/stac-utils/stac-fastapi-pgstac:3.0.0
     ports:
       - 8881
+    restart: on-failure
     environment:
       # Postgres connection
       - POSTGRES_USER=username
@@ -27,15 +28,15 @@ services:
       - DB_MAX_CONN_SIZE=1
     depends_on:
       - db
-    command: bash -c "bash /tmp/scripts/wait-for-it.sh -t 120 -h db -p 5432 && uvicorn stac_fastapi.pgstac.app:app --host 0.0.0.0 --port 8881"
+    command: bash -c "uvicorn stac_fastapi.pgstac.app:app --host 0.0.0.0 --port 8881"
     volumes:
-      - ./adjacent-servers/docker-scripts:/tmp/scripts
       - ./Missions:/Missions
 
   tipg:
     image: ghcr.io/developmentseed/tipg:0.7.2
     ports:
       - 8882
+    restart: on-failure
     environment:
       # Application
       - HOST=0.0.0.0
@@ -54,11 +55,10 @@ services:
       - POSTGRES_PORT=5432
       - DB_MIN_CONN_SIZE=1
       - DB_MAX_CONN_SIZE=10
-    command: bash -c "bash /tmp/scripts/wait-for-it.sh -t 120 -h db -p 5432 && /start.sh"
+    command: bash -c "/start.sh"
     depends_on:
       - db
     volumes:
-      - ./adjacent-servers/docker-scripts:/tmp/scripts
       - ./Missions:/Missions
 
   titiler:
@@ -68,6 +68,7 @@ services:
     image: ghcr.io/developmentseed/titiler-uvicorn:0.18.6
     ports:
       - 8883
+    restart: on-failure
     environment:
       # Application
       - HOST=0.0.0.0
@@ -112,6 +113,7 @@ services:
     image: ghcr.io/stac-utils/titiler-pgstac:1.4.0
     ports:
       - 8884
+    restart: on-failure
     environment:
       # Application
       - HOST=0.0.0.0
@@ -152,10 +154,9 @@ services:
       - TITILER_PGSTAC_SEARCH_SKIPCOVERED=FALSE
     depends_on:
       - db
-    command: bash -c "bash /tmp/scripts/wait-for-it.sh -t 120 -h db -p 5432 && /start.sh"
+    command: bash -c "/start.sh"
     volumes:
       - ./Missions:/Missions
-      - ./adjacent-servers/docker-scripts:/tmp/scripts
 
   db:
     image: postgis/postgis:16-3.4-alpine

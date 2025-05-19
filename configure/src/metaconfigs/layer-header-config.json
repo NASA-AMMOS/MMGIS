@@ -15,6 +15,7 @@
               "options": [
                 "data",
                 "header",
+                "image",
                 "model",
                 "query",
                 "tile",
@@ -27,7 +28,7 @@
               "field": "name",
               "name": "Layer Name",
               "description": "",
-              "type": "text",
+              "type": "textnotrim",
               "width": 8
             }
           ]

@@ -47,9 +47,11 @@ const LocalFilterer = {
                 }
             }
             // feature.geometry.type
-            aggs['geometry.type'].aggs[feature.geometry.type] =
-                aggs['geometry.type'].aggs[feature.geometry.type] || 0
-            aggs['geometry.type'].aggs[feature.geometry.type]++
+            if (feature.geometry != null) {
+                aggs['geometry.type'].aggs[feature.geometry.type] =
+                    aggs['geometry.type'].aggs[feature.geometry.type] || 0
+                aggs['geometry.type'].aggs[feature.geometry.type]++
+            }
         })
 
         // sort values

@@ -1118,6 +1118,34 @@ const Description = {
                             })
                     }
                 }
+
+                // check if this is actually a STAC feature
+                if (activeLayer.feature.stac_version) {
+                    // extract links from feature assets
+                    // https://github.com/radiantearth/stac-spec/blob/master/commons/assets.md#assets--
+                    if (activeLayer.feature.assets) {
+                        const assetKeys = Object.keys(
+                            activeLayer.feature.assets
+                        )
+                        for (let i = 0; i < assetKeys.length; i++) {
+                            const asset =
+                                activeLayer.feature.assets[assetKeys[i]]
+                            const link = asset?.href
+                            const title = asset?.title
+                            const roles = asset?.roles
+                            if (
+                                link !== null &&
+                                link !== '' &&
+                                (!roles || roles.indexOf('data') !== -1)
+                            )
+                                links.push({
+                                    name: `<span style='display: flex; justify-content: space-between;'>${title}<i class='mdi mdi-open-in-new mdi-14px' style='margin-left: 4px; margin-top: 1px;'></i></span>`,
+                                    link: link,
+                                    target: F_.cleanString(title),
+                                })
+                        }
+                    }
+                }
             }
 
             let key = activeLayer.useKeyAsName || 'name'

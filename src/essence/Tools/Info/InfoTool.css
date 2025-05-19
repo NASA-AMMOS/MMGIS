@@ -56,7 +56,7 @@
     color: var(--color-green);
 }
 #infoToolUnhideAll:hover {
-    color: var(--color-green2)
+    color: var(--color-green2);
 }
 
 #infoToolHide {
@@ -113,6 +113,67 @@
     height: 40px;
     background: var(--color-a1-5);
     border-top: 1px solid var(--color-a-5);
+}
+#infoToolSelectedGeoDataset,
+#infoToolSelectedDataset {
+    display: flex;
+}
+#infoToolSelectedGeoDatasetDropdown,
+#infoToolSelectedDatasetDropdown {
+    width: calc(100% - 60px);
+    height: 40px;
+    background: var(--color-a1-5);
+    border-bottom: 1px solid var(--color-a-5);
+}
+#infoToolSelectedGeoDatasetDropdown .dropy__title span,
+#infoToolSelectedDatasetDropdown .dropy__title span {
+    color: var(--color-h);
+    font-size: 14px;
+    padding-top: 12px;
+}
+#infoToolSelectedGeoDatasetDropdownTotal,
+#infoToolSelectedDatasetDropdownTotal {
+    position: absolute;
+    right: 60px;
+    font-size: 12px;
+    background: var(--color-b);
+    border-radius: 3px;
+    padding: 2px 4px;
+    height: 18px;
+    min-width: 18px;
+    text-align: center;
+    margin: 10px 4px 12px 4px;
+    color: var(--color-l);
+    cursor: default;
+}
+
+#infoToolSelectedGeoDatasetLeft,
+#infoToolSelectedGeoDatasetRight,
+#infoToolSelectedDatasetLeft,
+#infoToolSelectedDatasetRight {
+    width: 30px;
+    height: 40px;
+    line-height: 40px;
+    display: flex;
+    justify-content: center;
+    background: var(--color-a1);
+    border-bottom: 1px solid var(--color-a-5);
+    cursor: pointer;
+    transition: background 0.2s ease-out;
+}
+#infoToolSelectedGeoDatasetLeft:hover,
+#infoToolSelectedGeoDatasetRight:hover,
+#infoToolSelectedDatasetLeft:hover,
+#infoToolSelectedDatasetRight:hover {
+    background: var(--color-a2);
+}
+#infoToolSelectedGeoDatasetLeft,
+#infoToolSelectedDatasetLeft {
+    border-right: 1px solid var(--color-a-5);
+}
+#infoToolSelectedGeoDatasetRight,
+#infoToolSelectedDatasetRight {
+    border-left: 1px solid var(--color-a-5);
 }
 
 #infoToolFilter {
@@ -189,8 +250,8 @@
 }
 
 #infoToolData > li > div:first-child {
-    max-width: 86px;
-    min-width: 86px;
+    max-width: 40%;
+    min-width: 40%;
     color: white;
     text-overflow: ellipsis;
     overflow: hidden;

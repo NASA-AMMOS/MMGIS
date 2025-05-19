@@ -301,7 +301,7 @@ var essence = {
             UserInterface_.updateLayerUpdateButton('DISCONNECTED')
         }
     },
-    init: function (config, missionsList, swapping) {
+    init: async function (config, missionsList, swapping) {
         //Save the config data
         essence.configData = config
 
@@ -335,7 +335,7 @@ var essence = {
         if (!swapping) urlOnLayers = QueryURL.queryURL()
 
         //Parse all the configData
-        L_.init(essence.configData, missionsList, urlOnLayers)
+        await L_.init(essence.configData, missionsList, urlOnLayers)
 
         if (swapping) {
             ToolController_.clear()
@@ -440,8 +440,8 @@ var essence = {
                     'config.json' +
                     '?nocache=' +
                     new Date().getTime(),
-                function (data) {
-                    essence.makeMission(data)
+                async function (data) {
+                    await essence.makeMission(data)
                 }
             ).fail(function () {
                 console.log(
@@ -455,7 +455,7 @@ var essence = {
             })
         }
     },
-    makeMission: function (data) {
+    makeMission: async function (data) {
         //Remove swap tool from data.tools
         for (var i = data.tools.length - 1; i > 0; i--) {
             if (data.tools[i].name === 'Swap') {
@@ -479,7 +479,7 @@ var essence = {
             }
         }
 
-        essence.init(data, L_.missionsList, true)
+        await essence.init(data, L_.missionsList, true)
     },
     fina: function () {
         if (!essence.finalized) {

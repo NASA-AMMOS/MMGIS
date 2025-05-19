@@ -16,6 +16,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Chart } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import zoomPlugin from 'chartjs-plugin-zoom'
+import * as moment from 'moment'
 
 import './MeasureTool.css'
 
@@ -120,8 +121,156 @@ const Measure = () => {
     // Compute line of sight for each segment and then merge back together
     recomputeLineOfSight()
 
-    if (dems.length > 0) {
-        return (
+    return (
+        <div
+            className='MeasureTool'
+            onMouseLeave={() => {
+                MeasureTool.clearInfo()
+            }}
+        >
+            <div id='measureLeft'>
+                <div id='measureTop'>
+                    <div id='measureTitle'>Measure</div>
+                    <div id='measureIcons'>
+                        <div
+                            id='measureUndo'
+                            title='Undo'
+                            onClick={MeasureTool.undo}
+                        >
+                            <i className='mdi mdi-undo mdi-18px'></i>
+                        </div>
+                        <div
+                            id='measureReset'
+                            title='Reset'
+                            onClick={MeasureTool.reset}
+                        >
+                            <i className='mdi mdi-refresh mdi-18px'></i>
+                        </div>
+                    </div>
+                </div>
+                {dems.length > 1 && (
+                    <div id='measureDem'>
+                        <div title='Digital Elevation Model'>Dataset</div>
+                        <select
+                            className='dropdown'
+                            defaultValue={dems[0].path}
+                            onChange={MeasureTool.changeDem}
+                        >
+                            {dems.map((l, idx) => (
+                                <option key={idx} value={idx}>
+                                    {l.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+                <div id='measureMode'>
+                    <div>Mode</div>
+                    <select
+                        className='dropdown'
+                        defaultValue={mode}
+                        onChange={MeasureTool.changeMode}
+                    >
+                        <option value='segment'>Segment</option>
+                        <option value='continuous'>Continuous</option>
+                        <option value='continuous_color'>
+                            Continuous Color
+                        </option>
+                    </select>
+                </div>
+                <div id='measureSamples'>
+                    <div>Samples</div>
+                    <select
+                        className='dropdown'
+                        defaultValue='100'
+                        onChange={MeasureTool.changeSamples}
+                    >
+                        <option value='100'>100</option>
+                        <option value='250'>250</option>
+                        <option value='500'>500</option>
+                        <option value='1000'>1000</option>
+                        <option value='2000'>2000</option>
+                    </select>
+                </div>
+                <div id='measureUnit'>
+                    <div>Unit</div>
+                    <select
+                        className='dropdown'
+                        defaultValue='meters'
+                        onChange={MeasureTool.changeDistDisplayUnit}
+                    >
+                        <option value='meters'>M</option>
+                        <option value='kilometers'>KM</option>
+                    </select>
+                </div>
+                <div id='measureLOS'>
+                    <div>Line of Sight</div>
+                    <div className='mmgis-checkbox small'>
+                        <input
+                            type='checkbox'
+                            defaultChecked={LOS.on}
+                            id='measureLOSCheck'
+                            onChange={MeasureTool.changeLOS}
+                        />
+                        <label htmlFor='measureLOSCheck'></label>
+                    </div>
+                </div>
+                <div id='measureObserverHeight'>
+                    <div>&nbsp;&nbsp;&nbsp;Observer Height</div>
+                    <div className='flexbetween'>
+                        <input
+                            type='number'
+                            min={0}
+                            step={1}
+                            defaultValue={LOS.observerHeight}
+                            placeholder={0}
+                            id='measureObserverHeightInput'
+                            onChange={MeasureTool.changeLOSObserverHeight}
+                        />
+                        <div className='measureToolInputUnit'>m</div>
+                    </div>
+                </div>
+                <div id='measureTargetHeight'>
+                    <div>&nbsp;&nbsp;&nbsp;Target Height</div>
+                    <div className='flexbetween'>
+                        <input
+                            type='number'
+                            min={0}
+                            step={1}
+                            defaultValue={LOS.targetHeight}
+                            placeholder={0}
+                            id='measureTargetHeightInput'
+                            onChange={MeasureTool.changeLOSTargetHeight}
+                        />
+                        <div className='measureToolInputUnit'>m</div>
+                    </div>
+                </div>
+                <div id='measureSpeed'>
+                    <div>Travel Speed</div>
+                    <div className='flexbetween'>
+                        <input
+                            type='number'
+                            min={0}
+                            defaultValue={0}
+                            placeholder={0}
+                            id='measureSpeedInput'
+                            onChange={MeasureTool.changeSpeed}
+                        />
+
+                        <select
+                            className='dropdown'
+                            defaultValue='100'
+                            onChange={MeasureTool.changeSpeedUnit}
+                        >
+                            <option value='m/s'>m/s</option>
+                            <option value='km/h'>km/h</option>
+                            <option value='mph'>mph</option>
+                            <option value='kt'>knots</option>
+                            <option value='ft/s'>ft/s</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
             <div
                 className='MeasureTool'
                 onMouseLeave={() => {
@@ -566,20 +715,49 @@ const Measure = () => {
                                         .text(text3d)
                                         .css({ opacity: 1 })
 
-                                    $('#measureInfoVis > div:last-child')
-                                        .text(
-                                            `${
-                                                LOS.on
-                                                    ? visible
-                                                        ? 'TRUE'
-                                                        : 'FALSE'
-                                                    : 'N/A'
-                                            }`
-                                        )
-                                        .css({ opacity: 1 })
-                                }
-                            },
-                        }}
+                                $('#measureInfoVis > div:last-child')
+                                    .text(
+                                        `${
+                                            LOS.on
+                                                ? visible
+                                                    ? 'TRUE'
+                                                    : 'FALSE'
+                                                : 'N/A'
+                                        }`
+                                    )
+                                    .css({ opacity: 1 })
+
+                                $('#measureInfoSpeed > div:last-child')
+                                    .text(
+                                        MeasureTool.speed != null &&
+                                            MeasureTool.speed != 0
+                                            ? `${MeasureTool.speed}${MeasureTool.speedUnit}`
+                                            : 'N/A'
+                                    )
+                                    .css({ opacity: 1 })
+
+                                $('#measureInfoArrives > div:last-child')
+                                    .text(
+                                        MeasureTool.speed != null &&
+                                            MeasureTool.speed != 0
+                                            ? getArrivesStringFromDistance(d[2])
+                                            : 'N/A'
+                                    )
+                                    .css({ opacity: 1 })
+                            }
+                        },
+                    }}
+                />
+                <svg id='measureSVGOverlay'>
+                    <line
+                        id='measureSVGLine'
+                        x1={0}
+                        y1={0}
+                        x2={0}
+                        y2={0}
+                        stroke='rgba(0,0,0,0)'
+                        strokeWidth={1}
+                        strokeDasharray='10 3'
                     />
                     <svg id='measureSVGOverlay'>
                         <line
@@ -649,6 +827,14 @@ const Measure = () => {
                         <i className='mdi mdi-download mdi-18px'></i>
                     </div>
                 </div>
+                <div id='measureInfoSpeed' className='measure-info-elm'>
+                    <div>Speed</div>
+                    <div>--</div>
+                </div>
+                <div id='measureInfoArrives' className='measure-info-elm'>
+                    <div>Arrives in</div>
+                    <div>--</div>
+                </div>
             </div>
         )
     }
@@ -656,7 +842,7 @@ const Measure = () => {
 }
 
 let MeasureTool = {
-    height: 217,
+    height: 243,
     width: 'full',
     disableLayerInteractions: true,
     vars: {},
@@ -667,6 +853,8 @@ let MeasureTool = {
     mapFocusMarker: null,
     dems: [],
     activeDemIdx: 0,
+    speed: null,
+    speedUnit: 'm/s',
     colorRamp: [
         '#e60049',
         '#0bb4ff',
@@ -1078,6 +1266,12 @@ let MeasureTool = {
             makeMeasureToolLayer()
         }
     },
+    changeSpeed: function (e) {
+        MeasureTool.speed = e.target.value
+    },
+    changeSpeedUnit: function (e) {
+        MeasureTool.speedUnit = e.target.value
+    },
     clearInfo: function () {
         $('#measureInfoLng > div:last-child').css({ opacity: 0 })
         $('#measureInfoLat > div:last-child').css({ opacity: 0 })
@@ -1085,6 +1279,8 @@ let MeasureTool = {
         $('#measureInfo2d > div:last-child').css({ opacity: 0 })
         $('#measureInfo3d > div:last-child').css({ opacity: 0 })
         $('#measureInfoVis > div:last-child').css({ opacity: 0 })
+        $('#measureInfoSpeed > div:last-child').css({ opacity: 0 })
+        $('#measureInfoArrives > div:last-child').css({ opacity: 0 })
     },
     download: function (e) {
         const header = [
@@ -1245,31 +1441,28 @@ function makeMeasureToolLayer() {
                 ) / rAm
             if (distAzimuth < 0) distAzimuth = 360 + distAzimuth //Map to 0 to 360 degrees
             if (i == clickedLatLngs.length - 1) {
-                if (distDisplayUnit == 'meters') {
-                    temp.bindTooltip(
-                        '' + roundedTotalDist + 'm ' + distAzimuth + '&deg;',
-                        {
-                            permanent: true,
-                            direction: 'right',
-                            className: 'distLabel',
-                            offset: [4, 0],
-                        }
-                    )
-                } else if (distDisplayUnit == 'kilometers') {
-                    temp.bindTooltip(
-                        '' +
-                            (roundedTotalDist / 1000).toFixed(2) +
-                            'km ' +
-                            distAzimuth +
-                            '&deg;',
-                        {
-                            permanent: true,
-                            direction: 'right',
-                            className: 'distLabel',
-                            offset: [4, 0],
-                        }
-                    )
+                let dist = roundedTotalDist
+                let distUnit = 'm'
+
+                let timeToArrival = ''
+                if (MeasureTool.speed != null && MeasureTool.speed != 0) {
+                    timeToArrival = ` | Arrives in ${getArrivesStringFromDistance(
+                        dist
+                    )} (at ${MeasureTool.speed}${MeasureTool.speedUnit})`
                 }
+                if (distDisplayUnit == 'kilometers') {
+                    dist = (roundedTotalDist / 1000).toFixed(2)
+                    distUnit = 'km'
+                }
+                temp.bindTooltip(
+                    `${dist}${distUnit} | ${distAzimuth}&deg;${timeToArrival}`,
+                    {
+                        permanent: true,
+                        direction: 'right',
+                        className: 'distLabel',
+                        offset: [4, 0],
+                    }
+                )
             }
         }
         pointsAndPathArr.push(temp)
@@ -1673,34 +1866,69 @@ function makeGhostLine(lng, lat) {
         //distMousePoint.bindTooltip("" + roundedTotalDist + "m\n (+" + roundedDist + "m) " + distAzimuth + "&deg;",
         //  {permanent: true, direction: 'right', className: "distLabel", className: "noPointerEvents", offset: [15,-15]})
         //distMousePoint.addTo(Map_.map);
-        if (distDisplayUnit == 'meters') {
-            CursorInfo.update(
-                `${roundedTotalDist}m ${
-                    mode === 'continuous' ? `(+${roundedDist}m)` : ''
-                } ${distAzimuth}&deg;`,
-                null,
-                false,
-                null,
-                null,
-                null,
-                true
-            )
-        } else if (distDisplayUnit == 'kilometers') {
-            CursorInfo.update(
-                `${(roundedTotalDist / 1000).toFixed(2)}km ${
-                    mode === 'continuous'
-                        ? `(+${(roundedDist / 1000).toFixed(2)}km)`
-                        : ''
-                } ${distAzimuth}&deg;`,
-                null,
-                false,
-                null,
-                null,
-                null,
-                true
-            )
+
+        let distTotal = roundedTotalDist
+        let dist = roundedDist
+        let distUnit = 'm'
+
+        let timeToArrivalTotal = ''
+        let timeToArrival = ''
+        if (MeasureTool.speed != null && MeasureTool.speed != 0) {
+            timeToArrival = `<span style="font-size: 12px; font-weight: unset; color: var(--color-a5); letter-spacing: 1px;"> (+${getArrivesStringFromDistance(
+                dist
+            )})</span>`
+            timeToArrivalTotal = `
+<span style="font-size: 13px; font-weight: unset; color: var(--color-h); letter-spacing: 1px;">Arrives in: ${getArrivesStringFromDistance(
+                distTotal
+            )}</span>`
         }
+        if (distDisplayUnit == 'kilometers') {
+            distTotal = (roundedTotalDist / 1000).toFixed(2)
+            dist = (roundedDist / 1000).toFixed(2)
+            distUnit = 'km'
+        }
+        CursorInfo.update(
+            `Distance: ${distTotal}${distUnit} ${
+                mode === 'continuous'
+                    ? `<span style="font-size: 12px; font-weight: unset; color: var(--color-a5); letter-spacing: 1px;">(+${dist}${distUnit})</span>`
+                    : ''
+            }
+<span style="font-size: 14px; font-weight: unset; color: var(--color-a6); ">Angle${
+                mode === 'continuous' ? ' (from start)' : ''
+            }: ${distAzimuth}&deg;</span>${timeToArrivalTotal}${
+                mode === 'continuous' ? timeToArrival : ''
+            }`,
+            null,
+            false,
+            null,
+            null,
+            null,
+            true
+        )
     }
+}
+
+function getArrivesStringFromDistance(dist, abbreviated) {
+    let speed = F_.speedToMetersPerSeconds(
+        MeasureTool.speed,
+        MeasureTool.speedUnit
+    )
+    let duration = moment.duration((dist / speed) * 1000)
+    let dDays = duration.get('days')
+    let dHrs = duration.get('hours')
+    let dMins = duration.get('minutes')
+    let dSecs = duration.get('seconds')
+
+    if (dDays === 0) {
+        if (dHrs === 0) {
+            if (dMins === 0) {
+                return `${dSecs}s`
+            }
+            return `${dMins}m ${dSecs}s`
+        }
+        return `${dHrs}h ${dMins}m ${dSecs}s`
+    }
+    return `${dDays}D ${dHrs}h ${dMins}m ${dSecs}s`
 }
 
 function totalDistToIndex(l) {

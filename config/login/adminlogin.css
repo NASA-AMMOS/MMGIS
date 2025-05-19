@@ -2,6 +2,7 @@ body,
 html {
   font-family: sans-serif;
   background-color: #1a1a1a;
+  background-image: url(../../configure/build/contours.png);
   padding: 0;
   margin: 0;
 }

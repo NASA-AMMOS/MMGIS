@@ -37,7 +37,8 @@
 .MeasureTool #measureUnit,
 .MeasureTool #measureLOS,
 .MeasureTool #measureObserverHeight,
-.MeasureTool #measureTargetHeight {
+.MeasureTool #measureTargetHeight,
+.MeasureTool #measureSpeed {
     display: flex;
     justify-content: space-between;
     font-size: 14px;
@@ -76,6 +77,21 @@
     border-left: 1px solid var(--color-a);
     color: var(--color-a5);
     font-size: 13px;
+}
+
+.MeasureTool #measureSpeed input {
+    border: none;
+    padding: 1px 5px 0px 6px;
+    height: 25px;
+    width: 77px;
+    background: var(--color-a1-5);
+    text-align: right;
+    color: var(--color-a7);
+    border-left: 1px solid var(--color-a);
+}
+.MeasureTool #measureSpeed select {
+    width: 58px;
+    border-left: 1px solid var(--color-a);
 }
 
 .MeasureTool #measureLeft {

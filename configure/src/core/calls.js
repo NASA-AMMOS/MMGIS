@@ -46,6 +46,14 @@ const c = {
     type: "GET",
     url: "api/configure/versions",
   },
+  get_generaloptions: {
+    type: "GET",
+    url: "api/configure/getGeneralOptions",
+  },
+  update_generaloptions: {
+    type: "POST",
+    url: "api/configure/updateGeneralOptions",
+  },
   geodatasets_recreate: {
     type: "POST",
     url: "api/geodatasets/recreate",

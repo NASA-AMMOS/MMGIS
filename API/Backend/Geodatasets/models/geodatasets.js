@@ -31,6 +31,16 @@ const attributes = {
     unique: false,
     allowNull: true,
   },
+  group_id_field: {
+    type: Sequelize.STRING,
+    unique: false,
+    allowNull: true,
+  },
+  feature_id_field: {
+    type: Sequelize.STRING,
+    unique: false,
+    allowNull: true,
+  },
   table: {
     type: Sequelize.STRING,
     unique: true,
@@ -51,6 +61,8 @@ function makeNewGeodatasetTable(
   num_features,
   startProp,
   endProp,
+  groupIdProp,
+  featureIdProp,
   action,
   success,
   failure
@@ -71,6 +83,14 @@ function makeNewGeodatasetTable(
       type: Sequelize.BIGINT,
       allowNull: true,
     },
+    group_id: {
+      type: Sequelize.STRING,
+      allowNull: true,
+    },
+    feature_id: {
+      type: Sequelize.STRING,
+      allowNull: true,
+    },
     geometry_type: {
       type: Sequelize.STRING,
       unique: false,
@@ -86,21 +106,19 @@ function makeNewGeodatasetTable(
     timestamps: false,
   };
 
-  if (startProp != null)
-    attributes.start_time = {
-      type: Sequelize.BIGINT,
-      allowNull: true,
-    };
-
-  if (endProp != null)
-    attributes.end_time = {
-      type: Sequelize.BIGINT,
-      allowNull: true,
-    };
-
   Geodatasets.findOne({ where: { name: name } })
     .then((result) => {
       if (result) {
+        // Ignore some columns if they're unused/nonexistent
+        if (result.dataValues.start_time_field == null)
+          delete attributes.start_time;
+        if (result.dataValues.end_time_field == null)
+          delete attributes.end_time;
+        if (result.dataValues.group_id_field == null)
+          delete attributes.group_id;
+        if (result.dataValues.feature_id_field == null)
+          delete attributes.feature_id;
+
         let GeodatasetTable = sequelize.define(
           result.dataValues.table,
           attributes,
@@ -113,6 +131,8 @@ function makeNewGeodatasetTable(
         if (action != "append") {
           updateThese.start_time_field = startProp;
           updateThese.end_time_field = endProp;
+          updateThese.group_id_field = groupIdProp;
+          updateThese.feature_id_field = featureIdProp;
           updateThese.num_features = num_features;
         } else {
           updateThese.num_features = (result.num_features || 0) + num_features;
@@ -131,9 +151,11 @@ function makeNewGeodatasetTable(
                 }
               )
               .then(() => {
+                const promises = [];
+
                 if (startProp != null || endProp != null) {
-                  sequelize
-                    .query(
+                  promises.push(
+                    sequelize.query(
                       `CREATE INDEX IF NOT EXISTS ${Utils.forceAlphaNumUnder(
                         `${result.dataValues.table}_time_idx`
                       )} on ${Utils.forceAlphaNumUnder(
@@ -147,37 +169,65 @@ function makeNewGeodatasetTable(
                         replacements: {},
                       }
                     )
-                    .then(() => {
-                      success({
-                        name: result.dataValues.name,
-                        table: result.dataValues.table,
-                        tableObj: GeodatasetTable,
-                      });
+                  );
+                }
 
-                      return null;
-                    })
-                    .catch((err) => {
-                      logger(
-                        "error",
-                        "Failed to recreate temporal index for geodataset table.",
-                        "geodatasets",
-                        null,
-                        err
-                      );
-                      failure({
-                        status: "failure",
-                        message: "Failed to recreate temporal index",
-                      });
+                if (groupIdProp != null) {
+                  promises.push(
+                    sequelize.query(
+                      `CREATE INDEX IF NOT EXISTS ${Utils.forceAlphaNumUnder(
+                        `${result.dataValues.table}_group_id_idx`
+                      )} on ${Utils.forceAlphaNumUnder(
+                        result.dataValues.table
+                      )} USING gist (group_id);`,
+                      {
+                        replacements: {},
+                      }
+                    )
+                  );
+                }
+
+                if (featureIdProp != null) {
+                  promises.push(
+                    sequelize.query(
+                      `CREATE INDEX IF NOT EXISTS ${Utils.forceAlphaNumUnder(
+                        `${result.dataValues.table}_feature_id_idx`
+                      )} on ${Utils.forceAlphaNumUnder(
+                        result.dataValues.table
+                      )} USING gist (feature_id);`,
+                      {
+                        replacements: {},
+                      }
+                    )
+                  );
+                }
+
+                Promise.all(promises)
+                  .then(() => {
+                    success({
+                      name: result.dataValues.name,
+                      table: result.dataValues.table,
+                      tableObj: GeodatasetTable,
                     });
-                } else {
-                  success({
-                    name: result.dataValues.name,
-                    table: result.dataValues.table,
-                    tableObj: GeodatasetTable,
+
+                    return null;
+                  })
+                  .catch((err) => {
+                    logger(
+                      "error",
+                      "Failed to recreate some indexes for geodataset table.",
+                      "geodatasets",
+                      null,
+                      err
+                    );
+                    failure({
+                      status: "failure",
+                      message: "Failed to recreate some indexes",
+                    });
+                    return null;
                   });
 
-                  return null;
-                }
+                return null;
               })
               .catch((err) => {
                 logger(
@@ -220,6 +270,8 @@ function makeNewGeodatasetTable(
               num_features: num_features,
               start_time_field: startProp,
               end_time_field: endProp,
+              group_id_field: groupIdProp,
+              feature_id_field: featureIdProp,
             })
               .then((created) => {
                 let GeodatasetTable = sequelize.define(
@@ -425,6 +477,44 @@ const up = async () => {
       logger(
         "error",
         `Failed to add geodatasets.end_time_field column. DB tables may be out of sync!`,
+        "geodatasets",
+        null,
+        err
+      );
+      return null;
+    });
+
+  // group_id_field column
+  await sequelize
+    .query(
+      `ALTER TABLE geodatasets ADD COLUMN IF NOT EXISTS group_id_field varchar(255) NULL;`
+    )
+    .then(() => {
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to add geodatasets.group_id_field column. DB tables may be out of sync!`,
+        "geodatasets",
+        null,
+        err
+      );
+      return null;
+    });
+
+  // feature_id_field column
+  await sequelize
+    .query(
+      `ALTER TABLE geodatasets ADD COLUMN IF NOT EXISTS feature_id_field varchar(255) NULL;`
+    )
+    .then(() => {
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to add geodatasets.feature_id_field column. DB tables may be out of sync!`,
         "geodatasets",
         null,
         err

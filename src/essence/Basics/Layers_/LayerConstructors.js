@@ -63,7 +63,7 @@ export const constructVectorLayer = (
     )
         fiO = `prop:${layerObj.style.fillOpacityProp}`
 
-    let rad = String(layerObj.style.radius)
+    let rad = String(layerObj.style.radius || layerObj.radius)
     if (rad === 'undefined') rad = '8'
     if (layerObj.style.radiusProp != null && layerObj.style.radiusProp !== '')
         rad = `prop:${layerObj.style.radiusProp}`
@@ -143,7 +143,9 @@ export const constructVectorLayer = (
 
                 var finalRad =
                     rad != null && rad.toLowerCase().substring(0, 4) === 'prop'
-                        ? feature.properties[rad.substring(5)] || '8'
+                        ? feature.properties[rad.substring(5)] ||
+                          layerObj.radius ||
+                          '8'
                         : feature.style &&
                           feature.style.radius != null &&
                           feature.style.radius != 'undefined'
@@ -165,6 +167,7 @@ export const constructVectorLayer = (
                 layerObj.style.fillColor = finalFiC || '#FFF'
                 layerObj.style.fillOpacity =
                     finalFiO === 'undefined' ? '1' : finalFiO
+
                 layerObj.style.radius = finalRad || 8
             }
             if (
@@ -259,7 +262,8 @@ export const constructVectorLayer = (
                     if (unit === 'rad') {
                         yaw = yaw * (180 / Math.PI)
                     }
-                    layerObj.shape = 'directional-circle'
+                    if (bearingVar.useCustomShape !== true)
+                        layerObj.shape = 'directional-circle'
                 }
 
                 const markerXY = Map_.map.latLngToLayerPoint(latlong)
@@ -399,7 +403,13 @@ export const constructVectorLayer = (
                             ((layerObj.style.radius || layerObj.radius || 8) *
                                 2) /
                             24
-                        }); text-shadow:  
+                        }) rotate(${
+                            (layerObj.style.shapeRotationOffset != null
+                                ? parseFloat(layerObj.style.shapeRotationOffset)
+                                : 0) + (yaw || 0)
+                        }deg); ${
+                            layerObj.style.weight != 0
+                                ? `text-shadow:  
                             1px 1px 0px ${featureStyle.color}, 
                             -1px -1px 0px ${featureStyle.color}, 
                             1px -1px 0px ${featureStyle.color}, 
@@ -408,7 +418,9 @@ export const constructVectorLayer = (
                             0px 1px 0px ${featureStyle.color}, 
                             -1px 0px 0px ${featureStyle.color}, 
                             0px -1px 0px ${featureStyle.color}, 
-                            1px 0px 0px ${featureStyle.color};
+                            1px 0px 0px ${featureStyle.color}; `
+                                : ''
+                        }
                             display: block;
                             text-align: center;"
                             ><i class='mdi mdi-${finalShape.replace(
@@ -1648,6 +1660,11 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                     'red',
                 ]),
                 weight: F_.getIn(pathGradientVar, 'weight', 4),
+                connectAllPoints: F_.getIn(
+                    pathGradientVar,
+                    'connectAllPoints',
+                    false
+                ),
             }
 
             // check validity
@@ -1682,53 +1699,82 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
             var prevParentIndex = null
             geojson.features.forEach((feature) => {
                 let path = []
-                F_.coordinateDepthTraversal(
-                    feature.geometry.coordinates,
-                    (array, _path) => {
-                        // Find breaks in the coordinate array to find sepearate features
-                        const splitPath = _path.split('.')
-                        let parentIndex = null
-                        if (splitPath.length >= 2) {
-                            parentIndex = splitPath[splitPath.length - 2]
-                            if (
-                                prevParentIndex != null &&
-                                parentIndex != prevParentIndex
-                            ) {
-                                paths.push(path)
-                                path = []
-                            }
-                        }
-                        const value = F_.getIn(
-                            getCoordProperties(geojson, feature, array),
+                if (pathGradientSettings.connectAllPoints) {
+                    if (feature.geometry.type.toLowerCase() === 'point') {
+                        let value = F_.getIn(
+                            feature.properties,
                             pathGradientSettings.colorWithProp,
                             0
                         )
                         if (min > value) min = value
                         if (max < value) max = value
-
-                        path.push([array[1], array[0], value])
-
-                        // Save this for next run through
-                        prevParentIndex = parentIndex
+                        path = [
+                            feature.geometry.coordinates[1],
+                            feature.geometry.coordinates[0],
+                            value,
+                        ]
                     }
-                )
+                } else {
+                    F_.coordinateDepthTraversal(
+                        feature.geometry.coordinates,
+                        (array, _path) => {
+                            // Find breaks in the coordinate array to find sepearate features
+                            const splitPath = _path.split('.')
+                            let parentIndex = null
+                            if (splitPath.length >= 2) {
+                                parentIndex = splitPath[splitPath.length - 2]
+                                if (
+                                    prevParentIndex != null &&
+                                    parentIndex != prevParentIndex
+                                ) {
+                                    paths.push(path)
+                                    path = []
+                                }
+                            }
+                            const value = F_.getIn(
+                                getCoordProperties(geojson, feature, array),
+                                pathGradientSettings.colorWithProp,
+                                0
+                            )
+                            if (min > value) min = value
+                            if (max < value) max = value
+
+                            path.push([array[1], array[0], value])
+
+                            // Save this for next run through
+                            prevParentIndex = parentIndex
+                        }
+                    )
+                }
                 paths.push(path)
             })
 
             if (min === 0 && max === 0) max = 1
 
             const hotlines = []
-            paths.forEach((path) => {
-                if (path.length > 0)
-                    hotlines.push(
-                        L.hotline(path, {
-                            min: min,
-                            max: max,
-                            palette: steppedColorRamp,
-                            weight: pathGradientSettings.weight,
-                        })
-                    )
-            })
+
+            if (pathGradientSettings.connectAllPoints) {
+                hotlines.push(
+                    L.hotline(paths, {
+                        min: min,
+                        max: max,
+                        palette: steppedColorRamp,
+                        weight: pathGradientSettings.weight,
+                    })
+                )
+            } else {
+                paths.forEach((path) => {
+                    if (path.length > 0)
+                        hotlines.push(
+                            L.hotline(path, {
+                                min: min,
+                                max: max,
+                                palette: steppedColorRamp,
+                                weight: pathGradientSettings.weight,
+                            })
+                        )
+                })
+            }
 
             const layer = L.layerGroup(hotlines)
             layer.addDataEnhanced = function (

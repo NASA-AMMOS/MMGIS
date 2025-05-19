@@ -4,7 +4,7 @@ let setup = {
   //Once the app initializes
   onceInit: (s) => {
     s.app.use(
-      s.ROOT_PATH + "/API/shortener",
+      s.ROOT_PATH + "/api/shortener",
       s.ensureUser(),
       s.checkHeadersCodeInjection,
       s.setContentType,

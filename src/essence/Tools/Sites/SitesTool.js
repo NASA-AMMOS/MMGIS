@@ -64,6 +64,7 @@ var SitesTool = {
         var sitesRadio = tools
             .append('div')
             .attr('class', 'mmgisRadioBar2 sitesRadio')
+            .style('width', '100%')
 
         if (this.sitesVar == null) {
             console.warn('Warning: SitesTool found no sites.')
@@ -86,7 +87,10 @@ var SitesTool = {
                             $(this).siblings().removeClass('active')
                             $(this).addClass('active')
                             //Update site
-                            L_.setSite(sitesVar.code, sitesVar.view)
+                            L_.setSite(
+                                sitesVar.code,
+                                SitesTool.getViewFromLatLngZoom(sitesVar)
+                            )
                             L_.disableAllBut(sitesVar.code)
                             if (TC_.toolModules['LayersTool'])
                                 TC_.toolModules['LayersTool'].setHeader(
@@ -98,12 +102,31 @@ var SitesTool = {
             }
         }
     },
+    getViewFromLatLngZoom: function (siteVar) {
+        return [
+            parseFloat(
+                siteVar.lat != null
+                    ? siteVar.lat
+                    : L_.configData.msv.view[0] || 0
+            ),
+            parseFloat(
+                siteVar.lng != null
+                    ? siteVar.lng
+                    : L_.configData.msv.view[1] || 0
+            ),
+            parseFloat(
+                siteVar.zoom != null
+                    ? siteVar.zoom
+                    : L_.configData.msv.view[2] || 0
+            ),
+        ]
+    },
     setSite: function (newSiteCode, newView, dontSetGlobe, aggregate) {
         var siteView = newView
         if (siteView == null) {
             for (let s in this.sitesVar) {
                 if (this.sitesVar[s].code == newSiteCode) {
-                    siteView = this.sitesVar[s].view
+                    siteView = SitesTool.getViewFromLatLngZoom(this.sitesVar[s])
                 }
             }
         }

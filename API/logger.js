@@ -45,40 +45,44 @@ const logger = function (level, message, caller, req, err) {
     user: req && req.user ? req.user : "HOST",
   };
 
-  let crop = 512;
-  if (req && req.body) {
-    let cleanBody = JSON.parse(JSON.stringify(req.body));
-    if (cleanBody.password) {
-      cleanBody.password = "_redacted_";
+  try {
+    let crop = 512;
+    if (req && req.body) {
+      let cleanBody = JSON.parse(JSON.stringify(req.body));
+      if (cleanBody.password) {
+        cleanBody.password = "_redacted_";
+      }
+      for (let k in cleanBody) {
+        if (JSON.stringify(cleanBody[k]).length > crop)
+          cleanBody[k] = "[Too Long...]";
+      }
+      if (Object.keys(cleanBody).length > 0) {
+        log.req = log.req || {};
+        log.req.body = cleanBody;
+      }
     }
-    for (let k in cleanBody) {
-      if (JSON.stringify(cleanBody[k]).length > crop)
-        cleanBody[k] = "[Too Long...]";
+    if (req && req.query) {
+      let cleanQuery = JSON.parse(JSON.stringify(req.query));
+      if (cleanQuery.password) {
+        cleanQuery.password = "_redacted_";
+      }
+      for (let k in cleanQuery) {
+        if (JSON.stringify(cleanQuery[k]).length > crop)
+          cleanQuery[k] = "[Too Long...]";
+      }
+      if (Object.keys(cleanQuery).length > 0) {
+        log.req = log.req || {};
+        log.req.query = cleanQuery;
+      }
     }
-    if (Object.keys(cleanBody).length > 0) {
-      log.req = log.req || {};
-      log.req.body = cleanBody;
+    if (err) {
+      log.err = err;
     }
-  }
-  if (req && req.query) {
-    let cleanQuery = JSON.parse(JSON.stringify(req.query));
-    if (cleanQuery.password) {
-      cleanQuery.password = "_redacted_";
-    }
-    for (let k in cleanQuery) {
-      if (JSON.stringify(cleanQuery[k]).length > crop)
-        cleanQuery[k] = "[Too Long...]";
-    }
-    if (Object.keys(cleanQuery).length > 0) {
-      log.req = log.req || {};
-      log.req.query = cleanQuery;
-    }
-  }
-  if (err) {
-    log.err = err;
-  }
 
-  log = JSON.stringify(log);
+    log = JSON.stringify(log);
+  } catch (err2) {
+    log.err = err2;
+  }
 
   if (process.env.NODE_ENV === "development") {
     switch (level) {

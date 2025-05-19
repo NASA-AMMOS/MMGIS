@@ -8,7 +8,7 @@ grand_parent: Configure
 
 # Velocity Layer
 
-For visualizing data that represents velocities with magnitude and horizontal direction (e.g., wind, ocean currents). They may be visualized as streamlines or particles (with placeholders to fully support arrows and wind barbs in the future).
+For visualizing data that represents velocities with magnitude and horizontal direction (e.g., wind, ocean currents). They may be visualized as streamlines or particles (with placeholders to fully support arrows and wind barbs in the future). May be used in conjunction with [Veloserver](https://github.com/NASA-AMMOS/Veloserver).
 
 ## Core
 
@@ -25,7 +25,7 @@ The kind of visualization for the layer: streamlines (animated flowlines), parti
 #### URL
 
 _type:_ string  
-A file path that points to a geojson, gribjson (streamlines only), or geotiff (arrows only). If the path is relative, it will be relative to the mission's directory. The URL must contain a proper placeholder ending such as: {z}/{x}/{y}.png.
+A file path that points to a geojson, gribjson (streamlines only), or geotiff (arrows only). If the path is relative, it will be relative to the mission's directory. The URL must contain a proper placeholder ending such as: {z}/{x}/{y}.png. Works with [Veloserver](https://github.com/NASA-AMMOS/Veloserver) URLs.
 
 #### Minimum Zoom
 

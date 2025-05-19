@@ -1,5 +1,54 @@
 # MMGIS Changelog
 
+## 4.0.0
+
+_April 17, 2025_
+
+#### Summary
+
+This major release adds support for TiTiler (a tiling server), STAC (a geo-spatial metadata standard), Veloserver (a wind server) and COGs. If not using Docker, a complete installation now requires a micromamba python environment. Two new Layer types have been added: Velocity and Image. GeoDatasets support more performance-based options and can behave similarly to Datasets.
+
+### Migration Guide
+
+[Migrating MMGIS from v3 to v4](https://nasa-ammos.github.io/MMGIS/migration/v3-to-v4)
+
+#### Added
+
+- TiTiler - A backend tile service
+- Support for COGs (Cloud Optimized GeoTiffs)
+- STAC Catalogs
+- Support for mosaicked-on-the-fly COGs via titiler-pgstac
+- New Layer Type: Velocity (to visualize wind and motion and uses [Veloserver](https://github.com/NASA-AMMOS/Veloserver))
+- New Layer Type: Image (to support standalone COGs)
+- Internal HTTPS support (no longer need to wrap MMGIS in a proxy to enable that)
+- Loading indicator
+- LINK_PREVIEW envs for custom description of page when shared through other apps
+- Open-api documentation at `/api/docs`
+- Support marker bearings with configurable icons
+- Support Right-clicking to copy IdentifierTool values
+- InfoTool with one-to-many Datasets
+- Add Dataset behavior to Geodatasets
+- Chunked uploads of GeoDatasets
+- Configurable Tile Layer Brightness, Contrast and Saturation
+- MeasureTool - Speed/Arrival
+
+#### Changed
+
+- MMGIS now requires a micromamba python environment to run
+- `/configure-beta` is now `/configure` and the old configure page is now at `/configure-legacy`
+- Better 404 handling
+- Better Screenshot Filenames
+
+#### Fixed
+
+- Addressed Sequelize replacements and sanitizations
+- Improved FireFox support
+- Improved the sample docker-compose file
+- `/configure` - Defaults and cleaned layer objects
+- `/configure` - Avoid aggressively trimming white space in text boxes
+
+---
+
 ## 3.0.0
 
 _October 14, 2024_

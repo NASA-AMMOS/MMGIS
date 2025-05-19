@@ -14,6 +14,7 @@ import ToolController_ from '../ToolController_/ToolController_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import Description from '../../Ancillary/Description'
 import QueryURL from '../../Ancillary/QueryURL'
+import MetadataCapturer from '../Layers_/MetadataCapturer.js'
 import { Kinds } from '../../../pre/tools'
 import DataShaders from '../../Ancillary/DataShaders'
 import calls from '../../../pre/calls'
@@ -28,6 +29,12 @@ import {
 let L = window.L
 
 let essenceFina = function () {}
+
+import GeoRasterLayer from '../../../external/georaster-layer-for-leaflet/georaster-layer-for-leaflet.ts'
+import georaster from 'georaster'
+
+// The default color ramp used for image layer types
+const IMAGE_DEFAULT_COLOR_RAMP = 'binary'
 
 let Map_ = {
     //Our main leaflet map variable
@@ -139,6 +146,7 @@ let Map_ = {
                 //wheelPxPerZoomLevel: 500,
             })
             // Default CRS
+
             const projString = `+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=${F_.radiusOfPlanetMajor} +b=${F_.radiusOfPlanetMinor} +towgs84=0,0,0,0,0,0,0 +units=m +no_defs`
             window.mmgisglobal.customCRS = new L.Proj.CRS(
                 'EPSG:3857',
@@ -369,12 +377,19 @@ let Map_ = {
                         L_.layers.data[L_._layersOrdered[i]].type === 'data'
                     ) {
                         hasIndexRaster.push(i)
+                    } else if (
+                        L_.layers.data[L_._layersOrdered[i]].type === 'image'
+                    ) {
+                        Map_.map.removeLayer(
+                            L_.layers.layer[L_._layersOrdered[i]]
+                        )
+                        hasIndex.push(i)
                     }
                 }
             }
         }
 
-        // First only vectors
+        // First only vectors and images
         for (let i = 0; i < hasIndex.length; i++) {
             if (L_.layers.attachments[L_._layersOrdered[hasIndex[i]]]) {
                 for (let s in L_.layers.attachments[
@@ -398,7 +413,23 @@ let Map_ = {
                     }
                 }
             }
+
             Map_.map.addLayer(L_.layers.layer[L_._layersOrdered[hasIndex[i]]])
+
+            // If image layer, reorder the z index and redraw the layer
+            if (
+                L_.layers.data[L_._layersOrdered[hasIndex[i]]].type === 'image'
+            ) {
+                L_.layers.layer[L_._layersOrdered[hasIndex[i]]].setZIndex(
+                    L_._layersOrdered.length +
+                        1 -
+                        L_._layersOrdered.indexOf(
+                            L_._layersOrdered[hasIndex[i]]
+                        )
+                )
+                L_.layers.layer[L_._layersOrdered[hasIndex[i]]].clearCache()
+                L_.layers.layer[L_._layersOrdered[hasIndex[i]]].redraw()
+            }
         }
 
         L_.enforceVisibilityCutoffs()
@@ -414,6 +445,20 @@ let Map_ = {
                     )
             )
         }
+
+        // Now bring any Drawn layers back to the front:
+        Object.keys(L_.layers.layer).forEach((key) => {
+            if (
+                key.startsWith('DrawTool_') &&
+                Array.isArray(L_.layers.layer[key])
+            ) {
+                L_.layers.layer[key].forEach((l) => {
+                    try {
+                        l.bringToFront()
+                    } catch (err) {}
+                })
+            }
+        })
     },
     refreshLayer: async function (layerObj, cb, skipOrderedBringToFront) {
         // If it's a dynamic extent layer, just re-call its function
@@ -631,6 +676,9 @@ async function makeLayer(
                 case 'data':
                     makeDataLayer(layerObj)
                     break
+                case 'image':
+                    makeImageLayer(layerObj)
+                    break
                 case 'model':
                     //Globe only
                     makeModelLayer(layerObj)
@@ -647,7 +695,6 @@ async function makeLayer(
             Filtering.updateGeoJSON(layerObj.name)
             Filtering.triggerFilter(layerObj.name)
         }
-
         resolve(true)
     })
 }
@@ -700,60 +747,7 @@ function featureDefaultClick(feature, layer, e) {
         ToolController_.activeTool.disableLayerInteractions === true
     )
         return
-
-    //Query dataset links if possible and add that data to the feature's properties
-    if (
-        layer.options.layerName &&
-        L_.layers.data[layer.options.layerName] &&
-        L_.layers.data[layer.options.layerName].variables &&
-        L_.layers.data[layer.options.layerName].variables.datasetLinks
-    ) {
-        const dl =
-            L_.layers.data[layer.options.layerName].variables.datasetLinks
-        let dlFilled = dl
-        for (let i = 0; i < dlFilled.length; i++) {
-            dlFilled[i].search = F_.getIn(
-                layer.feature.properties,
-                dlFilled[i].prop.split('.')
-            )
-        }
-
-        calls.api(
-            'datasets_get',
-            {
-                queries: JSON.stringify(dlFilled),
-            },
-            function (data) {
-                const d = data.body
-                for (let i = 0; i < d.length; i++) {
-                    if (d[i].type == 'images') {
-                        layer.feature.properties.images =
-                            layer.feature.properties.images || []
-                        for (let j = 0; j < d[i].results.length; j++) {
-                            layer.feature.properties.images.push(
-                                d[i].results[j]
-                            )
-                        }
-                        //remove duplicates
-                        layer.feature.properties.images =
-                            F_.removeDuplicatesInArrayOfObjects(
-                                layer.feature.properties.images
-                            )
-                    } else {
-                        layer.feature.properties._data = d[i].results
-                    }
-                }
-                keepGoing()
-            },
-            function (data) {
-                keepGoing()
-            }
-        )
-    } else {
-        keepGoing()
-    }
-
-    function keepGoing() {
+    MetadataCapturer.populateMetadata(layer, () => {
         Kinds.use(
             L_.layers.data[layer.options.layerName].kind,
             Map_,
@@ -822,7 +816,7 @@ function featureDefaultClick(feature, layer, e) {
         }
 
         QueryURL.writeSearchURL([searchStr], layer.options.layerName)
-    }
+    })
 }
 
 //Pretty much like makePointLayer but without the pointToLayer stuff
@@ -1104,15 +1098,19 @@ async function makeTileLayer(layerObj) {
 
     let splitColonType
     const splitColonLayerUrl = layerObj.url.split(':')
-    if (splitColonLayerUrl[1] != null)
+    if (splitColonLayerUrl[1] != null) {
+        let bandsParam = ''
+        let b
+        let resamplingParam = ''
+
         switch (splitColonLayerUrl[0]) {
             case 'stac-collection':
                 splitColonType = splitColonLayerUrl[0]
                 const splitParams = splitColonLayerUrl[1].split('?')
 
                 // Bands
-                let bandsParam = ''
-                let b = layerObj.cogBands
+                bandsParam = ''
+                b = layerObj.cogBands
                 if (b != null) {
                     b.forEach((band) => {
                         if (band != null) bandsParam += `&bidx=${band}`
@@ -1120,7 +1118,7 @@ async function makeTileLayer(layerObj) {
                 }
 
                 // Resampling
-                let resamplingParam = ''
+                resamplingParam = ''
                 if (layerObj.cogResampling) {
                     resamplingParam = `&resampling=${layerObj.cogResampling}`
                 }
@@ -1134,9 +1132,32 @@ async function makeTileLayer(layerObj) {
                 }/{z}/{x}/{y}?assets=asset${bandsParam}${resamplingParam}`
                 layerObj.tileformat = 'wmts'
                 break
+            case 'COG':
+                splitColonType = splitColonLayerUrl[0]
+                // Bands
+                bandsParam = ''
+                b = layerObj.cogBands
+                if (b != null) {
+                    b.forEach((band) => {
+                        if (band != null) bandsParam += `&bidx=${band}`
+                    })
+                }
+
+                resamplingParam = ''
+                if (layerObj.cogResampling) {
+                    resamplingParam = `&resampling=${layerObj.cogResampling}`
+                }
+
+                layerUrl = `${window.location.origin}${(
+                    window.location.pathname || ''
+                ).replace(/\/$/g, '')}/titiler/cog/tiles/${
+                    layerObj.tileMatrixSet || 'WebMercatorQuad'
+                }/{z}/{x}/{y}.webp?url=${layerUrl}${bandsParam}${resamplingParam}`
+
             default:
                 break
         }
+    }
 
     let bb = null
     if (layerObj.hasOwnProperty('boundingBox')) {
@@ -1182,6 +1203,7 @@ async function makeTileLayer(layerObj) {
             typeof layerObj.time === 'undefined'
                 ? null
                 : layerObj.time.customTimes,
+        cogTransform: layerObj.cogTransform,
         cogMin: layerObj.cogMin,
         currentCogMin: layerObj.currentCogMin,
         cogMax: layerObj.cogMax,
@@ -1199,6 +1221,44 @@ async function makeTileLayer(layerObj) {
     })
     L_.layers.layer[layerObj.name].off('load')
     L_.layers.layer[layerObj.name].on('load', () => {
+        // Set default css filters for tile layer
+        if (
+            layerObj.style?.brightness != null &&
+            L_.layers.filters[layerObj.name]?.brightness == null
+        )
+            L_.setLayerFilter(
+                layerObj.name,
+                'brightness',
+                layerObj.style.brightness
+            )
+        if (
+            layerObj.style?.contrast != null &&
+            L_.layers.filters[layerObj.name]?.contrast == null
+        )
+            L_.setLayerFilter(
+                layerObj.name,
+                'contrast',
+                layerObj.style.contrast
+            )
+        if (
+            layerObj.style?.saturation != null &&
+            L_.layers.filters[layerObj.name]?.saturation == null
+        )
+            L_.setLayerFilter(
+                layerObj.name,
+                'saturation',
+                layerObj.style.saturation
+            )
+        if (
+            layerObj.style?.blend != null &&
+            L_.layers.filters[layerObj.name]?.blend == null
+        )
+            L_.setLayerFilter(
+                layerObj.name,
+                'mix-blend-mode',
+                layerObj.style.blend
+            )
+
         L_.setGlobalLoaded(layerObj.name)
     })
     allLayersLoaded()
@@ -1244,27 +1304,28 @@ function makeVectorTileLayer(layerObj) {
                     let ell = { latlng: null }
                     if (e.latlng != null)
                         ell.latlng = JSON.parse(JSON.stringify(e.latlng))
+                    MetadataCapturer.populateMetadata(layer, () => {
+                        Kinds.use(
+                            L_.layers.data[layerName].kind,
+                            Map_,
+                            L_.layers.layer[layerName].activeFeatures[0],
+                            layer,
+                            layerName,
+                            null,
+                            ell
+                        )
 
-                    Kinds.use(
-                        L_.layers.data[layerName].kind,
-                        Map_,
-                        L_.layers.layer[layerName].activeFeatures[0],
-                        layer,
-                        layerName,
-                        null,
-                        ell
-                    )
-
-                    ToolController_.getTool('InfoTool').use(
-                        layer,
-                        layerName,
-                        L_.layers.layer[layerName].activeFeatures,
-                        null,
-                        null,
-                        null,
-                        ell
-                    )
-                    L_.layers.layer[layerName].activeFeatures = []
+                        ToolController_.getTool('InfoTool').use(
+                            layer,
+                            layerName,
+                            L_.layers.layer[layerName].activeFeatures,
+                            null,
+                            null,
+                            null,
+                            ell
+                        )
+                        L_.layers.layer[layerName].activeFeatures = []
+                    })
                 }
             })(layer, layerName, e),
             100
@@ -1425,6 +1486,183 @@ function makeDataLayer(layerObj) {
 
     L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
     allLayersLoaded()
+}
+
+function makeImageLayer(layerObj) {
+    let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
+    if (!F_.isUrlAbsolute(layerUrl)) {
+        layerUrl = `${window.location.origin}${(
+            window.location.pathname || ''
+        ).replace(/\/$/g, '')}/${layerUrl}`
+    }
+
+    let bb = null
+    if (layerObj.hasOwnProperty('boundingBox')) {
+        bb = L.latLngBounds(
+            L.latLng(layerObj.boundingBox[3], layerObj.boundingBox[2]),
+            L.latLng(layerObj.boundingBox[1], layerObj.boundingBox[0])
+        )
+    }
+
+    const cogColormap = F_.getIn(L_.layers.data[layerObj.name], 'cogColormap')
+
+    parseGeoraster(layerUrl)
+        .then((georaster) => {
+            let pixelValuesToColorFn = null
+            if (
+                F_.getIn(
+                    L_.layers.data[layerObj.name],
+                    'variables.hideNoDataValue'
+                ) === true
+            ) {
+                pixelValuesToColorFn = (values) => {
+                    // https://github.com/GeoTIFF/georaster-layer-for-leaflet/issues/16
+                    return values[0] === georaster.noDataValue
+                        ? null
+                        : `rgb(${values[0]},${values[1]},${values[2]})`
+                }
+            }
+
+            const imageInfo = F_.getIn(
+                L_.layers.data[layerObj.name],
+                'variables.image'
+            )
+
+            let min = null
+            let max = null
+            if (georaster.numberOfRasters === 1) {
+                min = layerObj.cogMin
+                max = layerObj.cogMax
+
+                if (
+                    isNaN(parseFloat(layerObj.cogMin)) ||
+                    isNaN(parseFloat(layerObj.cogMax))
+                ) {
+                    // Try to get the min and max values using gdal if the user did not input min/max in the layer config
+                    $.ajax({
+                        type: calls.getminmax.type,
+                        url: calls.getminmax.url,
+                        data: {
+                            type: 'minmax',
+                            path: calls.getprofile.pathprefix + layerUrl,
+                            bands: '[1]', // Assume the geotiff images only have a single band
+                        },
+                        async: false,
+                        success: function (data) {
+                            if (
+                                data &&
+                                data[0] &&
+                                data[0].band &&
+                                data[0].band === 1
+                            ) {
+                                if (isNaN(parseFloat(layerObj.cogMin))) {
+                                    min = data[0].min
+                                    layerObj.cogMin = min
+                                }
+                                if (isNaN(parseFloat(layerObj.cogMax))) {
+                                    max = data[0].max
+                                    layerObj.cogMax = max
+                                }
+                            }
+                        },
+                        error: function (request, status, error) {
+                            console.warn(
+                                `Failed to get gdal minmax info for ${layerObj.name}`,
+                                request,
+                                status,
+                                error
+                            )
+                        },
+                    })
+                }
+
+                // FIXME A lot of this code is duplicated in LayersTool so find some way to consolidate them as functions
+                var range = max - min
+                let colormap = null
+                let reverse = false
+                if (
+                    layerObj.cogTransform === true &&
+                    'cogColormap' in layerObj
+                ) {
+                    colormap = layerObj.cogColormap
+                    // TiTiler colormap variables are all lower case so we need to format them correctly for js-colormaps
+                    if (colormap.toLowerCase().endsWith('_r')) {
+                        colormap = colormap.substring(0, colormap.length - 2)
+                        reverse = true
+                    }
+
+                    let index = Object.keys(colormapData).findIndex((v) => {
+                        return v.toLowerCase() === colormap.toLowerCase()
+                    })
+
+                    if (index > -1) {
+                        colormap = Object.keys(colormapData)[index]
+                    } else {
+                        colormap = 'binary' // Give it the default value
+                    }
+                } else {
+                    colormap = 'binary' // Give it the default value
+                }
+
+                pixelValuesToColorFn = (values) => {
+                    var pixelValue = values[0] // single band
+                    // don't return a color
+                    if (
+                        georaster.noDataValue &&
+                        georaster.noDataValue === pixelValue
+                    ) {
+                        return null
+                    }
+
+                    // scale from 0 - 1
+                    var scaledPixelValue = (pixelValue - min) / range
+                    if (!(scaledPixelValue >= 0 && scaledPixelValue <= 1)) {
+                        if (imageInfo && imageInfo.fillMinMax) {
+                            if (scaledPixelValue <= 0) {
+                                scaledPixelValue = 0
+                            } else if (scaledPixelValue >= 1.0) {
+                                scaledPixelValue = 1
+                            }
+                        } else {
+                            return null
+                        }
+                    }
+
+                    return evaluate_cmap(
+                        scaledPixelValue,
+                        colormap || IMAGE_DEFAULT_COLOR_RAMP,
+                        reverse
+                    )
+                }
+            }
+
+            L_.layers.layer[layerObj.name] = new GeoRasterLayer({
+                georaster: georaster,
+                resolution: 256,
+                opacity: 1.0,
+                pixelValuesToColorFn: pixelValuesToColorFn,
+            })
+
+            L_.layers.layer[layerObj.name].clearCache()
+
+            L_.layers.layer[layerObj.name].setZIndex(
+                L_._layersOrdered.length +
+                    1 -
+                    L_._layersOrdered.indexOf(layerObj.name)
+            )
+
+            L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
+
+            L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+            allLayersLoaded()
+        })
+        .catch((e) => {
+            console.warn(`WARNING - Unable to load image: ${layerUrl}`)
+
+            L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+            L_.layers.layer[layerObj.name] = null
+            allLayersLoaded()
+        })
 }
 
 //Because some layers load faster than others, check to see if

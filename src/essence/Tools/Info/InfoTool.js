@@ -6,8 +6,11 @@ import Map_ from '../../Basics/Map_/Map_'
 import { Kinds } from '../../../pre/tools'
 import Dropy from '../../../external/Dropy/dropy'
 
+import MetadataCapturer from '../../Basics/Layers_/MetadataCapturer'
 import Help from '../../Ancillary/Help'
 import ConfirmationModal from '../../Ancillary/ConfirmationModal'
+
+import tippy from 'tippy.js'
 
 import './InfoTool.css'
 
@@ -48,6 +51,26 @@ var markup = [
                 "<i class='mdi mdi-book-outline mdi-18px'></i>",
             "</div>",
         "</div>",
+        "<div id='infoToolSelectedGeoDataset'>",
+            "<div id='infoToolSelectedGeoDatasetLeft'>",
+                "<i class='mdi mdi-chevron-left mdi-18px'></i>",
+            "</div>",
+            "<div id='infoToolSelectedGeoDatasetDropdown'></div>",
+            "<div id='infoToolSelectedGeoDatasetDropdownTotal'></div>",
+            "<div id='infoToolSelectedGeoDatasetRight'>",
+                "<i class='mdi mdi-chevron-right mdi-18px'></i>",
+            "</div>",
+        "</div>",
+        "<div id='infoToolSelectedDataset'>",
+            "<div id='infoToolSelectedDatasetLeft'>",
+                "<i class='mdi mdi-chevron-left mdi-18px'></i>",
+            "</div>",
+            "<div id='infoToolSelectedDatasetDropdown'></div>",
+            "<div id='infoToolSelectedDatasetDropdownTotal'></div>",
+            "<div id='infoToolSelectedDatasetRight'>",
+                "<i class='mdi mdi-chevron-right mdi-18px'></i>",
+            "</div>",
+        "</div>",
         "<div id='infoToolContent'>",
             "<ul id='infoToolData'></ul>",
             "<div id='infoToolNoneSelected'>No feature selected</div>",
@@ -57,12 +80,14 @@ var markup = [
 
 var InfoTool = {
     height: 0,
-    width: 300,
+    width: 350,
     currentLayer: null,
     currentLayerName: null,
     info: null,
     variables: null,
     activeFeatureI: null,
+    activeDatasetI: null,
+    activeGeoDatasetI: null,
     featureLayers: [],
     filterString: '',
     hiddenShown: false,
@@ -118,6 +143,8 @@ var InfoTool = {
                 activeIndex = foundI != -1 ? foundI : 0
             }
             this.activeFeatureI = activeIndex
+            this.activeDatasetI = 0
+            this.activeGeoDatasetI = 0
             this.initialEvent = initialEvent
 
             // Always highlight even if redundant
@@ -141,6 +168,22 @@ var InfoTool = {
         //Add the markup to tools or do it manually
         tools.html(markup)
 
+        tippy('#infoToolSelected', {
+            content: 'Select An Overlapping Feature',
+            placement: 'right',
+            theme: 'blue',
+        })
+        tippy('#infoToolSelectedGeoDataset', {
+            content: 'Select An Associated Dataset',
+            placement: 'right',
+            theme: 'blue',
+        })
+        tippy('#infoToolSelectedDataset', {
+            content: 'Select An Associated Dataset',
+            placement: 'right',
+            theme: 'blue',
+        })
+
         Help.finalize(helpKey)
 
         $('#infoToolUnhideAll').css(
@@ -151,6 +194,8 @@ var InfoTool = {
         if (this.info == null || this.info.length == 0) {
             $('#infoToolHeader > .right').css('display', 'none')
             $('#infoToolSelected').css('display', 'none')
+            $('#infoToolSelectedDataset').css('display', 'none')
+            $('#infoToolSelectedGeoDataset').css('display', 'none')
             $('#infoToolFilter').css('display', 'none')
             $('#infoToolNoneSelected').css('display', 'block')
             return
@@ -219,17 +264,24 @@ var InfoTool = {
         )
         Dropy.init($('#infoToolSelectedDropdown'), function (idx) {
             let e = JSON.parse(JSON.stringify(InfoTool.initialEvent))
-            Kinds.use(
-                L_.layers.data[InfoTool.currentLayerName]?.kind || null,
-                Map_,
-                InfoTool.info[idx],
+            MetadataCapturer.populateMetadata(
                 InfoTool.featureLayers[idx] || InfoTool.currentLayer,
-                InfoTool.currentLayerName,
-                null,
-                e,
-                { idx: idx },
-                InfoTool.info,
-                InfoTool.featureLayers[idx] ? InfoTool.featureLayers : null
+                () => {
+                    Kinds.use(
+                        L_.layers.data[InfoTool.currentLayerName]?.kind || null,
+                        Map_,
+                        InfoTool.info[idx],
+                        InfoTool.featureLayers[idx] || InfoTool.currentLayer,
+                        InfoTool.currentLayerName,
+                        null,
+                        e,
+                        { idx: idx },
+                        InfoTool.info,
+                        InfoTool.featureLayers[idx]
+                            ? InfoTool.featureLayers
+                            : null
+                    )
+                }
             )
         })
 
@@ -378,6 +430,115 @@ var InfoTool = {
                 Area: F_.getFeatureArea(this.info[this.activeFeatureI], true),
             }
 
+        InfoTool.hasGeoDatasetMetadata = props._geodataset != null
+        if (InfoTool.hasGeoDatasetMetadata) {
+            $('#infoToolSelectedGeoDataset').css('display', 'inherit')
+            const geodatasetNames = []
+            props._geodataset.results.forEach((d) => {
+                let propSplit = props._geodataset.prop.split(',')
+                let name = []
+                for (let i = 0; i < propSplit.length; i++) {
+                    name.push(F_.getIn(d, propSplit[i].split('.')))
+                }
+                geodatasetNames.push(
+                    `${
+                        propSplit[0] === '_.idx' ? 'ID' : propSplit[0]
+                    }: ${name.join('_')}`
+                )
+            })
+            $('#infoToolSelectedGeoDatasetDropdown').html(
+                Dropy.construct(
+                    geodatasetNames,
+                    `GeoDataset`,
+                    InfoTool.activeGeoDatasetI
+                )
+            )
+            Dropy.init(
+                $('#infoToolSelectedGeoDatasetDropdown'),
+                function (idx) {
+                    InfoTool.activeGeoDatasetI = idx
+                    $('#infoToolSelectedGeoDatasetDropdownTotal').text(
+                        `${InfoTool.activeGeoDatasetI + 1} of ${
+                            geodatasetNames.length
+                        }`
+                    )
+                    InfoTool.createInfo()
+                }
+            )
+            $('#infoToolSelectedGeoDatasetDropdownTotal').text(
+                `${InfoTool.activeGeoDatasetI + 1} of ${geodatasetNames.length}`
+            )
+
+            $('#infoToolSelectedGeoDatasetLeft').off('click')
+            $('#infoToolSelectedGeoDatasetLeft').on('click', () => {
+                if (InfoTool.activeGeoDatasetI > 0) {
+                    InfoTool.activeGeoDatasetI--
+                    InfoTool.createInfo()
+                }
+            })
+            $('#infoToolSelectedGeoDatasetRight').off('click')
+            $('#infoToolSelectedGeoDatasetRight').on('click', () => {
+                if (InfoTool.activeGeoDatasetI < geodatasetNames.length - 1) {
+                    InfoTool.activeGeoDatasetI++
+                    InfoTool.createInfo()
+                }
+            })
+
+            props.GeoDataset =
+                props._geodataset.results[InfoTool.activeGeoDatasetI]
+        } else {
+            $('#infoToolSelectedGeoDataset').css('display', 'none')
+        }
+
+        InfoTool.hasDataset = props._dataset != null
+        if (InfoTool.hasDataset) {
+            $('#infoToolSelectedDataset').css('display', 'inherit')
+            const datasetNames = []
+            props._dataset.results.forEach((d) => {
+                let name = F_.getIn(d, props._dataset.prop.split('.'))
+                if (name != null)
+                    datasetNames.push(
+                        `${props._dataset.prop.split('.').slice(-1)}: ${name}`
+                    )
+            })
+            $('#infoToolSelectedDatasetDropdown').html(
+                Dropy.construct(
+                    datasetNames,
+                    `Dataset`,
+                    InfoTool.activeDatasetI
+                )
+            )
+            Dropy.init($('#infoToolSelectedDatasetDropdown'), function (idx) {
+                InfoTool.activeDatasetI = idx
+                $('#infoToolSelectedDatasetDropdownTotal').text(
+                    `${InfoTool.activeDatasetI + 1} of ${datasetNames.length}`
+                )
+                InfoTool.createInfo()
+            })
+            $('#infoToolSelectedDatasetDropdownTotal').text(
+                `${InfoTool.activeDatasetI + 1} of ${datasetNames.length}`
+            )
+
+            $('#infoToolSelectedDatasetLeft').off('click')
+            $('#infoToolSelectedDatasetLeft').on('click', () => {
+                if (InfoTool.activeDatasetI > 0) {
+                    InfoTool.activeDatasetI--
+                    InfoTool.createInfo()
+                }
+            })
+            $('#infoToolSelectedDatasetRight').off('click')
+            $('#infoToolSelectedDatasetRight').on('click', () => {
+                if (InfoTool.activeDatasetI < datasetNames.length - 1) {
+                    InfoTool.activeDatasetI++
+                    InfoTool.createInfo()
+                }
+            })
+
+            props.Dataset = props._dataset.results[InfoTool.activeDatasetI]
+        } else {
+            $('#infoToolSelectedDataset').css('display', 'none')
+        }
+
         depthTraversal(
             props,
             0,
@@ -396,6 +557,8 @@ var InfoTool = {
                 type = 'infoTool_hidden'
             else if (path[0] == 'Coordinates') type = 'infoTool_geometry'
             else if (path[0] == 'Metrics') type = 'infoTool_metrics'
+            else if (path[0] == '_dataset') return
+            else if (path[0] == '_geodataset') return
 
             for (var i = 0; i < keys.length; i++) {
                 if (path.length == 0) {
@@ -407,7 +570,9 @@ var InfoTool = {
                     else type = 'infoTool_property'
                 }
 
-                if (
+                if (keys[i] == '_dataset' || keys[i] == '_geodataset') {
+                    // do nothing
+                } else if (
                     typeof node[keys[i]] === 'object' &&
                     node[keys[i]] !== null
                 ) {
@@ -452,6 +617,7 @@ var InfoTool = {
             }
         }
 
+        $('#infoToolData li').off('click')
         $('#infoToolData li').on('click', function () {
             $(this).toggleClass('expand')
         })
@@ -515,6 +681,8 @@ var InfoTool = {
         $('#infoToolData').empty()
         $('#infoToolHeader > .right').css('display', 'none')
         $('#infoToolSelected').css('display', 'none')
+        $('#infoToolSelectedDataset').css('display', 'none')
+        $('#infoToolSelectedGeoDataset').css('display', 'none')
         $('#infoToolFilter').css('display', 'none')
         $('#infoToolNoneSelected').css('display', 'block')
     },

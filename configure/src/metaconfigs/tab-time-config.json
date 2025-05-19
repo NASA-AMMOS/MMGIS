@@ -1,7 +1,7 @@
 {
   "rows": [
     {
-      "name": "Interface",
+      "name": "Time",
       "components": [
         {
           "field": "time.enabled",
@@ -14,6 +14,7 @@
       ]
     },
     {
+      "name": "Interface",
       "components": [
         {
           "field": "time.visible",

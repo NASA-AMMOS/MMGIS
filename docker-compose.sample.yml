@@ -17,7 +17,7 @@ services:
           "curl",
           "-XGET",
           "-k",
-          "http://mmgis:8888/API/utils/healthcheck",
+          "http://mmgis:8888/api/utils/healthcheck",
         ]
       interval: 20s
       retries: 5
@@ -29,13 +29,16 @@ services:
       - ./ssl:/usr/src/app/ssl
 
   stac-fastapi:
-    image: ghcr.io/stac-utils/stac-fastapi-pgstac:3.0.0
+    image: ghcr.io/stac-utils/stac-fastapi-pgstac:4.0.3
     ports:
       - 8881
     environment:
       # Postgres connection
+      ## UPDATE ME V============================================================================================V UPDATE ME
       - POSTGRES_USER=username
+      ## UPDATE ME V============================================================================================V UPDATE ME
       - POSTGRES_PASS=password
+      ## Leave this as mmgis-stac
       - POSTGRES_DBNAME=mmgis-stac
       - POSTGRES_HOST_READER=db
       - POSTGRES_HOST_WRITER=db
@@ -49,9 +52,8 @@ services:
       db:
         condition: service_healthy
         restart: true
-    command: bash -c "bash /tmp/scripts/wait-for-it.sh -t 120 -h db -p 5432 && uvicorn stac_fastapi.pgstac.app:app --host 0.0.0.0 --port 8881"
+    command: bash -c "uvicorn stac_fastapi.pgstac.app:app --host 0.0.0.0 --port 8881"
     volumes:
-      - ./adjacent-servers/docker-scripts:/tmp/scripts
       - ./Missions:/Missions
 
   tipg:
@@ -69,14 +71,17 @@ services:
       # https://github.com/tiangolo/uvicorn-gunicorn-docker#max_workers
       # - MAX_WORKERS=10
       # Postgres connection
+      ## UPDATE ME V============================================================================================V UPDATE ME
       - POSTGRES_USER=username
+      ## UPDATE ME V============================================================================================V UPDATE ME
       - POSTGRES_PASS=password
+      ## Leave this as mmgis-stac
       - POSTGRES_DBNAME=mmgis-stac
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
       - DB_MIN_CONN_SIZE=1
       - DB_MAX_CONN_SIZE=10
-    command: bash -c "bash /tmp/scripts/wait-for-it.sh -t 120 -h db -p 5432 && /start.sh"
+    command: bash -c "/start.sh"
     depends_on:
       mmgis:
         condition: service_healthy
@@ -85,7 +90,6 @@ services:
         condition: service_healthy
         restart: true
     volumes:
-      - ./adjacent-servers/docker-scripts:/tmp/scripts
       - ./Missions:/Missions
 
   titiler:
@@ -150,8 +154,11 @@ services:
       # https://github.com/tiangolo/uvicorn-gunicorn-docker#max_workers
       - MAX_WORKERS=10
       # Postgres connection
+      ## UPDATE ME V============================================================================================V UPDATE ME
       - POSTGRES_USER=username
+      ## UPDATE ME V============================================================================================V UPDATE ME
       - POSTGRES_PASS=password
+      ## Leave this as mmgis-stac
       - POSTGRES_DBNAME=mmgis-stac
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
@@ -184,10 +191,9 @@ services:
       db:
         condition: service_healthy
         restart: true
-    command: bash -c "bash /tmp/scripts/wait-for-it.sh -t 120 -h db -p 5432 && /start.sh"
+    command: bash -c "/start.sh"
     volumes:
       - ./Missions:/Missions
-      - ./adjacent-servers/docker-scripts:/tmp/scripts
 
   veloserver:
     image: ghcr.io/nasa-ammos/veloserver:development
@@ -200,9 +206,11 @@ services:
     env_file: .env
     environment:
       - POSTGRES_USER=${DB_USER}
+      ## UPDATE ME V============================================================================================V UPDATE ME
       - POSTGRES_PASSWORD_OFF=Rename to 'POSTGRES_PASSWORD' and replace this with an initial root password for the DB
     ports:
       - 5432
+    shm_size: '1g'
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d postgres -U ${DB_USER}"]
       interval: 10s

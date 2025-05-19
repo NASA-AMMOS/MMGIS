@@ -5,6 +5,8 @@ import { calls } from "../../../../core/calls";
 
 import { setModal, setSnackBarText } from "../../../../core/ConfigureStore";
 
+import { LineNavigator } from "../../../../external/line-navigator.js";
+
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -12,10 +14,12 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
+import LinearProgress from "@mui/material/LinearProgress";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
 import UploadIcon from "@mui/icons-material/Upload";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 import { useDropzone } from "react-dropzone";
 
@@ -31,7 +35,7 @@ const useStyles = makeStyles((theme) => ({
       margin: "6px",
     },
     "& .MuiDialog-container": {
-      height: "unset !important",
+      overflowY: "auto",
       transform: "translateX(-50%) translateY(-50%)",
       left: "50%",
       top: "50%",
@@ -41,7 +45,8 @@ const useStyles = makeStyles((theme) => ({
   contents: {
     background: theme.palette.primary.main,
     height: "100%",
-    width: "600px",
+    width: "1200px",
+    maxWidth: "1200px !important",
   },
   heading: {
     height: theme.headHeights[2],
@@ -96,8 +101,8 @@ const useStyles = makeStyles((theme) => ({
     fontWeight: "bold",
     letterSpacing: "1px",
     marginBottom: "10px",
-    paddingBottom: "10px",
     borderBottom: `1px solid ${theme.palette.swatches.grey[500]}`,
+    paddingBottom: "10px",
   },
   dropzone: {
     width: "100%",
@@ -128,7 +133,7 @@ const useStyles = makeStyles((theme) => ({
     "& > p:first-child": { fontWeight: "bold", letterSpacing: "1px" },
     "& > p:last-child": { fontSize: "14px", fontStyle: "italic" },
   },
-  timeFields: {
+  fields: {
     display: "flex",
     "& > div:first-child": {
       marginRight: "5px",
@@ -136,6 +141,33 @@ const useStyles = makeStyles((theme) => ({
     "& > div:last-child": {
       marginLeft: "5px",
     },
+  },
+  fileprogress: {
+    width: "100%",
+    height: "4px",
+  },
+  progressbar: {
+    flex: 1,
+  },
+  progressPercent: {},
+  largeFileNotice: {
+    display: "flex",
+    justifyContent: "space-between",
+    border: `1px solid ${theme.palette.swatches.p[11]}`,
+    background: "#effbf8",
+    color: theme.palette.swatches.grey[300],
+    borderRadius: "3px",
+    padding: "10px",
+    fontSize: "14px",
+    "& > div:first-child": {
+      padding: "0px 16px 0px 8px",
+      margin: "auto",
+    },
+    "& > div:last-child": {},
+  },
+  largeFileIcon: {
+    color: theme.palette.swatches.p[11],
+    fontSize: "32px !important",
   },
 }));
 
@@ -151,14 +183,22 @@ const UpdateGeoDatasetModal = (props) => {
 
   const dispatch = useDispatch();
 
-  const [geojson, setGeojson] = useState(null);
-  const [fileName, setFileName] = useState(null);
+  const [geoDatasetName, setGeoDatasetName] = useState(null);
   const [startTimeField, setStartTimeField] = useState(null);
   const [endTimeField, setEndTimeField] = useState(null);
+  const [groupIdField, setGroupIdField] = useState(null);
+  const [featureIdField, setFeatureIdField] = useState(null);
+  const [fileName, setFileName] = useState(null);
+  const [geojson, setGeojson] = useState(null);
+  const [fileProgress, setFileProgress] = useState(false);
+  const [progress, setProgress] = useState(false);
+  const [progressPercent, setProgressPercent] = useState(false);
 
   useEffect(() => {
     setStartTimeField(modal?.geoDataset?.start_time_field);
     setEndTimeField(modal?.geoDataset?.end_time_field);
+    setGroupIdField(modal?.geoDataset?.group_id_field);
+    setFeatureIdField(modal?.geoDataset?.feature_id_field);
   }, [JSON.stringify(modal)]);
 
   const handleClose = () => {
@@ -178,7 +218,7 @@ const UpdateGeoDatasetModal = (props) => {
       return;
     }
 
-    if (geoDatasetName === null) {
+    if (geoDatasetName == null || geoDatasetName === "") {
       dispatch(
         setSnackBarText({
           text: "No GeoDataset found to update.",
@@ -188,26 +228,125 @@ const UpdateGeoDatasetModal = (props) => {
       return;
     }
 
-    calls.api(
-      "geodatasets_recreate",
-      {
-        name: geoDatasetName,
-        startProp: startTimeField,
-        endProp: endTimeField,
-        geojson: geojson,
-        filename: fileName,
-      },
-      (res) => {
-        if (res.status === "success") {
-          dispatch(
-            setSnackBarText({
-              text: "Successfully updated GeoDataset.",
-              severity: "success",
-            })
+    setProgress(true);
+    if (geojson instanceof File) {
+      const navigator = new LineNavigator(geojson);
+
+      let firstPass = true;
+      // === Reading exact amount of lines ===
+      let indexToStartWith = 0;
+      const numberOfLines = 10000;
+      navigator.readLines(
+        indexToStartWith,
+        numberOfLines,
+        function linesReadHandler(err, index, lines, isEof, progress) {
+          // Error happened
+          if (err) throw err;
+
+          const features = [];
+          // Reading lines
+          for (let i = 0; i < lines.length; i++) {
+            try {
+              features.push(JSON.parse(lines[i]));
+            } catch (err) {}
+          }
+
+          // progress is a position of the last read line as % from whole file length
+          setProgressPercent(progress);
+
+          calls.api(
+            "geodatasets_recreate",
+            {
+              name: geoDatasetName,
+              startProp: startTimeField,
+              endProp: endTimeField,
+              groupIdProp: groupIdField,
+              featureIdProp: featureIdField,
+              geojson: {
+                type: "FeatureCollection",
+                features: features,
+              },
+              filename: fileName,
+              action: firstPass === true ? "recreate" : "append",
+            },
+            (res) => {
+              firstPass = false;
+              if (isEof) {
+                setProgress(false);
+                setProgressPercent(false);
+                if (res.status === "success") {
+                  dispatch(
+                    setSnackBarText({
+                      text: "Successfully updated GeoDataset.",
+                      severity: "success",
+                    })
+                  );
+                  queryGeoDatasets();
+                  handleClose();
+                } else {
+                  dispatch(
+                    setSnackBarText({
+                      text: res?.message || "Failed to update GeoDataset.",
+                      severity: "error",
+                    })
+                  );
+                }
+              } else {
+                // Reading next chunk, adding number of lines read to first line in current chunk
+                navigator.readLines(
+                  index + lines.length,
+                  numberOfLines,
+                  linesReadHandler
+                );
+              }
+            },
+            (res) => {
+              setProgress(false);
+              setProgressPercent(false);
+              dispatch(
+                setSnackBarText({
+                  text: res?.message || "Failed to update GeoDataset.",
+                  severity: "error",
+                })
+              );
+            }
           );
-          queryGeoDatasets();
-          handleClose();
-        } else {
+        }
+      );
+    } else {
+      calls.api(
+        "geodatasets_recreate",
+        {
+          name: geoDatasetName,
+          startProp: startTimeField,
+          endProp: endTimeField,
+          groupIdProp: groupIdField,
+          featureIdProp: featureIdField,
+          geojson: geojson,
+          filename: fileName,
+        },
+        (res) => {
+          setProgress(false);
+          if (res.status === "success") {
+            dispatch(
+              setSnackBarText({
+                text: "Successfully updated GeoDataset.",
+                severity: "success",
+              })
+            );
+            queryGeoDatasets();
+            handleClose();
+          } else {
+            dispatch(
+              setSnackBarText({
+                text: res?.message || "Failed to update GeoDataset.",
+                severity: "error",
+              })
+            );
+          }
+        },
+        (res) => {
+          setProgress(false);
           dispatch(
             setSnackBarText({
               text: res?.message || "Failed to update GeoDataset.",
@@ -215,16 +354,8 @@ const UpdateGeoDatasetModal = (props) => {
             })
           );
         }
-      },
-      (res) => {
-        dispatch(
-          setSnackBarText({
-            text: res?.message || "Failed to update GeoDataset.",
-            severity: "error",
-          })
-        );
-      }
-    );
+      );
+    }
   };
 
   // Dropzone initialization
@@ -237,20 +368,34 @@ const UpdateGeoDatasetModal = (props) => {
   } = useDropzone({
     maxFiles: 1,
     accept: {
-      "application/json": [".json", ".geojson"],
+      "application/json": [".json", ".geojson", ".ndjson", ".ndgeojson"],
     },
     onDropAccepted: (files) => {
       const file = files[0];
       setFileName(file.name);
+      const nameSplit = file.name.split(".");
+      setGeoDatasetName(nameSplit[0]);
+      setFileProgress(true);
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setGeojson(JSON.parse(e.target.result));
-      };
-      reader.readAsText(file);
+      if (
+        nameSplit[nameSplit.length - 1].toLowerCase() === "ndjson" ||
+        nameSplit[nameSplit.length - 1].toLowerCase() === "ndgeojson"
+      ) {
+        setGeojson(file);
+        setFileProgress(false);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setGeojson(e.target.result);
+          setFileProgress(false);
+        };
+        reader.readAsText(file);
+      }
     },
     onDropRejected: () => {
+      setFileProgress(false);
       setFileName(null);
+      setGeoDatasetName(null);
       setGeojson(null);
     },
   });
@@ -296,10 +441,18 @@ const UpdateGeoDatasetModal = (props) => {
             {!isDragActive && (
               <div className={c.dropzoneMessage}>
                 <p>Drag 'n' drop or click to select files...</p>
-                <p>Only *.json and *.geojson files are accepted.</p>
+                <p>
+                  Only *.json, *.geojson, *.ndjson and *.ndgeojson files are
+                  accepted.
+                </p>
               </div>
             )}
           </div>
+        </div>
+        <div className={c.fileprogress}>
+          {fileProgress == true && (
+            <LinearProgress className={c.progressbar} variant="indeterminate" />
+          )}
         </div>
 
         <div className={c.fileName}>
@@ -307,19 +460,20 @@ const UpdateGeoDatasetModal = (props) => {
           <div>{fileName || "No File Selected"}</div>
         </div>
 
-        <div className={c.timeFields}>
+        <div className={c.fields}>
           <div>
             <TextField
               className={c.missionNameInput}
               label="Start Time Field"
               variant="filled"
               value={startTimeField}
+              disabled
               onChange={(e) => {
                 setStartTimeField(e.target.value);
               }}
             />
             <Typography className={c.subtitle2}>
-              {`If this GeoDataset already has a Start Time Field attached, the name of that start time field inside each feature's "properties" object for which to create a temporal index for the geodataset. `}
+              {`The name of a start time field inside each feature's "properties" object for which to create a temporal index for the geodataset. This enables time queries on GeoDatasets.`}
             </Typography>
           </div>
           <div>
@@ -328,21 +482,75 @@ const UpdateGeoDatasetModal = (props) => {
               label="End Time Field"
               variant="filled"
               value={endTimeField}
+              disabled
               onChange={(e) => {
                 setEndTimeField(e.target.value);
               }}
             />
             <Typography className={c.subtitle2}>
-              {`If this GeoDataset already has a End Time Field attached, the name of that end time field inside each feature's "properties" object for which to create a temporal index for the geodataset. This enables time queries on GeoDatasets. `}
+              {`The name of an end time field inside each feature's "properties" object for which to create a temporal index for the geodataset. This enables time queries on GeoDatasets.`}
             </Typography>
+          </div>
+        </div>
+        <div className={c.fields}>
+          <div>
+            <TextField
+              className={c.missionNameInput}
+              label="Group Id Field"
+              variant="filled"
+              value={groupIdField}
+              disabled
+              onChange={(e) => {
+                setGroupIdField(e.target.value);
+              }}
+            />
+            <Typography className={c.subtitle2}>
+              {`The name of a field inside each feature's "properties" object to serve as a group id. This field cannot be changed after the GeoDataset is created.`}
+            </Typography>
+          </div>
+          <div>
+            <TextField
+              className={c.missionNameInput}
+              label="Feature Id Field"
+              variant="filled"
+              value={featureIdField}
+              disabled
+              onChange={(e) => {
+                setFeatureIdField(e.target.value);
+              }}
+            />
+            <Typography className={c.subtitle2}>
+              {`The name of a field inside each feature's "properties" object to serve as a feature id. This field cannot be changed after the GeoDataset is created.`}
+            </Typography>
+          </div>
+        </div>
+
+        <div className={c.largeFileNotice}>
+          <div>
+            <InfoOutlinedIcon className={c.largeFileIcon} />
+          </div>
+          <div>
+            Note: Uploading geojson files greater than 500mb will likely fail.
+            To upload larger files, first convert your geojson file into a
+            GeoJSONSeq/ndjson/ndgeojson (new-line delimited geojson) file with
+            either `node /MMGIS/auxiliary/geojson2ndgeojson input.geojson` or
+            `ogr2ogr -of GeoJSONSeq output.ndgeojson input.geojson` and upload
+            its result instead.
           </div>
         </div>
       </DialogContent>
       <DialogActions>
+        {progress === true && (
+          <LinearProgress className={c.progressbar} variant="indeterminate" />
+        )}
+        {progress === true && progressPercent !== false && (
+          <div className={c.progressPercent}>{progressPercent + "%"}</div>
+        )}
         <Button
           className={c.addSelected}
           variant="contained"
           onClick={handleSubmit}
+          disabled={fileProgress === true || progress === true}
         >
           Update/Replace GeoDataset
         </Button>
