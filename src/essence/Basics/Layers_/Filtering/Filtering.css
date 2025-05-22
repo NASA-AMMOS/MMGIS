@@ -25,15 +25,18 @@
     padding: 0px 4px;
     color: #d6d6d6;
 }
-#layersTool_filtering_add_value {
+#layersTool_filtering_add_value,
+#layersTool_filtering_add_group {
     padding: 0px 6px;
     color: var(--color-a6);
 }
-#layersTool_filtering_add_value:hover {
+#layersTool_filtering_add_value:hover,
+#layersTool_filtering_add_group:hover {
     background: var(--color-c);
     color: var(--color-a7);
 }
-#layersTool_filtering_add_value > div {
+#layersTool_filtering_add_value > div,
+#layersTool_filtering_add_group > div  {
     font-size: 11px;
     margin-right: 2px;
     line-height: 32px;
@@ -147,6 +150,29 @@
     padding-left: 2px;
 }
 
+.layersTool_filtering_group {
+    display: flex;
+    justify-content: space-between;
+    height: 31px;
+    border-bottom: 1px solid var(--color-a2);
+    background: var(--color-a1);
+}
+.layersTool_filtering_group > div:first-child {
+    display: flex;
+}
+.layersTool_filtering_group_key {
+    line-height: 31px;
+    padding: 0px 5px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-family: 'lato-light';
+    font-size: 13px;
+}
+.layersTool_filtering_group_operator {
+    width: 40px;
+    text-align: center;
+}
+
 .layersTool_filtering_value {
     display: flex;
     height: 31px;
@@ -221,8 +247,35 @@
     height: 30px;
     transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
 }
+.layersTool_filtering_group_operator_select {
+    color: var(--color-f);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    height: 22px;
+    margin: 4px 0px;
+    transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+.layersTool_filtering_group_operator_select.op_and {
+    background: var(--color-query);
+}
+.layersTool_filtering_group_operator_select.op_or {
+    background: var(--color-c2);
+}
+.layersTool_filtering_group_operator_select .dropy__title span {
+    padding: 3px 0px !important;
+    width: 100%;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-align: center !important;
+}
+
 .layersTool_filtering_value_operator_select:hover {
     background: var(--color-a2);
+}
+.layersTool_filtering_group_operator_select:hover {
+    background: var(--color-c);
 }
 
 .layersTool_filtering_value_remove .mmgisButton5 {
@@ -286,4 +339,28 @@
     to {
         transform: rotate(360deg);
     }
+}
+
+
+.filterDragHandle {
+    width: 12px;
+    height: 100%;
+    padding-top: 8px;
+    cursor: ns-resize;
+    color: rgba(255, 255, 255, 0.6);
+    box-sizing: border-box;
+    transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+.filterDragHandle > i.mdi:before {
+    font-size: 14px;
+    margin-left: -1px;
+}
+.filterDragHandle:hover {
+    color: white;
+}
+.layersTool_filtering_group .filterDragHandle {
+    background: var(--color-a1);
+}
+.layersTool_filtering_value .filterDragHandle {
+    background: var(--color-a2);
 }

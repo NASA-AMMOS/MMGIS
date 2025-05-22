@@ -70,6 +70,7 @@ const GeodatasetFilterer = {
         if (L_.layers.data[layerName]._filter) {
             let fspatial = L_.layers.data[layerName]._filter.spatial
             let fvalues = L_.layers.data[layerName]._filter.values
+            let fvaluesOrder = L_.layers.data[layerName]._filter.valuesOrder
             if (
                 fspatial != null &&
                 fspatial.radius > 0 &&
@@ -83,6 +84,15 @@ const GeodatasetFilterer = {
             if (fvalues != null && fvalues.length > 0) {
                 fvalues = fvalues.filter(Boolean)
 
+                if (fvaluesOrder) {
+                    fvalues.sort((a, b) => {
+                        return (
+                            fvaluesOrder.indexOf(a.id) -
+                            fvaluesOrder.indexOf(b.id)
+                        )
+                    })
+                }
+
                 if (fvalues.length > 0) {
                     let encoded = []
                     fvalues.forEach((v) => {
@@ -92,6 +102,8 @@ const GeodatasetFilterer = {
                                     v.type
                                 }+${v.value.replaceAll(',', '$')}`
                             )
+                        else if (v.isGroup === true && v.op != null)
+                            encoded.push(`${v.op}`)
                     })
                     L_.layers.data[layerName]._filterEncoded.filters =
                         encoded.join(',')
