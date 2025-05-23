@@ -71,7 +71,7 @@ function get(reqtype, req, res, next) {
       const filterSplit = req.query.filters.split(",");
       filters = [];
       filterSplit.forEach((f) => {
-        if (f === "OR" || f === "AND") {
+        if (f === "OR" || f === "AND" || f === "NOT") {
           filters.push({
             isGroup: true,
             op: f,
@@ -247,7 +247,7 @@ function get(reqtype, req, res, next) {
             let filterSQL = [];
             let currentGroupOp = null;
             let currentGroup = [];
-            console.log(filters);
+
             filters.forEach((f, i) => {
               if (f.isGroup === true) {
                 if (
@@ -255,7 +255,13 @@ function get(reqtype, req, res, next) {
                   currentGroupOp != f.op &&
                   currentGroup.length > 0
                 ) {
-                  filterSQL.push(`(${currentGroup.join(` ${f.op} `)})`);
+                  filterSQL.push(
+                    `${
+                      currentGroupOp == "NOT" ? "NOT " : ""
+                    }(${currentGroup.join(
+                      ` ${currentGroupOp == "NOT" ? "AND" : f.op} `
+                    )})`
+                  );
                   currentGroup = [];
                 }
                 currentGroupOp = f.op;
@@ -336,12 +342,17 @@ function get(reqtype, req, res, next) {
             // Final group
             if (currentGroup.length > 0) {
               filterSQL.push(
-                `(${currentGroup.join(` ${currentGroupOp || "AND"} `)})`
+                `${currentGroupOp == "NOT" ? "NOT " : ""}(${currentGroup.join(
+                  ` ${
+                    currentGroupOp === "NOT" ? "AND" : currentGroupOp || "AND"
+                  } `
+                )})`
               );
             }
-            q += `${
-              q.indexOf(" WHERE ") === -1 ? " WHERE " : " AND "
-            }${filterSQL.join(` AND `)}`;
+            if (filterSQL.length > 0)
+              q += `${
+                q.indexOf(" WHERE ") === -1 ? " WHERE " : " AND "
+              }${filterSQL.join(` AND `)}`;
           }
 
           if (
@@ -371,7 +382,6 @@ function get(reqtype, req, res, next) {
 
           q += `;`;
 
-          console.log(q);
           sequelize
             .query(q, {
               replacements: replacements,

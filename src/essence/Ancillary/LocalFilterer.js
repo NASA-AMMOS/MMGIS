@@ -126,7 +126,8 @@ const LocalFilterer = {
         // Perform the per row match
         for (let i = 0; i < filter.values.length; i++) {
             const v = filter.values[i]
-            if (v && v.key != null) {
+            if (v && v.isGroup === true) {
+            } else if (v && v.key != null) {
                 let featureValue =
                     v.key === 'geometry.type'
                         ? feature.geometry.type
@@ -178,6 +179,34 @@ const LocalFilterer = {
                                 v.matches = true
                             else v.matches = false
                             break
+
+                        case 'contains':
+                            if (
+                                String(featureValue).indexOf(
+                                    String(filterValue)
+                                ) != -1
+                            )
+                                v.matches = true
+                            else v.matches = false
+                            break
+                        case 'beginswith':
+                            if (
+                                String(featureValue).startsWith(
+                                    String(filterValue)
+                                )
+                            )
+                                v.matches = true
+                            else v.matches = false
+                            break
+                        case 'endswith':
+                            if (
+                                String(featureValue).endsWith(
+                                    String(filterValue)
+                                )
+                            )
+                                v.matches = true
+                            else v.matches = false
+                            break
                         default:
                             break
                     }
@@ -188,6 +217,7 @@ const LocalFilterer = {
             }
         }
 
+        /*
         // Now group together all matching keys and process
         // Filter values with the same key are ORed together if = and ANDed if not
         // i.e. sol = 50, sol = 51 becomes sol == 50 OR sol == 51
@@ -235,6 +265,71 @@ const LocalFilterer = {
 
         // If all are true
         return matches.filter(Boolean).length === matches.length
+            */
+
+        let fvalues = JSON.parse(JSON.stringify(filter.values))
+        fvalues = fvalues.filter(Boolean)
+
+        if (filter.valuesOrder) {
+            fvalues.sort((a, b) => {
+                return (
+                    filter.valuesOrder.indexOf(a.id) -
+                    filter.valuesOrder.indexOf(b.id)
+                )
+            })
+        }
+        return LocalFilterer.evaluateMatchGroupings(fvalues)
+    },
+    evaluateMatchGroupings(conditions) {
+        const groups = []
+        let currentOp = 'AND' // Default to AND if no op is provided
+        let currentGroup = []
+        let negateNextGroup = false
+
+        for (let i = 0; i < conditions.length; i++) {
+            const item = conditions[i]
+
+            if (item.isGroup && item.op) {
+                // Save the current group before switching op
+                if (currentGroup.length > 0) {
+                    groups.push({
+                        op: currentOp,
+                        matches: currentGroup,
+                    })
+                    currentGroup = []
+                }
+
+                currentOp = item.op
+            } else if ('matches' in item) {
+                currentGroup.push(item.matches)
+            }
+        }
+
+        // Push the final group
+        if (currentGroup.length > 0) {
+            groups.push({
+                op: currentOp,
+                matches: currentGroup,
+            })
+        }
+
+        // Evaluate each group
+        const evaluatedGroups = groups.map((group) => {
+            let result
+            if (group.op === 'OR') {
+                result = group.matches.some(Boolean)
+            } else if (group.op === 'NOT') {
+                result = !group.matches.every(Boolean)
+            } else {
+                // default to AND
+                result = group.matches.every(Boolean)
+            }
+
+            return result
+        })
+
+        // Final result: AND all evaluated group results
+        return evaluatedGroups.every(Boolean)
     },
 }
 

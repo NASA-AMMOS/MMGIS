@@ -170,6 +170,33 @@ const GeodatasetFilterer = {
                                 v.matches = true
                             else v.matches = false
                             break
+                        case 'contains':
+                            if (
+                                String(featureValue).indexOf(
+                                    String(filterValue)
+                                ) != -1
+                            )
+                                v.matches = true
+                            else v.matches = false
+                            break
+                        case 'beginswith':
+                            if (
+                                String(featureValue).startsWith(
+                                    String(filterValue)
+                                )
+                            )
+                                v.matches = true
+                            else v.matches = false
+                            break
+                        case 'endswith':
+                            if (
+                                String(featureValue).endsWith(
+                                    String(filterValue)
+                                )
+                            )
+                                v.matches = true
+                            else v.matches = false
+                            break
                         default:
                             break
                     }

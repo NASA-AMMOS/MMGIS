@@ -115,10 +115,23 @@ const Filtering = {
 
         container.append(markup)
 
-        Filtering.filters[layerName].values.forEach((v) => {
-            if (v) Filtering.addValue(layerName, v)
+        // In case of reopening the tool, recreate state
+        let values = JSON.parse(
+            JSON.stringify(Filtering.filters[layerName])
+        ).values.filter(Boolean)
+        const valuesOrder = Filtering.filters[layerName].valuesOrder
+
+        if (valuesOrder && valuesOrder.length > 0) {
+            values.sort((a, b) => {
+                return valuesOrder.indexOf(a.id) - valuesOrder.indexOf(b.id)
+            })
+        }
+        values.forEach((v) => {
+            if (v && v.isGroup === true) Filtering.addGroup(layerName, v)
+            else if (v) Filtering.addValue(layerName, v)
         })
 
+        // events
         Filtering.attachEvents(layerName)
 
         Filtering.drawSpatialLayer(
@@ -165,7 +178,7 @@ const Filtering = {
                     "<div class='layersTool_filtering_group_operator'>",
                         `<div id='layersTool_filtering_group_operator_${F_.getSafeName(
                             layerName
-                        )}_${id}' class='layersTool_filtering_group_operator_select ${op == 'OR' ? 'op_or' : 'op_and'}'></div>`,
+                        )}_${id}' class='layersTool_filtering_group_operator_select op_${(op || 'AND').toLowerCase()}'></div>`,
                     '</div>',
                 `</div>`,
                 `<div id='layersTool_filtering_group_clear_${F_.getSafeName(
@@ -174,7 +187,7 @@ const Filtering = {
             '</li>',
         ].join('\n')
 
-        $('#layerTool_filtering_filters_list').prepend(groupMarkup)
+        $('#layerTool_filtering_filters_list').append(groupMarkup)
 
         if (group == null) {
             Filtering.filters[layerName].values.push({
@@ -423,12 +436,20 @@ const Filtering = {
             Filtering.filters[layerName].values = Filtering.filters[
                 layerName
             ].values.filter((v) => {
-                if (v)
-                    $(
-                        `#layersTool_filtering_value_${F_.getSafeName(
-                            layerName
-                        )}_${v.id}`
-                    ).remove()
+                if (v) {
+                    if (v.isGroup === true)
+                        $(
+                            `#layersTool_filtering_group_${F_.getSafeName(
+                                layerName
+                            )}_${v.id}`
+                        ).remove()
+                    else
+                        $(
+                            `#layersTool_filtering_value_${F_.getSafeName(
+                                layerName
+                            )}_${v.id}`
+                        ).remove()
+                }
                 return false
             })
 
@@ -501,13 +522,14 @@ const Filtering = {
             layerName
         )}_${id}`
 
-        const ops = ['AND', 'OR']
+        const ops = ['AND', 'OR', 'NOT']
         const opId = Math.max(ops.indexOf(options.op), 0)
         $(elmId).html(
             Dropy.construct(
                 [
-                    `<div style='font-family: monospace;'>AND</div>`,
-                    `<div style='font-family: monospace;'>OR</div>`,
+                    `<div style='font-family: monospace;'>Match All (AND)</div>`,
+                    `<div style='font-family: monospace;'>Match Any (OR)</div>`,
+                    `<div style='font-family: monospace;'>Match Inverse (NOT AND)</div>`,
                 ],
                 'op',
                 opId,
@@ -520,11 +542,18 @@ const Filtering = {
             switch (newOp) {
                 case 'AND':
                     $(elmId).removeClass('op_or')
+                    $(elmId).removeClass('op_not')
                     $(elmId).addClass('op_and')
                     break
                 case 'OR':
                     $(elmId).removeClass('op_and')
+                    $(elmId).removeClass('op_not')
                     $(elmId).addClass('op_or')
+                    break
+                case 'NOT':
+                    $(elmId).removeClass('op_and')
+                    $(elmId).removeClass('op_or')
+                    $(elmId).addClass('op_not')
                     break
                 default:
                     break
@@ -651,7 +680,7 @@ const Filtering = {
                     'border-left',
                     `3px solid ${F_.stringToColor($(this).val())}`
                 )
-            } else $(this).css('border', '1px solid red')
+            } else $(this).css('border', '1px solid var(--color-p4)')
         })
 
         // Operator Dropdown
