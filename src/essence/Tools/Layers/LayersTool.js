@@ -2292,14 +2292,28 @@ function interfaceWithMMGIS(fromInit) {
             layerData.cogColormap
         )
 
+        const hideNoDataValue = F_.getIn(
+            L_.layers.data[layerName],
+            'variables.hideNoDataValue'
+        )
+
         let pixelValuesToColorFn = (values) => {
             let georaster = layer.options.georaster
             var pixelValue = values[0] // single band
 
             // don't return a color
-            if (georaster.noDataValue && georaster.noDataValue === pixelValue) {
-                return null
+            if (
+                georaster.noDataValue != null &&
+                georaster.noDataValue === pixelValue
+            ) {
+                if (hideNoDataValue) {
+                    return null
+                }
+
+                // Handle the case where we do not want to hide noDataValue
+                return [0, 0, 0]
             }
+
             // scale from 0 - 1
             var scaledPixelValue = (pixelValue - vMin) / range
             if (!(scaledPixelValue >= 0 && scaledPixelValue <= 1)) {

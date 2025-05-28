@@ -1528,6 +1528,11 @@ function makeImageLayer(layerObj) {
                 'variables.image'
             )
 
+            const hideNoDataValue = F_.getIn(
+                L_.layers.data[layerObj.name],
+                'variables.hideNoDataValue'
+            )
+
             let min = null
             let max = null
             if (georaster.numberOfRasters === 1) {
@@ -1608,10 +1613,15 @@ function makeImageLayer(layerObj) {
                     var pixelValue = values[0] // single band
                     // don't return a color
                     if (
-                        georaster.noDataValue &&
+                        georaster.noDataValue != null &&
                         georaster.noDataValue === pixelValue
                     ) {
-                        return null
+                        if (hideNoDataValue) {
+                            return null
+                        }
+
+                        // Handle the case where we do not want to hide noDataValue
+                        return [0, 0, 0]
                     }
 
                     // scale from 0 - 1
