@@ -118,6 +118,8 @@ var LayersTool = {
             LayersTool.make(null, true)
             LayersTool.destroy()
         }
+
+        Filtering.initialize()
     },
     make: function (t, fromInit) {
         this.MMGISInterface = new interfaceWithMMGIS(fromInit)

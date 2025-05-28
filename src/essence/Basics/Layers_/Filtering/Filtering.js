@@ -23,6 +23,46 @@ const Filtering = {
     filters: {},
     current: {},
     mapSpatialLayer: null,
+    initialize: function () {
+        Object.keys(L_.layers.data).forEach((layerName) => {
+            const layerObj = L_.layers.data[layerName]
+
+            if (layerObj == null || layerObj.type != 'vector') return
+
+            let shouldInitiallySubmit = false
+
+            let initialFilterValues = []
+            if (
+                Filtering.filters[layerName] == null &&
+                layerObj?.variables?.initialFilters &&
+                layerObj.variables.initialFilters.length > 0
+            ) {
+                initialFilterValues = layerObj.variables.initialFilters
+                initialFilterValues.forEach((f, idx) => {
+                    f.id = idx
+                    if (f.isGroup === true) {
+                        if (f.groupOp != null) f.op = f.groupOp
+                        if (f.key != null) delete f.key
+                        if (f.value != null) delete f.value
+                        if (f.type != null) delete f.type
+                    } else {
+                        f.op = f.op || '='
+                    }
+                })
+
+                Filtering.filters[layerName] = Filtering.filters[layerName] || {
+                    spatial: {
+                        center: null,
+                        radius: 0,
+                    },
+                    values: initialFilterValues || [],
+                    geojson: null,
+                }
+
+                Filtering.submit(layerName)
+            }
+        })
+    },
     make: async function (container, layerName) {
         const layerObj = L_.layers.data[layerName]
 
@@ -34,7 +74,6 @@ const Filtering = {
                 radius: 0,
             },
             values: [],
-            groups: [],
             geojson: null,
         }
         Filtering.current = {
@@ -387,43 +426,7 @@ const Filtering = {
 
         // Submit
         $(`#layersTool_filtering_submit`).on('click', async () => {
-            // Update the desired order of values
-            const valuesOrder = []
-            $('#layerTool_filtering_filters_list > li').each(function () {
-                const idx = $(this).attr('idx')
-                if (idx !== undefined) {
-                    valuesOrder.push(parseInt(idx))
-                }
-            })
-            Filtering.filters[layerName].valuesOrder = valuesOrder
-
-            Filtering.setSubmitButtonState(true)
-            $(`#layersTool_filtering_submit_loading`).addClass('active')
-            if (Filtering.current.type === 'vector') {
-                if (Filtering.current.needsToQueryGeodataset) {
-                    GeodatasetFilterer.filter(
-                        layerName,
-                        Filtering.filters[layerName]
-                    )
-                } else {
-                    LocalFilterer.filter(
-                        layerName,
-                        Filtering.filters[layerName]
-                    )
-                }
-            } else if (Filtering.current.type === 'query') {
-                await ESFilterer.filter(
-                    layerName,
-                    Filtering.filters[layerName],
-                    Filtering.getConfig()
-                )
-            }
-
-            $(`#layersTool_filtering_submit_loading`).removeClass('active')
-            Filtering.setSubmitButtonState(false)
-
-            if (Filtering.mapSpatialLayer)
-                Filtering.mapSpatialLayer.bringToFront()
+            Filtering.submit(layerName, true)
         })
 
         // Clear
@@ -522,14 +525,15 @@ const Filtering = {
             layerName
         )}_${id}`
 
-        const ops = ['AND', 'OR', 'NOT']
+        const ops = ['AND', 'OR', 'NOT_AND', 'NOT_OR']
         const opId = Math.max(ops.indexOf(options.op), 0)
         $(elmId).html(
             Dropy.construct(
                 [
-                    `<div style='font-family: monospace;'>Match All (AND)</div>`,
-                    `<div style='font-family: monospace;'>Match Any (OR)</div>`,
-                    `<div style='font-family: monospace;'>Match Inverse (NOT AND)</div>`,
+                    `<div style='font-family: monospace;'>All Must Match (AND)</div>`,
+                    `<div style='font-family: monospace;'>Any May Match (OR)</div>`,
+                    `<div style='font-family: monospace;'>Not All May Match (NOT AND)</div>`,
+                    `<div style='font-family: monospace;'>None Must Match (NOT OR)</div>`,
                 ],
                 'op',
                 opId,
@@ -542,18 +546,27 @@ const Filtering = {
             switch (newOp) {
                 case 'AND':
                     $(elmId).removeClass('op_or')
-                    $(elmId).removeClass('op_not')
+                    $(elmId).removeClass('op_not_and')
+                    $(elmId).removeClass('op_not_or')
                     $(elmId).addClass('op_and')
                     break
                 case 'OR':
                     $(elmId).removeClass('op_and')
-                    $(elmId).removeClass('op_not')
+                    $(elmId).removeClass('op_not_and')
+                    $(elmId).removeClass('op_not_or')
                     $(elmId).addClass('op_or')
                     break
-                case 'NOT':
+                case 'NOT_AND':
                     $(elmId).removeClass('op_and')
                     $(elmId).removeClass('op_or')
-                    $(elmId).addClass('op_not')
+                    $(elmId).removeClass('op_not_or')
+                    $(elmId).addClass('op_not_and')
+                    break
+                case 'NOT_OR':
+                    $(elmId).removeClass('op_and')
+                    $(elmId).removeClass('op_or')
+                    $(elmId).removeClass('op_not_and')
+                    $(elmId).addClass('op_not_or')
                     break
                 default:
                     break
@@ -663,14 +676,14 @@ const Filtering = {
         })
 
         $(elmId).on('blur', function (event) {
-            const property =
-                Filtering.filters[layerName].aggs[event.value || $(this).val()]
+            const val = event.value || $(this).val()
+            const property = Filtering.filters[layerName].aggs[val]
             if (property) {
                 if (
                     Filtering.filters[layerName].values[id] &&
-                    Filtering.filters[layerName].values[id].key !== event.value
+                    Filtering.filters[layerName].values[id].key !== val
                 ) {
-                    Filtering.filters[layerName].values[id].key = event.value
+                    Filtering.filters[layerName].values[id].key = val
                     Filtering.filters[layerName].values[id].type = property.type
                     Filtering.updateValuesAutoComplete(id, layerName)
                     Filtering.setSubmitButtonState(true)
@@ -688,15 +701,29 @@ const Filtering = {
             layerName
         )}_${id}`
 
-        const ops = ['=', ',', '<', '>', 'contains', 'beginswith', 'endswith']
+        const ops = [
+            '=',
+            '!=',
+            ',',
+            '<',
+            '>',
+            '<=',
+            '>=',
+            'contains',
+            'beginswith',
+            'endswith',
+        ]
         const opId = Math.max(ops.indexOf(options.op), 0)
         $(elmId).html(
             Dropy.construct(
                 [
                     `<i class='mdi mdi-equal mdi-18px' title='Equals'></i>`,
+                    `<div title='Not Equals' style='font-family: monospace;'>!=</div>`,
                     `<div title='Comma-separated list' style='font-family: monospace;'>in</div>`,
                     `<i class='mdi mdi-less-than mdi-18px' title='Less than'></i>`,
                     `<i class='mdi mdi-greater-than mdi-18px' title='Greater than'></i>`,
+                    `<i class='mdi mdi-less-than-or-equal mdi-18px' title='Less than or Equal'></i>`,
+                    `<i class='mdi mdi-greater-than-or-equal mdi-18px' title='Greater than or Equal'></i>`,
                     `<i class='mdi mdi-contain mdi-18px' title='Contains'></i>`,
                     `<i class='mdi mdi-contain-start mdi-18px' title='Begins With'></i>`,
                     `<i class='mdi mdi-contain-end mdi-18px' title='Ends With'></i>`,
@@ -713,6 +740,50 @@ const Filtering = {
 
         // Value AutoComplete
         Filtering.updateValuesAutoComplete(id, layerName)
+    },
+    submit: async function (layerName, updateValuesOrder) {
+        const layerObj = L_.layers.data[layerName]
+
+        // Update the desired order of values
+        if (updateValuesOrder) {
+            const valuesOrder = []
+            $('#layerTool_filtering_filters_list > li').each(function () {
+                const idx = $(this).attr('idx')
+                if (idx !== undefined) {
+                    valuesOrder.push(parseInt(idx))
+                }
+            })
+            Filtering.filters[layerName].valuesOrder = valuesOrder
+        }
+
+        Filtering.setSubmitButtonState(true)
+        $(`#layersTool_filtering_submit_loading`).addClass('active')
+        if (layerObj.type === 'vector') {
+            // needsToQueryGeodataset (but pulled out so submit could be called standalone)
+            if (
+                layerObj?.url.startsWith('geodatasets:') &&
+                layerObj?.variables?.dynamicExtent === true &&
+                layerObj?.variables?.getFeaturePropertiesOnClick === true
+            ) {
+                GeodatasetFilterer.filter(
+                    layerName,
+                    Filtering.filters[layerName]
+                )
+            } else {
+                LocalFilterer.filter(layerName, Filtering.filters[layerName])
+            }
+        } else if (layerObj.type === 'query') {
+            await ESFilterer.filter(
+                layerName,
+                Filtering.filters[layerName],
+                Filtering.getConfig()
+            )
+        }
+
+        $(`#layersTool_filtering_submit_loading`).removeClass('active')
+        Filtering.setSubmitButtonState(false)
+
+        if (Filtering.mapSpatialLayer) Filtering.mapSpatialLayer.bringToFront()
     },
     makeFilterListSortable: function () {
         const listToSort = document.getElementById(

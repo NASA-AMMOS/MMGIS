@@ -71,7 +71,7 @@ function get(reqtype, req, res, next) {
       const filterSplit = req.query.filters.split(",");
       filters = [];
       filterSplit.forEach((f) => {
-        if (f === "OR" || f === "AND" || f === "NOT") {
+        if (f === "OR" || f === "AND" || f === "NOT_AND" || f === "NOT_OR") {
           filters.push({
             isGroup: true,
             op: f,
@@ -257,9 +257,17 @@ function get(reqtype, req, res, next) {
                 ) {
                   filterSQL.push(
                     `${
-                      currentGroupOp == "NOT" ? "NOT " : ""
+                      currentGroupOp == "NOT_AND" || currentGroupOp == "NOT_OR"
+                        ? "NOT "
+                        : ""
                     }(${currentGroup.join(
-                      ` ${currentGroupOp == "NOT" ? "AND" : f.op} `
+                      ` ${
+                        currentGroupOp == "NOT_AND"
+                          ? "AND"
+                          : currentGroupOp == "NOT_OR"
+                          ? "OR"
+                          : currentGroupOp
+                      } `
                     )})`
                   );
                   currentGroup = [];
@@ -286,6 +294,12 @@ function get(reqtype, req, res, next) {
                   case "<":
                     op = "<";
                     break;
+                  case ">=":
+                    op = ">=";
+                    break;
+                  case "<=":
+                    op = "<=";
+                    break;
                   case "in":
                     op = "IN";
                     break;
@@ -293,6 +307,9 @@ function get(reqtype, req, res, next) {
                   case "beginswith":
                   case "endswith":
                     op = "LIKE";
+                    break;
+                  case "!=":
+                    op = "!=";
                     break;
                   case "=":
                   default:
@@ -342,9 +359,17 @@ function get(reqtype, req, res, next) {
             // Final group
             if (currentGroup.length > 0) {
               filterSQL.push(
-                `${currentGroupOp == "NOT" ? "NOT " : ""}(${currentGroup.join(
+                `${
+                  currentGroupOp == "NOT_AND" || currentGroupOp == "NOT_OR"
+                    ? "NOT "
+                    : ""
+                }(${currentGroup.join(
                   ` ${
-                    currentGroupOp === "NOT" ? "AND" : currentGroupOp || "AND"
+                    currentGroupOp === "NOT_AND"
+                      ? "AND"
+                      : currentGroupOp === "NOT_OR"
+                      ? "OR"
+                      : currentGroupOp || "AND"
                   } `
                 )})`
               );

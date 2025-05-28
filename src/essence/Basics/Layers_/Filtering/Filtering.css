@@ -168,7 +168,7 @@
     font-size: 13px;
 }
 .layersTool_filtering_group_operator {
-    width: 190px;
+    width: 231px;
     text-align: center;
 }
 
@@ -257,7 +257,10 @@
 .layersTool_filtering_group_operator_select.op_or {
     background: var(--color-c2);
 }
-.layersTool_filtering_group_operator_select.op_not {
+.layersTool_filtering_group_operator_select.op_not_and {
+    background: var(--color-orange2);
+}
+.layersTool_filtering_group_operator_select.op_not_or {
     background: var(--color-p4);
 }
 .layersTool_filtering_group_operator_select .dropy__title span {

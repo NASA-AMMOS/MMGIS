@@ -318,8 +318,10 @@ const LocalFilterer = {
             let result
             if (group.op === 'OR') {
                 result = group.matches.some(Boolean)
-            } else if (group.op === 'NOT') {
+            } else if (group.op === 'NOT_AND') {
                 result = !group.matches.every(Boolean)
+            } else if (group.op === 'NOT_OR') {
+                result = !group.matches.some(Boolean)
             } else {
                 // default to AND
                 result = group.matches.every(Boolean)
