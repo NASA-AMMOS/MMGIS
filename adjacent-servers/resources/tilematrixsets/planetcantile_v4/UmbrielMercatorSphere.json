@@ -1,0 +1,333 @@
+{
+    "id": "UmbrielMercatorSphere",
+    "title": "Umbriel (2015) - Sphere EN MercatorSphere",
+    "crs": "PROJCRS[\"Umbriel (2015) - Sphere XY / World Mercator\",BASEGEOGCRS[\"Umbriel (2015) - Sphere\",DATUM[\"Umbriel (2015) - Sphere\",ELLIPSOID[\"Umbriel (2015) - Sphere\",584700,0,LENGTHUNIT[\"metre\",1,ID[\"EPSG\",9001]]]],PRIMEM[\"Reference Meridian\",0,ANGLEUNIT[\"degree\",0.0174532925199433,ID[\"EPSG\",9122]]]],CONVERSION[\"World Mercator\",METHOD[\"Mercator (variant A)\",ID[\"EPSG\",9804]],PARAMETER[\"Latitude of natural origin\",0,ANGLEUNIT[\"degree\",0.0174532925199433],ID[\"EPSG\",8801]],PARAMETER[\"Longitude of natural origin\",0,ANGLEUNIT[\"degree\",0.0174532925199433],ID[\"EPSG\",8802]],PARAMETER[\"Scale factor at natural origin\",1,SCALEUNIT[\"unity\",1],ID[\"EPSG\",8805]],PARAMETER[\"False easting\",0,LENGTHUNIT[\"metre\",1],ID[\"EPSG\",8806]],PARAMETER[\"False northing\",0,LENGTHUNIT[\"metre\",1],ID[\"EPSG\",8807]]],CS[Cartesian,2],AXIS[\"(E)\",east,ORDER[1],LENGTHUNIT[\"metre\",1,ID[\"EPSG\",9001]]],AXIS[\"(N)\",north,ORDER[2],LENGTHUNIT[\"metre\",1,ID[\"EPSG\",9001]]],USAGE[SCOPE[\"Very small scale conformal mapping.\"],AREA[\"World between 85.06 S and 85.06 N.\"],BBOX[-85.0511287,-180,85.0511287,180]],REMARK[\"Source of IAU Coordinate systems: doi:10.1007/s10569-017-9805-5\"]]",
+    "orderedAxes": [
+        "E",
+        "N"
+    ],
+    "tileMatrices": [
+        {
+            "id": "0",
+            "scaleDenominator": 51252489.52438484,
+            "cellSize": 14350.697066827754,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 1,
+            "matrixHeight": 1
+        },
+        {
+            "id": "1",
+            "scaleDenominator": 25626244.76219242,
+            "cellSize": 7175.348533413877,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 2,
+            "matrixHeight": 2
+        },
+        {
+            "id": "2",
+            "scaleDenominator": 12813122.38109621,
+            "cellSize": 3587.6742667069384,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 4,
+            "matrixHeight": 4
+        },
+        {
+            "id": "3",
+            "scaleDenominator": 6406561.190548105,
+            "cellSize": 1793.8371333534692,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 8,
+            "matrixHeight": 8
+        },
+        {
+            "id": "4",
+            "scaleDenominator": 3203280.5952740526,
+            "cellSize": 896.9185666767346,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 16,
+            "matrixHeight": 16
+        },
+        {
+            "id": "5",
+            "scaleDenominator": 1601640.2976370263,
+            "cellSize": 448.4592833383673,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 32,
+            "matrixHeight": 32
+        },
+        {
+            "id": "6",
+            "scaleDenominator": 800820.1488185131,
+            "cellSize": 224.22964166918365,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 64,
+            "matrixHeight": 64
+        },
+        {
+            "id": "7",
+            "scaleDenominator": 400410.0744092566,
+            "cellSize": 112.11482083459182,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 128,
+            "matrixHeight": 128
+        },
+        {
+            "id": "8",
+            "scaleDenominator": 200205.0372046283,
+            "cellSize": 56.05741041729591,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 256,
+            "matrixHeight": 256
+        },
+        {
+            "id": "9",
+            "scaleDenominator": 100102.51860231414,
+            "cellSize": 28.028705208647956,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 512,
+            "matrixHeight": 512
+        },
+        {
+            "id": "10",
+            "scaleDenominator": 50051.25930115707,
+            "cellSize": 14.014352604323978,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 1024,
+            "matrixHeight": 1024
+        },
+        {
+            "id": "11",
+            "scaleDenominator": 25025.629650578536,
+            "cellSize": 7.007176302161989,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 2048,
+            "matrixHeight": 2048
+        },
+        {
+            "id": "12",
+            "scaleDenominator": 12512.814825289268,
+            "cellSize": 3.5035881510809945,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 4096,
+            "matrixHeight": 4096
+        },
+        {
+            "id": "13",
+            "scaleDenominator": 6256.407412644634,
+            "cellSize": 1.7517940755404973,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 8192,
+            "matrixHeight": 8192
+        },
+        {
+            "id": "14",
+            "scaleDenominator": 3128.203706322317,
+            "cellSize": 0.8758970377702486,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 16384,
+            "matrixHeight": 16384
+        },
+        {
+            "id": "15",
+            "scaleDenominator": 1564.1018531611585,
+            "cellSize": 0.4379485188851243,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 32768,
+            "matrixHeight": 32768
+        },
+        {
+            "id": "16",
+            "scaleDenominator": 782.0509265805792,
+            "cellSize": 0.21897425944256216,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 65536,
+            "matrixHeight": 65536
+        },
+        {
+            "id": "17",
+            "scaleDenominator": 391.0254632902896,
+            "cellSize": 0.10948712972128108,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 131072,
+            "matrixHeight": 131072
+        },
+        {
+            "id": "18",
+            "scaleDenominator": 195.5127316451448,
+            "cellSize": 0.05474356486064054,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 262144,
+            "matrixHeight": 262144
+        },
+        {
+            "id": "19",
+            "scaleDenominator": 97.7563658225724,
+            "cellSize": 0.02737178243032027,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 524288,
+            "matrixHeight": 524288
+        },
+        {
+            "id": "20",
+            "scaleDenominator": 48.8781829112862,
+            "cellSize": 0.013685891215160135,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 1048576,
+            "matrixHeight": 1048576
+        },
+        {
+            "id": "21",
+            "scaleDenominator": 24.4390914556431,
+            "cellSize": 0.0068429456075800674,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 2097152,
+            "matrixHeight": 2097152
+        },
+        {
+            "id": "22",
+            "scaleDenominator": 12.21954572782155,
+            "cellSize": 0.0034214728037900337,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -1836889.224553952,
+                1836889.224553952
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 4194304,
+            "matrixHeight": 4194304
+        }
+    ]
+}
