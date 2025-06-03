@@ -54,6 +54,10 @@
     border-top: 1px solid var(--color-a-5);
 }
 
+#dataDownloadToolControls .downloadToolControlRow.expansive {
+    height: auto;
+}
+
 #dataDownloadToolSelectedDropdown {
     background: var(--color-a1);
     flex: 1 1;
@@ -161,4 +165,20 @@
 
 #dataDownload_submit_text {
     padding: 0px 7px;
+}
+
+#dataDownloadTool .downloadToolMidHeader {
+    padding-left: 7px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+#dataDownloadTool #layersTool_filtering {
+    line-height: normal;
+    width: 100%;
+    border-top: none;
+}
+
+#dataDownloadTool #layerTool_filtering_filters_spatial_radius {
+    border-right: none;
 }

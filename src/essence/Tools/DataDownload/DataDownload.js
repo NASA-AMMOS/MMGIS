@@ -36,9 +36,12 @@ const markup = [
         "</div>",
         "<div id='dataDownloadToolControls'>",
             '<div class="downloadToolControlRow">',
-                '<i class="mdi mdi-layers mdi-18px input-icon"></i>',
-                "<div id='dataDownloadToolSelectedDropdown' class='ui dropdown short'></div>",
+                "<span class='downloadToolMidHeader'>Subset Selection</span>",
             "</div>",
+            // '<div class="downloadToolControlRow">',
+            //     '<i class="mdi mdi-layers mdi-18px input-icon"></i>',
+            //     "<div id='dataDownloadToolSelectedDropdown' class='ui dropdown short'></div>",
+            // "</div>",
             '<div class="downloadToolControlRow">',
                 '<i class="mdi mdi-select-marker mdi-18px input-icon"></i>',
                 "<input id='downloadAreaInput' type='text' placeholder='Selection area [-180,-90,180,90]' class='left-icon right-icon' />",
@@ -48,7 +51,14 @@ const markup = [
                 '<i class="mdi mdi-calendar-arrow-right mdi-18px input-icon"></i>',
                 "<input id='downloadDateRange' type='text' placeholder='Date Range' />",
             "</div>",
-            '<div id="downloadToolFilteringContainer" class="downloadToolControlRow gears_on">',
+            '<div class="downloadToolControlRow">',
+                "<span class='downloadToolMidHeader'>Sub-Filtering</span>",
+            "</div>",
+            '<div class="downloadToolControlRow">',
+                '<i class="mdi mdi-layers mdi-18px input-icon"></i>',
+                "<div id='dataDownloadToolSelectedDropdown' class='ui dropdown short'></div>",
+            "</div>",
+            '<div id="downloadToolFilteringContainer" class="downloadToolControlRow expansive gears_on">',
             "</div>",
             "<div id='dataDownload_footer'>",
                 "<div id='dataDownload_submit' class='mmgisButton5'>",
@@ -64,6 +74,8 @@ const markup = [
         "</div>",
     `</div>`
 ].join('\n');
+
+// TODO - why is the styling so weird?!
 
 const DataDownload = {
     height: 0,
@@ -179,18 +191,33 @@ const DataDownload = {
             return moment(date).format('MM/DD/yyyy, hh:mm A')
         }
         const tempusDates = DataDownload.dateRangeTempus.dates
-        tempusDates.setValue(tempusDates.parseInput(new Date(TimeControl.startTime)), 0)
-        tempusDates.setValue(tempusDates.parseInput(new Date(TimeControl.endTime)), 1)
+        tempusDates.setValue(
+            tempusDates.parseInput(new Date(TimeControl.startTime)),
+            0
+        )
+        tempusDates.setValue(
+            tempusDates.parseInput(new Date(TimeControl.endTime)),
+            1
+        )
 
         DataDownload.dateRangeTempus.subscribe(Namespace.events.change, (e) => {
             DataDownload.enableDownload()
         })
-        TimeControl.timeUI.startTempus.subscribe(Namespace.events.change, (e) => {
-            tempusDates.setValue(tempusDates.parseInput(new Date(TimeControl.startTime)), 0)
-        });
+        TimeControl.timeUI.startTempus.subscribe(
+            Namespace.events.change,
+            (e) => {
+                tempusDates.setValue(
+                    tempusDates.parseInput(new Date(TimeControl.startTime)),
+                    0
+                )
+            }
+        )
         TimeControl.timeUI.endTempus.subscribe(Namespace.events.change, (e) => {
-            tempusDates.setValue(tempusDates.parseInput(new Date(TimeControl.endTime)), 1)
-        });
+            tempusDates.setValue(
+                tempusDates.parseInput(new Date(TimeControl.endTime)),
+                1
+            )
+        })
 
         $('#dataDownload_submit').on('click', () => {
             const layer =
@@ -281,16 +308,30 @@ const DataDownload = {
 
         DataDownload.enableDownload()
     },
-    setSelectedIdx: function (idx) {
+    setSelectedIdx: async function (idx) {
         DataDownload.selectedLayerIdx = idx
         DataDownload.refreshFilters()
     },
-    refreshFilters: function() {
+    refreshFilters: async function () {
         Filtering.destroy()
-        const layer = DataDownload.downloadEnabledLayers[DataDownload.selectedLayerIdx]
-        if(layer) {
-            console.log(layer)
-            Filtering.make($("#downloadToolFilteringContainer"), layer.name)
+        $('#downloadToolFilteringContainer').html('')
+        const layer =
+            DataDownload.downloadEnabledLayers[DataDownload.selectedLayerIdx]
+        if (layer) {
+            const layer =
+                DataDownload.downloadEnabledLayers[
+                    DataDownload.selectedLayerIdx
+                ]
+            if (!L_.layers.on[layer.name]) {
+                $('#downloadToolFilteringContainer').html('Loading layer...')
+                await L_.toggleLayer(layer)
+                $('#downloadToolFilteringContainer').html('')
+            }
+            Filtering.make($('#downloadToolFilteringContainer'), layer.name)
+        } else {
+            $('#downloadToolFilteringContainer').html(
+                '<div class="dataDownloadTool_noFiltersAvail">No filters available for this dataset.</div>'
+            )
         }
     },
     enableDownload: function () {
