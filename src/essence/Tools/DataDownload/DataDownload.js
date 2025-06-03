@@ -192,31 +192,49 @@ const DataDownload = {
         }
         const tempusDates = DataDownload.dateRangeTempus.dates
         tempusDates.setValue(
-            tempusDates.parseInput(new Date(TimeControl.startTime)),
+            tempusDates.parseInput(
+                new Date(TimeControl.timeUI.addOffset(TimeControl.startTime))
+            ),
             0
         )
         tempusDates.setValue(
-            tempusDates.parseInput(new Date(TimeControl.endTime)),
+            tempusDates.parseInput(
+                new Date(TimeControl.timeUI.addOffset(TimeControl.endTime))
+            ),
             1
         )
 
         DataDownload.dateRangeTempus.subscribe(Namespace.events.change, (e) => {
+            const dates = DataDownload.dateRangeTempus.dates.getFirst()
+            TimeControl.setTime(dates[0], dates[1])
             DataDownload.enableDownload()
         })
         TimeControl.timeUI.startTempus.subscribe(
             Namespace.events.change,
             (e) => {
-                tempusDates.setValue(
-                    tempusDates.parseInput(new Date(TimeControl.startTime)),
-                    0
+                const offsetDate = TimeControl.timeUI.addOffset(
+                    TimeControl.startTime
                 )
+                const dates = DataDownload.dateRangeTempus.dates.getFirst()
+                const currOffsetStart = TimeControl.timeUI.addOffset(dates[0])
+                if (offsetDate - currOffsetStart !== 0) {
+                    tempusDates.setValue(
+                        tempusDates.parseInput(new Date(offsetDate)),
+                        0
+                    )
+                }
             }
         )
         TimeControl.timeUI.endTempus.subscribe(Namespace.events.change, (e) => {
-            tempusDates.setValue(
-                tempusDates.parseInput(new Date(TimeControl.endTime)),
-                1
-            )
+            const offsetDate = TimeControl.timeUI.addOffset(TimeControl.endTime)
+            const dates = DataDownload.dateRangeTempus.dates.getFirst()
+            const currOffsetEnd = TimeControl.timeUI.addOffset(dates[1])
+            if (offsetDate - currOffsetEnd !== 0) {
+                tempusDates.setValue(
+                    tempusDates.parseInput(new Date(offsetDate)),
+                    1
+                )
+            }
         })
 
         $('#dataDownload_submit').on('click', () => {
