@@ -836,7 +836,9 @@ gdal2tiles temp.vrt""" % self.input )
                     # Correction of AutoCreateWarpedVRT for NODATA values
                     if self.in_nodata != []:
                         import tempfile
-                        tempfilename = tempfile.mktemp('-gdal2tiles.vrt')
+                        import os
+                        temp_fd, tempfilename = tempfile.mkstemp(suffix='-gdal2tiles.vrt')
+                        os.close(temp_fd)  # Close the file descriptor, keep the file
                         self.out_ds.GetDriver().CreateCopy(tempfilename, self.out_ds)
                         # open as a text file
                         s = open(tempfilename).read()
@@ -871,7 +873,9 @@ gdal2tiles temp.vrt""" % self.input )
                     # equivalent of gdalwarp -dstalpha
                     if self.in_nodata == [] and self.out_ds.RasterCount in [1,3]:
                         import tempfile
-                        tempfilename = tempfile.mktemp('-gdal2tiles.vrt')
+                        import os
+                        temp_fd, tempfilename = tempfile.mkstemp(suffix='-gdal2tiles.vrt')
+                        os.close(temp_fd)  # Close the file descriptor, keep the file
                         self.out_ds.GetDriver().CreateCopy(tempfilename, self.out_ds)
                         # open as a text file
                         s = open(tempfilename).read()

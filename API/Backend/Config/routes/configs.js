@@ -13,6 +13,22 @@ const logger = require("../../../logger");
 const Config = require("../models/config");
 const config_template = require("../../../templates/config_template");
 
+// Sanitize user input to prevent XSS in error messages
+function sanitizeInput(input) {
+  if (typeof input !== 'string') return String(input);
+  return input
+    .replace(/[<>'"&]/g, function(match) {
+      switch(match) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case "'": return '&#x27;';
+        case '&': return '&amp;';
+        default: return match;
+      }
+    });
+}
+
 const GeneralOptions = require("../../GeneralOptions/models/generaloptions");
 
 const validate = require("../validate");
@@ -93,12 +109,12 @@ function get(req, res, next, cb) {
             if (cb)
               cb({
                 status: "failure",
-                message: `Mission '${req.query.mission} v${version}' not found.`,
+                message: `Mission '${sanitizeInput(req.query.mission)} v${version}' not found.`,
               });
             else
               res.send({
                 status: "failure",
-                message: `Mission '${req.query.mission} v${version}' not found.`,
+                message: `Mission '${sanitizeInput(req.query.mission)} v${version}' not found.`,
               });
             return null;
           });
@@ -121,14 +137,17 @@ function add(req, res, next, cb) {
   configTemplate = req.body.config || configTemplate;
   configTemplate.msv.mission = req.body.mission;
 
+  // Fix validation logic: use OR conditions instead of AND
   if (
     req.body.mission !==
       req.body.mission.replace(
         /[`~!@#$%^&*()|+\-=?;:'",.<>\{\}\[\]\\\/]/gi,
         ""
-      ) &&
-    req.body.mission.length === 0 &&
-    !isNaN(req.body.mission[0])
+      ) ||
+    req.body.mission.length === 0 ||
+    !isNaN(req.body.mission[0]) ||
+    req.body.mission.includes("../") ||
+    req.body.mission.includes("..\\")
   ) {
     logger("error", "Attempted to add bad mission name.", req.originalUrl, req);
     res.send({ status: "failure", message: "Bad mission name." });
