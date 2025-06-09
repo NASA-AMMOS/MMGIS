@@ -349,12 +349,40 @@ var IdentifierTool = {
                     IdentifierTool.vars.data[
                         IdentifierTool.activeLayerNames[i]
                     ] || {}
+
+                let bands = 1
+
+                if (L_.layers.data[IdentifierTool.activeLayerNames[i]].type === 'image') {
+                    let georasters = L_.layers.layer[IdentifierTool.activeLayerNames[i]]?.georasters[0]
+                    let b =
+                        L_.layers.data[IdentifierTool.activeLayerNames[i]].cogBandsQuery ||
+                        L_.layers.data[IdentifierTool.activeLayerNames[i]].cogBands
+                    if (b != null && Math.max(...b) > georasters.numberOfRasters) {
+                        console.warn(`WARNING - User input band values must be within range of available bands in the image.`
+                            + ` Ignoring user input bands.`
+                            + `\nUser input bands: ${b}`
+                            + `\nAvailable bands in the image: ${georasters.numberOfRasters}`)
+                        // Default to maximum of 3 bands
+                        bands = Math.min(georasters.numberOfRasters, 3)
+                    } else if (b != null) {
+                        // If the cog band is overwritten in the settings
+                        bands = [...b]
+                    } else if (georasters && georasters.numberOfRasters > 0) {
+                        let georasters = L_.layers.layer[IdentifierTool.activeLayerNames[i]]?.georasters[0]
+                        if (georasters.numberOfRasters <= 3) {
+                            bands = georasters.numberOfRasters
+                        } else {
+                            // Default to 3 bands if there are more than 3 bands
+                            bands = 3 // georasters.numberOfRasters
+                        }
+                    }
+                }
                 IdentifierTool.vars.data[
                     IdentifierTool.activeLayerNames[i]
                 ].data = [
                     {
                         url: IdentifierTool.activeLayerURLs[i],
-                        bands: 1,
+                        bands: bands,
                         units:
                             L_.layers.data[IdentifierTool.activeLayerNames[i]]
                                 .cogUnits || '',
@@ -804,6 +832,17 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
         dataPath = 'Missions/' + L_.mission + '/' + url
     }
 
+    let bands = '[[1,' + numBands + ']]'
+    if (L_.layers.data[layerUUID].type == 'image') {
+        if (Array.isArray(numBands)) {
+            if (numBands.length > 1) {
+                bands = [...numBands]
+            } else {
+                bands = '[' + numBands + ']'
+            }
+        }
+    }
+
     dataPath = IdentifierTool.fillURLParameters(dataPath, layerUUID)
 
     calls.api(
@@ -813,7 +852,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
             x: lat,
             y: lng,
             xyorll: 'll',
-            bands: '[[1,' + numBands + ']]',
+            bands: bands,
             path: dataPath,
         },
         (data) => {

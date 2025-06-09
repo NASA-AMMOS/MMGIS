@@ -1488,6 +1488,36 @@ function makeDataLayer(layerObj) {
     allLayersLoaded()
 }
 
+function getPixelValue(georaster, values) {
+    // Default behavior from
+    // https://github.com/GeoTIFF/georaster-layer-for-leaflet/blob/b57bd2039cd23aca1e4e01efcd6963eb3fc4bbb4/src/georaster-layer-for-leaflet.ts#L888-L910
+    const numberOfValues = values.length;
+    if (numberOfValues == 1) {
+        const value = values[0]
+        if (georaster.palette) {
+            const [r, g, b, a] = georaster.palette[value]
+            return `rgba(${r},${g},${b},${a / 255})`
+        } else if (georaster.georasters[0].mins) {
+            const { mins, ranges } = georaster.georasters[0]
+            return georaster.scale((values[0] - mins[0]) / ranges[0]).hex()
+        } else if (georaster.currentStats.mins) {
+            const min = georaster.currentStats.mins[0]
+            const range = georaster.currentStats.ranges[0]
+            return georaster.scale((values[0] - min) / range).hex()
+        }
+    } else if (numberOfValues === 2) {
+        return `rgb(${values[0]},${values[1]},0)`
+    } else if (numberOfValues === 3) {
+        return `rgb(${values[0]},${values[1]},${values[2]})`
+    } else if (numberOfValues === 4) {
+        return `rgba(${values[0]},${values[1]},${values[2]},${values[3] / 255})`
+    } else if (numberOfValues > 4) {
+        // Use the first 3 bands by default
+        return `rgb(${values[0]},${values[1]},${values[2]})`
+    }
+}
+
+
 function makeImageLayer(layerObj) {
     let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
     if (!F_.isUrlAbsolute(layerUrl)) {
@@ -1506,22 +1536,11 @@ function makeImageLayer(layerObj) {
 
     const cogColormap = F_.getIn(L_.layers.data[layerObj.name], 'cogColormap')
 
+    let b = layerObj.cogBands;
+
     parseGeoraster(layerUrl)
         .then((georaster) => {
             let pixelValuesToColorFn = null
-            if (
-                F_.getIn(
-                    L_.layers.data[layerObj.name],
-                    'variables.hideNoDataValue'
-                ) === true
-            ) {
-                pixelValuesToColorFn = (values) => {
-                    // https://github.com/GeoTIFF/georaster-layer-for-leaflet/issues/16
-                    return values[0] === georaster.noDataValue
-                        ? null
-                        : `rgb(${values[0]},${values[1]},${values[2]})`
-                }
-            }
 
             const imageInfo = F_.getIn(
                 L_.layers.data[layerObj.name],
@@ -1638,11 +1657,50 @@ function makeImageLayer(layerObj) {
                         }
                     }
 
+                    // Handle the case where we do not want to hide noDataValue
+                    if (
+                        georaster.noDataValue != null &&
+                        georaster.noDataValue === pixelValue
+                    ) {
+                        return [0, 0, 0] 
+                    }
+
                     return evaluate_cmap(
                         scaledPixelValue,
                         colormap || IMAGE_DEFAULT_COLOR_RAMP,
                         reverse
                     )
+                }
+            } else {
+                 if (b != null && Math.max(...b) > georaster.numberOfRasters) {
+                    console.warn(`WARNING - User input band values must be within range of available bands in the image.`
+                        + ` Ignoring user input bands.`
+                        + `\nUser input bands: ${b}`
+                        + `\nAvailable bands in the image: ${georaster.numberOfRasters}`)
+                }
+
+                pixelValuesToColorFn = (values) => {
+                    const updatedValues = [...values];
+                    // If user overrides the band order in the configure page
+                    if (b != null) {
+                        // User input band values must be within the range of available bands in the COG
+                        if (Math.max(...b) <= values.length) {
+                            updatedValues[0] = values[b[0] - 1]
+                            updatedValues[1] = values[b[1] - 1]
+                            updatedValues[2] = values[b[2] - 1]
+                        }
+                    }
+
+                    const haveDataForAllBands = updatedValues.every(value => value !== undefined && value !== georaster.noDataValue)
+
+                    // If the user does not want to hide the no data values
+                    if (!hideNoDataValue && !haveDataForAllBands) {
+                        return getPixelValue(georaster, updatedValues)
+                    }
+
+                    if (haveDataForAllBands) {
+                        return getPixelValue(georaster, updatedValues)
+                    }
                 }
             }
 
@@ -1667,7 +1725,7 @@ function makeImageLayer(layerObj) {
             allLayersLoaded()
         })
         .catch((e) => {
-            console.warn(`WARNING - Unable to load image: ${layerUrl}`)
+            console.warn(`WARNING - Unable to load image: ${layerUrl}\nError: ${e}`)
 
             L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
             L_.layers.layer[layerObj.name] = null
