@@ -139,24 +139,23 @@ async function sendImage(req, res, next, relUrlSplit) {
 }
 
 const middleware = {
-  missions: function () {
+  missions: function (ROOT_PATH) {
     return (req, res, next) => {
       const originalUrl = req.originalUrl.split("?")[0];
       const relUrl = req.url.split("?")[0];
 
       // Validate URL starts with /Missions to prevent path traversal
-      if (!originalUrl.startsWith("/Missions")) {
+      if (!originalUrl.startsWith(`${ROOT_PATH}/Missions`)) {
+        return res.sendStatus(404);
+      }
+      // Additional validation: ensure no path traversal sequences
+      if (originalUrl[0].includes("../") || originalUrl[0].includes("..\\")) {
         return res.sendStatus(404);
       }
 
       if (req.query.time != null && originalUrl.indexOf("_time_") > -1) {
         const urlSplit = originalUrl.split("_time_");
         const relUrlSplit = relUrl.split("_time_");
-        
-        // Additional validation: ensure no path traversal sequences
-        if (urlSplit[0].includes("../") || urlSplit[0].includes("..\\")) {
-          return res.sendStatus(404);
-        }
 
         if (dirStore[relUrlSplit[0]] == null) {
           dirStore[relUrlSplit[0]] = {
