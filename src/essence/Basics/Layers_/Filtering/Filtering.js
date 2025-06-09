@@ -82,7 +82,6 @@ const Filtering = {
             type: layerObj.type,
             needsToQueryGeodataset:
                 layerObj?.url.startsWith('geodatasets:') &&
-                layerObj?.variables?.dynamicExtent === true &&
                 layerObj?.variables?.getFeaturePropertiesOnClick === true,
         }
 
@@ -762,7 +761,6 @@ const Filtering = {
             // needsToQueryGeodataset (but pulled out so submit could be called standalone)
             if (
                 layerObj?.url.startsWith('geodatasets:') &&
-                layerObj?.variables?.dynamicExtent === true &&
                 layerObj?.variables?.getFeaturePropertiesOnClick === true
             ) {
                 GeodatasetFilterer.filter(

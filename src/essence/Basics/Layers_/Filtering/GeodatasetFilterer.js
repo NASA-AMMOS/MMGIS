@@ -110,7 +110,7 @@ const GeodatasetFilterer = {
                 }
             }
         }
-        L_.Map_.refreshLayer(L_.layers.data[layerName])
+        L_.Map_.refreshLayer(L_.layers.data[layerName], null, null, true)
     },
     match: function (feature, filter) {
         if (filter.values.length === 0) return true

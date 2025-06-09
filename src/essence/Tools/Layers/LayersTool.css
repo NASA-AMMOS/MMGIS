@@ -165,7 +165,6 @@
     flex-flow: column;
     font-size: 14px;
     color: var(--color-f);
-    overflow: hidden;
 }
 #layersToolList > li.forceOff {
     height: 0 !important;
@@ -365,7 +364,8 @@
     text-transform: capitalize;
     mix-blend-mode: difference;
 }
-#layersTool .tileCogColormap img, #layersTool .tileCogColormap #titlerCogColormapCSS {
+#layersTool .tileCogColormap img,
+#layersTool .tileCogColormap #titlerCogColormapCSS {
     width: 254px;
     height: 28px;
     transform: rotateZ(90deg) translateX(125px) translateY(-177px);
@@ -376,7 +376,7 @@
     display: flex;
     mix-blend-mode: normal;
 }
-#layersTool .tileCogColormap #titlerCogColormapCSS + #tileCogColormapMapLines  {
+#layersTool .tileCogColormap #titlerCogColormapCSS + #tileCogColormapMapLines {
     margin-top: -2px;
 }
 #layersTool #layersToolList > li.download_on,

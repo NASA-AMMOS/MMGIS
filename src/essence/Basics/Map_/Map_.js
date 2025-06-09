@@ -460,7 +460,12 @@ let Map_ = {
             }
         })
     },
-    refreshLayer: async function (layerObj, cb, skipOrderedBringToFront) {
+    refreshLayer: async function (
+        layerObj,
+        cb,
+        skipOrderedBringToFront,
+        stopLoops
+    ) {
         // If it's a dynamic extent layer, just re-call its function
         if (
             L_._onSpecificLayerToggleSubscriptions[
@@ -495,7 +500,7 @@ let Map_ = {
 
                     // fake on
                     L_.layers.on[layerObj.name] = true
-                    await makeLayer(layerObj, true, null)
+                    await makeLayer(layerObj, true, null, null, null, stopLoops)
                     L_.addVisible(Map_, [layerObj.name])
 
                     // turn off if was off

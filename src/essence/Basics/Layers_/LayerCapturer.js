@@ -270,6 +270,13 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             }
                         }
 
+                        // filters
+                        if (layerData._filterEncoded?.filters)
+                            body.filters = layerData._filterEncoded.filters
+                        if (layerData._filterEncoded?.spatialFilter)
+                            body.spatialFilter =
+                                layerData._filterEncoded.spatialFilter
+
                         const dateNow = new Date().getTime()
 
                         _layerRequestLastTimestamp[layerObj.name] = Math.max(
@@ -404,6 +411,13 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                               .concat(L_.getDynamicProps(layerData))
                               .filter(Boolean)
                         : null
+
+                // filters
+                if (layerData._filterEncoded?.filters)
+                    body.filters = layerData._filterEncoded.filters
+                if (layerData._filterEncoded?.spatialFilter)
+                    body.spatialFilter = layerData._filterEncoded.spatialFilter
+
                 layerData._lastGeodatasetRequestBody = body
                 calls.api(
                     'geodatasets_get',
