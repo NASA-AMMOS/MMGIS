@@ -1685,9 +1685,9 @@ function makeImageLayer(layerObj) {
                     if (b != null) {
                         // User input band values must be within the range of available bands in the COG
                         if (Math.max(...b) <= values.length) {
-                            updatedValues[0] = values[b[0] - 1]
-                            updatedValues[1] = values[b[1] - 1]
-                            updatedValues[2] = values[b[2] - 1]
+                            updatedValues[0] = values[b[0] - 1] || 0
+                            updatedValues[1] = values[b[1] - 1] || 0
+                            updatedValues[2] = values[b[2] - 1] || 0
                         }
                     }
 
