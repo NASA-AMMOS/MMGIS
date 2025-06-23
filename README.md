@@ -235,6 +235,38 @@ _Note:_ The development environment (`npm start`) and only the development envir
 1. Run `npm run test`  
    _Note:_ Jest has just been added in v2.0.0 and test suites are still very limited. There is strong interest to move to Playwright.
 
+#### Behavior-Driven Development (BDD) Tests
+
+MMGIS now includes Gherkin-style BDD tests using `jest-cucumber` to document and test key user-facing behaviors:
+
+1. **Run all tests (including BDD):**
+   ```bash
+   npm test
+   ```
+
+2. **Run only BDD feature tests:**
+   ```bash
+   npm test -- --testPathPattern=steps
+   ```
+
+3. **Run a specific feature:**
+   ```bash
+   npm test -- --testPathPattern=MapNavigation.steps
+   ```
+
+**Available BDD Test Suites:**
+- **Map Navigation** (`MapNavigation.feature`) - Basic map interactions, panning, zooming, view switching
+- **Layer Management** (`LayerManagement.feature`) - Layer visibility, opacity, filtering, temporal controls
+- **Draw Tool** (`DrawTool.feature`) - Drawing shapes, collaborative editing, file management
+- **Measure Tool** (`MeasureTool.feature`) - Distance/area measurement, elevation profiles, DEM integration
+- **Info Tool** (`InfoTool.feature`) - Feature querying, property display, data visualization
+
+**Test Structure:**
+- Feature files: `src/features/*.feature` (Gherkin scenarios)
+- Step definitions: `src/features/*.steps.js` (Test implementations)
+
+These BDD tests serve as living documentation of MMGIS functionality and can be used as a starting point for understanding system behaviors or developing additional test coverage.
+
 ---
 
 ## Documentation
