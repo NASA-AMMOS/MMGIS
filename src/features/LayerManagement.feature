@@ -3,6 +3,60 @@ Feature: Layer Management and Visualization
   I want to control layer visibility and properties
   So that I can analyze different data types and combinations
 
+  Background: Test Mission with Multiple Layer Types
+    Given MMGIS is configured with a test mission
+    And I have authenticated with long-term API token
+    And the following mission configuration exists:
+      """
+      {
+        "msv": {
+          "mission": "Layer_Test",
+          "view": ["-100", "40", "4"]
+        },
+        "tools": [
+          {"name": "Layers", "icon": "layers", "js": "LayersTool"},
+          {"name": "Legend", "icon": "format-list-bulleted-type", "js": "LegendTool"}
+        ],
+        "time": {"enabled": true},
+        "layers": [
+          {
+            "name": "Base Imagery",
+            "type": "tile",
+            "url": "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            "visibility": true,
+            "initialOpacity": 1.0,
+            "minZoom": 0,
+            "maxZoom": 18
+          },
+          {
+            "name": "Sample Sites",
+            "type": "vector",
+            "url": "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson",
+            "visibility": false,
+            "initialOpacity": 0.8,
+            "style": {
+              "color": "#FF0000",
+              "fillColor": "#FF0000",
+              "weight": 2,
+              "fillOpacity": 0.3
+            }
+          },
+          {
+            "name": "Elevation (COG)",
+            "type": "tile",
+            "sourceType": "COG",
+            "url": "https://cloud.sdsc.edu/v1/AUTH_opentopography/Raster/SRTM_GL1/SRTM_GL1_srtm.tif",
+            "visibility": false,
+            "throughTileServer": true,
+            "cogTransform": true,
+            "cogMin": 0,
+            "cogMax": 4000,
+            "cogColormap": "terrain"
+          }
+        ]
+      }
+      """
+
   Scenario: Toggling layer visibility
     Given layers are configured in the mission
     And I can see the layer panel

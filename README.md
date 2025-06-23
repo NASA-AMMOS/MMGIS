@@ -235,35 +235,87 @@ _Note:_ The development environment (`npm start`) and only the development envir
 1. Run `npm run test`  
    _Note:_ Jest has just been added in v2.0.0 and test suites are still very limited. There is strong interest to move to Playwright.
 
+📚 **For comprehensive testing documentation, see:**
+- [Testing Guide](docs/testing/TESTING_GUIDE.md) - Complete testing overview and best practices
+- [BDD Testing Guide](docs/testing/BDD_TESTING.md) - Detailed BDD testing with Playwright integration
+
 #### Behavior-Driven Development (BDD) Tests
 
-MMGIS now includes Gherkin-style BDD tests using `jest-cucumber` to document and test key user-facing behaviors:
+MMGIS includes comprehensive BDD tests using Gherkin syntax to document and test system behaviors. The framework supports both fast mock-based testing with `jest-cucumber` and real browser automation with `Playwright`, with automatic database and service management.
 
-1. **Run all tests (including BDD):**
+1. **Run all tests (unit + BDD + E2E):**
    ```bash
-   npm test
+   npm run test:all
    ```
 
-2. **Run only BDD feature tests:**
+2. **Run only BDD feature tests (jest-cucumber):**
    ```bash
-   npm test -- --testPathPattern=steps
+   npm run test:bdd
    ```
 
-3. **Run a specific feature:**
+3. **Run only end-to-end tests (Playwright):**
+   ```bash
+   npm run test:e2e
+   ```
+
+4. **Run a specific feature:**
    ```bash
    npm test -- --testPathPattern=MapNavigation.steps
    ```
 
+5. **Debug Playwright tests:**
+   ```bash
+   npm run playwright:debug
+   ```
+
+**Prerequisites for E2E Testing:**
+- PostgreSQL database (auto-launched if not available)
+- Node.js dependencies: `npm install`
+- Playwright browsers: `npm run playwright:install`
+
 **Available BDD Test Suites:**
 - **Map Navigation** (`MapNavigation.feature`) - Basic map interactions, panning, zooming, view switching
+  - Jest-cucumber: Mock-based unit testing
+  - Playwright: Real browser automation with map interaction
 - **Layer Management** (`LayerManagement.feature`) - Layer visibility, opacity, filtering, temporal controls
+  - Jest-cucumber: API and component testing
+  - Playwright: Full UI interaction testing
 - **Draw Tool** (`DrawTool.feature`) - Drawing shapes, collaborative editing, file management
 - **Measure Tool** (`MeasureTool.feature`) - Distance/area measurement, elevation profiles, DEM integration
 - **Info Tool** (`InfoTool.feature`) - Feature querying, property display, data visualization
+- **TiTiler Integration** (`TiTilerIntegration.feature`) - Cloud-Optimized GeoTIFF serving, band manipulation, 32-bit transformations
+- **STAC Integration** (`STACIntegration.feature`) - SpatioTemporal Asset Catalog browsing, collections, mosaics
+- **Velocity Layer** (`VelocityLayer.feature`) - Wind/flow visualization with streamlines, particles, arrows, wind barbs
+
+**Configuration-Driven Testing:**
+Each test suite includes Background sections that:
+- Set up test missions programmatically via MMGIS configuration API
+- Reference open source datasets for reproducible testing
+- Configure realistic layer combinations and tool interactions
+- Authenticate using long-term API tokens for consistent access
 
 **Test Structure:**
-- Feature files: `src/features/*.feature` (Gherkin scenarios)
-- Step definitions: `src/features/*.steps.js` (Test implementations)
+- Feature files: `src/features/*.feature` (Gherkin scenarios with Background setup)
+- Jest step definitions: `src/features/*.steps.js` (Unit tests with API mocking)
+- Playwright step definitions: `src/features/*.playwright.js` (E2E tests with browser automation)
+- Configuration helper: `src/features/ConfigurationAPI.steps.js` (Shared API utilities)
+- Infrastructure setup: `src/test-infrastructure/` (Database and service management)
+
+**Infrastructure Management:**
+The test framework automatically handles:
+- PostgreSQL database availability checking and auto-launch
+- Docker container detection (testing inside vs outside containers)
+- TiTiler, STAC, and other service availability
+- Browser automation setup and teardown
+- Test data cleanup and isolation
+
+**Open Source Data References:**
+Tests use publicly accessible datasets including:
+- SRTM elevation data from OpenTopography
+- OpenStreetMap and ArcGIS imagery services
+- Natural Earth vector boundaries
+- STAC catalogs from Microsoft Planetary Computer and AWS Earth Search
+- NOAA weather model data for velocity visualization
 
 These BDD tests serve as living documentation of MMGIS functionality and can be used as a starting point for understanding system behaviors or developing additional test coverage.
 

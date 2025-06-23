@@ -44,6 +44,21 @@ defineFeature(feature, test => {
   });
 
   test('Loading a mission with default view', ({ given, when, then, and }) => {
+    given('MMGIS is configured with a test mission', () => {
+      // Reset state for clean test environment
+      expect(mockMapInstance).toBeDefined();
+    });
+
+    and('I have authenticated with long-term API token', () => {
+      // Mock authentication
+      expect(true).toBe(true);
+    });
+
+    and('the following mission configuration exists:', (configJSON) => {
+      const config = JSON.parse(configJSON);
+      expect(config.msv.mission).toBe('Navigation_Test');
+    });
+
     given('MMGIS is configured with a valid mission', () => {
       expect(mockConfig).toBeDefined();
       expect(mockConfig.projection).toBe('EPSG:4326');

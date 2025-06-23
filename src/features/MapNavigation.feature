@@ -3,6 +3,44 @@ Feature: Map Navigation and Display
   I want to navigate and interact with the 2D map
   So that I can explore planetary data effectively
 
+  Background: Test Mission Configuration
+    Given MMGIS is configured with a test mission
+    And I have authenticated with long-term API token
+    And the following mission configuration exists:
+      """
+      {
+        "msv": {
+          "mission": "Navigation_Test",
+          "view": ["-118.2437", "34.0522", "10"],
+          "radius": {"major": "6378137", "minor": "6356752"}
+        },
+        "projection": {
+          "custom": false,
+          "epsg": "EPSG:4326",
+          "globeproj": "webmercator"
+        },
+        "look": {
+          "coordinates": true,
+          "scalebar": true
+        },
+        "panels": {"viewer": true, "map": true, "globe": true},
+        "tools": [
+          {"name": "Layers", "icon": "layers", "js": "LayersTool"}
+        ],
+        "layers": [
+          {
+            "name": "OpenStreetMap",
+            "type": "tile",
+            "url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            "visibility": true,
+            "minZoom": 0,
+            "maxZoom": 18,
+            "initialOpacity": 1.0
+          }
+        ]
+      }
+      """
+
   Scenario: Loading a mission with default view
     Given MMGIS is configured with a valid mission
     When I load the application
