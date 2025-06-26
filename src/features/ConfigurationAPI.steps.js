@@ -232,3 +232,12 @@ export const createTestConfiguration = (missionName, options = {}) => {
     layers: options.layers || []
   };
 };
+
+// Basic test to satisfy Jest requirements
+describe('Configuration API Helper', () => {
+  it('should export mock configuration API', () => {
+    expect(mockConfigAPI).toBeDefined();
+    expect(mockConfigAPI.authenticate).toBeDefined();
+    expect(mockConfigAPI.createMission).toBeDefined();
+  });
+});

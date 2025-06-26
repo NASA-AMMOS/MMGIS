@@ -32,6 +32,20 @@ defineFeature(feature, test => {
   test('Toggling layer visibility', ({ given, when, then, and }) => {
     let selectedLayer;
 
+    given('MMGIS is configured with a test mission', () => {
+      expect(mockLayers.length).toBeGreaterThan(0);
+    });
+
+    and('I have authenticated with long-term API token', () => {
+      // Mock authentication for test
+      expect(true).toBe(true);
+    });
+
+    and('the following mission configuration exists:', (configJSON) => {
+      const config = JSON.parse(configJSON);
+      expect(config.msv.mission).toBeDefined();
+    });
+
     given('layers are configured in the mission', () => {
       expect(mockLayers.length).toBeGreaterThan(0);
     });
@@ -61,6 +75,19 @@ defineFeature(feature, test => {
   test('Adjusting layer opacity', ({ given, when, then, and }) => {
     let targetLayer;
     const newOpacity = 0.5;
+
+    given('MMGIS is configured with a test mission', () => {
+      expect(mockLayers.length).toBeGreaterThan(0);
+    });
+
+    and('I have authenticated with long-term API token', () => {
+      expect(true).toBe(true);
+    });
+
+    and('the following mission configuration exists:', (configJSON) => {
+      const config = JSON.parse(configJSON);
+      expect(config.msv.mission).toBeDefined();
+    });
 
     given('a raster layer is visible on the map', () => {
       targetLayer = mockLayers[0]; // Imagery layer
@@ -94,6 +121,19 @@ defineFeature(feature, test => {
       'analysis': { expanded: true, layers: ['layer2'] }
     };
 
+    given('MMGIS is configured with a test mission', () => {
+      expect(mockLayers.length).toBeGreaterThan(0);
+    });
+
+    and('I have authenticated with long-term API token', () => {
+      expect(true).toBe(true);
+    });
+
+    and('the following mission configuration exists:', (configJSON) => {
+      const config = JSON.parse(configJSON);
+      expect(config.msv.mission).toBeDefined();
+    });
+
     given('layers are organized in groups', () => {
       expect(Object.keys(layerGroups).length).toBeGreaterThan(0);
     });
@@ -125,6 +165,19 @@ defineFeature(feature, test => {
   test('Loading and displaying raster layers', ({ given, when, then, and }) => {
     let rasterLayer;
     let tileLoadingState = { loading: false, tilesLoaded: 0, totalTiles: 0 };
+
+    given('MMGIS is configured with a test mission', () => {
+      expect(mockLayers.length).toBeGreaterThan(0);
+    });
+
+    and('I have authenticated with long-term API token', () => {
+      expect(true).toBe(true);
+    });
+
+    and('the following mission configuration exists:', (configJSON) => {
+      const config = JSON.parse(configJSON);
+      expect(config.msv.mission).toBeDefined();
+    });
 
     given('raster tile layers are configured', () => {
       rasterLayer = mockLayers.find(l => l.type === 'raster');
