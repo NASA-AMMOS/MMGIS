@@ -81,9 +81,9 @@ const useStyles = makeStyles((theme) => ({
     backgroundImage: "url(configure/build/gridlines.png)",
   },
   topbar: {
-    width: "100%",
-    height: "48px",
-    minHeight: "48px !important",
+    width: "calc(100% - 100px)",
+    height: "44px",
+    minHeight: "44px !important",
     display: "flex",
     justifyContent: "space-between",
     padding: `0px 20px`,

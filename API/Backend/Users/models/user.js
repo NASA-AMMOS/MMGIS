@@ -50,6 +50,14 @@ var User = sequelize.define(
       type: Sequelize.DataTypes.STRING(2048),
       allowNull: true,
     },
+    reset_token: {
+      type: Sequelize.DataTypes.STRING(2048),
+      allowNull: true,
+    },
+    reset_token_expiration: {
+      type: Sequelize.DataTypes.BIGINT,
+      allowNull: true,
+    },
   },
   {
     hooks: {
@@ -69,5 +77,51 @@ User.prototype.validPassword = function (password, user) {
   return bcrypt.compareSync(password, user.password);
 };
 
+// Adds to the table, never removes
+const up = async () => {
+  // resetToken column
+  await sequelize
+    .query(
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token varchar(2048) NULL;`
+    )
+    .then(() => {
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to add users.reset_token column. DB tables may be out of sync!`,
+        "user",
+        null,
+        err
+      );
+      return null;
+    });
+
+  // resetTokenExpiration column
+  await sequelize
+    .query(
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expiration BIGINT NULL;`
+    )
+    .then(() => {
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to add users.reset_token_expiration column. DB tables may be out of sync!`,
+        "user",
+        null,
+        err
+      );
+      return null;
+    });
+};
+
 // export User model for use in other files.
 module.exports = User;
+
+module.exports = {
+  User: User,
+  up,
+};

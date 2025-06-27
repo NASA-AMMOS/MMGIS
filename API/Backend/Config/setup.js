@@ -39,7 +39,7 @@ let setup = {
         s.ensureGroup(s.permissions.users),
         s.ensureAdmin(true),
         (req, res) => {
-          const user = process.env.AUTH === "csso" ? req.user : null;
+          const user = process.env.AUTH === "csso" ? req.user : req.user || "";
           res.render("../configure/build/index.pug", {
             user: user,
             AUTH: process.env.AUTH,

@@ -102,6 +102,22 @@ const c = {
     type: "DELETE",
     url: "stac/collections/:collection",
   },
+  account_entries: {
+    type: "GET",
+    url: "api/accounts/entries",
+  },
+  account_delete_user: {
+    type: "DELETE",
+    url: "api/accounts/remove/:id",
+  },
+  account_update_user: {
+    type: "POST",
+    url: "api/accounts/update",
+  },
+  account_reset_password_link: {
+    type: "POST",
+    url: "api/accounts/generateResetPasswordLink",
+  },
   longtermtoken_get: {
     type: "GET",
     url: "api/longtermtoken/get",

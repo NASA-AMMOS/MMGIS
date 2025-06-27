@@ -12,6 +12,7 @@ import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Tooltip from "@mui/material/Tooltip";
 
+import Toolbar from "@mui/material/Toolbar";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import InputLabel from "@mui/material/InputLabel";
@@ -32,7 +33,6 @@ const useStyles = makeStyles((theme) => ({
     flexFlow: "column",
     background: theme.palette.swatches.grey[1000],
     backgroundImage: "url(configure/build/gridlines.png)",
-    paddingBottom: "64px",
     overflowY: "auto",
     height: "100vh",
     boxSizing: "border-box",
@@ -41,6 +41,23 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     paddingBottom: "10px",
     height: "48px",
+  },
+  topbar: {
+    width: "calc(100% - 100px)",
+    height: "44px",
+    minHeight: "44px !important",
+    display: "flex",
+    justifyContent: "space-between",
+    padding: `0px 20px`,
+    boxSizing: `border-box !important`,
+  },
+  topbarTitle: {
+    display: "flex",
+    color: theme.palette.swatches.grey[150],
+    "& > svg": {
+      color: theme.palette.swatches.grey[150],
+      margin: "3px 10px 0px 2px",
+    },
   },
   title: {
     margin: "18px 0px 0px 60px",
@@ -54,7 +71,7 @@ const useStyles = makeStyles((theme) => ({
     margin: "20px 60px",
   },
   subtitle: {
-    margin: "0px 60px 0px 60px !important",
+    margin: "30px 60px 0px 60px !important",
     fontSize: "13px !important",
     paddingBottom: "5px",
     fontStyle: "italic",
@@ -164,6 +181,10 @@ const useStyles = makeStyles((theme) => ({
     borderRadius: "4px",
     background: theme.palette.swatches.grey[900],
     wordBreak: "break-all",
+  },
+  content: {
+    width: "100%",
+    overflowY: "auto",
   },
 }));
 
@@ -278,10 +299,19 @@ export default function APITokens() {
 
   return (
     <div className={c.APITokens}>
-      <div className={c.top}>
-        <div className={c.title}>API Tokens</div>
-      </div>
-      <div>
+      <Toolbar className={c.topbar}>
+        <div className={c.topbarTitle}>
+          <KeyIcon />
+          <Typography
+            style={{ fontWeight: "bold", fontSize: "16px", lineHeight: "29px" }}
+            variant="h6"
+            component="div"
+          >
+            API Tokens
+          </Typography>
+        </div>
+      </Toolbar>
+      <div className={c.content}>
         <Typography className={c.subtitle}>
           {
             "Generate an authentication token for programmatic control over the configuration and data endpoints. The generated token may be used it requests via the header: 'Authorization:Bearer <token>' and more information can be found at https://nasa-ammos.github.io/MMGIS/apis/configure#api-tokens"

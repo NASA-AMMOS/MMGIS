@@ -8,6 +8,8 @@ import Maker from "../../core/Maker";
 import { setSnackBarText, setConfiguration } from "../../core/ConfigureStore";
 
 import Button from "@mui/material/Button";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
 
 import SaveIcon from "@mui/icons-material/Save";
 import PhishingIcon from "@mui/icons-material/Phishing";
@@ -15,7 +17,6 @@ import PhishingIcon from "@mui/icons-material/Phishing";
 const config = {
   rows: [
     {
-      name: "Webhooks",
       description:
         "Trigger HTTP requests whenever certain actions are executed in MMGIS.",
       components: [
@@ -81,17 +82,37 @@ const useStyles = makeStyles((theme) => ({
   WebHooks: {
     width: "100%",
     height: "100%",
-    overflowY: "auto",
     display: "flex",
     flexFlow: "column",
     background: theme.palette.swatches.grey[1000],
-    padding: "0px 32px 64px 32px",
+    padding: "0px",
     boxSizing: "border-box",
     backgroundImage: "url(configure/build/gridlines.png)",
+  },
+  topbar: {
+    width: "calc(100% - 100px)",
+    height: "44px",
+    minHeight: "44px !important",
+    display: "flex",
+    justifyContent: "space-between",
+    padding: `0px 20px`,
+    boxSizing: `border-box !important`,
+  },
+  topbarTitle: {
+    display: "flex",
+    color: theme.palette.swatches.grey[150],
+    "& > svg": {
+      color: theme.palette.swatches.grey[150],
+      margin: "3px 10px 0px 2px",
+    },
   },
   gap: {
     height: "64px",
     width: "100%",
+  },
+  content: {
+    width: "100%",
+    overflowY: "auto",
   },
   save: {
     margin: "8px !important",
@@ -190,7 +211,21 @@ export default function WebHooks() {
 
   return (
     <div className={c.WebHooks}>
-      <Maker config={config} inlineHelp={true} />
+      <Toolbar className={c.topbar}>
+        <div className={c.topbarTitle}>
+          <PhishingIcon />
+          <Typography
+            style={{ fontWeight: "bold", fontSize: "16px", lineHeight: "29px" }}
+            variant="h6"
+            component="div"
+          >
+            Webhooks
+          </Typography>
+        </div>
+      </Toolbar>
+      <div className={c.content}>
+        <Maker config={config} inlineHelp={true} />
+      </div>
       <div className={c.gap}></div>
       <Button
         className={c.save}

@@ -20,6 +20,7 @@ import PhishingIcon from "@mui/icons-material/Phishing";
 import ApiIcon from "@mui/icons-material/Api";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import HorizontalSplitIcon from "@mui/icons-material/HorizontalSplit";
+import AccountBoxIcon from "@mui/icons-material/AccountBox";
 
 const useStyles = makeStyles((theme) => ({
   Panel: {
@@ -265,6 +266,19 @@ export default function Panel() {
             }}
           >
             General Options
+          </Button>
+
+          <Button
+            className={c.pageButton}
+            variant="contained"
+            disableElevation
+            startIcon={<AccountBoxIcon size="small" />}
+            onClick={() => {
+              dispatch(setMission(null));
+              dispatch(setPage({ page: "users" }));
+            }}
+          >
+            Users
           </Button>
         </div>
       </div>

@@ -9,7 +9,8 @@ const bcrypt = require("bcryptjs");
 const buf = crypto.randomBytes(128);
 
 const logger = require("../../../logger");
-const User = require("../models/user");
+const userModel = require("../models/user");
+const User = userModel.User;
 
 router.post("/has", function (req, res, next) {
   User.count()
