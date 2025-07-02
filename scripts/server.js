@@ -623,6 +623,20 @@ setups.getBackendSetups(function (setups) {
     middleware.missions(ROOT_PATH),
     express.static(path.join(rootDir, "/Missions"))
   );
+  app.get(s.ROOT_PATH + "/resetPassword", (req, res) => {
+    const user = process.env.AUTH === "csso" ? req.user : req.user || "";
+    res.render("../views/resetpassword.pug", {
+      user: user,
+      AUTH: process.env.AUTH,
+      NODE_ENV: process.env.NODE_ENV,
+      ROOT_PATH:
+        process.env.NODE_ENV === "development"
+          ? ""
+          : /*(process.env.EXTERNAL_ROOT_PATH || "") +*/
+            process.env.ROOT_PATH || "",
+      CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",
+    });
+  });
 
   if (isDevEnv) {
     app.use(

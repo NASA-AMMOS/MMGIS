@@ -343,6 +343,93 @@ router.get("/logged_in", function (req, res) {
     });
 });
 
+router.post("/resetPassword", function (req, res) {
+  let username = req.body.username;
+  let password = req.body.password;
+  let resetToken = req.body.resetToken;
+
+  if (username == null || username == "") {
+    res.send({ status: "failure", message: "Missing username." });
+  } else if (password == null || password == "") {
+    res.send({ status: "failure", message: "Missing password." });
+  } else if (resetToken == null || resetToken == "") {
+    res.send({ status: "failure", message: "Missing resetToken." });
+  } else {
+    User.findOne({
+      where: {
+        username: username,
+        reset_token: resetToken,
+      },
+      attributes: [
+        "id",
+        "username",
+        "email",
+        "password",
+        "permission",
+        "reset_token",
+        "reset_token_expiration",
+      ],
+    })
+      .then((user) => {
+        if (user) {
+          if (
+            user.reset_token_expiration == null ||
+            Date.now() >= user.reset_token_expiration
+          ) {
+            res.send({
+              status: "failure",
+              message: `Password reset time expired.`,
+            });
+          } else {
+            User.update(
+              {
+                password: password,
+                reset_token: null,
+                reset_token_expiration: null,
+              },
+              {
+                where: {
+                  username: username,
+                  reset_token: resetToken,
+                },
+              }
+            )
+              .then(() => {
+                res.send({
+                  status: "success",
+                  message: `Successfully reset password for user: ${username}`,
+                });
+              })
+              .catch((err) => {
+                logger(
+                  "error",
+                  `Failed to reset password for user: ${username}`,
+                  req.originalUrl,
+                  req,
+                  err
+                );
+                res.send({
+                  status: "failure",
+                  message: `Failed to reset password for user: ${username}`,
+                });
+              });
+          }
+        } else {
+          res.send({
+            status: "failure",
+            message: `Invalid username or reset token.`,
+          });
+        }
+        return null;
+      })
+      .catch((err) => {
+        logger("error", "Password reset failed.", req.originalUrl, req, err);
+        res.send({ status: "failure", message: "Password reset failed." });
+        return null;
+      });
+  }
+});
+
 function getUserGroups(user, leadGroupName) {
   let leads = process.env.LEADS ? JSON.parse(process.env.LEADS) : [];
   let groups = {};

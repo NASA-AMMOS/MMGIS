@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import { calls } from "../../../../core/calls";
+import { publicUrlMainSite } from "../../../../core/constants";
 
+import { copyToClipboard } from "../../../../core/utils";
 import { setModal, setSnackBarText } from "../../../../core/ConfigureStore";
 
 import Typography from "@mui/material/Typography";
@@ -16,10 +18,12 @@ import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
+import Tooltip from "@mui/material/Tooltip";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
 import AccountBoxIcon from "@mui/icons-material/AccountBox";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 
 import TextField from "@mui/material/TextField";
 
@@ -43,7 +47,13 @@ const useStyles = makeStyles((theme) => ({
   contents: {
     background: theme.palette.primary.main,
     height: "100%",
-    width: "500px",
+    width: "700px",
+  },
+  contentsLink: {
+    background: theme.palette.primary.main,
+    height: "100%",
+    width: "1000px",
+    maxWidth: "1000px !important",
   },
   heading: {
     height: theme.headHeights[2],
@@ -93,7 +103,6 @@ const useStyles = makeStyles((theme) => ({
   backgroundIcon: {
     margin: "7px 8px 0px 0px",
   },
-
   fileName: {
     textAlign: "center",
     fontWeight: "bold",
@@ -146,6 +155,58 @@ const useStyles = makeStyles((theme) => ({
   dropdown: {
     width: "100%",
     marginTop: "20px",
+  },
+  generated: {
+    height: "42px",
+    lineHeight: "42px",
+    display: "flex",
+    marginBottom: "20px",
+    border: `2px solid ${theme.palette.swatches.p[0]}`,
+    borderRadius: "4px",
+    boxShadow: `0px 2px 2px 0px rgba(0,0,0,0.2)`,
+    "& > div:nth-child(1)": {
+      padding: "0px 16px",
+      background: theme.palette.swatches.p[0],
+      textTransform: "uppercase",
+      fontSize: "13px",
+    },
+    "& > div:nth-child(2)": {
+      padding: "0px 16px",
+    },
+    "& > div:nth-child(3)": {
+      height: "42px",
+    },
+  },
+  resetLink: {
+    whiteSpace: "nowrap",
+    lineHeight: "42px !important",
+    padding: "0px 12px",
+    flex: "1",
+    overflowX: "auto",
+    overflowY: "hidden",
+    border: "none",
+  },
+  message: {
+    fontSize: "18px !important",
+    textAlign: "center !important",
+    letterSpacing: "1px !important",
+    color: `${theme.palette.swatches.r[4]} !important`,
+    margin: "6px 0pc !important",
+    fontWeight: "bold !important",
+    textTransform: "uppercase",
+  },
+  message2: {
+    display: "flex",
+    justifyContent: "space-between",
+    margin: "6px 0px",
+    "& > div:first-child": {
+      color: theme.palette.swatches.grey[200],
+      fontStyle: "italic",
+    },
+    "& > div:last-child": {
+      color: theme.palette.swatches.grey[100],
+      fontWeight: "bold",
+    },
   },
 }));
 
@@ -212,8 +273,6 @@ const ResetPasswordModal = (props) => {
               severity: "success",
             })
           );
-          queryUsers();
-          handleClose();
         } else {
           dispatch(
             setSnackBarText({
@@ -242,7 +301,7 @@ const ResetPasswordModal = (props) => {
       onClose={handleClose}
       aria-labelledby="responsive-dialog-title"
       PaperProps={{
-        className: c.contents,
+        className: passwordResetLink == null ? c.contents : c.contentsLink,
       }}
     >
       <DialogTitle className={c.heading}>
@@ -319,13 +378,52 @@ const ResetPasswordModal = (props) => {
       ) : (
         <>
           <DialogContent className={c.content}>
-            <Typography className={c.resetLink}>{passwordResetLink}</Typography>
-            <Typography className={c.resetLinkExpiration}>
-              {passwordResetLinkExpiration}
-            </Typography>
             <Typography
-              className={c.subtitle2}
-            >{`Pass this link to the user.`}</Typography>
+              className={c.message}
+            >{`Send this password reset link to the user:`}</Typography>
+            <div className={c.generated}>
+              <div className={c.resetLinkTitle}>Reset Link:</div>
+              <textarea
+                readonly={true}
+                className={c.resetLink}
+                id="resetPasswordLink"
+              >{`${publicUrlMainSite}/resetPassword?t=${passwordResetLink}`}</textarea>
+              <Tooltip
+                title={"Copy Reset Link to Clipboard"}
+                placement="top"
+                arrow
+              >
+                <IconButton
+                  className={c.copy2clipboard}
+                  onClick={() => {
+                    if (passwordResetLink) {
+                      document.getElementById("resetPasswordLink").select(); // Select the <textarea> content
+                      document.execCommand("copy");
+                      dispatch(
+                        setSnackBarText({
+                          text: "Copied Password Reset Link to Clipboard!",
+                          severity: "success",
+                        })
+                      );
+                    }
+                  }}
+                >
+                  <ContentPasteIcon fontSize="inherit" />
+                </IconButton>
+              </Tooltip>
+            </div>
+            <div className={c.message2}>
+              <div>{"Username:"}</div>
+              <div>{modal.row.username}</div>
+            </div>
+            <div className={c.message2}>
+              <div>{"Email:"}</div>
+              <div>{modal.row.email}</div>
+            </div>
+            <div className={c.message2}>
+              <div>{"Link Expires At:"}</div>
+              <div>{new Date(passwordResetLinkExpiration).toString()}</div>
+            </div>
           </DialogContent>
           <DialogActions className={c.dialogActions}>
             <Button
@@ -333,7 +431,7 @@ const ResetPasswordModal = (props) => {
               variant="outlined"
               onClick={handleClose}
             >
-              Close
+              Done
             </Button>
           </DialogActions>
         </>
