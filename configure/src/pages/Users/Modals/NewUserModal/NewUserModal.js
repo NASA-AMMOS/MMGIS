@@ -12,11 +12,14 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
+import FormControl from "@mui/material/FormControl";
+import Select from "@mui/material/Select";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
-import ShapeLineIcon from "@mui/icons-material/ShapeLine";
-import WarningIcon from "@mui/icons-material/Warning";
-import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import AccountBoxIcon from "@mui/icons-material/AccountBox";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 
 import TextField from "@mui/material/TextField";
 
@@ -45,7 +48,7 @@ const useStyles = makeStyles((theme) => ({
   heading: {
     height: theme.headHeights[2],
     boxSizing: "border-box",
-    background: theme.palette.swatches.p[4],
+    background: theme.palette.swatches.p[0],
     borderBottom: `1px solid ${theme.palette.swatches.grey[800]}`,
     padding: `4px ${theme.spacing(2)} 4px ${theme.spacing(4)} !important`,
   },
@@ -53,7 +56,6 @@ const useStyles = makeStyles((theme) => ({
     padding: `8px 0px`,
     fontSize: theme.typography.pxToRem(16),
     fontWeight: "bold",
-    color: theme.palette.swatches.grey[0],
     textTransform: "uppercase",
   },
   content: {
@@ -100,24 +102,6 @@ const useStyles = makeStyles((theme) => ({
     borderBottom: `1px solid ${theme.palette.swatches.grey[500]}`,
     paddingBottom: "10px",
   },
-
-  layerName: {
-    textAlign: "center",
-    fontSize: "24px !important",
-    letterSpacing: "1px !important",
-    color: theme.palette.swatches.p[4],
-    fontWeight: "bold !important",
-    margin: "10px !important",
-    borderBottom: `1px solid ${theme.palette.swatches.grey[100]}`,
-    paddingBottom: "10px",
-  },
-  hasOccurrencesTitle: {
-    margin: "10px",
-    display: "flex",
-  },
-  hasOccurrences: {
-    fontStyle: "italic",
-  },
   mission: {
     background: theme.palette.swatches.p[11],
     color: theme.palette.swatches.grey[900],
@@ -151,19 +135,23 @@ const useStyles = makeStyles((theme) => ({
     display: "flex !important",
     justifyContent: "space-between !important",
   },
-  delete: {
-    background: `${theme.palette.swatches.p[4]} !important`,
+  submit: {
+    background: `${theme.palette.swatches.p[0]} !important`,
     color: `${theme.palette.swatches.grey[1000]} !important`,
     "&:hover": {
       background: `${theme.palette.swatches.grey[0]} !important`,
     },
   },
   cancel: {},
+  dropdown: {
+    width: "100%",
+    marginTop: "20px",
+  },
 }));
 
-const MODAL_NAME = "deleteStacCollection";
-const DeleteStacCollectionModal = (props) => {
-  const { querySTAC } = props;
+const MODAL_NAME = "newUser";
+const NewUserModal = (props) => {
+  const { queryUsers } = props;
   const c = useStyles();
 
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
@@ -173,27 +161,39 @@ const DeleteStacCollectionModal = (props) => {
 
   const dispatch = useDispatch();
 
-  const [stacCollectionName, setStacCollectionName] = useState(null);
+  const [userName, setUserName] = useState(null);
+  const [email, setEmail] = useState(null);
+  const [password, setPassword] = useState(null);
+  const [passwordRetype, setPasswordRetype] = useState(null);
 
   const handleClose = () => {
+    setUserName(null);
+    setEmail(null);
+    setPassword(null);
+    setPasswordRetype(null);
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
   const handleSubmit = () => {
-    if (!modal?.stacCollection?.id) {
+    if (
+      userName == null ||
+      userName == "" ||
+      password == null ||
+      password == ""
+    ) {
       dispatch(
         setSnackBarText({
-          text: "Cannot delete undefined STAC Collection.",
+          text: "Username and Password must be filled.",
           severity: "error",
         })
       );
       return;
     }
 
-    if (stacCollectionName !== modal.stacCollection.id) {
+    if (password !== passwordRetype) {
       dispatch(
         setSnackBarText({
-          text: "Confirmation STAC Collection name does not match.",
+          text: "Passwords do not match.",
           severity: "error",
         })
       );
@@ -201,26 +201,26 @@ const DeleteStacCollectionModal = (props) => {
     }
 
     calls.api(
-      "stac_delete_collection",
+      "user_signup",
       {
-        urlReplacements: {
-          collection: modal.stacCollection.id,
-        },
+        username: userName,
+        email: email,
+        password: password,
       },
       (res) => {
-        if (res["deleted collection"] === modal.stacCollection.id) {
+        if (res.status === "success") {
           dispatch(
             setSnackBarText({
-              text: `Successfully deleted the '${modal.stacCollection.id}' STAC Collection.`,
+              text: `Successfully created new user: '${userName}'.`,
               severity: "success",
             })
           );
-          querySTAC();
+          queryUsers();
           handleClose();
         } else {
           dispatch(
             setSnackBarText({
-              text: `Failed to delete the '${modal.stacCollection.id}' STAC Collection.`,
+              text: `Failed to create new user: ${res.message}`,
               severity: "error",
             })
           );
@@ -229,37 +229,13 @@ const DeleteStacCollectionModal = (props) => {
       (res) => {
         dispatch(
           setSnackBarText({
-            text: `Failed to delete the '${modal.stacCollection.id}' STAC Collection.`,
+            text: `Failed to create new user: ${res.message}`,
             severity: "error",
           })
         );
       }
     );
   };
-
-  let occurrences = [];
-
-  if (modal?.stacCollection?.occurrences)
-    occurrences = Object.keys(modal?.stacCollection?.occurrences)
-      .map((mission) => {
-        const m = modal?.stacCollection?.occurrences[mission];
-        if (m.length == 0) return null;
-        else {
-          const items = [<div className={c.mission}>{mission}</div>];
-          m.forEach((n) => {
-            items.push(
-              <div className={c.pathName}>
-                <div className={c.path}>
-                  {`${n.path}.`.replaceAll(".", " ➔ ")}
-                </div>
-                <div className={c.name}>{n.name}</div>
-              </div>
-            );
-          });
-          return items;
-        }
-      })
-      .filter(Boolean);
 
   return (
     <Dialog
@@ -275,8 +251,8 @@ const DeleteStacCollectionModal = (props) => {
       <DialogTitle className={c.heading}>
         <div className={c.flexBetween}>
           <div className={c.flexBetween}>
-            <ShapeLineIcon className={c.backgroundIcon} />
-            <div className={c.title}>Delete a STAC Collection</div>
+            <AccountBoxIcon className={c.backgroundIcon} />
+            <div className={c.title}>{`Create a New User`}</div>
           </div>
           <IconButton
             className={c.closeIcon}
@@ -289,41 +265,73 @@ const DeleteStacCollectionModal = (props) => {
         </div>
       </DialogTitle>
       <DialogContent className={c.content}>
-        <Typography
-          className={c.layerName}
-        >{`Deleting: ${modal?.stacCollection?.id}`}</Typography>
-        {occurrences.length > 0 && (
-          <>
-            <div className={c.hasOccurrencesTitle}>
-              <WarningIcon />
-              <Typography className={c.hasOccurrences}>
-                {`This STAC Collection is currently in use in the following layers:`}
-              </Typography>
-            </div>
-            <div className={c.occurrences}>{occurrences}</div>
-          </>
-        )}
         <TextField
           className={c.confirmInput}
-          label="Confirm STAC Collection Name"
+          label="Username"
           variant="filled"
-          value={stacCollectionName}
+          value={userName}
+          inputProps={{
+            autoComplete: "off",
+          }}
           onChange={(e) => {
-            setStacCollectionName(e.target.value);
+            setUserName(e.target.value);
+          }}
+        />
+        <Typography className={c.subtitle2}>{`Username`}</Typography>
+
+        <TextField
+          className={c.confirmInput}
+          label="Email Address"
+          variant="filled"
+          value={email}
+          inputProps={{
+            autoComplete: "off",
+          }}
+          onChange={(e) => {
+            setEmail(e.target.value);
+          }}
+        />
+        <Typography className={c.subtitle2}>{`The user's email.`}</Typography>
+
+        <TextField
+          className={c.confirmInput}
+          label="Password"
+          variant="filled"
+          value={password}
+          inputProps={{
+            autoComplete: "off",
+          }}
+          type="password"
+          onChange={(e) => {
+            setPassword(e.target.value);
           }}
         />
         <Typography
-          className={c.confirmMessage}
-        >{`Enter '${modal?.stacCollection?.id}' above and click 'Delete' to confirm the permanent deletion of this STAC Collection.`}</Typography>
+          className={c.subtitle2}
+        >{`Passwords must be at least 8 characters long and contain at least: 1 uppercase letter, 1 lowercase letter, 1 number and 1 symbol.`}</Typography>
+
+        <TextField
+          className={c.confirmInput}
+          label="Retype Password"
+          variant="filled"
+          value={passwordRetype}
+          inputProps={{
+            autoComplete: "off",
+          }}
+          tyep="password"
+          onChange={(e) => {
+            setPasswordRetype(e.target.value);
+          }}
+        />
+        <Typography className={c.subtitle2}>{`Retype Password`}</Typography>
       </DialogContent>
       <DialogActions className={c.dialogActions}>
         <Button
-          className={c.delete}
           variant="contained"
-          startIcon={<DeleteForeverIcon size="small" />}
+          startIcon={<AdminPanelSettingsIcon size="small" />}
           onClick={handleSubmit}
         >
-          Delete
+          Create
         </Button>
         <Button className={c.cancel} variant="outlined" onClick={handleClose}>
           Cancel
@@ -333,4 +341,4 @@ const DeleteStacCollectionModal = (props) => {
   );
 };
 
-export default DeleteStacCollectionModal;
+export default NewUserModal;

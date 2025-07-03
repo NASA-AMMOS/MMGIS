@@ -118,6 +118,10 @@ const c = {
     type: "POST",
     url: "api/accounts/generateResetPasswordLink",
   },
+  user_signup: {
+    type: "POST",
+    url: "api/users/signup",
+  },
   longtermtoken_get: {
     type: "GET",
     url: "api/longtermtoken/get",

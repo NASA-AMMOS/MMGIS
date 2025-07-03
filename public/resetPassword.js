@@ -6,9 +6,18 @@ function resetPassword() {
     token === "" ||
     token == null
   ) {
-    document.getElementById("msg").innerHTML =
-      "Missing username, password, or reset token";
-    document.getElementById("msg").style.opacity = 1;
+    document.getElementById("msgError").innerHTML =
+      "Missing username, password, or reset token.";
+    document.getElementById("msgError").style.opacity = 1;
+    return;
+  }
+
+  if (
+    document.getElementById("pwd").value !=
+    document.getElementById("pwd_retype").value
+  ) {
+    document.getElementById("msgError").innerHTML = "Passwords don't match.";
+    document.getElementById("msgError").style.opacity = 1;
     return;
   }
 
@@ -26,26 +35,42 @@ function resetPassword() {
         (data.hasOwnProperty("status") && data.status === "success")
       ) {
         //success
-        document.getElementById("msg").innerHTML = data.message;
-        document.getElementById("msg").style.opacity = 1;
+        document.getElementById("msgSuccessMsg").innerHTML =
+          "Successfully Reset Password!";
+        document.getElementById("msgSuccess").style.opacity = 1;
+        document.getElementById("msgSuccess").style.pointerEvents = "all";
+        document.getElementById("container").style.borderTop =
+          "4px solid #08ea67";
+        document.getElementById("container").style.borderBottom =
+          "4px solid #08ea67";
       } else {
         //error
-        document.getElementById("msg").innerHTML = data.message;
-        document.getElementById("msg").style.opacity = 1;
+        document.getElementById("msgError").innerHTML = data.message;
+        document.getElementById("msgError").style.opacity = 1;
       }
     },
     error: function () {
       //error
-      document.getElementById("msg").innerHTML = "Server error.";
-      document.getElementById("msg").style.opacity = 1;
+      document.getElementById("msgError").innerHTML = "Server error.";
+      document.getElementById("msgError").style.opacity = 1;
     },
   });
 }
 
-$(document).ready(function () {
-  $(document).on("keypress", function (e) {
-    if (e.which === 13) {
-      login();
-    }
-  });
-});
+function goHome() {
+  const url = new URL(window.location.href);
+
+  // Remove search params and hash
+  url.search = "";
+  url.hash = "";
+
+  // Split path, remove last segment
+  const parts = url.pathname.split("/").filter(Boolean);
+  parts.pop();
+
+  // Join back and set the new pathname
+  const newPath = "/" + parts.join("/");
+  url.pathname = newPath === "/" ? "/" : newPath + "/";
+
+  window.location.href = url.href;
+}

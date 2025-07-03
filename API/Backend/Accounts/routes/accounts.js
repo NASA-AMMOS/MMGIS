@@ -198,7 +198,7 @@ router.post("/generateResetPasswordLink", function (req, res, next) {
 
   //Form update object
   let toUpdateTo = {
-    reset_token: crypto.randomBytes(64).toString("hex"),
+    reset_token: crypto.randomBytes(32).toString("hex"),
     reset_token_expiration: Date.now() + expires,
   };
 

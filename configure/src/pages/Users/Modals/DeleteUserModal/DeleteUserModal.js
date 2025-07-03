@@ -272,6 +272,9 @@ const DeleteUserModal = (props) => {
           label="Confirm Username"
           variant="filled"
           value={userName}
+          inputProps={{
+            autoComplete: "off",
+          }}
           onChange={(e) => {
             setUserName(e.target.value);
           }}

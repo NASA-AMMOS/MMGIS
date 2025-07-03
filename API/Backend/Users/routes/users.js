@@ -12,6 +12,22 @@ const logger = require("../../../logger");
 const userModel = require("../models/user");
 const User = userModel.User;
 
+function isStrongPassword(password) {
+  const minLength = 8;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSymbol = /[^A-Za-z0-9]/.test(password);
+
+  return (
+    password.length >= minLength &&
+    hasUpper &&
+    hasLower &&
+    hasNumber &&
+    hasSymbol
+  );
+}
+
 router.post("/has", function (req, res, next) {
   User.count()
     .then((count) => {
@@ -67,6 +83,26 @@ router.post("/signup", function (req, res, next) {
     });
     return;
   }
+
+  const skipLogin = req.body.skipLogin === true;
+
+  if (req.body.username == null || req.body.username == "") {
+    res.send({
+      status: "failure",
+      message: "Username must be set.",
+    });
+    return;
+  }
+
+  if (!isStrongPassword(req.body.password)) {
+    res.send({
+      status: "failure",
+      message:
+        "Password is not strong enough. Must be at least 8 characters long and contain at least: 1 uppercase letter, 1 lowercase letter, 1 number and 1 symbol.",
+    });
+    return;
+  }
+
   // Define a new user
   let newUser = {
     username: req.body.username,
@@ -86,6 +122,24 @@ router.post("/signup", function (req, res, next) {
       if (!user) {
         User.create(newUser)
           .then((created) => {
+            // Just make the account -- don't also login
+            if (skipLogin === true) {
+              logger(
+                "info",
+                req.body.username + " signed up.",
+                req.originalUrl,
+                req
+              );
+              res.send({
+                status: "success",
+                username: req.body.username,
+                token: null,
+                groups: [],
+              });
+              return null;
+            }
+
+            // Otherwise login too
             clearLoginSession(req);
             req.session.regenerate((err) => {
               // Save the user's info in the session
@@ -381,19 +435,13 @@ router.post("/resetPassword", function (req, res) {
               message: `Password reset time expired.`,
             });
           } else {
-            User.update(
-              {
-                password: password,
-                reset_token: null,
-                reset_token_expiration: null,
-              },
-              {
-                where: {
-                  username: username,
-                  reset_token: resetToken,
-                },
-              }
-            )
+            user.password = password;
+            user.reset_token = null;
+            user.reset_token_expiration = null;
+
+            // using user.save() so that the beforeUpdate hook gets triggered (User.update() doesn't trigger it)
+            user
+              .save()
               .then(() => {
                 res.send({
                   status: "success",

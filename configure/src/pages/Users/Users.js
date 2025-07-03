@@ -40,6 +40,7 @@ import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import ResetPasswordModal from "./Modals/ResetPasswordModal/ResetPasswordModal";
 import DeleteUserModal from "./Modals/DeleteUserModal/DeleteUserModal";
 import UpdateUserModal from "./Modals/UpdateUserModal/UpdateUserModal";
+import NewUserModal from "./Modals/NewUserModal/NewUserModal";
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -530,6 +531,7 @@ export default function Users() {
       <ResetPasswordModal queryUsers={queryUsers} />
       <DeleteUserModal queryUsers={queryUsers} />
       <UpdateUserModal queryUsers={queryUsers} />
+      <NewUserModal queryUsers={queryUsers} />
     </>
   );
 }

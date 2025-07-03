@@ -265,6 +265,9 @@ const UpdateUserModal = (props) => {
           label="Email Address"
           variant="filled"
           value={email || modal?.row?.email}
+          inputProps={{
+            autoComplete: "off",
+          }}
           onChange={(e) => {
             setEmail(e.target.value);
           }}
@@ -291,6 +294,9 @@ const UpdateUserModal = (props) => {
           label="Confirm Username"
           variant="filled"
           value={userName}
+          inputProps={{
+            autoComplete: "off",
+          }}
           onChange={(e) => {
             setUserName(e.target.value);
           }}
