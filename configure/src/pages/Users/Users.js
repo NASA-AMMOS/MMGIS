@@ -100,7 +100,7 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   tableInner: {
-    margin: "16px 32px 32px 32px",
+    margin: "0px 32px 32px 32px",
     width: "calc(100% - 64px) !important",
     boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
   },
@@ -203,7 +203,7 @@ const useStyles = makeStyles((theme) => ({
     color: "white",
   },
   authIndicator: {
-    margin: "16px 32px -16px 32px",
+    margin: "16px auto -16px 32px",
     display: "flex",
     padding: "8px 16px",
     background: theme.palette.swatches.grey[300],
@@ -211,6 +211,7 @@ const useStyles = makeStyles((theme) => ({
     letterSpacing: "1px",
     fontSize: "14px",
     borderRadius: "4px",
+    height: "32px",
     boxShadow:
       "rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px",
     "& > div:first-child": {
@@ -423,7 +424,7 @@ export default function Users() {
       break;
     case "local":
       authDescription =
-        "- Anyone without credentials is blocked. Either the Admin must log in, create accounts and pass out the credentials or set AUTH_LOCAL_ALLOW_SIGNUP=true.";
+        "- Anyone without credentials is blocked. Either the Admin must log in, create accounts and pass out the credentials or set AUTH_LOCAL_ALLOW_SIGNUP=true so that users may sign up on their own.";
       break;
     case "csso":
       authDescription =
