@@ -3937,9 +3937,12 @@
                   },
                   "password": {
                     "type": "string"
+                  },
+                  "skipLogin": {
+                    "type": "boolean"
                   }
                 },
-                "required": ["username", "email", "password"]
+                "required": ["username", "password"]
               }
             }
           }
@@ -3963,7 +3966,7 @@
                     "summary": "Permission Denied",
                     "value": {
                       "status": "failure",
-                      "message": "Currently set so only administrators may create accounts."
+                      "message": "Currently only administrators may create accounts."
                     }
                   },
                   "failure_user_exists": {
@@ -4145,6 +4148,322 @@
                         "loggedIn": false,
                         "user": null
                       }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/resetPassword": {
+      "post": {
+        "summary": "Reset a Password",
+        "tags": ["Users"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "resetToken": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["username", "password", "resetToken"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password Reset response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully reset password for user:"
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Password reset failed."
+                    }
+                  },
+                  "other_failure": {
+                    "summary": "Found user but still failed",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to reset password for user:"
+                    }
+                  },
+                  "missing_username": {
+                    "summary": "Missing username input",
+                    "value": {
+                      "status": "failure",
+                      "message": "Missing username."
+                    }
+                  },
+                  "missing_password": {
+                    "summary": "Missing password input",
+                    "value": {
+                      "status": "failure",
+                      "message": "Missing password."
+                    }
+                  },
+                  "missing_resetToken": {
+                    "summary": "Missing resetToken input",
+                    "value": {
+                      "status": "failure",
+                      "message": "Missing resetToken."
+                    }
+                  },
+                  "reset_expired": {
+                    "summary": "Password reset time expired.",
+                    "value": {
+                      "status": "failure",
+                      "message": "Password reset time expired."
+                    }
+                  },
+                  "invalid": {
+                    "summary": "Invalid username or reset token.",
+                    "value": {
+                      "status": "failure",
+                      "message": "Invalid username or reset token."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/entries": {
+      "get": {
+        "summary": "Get a list of current user accounts. Requires administrator permissions.",
+        "tags": ["Accounts"],
+        "responses": {
+          "200": {
+            "description": "Returned user account entries.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": {
+                        "entries": [
+                          {
+                            "id": 6,
+                            "username": "my_username",
+                            "email": "my@email.com",
+                            "permission": "001",
+                            "createdAt": "2023-02-10T01:48:24.961Z",
+                            "updatedAt": "2025-01-14T07:32:30.857Z"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "failure": {
+                    "summary": "failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to get user entries"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/remove/{id}": {
+      "delete": {
+        "summary": "Remove a user account. Requires administrator permissions.",
+        "tags": ["Accounts"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Remove response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully deleted user with id: ."
+                    }
+                  },
+                  "missing_id": {
+                    "summary": "Missing user id",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to delete user. User Id is null."
+                    }
+                  },
+                  "cannot_delete_superadmin": {
+                    "summary": "Cannot delete SuperAdmin",
+                    "value": {
+                      "status": "failure",
+                      "message": "Cannot delete the original Administrator account."
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to delete user with id: ."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/update": {
+      "post": {
+        "summary": "Update a user account. Requires administrator permissions.",
+        "tags": ["Accounts"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "permission": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User account update response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully updated user with id: .",
+                      "body": {
+                        "updated_id": "id"
+                      }
+                    }
+                  },
+                  "missing_id": {
+                    "summary": "Missing user id.",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to update user. User Id is null."
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure to update user.",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to update user with id: ."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/generateResetPasswordLink": {
+      "post": {
+        "summary": "Generate a password reset link for a user. Requires administrator permissions.",
+        "tags": ["Accounts"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "expires": {
+                    "type": "integer"
+                  }
+                },
+                "required": ["id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generate a password reset link response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully generated a password reset token for user with id: .",
+                      "body": {
+                        "resetToken": "reset_token",
+                        "resetTokenExpiration": "reset_token_expiration_timestamp_ms"
+                      }
+                    }
+                  },
+                  "missing_id": {
+                    "summary": "Missing user id.",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to generate a password reset link for user. User Id is null."
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failed to generate a password reset token",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to generate a password reset token for user with id: ."
                     }
                   }
                 }

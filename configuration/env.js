@@ -96,8 +96,10 @@ function getClientEnvironment(publicUrl) {
         WDS_SOCKET_PORT: process.env.WDS_SOCKET_PORT,
         // MMGIS
         AUTH: process.env.AUTH,
+        AUTH_LOCAL_ALLOW_SIGNUP: process.env.AUTH_LOCAL_ALLOW_SIGNUP,
         VERSION: packagejson.version,
         CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
+        CONTACT_INFO: process.env.CONTACT_INFO,
         LINK_PREVIEW_TITLE: process.env.LINK_PREVIEW_TITLE,
         LINK_PREVIEW_DESCRIPTION: process.env.LINK_PREVIEW_DESCRIPTION,
         HOSTS: JSON.stringify({

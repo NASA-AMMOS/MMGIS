@@ -383,7 +383,7 @@ const ResetPasswordModal = (props) => {
           <DialogContent className={c.content}>
             <Typography
               className={c.message}
-            >{`Send this password reset link to the user:`}</Typography>
+            >{`Securely send this password reset link to the user:`}</Typography>
             <div className={c.generated}>
               <div className={c.resetLinkTitle}>Reset Link:</div>
               <textarea

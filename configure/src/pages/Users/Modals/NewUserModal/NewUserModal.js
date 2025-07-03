@@ -206,6 +206,7 @@ const NewUserModal = (props) => {
         username: userName,
         email: email,
         password: password,
+        skipLogin: true,
       },
       (res) => {
         if (res.status === "success") {
@@ -277,7 +278,9 @@ const NewUserModal = (props) => {
             setUserName(e.target.value);
           }}
         />
-        <Typography className={c.subtitle2}>{`Username`}</Typography>
+        <Typography
+          className={c.subtitle2}
+        >{`Username. Must be unique.`}</Typography>
 
         <TextField
           className={c.confirmInput}
@@ -291,7 +294,9 @@ const NewUserModal = (props) => {
             setEmail(e.target.value);
           }}
         />
-        <Typography className={c.subtitle2}>{`The user's email.`}</Typography>
+        <Typography
+          className={c.subtitle2}
+        >{`The user's email. Optional but if set, must be unique.`}</Typography>
 
         <TextField
           className={c.confirmInput}
@@ -318,7 +323,7 @@ const NewUserModal = (props) => {
           inputProps={{
             autoComplete: "off",
           }}
-          tyep="password"
+          type="password"
           onChange={(e) => {
             setPasswordRetype(e.target.value);
           }}

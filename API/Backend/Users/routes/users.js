@@ -74,12 +74,17 @@ router.post("/first_signup", function (req, res, next) {
 
 router.post("/signup", function (req, res, next) {
   if (
-    (process.env.AUTH === "local" && req.session.permission !== "111") ||
+    (process.env.AUTH === "local" &&
+      req.session.permission !== "111" &&
+      !(
+        process.env.AUTH_LOCAL_ALLOW_SIGNUP === true ||
+        process.env.AUTH_LOCAL_ALLOW_SIGNUP === "true"
+      )) ||
     (process.env.AUTH === "off" && req.session.permission !== "111")
   ) {
     res.send({
       status: "failure",
-      message: "Currently set so only administrators may create accounts.",
+      message: "Currently only administrators may create accounts.",
     });
     return;
   }
@@ -106,7 +111,7 @@ router.post("/signup", function (req, res, next) {
   // Define a new user
   let newUser = {
     username: req.body.username,
-    email: req.body.email,
+    email: req.body.email == "" ? null : req.body.email,
     password: req.body.password,
     permission: "001",
     token: null,
@@ -119,7 +124,7 @@ router.post("/signup", function (req, res, next) {
     },
   })
     .then((user) => {
-      if (!user) {
+      if (user == null) {
         User.create(newUser)
           .then((created) => {
             // Just make the account -- don't also login
@@ -193,12 +198,22 @@ router.post("/signup", function (req, res, next) {
             return null;
           })
           .catch((err) => {
-            logger("error", "Failed to sign up.", req.originalUrl, req, err);
-            res.send({ status: "failure", message: "Failed to sign up." });
+            logger(
+              "error",
+              "Failed to sign up. Email might be invalid or already in use.",
+              req.originalUrl,
+              req,
+              err
+            );
+            res.send({
+              status: "failure",
+              message:
+                "Failed to sign up. Email might be invalid or already in use.",
+            });
             return null;
           });
       } else {
-        res.send({ status: "failure", message: "User already exists." });
+        res.send({ status: "failure", message: "Username already exists." });
       }
       return null;
     })

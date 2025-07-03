@@ -1,9 +1,10 @@
+/* global mmgisglobal */
+
 import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { makeStyles } from "@mui/styles";
 
 import { calls } from "../../core/calls";
-import { downloadObject } from "../../core/utils";
 import {
   setSnackBarText,
   setUserEntries,
@@ -11,7 +12,6 @@ import {
 } from "../../core/ConfigureStore";
 
 import PropTypes from "prop-types";
-import { alpha } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -28,7 +28,6 @@ import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import Divider from "@mui/material/Divider";
-import Badge from "@mui/material/Badge";
 import { visuallyHidden } from "@mui/utils";
 
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
@@ -101,7 +100,7 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   tableInner: {
-    margin: "32px",
+    margin: "16px 32px 32px 32px",
     width: "calc(100% - 64px) !important",
     boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
   },
@@ -202,6 +201,33 @@ const useStyles = makeStyles((theme) => ({
     borderRadius: "4px",
     display: "inline",
     color: "white",
+  },
+  authIndicator: {
+    margin: "16px 32px -16px 32px",
+    display: "flex",
+    padding: "8px 16px",
+    background: theme.palette.swatches.grey[300],
+    color: "white",
+    letterSpacing: "1px",
+    fontSize: "14px",
+    borderRadius: "4px",
+    boxShadow:
+      "rgba(0, 0, 0, 0.2) 0px 2px 1px -1px, rgba(0, 0, 0, 0.14) 0px 1px 1px 0px, rgba(0, 0, 0, 0.12) 0px 1px 3px 0px",
+    "& > div:first-child": {
+      color: theme.palette.accent.main,
+      fontWeight: "bold",
+      paddingRight: "4px",
+    },
+    "& > div:nth-child(2)": {
+      textTransform: "uppercase",
+      paddingRight: "4px",
+    },
+    "& > div:last-child": {
+      color: theme.palette.swatches.grey[850],
+      fontSize: "13px",
+      fontStyle: "italic",
+      lineHeight: "17px",
+    },
   },
 }));
 
@@ -385,11 +411,40 @@ export default function Users() {
     [order, orderBy, page, rowsPerPage, userEntries]
   );
 
+  let authDescription = null;
+  switch (mmgisglobal.AUTH) {
+    case "off":
+      authDescription =
+        "- Guests are allowed access. No authentication. Users cannot sign up or log in. Tools that require log in will not work.";
+      break;
+    case "none":
+      authDescription =
+        "- Guests are allowed access. No authentication. Users can still sign up and log in from within MMGIS.";
+      break;
+    case "local":
+      authDescription =
+        "- Anyone without credentials is blocked. Either the Admin must log in, create accounts and pass out the credentials or set AUTH_LOCAL_ALLOW_SIGNUP=true.";
+      break;
+    case "csso":
+      authDescription =
+        "- Using an external Cloud Single Sign On (CSSO) service that's proxied in front of MMGIS for authentication.";
+      break;
+    default:
+      break;
+  }
+
   return (
     <>
       <Box className={c.Users}>
         <Paper className={c.UsersInner}>
           <EnhancedTableToolbar />
+          {authDescription != null && (
+            <div className={c.authIndicator}>
+              <div>AUTH:</div>
+              <div>{mmgisglobal.AUTH}</div>
+              <div>{authDescription}</div>
+            </div>
+          )}
           <TableContainer className={c.table}>
             <Table
               className={c.tableInner}

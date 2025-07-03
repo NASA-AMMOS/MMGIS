@@ -11,7 +11,7 @@ html {
   margin: 0;
 }
 
-.container {
+#container {
   margin: 0;
   top: 50%;
   left: 50%;
@@ -24,6 +24,7 @@ html {
   width: 400px;
   height: 440px;
   box-shadow: 0px 4px 30px 10px #141414;
+  transition: height 0.2s;
 }
 
 .box h4 {
@@ -88,7 +89,7 @@ a:hover {
   height: 49px;
   font-size: 16px;
   position: absolute;
-  top: 80%;
+  bottom: 47px;
   left: 7.5%;
   transition: 0.3s;
   cursor: pointer;
@@ -100,6 +101,7 @@ a:hover {
 
 .btn1:hover {
   background: #08aeea;
+  color: white;
 }
 
 .error {
@@ -110,16 +112,33 @@ a:hover {
   border: 0;
   margin: 10px auto 10px;
   position: absolute;
-  top: 37%;
+  top: 158px;
+  white-space: nowrap;
+  display: flex;
+  justify-content: center;
   left: 7.2%;
-  color: #d6d7db;
+  color: #ffcfb3;
   border-bottom: 2px solid #ff7426;
   opacity: 0;
   transition: opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
 
+#email_label,
+#email,
+#email_description,
+#pwd_description,
+#pwd_retype_label,
 #pwd_retype {
   display: none;
+}
+
+#email_description,
+#pwd_description {
+  color: #a1a4ad;
+  font-style: italic;
+  font-size: 14px;
+  text-align: left;
+  margin: -17px 39px -8px 39px;
 }
 
 img {
@@ -158,4 +177,29 @@ img {
 }
 #configIcon:hover {
   color: black;
+}
+
+#toggleWrapper {
+  width: 100%;
+  display: none;
+  justify-content: center;
+}
+#toggle {
+  position: absolute;
+  bottom: 15px;
+  padding: 2px 8px;
+  line-height: 16px;
+  text-align: center;
+  background: #36373a;
+  color: #a1a4ad;
+  font-family: "Source Sans Pro", sans-serif;
+  border-radius: 3px;
+  font-size: 13px;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+}
+#toggle:hover {
+  background: #08aeea;
+  color: white;
 }

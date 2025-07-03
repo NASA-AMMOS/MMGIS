@@ -4,29 +4,38 @@ html(lang='en')
     title MMGIS / Login
     link(rel='shortcut icon' href='public/images/logos/logo.png')
     link(type='text/css' rel='stylesheet' href='public/login.css')
+    script.
+      allowSignup = #{AUTH_LOCAL_ALLOW_SIGNUP}
     script(type='text/javascript' src='public/jquery.min.js')
     script(type='text/javascript' src='public/login.js')
   body.mmgisScrollbar
     .header
       img(src='public/images/logos/local_login_brand.png' alt='Branding' style='left: 44px; transform: unset; height: 60px; opacity: 0.5;')
-    .container(style='z-index: 1;')
+    #container(style='z-index: 1;')
       img(src='public/images/logos/mmgis.png' alt='MMGIS')
       span#msg.error
-      form.box(name='form1' title='Log in to MMGIS!')
+      form.box(name='form1')
         h4
           | Sign in
           span to your account.
-        h5 If you do not have an account,<br>request one from your administrator.
-        label(for="username" style="position: absolute; color: #a1a4ad; top: 203px; left: 50%; transform: translateX(-50%); background: #1c1c1c; border-radius: 10px; font-size: 14px; width: 100px; text-align: center;") Username
+        h5 If you do not have an account,<br>sign up or request one from your administrator.
+        label#username_label(for="username" style="position: absolute; color: #a1a4ad; top: 203px; left: 50%; transform: translateX(-50%); background: #1c1c1c; border-radius: 10px; font-size: 14px; width: 100px; text-align: center;") Username
         input#username(type='text' name='username' placeholder='Username' autocomplete='off')
-        label(for="password" style="position: absolute; color: #a1a4ad; top: 270px; left: 50%; transform: translateX(-50%); background: #1c1c1c; border-radius: 10px; font-size: 14px; width: 100px; text-align: center;") Password
+        label#email_label(for="email" style="position: absolute; color: #a1a4ad; top: 270px; left: 50%; transform: translateX(-50%); background: #1c1c1c; border-radius: 10px; font-size: 14px; width: 100px; text-align: center;") Email
+        input#email(type='text' name='email' placeholder='Email' autocomplete='off')
+        div#email_description An email is optional.
+        label#pwd_label(for="pwd" style="position: absolute; color: #a1a4ad; top: 270px; left: 50%; transform: translateX(-50%); background: #1c1c1c; border-radius: 10px; font-size: 14px; width: 100px; text-align: center;") Password
         input#pwd(type='password' name='password' placeholder='Password' autocomplete='off')
+        div#pwd_description Must be at least 8 characters long and contain at least: 1 uppercase letter, 1 lowercase letter, 1 number and 1 symbol.
+        label#pwd_retype_label(for="pwd_retype" style="position: absolute; color: #a1a4ad; top: 464px; left: 50%; transform: translateX(-50%); background: #1c1c1c; border-radius: 10px; font-size: 14px; width: 120px; text-align: center;") Retype Password
         input#pwd_retype(type='password' name='password' placeholder='Retype Password' autocomplete='off')
-        div.btn1(onClick='login()') Sign in
+        div#login.btn1(onClick='login()' title='Log in to MMGIS!') Sign in
+        div#toggleWrapper
+          div#toggle(onClick='toggle()') Or Sign Up
     .footer(style='position: absolute; bottom: 0; padding: 44px; box-sizing: border-box; width: 100%; color: #adadad; font-size: 14px; display: flex; justify-content: flex-end; text-align: end;')
       
       div
-        div Contact: fred.calef@jpl.nasa.gov
+        div Contact: #{CONTACT_INFO}
         div Clearance Number: #{CLEARANCE_NUMBER}
         div(style='display: flex;')
         a(href='http://www.jpl.nasa.gov/copyrights.cfm' style='margin-right: 10px;') PRIVACY
