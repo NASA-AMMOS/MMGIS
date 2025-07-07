@@ -146,13 +146,12 @@ function getfile(req, res, next) {
                 (published ? "AND action_index=4 " : "") +
                 "ORDER BY time DESC" +
                 " " +
-                "FETCH first " +
-                (published ? req.body.id.length : "1") +
-                " rows only",
+                "FETCH first :first rows only",
               {
                 replacements: {
                   id: ids,
                   time: atThisTime,
+                  first: published ? req.body.id.length : 1,
                 },
               }
             )
