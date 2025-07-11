@@ -95,6 +95,31 @@ let Map_ = {
 
         let shouldFade = true
 
+        let maxBounds = null
+        if (
+            !isNaN(L_.configData.msv.maxBoundsTopLeftLat) &&
+            !isNaN(L_.configData.msv.maxBoundsTopLeftLng) &&
+            !isNaN(L_.configData.msv.maxBoundsBottomRightLat) &&
+            !isNaN(L_.configData.msv.maxBoundsBottomRightLng) &&
+            !(
+                L_.configData.msv.maxBoundsTopLeftLat === 0 &&
+                L_.configData.msv.maxBoundsTopLeftLng === 0 &&
+                L_.configData.msv.maxBoundsBottomRightLat === 0 &&
+                L_.configData.msv.maxBoundsBottomRightLng === 0
+            )
+        ) {
+            maxBounds = [
+                [
+                    L_.configData.msv.maxBoundsTopLeftLat,
+                    L_.configData.msv.maxBoundsTopLeftLng,
+                ],
+                [
+                    L_.configData.msv.maxBoundsBottomRightLat,
+                    L_.configData.msv.maxBoundsBottomRightLng,
+                ],
+            ]
+        }
+
         if (
             L_.configData.projection &&
             L_.configData.projection.custom === true
@@ -130,34 +155,12 @@ let Map_ = {
                 zoomSnap: 0,
                 fadeAnimation: shouldFade,
                 //wheelPxPerZoomLevel: 500,
+                worldCopyJump: L_.configData.msv.worldCopyJump || false,
+                maxBounds,
             })
 
             window.mmgisglobal.customCRS = crs
         } else {
-            let maxBounds = null
-            if (
-                !isNaN(L_.configData.msv.maxBoundsTopLeftLat) &&
-                !isNaN(L_.configData.msv.maxBoundsTopLeftLng) &&
-                !isNaN(L_.configData.msv.maxBoundsBottomRightLat) &&
-                !isNaN(L_.configData.msv.maxBoundsBottomRightLng) &&
-                !(
-                    L_.configData.msv.maxBoundsTopLeftLat === 0 &&
-                    L_.configData.msv.maxBoundsTopLeftLng === 0 &&
-                    L_.configData.msv.maxBoundsBottomRightLat === 0 &&
-                    L_.configData.msv.maxBoundsBottomRightLng === 0
-                )
-            ) {
-                maxBounds = [
-                    [
-                        L_.configData.msv.maxBoundsTopLeftLat,
-                        L_.configData.msv.maxBoundsTopLeftLng,
-                    ],
-                    [
-                        L_.configData.msv.maxBoundsBottomRightLat,
-                        L_.configData.msv.maxBoundsBottomRightLng,
-                    ],
-                ]
-            }
             //Make the empty map and turn off zoom controls
             this.map = L.map('map', {
                 zoomControl: hasZoomControl,
