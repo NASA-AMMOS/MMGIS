@@ -140,6 +140,17 @@ const useStyles = makeStyles((theme) => ({
     lineHeight: 1.33,
     letterSpacing: "0.00938em",
   },
+  subtitle3: {
+    fontSize: "13px !important",
+    width: "100%",
+    marginTop: "2px !important",
+    marginBottom: "8px !important",
+    color: theme.palette.swatches.grey[400],
+    whiteSpace: "pre-wrap",
+    lineHeight: 1.33,
+    letterSpacing: "0.00938em",
+    textAlign: "center",
+  },
   text: {
     width: "100%",
   },
@@ -244,6 +255,14 @@ const getComponent = (
     layer == null ? (tool == null ? configuration : tool) : layer;
   let inner;
   switch (com.type) {
+    case "gap":
+      return (
+        <div>
+          <Typography className={c.subtitle3}>
+            {com.description || ""}
+          </Typography>
+        </div>
+      );
     case "text":
       inner = (
         <TextField
@@ -503,10 +522,12 @@ const getComponent = (
           value={value != null ? value : getIn(directConf, com.field, "")}
           onChange={(e) => {
             let v = e.target.value;
-            const min = com.min != null ? com.min : -Infinity;
-            const max = com.max != null ? com.max : Infinity;
-            v = Math.max(v, min);
-            v = Math.min(v, max);
+            if (v != "") {
+              const min = com.min != null ? com.min : -Infinity;
+              const max = com.max != null ? com.max : Infinity;
+              v = Math.max(v, min);
+              v = Math.min(v, max);
+            }
             updateConfiguration(forceField || com.field, v, layer);
           }}
           type="number"

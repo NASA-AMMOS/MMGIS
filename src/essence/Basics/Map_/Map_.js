@@ -134,6 +134,30 @@ let Map_ = {
 
             window.mmgisglobal.customCRS = crs
         } else {
+            let maxBounds = null
+            if (
+                !isNaN(L_.configData.msv.maxBoundsTopLeftLat) &&
+                !isNaN(L_.configData.msv.maxBoundsTopLeftLng) &&
+                !isNaN(L_.configData.msv.maxBoundsBottomRightLat) &&
+                !isNaN(L_.configData.msv.maxBoundsBottomRightLng) &&
+                !(
+                    L_.configData.msv.maxBoundsTopLeftLat === 0 &&
+                    L_.configData.msv.maxBoundsTopLeftLng === 0 &&
+                    L_.configData.msv.maxBoundsBottomRightLat === 0 &&
+                    L_.configData.msv.maxBoundsBottomRightLng === 0
+                )
+            ) {
+                maxBounds = [
+                    [
+                        L_.configData.msv.maxBoundsTopLeftLat,
+                        L_.configData.msv.maxBoundsTopLeftLng,
+                    ],
+                    [
+                        L_.configData.msv.maxBoundsBottomRightLat,
+                        L_.configData.msv.maxBoundsBottomRightLng,
+                    ],
+                ]
+            }
             //Make the empty map and turn off zoom controls
             this.map = L.map('map', {
                 zoomControl: hasZoomControl,
@@ -144,6 +168,8 @@ let Map_ = {
                 //zoomDelta: 0.05,
                 //zoomSnap: 0,
                 //wheelPxPerZoomLevel: 500,
+                worldCopyJump: L_.configData.msv.worldCopyJump || false,
+                maxBounds,
             })
             // Default CRS
 
