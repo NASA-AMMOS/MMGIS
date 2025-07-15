@@ -282,7 +282,7 @@ const UpdateUserModal = (props) => {
               setPermissions(e.target.value);
             }}
           >
-            <MenuItem value={"111"}>Administrator</MenuItem>
+            <MenuItem value={"110"}>Administrator</MenuItem>
             <MenuItem value={"001"}>User</MenuItem>
           </Select>
         </FormControl>

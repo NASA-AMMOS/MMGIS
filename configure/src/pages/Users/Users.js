@@ -483,11 +483,9 @@ export default function Users() {
                       <TableCell align="right">{row.email}</TableCell>
                       <TableCell align="right">
                         {row.permission === "111" ? (
-                          row.id === 1 ? (
-                            <div className={c.roleSuperAdmin}>SuperAdmin</div>
-                          ) : (
-                            <div className={c.roleAdmin}>Admin</div>
-                          )
+                          <div className={c.roleSuperAdmin}>SuperAdmin</div>
+                        ) : row.permission === "110" ? (
+                          <div className={c.roleAdmin}>Admin</div>
                         ) : (
                           <div className={c.roleUser}>User</div>
                         )}

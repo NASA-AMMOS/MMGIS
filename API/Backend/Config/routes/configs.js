@@ -15,18 +15,23 @@ const config_template = require("../../../templates/config_template");
 
 // Sanitize user input to prevent XSS in error messages
 function sanitizeInput(input) {
-  if (typeof input !== 'string') return String(input);
-  return input
-    .replace(/[<>'"&]/g, function(match) {
-      switch(match) {
-        case '<': return '&lt;';
-        case '>': return '&gt;';
-        case '"': return '&quot;';
-        case "'": return '&#x27;';
-        case '&': return '&amp;';
-        default: return match;
-      }
-    });
+  if (typeof input !== "string") return String(input);
+  return input.replace(/[<>'"&]/g, function (match) {
+    switch (match) {
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#x27;";
+      case "&":
+        return "&amp;";
+      default:
+        return match;
+    }
+  });
 }
 
 const GeneralOptions = require("../../GeneralOptions/models/generaloptions");
@@ -109,12 +114,16 @@ function get(req, res, next, cb) {
             if (cb)
               cb({
                 status: "failure",
-                message: `Mission '${sanitizeInput(req.query.mission)} v${version}' not found.`,
+                message: `Mission '${sanitizeInput(
+                  req.query.mission
+                )} v${version}' not found.`,
               });
             else
               res.send({
                 status: "failure",
-                message: `Mission '${sanitizeInput(req.query.mission)} v${version}' not found.`,
+                message: `Mission '${sanitizeInput(
+                  req.query.mission
+                )} v${version}' not found.`,
               });
             return null;
           });
@@ -258,6 +267,13 @@ function add(req, res, next, cb) {
 
 if (fullAccess)
   router.post("/add", function (req, res, next) {
+    if (req.session.permission !== "111") {
+      res.send({
+        status: "failure",
+        message: "Only SuperAdmins can add new missions.",
+      });
+      return null;
+    }
     add(req, res, next);
   });
 

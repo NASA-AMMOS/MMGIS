@@ -125,7 +125,7 @@ router.post("/update", function (req, res, next) {
   if (
     req.body.hasOwnProperty("permission") &&
     req.body.permission != null &&
-    (req.body.permission === "111" || req.body.permission === "001")
+    (req.body.permission === "110" || req.body.permission === "001")
   ) {
     toUpdateTo.permission = req.body.permission;
   }

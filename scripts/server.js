@@ -309,7 +309,8 @@ function ensureAdmin(toLoginPage, denyLongTermTokens, allowGets, disallow) {
       url.endsWith("/api/geodatasets/aggregations") ||
       url.endsWith("/api/geodatasets/search") ||
       url.endsWith("/api/datasets/get") ||
-      req.session.permission === "111"
+      req.session.permission === "111" ||
+      req.session.permission === "110"
     ) {
       next();
       return;
