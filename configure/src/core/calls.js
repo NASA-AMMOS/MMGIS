@@ -42,6 +42,10 @@ const c = {
     type: "GET",
     url: "api/configure/missions",
   },
+  user_permissions: {
+    type: "GET",
+    url: "api/configure/user-permissions",
+  },
   versions: {
     type: "GET",
     url: "api/configure/versions",

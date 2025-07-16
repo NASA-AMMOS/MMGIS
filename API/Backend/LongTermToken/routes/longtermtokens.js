@@ -9,10 +9,29 @@ const crypto = require("crypto");
 const { sequelize } = require("../../../connection");
 
 const logger = require("../../../logger");
-const LongTermTokens = require("../models/longtermtokens");
+const LongTermTokens = require("../models/longtermtokens").LongTermTokens;  
 
 router.get("/get", function (req, res, next) {
-  LongTermTokens.findAll()
+  // Use raw query to join with users table to get creator info
+  sequelize
+    .query(
+      `SELECT 
+        lt.id, 
+        lt.token, 
+        lt.period, 
+        lt.created_by_user_id,
+        lt."createdAt", 
+        lt."updatedAt",
+        u.username as created_by_username,
+        u.permission as created_by_permission,
+        u.missions_managing as created_by_missions
+      FROM long_term_tokens lt 
+      LEFT JOIN users u ON lt.created_by_user_id = u.id 
+      ORDER BY lt."createdAt" DESC`,
+      {
+        type: sequelize.QueryTypes.SELECT,
+      }
+    )
     .then((tokens) => {
       /*
       tokens.forEach((token) => {
@@ -40,6 +59,7 @@ router.post("/generate", function (req, res, next) {
     let newLongTermToken = {
       token: token,
       period: req.body.period,
+      created_by_user_id: req.session.uid,
     };
 
     LongTermTokens.create(newLongTermToken)

@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+// UpdateUserModal.js - 15 July 2025
+/* global mmgisglobal */
+
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import { calls } from "../../../../core/calls";
@@ -16,6 +19,9 @@ import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
+import Chip from "@mui/material/Chip";
+import Box from "@mui/material/Box";
+import OutlinedInput from "@mui/material/OutlinedInput";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
 import AccountBoxIcon from "@mui/icons-material/AccountBox";
@@ -147,6 +153,16 @@ const useStyles = makeStyles((theme) => ({
     width: "100%",
     marginTop: "20px",
   },
+  assignedMissions: {
+    width: "100%",
+  },
+  selectDropdown: {
+    '& .MuiSelect-select': {
+      width: "100%",
+      marginTop: "20px",
+      height: "25px",
+    },
+  },
 }));
 
 const MODAL_NAME = "updateUser";
@@ -164,11 +180,45 @@ const UpdateUserModal = (props) => {
   const [email, setEmail] = useState(null);
   const [permissions, setPermissions] = useState(null);
   const [userName, setUserName] = useState(null);
+  const [missionsManaging, setMissionsManaging] = useState([]);
+  const [availableMissions, setAvailableMissions] = useState([]);
+
+  // Fetch available missions when modal opens
+  useEffect(() => {
+    if (modal !== false) {
+      calls.api(
+        "missions",
+        {},
+        (res) => {
+          if (res?.missions) {
+            setAvailableMissions(res.missions);
+          }
+        },
+        (res) => {
+          dispatch(
+            setSnackBarText({
+              text: res?.message || "Failed to get available missions.",
+              severity: "error",
+            })
+          );
+        }
+      );
+      
+      // Initialize missions managing state
+      if (modal?.row?.missions_managing) {
+        setMissionsManaging(modal.row.missions_managing);
+      } else {
+        setMissionsManaging([]);
+      }
+    }
+  }, [modal, dispatch]);
 
   const handleClose = () => {
     setEmail(null);
     setPermissions(null);
     setUserName(null);
+    setMissionsManaging([]);
+    setAvailableMissions([]);
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
@@ -197,8 +247,9 @@ const UpdateUserModal = (props) => {
       "account_update_user",
       {
         id: modal.row.id,
-        permission: permissions,
-        email: email,
+        permission: permissions || modal.row.permission,
+        email: email || modal.row.email,
+        missions_managing: missionsManaging || modal.row.missions_managing,
       },
       (res) => {
         if (res.body?.updated_id === modal.row.id) {
@@ -280,6 +331,10 @@ const UpdateUserModal = (props) => {
             value={permissions || modal?.row?.permission}
             onChange={(e) => {
               setPermissions(e.target.value);
+              // Clear missions when changing to user role
+              if (e.target.value === "001") {
+                setMissionsManaging([]);
+              }
             }}
           >
             <MenuItem value={"110"}>Administrator</MenuItem>
@@ -289,6 +344,40 @@ const UpdateUserModal = (props) => {
         <Typography
           className={c.subtitle2}
         >{`Admins have full control over mission configurations as well as elevated privileges in the Draw Tool. Users do not and are the most basic role.`}</Typography>
+        
+        {(permissions === "110" || (!permissions && modal?.row?.permission === "110")) && (
+          <>
+            <FormControl className={c.assignedMissions} variant="filled" size="small">
+              <InputLabel>Assigned Missions</InputLabel>
+              <Select
+                className={c.selectDropdown}
+                multiple
+                value={missionsManaging}
+                disabled={mmgisglobal.permission !== "111"}
+                onChange={(e) => {
+                  setMissionsManaging(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value);
+                }}
+                input={<OutlinedInput />}
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map((value) => (
+                      <Chip key={value} label={value} size="small" />
+                    ))}
+                  </Box>
+                )}
+              >
+                {availableMissions.map((mission) => (
+                  <MenuItem key={mission} value={mission}>
+                    {mission}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Typography
+              className={c.subtitle2}
+            >{`Select which missions this Admin can manage. Leave empty to restrict access to all missions. Only SuperAdmins can change modify this field.`}</Typography>
+          </>
+        )}
         <TextField
           className={c.confirmInput}
           label="Confirm Username"

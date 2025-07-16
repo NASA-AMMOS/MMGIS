@@ -168,6 +168,7 @@
     "/api/configure/add": {
       "post": {
         "summary": "Add a new mission configuration",
+        "description": "Creates a new mission configuration. Requires SuperAdmin permissions (111).",
         "tags": ["Configure"],
         "requestBody": {
           "required": true,
@@ -225,6 +226,13 @@
                       "status": "failure",
                       "message": "Failed to create new mission."
                     }
+                  },
+                  "failure_unauthorized": {
+                    "summary": "Failure: Unauthorized",
+                    "value": {
+                      "status": "failure",
+                      "message": "Only SuperAdmins can add new missions."
+                    }
                   }
                 }
               }
@@ -236,6 +244,7 @@
     "/api/configure/upsert": {
       "post": {
         "summary": "Upsert a mission configuration",
+        "description": "Updates or creates a mission configuration. SuperAdmins can access all missions, regular Admins can only access missions they manage.",
         "tags": ["Configure"],
         "requestBody": {
           "required": true,
@@ -347,6 +356,55 @@
                     "value": {
                       "status": "failure",
                       "message": "Failed to find missions."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/user-permissions": {
+      "get": {
+        "summary": "Get current user's mission permissions",
+        "description": "Returns the current user's permission level and which missions they can manage (for Configure page UI).",
+        "tags": ["Configure"],
+        "responses": {
+          "200": {
+            "description": "User permissions response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "superadmin": {
+                    "summary": "SuperAdmin permissions",
+                    "value": {
+                      "status": "success",
+                      "permission": "111",
+                      "missions_managing": null
+                    }
+                  },
+                  "admin": {
+                    "summary": "Admin with specific missions",
+                    "value": {
+                      "status": "success",
+                      "permission": "110",
+                      "missions_managing": ["mission1", "mission2"]
+                    }
+                  },
+                  "user": {
+                    "summary": "Regular user",
+                    "value": {
+                      "status": "success",
+                      "permission": "001",
+                      "missions_managing": []
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to get user permissions."
                     }
                   }
                 }
@@ -562,6 +620,7 @@
     "/api/configure/addLayer": {
       "post": {
         "summary": "Add a layer to a mission configuration",
+        "description": "Adds a layer to the specified mission configuration. SuperAdmins can access all missions, regular Admins can only access missions they manage.",
         "tags": ["Configure"],
         "requestBody": {
           "required": true,
@@ -629,6 +688,7 @@
     "/api/configure/updateLayer": {
       "post": {
         "summary": "Update a layer in a mission configuration",
+        "description": "Updates an existing layer in the specified mission configuration. SuperAdmins can access all missions, regular Admins can only access missions they manage.",
         "tags": ["Configure"],
         "requestBody": {
           "required": true,
@@ -696,6 +756,7 @@
     "/api/configure/removeLayer": {
       "post": {
         "summary": "Remove a layer from a mission configuration",
+        "description": "Removes a layer from the specified mission configuration. SuperAdmins can access all missions, regular Admins can only access missions they manage.",
         "tags": ["Configure"],
         "requestBody": {
           "required": true,
@@ -809,6 +870,7 @@
     "/api/configure/updateInitialView": {
       "post": {
         "summary": "Update the initial view of a mission configuration",
+        "description": "Updates the initial view (lat, lng, zoom) of the specified mission configuration. SuperAdmins can access all missions, regular Admins can only access missions they manage.",
         "tags": ["Configure"],
         "requestBody": {
           "required": true,
@@ -3538,7 +3600,13 @@
     "/api/longtermtoken/get": {
       "get": {
         "summary": "Get all long term tokens",
+        "description": "Returns all existing API tokens. Each token now includes the ID of the admin who created it, which determines the token's mission access permissions.",
         "tags": ["API Tokens"],
+        "security": [
+          {
+            "adminAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Get tokens response",
@@ -3554,6 +3622,10 @@
                           "id": 1,
                           "token": "example_token1",
                           "period": "example_period1",
+                          "created_by_user_id": 5,
+                          "created_by_username": "admin_user",
+                          "created_by_permission": "111",
+                          "created_by_missions": null,
                           "createdAt": "2025-02-28T20:00:00Z",
                           "updatedAt": "2025-02-28T20:00:00Z"
                         },
@@ -3561,6 +3633,10 @@
                           "id": 2,
                           "token": "example_token2",
                           "period": "example_period2",
+                          "created_by_user_id": 7,
+                          "created_by_username": "mission_admin",
+                          "created_by_permission": "110",
+                          "created_by_missions": ["Mars2020", "InSight"],
                           "createdAt": "2025-02-28T20:00:00Z",
                           "updatedAt": "2025-02-28T20:00:00Z"
                         }
@@ -3584,7 +3660,13 @@
     "/api/longtermtoken/generate": {
       "post": {
         "summary": "Generate a new long term token",
+        "description": "Creates a new API token for programmatic access. The token inherits the mission permissions of the admin who creates it. SuperAdmins get tokens with access to all missions, while regular Admins get tokens restricted to their assigned missions.",
         "tags": ["API Tokens"],
+        "security": [
+          {
+            "adminAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -3641,7 +3723,13 @@
     "/api/longtermtoken/clear": {
       "post": {
         "summary": "Clear (delete) a long term token",
+        "description": "Deletes an existing API token by its ID.",
         "tags": ["API Tokens"],
+        "security": [
+          {
+            "adminAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -4273,6 +4361,16 @@
                             "username": "my_username",
                             "email": "my@email.com",
                             "permission": "001",
+                            "missions_managing": null,
+                            "createdAt": "2023-02-10T01:48:24.961Z",
+                            "updatedAt": "2025-01-14T07:32:30.857Z"
+                          },
+                          {
+                            "id": 7,
+                            "username": "admin_user",
+                            "email": "admin@email.com",
+                            "permission": "110",
+                            "missions_managing": ["mission1", "mission2"],
                             "createdAt": "2023-02-10T01:48:24.961Z",
                             "updatedAt": "2025-01-14T07:32:30.857Z"
                           }
@@ -4367,7 +4465,16 @@
                     "type": "string"
                   },
                   "permission": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": ["110", "001"],
+                    "description": "User permission level: 110 for Admin, 001 for User"
+                  },
+                  "missions_managing": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Array of mission names this admin can manage (only applies when permission is 110)"
                   }
                 },
                 "required": ["id"]

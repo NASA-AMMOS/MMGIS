@@ -20,21 +20,7 @@ var User = sequelize.define(
       unique: true,
       allowNull: true,
       validate: {
-        isEmail: true,
-        isUnique: function (value, next) {
-          var self = this;
-          User.findOne({ where: { email: value } })
-            .then(function (user) {
-              // reject if a different user wants to use the same email
-              if (value != null && value != "" && user && self.id !== user.id) {
-                return next("User email already exists!");
-              }
-              return next();
-            })
-            .catch(function (err) {
-              return next(err);
-            });
-        },
+        isEmail: true
       },
     },
     password: {

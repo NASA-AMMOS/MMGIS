@@ -334,8 +334,10 @@ function ensureAdmin(toLoginPage, denyLongTermTokens, allowGets, disallow) {
     if (!denyLongTermTokens && req.headers.authorization) {
       validateLongTermToken(
         req.headers.authorization,
-        () => {
+        (tokenData) => {
           req.isLongTermToken = true;
+          req.tokenUserPermission = tokenData.permission;
+          req.tokenUserMissions = tokenData.missions_managing;
           next();
         },
         () => {
@@ -366,7 +368,7 @@ function validateLongTermToken(token, successCallback, failureCallback) {
   token = token.replace(/Bearer:?\s+/g, "");
 
   sequelize
-    .query('SELECT * FROM "long_term_tokens" WHERE "token"=:token', {
+    .query('SELECT lt.*, u.permission, u.missions_managing FROM "long_term_tokens" lt JOIN "users" u ON lt.created_by_user_id = u.id WHERE lt.token=:token', {
       replacements: {
         token: token,
       },
@@ -381,6 +383,7 @@ function validateLongTermToken(token, successCallback, failureCallback) {
       if (
         result &&
         result.token == token &&
+        result.created_by_user_id != null && // Block tokens without creator ID (legacy tokens)
         (result.period == "never" ||
           Date.now() - new Date(result.createdAt).getTime() <
             parseInt(result.period))
@@ -406,8 +409,10 @@ function ensureUser() {
           req.headers["x-forwarded-for"] || req.connection.remoteAddress;
         validateLongTermToken(
           req.headers.authorization,
-          () => {
+          (tokenData) => {
             req.isLongTermToken = true;
+            req.tokenUserPermission = tokenData.permission;
+            req.tokenUserMissions = tokenData.missions_managing;
             next();
           },
           () => {

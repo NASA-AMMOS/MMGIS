@@ -40,8 +40,10 @@ let setup = {
         s.ensureAdmin(true),
         (req, res) => {
           const user = process.env.AUTH === "csso" ? req.user : req.user || "";
+          const permission = req.session.permission || "000";
           res.render("../configure/build/index.pug", {
             user: user,
+            permission: permission,
             AUTH: process.env.AUTH,
             NODE_ENV: process.env.NODE_ENV,
             PORT: process.env.PORT || "8888",

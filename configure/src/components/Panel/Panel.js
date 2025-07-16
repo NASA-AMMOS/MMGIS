@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {} from "./PanelSlice";
 import { makeStyles } from "@mui/styles";
@@ -6,7 +6,8 @@ import mmgisLogo from "../../images/mmgis.png";
 
 import clsx from "clsx";
 
-import { setMission, setModal, setPage } from "../../core/ConfigureStore";
+import { setMission, setModal, setPage, setSnackBarText } from "../../core/ConfigureStore";
+import { calls } from "../../core/calls";
 
 import NewMissionModal from "./Modals/NewMissionModal/NewMissionModal";
 
@@ -94,6 +95,14 @@ const useStyles = makeStyles((theme) => ({
       background: `${theme.palette.swatches.grey[200]} !important`,
     },
   },
+  missionDisabled: {
+    opacity: "0.3 !important",
+    cursor: "not-allowed !important",
+    pointerEvents: "all !important",
+    "&:hover": {
+      background: "unset !important",
+    },
+  },
   pages: {
     bottom: "0px",
     display: "flex",
@@ -128,6 +137,35 @@ export default function Panel() {
 
   const missions = useSelector((state) => state.core.missions);
   const activeMission = useSelector((state) => state.core.mission);
+  const [userPermissions, setUserPermissions] = useState(null);
+
+  // Fetch user permissions to determine which missions can be edited
+  useEffect(() => {
+    calls.api(
+      "user_permissions",
+      {},
+      (res) => {
+        setUserPermissions(res);
+      },
+      (res) => {
+        dispatch(
+          setSnackBarText({
+            text: res?.message || "Failed to get user permissions.",
+            severity: "error",
+          })
+        );
+      }
+    );
+  }, [dispatch]);
+
+  const canEditMission = (mission) => {
+    if (!userPermissions) return true; // Default to allowing until we know
+    if (userPermissions.permission === "111") return true; // SuperAdmin can edit all
+    if (userPermissions.permission !== "110") return false; // Non-admins, who can't even access this page, can't edit any
+    
+    const managingMissions = userPermissions.missions_managing || [];
+    return managingMissions.includes(mission);
+  };
 
   return (
     <>
@@ -138,41 +176,55 @@ export default function Panel() {
             <span>Config</span>uration
           </div>
         </div>
-        <div className={c.newMission}>
-          <Button
-            className={c.newMissionButton}
-            variant="contained"
-            disableElevation
-            onClick={() => {
-              dispatch(setModal({ name: "newMission" }));
-            }}
-          >
-            New Mission
-          </Button>
-        </div>
+        {window.mmgisglobal?.permission === "111" && (
+          <div className={c.newMission}>
+            <Button
+              className={c.newMissionButton}
+              variant="contained"
+              disableElevation
+              onClick={() => {
+                dispatch(setModal({ name: "newMission" }));
+              }}
+            >
+              New Mission
+            </Button>
+          </div>
+        )}
         <div className={c.missions}>
           <ul className={c.missionsUl}>
-            {missions.map((mission, idx) => (
-              <li className={c.missionsLi} key={idx}>
-                {
+            {missions.map((mission, idx) => {
+              const canEdit = canEditMission(mission);
+              return (
+                <li className={c.missionsLi} key={idx}>
                   <Button
                     className={clsx(
                       {
                         [c.missionActive]: mission === activeMission,
                         [c.missionNotActive]: mission !== activeMission,
+                        [c.missionDisabled]: !canEdit,
                       },
                       c.missionButton
                     )}
                     disableElevation
                     onClick={() => {
-                      dispatch(setMission(mission));
+                      if (canEdit) {
+                        dispatch(setMission(mission));
+                      } else {
+                        dispatch(
+                          setSnackBarText({
+                            text: `You don't have permission to edit the "${mission}" mission.`,
+                            severity: "warning",
+                          })
+                        );
+                      }
                     }}
+                    title={canEdit ? mission : `No permission to edit "${mission}"`}
                   >
                     {mission}
                   </Button>
-                }
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         </div>
         <div className={c.pages}>

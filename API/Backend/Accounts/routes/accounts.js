@@ -17,6 +17,7 @@ router.get("/entries", function (req, res) {
       "username",
       "email",
       "permission",
+      "missions_managing",
       "createdAt",
       "updatedAt",
     ],
@@ -129,6 +130,19 @@ router.post("/update", function (req, res, next) {
   ) {
     toUpdateTo.permission = req.body.permission;
   }
+  // Handle missions_managing field for admin users
+  if (
+    req.body.hasOwnProperty("missions_managing") &&
+    Array.isArray(req.body.missions_managing) &&
+    req.body.permission === "110"
+  ) {
+    toUpdateTo.missions_managing = req.body.missions_managing;
+  }
+  // Clear missions_managing if user is being changed to non-admin role
+  if (req.body.permission === "001") {
+    toUpdateTo.missions_managing = null;
+  }
+  
   // Don't allow changing the main admin account's permissions
   if (id === 1) {
     delete toUpdateTo.permission;
@@ -137,7 +151,7 @@ router.post("/update", function (req, res, next) {
   let updateObj = {
     where: {
       id: id,
-    },
+    }
   };
 
   User.update(toUpdateTo, updateObj)
@@ -154,14 +168,14 @@ router.post("/update", function (req, res, next) {
     .catch((err) => {
       logger(
         "error",
-        `Failed to update user with id: '${id}'.`,
+        `Failed to update user with id: '${id}'. Email may already exist.`,
         req.originalUrl,
         req,
         err
       );
       res.send({
         status: "failure",
-        message: `Failed updated user with id: '${id}'.`,
+        message: `Failed updated user with id: '${id}'. Email may already exist.`,
         body: {},
       });
     });
