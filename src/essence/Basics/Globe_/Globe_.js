@@ -204,6 +204,25 @@ let Globe_ = {
         $(`#${this.id}`).on('mousemove', () => {
             coordinates.hideElevation()
         })
+
+        // Because there might be separated tools, push all the control below them:
+        // First find all left justified separated tools
+        let numSep = 0
+        L_.configData.tools.forEach((t) => {
+            if (
+                t.separatedTool === true &&
+                (t.variables == null || t.variables.justification != 'right')
+            )
+                numSep++
+        })
+        $('#_lithosphere_controls_topleft').attr(
+            'style',
+            function (index, currentStyles) {
+                return `${currentStyles} top: ${
+                    40 + numSep * 35
+                }px !important; left: 7px;`
+            }
+        )
     },
     getMockLitho: function () {
         return {
