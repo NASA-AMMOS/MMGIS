@@ -30,6 +30,14 @@
               "description": "",
               "type": "textnotrim",
               "width": 8
+            },
+            {
+              "field": "expanded",
+              "name": "Expanded",
+              "description": "Whether all child layers under the header default to being expanded (as opposed to being collapsed).",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
             }
           ]
         }

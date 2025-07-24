@@ -138,6 +138,13 @@
 #layersTool #searchLayers > div#clear.shown {
     opacity: 1;
 }
+#layersTool #searchLayers > div#restore{
+    position: absolute;
+    right: 60px;
+    background: var(--color-a1);
+    padding-top: 1px;
+    height: 34px;
+}
 #layersTool #searchLayers > div#expand {
     position: absolute;
     right: 30px;
