@@ -109,6 +109,37 @@
         }
       ]
     },
+          {
+        "subname": "Projection Setup",
+        "description": "Quickly configure projections using tilematrixsets. Selecting a tilematrixset will automatically populate the projection settings below.",
+        "components": [
+          {
+            "field": "projection.tilematrixset",
+            "name": "TileMatrixSet",
+            "description": "Search and select a tilematrixset to automatically configure the projection. This will populate the EPSG code, proj4 string, bounds, and other settings. Type to filter the list.",
+            "type": "searchdropdown",
+            "width": 6,
+            "options": "{{TILE_MATRIX_SETS}}",
+            "disabledMessage": "TiTiler service is not enabled. Enable WITH_TITILER=true to use planetary projections."
+          },
+          {
+            "name": "Load from TileMatrixSet",
+            "description": "Click to load projection settings from the selected tilematrixset.",
+            "type": "button",
+            "action": "coordinates-populate-from-tmset",
+            "width": 3,
+            "disabledMessage": "TiTiler service is not enabled. Enable WITH_TITILER=true to use planetary projections."
+          },
+          {
+            "name": "Apply to TiTiler Layers",
+            "description": "Apply the selected tilematrixset to all layers that use TiTiler (COG and STAC layers).",
+            "type": "button",
+            "action": "coordinates-apply-to-titiler-layers",
+            "width": 3,
+            "disabledMessage": "TiTiler service is not enabled. Enable WITH_TITILER=true to use this feature."
+          }
+        ]
+      },
     {
       "name": "Displayed Coordinates",
       "description": "Configure which coordinates are made visible to users when mousing around and exporting vectors.",

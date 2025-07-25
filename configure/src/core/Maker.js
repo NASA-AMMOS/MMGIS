@@ -52,6 +52,10 @@ import {
   data as colormapData,
 } from "../external/js-colormaps.js";
 
+import { calls } from "./calls";
+import { parseTileMatrixSetCRS } from "./crsUtils";
+import Autocomplete from "@mui/material/Autocomplete";
+
 const useStyles = makeStyles((theme) => ({
   Maker: {
     width: "100%",
@@ -196,6 +200,27 @@ const useStyles = makeStyles((theme) => ({
     borderLeft: `2px solid ${theme.palette.swatches.grey[200]}`,
     background: theme.palette.swatches.grey[850],
   },
+  autocomplete: {
+    width: "100%",
+    "& .MuiAutocomplete-inputRoot": {
+      color: theme.palette.swatches.grey[200],
+      "&:before": {
+        borderBottomColor: theme.palette.swatches.grey[700],
+      },
+      "&:hover:before": {
+        borderBottomColor: theme.palette.swatches.grey[500],
+      },
+      "&:after": {
+        borderBottomColor: theme.palette.accent.main,
+      },
+    },
+    "& .MuiAutocomplete-popupIndicator": {
+      color: theme.palette.swatches.grey[500],
+    },
+    "& .MuiAutocomplete-clearIndicator": {
+      color: theme.palette.swatches.grey[500],
+    },
+  },
   objectArrayRemove: {
     position: "absolute !important",
     right: "2px",
@@ -242,6 +267,17 @@ const getComponent = (
 ) => {
   const directConf =
     layer == null ? (tool == null ? configuration : tool) : layer;
+  
+  // Check if this is a planetary projection component and if TiTiler is available
+  const isPlanetaryProjectionComponent = 
+    com.field === "projection.tilematrixset" || 
+    com.action === "coordinates-populate-from-tmset";
+  const isTitilerDisabled = window.mmgisglobal.WITH_TITILER !== "true";
+  const isDisabled = isPlanetaryProjectionComponent && isTitilerDisabled;
+  
+  // Get the configurable disabled message or use a default
+  const disabledMessage = com.disabledMessage || "This feature is disabled.";
+  
   let inner;
   switch (com.type) {
     case "text":
@@ -251,33 +287,50 @@ const getComponent = (
           label={com.name}
           variant="filled"
           size="small"
+          disabled={isDisabled}
           inputProps={{
             autoComplete: "off",
           }}
           value={value != null ? value : getIn(directConf, com.field, "")}
           onChange={(e) => {
-            updateConfiguration(forceField || com.field, e.target.value, layer);
+            if (!isDisabled) {
+              updateConfiguration(forceField || com.field, e.target.value, layer);
+            }
           }}
           onBlur={(e) => {
-            let v = e.target.value;
-            // remove surrounding whitespace, " hi " -> "hi"
-            if (typeof v === "string") v = v.trim();
-            updateConfiguration(forceField || com.field, v, layer);
+            if (!isDisabled) {
+              let v = e.target.value;
+              // remove surrounding whitespace, " hi " -> "hi"
+              if (typeof v === "string") v = v.trim();
+              updateConfiguration(forceField || com.field, v, layer);
+            }
           }}
         />
       );
       return (
-        <div>
+        <div style={isDisabled ? { opacity: 0.5 } : {}}>
           {inlineHelp ? (
             <>
               {inner}
               <div
                 className={c.subtitle2}
-                dangerouslySetInnerHTML={{ __html: com.description || "" }}
+                dangerouslySetInnerHTML={{ 
+                  __html: isDisabled 
+                    ? `${com.description || ""}<br/><strong>Note:</strong> ${disabledMessage}`
+                    : com.description || "" 
+                }}
               ></div>
             </>
           ) : (
-            <Tooltip title={com.description || ""} placement="top" arrow>
+            <Tooltip 
+              title={
+                isDisabled 
+                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
+                  : com.description || ""
+              } 
+              placement="top" 
+              arrow
+            >
               {inner}
             </Tooltip>
           )}
@@ -321,8 +374,10 @@ const getComponent = (
         <Button
           className={c.button}
           variant="outlined"
+          disabled={isDisabled}
           startIcon={<PrecisionManufacturingIcon />}
           onClick={() => {
+            if (isDisabled) return;
             if (com.action === "tile-populate-from-x") {
               tilePopulateFromX(
                 layer.type,
@@ -376,6 +431,102 @@ const getComponent = (
                   );
                 }
               );
+            } else if (com.action === "coordinates-populate-from-tmset") {
+              const selectedTileMatrixSet = getIn(configuration, ["projection", "tilematrixset"]);
+              
+              if (!selectedTileMatrixSet) {
+                dispatch(setSnackBarText({
+                  text: "Please select a TileMatrixSet first.",
+                  severity: "warning"
+                }));
+                return;
+              }
+
+              // Fetch the detailed TileMatrixSet information
+              calls.api(
+                "titiler_tileMatrixSet",
+                { urlReplacements: { tileMatrixSetId: selectedTileMatrixSet } },
+                (res) => {
+                  const projectionConfig = parseTileMatrixSetCRS(res);
+                  
+                  if (projectionConfig) {
+                    // Update projection configuration
+                    let conf = updateConfiguration("projection.custom", true, null, true);
+                    conf = updateConfiguration("projection.epsg", projectionConfig.epsg, null, true, conf);
+                    conf = updateConfiguration("projection.proj", projectionConfig.proj, null, true, conf);
+                    conf = updateConfiguration("projection.bounds.0", projectionConfig.bounds[0], null, true, conf);
+                    conf = updateConfiguration("projection.bounds.1", projectionConfig.bounds[1], null, true, conf);
+                    conf = updateConfiguration("projection.bounds.2", projectionConfig.bounds[2], null, true, conf);
+                    conf = updateConfiguration("projection.bounds.3", projectionConfig.bounds[3], null, true, conf);
+                    conf = updateConfiguration("projection.origin.0", projectionConfig.origin[0], null, true, conf);
+                    conf = updateConfiguration("projection.origin.1", projectionConfig.origin[1], null, true, conf);
+                    conf = updateConfiguration("projection.reszoomlevel", projectionConfig.reszoomlevel, null, true, conf);
+                    conf = updateConfiguration("projection.resunitsperpixel", projectionConfig.resunitsperpixel, null, true, conf);
+                    
+                    // Update planet radius
+                    if (projectionConfig.planetRadius) {
+                      conf = updateConfiguration("msv.radius.major", projectionConfig.planetRadius, null, true, conf);
+                      conf = updateConfiguration("msv.radius.minor", projectionConfig.planetRadius, null, true, conf);
+                    }
+                    
+                    // Apply all changes at once
+                    dispatch(setConfiguration(conf));
+
+                    dispatch(setSnackBarText({
+                      text: `Projection settings loaded from ${selectedTileMatrixSet}`,
+                      severity: "success"
+                    }));
+                  } else {
+                    dispatch(setSnackBarText({
+                      text: "Failed to parse TileMatrixSet CRS information.",
+                      severity: "error"
+                    }));
+                  }
+                },
+                (err) => {
+                  dispatch(setSnackBarText({
+                    text: "Failed to fetch TileMatrixSet details: " + (err.message || "Unknown error"),
+                    severity: "error"
+                  }));
+                }
+              );
+            } else if (com.action === "coordinates-apply-to-titiler-layers") {
+              const selectedTileMatrixSet = getIn(configuration, ["projection", "tilematrixset"]);
+              
+              if (!selectedTileMatrixSet) {
+                dispatch(setSnackBarText({
+                  text: "Please select a TileMatrixSet first.",
+                  severity: "warning"
+                }));
+                return;
+              }
+
+              // Find all layers that use TiTiler and update their tileMatrixSet
+              let updatedLayers = 0;
+              let conf = JSON.parse(JSON.stringify(configuration));
+              
+              traverseLayers(conf.layers, (layer, path, index) => {
+                // Check if this layer uses TiTiler
+                if (layer.type === "tile" && (layer.throughTileServer === true || layer.sourceType === "COG" || 
+                    (layer.url && layer.url.startsWith("stac-collection:")))) {
+                  // Update the tileMatrixSet for this layer
+                  layer.tileMatrixSet = selectedTileMatrixSet;
+                  updatedLayers++;
+                }
+              });
+
+              if (updatedLayers > 0) {
+                dispatch(setConfiguration(conf));
+                dispatch(setSnackBarText({
+                  text: `Applied ${selectedTileMatrixSet} to ${updatedLayers} TiTiler-enabled layer(s)`,
+                  severity: "success"
+                }));
+              } else {
+                dispatch(setSnackBarText({
+                  text: "No TiTiler-enabled layers found to update",
+                  severity: "info"
+                }));
+              }
             }
           }}
         >
@@ -383,16 +534,26 @@ const getComponent = (
         </Button>
       );
       return (
-        <div>
+        <div style={isDisabled ? { opacity: 0.5 } : {}}>
           {inlineHelp ? (
             <>
               {inner}
               <Typography className={c.subtitle2}>
-                {com.description || ""}
+                {isDisabled 
+                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
+                  : com.description || ""}
               </Typography>
             </>
           ) : (
-            <Tooltip title={com.description || ""} placement="top" arrow>
+            <Tooltip 
+              title={
+                isDisabled 
+                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
+                  : com.description || ""
+              } 
+              placement="top" 
+              arrow
+            >
               {inner}
             </Tooltip>
           )}
@@ -663,13 +824,16 @@ const getComponent = (
         <FormControl className={c.dropdown} variant="filled" size="small">
           <InputLabel>{com.name}</InputLabel>
           <Select
+            disabled={isDisabled}
             value={value || getIn(directConf, com.field, com.options?.[0])}
             onChange={(e) => {
-              updateConfiguration(
-                forceField || com.field,
-                e.target.value,
-                layer
-              );
+              if (!isDisabled) {
+                updateConfiguration(
+                  forceField || com.field,
+                  e.target.value,
+                  layer
+                );
+              }
             }}
           >
             {com.options.map((o) => {
@@ -683,16 +847,108 @@ const getComponent = (
         </FormControl>
       );
       return (
-        <div>
+        <div style={isDisabled ? { opacity: 0.5 } : {}}>
           {inlineHelp ? (
             <>
               {inner}
               <Typography className={c.subtitle2}>
-                {com.description || ""}
+                {isDisabled 
+                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
+                  : com.description || ""}
               </Typography>
             </>
           ) : (
-            <Tooltip title={com.description || ""} placement="top" arrow>
+            <Tooltip 
+              title={
+                isDisabled 
+                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
+                  : com.description || ""
+              } 
+              placement="top" 
+              arrow
+            >
+              {inner}
+            </Tooltip>
+          )}
+        </div>
+      );
+    case "searchdropdown":
+      let searchOptions = com.options;
+
+      // Support for dynamic injection through mustache
+      // Note: This follows the same pattern as the regular dropdown - 
+      // the options come pre-processed from the config system
+      if (typeof searchOptions === "string") {
+        try {
+          searchOptions = JSON.parse(searchOptions);
+        } catch {
+          searchOptions = [searchOptions];
+        }
+      }
+      
+      if (!Array.isArray(searchOptions)) {
+        searchOptions = com.options || [];
+      }
+
+      const currentValue = value || getIn(directConf, com.field, com.options?.[0] || "");
+
+      inner = (
+        <Autocomplete
+          className={c.autocomplete}
+          disabled={isDisabled}
+          options={searchOptions}
+          value={currentValue}
+          onChange={(event, newValue) => {
+            if (!isDisabled && newValue !== null) {
+              updateConfiguration(forceField || com.field, newValue, layer);
+            }
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label={com.name}
+              variant="filled"
+              size="small"
+              disabled={isDisabled}
+            />
+          )}
+          renderOption={(props, option) => (
+            <li {...props}>
+              {typeof option === "string" ? option : option}
+            </li>
+          )}
+          filterOptions={(options, { inputValue }) => {
+            return options.filter((option) =>
+              option.toLowerCase().includes(inputValue.toLowerCase())
+            );
+          }}
+          noOptionsText="No matching tilematrixsets"
+          clearOnBlur={false}
+          selectOnFocus
+          handleHomeEndKeys
+        />
+      );
+      return (
+        <div style={isDisabled ? { opacity: 0.5 } : {}}>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <Typography className={c.subtitle2}>
+                {isDisabled 
+                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
+                  : com.description || ""}
+              </Typography>
+            </>
+          ) : (
+            <Tooltip 
+              title={
+                isDisabled 
+                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
+                  : com.description || ""
+              } 
+              placement="top" 
+              arrow
+            >
               {inner}
             </Tooltip>
           )}
@@ -1214,6 +1470,8 @@ export default function Maker(props) {
     if (returnInstead) return nextConfiguration;
     else dispatch(setConfiguration(nextConfiguration));
   };
+
+
 
   return (
     <div

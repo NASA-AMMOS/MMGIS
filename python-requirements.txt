@@ -9,3 +9,4 @@ stac-fastapi-pgstac==3.0.0
 tipg==0.7.2
 titiler.application==0.18.6
 titiler-pgstac==1.4.0
+planetcantile
