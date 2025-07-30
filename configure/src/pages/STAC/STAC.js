@@ -47,6 +47,7 @@ import LayersUsedByModal from "./Modals/LayersUsedByModal/LayersUsedByModal";
 import PreviewGeoDatasetModal from "./Modals/PreviewGeoDatasetModal/PreviewGeoDatasetModal";
 import AppendGeoDatasetModal from "./Modals/AppendGeoDatasetModal/AppendGeoDatasetModal";
 import UpdateGeoDatasetModal from "./Modals/UpdateGeoDatasetModal/UpdateGeoDatasetModal";
+import StacCollectionItemsModal from "./Modals/StacCollectionItemsModal/StacCollectionItemsModal";
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -465,16 +466,12 @@ export default function STAC() {
                               title="Items"
                               aria-label="items"
                               onClick={() => {
-                                window
-                                  .open(
-                                    `${window.location.pathname
-                                      .replace(`/configure`, "")
-                                      .replace(/^\//g, "")}/stac/collections/${
-                                      row.id
-                                    }/items`,
-                                    "_blank"
-                                  )
-                                  .focus();
+                                dispatch(
+                                  setModal({
+                                    name: "stacCollectionItems",
+                                    stacCollection: row,
+                                  })
+                                );
                               }}
                             >
                               <WidgetsIcon fontSize="small" />
@@ -535,6 +532,7 @@ export default function STAC() {
       <PreviewGeoDatasetModal />
       <AppendGeoDatasetModal querySTAC={querySTAC} />
       <UpdateGeoDatasetModal querySTAC={querySTAC} />
+      <StacCollectionItemsModal />
     </>
   );
 }

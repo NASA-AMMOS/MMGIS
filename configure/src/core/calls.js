@@ -106,6 +106,14 @@ const c = {
     type: "DELETE",
     url: "stac/collections/:collection",
   },
+  stac_collection_items: {
+    type: "GET",
+    url: "stac/collections/:collection/items",
+  },
+  stac_delete_item: {
+    type: "DELETE",
+    url: "stac/collections/:collection/items/:item",
+  },
   account_entries: {
     type: "GET",
     url: "api/accounts/entries",
