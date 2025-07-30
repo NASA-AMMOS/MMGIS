@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import { calls } from "../../../../core/calls";
@@ -35,6 +35,9 @@ import InfoIcon from "@mui/icons-material/Info";
 import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import ReactJson from "react-json-view";
+import * as L from "leaflet";
+
+import "leaflet/dist/leaflet.css";
 
 const useStyles = makeStyles((theme) => ({
   Modal: {
@@ -53,9 +56,9 @@ const useStyles = makeStyles((theme) => ({
   contents: {
     background: theme.palette.primary.main,
     height: "80vh",
-    width: "80vw",
-    maxWidth: "1200px",
-    minWidth: "600px",
+    width: "90vw",
+    maxWidth: "1600px",
+    minWidth: "1000px",
   },
   heading: {
     height: theme.headHeights[2],
@@ -94,7 +97,7 @@ const useStyles = makeStyles((theme) => ({
   tableContainer: {
     flex: 1,
     overflowY: "auto",
-    border: `1px solid ${theme.palette.swatches.grey[700]}`,
+    boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
   },
   table: {
     "& .MuiTableHead-root": {
@@ -175,17 +178,50 @@ const useStyles = makeStyles((theme) => ({
   },
   jsonDialog: {
     "& .MuiDialog-paper": {
-      maxWidth: "80vw",
-      maxHeight: "80vh",
-      width: "1100px",
+      maxWidth: "90vw",
+      maxHeight: "85vh",
+      width: "1800px",
+      height: "1000px",
       background: theme.palette.primary.main,
     },
   },
   jsonContent: {
     padding: "0px !important",
     height: "100%",
-    overflow: "none",
+    overflow: "hidden",
     background: theme.palette.swatches.grey[150],
+    display: "flex",
+  },
+  mapPanel: {
+    width: "50%",
+    height: "100%",
+    background: theme.palette.swatches.grey[900],
+    borderRight: `1px solid ${theme.palette.swatches.grey[700]}`,
+  },
+  mapContainer: {
+    width: "100%",
+    height: "100%",
+    position: "relative",
+    "& .leaflet-container": {
+      background: theme.palette.swatches.grey[900],
+    },
+  },
+  coordinateDisplay: {
+    left: "0px",
+    color: "white",
+    bottom: "62px",
+    display: "none",
+    padding: "6px 10px",
+    zIndex: "1000",
+    position: "absolute",
+    fontSize: "12px",
+    background: theme.palette.swatches.grey[300],
+    fontFamily: "monospace",
+    pointerEvents: "none",
+  },
+  jsonPanel: {
+    width: "50%",
+    height: "100%",
   },
   jsonContainer: {
     background: theme.palette.swatches.grey[150],
@@ -273,6 +309,12 @@ const StacCollectionItemsModal = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  
+  // Map related state
+  const mapRef = useRef(null);
+  const coordinateDisplayRef = useRef(null);
+  const [map, setMap] = useState(null);
+  const [mapLayers, setMapLayers] = useState({ bbox: null, raster: null });
 
     const fetchAllItems = (searchQuery = "") => {
     if (!modal?.stacCollection?.id) return;
@@ -431,11 +473,203 @@ const StacCollectionItemsModal = () => {
   const handleViewJson = (item) => {
     setSelectedItemJson(item);
     setJsonModalOpen(true);
+    
+    // Initialize map when modal opens
+    setTimeout(() => {
+      initializeMap(item);
+    }, 100);
   };
 
   const handleCloseJsonModal = () => {
     setJsonModalOpen(false);
     setSelectedItemJson(null);
+    
+    // Clean up map
+    if (map) {
+      map.remove();
+      setMap(null);
+      setMapLayers({ bbox: null, raster: null });
+    }
+  };
+
+  const initializeMap = (item) => {
+    if (!mapRef.current || map) return;
+
+    try {
+      // Ensure Leaflet is available
+      const leaflet = window.L || L;
+      if (!leaflet) {
+        console.error('Leaflet not available');
+        return;
+      }
+
+      // Create map with OSM base layer
+      const newMap = leaflet.map(mapRef.current, {
+        center: [0, 0],
+        zoom: 2,
+        zoomControl: true,
+        attributionControl: true,
+      });
+
+      // Add OSM tile layer
+      leaflet.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 18,
+      }).addTo(newMap);
+
+      // Add coordinate tracking on mouse move - direct DOM update for performance
+      newMap.on('mousemove', (e) => {
+        const { lat, lng } = e.latlng;
+        if (coordinateDisplayRef.current) {
+          coordinateDisplayRef.current.textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+          coordinateDisplayRef.current.style.display = 'block';
+        }
+      });
+
+      // Hide coordinates when mouse leaves the map
+      newMap.on('mouseout', () => {
+        if (coordinateDisplayRef.current) {
+          coordinateDisplayRef.current.style.display = 'none';
+        }
+      });
+
+      setMap(newMap);
+      
+      // Add item data to map
+      if (item) {
+        addItemToMap(newMap, item);
+      }
+    } catch (error) {
+      console.error('Error initializing map:', error);
+    }
+  };
+
+  const addItemToMap = (mapInstance, item) => {
+    try {
+      const leaflet = window.L || L;
+      if (!leaflet) return;
+
+      // Clear existing layers
+      if (mapLayers.bbox) {
+        mapInstance.removeLayer(mapLayers.bbox);
+      }
+      if (mapLayers.raster) {
+        mapInstance.removeLayer(mapLayers.raster);
+      }
+
+      let bounds = null;
+
+      // Add bounding box if available
+      if (item.bbox && item.bbox.length >= 4) {
+        const [minLon, minLat, maxLon, maxLat] = item.bbox;
+        bounds = [[minLat, minLon], [maxLat, maxLon]];
+        
+        const bboxLayer = leaflet.rectangle(bounds, {
+          color: '#ff7800',
+          weight: 2,
+          opacity: 1,
+          fillColor: '#ff7800',
+          fillOpacity: 0.1,
+        }).addTo(mapInstance);
+        
+        setMapLayers(prev => ({ ...prev, bbox: bboxLayer }));
+      }
+
+      // Add raster layer from assets if available
+      if (item.assets) {
+        const cogAsset = findCogAsset(item.assets);
+        if (cogAsset && cogAsset.href) {
+          addRasterLayer(mapInstance, cogAsset.href, cogAsset);
+        }
+      }
+
+      // Fit map to bounds
+      if (bounds) {
+        mapInstance.fitBounds(bounds, { padding: [20, 20] });
+      } else if (item.geometry && item.geometry.coordinates) {
+        // Fallback to geometry if no bbox
+        const coords = item.geometry.coordinates;
+        if (coords.length > 0) {
+          const flatCoords = coords.flat().flat();
+          const lons = flatCoords.filter((_, i) => i % 2 === 0);
+          const lats = flatCoords.filter((_, i) => i % 2 === 1);
+          const minLon = Math.min(...lons);
+          const maxLon = Math.max(...lons);
+          const minLat = Math.min(...lats);
+          const maxLat = Math.max(...lats);
+          bounds = [[minLat, minLon], [maxLat, maxLon]];
+          mapInstance.fitBounds(bounds, { padding: [20, 20] });
+        }
+      }
+    } catch (error) {
+      console.error('Error adding item to map:', error);
+    }
+  };
+
+  const findCogAsset = (assets) => {
+    // Look for COG/TIF assets
+    const assetKeys = Object.keys(assets);
+    
+    // Common COG asset names
+    const cogKeys = ['data', 'cog', 'image', 'tif', 'tiff'];
+    
+    for (const key of cogKeys) {
+      if (assets[key] && assets[key].href) {
+        return assets[key];
+      }
+    }
+    
+    // Fallback to first asset with href
+    for (const key of assetKeys) {
+      if (assets[key] && assets[key].href && 
+          (assets[key].href.includes('.tif') || assets[key].href.includes('.cog'))) {
+        return assets[key];
+      }
+    }
+    
+    return null;
+  };
+
+  const addRasterLayer = (mapInstance, cogUrl, cogAsset) => {
+    try {
+      const leaflet = window.L || L;
+      if (!leaflet) return;
+
+      let domain =
+        window.mmgisglobal.NODE_ENV === "development"
+          ? "http://localhost:8888/"
+          : window.mmgisglobal.ROOT_PATH || "";
+      if (domain.length > 0 && !domain.endsWith("/")) domain += "/";
+
+      // Start building the titiler URL
+      let titilerUrl = `${domain}titiler/cog/tiles/WebMercatorQuad/{z}/{x}/{y}?url=${encodeURIComponent(cogUrl)}`;
+      
+      // Check if this is 32-bit float data that needs rescaling
+      console.log('COG Asset:', cogAsset);
+      if (cogAsset && cogAsset['raster:bands'] && cogAsset['raster:bands'][0]) {
+        const firstBand = cogAsset['raster:bands'][0];
+        console.log('Raster band info:', firstBand);
+        
+        if (firstBand.data_type === 'float32' && firstBand.statistics) {
+          const stats = firstBand.statistics;
+          if (stats.minimum !== undefined && stats.maximum !== undefined) {
+            // Add rescaling and colormap for 32-bit float data
+            console.log(`Adding rescale for float32 data: ${stats.minimum}-${stats.maximum}`);
+            titilerUrl += `&rescale=${stats.minimum},${stats.maximum}&colormap_name=viridis`;
+          }
+        }
+      }
+      
+      const rasterLayer = leaflet.tileLayer(titilerUrl, {
+        attribution: 'COG via TiTiler',
+        opacity: 0.8,
+        maxZoom: 18,
+      }).addTo(mapInstance);
+      
+      setMapLayers(prev => ({ ...prev, raster: rasterLayer }));
+    } catch (error) {
+      console.error('Error adding raster layer:', error);
+    }
   };
 
   const formatDateTime = (dateTimeStr) => {
@@ -500,11 +734,11 @@ const StacCollectionItemsModal = () => {
         <div className={c.searchContainer}>
           <TextField
             fullWidth
-            label="Search items"
+            label="Search Items"
             variant="filled"
             value={searchTerm}
             onChange={handleSearchChange}
-            placeholder="Search by item ID, properties, etc."
+            placeholder="Search by Item ID"
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -558,11 +792,11 @@ const StacCollectionItemsModal = () => {
                     </TableCell>
                     <TableCell align="center">
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "right" }}>
-                        <Tooltip title="View JSON" placement="top" arrow>
+                        <Tooltip title="View Item" placement="top" arrow>
                           <IconButton
                             className={c.infoIcon}
-                            title="View JSON"
-                            aria-label="view json"
+                            title="View Item"
+                            aria-label="view item"
                             onClick={() => handleViewJson(item)}
                           >
                             <InfoIcon fontSize="small" />
@@ -614,7 +848,7 @@ const StacCollectionItemsModal = () => {
           <div className={c.flexBetween}>
             <div className={c.flexBetween}>
               <InfoIcon className={c.backgroundIcon} />
-              <div className={c.title}>Item JSON: {selectedItemJson?.id}</div>
+              <div className={c.title}>STAC Item: {selectedItemJson?.id}</div>
             </div>
             <IconButton
               className={c.closeIcon}
@@ -627,27 +861,46 @@ const StacCollectionItemsModal = () => {
           </div>
         </DialogTitle>
         <DialogContent className={c.jsonContent}>
-          <div className={c.jsonContainer}>
-            {selectedItemJson && (
-              <ReactJson
-                src={selectedItemJson}
-                theme="chalk"
-                iconStyle="triangle"
-                indentWidth={4}
-                collapsed={false}
-                collapseStringsAfterLength={100}
-                displayObjectSize={false}
-                displayDataTypes={false}
-                enableClipboard={true}
-                sortKeys={false}
-                quotesOnKeys={false}
-                name="item"
-                style={{
-                  backgroundColor: "transparent",
-                  fontSize: "14px",
-                }}
-              />
-            )}
+          {/* Map Panel */}
+          <div className={c.mapPanel}>
+            <div 
+              ref={mapRef}
+              className={c.mapContainer}
+              style={{ height: "100%", width: "100%" }}
+            />
+            {/* Coordinate Display */}
+            <div 
+              ref={coordinateDisplayRef}
+              className={c.coordinateDisplay}
+            >
+              Lat: 0.000000, Lng: 0.000000
+            </div>
+          </div>
+          
+          {/* JSON Panel */}
+          <div className={c.jsonPanel}>
+            <div className={c.jsonContainer}>
+              {selectedItemJson && (
+                <ReactJson
+                  src={selectedItemJson}
+                  theme="chalk"
+                  iconStyle="triangle"
+                  indentWidth={4}
+                  collapsed={false}
+                  collapseStringsAfterLength={100}
+                  displayObjectSize={false}
+                  displayDataTypes={false}
+                  enableClipboard={true}
+                  sortKeys={false}
+                  quotesOnKeys={false}
+                  name="item"
+                  style={{
+                    backgroundColor: "transparent",
+                    fontSize: "14px",
+                  }}
+                />
+              )}
+            </div>
           </div>
         </DialogContent>
         <DialogActions className={c.jsonDialogActions}>
