@@ -25,7 +25,7 @@ The kind of authentication method used | string enum | default `''`
 
 - _off:_ No authentication. Users cannot sign up or log in. Tools that require log in will not work.
 - _none:_ No authentication. Users can still sign up and log in from within MMGIS.
-- _local:_ Anyone without credentials is blocked. The Admin must log in, create accounts and pass out the credentials.
+- _local:_ Anyone without credentials is blocked. The Admin must log in, create accounts and pass out the credentials or set AUTH_LOCAL_ALLOW_SIGNUP=true.
 - _csso:_ Use a Cloud Single Sign On service that's proxied in front of MMGIS.
 
 #### `NODE_ENV=`
@@ -89,6 +89,22 @@ How many milliseconds until a DB connection times out | integer | default `30000
 
 How many milliseconds for an incoming connection to wait for a DB connection before getting kicked away | integer | default `10000` (10 sec)
 
+#### `DB_SSL=`
+
+If the Postgres DB instance is enforcing SSL, set to true to have MMGIS connect to it via SSL | boolean | default `false`
+
+#### `DB_SSL_CERT=`
+
+If `DB_SSL=true` and if needed, the path to a certificate for ssl | string | default `null`
+
+#### `DB_SSL_CERT_BASE64=`
+
+Alternatively, if `DB_SSL=true` and if needed, a base64 encoded certificate for ssl. `DB_SSL_CERT_BASE64` will take priority over `DB_SSL_CERT` | string | default `null`
+
+#### `AUTH_LOCAL_ALLOW_SIGNUP=`
+
+If AUTH=local and set to true, this allows all guests to the site to create user accounts otherwise, they just see a login page with no signup section | boolean | default `false`
+
 #### `CSSO_GROUPS=`
 
 A list of CSSO LDAP groups that have access | string[] | default `[]`
@@ -124,6 +140,10 @@ Overrides ROOT_PATH's use when the client connects via websocket. Websocket url:
 #### `CLEARANCE_NUMBER=`
 
 Sets a clearance for the website | string | default `CL##-####`
+
+#### `CONTACT_INFO=`
+
+A string of text for contact information on the bottom right corner of the login pages | string | default `None Provided`
 
 #### `LINK_PREVIEW_TITLE=`
 

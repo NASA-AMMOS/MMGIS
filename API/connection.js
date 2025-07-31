@@ -1,5 +1,6 @@
 const Sequelize = require("sequelize");
 const logger = require("./logger");
+const fs = require("fs");
 require("dotenv").config();
 
 // create a sequelize instance with our local postgres database information.
@@ -11,6 +12,26 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST,
     port: process.env.DB_PORT || "5432",
     dialect: "postgres",
+    dialectOptions: {
+      ssl:
+        process.env.DB_SSL === "true"
+          ? {
+              require: true,
+              rejectUnauthorized: true,
+              ca:
+                process.env.DB_SSL_CERT_BASE64 != null &&
+                process.env.DB_SSL_CERT_BASE64 !== ""
+                  ? Buffer.from(
+                      process.env.DB_SSL_CERT_BASE64,
+                      "base64"
+                    ).toString("utf-8")
+                  : process.env.DB_SSL_CERT != null &&
+                    process.env.DB_SSL_CERT !== ""
+                  ? fs.readFileSync(process.env.DB_SSL_CERT)
+                  : false,
+            }
+          : false,
+    },
     logging: process.env.VERBOSE_LOGGING == "true" || false,
     pool: {
       max:
@@ -37,6 +58,26 @@ const sequelizeSTAC =
         host: process.env.DB_HOST,
         port: process.env.DB_PORT || "5432",
         dialect: "postgres",
+        dialectOptions: {
+          ssl:
+            process.env.DB_SSL === "true"
+              ? {
+                  require: true,
+                  rejectUnauthorized: true,
+                  ca:
+                    process.env.DB_SSL_CERT_BASE64 != null &&
+                    process.env.DB_SSL_CERT_BASE64 !== ""
+                      ? Buffer.from(
+                          process.env.DB_SSL_CERT_BASE64,
+                          "base64"
+                        ).toString("utf-8")
+                      : process.env.DB_SSL_CERT != null &&
+                        process.env.DB_SSL_CERT !== ""
+                      ? fs.readFileSync(process.env.DB_SSL_CERT)
+                      : false,
+                }
+              : false,
+        },
         logging: process.env.VERBOSE_LOGGING == "true" || false,
         pool: {
           max:

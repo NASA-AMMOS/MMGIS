@@ -10,36 +10,44 @@ These queries allow you to filter features by property-value equivalencies and r
 
 - The `Property` field auto-completes and must be one of the auto-completed values.
 - The `Operator` dropdown contains the following operators:
-  - `=` - The feature's `Property` must equal `Value` to remain visible.
-  - `in` - The feature's `Property` must equal _at least one of_ of the _comma-separated_ entries of `Value` to remain visible.
-  - `<` - The feature's `Property` must be less than `Value`. If performed on a textual `Property`, the comparison becomes alphabetical.
-  - `>` - The feature's `Property` must be greater than `Value`. If performed on a textual `Property`, the comparison becomes alphabetical.
+  - `=` - _Equals._ The feature's `Property` must equal `Value` to remain visible.
+  - `in` - _In List._ The feature's `Property` must equal _at least one of_ of the _comma-separated_ entries of `Value` to remain visible.
+  - `<` - _Less Than._ The feature's `Property` must be less than `Value`. If performed on a textual `Property`, the comparison becomes alphabetical.
+  - `>` - _Greater Than._ The feature's `Property` must be greater than `Value`. If performed on a textual `Property`, the comparison becomes alphabetical.
+  - `[...]` - _Contains._ The feature's `Property` must contain `Value`. If performed on a numeric `Property`, its value is first parsed into a string.
+  - `[...` - _Begins With._ The feature's `Property` must begin with `Value`. If performed on a numeric `Property`, its value is first parsed into a string.
+  - `...]` - _Ends With._ The feature's `Property` must end with `Value`. If performed on a numeric `Property`, its value is first parsed into a string.
 
 #### Add +
 
-By default one property-value row is provide. To add more, click the top-right "Add +" button. Use a property-value row's right-most "X" to then remove the row.
+By default, one property-value row is provide. To add more, click the top-right "Add +" button. Use a property-value row's right-most "X" to then remove the row.
 
-#### Logical Groupings (Parentheticals)
+#### Group +
 
-In favoring simplicity, not all boolean logic queries are possible. There is no **NOT** operator. All property-value rows are **AND**ed together with the following exception:
+By default, all property-value rows are ANDed together. Adding Operator Groups and dragging to rearrange rows enables modifying this behavior. Each Group is still ANDed together with the other groups. Each Group ends when another Group starts. Groups cannot be nested.
 
-- If there exists multiple instances of the same `Property`, only the `<` and `>` are **AND**ed together and the other operations are **OR**ed together. (See example below)
-
-Rows of the same `Property` are color coded to better visually track this function. Row order has zero bearing on the derived parenthetical groupings.
+- `Match All (AND)` - All property-value rows beneath this row and up until the next Group row or up until the end are ANDed together - they must all be true for a feature to match the query.
+- `Match Any (OR)` - All property-value rows beneath this row and up until the next Group row or up until the end are ORed together - at least one match must be true for a feature to match the query.
+- `Match Inverse (NOT AND)` - All property-value rows beneath this row and up until the next Group row or up until the end are ANDed together and then negated - all matches must be false for a feature to match the query.
 
 #### Example
 
 ```json
+group OR
 sol > 10
 sol < 20
 sol = 25
-drive = 0
+group AND
+site = 3
+drive = 1
+group NOT AND
+pose = 0
 ```
 
 _becomes:_
 
 ```
-((sol > 10 AND sol < 20) OR sol = 25) AND drive = 0
+(sol > 10 OR sol < 20 OR sol = 25) AND (site = 3 && drive = 1) AND NOT (pose = 0)
 ```
 
 ### Spatial Queries

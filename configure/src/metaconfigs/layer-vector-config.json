@@ -556,6 +556,82 @@
       ]
     },
     {
+      "name": "Filter",
+      "rows": [
+        {
+          "name": "Filters",
+          "components": [
+            {
+              "field": "variables.initialFilters",
+              "name": "Initial Filters",
+              "description": "Configures the layer's filters for displaying an initial custom subset of the data.",
+              "type": "objectarray",
+              "width": 12,
+              "object": [
+                {
+                  "field": "type",
+                  "name": "Type of Property",
+                  "description": "If not a Group, whether the property's value should be treated as a string or as a number.",
+                  "type": "dropdown",
+                  "width": 2,
+                  "options": ["string", "number"]
+                },
+                {
+                  "field": "key",
+                  "name": "Property",
+                  "description": "If not a Group, a field name from the properties object of each feature of this layer to be to construct a filter. Supports dot.notation for nested properties.",
+                  "type": "text",
+                  "width": 4
+                },
+                {
+                  "field": "op",
+                  "name": "Operator",
+                  "description": "If not a Group, the operator to use between the 'Property' and 'Value'.",
+                  "type": "dropdown",
+                  "width": 2,
+                  "options": [
+                    "=",
+                    "!=",
+                    ",",
+                    "<",
+                    ">",
+                    "<=",
+                    ">=",
+                    "contains",
+                    "beginswith",
+                    "endswith"
+                  ]
+                },
+                {
+                  "field": "value",
+                  "name": "Value",
+                  "description": "If not a Group, a value for the equation to operate on.",
+                  "type": "text",
+                  "width": 4
+                },
+                {
+                  "field": "isGroup",
+                  "name": "Is A Group",
+                  "description": "A group contains all property-value rows beneath this row and up until the next Group row or up until the end. Groups themselves are always ANDed together but enables member rows within them to abide by a different operator. If this entry 'Is A Group', then the type, property, operator and values fields are ignored.",
+                  "type": "switch",
+                  "width": 6,
+                  "defaultChecked": false
+                },
+                {
+                  "field": "groupOp",
+                  "name": "Group Operator",
+                  "description": "If 'Is A Group', the operator to use for members within the group. 'AND' ands all the group members together. 'OR' ors all the group members together. 'NOT_AND' ands all the group members together and then negates the evaluation. 'NOT_OR' ors all the group members together and then negates the evaluation.",
+                  "type": "dropdown",
+                  "width": 6,
+                  "options": ["AND", "OR", "NOT_AND", "NOT_OR"]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Interface",
       "rows": [
         {

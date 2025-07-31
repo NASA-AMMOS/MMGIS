@@ -1,5 +1,11 @@
 FROM --platform=linux/amd64 oraclelinux:8.9
 
+RUN dnf -y update
+RUN dnf -y install ca-certificates
+RUN update-ca-trust enable
+RUN update-ca-trust extract
+RUN dnf clean all
+
 ARG PUBLIC_URL_ARG=
 ENV PUBLIC_URL=$PUBLIC_URL_ARG
 

@@ -107,6 +107,23 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   password: process.env.DB_PASS,
   port: process.env.DB_PORT || "5432",
+  ssl:
+    process.env.DB_SSL === "true"
+      ? {
+          require: true,
+          rejectUnauthorized: true,
+          ca:
+            process.env.DB_SSL_CERT_BASE64 != null &&
+            process.env.DB_SSL_CERT_BASE64 !== ""
+              ? Buffer.from(process.env.DB_SSL_CERT_BASE64, "base64").toString(
+                  "utf-8"
+                )
+              : process.env.DB_SSL_CERT != null &&
+                process.env.DB_SSL_CERT !== ""
+              ? fs.readFileSync(process.env.DB_SSL_CERT)
+              : false,
+        }
+      : false,
 });
 app.use(
   session({
@@ -292,7 +309,8 @@ function ensureAdmin(toLoginPage, denyLongTermTokens, allowGets, disallow) {
       url.endsWith("/api/geodatasets/aggregations") ||
       url.endsWith("/api/geodatasets/search") ||
       url.endsWith("/api/datasets/get") ||
-      req.session.permission === "111"
+      req.session.permission === "111" ||
+      req.session.permission === "110"
     ) {
       next();
       return;
@@ -316,8 +334,10 @@ function ensureAdmin(toLoginPage, denyLongTermTokens, allowGets, disallow) {
     if (!denyLongTermTokens && req.headers.authorization) {
       validateLongTermToken(
         req.headers.authorization,
-        () => {
+        (tokenData) => {
           req.isLongTermToken = true;
+          req.tokenUserPermission = tokenData.permission;
+          req.tokenUserMissions = tokenData.missions_managing;
           next();
         },
         () => {
@@ -348,11 +368,14 @@ function validateLongTermToken(token, successCallback, failureCallback) {
   token = token.replace(/Bearer:?\s+/g, "");
 
   sequelize
-    .query('SELECT * FROM "long_term_tokens" WHERE "token"=:token', {
-      replacements: {
-        token: token,
-      },
-    })
+    .query(
+      'SELECT lt.*, u.permission, u.missions_managing FROM "long_term_tokens" lt JOIN "users" u ON lt.created_by_user_id = u.id WHERE lt.token=:token',
+      {
+        replacements: {
+          token: token,
+        },
+      }
+    )
     .then((result) => {
       try {
         result = result[0][0];
@@ -363,6 +386,7 @@ function validateLongTermToken(token, successCallback, failureCallback) {
       if (
         result &&
         result.token == token &&
+        result.created_by_user_id != null && // Block tokens without creator ID (legacy tokens)
         (result.period == "never" ||
           Date.now() - new Date(result.createdAt).getTime() <
             parseInt(result.period))
@@ -379,7 +403,9 @@ function ensureUser() {
     if (
       process.env.AUTH != "local" ||
       (typeof req.session.permission === "string" &&
-        req.session.permission[req.session.permission.length - 1] === "1")
+        (req.session.permission === "111" ||
+          req.session.permission === "110" ||
+          req.session.permission === "001"))
     ) {
       next();
     } else {
@@ -388,8 +414,10 @@ function ensureUser() {
           req.headers["x-forwarded-for"] || req.connection.remoteAddress;
         validateLongTermToken(
           req.headers.authorization,
-          () => {
+          (tokenData) => {
             req.isLongTermToken = true;
+            req.tokenUserPermission = tokenData.permission;
+            req.tokenUserMissions = tokenData.missions_managing;
             next();
           },
           () => {
@@ -406,6 +434,8 @@ function ensureUser() {
         res.render("login", {
           user: req.user,
           CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",
+          CONTACT_INFO: process.env.CONTACT_INFO || "None Provided",
+          AUTH_LOCAL_ALLOW_SIGNUP: process.env.AUTH_LOCAL_ALLOW_SIGNUP || false,
         });
       }
     }
@@ -603,9 +633,24 @@ setups.getBackendSetups(function (setups) {
   app.use(
     `${ROOT_PATH}/Missions`,
     ensureUser(),
-    middleware.missions(),
+    middleware.missions(ROOT_PATH),
     express.static(path.join(rootDir, "/Missions"))
   );
+  app.get(s.ROOT_PATH + "/resetPassword", (req, res) => {
+    const user = process.env.AUTH === "csso" ? req.user : req.user || "";
+    res.render("../views/resetpassword.pug", {
+      user: user,
+      AUTH: process.env.AUTH,
+      NODE_ENV: process.env.NODE_ENV,
+      ROOT_PATH:
+        process.env.NODE_ENV === "development"
+          ? ""
+          : /*(process.env.EXTERNAL_ROOT_PATH || "") +*/
+            process.env.ROOT_PATH || "",
+      CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",
+      CONTACT_INFO: process.env.CONTACT_INFO || "None Provided",
+    });
+  });
 
   if (isDevEnv) {
     app.use(

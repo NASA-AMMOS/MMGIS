@@ -169,17 +169,17 @@ var InfoTool = {
         tools.html(markup)
 
         tippy('#infoToolSelected', {
-            content: 'Select An Overlapping Feature',
+            content: 'Select An Overlapping Feature (Shift + ⇆)',
             placement: 'right',
             theme: 'blue',
         })
         tippy('#infoToolSelectedGeoDataset', {
-            content: 'Select An Associated Dataset',
+            content: 'Select An Associated Dataset (Ctrl/Cmd + ⇆)',
             placement: 'right',
             theme: 'blue',
         })
         tippy('#infoToolSelectedDataset', {
-            content: 'Select An Associated Dataset',
+            content: 'Select An Associated Dataset (Ctrl/Cmd + ⇆)',
             placement: 'right',
             theme: 'blue',
         })
@@ -263,26 +263,7 @@ var InfoTool = {
             )
         )
         Dropy.init($('#infoToolSelectedDropdown'), function (idx) {
-            let e = JSON.parse(JSON.stringify(InfoTool.initialEvent))
-            MetadataCapturer.populateMetadata(
-                InfoTool.featureLayers[idx] || InfoTool.currentLayer,
-                () => {
-                    Kinds.use(
-                        L_.layers.data[InfoTool.currentLayerName]?.kind || null,
-                        Map_,
-                        InfoTool.info[idx],
-                        InfoTool.featureLayers[idx] || InfoTool.currentLayer,
-                        InfoTool.currentLayerName,
-                        null,
-                        e,
-                        { idx: idx },
-                        InfoTool.info,
-                        InfoTool.featureLayers[idx]
-                            ? InfoTool.featureLayers
-                            : null
-                    )
-                }
-            )
+            InfoTool.selectedDropdownChange(idx)
         })
 
         InfoTool.createInfo()
@@ -686,6 +667,56 @@ var InfoTool = {
         $('#infoToolFilter').css('display', 'none')
         $('#infoToolNoneSelected').css('display', 'block')
     },
+    selectedDropdownChange: function (idx) {
+        let e = JSON.parse(JSON.stringify(InfoTool.initialEvent))
+        MetadataCapturer.populateMetadata(
+            InfoTool.featureLayers[idx] || InfoTool.currentLayer,
+            () => {
+                Kinds.use(
+                    L_.layers.data[InfoTool.currentLayerName]?.kind || null,
+                    Map_,
+                    InfoTool.info[idx],
+                    InfoTool.featureLayers[idx] || InfoTool.currentLayer,
+                    InfoTool.currentLayerName,
+                    null,
+                    e,
+                    { idx: idx },
+                    InfoTool.info,
+                    InfoTool.featureLayers[idx] ? InfoTool.featureLayers : null
+                )
+            }
+        )
+    },
+    hotKeyEvents: function (event) {
+        if (event.shiftKey && !event.ctrlKey && !event.metaKey) {
+            // Shift
+            // Nav Overlap
+            if (event.key === 'ArrowLeft') {
+                if (InfoTool.activeFeatureI > 0)
+                    InfoTool.selectedDropdownChange(InfoTool.activeFeatureI - 1)
+            } else if (event.key === 'ArrowRight') {
+                if (InfoTool.activeFeatureI < InfoTool.info.length - 1)
+                    InfoTool.selectedDropdownChange(InfoTool.activeFeatureI + 1)
+            }
+        } else if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
+            // Ctrl/Cmd
+            if (InfoTool.hasDataset) {
+                // Nav Dataset
+                if (event.key === 'ArrowLeft') {
+                    $('#infoToolSelectedDatasetLeft').trigger('click')
+                } else if (event.key === 'ArrowRight') {
+                    $('#infoToolSelectedDatasetRight').trigger('click')
+                }
+            } else if (InfoTool.hasGeoDatasetMetadata) {
+                // Nav Geodataset
+                if (event.key === 'ArrowLeft') {
+                    $('#infoToolSelectedGeoDatasetLeft').trigger('click')
+                } else if (event.key === 'ArrowRight') {
+                    $('#infoToolSelectedGeoDatasetRight').trigger('click')
+                }
+            }
+        }
+    },
 }
 
 //
@@ -709,9 +740,13 @@ function interfaceWithMMGIS() {
         InfoTool.featureLayers
     )
 
+    document.addEventListener('keydown', InfoTool.hotKeyEvents)
+
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
-    function separateFromMMGIS() {}
+    function separateFromMMGIS() {
+        document.removeEventListener('keydown', InfoTool.hotKeyEvents)
+    }
 }
 
 //Other functions

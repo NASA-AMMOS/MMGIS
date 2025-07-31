@@ -160,7 +160,7 @@ function makeNewDatasetTable(name, columns, success, failure) {
       failure({
         status: "failure",
         message: "Failed to find existing datasets",
-        error: error,
+        error: err,
         name: name,
       });
     });

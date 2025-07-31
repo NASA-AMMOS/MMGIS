@@ -29,7 +29,7 @@ services:
       - ./ssl:/usr/src/app/ssl
 
   stac-fastapi:
-    image: ghcr.io/stac-utils/stac-fastapi-pgstac:4.0.3
+    image: ghcr.io/stac-utils/stac-fastapi-pgstac:5.0.2
     ports:
       - 8881
     environment:
@@ -57,7 +57,7 @@ services:
       - ./Missions:/Missions
 
   tipg:
-    image: ghcr.io/developmentseed/tipg:0.7.2
+    image: ghcr.io/developmentseed/tipg:1.1.0
     ports:
       - 8882
     environment:
@@ -81,7 +81,7 @@ services:
       - POSTGRES_PORT=5432
       - DB_MIN_CONN_SIZE=1
       - DB_MAX_CONN_SIZE=10
-    command: bash -c "/start.sh"
+    command: bash -c "uvicorn tipg.main:app --host 0.0.0.0 --port 8882"
     depends_on:
       mmgis:
         condition: service_healthy
@@ -96,7 +96,7 @@ services:
     # TODO: remove once https://github.com/rasterio/rasterio-wheels/issues/69 is resolved
     # See https://github.com/developmentseed/titiler/discussions/387
     platform: linux/amd64
-    image: ghcr.io/developmentseed/titiler-uvicorn:0.18.6
+    image: ghcr.io/developmentseed/titiler:0.22.2
     ports:
       - 8883
     environment:
@@ -140,7 +140,7 @@ services:
     # At the time of writing, rasterio and psycopg wheels are not available for arm64 arch
     # so we force the image to be built with linux/amd64
     platform: linux/amd64
-    image: ghcr.io/stac-utils/titiler-pgstac:1.4.0
+    image: ghcr.io/stac-utils/titiler-pgstac:1.8.0
     ports:
       - 8884
     environment:
@@ -191,7 +191,7 @@ services:
       db:
         condition: service_healthy
         restart: true
-    command: bash -c "/start.sh"
+    command: bash -c "uvicorn titiler.pgstac.main:app --host 0.0.0.0 --port 8884"
     volumes:
       - ./Missions:/Missions
 

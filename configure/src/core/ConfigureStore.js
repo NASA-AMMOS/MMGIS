@@ -15,6 +15,7 @@ export const ConfigureStore = createSlice({
     geodatasets: [],
     datasets: [],
     stacCollections: [],
+    userEntries: [],
     page: null,
     modal: {
       newMission: false,
@@ -32,11 +33,17 @@ export const ConfigureStore = createSlice({
       updateDataset: false,
       deleteDataset: false,
       newStacCollection: false,
+      stacCollectionItems: false,
+      stacCollectionJson: false,
       layersUsedByStacCollection: false,
       deleteStacCollection: false,
       uploadConfig: false,
       cloneConfig: false,
       deleteConfig: false,
+      updateUser: false,
+      deleteUser: false,
+      newUser: false,
+      resetPassword: false,
     },
     snackBarText: false,
     lockConfig: false,
@@ -69,6 +76,9 @@ export const ConfigureStore = createSlice({
     },
     setStacCollections: (state, action) => {
       state.stacCollections = action.payload;
+    },
+    setUserEntries: (state, action) => {
+      state.userEntries = action.payload;
     },
     setPage: (state, action) => {
       state.page = action.payload.page;
@@ -196,6 +206,7 @@ export const {
   setGeodatasets,
   setDatasets,
   setStacCollections,
+  setUserEntries,
   setPage,
   setModal,
   setSnackBarText,

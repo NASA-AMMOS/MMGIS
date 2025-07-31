@@ -12,6 +12,29 @@ const { sequelize } = require("../../../connection");
 const logger = require("../../../logger");
 const Config = require("../models/config");
 const config_template = require("../../../templates/config_template");
+const userModel = require("../../Users/models/user");
+const User = userModel.User;
+
+// Sanitize user input to prevent XSS in error messages
+function sanitizeInput(input) {
+  if (typeof input !== "string") return String(input);
+  return input.replace(/[<>'"&]/g, function (match) {
+    switch (match) {
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#x27;";
+      case "&":
+        return "&amp;";
+      default:
+        return match;
+    }
+  });
+}
 
 const GeneralOptions = require("../../GeneralOptions/models/generaloptions");
 
@@ -31,6 +54,92 @@ if (
   process.env.HIDE_CONFIG != "true"
 )
   fullAccess = true;
+
+// Middleware to check if admin user has permission to access specific mission
+function checkMissionPermission(req, res, next) {
+  // Determine if this is a long term token request or regular session
+  let userPermission, userMissions, userId;
+  
+  if (req.isLongTermToken) {
+    // Use token creator's permissions for long term tokens
+    userPermission = req.tokenUserPermission;
+    userMissions = req.tokenUserMissions;
+    userId = null; // We don't need to lookup again since we have the data
+  } else {
+    // Use session permissions for regular requests
+    userPermission = req.session.permission;
+    userId = req.session.uid;
+    userMissions = null; // Will be looked up from database
+  }
+  
+  // SuperAdmins (111) have access to all missions
+  if (userPermission === "111") {
+    next();
+    return;
+  }
+  
+  // Regular users (not 110) should not access config endpoints  
+  if (userPermission !== "110") {
+    res.send({
+      status: "failure", 
+      message: "Unauthorized - insufficient permissions."
+    });
+    return;
+  }
+  
+  // For Admins (110), check mission-specific permissions
+  const mission = req.body.mission || req.query.mission;
+  if (!mission) {
+    next(); // No mission specified, let other validation handle it
+    return;
+  }
+  
+  // If we already have missions from token, use them directly
+  if (req.isLongTermToken) {
+    const managingMissions = userMissions || [];
+    if (managingMissions.includes(mission)) {
+      next();
+    } else {
+      res.send({
+        status: "failure",
+        message: `Unauthorized - no permission to access mission: ${mission}`
+      });
+    }
+    return;
+  }
+  
+  // For regular session users, get user's missions_managing array from database
+  User.findOne({
+    where: { id: userId },
+    attributes: ["missions_managing"]
+  })
+  .then((user) => {
+    if (!user) {
+      res.send({
+        status: "failure",
+        message: "User not found."
+      });
+      return;
+    }
+    
+    const managingMissions = user.missions_managing || [];
+    if (managingMissions.includes(mission)) {
+      next();
+    } else {
+      res.send({
+        status: "failure",
+        message: `Unauthorized - no permission to access mission: ${mission}`
+      });
+    }
+  })
+  .catch((err) => {
+    logger("error", "Failed to check mission permissions.", req.originalUrl, req, err);
+    res.send({
+      status: "failure",
+      message: "Failed to verify mission permissions."
+    });
+  });
+}
 
 function get(req, res, next, cb) {
   Config.findAll({
@@ -93,12 +202,16 @@ function get(req, res, next, cb) {
             if (cb)
               cb({
                 status: "failure",
-                message: `Mission '${req.query.mission} v${version}' not found.`,
+                message: `Mission '${sanitizeInput(
+                  req.query.mission
+                )} v${version}' not found.`,
               });
             else
               res.send({
                 status: "failure",
-                message: `Mission '${req.query.mission} v${version}' not found.`,
+                message: `Mission '${sanitizeInput(
+                  req.query.mission
+                )} v${version}' not found.`,
               });
             return null;
           });
@@ -121,14 +234,17 @@ function add(req, res, next, cb) {
   configTemplate = req.body.config || configTemplate;
   configTemplate.msv.mission = req.body.mission;
 
+  // Fix validation logic: use OR conditions instead of AND
   if (
     req.body.mission !==
       req.body.mission.replace(
         /[`~!@#$%^&*()|+\-=?;:'",.<>\{\}\[\]\\\/]/gi,
         ""
-      ) &&
-    req.body.mission.length === 0 &&
-    !isNaN(req.body.mission[0])
+      ) ||
+    req.body.mission.length === 0 ||
+    !isNaN(req.body.mission[0]) ||
+    req.body.mission.includes("../") ||
+    req.body.mission.includes("..\\")
   ) {
     logger("error", "Attempted to add bad mission name.", req.originalUrl, req);
     res.send({ status: "failure", message: "Bad mission name." });
@@ -239,6 +355,13 @@ function add(req, res, next, cb) {
 
 if (fullAccess)
   router.post("/add", function (req, res, next) {
+    if (req.session.permission !== "111") {
+      res.send({
+        status: "failure",
+        message: "Only SuperAdmins can add new missions.",
+      });
+      return null;
+    }
     add(req, res, next);
   });
 
@@ -448,7 +571,7 @@ function upsert(req, res, next, cb, info) {
 }
 
 if (fullAccess)
-  router.post("/upsert", function (req, res, next) {
+  router.post("/upsert", checkMissionPermission, function (req, res, next) {
     upsert(req, res, next);
   });
 
@@ -484,6 +607,46 @@ router.get("/missions", function (req, res, next) {
       });
   }
   return null;
+});
+
+// Get current user's mission permissions for the Configure page
+router.get("/user-permissions", function (req, res, next) {
+  // SuperAdmins can manage all missions
+  if (req.session.permission === "111") {
+    res.send({ 
+      status: "success", 
+      permission: "111",
+      missions_managing: null  // null means all missions
+    });
+    return;
+  }
+  
+  // Regular admins get their specific mission list
+  if (req.session.permission === "110") {
+    User.findOne({
+      where: { id: req.session.uid },
+      attributes: ["missions_managing"]
+    })
+    .then((user) => {
+      res.send({
+        status: "success",
+        permission: "110", 
+        missions_managing: user ? user.missions_managing || [] : []
+      });
+    })
+    .catch((err) => {
+      logger("error", "Failed to get user permissions.", req.originalUrl, req, err);
+      res.send({ status: "failure", message: "Failed to get user permissions." });
+    });
+    return;
+  }
+  
+  // Non-admin users
+  res.send({
+    status: "success",
+    permission: req.session.permission || "000",
+    missions_managing: []
+  });
 });
 
 if (fullAccess)
@@ -889,7 +1052,7 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
   );
 }
 if (fullAccess)
-  router.post("/addLayer", function (req, res, next) {
+  router.post("/addLayer", checkMissionPermission, function (req, res, next) {
     addLayer(req, res, next);
   });
 
@@ -898,7 +1061,7 @@ if (fullAccess)
    * /updateLayer
    * Finds the existing layer, merges new layer items, deletes and readds with addLayer.
    */
-  router.post("/updateLayer", function (req, res, next) {
+  router.post("/updateLayer", checkMissionPermission, function (req, res, next) {
     const exampleBody = {
       mission: "{mission_name}",
       layerUUID: "{existing_layer_uuid}",
@@ -1149,7 +1312,7 @@ if (fullAccess)
     "forceClientUpdate?": true
   }
  */
-  router.post("/removeLayer", function (req, res, next) {
+  router.post("/removeLayer", checkMissionPermission, function (req, res, next) {
     removeLayer(req, res, next);
   });
 
@@ -1163,7 +1326,7 @@ if (fullAccess)
     "zoom?": 0
   }
  */
-  router.post("/updateInitialView", function (req, res, next) {
+  router.post("/updateInitialView", checkMissionPermission, function (req, res, next) {
     const exampleBody = {
       mission: "{mission_name}",
       "latitude?": 0,

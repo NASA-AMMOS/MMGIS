@@ -180,10 +180,12 @@ const Description = {
         })
 
         document.addEventListener('keydown', function (event) {
-            if (event.key === 'ArrowLeft') {
-                Description.navPrevious()
-            } else if (event.key === 'ArrowRight') {
-                Description.navNext()
+            if (!event.ctrlKey && !event.shiftKey) {
+                if (event.key === 'ArrowLeft') {
+                    Description.navPrevious()
+                } else if (event.key === 'ArrowRight') {
+                    Description.navNext()
+                }
             }
         })
 
@@ -1227,13 +1229,13 @@ const Description = {
                 })
             if (Description.tippyPrevious == null)
                 Description.tippyPrevious = tippy('#mainDescNavBarPrevious', {
-                    content: 'Previous Feature',
+                    content: 'Previous Feature (Arrow-Left)',
                     placement: 'bottom',
                     theme: 'blue',
                 })
             if (Description.tippyNext == null)
                 Description.tippyNext = tippy('#mainDescNavBarNext', {
-                    content: 'Next Feature',
+                    content: 'Next Feature (Arrow-Right)',
                     placement: 'bottom',
                     theme: 'blue',
                 })

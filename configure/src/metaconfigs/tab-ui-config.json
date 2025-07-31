@@ -31,6 +31,64 @@
           "min": 0,
           "max": 40,
           "width": 4
+        },
+        {
+          "field": "msv.worldCopyJump",
+          "name": "World Copy Jump",
+          "description": "With this option enabled, the map tracks when you pan to another 'copy' of the world and seamlessly jumps to the original one so that all overlays like markers and vector layers are still visible.",
+          "type": "checkbox",
+          "defaultChecked": false,
+          "width": 4
+        }
+      ]
+    },
+    {
+      "subname": "Max Bounds",
+      "components": [
+        {
+          "type": "gap",
+          "width": 4
+        },
+        {
+          "field": "msv.maxBoundsTopLeftLat",
+          "name": "Max Bounds Top Latitude",
+          "description": "",
+          "type": "number",
+          "width": 4
+        },
+        {
+          "type": "gap",
+          "width": 4
+        },
+        {
+          "field": "msv.maxBoundsTopLeftLng",
+          "name": "Max Bounds Left Longitude",
+          "description": "",
+          "type": "number",
+          "width": 4
+        },
+        {
+          "type": "gap",
+          "width": 4,
+          "description": "When these options are set, the map restricts the view to the given geographical bounds, bouncing the user back if the user tries to pan outside the view. Defaults to the full extent of the map's projection. All sides must be set to take effect. All 0 is considered off. Units are in decimal degrees and longitude is often [-180, 180]."
+        },
+        {
+          "field": "msv.maxBoundsBottomRightLng",
+          "name": "Max Bounds Right Longitude",
+          "description": "",
+          "type": "number",
+          "width": 4
+        },
+        {
+          "type": "gap",
+          "width": 4
+        },
+        {
+          "field": "msv.maxBoundsBottomRightLat",
+          "name": "Max Bounds Bottom Latitude",
+          "description": "",
+          "type": "number",
+          "width": 4
         }
       ]
     },

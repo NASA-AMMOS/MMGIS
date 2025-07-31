@@ -1,0 +1,59 @@
+/*********************************************************
+**                                                      **
+**       Leaflet Plugin "Leaflet.PolylineMeasure"       **
+**       File "Leaflet.PolylineMeasure.css"             **
+**       Date: 2023-05-26                               **
+**                                                      **
+*********************************************************/
+
+
+a.polyline-measure-controlOnBgColor, a.polyline-measure-controlOnBgColor:hover {
+    background-color: #8f8;
+}
+
+.polyline-measure-unicode-icon {
+    font-size: 19px;
+    font-weight: bold;
+}
+
+a.polyline-measure-clearControl:active {
+    background-color: #f88;
+}
+
+.polyline-measure-unicode-icon, .polyline-measure-clearControl, #unitControlId
+{
+    cursor: pointer;
+}
+
+.polyline-measure-tooltip {
+    font: 10px Arial, Helvetica, sans-serif;
+    line-height: 10px;
+    background-color: rgba(255, 255, 170, 0.7);
+    border-radius: 3px;
+    box-shadow: 1px 1px 4px #888;
+    margin: 0;
+    padding: 2px;
+    width: auto !important;
+    height: auto !important;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.polyline-measure-tooltip-end {
+    background-color: rgba(255, 255, 40, 0.7);
+}
+
+.polyline-measure-tooltip-total {
+    color: #006;
+    font-weight: bold;
+}
+
+.polyline-measure-tooltip-difference {
+    color: #060;
+    font-style: italic;
+}
+
+.polyline-measure-popupTooltip {
+    font: 11px Arial, Helvetica, sans-serif;
+    line-height: 11px;
+}

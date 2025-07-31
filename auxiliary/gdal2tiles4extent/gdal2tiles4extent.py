@@ -518,7 +518,10 @@ class GDAL2Tiles(object):
                 return os.path.join(tmpdir, random_part + suffix)
 
         import tempfile
-        return tempfile.mktemp(suffix)
+        import os
+        temp_fd, temp_filename = tempfile.mkstemp(suffix=suffix)
+        os.close(temp_fd)  # Close the file descriptor, keep the file
+        return temp_filename
 
     def stop(self):
         """Stop the rendering immediately"""

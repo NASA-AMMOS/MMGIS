@@ -71,13 +71,20 @@ function get(reqtype, req, res, next) {
       const filterSplit = req.query.filters.split(",");
       filters = [];
       filterSplit.forEach((f) => {
-        const fSplit = f.split("+");
-        filters.push({
-          key: fSplit[0],
-          op: fSplit[1],
-          type: fSplit[2],
-          value: fSplit[3],
-        });
+        if (f === "OR" || f === "AND" || f === "NOT_AND" || f === "NOT_OR") {
+          filters.push({
+            isGroup: true,
+            op: f,
+          });
+        } else {
+          const fSplit = f.split("+");
+          filters.push({
+            key: fSplit[0],
+            op: fSplit[1],
+            type: fSplit[2],
+            value: fSplit[3],
+          });
+        }
       });
     }
     if (req.query.spatialFilter != null) {
@@ -124,10 +131,15 @@ function get(reqtype, req, res, next) {
           }
 
           let distinct = "";
+          let distinctField = null;
           if (noDuplicates === true) {
-            if (result.dataValues.group_id_field != null)
+            if (result.dataValues.group_id_field != null) {
               distinct = ` DISTINCT ON (group_id)`;
-            else distinct = ` DISTINCT ON (geom)`;
+              distinctField = "group_id";
+            } else {
+              distinct = ` DISTINCT ON (geom)`;
+              distinctField = "geom";
+            }
           }
 
           let cols = ["id"];
@@ -238,68 +250,139 @@ function get(reqtype, req, res, next) {
           // Filters
           if (filters != null && filters.length > 0) {
             let filterSQL = [];
-            filters.forEach((f, i) => {
-              let fkey = f.key;
-              let derivedKey = false;
-              if (fkey === "Latitude (Centroid)") {
-                fkey = `ST_Y(ST_Centroid(geom))`;
-                derivedKey = true;
-              } else if (fkey === "Longitude (Centroid)") {
-                fkey = `ST_X(ST_Centroid(geom))`;
-                derivedKey = true;
-              }
+            let currentGroupOp = null;
+            let currentGroup = [];
 
-              replacements[`filter_key_${i}`] = fkey;
-              replacements[`filter_value_${i}`] = f.value;
-              let op = "=";
-              switch (f.op) {
-                case ">":
-                  op = ">";
-                  break;
-                case "<":
-                  op = "<";
-                  break;
-                case "in":
-                  op = "IN";
-                  break;
-                case "=":
-                default:
-                  break;
-              }
-              let value = "";
-              if (op === "IN") {
-                const valueSplit = f.value.split("$");
-                const values = [];
-                valueSplit.forEach((v) => {
-                  replacements[`filter_value_${i}_${v}`] = v;
-                  values.push(`:filter_value_${i}_${v}`);
-                });
-                value = `(${values.join(",")})`;
+            filters.forEach((f, i) => {
+              if (f.isGroup === true) {
+                if (
+                  currentGroupOp != null &&
+                  currentGroupOp != f.op &&
+                  currentGroup.length > 0
+                ) {
+                  filterSQL.push(
+                    `${
+                      currentGroupOp == "NOT_AND" || currentGroupOp == "NOT_OR"
+                        ? "NOT "
+                        : ""
+                    }(${currentGroup.join(
+                      ` ${
+                        currentGroupOp == "NOT_AND"
+                          ? "AND"
+                          : currentGroupOp == "NOT_OR"
+                          ? "OR"
+                          : currentGroupOp
+                      } `
+                    )})`
+                  );
+                  currentGroup = [];
+                }
+                currentGroupOp = f.op;
               } else {
+                let fkey = f.key;
+                let derivedKey = false;
+                if (fkey === "Latitude (Centroid)") {
+                  fkey = `ST_Y(ST_Centroid(geom))`;
+                  derivedKey = true;
+                } else if (fkey === "Longitude (Centroid)") {
+                  fkey = `ST_X(ST_Centroid(geom))`;
+                  derivedKey = true;
+                }
+
+                replacements[`filter_key_${i}`] = fkey;
                 replacements[`filter_value_${i}`] = f.value;
-                value = `:filter_value_${i}`;
-              }
-              if (f.type === "number") {
-                filterSQL.push(
-                  `${
+                let op = "=";
+                switch (f.op) {
+                  case ">":
+                    op = ">";
+                    break;
+                  case "<":
+                    op = "<";
+                    break;
+                  case ">=":
+                    op = ">=";
+                    break;
+                  case "<=":
+                    op = "<=";
+                    break;
+                  case "in":
+                    op = "IN";
+                    break;
+                  case "contains":
+                  case "beginswith":
+                  case "endswith":
+                    op = "LIKE";
+                    break;
+                  case "!=":
+                    op = "!=";
+                    break;
+                  case "=":
+                  default:
+                    break;
+                }
+                let value = "";
+                if (op === "IN") {
+                  const valueSplit = f.value.split("$");
+                  const values = [];
+                  valueSplit.forEach((v) => {
+                    replacements[`filter_value_${i}_${v}`] = v;
+                    values.push(`:filter_value_${i}_${v}`);
+                  });
+                  value = `(${values.join(",")})`;
+                } else if (op === "LIKE") {
+                  if (f.op == "contains")
+                    replacements[`filter_value_${i}`] = `%${f.value}%`;
+                  else if (f.op == "beginswith")
+                    replacements[`filter_value_${i}`] = `${f.value}%`;
+                  else if (f.op == "endswith")
+                    replacements[`filter_value_${i}`] = `%${f.value}`;
+
+                  value = `:filter_value_${i}`;
+                } else {
+                  replacements[`filter_value_${i}`] = f.value;
+                  value = `:filter_value_${i}`;
+                }
+                if (f.type === "number" && op !== "LIKE") {
+                  const q1 = `${
                     derivedKey === true
                       ? `${fkey}`
                       : `(properties->>:filter_key_${i})`
-                  }::FLOAT ${op} ${value}`
-                );
-              } else {
-                filterSQL.push(
-                  `${
+                  }::FLOAT ${op} ${value}`;
+                  if (currentGroupOp == null) filterSQL.push(q1);
+                  else currentGroup.push(q1);
+                } else {
+                  const q2 = `${
                     derivedKey === true
                       ? `${fkey}`
                       : `properties->>:filter_key_${i}`
-                  } ${op} ${value}`
-                );
+                  } ${op} ${value}`;
+                  if (currentGroupOp == null) filterSQL.push(q2);
+                  else currentGroup.push(q2);
+                }
               }
             });
-            q += `${
-              q.indexOf(" WHERE ") === -1 ? " WHERE " : " AND "
-            }${filterSQL.join(` AND `)}`;
+            // Final group
+            if (currentGroup.length > 0) {
+              filterSQL.push(
+                `${
+                  currentGroupOp == "NOT_AND" || currentGroupOp == "NOT_OR"
+                    ? "NOT "
+                    : ""
+                }(${currentGroup.join(
+                  ` ${
+                    currentGroupOp === "NOT_AND"
+                      ? "AND"
+                      : currentGroupOp === "NOT_OR"
+                      ? "OR"
+                      : currentGroupOp || "AND"
+                  } `
+                )})`
+              );
+            }
+            if (filterSQL.length > 0)
+              q += `${
+                q.indexOf(" WHERE ") === -1 ? " WHERE " : " AND "
+              }${filterSQL.join(` AND `)}`;
           }
 
           if (
@@ -324,10 +407,10 @@ function get(reqtype, req, res, next) {
           }
 
           if (req.query?.limited) {
-            q += ` ORDER BY id DESC LIMIT 3`;
-          }
-
-          q += `;`;
+            q += ` ORDER BY id DESC LIMIT 3;`;
+          } else if (distinctField != null) {
+            q += ` ORDER BY ${distinctField}, id DESC;`;
+          } else q += ` ORDER BY id DESC;`;
 
           sequelize
             .query(q, {

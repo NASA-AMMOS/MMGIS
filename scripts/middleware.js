@@ -138,11 +138,33 @@ async function sendImage(req, res, next, relUrlSplit) {
   }
 }
 
+function isPathInsideRoot(logicalRootDirName, targetPath) {
+  const resolvedTarget = path.resolve(targetPath);
+  const pathParts = resolvedTarget.split(path.sep);
+
+  const rootIndex = pathParts.indexOf(logicalRootDirName);
+  if (rootIndex === -1) return false;
+
+  const resolvedRoot =
+    pathParts.slice(0, rootIndex + 1).join(path.sep) + path.sep;
+
+  return resolvedTarget.startsWith(resolvedRoot);
+}
+
 const middleware = {
-  missions: function () {
+  missions: function (ROOT_PATH) {
     return (req, res, next) => {
       const originalUrl = req.originalUrl.split("?")[0];
       const relUrl = req.url.split("?")[0];
+
+      // Validate URL starts with /Missions to prevent path traversal
+      if (!originalUrl.startsWith(`${ROOT_PATH}/Missions`)) {
+        return res.sendStatus(404);
+      }
+      // Additional validation: ensure no path traversal sequences
+      if (!isPathInsideRoot("Missions", originalUrl)) {
+        return res.sendStatus(404);
+      }
 
       if (req.query.time != null && originalUrl.indexOf("_time_") > -1) {
         const urlSplit = originalUrl.split("_time_");
