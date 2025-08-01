@@ -18,8 +18,8 @@ const helpKey = 'DataDownloadTool'
 const drawStyle = {
     color: '#ff7800',
     dashArray: [3, 3],
-    fillOpacity: 0.05,
-    weight: 1,
+    fillOpacity: 0.1,
+    weight: 2,
 }
 
 //Add the tool markup if you want to do it this way
@@ -36,12 +36,12 @@ const markup = [
         "</div>",
         "<div id='dataDownloadToolControls'>",
             '<div class="downloadToolControlRow">',
-                "<span class='downloadToolMidHeader'>Subset Selection</span>",
+                "<span class='downloadToolMidHeader'>Dataset Selection</span>",
             "</div>",
-            // '<div class="downloadToolControlRow">',
-            //     '<i class="mdi mdi-layers mdi-18px input-icon"></i>',
-            //     "<div id='dataDownloadToolSelectedDropdown' class='ui dropdown short'></div>",
-            // "</div>",
+            '<div id="downloadToolLayerList" class="downloadToolControlRow expansive"></div>',
+            '<div class="downloadToolControlRow">',
+                "<span class='downloadToolMidHeader'>Subset Parameters</span>",
+            "</div>",
             '<div class="downloadToolControlRow">',
                 '<i class="mdi mdi-select-marker mdi-18px input-icon"></i>',
                 "<input id='downloadAreaInput' type='text' placeholder='Selection area [-180,-90,180,90]' class='left-icon right-icon' />",
@@ -49,23 +49,22 @@ const markup = [
             "</div>",
             '<div class="downloadToolControlRow">',
                 '<i class="mdi mdi-calendar-arrow-right mdi-18px input-icon"></i>',
-                "<input id='downloadDateRange' type='text' placeholder='Date Range' />",
+                "<input id='downloadDateRangeStart' type='text' placeholder='Date Range' />",
             "</div>",
             '<div class="downloadToolControlRow">',
-                "<span class='downloadToolMidHeader'>Sub-Filtering</span>",
+                '<i class="mdi mdi-calendar-arrow-left mdi-18px input-icon"></i>',
+                "<input id='downloadDateRangeEnd' type='text' placeholder='Date Range' />",
             "</div>",
             '<div class="downloadToolControlRow">',
-                '<i class="mdi mdi-layers mdi-18px input-icon"></i>',
-                "<div id='dataDownloadToolSelectedDropdown' class='ui dropdown short'></div>",
-            "</div>",
-            '<div id="downloadToolFilteringContainer" class="downloadToolControlRow expansive gears_on">',
+                '<i class="mdi mdi-file-document mdi-18px input-icon"></i>',
+                "<input id='filenameMatch' type='text' placeholder='Filename filter ex: *.hdf' />",
             "</div>",
             "<div id='dataDownload_footer'>",
                 "<div id='dataDownload_submit' class='mmgisButton5'>",
                     "<div id='dataDownload_submit_loading'>",
                         "<div></div>",
                     "</div>",
-                    "<div id='dataDownload_submit_text'>Submit</div>",
+                    "<div id='dataDownload_submit_text'>Submit Subset Request</div>",
                     "<i class='mdi mdi-arrow-right mdi-18px'></i>",
                 "</div>",
             "</div>",
@@ -82,6 +81,7 @@ const DataDownload = {
     width: 315,
     MMGISInterface: null,
     downloadEnabledLayers: [],
+    selectedLayers: {},
     selectedLayerIdx: 0,
     currBounds: null,
     currDrawing: null,
@@ -91,23 +91,102 @@ const DataDownload = {
         //Add event functions and whatnot
         Help.finalize(helpKey)
 
-        // filter out only those layers that can be downloaded
+        // TODO - filter out only those layers that can be downloaded
         // this.downloadEnabledLayers = L_.configData.layers.filter(
         //     (l) =>
         //         l.type === 'query' ||
         //         (l.type === 'tile' && l?.variables?.downloadURL)
         // )
-        DataDownload.downloadEnabledLayers = L_.configData.layers
+        const getActive = (layerList) => {
+            return layerList.reduce((acc, l) => {
+                if (l.type === 'header') {
+                    return acc.concat(getActive(l.sublayers))
+                } else if (L_.layers.on[l.name]) {
+                    acc.push(l)
+                }
+                return acc
+            }, [])
+        }
+        DataDownload.downloadEnabledLayers = getActive(L_.configData.layers)
 
         // init layer selection
-        const lnames = DataDownload.downloadEnabledLayers.map(
-            (l) => l.display_name
-        )
-        $('#dataDownloadToolSelectedDropdown').html(
-            Dropy.construct(lnames, 'Dataset', DataDownload.selectedLayerIdx)
-        )
-        Dropy.init($('#dataDownloadToolSelectedDropdown'), (idx) => {
-            DataDownload.setSelectedIdx(idx)
+        const dataSelects = DataDownload.downloadEnabledLayers
+            .map((l) => {
+                let nodeArr = [
+                    '<div on="true" depth="0"  style="margin-bottom: 1px;">',
+                    `<div class="title dataDownloadLayerSelect" layer="${l.name}">`,
+                    '<div class="checkboxcont">',
+                    `<div class="checkbox ${
+                        DataDownload.selectedLayers[l.name] ? 'on' : 'off'
+                    }"></div>`,
+                    '</div>',
+                    `<div class="layerName" title="${l.display_name}">`,
+                    l.display_name,
+                    '</div>',
+                ]
+
+                const shouldFilter = ['vector', 'query'].includes(l.type)
+                if (shouldFilter) {
+                    nodeArr = nodeArr.concat([
+                        "<div class='hover-right'>",
+                        `<div title="Filter" class="gears dataDownloadLayerFilterBtn" stype="${l.type}" layer="${l.name}">`,
+                        '<i class="mdi mdi-filter mdi-18px" name="layerfilter"></i>',
+                        '</div>',
+                        '</div>',
+                        '</div>',
+                        `<div id='dataDownloadLayerFilter__${F_.getSafeName(
+                            l.name
+                        )}' class='dataDownloadLayerFilter'></div>`,
+                        '</div>',
+                    ])
+                } else {
+                    nodeArr = nodeArr.concat(['</div>', '</div>'])
+                }
+
+                return nodeArr.join('\n')
+            })
+            .join('\n')
+        $('#downloadToolLayerList').html(dataSelects)
+
+        $('.dataDownloadLayerSelect').on('click', (e) => {
+            const t = e.delegateTarget
+            const lname = t.getAttribute('layer')
+            DataDownload.selectedLayers[lname] =
+                !!!DataDownload.selectedLayers[lname]
+            const cb = $(t).find('.checkbox')
+            if (DataDownload.selectedLayers[lname]) {
+                cb.addClass('on')
+                cb.removeClass('off')
+            } else {
+                cb.addClass('off')
+                cb.removeClass('on')
+            }
+        })
+
+        $('.dataDownloadLayerFilterBtn').on('click', async (e) => {
+            e.stopPropagation() // prevent the filter from deselecting the layer
+            const t = e.delegateTarget
+            const lname = t.getAttribute('layer')
+            const layer = DataDownload.downloadEnabledLayers.find(
+                (l) => l.name === lname
+            )
+            if (layer) {
+                const filterContainer = $(
+                    `#dataDownloadLayerFilter__${F_.getSafeName(lname)}`
+                )
+                const wasOn = filterContainer.hasClass('gears_on')
+                filterContainer.removeClass('gears_on')
+                Filtering.destroy()
+                if (!wasOn) {
+                    filterContainer.addClass('gears_on')
+                    if (!L_.layers.on[lname]) {
+                        await L_.toggleLayer(layer)
+                    }
+                    Filtering.make(filterContainer, lname)
+                }
+            } else {
+                console.warn(`Could not resolve layer: ${lname}`)
+            }
         })
 
         // init change listener
@@ -147,7 +226,6 @@ const DataDownload = {
 
         // init date selectors
         const dateOptions = {
-            dateRange: true,
             display: {
                 viewMode: 'months',
                 components: {
@@ -179,60 +257,96 @@ const DataDownload = {
                 },
             },
             useCurrent: false,
-            //promptTimeOnDateChange: true,
             promptTimeOnDateChangeTransitionDelay: 200,
         }
 
-        DataDownload.dateRangeTempus = new TempusDominus(
-            document.getElementById('downloadDateRange'),
+        DataDownload.dateRangeTempusStart = new TempusDominus(
+            document.getElementById('downloadDateRangeStart'),
             dateOptions
         )
-        DataDownload.dateRangeTempus.dates.formatInput = function (date) {
+        DataDownload.dateRangeTempusEnd = new TempusDominus(
+            document.getElementById('downloadDateRangeEnd'),
+            dateOptions
+        )
+        DataDownload.dateRangeTempusStart.dates.formatInput = function (date) {
             return moment(date).format('MM/DD/yyyy, hh:mm A')
         }
-        const tempusDates = DataDownload.dateRangeTempus.dates
-        tempusDates.setValue(
-            tempusDates.parseInput(
-                new Date(TimeControl.timeUI.addOffset(TimeControl.startTime))
-            ),
-            0
+        DataDownload.dateRangeTempusEnd.dates.formatInput = function (date) {
+            return moment(date).format('MM/DD/yyyy, hh:mm A')
+        }
+        DataDownload.dateRangeTempusStart.dates.setValue(
+            DataDownload.dateRangeTempusStart.dates.parseInput(
+                TimeControl.timeUI.addOffset(TimeControl.startTime)
+            )
         )
-        tempusDates.setValue(
-            tempusDates.parseInput(
-                new Date(TimeControl.timeUI.addOffset(TimeControl.endTime))
-            ),
-            1
+        DataDownload.dateRangeTempusEnd.dates.setValue(
+            DataDownload.dateRangeTempusEnd.dates.parseInput(
+                TimeControl.timeUI.addOffset(TimeControl.endTime)
+            )
         )
 
-        DataDownload.dateRangeTempus.subscribe(Namespace.events.change, (e) => {
-            const dates = DataDownload.dateRangeTempus.dates.getFirst()
-            TimeControl.setTime(dates[0], dates[1])
-            DataDownload.enableDownload()
-        })
-        TimeControl.timeUI.startTempus.subscribe(
-            Namespace.events.change,
-            (e) => {
-                const offsetDate = TimeControl.timeUI.addOffset(
-                    TimeControl.startTime
+        const updateFromTempus = () => {
+            if (DataDownload.updateToggle) {
+                const cStart = moment(TimeControl.startTime)
+                const cEnd = moment(TimeControl.endTime)
+                const start = moment(
+                    DataDownload.dateRangeTempusStart.dates.getFirst()[0]
                 )
-                const dates = DataDownload.dateRangeTempus.dates.getFirst()
-                const currOffsetStart = TimeControl.timeUI.addOffset(dates[0])
-                if (offsetDate - currOffsetStart !== 0) {
-                    tempusDates.setValue(
-                        tempusDates.parseInput(new Date(offsetDate)),
-                        0
+                const end = moment(
+                    DataDownload.dateRangeTempusEnd.dates.getFirst()[0]
+                )
+
+                if (!cStart.isSame(start) || !cEnd.isSame(end)) {
+                    TimeControl.setTime(
+                        `${start.format('YYYY-MM-DDThh:mm')}Z`,
+                        `${end.format('YYYY-MM-DDThh:mm')}Z`
                     )
                 }
             }
+            DataDownload.updateToggle = true
+        }
+
+        DataDownload.dateRangeTempusStart.subscribe(
+            Namespace.events.change,
+            (e) => {
+                updateFromTempus()
+                DataDownload.enableDownload()
+            }
         )
-        TimeControl.timeUI.endTempus.subscribe(Namespace.events.change, (e) => {
-            const offsetDate = TimeControl.timeUI.addOffset(TimeControl.endTime)
-            const dates = DataDownload.dateRangeTempus.dates.getFirst()
-            const currOffsetEnd = TimeControl.timeUI.addOffset(dates[1])
-            if (offsetDate - currOffsetEnd !== 0) {
-                tempusDates.setValue(
-                    tempusDates.parseInput(new Date(offsetDate)),
-                    1
+        DataDownload.dateRangeTempusEnd.subscribe(
+            Namespace.events.change,
+            (e) => {
+                updateFromTempus()
+                DataDownload.enableDownload()
+            }
+        )
+
+        TimeControl.subscribe('dataDownloadInputSub', (times) => {
+            const { startTime, endTime } = times
+            const cStart = moment(TimeControl.timeUI.addOffset(startTime))
+            const cEnd = moment(TimeControl.timeUI.addOffset(endTime))
+            const start = moment(
+                DataDownload.dateRangeTempusStart.dates.getFirst()[0]
+            )
+            const end = moment(
+                DataDownload.dateRangeTempusEnd.dates.getFirst()[0]
+            )
+
+            if (!cStart.isSame(start)) {
+                DataDownload.updateToggle = false
+                DataDownload.dateRangeTempusStart.dates.setValue(
+                    DataDownload.dateRangeTempusStart.dates.parseInput(
+                        cStart.toDate()
+                    )
+                )
+            }
+
+            if (!cEnd.isSame(end)) {
+                DataDownload.updateToggle = false
+                DataDownload.dateRangeTempusEnd.dates.setValue(
+                    DataDownload.dateRangeTempusEnd.dates.parseInput(
+                        cEnd.toDate()
+                    )
                 )
             }
         })
@@ -243,7 +357,8 @@ const DataDownload = {
                     DataDownload.selectedLayerIdx
                 ]
             const renderedLayer = L_.layers.layer[layer.name]
-            const dates = DataDownload.dateRangeTempus.dates.getFirst()
+            const start = DataDownload.dateRangeTempusStart.dates.getFirst()[0]
+            const end = DataDownload.dateRangeTempusEnd.dates.getFirst()[0]
             if (renderedLayer) {
                 // TODO start here and figure out how to get the download links
                 console.log(layer, renderedLayer)
@@ -255,7 +370,7 @@ const DataDownload = {
                             const rlTime = new Date(
                                 rl.feature.properties[startProp]
                             )
-                            if (rlTime > dates[0] && rlTime < dates[1]) {
+                            if (rlTime > start && rlTime < end) {
                                 filteredItems.push(rl)
                             }
                         }
@@ -266,8 +381,6 @@ const DataDownload = {
                 console.warn('Could not find layer on map')
             }
         })
-
-        DataDownload.refreshFilters()
 
         DataDownload.enableDownload()
     },
@@ -326,37 +439,11 @@ const DataDownload = {
 
         DataDownload.enableDownload()
     },
-    setSelectedIdx: async function (idx) {
-        DataDownload.selectedLayerIdx = idx
-        DataDownload.refreshFilters()
-    },
-    refreshFilters: async function () {
-        Filtering.destroy()
-        $('#downloadToolFilteringContainer').html('')
-        const layer =
-            DataDownload.downloadEnabledLayers[DataDownload.selectedLayerIdx]
-        if (layer) {
-            const layer =
-                DataDownload.downloadEnabledLayers[
-                    DataDownload.selectedLayerIdx
-                ]
-            if (!L_.layers.on[layer.name]) {
-                $('#downloadToolFilteringContainer').html('Loading layer...')
-                await L_.toggleLayer(layer)
-                $('#downloadToolFilteringContainer').html('')
-            }
-            Filtering.make($('#downloadToolFilteringContainer'), layer.name)
-        } else {
-            $('#downloadToolFilteringContainer').html(
-                '<div class="dataDownloadTool_noFiltersAvail">No filters available for this dataset.</div>'
-            )
-        }
-    },
     enableDownload: function () {
         if (
-            DataDownload.downloadEnabledLayers[DataDownload.selectedLayerIdx] &&
-            DataDownload.areaSelectionLayer &&
-            DataDownload.dateRangeTempus.dates.getFirst().length === 2
+            // TODO - check that at least one dataset is selected
+            DataDownload.areaSelectionLayer
+            // DataDownload.dateRangeTempusStart.dates.getFirst().length === 2
         ) {
             $('#dataDownload_submit').addClass('ready')
         } else {
@@ -369,7 +456,8 @@ const DataDownload = {
         }
         DataDownload.areaSelectionLayer = null
         DataDownload.selectedLayerIdx = 0
-        DataDownload.dateRangeTempus.dispose()
+        DataDownload.dateRangeTempusStart.dispose()
+        DataDownload.dateRangeTempusEnd.dispose()
     },
     make: function () {
         this.MMGISInterface = new interfaceWithMMGIS()

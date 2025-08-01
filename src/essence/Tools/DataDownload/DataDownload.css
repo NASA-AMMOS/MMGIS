@@ -59,7 +59,7 @@
 }
 
 #dataDownloadToolSelectedDropdown {
-    background: var(--color-a1);
+    background: var(--color-a1-5);
     flex: 1 1;
     color: #ccc;
     padding-left: 28px;
@@ -80,7 +80,7 @@
 }
 
 #dataDownloadToolControls input {
-    background: var(--color-a1);
+    background: var(--color-a1-5);
     flex: 1 1;
     color: #ccc;
     padding-left: 28px;
@@ -181,4 +181,73 @@
 
 #dataDownloadTool #layerTool_filtering_filters_spatial_radius {
     border-right: none;
+}
+
+#dataDownloadTool #downloadToolLayerList {
+    display: flex;
+    flex-flow: column;
+    font-size: 14px;
+    overflow: hidden;
+}
+
+#dataDownloadTool #downloadToolLayerList .title {
+    height: 30px;
+    line-height: 30px;
+    justify-content: space-between;
+    display: flex;
+    width: 100%;
+    background: var(--color-a1-5);
+}
+
+#dataDownloadTool #downloadToolLayerList .layerName {
+    cursor: pointer;
+    line-height: 31px;
+    height: 100%;
+    flex: 1;
+    user-select: none;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+#dataDownloadTool #downloadToolLayerList .checkboxcont {
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+}
+
+#dataDownloadTool #downloadToolLayerList .checkbox {
+    margin: 5px;
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--color-a3);
+    border-radius: 2px;
+    transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+        border 0.1s cubic-bezier(0.39, 0.575, 0.565, 1),
+        border-radius 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+
+#dataDownloadTool #downloadToolLayerList .checkbox.on {
+    background: var(--color-a7);
+    border: 0px solid #777;
+}
+
+#dataDownloadTool #downloadToolLayerList .checkbox:not(.on):hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#dataDownloadTool #downloadToolLayerList .hover-right {
+    float: right;
+    display: block;
+    z-index: 1;
+    margin-right: 7px;
+    opacity: 0;
+    user-select: none;
+    transition: opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+    cursor: pointer;
+}
+
+#dataDownloadTool #downloadToolLayerList .dataDownloadLayerSelect:hover .hover-right {
+    opacity: 1;
+    user-select: auto;
 }
