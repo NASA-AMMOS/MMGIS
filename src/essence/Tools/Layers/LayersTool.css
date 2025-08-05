@@ -368,7 +368,7 @@
 #layersTool .tileCogColormap #titlerCogColormapCSS {
     width: 254px;
     height: 28px;
-    transform: rotateZ(90deg) translateX(125px) translateY(-177px);
+    transform: rotateZ(-90deg) translateX(-125px) translateY(177px);
     border-left: 14px solid #222;
     border-right: 14px solid #222;
 }
