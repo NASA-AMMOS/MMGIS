@@ -1272,15 +1272,6 @@ function interfaceWithMMGIS(fromInit) {
     // Collapse header
     $('.layersToolHeader').on('click', function () {
         LayersTool.toggleHeader($(this).attr('id'))
-
-        if ($(this).attr('childrenon') === 'true') {
-            // Expand sub layer headers
-            traverseHeaderLayersExpandedState(L_.layers.data[$(this).attr('name')].sublayers, L_.layers.data[$(this).attr('name')], 0)
-        } else {
-            console.log("this", $(this))
-            // Make sure we set the childrenon attribute to false for the sub layer headers
-            traverseHeaderLayersResetChildrenon(L_.layers.data[$(this).attr('name')].sublayers, L_.layers.data[$(this).attr('name')], 0)
-        }
     })
     // Toggle between all-off and previous-on states
     // Power state switches back to on if any inner layer is toggled (done elsewhere)
@@ -2255,10 +2246,10 @@ function interfaceWithMMGIS(fromInit) {
     function traverseHeaderLayersExpandedState(node, parent, depth) {
         for (var i = 0; i < node.length; i++) {
             if (node[i].type == 'header') {
-                if (node[i].expanded) {
-                    //if ($(`#layersToolList > li#header_${parent.name}`).attr('childrenon') === 'true') { // (parent.expanded) {
-                        LayersTool.toggleHeader(`header_${node[i].name}`)
-                    //}
+                if ((node[i].expanded && node[i].expanded === true)
+                        || (node[i].expanded === undefined
+                            && $(`#layersToolList > li#header_${parent.name}`).attr('childrenon') === true)) {
+                    LayersTool.toggleHeader(`header_${node[i].name}`)
                 }
             }
 
