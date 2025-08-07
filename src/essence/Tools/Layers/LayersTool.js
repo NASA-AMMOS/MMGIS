@@ -2237,11 +2237,11 @@ function interfaceWithMMGIS(fromInit) {
     })
 
     //Start collapsed
-    if (LayersTool.vars.expanded !== true)
+    if (LayersTool.vars.expanded !== true) {
         $('#searchLayers > #collapse').click()
-
-    // Expand individual headers based on its configuration settings
-    traverseHeaderLayersExpandedState(L_.configData.layers, {}, 0)
+        // Expand individual headers based on its configuration settings
+        traverseHeaderLayersExpandedState(L_.configData.layers, {}, 0)
+    }
 
     function traverseHeaderLayersExpandedState(node, parent, depth) {
         for (var i = 0; i < node.length; i++) {
