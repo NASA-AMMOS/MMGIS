@@ -116,9 +116,9 @@
         {
           "field": "coordinates.coordmain",
           "name": "Main Coordinate Type",
-          "description": "",
+          "description": "Sets which coordinates are shown by default in the bottom-right of the map.\n\t<strong>• LL</strong>: Longitude, Latitude\n\t<strong>• EN</strong>: Easting, Northing\n\t<strong>• CPROJ</strong>: Custom Projected (uses Projection tab)\n\t<strong>• SPROJ</strong>: Secondary Projected\n\t<strong>• RXY</strong>: Relative X, Y, (Z) in meters\n\t<strong>• SITE</strong>: Local Level Y, X, -Z",
           "type": "dropdown",
-          "width": 2,
+          "width": 4,
           "options": ["ll", "en", "cproj", "sproj", "rxy", "site"]
         }
       ]

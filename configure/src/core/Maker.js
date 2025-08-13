@@ -406,9 +406,10 @@ const getComponent = (
           {inlineHelp ? (
             <>
               {inner}
-              <Typography className={c.subtitle2}>
-                {com.description || ""}
-              </Typography>
+              <div
+                className={c.subtitle2}
+                dangerouslySetInnerHTML={{ __html: com.description || "" }}
+              ></div>
             </>
           ) : (
             <Tooltip title={com.description || ""} placement="top" arrow>
@@ -708,9 +709,10 @@ const getComponent = (
           {inlineHelp ? (
             <>
               {inner}
-              <Typography className={c.subtitle2}>
-                {com.description || ""}
-              </Typography>
+              <div
+                className={c.subtitle2}
+                dangerouslySetInnerHTML={{ __html: com.description || "" }}
+              ></div>
             </>
           ) : (
             <Tooltip title={com.description || ""} placement="top" arrow>

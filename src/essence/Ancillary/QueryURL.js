@@ -37,6 +37,7 @@ var QueryURL = {
 
         var startTime = this.getSingleQueryVariable('startTime')
         var endTime = this.getSingleQueryVariable('endTime')
+        var live = this.getSingleQueryVariable('live')
 
         if (urlSite !== false) {
             L_.FUTURES.site = urlSite
@@ -174,6 +175,11 @@ var QueryURL = {
             } else {
                 console.warn('Invalid endTime from deep link in the url')
             }
+        }
+
+        if (live !== false) {
+            const liveStr = (live + '').toLowerCase()
+            L_.FUTURES.live = liveStr === 'true' || liveStr === '1'
         }
 
         if (layersOn !== false || selected !== false) {
@@ -400,6 +406,8 @@ var QueryURL = {
                     urlAppendage += '&startTime=' + TimeControl.startTime
             if (TimeControl.endTime)
                 urlAppendage += '&endTime=' + TimeControl.endTime
+            if (TimeControl.timeUI && typeof TimeControl.timeUI.now === 'boolean')
+                urlAppendage += '&live=' + (TimeControl.timeUI.now ? '1' : '0')
         }
 
         var url = encodeURI(urlAppendage)

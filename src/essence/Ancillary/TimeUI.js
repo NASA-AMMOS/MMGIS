@@ -116,6 +116,7 @@ const TimeUI = {
                     `</div>`,
                     `<div id="mmgisTimeUIPresent" class="mmgisTimeUIButton">`,
                         `<i class='mdi mdi-clock-end mdi-24px'></i>`,
+                        `<div id="mmgisTimeUIPresentProgress"></div>`,
                     `</div>`,
                 `</div>`,
                 /*
@@ -443,6 +444,8 @@ const TimeUI = {
             placement: 'top',
             theme: 'blue',
         })
+        // Initialize live progress duration on load
+        TimeUI._refreshLiveProgress()
 
         if (L_.configData.time?.startInPointMode == true) {
             TimeUI.modeIndex = TimeUI.modes.indexOf('Point')
@@ -516,6 +519,7 @@ const TimeUI = {
         Dropy.init($('#mmgisTimeUIRateDropdown'), function (idx) {
             TimeUI.intervalIndex = idx
             TimeUI._refreshIntervals()
+            TimeUI._refreshLiveProgress()
         })
 
         // Interval Duration dropdown
@@ -730,6 +734,17 @@ const TimeUI = {
         // Set modeIndex to 1/Point if a deeplink had an endtime but no starttime
         else if (TimeUI.modeIndex != TimeUI._startingModeIndex)
             TimeUI.changeMode(TimeUI._startingModeIndex)
+
+        // Enable live (present) based on deeplink override, else config default
+        const deeplinkLive = L_.FUTURES?.live
+        if (TimeUI.now !== true) {
+            if (deeplinkLive === true) {
+                TimeUI.toggleTimeNow(true)
+            } else if (deeplinkLive == null && L_.configData.time?.liveByDefault === true) {
+                TimeUI.toggleTimeNow(true)
+            }
+        }
+        TimeUI._refreshLiveProgress()
     },
     changeMode(idx) {
         TimeUI.modeIndex = idx
@@ -865,6 +880,7 @@ const TimeUI = {
             $('#mmgisTimeUIEndWrapper').css('cursor', 'inherit')
         }
         if (butDontActuallyPlay !== true) TimeUI._refreshIntervals()
+        TimeUI._refreshLiveProgress()
     },
     _updateExtentIndicator(forceStartTimestamp, forceEndTimestamp) {
         if (TimeUI.play) return
@@ -917,6 +933,35 @@ const TimeUI = {
                 TimeUI.intervalValues[TimeUI.intervalIndex]
             )
         }
+        TimeUI._refreshLiveProgress()
+    },
+    _refreshLiveProgress() {
+        const dur = TimeUI.intervalValues[TimeUI.intervalIndex] || 1000
+        const present = $('#mmgisTimeUIPresent')
+        const progress = $('#mmgisTimeUIPresentProgress')
+        progress.css('--live-duration', `${dur}ms`)
+        if (TimeUI.now === true) {
+            present.addClass('live')
+            progress.css('opacity', 0.9)
+            TimeUI._restartLiveProgressTransition()
+        } else {
+            present.removeClass('live')
+            progress.css('opacity', 0)
+            progress.css('transition', 'none')
+            progress.css('width', '0')
+        }
+    },
+    _restartLiveProgressTransition() {
+        const dur = TimeUI.intervalValues[TimeUI.intervalIndex] || 1000
+        const progress = $('#mmgisTimeUIPresentProgress')
+        // Reset width to 0 without transition, then animate to 100%
+        progress.css('transition', 'none')
+        progress.css('width', '0')
+        // Force reflow to apply width reset before re-enabling transition
+        const _ = progress.get(0) && progress.get(0).offsetWidth
+        progress.css('transition', `width ${dur}ms linear`)
+        // Kick off the ramp
+        progress.css('width', '100%')
     },
     _loopTime(loopBackwards) {
         const mode = TimeUI.modes[TimeUI.modeIndex]
@@ -1025,6 +1070,8 @@ const TimeUI = {
                 .css('color', 'white')
             $('#mmgisTimeUIEnd').css('pointer-events', 'none')
             $('#mmgisTimeUIEndWrapper').css('cursor', 'not-allowed')
+            // Rename label to Live Time
+            $('#mmgisTimeUIEndWrapper > span').text('Live Time')
             TimeUI.now = true
             TimeUI.togglePlay(false)
         } else {
@@ -1034,6 +1081,8 @@ const TimeUI = {
                 .css('color', 'var(--color-a4)')
             $('#mmgisTimeUIEnd').css('pointer-events', 'inherit')
             $('#mmgisTimeUIEndWrapper').css('cursor', 'inherit')
+            // Restore label to Active Time
+            $('#mmgisTimeUIEndWrapper > span').text('Active Time')
             TimeUI.now = false
         }
         TimeUI._refreshIntervals()
@@ -1310,6 +1359,17 @@ const TimeUI = {
             TimeUI.setCurrentTime(parsedNow, disableChange)
             //TimeUI._remakeTimeSlider(true)
             TimeUI.endTempus.dates.setValue(parsedNow)
+            // Subtle tick flash indicator when live updates (title text)
+            if (TimeUI.now === true) {
+                const endLabel = $('#mmgisTimeUIEndWrapper > span')
+                endLabel.addClass('flash')
+                clearTimeout(TimeUI._flashTimeout)
+                TimeUI._flashTimeout = setTimeout(() => {
+                    endLabel.removeClass('flash')
+                }, 600)
+                // Restart progress bar exactly on tick
+                TimeUI._restartLiveProgressTransition()
+            }
         }
     },
     updateTimes(start, end, current) {

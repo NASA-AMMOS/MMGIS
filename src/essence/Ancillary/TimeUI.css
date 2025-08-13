@@ -179,10 +179,7 @@
     text-transform: capitalize;
     color: var(--color-a5);
 }
-#mmgisTimeUIStartWrapper {
-}
-#mmgisTimeUIEndWrapper {
-}
+/* Start/End wrappers intentionally left for future styling hooks */
 #mmgisTimeUIActionsLeft,
 #mmgisTimeUIActionsRight {
     background: var(--color-a);
@@ -296,6 +293,28 @@
     transition: color 0.2s ease-out;
 }
 
+/* Live (Present) progress indicator */
+#mmgisTimeUIPresent {
+    position: relative;
+    overflow: hidden;
+    margin: 3px;
+    width: 34px;
+    height: 34px;
+}
+#mmgisTimeUIPresentProgress {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    width: 0;
+    background: #dcc565;
+    opacity: 0;
+    transition: width var(--live-duration, 1000ms) linear;
+}
+#mmgisTimeUIPresent.live #mmgisTimeUIPresentProgress {
+    opacity: 0.9;
+}
+
 #mmgisTimeUIFitTime:hover,
 #mmgisTimeUIFitWindow:hover,
 #mmgisTimeUIPresent:hover {
@@ -385,4 +404,13 @@
     background: rgb(96, 78, 26, 0.7);
     transition: opacity 0.2s ease-out;
     z-index: -1;
+}
+
+/* Subtle tick flash on Live update (title text) */
+#mmgisTimeUIEndWrapper > span.flash {
+    animation: mmgis-time-text-flash 0.35s ease-out;
+}
+@keyframes mmgis-time-text-flash {
+    0% { color: var(--color-p4); }
+    100% { color: var(--color-h); }
 }

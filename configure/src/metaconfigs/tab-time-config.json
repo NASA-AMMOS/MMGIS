@@ -31,14 +31,6 @@
           "type": "checkbox",
           "width": 3,
           "defaultChecked": false
-        },
-        {
-          "field": "time.startInPointMode",
-          "name": "Start In Point Mode",
-          "description": "The Time UI begins in the Range Mode and allows users to bound by start and end times. Point Mode has users only control the end time and has start time implied by negative infinity.",
-          "type": "checkbox",
-          "width": 3,
-          "defaultChecked": false
         }
       ]
     },
@@ -50,7 +42,23 @@
           "name": "Time Format",
           "description": "The time format to be displayed on the Time UI. Uses D3 time format specifiers: <a target='_blank' href='https://github.com/d3/d3-time-format'>https://github.com/d3/d3-time-format</a>. Default: %Y-%m-%dT%H:%M:%SZ",
           "type": "text",
-          "width": 12
+          "width": 6
+        },
+        {
+          "field": "time.liveByDefault",
+          "name": "Live Mode On By Default",
+          "description": "If enabled, the Time UI will start in Live (Present) mode.",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": false
+        },
+        {
+          "field": "time.startInPointMode",
+          "name": "Start In Point Mode",
+          "description": "The Time UI begins in the Range Mode and allows users to bound by start and end times. Point Mode has users only control the end time and has start time implied by negative infinity.",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": false
         }
       ]
     },
