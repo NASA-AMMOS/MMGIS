@@ -110,6 +110,8 @@ const useStyles = makeStyles((theme) => ({
 
 export default function SpatialFilterMap({
   collectionId,
+  collection,
+  items,
   dateFrom,
   dateTo,
   bboxBounds,
@@ -125,6 +127,61 @@ export default function SpatialFilterMap({
   const [isDrawing, setIsDrawing] = useState(false);
   const isDrawingRef = useRef(false);
   const drawStateRef = useRef({ isDown: false, startLatLng: null, tempRect: null });
+  const [is32BitCollection, setIs32BitCollection] = useState(false);
+  const [collectionStats, setCollectionStats] = useState(null);
+
+  // Check first item in collection to determine if it contains 32-bit rasters
+  useEffect(() => {
+    const checkFirst32BitItem = () => {
+      if (!items || items.length === 0) {
+        setIs32BitCollection(false);
+        setCollectionStats(null);
+        return;
+      }
+
+      const firstItem = items[0];
+      
+      if (!firstItem?.assets) {
+        setIs32BitCollection(false);
+        setCollectionStats(null);
+        return;
+      }
+
+      // Use same logic as JsonViewModal to find COG asset
+      const findCogAsset = (assets) => {
+        const assetKeys = Object.keys(assets);
+        const cogKeys = ['data', 'cog', 'image', 'tif', 'tiff'];
+        for (const key of cogKeys) {
+          if (assets[key] && assets[key].href) return assets[key];
+        }
+        for (const key of assetKeys) {
+          if (assets[key] && assets[key].href && (assets[key].href.includes('.tif') || assets[key].href.includes('.cog'))) {
+            return assets[key];
+          }
+        }
+        return null;
+      };
+
+      const cogAsset = findCogAsset(firstItem.assets);
+      
+      if (cogAsset && cogAsset['raster:bands'] && cogAsset['raster:bands'][0]) {
+        const firstBand = cogAsset['raster:bands'][0];
+        if (firstBand.data_type === 'float32') {
+          setIs32BitCollection(true);
+          // Store statistics if available
+          if (firstBand.statistics) {
+            setCollectionStats(firstBand.statistics);
+          }
+          return;
+        }
+      }
+      
+      setIs32BitCollection(false);
+      setCollectionStats(null);
+    };
+
+    checkFirst32BitItem();
+  }, [items]);
 
   useEffect(() => {
     isDrawingRef.current = isDrawing;
@@ -283,13 +340,26 @@ export default function SpatialFilterMap({
       const { minLng, minLat, maxLng, maxLat } = bboxBounds;
       urlParams.set("bbox", `${minLng},${minLat},${maxLng},${maxLat}`);
     }
-    const collection = collectionId || "";
-    const mosaicUrl = `${domain}titilerpgstac/collections/${encodeURIComponent(collection)}/tiles/${zxy}?${urlParams.toString()}`;
+    
+    // Add 32-bit raster parameters if detected
+    if (is32BitCollection) {
+      // Use statistics from the first item if available
+      if (collectionStats && collectionStats.minimum !== undefined && collectionStats.maximum !== undefined) {
+        urlParams.set("rescale", `${collectionStats.minimum},${collectionStats.maximum}`);
+      } else {
+        // Use default rescaling for common 32-bit data types
+        urlParams.set("rescale", "-1000,8000"); // Common for elevation data
+      }
+      urlParams.set("colormap_name", "viridis");
+    }
+    
+    const collectionName = collectionId || "";
+    const mosaicUrl = `${domain}titilerpgstac/collections/${encodeURIComponent(collectionName)}/tiles/${zxy}?${urlParams.toString()}`;
     mosaicLayerRef.current = leaflet.tileLayer(mosaicUrl, {
       opacity: 0.8,
       maxZoom: 18,
     }).addTo(map);
-  }, [collectionId, dateFrom, dateTo, bboxBounds]);
+  }, [collectionId, dateFrom, dateTo, bboxBounds, is32BitCollection, collectionStats]);
 
   return (
     <div className={classes.container}>

@@ -887,6 +887,8 @@ const StacCollectionItemsModal = () => {
             <SpatialFilterMap
               classes={c}
               collectionId={modal?.stacCollection?.id}
+              collection={modal?.stacCollection}
+              items={allItems}
               dateFrom={dateFrom}
               dateTo={dateTo}
               bboxBounds={bboxBounds}
