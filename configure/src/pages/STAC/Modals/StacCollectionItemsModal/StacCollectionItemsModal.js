@@ -13,18 +13,13 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
-import TableRow from "@mui/material/TableRow";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
-import Tooltip from "@mui/material/Tooltip";
 import InputAdornment from "@mui/material/InputAdornment";
-import Divider from "@mui/material/Divider";
+import Tooltip from "@mui/material/Tooltip";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
 import WidgetsIcon from "@mui/icons-material/Widgets";
@@ -34,8 +29,14 @@ import InfoIcon from "@mui/icons-material/Info";
 
 import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import ReactJson from "react-json-view";
 import * as L from "leaflet";
+
+// components
+import SpatialFilterMap from "./components/SpatialFilterMap";
+import JsonViewModal from "./components/JsonViewModal";
+import DeleteItemModal from "./components/DeleteItemModal";
+import BulkDeleteModal from "./components/BulkDeleteModal";
+import ItemsTable from "./components/ItemsTable";
 
 import "leaflet/dist/leaflet.css";
 
@@ -74,8 +75,28 @@ const useStyles = makeStyles((theme) => ({
     textTransform: "uppercase",
   },
   content: {
-    padding: "16px !important",
+    padding: "0px !important",
     height: `calc(100% - ${theme.headHeights[2]}px)`,
+    display: "flex",
+    flexDirection: "column",
+  },
+  mainRow: {
+    gap: "12px",
+    height: "100%",
+    overflow: "hidden",
+    '& > div:first-child': {
+      padding: "16px 16px 0px 16px"
+    }
+  },
+  leftPanel: {
+    flex: "0 0 30%",
+    minWidth: "370px",
+    display: "flex",
+    flexDirection: "column",
+  },
+  rightPanel: {
+    flex: "1 1 0",
+    minWidth: "520px",
     display: "flex",
     flexDirection: "column",
   },
@@ -93,6 +114,69 @@ const useStyles = makeStyles((theme) => ({
   },
   searchContainer: {
     marginBottom: "16px",
+  },
+  // removed searchRow/searchField (unused)
+  searchInput: {flex:1, marginLeft: "40px !important"},
+  // removed filtersRow/dateField (unused)
+  bulkActionsRow: {
+    display: "flex",
+    gap: "8px",
+    alignItems: "center",
+    marginTop: "8px",
+    paddingLeft: "8px",
+    paddingRight: "8px",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    '& div:first-child > button': {
+      marginRight: "8px",
+    }
+  },
+  selectionSummary: {
+    color: theme.palette.swatches.grey[200],
+    fontSize: "14px",
+  },
+  datePicker: {
+    width: 225,
+  },
+  regexTooltip: {
+    backgroundColor: `${theme.palette.swatches.grey[100]} !important`,
+    color: `${theme.palette.swatches.grey[800]} !important`,
+    fontSize: "14px !important",
+    lineHeight: 1.5,
+    maxWidth: 480,
+    border: `1px solid ${theme.palette.swatches.grey[800]}`,
+    padding: "8px 10px",
+    boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
+  },
+  regexTooltipContent: {
+    whiteSpace: "pre-line",
+    fontSize: "14px",
+    '& code': {
+      background: theme.palette.swatches.grey[200],
+      color: theme.palette.swatches.grey[800],
+      padding: '1px 4px',
+      borderRadius: 3,
+    },
+  },
+  regexTooltip: {
+    background: `${theme.palette.swatches.grey[200]} !important`,
+    color: `${theme.palette.swatches.grey[800]} !important`,
+    fontSize: "14px !important",
+    lineHeight: 1.5,
+    maxWidth: 480,
+    border: `1px solid ${theme.palette.swatches.grey[100]}`,
+    padding: "8px 10px",
+    boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
+  },
+  regexTooltipContent: {
+    whiteSpace: "pre-line",
+    fontSize: "14px",
+    '& code': {
+      background: `${theme.palette.swatches.grey[300]} !important`,
+      color: `${theme.palette.swatches.grey[900]} !important`,
+      padding: '1px 4px',
+      borderRadius: 3,
+    },
   },
   tableContainer: {
     flex: 1,
@@ -185,63 +269,6 @@ const useStyles = makeStyles((theme) => ({
       background: theme.palette.primary.main,
     },
   },
-  jsonContent: {
-    padding: "0px !important",
-    height: "100%",
-    overflow: "hidden",
-    background: theme.palette.swatches.grey[150],
-    display: "flex",
-  },
-  mapPanel: {
-    width: "50%",
-    height: "100%",
-    background: theme.palette.swatches.grey[900],
-    borderRight: `1px solid ${theme.palette.swatches.grey[700]}`,
-  },
-  mapContainer: {
-    width: "100%",
-    height: "100%",
-    position: "relative",
-    "& .leaflet-container": {
-      background: theme.palette.swatches.grey[900],
-    },
-  },
-  coordinateDisplay: {
-    left: "0px",
-    color: "white",
-    bottom: "62px",
-    display: "none",
-    padding: "6px 10px",
-    zIndex: "1000",
-    position: "absolute",
-    fontSize: "12px",
-    background: theme.palette.swatches.grey[300],
-    fontFamily: "monospace",
-    pointerEvents: "none",
-  },
-  jsonPanel: {
-    width: "50%",
-    height: "100%",
-  },
-  jsonContainer: {
-    background: theme.palette.swatches.grey[150],
-    padding: "16px",
-    boxSizing: "border-box",
-    height: "100%",
-    overflow: "auto",
-  },
-  jsonDialogActions: {
-    background: theme.palette.swatches.grey[200],
-    padding: "16px 24px !important",
-  },
-  jsonDialogActionsClose: {
-    color: `${theme.palette.swatches.grey[800]} !important`,
-    border: `1px solid ${theme.palette.swatches.grey[800]} !important`,
-    '&:hover': {
-      background: `${theme.palette.swatches.grey[900]} !important`,
-      color: `${theme.palette.swatches.grey[0]} !important`,
-    },
-  },
   deleteDialog: {
     "& .MuiDialog-paper": {
       background: theme.palette.swatches.grey[900],
@@ -280,7 +307,7 @@ const useStyles = makeStyles((theme) => ({
     justifyContent: "space-between !important",
     padding: "16px 24px !important",
   },
-      deleteButton: {
+    deleteButton: {
       background: `${theme.palette.swatches.p[4]} !important`,
       color: `${theme.palette.swatches.grey[1000]} !important`,
       "&:hover": {
@@ -294,7 +321,7 @@ const MODAL_NAME = "stacCollectionItems";
 const StacCollectionItemsModal = () => {
   const c = useStyles();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("xl"));
   const dispatch = useDispatch();
 
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
@@ -309,12 +336,18 @@ const StacCollectionItemsModal = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [useRegex, setUseRegex] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [filteredItems, setFilteredItems] = useState([]);
+  const [selectedItemIds, setSelectedItemIds] = useState(new Set());
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+  const [bulkDeleteConfirmation, setBulkDeleteConfirmation] = useState("");
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   
-  // Map related state
-  const mapRef = useRef(null);
-  const coordinateDisplayRef = useRef(null);
-  const [map, setMap] = useState(null);
-  const [mapLayers, setMapLayers] = useState({ bbox: null, raster: null });
+  // JSON view handled in JsonViewModal
+  const [bboxBounds, setBboxBounds] = useState(null); // {minLat, minLng, maxLat, maxLng}
+  
 
     const fetchAllItems = (searchQuery = "") => {
     if (!modal?.stacCollection?.id) return;
@@ -323,13 +356,19 @@ const StacCollectionItemsModal = () => {
         urlReplacements: {
           collection: modal.stacCollection.id,
         },
-        limit: 500,
+        limit: 10000,
         offset: 0
        }
-     const filter = searchQuery && searchQuery.trim() ? `id LIKE '%${searchQuery.trim()}%'` : null
-     if (filter !== null) {
-         body.filter = filter
-     }
+     // Only use server-side filter for simple substring searches without regex/date/bbox filters
+     const hasClientOnlyFiltering =
+       useRegex ||
+       (dateFrom && dateFrom.length > 0) ||
+       (dateTo && dateTo.length > 0) ||
+       (bboxBounds != null);
+     const filter = !hasClientOnlyFiltering && searchQuery && searchQuery.trim()
+       ? `id LIKE '%${searchQuery.trim()}%'`
+       : null;
+     if (filter !== null) body.filter = filter;
 
     setLoading(true);
     calls.api(
@@ -356,15 +395,70 @@ const StacCollectionItemsModal = () => {
     );
   };
 
+  // Apply client-side filters (regex and date range)
+  const applyClientFilters = (items) => {
+    let out = items;
+    // Client-side regex or case-insensitive id filter when needed
+    if (searchTerm && searchTerm.trim().length > 0) {
+      if (useRegex) {
+        try {
+          const re = new RegExp(searchTerm.trim());
+          out = out.filter((it) => re.test(it.id));
+        } catch (e) {
+          dispatch(
+            setSnackBarText({
+              text: `Invalid regex: ${e?.message || "Error"}`,
+              severity: "error",
+            })
+          );
+        }
+      } else if (!useRegex && (dateFrom || dateTo)) {
+        // If server-side filter not used due to date filters, do substring here (case-insensitive)
+        const needle = searchTerm.trim().toLowerCase();
+        out = out.filter((it) => (it.id || "").toLowerCase().includes(needle));
+      }
+    }
+
+    // Date range filter (inclusive)
+    if (dateFrom || dateTo) {
+      const fromTs = dateFrom ? new Date(dateFrom).getTime() : null;
+      const toTs = dateTo ? new Date(dateTo).getTime() : null;
+      out = out.filter((it) => {
+        const d = it?.properties?.datetime ? new Date(it.properties.datetime).getTime() : null;
+        if (d == null || Number.isNaN(d)) return false; // exclude items without valid datetime when filtering
+        if (fromTs != null && d < fromTs) return false;
+        if (toTs != null && d > toTs) return false;
+        return true;
+      });
+    }
+
+    // Spatial bbox filter
+    out = out.filter((it) => intersectsBbox(it));
+
+    return out;
+  };
+
+  // Keep filteredItems in sync
+  useEffect(() => {
+    if (!useRegex && !dateFrom && !dateTo && !bboxBounds) {
+      // When no client-only filters, server already applied substring filter; pass through
+      setFilteredItems(allItems);
+    } else {
+      setFilteredItems(applyClientFilters(allItems));
+    }
+    // Reset pagination when filters change materially
+    setPage(0);
+  }, [allItems, useRegex, dateFrom, dateTo, bboxBounds]);
+
   // Local pagination: get items for current page
   const getCurrentPageItems = () => {
     const startIndex = page * rowsPerPage;
     const endIndex = startIndex + rowsPerPage;
-    return allItems.slice(startIndex, endIndex);
+    return filteredItems.slice(startIndex, endIndex);
   };
 
   const items = getCurrentPageItems();
-  const totalItems = allItems.length;
+  const totalItems = filteredItems.length;
 
   useEffect(() => {
     if (modal && modal.stacCollection) {
@@ -386,13 +480,24 @@ const StacCollectionItemsModal = () => {
     setDeleteModalOpen(false);
     setItemToDelete(null);
     setDeleteConfirmation("");
+    // Reset filters and selection
+    setUseRegex(false);
+    setDateFrom("");
+    setDateTo("");
+    setFilteredItems([]);
+    setSelectedItemIds(new Set());
+    setBulkDeleteModalOpen(false);
+    setBulkDeleteConfirmation("");
+    setBulkDeleting(false);
   };
 
   const handleSearchChange = (event) => {
     const value = event.target.value;
     setSearchTerm(value);
     setPage(0);
-    fetchAllItems(value);
+    // Re-query when not using regex/date; otherwise fetch without filter (to 10000) and filter client-side
+    if (!useRegex && !dateFrom && !dateTo) fetchAllItems(value);
+    else fetchAllItems("");
   };
 
   const handlePageChange = (event, newPage) => {
@@ -404,6 +509,72 @@ const StacCollectionItemsModal = () => {
     setRowsPerPage(newRowsPerPage);
     setPage(0);
   };
+
+  // Spatial filter helpers
+  const computeItemBounds = (item) => {
+    // Prefer STAC bbox if present
+    if (item?.bbox && item.bbox.length >= 4) {
+      const [minLon, minLat, maxLon, maxLat] = item.bbox;
+      return { minX: minLon, minY: minLat, maxX: maxLon, maxY: maxLat };
+    }
+    // Fallback: compute from geometry if possible
+    try {
+      const geom = item?.geometry;
+      if (!geom) return null;
+      const coords = Array.isArray(geom.coordinates) ? geom.coordinates.flat(Infinity) : [];
+      if (!coords || coords.length < 2) return null;
+      const lons = coords.filter((_, i) => i % 2 === 0);
+      const lats = coords.filter((_, i) => i % 2 === 1);
+      if (lons.length === 0 || lats.length === 0) return null;
+      return {
+        minX: Math.min(...lons),
+        minY: Math.min(...lats),
+        maxX: Math.max(...lons),
+        maxY: Math.max(...lats),
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  const intersectsBbox = (item) => {
+    if (!bboxBounds) return true;
+    const a = computeItemBounds(item);
+    if (!a) return true; // if we cannot determine, do not filter it out
+    const bMinX = bboxBounds.minLng, bMinY = bboxBounds.minLat, bMaxX = bboxBounds.maxLng, bMaxY = bboxBounds.maxLat;
+    const noOverlap = a.maxX < bMinX || a.minX > bMaxX || a.maxY < bMinY || a.minY > bMaxY;
+    return !noOverlap;
+  };
+
+  // Spatial map actions are encapsulated within SpatialFilterMap component
+
+  // Selection helpers
+  const isItemSelected = (id) => selectedItemIds.has(id);
+  const toggleSelectItem = (id) => {
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const selectAllOnPage = (checked) => {
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      items.forEach((it) => {
+        if (checked) next.add(it.id);
+        else next.delete(it.id);
+      });
+      return next;
+    });
+  };
+  const selectAllInResults = () => {
+    setSelectedItemIds(new Set(filteredItems.map((it) => it.id)));
+  };
+  const clearSelection = () => setSelectedItemIds(new Set());
+
+  const allOnPageSelected = items.length > 0 && items.every((it) => selectedItemIds.has(it.id));
+  const someOnPageSelected = items.some((it) => selectedItemIds.has(it.id)) && !allOnPageSelected;
 
   const handleDeleteItem = (itemId) => {
     if (!modal?.stacCollection?.id || !itemId) return;
@@ -457,7 +628,8 @@ const StacCollectionItemsModal = () => {
         );
         handleCloseDeleteModal();
         // Refresh all items after deletion
-        fetchAllItems(searchTerm);
+        if (!useRegex && !dateFrom && !dateTo) fetchAllItems(searchTerm);
+        else fetchAllItems("");
       },
       (res) => {
         dispatch(
@@ -473,204 +645,88 @@ const StacCollectionItemsModal = () => {
   const handleViewJson = (item) => {
     setSelectedItemJson(item);
     setJsonModalOpen(true);
-    
-    // Initialize map when modal opens
-    setTimeout(() => {
-      initializeMap(item);
-    }, 100);
+  };
+
+  // Bulk delete
+  const openBulkDeleteModal = () => {
+    if (selectedItemIds.size === 0) return;
+    setBulkDeleteConfirmation("");
+    setBulkDeleteModalOpen(true);
+  };
+  const closeBulkDeleteModal = () => {
+    if (bulkDeleting) return;
+    setBulkDeleteModalOpen(false);
+    setBulkDeleteConfirmation("");
+  };
+  const deleteItemPromise = (itemId) =>
+    new Promise((resolve) => {
+      calls.api(
+        "stac_delete_item",
+        {
+          urlReplacements: {
+            collection: modal.stacCollection.id,
+            item: itemId,
+          },
+        },
+        () => resolve({ id: itemId, ok: true }),
+        (err) => resolve({ id: itemId, ok: false, message: err?.message })
+      );
+    });
+  const handleConfirmBulkDelete = async () => {
+    if (!modal?.stacCollection?.id) {
+      dispatch(
+        setSnackBarText({ text: "No collection selected.", severity: "error" })
+      );
+      return;
+    }
+    if (bulkDeleteConfirmation !== modal.stacCollection.id) {
+      dispatch(
+        setSnackBarText({
+          text: "Confirmation collection ID does not match.",
+          severity: "error",
+        })
+      );
+      return;
+    }
+    const ids = Array.from(selectedItemIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      const results = await Promise.all(ids.map((id) => deleteItemPromise(id)));
+      const success = results.filter((r) => r.ok).length;
+      const failed = results.filter((r) => !r.ok);
+      if (success > 0) {
+        dispatch(
+          setSnackBarText({
+            text: `Deleted ${success} item(s).` ,
+            severity: "success",
+          })
+        );
+      }
+      if (failed.length > 0) {
+        const failedIds = failed.map((f) => f.id).slice(0, 5).join(", ");
+        dispatch(
+          setSnackBarText({
+            text: `Failed to delete ${failed.length} item(s). ${failedIds ? "Examples: " + failedIds : ""}`,
+            severity: "error",
+          })
+        );
+      }
+    } finally {
+      setBulkDeleting(false);
+      setSelectedItemIds(new Set());
+      setBulkDeleteModalOpen(false);
+      // Refresh items
+      if (!useRegex && !dateFrom && !dateTo) fetchAllItems(searchTerm);
+      else fetchAllItems("");
+    }
   };
 
   const handleCloseJsonModal = () => {
     setJsonModalOpen(false);
     setSelectedItemJson(null);
-    
-    // Clean up map
-    if (map) {
-      map.remove();
-      setMap(null);
-      setMapLayers({ bbox: null, raster: null });
-    }
   };
 
-  const initializeMap = (item) => {
-    if (!mapRef.current || map) return;
-
-    try {
-      // Ensure Leaflet is available
-      const leaflet = window.L || L;
-      if (!leaflet) {
-        console.error('Leaflet not available');
-        return;
-      }
-
-      // Create map with OSM base layer
-      const newMap = leaflet.map(mapRef.current, {
-        center: [0, 0],
-        zoom: 2,
-        zoomControl: true,
-        attributionControl: true,
-      });
-
-      // Add OSM tile layer
-      leaflet.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 18,
-      }).addTo(newMap);
-
-      // Add coordinate tracking on mouse move - direct DOM update for performance
-      newMap.on('mousemove', (e) => {
-        const { lat, lng } = e.latlng;
-        if (coordinateDisplayRef.current) {
-          coordinateDisplayRef.current.textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
-          coordinateDisplayRef.current.style.display = 'block';
-        }
-      });
-
-      // Hide coordinates when mouse leaves the map
-      newMap.on('mouseout', () => {
-        if (coordinateDisplayRef.current) {
-          coordinateDisplayRef.current.style.display = 'none';
-        }
-      });
-
-      setMap(newMap);
-      
-      // Add item data to map
-      if (item) {
-        addItemToMap(newMap, item);
-      }
-    } catch (error) {
-      console.error('Error initializing map:', error);
-    }
-  };
-
-  const addItemToMap = (mapInstance, item) => {
-    try {
-      const leaflet = window.L || L;
-      if (!leaflet) return;
-
-      // Clear existing layers
-      if (mapLayers.bbox) {
-        mapInstance.removeLayer(mapLayers.bbox);
-      }
-      if (mapLayers.raster) {
-        mapInstance.removeLayer(mapLayers.raster);
-      }
-
-      let bounds = null;
-
-      // Add bounding box if available
-      if (item.bbox && item.bbox.length >= 4) {
-        const [minLon, minLat, maxLon, maxLat] = item.bbox;
-        bounds = [[minLat, minLon], [maxLat, maxLon]];
-        
-        const bboxLayer = leaflet.rectangle(bounds, {
-          color: '#ff7800',
-          weight: 2,
-          opacity: 1,
-          fillColor: '#ff7800',
-          fillOpacity: 0.1,
-        }).addTo(mapInstance);
-        
-        setMapLayers(prev => ({ ...prev, bbox: bboxLayer }));
-      }
-
-      // Add raster layer from assets if available
-      if (item.assets) {
-        const cogAsset = findCogAsset(item.assets);
-        if (cogAsset && cogAsset.href) {
-          addRasterLayer(mapInstance, cogAsset.href, cogAsset);
-        }
-      }
-
-      // Fit map to bounds
-      if (bounds) {
-        mapInstance.fitBounds(bounds, { padding: [20, 20] });
-      } else if (item.geometry && item.geometry.coordinates) {
-        // Fallback to geometry if no bbox
-        const coords = item.geometry.coordinates;
-        if (coords.length > 0) {
-          const flatCoords = coords.flat().flat();
-          const lons = flatCoords.filter((_, i) => i % 2 === 0);
-          const lats = flatCoords.filter((_, i) => i % 2 === 1);
-          const minLon = Math.min(...lons);
-          const maxLon = Math.max(...lons);
-          const minLat = Math.min(...lats);
-          const maxLat = Math.max(...lats);
-          bounds = [[minLat, minLon], [maxLat, maxLon]];
-          mapInstance.fitBounds(bounds, { padding: [20, 20] });
-        }
-      }
-    } catch (error) {
-      console.error('Error adding item to map:', error);
-    }
-  };
-
-  const findCogAsset = (assets) => {
-    // Look for COG/TIF assets
-    const assetKeys = Object.keys(assets);
-    
-    // Common COG asset names
-    const cogKeys = ['data', 'cog', 'image', 'tif', 'tiff'];
-    
-    for (const key of cogKeys) {
-      if (assets[key] && assets[key].href) {
-        return assets[key];
-      }
-    }
-    
-    // Fallback to first asset with href
-    for (const key of assetKeys) {
-      if (assets[key] && assets[key].href && 
-          (assets[key].href.includes('.tif') || assets[key].href.includes('.cog'))) {
-        return assets[key];
-      }
-    }
-    
-    return null;
-  };
-
-  const addRasterLayer = (mapInstance, cogUrl, cogAsset) => {
-    try {
-      const leaflet = window.L || L;
-      if (!leaflet) return;
-
-      let domain =
-        window.mmgisglobal.NODE_ENV === "development"
-          ? "http://localhost:8888/"
-          : window.mmgisglobal.ROOT_PATH || "";
-      if (domain.length > 0 && !domain.endsWith("/")) domain += "/";
-
-      // Start building the titiler URL
-      let titilerUrl = `${domain}titiler/cog/tiles/WebMercatorQuad/{z}/{x}/{y}?url=${encodeURIComponent(cogUrl)}`;
-      
-      // Check if this is 32-bit float data that needs rescaling
-      console.log('COG Asset:', cogAsset);
-      if (cogAsset && cogAsset['raster:bands'] && cogAsset['raster:bands'][0]) {
-        const firstBand = cogAsset['raster:bands'][0];
-        console.log('Raster band info:', firstBand);
-        
-        if (firstBand.data_type === 'float32' && firstBand.statistics) {
-          const stats = firstBand.statistics;
-          if (stats.minimum !== undefined && stats.maximum !== undefined) {
-            // Add rescaling and colormap for 32-bit float data
-            console.log(`Adding rescale for float32 data: ${stats.minimum}-${stats.maximum}`);
-            titilerUrl += `&rescale=${stats.minimum},${stats.maximum}&colormap_name=viridis`;
-          }
-        }
-      }
-      
-      const rasterLayer = leaflet.tileLayer(titilerUrl, {
-        attribution: 'COG via TiTiler',
-        opacity: 0.8,
-        maxZoom: 18,
-      }).addTo(mapInstance);
-      
-      setMapLayers(prev => ({ ...prev, raster: rasterLayer }));
-    } catch (error) {
-      console.error('Error adding raster layer:', error);
-    }
-  };
 
   const formatDateTime = (dateTimeStr) => {
     if (!dateTimeStr) return "N/A";
@@ -695,10 +751,14 @@ const StacCollectionItemsModal = () => {
     return "N/A";
   };
 
+  // Clear bbox handler (spatial map is self-contained; clearing via state)
+  const handleClearBbox = () => {
+    setBboxBounds(null);
+  };
+
   return (
     <Dialog
       className={c.Modal}
-      fullScreen={isMobile}
       open={modal !== false}
       onClose={handleClose}
       aria-labelledby="stac-items-dialog-title"
@@ -713,259 +773,219 @@ const StacCollectionItemsModal = () => {
             <WidgetsIcon className={c.backgroundIcon} />
             <div className={c.title}>STAC Collection Items</div>
           </div>
+          
           <IconButton
-            className={c.closeIcon}
-            title="Close"
-            aria-label="close"
-            onClick={handleClose}
-          >
-            <CloseSharpIcon fontSize="inherit" />
-          </IconButton>
+              className={c.closeIcon}
+              title="Close"
+              aria-label="close"
+              onClick={handleClose}
+            >
+              <CloseSharpIcon fontSize="inherit" />
+            </IconButton>
         </div>
       </DialogTitle>
       <DialogContent className={c.content}>
-        <Typography className={c.collectionTitle}>
-          Collection: {modal?.stacCollection?.id}
-        </Typography>
-        <Typography className={c.limitMessage}>
-          Showing at most 500 items. Use search to narrow results if needed.
-        </Typography>
-
-        <div className={c.searchContainer}>
-          <TextField
-            fullWidth
-            label="Search Items"
-            variant="filled"
-            value={searchTerm}
-            onChange={handleSearchChange}
-            placeholder="Search by Item ID"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-          />
+        <div className={c.mainRow}>
+          
+        <div className={c.flexBetween}>
+          <div>
+            <Typography className={c.collectionTitle}>
+              Collection: {modal?.stacCollection?.id}
+            </Typography>
+            <Typography className={c.limitMessage}>
+              {isMobile ? 'Showing at most 10000 items.' : 'Showing at most 10000 items. Use search to narrow results if needed.'}
+            </Typography>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: 1, justifyContent: 'flex-end' }}>
+            <TextField
+              size="small"
+              label="Search Items"
+              variant="filled"
+              value={searchTerm}
+              className={c.searchInput}
+              onChange={handleSearchChange}
+              placeholder={useRegex ? "Regex over Item ID" : "Search by Item ID"}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Tooltip
+              arrow
+              placement="bottom"
+              classes={{ tooltip: c.regexTooltip }}
+              title={
+                <div className={c.regexTooltipContent}>
+                  <div>Use JavaScript regular expressions:</div>
+                  <div>- Wildcard: <code>.*</code> (not <code>*</code>)</div>
+                  <div>- Any single char: <code>.</code></div>
+                  <div>- Anchors: <code>^</code> start, <code>$</code> end</div>
+                  <div>- Digits/word: <code>\\d+</code>, <code>\\w+</code></div>
+                  <div>- Character set: <code>[A-Za-z_]+</code></div>
+                  <div>- Either/or: <code>(cat|dog)</code></div>
+                  <div>- Escape dot: <code>\\.</code></div>
+                  <div style={{ marginTop: 6 }}>Example: <code>^IMG_.*_2024\\.tif$</code></div>
+                </div>
+              }
+            >
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    color="primary"
+                    checked={useRegex}
+                    onChange={(e) => {
+                      setUseRegex(e.target.checked);
+                      if (e.target.checked || dateFrom || dateTo) fetchAllItems("");
+                      else fetchAllItems(searchTerm);
+                    }}
+                  />
+                }
+                label="Regex"
+              />
+            </Tooltip>
+            <TextField
+              size="small"
+              label="From"
+              type="datetime-local"
+              value={dateFrom}
+              className={c.datePicker}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
+                fetchAllItems("");
+              }}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              size="small"
+              label="To"
+              type="datetime-local"
+              value={dateTo}
+              className={c.datePicker}
+              onChange={(e) => {
+                setDateTo(e.target.value);
+                fetchAllItems("");
+              }}
+              InputLabelProps={{ shrink: true }}
+            />
+            <Button variant="outlined" size="small" onClick={() => {
+              setUseRegex(false);
+              setDateFrom("");
+              setDateTo("");
+              setSearchTerm("");
+              handleClearBbox();
+              setPage(0);
+              fetchAllItems("");
+            }}>Clear Filters</Button>
         </div>
+        </div>
+        <div className={c.flexBetween} style={{ height: "calc(100% - 88px)" }}>
+          {/* Left map panel */}
+          <div className={c.leftPanel}>
+            <SpatialFilterMap
+              classes={c}
+              collectionId={modal?.stacCollection?.id}
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              bboxBounds={bboxBounds}
+              onBboxChange={(b) => setBboxBounds(b)}
+              onBboxClear={handleClearBbox}
+            />
+          </div>
 
-        <TableContainer className={c.tableContainer}>
-          <Table className={c.table} stickyHeader size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Item ID</TableCell>
-                <TableCell>DateTime</TableCell>
-                <TableCell>Assets Href</TableCell>
-                <TableCell align="center"></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={4}>
-                    <div className={c.loadingContainer}>
-                      <CircularProgress />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4}>
-                    <div className={c.noItems}>
-                      {searchTerm
-                        ? `No items found matching "${searchTerm}"`
-                        : "No items found in this collection"}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className={c.itemId}>{item.id}</TableCell>
-                    <TableCell>
-                      {formatDateTime(item.properties?.datetime)}
-                    </TableCell>
-                    <TableCell style={{ borderRight: "none" }}>
-                      <div style={{ overflow: "hidden", fontSize: "14px", fontFamily: "monospace" }}>
-                        {getAssetsHref(item)}
-                      </div>
-                    </TableCell>
-                    <TableCell align="center">
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "right" }}>
-                        <Tooltip title="View Item" placement="top" arrow>
-                          <IconButton
-                            className={c.infoIcon}
-                            title="View Item"
-                            aria-label="view item"
-                            onClick={() => handleViewJson(item)}
-                          >
-                            <InfoIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+          {/* Right controls and table */}
+          <div className={c.rightPanel}>
+            <div className={c.searchContainer}>
+              <div className={c.bulkActionsRow}>
+                <div>
+                  <Button
+                    variant="outlined"
+                    onClick={selectAllInResults}
+                    disabled={filteredItems.length === 0}
+                  >{`Select All Results (${filteredItems.length})`}</Button>
+                  <Button variant="outlined" onClick={clearSelection} disabled={selectedItemIds.size === 0}>Clear Selection</Button>
+                
+                  <span className={c.selectionSummary}>
+                    {selectedItemIds.size > 0 ? `${selectedItemIds.size} selected` : ""}
+                  </span>
+                </div>
+                <div>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    startIcon={<DeleteForeverIcon size="small" />}
+                    onClick={openBulkDeleteModal}
+                    disabled={selectedItemIds.size === 0}
+                  >{`Bulk Delete (${selectedItemIds.size})`}</Button>
+                </div>
+              </div>
+            </div>
 
-                        <Divider orientation="vertical" flexItem />
+            <ItemsTable
+              classes={c}
+              loading={loading}
+              items={items}
+              isItemSelected={isItemSelected}
+              toggleSelectItem={toggleSelectItem}
+              allOnPageSelected={allOnPageSelected}
+              someOnPageSelected={someOnPageSelected}
+              selectAllOnPage={selectAllOnPage}
+              formatDateTime={formatDateTime}
+              getAssetsHref={getAssetsHref}
+              onViewJson={handleViewJson}
+              onDeleteItem={handleDeleteItem}
+              noItemsText={searchTerm ? `No items found matching "${searchTerm}"` : "No items found in this collection"}
+            />
 
-                        <Tooltip title="Delete Item" placement="top" arrow>
-                          <IconButton
-                            className={c.deleteIcon}
-                            title="Delete"
-                            aria-label="delete"
-                            onClick={() => handleDeleteItem(item.id)}
-                          >
-                            <DeleteForeverIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <TablePagination
-          className={c.pagination}
-          component="div"
-          count={totalItems}
-          page={page}
-          onPageChange={handlePageChange}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleRowsPerPageChange}
-          rowsPerPageOptions={[10, 25, 50, 100]}
-        />
-      </DialogContent>
+            <TablePagination
+              className={c.pagination}
+              component="div"
+              count={totalItems}
+              page={page}
+              onPageChange={handlePageChange}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={handleRowsPerPageChange}
+              rowsPerPageOptions={[10, 25, 50, 100]}
+            />
+          </div>
+        </div>
+      </div>
+    </DialogContent>
 
       {/* JSON View Modal */}
-      <Dialog
-        className={c.jsonDialog}
+      <JsonViewModal
+        classes={c}
         open={jsonModalOpen}
         onClose={handleCloseJsonModal}
-        aria-labelledby="json-dialog-title"
-        maxWidth={false}
-      >
-        <DialogTitle className={c.heading}>
-          <div className={c.flexBetween}>
-            <div className={c.flexBetween}>
-              <InfoIcon className={c.backgroundIcon} />
-              <div className={c.title}>STAC Item: {selectedItemJson?.id}</div>
-            </div>
-            <IconButton
-              className={c.closeIcon}
-              title="Close"
-              aria-label="close"
-              onClick={handleCloseJsonModal}
-            >
-              <CloseSharpIcon fontSize="inherit" />
-            </IconButton>
-          </div>
-        </DialogTitle>
-        <DialogContent className={c.jsonContent}>
-          {/* Map Panel */}
-          <div className={c.mapPanel}>
-            <div 
-              ref={mapRef}
-              className={c.mapContainer}
-              style={{ height: "100%", width: "100%" }}
-            />
-            {/* Coordinate Display */}
-            <div 
-              ref={coordinateDisplayRef}
-              className={c.coordinateDisplay}
-            >
-              Lat: 0.000000, Lng: 0.000000
-            </div>
-          </div>
-          
-          {/* JSON Panel */}
-          <div className={c.jsonPanel}>
-            <div className={c.jsonContainer}>
-              {selectedItemJson && (
-                <ReactJson
-                  src={selectedItemJson}
-                  theme="chalk"
-                  iconStyle="triangle"
-                  indentWidth={4}
-                  collapsed={false}
-                  collapseStringsAfterLength={100}
-                  displayObjectSize={false}
-                  displayDataTypes={false}
-                  enableClipboard={true}
-                  sortKeys={false}
-                  quotesOnKeys={false}
-                  name="item"
-                  style={{
-                    backgroundColor: "transparent",
-                    fontSize: "14px",
-                  }}
-                />
-              )}
-            </div>
-          </div>
-        </DialogContent>
-        <DialogActions className={c.jsonDialogActions}>
-          <Button className={c.jsonDialogActionsClose} onClick={handleCloseJsonModal} variant="outlined">
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
+        item={selectedItemJson}
+      />
 
       {/* Delete Item Confirmation Modal */}
-      <Dialog
-        className={c.deleteDialog}
+      <DeleteItemModal
+        classes={c}
         open={deleteModalOpen}
+        itemId={itemToDelete}
+        collectionId={modal?.stacCollection?.id}
+        confirmation={deleteConfirmation}
+        setConfirmation={setDeleteConfirmation}
         onClose={handleCloseDeleteModal}
-        aria-labelledby="delete-item-dialog-title"
-      >
-        <DialogTitle className={c.deleteDialogTitle}>
-          <div className={c.flexBetween}>
-            <div className={c.flexBetween}>
-              <DeleteForeverIcon className={c.backgroundIcon} />
-              <div className={c.title}>Delete STAC Item</div>
-            </div>
-            <IconButton
-              className={c.closeIcon}
-              title="Close"
-              aria-label="close"
-              onClick={handleCloseDeleteModal}
-            >
-              <CloseSharpIcon fontSize="inherit" />
-            </IconButton>
-          </div>
-        </DialogTitle>
-        <DialogContent className={c.deleteDialogContent}>
-          <Typography className={c.collectionTitle}>
-            Collection: {modal?.stacCollection?.id}
-          </Typography>
-          <Typography className={c.deleteItemName}>
-            {`Deleting: ${itemToDelete || ""}`}
-          </Typography>
-          <TextField
-            className={c.deleteConfirmInput}
-            label="Confirm Item ID"
-            variant="filled"
-            value={deleteConfirmation}
-            onChange={(e) => setDeleteConfirmation(e.target.value)}
-            placeholder={`Type "${itemToDelete}" to confirm`}
-          />
-          <Typography className={c.deleteConfirmMessage}>
-            {`Enter '${itemToDelete || ""}' above and click 'Delete' to confirm the permanent deletion of this STAC item.`}
-          </Typography>
-        </DialogContent>
-        <DialogActions className={c.deleteDialogActions}>
-          <Button
-            className={c.deleteButton}
-            variant="contained"
-            startIcon={<DeleteForeverIcon size="small" />}
-            onClick={handleConfirmDelete}
-          >
-            Delete
-          </Button>
-          <Button variant="outlined" onClick={handleCloseDeleteModal}>
-            Cancel
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onConfirm={handleConfirmDelete}
+      />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <BulkDeleteModal
+        classes={c}
+        open={bulkDeleteModalOpen}
+        collectionId={modal?.stacCollection?.id}
+        selectedCount={selectedItemIds.size}
+        confirmation={bulkDeleteConfirmation}
+        setConfirmation={setBulkDeleteConfirmation}
+        onClose={closeBulkDeleteModal}
+        onConfirm={handleConfirmBulkDelete}
+        disabled={bulkDeleting}
+      />
     </Dialog>
   );
 };
