@@ -125,6 +125,7 @@
           "name": "DEM Fallback URL",
           "description": "A URL to an underlying and ever-present DEM terrain tileset to fill in any missing elevation tiles of active layers.",
           "type": "text",
+          "disableSwitch": "panels.globe",
           "width": 8
         },
         {
@@ -132,6 +133,7 @@
           "name": "DEM Fallback Format",
           "description": "",
           "type": "dropdown",
+          "disableSwitch": "panels.globe",
           "width": 2,
           "options": ["tms", "wmts", "wms"]
         },

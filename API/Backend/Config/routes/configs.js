@@ -596,7 +596,7 @@ router.get("/missions", function (req, res, next) {
         let allMissions = [];
         for (let i = 0; i < missions.length; i++)
           allMissions.push(missions[i].DISTINCT);
-        allMissions.sort();
+        allMissions.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
         res.send({ status: "success", missions: allMissions });
         return null;
       })

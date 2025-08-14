@@ -21,6 +21,7 @@
           "name": "EPSG Code",
           "description": "An EPSG (or similar) code representing the spatial reference system. See <a target='_blank' href='https://spatialreference.org/ref/epsg/'>https://spatialreference.org/ref/epsg/</a> for examples. For instance: 'IAU2000:30120'",
           "type": "text",
+          "disableSwitch": "projection.custom",
           "width": 2
         },
 
@@ -29,18 +30,8 @@
           "name": "Proj4 (v2.3.14) String",
           "description": "A Proj4 String that defines the projection. See <a target='_blank' href='https://proj.org/en/9.4/operations/projections/index.html'>https://proj.org/en/9.4/operations/projections/index.html</a> for examples. Here is an example value of a lunar south-pole stereographic proj4 string: '+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=1737400 +b=1737400 +units=m +no_defs'",
           "type": "text",
+          "disableSwitch": "projection.custom",
           "width": 10
-        }
-      ]
-    },
-    {
-      "components": [
-        {
-          "field": "projection.xmlpath",
-          "name": "Path to Basemap tilemapresource.xml",
-          "description": "Set the path to the tilemapresource.xml that was created with the base (and global) tileset. Used only to help auto-populate the remaining projection values below.",
-          "type": "text",
-          "width": 12
         }
       ]
     },
@@ -51,6 +42,7 @@
           "name": "Bounds Min X",
           "description": "Minimum easting value of the projection's spatial extent as stated by the base global tilemapresource.xml.",
           "type": "number",
+          "disableSwitch": "projection.custom",
           "width": 3
         },
         {
@@ -58,6 +50,7 @@
           "name": "Bounds Min Y",
           "description": "Minimum northing value of the projection's spatial extent as stated by the base global tilemapresource.xml.",
           "type": "number",
+          "disableSwitch": "projection.custom",
           "width": 3
         },
         {
@@ -65,6 +58,7 @@
           "name": "Bounds Max X",
           "description": "Maximum easting value of the projection's spatial extent as stated by the base global tilemapresource.xml.",
           "type": "number",
+          "disableSwitch": "projection.custom",
           "width": 3
         },
         {
@@ -72,6 +66,7 @@
           "name": "Bounds Max Y",
           "description": "Maximum northing value of the projection's spatial extent as stated by the base global tilemapresource.xml.",
           "type": "number",
+          "disableSwitch": "projection.custom",
           "width": 3
         }
       ]
@@ -83,6 +78,7 @@
           "name": "Origin X",
           "description": "Origin easting of the projection",
           "type": "number",
+          "disableSwitch": "projection.custom",
           "width": 3
         },
         {
@@ -90,6 +86,7 @@
           "name": "Origin Y",
           "description": "Origin northing of the projection",
           "type": "number",
+          "disableSwitch": "projection.custom",
           "width": 3
         },
         {
@@ -98,6 +95,7 @@
           "description": "A zoom level from the tilemapresource.xml to combine with the following units-per-pixel. Most often this can be set to a zoom level of '0'.",
           "type": "number",
           "min": 0,
+          "disableSwitch": "projection.custom",
           "width": 3
         },
         {
@@ -105,7 +103,29 @@
           "name": "... the units per pixel are",
           "description": "Based on the zoom level defined before and the tilemapresource.xml, the respective units-per-pixel to set the scaling of the projection.",
           "type": "number",
+          "disableSwitch": "projection.custom",
           "width": 3
+        }
+      ]
+    },
+    {
+      "section": "Actions",
+      "components": [
+        {
+          "field": "projection.xmlpath",
+          "name": "Path to Basemap tilemapresource.xml or ArcGIS MapServer",
+          "description": "Set the path to the tilemapresource.xml that was created with the base (and global) tileset or ArcGIS MapServer endpoint with ?f=pjson (e.g., services.arcgisonline.com/arcgis/rest/services/.../MapServer?f=pjson).. Used only to help auto-populate some projection values above.",
+          "type": "text",
+          "disableSwitch": "projection.custom",
+          "width": 8
+        },
+        {
+          "name": "Auto-Populate Projection Fields From tilemapresource.xml or ArcGIS MapServer",
+          "description": "Reads the file set above and auto-fills Bounds, Origin, and Resolution fields. Supports a local/relative tilemapresource.xml, or an ArcGIS MapServer endpoint with ?f=pjson (e.g., services.arcgisonline.com/arcgis/rest/services/.../MapServer?f=pjson).",
+          "type": "button",
+          "action": "projection-populate-from-x",
+          "disableSwitch": "projection.custom",
+          "width": 4
         }
       ]
     },
@@ -139,6 +159,7 @@
           "name": "Longitude Display Offset",
           "description": "",
           "type": "number",
+          "disableSwitch": "coordinates.coordll",
           "width": 3
         },
         {
@@ -146,6 +167,7 @@
           "name": "Latitude Display Offset",
           "description": "",
           "type": "number",
+          "disableSwitch": "coordinates.coordll",
           "width": 3
         }
       ]
@@ -166,6 +188,7 @@
           "name": "Easting Display Offset",
           "description": "",
           "type": "number",
+          "disableSwitch": "coordinates.coorden",
           "width": 3
         },
         {
@@ -173,6 +196,7 @@
           "name": "Northing Display Offset",
           "description": "",
           "type": "number",
+          "disableSwitch": "coordinates.coorden",
           "width": 3
         },
         {
@@ -180,6 +204,7 @@
           "name": "Easting Display Multiplier",
           "description": "",
           "type": "number",
+          "disableSwitch": "coordinates.coorden",
           "width": 2
         },
         {
@@ -187,6 +212,7 @@
           "name": "Northing Display Multiplier",
           "description": "",
           "type": "number",
+          "disableSwitch": "coordinates.coorden",
           "width": 2
         }
       ]
@@ -207,6 +233,7 @@
           "name": "Display Name",
           "description": "Optionally set a Display Name to aid users in identifying the projection.",
           "type": "text",
+          "disableSwitch": "coordinates.coordcustomproj",
           "width": 4
         },
         {
@@ -214,6 +241,7 @@
           "name": "X Coordinate Label",
           "description": "",
           "type": "text",
+          "disableSwitch": "coordinates.coordcustomproj",
           "width": 2
         },
         {
@@ -221,6 +249,7 @@
           "name": "Y Coordinate Label",
           "description": "",
           "type": "text",
+          "disableSwitch": "coordinates.coordcustomproj",
           "width": 2
         },
         {
@@ -228,6 +257,7 @@
           "name": "Z Coordinate Label",
           "description": "",
           "type": "text",
+          "disableSwitch": "coordinates.coordcustomproj",
           "width": 2
         }
       ]
@@ -248,6 +278,7 @@
           "name": "Display Name",
           "description": "Optionally set a Display Name to aid users in identifying the projection.",
           "type": "text",
+          "disableSwitch": "coordinates.coordsecondaryproj",
           "width": 4
         },
         {
@@ -255,6 +286,7 @@
           "name": "X Coordinate Label",
           "description": "",
           "type": "text",
+          "disableSwitch": "coordinates.coordsecondaryproj",
           "width": 2
         },
         {
@@ -262,6 +294,7 @@
           "name": "Y Coordinate Label",
           "description": "",
           "type": "text",
+          "disableSwitch": "coordinates.coordsecondaryproj",
           "width": 2
         },
         {
@@ -269,6 +302,7 @@
           "name": "Z Coordinate Label",
           "description": "",
           "type": "text",
+          "disableSwitch": "coordinates.coordsecondaryproj",
           "width": 2
         }
       ]
@@ -327,6 +361,7 @@
           "name": "DEM URL",
           "description": "The path to the mission's base DEM to query elevation values off of.",
           "type": "text",
+          "disableSwitch": "coordinates.coordelev",
           "width": 10
         }
       ]

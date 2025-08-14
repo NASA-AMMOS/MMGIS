@@ -22,6 +22,7 @@
           "description": "Whether or not the Time user interface should be visible. This allows time to be enabled while restricting users from using its UI.",
           "type": "checkbox",
           "width": 3,
+          "disableSwitch": "time.enabled",
           "defaultChecked": true
         },
         {
@@ -30,6 +31,7 @@
           "description": "If enabled and visible, the Time UI will be initially open on the bottom of the screen.",
           "type": "checkbox",
           "width": 3,
+          "disableSwitch": "time.enabled",
           "defaultChecked": false
         }
       ]
@@ -42,6 +44,7 @@
           "name": "Time Format",
           "description": "The time format to be displayed on the Time UI. Uses D3 time format specifiers: <a target='_blank' href='https://github.com/d3/d3-time-format'>https://github.com/d3/d3-time-format</a>. Default: %Y-%m-%dT%H:%M:%SZ",
           "type": "text",
+          "disableSwitch": "time.enabled",
           "width": 6
         },
         {
@@ -50,6 +53,7 @@
           "description": "If enabled, the Time UI will start in Live (Present) mode.",
           "type": "checkbox",
           "width": 3,
+          "disableSwitch": "time.enabled",
           "defaultChecked": false
         },
         {
@@ -58,6 +62,7 @@
           "description": "The Time UI begins in the Range Mode and allows users to bound by start and end times. Point Mode has users only control the end time and has start time implied by negative infinity.",
           "type": "checkbox",
           "width": 3,
+          "disableSwitch": "time.enabled",
           "defaultChecked": false
         }
       ]
@@ -69,6 +74,7 @@
           "name": "Initial Start Time",
           "description": "The initial start time. It should be before the Initial End Time and it can be made relative by appending ' {+/-} {seconds}' - for instance: '2024-03-04T14:05:00Z + 864000'. Default: 1 month before Initial End Time",
           "type": "text",
+          "disableSwitch": "time.enabled",
           "width": 6
         },
         {
@@ -76,6 +82,7 @@
           "name": "Initial End Time",
           "description": "The initial end time. It should be after the Initial Start Time. You can use 'now' to have the end time be the present and you can make it relative by appending ' {+/-} {seconds}' - for instance: '2024-03-04T14:05:00Z + 864000'. Default: now",
           "type": "text",
+          "disableSwitch": "time.enabled",
           "width": 6
         }
       ]
@@ -87,6 +94,7 @@
           "name": "Initial Timeline Window Start Time",
           "description": "This does not control the time range for queries. This only allows the initial time window of the time line to differ from just being the Start Time to the End Time. A use-case for this would be to set the window times to fit the full extent of the temporal data but only set the Initial Start and End Times as a subset of that so as not to query everything on load. Can be made relative by appending ' {+/-} {seconds}' - for instance: '2024-03-04T14:05:00Z + 864000'. Default: Initial Start Time",
           "type": "text",
+          "disableSwitch": "time.enabled",
           "width": 6
         },
         {
@@ -94,6 +102,7 @@
           "name": "Initial Timeline Window End Time",
           "description": "This does not control the time range for queries. This only allows the initial time window of the time line to differ from just being the Start Time to the End Time. Should be after Initial Window End Time Use now to have the end time be the present. Can be made relative by appending ' {+/-} {seconds}' - for instance: '2024-03-04T14:05:00Z + 864000'. Default: Initial End Time",
           "type": "text",
+          "disableSwitch": "time.enabled",
           "width": 6
         }
       ]

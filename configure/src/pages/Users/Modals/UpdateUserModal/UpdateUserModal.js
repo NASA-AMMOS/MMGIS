@@ -191,7 +191,10 @@ const UpdateUserModal = (props) => {
         {},
         (res) => {
           if (res?.missions) {
-            setAvailableMissions(res.missions);
+            const missions = res.missions
+              .slice()
+              .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+            setAvailableMissions(missions);
           }
         },
         (res) => {

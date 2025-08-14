@@ -67,7 +67,10 @@ function initApp() {
             'missions',
             {},
             function (s) {
-                continueOn(s.missions)
+                const missions = (s.missions || [])
+                    .slice()
+                    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+                continueOn(missions)
             },
             function (e) {
                 continueOn([])
