@@ -20,6 +20,7 @@ var LegendTool = {
         //Get tool variables
         this.displayOnStart = L_.getToolVars('legend')['displayOnStart']
         this.justification = L_.getToolVars('legend')['justification']
+        this.showHeadersInLegend = L_.getToolVars('legend')['showHeadersInLegend']
         if (this.justification == 'right') {
             const toolController = d3.select('#toolcontroller_sepdiv')
             const toolContent = d3.select('#toolContentSeparated_Legend')
@@ -99,78 +100,111 @@ function interfaceWithMMWebGIS() {
 function refreshLegends() {
     $('#LegendTool').empty()
 
-    for (let l in L_.layers.on) {
-        if (L_.layers.on[l] == true) {
-            if (L_.layers.data[l].type != 'header') {
-                if (L_.layers.data[l]?._legend === undefined
-                        && ((['image', 'tile'].includes(L_.layers.data[l].type) && L_.layers.data[l].cogTransform)
-                        || L_.layers.data[l].type === 'velocity')) {
-                    const layersTool = ToolController_.getTool('LayersTool')
-                    layersTool.populateCogScale(L_.layers.data[l].name)
-                }
+    function _refreshLegends(node, parent, depth) {
+        let shift = LegendTool.showHeadersInLegend === true ? depth : 0
+        for (var i = 0; i < node.length; i++) {
+            let l = node[i].name
+            if (L_.layers.on[l] == true) {
+                if (L_.layers.data[l].type != 'header') {
+                    if (L_.layers.data[l]?._legend === undefined
+                            && ((['image', 'tile'].includes(L_.layers.data[l].type) && L_.layers.data[l].cogTransform)
+                            || L_.layers.data[l].type === 'velocity')) {
+                        const layersTool = ToolController_.getTool('LayersTool')
+                        layersTool.populateCogScale(L_.layers.data[l].name)
+                    }
 
-                // Check if there's a legend URL that points to an image
-                const legendURL = L_.layers.data[l]?.legend
-                if (legendURL && typeof legendURL === 'string') {
-                    let isImageUrl = false
+                    // Check if there's a legend URL that points to an image
+                    const legendURL = L_.layers.data[l]?.legend
+                    if (legendURL && typeof legendURL === 'string') {
+                        let isImageUrl = false
 
-                    // First check for file extensions
-                    const fileExtension = legendURL.toLowerCase().split('.').pop().split('?')[0] // Remove query params
-                    const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'tiff', 'tif', 'bmp', 'ico', 'avif']
+                        // First check for file extensions
+                        const fileExtension = legendURL.toLowerCase().split('.').pop().split('?')[0] // Remove query params
+                        const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'tiff', 'tif', 'bmp', 'ico', 'avif']
 
-                    if (imageExtensions.includes(fileExtension)) {
-                        isImageUrl = true
-                    } else if (['csv'].includes(fileExtension)) {
-                        isImageUrl = false
-                    } else {
-                        // If no file extension and not a csv, check for image MIME types in URL parameters (e.g., WMS GetLegendGraphic)
-                        try {
-                            const url = new URL(legendURL)
-                            const formatParam = url.searchParams.get('FORMAT') || url.searchParams.get('format')
+                        if (imageExtensions.includes(fileExtension)) {
+                            isImageUrl = true
+                        } else if (['csv'].includes(fileExtension)) {
+                            isImageUrl = false
+                        } else {
+                            // If no file extension and not a csv, check for image MIME types in URL parameters (e.g., WMS GetLegendGraphic)
+                            try {
+                                const url = new URL(legendURL)
+                                const formatParam = url.searchParams.get('FORMAT') || url.searchParams.get('format')
 
-                            if (formatParam) {
-                                const imageMimeTypes = [
-                                    'image/png', 'image/jpeg', 'image/jpg', 'image/gif',
-                                    'image/svg+xml', 'image/webp', 'image/tiff',
-                                    'image/bmp', 'image/ico', 'image/avif'
-                                ]
+                                if (formatParam) {
+                                    const imageMimeTypes = [
+                                        'image/png', 'image/jpeg', 'image/jpg', 'image/gif',
+                                        'image/svg+xml', 'image/webp', 'image/tiff',
+                                        'image/bmp', 'image/ico', 'image/avif'
+                                    ]
 
-                                const decodedFormat = decodeURIComponent(formatParam).toLowerCase()
-                                if (imageMimeTypes.includes(decodedFormat)) {
-                                    isImageUrl = true
+                                    const decodedFormat = decodeURIComponent(formatParam).toLowerCase()
+                                    if (imageMimeTypes.includes(decodedFormat)) {
+                                        isImageUrl = true
+                                    }
                                 }
+                            } catch (e) {
+                                // URL parsing failed, treat as non-image
+                                console.warn('Failed to parse legend URL:', legendURL)
                             }
-                        } catch (e) {
-                            // URL parsing failed, treat as non-image
-                            console.warn('Failed to parse legend URL:', legendURL)
+                        }
+
+                        if (isImageUrl) {
+                            // Handle image legend directly
+                            drawLegends(
+                                LegendTool.tools,
+                                legendURL, // Pass the URL string directly
+                                l,
+                                L_.layers.data[l].display_name,
+                                L_.layers.opacity[l],
+                                shift
+                            )
+                            continue; // Skip the CSV processing below
                         }
                     }
 
-                    if (isImageUrl) {
-                        // Handle image legend directly
+                    if (L_.layers.data[l]?._legend != undefined) {
                         drawLegends(
                             LegendTool.tools,
-                            legendURL, // Pass the URL string directly
+                            L_.layers.data[l]?._legend,
                             l,
                             L_.layers.data[l].display_name,
-                            L_.layers.opacity[l]
+                            L_.layers.opacity[l],
+                            shift
                         )
-                        continue; // Skip the CSV processing below
+                    }
+                } else {
+                    if (LegendTool.showHeadersInLegend === true) {
+                        const haveLegends = L_.layers.data[l].sublayers
+                            .map(i => i.name)
+                            .filter(i => {
+                                return ((L_.layers.data[i]._legend?.length > 0
+                                    || (L_.layers.data[i]?._legend === undefined
+                                        && ((['image', 'tile'].includes(L_.layers.data[i].type) && L_.layers.data[i].cogTransform)
+                                        || L_.layers.data[i].type === 'velocity'))) && L_.layers.on[i])
+                            })
+
+                        if (haveLegends.length > 0) {
+                            drawLegends(
+                                LegendTool.tools,
+                                L_.layers.data[l]?._legend,
+                                l,
+                                L_.layers.data[l].display_name,
+                                L_.layers.opacity[l],
+                                shift
+                            )
+                        }
                     }
                 }
-
-                if (L_.layers.data[l]?._legend != undefined) {
-                    drawLegends(
-                        LegendTool.tools,
-                        L_.layers.data[l]?._legend,
-                        l,
-                        L_.layers.data[l].display_name,
-                        L_.layers.opacity[l]
-                    )
-                }
             }
+
+            if (node[i].sublayers)
+                _refreshLegends(node[i].sublayers, node[i], depth + 1)
         }
     }
+
+    _refreshLegends(L_.configData.layers, {}, 0)
 }
 
 // The legends parameter should be an array of objects, where each object must contain
@@ -244,8 +278,16 @@ function drawLegendHeader() {
     return tools
 }
 
-function drawLegends(tools, _legend, layerUUID, display_name, opacity) {
+function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
     if (tools == null) return
+
+    const layerConfig  = L_.layers.data[layerUUID]
+
+    const isHeader = layerConfig.type === 'header'
+
+    // If option to hide layer name in legend is checked in the configuration
+    const hideLegendLayerName = layerConfig.variables?.hideLegendLayerName || false;
+
     var c = tools
         .append('div')
         .attr('class', 'mmgisScrollbar')
@@ -253,16 +295,20 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity) {
         .style('display', 'inline-block')
         .style('padding-top', '5px')
         .style('padding-right', '12px')
-        .style('border-bottom', '1px solid var(--color-i)')
+        .style('padding-left', shift > 0 ? `${shift * 16}px` : '')
+        .style('border-bottom', isHeader ? '' : '1px solid var(--color-i)')
 
     c.append('div')
         .attr('class', 'row')
         .append('p')
         .style('font-size', '13px')
         .style('color', 'var(--color-f)')
-        .style('margin-bottom', '5px')
+        .style('margin-bottom', isHeader ? '' : '5px')
         .style('padding-left', '8px')
-        .text(display_name)
+        .style('font-weight', isHeader ? 'bold' : '')
+        .text(hideLegendLayerName ? '' : display_name)
+
+    if (isHeader) return
 
     let lastContinues = []
     let lastShape = ''
