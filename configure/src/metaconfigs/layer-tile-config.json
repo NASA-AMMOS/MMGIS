@@ -398,7 +398,15 @@
               "name": "Legend From URL",
               "description": "A URL to a static image or .csv with the following header: 'color,strokecolor,shape,value'. If the path is relative, it will be relative to the mission's directory. This legend is overridden if a legend is also configured below.",
               "type": "text",
-              "width": 12
+              "width": 10
+            },
+            {
+              "new": true,
+              "field": "variables.hideLegendLayerName",
+              "name": "Hide layer name",
+              "description": "Hide layer name in the legend.",
+              "type": "checkbox",
+              "width": 2
             }
           ]
         },
