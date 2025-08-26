@@ -695,6 +695,48 @@
       ]
     },
     {
+      "name": "Tool - Data Download",
+      "rows": [
+        {
+          "name": "Tool: Data Download",
+          "components": [
+            {
+              "field": "variables.tools.dataDownload.urls",
+              "name": "Layer Specific Download URL Templates",
+              "description": "Object of URL templates to use when downloading data for this layer. When using the Data Download tool these URL templates will override the templates configured in the Data Download tool tab. All URLs are fetched with a GET request.",
+              "type": "objectarray",
+              "width": 12,
+              "object": [
+                {
+                  "field": "url_template",
+                  "name": "URL Template",
+                  "description": "Use any of the following strings in the template: {min_datetime}, {max_datetime}, {min_lon}, {max_lon}, {min_lat}, {max_lat} and they will be filled in dynamically from the users selection in the application.",
+                  "type": "text",
+                  "width": 8
+                },
+                {
+                  "field": "direct_download",
+                  "name": "Direct Download",
+                  "description": "If checked, the fetched resource is assumed to be a complete file that can be downloaded directly and does not need to be repackaged, such as a zip or NetCDF file.",
+                  "type": "checkbox",
+                  "width": 2,
+                  "defaultChecked": false
+                },
+                {
+                  "field": "file_ext",
+                  "name": "File Extension",
+                  "description": "If this template does not point to a direct download (see above) it is assumed to return ascii text that will be saved to a file automatically. You may specify the file extension here otherwise txt will be used.",
+                  "type": "text",
+                  "width": 2,
+                  "default": "txt"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "URL",
       "rows": [
         {

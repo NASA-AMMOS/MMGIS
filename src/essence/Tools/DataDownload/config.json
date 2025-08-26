@@ -1,8 +1,8 @@
 {
     "defaultIcon": "download",
-    "description": "Do the coolest thing ever.",
+    "description": "Download Source Data for Selected Datasets.",
     "descriptionFull": {
-        "title": "Use this tool to be better than you were before you used it."
+        "title": "User may select a subset of available layers, a bounding region, and temporal bounds and use the configured URL templates to fetch source data for those selections."
     },
     "hasVars": true,
     "expandable": true,
@@ -15,62 +15,44 @@
             {
                 "components": [
                     {
-                        "field": "variables.opt_str",
-                        "name": "Option String",
-                        "description": "Specify a text input for this tool.",
-                        "type": "text",
-                        "width": 12
-                    }
-                ]
-            },
-            {
-                "components": [
-                    {
-                        "field": "variables.opt_obj_arr",
-                        "name": "Object Array",
-                        "description": "Create a list of dictionaries for this tool config.",
+                        "field": "variables.url_template_arr",
+                        "name": "URL Templates",
+                        "description": "List of URL templates to use when submitting data download requests. These only apply to non-vector/query type layers. These may be overridden within individual layer configurations.",
                         "type": "objectarray",
                         "width": 12,
                         "object": [
                             {
-                                "field": "field_1",
-                                "name": "Field Name - 1",
-                                "description": "",
+                                "field": "url_template",
+                                "name": "URL Template",
+                                "description": "Use any of the following strings in the template: {id}, {min_datetime}, {max_datetime}, {min_lon}, {max_lon}, {min_lat}, {max_lat} and they will be filled in dynamically from the users selection in the application.",
                                 "type": "text",
-                                "width": 4
+                                "width": 5
                             },
                             {
-                                "field": "field_2",
-                                "name": "Field Name - 2",
-                                "description": "",
+                                "field": "id_key",
+                                "name": "ID Key",
+                                "description": "Specify the field name within the layer object to use as the identifier the {id} parameter in the URL template.",
                                 "type": "text",
-                                "width": 8
+                                "default": "name",
+                                "width": 3
+                            },
+                            {
+                                "field": "direct_download",
+                                "name": "Direct Download",
+                                "description": "If checked, the fetched resource is assumed to be a complete file that can be downloaded directly and does not need to be repackaged, such as a zip or NetCDF file.",
+                                "type": "checkbox",
+                                "width": 2,
+                                "defaultChecked": false
+                            },
+                            {
+                                "field": "file_ext",
+                                "name": "File Extension",
+                                "description": "If this template does not point to a direct download (see above) it is assumed to return ascii text that will be saved to a file automatically. You may specify the file extension here otherwise txt will be used.",
+                                "type": "text",
+                                "width": 2,
+                                "default": "txt"
                             }
                         ]
-                    }
-                ]
-            },
-            {
-                "components": [
-                    {
-                        "field": "variables.opt_check",
-                        "name": "Checkbox Option",
-                        "description": "Toggle this on or off nice yes.",
-                        "type": "checkbox",
-                        "width": 2,
-                        "defaultChecked": false
-                    }
-                ]
-            },
-            {
-                "components": [
-                    {
-                        "field": "variables.opt_select",
-                        "name": "Select Option",
-                        "description": "List of options to select from",
-                        "type": "dropdown",
-                        "width": 2,
-                        "options": ["select_opt_1", "select_opt_2", "select_opt_3"]
                     }
                 ]
             }
