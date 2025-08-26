@@ -1096,59 +1096,11 @@ const Description = {
             activeLayer.hasOwnProperty('options')
         ) {
             var keyAsName
-            const links = []
-
-            if (
-                this.L_.layers.data[activeLayer.options.layerName] &&
-                this.L_.layers.data[activeLayer.options.layerName].variables
-            ) {
-                let v =
-                    this.L_.layers.data[activeLayer.options.layerName].variables
-
-                if (v.links) {
-                    for (let i = 0; i < v.links.length; i++) {
-                        const link = F_.bracketReplace(
-                            v.links[i].link,
-                            activeLayer.feature.properties,
-                            v.links[i].replace
-                        )
-                        if (link != null && link != '')
-                            links.push({
-                                name: `<span style='display: flex; justify-content: space-between;'>${v.links[i].name}<i class='mdi mdi-open-in-new mdi-14px' style='margin-left: 4px; margin-top: 1px;'></i></span>`,
-                                link: link,
-                                target: F_.cleanString(v.links[i].name),
-                            })
-                    }
-                }
-
-                // check if this is actually a STAC feature
-                if (activeLayer.feature.stac_version) {
-                    // extract links from feature assets
-                    // https://github.com/radiantearth/stac-spec/blob/master/commons/assets.md#assets--
-                    if (activeLayer.feature.assets) {
-                        const assetKeys = Object.keys(
-                            activeLayer.feature.assets
-                        )
-                        for (let i = 0; i < assetKeys.length; i++) {
-                            const asset =
-                                activeLayer.feature.assets[assetKeys[i]]
-                            const link = asset?.href
-                            const title = asset?.title
-                            const roles = asset?.roles
-                            if (
-                                link !== null &&
-                                link !== '' &&
-                                (!roles || roles.indexOf('data') !== -1)
-                            )
-                                links.push({
-                                    name: `<span style='display: flex; justify-content: space-between;'>${title}<i class='mdi mdi-open-in-new mdi-14px' style='margin-left: 4px; margin-top: 1px;'></i></span>`,
-                                    link: link,
-                                    target: F_.cleanString(title),
-                                })
-                        }
-                    }
-                }
-            }
+            // const links = []
+            const links = F_.getFeatureDownloadLinks(
+                activeLayer.feature,
+                this.L_.layers.data[activeLayer.options.layerName]
+            )
 
             let key = activeLayer.useKeyAsName || 'name'
 

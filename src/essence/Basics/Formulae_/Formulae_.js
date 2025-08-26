@@ -1792,6 +1792,56 @@ var Formulae_ = {
             if (typeof callback === 'function') callback()
         })
     },
+    getFeatureDownloadLinks(feature, dataLayer) {
+        const links = []
+
+        if (dataLayer && dataLayer.variables) {
+            let v = dataLayer.variables
+
+            if (v.links) {
+                for (let i = 0; i < v.links.length; i++) {
+                    const link = this.bracketReplace(
+                        v.links[i].link,
+                        feature.properties,
+                        v.links[i].replace
+                    )
+                    if (link != null && link != '')
+                        links.push({
+                            name: `<span style='display: flex; justify-content: space-between;'>${v.links[i].name}<i class='mdi mdi-open-in-new mdi-14px' style='margin-left: 4px; margin-top: 1px;'></i></span>`,
+                            link: link,
+                            target: this.cleanString(v.links[i].name),
+                        })
+                }
+            }
+
+            // check if this is actually a STAC feature
+            if (feature.stac_version) {
+                // extract links from feature assets
+                // https://github.com/radiantearth/stac-spec/blob/master/commons/assets.md#assets--
+                if (feature.assets) {
+                    const assetKeys = Object.keys(feature.assets)
+                    for (let i = 0; i < assetKeys.length; i++) {
+                        const asset = feature.assets[assetKeys[i]]
+                        const link = asset?.href
+                        const title = asset?.title
+                        const roles = asset?.roles
+                        if (
+                            link !== null &&
+                            link !== '' &&
+                            (!roles || roles.indexOf('data') !== -1)
+                        )
+                            links.push({
+                                name: `<span style='display: flex; justify-content: space-between;'>${title}<i class='mdi mdi-open-in-new mdi-14px' style='margin-left: 4px; margin-top: 1px;'></i></span>`,
+                                link: link,
+                                target: this.cleanString(title),
+                            })
+                    }
+                }
+            }
+        }
+
+        return links
+    },
     getMinMaxOfArray(arrayOfNumbers) {
         return {
             min: Math.min(...arrayOfNumbers),
