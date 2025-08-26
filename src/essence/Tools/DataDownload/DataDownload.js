@@ -351,35 +351,107 @@ const DataDownload = {
             }
         })
 
+        // Listen for submitting a download query
         $('#dataDownload_submit').on('click', () => {
-            const layer =
-                DataDownload.downloadEnabledLayers[
-                    DataDownload.selectedLayerIdx
-                ]
-            const renderedLayer = L_.layers.layer[layer.name]
-            const start = DataDownload.dateRangeTempusStart.dates.getFirst()[0]
-            const end = DataDownload.dateRangeTempusEnd.dates.getFirst()[0]
-            if (renderedLayer) {
-                // TODO start here and figure out how to get the download links
-                console.log(layer, renderedLayer)
-                const filteredItems = []
-                renderedLayer.eachLayer((rl) => {
-                    if (rl.getBounds().intersects(DataDownload.currBounds)) {
-                        if (layer.time.enabled) {
-                            const startProp = layer.time.startProp
-                            const rlTime = new Date(
-                                rl.feature.properties[startProp]
-                            )
-                            if (rlTime > start && rlTime < end) {
-                                filteredItems.push(rl)
-                            }
-                        }
-                    }
-                })
-                console.log(filteredItems)
-            } else {
-                console.warn('Could not find layer on map')
+            // get date params
+            const start = `${moment(
+                DataDownload.dateRangeTempusStart.dates.getFirst()[0]
+            ).format('YYYY-MM-DDThh:mm')}Z`
+            const end = `${moment(
+                DataDownload.dateRangeTempusEnd.dates.getFirst()[0]
+            ).format('YYYY-MM-DDThh:mm')}Z`
+
+            // get bbox params
+            const min_lon = DataDownload.currBounds.getWest()
+            const min_lat = DataDownload.currBounds.getSouth()
+            const max_lon = DataDownload.currBounds.getEast()
+            const max_lat = DataDownload.currBounds.getNorth()
+
+            // get layer selection
+            const mapLayers = []
+            const dataLayers = []
+            for (let lname in DataDownload.selectedLayers) {
+                if (DataDownload.selectedLayers[lname]) {
+                    mapLayers.push(L_.layers.layer[lname])
+                    dataLayers.push(L_.layers.data[lname])
+                }
             }
+
+            // get filename filter
+            let filenameFilter = document.getElementById('filenameMatch').value
+
+            console.log('layers', dataLayers)
+
+            // extract download links from selected layers
+            const filteredFeatures = {}
+            let directDownloads = []
+            const formattedDownloads = []
+            dataLayers.forEach((dl, i) => {
+                // these layers may be pre-filtered, need to check features against bbox
+                if (['vector', 'query'].includes(dl.type)) {
+                    const ml = mapLayers[i]
+                    filteredFeatures[dl.name] = []
+                    ml.eachLayer((lfeat) => {
+                        if (
+                            lfeat
+                                .getBounds()
+                                .intersects(DataDownload.currBounds)
+                        ) {
+                            filteredFeatures[dl.name].push(lfeat.feature)
+                            directDownloads = directDownloads.concat(
+                                F_.getFeatureDownloadLinks(
+                                    lfeat.feature,
+                                    dl
+                                ).reduce((acc, l) => {
+                                    if (filenameFilter !== '') {
+                                        // hacky fake glob match
+                                        if (filenameFilter.startsWith('*')) {
+                                            filenameFilter = `.${filenameFilter}`
+                                        }
+                                        const reg = new RegExp(
+                                            filenameFilter,
+                                            'ig'
+                                        )
+                                        if (reg.test(l.link)) {
+                                            acc.push(l.link)
+                                        }
+                                    } else {
+                                        acc.push(l.link)
+                                    }
+                                    return acc
+                                }, [])
+                            )
+                        }
+                    })
+                } else if (dl.variables?.tools?.dataDownload?.urls) {
+                    // use the configured URL template to format a download query
+                    // TODO - fallback to URL template specified in the tool (not layer) config
+                    dl.variables.tools.dataDownload.urls.forEach((turl) => {
+                        const url = turl.url_template
+                            .replace('{min_datetime}', start)
+                            .replace('{max_datetime}', end)
+                            .replace('{min_lon}', min_lon)
+                            .replace('{max_lon}', max_lon)
+                            .replace('{min_lat}', min_lat)
+                            .replace('{max_lat}', max_lat)
+                        formattedDownloads.push(url)
+                    })
+                }
+            })
+
+            console.log('filteredFeatures', filteredFeatures)
+            console.log('formattedDownloads', formattedDownloads)
+            console.log('directDownloads', directDownloads)
+
+            // TODO - download files, fetch data and save it to a file, print out a cURL command, or something
+
+            // Create a blob of the data
+            // var fileToSave = new Blob([strung], {
+            //     type: `application/${downloadType || 'json'}`,
+            //     name: fileName,
+            // })
+            // // Save the file //from FileSaver
+            // saveAs(fileToSave, fileName)
         })
 
         DataDownload.enableDownload()
@@ -440,11 +512,8 @@ const DataDownload = {
         DataDownload.enableDownload()
     },
     enableDownload: function () {
-        if (
-            // TODO - check that at least one dataset is selected
-            DataDownload.areaSelectionLayer
-            // DataDownload.dateRangeTempusStart.dates.getFirst().length === 2
-        ) {
+        // TODO - check that at least one dataset is selected
+        if (DataDownload.areaSelectionLayer) {
             $('#dataDownload_submit').addClass('ready')
         } else {
             $('#dataDownload_submit').removeClass('ready')
@@ -465,9 +534,6 @@ const DataDownload = {
     destroy: function () {
         this.cleanup()
         this.MMGISInterface.separateFromMMGIS()
-    },
-    getUrlString: function () {
-        return ''
     },
 }
 
