@@ -102,7 +102,7 @@ function refreshLegends() {
 
     function _refreshLegends(node, parent, depth) {
         let shift = LegendTool.showHeadersInLegend === true ? depth : 0
-        for (var i = 0; i < node.length; i++) {
+        for (let i in node) {
             let l = node[i].name
             if (L_.layers.on[l] == true) {
                 if (L_.layers.data[l].type != 'header') {
@@ -174,8 +174,7 @@ function refreshLegends() {
                             shift
                         )
                     }
-                } else {
-                    if (LegendTool.showHeadersInLegend === true) {
+                } else if (LegendTool.showHeadersInLegend === true) {
                         const haveLegends = L_.layers.data[l].sublayers
                             .map(i => i.name)
                             .filter(i => {
@@ -196,7 +195,6 @@ function refreshLegends() {
                             )
                         }
                     }
-                }
             }
 
             if (node[i].sublayers)
