@@ -28,7 +28,8 @@
               "name": "Layer Name",
               "description": "",
               "type": "textnotrim",
-              "width": 8
+              "width": 8,
+              "required": true
             },
             {
               "field": "visibility",
@@ -48,7 +49,8 @@
               "name": "URL",
               "description": "",
               "type": "text",
-              "width": 12
+              "width": 12,
+              "required": true
             },
             {
               "field": "initialOpacity",
@@ -69,7 +71,8 @@
               "type": "number",
               "min": 0,
               "step": 1,
-              "width": 3
+              "width": 3,
+              "required": true
             },
             {
               "field": "maxNativeZoom",
@@ -78,7 +81,8 @@
               "type": "number",
               "min": 0,
               "step": 1,
-              "width": 2
+              "width": 2,
+              "required": true
             },
             {
               "field": "maxZoom",
@@ -87,7 +91,8 @@
               "type": "number",
               "min": 0,
               "step": 1,
-              "width": 3
+              "width": 3,
+              "required": true
             }
           ]
         },

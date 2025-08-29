@@ -29,7 +29,8 @@
               "name": "Layer Name",
               "description": "A display name for the layer.",
               "type": "textnotrim",
-              "width": 6
+              "width": 6,
+              "required": true
             },
             {
               "field": "kind",
@@ -80,7 +81,9 @@
               "name": "Source URL",
               "description": "<strong>\t• URL: '{url}' - A file path that points to a geojson. If the path is relative, it will be relative to the mission's directory.\n\t<strong>• GeoDatasets: '{geodataset_name}'</strong> - Simply go to 'Manage Geodatasets' at the bottom left, upload a geojson and link to it in this URL field with '{geodataset_name}'\n\t<strong>• API: 'publishedall'</strong> - Grabs all features published via the DrawTool.\n\t<strong>• API: 'published:{file_intent}'</strong> - Grabs all features published via the DrawTool of a certain intent. Possible values are: roi, campaign, campsite, signpost, trail, all\n\t<strong>• API: 'drawn:{file_id}'</strong> - Grabs a user drawn file from the DrawTool. The file_id is an integer and can be found by hovering over the desired file in the DrawTool. Note that if the file chosen is still private, the file owner will be the only user who can view it.\n\t<strong>• STAC: '{url_to_stac}'</strong> - Point to a STAC catalog/collection/item of GeoJSON features.\n\t<strong>• STAC-CATALOG: '{url_to_stac_catalog}'</strong> - Use this prefix if the URL is specifically to a Catalog object.\n\t<strong>• STAC-COLLECTION: '{url_to_stac_collection}'</strong> - Use this prefix if the URL is specifically to a Collection object.\n\t<strong>• STAC-ITEM: '{url_to_stac_item}'</strong> - Use this prefix if the URL is to an Item object\n\t\t• If the underlying data is a COG or similar data product, use the <strong>Tile</strong> layer type instead.",
               "type": "text",
-              "width": 10
+              "width": 10,
+              "required": true,
+              "conditionalRequired": {"field": "controlled", "value": false}
             }
           ]
         },

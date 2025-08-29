@@ -51,6 +51,14 @@ const useStyles = makeStyles((theme) => ({
     cursor: "not-allowed !important",
     background: `${theme.palette.swatches.red[500]} !important`,
   },
+  errorIndicator: {
+    width: "10px",
+    height: "10px",
+    borderRadius: "50%",
+    backgroundColor: theme.palette.error.main,
+    marginLeft: "6px",
+    display: "inline-block",
+  },
 }));
 
 export default function SaveBar() {
@@ -60,6 +68,8 @@ export default function SaveBar() {
 
   const mission = useSelector((state) => state.core.mission);
   const lockConfig = useSelector((state) => state.core.lockConfig);
+  const validationErrors = useSelector((state) => state.core.validationErrors);
+  const hasValidationErrors = validationErrors && validationErrors.length > 0;
 
   return (
     <>
@@ -77,6 +87,7 @@ export default function SaveBar() {
         <Button
           className={clsx(c.save, { [c.saveDisabled]: lockConfig })}
           variant="contained"
+          startIcon={hasValidationErrors ? <span className={c.errorIndicator} /> : null}
           endIcon={<SaveIcon />}
           onClick={() => {
             dispatch(

@@ -29,7 +29,8 @@
               "name": "Layer Name",
               "description": "A display name for the layer.",
               "type": "textnotrim",
-              "width": 6
+              "width": 6,
+              "required": true
             },
             {
               "field": "visibility",
@@ -48,7 +49,8 @@
               "name": "URL",
               "description": "A file path that points to a .dae or .obj. If the path is relative, it will be relative to the mission's directory.",
               "type": "text",
-              "width": 12
+              "width": 12,
+              "required": true
             }
           ]
         },
@@ -61,7 +63,8 @@
               "type": "number",
               "min": -180,
               "max": 180,
-              "width": 4
+              "width": 4,
+              "required": true
             },
             {
               "field": "position.latitude",
@@ -70,14 +73,16 @@
               "type": "number",
               "min": -90,
               "max": 90,
-              "width": 4
+              "width": 4,
+              "required": true
             },
             {
               "field": "position.elevation",
               "name": "Elevation",
               "description": "(Required) The elevation in meters at which to place the model.",
               "type": "number",
-              "width": 4
+              "width": 4,
+              "required": true
             }
           ]
         },
@@ -88,21 +93,24 @@
               "name": "Rotation X (radians)",
               "description": "(Optional) An x-axis rotation in radians to orient the model.",
               "type": "number",
-              "width": 4
+              "width": 4,
+              "required": true
             },
             {
               "field": "rotation.y",
               "name": "Rotation Y (radians)",
               "description": "(Optional) An y-axis rotation in radians to orient the model.",
               "type": "number",
-              "width": 4
+              "width": 4,
+              "required": true
             },
             {
               "field": "rotation.z",
               "name": "Rotation Z (radians)",
               "description": "(Optional) An z-axis rotation in radians to orient the model.",
               "type": "number",
-              "width": 4
+              "width": 4,
+              "required": true
             }
           ]
         },
@@ -113,7 +121,8 @@
               "name": "Scale",
               "description": "(Optional) A scaling factor to resize the model.",
               "type": "number",
-              "width": 4
+              "width": 4,
+              "required": true
             }
           ]
         }

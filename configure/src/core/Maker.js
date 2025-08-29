@@ -24,6 +24,7 @@ import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import IconButton from "@mui/material/IconButton";
 import Slider from "@mui/material/Slider";
+import FormHelperText from "@mui/material/FormHelperText";
 
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -39,6 +40,7 @@ import {
   getLayerByUUID,
   isUrlAbsolute,
 } from "./utils";
+import { isFieldRequired } from "./validators";
 
 import Map from "../components/Map/Map";
 import ColorButton from "../components/ColorButton/ColorButton";
@@ -237,6 +239,9 @@ const useStyles = makeStyles((theme) => ({
     marginBottom: "-13px !important",
     fontSize: "14px !important",
   },
+  noMarginHelperText: {
+    marginLeft: "0px !important",
+  },
 }));
 
 const getComponent = (
@@ -269,6 +274,10 @@ const getComponent = (
     }
     disabled = !switchVal;
   }
+  const isRequired = isFieldRequired(com, layer, configuration);
+  const fieldValue = value != null ? value : getIn(directConf, com.field, "");
+  const hasError = isRequired && (fieldValue === "" || fieldValue == null);
+  
   switch (com.type) {
     case "gap":
       return (
@@ -286,10 +295,16 @@ const getComponent = (
           variant="filled"
           size="small"
           disabled={disabled}
+          required={isRequired}
+          error={hasError}
+          helperText={hasError ? "This field is required" : ""}
+          FormHelperTextProps={{
+            className: c.noMarginHelperText
+          }}
           inputProps={{
             autoComplete: "off",
           }}
-          value={value != null ? value : getIn(directConf, com.field, "")}
+          value={fieldValue}
           onChange={(e) => {
             updateConfiguration(forceField || com.field, e.target.value, layer);
           }}
@@ -326,10 +341,16 @@ const getComponent = (
           variant="filled"
           size="small"
           disabled={disabled}
+          required={isRequired}
+          error={hasError}
+          helperText={hasError ? "This field is required" : ""}
+          FormHelperTextProps={{
+            className: c.noMarginHelperText
+          }}
           inputProps={{
             autoComplete: "off",
           }}
-          value={value != null ? value : getIn(directConf, com.field, "")}
+          value={fieldValue}
           onChange={(e) => {
             updateConfiguration(forceField || com.field, e.target.value, layer);
           }}
@@ -599,6 +620,8 @@ const getComponent = (
         </div>
       );
     case "number":
+      const numberValue = value != null ? value : getIn(directConf, com.field, "");
+      const numberHasError = isRequired && (numberValue === "" || numberValue == null || isNaN(numberValue));
       inner = (
         <TextField
           className={c.text}
@@ -606,10 +629,16 @@ const getComponent = (
           variant="filled"
           size="small"
           disabled={disabled}
+          required={isRequired}
+          error={numberHasError}
+          helperText={numberHasError ? "This field is required" : ""}
+          FormHelperTextProps={{
+            className: c.noMarginHelperText
+          }}
           inputProps={{
             autoComplete: "off",
           }}
-          value={value != null ? value : getIn(directConf, com.field, "")}
+          value={numberValue}
           onChange={(e) => {
             let v = e.target.value;
             if (v != "") {

@@ -29,7 +29,8 @@
               "name": "Layer Name",
               "description": "",
               "type": "textnotrim",
-              "width": 8
+              "width": 8,
+              "required": true
             },
             {
               "field": "expanded",

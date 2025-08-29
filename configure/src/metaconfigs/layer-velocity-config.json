@@ -28,7 +28,8 @@
               "name": "Layer Name",
               "description": "A display name for the layer.",
               "type": "textnotrim",
-              "width": 6
+              "width": 6,
+              "required": true
             },
             {
               "field": "kind",
@@ -61,7 +62,9 @@
               "name": "URL",
               "description": "A file path that points to a geojson, gribjson (streamlines only), or geotiff (arrows only). If the path is relative, it will be relative to the mission's directory. The URL must contain a proper placeholder ending such as: {z}/{x}/{y}.png.",
               "type": "text",
-              "width": 12
+              "width": 12,
+              "required": true,
+              "conditionalRequired": {"field": "controlled", "value": false}
             }
           ]
         },

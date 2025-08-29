@@ -29,7 +29,8 @@
               "name": "Layer Name",
               "description": "A display name for the layer.",
               "type": "textnotrim",
-              "width": 6
+              "width": 6,
+              "required": true
             },
             {
               "field": "kind",
@@ -63,7 +64,8 @@
               "name": "Query Endpoint",
               "description": "A file path that points to a search endpoint.",
               "type": "text",
-              "width": 10
+              "width": 10,
+              "required": true
             },
             {
               "field": "query.type",

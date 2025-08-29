@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 import { calls } from "./calls";
+import { getAllValidationErrors } from "./validators";
 
 window.newUUIDCount = 0;
 window.configId = parseInt(Math.random() * 100000);
@@ -17,6 +18,7 @@ export const ConfigureStore = createSlice({
     stacCollections: [],
     userEntries: [],
     page: null,
+    validationErrors: [],
     modal: {
       newMission: false,
       layer: false,
@@ -64,6 +66,8 @@ export const ConfigureStore = createSlice({
     },
     setConfiguration: (state, action) => {
       state.configuration = action.payload;
+      // Update validation errors whenever configuration changes
+      state.validationErrors = getAllValidationErrors(action.payload);
     },
     setToolConfiguration: (state, action) => {
       state.toolConfiguration = action.payload;
@@ -105,6 +109,9 @@ export const ConfigureStore = createSlice({
           text: String(action.payload.text),
           severity: action.payload.severity,
         };
+    },
+    setValidationErrors: (state, action) => {
+      state.validationErrors = action.payload;
     },
     clearLockConfig: (state, action) => {
       state.lockConfigTypes[action.payload.type || "main"] = false;
@@ -210,6 +217,7 @@ export const {
   setPage,
   setModal,
   setSnackBarText,
+  setValidationErrors,
   saveConfiguration,
   clearLockConfig,
   setLockConfig,

@@ -29,7 +29,8 @@
               "name": "Layer Name",
               "description": "A display name for the layer.",
               "type": "textnotrim",
-              "width": 6
+              "width": 6,
+              "required": true
             },
             {
               "field": "kind",
@@ -63,7 +64,8 @@
               "name": "URL",
               "description": "A file path that points to a geojson. If the path is relative, it will be relative to the mission's directory. The URL must contain a proper placeholder ending such as: {z}/{x}/{y}.png. Alternatively vectors can be served with Geodatasets. Simply go to 'Manage Geodatasets' at the bottom left, upload a geojson and link to it in this URL field with 'geodatasets:{geodataset*name}'",
               "type": "text",
-              "width": 12
+              "width": 12,
+              "required": true
             }
           ]
         },
@@ -76,7 +78,18 @@
               "type": "number",
               "min": 0,
               "step": 1,
-              "width": 2
+              "width": 2,
+              "required": true
+            },
+            {
+              "field": "maxNativeZoom",
+              "name": "Maximum Native Zoom",
+              "description": "The highest (largest number) zoom level of the tile set.",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 2,
+              "required": true
             },
             {
               "field": "maxZoom",
@@ -85,7 +98,8 @@
               "type": "number",
               "min": 0,
               "step": 1,
-              "width": 2
+              "width": 2,
+              "required": true
             },
             {
               "field": "layer3dType",
