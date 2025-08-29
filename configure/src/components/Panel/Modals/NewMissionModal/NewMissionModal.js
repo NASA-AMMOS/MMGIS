@@ -24,6 +24,10 @@ import TextField from "@mui/material/TextField";
 import FormGroup from "@mui/material/FormGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
 
 import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -94,7 +98,17 @@ const useStyles = makeStyles((theme) => ({
   backgroundIcon: {
     margin: "7px 8px 0px 0px",
   },
+  planetDropdown: {
+    width: "100%",
+    margin: "8px 0px 4px 0px !important",
+  },
 }));
+
+const PLANET_RADII = {
+  Earth: { major: 6371008, minor: 6371008 },
+  Mars: { major: 3396190, minor: 3396190 },
+  "The Moon": { major: 1737400, minor: 1737400 },
+};
 
 const MODAL_NAME = "newMission";
 const NewMissionModal = (props) => {
@@ -110,6 +124,7 @@ const NewMissionModal = (props) => {
 
   const [missionName, setMissionName] = useState("");
   const [createDir, setCreateDir] = useState(true);
+  const [selectedPlanet, setSelectedPlanet] = useState("Earth");
 
   const handleClose = () => {
     // close modal
@@ -126,11 +141,24 @@ const NewMissionModal = (props) => {
       return;
     }
 
+    const planetRadius = PLANET_RADII[selectedPlanet];
+    
+    // Build the config with just the radius values
+    const config = {
+      msv: {
+        radius: {
+          major: planetRadius.major,
+          minor: planetRadius.minor,
+        },
+      },
+    };
+
     calls.api(
       "add",
       {
         mission: missionName,
         makedir: createDir,
+        config: config,
       },
       (res) => {
         calls.api(
@@ -150,6 +178,7 @@ const NewMissionModal = (props) => {
             // reset fields
             setMissionName("");
             setCreateDir(true);
+            setSelectedPlanet("Earth");
 
             // and then close
             handleClose();
@@ -165,6 +194,7 @@ const NewMissionModal = (props) => {
             // reset fields
             setMissionName("");
             setCreateDir(true);
+            setSelectedPlanet("Earth");
 
             // and then close
             handleClose();
@@ -224,6 +254,21 @@ const NewMissionModal = (props) => {
         />
         <Typography className={c.subtitle2}>
           {`A new and unique name for a mission. No special characters allowed and it should not start with a number.`}
+        </Typography>
+        <FormControl className={c.planetDropdown} variant="filled">
+          <InputLabel>Planet</InputLabel>
+          <Select
+            value={selectedPlanet}
+            onChange={(e) => setSelectedPlanet(e.target.value)}
+            label="Planet"
+          >
+            <MenuItem value="Earth">Earth</MenuItem>
+            <MenuItem value="Mars">Mars</MenuItem>
+            <MenuItem value="The Moon">The Moon</MenuItem>
+          </Select>
+        </FormControl>
+        <Typography className={c.subtitle2}>
+          {`Select the planet to set the default radius values for this mission. You can always change this later.`}
         </Typography>
         <FormGroup>
           <FormControlLabel
