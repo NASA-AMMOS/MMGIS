@@ -1619,7 +1619,7 @@ input::-webkit-inner-spin-button {
 }
 #toast-container {
     position: fixed !important;
-    bottom: 40px !important;
+    bottom: 80px !important;
     right: 5px !important;
     z-index: 1001 !important;
 }

@@ -66,6 +66,9 @@ const TimeUI = {
     modeIndex: 0,
     _initialStart: null,
     _initialEnd: null,
+    // Follow Feature properties
+    followEnabled: false,
+    followedFeature: null, // {layerName, featureId, properties}
     init: function (timeChange, enabled) {
         TimeUI.timeChange = timeChange
         TimeUI.enabled = enabled
@@ -113,6 +116,9 @@ const TimeUI = {
                     `</div>`,
                     `<div id="mmgisTimeUIFitWindow" class="mmgisTimeUIButton">`,
                         `<i class='mdi mdi-calendar-clock mdi-24px'></i>`,
+                    `</div>`,
+                    `<div id="mmgisTimeUIFollowFeature" class="mmgisTimeUIButton">`,
+                        `<i class='mdi mdi-crosshairs-gps mdi-24px'></i>`,
                     `</div>`,
                     `<div id="mmgisTimeUIPresent" class="mmgisTimeUIButton">`,
                         `<i class='mdi mdi-clock-end mdi-24px'></i>`,
@@ -439,6 +445,11 @@ const TimeUI = {
             placement: 'top',
             theme: 'blue',
         })
+        tippy('#mmgisTimeUIFollowFeature', {
+            content: 'Follow Selected Feature',
+            placement: 'top',
+            theme: 'blue',
+        })
         tippy('#mmgisTimeUIPresent', {
             content: 'Present',
             placement: 'top',
@@ -720,6 +731,7 @@ const TimeUI = {
         $('#mmgisTimeUIBottomNext').on('click', TimeUI.stepNext)
         $('#mmgisTimeUIFitTime').on('click', TimeUI.fitTimeToWindow)
         $('#mmgisTimeUIFitWindow').on('click', TimeUI.fitWindowToTime)
+        $('#mmgisTimeUIFollowFeature').on('click', TimeUI.toggleFollowFeature)
         $('#mmgisTimeUIPresent').on('click', TimeUI.toggleTimeNow)
 
         TimeUI._remakeTimeSlider()
@@ -740,11 +752,21 @@ const TimeUI = {
         if (TimeUI.now !== true) {
             if (deeplinkLive === true) {
                 TimeUI.toggleTimeNow(true)
-            } else if (deeplinkLive == null && L_.configData.time?.liveByDefault === true) {
+            } else if (
+                deeplinkLive == null &&
+                L_.configData.time?.liveByDefault === true
+            ) {
                 TimeUI.toggleTimeNow(true)
             }
         }
         TimeUI._refreshLiveProgress()
+
+        // Restore follow state from deeplink after a delay to ensure layers are loaded
+        if (L_.FUTURES.follow && L_.FUTURES.activePoint) {
+            setTimeout(() => {
+                TimeUI._restoreFollowFromDeeplink()
+            }, 2000)
+        }
     },
     changeMode(idx) {
         TimeUI.modeIndex = idx
@@ -1084,8 +1106,247 @@ const TimeUI = {
             // Restore label to Active Time
             $('#mmgisTimeUIEndWrapper > span').text('Active Time')
             TimeUI.now = false
+
+            // Disable follow mode when Present mode is turned off
+            if (TimeUI.followEnabled) {
+                TimeUI.clearFollowedFeature()
+            }
         }
         TimeUI._refreshIntervals()
+    },
+    toggleFollowFeature() {
+        if (!TimeUI.followEnabled) {
+            // Check if we have a selected feature
+            const activeFeature = L_.activeFeature
+            if (
+                !activeFeature ||
+                !activeFeature.layer ||
+                !activeFeature.layer.options ||
+                !activeFeature.layer.options.layerName
+            ) {
+                // Show toast message
+                M.toast({
+                    html: 'Select a feature from a real-time layer first',
+                    displayLength: 3000,
+                    classes: 'mmgisToast feature',
+                })
+                return
+            }
+
+            const layerName = activeFeature.layer.options.layerName
+
+            // Check if layer can be followed
+            if (!TimeUI.canFollowLayer(layerName)) {
+                return
+            }
+
+            // Enable following
+            TimeUI.setFollowedFeature(activeFeature)
+        } else {
+            // Disable following
+            TimeUI.clearFollowedFeature()
+        }
+    },
+    canFollowLayer: function (layerName) {
+        const layer = L_.layers.data[layerName]
+        if (!layer) {
+            // Show toast message
+            M.toast({
+                html: 'Layer not found.',
+                displayLength: 3000,
+                classes: 'mmgisToast failure',
+            })
+            return false
+        }
+
+        // Layer must be time-enabled
+        if (!layer.time || layer.time.enabled !== true) {
+            // Show toast message
+            M.toast({
+                html: 'Selected layer does not support real-time updates.',
+                displayLength: 3000,
+                classes: 'mmgisToast failure',
+            })
+            return false
+        }
+
+        // Layer must fetch new data (global or requery types)
+        if (layer.time.type !== 'global' && layer.time.type !== 'requery') {
+            // Show toast message
+            M.toast({
+                html: 'Selected layer does not support real-time updates.',
+                displayLength: 3000,
+                classes: 'mmgisToast failure',
+            })
+            return false
+        }
+
+        // Present mode should be on for real-time following
+        if (!TimeUI.now) {
+            // Show toast message
+            M.toast({
+                html: 'Present Mode is not active.',
+                displayLength: 3000,
+                classes: 'mmgisToast failure',
+            })
+            return false
+        }
+
+        return true
+    },
+    setFollowedFeature: function (feature) {
+        if (!feature || !feature.feature) return
+
+        TimeUI.followedFeature = {
+            layerName: feature.layer.options.layerName,
+            featureId:
+                feature.feature.id ||
+                F_.getIn(
+                    feature.feature.properties,
+                    L_.layers.data[feature.layer.options.layerName]?.variables
+                        ?.useKeyAsName
+                ) ||
+                feature.feature.properties.name ||
+                null,
+            properties: feature.feature.properties,
+            geometry: feature.feature.geometry,
+        }
+        TimeUI.followEnabled = true
+
+        // Update UI
+        $('#mmgisTimeUIFollowFeature')
+            .css('background', 'var(--color-p4)')
+            .css('color', 'white')
+    },
+    clearFollowedFeature: function () {
+        TimeUI.followedFeature = null
+        TimeUI.followEnabled = false
+
+        // Update UI
+        $('#mmgisTimeUIFollowFeature')
+            .css('background', '')
+            .css('color', 'var(--color-a5)')
+    },
+    _findFollowedFeature: function (layerName) {
+        if (!TimeUI.followedFeature) return null
+
+        const layer = L_.layers.layer[layerName]
+        if (!layer) return null
+
+        let foundFeature = null
+
+        // Search through layer features
+        layer.eachLayer(function (sublayer) {
+            if (foundFeature) return
+
+            if (sublayer.feature) {
+                // Try to match by ID first
+                if (TimeUI.followedFeature.featureId) {
+                    const currentId =
+                        sublayer.feature.id ||
+                        F_.getIn(
+                            sublayer.feature.properties,
+                            L_.layers.data[layerName]?.variables?.useKeyAsName
+                        ) ||
+                        sublayer.feature.properties.name
+
+                    if (currentId === TimeUI.followedFeature.featureId) {
+                        foundFeature = sublayer
+                        return
+                    }
+                }
+
+                // If no ID match, try to match by properties (fallback)
+                // This is less reliable but handles cases where features are recreated
+                if (!foundFeature && sublayer.feature.properties) {
+                    let propsMatch = true
+                    const keyProps = ['name', 'id', 'sol', 'site']
+                    for (let prop of keyProps) {
+                        if (
+                            TimeUI.followedFeature.properties[prop] !==
+                                undefined &&
+                            sublayer.feature.properties[prop] !==
+                                TimeUI.followedFeature.properties[prop]
+                        ) {
+                            propsMatch = false
+                            break
+                        }
+                    }
+                    if (propsMatch) {
+                        foundFeature = sublayer
+                    }
+                }
+            }
+        })
+
+        return foundFeature
+    },
+    panToFollowedFeature: function () {
+        if (!TimeUI.followEnabled || !TimeUI.followedFeature) return
+
+        const layerName = TimeUI.followedFeature.layerName
+
+        // Check if layer is still on
+        if (!L_.layers.on[layerName]) {
+            TimeUI.clearFollowedFeature()
+            return
+        }
+
+        const feature = TimeUI._findFollowedFeature(layerName)
+
+        if (feature) {
+            let panTarget = null
+
+            // Get center based on geometry type
+            if (feature._latlng) {
+                // Point geometry
+                panTarget = feature._latlng
+            } else if (feature.getBounds) {
+                // Line or polygon geometry
+                panTarget = feature.getBounds().getCenter()
+            }
+
+            if (panTarget && Map_.map) {
+                // Use panTo for immediate panning
+                Map_.map.panTo(panTarget)
+
+                // Update the followed feature info in case geometry changed
+                TimeUI.followedFeature.geometry = feature.feature.geometry
+            }
+        } else {
+            // Feature not found - it may have gone out of time range
+        }
+    },
+    _restoreFollowFromDeeplink: function () {
+        // Check if we have an active point from the deeplink
+        if (!L_.FUTURES.activePoint) {
+            console.log('No active point found in deeplink')
+            return
+        }
+
+        const layerName = L_.FUTURES.activePoint.layerName
+        
+        // Check if we can follow this layer
+        if (!TimeUI.canFollowLayer(layerName)) {
+            console.log(
+                'Cannot restore follow state - layer not followable:',
+                layerName
+            )
+            return
+        }
+
+        // Wait for the active feature to be set
+        const waitForActiveFeature = () => {
+            if (L_.activeFeature && L_.activeFeature.layerName === layerName) {
+                // Enable follow mode
+                TimeUI.toggleFollowFeature()
+            } else {
+                // Try again in a bit
+                setTimeout(waitForActiveFeature, 500)
+            }
+        }
+        
+        waitForActiveFeature()
     },
     _remakeTimeSlider(ignoreHistogram) {
         const rangeMode =

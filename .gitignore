@@ -35,4 +35,7 @@ sessions
 docker-compose.yml
 docker-compose.env.yml
 
+.mcp.json
+.serena
+.claude
 #tools

@@ -5,6 +5,7 @@ import L_ from '../Basics/Layers_/Layers_'
 import T_ from '../Basics/ToolController_/ToolController_'
 import calls from '../../pre/calls'
 import TimeControl from './TimeControl'
+import TimeUI from './TimeUI'
 
 var QueryURL = {
     checkIfMission: function () {
@@ -38,6 +39,7 @@ var QueryURL = {
         var startTime = this.getSingleQueryVariable('startTime')
         var endTime = this.getSingleQueryVariable('endTime')
         var live = this.getSingleQueryVariable('live')
+        var follow = this.getSingleQueryVariable('follow')
 
         if (urlSite !== false) {
             L_.FUTURES.site = urlSite
@@ -180,6 +182,11 @@ var QueryURL = {
         if (live !== false) {
             const liveStr = (live + '').toLowerCase()
             L_.FUTURES.live = liveStr === 'true' || liveStr === '1'
+        }
+
+        if (follow !== false) {
+            const followStr = (follow + '').toLowerCase()
+            L_.FUTURES.follow = followStr === 'true' || followStr === '1'
         }
 
         if (layersOn !== false || selected !== false) {
@@ -408,6 +415,11 @@ var QueryURL = {
                 urlAppendage += '&endTime=' + TimeControl.endTime
             if (TimeControl.timeUI && typeof TimeControl.timeUI.now === 'boolean')
                 urlAppendage += '&live=' + (TimeControl.timeUI.now ? '1' : '0')
+            
+            // Follow state
+            if (typeof TimeUI !== 'undefined' && TimeUI.followEnabled && TimeUI.followedFeature) {
+                urlAppendage += '&follow=1'
+            }
         }
 
         var url = encodeURI(urlAppendage)
