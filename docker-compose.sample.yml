@@ -117,6 +117,7 @@ services:
       - PYTHONWARNINGS=ignore
       - VSI_CACHE=TRUE
       - VSI_CACHE_SIZE=536870912
+      - TILEMATRIXSET_DIRECTORY=/adjacent-servers/resources/tilematrixsets/planetcantile_v4
       # GDAL VSI Config
       # https://gdal.org/user/virtual_file_systems.html#vsis3-aws-s3-files
       # https://gdal.org/user/virtual_file_systems.html#vsigs-google-cloud-storage-files
@@ -135,6 +136,7 @@ services:
       # - RIO_TILER_MAX_THREADS=
     volumes:
       - ./Missions:/Missions
+      - ./adjacent-servers/resources:/adjacent-servers/resources
 
   titiler-pgstac:
     # At the time of writing, rasterio and psycopg wheels are not available for arm64 arch
@@ -184,6 +186,7 @@ services:
       # TiTiler pgSTAC
       - TITILER_PGSTAC_SEARCH_EXITWHENFULL=FALSE
       - TITILER_PGSTAC_SEARCH_SKIPCOVERED=FALSE
+      - TILEMATRIXSET_DIRECTORY=/adjacent-servers/resources/tilematrixsets/planetcantile_v4
     depends_on:
       mmgis:
         condition: service_healthy
@@ -194,6 +197,7 @@ services:
     command: bash -c "uvicorn titiler.pgstac.main:app --host 0.0.0.0 --port 8884"
     volumes:
       - ./Missions:/Missions
+      - ./adjacent-servers/resources:/adjacent-servers/resources
 
   veloserver:
     image: ghcr.io/nasa-ammos/veloserver:development

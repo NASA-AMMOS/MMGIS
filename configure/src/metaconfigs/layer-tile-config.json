@@ -145,7 +145,7 @@
               "field": "tileMatrixSet",
               "name": "Tile Matrix Set",
               "description": "If using TiTiler or if using a 'stac-collection:{collection}' URL, specify the projection for which to serve the tiles. Defaults to 'WebMercatorQuad'.",
-              "type": "dropdown",
+              "type": "searchdropdown",
               "width": 5,
               "options": "{{TILE_MATRIX_SETS}}"
             },

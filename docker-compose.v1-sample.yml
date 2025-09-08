@@ -103,8 +103,10 @@ services:
       # - MOSAIC_CONCURRENCY= # will default to `RIO_TILER_MAX_THREADS`
       # rio-tiler config
       # - RIO_TILER_MAX_THREADS=
+      - TILEMATRIXSET_DIRECTORY=/adjacent-servers/resources/tilematrixsets/planetcantile_v4
     volumes:
       - ./Missions:/Missions
+      - ./adjacent-servers/resources:/adjacent-servers/resources
 
   titiler-pgstac:
     # At the time of writing, rasterio and psycopg wheels are not available for arm64 arch
@@ -152,11 +154,13 @@ services:
       # TiTiler pgSTAC
       - TITILER_PGSTAC_SEARCH_EXITWHENFULL=FALSE
       - TITILER_PGSTAC_SEARCH_SKIPCOVERED=FALSE
+      - TILEMATRIXSET_DIRECTORY=/adjacent-servers/resources/tilematrixsets/planetcantile_v4
     depends_on:
       - db
     command: bash -c "/start.sh"
     volumes:
       - ./Missions:/Missions
+      - ./adjacent-servers/resources:/adjacent-servers/resources
 
   db:
     image: postgis/postgis:16-3.4-alpine

@@ -126,6 +126,19 @@ let Map_ = {
         ) {
             var cp = L_.configData.projection
             //console.log(cp)
+            
+            // Calculate resolutions array from zoom level and units per pixel
+            var resolutions = []
+            var baseResolution = parseFloat(cp.resunitsperpixel)
+            var zoomLevel = parseInt(cp.reszoomlevel) || 0
+            
+            // Generate resolutions for zoom levels (typically 0-20)
+            for (var i = 0; i <= 20; i++) {
+                var zoomDiff = i - zoomLevel
+                var resolution = baseResolution / Math.pow(2, zoomDiff)
+                resolutions.push(resolution)
+            }
+            
             var crs = new L.Proj.CRS(
                 Number.isFinite(parseInt(cp.epsg[0]))
                     ? `EPSG:${cp.epsg}`
@@ -136,7 +149,7 @@ let Map_ = {
                         parseFloat(cp.origin[0]),
                         parseFloat(cp.origin[1]),
                     ],
-                    resolutions: cp.res,
+                    resolutions: resolutions,
                     bounds: L.bounds(
                         [parseFloat(cp.bounds[0]), parseFloat(cp.bounds[1])],
                         [parseFloat(cp.bounds[2]), parseFloat(cp.bounds[3])]

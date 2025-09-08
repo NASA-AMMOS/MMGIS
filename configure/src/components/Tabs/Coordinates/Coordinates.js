@@ -6,6 +6,8 @@ import Maker from "../../../core/Maker";
 
 import config from "../../../metaconfigs/tab-coordinates-config.json";
 
+import { inject } from "../../../core/injectables";
+
 const useStyles = makeStyles((theme) => ({
   Coordinates: {
     width: "100%",
@@ -24,7 +26,7 @@ export default function Coordinates() {
 
   return (
     <div className={c.Coordinates}>
-      <Maker config={config} inlineHelp={true} />
+      <Maker config={inject(config)} inlineHelp={true} />
     </div>
   );
 }

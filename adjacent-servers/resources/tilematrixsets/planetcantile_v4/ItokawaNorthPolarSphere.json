@@ -1,0 +1,109 @@
+{
+    "id": "ItokawaNorthPolarSphere",
+    "title": "Itokawa (2015) - Sphere EN NorthPolarSphere",
+    "crs": "PROJCRS[\"Itokawa (2015) - Sphere\",BASEGEOGCRS[\"Itokawa (2015) - Sphere\",DATUM[\"Itokawa (2015) - Sphere\",ELLIPSOID[\"Itokawa (2015) - Sphere\",173,0,LENGTHUNIT[\"metre\",1,ID[\"EPSG\",9001]]],ANCHOR[\"de\ufb01ned with W0=0 : 0\"]],PRIMEM[\"Reference Meridian\",0,ANGLEUNIT[\"degree\",0.0174532925199433,ID[\"EPSG\",9122]]]],CONVERSION[\"Universal Polar Stereographic North\",METHOD[\"Polar Stereographic (variant A)\",ID[\"EPSG\",9810]],PARAMETER[\"Latitude of natural origin\",90,ANGLEUNIT[\"degree\",0.0174532925199433],ID[\"EPSG\",8801]],PARAMETER[\"Longitude of natural origin\",0,ANGLEUNIT[\"degree\",0.0174532925199433],ID[\"EPSG\",8802]],PARAMETER[\"Scale factor at natural origin\",1,SCALEUNIT[\"unity\",1],ID[\"EPSG\",8805]],PARAMETER[\"False easting\",20,LENGTHUNIT[\"metre\",1],ID[\"EPSG\",8806]],PARAMETER[\"False northing\",20,LENGTHUNIT[\"metre\",1],ID[\"EPSG\",8807]]],CS[Cartesian,2],AXIS[\"(E)\",south,ORDER[1],LENGTHUNIT[\"metre\",1,ID[\"EPSG\",9001]]],AXIS[\"(N)\",south,ORDER[2],LENGTHUNIT[\"metre\",1,ID[\"EPSG\",9001]]],USAGE[SCOPE[\"North Polar Area Itokawa\"],AREA[\"Itokawa between 80.65332967997203 N and 90.00 N.\"],BBOX[80.653329679972,-180,90,180]],REMARK[\"Use R_m = (a+b+c)/3 as mean radius. Use mean radius as sphere radius for interoperability. Source of IAU Coordinate systems: doi:10.1007/s10569-017-9805-5\"]]",
+    "orderedAxes": [
+        "E",
+        "N"
+    ],
+    "tileMatrices": [
+        {
+            "id": "0",
+            "scaleDenominator": 789.1816754314127,
+            "cellSize": 0.22097086912079555,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -7.996378148714076,
+                48.28427124746183
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 1,
+            "matrixHeight": 1
+        },
+        {
+            "id": "1",
+            "scaleDenominator": 394.59083771570636,
+            "cellSize": 0.11048543456039778,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -7.996378148714076,
+                48.28427124746183
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 2,
+            "matrixHeight": 2
+        },
+        {
+            "id": "2",
+            "scaleDenominator": 197.29541885785318,
+            "cellSize": 0.05524271728019889,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -7.996378148714076,
+                48.28427124746183
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 4,
+            "matrixHeight": 4
+        },
+        {
+            "id": "3",
+            "scaleDenominator": 98.64770942892659,
+            "cellSize": 0.027621358640099444,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -7.996378148714076,
+                48.28427124746183
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 8,
+            "matrixHeight": 8
+        },
+        {
+            "id": "4",
+            "scaleDenominator": 49.323854714463295,
+            "cellSize": 0.013810679320049722,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -7.996378148714076,
+                48.28427124746183
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 16,
+            "matrixHeight": 16
+        },
+        {
+            "id": "5",
+            "scaleDenominator": 24.661927357231647,
+            "cellSize": 0.006905339660024861,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -7.996378148714076,
+                48.28427124746183
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 32,
+            "matrixHeight": 32
+        },
+        {
+            "id": "6",
+            "scaleDenominator": 12.330963678615824,
+            "cellSize": 0.0034526698300124305,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -7.996378148714076,
+                48.28427124746183
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 64,
+            "matrixHeight": 64
+        }
+    ]
+}

@@ -1,0 +1,1465 @@
+{
+    "id": "IdaEquidistantCylindricalSphereCoalesced",
+    "title": "Ida (2015) - Sphere EN EquidistantCylindricalSphereCoalesced",
+    "crs": "PROJCRS[\"Ida (2015) - Sphere / Equidistant Cylindrical\",BASEGEOGCRS[\"Ida (2015) - Sphere\",DATUM[\"Ida (2015) - Sphere\",ELLIPSOID[\"Ida (2015) - Sphere\",15650,0,LENGTHUNIT[\"metre\",1,ID[\"EPSG\",9001]]],ANCHOR[\"Afon : 0\"]],PRIMEM[\"Reference Meridian\",0,ANGLEUNIT[\"degree\",0.0174532925199433,ID[\"EPSG\",9122]]]],CONVERSION[\"World Equidistant Cylindrical\",METHOD[\"Equidistant Cylindrical\",ID[\"EPSG\",1028]],PARAMETER[\"Latitude of 1st standard parallel\",0,ANGLEUNIT[\"degree\",0.0174532925199433],ID[\"EPSG\",8823]],PARAMETER[\"Longitude of natural origin\",0,ANGLEUNIT[\"degree\",0.0174532925199433],ID[\"EPSG\",8802]],PARAMETER[\"False easting\",0,LENGTHUNIT[\"metre\",1],ID[\"EPSG\",8806]],PARAMETER[\"False northing\",0,LENGTHUNIT[\"metre\",1],ID[\"EPSG\",8807]]],CS[Cartesian,2],AXIS[\"easting (X)\",east,ORDER[1],LENGTHUNIT[\"metre\",1,ID[\"EPSG\",9001]]],AXIS[\"northing (Y)\",north,ORDER[2],LENGTHUNIT[\"metre\",1,ID[\"EPSG\",9001]]],USAGE[SCOPE[\"Ida graticule coordinates expressed in simple Cartesian form.\"],AREA[\"Whole of Ida\"],BBOX[-90,-180,90,180]],REMARK[\"Use mean radius as sphere radius for interoperability. Source of IAU Coordinate systems: doi:10.1007/s10569-017-9805-5 Coalesced\"]]",
+    "orderedAxes": [
+        "E",
+        "N"
+    ],
+    "tileMatrices": [
+        {
+            "id": "0",
+            "scaleDenominator": 342954.2761487184,
+            "cellSize": 96.02719732164114,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 4,
+            "matrixHeight": 2
+        },
+        {
+            "id": "1",
+            "scaleDenominator": 171477.1380743592,
+            "cellSize": 48.01359866082057,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 8,
+            "matrixHeight": 4,
+            "variableMatrixWidths": [
+                {
+                    "coalesce": 2,
+                    "minTileRow": 0,
+                    "maxTileRow": 0
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 3,
+                    "maxTileRow": 3
+                }
+            ]
+        },
+        {
+            "id": "2",
+            "scaleDenominator": 85738.5690371796,
+            "cellSize": 24.006799330410285,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 16,
+            "matrixHeight": 8,
+            "variableMatrixWidths": [
+                {
+                    "coalesce": 4,
+                    "minTileRow": 0,
+                    "maxTileRow": 0
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 1,
+                    "maxTileRow": 1
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 6,
+                    "maxTileRow": 6
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 7,
+                    "maxTileRow": 7
+                }
+            ]
+        },
+        {
+            "id": "3",
+            "scaleDenominator": 42869.2845185898,
+            "cellSize": 12.003399665205142,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 32,
+            "matrixHeight": 16,
+            "variableMatrixWidths": [
+                {
+                    "coalesce": 8,
+                    "minTileRow": 0,
+                    "maxTileRow": 0
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 1,
+                    "maxTileRow": 1
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 2,
+                    "maxTileRow": 3
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 12,
+                    "maxTileRow": 13
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 14,
+                    "maxTileRow": 14
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 15,
+                    "maxTileRow": 15
+                }
+            ]
+        },
+        {
+            "id": "4",
+            "scaleDenominator": 21434.6422592949,
+            "cellSize": 6.001699832602571,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 64,
+            "matrixHeight": 32,
+            "variableMatrixWidths": [
+                {
+                    "coalesce": 16,
+                    "minTileRow": 0,
+                    "maxTileRow": 0
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 1,
+                    "maxTileRow": 1
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 2,
+                    "maxTileRow": 3
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 4,
+                    "maxTileRow": 7
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 24,
+                    "maxTileRow": 27
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 28,
+                    "maxTileRow": 29
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 30,
+                    "maxTileRow": 30
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 31,
+                    "maxTileRow": 31
+                }
+            ]
+        },
+        {
+            "id": "5",
+            "scaleDenominator": 10717.32112964745,
+            "cellSize": 3.0008499163012856,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 128,
+            "matrixHeight": 64,
+            "variableMatrixWidths": [
+                {
+                    "coalesce": 32,
+                    "minTileRow": 0,
+                    "maxTileRow": 0
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 1,
+                    "maxTileRow": 1
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 2,
+                    "maxTileRow": 3
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 4,
+                    "maxTileRow": 7
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 8,
+                    "maxTileRow": 15
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 48,
+                    "maxTileRow": 55
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 56,
+                    "maxTileRow": 59
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 60,
+                    "maxTileRow": 61
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 62,
+                    "maxTileRow": 62
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 63,
+                    "maxTileRow": 63
+                }
+            ]
+        },
+        {
+            "id": "6",
+            "scaleDenominator": 5358.660564823725,
+            "cellSize": 1.5004249581506428,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 256,
+            "matrixHeight": 128,
+            "variableMatrixWidths": [
+                {
+                    "coalesce": 64,
+                    "minTileRow": 0,
+                    "maxTileRow": 0
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 1,
+                    "maxTileRow": 1
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 2,
+                    "maxTileRow": 3
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 4,
+                    "maxTileRow": 7
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 8,
+                    "maxTileRow": 15
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 16,
+                    "maxTileRow": 31
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 96,
+                    "maxTileRow": 111
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 112,
+                    "maxTileRow": 119
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 120,
+                    "maxTileRow": 123
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 124,
+                    "maxTileRow": 125
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 126,
+                    "maxTileRow": 126
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 127,
+                    "maxTileRow": 127
+                }
+            ]
+        },
+        {
+            "id": "7",
+            "scaleDenominator": 2679.3302824118623,
+            "cellSize": 0.7502124790753214,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 512,
+            "matrixHeight": 256,
+            "variableMatrixWidths": [
+                {
+                    "coalesce": 128,
+                    "minTileRow": 0,
+                    "maxTileRow": 0
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 1,
+                    "maxTileRow": 1
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 2,
+                    "maxTileRow": 3
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 4,
+                    "maxTileRow": 7
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 8,
+                    "maxTileRow": 15
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 16,
+                    "maxTileRow": 31
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 32,
+                    "maxTileRow": 63
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 192,
+                    "maxTileRow": 223
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 224,
+                    "maxTileRow": 239
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 240,
+                    "maxTileRow": 247
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 248,
+                    "maxTileRow": 251
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 252,
+                    "maxTileRow": 253
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 254,
+                    "maxTileRow": 254
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 255,
+                    "maxTileRow": 255
+                }
+            ]
+        },
+        {
+            "id": "8",
+            "scaleDenominator": 1339.6651412059311,
+            "cellSize": 0.3751062395376607,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 1024,
+            "matrixHeight": 512,
+            "variableMatrixWidths": [
+                {
+                    "coalesce": 256,
+                    "minTileRow": 0,
+                    "maxTileRow": 0
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 1,
+                    "maxTileRow": 1
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 2,
+                    "maxTileRow": 3
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 4,
+                    "maxTileRow": 7
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 8,
+                    "maxTileRow": 15
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 16,
+                    "maxTileRow": 31
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 32,
+                    "maxTileRow": 63
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 64,
+                    "maxTileRow": 127
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 384,
+                    "maxTileRow": 447
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 448,
+                    "maxTileRow": 479
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 480,
+                    "maxTileRow": 495
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 496,
+                    "maxTileRow": 503
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 504,
+                    "maxTileRow": 507
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 508,
+                    "maxTileRow": 509
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 510,
+                    "maxTileRow": 510
+                },
+                {
+                    "coalesce": 256,
+                    "minTileRow": 511,
+                    "maxTileRow": 511
+                }
+            ]
+        },
+        {
+            "id": "9",
+            "scaleDenominator": 669.8325706029656,
+            "cellSize": 0.18755311976883035,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 2048,
+            "matrixHeight": 1024,
+            "variableMatrixWidths": [
+                {
+                    "coalesce": 512,
+                    "minTileRow": 0,
+                    "maxTileRow": 0
+                },
+                {
+                    "coalesce": 256,
+                    "minTileRow": 1,
+                    "maxTileRow": 1
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 2,
+                    "maxTileRow": 3
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 4,
+                    "maxTileRow": 7
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 8,
+                    "maxTileRow": 15
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 16,
+                    "maxTileRow": 31
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 32,
+                    "maxTileRow": 63
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 64,
+                    "maxTileRow": 127
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 128,
+                    "maxTileRow": 255
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 768,
+                    "maxTileRow": 895
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 896,
+                    "maxTileRow": 959
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 960,
+                    "maxTileRow": 991
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 992,
+                    "maxTileRow": 1007
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 1008,
+                    "maxTileRow": 1015
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 1016,
+                    "maxTileRow": 1019
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 1020,
+                    "maxTileRow": 1021
+                },
+                {
+                    "coalesce": 256,
+                    "minTileRow": 1022,
+                    "maxTileRow": 1022
+                },
+                {
+                    "coalesce": 512,
+                    "minTileRow": 1023,
+                    "maxTileRow": 1023
+                }
+            ]
+        },
+        {
+            "id": "10",
+            "scaleDenominator": 334.9162853014828,
+            "cellSize": 0.09377655988441518,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 4096,
+            "matrixHeight": 2048,
+            "variableMatrixWidths": [
+                {
+                    "coalesce": 1024,
+                    "minTileRow": 0,
+                    "maxTileRow": 0
+                },
+                {
+                    "coalesce": 512,
+                    "minTileRow": 1,
+                    "maxTileRow": 1
+                },
+                {
+                    "coalesce": 256,
+                    "minTileRow": 2,
+                    "maxTileRow": 3
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 4,
+                    "maxTileRow": 7
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 8,
+                    "maxTileRow": 15
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 16,
+                    "maxTileRow": 31
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 32,
+                    "maxTileRow": 63
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 64,
+                    "maxTileRow": 127
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 128,
+                    "maxTileRow": 255
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 256,
+                    "maxTileRow": 511
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 1536,
+                    "maxTileRow": 1791
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 1792,
+                    "maxTileRow": 1919
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 1920,
+                    "maxTileRow": 1983
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 1984,
+                    "maxTileRow": 2015
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 2016,
+                    "maxTileRow": 2031
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 2032,
+                    "maxTileRow": 2039
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 2040,
+                    "maxTileRow": 2043
+                },
+                {
+                    "coalesce": 256,
+                    "minTileRow": 2044,
+                    "maxTileRow": 2045
+                },
+                {
+                    "coalesce": 512,
+                    "minTileRow": 2046,
+                    "maxTileRow": 2046
+                },
+                {
+                    "coalesce": 1024,
+                    "minTileRow": 2047,
+                    "maxTileRow": 2047
+                }
+            ]
+        },
+        {
+            "id": "11",
+            "scaleDenominator": 167.4581426507414,
+            "cellSize": 0.04688827994220759,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 8192,
+            "matrixHeight": 4096,
+            "variableMatrixWidths": [
+                {
+                    "coalesce": 2048,
+                    "minTileRow": 0,
+                    "maxTileRow": 0
+                },
+                {
+                    "coalesce": 1024,
+                    "minTileRow": 1,
+                    "maxTileRow": 1
+                },
+                {
+                    "coalesce": 512,
+                    "minTileRow": 2,
+                    "maxTileRow": 3
+                },
+                {
+                    "coalesce": 256,
+                    "minTileRow": 4,
+                    "maxTileRow": 7
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 8,
+                    "maxTileRow": 15
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 16,
+                    "maxTileRow": 31
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 32,
+                    "maxTileRow": 63
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 64,
+                    "maxTileRow": 127
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 128,
+                    "maxTileRow": 255
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 256,
+                    "maxTileRow": 511
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 512,
+                    "maxTileRow": 1023
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 3072,
+                    "maxTileRow": 3583
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 3584,
+                    "maxTileRow": 3839
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 3840,
+                    "maxTileRow": 3967
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 3968,
+                    "maxTileRow": 4031
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 4032,
+                    "maxTileRow": 4063
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 4064,
+                    "maxTileRow": 4079
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 4080,
+                    "maxTileRow": 4087
+                },
+                {
+                    "coalesce": 256,
+                    "minTileRow": 4088,
+                    "maxTileRow": 4091
+                },
+                {
+                    "coalesce": 512,
+                    "minTileRow": 4092,
+                    "maxTileRow": 4093
+                },
+                {
+                    "coalesce": 1024,
+                    "minTileRow": 4094,
+                    "maxTileRow": 4094
+                },
+                {
+                    "coalesce": 2048,
+                    "minTileRow": 4095,
+                    "maxTileRow": 4095
+                }
+            ]
+        },
+        {
+            "id": "12",
+            "scaleDenominator": 83.7290713253707,
+            "cellSize": 0.023444139971103794,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 16384,
+            "matrixHeight": 8192,
+            "variableMatrixWidths": [
+                {
+                    "coalesce": 4096,
+                    "minTileRow": 0,
+                    "maxTileRow": 0
+                },
+                {
+                    "coalesce": 2048,
+                    "minTileRow": 1,
+                    "maxTileRow": 1
+                },
+                {
+                    "coalesce": 1024,
+                    "minTileRow": 2,
+                    "maxTileRow": 3
+                },
+                {
+                    "coalesce": 512,
+                    "minTileRow": 4,
+                    "maxTileRow": 7
+                },
+                {
+                    "coalesce": 256,
+                    "minTileRow": 8,
+                    "maxTileRow": 15
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 16,
+                    "maxTileRow": 31
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 32,
+                    "maxTileRow": 63
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 64,
+                    "maxTileRow": 127
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 128,
+                    "maxTileRow": 255
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 256,
+                    "maxTileRow": 511
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 512,
+                    "maxTileRow": 1023
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 1024,
+                    "maxTileRow": 2047
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 6144,
+                    "maxTileRow": 7167
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 7168,
+                    "maxTileRow": 7679
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 7680,
+                    "maxTileRow": 7935
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 7936,
+                    "maxTileRow": 8063
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 8064,
+                    "maxTileRow": 8127
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 8128,
+                    "maxTileRow": 8159
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 8160,
+                    "maxTileRow": 8175
+                },
+                {
+                    "coalesce": 256,
+                    "minTileRow": 8176,
+                    "maxTileRow": 8183
+                },
+                {
+                    "coalesce": 512,
+                    "minTileRow": 8184,
+                    "maxTileRow": 8187
+                },
+                {
+                    "coalesce": 1024,
+                    "minTileRow": 8188,
+                    "maxTileRow": 8189
+                },
+                {
+                    "coalesce": 2048,
+                    "minTileRow": 8190,
+                    "maxTileRow": 8190
+                },
+                {
+                    "coalesce": 4096,
+                    "minTileRow": 8191,
+                    "maxTileRow": 8191
+                }
+            ]
+        },
+        {
+            "id": "13",
+            "scaleDenominator": 41.86453566268535,
+            "cellSize": 0.011722069985551897,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 32768,
+            "matrixHeight": 16384,
+            "variableMatrixWidths": [
+                {
+                    "coalesce": 8192,
+                    "minTileRow": 0,
+                    "maxTileRow": 0
+                },
+                {
+                    "coalesce": 4096,
+                    "minTileRow": 1,
+                    "maxTileRow": 1
+                },
+                {
+                    "coalesce": 2048,
+                    "minTileRow": 2,
+                    "maxTileRow": 3
+                },
+                {
+                    "coalesce": 1024,
+                    "minTileRow": 4,
+                    "maxTileRow": 7
+                },
+                {
+                    "coalesce": 512,
+                    "minTileRow": 8,
+                    "maxTileRow": 15
+                },
+                {
+                    "coalesce": 256,
+                    "minTileRow": 16,
+                    "maxTileRow": 31
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 32,
+                    "maxTileRow": 63
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 64,
+                    "maxTileRow": 127
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 128,
+                    "maxTileRow": 255
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 256,
+                    "maxTileRow": 511
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 512,
+                    "maxTileRow": 1023
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 1024,
+                    "maxTileRow": 2047
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 2048,
+                    "maxTileRow": 4095
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 12288,
+                    "maxTileRow": 14335
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 14336,
+                    "maxTileRow": 15359
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 15360,
+                    "maxTileRow": 15871
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 15872,
+                    "maxTileRow": 16127
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 16128,
+                    "maxTileRow": 16255
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 16256,
+                    "maxTileRow": 16319
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 16320,
+                    "maxTileRow": 16351
+                },
+                {
+                    "coalesce": 256,
+                    "minTileRow": 16352,
+                    "maxTileRow": 16367
+                },
+                {
+                    "coalesce": 512,
+                    "minTileRow": 16368,
+                    "maxTileRow": 16375
+                },
+                {
+                    "coalesce": 1024,
+                    "minTileRow": 16376,
+                    "maxTileRow": 16379
+                },
+                {
+                    "coalesce": 2048,
+                    "minTileRow": 16380,
+                    "maxTileRow": 16381
+                },
+                {
+                    "coalesce": 4096,
+                    "minTileRow": 16382,
+                    "maxTileRow": 16382
+                },
+                {
+                    "coalesce": 8192,
+                    "minTileRow": 16383,
+                    "maxTileRow": 16383
+                }
+            ]
+        },
+        {
+            "id": "14",
+            "scaleDenominator": 20.932267831342674,
+            "cellSize": 0.0058610349927759485,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 65536,
+            "matrixHeight": 32768,
+            "variableMatrixWidths": [
+                {
+                    "coalesce": 16384,
+                    "minTileRow": 0,
+                    "maxTileRow": 0
+                },
+                {
+                    "coalesce": 8192,
+                    "minTileRow": 1,
+                    "maxTileRow": 1
+                },
+                {
+                    "coalesce": 4096,
+                    "minTileRow": 2,
+                    "maxTileRow": 3
+                },
+                {
+                    "coalesce": 2048,
+                    "minTileRow": 4,
+                    "maxTileRow": 7
+                },
+                {
+                    "coalesce": 1024,
+                    "minTileRow": 8,
+                    "maxTileRow": 15
+                },
+                {
+                    "coalesce": 512,
+                    "minTileRow": 16,
+                    "maxTileRow": 31
+                },
+                {
+                    "coalesce": 256,
+                    "minTileRow": 32,
+                    "maxTileRow": 63
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 64,
+                    "maxTileRow": 127
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 128,
+                    "maxTileRow": 255
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 256,
+                    "maxTileRow": 511
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 512,
+                    "maxTileRow": 1023
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 1024,
+                    "maxTileRow": 2047
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 2048,
+                    "maxTileRow": 4095
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 4096,
+                    "maxTileRow": 8191
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 24576,
+                    "maxTileRow": 28671
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 28672,
+                    "maxTileRow": 30719
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 30720,
+                    "maxTileRow": 31743
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 31744,
+                    "maxTileRow": 32255
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 32256,
+                    "maxTileRow": 32511
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 32512,
+                    "maxTileRow": 32639
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 32640,
+                    "maxTileRow": 32703
+                },
+                {
+                    "coalesce": 256,
+                    "minTileRow": 32704,
+                    "maxTileRow": 32735
+                },
+                {
+                    "coalesce": 512,
+                    "minTileRow": 32736,
+                    "maxTileRow": 32751
+                },
+                {
+                    "coalesce": 1024,
+                    "minTileRow": 32752,
+                    "maxTileRow": 32759
+                },
+                {
+                    "coalesce": 2048,
+                    "minTileRow": 32760,
+                    "maxTileRow": 32763
+                },
+                {
+                    "coalesce": 4096,
+                    "minTileRow": 32764,
+                    "maxTileRow": 32765
+                },
+                {
+                    "coalesce": 8192,
+                    "minTileRow": 32766,
+                    "maxTileRow": 32766
+                },
+                {
+                    "coalesce": 16384,
+                    "minTileRow": 32767,
+                    "maxTileRow": 32767
+                }
+            ]
+        },
+        {
+            "id": "15",
+            "scaleDenominator": 10.466133915671337,
+            "cellSize": 0.0029305174963879742,
+            "cornerOfOrigin": "topLeft",
+            "pointOfOrigin": [
+                -49165.92502868026,
+                24582.96251434013
+            ],
+            "tileWidth": 256,
+            "tileHeight": 256,
+            "matrixWidth": 131072,
+            "matrixHeight": 65536,
+            "variableMatrixWidths": [
+                {
+                    "coalesce": 32768,
+                    "minTileRow": 0,
+                    "maxTileRow": 0
+                },
+                {
+                    "coalesce": 16384,
+                    "minTileRow": 1,
+                    "maxTileRow": 1
+                },
+                {
+                    "coalesce": 8192,
+                    "minTileRow": 2,
+                    "maxTileRow": 3
+                },
+                {
+                    "coalesce": 4096,
+                    "minTileRow": 4,
+                    "maxTileRow": 7
+                },
+                {
+                    "coalesce": 2048,
+                    "minTileRow": 8,
+                    "maxTileRow": 15
+                },
+                {
+                    "coalesce": 1024,
+                    "minTileRow": 16,
+                    "maxTileRow": 31
+                },
+                {
+                    "coalesce": 512,
+                    "minTileRow": 32,
+                    "maxTileRow": 63
+                },
+                {
+                    "coalesce": 256,
+                    "minTileRow": 64,
+                    "maxTileRow": 127
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 128,
+                    "maxTileRow": 255
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 256,
+                    "maxTileRow": 511
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 512,
+                    "maxTileRow": 1023
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 1024,
+                    "maxTileRow": 2047
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 2048,
+                    "maxTileRow": 4095
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 4096,
+                    "maxTileRow": 8191
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 8192,
+                    "maxTileRow": 16383
+                },
+                {
+                    "coalesce": 2,
+                    "minTileRow": 49152,
+                    "maxTileRow": 57343
+                },
+                {
+                    "coalesce": 4,
+                    "minTileRow": 57344,
+                    "maxTileRow": 61439
+                },
+                {
+                    "coalesce": 8,
+                    "minTileRow": 61440,
+                    "maxTileRow": 63487
+                },
+                {
+                    "coalesce": 16,
+                    "minTileRow": 63488,
+                    "maxTileRow": 64511
+                },
+                {
+                    "coalesce": 32,
+                    "minTileRow": 64512,
+                    "maxTileRow": 65023
+                },
+                {
+                    "coalesce": 64,
+                    "minTileRow": 65024,
+                    "maxTileRow": 65279
+                },
+                {
+                    "coalesce": 128,
+                    "minTileRow": 65280,
+                    "maxTileRow": 65407
+                },
+                {
+                    "coalesce": 256,
+                    "minTileRow": 65408,
+                    "maxTileRow": 65471
+                },
+                {
+                    "coalesce": 512,
+                    "minTileRow": 65472,
+                    "maxTileRow": 65503
+                },
+                {
+                    "coalesce": 1024,
+                    "minTileRow": 65504,
+                    "maxTileRow": 65519
+                },
+                {
+                    "coalesce": 2048,
+                    "minTileRow": 65520,
+                    "maxTileRow": 65527
+                },
+                {
+                    "coalesce": 4096,
+                    "minTileRow": 65528,
+                    "maxTileRow": 65531
+                },
+                {
+                    "coalesce": 8192,
+                    "minTileRow": 65532,
+                    "maxTileRow": 65533
+                },
+                {
+                    "coalesce": 16384,
+                    "minTileRow": 65534,
+                    "maxTileRow": 65534
+                },
+                {
+                    "coalesce": 32768,
+                    "minTileRow": 65535,
+                    "maxTileRow": 65535
+                }
+            ]
+        }
+    ]
+}

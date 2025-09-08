@@ -162,6 +162,10 @@ const c = {
     type: "GET",
     url: "titiler/tileMatrixSets",
   },
+  titiler_tileMatrixSet: {
+    type: "GET",
+    url: "titiler/tileMatrixSets/:tileMatrixSetId",
+  },
   titiler_colormapNames: {
     type: "GET",
     url: "titiler/colorMaps",
