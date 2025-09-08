@@ -14,9 +14,9 @@ const Help = {
     finalize: function (helpKey) {
         $(`#helpModal_${helpKey}`).on('click', function () {
             $.get(
-                `${
-                    window.mmgisglobal.ROOT_PATH || ''
-                }/public/helps/${helpKey}.md`,
+                `${window.location.origin}${(
+                    window.location.pathname || ''
+                ).replace(/\/$/g, '')}/public/helps/${helpKey}.md`,
                 function (doc) {
                     // prettier-ignore
                     Modal.set(

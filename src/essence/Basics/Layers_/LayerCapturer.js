@@ -115,7 +115,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                     : null,
                         }
 
-                        if (layerData.time?.enabled === true) {
+                        if (layerData.time?.enabled === true && layerData.time?.type === 'requery') {
                             body.starttime = layerData.time.start
                             body.startProp = layerData.time.startProp
                             body.endtime = layerData.time.end
@@ -257,7 +257,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             zoom: zoom,
                         }
 
-                        if (layerData.time?.enabled === true) {
+                        if (layerData.time?.enabled === true && layerData.time?.type === 'requery') {
                             body.starttime = layerData.time.start
                             body.startProp = layerData.time.startProp
                             body.endtime = layerData.time.end
@@ -269,6 +269,13 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                 body.endtime = e.endTime
                             }
                         }
+
+                        // filters
+                        if (layerData._filterEncoded?.filters)
+                            body.filters = layerData._filterEncoded.filters
+                        if (layerData._filterEncoded?.spatialFilter)
+                            body.spatialFilter =
+                                layerData._filterEncoded.spatialFilter
 
                         const dateNow = new Date().getTime()
 
@@ -393,7 +400,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                     layer: urlSplitRaw[1],
                     type: 'geojson',
                 }
-                if (layerData.time?.enabled === true) {
+                if (layerData.time?.enabled === true && layerData.time?.type === 'requery') {
                     body.starttime = layerData.time.start
                     body.endtime = layerData.time.end
                 }
@@ -404,6 +411,13 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                               .concat(L_.getDynamicProps(layerData))
                               .filter(Boolean)
                         : null
+
+                // filters
+                if (layerData._filterEncoded?.filters)
+                    body.filters = layerData._filterEncoded.filters
+                if (layerData._filterEncoded?.spatialFilter)
+                    body.spatialFilter = layerData._filterEncoded.spatialFilter
+
                 layerData._lastGeodatasetRequestBody = body
                 calls.api(
                     'geodatasets_get',

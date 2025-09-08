@@ -29,10 +29,12 @@ import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import Divider from "@mui/material/Divider";
 import Badge from "@mui/material/Badge";
+import TextField from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
 import { visuallyHidden } from "@mui/utils";
 
 import InventoryIcon from "@mui/icons-material/Inventory";
-import PreviewIcon from "@mui/icons-material/Preview";
+import InfoIcon from "@mui/icons-material/Info";
 import WidgetsIcon from "@mui/icons-material/Widgets";
 import DownloadIcon from "@mui/icons-material/Download";
 import UploadIcon from "@mui/icons-material/Upload";
@@ -40,13 +42,13 @@ import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import AddIcon from "@mui/icons-material/Add";
 import HorizontalSplitIcon from "@mui/icons-material/HorizontalSplit";
 import SettingsIcon from "@mui/icons-material/Settings";
+import SearchIcon from "@mui/icons-material/Search";
 
 import NewStacCollectionModal from "./Modals/NewStacCollectionModal/NewStacCollectionModal";
 import DeleteStacCollectionModal from "./Modals/DeleteStacCollectionModal/DeleteStacCollectionModal";
 import LayersUsedByModal from "./Modals/LayersUsedByModal/LayersUsedByModal";
-import PreviewGeoDatasetModal from "./Modals/PreviewGeoDatasetModal/PreviewGeoDatasetModal";
-import AppendGeoDatasetModal from "./Modals/AppendGeoDatasetModal/AppendGeoDatasetModal";
-import UpdateGeoDatasetModal from "./Modals/UpdateGeoDatasetModal/UpdateGeoDatasetModal";
+import StacCollectionItemsModal from "./Modals/StacCollectionItemsModal/StacCollectionItemsModal";
+import StacCollectionJsonModal from "./Modals/StacCollectionJsonModal/StacCollectionJsonModal";
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -107,7 +109,7 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   tableInner: {
-    margin: "32px",
+    margin: "8px 32px 32px 32px",
     width: "calc(100% - 64px) !important",
     boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
   },
@@ -162,9 +164,9 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   topbar: {
-    width: "100%",
-    height: "48px",
-    minHeight: "48px !important",
+    width: "calc(100% - 100px)",
+    height: "44px",
+    minHeight: "44px !important",
     display: "flex",
     justifyContent: "space-between",
     padding: `0px 20px`,
@@ -181,6 +183,9 @@ const useStyles = makeStyles((theme) => ({
   bottomBar: {
     background: theme.palette.swatches.grey[850],
     boxShadow: "inset 10px 0px 10px -5px rgba(0,0,0,0.3)",
+  },
+  searchContainer: {
+    padding: "16px 32px 8px 32px",
   },
   th: {
     fontWeight: "bold !important",
@@ -305,6 +310,7 @@ export default function STAC() {
   const [orderBy, setOrderBy] = React.useState("name");
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
+  const [searchTerm, setSearchTerm] = React.useState("");
 
   const c = useStyles();
 
@@ -357,26 +363,61 @@ export default function STAC() {
     setPage(0);
   };
 
+  // Filter collections based on search term
+  const filteredCollections = React.useMemo(() => {
+    if (!searchTerm.trim()) {
+      return stacCollections;
+    }
+    return stacCollections.filter(collection =>
+      collection.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (collection.description && collection.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  }, [stacCollections, searchTerm]);
+
   // Avoid a layout jump when reaching the last page with empty rows.
   const emptyRows =
     page > 0
-      ? Math.max(0, (1 + page) * rowsPerPage - stacCollections.length)
+      ? Math.max(0, (1 + page) * rowsPerPage - filteredCollections.length)
       : 0;
 
   const visibleRows = React.useMemo(
     () =>
-      stableSort(stacCollections, getComparator(order, orderBy)).slice(
+      stableSort(filteredCollections, getComparator(order, orderBy)).slice(
         page * rowsPerPage,
         page * rowsPerPage + rowsPerPage
       ),
-    [order, orderBy, page, rowsPerPage, stacCollections]
+    [order, orderBy, page, rowsPerPage, filteredCollections]
   );
+
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+    setPage(0); // Reset to first page when searching
+  };
 
   return (
     <>
       <Box className={c.STAC}>
         <Paper className={c.STACInner}>
-          <EnhancedTableToolbar />
+          <EnhancedTableToolbar numSelected={0} />
+          
+          <div className={c.searchContainer}>
+            <TextField
+              fullWidth
+              label="Search Collections"
+              variant="filled"
+              value={searchTerm}
+              onChange={handleSearchChange}
+              placeholder="Search by Collection ID or Description"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </div>
+          
           <TableContainer className={c.table}>
             <Table
               className={c.tableInner}
@@ -389,7 +430,7 @@ export default function STAC() {
                 order={order}
                 orderBy={orderBy}
                 onRequestSort={handleRequestSort}
-                rowCount={stacCollections.length}
+                rowCount={filteredCollections.length}
               />
               <TableBody>
                 {visibleRows.map((row, index) => {
@@ -443,19 +484,15 @@ export default function STAC() {
                               title="Info"
                               aria-label="info"
                               onClick={() => {
-                                window
-                                  .open(
-                                    `${window.location.pathname
-                                      .replace(`/configure`, "")
-                                      .replace(/^\//g, "")}/stac/collections/${
-                                      row.id
-                                    }`,
-                                    "_blank"
-                                  )
-                                  .focus();
+                                dispatch(
+                                  setModal({
+                                    name: "stacCollectionJson",
+                                    collection: row,
+                                  })
+                                );
                               }}
                             >
-                              <PreviewIcon fontSize="small" />
+                              <InfoIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
 
@@ -465,16 +502,12 @@ export default function STAC() {
                               title="Items"
                               aria-label="items"
                               onClick={() => {
-                                window
-                                  .open(
-                                    `${window.location.pathname
-                                      .replace(`/configure`, "")
-                                      .replace(/^\//g, "")}/stac/collections/${
-                                      row.id
-                                    }/items`,
-                                    "_blank"
-                                  )
-                                  .focus();
+                                dispatch(
+                                  setModal({
+                                    name: "stacCollectionItems",
+                                    stacCollection: row,
+                                  })
+                                );
                               }}
                             >
                               <WidgetsIcon fontSize="small" />
@@ -521,7 +554,7 @@ export default function STAC() {
             className={c.bottomBar}
             rowsPerPageOptions={[25, 50, 100]}
             component="div"
-            count={stacCollections.length}
+            count={filteredCollections.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}
@@ -532,9 +565,8 @@ export default function STAC() {
       <NewStacCollectionModal querySTAC={querySTAC} />
       <DeleteStacCollectionModal querySTAC={querySTAC} />
       <LayersUsedByModal />
-      <PreviewGeoDatasetModal />
-      <AppendGeoDatasetModal querySTAC={querySTAC} />
-      <UpdateGeoDatasetModal querySTAC={querySTAC} />
+      <StacCollectionItemsModal />
+      <StacCollectionJsonModal />
     </>
   );
 }

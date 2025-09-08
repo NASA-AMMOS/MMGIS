@@ -12,6 +12,29 @@ const { sequelize } = require("../../../connection");
 const logger = require("../../../logger");
 const Config = require("../models/config");
 const config_template = require("../../../templates/config_template");
+const userModel = require("../../Users/models/user");
+const User = userModel.User;
+
+// Sanitize user input to prevent XSS in error messages
+function sanitizeInput(input) {
+  if (typeof input !== "string") return String(input);
+  return input.replace(/[<>'"&]/g, function (match) {
+    switch (match) {
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#x27;";
+      case "&":
+        return "&amp;";
+      default:
+        return match;
+    }
+  });
+}
 
 const GeneralOptions = require("../../GeneralOptions/models/generaloptions");
 
@@ -31,6 +54,98 @@ if (
   process.env.HIDE_CONFIG != "true"
 )
   fullAccess = true;
+
+// Middleware to check if admin user has permission to access specific mission
+function checkMissionPermission(req, res, next) {
+  // Determine if this is a long term token request or regular session
+  let userPermission, userMissions, userId;
+
+  if (req.isLongTermToken) {
+    // Use token creator's permissions for long term tokens
+    userPermission = req.tokenUserPermission;
+    userMissions = req.tokenUserMissions;
+    userId = null; // We don't need to lookup again since we have the data
+  } else {
+    // Use session permissions for regular requests
+    userPermission = req.session.permission;
+    userId = req.session.uid;
+    userMissions = null; // Will be looked up from database
+  }
+
+  // SuperAdmins (111) have access to all missions
+  if (userPermission === "111") {
+    next();
+    return;
+  }
+
+  // Regular users (not 110) should not access config endpoints
+  if (userPermission !== "110") {
+    res.send({
+      status: "failure",
+      message: "Unauthorized - insufficient permissions.",
+    });
+    return;
+  }
+
+  // For Admins (110), check mission-specific permissions
+  const mission = req.body.mission || req.query.mission;
+  if (!mission) {
+    next(); // No mission specified, let other validation handle it
+    return;
+  }
+
+  // If we already have missions from token, use them directly
+  if (req.isLongTermToken) {
+    const managingMissions = userMissions || [];
+    if (managingMissions.includes(mission)) {
+      next();
+    } else {
+      res.send({
+        status: "failure",
+        message: `Unauthorized - no permission to access mission: ${mission}`,
+      });
+    }
+    return;
+  }
+
+  // For regular session users, get user's missions_managing array from database
+  User.findOne({
+    where: { id: userId },
+    attributes: ["missions_managing"],
+  })
+    .then((user) => {
+      if (!user) {
+        res.send({
+          status: "failure",
+          message: "User not found.",
+        });
+        return;
+      }
+
+      const managingMissions = user.missions_managing || [];
+      if (managingMissions.includes(mission)) {
+        next();
+      } else {
+        res.send({
+          status: "failure",
+          message: `Unauthorized - no permission to access mission: ${mission}`,
+        });
+      }
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        "Failed to check mission permissions.",
+        req.originalUrl,
+        req,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: "Failed to verify mission permissions.",
+      });
+    });
+}
 
 function get(req, res, next, cb) {
   Config.findAll({
@@ -93,12 +208,16 @@ function get(req, res, next, cb) {
             if (cb)
               cb({
                 status: "failure",
-                message: `Mission '${req.query.mission} v${version}' not found.`,
+                message: `Mission '${sanitizeInput(
+                  req.query.mission
+                )} v${version}' not found.`,
               });
             else
               res.send({
                 status: "failure",
-                message: `Mission '${req.query.mission} v${version}' not found.`,
+                message: `Mission '${sanitizeInput(
+                  req.query.mission
+                )} v${version}' not found.`,
               });
             return null;
           });
@@ -118,17 +237,25 @@ router.get("/get", function (req, res, next) {
 
 function add(req, res, next, cb) {
   let configTemplate = JSON.parse(JSON.stringify(config_template));
-  configTemplate = req.body.config || configTemplate;
+  
+  // If a config is provided, deep merge it with the template
+  if (req.body.config) {
+    configTemplate = deepmerge(configTemplate, req.body.config);
+  }
+  
   configTemplate.msv.mission = req.body.mission;
 
+  // Fix validation logic: use OR conditions instead of AND
   if (
     req.body.mission !==
       req.body.mission.replace(
         /[`~!@#$%^&*()|+\-=?;:'",.<>\{\}\[\]\\\/]/gi,
         ""
-      ) &&
-    req.body.mission.length === 0 &&
-    !isNaN(req.body.mission[0])
+      ) ||
+    req.body.mission.length === 0 ||
+    !isNaN(req.body.mission[0]) ||
+    req.body.mission.includes("../") ||
+    req.body.mission.includes("..\\")
   ) {
     logger("error", "Attempted to add bad mission name.", req.originalUrl, req);
     res.send({ status: "failure", message: "Bad mission name." });
@@ -151,7 +278,7 @@ function add(req, res, next, cb) {
       if (!mission) {
         Config.create(newConfig)
           .then((created) => {
-            if (req.body.makedir === "true") {
+            if (req.body.makedir === true || req.body.makedir === "true") {
               let dir = "./Missions/" + created.mission;
               if (!fs.existsSync(dir)) {
                 fs.mkdirSync(dir);
@@ -239,6 +366,13 @@ function add(req, res, next, cb) {
 
 if (fullAccess)
   router.post("/add", function (req, res, next) {
+    if (req.session.permission !== "111") {
+      res.send({
+        status: "failure",
+        message: "Only SuperAdmins can add new missions.",
+      });
+      return null;
+    }
     add(req, res, next);
   });
 
@@ -448,7 +582,7 @@ function upsert(req, res, next, cb, info) {
 }
 
 if (fullAccess)
-  router.post("/upsert", function (req, res, next) {
+  router.post("/upsert", checkMissionPermission, function (req, res, next) {
     upsert(req, res, next);
   });
 
@@ -473,7 +607,9 @@ router.get("/missions", function (req, res, next) {
         let allMissions = [];
         for (let i = 0; i < missions.length; i++)
           allMissions.push(missions[i].DISTINCT);
-        allMissions.sort();
+        allMissions.sort((a, b) =>
+          a.localeCompare(b, undefined, { sensitivity: "base" })
+        );
         res.send({ status: "success", missions: allMissions });
         return null;
       })
@@ -484,6 +620,55 @@ router.get("/missions", function (req, res, next) {
       });
   }
   return null;
+});
+
+// Get current user's mission permissions for the Configure page
+router.get("/user-permissions", function (req, res, next) {
+  // SuperAdmins can manage all missions
+  if (req.session.permission === "111") {
+    res.send({
+      status: "success",
+      permission: "111",
+      missions_managing: null, // null means all missions
+    });
+    return;
+  }
+
+  // Regular admins get their specific mission list
+  if (req.session.permission === "110") {
+    User.findOne({
+      where: { id: req.session.uid },
+      attributes: ["missions_managing"],
+    })
+      .then((user) => {
+        res.send({
+          status: "success",
+          permission: "110",
+          missions_managing: user ? user.missions_managing || [] : [],
+        });
+      })
+      .catch((err) => {
+        logger(
+          "error",
+          "Failed to get user permissions.",
+          req.originalUrl,
+          req,
+          err
+        );
+        res.send({
+          status: "failure",
+          message: "Failed to get user permissions.",
+        });
+      });
+    return;
+  }
+
+  // Non-admin users
+  res.send({
+    status: "success",
+    permission: req.session.permission || "000",
+    missions_managing: [],
+  });
 });
 
 if (fullAccess)
@@ -889,7 +1074,7 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
   );
 }
 if (fullAccess)
-  router.post("/addLayer", function (req, res, next) {
+  router.post("/addLayer", checkMissionPermission, function (req, res, next) {
     addLayer(req, res, next);
   });
 
@@ -898,135 +1083,139 @@ if (fullAccess)
    * /updateLayer
    * Finds the existing layer, merges new layer items, deletes and readds with addLayer.
    */
-  router.post("/updateLayer", function (req, res, next) {
-    const exampleBody = {
-      mission: "{mission_name}",
-      layerUUID: "{existing_layer_uuid}",
-      layer: {
-        "...": "...",
-      },
-      "placement?": {
-        "path?":
-          "{path.to.header}, path to header in 'layers' to place new layer, a simple path ('sublayers' are added), default no group",
-        "index?":
-          "{0}, index in 'layers' to place new layer out of range placement indices are best fit; default end",
-      },
-      "forceClientUpdate?": "{true}; default false",
-    };
-
-    if (req.body.mission == null) {
-      res.send({
-        status: "failure",
-        message: `Required parameter 'mission' is unset.`,
-        example: exampleBody,
-      });
-      return;
-    }
-    if (req.body.layerUUID == null) {
-      res.send({
-        status: "failure",
-        message: `Required parameter 'layerUUID' is unset. (a layer.uuid is not sufficient)`,
-        example: exampleBody,
-      });
-      return;
-    }
-    if (req.body.layer == null) {
-      res.send({
-        status: "failure",
-        message: `Required parameter 'layer' is unset.`,
-        example: exampleBody,
-      });
-      return;
-    }
-
-    get(
-      {
-        query: {
-          mission: req.body.mission,
+  router.post(
+    "/updateLayer",
+    checkMissionPermission,
+    function (req, res, next) {
+      const exampleBody = {
+        mission: "{mission_name}",
+        layerUUID: "{existing_layer_uuid}",
+        layer: {
+          "...": "...",
         },
-      },
-      null,
-      null,
-      (config) => {
-        if (config.status === "failure") {
-          res.send(config);
-        } else {
-          try {
-            // Fill out layer and placement before addLayer
-            let existingLayer = null;
-            let placementPath = req.body.placement?.path;
-            let placementIndex = req.body.placement?.index;
+        "placement?": {
+          "path?":
+            "{path.to.header}, path to header in 'layers' to place new layer, a simple path ('sublayers' are added), default no group",
+          "index?":
+            "{0}, index in 'layers' to place new layer out of range placement indices are best fit; default end",
+        },
+        "forceClientUpdate?": "{true}; default false",
+      };
 
-            Utils.traverseLayers(config.layers, (layer, path, index) => {
-              if (layer.uuid === req.body.layerUUID) {
-                existingLayer = JSON.parse(JSON.stringify(layer));
-                if (placementPath == null) placementPath = path;
-                if (placementIndex == null) placementIndex = index;
-                return "remove";
+      if (req.body.mission == null) {
+        res.send({
+          status: "failure",
+          message: `Required parameter 'mission' is unset.`,
+          example: exampleBody,
+        });
+        return;
+      }
+      if (req.body.layerUUID == null) {
+        res.send({
+          status: "failure",
+          message: `Required parameter 'layerUUID' is unset. (a layer.uuid is not sufficient)`,
+          example: exampleBody,
+        });
+        return;
+      }
+      if (req.body.layer == null) {
+        res.send({
+          status: "failure",
+          message: `Required parameter 'layer' is unset.`,
+          example: exampleBody,
+        });
+        return;
+      }
+
+      get(
+        {
+          query: {
+            mission: req.body.mission,
+          },
+        },
+        null,
+        null,
+        (config) => {
+          if (config.status === "failure") {
+            res.send(config);
+          } else {
+            try {
+              // Fill out layer and placement before addLayer
+              let existingLayer = null;
+              let placementPath = req.body.placement?.path;
+              let placementIndex = req.body.placement?.index;
+
+              Utils.traverseLayers(config.layers, (layer, path, index) => {
+                if (layer.uuid === req.body.layerUUID) {
+                  existingLayer = JSON.parse(JSON.stringify(layer));
+                  if (placementPath == null) placementPath = path;
+                  if (placementIndex == null) placementIndex = index;
+                  return "remove";
+                }
+              });
+
+              if (existingLayer == null) {
+                res.send({
+                  status: "failure",
+                  message: `Layer ${req.body.layerUUID} not found. Cannot update.`,
+                });
+                return;
               }
-            });
 
-            if (existingLayer == null) {
+              // Merge existing and new
+              let newLayer = deepmerge(
+                existingLayer,
+                JSON.parse(JSON.stringify(req.body.layer))
+              );
+              let body = {
+                mission: req.body.mission,
+                layer: newLayer,
+                placement: req.body.placement || {
+                  path: placementPath,
+                  index: placementIndex,
+                },
+                forceClientUpdate: req.body.forceClientUpdate,
+              };
+
+              addLayer(
+                {
+                  body: body,
+                },
+                res,
+                next,
+                (resp) => {
+                  if (resp.status === "success") {
+                    res.send({
+                      status: "success",
+                      message: `Updated layer '${req.body.layerUUID}' in the ${resp.mission} mission. Configuration versioned ${resp.version}.`,
+                    });
+                  } else {
+                    resp.message = `Update layer failed with: ${resp.message}`;
+                    res.send(resp);
+                  }
+                },
+                config,
+                "updateLayer"
+              );
+              // Remove Existing
+            } catch (err) {
+              logger(
+                "error",
+                `Failed to update layer: ${req.body.layerUUID}.`,
+                req.originalUrl,
+                req,
+                err
+              );
               res.send({
                 status: "failure",
-                message: `Layer ${req.body.layerUUID} not found. Cannot update.`,
+                message: `Failed to update layer: ${req.body.layerUUID}. Uncaught reason.`,
               });
-              return;
             }
-
-            // Merge existing and new
-            let newLayer = deepmerge(
-              existingLayer,
-              JSON.parse(JSON.stringify(req.body.layer))
-            );
-            let body = {
-              mission: req.body.mission,
-              layer: newLayer,
-              placement: req.body.placement || {
-                path: placementPath,
-                index: placementIndex,
-              },
-              forceClientUpdate: req.body.forceClientUpdate,
-            };
-
-            addLayer(
-              {
-                body: body,
-              },
-              res,
-              next,
-              (resp) => {
-                if (resp.status === "success") {
-                  res.send({
-                    status: "success",
-                    message: `Updated layer '${req.body.layerUUID}' in the ${resp.mission} mission. Configuration versioned ${resp.version}.`,
-                  });
-                } else {
-                  resp.message = `Update layer failed with: ${resp.message}`;
-                  res.send(resp);
-                }
-              },
-              config,
-              "updateLayer"
-            );
-            // Remove Existing
-          } catch (err) {
-            logger(
-              "error",
-              `Failed to update layer: ${req.body.layerUUID}.`,
-              req.originalUrl,
-              req,
-              err
-            );
-            res.send({
-              status: "failure",
-              message: `Failed to update layer: ${req.body.layerUUID}. Uncaught reason.`,
-            });
           }
         }
-      }
-    );
-  });
+      );
+    }
+  );
 
 function removeLayer(req, res, next, cb) {
   const exampleBody = {
@@ -1149,9 +1338,13 @@ if (fullAccess)
     "forceClientUpdate?": true
   }
  */
-  router.post("/removeLayer", function (req, res, next) {
-    removeLayer(req, res, next);
-  });
+  router.post(
+    "/removeLayer",
+    checkMissionPermission,
+    function (req, res, next) {
+      removeLayer(req, res, next);
+    }
+  );
 
 if (fullAccess)
   /** 
@@ -1163,94 +1356,98 @@ if (fullAccess)
     "zoom?": 0
   }
  */
-  router.post("/updateInitialView", function (req, res, next) {
-    const exampleBody = {
-      mission: "{mission_name}",
-      "latitude?": 0,
-      "longitude?": 0,
-      "zoom?": 5,
-    };
+  router.post(
+    "/updateInitialView",
+    checkMissionPermission,
+    function (req, res, next) {
+      const exampleBody = {
+        mission: "{mission_name}",
+        "latitude?": 0,
+        "longitude?": 0,
+        "zoom?": 5,
+      };
 
-    if (req.body.mission == null) {
-      res.send({
-        status: "failure",
-        message: `Required parameter 'mission' is unset.`,
-        example: exampleBody,
-      });
-      return;
-    }
+      if (req.body.mission == null) {
+        res.send({
+          status: "failure",
+          message: `Required parameter 'mission' is unset.`,
+          example: exampleBody,
+        });
+        return;
+      }
 
-    get(
-      {
-        query: {
-          mission: req.body.mission,
+      get(
+        {
+          query: {
+            mission: req.body.mission,
+          },
         },
-      },
-      null,
-      null,
-      (config) => {
-        if (config.status === "failure") {
-          res.send(config);
-        } else {
-          try {
-            let lat =
-              req.body.latitude != null && !isNaN(req.body.latitude)
-                ? `${req.body.latitude}`
-                : config.msv.view[0];
-            let lng =
-              req.body.longitude != null && !isNaN(req.body.longitude)
-                ? `${req.body.longitude}`
-                : config.msv.view[1];
-            let zoom =
-              req.body.zoom != null && !isNaN(req.body.zoom)
-                ? `${parseInt(req.body.zoom)}`
-                : config.msv.view[2];
+        null,
+        null,
+        (config) => {
+          if (config.status === "failure") {
+            res.send(config);
+          } else {
+            try {
+              let lat =
+                req.body.latitude != null && !isNaN(req.body.latitude)
+                  ? `${req.body.latitude}`
+                  : config.msv.view[0];
+              let lng =
+                req.body.longitude != null && !isNaN(req.body.longitude)
+                  ? `${req.body.longitude}`
+                  : config.msv.view[1];
+              let zoom =
+                req.body.zoom != null && !isNaN(req.body.zoom)
+                  ? `${parseInt(req.body.zoom)}`
+                  : config.msv.view[2];
 
-            const existingView = config.msv.view;
-            const newView = [lat, lng, zoom];
+              const existingView = config.msv.view;
+              const newView = [lat, lng, zoom];
 
-            if (JSON.stringify(newView) !== JSON.stringify(existingView)) {
-              config.msv.view = [lat, lng, zoom];
+              if (JSON.stringify(newView) !== JSON.stringify(existingView)) {
+                config.msv.view = [lat, lng, zoom];
 
-              upsert(
-                {
-                  body: {
-                    mission: req.body.mission,
-                    config: config,
+                upsert(
+                  {
+                    body: {
+                      mission: req.body.mission,
+                      config: config,
+                    },
                   },
-                },
-                res,
-                next,
-                (resp) => {
-                  if (resp.status === "success") {
-                    res.send({
-                      status: "success",
-                      message: `Successfully updated initial view of the '${req.body.mission}' mission.`,
-                    });
-                  } else {
-                    res.send({
-                      status: "failure",
-                      message: `Failed to update the initial view of the '${req.body.mission}' mission: ${resp.message}`,
-                    });
+                  res,
+                  next,
+                  (resp) => {
+                    if (resp.status === "success") {
+                      res.send({
+                        status: "success",
+                        message: `Successfully updated initial view of the '${req.body.mission}' mission.`,
+                      });
+                    } else {
+                      res.send({
+                        status: "failure",
+                        message: `Failed to update the initial view of the '${req.body.mission}' mission: ${resp.message}`,
+                      });
+                    }
                   }
-                }
-              );
-            } else {
+                );
+              } else {
+                res.send({
+                  status: "success",
+                  message: `The initial view of the '${req.body.mission}' mission needs no changes.`,
+                });
+              }
+            } catch (err) {
               res.send({
-                status: "success",
-                message: `The initial view of the '${req.body.mission}' mission needs no changes.`,
+                status: "failure",
+                message: `Failed to update the initial view of the '${req.body.mission}' mission. Uncaught reason.`,
               });
             }
-          } catch (err) {
-            res.send({
-              status: "failure",
-              message: `Failed to update the initial view of the '${req.body.mission}' mission. Uncaught reason.`,
-            });
           }
         }
-      }
-    );
-  });
+      );
+    }
+  );
 
 if (fullAccess) {
   router.post("/updateGeneralOptions", function (req, res, next) {

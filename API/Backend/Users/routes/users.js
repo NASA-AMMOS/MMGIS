@@ -9,7 +9,24 @@ const bcrypt = require("bcryptjs");
 const buf = crypto.randomBytes(128);
 
 const logger = require("../../../logger");
-const User = require("../models/user");
+const userModel = require("../models/user");
+const User = userModel.User;
+
+function isStrongPassword(password) {
+  const minLength = 8;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSymbol = /[^A-Za-z0-9]/.test(password);
+
+  return (
+    password.length >= minLength &&
+    hasUpper &&
+    hasLower &&
+    hasNumber &&
+    hasSymbol
+  );
+}
 
 router.post("/has", function (req, res, next) {
   User.count()
@@ -57,19 +74,44 @@ router.post("/first_signup", function (req, res, next) {
 
 router.post("/signup", function (req, res, next) {
   if (
-    (process.env.AUTH === "local" && req.session.permission !== "111") ||
+    (process.env.AUTH === "local" &&
+      req.session.permission !== "111" &&
+      !(
+        process.env.AUTH_LOCAL_ALLOW_SIGNUP === true ||
+        process.env.AUTH_LOCAL_ALLOW_SIGNUP === "true"
+      )) ||
     (process.env.AUTH === "off" && req.session.permission !== "111")
   ) {
     res.send({
       status: "failure",
-      message: "Currently set so only administrators may create accounts.",
+      message: "Currently only administrators may create accounts.",
     });
     return;
   }
+
+  const skipLogin = req.body.skipLogin === true;
+
+  if (req.body.username == null || req.body.username == "") {
+    res.send({
+      status: "failure",
+      message: "Username must be set.",
+    });
+    return;
+  }
+
+  if (!isStrongPassword(req.body.password)) {
+    res.send({
+      status: "failure",
+      message:
+        "Password is not strong enough. Must be at least 8 characters long and contain at least: 1 uppercase letter, 1 lowercase letter, 1 number and 1 symbol.",
+    });
+    return;
+  }
+
   // Define a new user
   let newUser = {
     username: req.body.username,
-    email: req.body.email,
+    email: req.body.email == "" ? null : req.body.email,
     password: req.body.password,
     permission: "001",
     token: null,
@@ -82,9 +124,27 @@ router.post("/signup", function (req, res, next) {
     },
   })
     .then((user) => {
-      if (!user) {
+      if (user == null) {
         User.create(newUser)
           .then((created) => {
+            // Just make the account -- don't also login
+            if (skipLogin === true) {
+              logger(
+                "info",
+                req.body.username + " signed up.",
+                req.originalUrl,
+                req
+              );
+              res.send({
+                status: "success",
+                username: req.body.username,
+                token: null,
+                groups: [],
+              });
+              return null;
+            }
+
+            // Otherwise login too
             clearLoginSession(req);
             req.session.regenerate((err) => {
               // Save the user's info in the session
@@ -138,12 +198,22 @@ router.post("/signup", function (req, res, next) {
             return null;
           })
           .catch((err) => {
-            logger("error", "Failed to sign up.", req.originalUrl, req, err);
-            res.send({ status: "failure", message: "Failed to sign up." });
+            logger(
+              "error",
+              "Failed to sign up. Email might be invalid or already in use.",
+              req.originalUrl,
+              req,
+              err
+            );
+            res.send({
+              status: "failure",
+              message:
+                "Failed to sign up. Email might be invalid or already in use.",
+            });
             return null;
           });
       } else {
-        res.send({ status: "failure", message: "User already exists." });
+        res.send({ status: "failure", message: "Username already exists." });
       }
       return null;
     })
@@ -340,6 +410,87 @@ router.get("/logged_in", function (req, res) {
         user: null,
       },
     });
+});
+
+router.post("/resetPassword", function (req, res) {
+  let username = req.body.username;
+  let password = req.body.password;
+  let resetToken = req.body.resetToken;
+
+  if (username == null || username == "") {
+    res.send({ status: "failure", message: "Missing username." });
+  } else if (password == null || password == "") {
+    res.send({ status: "failure", message: "Missing password." });
+  } else if (resetToken == null || resetToken == "") {
+    res.send({ status: "failure", message: "Missing resetToken." });
+  } else {
+    User.findOne({
+      where: {
+        username: username,
+        reset_token: resetToken,
+      },
+      attributes: [
+        "id",
+        "username",
+        "email",
+        "password",
+        "permission",
+        "reset_token",
+        "reset_token_expiration",
+      ],
+    })
+      .then((user) => {
+        if (user) {
+          if (
+            user.reset_token_expiration == null ||
+            Date.now() >= user.reset_token_expiration
+          ) {
+            res.send({
+              status: "failure",
+              message: `Password reset time expired.`,
+            });
+          } else {
+            user.password = password;
+            user.reset_token = null;
+            user.reset_token_expiration = null;
+
+            // using user.save() so that the beforeUpdate hook gets triggered (User.update() doesn't trigger it)
+            user
+              .save()
+              .then(() => {
+                res.send({
+                  status: "success",
+                  message: `Successfully reset password for user: ${username}`,
+                });
+              })
+              .catch((err) => {
+                logger(
+                  "error",
+                  `Failed to reset password for user: ${username}`,
+                  req.originalUrl,
+                  req,
+                  err
+                );
+                res.send({
+                  status: "failure",
+                  message: `Failed to reset password for user: ${username}`,
+                });
+              });
+          }
+        } else {
+          res.send({
+            status: "failure",
+            message: `Invalid username or reset token.`,
+          });
+        }
+        return null;
+      })
+      .catch((err) => {
+        logger("error", "Password reset failed.", req.originalUrl, req, err);
+        res.send({ status: "failure", message: "Password reset failed." });
+        return null;
+      });
+  }
 });
 
 function getUserGroups(user, leadGroupName) {

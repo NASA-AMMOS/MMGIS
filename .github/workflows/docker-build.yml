@@ -30,7 +30,7 @@ env:
   IMAGE_SLUG: ${{ github.repository }}
 
 jobs:
-  # Push image to GitHub Container Registry.
+  # Generate shared tags for both architectures
   # The image tag pattern is:
   # for pull-requests: <PATCH_VERSION>-<DATE>-<PR_NUMBER>, eg: 1.35.2-20210125-25
   # for tags: <TAG>
@@ -38,9 +38,12 @@ jobs:
   # for `development` branch: development,<MAJOR_VERSION>-development,<PATCH_VERSION>-<DATE>-<SHA>
   # for releases: release,<PATCH_VERSION>-release,<MINOR_VERSION>-release,<MAJOR_VERSION>-release,<PATCH_VERSION>-<DATE>-<SHA>
   # Version is parsed from package.json
-  push:
+  generate-tags:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'release'
+    outputs:
+      registry-tags: ${{ steps.generate.outputs.REGISTRY_TAGS }}
+      image-id: ${{ steps.generate.outputs.IMAGE_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -83,13 +86,13 @@ jobs:
           [ "$VERSION" == "development" ] && VERSION=development
           [ "${{ github.event_name }}" == "release" ] && VERSION=release
 
-          # Compose REGISTRY_TAGS variable
-          REGISTRY_TAGS="-t $IMAGE_ID:$VERSION"
+          # Compose REGISTRY_TAGS variable for buildx (space-separated with --tag flags)
+          REGISTRY_TAGS="--tag $IMAGE_ID:$VERSION"
 
           # For master branch also supply an extra tag: <PATCH_VERSION>-latest,<MINOR_VERSION>-latest,<MAJOR_VERSION>-latest,<PATCH_VERSION>-<DATE>-<SHA>
-          [ "$VERSION" == "latest" ] && REGISTRY_TAGS="$REGISTRY_TAGS -t $IMAGE_ID:$PATCH_VERSION-latest -t $IMAGE_ID:$MINOR_VERSION-latest -t $IMAGE_ID:$MAJOR_VERSION-latest -t $IMAGE_ID:$PATCH_VERSION-$BDATE-$(git rev-parse --short HEAD)"
-          [ "$VERSION" == "development" ] && REGISTRY_TAGS="$REGISTRY_TAGS -t $IMAGE_ID:$MAJOR_VERSION-development -t $IMAGE_ID:$PATCH_VERSION-$BDATE-$(git rev-parse --short HEAD)"
-          [ "$VERSION" == "release" ] && REGISTRY_TAGS="$REGISTRY_TAGS -t $IMAGE_ID:$PATCH_VERSION-release -t $IMAGE_ID:$MINOR_VERSION-release -t $IMAGE_ID:$MAJOR_VERSION-release -t $IMAGE_ID:$PATCH_VERSION-$BDATE-$(git rev-parse --short HEAD)"
+          [ "$VERSION" == "latest" ] && REGISTRY_TAGS="$REGISTRY_TAGS --tag $IMAGE_ID:$PATCH_VERSION-latest --tag $IMAGE_ID:$MINOR_VERSION-latest --tag $IMAGE_ID:$MAJOR_VERSION-latest --tag $IMAGE_ID:$PATCH_VERSION-$BDATE-$(git rev-parse --short HEAD)"
+          [ "$VERSION" == "development" ] && REGISTRY_TAGS="$REGISTRY_TAGS --tag $IMAGE_ID:$MAJOR_VERSION-development --tag $IMAGE_ID:$PATCH_VERSION-$BDATE-$(git rev-parse --short HEAD)"
+          [ "$VERSION" == "release" ] && REGISTRY_TAGS="$REGISTRY_TAGS --tag $IMAGE_ID:$PATCH_VERSION-release --tag $IMAGE_ID:$MINOR_VERSION-release --tag $IMAGE_ID:$MAJOR_VERSION-release --tag $IMAGE_ID:$PATCH_VERSION-$BDATE-$(git rev-parse --short HEAD)"
 
           echo IMAGE_ID=$IMAGE_ID
           echo VERSION=$VERSION
@@ -99,7 +102,7 @@ jobs:
           SHA_SHORT=${{ github.sha }}
           [ "${{ github.event_name }}" == "pull_request" ] && SHA_SHORT=$(echo ${{ github.event.pull_request.head.sha }} | cut -c1-8)
 
-          echo "Final image tag to be pushed:"
+          echo "Final image tags to be pushed:"
           echo $REGISTRY_TAGS
           echo "REGISTRY_TAGS=$REGISTRY_TAGS" >> $GITHUB_OUTPUT
           echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_OUTPUT
@@ -107,11 +110,52 @@ jobs:
           echo "REGISTRY_TAGS_PR_NUMBER=$PR_NUMBER" >> $GITHUB_OUTPUT
           echo "SHA_SHORT=$SHA_SHORT" >> $GITHUB_OUTPUT
 
+  # Build and push ARM64 image on ARM64 runner
+  build-arm64:
+    needs: generate-tags
+    runs-on: ubuntu-24.04-arm  # ARM64 runner for native ARM64 builds
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Login to GHCR
-        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login -u ${{ github.actor }} --password-stdin ghcr.io
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Docker build
-        run: docker build --no-cache ${{ steps.generate.outputs.REGISTRY_TAGS }} .
+      - name: Docker buildx build and push (ARM64)
+        run: |
+          # Generate ARM64-specific tags by adding -arm64 suffix
+          ARM64_TAGS="${{ needs.generate-tags.outputs.registry-tags }}-arm64"
+          docker build \
+            ${ARM64_TAGS} \
+            --push \
+            --no-cache \
+            .
 
-      - name: Docker push
-        run: docker push ${{ steps.generate.outputs.IMAGE_ID }} --all-tags
+  # Build and push AMD64 image on x64 runner
+  build-amd64:
+    needs: [generate-tags, build-arm64] # Build amd64 last so that it shows as the latest
+    runs-on: ubuntu-latest  # x64 runner for native AMD64 builds
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker buildx build and push (AMD64)
+        run: |
+          # Generate AMD64-specific tags by adding -amd64 suffix
+          AMD64_TAGS="${{ needs.generate-tags.outputs.registry-tags }}-amd64"
+          docker build \
+            ${AMD64_TAGS} \
+            --push \
+            --no-cache \
+            .

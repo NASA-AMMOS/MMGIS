@@ -3200,7 +3200,7 @@ const L_ = {
             layerConfig.type === 'vector' &&
             layerConfig.time.type === 'local' &&
             layerConfig.time.endProp != null &&
-            layer != false &&
+            layer != false && layer != null &&
             layer._sourceGeoJSON != null
         ) {
             const filteredGeoJSON = JSON.parse(

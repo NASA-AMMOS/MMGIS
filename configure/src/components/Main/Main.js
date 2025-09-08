@@ -1,3 +1,5 @@
+/* global mmgisglobal */
+
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {} from "./MainSlice";
@@ -41,6 +43,7 @@ import WebHooks from "../../pages/WebHooks/WebHooks";
 import APIs from "../../pages/APIs/APIs";
 import STAC from "../../pages/STAC/STAC";
 import GeneralOptions from "../../pages/GeneralOptions/GeneralOptions";
+import Users from "../../pages/Users/Users";
 
 const useStyles = makeStyles((theme) => ({
   Main: {
@@ -64,6 +67,18 @@ const useStyles = makeStyles((theme) => ({
     background: theme.palette.swatches.grey[1000],
     boxShadow: `inset 10px 0px 10px -5px rgba(0,0,0,0.3)`,
     borderBottom: `2px solid ${theme.palette.swatches.grey[800]} !important`,
+  },
+  topbarPage: {
+    width: "100%",
+    height: "48px",
+    minHeight: "48px",
+    display: "flex",
+    justifyContent: "space-between",
+    boxSizing: "border-box",
+    background: theme.palette.swatches.grey[1000],
+    boxShadow: `inset 10px 0px 10px -5px rgba(0,0,0,0.3)`,
+    borderBottom: `2px solid ${theme.palette.swatches.grey[800]} !important`,
+    position: "absolute",
   },
   left: {
     display: "flex",
@@ -127,6 +142,12 @@ const useStyles = makeStyles((theme) => ({
     opacity: 0.6,
   },
   page: { height: "100%" },
+  username: {
+    lineHeight: "40px",
+    padding: "0px 4px",
+    letterSpacing: "1px",
+    color: "#1a1a1a",
+  },
 }));
 
 export default function Main() {
@@ -195,6 +216,9 @@ export default function Main() {
     case "general_options":
       Page = <GeneralOptions />;
       break;
+    case "users":
+      Page = <Users />;
+      break;
     default:
   }
 
@@ -252,7 +276,22 @@ export default function Main() {
   return (
     <div className={c.Main}>
       {Page != null ? (
-        <div className={c.page}>{Page}</div>
+        <>
+          <div className={c.topbarPage}>
+            <div className={c.left}></div>
+            <div className={c.right}>
+              <Tooltip title="Signed in as" placement="bottom" arrow>
+                <div className={c.username}>{mmgisglobal?.user}</div>
+              </Tooltip>
+              <Tooltip title="Sign-out" placement="bottom" arrow>
+                <IconButton onClick={signout}>
+                  <LogoutIcon fontSize="inherit" />
+                </IconButton>
+              </Tooltip>
+            </div>
+          </div>
+          <div className={c.page}>{Page}</div>
+        </>
       ) : mission == null ? (
         <div className={c.introWrapper}>
           <div className={c.topbar}>
@@ -270,6 +309,9 @@ export default function Main() {
               </Tooltip>
             </div>
             <div className={c.right}>
+              <Tooltip title="Signed in as" placement="bottom" arrow>
+                <div className={c.username}>{mmgisglobal?.user}</div>
+              </Tooltip>
               <Tooltip title="Sign-out" placement="bottom" arrow>
                 <IconButton onClick={signout}>
                   <LogoutIcon fontSize="inherit" />
@@ -337,6 +379,9 @@ export default function Main() {
               </Tabs>
             </div>
             <div className={c.right}>
+              <Tooltip title="Signed in as" placement="bottom" arrow>
+                <div className={c.username}>{mmgisglobal?.user}</div>
+              </Tooltip>
               <Tooltip title="Sign-out" placement="bottom" arrow>
                 <IconButton onClick={signout}>
                   <LogoutIcon fontSize="inherit" />

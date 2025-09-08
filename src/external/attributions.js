@@ -128,6 +128,28 @@ export default [
         githublink: 'https://github.com/bbecquet/Leaflet.PolylineDecorator',
     },
     {
+        library: 'Leaflet.PolylineMeasure',
+        librarylink: 'https://github.com/ppete2/Leaflet.PolylineMeasure',
+        version: '1.0.0',
+        author: 'PPete, Jürgen Treml',
+        authorlink: 'https://github.com/ppete2',
+        license: 'BSD 2-Clause',
+        licenselink:
+            'https://github.com/ppete2/Leaflet.PolylineMeasure/blob/master/LICENSE.txt',
+        githublink: 'https://github.com/ppete2/Leaflet.PolylineMeasure',
+    },
+    {
+        library: 'leaflet-velocity',
+        librarylink: 'https://github.com/onaci/leaflet-velocity',
+        version: '2.1.4',
+        author: 'Daniel Wild',
+        authorlink: 'https://github.com/danwild',
+        license: 'CSIRO Open Source Software Licence Agreement',
+        licenselink:
+            'https://github.com/onaci/leaflet-velocity/blob/master/LICENSE.md',
+        githublink: 'https://github.com/onaci/leaflet-velocity',
+    },
+    {
         library: 'leaflet-corridor',
         librarylink: 'https://github.com/mikhailshilkov/leaflet-corridor',
         version: '0',

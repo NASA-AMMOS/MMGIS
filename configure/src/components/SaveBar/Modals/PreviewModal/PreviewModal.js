@@ -2,6 +2,7 @@ import React from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import { setModal } from "../../../../core/ConfigureStore";
+import { publicUrlMainSite } from "../../../../core/constants";
 
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
@@ -84,7 +85,7 @@ function MMGIS(props) {
     MMGISIframe.src = `${
       window.mmgisglobal.NODE_ENV === "development"
         ? "http://localhost:8889"
-        : window.location.origin
+        : publicUrlMainSite
     }/?_preview=true`;
   }, [configuration]);
 

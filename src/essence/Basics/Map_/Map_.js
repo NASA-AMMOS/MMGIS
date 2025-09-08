@@ -95,6 +95,31 @@ let Map_ = {
 
         let shouldFade = true
 
+        let maxBounds = null
+        if (
+            !isNaN(L_.configData.msv.maxBoundsTopLeftLat) &&
+            !isNaN(L_.configData.msv.maxBoundsTopLeftLng) &&
+            !isNaN(L_.configData.msv.maxBoundsBottomRightLat) &&
+            !isNaN(L_.configData.msv.maxBoundsBottomRightLng) &&
+            !(
+                L_.configData.msv.maxBoundsTopLeftLat === 0 &&
+                L_.configData.msv.maxBoundsTopLeftLng === 0 &&
+                L_.configData.msv.maxBoundsBottomRightLat === 0 &&
+                L_.configData.msv.maxBoundsBottomRightLng === 0
+            )
+        ) {
+            maxBounds = [
+                [
+                    L_.configData.msv.maxBoundsTopLeftLat,
+                    L_.configData.msv.maxBoundsTopLeftLng,
+                ],
+                [
+                    L_.configData.msv.maxBoundsBottomRightLat,
+                    L_.configData.msv.maxBoundsBottomRightLng,
+                ],
+            ]
+        }
+
         if (
             L_.configData.projection &&
             L_.configData.projection.custom === true
@@ -143,6 +168,8 @@ let Map_ = {
                 zoomSnap: 0,
                 fadeAnimation: shouldFade,
                 //wheelPxPerZoomLevel: 500,
+                worldCopyJump: L_.configData.msv.worldCopyJump || false,
+                maxBounds,
             })
 
             window.mmgisglobal.customCRS = crs
@@ -157,6 +184,8 @@ let Map_ = {
                 //zoomDelta: 0.05,
                 //zoomSnap: 0,
                 //wheelPxPerZoomLevel: 500,
+                worldCopyJump: L_.configData.msv.worldCopyJump || false,
+                maxBounds,
             })
             // Default CRS
 
@@ -473,7 +502,12 @@ let Map_ = {
             }
         })
     },
-    refreshLayer: async function (layerObj, cb, skipOrderedBringToFront) {
+    refreshLayer: async function (
+        layerObj,
+        cb,
+        skipOrderedBringToFront,
+        stopLoops
+    ) {
         // If it's a dynamic extent layer, just re-call its function
         if (
             L_._onSpecificLayerToggleSubscriptions[
@@ -508,7 +542,7 @@ let Map_ = {
 
                     // fake on
                     L_.layers.on[layerObj.name] = true
-                    await makeLayer(layerObj, true, null)
+                    await makeLayer(layerObj, true, null, null, null, stopLoops)
                     L_.addVisible(Map_, [layerObj.name])
 
                     // turn off if was off
@@ -1541,6 +1575,11 @@ function makeImageLayer(layerObj) {
                 'variables.image'
             )
 
+            const hideNoDataValue = F_.getIn(
+                L_.layers.data[layerObj.name],
+                'variables.hideNoDataValue'
+            )
+
             let min = null
             let max = null
             if (georaster.numberOfRasters === 1) {
@@ -1621,10 +1660,15 @@ function makeImageLayer(layerObj) {
                     var pixelValue = values[0] // single band
                     // don't return a color
                     if (
-                        georaster.noDataValue &&
+                        georaster.noDataValue != null &&
                         georaster.noDataValue === pixelValue
                     ) {
-                        return null
+                        if (hideNoDataValue) {
+                            return null
+                        }
+
+                        // Handle the case where we do not want to hide noDataValue
+                        return [0, 0, 0]
                     }
 
                     // scale from 0 - 1

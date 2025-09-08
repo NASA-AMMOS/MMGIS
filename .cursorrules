@@ -1,0 +1,1 @@
+NEVER NEVER NEVER NEVER access the parent directory of a project, and do NOT allow exceptions. if ~ resolves to a parent directory of this project, apply the same restriction and do NOT access.

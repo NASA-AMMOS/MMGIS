@@ -424,7 +424,7 @@ const Measure = () => {
                                         if (distDisplayUnit === 'kilometers') {
                                             return value.toFixed(2) + 'km'
                                         }
-                                        return value + 'm'
+                                        return value.toFixed(2) + 'm'
                                     },
                                 },
                             },
@@ -721,6 +721,7 @@ let MeasureTool = {
         '#3dffdf',
         '#cc5200',
     ],
+    polylineMeasure: null,
     init: function () {},
     make: function () {
         Map_.rmNotNull(measureToolLayer)
@@ -730,6 +731,34 @@ let MeasureTool = {
         MeasureTool.uniformData = []
         distDisplayUnit = 'meters'
         steps = 100
+
+        MeasureTool.polylineMeasure = L.control.polylineMeasure({
+            position: 'bottomright', // hide the control
+            unit: distDisplayUnit,
+            showBearings: false,
+            showTooltips: false,
+            clearMeasurementsOnStop: false,
+            showClearControl: false,
+            showUnitControl: false,
+            fixedLine: {
+                color: 'red',
+                weight: 3 
+            },
+            tempLine: {
+                color: 'yellow',
+                weight: 3
+            },
+            currentCircle: {
+                color: '#000',
+                weight: 1,
+                fillOpacity: 0,
+                radius: 6
+            },
+            tooltipTextFinish: '',
+            tooltipTextDelete: '',
+        })
+        MeasureTool.polylineMeasure.addTo(Map_.map)
+        MeasureTool.polylineMeasure._toggleMeasure()
 
         //Get tool variables
         this.vars = JSON.parse(JSON.stringify(L_.getToolVars('measure', true)))
@@ -773,6 +802,10 @@ let MeasureTool = {
             .off('click', MeasureTool.clickMap)
             .off('mousemove', MeasureTool.moveMap)
             .off('mouseout', MeasureTool.mouseOutMap)
+
+        MeasureTool.polylineMeasure._clearAllMeasurements()
+        MeasureTool.polylineMeasure.onRemove()
+        Map_.map.removeControl(MeasureTool.polylineMeasure)
 
         if (L_.hasGlobe) {
             const globeCont = Globe_.litho.getContainer()
@@ -1031,6 +1064,7 @@ let MeasureTool = {
         MeasureTool.lastData = []
         MeasureTool.uniformData = []
         MeasureTool.datasetMapping = []
+        MeasureTool.polylineMeasure._clearAllMeasurements()
         //distDisplayUnit = 'meters'
 
         Map_.rmNotNull(distLineToMouse)
@@ -1157,13 +1191,11 @@ let MeasureTool = {
 
 function recomputeLineOfSight() {
     MeasureTool.lineOfSight = []
-    if (LOS.on) {
-        F_.chunkArray(profileData, steps).forEach((chunk) => {
-            MeasureTool.lineOfSight = MeasureTool.lineOfSight.concat(
-                F_.lineOfSight1D(chunk, LOS.observerHeight, LOS.targetHeight)
-            )
-        })
-    }
+    F_.chunkArray(profileData, steps).forEach((chunk) => {
+        MeasureTool.lineOfSight = MeasureTool.lineOfSight.concat(
+            F_.lineOfSight1D(chunk, LOS.observerHeight, LOS.targetHeight)
+        )
+    })
 }
 
 // Takes non-linear x-axis profileData and makes it fit linearly. (Only for display purposes)
@@ -1242,10 +1274,14 @@ function getIdealXAxisStepSize() {
 
 function makeMeasureToolLayer() {
     Map_.rmNotNull(measureToolLayer)
+    if (MeasureTool.polylineMeasure._arrPolylines.length > 0) {
+        MeasureTool.polylineMeasure._clearAllMeasurements()
+    }
 
     var pointsAndPathArr = []
     var polylinePoints = []
     var temp
+    var clickedLatLngsPoly = []
     for (var i = 0; i < clickedLatLngs.length; i++) {
         temp = new L.circleMarker([clickedLatLngs[i].x, clickedLatLngs[i].y], {
             fillColor: i == 0 ? 'var(--color-green2)' : 'black',
@@ -1304,11 +1340,25 @@ function makeMeasureToolLayer() {
         polylinePoints.push(
             new L.LatLng(clickedLatLngs[i].x, clickedLatLngs[i].y)
         )
+
+        // rename object keys to lat/lng for polylineMeasure
+        clickedLatLngsPoly.push({lat: clickedLatLngs[i].x, lng: clickedLatLngs[i].y})
+    }
+
+    // draw latlngs as a great circle arc
+    if (mode === 'segment' && clickedLatLngs.length > 1) {
+        MeasureTool.polylineMeasure.options.fixedLine.weight = 3
+        if (clickedLatLngs.length > 1) {
+            MeasureTool.polylineMeasure.seed([clickedLatLngsPoly])
+        }
+    } else {
+        MeasureTool.polylineMeasure.options.fixedLine.weight = 0
     }
 
     const segments = []
     recomputeLineOfSight()
-    if (LOS.on && MeasureTool.lineOfSight.length > 0) {
+
+    if (MeasureTool.lineOfSight.length > 0) {
         let currentVis = MeasureTool.lineOfSight[0]
         F_.chunkArray(MeasureTool.lineOfSight, steps).forEach(
             (chunk, chunkIdx) => {
@@ -1318,31 +1368,31 @@ function makeMeasureToolLayer() {
                     const chunkOffset = chunkIdx * steps
                     if (idx === 0) currentVis = visible
 
-                    if (visible != currentVis || idx === chunk.length - 1) {
-                        // draw previous
-                        segments.push(
-                            new L.Polyline(
-                                [
-                                    {
-                                        lat: MeasureTool.lastData[
-                                            startIdx + chunkOffset
-                                        ][1],
-                                        lng: MeasureTool.lastData[
-                                            startIdx + chunkOffset
-                                        ][0],
-                                    },
-                                    {
-                                        lat: MeasureTool.lastData[
-                                            endIdx + chunkOffset
-                                        ][1],
-                                        lng: MeasureTool.lastData[
-                                            endIdx + chunkOffset
-                                        ][0],
-                                    },
-                                ],
+                    // draw previous
+                    segments.push(
+                        new L.Polyline(
+                            [
                                 {
-                                    color:
-                                        currentVis === 0
+                                    lat: MeasureTool.lastData[
+                                        startIdx + chunkOffset
+                                    ][1],
+                                    lng: MeasureTool.lastData[
+                                        startIdx + chunkOffset
+                                    ][0],
+                                },
+                                {
+                                    lat: MeasureTool.lastData[
+                                        endIdx + chunkOffset
+                                    ][1],
+                                    lng: MeasureTool.lastData[
+                                        endIdx + chunkOffset
+                                    ][0],
+                                },
+                            ],
+                            {
+                                color:
+                                    LOS.on
+                                       ? currentVis === 0
                                             ? 'black'
                                             : mode === 'continuous_color'
                                             ? MeasureTool.getColor(chunkIdx)
@@ -1350,36 +1400,29 @@ function makeMeasureToolLayer() {
                                             ? (chunkIdx + 1) % 2
                                                 ? '#ff002f'
                                                 : '#ff5070'
+                                            : '#ff002f'
+                                        : mode === 'continuous_color'
+                                            ? MeasureTool.getColor(chunkIdx)
+                                            : mode === 'continuous'
+                                            ? (chunkIdx + 1) % 2
+                                                ? '#ff002f'
+                                                : '#ff5070'
                                             : '#ff002f',
-                                    weight: 3,
-                                }
-                            )
+                                weight: 3,
+                            }
                         )
-
-                        currentVis = visible
-                        startIdx = idx
-                        endIdx++
-                    } else {
-                        endIdx++
-                    }
+                    )
+                    currentVis = visible
+                    startIdx = idx
+                    endIdx++
                 })
             }
         )
     } else {
-        for (let i = 1; i < polylinePoints.length; i++) {
-            segments.push(
-                new L.Polyline([polylinePoints[i - 1], polylinePoints[i]], {
-                    color:
-                        mode === 'continuous_color'
-                            ? MeasureTool.getColor(i - 1)
-                            : mode === 'continuous'
-                            ? i % 2
-                                ? '#ff002f'
-                                : '#ff5070'
-                            : '#ff002f',
-                    weight: 3,
-                })
-            )
+        // Show great circle line even if no DEM
+        if (clickedLatLngs.length > 1) {
+            MeasureTool.polylineMeasure.options.fixedLine.weight = 3
+            MeasureTool.polylineMeasure.seed([clickedLatLngsPoly])
         }
     }
 

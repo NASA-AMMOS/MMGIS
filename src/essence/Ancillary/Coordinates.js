@@ -124,7 +124,11 @@ const Coordinates = {
             !(
                 L_.configData.time &&
                 L_.configData.time.enabled === true &&
-                L_.configData.time.visible === true
+                (
+                    L_.configData.time.visible === true ||
+                    L_.configData.time.liveByDefault === true ||
+                    L_.FUTURES.live === true
+                )
             )
         ) {
             $('#toggleTimeUI').css({ display: 'none' })
@@ -275,8 +279,13 @@ const Coordinates = {
         if (
             L_.configData.time &&
             L_.configData.time.enabled === true &&
-            L_.configData.time.visible === true &&
-            L_.configData.time.initiallyOpen === true
+            (
+                L_.FUTURES.live === true ||
+                (L_.FUTURES.live == null && (
+                    L_.configData.time.initiallyOpen === true ||
+                    L_.configData.time.liveByDefault === true
+                ))
+            )
         ) {
             toggleTimeUI()
         }

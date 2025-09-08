@@ -42,6 +42,14 @@
                         "type": "dropdown",
                         "width": 2,
                         "options": ["left", "right"]
+                    },
+                    {
+                        "field": "variables.showHeadersInLegend",
+                        "name": "Show Headers in Legend",
+                        "description": "If true, the legend will display the name of Header layer types.",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
                     }
                 ]
             }

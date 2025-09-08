@@ -36,7 +36,10 @@ export default function Configure() {
       "missions",
       null,
       (res) => {
-        dispatch(setMissions(res.missions));
+        const missions = (res?.missions || [])
+          .slice()
+          .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+        dispatch(setMissions(missions));
       },
       (res) => {
         dispatch(

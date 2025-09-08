@@ -10,7 +10,8 @@
           "type": "number",
           "min": -90,
           "max": 90,
-          "width": 4
+          "width": 4,
+          "required": true
         },
         {
           "field": "msv.view.1",
@@ -19,7 +20,8 @@
           "type": "number",
           "min": -180,
           "max": 180,
-          "width": 4
+          "width": 4,
+          "required": true
         },
         {
           "field": "msv.view.2",
@@ -28,7 +30,8 @@
           "type": "number",
           "min": 0,
           "max": 40,
-          "width": 4
+          "width": 4,
+          "required": true
         }
       ]
     },

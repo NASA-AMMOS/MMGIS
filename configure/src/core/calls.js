@@ -42,6 +42,10 @@ const c = {
     type: "GET",
     url: "api/configure/missions",
   },
+  user_permissions: {
+    type: "GET",
+    url: "api/configure/user-permissions",
+  },
   versions: {
     type: "GET",
     url: "api/configure/versions",
@@ -101,6 +105,34 @@ const c = {
   stac_delete_collection: {
     type: "DELETE",
     url: "stac/collections/:collection",
+  },
+  stac_collection_items: {
+    type: "GET",
+    url: "stac/collections/:collection/items",
+  },
+  stac_delete_item: {
+    type: "DELETE",
+    url: "stac/collections/:collection/items/:item",
+  },
+  account_entries: {
+    type: "GET",
+    url: "api/accounts/entries",
+  },
+  account_delete_user: {
+    type: "DELETE",
+    url: "api/accounts/remove/:id",
+  },
+  account_update_user: {
+    type: "POST",
+    url: "api/accounts/update",
+  },
+  account_reset_password_link: {
+    type: "POST",
+    url: "api/accounts/generateResetPasswordLink",
+  },
+  user_signup: {
+    type: "POST",
+    url: "api/users/signup",
   },
   longtermtoken_get: {
     type: "GET",

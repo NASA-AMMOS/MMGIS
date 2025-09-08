@@ -52,6 +52,7 @@ var markup = [
                 '<i class="mdi mdi-magnify mdi-18px"></i>',
                 "<input type='text' placeholder='Search Layers (# for tags)' />",
                 '<div id="clear"><i class="mdi mdi-close mdi-18px"></i></div>',
+                '<div id="restore"><i class="mdi mdi-restore mdi-18px"></i></div>',
                 '<div id="expand"><i class="mdi mdi-arrow-expand-vertical mdi-18px"></i></div>',
                 '<div id="collapse"><i class="mdi mdi-arrow-collapse-vertical mdi-18px"></i></div>',
             "</div>",
@@ -259,7 +260,7 @@ var LayersTool = {
             units = layer.cogUnits
         }
 
-        const dynamicLegendConf = []
+        let dynamicLegendConf = []
         const imgElement = document.getElementById(
             `titlerCogColormapImage_${L_.asLayerUUID(layerName)}`
         )
@@ -349,9 +350,10 @@ var LayersTool = {
                 value: label,
             })
         }
-        document.body.removeChild(canvasElement)
-
+        dynamicLegendConf = dynamicLegendConf.reverse()
         L_.layers.data[layer.name]._legend = dynamicLegendConf
+
+        document.body.removeChild(canvasElement)
 
         $('#tileCogColormapMapLines').empty()
         for (let i = 0; i < 9; i++) {
@@ -670,27 +672,27 @@ function interfaceWithMMGIS(fromInit) {
                                     '<i class="mdi mdi-restore mdi-18px"></i>',
                                 '</div>',
                             '</div>',
-                            `<li class="tileCogMin">`,
-                                '<div>',
-                                    '<div>Rescale Min Value</div>',
-                                    '<div>',
-                                        `<input class='tilerescalecogmin' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="min" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMin : node[i].cogMin}" default="0">`,
-                                        node[i].cogUnits != null ? `<div class='tileCogUnits'>${node[i].cogUnits}</div>`: '',
-                                    '</div>',
-                                '</div>',
-                            '</li>',
-                            '<li id="tileCogLegend_1" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_2" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_3" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_4" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_5" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_6" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_7" class="tileCogLegend">-</li>',
                             `<li class="tileCogMax">`,
                                 '<div>',
                                     '<div>Rescale Max Value</div>',
                                     '<div>',
                                         `<input class='tilerescalecogmax' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="max" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMax : node[i].cogMax}" default="255">`,
+                                        node[i].cogUnits != null ? `<div class='tileCogUnits'>${node[i].cogUnits}</div>`: '',
+                                    '</div>',
+                                '</div>',
+                            '</li>',
+                            '<li id="tileCogLegend_7" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_6" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_5" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_4" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_3" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_2" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_1" class="tileCogLegend">-</li>',    
+                            `<li class="tileCogMin">`,
+                                '<div>',
+                                    '<div>Rescale Min Value</div>',
+                                    '<div>',
+                                        `<input class='tilerescalecogmin' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="min" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMin : node[i].cogMin}" default="0">`,
                                         node[i].cogUnits != null ? `<div class='tileCogUnits'>${node[i].cogUnits}</div>`: '',
                                     '</div>',
                                 '</div>',
@@ -873,27 +875,27 @@ function interfaceWithMMGIS(fromInit) {
                                     '<i class="mdi mdi-restore mdi-18px"></i>',
                                 '</div>',
                             '</div>',
-                            `<li class="tileCogMin">`,
-                                '<div>',
-                                    '<div>Rescale Min Value</div>',
-                                    '<div>',
-                                        `<input class='tilerescalecogmin' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="min" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMin : node[i].variables?.streamlines?.minVelocity}" default="0">`,
-                                        node[i].variables?.streamlines?.units != null ? `<div class='tileCogUnits'>${node[i].variables?.streamlines?.units}</div>`: '',
-                                    '</div>',
-                                '</div>',
-                            '</li>',
-                            '<li id="tileCogLegend_1" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_2" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_3" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_4" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_5" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_6" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_7" class="tileCogLegend">-</li>',
                             `<li class="tileCogMax">`,
                                 '<div>',
                                     '<div>Rescale Max Value</div>',
                                     '<div>',
                                         `<input class='tilerescalecogmax' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="max" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMax : node[i].variables?.streamlines?.maxVelocity}" default="255">`,
+                                        node[i].variables?.streamlines?.units != null ? `<div class='tileCogUnits'>${node[i].variables?.streamlines?.units}</div>`: '',
+                                    '</div>',
+                                '</div>',
+                            '</li>',
+                            '<li id="tileCogLegend_7" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_6" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_5" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_4" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_3" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_2" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_1" class="tileCogLegend">-</li>',
+                            `<li class="tileCogMin">`,
+                                '<div>',
+                                    '<div>Rescale Min Value</div>',
+                                    '<div>',
+                                        `<input class='tilerescalecogmin' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="min" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMin : node[i].variables?.streamlines?.minVelocity}" default="0">`,
                                         node[i].variables?.streamlines?.units != null ? `<div class='tileCogUnits'>${node[i].variables?.streamlines?.units}</div>`: '',
                                     '</div>',
                                 '</div>',
@@ -978,27 +980,27 @@ function interfaceWithMMGIS(fromInit) {
                                     '<i class="mdi mdi-restore mdi-18px"></i>',
                                 '</div>',
                             '</div>',
-                            `<li class="tileCogMin">`,
-                                '<div>',
-                                    '<div>Rescale Min Value</div>',
-                                    '<div>',
-                                        `<input class='tilerescalecogmin' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="min" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMin : node[i].cogMin}" default="0">`,
-                                        node[i].cogUnits != null ? `<div class='tileCogUnits'>${node[i].cogUnits}</div>`: '',
-                                    '</div>',
-                                '</div>',
-                            '</li>',
-                            '<li id="tileCogLegend_1" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_2" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_3" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_4" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_5" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_6" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_7" class="tileCogLegend">-</li>',
                             `<li class="tileCogMax">`,
                                 '<div>',
                                     '<div>Rescale Max Value</div>',
                                     '<div>',
                                         `<input class='tilerescalecogmax' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="max" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMax : node[i].cogMax}" default="255">`,
+                                        node[i].cogUnits != null ? `<div class='tileCogUnits'>${node[i].cogUnits}</div>`: '',
+                                    '</div>',
+                                '</div>',
+                            '</li>',
+                            '<li id="tileCogLegend_7" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_6" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_5" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_4" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_3" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_2" class="tileCogLegend">-</li>',
+                            '<li id="tileCogLegend_1" class="tileCogLegend">-</li>',  
+                            `<li class="tileCogMin">`,
+                                '<div>',
+                                    '<div>Rescale Min Value</div>',
+                                    '<div>',
+                                        `<input class='tilerescalecogmin' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="min" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMin : node[i].cogMin}" default="0">`,
                                         node[i].cogUnits != null ? `<div class='tileCogUnits'>${node[i].cogUnits}</div>`: '',
                                     '</div>',
                                 '</div>',
@@ -1061,7 +1063,7 @@ function interfaceWithMMGIS(fromInit) {
                     // prettier-ignore
                     $('#layersToolList').append(
                         [
-                            `<li class="layersToolHeader" id="header_${headerI}" name="${node[i].name}" type="${node[i].type}" depth="${depth}" childrenon="true" style="margin-bottom: 1px;">`,
+                            `<li class="layersToolHeader" id="header_${node[i].name}" name="${node[i].name}" type="${node[i].type}" depth="${depth}" childrenon="true" style="margin-bottom: 1px;">`,
                                 `<div class="title" id="headerstart" style="border-left: ${depth * DEPTH_SIZE}px solid ${INDENT_COLOR};">`,
                                     '<div class="layersToolColor ' + node[i].type + '">',
                                         '<i class="mdi mdi-drag-vertical mdi-12px"></i>',
@@ -1988,6 +1990,14 @@ function interfaceWithMMGIS(fromInit) {
         }
     })
 
+    $('#searchLayers > #restore').on('click', function () {
+        // Collapse all layers
+        $('#searchLayers > #collapse').click()
+
+        // Expand individual headers based on its configuration settings
+        traverseHeaderLayersExpandedState(L_.configData.layers, {}, 0)
+    })
+
     $('#filterLayers .right > div').on('click', function () {
         $(this).toggleClass('on')
         var isOn = $(this).hasClass('on')
@@ -2228,8 +2238,26 @@ function interfaceWithMMGIS(fromInit) {
     })
 
     //Start collapsed
-    if (LayersTool.vars.expanded !== true)
+    if (LayersTool.vars.expanded !== true) {
         $('#searchLayers > #collapse').click()
+        // Expand individual headers based on its configuration settings
+        traverseHeaderLayersExpandedState(L_.configData.layers, {}, 0)
+    }
+
+    function traverseHeaderLayersExpandedState(node, parent, depth) {
+        for (var i = 0; i < node.length; i++) {
+            if (node[i].type == 'header') {
+                if ((node[i].expanded && node[i].expanded === true)
+                        || (node[i].expanded === undefined
+                            && $(`#layersToolList > li#header_${parent.name}`).attr('childrenon') === true)) {
+                    LayersTool.toggleHeader(`header_${node[i].name}`)
+                }
+            }
+
+            if (node[i].sublayers)
+                traverseHeaderLayersExpandedState(node[i].sublayers, node[i], depth + 1)
+        }
+    }
 
     // Sublayer things
 
@@ -2292,14 +2320,28 @@ function interfaceWithMMGIS(fromInit) {
             layerData.cogColormap
         )
 
+        const hideNoDataValue = F_.getIn(
+            L_.layers.data[layerName],
+            'variables.hideNoDataValue'
+        )
+
         let pixelValuesToColorFn = (values) => {
             let georaster = layer.options.georaster
             var pixelValue = values[0] // single band
 
             // don't return a color
-            if (georaster.noDataValue && georaster.noDataValue === pixelValue) {
-                return null
+            if (
+                georaster.noDataValue != null &&
+                georaster.noDataValue === pixelValue
+            ) {
+                if (hideNoDataValue) {
+                    return null
+                }
+
+                // Handle the case where we do not want to hide noDataValue
+                return [0, 0, 0]
             }
+
             // scale from 0 - 1
             var scaledPixelValue = (pixelValue - vMin) / range
             if (!(scaledPixelValue >= 0 && scaledPixelValue <= 1)) {

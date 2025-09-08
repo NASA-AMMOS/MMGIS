@@ -131,10 +131,15 @@ function get(reqtype, req, res, next) {
           }
 
           let distinct = "";
+          let distinctField = null;
           if (noDuplicates === true) {
-            if (result.dataValues.group_id_field != null)
+            if (result.dataValues.group_id_field != null) {
               distinct = ` DISTINCT ON (group_id)`;
-            else distinct = ` DISTINCT ON (geom)`;
+              distinctField = "group_id";
+            } else {
+              distinct = ` DISTINCT ON (geom)`;
+              distinctField = "geom";
+            }
           }
 
           let cols = ["id"];
@@ -402,10 +407,10 @@ function get(reqtype, req, res, next) {
           }
 
           if (req.query?.limited) {
-            q += ` ORDER BY id DESC LIMIT 3`;
-          }
-
-          q += `;`;
+            q += ` ORDER BY id DESC LIMIT 3;`;
+          } else if (distinctField != null) {
+            q += ` ORDER BY ${distinctField}, id DESC;`;
+          } else q += ` ORDER BY id DESC;`;
 
           sequelize
             .query(q, {

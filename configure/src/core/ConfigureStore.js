@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 import { calls } from "./calls";
+import { getAllValidationErrors } from "./validators";
 
 window.newUUIDCount = 0;
 window.configId = parseInt(Math.random() * 100000);
@@ -15,7 +16,9 @@ export const ConfigureStore = createSlice({
     geodatasets: [],
     datasets: [],
     stacCollections: [],
+    userEntries: [],
     page: null,
+    validationErrors: [],
     modal: {
       newMission: false,
       layer: false,
@@ -32,11 +35,17 @@ export const ConfigureStore = createSlice({
       updateDataset: false,
       deleteDataset: false,
       newStacCollection: false,
+      stacCollectionItems: false,
+      stacCollectionJson: false,
       layersUsedByStacCollection: false,
       deleteStacCollection: false,
       uploadConfig: false,
       cloneConfig: false,
       deleteConfig: false,
+      updateUser: false,
+      deleteUser: false,
+      newUser: false,
+      resetPassword: false,
     },
     snackBarText: false,
     lockConfig: false,
@@ -57,6 +66,8 @@ export const ConfigureStore = createSlice({
     },
     setConfiguration: (state, action) => {
       state.configuration = action.payload;
+      // Update validation errors whenever configuration changes
+      state.validationErrors = getAllValidationErrors(action.payload);
     },
     setToolConfiguration: (state, action) => {
       state.toolConfiguration = action.payload;
@@ -69,6 +80,9 @@ export const ConfigureStore = createSlice({
     },
     setStacCollections: (state, action) => {
       state.stacCollections = action.payload;
+    },
+    setUserEntries: (state, action) => {
+      state.userEntries = action.payload;
     },
     setPage: (state, action) => {
       state.page = action.payload.page;
@@ -95,6 +109,9 @@ export const ConfigureStore = createSlice({
           text: String(action.payload.text),
           severity: action.payload.severity,
         };
+    },
+    setValidationErrors: (state, action) => {
+      state.validationErrors = action.payload;
     },
     clearLockConfig: (state, action) => {
       state.lockConfigTypes[action.payload.type || "main"] = false;
@@ -196,9 +213,11 @@ export const {
   setGeodatasets,
   setDatasets,
   setStacCollections,
+  setUserEntries,
   setPage,
   setModal,
   setSnackBarText,
+  setValidationErrors,
   saveConfiguration,
   clearLockConfig,
   setLockConfig,

@@ -27,6 +27,7 @@ import lvg from './external/Leaflet/leaflet.vectorGrid.bundled'
 import lrm from './external/Leaflet/leaflet.rotatedMarker'
 import lv from './external/Leaflet/leaflet-velocity'
 import lr from './external/Leaflet/L.Rain'
+import lpm from './external/Leaflet/Leaflet.PolylineMeasure'
 
 import THREE from './external/THREE/three118.js'
 import OrbitControls from './external/THREE/OrbitControls'

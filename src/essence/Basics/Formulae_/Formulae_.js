@@ -810,8 +810,15 @@ var Formulae_ = {
     },
     csvToJSON: function (csv) {
         if (csv == null) return {}
+        
+        // Ensure csv is a string
+        if (typeof csv !== 'string') {
+            return {}
+        }
 
         var lines = csv.split('\n')
+        lines = lines.filter(i => i.length > 0)
+
         var result = []
 
         if (lines == null || lines[0] == null) return {}
