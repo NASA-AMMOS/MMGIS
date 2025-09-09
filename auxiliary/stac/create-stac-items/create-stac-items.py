@@ -9,6 +9,14 @@ import os
 from datetime import datetime 
 from rio_stac import create_stac_item
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+import antimeridian
+
+def fix_antimeridian_crossing(geometry_dict):
+    """
+    Fix geometries that cross the antimeridian (±180 longitude).
+    Uses the antimeridian package.
+    """
+    return antimeridian.fix_geojson(geometry_dict)
 
 def parse_args():
     # Parse input arguments
@@ -22,11 +30,12 @@ def parse_args():
     parser.add_argument('-u', '--upsert', help='Allow overwriting existing STAC items', action='store_true')
     parser.add_argument('-r', '--regex', help='If folder, only create stac items for files that match this regex')
     parser.add_argument('-t', '--time_from_fn', help='time format to read from filename', type=str, default=None)
+    parser.add_argument('-a', '--fix_antimeridian', help='Fix geometries that cross the antimeridian (±180° longitude)', action='store_true')
 
     args = parser.parse_args()
     return args
 
-def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path, path_remove, path_replace_with, upsert=False, regex=None, time_from_fn=False):
+def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path, path_remove, path_replace_with, upsert=False, regex=None, time_from_fn=False, fix_antimeridian=True):
 
     isDir = os.path.isdir(file_or_folder_path)
     
@@ -81,6 +90,26 @@ def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path
             #geom_precision=geom_precision,
         )
         item_dict = item.to_dict()
+        
+        # Fix antimeridian crossing if needed
+        if fix_antimeridian and 'geometry' in item_dict and item_dict['geometry'] is not None:
+            item_dict['geometry'] = fix_antimeridian_crossing(item_dict['geometry'])
+            
+            # Also update the bbox if geometry was changed to MultiPolygon
+            if item_dict['geometry']['type'] == 'MultiPolygon':
+                # Recalculate bbox from the multi-polygon
+                all_coords = []
+                for polygon in item_dict['geometry']['coordinates']:
+                    for ring in polygon:
+                        all_coords.extend(ring)
+                
+                lons = [coord[0] for coord in all_coords]
+                lats = [coord[1] for coord in all_coords]
+                
+                # For antimeridian crossing, we need to be careful with bbox
+                # If we have both very positive and very negative longitudes,
+                # the bbox should span across the antimeridian
+                item_dict['bbox'] = [min(lons), min(lats), max(lons), max(lats)]
 
         items[item_dict.get('id')] = item_dict
 
@@ -104,5 +133,5 @@ def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path
 
 if __name__ == '__main__':
     args = parse_args()
-    create_stac_items(args.mmgis_url, args.mmgis_token, args.collection_id, args.file_or_folder_path, args.path_remove, args.path_replace_with, args.upsert, args.regex, args.time_from_fn)
+    create_stac_items(args.mmgis_url, args.mmgis_token, args.collection_id, args.file_or_folder_path, args.path_remove, args.path_replace_with, args.upsert, args.regex, args.time_from_fn, args.fix_antimeridian)
     exit()

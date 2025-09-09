@@ -4,13 +4,13 @@ channels:
 dependencies:
   - python==3.12
   - gdal==3.9.3
-  - rasterio
   - geos
   - proj
   - pip
   - pip:
       - numpy==2.1.0
       - requests==2.32.3
+      - rasterio==1.4.3
       - rio_stac==0.8.1
       - spiceypy==5.1.2
       - pymap3d==3.0.1
@@ -22,3 +22,4 @@ dependencies:
       - tipg==1.1.0
       - titiler.application==0.22.2
       - titiler-pgstac==1.8.0
+      - antimeridian==0.3.10

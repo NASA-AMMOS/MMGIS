@@ -48,6 +48,12 @@ export function parseTileMatrixSetCRS(tileMatrixSet) {
         proj: '+proj=stere +lat_0=-90 +lat_ts=-90 +lon_0=0 +k=0.994 +x_0=2000000 +y_0=2000000 +datum=WGS84 +units=m +no_defs',
         bounds: [-4194304, -4194304, 4194304, 4194304],
         planetRadius: 6378137
+      },
+      'EarthSeaIceNorthPolarOgraphic': {
+        epsg: 'EPSG:3413',
+        proj: '+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs',
+        bounds: [-3314693.24, -3314693.24, 3314693.24, 3314693.24],
+        planetRadius: 6378137
       }
     };
     
