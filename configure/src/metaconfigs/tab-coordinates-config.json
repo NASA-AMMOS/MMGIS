@@ -161,6 +161,27 @@
       ]
     },
     {
+      "section": "Actions",
+      "components": [
+        {
+          "field": "projection.xmlpath",
+          "name": "Path to Basemap tilemapresource.xml or ArcGIS MapServer",
+          "description": "Set the path to the tilemapresource.xml that was created with the base (and global) tileset or ArcGIS MapServer endpoint with ?f=pjson (e.g., services.arcgisonline.com/arcgis/rest/services/.../MapServer?f=pjson).. Used only to help auto-populate some projection values above.",
+          "type": "text",
+          "disableSwitch": "projection.custom",
+          "width": 8
+        },
+        {
+          "name": "Auto-Populate Projection Fields From tilemapresource.xml or ArcGIS MapServer",
+          "description": "Reads the file set above and auto-fills Bounds, Origin, and Resolution fields. Supports a local/relative tilemapresource.xml, or an ArcGIS MapServer endpoint with ?f=pjson (e.g., services.arcgisonline.com/arcgis/rest/services/.../MapServer?f=pjson).",
+          "type": "button",
+          "action": "projection-populate-from-x",
+          "disableSwitch": "projection.custom",
+          "width": 4
+        }
+      ]
+    },
+    {
       "name": "Displayed Coordinates",
       "description": "Configure which coordinates are made visible to users when mousing around and exporting vectors.",
       "components": [

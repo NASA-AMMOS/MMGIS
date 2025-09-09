@@ -1076,11 +1076,12 @@ const getComponent = (
           {inlineHelp ? (
             <>
               {inner}
-              <Typography className={c.subtitle2}>
-                {isDisabled 
+              <div
+                className={c.subtitle2}
+                dangerouslySetInnerHTML={{ __html: isDisabled 
                   ? `${com.description || ""}\n\nNote: ${disabledMessage}`
-                  : com.description || ""}
-              </Typography>
+                  : com.description || "" }}
+              ></div>
             </>
           ) : (
             <Tooltip 
