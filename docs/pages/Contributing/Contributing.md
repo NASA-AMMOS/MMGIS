@@ -22,6 +22,38 @@ Our team adapts to our stakeholders' processes and schedules and develops any an
 
 Since we're an open source project, we also accept and encourage ad-hoc contributions at any time - just note it may take some time to review / decide whether to incorporate.
 
+## Plugin System
+
+MMGIS supports a flexible plugin system for adding custom tools and backend functionality without modifying the core codebase. This allows teams to maintain private or mission-specific functionality while still benefiting from MMGIS updates.
+
+### Tool Plugins
+
+Custom tools can be added by creating directories in `/src/essence/` that match these patterns:
+- `*Private-Tools*` (e.g., `My-Private-Tools`, `MMGIS-Private-Tools`)
+- `*Plugin-Tools*` (e.g., `NASA-Plugin-Tools`, `Mission-Plugin-Tools-v2`)
+
+Each plugin directory should contain subdirectories for individual tools with the standard structure:
+- `config.json` - Tool configuration
+- `[ToolName]Tool.js` - Tool implementation
+- `[ToolName]Tool.css` - Optional styling
+
+**Important**: Run `npm run build` after adding or modifying tool plugins.
+
+### Backend Plugins
+
+Custom backends can be added by creating directories in `/API/` that match these patterns:
+- `*Private-Backend*` (e.g., `My-Private-Backend`, `MMGIS-Private-Backend`)
+- `*Plugin-Backend*` (e.g., `NASA-Plugin-Backend`, `Mission-Plugin-Backend-v2`)
+
+Each plugin directory should contain subdirectories for individual backends with:
+- `setup.js` - Backend setup file
+- `models/` - Optional data models
+- `routes/` - Optional API routes
+
+**Important**: Only `npm start` is required - backends are loaded dynamically.
+
+All plugin directories are automatically gitignored and can override standard tools/backends by using the same names.
+
 ### Quickstart to Contributing
 
 1. See our open list of [issue tickets](https://github.com/NASA-AMMOS/MMGIS/issues) and pick a ticket(s) you're interested in, or write your own!

@@ -129,6 +129,7 @@ export default function Tools() {
 
   const getToolCards = () => {
     const cards = [];
+
     if (toolConfiguration) {
       Object.keys(toolConfiguration)
         .sort((a, b) => a.localeCompare(b))
@@ -155,8 +156,9 @@ export default function Tools() {
               onClick={() => {
                 handleClick(key, tConfig);
               }}
+              key={key}
             >
-              <div key={idx} className={c.card}>
+              <div className={c.card}>
                 <div className={c.cardHeader}>
                   <div className={c.cardIcon}>
                     <i
@@ -186,6 +188,33 @@ export default function Tools() {
           );
         });
     }
+
+    // Add the plugin info card
+    cards.push(
+      <Grid item xs={12} sm={6} md={6} lg={4} xl={3} key="plugin-info">
+        <div className={c.card}>
+          <div className={c.cardHeader}>
+            <div className={c.cardIcon}>
+              <i className="mdi mdi-puzzle-outline mdi-36px"></i>
+            </div>
+            <div className={c.cardOff}></div>
+          </div>
+          <div className={c.cardName}>Custom Tools</div>
+          <div className={c.cardContent}>
+            <div className={c.cardContentTitle}>
+              Develop and add your own tools via the plugin system.
+            </div>
+            <div className={c.cardContentBody}>
+              Create directories matching *Private-Tools* or *Plugin-Tools* in
+              /src/essence/. Run npm run build again to include new custom
+              tools. If tool names match, custom tools can override standard
+              ones.
+            </div>
+          </div>
+        </div>
+      </Grid>
+    );
+
     return cards;
   };
 

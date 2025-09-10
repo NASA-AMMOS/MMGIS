@@ -10,11 +10,15 @@
 !/Missions/.gitkeep
 /private/api/spice/kernels/*
 
-#Nested repo where private backend might reside
-/API/MMGIS-Private-Backend
-#Nested repo where private tools might reside
-/src/essence/MMGIS-Private-Tools
-/src/essence/MMGIS-Private-Tools-OFF
+#Nested repos where private backend might reside
+# Wildcard patterns for backend plugins
+/API/*Private-Backend*
+/API/*Plugin-Backend*
+
+#Nested repos where private tools might reside
+# Wildcard patterns for tool plugins
+/src/essence/*Private-Tools*
+/src/essence/*Plugin-Tools*
 
 /config/pre/toolConfigs.json
 /src/pre/tools.js

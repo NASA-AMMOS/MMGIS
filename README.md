@@ -245,6 +245,22 @@ Additionally, documentation pages are served at `http://localhost:8888/docs` or 
 
 ---
 
+## Plugins
+
+MMGIS supports a flexible plugin system for adding custom tools and backend functionality without modifying the core codebase.
+
+### Tool Plugins
+
+Place custom tools in directories matching `/src/essence/*Private-Tools*` or `/src/essence/*Plugin-Tools*`. These directories are automatically gitignored and loaded when you run `npm run build`.
+
+### Backend Plugins
+
+Place custom backends in directories matching `/API/*Private-Backend*` or `/API/*Plugin-Backend*`. These directories are automatically gitignored and loaded when you run `npm start`.
+
+For detailed plugin development instructions, see the [Contributing Guide](https://nasa-ammos.github.io/MMGIS/contributing/).
+
+---
+
 ## Contributing
 
 Check out our contributing guide [here.](CONTRIBUTING.md)

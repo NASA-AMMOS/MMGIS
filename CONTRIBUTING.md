@@ -320,7 +320,9 @@ MMGIS supports pluginable backend APIs and frontend Tools.
 
 ## Developing A New Tool
 
-### Setup
+MMGIS supports two ways to add backends:
+
+### Standard Tools (in core codebase)
 
 New tools are automatically found and included on start.
 
@@ -352,11 +354,11 @@ New tools are automatically found and included on start.
 
    ```
 
-1. Restart the server with `npm start`
+1. Restart the server with `npm run build`
 
 1. Use the `/configure` page to enable the tool in your development environment
 
-### Developing
+### Plugin Tools (gitignored, for private/external tools)
 
 #### Overview
 
@@ -368,15 +370,54 @@ Ideally all the code for a tool will be in its `[Tool's Name]Tool.js` and built 
 - Tools should only change the `#tools` div or something in the viewer, map and/or globe.
 - Use `width` or `height` entries to set the tool div's dimensions.
 
+### Plugin System
+
+MMGIS now supports a flexible plugin system that allows you to add custom tools without modifying the core codebase:
+
+#### Tool Plugins
+
+1. **Directory Naming**: Create directories matching these patterns:
+
+   - `/src/essence/*Private-Tools*` (e.g., `My-Private-Tools`, `MMGIS-Private-Tools`)
+   - `/src/essence/*Plugin-Tools*` (e.g., `NASA-Plugin-Tools`, `Custom-Plugin-Tools-v2`)
+
+2. **Structure**: Each plugin directory should contain subdirectories for individual tools, following the same structure as standard tools:
+
+   ```
+   /src/essence/My-Plugin-Tools/
+     /MyCustomTool/
+       config.json
+       MyCustomTool.js
+       MyCustomTool.css (optional)
+   ```
+
+3. **Loading**:
+
+   - Tools are automatically discovered and loaded when you run `npm run build`
+   - Plugin tools can override standard tools by using the same tool name
+   - All plugin directories are automatically gitignored
+
+4. **Example**: To add a custom InfoTool that overrides the standard one:
+   ```
+   /src/essence/My-Plugin-Tools/
+     /Info/
+       config.json (with your custom configuration)
+       InfoTool.js (with your custom implementation)
+   ```
+
 ### Notes
 
-- There are private repos with pluginable tools that are not visible to the public. If you would like to include your own private tool, place it in a `/src/essence/MMGIS-Private-Tools` directory.
+- The original single directory `/src/essence/MMGIS-Private-Tools` is still supported for backward compatibility
+- Multiple plugin sources can coexist (e.g., you can have both `My-Plugin-Tools` and `Private-Tools-Hello-World`)
+- Remember to run `npm run build` after adding or modifying tool plugins
 
 ## Developing A New Backend
 
 ### Setup
 
-New backends are automatically found and included on start.
+MMGIS supports two ways to add backends:
+
+### Standard Backends (in core codebase)
 
 1. Go to `API/Backend`
    1. Create a new directory here with the name of your new backend
@@ -384,6 +425,47 @@ New backends are automatically found and included on start.
    1. Rename the pasted file to `setup.js`
    1. Edit `setup.js` based on the development guide below
 1. Restart the server with `npm start`
+
+### Plugin Backends (gitignored, for private/external backends)
+
+1. **Directory Naming**: Create directories in `/API/` matching these patterns:
+
+   - `*Private-Backend*` (e.g., `My-Private-Backend`, `MMGIS-Private-Backend`)
+   - `*Plugin-Backend*` (e.g., `NASA-Plugin-Backend`, `Custom-Plugin-Backend-v2`)
+
+2. **Structure**: Each plugin directory should contain subdirectories for individual backends, following the same structure as standard backends:
+
+   ```
+   /API/My-Plugin-Backend/
+     /MyCustomEndpoint/
+       setup.js
+       models/ (optional)
+       routes/ (optional)
+   ```
+
+3. **Loading**:
+
+   - Backends are automatically discovered and loaded when you run `npm start`
+   - No build step required - just restart the server
+   - Plugin backends can override standard backends by using the same name
+   - All plugin directories are automatically gitignored
+
+4. **Example**: To add a custom Draw backend:
+
+   ```
+   /API/My-Plugin-Backend/
+     /Draw/
+       setup.js
+       models/
+         DrawFileModel.js
+       routes/
+         draw.js
+   ```
+
+5. **Notes**:
+   - The original single directory `/API/MMGIS-Private-Backend` is still supported for backward compatibility
+   - Multiple plugin sources can coexist
+   - Plugin backends are loaded after standard backends, allowing them to override default functionality
 
 ### Developing
 

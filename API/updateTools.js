@@ -1,4 +1,5 @@
 const fs = require("fs");
+const path = require("path");
 
 const logger = require("./logger");
 
@@ -56,37 +57,79 @@ function updateTools() {
     }
   }
 
-  // Now the potential private ones
-  toolsPath = "./src/essence/MMGIS-Private-Tools";
+  // Now read all private and plugin tool directories
+  const essencePath = path.join(__dirname, "..", "src", "essence");
+  let essenceItems = [];
   try {
-    items = fs.readdirSync(toolsPath, { withFileTypes: true });
+    essenceItems = fs.readdirSync(essencePath, { withFileTypes: true });
   } catch (err) {
-    items = [];
+    logger(
+      "warn",
+      "Could not read essence directory for plugin tools",
+      "Tools",
+      null,
+      err
+    );
   }
-  items = items || [];
-  for (let i = 0; i < items.length; i++) {
-    if (
-      items[i].isDirectory() &&
-      items[i].name[0] != "_" &&
-      items[i].name[0] != "."
-    ) {
-      try {
-        const contents = fs.readFileSync(
-          toolsPath + "/" + items[i].name + "/config.json"
-        );
-        const jsonContent = JSON.parse(contents);
-        tools[items[i].name] = jsonContent;
-      } catch (err) {
-        logger(
-          "error",
-          "The following tool could not be added: " + items[i].name,
-          "Tools",
-          null,
-          err
-        );
+
+  // Filter directories that match *Private-Tools* or *Plugin-Tools*
+  const pluginToolDirs = essenceItems.filter(item => {
+    try {
+      return item.isDirectory() && 
+             (item.name.includes("Private-Tools") || 
+              item.name.includes("Plugin-Tools"));
+    } catch (err) {
+      return false;
+    }
+  });
+
+  // Process each plugin tools directory
+  pluginToolDirs.forEach((pluginDir) => {
+    const pluginPath = `${essencePath}/${pluginDir.name}`;
+    let pluginItems = [];
+    
+    try {
+      pluginItems = fs.readdirSync(pluginPath, { withFileTypes: true });
+    } catch (err) {
+      logger(
+        "warn",
+        `Could not read plugin tools directory: ${pluginDir.name}`,
+        "Tools",
+        null,
+        err
+      );
+      return;
+    }
+
+    for (let i = 0; i < pluginItems.length; i++) {
+      if (
+        pluginItems[i].isDirectory() &&
+        pluginItems[i].name[0] != "_" &&
+        pluginItems[i].name[0] != "."
+      ) {
+        try {
+          const contents = fs.readFileSync(
+            pluginPath + "/" + pluginItems[i].name + "/config.json"
+          );
+          const jsonContent = JSON.parse(contents);
+          tools[pluginItems[i].name] = jsonContent;
+          logger(
+            "info",
+            `Loaded tool: ${pluginItems[i].name} from ${pluginDir.name}`,
+            "Tools"
+          );
+        } catch (err) {
+          logger(
+            "error",
+            `The following tool could not be added from ${pluginDir.name}: ${pluginItems[i].name}`,
+            "Tools",
+            null,
+            err
+          );
+        }
       }
     }
-  }
+  });
 
   // Sort the tools by toolbarPriority
   tools = Object.keys(tools)
