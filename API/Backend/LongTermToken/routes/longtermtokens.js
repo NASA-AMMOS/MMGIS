@@ -12,6 +12,21 @@ const logger = require("../../../logger");
 const LongTermTokens = require("../models/longtermtokens").LongTermTokens;  
 
 router.get("/get", function (req, res, next) {
+  // Get user permission and ID from session
+  const userPermission = req.session.permission;
+  const userId = req.session.uid;
+
+  // Build WHERE clause based on user permissions
+  let whereClause = "";
+  let replacements = {};
+  
+  if (userPermission !== "111") {
+    // Regular admins (110) only see their own tokens
+    whereClause = userId !== null && userId !== undefined ? "WHERE lt.created_by_user_id = :userId" : "WHERE 1=0";
+    replacements.userId = userId;
+  }
+  // SuperAdmins (111) see all tokens (no WHERE clause)
+
   // Use raw query to join with users table to get creator info
   sequelize
     .query(
@@ -27,8 +42,10 @@ router.get("/get", function (req, res, next) {
         u.missions_managing as created_by_missions
       FROM long_term_tokens lt 
       LEFT JOIN users u ON lt.created_by_user_id = u.id 
+      ${whereClause}
       ORDER BY lt."createdAt" DESC`,
       {
+        replacements: replacements,
         type: sequelize.QueryTypes.SELECT,
       }
     )
@@ -88,11 +105,32 @@ router.post("/clear", function (req, res, next) {
     });
     return null;
   }
+
+  // Get user permission and ID from session
+  const userPermission = req.session.permission;
+  const userId = req.session.uid;
+
   LongTermTokens.findOne({ where: { id: parseInt(req.body.id) } })
     .then((token) => {
-      if (token) {
-        token.destroy();
+      if (!token) {
+        res.send({
+          status: "failure",
+          message: `Token with id ${req.body.id} not found.`,
+        });
+        return null;
       }
+
+      // Check permission: SuperAdmins can delete any token, others can only delete their own
+      if (userPermission !== "111" && token.created_by_user_id !== userId) {
+        res.send({
+          status: "failure",
+          message: `You do not have permission to delete this token.`,
+        });
+        return null;
+      }
+
+      // User has permission, proceed with deletion
+      token.destroy();
       res.send({
         status: "success",
         message: `Successfully deleted long term token with id ${req.body.id}.`,
