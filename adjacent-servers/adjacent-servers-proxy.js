@@ -17,12 +17,17 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
       createProxyMiddleware({
         target: stacTarget,
         changeOrigin: true,
+        xfwd: true,
         pathRewrite: {
           [`^${process.env.ROOT_PATH || ""}/stac`]: "",
         },
         selfHandleResponse: true,
         on: {
           proxyRes: createSwaggerInterceptor("stac", stacTarget),
+          proxyReq: (proxyReq, req, res) => {
+            // Always set X-Forwarded-Proto to the first value or to req.protocol
+            proxyReq.setHeader('X-Forwarded-Proto', req.protocol);
+          },
         },
       })
     );
@@ -39,12 +44,17 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
       createProxyMiddleware({
         target: tipgTarget,
         changeOrigin: true,
+        xfwd: true,
         pathRewrite: {
           [`^${process.env.ROOT_PATH || ""}/tipg`]: "",
         },
         selfHandleResponse: true,
         on: {
           proxyRes: createSwaggerInterceptor("tipg", tipgTarget),
+          proxyReq: (proxyReq, req, res) => {
+            // Always set X-Forwarded-Proto to the first value or to req.protocol
+            proxyReq.setHeader('X-Forwarded-Proto', req.protocol);
+          },
         },
       })
     );
@@ -61,12 +71,17 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
       createProxyMiddleware({
         target: titilerTarget,
         changeOrigin: true,
+        xfwd: true,
         pathRewrite: {
           [`^${process.env.ROOT_PATH || ""}/titiler`]: "",
         },
         selfHandleResponse: true,
         on: {
           proxyRes: createSwaggerInterceptor("titiler", titilerTarget),
+          proxyReq: (proxyReq, req, res) => {
+            // Always set X-Forwarded-Proto to the first value or to req.protocol
+            proxyReq.setHeader('X-Forwarded-Proto', req.protocol);
+          },
         },
       })
     );
@@ -83,6 +98,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
       createProxyMiddleware({
         target: titilerpgstacTarget,
         changeOrigin: true,
+        xfwd: true,
         pathRewrite: {
           [`^${process.env.ROOT_PATH || ""}/titilerpgstac`]: "",
         },
@@ -92,6 +108,10 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
             "titilerpgstac",
             titilerpgstacTarget
           ),
+          proxyReq: (proxyReq, req, res) => {
+            // Always set X-Forwarded-Proto to the first value or to req.protocol
+            proxyReq.setHeader('X-Forwarded-Proto', req.protocol);
+          },
         },
       })
     );
@@ -157,10 +177,15 @@ const createSwaggerInterceptor = (path, target) => {
         res.get("Content-Type").includes("html"))
     ) {
       newResponse = newResponse || responseBuffer.toString("utf8");
-      newResponse = newResponse.replaceAll(
-        target,
-        `${req.protocol}://${req.get("host")}/${path}`
+      // Build regex to match any backend URL with port
+      const backendUrlRegex = new RegExp(
+        `http://[^/]+:${target.split(":")[2]}/`,
+        "g"
       );
+      // Build the public path
+      const publicPath = `${(req.protocol || "http").split(",")[0]}://${req.get("host")}${(process.env.EXTERNAL_ROOT_PATH || "") + (process.env.ROOT_PATH || "")}/${path}/`;
+      // Replace all backend URLs with the public path
+      newResponse = newResponse.replace(backendUrlRegex, publicPath);
     }
 
     return newResponse || finalReturn;
