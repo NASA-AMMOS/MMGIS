@@ -270,7 +270,7 @@ var LayersTool = {
         canvasElement.width = 256
         canvasElement.height = 1
         const context = canvasElement.getContext('2d')
-        if (imgElement && layer.type === 'tile') {
+        if (imgElement && imgElement.complete && imgElement.naturalHeight !== 0 && layer.type === 'tile') {
             context.drawImage(imgElement, 0, 0, 256, 1, 0, 0, 256, 1)
         }
 
@@ -299,7 +299,7 @@ var LayersTool = {
             }
 
             let color
-            if (imgElement && layer.type === 'tile') {
+            if (imgElement && imgElement.complete && imgElement.naturalHeight !== 0 && layer.type === 'tile') {
                 const c = context.getImageData(
                     parseInt((255 / 9) * i),
                     0,
@@ -310,7 +310,8 @@ var LayersTool = {
             } else if (
                 layer.type === 'image' ||
                 layer.type === 'velocity' ||
-                !imgElement
+                !imgElement ||
+                (imgElement && imgElement.naturalHeight === 0 && layer.type === 'tile')
             ) {
                 const layerColormap = ['tile', 'image'].includes(layer.type)
                     ? layer.cogColormap
@@ -566,6 +567,31 @@ function interfaceWithMMGIS(fromInit) {
                 }
             }
 
+            function additionalSettingsJSColormapHelper(colormap, reverse) {
+                let additionalSettings = colormapData[
+                    colormap
+                ].colors.map((hex) => {
+                    let rgb = hex
+                        .map((v) => {
+                            return Math.floor(v * 255)
+                        })
+                        .join(',')
+                    return `<div style="background: rgb(${rgb}); width: 20px; height: 100%; margin: 0px; flex-grow: 1;"></div>`
+                })
+
+                if (reverse === true) {
+                    additionalSettings.reverse()
+                }
+
+                additionalSettings = [
+                    '<div id="titlerCogColormapCSS">',
+                    additionalSettings.join('\n'),
+                    '</div>',
+                ].join('\n')
+
+                return additionalSettings
+            }
+
             //Build settings object
             var settings
             let additionalSettings = ''
@@ -628,40 +654,22 @@ function interfaceWithMMGIS(fromInit) {
                         (node[i].url.split(':')[0] === 'stac-collection' ||
                             node[i].url.split(':')[0] === 'COG')
                     ) {
+                        let { colormap, reverse } =
+                            LayersTool.findJSColormap(
+                                node[i],
+                                node[i].cogColormap
+                            )
+
                         if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
                             additionalSettings = [
                                 `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
                                             window.location.pathname || ''
-                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"></img>`,
+                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"
+                                data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
                             ].join('\n')
                         } else {
-                            let { colormap, reverse } =
-                                LayersTool.findJSColormap(
-                                    node[i],
-                                    node[i].cogColormap
-                                )
-
-                            additionalSettings = colormapData[
-                                colormap
-                            ].colors.map((hex) => {
-                                let rgb = hex
-                                    .map((v) => {
-                                        return Math.floor(v * 255)
-                                    })
-                                    .join(',')
-                                return `<div style="background: rgb(${rgb}); width: 20px; height: 100%; margin: 0px; flex-grow: 1;"></div>`
-                            })
-
-                            if (reverse === true) {
-                                additionalSettings.reverse()
-                            }
-
-                            additionalSettings = [
-                                '<div id="titlerCogColormapCSS">',
-                                additionalSettings.join('\n'),
-                                '</div>',
-                            ].join('\n')
+                            additionalSettings = additionalSettingsJSColormapHelper(colormap, reverse)
                         }
 
                         // prettier-ignore
@@ -831,40 +839,22 @@ function interfaceWithMMGIS(fromInit) {
                         currentOpacity = L_.layers.opacity[node[i].name]
 
                     if (node[i].kind === 'streamlines') {
+                        let { colormap, reverse } =
+                            LayersTool.findJSColormap(
+                                node[i],
+                                node[i].variables?.streamlines?.colorScale
+                            )
+
                         if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
                             additionalSettings = [
                                 `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
                                             window.location.pathname || ''
-                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].variables?.streamlines?.colorScale?.toLowerCase() || 'rdylbu_r'}?format=png"></img>`,
+                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].variables?.streamlines?.colorScale?.toLowerCase() || VELOCITY_DEFAULT_COLOR_RAMP}?format=png"
+                                data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
                             ].join('\n')
                         } else {
-                            let { colormap, reverse } =
-                                LayersTool.findJSColormap(
-                                    node[i],
-                                    node[i].variables?.streamlines?.colorScale
-                                )
-
-                            additionalSettings = colormapData[
-                                colormap
-                            ].colors.map((hex) => {
-                                let rgb = hex
-                                    .map((v) => {
-                                        return Math.floor(v * 255)
-                                    })
-                                    .join(',')
-                                return `<div style="background: rgb(${rgb}); width: 20px; height: 100%; margin: 0px; flex-grow: 1;"></div>`
-                            })
-
-                            if (reverse === true) {
-                                additionalSettings.reverse()
-                            }
-
-                            additionalSettings = [
-                                '<div id="titlerCogColormapCSS">',
-                                additionalSettings.join('\n'),
-                                '</div>',
-                            ].join('\n')
+                            additionalSettings = additionalSettingsJSColormapHelper(colormap, reverse)
                         }
 
                         // prettier-ignore
@@ -936,40 +926,23 @@ function interfaceWithMMGIS(fromInit) {
                         L_.layers.layer[node[i].name].georasters[0]
                             .numberOfRasters === 1
                     ) {
+
+                        let { colormap, reverse } =
+                            LayersTool.findJSColormap(
+                                node[i],
+                                node[i].cogColormap
+                            )
+
                         if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
                             additionalSettings = [
                                 `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
                                             window.location.pathname || ''
-                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"></img>`,
+                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"
+                                data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
                             ].join('\n')
                         } else {
-                            let { colormap, reverse } =
-                                LayersTool.findJSColormap(
-                                    node[i],
-                                    node[i].cogColormap
-                                )
-
-                            additionalSettings = colormapData[
-                                colormap
-                            ].colors.map((hex) => {
-                                let rgb = hex
-                                    .map((v) => {
-                                        return Math.floor(v * 255)
-                                    })
-                                    .join(',')
-                                return `<div style="background: rgb(${rgb}); width: 20px; height: 100%; margin: 0px; flex-grow: 1;"></div>`
-                            })
-
-                            if (reverse === true) {
-                                additionalSettings.reverse()
-                            }
-
-                            additionalSettings = [
-                                '<div id="titlerCogColormapCSS">',
-                                additionalSettings.join('\n'),
-                                '</div>',
-                            ].join('\n')
+                            additionalSettings = additionalSettingsJSColormapHelper(colormap, reverse)
                         }
 
                         // prettier-ignore
@@ -1168,6 +1141,21 @@ function interfaceWithMMGIS(fromInit) {
                     }
 
                     break
+            }
+
+            if (window.mmgisglobal.WITH_TITILER === 'true') {
+                // Check if TiTiler images loaded
+                if ($(`#titlerCogColormapImage_${node[i].name}`).length) {
+                    $(`#titlerCogColormapImage_${node[i].name}`)
+                        .on('error', function() {
+                            // Fallback to colormap JS library
+                            var t = $(this).first()
+                            t.parent().prepend(
+                                additionalSettingsJSColormapHelper(t.data('colormap'), t.data('colormap-reverse'))
+                            )
+                            t.remove()
+                        })
+                }
             }
 
             if (node[i].sublayers)
