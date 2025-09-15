@@ -93,23 +93,57 @@ def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path
         
         # Fix antimeridian crossing if needed
         if fix_antimeridian and 'geometry' in item_dict and item_dict['geometry'] is not None:
-            item_dict['geometry'] = fix_antimeridian_crossing(item_dict['geometry'])
+            # Store original bbox before fixing geometry
+            original_bbox = item_dict.get('bbox', [])
             
-            # Also update the bbox if geometry was changed to MultiPolygon
-            if item_dict['geometry']['type'] == 'MultiPolygon':
-                # Recalculate bbox from the multi-polygon
-                all_coords = []
-                for polygon in item_dict['geometry']['coordinates']:
+            # Fix the geometry
+            fixed_geometry = fix_antimeridian_crossing(item_dict['geometry'])
+            item_dict['geometry'] = fixed_geometry
+            
+            # Recalculate bbox after antimeridian fix
+            # The antimeridian package splits geometries that cross the antimeridian
+            # into MultiPolygons, so we need to handle both Polygon and MultiPolygon cases
+            all_coords = []
+            
+            if fixed_geometry['type'] == 'Polygon':
+                for ring in fixed_geometry['coordinates']:
+                    all_coords.extend(ring)
+            elif fixed_geometry['type'] == 'MultiPolygon':
+                for polygon in fixed_geometry['coordinates']:
                     for ring in polygon:
                         all_coords.extend(ring)
-                
+            
+            if all_coords:
                 lons = [coord[0] for coord in all_coords]
                 lats = [coord[1] for coord in all_coords]
                 
-                # For antimeridian crossing, we need to be careful with bbox
-                # If we have both very positive and very negative longitudes,
-                # the bbox should span across the antimeridian
-                item_dict['bbox'] = [min(lons), min(lats), max(lons), max(lats)]
+                # Check if the geometry crosses the antimeridian
+                # If we have coordinates on both sides of the antimeridian after the fix,
+                # the bbox should represent the actual extent
+                # For split geometries, we want the bbox to cover the full extent
+                if len(lons) > 0:
+                    # If we have very negative and very positive longitudes,
+                    # it likely crosses the antimeridian
+                    if any(lon > 170 for lon in lons) and any(lon < -170 for lon in lons):
+                        # For antimeridian crossing, the bbox convention is:
+                        # [western_lon, min_lat, eastern_lon, max_lat]
+                        # where western_lon > eastern_lon (e.g., [170, -30, -170, 30])
+                        western_lons = [lon for lon in lons if lon > 0]
+                        eastern_lons = [lon for lon in lons if lon < 0]
+                        
+                        if western_lons and eastern_lons:
+                            item_dict['bbox'] = [
+                                min(western_lons),  # westernmost positive longitude
+                                min(lats),
+                                max(eastern_lons),  # easternmost negative longitude
+                                max(lats)
+                            ]
+                        else:
+                            # Fallback to standard bbox
+                            item_dict['bbox'] = [min(lons), min(lats), max(lons), max(lats)]
+                    else:
+                        # Standard bbox for non-crossing geometries
+                        item_dict['bbox'] = [min(lons), min(lats), max(lons), max(lats)]
 
         items[item_dict.get('id')] = item_dict
 
