@@ -10,7 +10,7 @@ grand_parent: Configure
 
 ## Viewer
 
-The Viewer sits to the left of the main Map. It can be expanded by clicking the double arrow in the middle left of the page. The Viewer can render images, DZIs, mosaics and models attached to layer features. A feature is configured to use the Viewer on click through an array under `properties` called `images`. Other tools may use the Viewer in their own way.
+The Viewer sits to the left of the main Map. It can be expanded by clicking the double arrow in the middle left of the page. The Viewer can render images (including animated GIFs), videos, DZIs, mosaics and models attached to layer features. A feature is configured to use the Viewer on click through an array under `properties` called `images`. Other tools may use the Viewer in their own way.
 
 ```javascript
 "properties": {
@@ -27,8 +27,23 @@ The Viewer sits to the left of the main Map. It can be expanded by clicking the 
             "type": "image"
         },
         {
+            "name": "Animated GIF Example",
+            "url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif",
+            "type": "image"
+        },
+        {
             "url": "sample.pdf",
             "type": "document"
+        },
+        {
+            "name": "Video Example (MP4)",
+            "url": "https://labs.mapbox.com/bites/00188/patricia_nasa.mp4",
+            "type": "video"
+        },
+        {
+            "name": "Video Example (WebM)",
+            "url": "https://labs.mapbox.com/bites/00188/patricia_nasa.webm",
+            "type": "video"
         },
         {
                 "url": "Layers/GPR/Data/GPR_radargram.jpg",
@@ -71,11 +86,15 @@ _Note: The first image in the images array is loaded on feature click._
 
 ### Regular Image
 
-A standard image. Simply provide a url. If a name is not set, the file name is used instead.
+A standard image. Simply provide a url. If a name is not set, the file name is used instead. Animated GIFs are supported and will play automatically while preserving their animation.
 
 ### Document
 
-Current only .pdf files are supported here.
+Currently only .pdf files are supported here.
+
+### Video
+
+Video files in .mp4 and .webm formats are supported. Videos are displayed with native HTML5 video controls including play, pause, seek, volume, and fullscreen capabilities. The video player is constrained within the viewer panel to prevent UI elements from covering the video controls.
 
 ### Radargram
 

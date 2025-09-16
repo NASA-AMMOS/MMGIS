@@ -3464,6 +3464,11 @@ const L_ = {
                             master: props.images[i].master,
                         })
                     } else {
+                        // Check if it's a video or gif file
+                        const urlLower = url.toLowerCase()
+                        const isVideo = urlLower.match(/\.(webm|mp4)$/) != null
+                        const isGif = urlLower.match(/\.gif$/) != null
+
                         if (props.images[i].isPanoramic) {
                             images.push({
                                 ...props.images[i],
@@ -3483,11 +3488,15 @@ const L_ = {
                         images.push({
                             url: url,
                             name:
-                                props.images[i].name ||
-                                props.images[i].url.match(/([^\/]*)\/*$/)[1],
-                            type: props.images[i].type || 'image',
+                                (props.images[i].name ||
+                                    props.images[i].url.match(/([^\/]*)\/*$/)[1]) +
+                                (isVideo ? ' [Video]' : '') +
+                                (isGif ? ' [GIF]' : ''),
+                            type: props.images[i].type || (isVideo ? 'video' : 'image'),
                             isPanoramic: false,
                             isModel: false,
+                            isVideo: isVideo,
+                            isGif: isGif,
                             values: props.images[i].values || {},
                             master: props.images[i].master,
                         })
@@ -3504,12 +3513,14 @@ const L_ = {
                     null
             ) {
                 let url = props[p]
+                const isGif = url.toLowerCase().match(/\.gif$/) != null
                 if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
                 images.push({
                     url: url,
-                    name: p,
+                    name: p + (isGif ? ' [GIF]' : ''),
                     isPanoramic: false,
                     isModel: false,
+                    isGif: isGif,
                 })
             } else if (
                 typeof props[p] === 'string' &&
@@ -3523,6 +3534,20 @@ const L_ = {
                     type: 'document',
                     isPanoramic: false,
                     isModel: false,
+                })
+            } else if (
+                typeof props[p] === 'string' &&
+                props[p].toLowerCase().match(/\.(webm|mp4)$/) != null
+            ) {
+                let url = props[p]
+                if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+                images.push({
+                    url: url,
+                    name: p + ' [Video]',
+                    type: 'video',
+                    isPanoramic: false,
+                    isModel: false,
+                    isVideo: true,
                 })
             } else if (
                 typeof props[p] === 'string' &&

@@ -38,6 +38,8 @@ var Viewer_ = {
     imagePanorama: null,
     imageModel: null,
     imagePDF: null,
+    imageVideo: null,
+    imageGif: null,
     imageIntro: null,
     photosphere: null,
     modelviewer: null,
@@ -104,6 +106,45 @@ var Viewer_ = {
             .style('padding', '60px 0px')
             .style('height', 'calc(100% - 35px)')
 
+        this.imageVideo = d3
+            .select('#viewer')
+            .append('div')
+            .attr('id', 'imageVideo')
+            .style('position', 'absolute')
+            .style('width', '100%')
+            .style('top', '40px')
+            .style('height', 'calc(100% - 80px)')
+            .style('display', 'none')
+            .style('background', 'black')
+
+        this.imageVideo
+            .append('video')
+            .attr('id', 'videoPlayer')
+            .attr('controls', true)
+            .style('position', 'absolute')
+            .style('width', '100%')
+            .style('height', '100%')
+            .style('object-fit', 'contain')
+
+        this.imageGif = d3
+            .select('#viewer')
+            .append('div')
+            .attr('id', 'imageGif')
+            .style('position', 'absolute')
+            .style('width', '100%')
+            .style('height', '100%')
+            .style('display', 'none')
+            .style('align-items', 'center')
+            .style('justify-content', 'center')
+            .style('background', 'var(--color-a)')
+
+        this.imageGif
+            .append('img')
+            .attr('id', 'gifImage')
+            .style('max-width', '100%')
+            .style('max-height', '100%')
+            .style('object-fit', 'contain')
+
         this.imageIntro = d3
             .select('#viewer')
             .append('div')
@@ -158,6 +199,8 @@ var Viewer_ = {
         this.imageViewer.style('display', 'none')
         this.imageModel.style('display', 'none')
         this.imagePDF.style('display', 'none')
+        this.imageVideo.style('display', 'none')
+        this.imageGif.style('display', 'none')
         this.baseToolbar.style('display', 'none')
         this.imageIntro.style('display', 'block')
     },
@@ -220,6 +263,8 @@ var Viewer_ = {
             this.imagePDF.style('display', 'none')
             this.imagePanorama.style('display', 'none')
             this.imageViewer.style('display', 'none')
+            this.imageVideo.style('display', 'none')
+            this.imageGif.style('display', 'none')
             this.baseToolbar.style('display', 'none')
             this.imageIntro.style('display', 'block')
             return
@@ -248,6 +293,8 @@ var Viewer_ = {
             this.imagePDF.style('display', 'none')
             this.imagePanorama.style('display', 'none')
             this.imageViewer.style('display', 'none')
+            this.imageVideo.style('display', 'none')
+            this.imageGif.style('display', 'none')
             this.baseToolbar.style('display', 'none')
 
             this.imageIntro.style('display', 'none')
@@ -301,6 +348,8 @@ var Viewer_ = {
             this.imageViewer.style('display', 'none')
             this.imageModel.style('display', 'none')
             this.imagePDF.style('display', 'none')
+            this.imageVideo.style('display', 'none')
+            this.imageGif.style('display', 'none')
             this.baseToolbar.style('display', 'none')
             this.imageIntro.style('display', 'none')
 
@@ -344,6 +393,8 @@ var Viewer_ = {
             this.imagePanorama.style('display', 'none')
             this.imageViewer.style('display', 'none')
             this.imageModel.style('display', 'none')
+            this.imageVideo.style('display', 'none')
+            this.imageGif.style('display', 'none')
             this.baseToolbar.style('display', 'none')
             this.imageIntro.style('display', 'none')
 
@@ -358,11 +409,71 @@ var Viewer_ = {
                     console.log('here')
                 }
             })
+        } else if (o.isVideo || (extLow === 'webm' || extLow === 'mp4')) {
+            this.imageVideo.style('display', 'inherit')
+            this.imagePDF.style('display', 'none')
+            this.imagePanorama.style('display', 'none')
+            this.imageViewer.style('display', 'none')
+            this.imageModel.style('display', 'none')
+            this.imageGif.style('display', 'none')
+            this.baseToolbar.style('display', 'none')
+            this.imageIntro.style('display', 'none')
+
+            // Get the video element
+            const videoElement = document.getElementById('videoPlayer')
+
+            // Set the video source
+            videoElement.src = url
+
+            // Handle loading events
+            Viewer_.toolBarLoading.style('opacity', '1')
+
+            videoElement.onloadeddata = function() {
+                Viewer_.toolBarLoading.style('opacity', '0')
+            }
+
+            videoElement.onerror = function() {
+                Viewer_.toolBarLoading.html('Error loading video')
+                setTimeout(() => {
+                    Viewer_.toolBarLoading.style('opacity', '0')
+                }, 2000)
+            }
+        } else if (o.isGif || extLow === 'gif') {
+            this.imageGif.style('display', 'flex')
+            this.imageVideo.style('display', 'none')
+            this.imagePDF.style('display', 'none')
+            this.imagePanorama.style('display', 'none')
+            this.imageViewer.style('display', 'none')
+            this.imageModel.style('display', 'none')
+            this.baseToolbar.style('display', 'flex')
+            this.imageIntro.style('display', 'none')
+
+            // Get the img element
+            const imgElement = document.getElementById('gifImage')
+
+            // Set the image source
+            imgElement.src = url
+
+            // Handle loading events
+            Viewer_.toolBarLoading.style('opacity', '1')
+
+            imgElement.onload = function() {
+                Viewer_.toolBarLoading.style('opacity', '0')
+            }
+
+            imgElement.onerror = function() {
+                Viewer_.toolBarLoading.html('Error loading GIF')
+                setTimeout(() => {
+                    Viewer_.toolBarLoading.style('opacity', '0')
+                }, 2000)
+            }
         } else {
             this.imageViewer.style('display', 'inherit')
             this.imagePanorama.style('display', 'none')
             this.imageModel.style('display', 'none')
             this.imagePDF.style('display', 'none')
+            this.imageVideo.style('display', 'none')
+            this.imageGif.style('display', 'none')
             this.baseToolbar.style('display', 'flex')
             this.imageIntro.style('display', 'none')
 
