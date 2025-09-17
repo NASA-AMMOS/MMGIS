@@ -269,6 +269,113 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const ColormapHelper = ({ colormapName }) => {
+  const c = useStyles();
+
+  let colormap_html = null;
+  let colormap = colormapName;
+
+  // js-colormaps data object only contains the non reversed color so we need to track if the color is reversed
+  let reverse = false;
+
+  // TiTiler colormap variables are all lower case so we need to format them correctly for js-colormaps
+  if (colormap.toLowerCase().endsWith("_r")) {
+    colormap = colormap.substring(0, colormap.length - 2);
+    reverse = true;
+  }
+
+  let index = Object.keys(colormapData).findIndex((v) => {
+    return v.toLowerCase() === colormap.toLowerCase();
+  });
+
+  if (index > -1) {
+    colormap = Object.keys(colormapData)[index];
+  } else {
+    console.warn(`The colormap '${colormap}' does not exist`);
+  }
+
+  if (colormap in colormapData) {
+    colormap_html = colormapData[colormap].colors.map((hex) => {
+      return (
+        <div
+          className={c.colorDropdownArrayHex}
+          style={{
+            background: `rgb(${hex
+              .map((v) => {
+                return Math.floor(v * 255);
+              })
+              .join(",")})`,
+          }}
+        ></div>
+      );
+    });
+
+    if (reverse === true) {
+      colormap_html.reverse();
+    }
+  } else if (colormap === "DEFAULT") {
+    // Default color for velocity layer
+    const defaultColors = [
+      "rgb(36,104, 180)",
+      "rgb(60,157, 194)",
+      "rgb(128,205,193 )",
+      "rgb(151,218,168 )",
+      "rgb(198,231,181)",
+      "rgb(238,247,217)",
+      "rgb(255,238,159)",
+      "rgb(252,217,125)",
+      "rgb(255,182,100)",
+      "rgb(252,150,75)",
+      "rgb(250,112,52)",
+      "rgb(245,64,32)",
+      "rgb(237,45,28)",
+      "rgb(220,24,32)",
+      "rgb(180,0,35)",
+    ];
+
+    colormap_html = defaultColors.map((hex) => {
+      return (
+        <div
+          className={c.colorDropdownArrayHex}
+          style={{ background: `${hex}` }}
+        ></div>
+      );
+    });
+  }
+  return colormap_html;
+}
+
+const DrawColormap = ({ src, colormapName }) => {
+  const [loaded, setLoaded] = useState(true);
+  const [error, setError] = useState(false);
+
+  const handleLoad = () => {
+    setLoaded(false);
+  };
+
+  const handleError = () => {
+    setLoaded(false);
+    setError(true);
+  };
+
+  return (
+    <>
+      {error
+        ? <ColormapHelper colormapName={colormapName} />
+        : <div style={{ width: "100%" }}>
+            <img
+              id="titlerCogColormapImage"
+              style={{ height: "20px", width: "100%" }}
+              src={src}
+              onLoad={handleLoad}
+              onError={handleError}
+            />
+          </div>
+      }
+    </>
+  );
+};
+
 const getComponent = (
   com,
   configuration,
@@ -1131,84 +1238,10 @@ const getComponent = (
       let colormap_html;
       if (window.mmgisglobal.WITH_TITILER === "true") {
         // Get colors from TiTiler if it is available
-        colormap_html = (
-          <div style={{ width: "100%" }}>
-            <img
-              id="titlerCogColormapImage"
-              style={{ height: "20px", width: "100%" }}
-              src={`${domain}titiler/colorMaps/${dropdown_value.toLowerCase()}?format=png`}
-            />
-          </div>
-        );
+        let source = `${domain}titiler/colorMaps/${dropdown_value.toLowerCase()}?format=png`
+        colormap_html = <DrawColormap src={source} colormapName={dropdown_value} />
       } else {
-        let colormap = dropdown_value;
-        // js-colormaps data object only contains the non reversed color so we need to track if the color is reversed
-        let reverse = false;
-
-        // TiTiler colormap variables are all lower case so we need to format them correctly for js-colormaps
-        if (colormap.toLowerCase().endsWith("_r")) {
-          colormap = colormap.substring(0, colormap.length - 2);
-          reverse = true;
-        }
-
-        let index = Object.keys(colormapData).findIndex((v) => {
-          return v.toLowerCase() === colormap.toLowerCase();
-        });
-
-        if (index > -1) {
-          colormap = Object.keys(colormapData)[index];
-        } else {
-          console.warn(`The colormap '${colormap}' does not exist`);
-        }
-
-        if (colormap in colormapData) {
-          colormap_html = colormapData[colormap].colors.map((hex) => {
-            return (
-              <div
-                className={c.colorDropdownArrayHex}
-                style={{
-                  background: `rgb(${hex
-                    .map((v) => {
-                      return Math.floor(v * 255);
-                    })
-                    .join(",")})`,
-                }}
-              ></div>
-            );
-          });
-
-          if (reverse === true) {
-            colormap_html.reverse();
-          }
-        } else if (colormap === "DEFAULT") {
-          // Default color for velocity layer
-          const defaultColors = [
-            "rgb(36,104, 180)",
-            "rgb(60,157, 194)",
-            "rgb(128,205,193 )",
-            "rgb(151,218,168 )",
-            "rgb(198,231,181)",
-            "rgb(238,247,217)",
-            "rgb(255,238,159)",
-            "rgb(252,217,125)",
-            "rgb(255,182,100)",
-            "rgb(252,150,75)",
-            "rgb(250,112,52)",
-            "rgb(245,64,32)",
-            "rgb(237,45,28)",
-            "rgb(220,24,32)",
-            "rgb(180,0,35)",
-          ];
-
-          colormap_html = defaultColors.map((hex) => {
-            return (
-              <div
-                className={c.colorDropdownArrayHex}
-                style={{ background: `${hex}` }}
-              ></div>
-            );
-          });
-        }
+        colormap_html = ColormapHelper({colormapName: dropdown_value});
       }
 
       return (
@@ -1216,7 +1249,9 @@ const getComponent = (
           {inlineHelp ? (
             <>
               {inner}
-              <div className={c.textArrayHexes}>{colormap_html || null}</div>
+              <div className={c.textArrayHexes}>
+                {colormap_html}
+              </div>
               <Typography className={c.subtitle2}>
                 {com.description || ""}
               </Typography>
