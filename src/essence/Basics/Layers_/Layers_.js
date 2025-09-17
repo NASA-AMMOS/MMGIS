@@ -869,6 +869,19 @@ const L_ = {
                         map.addLayer(
                             L_.layers.layer[L_.layers.dataFlat[i].name]
                         )
+
+                        // Ensure video layers start muted when added to map
+                        if (L_.layers.dataFlat[i].type === 'video') {
+                            const videoLayer =
+                                L_.layers.layer[L_.layers.dataFlat[i].name]
+                            if (videoLayer && videoLayer.getElement) {
+                                const videoElement = videoLayer.getElement()
+                                if (videoElement) {
+                                    videoElement.muted = true
+                                    videoElement.setAttribute('muted', 'true')
+                                }
+                            }
+                        }
                         // Refresh opacity
                         if (L_.layers.dataFlat[i].type === 'vector') {
                             const lname = L_.layers.dataFlat[i].name
@@ -3200,7 +3213,8 @@ const L_ = {
             layerConfig.type === 'vector' &&
             layerConfig.time.type === 'local' &&
             layerConfig.time.endProp != null &&
-            layer != false && layer != null &&
+            layer != false &&
+            layer != null &&
             layer._sourceGeoJSON != null
         ) {
             const filteredGeoJSON = JSON.parse(
@@ -3489,10 +3503,14 @@ const L_ = {
                             url: url,
                             name:
                                 (props.images[i].name ||
-                                    props.images[i].url.match(/([^\/]*)\/*$/)[1]) +
+                                    props.images[i].url.match(
+                                        /([^\/]*)\/*$/
+                                    )[1]) +
                                 (isVideo ? ' [Video]' : '') +
                                 (isGif ? ' [GIF]' : ''),
-                            type: props.images[i].type || (isVideo ? 'video' : 'image'),
+                            type:
+                                props.images[i].type ||
+                                (isVideo ? 'video' : 'image'),
                             isPanoramic: false,
                             isModel: false,
                             isVideo: isVideo,

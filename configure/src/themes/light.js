@@ -82,7 +82,7 @@ export const palette = {
     model: "#a98732",
     velocity: "#24807c",
     image: "#b0518f",
-    video: "#8f3a73",
+    video: "#7b2323",
   },
 };
 

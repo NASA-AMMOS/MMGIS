@@ -1769,23 +1769,28 @@ function makeVideoLayer(layerObj) {
             videoOptions
         )
 
-        // Access the video element and set additional attributes that Leaflet doesn't handle
-        const videoElement = L_.layers.layer[layerObj.name].getElement()
-        if (videoElement) {
-            videoElement.muted = true // Always muted
-            videoElement.playsInline = true // For mobile compatibility
+        // Add updateFilter function to video layer for CSS filter support
+        L_.layers.layer[layerObj.name].updateFilter = function(filterArray) {
+            const videoElement = this.getElement()
+            if (videoElement) {
+                let cssFilters = []
 
-            // For autoplay to work reliably, we need to set it after the element is created
-            if (F_.getIn(layerObj, 'variables.video.autoplay', false)) {
-                videoElement.autoplay = true
-                // Try to play the video when it's loaded if autoplay is enabled
-                videoElement.addEventListener('loadeddata', () => {
-                    if (videoElement.autoplay) {
-                        videoElement.play().catch((err) => {
-                            console.warn('Video autoplay failed:', err)
-                        })
+                filterArray.forEach(filter => {
+                    const [property, value] = filter.split(':')
+                    // Skip blend mode for videos - only handle CSS filters
+                    if (property !== 'mix-blend-mode') {
+                        if (property === 'saturate') {
+                            cssFilters.push(`saturate(${parseFloat(value) * 100}%)`)
+                        } else if (property === 'brightness') {
+                            cssFilters.push(`brightness(${parseFloat(value) * 100}%)`)
+                        } else if (property === 'contrast') {
+                            cssFilters.push(`contrast(${parseFloat(value) * 100}%)`)
+                        }
                     }
                 })
+
+                // Apply CSS filters to video element
+                videoElement.style.filter = cssFilters.join(' ')
             }
         }
 

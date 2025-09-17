@@ -428,6 +428,10 @@ function interfaceWithMMGIS(fromInit) {
             let currentContrast
             let currentSaturation
             let currentBlend
+            let defaultBrightness
+            let defaultContrast
+            let defaultSaturation
+            let defaultBlend
             //Build layerExport
             var layerExport
             switch (node[i].type) {
@@ -603,22 +607,22 @@ function interfaceWithMMGIS(fromInit) {
                         node[i]?.style?.brightness != null
                             ? node[i].style.brightness
                             : 1
-                    const defaultBrightness = currentBrightness
+                    defaultBrightness = currentBrightness
                     currentContrast =
                         node[i]?.style?.contrast != null
                             ? node[i].style.contrast
                             : 1
-                    const defaultContrast = currentContrast
+                    defaultContrast = currentContrast
                     currentSaturation =
                         node[i]?.style?.saturation != null
                             ? node[i].style.saturation
                             : 1
-                    const defaultSaturation = currentSaturation
+                    defaultSaturation = currentSaturation
                     currentBlend =
                         node[i]?.style?.blend != null
                             ? node[i].style.blend
                             : 'none'
-                    const defaultBlend = currentBlend
+                    defaultBlend = currentBlend
 
                     if (L_.layers.filters[node[i].name]) {
                         let f = L_.layers.filters[node[i].name]
@@ -1078,6 +1082,40 @@ function interfaceWithMMGIS(fromInit) {
                     if (currentOpacity == null)
                         currentOpacity = L_.layers.opacity[node[i].name]
 
+                    // Video filter settings (reuse variables declared earlier)
+                    currentBrightness =
+                        node[i]?.style?.brightness != null
+                            ? node[i].style.brightness
+                            : 1
+                    defaultBrightness = currentBrightness
+                    currentContrast =
+                        node[i]?.style?.contrast != null
+                            ? node[i].style.contrast
+                            : 1
+                    defaultContrast = currentContrast
+                    currentSaturation =
+                        node[i]?.style?.saturation != null
+                            ? node[i].style.saturation
+                            : 1
+                    defaultSaturation = currentSaturation
+
+                    if (L_.layers.filters[node[i].name]) {
+                        let f = L_.layers.filters[node[i].name]
+
+                        currentBrightness =
+                            f['brightness'] == null
+                                ? currentBrightness
+                                : parseFloat(f['brightness'])
+                        currentContrast =
+                            f['contrast'] == null
+                                ? currentContrast
+                                : parseFloat(f['contrast'])
+                        currentSaturation =
+                            f['saturate'] == null
+                                ? currentSaturation
+                                : parseFloat(f['saturate'])
+                    }
+
                     // prettier-ignore
                     settings = [
                         '<ul>',
@@ -1085,6 +1123,24 @@ function interfaceWithMMGIS(fromInit) {
                                 '<div>',
                                     '<div>Opacity</div>',
                                     '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[node[i].name] + '">',
+                                '</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Brightness</div>',
+                                        '<input class="tilefilterslider slider2" filter="brightness" unit="%" layername="' + node[i].name + '" type="range" min="0" max="3" step="0.05" value="' + currentBrightness + '" default="' + defaultBrightness + '">',
+                                '</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Contrast</div>',
+                                    '<input class="tilefilterslider slider2" filter="contrast" unit="%" layername="' + node[i].name + '" type="range" min="0" max="4" step="0.05" value="' + currentContrast + '" default="' + defaultContrast + '">',
+                                '</div>',
+                            '</li>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Saturation</div>',
+                                    '<input class="tilefilterslider slider2" filter="saturate" unit="%" layername="' + node[i].name + '" type="range" min="0" max="4" step="0.05" value="' + currentSaturation + '" default="' + defaultSaturation + '">',
                                 '</div>',
                             '</li>',
                             '<li class="videoControls" data-layername="' + node[i].name + '">',
@@ -1853,13 +1909,16 @@ function interfaceWithMMGIS(fromInit) {
         const videoLayer = L_.layers.layer[layerName]
         if (videoLayer && videoLayer.getElement) {
             const video = videoLayer.getElement()
+
             const icon = $(this).find('i')
             if (video.muted) {
                 video.muted = false
                 icon.removeClass('mdi-volume-off').addClass('mdi-volume-high')
+                $(this).addClass('unmuted')
             } else {
                 video.muted = true
                 icon.removeClass('mdi-volume-high').addClass('mdi-volume-off')
+                $(this).removeClass('unmuted')
             }
         }
     })
@@ -1939,7 +1998,7 @@ function interfaceWithMMGIS(fromInit) {
                 const currentTimeSpan = controls.find('.videoCurrentTime')
                 const durationSpan = controls.find('.videoDuration')
 
-                if (video.duration && isFinite(video.duration)) {
+                if (video && video.duration && isFinite(video.duration)) {
                     const percentage =
                         (video.currentTime / video.duration) * 100
                     slider.val(percentage)
@@ -1961,27 +2020,21 @@ function interfaceWithMMGIS(fromInit) {
             if (videoLayer && videoLayer.getElement) {
                 const video = videoLayer.getElement()
                 const controls = $(this)
-                const muteButton = controls.find('.videoMute')
-                const muteButtonIcon = muteButton.find('i')
                 const playButton = controls.find('.videoPlayPause')
                 const playButtonIcon = playButton.find('i')
-
-                // Sync mute button state
-                if (video.muted) {
-                    muteButtonIcon.removeClass('mdi-volume-high').addClass('mdi-volume-off')
-                    muteButton.removeClass('unmuted')
-                } else {
-                    muteButtonIcon.removeClass('mdi-volume-off').addClass('mdi-volume-high')
-                    muteButton.addClass('unmuted')
-                }
-
-                // Sync play button state
-                if (video.paused) {
-                    playButtonIcon.removeClass('mdi-pause').addClass('mdi-play')
-                    playButton.removeClass('playing')
-                } else {
-                    playButtonIcon.removeClass('mdi-play').addClass('mdi-pause')
-                    playButton.addClass('playing')
+                if (video) {
+                    // Sync play button state
+                    if (video.paused) {
+                        playButtonIcon
+                            .removeClass('mdi-pause')
+                            .addClass('mdi-play')
+                        playButton.removeClass('playing')
+                    } else {
+                        playButtonIcon
+                            .removeClass('mdi-play')
+                            .addClass('mdi-pause')
+                        playButton.addClass('playing')
+                    }
                 }
             }
         })

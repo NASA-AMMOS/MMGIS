@@ -536,6 +536,9 @@
 .layersToolColor.image {
     background: var(--color-image);
 }
+.layersToolColor.video {
+    background: var(--color-video);
+}
 
 #LayersToolLayer.model {
     height: 33px;

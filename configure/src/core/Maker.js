@@ -43,6 +43,7 @@ import {
 import { isFieldRequired } from "./validators";
 
 import Map from "../components/Map/Map";
+import VideoPreview from "../components/VideoPreview/VideoPreview";
 import ColorButton from "../components/ColorButton/ColorButton";
 import MDEditor from "@uiw/react-md-editor";
 import CodeMirror from "@uiw/react-codemirror";
@@ -1450,6 +1451,12 @@ const getComponent = (
       return (
         <div className={c.map} style={{ height: com.height || "200px" }}>
           <Map layer={layer} configuration={configuration} />
+        </div>
+      );
+    case "videopreview":
+      return (
+        <div className={c.map} style={{ height: com.height || "200px" }}>
+          <VideoPreview layer={layer} configuration={configuration} />
         </div>
       );
     default:
