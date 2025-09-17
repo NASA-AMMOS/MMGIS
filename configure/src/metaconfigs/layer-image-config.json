@@ -20,7 +20,9 @@
                 "query",
                 "tile",
                 "vector",
-                "vectortile"
+                "vectortile",
+                "velocity",
+                "video"
               ]
             },
             {

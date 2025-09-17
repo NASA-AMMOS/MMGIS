@@ -21,7 +21,8 @@
                 "tile",
                 "vector",
                 "vectortile",
-                "velocity"
+                "velocity",
+                "video"
               ]
             },
             {

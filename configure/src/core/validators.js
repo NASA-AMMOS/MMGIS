@@ -147,10 +147,33 @@ export const validateLayer = (layer) => {
       }
       break;
       
+    case "video":
+      if (!layer.url || layer.url === "" || layer.url === "undefined") {
+        errors.push({ field: "url", message: "URL is required" });
+      }
+      if (!layer.boundingBox || !Array.isArray(layer.boundingBox) || layer.boundingBox.length !== 4) {
+        errors.push({ field: "boundingBox", message: "Bounding Box is required (minx,miny,maxx,maxy)" });
+      } else {
+        // Validate bounding box coordinates are numbers
+        if (isNaN(parseFloat(layer.boundingBox[0]))) {
+          errors.push({ field: "boundingBox", message: "Bounding Box minx must be a number" });
+        }
+        if (isNaN(parseFloat(layer.boundingBox[1]))) {
+          errors.push({ field: "boundingBox", message: "Bounding Box miny must be a number" });
+        }
+        if (isNaN(parseFloat(layer.boundingBox[2]))) {
+          errors.push({ field: "boundingBox", message: "Bounding Box maxx must be a number" });
+        }
+        if (isNaN(parseFloat(layer.boundingBox[3]))) {
+          errors.push({ field: "boundingBox", message: "Bounding Box maxy must be a number" });
+        }
+      }
+      break;
+
     case "header":
       // No additional required fields for header
       break;
-      
+
     default:
       if (layer.type) {
         errors.push({ field: "type", message: `Unknown layer type: ${layer.type}` });

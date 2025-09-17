@@ -511,6 +511,26 @@ function interfaceWithMMGIS(fromInit) {
                         }
                     }
                     break
+                case 'video':
+                    // Use downloadURL if available, otherwise fallback to main URL
+                    const videoDownloadUrl =
+                        node[i].hasOwnProperty('variables') &&
+                        node[i].variables.hasOwnProperty('downloadURL')
+                            ? node[i].variables.downloadURL
+                            : node[i].url
+
+                    layerExport = [
+                        '<ul>',
+                        '<li>',
+                        '<div class="layersToolExportSourceGeoJSON">',
+                        `<div><a href="` +
+                            videoDownloadUrl +
+                            `" target="_blank">Download Video</a></div>`,
+                        '</div>',
+                        '</li>',
+                        '</ul>',
+                    ].join('\n')
+                    break
                 default:
                     layerExport = ''
             }
@@ -1052,6 +1072,46 @@ function interfaceWithMMGIS(fromInit) {
                     }
 */
                     settings = [settings.join('\n'), '</ul>'].join('\n')
+                    break
+                case 'video':
+                    currentOpacity = L_.getLayerOpacity(node[i].name)
+                    if (currentOpacity == null)
+                        currentOpacity = L_.layers.opacity[node[i].name]
+
+                    // prettier-ignore
+                    settings = [
+                        '<ul>',
+                            '<li>',
+                                '<div>',
+                                    '<div>Opacity</div>',
+                                    '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[node[i].name] + '">',
+                                '</div>',
+                            '</li>',
+                            '<li class="videoControls" data-layername="' + node[i].name + '">',
+                                '<div>',
+                                    '<div>Video Controls</div>',
+                                    '<div class="videoControlButtons">',
+                                        '<button class="videoPlayPause mmgisButton5" title="Play/Pause"><i class="mdi mdi-play"></i></button>',
+                                        '<button class="videoRestart mmgisButton5" title="Restart"><i class="mdi mdi-restart"></i></button>',
+                                        '<button class="videoMute mmgisButton5" title="Mute/Unmute"><i class="mdi mdi-volume-off"></i></button>',
+                                    '</div>',
+                                '</div>',
+                            '</li>',
+                            '<li class="videoControls" data-layername="' + node[i].name + '">',
+                                '<div class="videoScrubBar">',
+                                    '<div class="videoScrubContainer">',
+                                        '<div class="videoScrubTrack">',
+                                            '<div class="videoScrubProgress"></div>',
+                                            '<input type="range" class="videoScrubSlider" min="0" max="100" value="0" step="0.1" title="Video Progress">',
+                                        '</div>',
+                                    '</div>',
+                                    '<div class="videoTimeDisplay">',
+                                        '<span class="videoCurrentTime">0:00</span>&nbsp;/ <span class="videoDuration">0:00</span>',
+                                    '</div>',
+                                '</div>',
+                            '</li>',
+                        '</ul>',
+                    ].join('\n')
                     break
                 default:
                     settings = ''
@@ -1753,6 +1813,186 @@ function interfaceWithMMGIS(fromInit) {
         )
     })
 
+    // Video control event handlers
+    $('.videoPlayPause').on('click', function () {
+        const layerName = $(this)
+            .closest('.videoControls')
+            .attr('data-layername')
+        const videoLayer = L_.layers.layer[layerName]
+        if (videoLayer && videoLayer.getElement) {
+            const video = videoLayer.getElement()
+            const icon = $(this).find('i')
+            if (video.paused) {
+                video.play()
+                icon.removeClass('mdi-play').addClass('mdi-pause')
+            } else {
+                video.pause()
+                icon.removeClass('mdi-pause').addClass('mdi-play')
+            }
+        }
+    })
+
+    $('.videoRestart').on('click', function () {
+        const layerName = $(this)
+            .closest('.videoControls')
+            .attr('data-layername')
+        const videoLayer = L_.layers.layer[layerName]
+        if (videoLayer && videoLayer.getElement) {
+            const video = videoLayer.getElement()
+            video.currentTime = 0
+            if (!video.paused) {
+                video.play()
+            }
+        }
+    })
+
+    $('.videoMute').on('click', function () {
+        const layerName = $(this)
+            .closest('.videoControls')
+            .attr('data-layername')
+        const videoLayer = L_.layers.layer[layerName]
+        if (videoLayer && videoLayer.getElement) {
+            const video = videoLayer.getElement()
+            const icon = $(this).find('i')
+            if (video.muted) {
+                video.muted = false
+                icon.removeClass('mdi-volume-off').addClass('mdi-volume-high')
+            } else {
+                video.muted = true
+                icon.removeClass('mdi-volume-high').addClass('mdi-volume-off')
+            }
+        }
+    })
+
+    // Video scrub bar event handlers
+    let wasPausedBeforeScrubbing = {}
+
+    $('.videoScrubSlider').on('mousedown', function () {
+        // Start of scrub - pause if playing
+        const layerName = $(this)
+            .closest('.videoControls')
+            .attr('data-layername')
+        const videoLayer = L_.layers.layer[layerName]
+        if (videoLayer && videoLayer.getElement) {
+            const video = videoLayer.getElement()
+            wasPausedBeforeScrubbing[layerName] = video.paused
+            if (!video.paused) {
+                video.pause()
+            }
+        }
+    })
+
+    $('.videoScrubSlider').on('input', function () {
+        const layerName = $(this)
+            .closest('.videoControls')
+            .attr('data-layername')
+        const videoLayer = L_.layers.layer[layerName]
+        if (videoLayer && videoLayer.getElement) {
+            const video = videoLayer.getElement()
+            const slider = $(this)
+            const controls = $(this).closest('.videoControls')
+            const progressBar = controls.find('.videoScrubProgress')
+            const percentage = slider.val()
+            const newTime = (percentage / 100) * video.duration
+
+            if (!isNaN(newTime) && isFinite(newTime)) {
+                video.currentTime = newTime
+                progressBar.css('width', percentage + '%')
+            }
+        }
+    })
+
+    $('.videoScrubSlider').on('mouseup', function () {
+        // End of scrub - resume if was playing before
+        const layerName = $(this)
+            .closest('.videoControls')
+            .attr('data-layername')
+        const videoLayer = L_.layers.layer[layerName]
+        if (videoLayer && videoLayer.getElement) {
+            const video = videoLayer.getElement()
+            if (!wasPausedBeforeScrubbing[layerName]) {
+                video.play()
+            }
+            delete wasPausedBeforeScrubbing[layerName]
+        }
+    })
+
+    // Helper function to format time in MM:SS format
+    function formatVideoTime(seconds) {
+        if (!isFinite(seconds) || isNaN(seconds)) return '0:00'
+        const minutes = Math.floor(seconds / 60)
+        const secs = Math.floor(seconds % 60)
+        return `${minutes}:${secs.toString().padStart(2, '0')}`
+    }
+
+    // Update scrub bar and time display for all video layers
+    function updateVideoScrubBars() {
+        $('.videoControls').each(function () {
+            const layerName = $(this).attr('data-layername')
+            const videoLayer = L_.layers.layer[layerName]
+
+            if (videoLayer && videoLayer.getElement) {
+                const video = videoLayer.getElement()
+                const controls = $(this)
+                const slider = controls.find('.videoScrubSlider')
+                const progressBar = controls.find('.videoScrubProgress')
+                const currentTimeSpan = controls.find('.videoCurrentTime')
+                const durationSpan = controls.find('.videoDuration')
+
+                if (video.duration && isFinite(video.duration)) {
+                    const percentage =
+                        (video.currentTime / video.duration) * 100
+                    slider.val(percentage)
+                    progressBar.css('width', percentage + '%')
+
+                    currentTimeSpan.text(formatVideoTime(video.currentTime))
+                    durationSpan.text(formatVideoTime(video.duration))
+                }
+            }
+        })
+    }
+
+    // Synchronize button states with actual video element states
+    function syncVideoButtonStates() {
+        $('.videoControls').each(function () {
+            const layerName = $(this).attr('data-layername')
+            const videoLayer = L_.layers.layer[layerName]
+
+            if (videoLayer && videoLayer.getElement) {
+                const video = videoLayer.getElement()
+                const controls = $(this)
+                const muteButton = controls.find('.videoMute')
+                const muteButtonIcon = muteButton.find('i')
+                const playButton = controls.find('.videoPlayPause')
+                const playButtonIcon = playButton.find('i')
+
+                // Sync mute button state
+                if (video.muted) {
+                    muteButtonIcon.removeClass('mdi-volume-high').addClass('mdi-volume-off')
+                    muteButton.removeClass('unmuted')
+                } else {
+                    muteButtonIcon.removeClass('mdi-volume-off').addClass('mdi-volume-high')
+                    muteButton.addClass('unmuted')
+                }
+
+                // Sync play button state
+                if (video.paused) {
+                    playButtonIcon.removeClass('mdi-pause').addClass('mdi-play')
+                    playButton.removeClass('playing')
+                } else {
+                    playButtonIcon.removeClass('mdi-play').addClass('mdi-pause')
+                    playButton.addClass('playing')
+                }
+            }
+        })
+    }
+
+    // Update scrub bars periodically while videos are playing
+    setInterval(() => {
+        updateVideoScrubBars()
+        syncVideoButtonStates()
+    }, 100)
+
     $('.tilerescalecogmin').on('change', function () {
         let layer = $(this).attr('layername')
         layer = L_.asLayerUUID(layer)
@@ -2247,15 +2487,23 @@ function interfaceWithMMGIS(fromInit) {
     function traverseHeaderLayersExpandedState(node, parent, depth) {
         for (var i = 0; i < node.length; i++) {
             if (node[i].type == 'header') {
-                if ((node[i].expanded && node[i].expanded === true)
-                        || (node[i].expanded === undefined
-                            && $(`#layersToolList > li#header_${parent.name}`).attr('childrenon') === true)) {
+                if (
+                    (node[i].expanded && node[i].expanded === true) ||
+                    (node[i].expanded === undefined &&
+                        $(`#layersToolList > li#header_${parent.name}`).attr(
+                            'childrenon'
+                        ) === true)
+                ) {
                     LayersTool.toggleHeader(`header_${node[i].name}`)
                 }
             }
 
             if (node[i].sublayers)
-                traverseHeaderLayersExpandedState(node[i].sublayers, node[i], depth + 1)
+                traverseHeaderLayersExpandedState(
+                    node[i].sublayers,
+                    node[i],
+                    depth + 1
+                )
         }
     }
 

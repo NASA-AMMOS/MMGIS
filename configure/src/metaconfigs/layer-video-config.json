@@ -4,7 +4,7 @@
       "name": "Core",
       "rows": [
         {
-          "name": "Core",
+          "forceHeight": "64px",
           "components": [
             {
               "field": "type",
@@ -34,12 +34,118 @@
               "required": true
             },
             {
-              "field": "expanded",
-              "name": "Expanded",
-              "description": "Whether all child layers under the header default to being expanded (as opposed to being collapsed).",
+              "field": "visibility",
+              "name": "Initially On",
+              "description": "",
               "type": "checkbox",
               "width": 2,
               "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "subname": "Source",
+          "components": [
+            {
+              "field": "url",
+              "name": "Video URL",
+              "description": "Path to the video file (.webm or .mp4 format)",
+              "type": "text",
+              "width": 12,
+              "required": true
+            },
+            {
+              "field": "boundingBox",
+              "name": "Bounding Box",
+              "description": "Geographic bounds: nw_lng,nw_lat,se_lng,se_lat",
+              "type": "textarray",
+              "width": 12,
+              "required": true
+            }
+          ]
+        },
+        {
+          "name": "Display Settings",
+          "components": [
+            {
+              "field": "initialOpacity",
+              "name": "Initial Opacity",
+              "description": "0 (transparent) to 1 (opaque)",
+              "type": "number",
+              "min": 0,
+              "max": 1,
+              "step": 0.1,
+              "width": 4,
+              "defaultValue": 1
+            },
+            {
+              "field": "minZoom",
+              "name": "Minimum Zoom",
+              "description": "Minimum zoom level to display this layer",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 4
+            },
+            {
+              "field": "maxZoom",
+              "name": "Maximum Zoom",
+              "description": "Maximum zoom level to display this layer",
+              "type": "number",
+              "min": 0,
+              "step": 1,
+              "width": 4
+            }
+          ]
+        },
+        {
+          "name": "Video Playback Options",
+          "components": [
+            {
+              "field": "variables.video.autoplay",
+              "name": "Autoplay",
+              "description": "Automatically start playing when layer is enabled",
+              "type": "checkbox",
+              "width": 3,
+              "defaultChecked": false
+            },
+            {
+              "field": "variables.video.loop",
+              "name": "Loop",
+              "description": "Loop the video continuously",
+              "type": "checkbox",
+              "width": 3,
+              "defaultChecked": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Interface",
+      "rows": [
+        {
+          "name": "Interface",
+          "subname": "Key Bindings",
+          "components": [
+            {
+              "field": "variables.shortcutSuffix",
+              "name": "Alt + {letter} Toggle Shortcut",
+              "description": "A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.",
+              "type": "text",
+              "width": 6
+            }
+          ]
+        },
+        {
+          "subname": "Downloads",
+          "components": [
+            {
+              "field": "variables.downloadURL",
+              "name": "Download URL",
+              "description": "Provides a menu option for users to download the specified source video file for the layer.",
+              "type": "text",
+              "width": 12
             }
           ]
         }

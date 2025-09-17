@@ -690,6 +690,10 @@ const getComponent = (
       let text_array_f = getIn(directConf, com.field, []);
       if (text_array_f != null && typeof text_array_f.join === "function")
         text_array_f = text_array_f.join(",");
+
+      // Check if field is required and has validation error
+      const textArrayHasError = isRequired && (text_array_f === "" || text_array_f == null || (Array.isArray(text_array_f) && text_array_f.length === 0));
+
       inner = (
         <TextField
           className={c.text}
@@ -697,6 +701,12 @@ const getComponent = (
           variant="filled"
           size="small"
           disabled={disabled}
+          required={isRequired}
+          error={textArrayHasError}
+          helperText={textArrayHasError ? "This field is required" : ""}
+          FormHelperTextProps={{
+            className: c.noMarginHelperText
+          }}
           inputProps={{
             autoComplete: "off",
           }}

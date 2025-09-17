@@ -126,19 +126,19 @@ let Map_ = {
         ) {
             var cp = L_.configData.projection
             //console.log(cp)
-            
+
             // Calculate resolutions array from zoom level and units per pixel
             var resolutions = []
             var baseResolution = parseFloat(cp.resunitsperpixel)
             var zoomLevel = parseInt(cp.reszoomlevel) || 0
-            
+
             // Generate resolutions for zoom levels (typically 0-20)
             for (var i = 0; i <= 20; i++) {
                 var zoomDiff = i - zoomLevel
                 var resolution = baseResolution / Math.pow(2, zoomDiff)
                 resolutions.push(resolution)
             }
-            
+
             var crs = new L.Proj.CRS(
                 Number.isFinite(parseInt(cp.epsg[0]))
                     ? `EPSG:${cp.epsg}`
@@ -729,6 +729,9 @@ async function makeLayer(
                 case 'model':
                     //Globe only
                     makeModelLayer(layerObj)
+                    break
+                case 'video':
+                    makeVideoLayer(layerObj)
                     break
                 default:
                     console.warn('Unknown layer type: ' + layerObj.type)
@@ -1720,6 +1723,88 @@ function makeImageLayer(layerObj) {
             L_.layers.layer[layerObj.name] = null
             allLayersLoaded()
         })
+}
+
+function makeVideoLayer(layerObj) {
+    let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
+    if (!F_.isUrlAbsolute(layerUrl)) {
+        layerUrl = `${window.location.origin}${(
+            window.location.pathname || ''
+        ).replace(/\/$/g, '')}/${layerUrl}`
+    }
+
+    if (!layerObj.boundingBox || layerObj.boundingBox.length !== 4) {
+        console.warn(
+            `Video layer '${layerObj.name}' missing required bounding box`
+        )
+        L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+        L_.layers.layer[layerObj.name] = null
+        allLayersLoaded()
+        return
+    }
+
+    const bounds = [
+        [
+            parseFloat(layerObj.boundingBox[1]),
+            parseFloat(layerObj.boundingBox[0]),
+        ],
+        [
+            parseFloat(layerObj.boundingBox[3]),
+            parseFloat(layerObj.boundingBox[2]),
+        ],
+    ]
+
+    const videoOptions = {
+        opacity: layerObj.initialOpacity != null ? layerObj.initialOpacity : 1,
+        autoplay: F_.getIn(layerObj, 'variables.video.autoplay', false),
+        loop: F_.getIn(layerObj, 'variables.video.loop', true),
+        muted: true, // Always muted by default
+        playsInline: true,
+    }
+
+    try {
+        L_.layers.layer[layerObj.name] = L.videoOverlay(
+            layerUrl,
+            bounds,
+            videoOptions
+        )
+
+        // Access the video element and set additional attributes that Leaflet doesn't handle
+        const videoElement = L_.layers.layer[layerObj.name].getElement()
+        if (videoElement) {
+            videoElement.muted = true // Always muted
+            videoElement.playsInline = true // For mobile compatibility
+
+            // For autoplay to work reliably, we need to set it after the element is created
+            if (F_.getIn(layerObj, 'variables.video.autoplay', false)) {
+                videoElement.autoplay = true
+                // Try to play the video when it's loaded if autoplay is enabled
+                videoElement.addEventListener('loadeddata', () => {
+                    if (videoElement.autoplay) {
+                        videoElement.play().catch((err) => {
+                            console.warn('Video autoplay failed:', err)
+                        })
+                    }
+                })
+            }
+        }
+
+        L_.layers.layer[layerObj.name].setZIndex(
+            L_._layersOrdered.length +
+                1 -
+                L_._layersOrdered.indexOf(layerObj.name)
+        )
+
+        L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
+
+        L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+        allLayersLoaded()
+    } catch (e) {
+        console.warn(`WARNING - Unable to load video layer: ${layerUrl}`, e)
+        L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+        L_.layers.layer[layerObj.name] = null
+        allLayersLoaded()
+    }
 }
 
 //Because some layers load faster than others, check to see if

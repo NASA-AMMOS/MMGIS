@@ -127,6 +127,7 @@ body {
     --color-model: #a98732;
     --color-velocity: #24807c;
     --color-image: #b0518f;
+    --color-video: #8f3a73;
 }
 
 #nodeenv {
@@ -401,6 +402,10 @@ body {
 }
 
 .velocity-overlay {
+    transition: opacity 0.2s ease-in;
+}
+
+.video-overlay {
     transition: opacity 0.2s ease-in;
 }
 

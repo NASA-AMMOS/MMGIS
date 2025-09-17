@@ -95,6 +95,12 @@ const validateLayers = (config) => {
         // Check zooms
         errs = errs.concat(isValidZooms(layer));
         break;
+      case "video":
+        // Check url
+        errs = errs.concat(isValidUrl(layer));
+        // Check bounding box
+        errs = errs.concat(isValidBoundingBox(layer));
+        break;
       default:
         errs = errs.concat(
           err(`Unknown layer type: '${layer.type}'`, ["layers[layer].type"])
@@ -279,6 +285,62 @@ const isValidModelParams = (layer) => {
   return errs;
 };
 
+const isValidBoundingBox = (layer) => {
+  const errs = [];
+
+  if (!layer.boundingBox) {
+    errs.push(
+      err(`Layer '${layer.name}' is missing Bounding Box.`, [
+        "layers[layer].boundingBox",
+      ])
+    );
+  } else if (!Array.isArray(layer.boundingBox)) {
+    errs.push(
+      err(`Layer '${layer.name}' has invalid Bounding Box format.`, [
+        "layers[layer].boundingBox",
+      ])
+    );
+  } else if (layer.boundingBox.length !== 4) {
+    errs.push(
+      err(`Layer '${layer.name}' has invalid Bounding Box length. Expected 4 values (minx,miny,maxx,maxy).`, [
+        "layers[layer].boundingBox",
+      ])
+    );
+  } else {
+    // Validate each coordinate
+    if (isNaN(parseFloat(layer.boundingBox[0]))) {
+      errs.push(
+        err(`Layer '${layer.name}' has invalid Bounding Box minx value.`, [
+          "layers[layer].boundingBox",
+        ])
+      );
+    }
+    if (isNaN(parseFloat(layer.boundingBox[1]))) {
+      errs.push(
+        err(`Layer '${layer.name}' has invalid Bounding Box miny value.`, [
+          "layers[layer].boundingBox",
+        ])
+      );
+    }
+    if (isNaN(parseFloat(layer.boundingBox[2]))) {
+      errs.push(
+        err(`Layer '${layer.name}' has invalid Bounding Box maxx value.`, [
+          "layers[layer].boundingBox",
+        ])
+      );
+    }
+    if (isNaN(parseFloat(layer.boundingBox[3]))) {
+      errs.push(
+        err(`Layer '${layer.name}' has invalid Bounding Box maxy value.`, [
+          "layers[layer].boundingBox",
+        ])
+      );
+    }
+  }
+
+  return errs;
+};
+
 const hasNonHeaderWithSublayers = (config) => {
   const errs = [];
   Utils.traverseLayers(config.layers, (layer) => {
@@ -327,6 +389,10 @@ const fillInMissingFieldsWithDefaults = (layer) => {
       layer.style.className = layer.name.replace(/ /g, "").toLowerCase();
       break;
     case "model":
+      break;
+    case "video":
+      layer.style = layer.style || {};
+      layer.style.className = layer.name.replace(/ /g, "").toLowerCase();
       break;
     default:
   }

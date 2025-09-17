@@ -46,6 +46,7 @@ import vectorConfig from "../../../../../metaconfigs/layer-vector-config.json";
 import vectortileConfig from "../../../../../metaconfigs/layer-vectortile-config.json";
 import velocityConfig from "../../../../../metaconfigs/layer-velocity-config.json";
 import imageConfig from "../../../../../metaconfigs/layer-image-config.json";
+import videoConfig from "../../../../../metaconfigs/layer-video-config.json";
 
 const useStyles = makeStyles((theme) => ({
   Modal: {
@@ -199,6 +200,10 @@ const LayerModal = (props) => {
 
     case "image":
       config = imageConfig;
+      break;
+
+    case "video":
+      config = videoConfig;
       break;
 
     default:

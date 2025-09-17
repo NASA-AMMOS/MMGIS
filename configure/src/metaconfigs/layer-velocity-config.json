@@ -15,12 +15,14 @@
               "options": [
                 "data",
                 "header",
+                "image",
                 "model",
                 "query",
                 "tile",
                 "vector",
                 "vectortile",
-                "velocity"
+                "velocity",
+                "video"
               ]
             },
             {
