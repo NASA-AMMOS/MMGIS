@@ -1235,13 +1235,10 @@ const getComponent = (
           : window.mmgisglobal.ROOT_PATH || "";
       if (domain.length > 0 && !domain.endsWith("/")) domain += "/";
 
-      let colormap_html;
+      let source = "";
       if (window.mmgisglobal.WITH_TITILER === "true") {
         // Get colors from TiTiler if it is available
-        let source = `${domain}titiler/colorMaps/${dropdown_value.toLowerCase()}?format=png`
-        colormap_html = <DrawColormap src={source} colormapName={dropdown_value} />
-      } else {
-        colormap_html = ColormapHelper({colormapName: dropdown_value});
+        source = `${domain}titiler/colorMaps/${dropdown_value.toLowerCase()}?format=png`
       }
 
       return (
@@ -1250,7 +1247,7 @@ const getComponent = (
             <>
               {inner}
               <div className={c.textArrayHexes}>
-                {colormap_html}
+                <DrawColormap src={source} colormapName={dropdown_value} />
               </div>
               <Typography className={c.subtitle2}>
                 {com.description || ""}
