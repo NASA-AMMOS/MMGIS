@@ -179,7 +179,7 @@ const createSwaggerInterceptor = (path, target) => {
       newResponse = newResponse || responseBuffer.toString("utf8");
       // Build regex to match any backend URL with port (both http and https)
       const backendUrlRegex = new RegExp(
-        `https?://[^/]+:${target.split(":")[2]}/`,
+        `https?://[^/]+(?::\\d+)+/?`,
         "g"
       );
       // Build the public path
