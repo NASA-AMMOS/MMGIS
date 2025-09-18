@@ -49,10 +49,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { json } from "@codemirror/lang-json";
 import { Button } from "@mui/material";
 
-import {
-  evaluate_cmap,
-  data as colormapData,
-} from "../external/js-colormaps.js";
+import { data as colormapData } from "../external/js-colormaps.js";
 
 import { calls } from "./calls";
 import { parseTileMatrixSetCRS } from "./crsUtils";
@@ -346,15 +343,9 @@ const ColormapHelper = ({ colormapName }) => {
 }
 
 const DrawColormap = ({ src, colormapName }) => {
-  const [loaded, setLoaded] = useState(true);
   const [error, setError] = useState(false);
 
-  const handleLoad = () => {
-    setLoaded(false);
-  };
-
   const handleError = () => {
-    setLoaded(false);
     setError(true);
   };
 
@@ -365,9 +356,9 @@ const DrawColormap = ({ src, colormapName }) => {
         : <div style={{ width: "100%" }}>
             <img
               id="titlerCogColormapImage"
+              alt=""
               style={{ height: "20px", width: "100%" }}
               src={src}
-              onLoad={handleLoad}
               onError={handleError}
             />
           </div>
