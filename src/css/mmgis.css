@@ -899,6 +899,236 @@ body {
     }
 }
 
+/* Feature Style Animations */
+
+/* Base Pulse Animation */
+.mmgis-vector-pulse {
+    animation: mmgis-pulse-animation 1.6s ease-in-out infinite;
+}
+
+@keyframes mmgis-pulse-animation {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+@-webkit-keyframes mmgis-pulse-animation {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+/* Timing & Easing Variations */
+.mmgis-vector-pulse-fast {
+    animation: mmgis-pulse-animation 0.8s ease-in-out infinite;
+}
+
+.mmgis-vector-pulse-slow {
+    animation: mmgis-pulse-animation 4s ease-in-out infinite;
+}
+
+.mmgis-vector-pulse-sharp {
+    animation: mmgis-pulse-sharp-animation 2s linear infinite;
+}
+
+@keyframes mmgis-pulse-sharp-animation {
+    0% { opacity: 1; }
+    25% { opacity: 1; }
+    26% { opacity: 0.3; }
+    75% { opacity: 0.3; }
+    76% { opacity: 1; }
+    100% { opacity: 1; }
+}
+
+@-webkit-keyframes mmgis-pulse-sharp-animation {
+    0% { opacity: 1; }
+    25% { opacity: 1; }
+    26% { opacity: 0.3; }
+    75% { opacity: 0.3; }
+    76% { opacity: 1; }
+    100% { opacity: 1; }
+}
+
+.mmgis-vector-pulse-bounce {
+    animation: mmgis-pulse-bounce-animation 2s ease-in-out infinite;
+}
+
+@keyframes mmgis-pulse-bounce-animation {
+    0% { opacity: 0.8; }
+    25% { opacity: 1; }
+    50% { opacity: 0.3; }
+    75% { opacity: 1; }
+    100% { opacity: 0.8; }
+}
+
+@-webkit-keyframes mmgis-pulse-bounce-animation {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+
+/* CSS Filter-Based Animations */
+.mmgis-vector-hue-shift {
+    animation: mmgis-hue-shift-animation 2s linear infinite;
+}
+
+@keyframes mmgis-hue-shift-animation {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+
+@-webkit-keyframes mmgis-hue-shift-animation {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+
+.mmgis-vector-glow {
+    animation: mmgis-glow-animation 2s ease-in-out infinite;
+}
+
+@keyframes mmgis-glow-animation {
+    0% { filter: brightness(1) blur(0px); }
+    50% { filter: brightness(1.5) blur(1px); }
+    100% { filter: brightness(1) blur(0px); }
+}
+
+@-webkit-keyframes mmgis-glow-animation {
+    0% { filter: brightness(1) blur(0px); }
+    50% { filter: brightness(1.5) blur(1px); }
+    100% { filter: brightness(1) blur(0px); }
+}
+
+.mmgis-vector-shimmer {
+    animation: mmgis-shimmer-animation 1.2s ease-in-out infinite;
+}
+
+@keyframes mmgis-shimmer-animation {
+    0% { filter: contrast(1) brightness(1) saturate(1); }
+    25% { filter: contrast(3) brightness(1.5) saturate(2); }
+    50% { filter: contrast(1) brightness(1.8) saturate(2); }
+    75% { filter: contrast(2) brightness(1.5) saturate(1); }
+    100% { filter: contrast(1) brightness(1) saturate(1); }
+}
+
+@-webkit-keyframes mmgis-shimmer-animation {
+    0%, 100% { filter: contrast(1) saturate(1); }
+    25% { filter: contrast(3) saturate(2); }
+    50% { filter: contrast(0.5) saturate(0.5); }
+    75% { filter: contrast(3) saturate(2); }
+}
+
+.mmgis-vector-fade-blur {
+    animation: mmgis-fade-blur-animation 2s ease-in-out infinite;
+}
+
+@keyframes mmgis-fade-blur-animation {
+    0% { opacity: 1; filter: blur(0px); }
+    50% { opacity: 0.7; filter: blur(2px); }
+    100% { opacity: 1; filter: blur(0px); }
+}
+
+@-webkit-keyframes mmgis-fade-blur-animation {
+    0% { opacity: 1; filter: blur(0px); }
+    50% { opacity: 0.7; filter: blur(2px); }
+    100% { opacity: 1; filter: blur(0px); }
+}
+
+/* Opacity-Based Variations */
+.mmgis-vector-breathe {
+    animation: mmgis-breathe-animation 3s ease-in-out infinite;
+}
+
+@keyframes mmgis-breathe-animation {
+    0% { opacity: 1; }
+    33% { opacity: 0.7; }
+    66% { opacity: 0.9; }
+    100% { opacity: 1; }
+}
+
+@-webkit-keyframes mmgis-breathe-animation {
+    0% { opacity: 1; }
+    33% { opacity: 0.7; }
+    66% { opacity: 0.9; }
+    100% { opacity: 1; }
+}
+
+.mmgis-vector-flutter {
+    animation: mmgis-flutter-animation 0.9s ease-in-out infinite;
+}
+
+@keyframes mmgis-flutter-animation {
+    0% { opacity: 1; }
+    15% { opacity: 0.3; }
+    30% { opacity: 1; }
+    45% { opacity: 0.3; }
+    60% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+
+@-webkit-keyframes mmgis-flutter-animation {
+    0% { opacity: 1; }
+    15% { opacity: 0.3; }
+    30% { opacity: 1; }
+    45% { opacity: 0.3; }
+    60% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+
+.mmgis-vector-blink {
+    animation: mmgis-blink-animation 1.5s ease-in-out infinite;
+}
+
+@keyframes mmgis-blink-animation {
+    0% { opacity: 1; }
+    33% { opacity: 1; }
+    34% { opacity: 0; }
+    65% { opacity: 0; }
+    66% { opacity: 1; }
+    100% { opacity: 1; }
+}
+
+@-webkit-keyframes mmgis-blink-animation {
+    0% { opacity: 1; }
+    33% { opacity: 1; }
+    34% { opacity: 0; }
+    65% { opacity: 0; }
+    66% { opacity: 1; }
+    100% { opacity: 1; }
+}
+
+/* Compound Effect Animations */
+.mmgis-vector-alert {
+    animation: mmgis-alert-animation 1s ease-in-out infinite;
+}
+
+@keyframes mmgis-alert-animation {
+    0% { filter: brightness(0.8) sepia(0); }
+    50% { filter: brightness(1.8) sepia(0.4); }
+    100% { filter: brightness(0.8) sepia(0); }
+}
+
+@-webkit-keyframes mmgis-alert-animation {
+    0% { filter: brightness(0.8) sepia(0); }
+    50% { filter: brightness(1.8) sepia(0.4); }
+    100% { filter: brightness(0.8) sepia(0); }
+}
+
+.mmgis-vector-highlight {
+    animation: mmgis-highlight-animation 2.3s step-end infinite;
+}
+
+@keyframes mmgis-highlight-animation {
+    0% { filter: brightness(1) sepia(0); }
+    50% { filter: brightness(1.4) sepia(0.1) hue-rotate(40deg); }
+    100% { filter: brightness(1) sepia(0); }
+}
+
+@-webkit-keyframes mmgis-highlight-animation {
+    0% { filter: brightness(1) sepia(0); }
+    50% { filter: brightness(1.4) sepia(0.1) hue-rotate(40deg); }
+    100% { filter: brightness(1) sepia(0); }
+}
+
 .leaflet_FGDCGeoSym > div {
     transform: translateX(-50%) translateY(-50%);
     position: absolute;

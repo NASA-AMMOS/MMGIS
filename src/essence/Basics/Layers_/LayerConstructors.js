@@ -474,6 +474,23 @@ export const constructVectorLayer = (
             )
                 layerObj.style.className =
                     layerObj.style.className + noPointerEventsClass
+
+            // Add animation class if animation is enabled
+            var animationClass = ''
+            if (
+                layerObj.style.animation &&
+                layerObj.style.animation !== 'none'
+            ) {
+                animationClass = ' mmgis-vector-' + layerObj.style.animation
+            }
+            if (
+                animationClass !== '' &&
+                layerObj.style.className.indexOf(animationClass) === -1
+            ) {
+                layerObj.style.className =
+                    layerObj.style.className + animationClass
+            }
+
             layerObj.style.metadata = geojson.metadata || {}
 
             if (
@@ -688,9 +705,10 @@ export const constructVectorLayer = (
                     ].join('\n')
                     break
                 case 'none':
+                    const circleMarkerStyle = leafletLayerObject.style(feature)
                     layer = L.circleMarker(
                         latlong,
-                        leafletLayerObject.style
+                        circleMarkerStyle
                     ).setRadius(layerObj.style.radius || layerObj.radius || 8)
                     break
                 default:
@@ -737,11 +755,22 @@ export const constructVectorLayer = (
                     markerOptions.rotationOrigin = `${markerIcon.options.iconAnchor[0]}px ${markerIcon.options.iconAnchor[1]}px`
                 layer = L.marker(latlong, markerOptions)
             } else if (layer == null && svg != null) {
+                // Determine animation class
+                let animationClass = ''
+                if (
+                    layerObj.style.animation &&
+                    layerObj.style.animation !== 'none'
+                ) {
+                    animationClass = ' mmgis-vector-' + layerObj.style.animation
+                }
+
                 layer = L.marker(latlong, {
                     icon: L.divIcon({
                         className: `leafletMarkerShape leafletMarkerShape_${F_.getSafeName(
                             layerObj.name
-                        )} ${F_.getSafeName(layerObj.name)} leafletDivIcon`,
+                        )} ${F_.getSafeName(
+                            layerObj.name
+                        )} leafletDivIcon${animationClass}`,
                         iconSize: [
                             (featureStyle.radius + pixelBuffer) * 2,
                             (featureStyle.radius + pixelBuffer) * 2,

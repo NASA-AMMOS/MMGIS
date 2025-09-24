@@ -298,6 +298,31 @@
               "description": "A original offset by which the rotate the original shape/icon so that it is natively pointing up. Useful with Attachment - Marker Bearings where, for instance, a plane with a bearing is desired but the plane icon natively points leftward.",
               "type": "number",
               "width": 3
+            },
+            {
+              "field": "style.animation",
+              "name": "Animation",
+              "description": "Animation effect for vector features. All animations are synchronized across the map for visual consistency. Options include opacity effects, CSS filters, and subtle transforms.",
+              "type": "dropdown",
+              "width": 3,
+              "options": [
+                "none",
+                "pulse",
+                "pulse-fast",
+                "pulse-slow",
+                "pulse-sharp",
+                "pulse-bounce",
+                "hue-shift",
+                "glow",
+                "shimmer",
+                "fade-blur",
+                "breathe",
+                "flutter",
+                "blink",
+                "alert",
+                "highlight"
+              ],
+              "default": "none"
             }
           ]
         },
