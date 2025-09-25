@@ -1,0 +1,148 @@
+#main-container {
+    height: 100%;
+    filter: blur(5px);
+    transition: filter 0.3s ease-in-out;
+}
+
+#main-container > #topBar {
+    display: flex;
+    justify-content: space-between;
+    position: absolute;
+    top: 0px;
+    height: 40px;
+    left: 0px;
+    padding: 5px 5px 5px 0px;
+    padding-left: 40px;
+    width: 100%;
+    font-family: sans-serif;
+    pointer-events: none;
+    z-index: 2005;
+    transition: all 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+
+#main-container > #topBar > div {
+    pointer-events: auto;
+}
+
+#main-container > #topBar > #topBarLeft {
+    flex: 1;
+    pointer-events: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin-right: 8px;
+}
+#main-container > #topBar > #topBarLeft,
+#main-container > #topBar > #topBarRight {
+    display: flex;
+}
+#main-container > #topBar #topBarSecondary {
+    flex: 1;
+}
+#main-container > #topBar #topBarMain,
+#main-container > #topBar #topBarSecondary {
+    display: flex;
+}
+#main-container #mmgislogo {
+    padding: 0px 1px;
+    color: var(--color-b);
+    font-size: 18px;
+    cursor: pointer;
+    height: 32px;
+    margin-top: -2px;
+    image-rendering: pixelated;
+}
+
+#main-container > #topBar #topBarTitle {
+    cursor: pointer;
+    display: flex;
+    z-index: 1;
+    background: var(--color-a);
+    color: white;
+    border-radius: 3px;
+    margin: 0px 0px 0px 5px;
+    transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#main-container > #topBar #topBarTitleName {
+    font-size: 14px;
+    padding: 6px 14px 8px 14px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+    font-weight: 600;
+    line-height: 15px;
+    letter-spacing: 1px;
+    font-family: 'lato-light', system-ui, -apple-system, BlinkMacSystemFont,
+        'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    text-transform: uppercase;
+}
+
+#main-container > #topBar #topBarTitle:hover {
+    color: var(--color-mmgis);
+}
+
+@media screen and (max-width: 600px) {
+    #main-container > #topBar #topBarTitleName {
+        font-size: 12px;
+        padding: 0px 8px;
+        max-width: 110px;
+        line-height: 12px;
+    }
+}
+
+#main-container > #topBar .mainInfo {
+    display: none;
+    position: relative;
+    height: 30px;
+    margin: 0;
+    margin-right: 5px;
+    z-index: 20;
+    opacity: 0;
+    border-radius: 3px;
+    pointer-events: auto;
+    transition: opacity 0.2s ease-out;
+}
+#main-container > #topBar .mainDescription {
+    display: none;
+    position: relative;
+    height: 30px;
+    margin: 0px 0px 0px 8px;
+    z-index: 20;
+    background: var(--color-a);
+    opacity: 0;
+    border-radius: 3px;
+    pointer-events: auto;
+}
+
+.mainInfo > div {
+    display: flex;
+    padding: 0px 8px;
+    background: var(--color-a);
+    border-radius: 1px;
+    color: var(--color-mw2);
+    margin-left: 8px;
+    transition: color 0.25s ease-out;
+}
+.mainInfo > div:hover {
+    cursor: pointer;
+    color: var(--color-mmgis);
+}
+
+.mainInfo > div > div {
+    display: flex;
+    white-space: nowrap;
+    line-height: 30px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 0px;
+}
+@media screen and (max-width: 800px) {
+    .mainInfo > div > div {
+        font-size: 11px;
+    }
+}
+
+.mainInfo > div > i {
+    line-height: 30px;
+    margin-right: 5px;
+}

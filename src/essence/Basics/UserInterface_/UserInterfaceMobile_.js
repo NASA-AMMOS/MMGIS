@@ -8,7 +8,7 @@ import Login from '../../Ancillary/Login/Login'
 import BottomBar from './BottomBar'
 import LayerUpdatedControl from './LayerUpdatedControl'
 
-import './UserInterfaceDefault_.css'
+import './UserInterfaceMobile_.css'
 
 var Viewer_ = null
 var Map_ = null
@@ -53,7 +53,9 @@ var UserInterface = {
     toolPanelDrag: null,
     helpOn: true,
     layerUpdatedControl: null,
+    isMobile: false,
     init: function () {
+        console.log("I am the mobile version.")
         //Other stylings in mmgis.css
 
         // prettier-ignore
@@ -61,13 +63,13 @@ var UserInterface = {
 
         // prettier-ignore
         const topBarMarkup = [
-            "<div id='topBar'>",
+            "<div id='topBar' style='background: var(--color-a);' >",
                 "<div id='topBarLeft' class='hideScrollbar'>",
                     "<div id='topBarMain'>",
                         "<div id='topBarTitle'>",
-                            `<div id='topBarTitleName' tabindex='200'>`,
-                                window.mmgisglobal.name,
-                            "</div>",
+                            //`<div id='topBarTitleName' tabindex='200'>`,
+                            //    window.mmgisglobal.name, FIXME Figure out what to do with this
+                            //"</div>",
                         "</div>",
                     "</div>",
                     "<div id='topBarSecondary'>",
@@ -105,6 +107,8 @@ var UserInterface = {
 
         Login.init()
 
+        /*
+        // FIXME Figure out what we want to do with the bottom bar
         this.barBottom = d3
             .select('#main-container')
             .append('div')
@@ -118,6 +122,7 @@ var UserInterface = {
             .style('z-index', '1005')
 
         BottomBar.init('barBottom', this)
+        */
 
         this.toolPanel = d3
             .select('#main-container')
@@ -201,14 +206,16 @@ var UserInterface = {
             .attr('id', 'splitscreens')
             .style('position', 'absolute')
             .style('top', (this.fullSizeViews ? '0' : this.topSize) + 'px')
-            .style('width', 'calc( 100% - ' + 40 + 'px )')
+            //.style('width', 'calc( 100% - ' + 40 + 'px )')
+            .style('width', '100%')
             .style(
                 'height',
                 'calc( 100% - ' +
                     (this.fullSizeViews ? '0' : this.topSize) +
                     'px )'
             )
-            .style('left', 40 + 'px')
+            //.style('left', 40 + 'px')
+            .style('left', 0 + 'px')
 
         this.hide()
         this.mainWidth = $('#splitscreens').width()
@@ -257,10 +264,12 @@ var UserInterface = {
             .append('div')
             .attr('class', 'splitterV')
             .attr('id', 'viewerSplit')
+            /*
             .style('width', this.splitterSize + 'px')
             .style('height', this.mainHeight + 'px')
             .style('left', -this.splitterSize + 'px')
             .style('cursor', 'default')
+            */
 
         //The map screen
         this.mapScreen = this.vmgScreen
@@ -289,7 +298,7 @@ var UserInterface = {
             .style('pointer-events', 'none')
             .style('overflow', 'hidden')
             .style('z-index', '1003')
-            .style('transition', 'bottom 0.2s ease-out, height 0.2s ease-out')
+            .style('transition', 'bottom 0.2s ease-out')
 
         this.mapTopBar = this.mapScreen
             .append('div')
@@ -313,16 +322,19 @@ var UserInterface = {
             .append('div')
             .attr('class', 'splitterV')
             .attr('id', 'mapSplit')
+            /*
             .style('width', this.splitterSizeHidden + 'px')
             .style('height', this.mainHeight + 'px')
             .style('left', this.pxIsViewer - this.splitterSizeHidden / 2 + 'px')
+            */
 
         this.mapSplitInner = this.mapSplit
             .append('div')
             .attr('class', 'splitterVInner')
             .attr('id', 'mapSplitInner')
-            .style('width', this.splitterSizeHidden * 2 + 'px')
+            //.style('width', this.splitterSizeHidden * 2 + 'px')
 
+        /*
         this.mapSplitInner
             .append('div')
             .style('background', 'var(--color-a)')
@@ -351,7 +363,8 @@ var UserInterface = {
                     )
                 }
             })
-
+        */
+        /*
         this.mapSplitInner
             .append('div')
             .style('background', 'var(--color-a)')
@@ -384,7 +397,7 @@ var UserInterface = {
                     )
                 }
             })
-
+        */
         this.mapSplitInner
             .append('div')
             .attr('id', 'mapSplitInnerViewerInfo')
@@ -425,6 +438,7 @@ var UserInterface = {
             .append('div')
             .attr('class', 'splitterV')
             .attr('id', 'globeSplit')
+            /*
             .style('width', this.splitterSizeHidden + 'px')
             .style('height', this.mainHeight + 'px')
             .style(
@@ -434,6 +448,8 @@ var UserInterface = {
                     this.splitterSizeHidden / 2 +
                     'px'
             )
+        */
+        /*
         this.globeSplitInner = this.globeSplit
             .append('div')
             .attr('class', 'splitterVInner')
@@ -471,7 +487,9 @@ var UserInterface = {
                     )
                 }
             })
+        */
 
+        /*
         this.globeSplitInner
             .append('div')
             .style('background', 'var(--color-a)')
@@ -505,7 +523,7 @@ var UserInterface = {
             .append('div')
             .attr('id', 'mapSplitInnerGlobeInfo')
             .html('Globe')
-
+        */
         //thumb lines
         /*
             this.globeSplit.append( 'div' )
@@ -545,6 +563,8 @@ var UserInterface = {
         bodyRGB = F_.rgbToArray(bodyRGB)
         var c = 'rgba(' + bodyRGB[0] + ',' + bodyRGB[1] + ',' + bodyRGB[2]
         var c = 'rgba(0,0,0'
+
+        console.log("this.pxIsTools", this.pxIsTools)
         //The tools screen
         this.toolsScreen = this.tScreen
             .append('div')
@@ -581,6 +601,8 @@ var UserInterface = {
             .style('left', 0 + 'px')
             .style('bottom', this.pxIsTools - this.splitterSize / 2 + 'px')
             .style('z-index', '3')
+
+        console.log("im the right version")
         //The toolbar
         this.toolbar = d3
             .select('#main-container')
@@ -590,12 +612,12 @@ var UserInterface = {
             //.style( 'background-color', bodyHEX )
             //.style( 'box-shadow', 'inset 0px 2px 7px black' )
             //.style( 'box-shadow', '7px 0px 7px rgba(0,0,0,0.2)' )
-            .style('width', this.topSize + 'px')
-            .style('padding-top', '40px')
+            .style('height', this.topSize + 'px')
+            .style('padding-top', '0px') // 40px
             .style('background', 'var(--color-a)')
-            .style('border-right', '1px solid var(--color-a-5)')
-            .style('top', '0px')
-            .style('height', '100%')
+            .style('border-top', '1px solid var(--color-a-5)')
+            .style('bottom', '0px')
+            .style('width', '100%')
             .style('z-index', '1004')
 
         this.toolbarLogo = d3
@@ -652,6 +674,12 @@ var UserInterface = {
         window.addEventListener('resize', windowresize, false)
 
         shouldRotateSplitterText()
+
+
+        // Hide coordinates for now
+        // FIXME Move this into the bottom display panel 
+        d3.select('#CoordinatesDiv').remove()
+        console.log("try to remove CoordinatesDiv")
     },
     resize: function () {
         windowresize()
@@ -697,10 +725,13 @@ var UserInterface = {
         UserInterface.toolPanel.selectAll('*').remove()
         UserInterface.toolPanel.style('width', width + 'px')
         UserInterface.toolPanelDrag.style('left', width + 10 + 'px')
+        /*
         UserInterface.splitscreens.style(
             'width',
             'calc(100% - ' + (width + 40) + 'px)'
         )
+        */
+
         $('#topBar').css({
             'padding-left': '0px',
             'margin-left': `${width + 40}px`,
@@ -720,10 +751,12 @@ var UserInterface = {
         )
         UserInterface.toolPanel.style('width', width + 'px')
         UserInterface.toolPanelDrag.style('left', width + 10 + 'px')
+        /*
         UserInterface.splitscreens.style(
             'width',
             'calc(100% - ' + (width + 40) + 'px)'
         )
+        */
         $('#topBar').css({
             'padding-left': '0px',
             'margin-left': `${width + 40}px`,
@@ -745,8 +778,8 @@ var UserInterface = {
         })
         //UserInterface.toolPanel.style( 'border-left', '1px solid rgb(38, 168, 255)' );
         UserInterface.toolbar.style('box-shadow', 'none')
-        UserInterface.splitscreens.style('width', 'calc(100% - ' + 40 + 'px)')
-        UserInterface.splitscreens.style('left', 40 + 'px')
+        //UserInterface.splitscreens.style('width', 'calc(100% - ' + 40 + 'px)')
+        //UserInterface.splitscreens.style('left', 40 + 'px')
         UserInterface.mainWidth = $('#splitscreens').width()
         UserInterface.mainHeight = $('#splitscreens').height()
         var pp = UserInterface.getPanelPercents()
@@ -804,62 +837,27 @@ var UserInterface = {
             }
         )
         let timeUIActive = false
-        let timeUIExpanded = false
         if ($('#timeUI').length) {
             timeUIActive = $('#timeUI').hasClass('active')
-            timeUIExpanded = $('#timeUI').hasClass('expanded')
         }
-
-        const timeUIHeight = timeUIActive ? (timeUIExpanded ? 145 : 40) : 0
 
         $('#mapToolBar').css({
-            bottom: UserInterface.pxIsTools + timeUIHeight + 'px',
+            bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',
         })
         $('.leaflet-control-scalefactor').css({
-            bottom:
-                UserInterface.pxIsTools +
-                28 +
-                (timeUIActive ? timeUIHeight - 40 : 0) +
-                'px',
+            bottom: UserInterface.pxIsTools + 28 + 'px',
         })
-        $('#mmgis-attributions').css({
-            bottom:
-                UserInterface.pxIsTools +
-                (timeUIActive ? timeUIHeight - 40 : 0) +
-                'px',
-        })
-        // Only set compass position if no attributions exist (Attributions.js manages it when they do)
-        if (
-            $('#mmgis-attributions').length === 0 ||
-            $('#mmgis-attributions').text().trim().length === 0
-        ) {
-            $('#mmgis-map-compass').css({
-                bottom:
-                    UserInterface.pxIsTools +
-                    38 +
-                    (timeUIActive ? timeUIHeight - 40 : 0) +
-                    'px',
-            })
-        } else {
-            $('#mmgis-map-compass').css({
-                bottom:
-                    UserInterface.pxIsTools +
-                    58 +
-                    (timeUIActive ? timeUIHeight - 40 : 0) +
-                    'px',
-            })
-        }
-        $('.leaflet-bottom.leaflet-right').css({
-            bottom: UserInterface.pxIsTools + timeUIHeight + 'px',
+        $('#mmgis-map-compass').css({
+            bottom: UserInterface.pxIsTools + 38 + 'px',
         })
         $('#CoordinatesDiv').css({
-            bottom: UserInterface.pxIsTools + timeUIHeight + 'px',
+            bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',
         })
         $('#timeUI').css({
-            bottom:
-                UserInterface.pxIsTools +
-                (timeUIActive ? 0 : timeUIExpanded ? -148 : -40) +
-                'px',
+            bottom: UserInterface.pxIsTools + (timeUIActive ? 0 : -40) + 'px',
+        })
+        $('#toolbar').css({
+            bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',
         })
 
         //The tools slider
@@ -916,7 +914,9 @@ var UserInterface = {
         let newTopWidth = toolbarWidth
 
         if (newWidth == 'full') {
-            newWidth = `calc(100vw - ${$('#toolbar').width()}px)`
+            //newWidth = `calc(100vw - ${$('#toolbar').width()}px)`
+            // FIXME Figure out how the above was calculated
+            newWidth = '100%'
         } else {
             newTopWidth = newTopWidth + newWidth
             newWidth += 'px'
@@ -1002,11 +1002,13 @@ var UserInterface = {
         resize()
     },
     minimalist(is) {
+        console.log("minimalist", is, this.toolbar)
+
         if (is) {
             this.toolbarLogo.style('display', 'inherit')
-            this.toolbar.style('top', '0px')
-            this.toolbar.style('height', '100%')
-            this.toolbar.style('padding-top', '40px')
+            this.toolbar.style('bottom', '0px')
+            this.toolbar.style('height', this.topSize + 'px')
+            this.toolbar.style('padding-top', '0px') // 40px
             this.toolPanel.style('top', '0px')
             this.toolPanel.style('height', '100%')
             this.splitscreens.style('top', '0px')
@@ -1059,7 +1061,10 @@ var UserInterface = {
                 l_.configData.look.pagename == ''
             )
                 $('#topBarTitleName').css({ display: 'none' })
-            else $('#topBarTitleName').html(l_.configData.look.pagename)
+            else {
+                // FIXME Move the location of this name maybe? For now just hide it
+                // $('#topBarTitleName').html(l_.configData.look.pagename)
+            }
         }
 
         //Disable toolbar presets when needed
