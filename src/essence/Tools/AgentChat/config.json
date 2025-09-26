@@ -1,0 +1,17 @@
+{
+    "defaultIcon": "robot-outline",
+    "description": "Chat with the MMGIS Agent to list layers, toggle, opacity, and zoom.",
+    "descriptionFull": {
+        "title": "Agent Chat",
+        "example": {
+            "message": "List layers"
+        }
+    },
+    "hasVars": false,
+    "name": "AgentChat",
+    "toolbarPriority": 3,
+    "paths": {
+        "AgentChatTool": "essence/Tools/AgentChat/AgentChatTool"
+    },
+    "expandable": false
+}
