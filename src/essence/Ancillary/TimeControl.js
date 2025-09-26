@@ -386,25 +386,38 @@ var TimeControl = {
         // refresh time enabled layers
         let reloadedLayers = []
         let savedActiveFeature = null
-        
+
         // Save active feature if it belongs to a time-enabled layer
         if (L_.activeFeature) {
             const activeLayerName = L_.activeFeature.layerName
             const activeLayer = L_.layers.data[activeLayerName]
-            
-            if (activeLayer && activeLayer.time && activeLayer.time.enabled === true) {
+
+            if (
+                activeLayer &&
+                activeLayer.time &&
+                activeLayer.time.enabled === true
+            ) {
                 // Save the active feature details for restoration
                 savedActiveFeature = {
                     layerName: activeLayerName,
-                    feature: JSON.parse(JSON.stringify(L_.activeFeature.feature))
+                    feature: JSON.parse(
+                        JSON.stringify(L_.activeFeature.feature)
+                    ),
                 }
-                
+
                 // If the layer has useKeyAsId or useKeyAsName, save the key/value
-                const keyProp = activeLayer.variables?.useKeyAsId || activeLayer.variables?.useKeyAsName
+                const keyProp =
+                    activeLayer.variables?.useKeyAsId ||
+                    activeLayer.variables?.useKeyAsName
                 if (keyProp && L_.activeFeature.feature.properties) {
                     // keyProp might be a path like "properties.id" or just "id"
-                    const keyPath = keyProp.includes('.') ? keyProp.split('.') : [keyProp]
-                    const keyValue = F_.getIn(L_.activeFeature.feature.properties, keyPath)
+                    const keyPath = keyProp.includes('.')
+                        ? keyProp.split('.')
+                        : [keyProp]
+                    const keyValue = F_.getIn(
+                        L_.activeFeature.feature.properties,
+                        keyPath
+                    )
                     if (keyValue != null) {
                         savedActiveFeature.key = keyProp
                         savedActiveFeature.value = keyValue
@@ -412,7 +425,7 @@ var TimeControl = {
                 }
             }
         }
-        
+
         for (let layerName in L_.layers.data) {
             const layer = L_.layers.data[layerName]
             if (
@@ -424,37 +437,51 @@ var TimeControl = {
                 reloadedLayers.push(layer.name)
             }
         }
-        
+
         // Restore active feature after layers reload
-        if (savedActiveFeature && reloadedLayers.includes(savedActiveFeature.layerName)) {
+        if (
+            savedActiveFeature &&
+            reloadedLayers.includes(savedActiveFeature.layerName)
+        ) {
             setTimeout(() => {
                 // Try to restore using key/value if available
                 if (savedActiveFeature.key && savedActiveFeature.value) {
                     L_.selectPoint({
                         layerUUID: savedActiveFeature.layerName,
                         key: savedActiveFeature.key,
-                        value: savedActiveFeature.value
+                        value: savedActiveFeature.value,
                     })
-                } else if (savedActiveFeature.feature.geometry && savedActiveFeature.feature.geometry.coordinates) {
+                } else if (
+                    savedActiveFeature.feature.geometry &&
+                    savedActiveFeature.feature.geometry.coordinates
+                ) {
                     // Fallback to selecting by coordinates
-                    const coords = savedActiveFeature.feature.geometry.coordinates
+                    const coords =
+                        savedActiveFeature.feature.geometry.coordinates
                     let lat, lon
                     if (savedActiveFeature.feature.geometry.type === 'Point') {
                         lon = coords[0]
                         lat = coords[1]
-                    } else if (savedActiveFeature.feature.geometry.type === 'LineString' || 
-                               savedActiveFeature.feature.geometry.type === 'Polygon') {
+                    } else if (
+                        savedActiveFeature.feature.geometry.type ===
+                            'LineString' ||
+                        savedActiveFeature.feature.geometry.type === 'Polygon'
+                    ) {
                         // Get first coordinate or centroid
-                        const firstCoord = savedActiveFeature.feature.geometry.type === 'Polygon' ? coords[0][0] : coords[0]
+                        const firstCoord =
+                            savedActiveFeature.feature.geometry.type ===
+                            'Polygon'
+                                ? coords[0][0]
+                                : coords[0]
                         lon = firstCoord[0]
                         lat = firstCoord[1]
                     }
-                    
+
                     if (lat != null && lon != null) {
                         L_.selectPoint({
                             layerUUID: savedActiveFeature.layerName,
                             lat: lat,
-                            lon: lon
+                            lon: lon,
                         })
                     }
                 }

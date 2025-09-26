@@ -409,7 +409,7 @@ var Viewer_ = {
                     console.log('here')
                 }
             })
-        } else if (o.isVideo || (extLow === 'webm' || extLow === 'mp4')) {
+        } else if (o.isVideo || extLow === 'webm' || extLow === 'mp4') {
             this.imageVideo.style('display', 'inherit')
             this.imagePDF.style('display', 'none')
             this.imagePanorama.style('display', 'none')
@@ -428,11 +428,11 @@ var Viewer_ = {
             // Handle loading events
             Viewer_.toolBarLoading.style('opacity', '1')
 
-            videoElement.onloadeddata = function() {
+            videoElement.onloadeddata = function () {
                 Viewer_.toolBarLoading.style('opacity', '0')
             }
 
-            videoElement.onerror = function() {
+            videoElement.onerror = function () {
                 Viewer_.toolBarLoading.html('Error loading video')
                 setTimeout(() => {
                     Viewer_.toolBarLoading.style('opacity', '0')
@@ -457,11 +457,11 @@ var Viewer_ = {
             // Handle loading events
             Viewer_.toolBarLoading.style('opacity', '1')
 
-            imgElement.onload = function() {
+            imgElement.onload = function () {
                 Viewer_.toolBarLoading.style('opacity', '0')
             }
 
-            imgElement.onerror = function() {
+            imgElement.onerror = function () {
                 Viewer_.toolBarLoading.html('Error loading GIF')
                 setTimeout(() => {
                     Viewer_.toolBarLoading.style('opacity', '0')
@@ -506,10 +506,11 @@ var Viewer_ = {
             if (setLocAfter) {
                 setTimeout(function () {
                     //Because openseadragon's simple image open event is broken
-                    var l = L_.FUTURES.viewerLoc
-                    Viewer_.imageViewerMap.viewport.fitBounds(
-                        new OpenSeadragon.Rect(l[0], l[1], l[2], l[3])
-                    )
+                    const l = L_.FUTURES.viewerLoc
+                    if (l)
+                        Viewer_.imageViewerMap.viewport.fitBounds(
+                            new OpenSeadragon.Rect(l[0], l[1], l[2], l[3])
+                        )
                     L_.FUTURES.viewerLoc = null
                 }, 2000)
             }

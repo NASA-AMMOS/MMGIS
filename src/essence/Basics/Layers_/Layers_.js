@@ -2886,8 +2886,8 @@ const L_ = {
         if (layerName in L_.layers.layer) {
             const layerObj = L_.layers.data[layerName]
             if (L_._layersBeingMade[layerName] === true) {
-                console.error(
-                    `ERROR - updateVectorLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
+                console.warn(
+                    `WARNING - updateVectorLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
                 )
                 return false
             }

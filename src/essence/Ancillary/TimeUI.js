@@ -938,7 +938,7 @@ const TimeUI = {
                 .css('left', `${(left / timelineBCR.width) * 100}%`)
         }
     },
-    _refreshIntervals() {
+    _refreshIntervals(dontChange) {
         clearInterval(TimeUI.playInterval)
         if (TimeUI.play) {
             TimeUI._loopTime()
@@ -950,10 +950,9 @@ const TimeUI = {
 
         clearInterval(TimeUI.presentTimeInterval)
         if (TimeUI.now) {
-            TimeUI.presentTimeInterval = setInterval(
-                TimeUI._setCurrentTime,
-                TimeUI.intervalValues[TimeUI.intervalIndex]
-            )
+            TimeUI.presentTimeInterval = setInterval(() => {
+                TimeUI._setCurrentTime(null, null, dontChange)
+            }, TimeUI.intervalValues[TimeUI.intervalIndex])
         }
         TimeUI._refreshLiveProgress()
     },
@@ -1112,7 +1111,7 @@ const TimeUI = {
                 TimeUI.clearFollowedFeature()
             }
         }
-        TimeUI._refreshIntervals()
+        TimeUI._refreshIntervals(true)
     },
     toggleFollowFeature() {
         if (!TimeUI.followEnabled) {
@@ -1325,7 +1324,7 @@ const TimeUI = {
         }
 
         const layerName = L_.FUTURES.activePoint.layerName
-        
+
         // Check if we can follow this layer
         if (!TimeUI.canFollowLayer(layerName)) {
             console.log(
@@ -1345,7 +1344,7 @@ const TimeUI = {
                 setTimeout(waitForActiveFeature, 500)
             }
         }
-        
+
         waitForActiveFeature()
     },
     _remakeTimeSlider(ignoreHistogram) {
@@ -1616,7 +1615,7 @@ const TimeUI = {
             const parsedNow = TimeUI.endTempus.dates.parseInput(
                 new Date(offsetNowDate)
             )
-
+            //disableChange = true
             TimeUI.setCurrentTime(parsedNow, disableChange)
             //TimeUI._remakeTimeSlider(true)
             TimeUI.endTempus.dates.setValue(parsedNow)
