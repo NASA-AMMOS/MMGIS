@@ -7,12 +7,14 @@ let setup = {
   onceInit: (s) => {
     s.app.use(
       s.ROOT_PATH + "/api/webhooks",
+      s.ensureAdmin(),
       s.checkHeadersCodeInjection,
       routerWebhooks
     );
     if (process.env.NODE_ENV === "development") {
       s.app.use(
         s.ROOT_PATH + "/api/testwebhooks",
+        s.ensureAdmin(),
         s.checkHeadersCodeInjection,
         routerTestWebhooks
       );
