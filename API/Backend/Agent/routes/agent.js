@@ -24,6 +24,8 @@ function validateAction(a) {
   const args = a.args || {};
   switch (a.tool) {
     case "list_layers":
+      if (args && Object.keys(args).length > 0)
+        return { ok: false, err: "list_layers expects empty args" };
       return { ok: true, action: { tool: "list_layers", args: {} } };
     case "toggle_layer": {
       if (typeof args.name !== "string" || args.name.length === 0)
@@ -41,7 +43,17 @@ function validateAction(a) {
     case "set_layer_opacity": {
       if (typeof args.name !== "string" || args.name.length === 0)
         return { ok: false, err: "set_layer_opacity.name required" };
-      const opacity = clamp01(parseFloat(args.opacity));
+      if (typeof args.opacity !== "number" || !isFinite(args.opacity))
+        return {
+          ok: false,
+          err: "set_layer_opacity.opacity must be number in [0,1]",
+        };
+      const opacity = args.opacity;
+      if (opacity < 0 || opacity > 1)
+        return {
+          ok: false,
+          err: "set_layer_opacity.opacity must be number in [0,1]",
+        };
       return {
         ok: true,
         action: {
@@ -51,7 +63,11 @@ function validateAction(a) {
       };
     }
     case "zoom_to": {
-      if (Array.isArray(args.center) && typeof args.zoom === "number") {
+      if (
+        Array.isArray(args.center) &&
+        args.center.length === 2 &&
+        typeof args.zoom === "number"
+      ) {
         const [lon, lat] = args.center;
         if (!isFinite(lon) || !isFinite(lat))
           return { ok: false, err: "zoom_to.center must be [lon,lat]" };
@@ -99,20 +115,35 @@ function fallbackPlan(message) {
   const m = (message || "").toLowerCase();
   const actions = [];
   if (m.includes("list")) actions.push({ tool: "list_layers", args: {} });
-  const nameMatch = /sample[_\s-]?points/i.test(message)
-    ? "Sample_Points"
-    : null;
-  if (/(turn on|toggle|show)/.test(m) && nameMatch)
-    actions.push({
-      tool: "toggle_layer",
-      args: { name: "Sample_Points", visible: true },
-    });
+  const nameMatch = (() => {
+    const mm =
+      /(?:toggle|turn\s+on|turn\s+off|show|hide)\s+([\w:\-\/ ]+)/i.exec(
+        message,
+      );
+    if (mm && mm[1]) return mm[1].trim();
+    if (/sample[_\s-]?points/i.test(message)) return "Sample_Points";
+    if (/osm[_\s-]?basemap/i.test(message)) return "OSM_Basemap";
+    return null;
+  })();
+  if (nameMatch) {
+    const wantOn = /(turn\s+on|show)/.test(m)
+      ? true
+      : /(turn\s+off|hide)/.test(m)
+        ? false
+        : true;
+    if (/(turn\s+on|turn\s+off|toggle|show|hide)/.test(m)) {
+      actions.push({
+        tool: "toggle_layer",
+        args: { name: nameMatch, visible: wantOn },
+      });
+    }
+  }
   const opMatch = m.match(/opacity\s*(to)?\s*([0-1]?(?:\.\d+)?)/);
   if (opMatch && nameMatch) {
     const v = clamp01(parseFloat(opMatch[2]));
     actions.push({
       tool: "set_layer_opacity",
-      args: { name: "Sample_Points", opacity: v },
+      args: { name: nameMatch, opacity: v },
     });
   }
   const zoomMatch = m.match(
@@ -129,31 +160,52 @@ function fallbackPlan(message) {
   return actions;
 }
 
-function summarize(actions) {
-  const parts = [];
-  for (const a of actions) {
-    if (a.tool === "list_layers") parts.push("listed layers");
-    if (a.tool === "toggle_layer")
-      parts.push(`toggled ${a.args.name} ${a.args.visible ? "on" : "off"}`);
-    if (a.tool === "set_layer_opacity")
-      parts.push(`opacity ${a.args.name} ${a.args.opacity}`);
-    if (a.tool === "zoom_to") parts.push("zoomed");
-  }
-  return `Performed: ${parts.join("; ")}.`;
-}
+// Server no longer claims Performed; client owns success phrasing
 
 router.post("/", express.json(), async function (req, res) {
   const message = (req.body && req.body.message) || "";
 
+  if (typeof message !== "string" || message.length > 2000) {
+    return res.status(200).json({
+      text: "Message too long (max 2000 chars).",
+      actions: [],
+      source: "fallback",
+      debug: {
+        providerAttempted: false,
+        providerReturnedActions: false,
+        providerFailureReason: "MessageTooLong",
+      },
+    });
+  }
+
   // Try provider, then fallback
   let proposed = [];
+  let source = "provider";
+  const debug = {
+    providerAttempted: false,
+    providerReturnedActions: false,
+    providerFailureReason: null,
+  };
   try {
-    proposed = await planWithProvider(message);
+    debug.providerAttempted = true;
+    const r = await planWithProvider(message);
+    if (Array.isArray(r)) {
+      // backward compat
+      proposed = r;
+    } else {
+      proposed = r.actions || [];
+      if (r.debug) debug.azure = r.debug;
+    }
+    debug.providerReturnedActions =
+      Array.isArray(proposed) && proposed.length > 0;
   } catch (e) {
     proposed = [];
+    debug.providerFailureReason = (e && e.message) || "Error";
   }
-  if (!Array.isArray(proposed) || proposed.length === 0)
+  if (!Array.isArray(proposed) || proposed.length === 0) {
+    source = "fallback";
     proposed = fallbackPlan(message);
+  }
 
   // Validate each action strictly
   const actions = [];
@@ -169,14 +221,19 @@ router.post("/", express.json(), async function (req, res) {
   }
 
   let text =
-    summarize(actions) +
+    `Planned: ${actions.map((a) => a.tool).join(", ") || "(none)"}.` +
     (errors.length ? ` Dropped: ${errors.join("; ")}` : "");
   if (sawUnknownTool) {
     text +=
       " Note: Only list_layers, toggle_layer, set_layer_opacity, zoom_to are available right now.";
   }
 
-  res.status(200).json({ text, actions });
+  res.status(200).json({
+    text: source === "fallback" ? text + " (fallback)" : text,
+    actions,
+    source,
+    debug,
+  });
 });
 
 module.exports = router;
