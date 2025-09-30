@@ -95,6 +95,12 @@ var InfoTool = {
     hiddenRootFields: ['_', 'style', 'images', 'coord_properties'],
     vars: {},
     MMGISInterface: null,
+    initialize: function () {
+        if (L_.UserInterface_.isMobile === true) {
+            this.width = 'full'
+            this.height = 500
+        }
+    },
     make: function () {
         this.MMGISInterface = new interfaceWithMMGIS()
     },
@@ -158,8 +164,11 @@ var InfoTool = {
         this.featureLayers = featureLayers || []
 
         if (open != true) return
+
+        const divID = L_.UserInterface_.isMobile === true ?  '#tools' : '#toolPanel'
+
         // MMGIS should always have a div with id 'tools'
-        let tools = d3.select('#toolPanel')
+        var tools = d3.select(divID)
         tools.style('background', 'var(--color-k)')
         //Clear it
         tools.selectAll('*').remove()

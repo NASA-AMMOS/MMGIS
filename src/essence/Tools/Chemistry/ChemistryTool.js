@@ -71,7 +71,7 @@ function interfaceWithMMWebGIS() {
     }
 
     //MMWebGIS should always have a div with id 'tools'
-    var tools = d3.select('#tools')
+    var tools = d3.select(L_.UserInterface_.isMobile === true ?  '#tools' : '#toolPanel')
     //Clear it
     tools.selectAll('*').remove()
     //Add a semantic container

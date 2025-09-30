@@ -14,6 +14,11 @@ var SitesTool = {
         this.vars = L_.getToolVars('sites')
         this.sitesVar = this.vars.sites
 
+        if (L_.UserInterface_.isMobile === true) {
+            this.width = 'full'
+            this.height = 500
+        }
+
         //Don't set a default site if custom on layers were passed
         // in the url since setting the site would immediately override
         if (L_.FUTURES.site != null) {
@@ -35,7 +40,9 @@ var SitesTool = {
         }
     },
     make: function () {
-        var tools = d3.select('#toolPanel')
+        const divID = L_.UserInterface_.isMobile === true ?  '#tools' : '#toolPanel'
+
+        var tools = d3.select(divID)
         tools
             .style('background', 'var(--color-k)')
             .style('box-shadow', 'inset 2px 0px 10px 0px rgba(0,0,0,0.2)')

@@ -190,8 +190,8 @@ let ToolController_ = {
                     .append('div')
                     .attr('id', `toolButton${tools[i].name}`)
                     .attr('class', 'toolButton')
-                    .style('width', '100%')
-                    .style('height', '36px')
+                    .style('width', L_.UserInterface_.isMobile === true ? '36px' : '100%')
+                    .style('height', L_.UserInterface_.isMobile === true ? '100%': '36px')
                     .style('display', 'inline-block')
                     .style('text-align', 'center')
                     .style('line-height', '36px')
@@ -270,11 +270,14 @@ let ToolController_ = {
                     .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
                     .style('cursor', 'pointer')
 
-                tippy(`#toolButton${tools[i].name}`, {
-                    content: tools[i].name,
-                    placement: 'right',
-                    theme: 'blue',
-                })
+                if (!L_.UserInterface_.isMobile) {
+                    // Only show tooltip if not in mobile mode
+                    tippy(`#toolButton${tools[i].name}`, {
+                        content: tools[i].name,
+                        placement: 'right',
+                        theme: 'blue',
+                    })
+                }
             }
         }
 
