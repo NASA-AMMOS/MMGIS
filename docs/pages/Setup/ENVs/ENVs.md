@@ -256,3 +256,35 @@ Veloserver - Velocity and Wind Data Visualization Server - https://github.com/NA
 #### `VELOSERVER_PORT=`
 
 Port to proxy veloserver on | default `8104`
+
+### Custom Adjacent Servers
+
+Configure your own adjacent servers without modifying core MMGIS code. These environment variables allow you to add custom proxy endpoints that follow the same pattern as the built-in adjacent servers.
+
+#### `ADJACENT_SERVER_CUSTOM_X=`
+
+Custom adjacent server configuration where X is a number (0, 1, 2, etc.) | JSON array | default `null`
+
+**Format:** `["isEnabled", "routeName", "serviceName", "port"]`
+
+**Parameters:**
+
+- `isEnabled` - String "true" or "false" to enable/disable this server
+- `routeName` - URL path name (will be accessible at `/routeName`)
+- `serviceName` - Docker service name or "localhost" for non-containerized deployments
+- `port` - Port number the service runs on
+
+**Examples:**
+
+```bash
+ADJACENT_SERVER_CUSTOM_0=["true", "my_api", "my_api_service", "8105"]
+ADJACENT_SERVER_CUSTOM_1=["true", "data_service", "data_service_container", "9000"]
+ADJACENT_SERVER_CUSTOM_2=["false", "disabled_service", "disabled_service", "8106"]
+```
+
+**Access Pattern:**
+Custom servers will be accessible at `{ROOT_PATH}/{routeName}` where `ROOT_PATH` is your configured root path (if any) and `routeName` is the route name specified in the configuration.
+
+**Note:**
+
+- Includes standard authentication middleware (allows all GETs, requires admin auth for other methods)
