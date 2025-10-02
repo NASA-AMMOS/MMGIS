@@ -24,7 +24,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
         on: {
           proxyRes: createSwaggerInterceptor("stac", stacTarget),
         },
-      })
+      }),
     );
   }
 
@@ -46,7 +46,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
         on: {
           proxyRes: createSwaggerInterceptor("tipg", tipgTarget),
         },
-      })
+      }),
     );
   }
 
@@ -68,7 +68,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
         on: {
           proxyRes: createSwaggerInterceptor("titiler", titilerTarget),
         },
-      })
+      }),
     );
   }
 
@@ -90,10 +90,10 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
         on: {
           proxyRes: createSwaggerInterceptor(
             "titilerpgstac",
-            titilerpgstacTarget
+            titilerpgstacTarget,
           ),
         },
-      })
+      }),
     );
   }
 
@@ -110,9 +110,26 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
         pathRewrite: {
           [`^${process.env.ROOT_PATH || ""}/veloserver`]: "",
         },
-      })
+      }),
     );
   }
+}
+
+// Frozon API
+if (process.env.WITH_FROZON_API === "true") {
+  app.use(
+    `${process.env.ROOT_PATH || ""}/frozon_api`,
+    ensureAdmin(false, false, true), // true to allow all GETs - others require admin auth
+    createProxyMiddleware({
+      target: `http://${isDocker ? "frozon_api" : "localhost"}:${
+        process.env.FROZON_API_PORT || 8104
+      }`,
+      changeOrigin: true,
+      pathRewrite: {
+        [`^${process.env.ROOT_PATH || ""}/frozon_api`]: "",
+      },
+    }),
+  );
 }
 
 const createSwaggerInterceptor = (path, target) => {
@@ -140,14 +157,14 @@ const createSwaggerInterceptor = (path, target) => {
           `'${
             (process.env.EXTERNAL_ROOT_PATH || "") +
             (process.env.ROOT_PATH || "")
-          }/${path}/api'`
+          }/${path}/api'`,
         )
         .replace(
           "'/docs/oauth2-redirect'",
           `'${
             (process.env.EXTERNAL_ROOT_PATH || "") +
             (process.env.ROOT_PATH || "")
-          }/${path}/docs/oauth2-redirect'`
+          }/${path}/docs/oauth2-redirect'`,
         ); // manipulate response
     }
 
@@ -159,7 +176,7 @@ const createSwaggerInterceptor = (path, target) => {
       newResponse = newResponse || responseBuffer.toString("utf8");
       newResponse = newResponse.replaceAll(
         target,
-        `${req.protocol}://${req.get("host")}/${path}`
+        `${req.protocol}://${req.get("host")}/${path}`,
       );
     }
 
