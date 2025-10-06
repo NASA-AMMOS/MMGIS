@@ -5,12 +5,14 @@ import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
 import L_ from '../Basics/Layers_/Layers_'
 import Dropy from '../../external/Dropy/dropy'
-import UserInterface from '../Basics/UserInterface_/UserInterface_'
+import * as _UserInterface_ from '../Basics/UserInterface_/UserInterface_'
 import calls from '../../pre/calls'
 
 import tippy from 'tippy.js'
 
 import './Coordinates.css'
+
+const UserInterface = await _UserInterface_.default()
 
 // prettier-ignore
 const markup = [
@@ -102,11 +104,16 @@ const Coordinates = {
         },
     },
     init: function () {
+        console.log("Init CoordinatesDiv")
         d3.select('#CoordinatesDiv').remove()
-        d3.select('body')
-            .append('div')
-            .attr('id', 'CoordinatesDiv')
-            .html(markup)
+
+        // FIXME Hide the coordinates for now
+        if (!UserInterface.isMobile) {
+            d3.select('body')
+                .append('div')
+                .attr('id', 'CoordinatesDiv')
+                .html(markup)
+        }
 
         tippy('#pickLngLat', {
             content: 'Pick Coordinates',

@@ -146,3 +146,94 @@
     line-height: 30px;
     margin-right: 5px;
 }
+
+/* Overwrite MeasureTool CSS */
+.MeasureTool {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-flow: column;
+    background: var(--color-a);
+    color: var(--color-f);
+    box-shadow: inset 2px 0px 10px 0px rgba(0, 0, 0, 0.2);
+    overflow-y: scroll;
+}
+.MeasureTool #measureLeft {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-flow: column;
+}
+.MeasureTool #measureToolBar {
+    display: none;
+}
+#polyline-measure-control {
+    display: none;
+}
+.MeasureTool #measureInfo {
+    width: 100%;
+}
+
+/* Overwrite LayersTool CSS */
+#layersTool .layerName {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Overwrite TimeUI CSS */
+#mmgisTimeUI {
+    flex-flow: column;
+}
+#timeUI {
+    bottom: 0px;
+}
+#mmgisTimeUIActionsLeft, #mmgisTimeUIActionsRight {
+    justify-content: left;
+}
+#timeUIHeader {
+    display: flex;
+    height: 40px;
+    line-height: 18px;
+    color: #ccc;
+    background: var(--color-a);
+    justify-content: space-between;
+}
+#timeUITitle {
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    padding-left: 6px;
+    font-family: 'lato-light';
+    text-transform: uppercase;
+    color: var(--color-l);
+}
+
+/* Overwrite LayersTool CSS */
+#layersTool .reload,
+#layersTool .layerDownload,
+#layersTool .gears,
+#layersTool .locate,
+#layersTool .LayersToolInfo {
+    color: #ccc;
+}
+#layersTool .reload:hover,
+#layersTool .layerDownload:hover,
+#layersTool .gears:hover,
+#layersTool .locate:hover,
+#layersTool .LayersToolInfo:hover {
+    background: transparent;
+}
+
+/* Hide other misc items */
+.Search {
+    display: none;
+}
+#loginDiv {
+    display: none !important;
+}
+.mmgisHelpButton {
+    display: none !important;
+}
+.leaflet-top {
+    top: 5px;
+}

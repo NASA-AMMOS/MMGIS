@@ -228,6 +228,8 @@ var UserInterface = {
         this.pxIsToolsInit = this.splitterSize / 4
 
         this.pxIsMap = this.mainWidth - this.pxIsViewer - this.pxIsGlobe
+        this.pxIsMapHeight = this.mainHeight
+
         //the 'top' three panels
         this.vmgScreen = this.splitscreens.append('div').attr('id', 'vmgScreen')
 
@@ -787,6 +789,7 @@ var UserInterface = {
     },
     // can also be 'full'
     setToolHeight: function (pxHeight, shouldntAnimate) {
+        console.log("----- setToolHeight -----")
         if (pxHeight == 'full') {
             UserInterface.pxIsTools =
                 this.mainHeight - this.splitterSize - this.topSize
@@ -908,6 +911,30 @@ var UserInterface = {
             },
             { duration: duration }
         )
+
+        // Set height of the map
+        UserInterface.mapScreen
+            .style(
+                'height',
+                 UserInterface.mainHeight - pxHeight + 'px'
+            )
+
+
+        UserInterface.mapSplit
+            .style(
+                'height',
+                 UserInterface.mainHeight - pxHeight + 'px'
+            )
+
+        // FIXME Change this repeated code above and delete this
+        $('#mmgis-map-compass').css({
+            bottom: 38 + 'px',
+        })
+        // FIXME
+        // mapToolBar
+
+
+        resize()
     },
     setToolWidth(newWidth, alignment) {
         const toolbarWidth = $('#toolbar').width()

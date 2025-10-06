@@ -1,0 +1,10 @@
+{
+    "defaultIcon": "clock",
+    "description": "Time stuff.",
+    "descriptionFull": {},
+    "hasVars": false,
+    "name": "Time",
+    "paths": {
+        "TimeUI": "essence/Ancillary/TimeUI"
+    }
+}

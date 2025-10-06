@@ -34,6 +34,22 @@ const MS = {
 }
 
 const TimeUI = {
+    height: 0,
+    width: 0,
+    vars: {},
+    MMGISInterface: null,
+    initialize: function () {
+        if (L_.UserInterface_.isMobile === true) {
+            this.width = 'full'
+            this.height = 300
+        }
+    },
+    make: function () {
+        this.MMWebGISInterface = new interfaceWithMMWebGIS()
+    },
+    destroy: function () {
+        this.MMWebGISInterface.separateFromMMWebGIS()
+    },
     startTempus: null,
     endTempus: null,
     timeSlider: null,
@@ -78,6 +94,11 @@ const TimeUI = {
         // prettier-ignore
         const markup = [
             `<div id="mmgisTimeUI">`,
+                "<div id='timeUIHeader'>",
+                    "<div class='left'>",
+                        "<div id='timeUITitle'>Time</div>",
+                    "</div>",
+                "</div>",
                 `<div id="mmgisTimeUITopBar">`,
                     `<div id="mmgisTimeUIActionsLeft">`,
                     `<div id='mmgisTimeUIMode'>`,
@@ -201,20 +222,42 @@ const TimeUI = {
             `</div>`,
         ].join('\n')
 
-        d3.select('#splitscreens')
-            .append('div')
-            .attr('id', 'timeUI')
-            .html(markup)
+        if (L_.UserInterface_?.isMobile === true) {
+            var tools = d3.select('#tools')
+            //Add a semantic container
+            tools = tools
+                .append('div')
+                .attr('id', 'timeUI')
+                .style('display', 'flex')
+                .style('flex-flow', 'column')
+                .style('overflow', 'hidden')
+                .style('height', '100%')
 
-        d3.select('body')
-            .append('div')
-            .attr('id', 'timeUIPlayPopover_global')
-            .html(playPopoverMarkup)
+            //Add the markup to tools or do it manually
+            tools.html(markup)
 
-        d3.select('body')
-            .append('div')
-            .attr('id', 'timeUIQuickSelectPopover_global')
-            .html(quickSelectPopoverMarkup)
+            d3.select('body')
+                .append('div')
+                .attr('id', 'timeUIPlayPopover_global')
+                .html(playPopoverMarkup)
+
+            $('#timeUI').toggleClass('active')
+        } else {
+            d3.select('#splitscreens')
+                .append('div')
+                .attr('id', 'timeUI')
+                .html(markup)
+
+            d3.select('body')
+                .append('div')
+                .attr('id', 'timeUIPlayPopover_global')
+                .html(playPopoverMarkup)
+
+            d3.select('body')
+                .append('div')
+                .attr('id', 'timeUIQuickSelectPopover_global')
+                .html(quickSelectPopoverMarkup)
+        }
 
         TimeUI.attachEvents()
 
@@ -699,48 +742,51 @@ const TimeUI = {
             }
         })
 
-        // tippy
-        tippy('#mmgisTimeUIMode', {
-            content: 'Mode',
-            placement: 'top',
-            theme: 'blue',
-        })
-        tippy('#mmgisTimeUIQuickSelectTrigger', {
-            content: 'Quick Select Period',
-            placement: 'top',
-            theme: 'blue',
-        })
-        tippy('#mmgisTimeUIPlayTrigger', {
-            content: 'Play',
-            placement: 'top',
-            theme: 'blue',
-        })
+        if (L_.UserInterface_.isMobile !== true) {
+            // tippy
+            tippy('#mmgisTimeUIMode', {
+                content: 'Mode',
+                placement: 'top',
+                theme: 'blue',
+            })
+            tippy('#mmgisTimeUIQuickSelectTrigger', {
+                content: 'Quick Select Period',
+                placement: 'top',
+                theme: 'blue',
+            })
+            tippy('#mmgisTimeUIPlayTrigger', {
+                content: 'Play',
+                placement: 'top',
+                theme: 'blue',
+            })
 
-        tippy('#mmgisTimeUIPlay', {
-            content: 'Play / Pause',
-            placement: 'top',
-            theme: 'blue',
-        })
-        tippy('#mmgisTimeUIFitTime', {
-            content: 'Fit Time to Time-Window',
-            placement: 'top',
-            theme: 'blue',
-        })
-        tippy('#mmgisTimeUIFitWindow', {
-            content: 'Fit Time-Window to Time',
-            placement: 'top',
-            theme: 'blue',
-        })
-        tippy('#mmgisTimeUIFollowFeature', {
-            content: 'Follow Selected Feature',
-            placement: 'top',
-            theme: 'blue',
-        })
-        tippy('#mmgisTimeUIPresent', {
-            content: 'Present',
-            placement: 'top',
-            theme: 'blue',
-        })
+            tippy('#mmgisTimeUIPlay', {
+                content: 'Play / Pause',
+                placement: 'top',
+                theme: 'blue',
+            })
+            tippy('#mmgisTimeUIFitTime', {
+                content: 'Fit Time to Time-Window',
+                placement: 'top',
+                theme: 'blue',
+            })
+            tippy('#mmgisTimeUIFitWindow', {
+                content: 'Fit Time-Window to Time',
+                placement: 'top',
+                theme: 'blue',
+            })
+            tippy('#mmgisTimeUIFollowFeature', {
+                content: 'Follow Selected Feature',
+                placement: 'top',
+                theme: 'blue',
+            })
+            tippy('#mmgisTimeUIPresent', {
+                content: 'Present',
+                placement: 'top',
+                theme: 'blue',
+            })
+        }
+
         // Initialize live progress duration on load
         TimeUI._refreshLiveProgress()
 
@@ -986,13 +1032,16 @@ const TimeUI = {
             }
         }
 
-        // Initialize the time control times, but don't trigger events
-        TimeUI.timeChange(
-            TimeUI._initialStart.toISOString(),
-            TimeUI._initialEnd.toISOString(),
-            null,
-            true
-        )
+        // FIXME
+        if (TimeUI.timeChange) {
+            // Initialize the time control times, but don't trigger events
+            TimeUI.timeChange(
+                TimeUI._initialStart.toISOString(),
+                TimeUI._initialEnd.toISOString(),
+                null,
+                true
+            )
+        }
     },
     fina() {
         let date
@@ -2939,6 +2988,29 @@ const TimeUI = {
             bottom: timeBottom + (UserInterface_.pxIsTools || 0) + 'px',
         })
     },
+}
+
+function interfaceWithMMWebGIS() {
+    this.separateFromMMWebGIS = function () {
+        separateFromMMWebGIS()
+    }
+
+    //MMWebGIS should always have a div with id 'tools'
+    var tools = d3.select('#tools')
+    //Clear it
+    tools.selectAll('*').remove()
+
+    //Add the markup to tools or do it manually
+    //tools.html(markup)
+
+    TimeUI.init(null, true)
+
+    function separateFromMMWebGIS() {
+        let tools = d3.select('#toolPanel')
+
+        //Clear it
+        tools.selectAll('*').remove()
+    }
 }
 
 export default TimeUI

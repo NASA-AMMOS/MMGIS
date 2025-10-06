@@ -94,6 +94,11 @@ var LayersTool = {
         if (this.vars.width) {
             this.width = this.vars.width
         }
+
+        if (L_.UserInterface_.isMobile === true) {
+            this.width = 'full'
+            this.height = 500
+        }
     },
     finalize: function () {
         //Order layers from url
@@ -415,11 +420,21 @@ function interfaceWithMMGIS(fromInit) {
         separateFromMMGIS()
     }
 
-    var tools = d3.select('#toolPanel')
+    const divID = L_.UserInterface_.isMobile === true ?  '#tools' : '#toolPanel'
+
+    var tools = d3.select(divID)
     //Clear it
     tools.selectAll('*').remove()
     //Add a semantic container
-    tools = tools.append('div').style('height', '100%')
+    tools = tools
+        .append('div')
+        .attr('id', 'layersTool')
+        .style('display', 'flex')
+        .style('flex-flow', 'column')
+        .style('overflow', 'hidden')
+        .style('height', '100%')
+
+
     if (fromInit) tools.style('display', 'none')
     //Add the markup to tools or do it manually
     tools.html(markup)

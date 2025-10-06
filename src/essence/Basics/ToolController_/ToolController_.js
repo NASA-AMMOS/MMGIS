@@ -173,6 +173,14 @@ let ToolController_ = {
                 .style('cursor', 'pointer')
         }
 
+        if (L_.configData.time && L_.configData.time.enabled === true) {
+            tools.push({
+                'icon' : 'clock',
+                'js': 'TimeUI',
+                'name': "Time"
+            })
+        }
+
         let legendToolIndex = -1
 
         for (let i = 0; i < tools.length; i++) {
