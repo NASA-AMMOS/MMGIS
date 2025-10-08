@@ -54,6 +54,17 @@ function buildRegistry() {
   return {
     kind: "mmgis-tool-registry",
     version,
+    uiProfiles: {
+      // Optional UI hints for the dispatcher; purely declarative
+      // type -> behavior mapping (client-only concern)
+      layers_line: { kind: "render_layers_line" },
+      opacity: { kind: "set_opacity" },
+      toggle: { kind: "toggle_visibility" },
+      zoom_view: { kind: "zoom_view" },
+      mmgis_overview: { kind: "render_text_with_citation" },
+      layer_summary: { kind: "render_layer_summary" },
+      web_search_suggest: { kind: "render_links_summary" },
+    },
     generatedAt: new Date().toISOString(),
     tools,
   };

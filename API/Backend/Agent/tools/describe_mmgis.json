@@ -1,6 +1,6 @@
 {
-  "name": "list_layers",
-  "description": "List all layers with their on/off state.",
+  "name": "describe_mmgis",
+  "description": "Return a short overview of MMGIS with a docs citation.",
   "parameters": {
     "type": "object",
     "properties": {},
@@ -13,6 +13,6 @@
   },
   "execution": {
     "adapter": "custom",
-    "ui": { "type": "layers_line" }
+    "ui": { "type": "mmgis_overview" }
   }
 }

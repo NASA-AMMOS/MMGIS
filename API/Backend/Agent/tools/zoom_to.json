@@ -14,7 +14,12 @@
             "maxItems": 2,
             "description": "[lon,lat]"
           },
-          "zoom": { "type": "integer", "minimum": 0, "maximum": 22, "default": 15 }
+          "zoom": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 22,
+            "default": 15
+          }
         },
         "required": ["center", "zoom"],
         "additionalProperties": false
@@ -56,8 +61,7 @@
   },
   "execution": {
     "adapter": "custom",
-    "name": "zoom_to"
+    "name": "zoom_to",
+    "ui": { "type": "zoom_view" }
   }
 }
-
-

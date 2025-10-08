@@ -1,0 +1,24 @@
+{
+  "name": "describe_layer",
+  "description": "Summarize metadata for a specific layer by display name.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": { "type": "string", "minLength": 1 }
+    },
+    "required": ["name"],
+    "additionalProperties": false
+  },
+  "modelParameters": {
+    "type": "object",
+    "properties": {
+      "name": { "type": "string" }
+    },
+    "required": ["name"],
+    "additionalProperties": false
+  },
+  "execution": {
+    "adapter": "custom",
+    "ui": { "type": "layer_summary" }
+  }
+}

@@ -1,6 +1,7 @@
 import $ from 'jquery'
 import L_ from '../../Basics/Layers_/Layers_'
 import * as d3 from 'd3'
+import RENDERERS from './renderers'
 
 const markup = [
     `<div id='agentChat' style='display:flex;flex-direction:column;height:100%'>`,
@@ -154,15 +155,6 @@ function interfaceWithMMGIS() {
         return items
     }
 
-    function listLayersLine() {
-        const items = buildCatalog()
-        if (items.length === 0) return 'Layers: (none)'
-        const parts = items.map(
-            (i) => `${i.displayName} (${i.visible ? 'on' : 'off'})`
-        )
-        return 'Layers: ' + parts.join(', ')
-    }
-
     function resolveDisplayNameToId(displayName) {
         const items = buildCatalog()
         const exact = items.find((i) => i.displayName === displayName)
@@ -180,102 +172,39 @@ function interfaceWithMMGIS() {
         const registry = await loadRegistry()
         const toolsByName = {}
         ;(registry.tools || []).forEach((t) => (toolsByName[t.name] = t))
+        const kindOf = (uiType) => {
+            const map = (registry.uiProfiles && registry.uiProfiles[uiType]) || null
+            if (map && map.kind) return map.kind
+            const fallback = {
+                layers_line: 'render_layers_line',
+                mmgis_overview: 'render_text_with_citation',
+                layer_summary: 'render_layer_summary',
+                web_search_suggest: 'render_links_summary',
+                opacity: 'set_opacity',
+                zoom_view: 'zoom_view',
+                toggle: 'toggle_visibility',
+            }
+            return fallback[uiType]
+        }
         const performed = []
         for (const a of actions) {
             if (!a || typeof a !== 'object') continue
             const spec = toolsByName[a.tool]
             if (!spec || !spec.execution) continue
-            const exec = spec.execution
-            if (exec.adapter === 'custom') {
-                if (exec.name === 'list_layers') {
-                    addLine(listLayersLine())
-                    performed.push('listed')
-                } else if (exec.name === 'set_layer_opacity') {
-                    const dn = a.args && a.args.name
-                    const o = a.args && a.args.opacity
-                    const id = resolveDisplayNameToId(dn)
-                    if (!id) {
-                        addLine(
-                            `Couldn't find layer "${dn}". Try "list layers" first.`
-                        )
-                        continue
-                    }
-                    const prev =
-                        L_.layers && L_.layers.opacity && L_.layers.opacity[id]
-                    if (typeof prev === 'number')
-                        pushUndo({
-                            tool: 'set_layer_opacity',
-                            target: dn,
-                            previous: { opacity: prev },
-                        })
-                    L_.setLayerOpacity(id, o)
-                    performed.push(`opacity ${dn} ${o}`)
-                } else if (exec.name === 'zoom_to') {
-                    const m = window.mmgisAPI.map
-                    if (!m) continue
-                    const prevCenter = m.getCenter && m.getCenter()
-                    const prevZoom = m.getZoom && m.getZoom()
-                    const c = a.args && a.args.center
-                    const b = a.args && a.args.bbox
-                    if (
-                        Array.isArray(c) &&
-                        typeof (a.args && a.args.zoom) === 'number'
-                    ) {
-                        const lon = c[0],
-                            lat = c[1]
-                        if (prevCenter && typeof prevZoom === 'number') {
-                            pushUndo({
-                                tool: 'zoom_to',
-                                target: 'map',
-                                previous: {
-                                    center: [prevCenter.lng, prevCenter.lat],
-                                    zoom: prevZoom,
-                                },
-                            })
-                        }
-                        m.setView([lat, lon], a.args && a.args.zoom)
-                        performed.push(
-                            'zoom ' +
-                                lat +
-                                ',' +
-                                lon +
-                                '@' +
-                                (a.args && a.args.zoom)
-                        )
-                    } else if (Array.isArray(b)) {
-                        if (prevCenter && typeof prevZoom === 'number') {
-                            pushUndo({
-                                tool: 'zoom_to',
-                                target: 'map',
-                                previous: {
-                                    center: [prevCenter.lng, prevCenter.lat],
-                                    zoom: prevZoom,
-                                },
-                            })
-                        }
-                        const bounds = [
-                            [b[1], b[0]],
-                            [b[3], b[2]],
-                        ]
-                        m.fitBounds(bounds)
-                        performed.push('zoom bbox')
-                    }
-                }
-            } else if (exec.adapter === 'mmgisAPI') {
+            const x = spec.execution
+            if (x.adapter === 'mmgisAPI') {
                 const dn = a.args && a.args.name
-                const method = exec.method
-                const argOrder = exec.argOrder || []
+                const method = x.method
+                const argOrder = x.argOrder || []
                 let args = []
                 for (const k of argOrder) {
                     if (
                         k === 'name' &&
-                        exec.nameResolution === 'displayNameToInternalId'
+                        x.nameResolution === 'displayNameToInternalId'
                     ) {
                         const id = resolveDisplayNameToId(dn)
                         if (!id) {
-                            addLine(
-                                `Couldn't find layer "${dn}". Try "list layers" first.`
-                            )
+                            addLine(`Couldn't find layer "${dn}".`)
                             args = null
                             break
                         }
@@ -294,21 +223,40 @@ function interfaceWithMMGIS() {
                 })()
                 if (typeof wasVisible === 'boolean') {
                     pushUndo({
-                        tool: 'toggle_layer',
+                        method,
                         target: dn,
                         previous: { visible: wasVisible },
                     })
                 }
                 const fn = window.mmgisAPI && window.mmgisAPI[method]
-                if (typeof fn === 'function')
-                    await fn.apply(window.mmgisAPI, args)
-                if (method === 'toggleLayer') {
-                    performed.push(
-                        'toggled ' +
-                            dn +
-                            ' ' +
-                            (a.args && a.args.visible ? 'on' : 'off')
+                if (typeof fn === 'function') await fn.apply(window.mmgisAPI, args)
+                performed.push(method)
+            } else if (x.adapter === 'openapi') {
+                try {
+                    const r = await fetch(
+                        window.mmgisglobal.ROOT_PATH + '/api/agent/exec',
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: a }),
+                        }
                     )
+                    if (r.ok) {
+                        const j = await r.json()
+                        const uiType = x.ui && x.ui.type
+                        const kind = kindOf(uiType)
+                        if (kind && typeof RENDERERS[kind] === 'function') {
+                            await RENDERERS[kind]({}, j.result)
+                        }
+                        performed.push('exec')
+                    }
+                } catch (_) {}
+            } else if (x.adapter === 'custom') {
+                const uiType = x.ui && x.ui.type
+                const kind = kindOf(uiType)
+                if (kind && typeof RENDERERS[kind] === 'function') {
+                    await RENDERERS[kind]({}, a.args || {})
+                    performed.push(kind)
                 }
             }
         }
@@ -322,21 +270,17 @@ function interfaceWithMMGIS() {
             return
         }
         const m = window.mmgisAPI.map
-        if (entry.tool === 'toggle_layer') {
+        if (entry.method === 'toggleLayer') {
             const id = resolveDisplayNameToId(entry.target)
             if (id != null && typeof entry.previous?.visible === 'boolean') {
                 await window.mmgisAPI.toggleLayer(id, entry.previous?.visible)
-                addLine(
-                    `Undid: toggle_layer ${entry.target} (now ${entry.previous.visible ? 'on' : 'off'}).`
-                )
+                addLine(`Undid: visibility for ${entry.target}.`)
             }
-        } else if (entry.tool === 'set_layer_opacity') {
+        } else if (entry.method === 'setLayerOpacity') {
             const id = resolveDisplayNameToId(entry.target)
             if (id != null && typeof entry.previous?.opacity === 'number') {
                 L_.setLayerOpacity(id, entry.previous?.opacity)
-                addLine(
-                    `Undid: set_layer_opacity ${entry.target} (now ${entry.previous?.opacity}).`
-                )
+                addLine(`Undid: opacity for ${entry.target}.`)
             }
         } else if (entry.tool === 'zoom_to') {
             if (

@@ -1,5 +1,7 @@
 const express = require("express");
-const { planWithProvider } = require("../provider");
+const fetch = require("node-fetch");
+const { AzureOpenAI } = require("openai");
+const { planWithProvider, haveAzureEnv } = require("../provider");
 
 const router = express.Router();
 
@@ -59,53 +61,9 @@ function validateAction(a) {
 }
 
 // --- Simple rule-based fallback ---
-function fallbackPlan(message) {
-  const m = (message || "").toLowerCase();
-  const actions = [];
-  if (m.includes("list")) actions.push({ tool: "list_layers", args: {} });
-  const nameMatch = (() => {
-    const mm =
-      /(?:toggle|turn\s+on|turn\s+off|show|hide)\s+([\w:\-\/ ]+)/i.exec(
-        message,
-      );
-    if (mm && mm[1]) return mm[1].trim();
-    if (/sample[_\s-]?points/i.test(message)) return "Sample_Points";
-    if (/osm[_\s-]?basemap/i.test(message)) return "OSM_Basemap";
-    return null;
-  })();
-  if (nameMatch) {
-    const wantOn = /(turn\s+on|show)/.test(m)
-      ? true
-      : /(turn\s+off|hide)/.test(m)
-        ? false
-        : true;
-    if (/(turn\s+on|turn\s+off|toggle|show|hide)/.test(m)) {
-      actions.push({
-        tool: "toggle_layer",
-        args: { name: nameMatch, visible: wantOn },
-      });
-    }
-  }
-  const opMatch = m.match(/opacity\s*(to)?\s*([0-1]?(?:\.\d+)?)/);
-  if (opMatch && nameMatch) {
-    const v = clamp01(parseFloat(opMatch[2]));
-    actions.push({
-      tool: "set_layer_opacity",
-      args: { name: nameMatch, opacity: v },
-    });
-  }
-  const zoomMatch = m.match(
-    /zoom\s*to\s*([\-\d\.]+)\s*,\s*([\-\d\.]+).*?(?:zoom\s*(\d+))?/,
-  );
-  if (zoomMatch) {
-    const lon = parseFloat(zoomMatch[1]);
-    const lat = parseFloat(zoomMatch[2]);
-    const zoom = zoomMatch[3] != null ? parseInt(zoomMatch[3], 10) : 6;
-    if (isFinite(lon) && isFinite(lat))
-      actions.push({ tool: "zoom_to", args: { center: [lon, lat], zoom } });
-  }
-  if (actions.length === 0) actions.push({ tool: "list_layers", args: {} });
-  return actions;
+function fallbackPlan(_message) {
+  // Intentionally no hard-coded tool routing; rely on provider.
+  return [];
 }
 
 // Server no longer claims Performed; client owns success phrasing
@@ -168,13 +126,10 @@ router.post("/", express.json(), async function (req, res) {
     }
   }
 
+  const planList = actions.map((a) => a.tool).join(", ") || "(none)";
   let text =
-    `Planned: ${actions.map((a) => a.tool).join(", ") || "(none)"}.` +
+    `Planned: ${planList}.` +
     (errors.length ? ` Dropped: ${errors.join("; ")}` : "");
-  if (sawUnknownTool) {
-    text +=
-      " Note: Only list_layers, toggle_layer, set_layer_opacity, zoom_to are available right now.";
-  }
 
   res.status(200).json({
     text: source === "fallback" ? text + " (fallback)" : text,
@@ -182,6 +137,105 @@ router.post("/", express.json(), async function (req, res) {
     source,
     debug,
   });
+});
+
+// Execute a single action on the server when adapter = "openapi" (e.g., web search)
+router.post("/exec", express.json(), async function (req, res) {
+  const registry = req.app?.locals?.agentToolRegistry || { tools: [] };
+  const validators = req.app?.locals?.agentToolValidators || {};
+  const toolMap = {};
+  for (const t of registry.tools || []) toolMap[t.name] = t;
+
+  const action = (req.body && req.body.action) || null;
+  const v = validateAction.call({ req }, action);
+  if (!v.ok) return res.status(400).json({ ok: false, error: v.err });
+
+  const spec = toolMap[action.tool];
+  if (!spec || !spec.execution) {
+    return res
+      .status(400)
+      .json({ ok: false, error: "No execution descriptor for tool" });
+  }
+  const exec = spec.execution;
+  if (exec.adapter !== "openapi") {
+    return res.status(400).json({ ok: false, error: "Unsupported adapter" });
+  }
+
+  async function webSearchProduct(query) {
+    const endpoint =
+      process.env.AZURE_BING_SEARCH_ENDPOINT ||
+      "https://api.bing.microsoft.com/v7.0/search";
+    const key =
+      process.env.AZURE_BING_SEARCH_KEY ||
+      process.env.BING_SEARCH_KEY ||
+      process.env.BING_SUBSCRIPTION_KEY;
+
+    let links = [];
+    let citations = [];
+    try {
+      if (!key) throw new Error("Missing Bing Search key");
+      const url = `${endpoint}?q=${encodeURIComponent(query)}&count=4&textDecorations=false&safeSearch=Moderate`;
+      const r = await fetch(url, {
+        headers: { "Ocp-Apim-Subscription-Key": key },
+      });
+      const j = (await r.json()) || {};
+      const vals = (j.webPages && j.webPages.value) || [];
+      links = vals.map((v) => ({ title: v.name, url: v.url })).slice(0, 4);
+      citations = links.map((l) => l.url);
+    } catch (_) {
+      // continue with empty links; summary will reflect no results
+    }
+
+    // Summarize with Azure OpenAI if available
+    let summary = links.length
+      ? `Top sources for "${query}": ${links.map((l) => l.title).join(", ")}.`
+      : `No sources found for "${query}".`;
+    try {
+      const env = haveAzureEnv();
+      if (env.ok) {
+        const client = new AzureOpenAI({
+          apiKey: process.env.AZURE_OPENAI_API_KEY,
+          endpoint: process.env.AZURE_OPENAI_ENDPOINT,
+          apiVersion: env.ver,
+        });
+        const model = process.env.AZURE_OPENAI_DEPLOYMENT;
+        const sys =
+          "You summarize web search results succinctly in one or two sentences.";
+        const user = [
+          `Query: ${query}`,
+          `Links:`,
+          ...links.map((l, i) => `${i + 1}. ${l.title} - ${l.url}`),
+          `Write one short summary sentence.`,
+        ].join("\n");
+        const cr = await client.chat.completions.create({
+          model,
+          messages: [
+            { role: "system", content: sys },
+            { role: "user", content: user },
+          ],
+          temperature: 0.2,
+        });
+        const content =
+          cr && cr.choices && cr.choices[0] && cr.choices[0].message?.content;
+        if (content && typeof content === "string") summary = content.trim();
+      }
+    } catch (_) {}
+
+    return { summary, links, citations };
+  }
+
+  try {
+    if (exec.operation === "web_search_product") {
+      const q = String(action.args?.query || "").slice(0, 200);
+      const result = await webSearchProduct(q);
+      return res.status(200).json({ ok: true, result });
+    }
+    return res.status(400).json({ ok: false, error: "Unknown operation" });
+  } catch (e) {
+    return res
+      .status(500)
+      .json({ ok: false, error: (e && e.message) || "Execution error" });
+  }
 });
 
 module.exports = router;

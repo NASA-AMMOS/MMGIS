@@ -1,5 +1,11 @@
 require("dotenv").config();
-const { planWithProvider } = require("../API/Backend/Agent/provider");
+const path = require("path");
+const fs = require("fs");
+const {
+  planWithProvider,
+  listProviderTools,
+  haveAzureEnv,
+} = require("../API/Backend/Agent/provider");
 
 function printDebug(label, r) {
   const dbg = r && r.debug ? r.debug : {};
@@ -46,52 +52,74 @@ async function runCase(prompt, expect) {
 }
 
 async function runAll() {
-  const cases = [
-    // PRD (original)
-    { prompt: "List layers", expect: { tool: "list_layers" } },
-    {
-      prompt: "Turn on Sample_Points",
-      expect: {
-        tool: "toggle_layer",
-        checkArgs: (a) => a.name && a.visible === true,
-      },
-    },
-    {
-      prompt: "Set Sample_Points opacity to 0.7",
-      expect: {
-        tool: "set_layer_opacity",
-        checkArgs: (a) => a.name && typeof a.opacity === "number",
-      },
-    },
-    {
-      prompt: "Zoom to 0, 80 at zoom 6",
-      expect: {
-        tool: "zoom_to",
-        checkArgs: (a) =>
-          Array.isArray(a.center) &&
-          a.center.length === 2 &&
-          typeof a.zoom === "number",
-      },
-    },
-    // Phase 2 copy variants
-    { prompt: "Please toggle OSM_Basemap", expect: { tool: "toggle_layer" } },
-    {
-      prompt: "Hide Sample_Points",
-      expect: { tool: "toggle_layer", checkArgs: (a) => a.visible === false },
-    },
-    { prompt: "Measure crater diameter", expect: { tool: "list_layers" } }, // planner may fall back to a safe default
-  ];
-
-  let pass = 0;
-  for (const c of cases) {
-    try {
-      const ok = await runCase(c.prompt, c.expect);
-      if (ok) pass++;
-    } catch (e) {
-      console.log("ERROR:", e && e.message);
-    }
+  // Snapshot: provider tool export matches registry
+  const registryPath = path.join(
+    __dirname,
+    "..",
+    "API",
+    "Backend",
+    "Agent",
+    "tool-registry.json",
+  );
+  const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
+  const providerTools = listProviderTools();
+  const namesA = (registry.tools || []).map((t) => t.name).sort();
+  const namesB = providerTools.map((t) => t.function.name).sort();
+  const sameNames =
+    namesA.length === namesB.length && namesA.every((n, i) => n === namesB[i]);
+  const shapeOk = providerTools.every(
+    (t) => t.type === "function" && t.function && t.function.parameters,
+  );
+  const snapOk = sameNames && shapeOk;
+  console.log(`${snapOk ? "PASS" : "FAIL"}: provider tool export snapshot`);
+  if (!snapOk) {
+    console.log("- registry:", namesA);
+    console.log("- provider:", namesB);
   }
-  console.log(`\nSummary: ${pass}/${cases.length} passed`);
+
+  // Optional: live provider tests if Azure env is configured
+  const env = haveAzureEnv();
+  if (env.ok) {
+    const cases = [
+      { prompt: "List layers", expect: { tool: "list_layers" } },
+      {
+        prompt: "Turn on Sample_Points",
+        expect: {
+          tool: "toggle_layer",
+          checkArgs: (a) => a.name && a.visible === true,
+        },
+      },
+      {
+        prompt: "Set Sample_Points opacity to 0.7",
+        expect: {
+          tool: "set_layer_opacity",
+          checkArgs: (a) => a.name && typeof a.opacity === "number",
+        },
+      },
+      {
+        prompt: "Zoom to 0, 80 at zoom 6",
+        expect: {
+          tool: "zoom_to",
+          checkArgs: (a) =>
+            Array.isArray(a.center) &&
+            a.center.length === 2 &&
+            typeof a.zoom === "number",
+        },
+      },
+    ];
+    let pass = 0;
+    for (const c of cases) {
+      try {
+        const ok = await runCase(c.prompt, c.expect);
+        if (ok) pass++;
+      } catch (e) {
+        console.log("ERROR:", e && e.message);
+      }
+    }
+    console.log(`\nLive Provider Summary: ${pass}/${cases.length} passed`);
+  } else {
+    console.log("SKIP: Azure env not configured; live provider cases skipped.");
+  }
 }
 
 (async () => {

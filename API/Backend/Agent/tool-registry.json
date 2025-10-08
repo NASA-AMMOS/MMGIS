@@ -1,12 +1,69 @@
 {
-  "generatedAt": "2025-10-07T17:02:02.686Z",
+  "generatedAt": "2025-10-08T18:20:56.224Z",
   "kind": "mmgis-tool-registry",
   "tools": [
+    {
+      "description": "Summarize metadata for a specific layer by display name.",
+      "execution": {
+        "adapter": "custom",
+        "ui": {
+          "type": "layer_summary"
+        }
+      },
+      "modelParameters": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "name": "describe_layer",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Return a short overview of MMGIS with a docs citation.",
+      "execution": {
+        "adapter": "custom",
+        "ui": {
+          "type": "mmgis_overview"
+        }
+      },
+      "modelParameters": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "name": "describe_mmgis",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      }
+    },
     {
       "description": "List all layers with their on/off state.",
       "execution": {
         "adapter": "custom",
-        "name": "list_layers"
+        "ui": {
+          "type": "layers_line"
+        }
       },
       "modelParameters": {
         "additionalProperties": false,
@@ -24,7 +81,9 @@
       "description": "Set a layer opacity in [0,1], clamped.",
       "execution": {
         "adapter": "custom",
-        "name": "set_layer_opacity"
+        "ui": {
+          "type": "opacity"
+        }
       },
       "modelParameters": {
         "additionalProperties": false,
@@ -75,7 +134,10 @@
           "visible"
         ],
         "method": "toggleLayer",
-        "nameResolution": "displayNameToInternalId"
+        "nameResolution": "displayNameToInternalId",
+        "ui": {
+          "type": "toggle"
+        }
       },
       "modelParameters": {
         "additionalProperties": false,
@@ -115,10 +177,49 @@
       }
     },
     {
+      "description": "Search the web for a NASA/NOAA product and return 2–4 links with a brief summary.",
+      "execution": {
+        "adapter": "openapi",
+        "operation": "web_search_product",
+        "ui": {
+          "type": "web_search_suggest"
+        }
+      },
+      "modelParameters": {
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "name": "web_search_product",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      }
+    },
+    {
       "description": "Zoom to lon/lat and zoom level, or to a bbox.",
       "execution": {
         "adapter": "custom",
-        "name": "zoom_to"
+        "name": "zoom_to",
+        "ui": {
+          "type": "zoom_view"
+        }
       },
       "modelParameters": {
         "additionalProperties": false,
@@ -196,5 +297,28 @@
       }
     }
   ],
+  "uiProfiles": {
+    "layer_summary": {
+      "kind": "render_layer_summary"
+    },
+    "layers_line": {
+      "kind": "render_layers_line"
+    },
+    "mmgis_overview": {
+      "kind": "render_text_with_citation"
+    },
+    "opacity": {
+      "kind": "set_opacity"
+    },
+    "toggle": {
+      "kind": "toggle_visibility"
+    },
+    "web_search_suggest": {
+      "kind": "render_links_summary"
+    },
+    "zoom_view": {
+      "kind": "zoom_view"
+    }
+  },
   "version": "1.0.0"
 }

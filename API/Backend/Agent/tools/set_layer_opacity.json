@@ -4,7 +4,11 @@
   "parameters": {
     "type": "object",
     "properties": {
-      "name": { "type": "string", "minLength": 1, "description": "Display name of the layer" },
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Display name of the layer"
+      },
       "opacity": { "type": "number", "minimum": 0, "maximum": 1 }
     },
     "required": ["name", "opacity"],
@@ -21,8 +25,6 @@
   },
   "execution": {
     "adapter": "custom",
-    "name": "set_layer_opacity"
+    "ui": { "type": "opacity" }
   }
 }
-
-

@@ -46,20 +46,9 @@ async function planWithProvider(message) {
     {
       role: "system",
       content: [
-        "You are an MMGIS agent that emits ONLY tool calls (function calls) from this set: list_layers, toggle_layer, set_layer_opacity, zoom_to.",
-        "Before your tool call, include a single short sentence rationale in your assistant message content (plain English).",
-        "Selection rules:",
-        "- If the user asks to list layers, use list_layers.",
-        "- If the user mentions a specific layer name with an action (toggle/turn on/off/show/hide), use toggle_layer with that exact name; if 'turn on' or 'show' ⇒ visible=true; if 'turn off' or 'hide' ⇒ visible=false; if just 'toggle' with no explicit on/off ⇒ visible=true.",
-        "- If the user asks to set opacity, use set_layer_opacity with the given name and numeric opacity.",
-        "- If the user asks to zoom to lon,lat, use zoom_to with center:[lon,lat] and zoom; if bbox given, use bbox.",
-        "- If the user only provides a location name to zoom, infer the lat lon and include that in your rationale.",
-        "- If the user does not provide a zoom level, use zoom=15 and include that in your rationale.",
-        "Examples:",
-        "User: 'Please toggle OSM_Basemap' ⇒ toggle_layer { name:'OSM_Basemap', visible:true }",
-        "User: 'Hide Sample_Points' ⇒ toggle_layer { name:'Sample_Points', visible:false }",
-        "User: 'Set Sample_Points opacity to 0.7' ⇒ set_layer_opacity { name:'Sample_Points', opacity:0.7 }",
-        "User: 'Zoom to 0, 80 at zoom 6' ⇒ zoom_to { center:[0,80], zoom:6 }",
+        "You are an MMGIS agent. You may call tools exposed to you.",
+        "Emit only function calls from the available tools when needed.",
+        "Before a tool call, include one short rationale sentence.",
       ].join("\n"),
     },
     { role: "user", content: message },
@@ -161,4 +150,18 @@ async function planWithProvider(message) {
   }
 }
 
-module.exports = { planWithProvider, haveAzureEnv };
+// Expose a deterministic tool export for snapshot tests and introspection
+function listProviderTools() {
+  const reg = loadRegistry();
+  return (reg.tools || []).map((t) => ({
+    type: "function",
+    function: {
+      name: t.name,
+      description: t.description || t.name,
+      parameters: t.modelParameters ||
+        t.parameters || { type: "object", additionalProperties: false },
+    },
+  }));
+}
+
+module.exports = { planWithProvider, haveAzureEnv, listProviderTools };
