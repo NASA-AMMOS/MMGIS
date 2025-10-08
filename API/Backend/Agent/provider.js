@@ -1,12 +1,19 @@
 require("dotenv").config();
 const { AzureOpenAI } = require("openai");
+const fs = require("fs");
+const path = require("path");
 
-const TOOL_NAMES = new Set([
-  "list_layers",
-  "toggle_layer",
-  "set_layer_opacity",
-  "zoom_to",
-]);
+function loadRegistry() {
+  try {
+    const p = path.join(__dirname, "tool-registry.json");
+    return JSON.parse(fs.readFileSync(p, "utf8"));
+  } catch (_) {
+    return { tools: [] };
+  }
+}
+
+const registry = loadRegistry();
+const TOOL_NAMES = new Set((registry.tools || []).map((t) => t.name));
 
 function haveAzureEnv() {
   const missing = [];
@@ -45,7 +52,9 @@ async function planWithProvider(message) {
         "- If the user asks to list layers, use list_layers.",
         "- If the user mentions a specific layer name with an action (toggle/turn on/off/show/hide), use toggle_layer with that exact name; if 'turn on' or 'show' ⇒ visible=true; if 'turn off' or 'hide' ⇒ visible=false; if just 'toggle' with no explicit on/off ⇒ visible=true.",
         "- If the user asks to set opacity, use set_layer_opacity with the given name and numeric opacity.",
-        "- If the user asks to zoom to lon,lat (and optional zoom), use zoom_to with center:[lon,lat] and zoom; if bbox given, use bbox.",
+        "- If the user asks to zoom to lon,lat, use zoom_to with center:[lon,lat] and zoom; if bbox given, use bbox.",
+        "- If the user only provides a location name to zoom, infer the lat lon and include that in your rationale.",
+        "- If the user does not provide a zoom level, use zoom=15 and include that in your rationale.",
         "Examples:",
         "User: 'Please toggle OSM_Basemap' ⇒ toggle_layer { name:'OSM_Basemap', visible:true }",
         "User: 'Hide Sample_Points' ⇒ toggle_layer { name:'Sample_Points', visible:false }",
@@ -55,78 +64,19 @@ async function planWithProvider(message) {
     },
     { role: "user", content: message },
   ];
-  const tools = [
-    {
-      type: "function",
-      function: {
-        name: "list_layers",
-        description: "List all layer display names",
-        parameters: {
+  const tools = (registry.tools || []).map((t) => ({
+    type: "function",
+    function: {
+      name: t.name,
+      description: t.description || t.name,
+      // Prefer modelParameters for provider-facing schemas (cannot use top-level oneOf)
+      parameters: t.modelParameters ||
+        t.parameters || {
           type: "object",
-          properties: {},
           additionalProperties: false,
         },
-      },
     },
-    {
-      type: "function",
-      function: {
-        name: "toggle_layer",
-        description: "Toggle a layer visibility",
-        parameters: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            visible: { type: "boolean" },
-          },
-          required: ["name", "visible"],
-          additionalProperties: false,
-        },
-      },
-    },
-    {
-      type: "function",
-      function: {
-        name: "set_layer_opacity",
-        description: "Set layer opacity 0..1",
-        parameters: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            opacity: { type: "number", minimum: 0, maximum: 1 },
-          },
-          required: ["name", "opacity"],
-          additionalProperties: false,
-        },
-      },
-    },
-    {
-      type: "function",
-      function: {
-        name: "zoom_to",
-        description: "Zoom to center/zoom or bbox",
-        parameters: {
-          type: "object",
-          properties: {
-            center: {
-              type: "array",
-              items: { type: "number" },
-              minItems: 2,
-              maxItems: 2,
-            },
-            zoom: { type: "integer" },
-            bbox: {
-              type: "array",
-              items: { type: "number" },
-              minItems: 4,
-              maxItems: 4,
-            },
-          },
-          additionalProperties: false,
-        },
-      },
-    },
-  ];
+  }));
 
   const request = {
     model,

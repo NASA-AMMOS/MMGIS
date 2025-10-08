@@ -3,111 +3,59 @@ const { planWithProvider } = require("../provider");
 
 const router = express.Router();
 
-// --- Schemas (lightweight validation) ---
-const TOOL_NAMES = new Set([
-  "list_layers",
-  "toggle_layer",
-  "set_layer_opacity",
-  "zoom_to",
-]);
+// --- Registry-backed validation ---
+function getToolNames(req) {
+  return req.app?.locals?.agentToolNames || new Set();
+}
 
 function clamp01(n) {
   if (Number.isNaN(n)) return 0;
   return Math.max(0, Math.min(1, n));
 }
 
+// New helper for clearer error messages
+function repr(v) {
+  try {
+    if (typeof v === "string") return `"${v}"`;
+    return JSON.stringify(v);
+  } catch {
+    return String(v);
+  }
+}
+
 function validateAction(a) {
   if (!a || typeof a !== "object")
-    return { ok: false, err: "Action must be an object" };
+    return {
+      ok: false,
+      err: `Action must be an object; received ${repr(a)} instead`,
+    };
+  const TOOL_NAMES = getToolNames(this.req || {});
   if (!TOOL_NAMES.has(a.tool))
-    return { ok: false, err: `Unknown tool '${a.tool}'` };
+    return {
+      ok: false,
+      err: `Unknown tool '${a.tool}'. Expected one of ${[...TOOL_NAMES].join(
+        ", ",
+      )}; received ${repr(a.tool)} instead`,
+    };
+  const validators =
+    (this.req &&
+      this.req.app &&
+      this.req.app.locals &&
+      this.req.app.locals.agentToolValidators) ||
+    {};
+  const validate = validators[a.tool];
   const args = a.args || {};
-  switch (a.tool) {
-    case "list_layers":
-      if (args && Object.keys(args).length > 0)
-        return { ok: false, err: "list_layers expects empty args" };
-      return { ok: true, action: { tool: "list_layers", args: {} } };
-    case "toggle_layer": {
-      if (typeof args.name !== "string" || args.name.length === 0)
-        return { ok: false, err: "toggle_layer.name required" };
-      if (typeof args.visible !== "boolean")
-        return { ok: false, err: "toggle_layer.visible must be boolean" };
-      return {
-        ok: true,
-        action: {
-          tool: "toggle_layer",
-          args: { name: args.name, visible: !!args.visible },
-        },
-      };
-    }
-    case "set_layer_opacity": {
-      if (typeof args.name !== "string" || args.name.length === 0)
-        return { ok: false, err: "set_layer_opacity.name required" };
-      if (typeof args.opacity !== "number" || !isFinite(args.opacity))
-        return {
-          ok: false,
-          err: "set_layer_opacity.opacity must be number in [0,1]",
-        };
-      const opacity = args.opacity;
-      if (opacity < 0 || opacity > 1)
-        return {
-          ok: false,
-          err: "set_layer_opacity.opacity must be number in [0,1]",
-        };
-      return {
-        ok: true,
-        action: {
-          tool: "set_layer_opacity",
-          args: { name: args.name, opacity },
-        },
-      };
-    }
-    case "zoom_to": {
-      if (
-        Array.isArray(args.center) &&
-        args.center.length === 2 &&
-        typeof args.zoom === "number"
-      ) {
-        const [lon, lat] = args.center;
-        if (!isFinite(lon) || !isFinite(lat))
-          return { ok: false, err: "zoom_to.center must be [lon,lat]" };
-        const z = Math.round(args.zoom);
-        if (lon < -180 || lon > 180)
-          return {
-            ok: false,
-            err: "zoom_to.center lon out of range [-180,180]",
-          };
-        if (lat < -90 || lat > 90)
-          return { ok: false, err: "zoom_to.center lat out of range [-90,90]" };
-        if (z < 0 || z > 22)
-          return { ok: false, err: "zoom_to.zoom out of range [0,22]" };
-        return {
-          ok: true,
-          action: { tool: "zoom_to", args: { center: [lon, lat], zoom: z } },
-        };
-      }
-      if (Array.isArray(args.bbox)) {
-        const b = args.bbox;
-        if (b.length !== 4 || b.some((v) => !isFinite(v)))
-          return {
-            ok: false,
-            err: "zoom_to.bbox must be [minLon,minLat,maxLon,maxLat]",
-          };
-        if (b[0] < -180 || b[0] > 180 || b[2] < -180 || b[2] > 180)
-          return { ok: false, err: "zoom_to.bbox lon out of range [-180,180]" };
-        if (b[1] < -90 || b[1] > 90 || b[3] < -90 || b[3] > 90)
-          return { ok: false, err: "zoom_to.bbox lat out of range [-90,90]" };
-        return {
-          ok: true,
-          action: { tool: "zoom_to", args: { bbox: [b[0], b[1], b[2], b[3]] } },
-        };
-      }
-      return {
-        ok: false,
-        err: "zoom_to requires {center:[lon,lat],zoom} or {bbox:[...]}",
-      };
-    }
+  if (typeof validate !== "function") {
+    return { ok: false, err: `No validator for tool ${a.tool}` };
   }
+  const valid = validate(args);
+  if (!valid) {
+    const errors = (validate.errors || [])
+      .map((e) => `${e.instancePath || ""} ${e.message}`)
+      .join("; ");
+    return { ok: false, err: `${a.tool} args invalid: ${errors}` };
+  }
+  return { ok: true, action: { tool: a.tool, args } };
 }
 
 // --- Simple rule-based fallback ---
@@ -212,7 +160,7 @@ router.post("/", express.json(), async function (req, res) {
   const errors = [];
   let sawUnknownTool = false;
   for (const a of proposed) {
-    const v = validateAction(a);
+    const v = validateAction.call({ req }, a);
     if (v.ok) actions.push(v.action);
     else {
       errors.push(v.err);

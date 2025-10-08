@@ -1,0 +1,200 @@
+{
+  "generatedAt": "2025-10-07T17:02:02.686Z",
+  "kind": "mmgis-tool-registry",
+  "tools": [
+    {
+      "description": "List all layers with their on/off state.",
+      "execution": {
+        "adapter": "custom",
+        "name": "list_layers"
+      },
+      "modelParameters": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "name": "list_layers",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      }
+    },
+    {
+      "description": "Set a layer opacity in [0,1], clamped.",
+      "execution": {
+        "adapter": "custom",
+        "name": "set_layer_opacity"
+      },
+      "modelParameters": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "opacity": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "opacity"
+        ],
+        "type": "object"
+      },
+      "name": "set_layer_opacity",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Display name of the layer",
+            "minLength": 1,
+            "type": "string"
+          },
+          "opacity": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "opacity"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Toggle a layer visibility by display name. If visible=true show; false hide.",
+      "execution": {
+        "adapter": "mmgisAPI",
+        "argOrder": [
+          "name",
+          "visible"
+        ],
+        "method": "toggleLayer",
+        "nameResolution": "displayNameToInternalId"
+      },
+      "modelParameters": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "visible": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "visible"
+        ],
+        "type": "object"
+      },
+      "name": "toggle_layer",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Display name of the layer",
+            "minLength": 1,
+            "type": "string"
+          },
+          "visible": {
+            "description": "Target visibility state",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "visible"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Zoom to lon/lat and zoom level, or to a bbox.",
+      "execution": {
+        "adapter": "custom",
+        "name": "zoom_to"
+      },
+      "modelParameters": {
+        "additionalProperties": false,
+        "properties": {
+          "bbox": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 4,
+            "minItems": 4,
+            "type": "array"
+          },
+          "center": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          },
+          "zoom": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "name": "zoom_to",
+      "parameters": {
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "center": {
+                "description": "[lon,lat]",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "zoom": {
+                "default": 15,
+                "maximum": 22,
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "center",
+              "zoom"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "bbox": {
+                "description": "[minLon,minLat,maxLon,maxLat]",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 4,
+                "minItems": 4,
+                "type": "array"
+              }
+            },
+            "required": [
+              "bbox"
+            ],
+            "type": "object"
+          }
+        ],
+        "type": "object"
+      }
+    }
+  ],
+  "version": "1.0.0"
+}
