@@ -49,6 +49,4 @@ jobs:
           projectBaseDir: .
           args: >
             -Dsonar.sarifReportPaths=${{ env.SARIF_FILES }}
-            -Dsonar.organization=nasa-ammos
-            -Dsonar.projectKey=NASA-AMMOS_MMGIS
             -Dsonar.projectVersion=${{ env.VERSION }}
