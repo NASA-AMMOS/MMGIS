@@ -1,6 +1,9 @@
 name: Security-Scan
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - sonarcloud_action
 jobs:
   sonarqube:
     name: SonarQube
