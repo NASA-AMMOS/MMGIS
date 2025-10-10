@@ -1,0 +1,51 @@
+name: Security-Scan
+on:
+  workflow_dispatch:
+jobs:
+  sonarqube:
+    name: SonarQube
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Extract version from package.json
+        id: package_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Extracted version: $VERSION"
+      - name: CodeQL Scan
+        uses: github/codeql-action/analyze@v3
+      - name: Post-Process CodeQL
+        run: |
+          python3 -m pip install nasa-scrub
+
+          results_dir=`realpath ${{ github.workspace }}/../results`
+          sarif_files=`find $results_dir -name '*.sarif'`
+
+          for sarif_file in $sarif_files
+          do
+            output_file="$results_dir/$(basename $sarif_file .sarif)_stripped.sarif"
+
+            python3 -m scrub.tools.parsers.translate_results $sarif_file $output_file ${{ github.workspace }} sarifv2.1.0
+          done
+
+          echo "RESULTS_DIR=$results_dir" >> $GITHUB_ENV
+          echo "Results generated: "
+          echo $results_dir
+
+          # Create comma-separated list of SARIF files for SonarQube
+          sarif_list=$(find $results_dir -name '*_stripped.sarif' | tr '\n' ',' | sed 's/,$//')
+          echo "SARIF_FILES=$sarif_list" >> $GITHUB_ENV
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.sarifReportPaths=${{ env.SARIF_FILES }}
+            -Dsonar.organization=nasa-ammos
+            -Dsonar.projectKey=NASA-AMMOS_MMGIS
+            -Dsonar.projectVersion=${{ env.VERSION }}
