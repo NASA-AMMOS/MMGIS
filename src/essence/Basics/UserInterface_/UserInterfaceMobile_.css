@@ -174,12 +174,6 @@
     width: 100%;
 }
 
-/* Overwrite LayersTool CSS */
-#layersTool .layerName {
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
 /* Overwrite TimeUI CSS */
 #mmgisTimeUI {
     flex-flow: column;
@@ -208,7 +202,15 @@
     color: var(--color-l);
 }
 
+#mmgisTimeUITimeline {
+    height: 40px;
+}
+
 /* Overwrite LayersTool CSS */
+#layersTool .layerName {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 #layersTool .reload,
 #layersTool .layerDownload,
 #layersTool .gears,

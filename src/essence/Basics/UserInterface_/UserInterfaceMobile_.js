@@ -845,22 +845,22 @@ var UserInterface = {
         }
 
         $('#mapToolBar').css({
-            bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',
+            bottom:  40 + 'px',
         })
         $('.leaflet-control-scalefactor').css({
             bottom: UserInterface.pxIsTools + 28 + 'px',
         })
         $('#mmgis-map-compass').css({
-            bottom: UserInterface.pxIsTools + 38 + 'px',
+            bottom: 38 + 'px',
         })
         $('#CoordinatesDiv').css({
-            bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',
+            bottom: UserInterface.pxIsTools + 'px',
         })
         $('#timeUI').css({
-            bottom: UserInterface.pxIsTools + (timeUIActive ? 0 : -40) + 'px',
+            bottom: UserInterface.pxIsTools + 'px',
         })
         $('#toolbar').css({
-            bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',
+            bottom: UserInterface.pxIsTools + 'px',
         })
 
         //The tools slider
@@ -919,20 +919,11 @@ var UserInterface = {
                  UserInterface.mainHeight - pxHeight + 'px'
             )
 
-
         UserInterface.mapSplit
             .style(
                 'height',
                  UserInterface.mainHeight - pxHeight + 'px'
             )
-
-        // FIXME Change this repeated code above and delete this
-        $('#mmgis-map-compass').css({
-            bottom: 38 + 'px',
-        })
-        // FIXME
-        // mapToolBar
-
 
         resize()
     },

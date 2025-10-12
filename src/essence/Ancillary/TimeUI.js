@@ -39,7 +39,7 @@ const TimeUI = {
     vars: {},
     MMGISInterface: null,
     initialize: function () {
-        if (L_.UserInterface_.isMobile === true) {
+        if (L_.UserInterface_?.isMobile === true) {
             this.width = 'full'
             this.height = 300
         }
@@ -92,7 +92,7 @@ const TimeUI = {
         TimeUI.enabled = enabled
 
         // prettier-ignore
-        const markup = [
+        let markup = [
             `<div id="mmgisTimeUI">`,
                 "<div id='timeUIHeader'>",
                     "<div class='left'>",
@@ -111,6 +111,28 @@ const TimeUI = {
                         `<i class='mdi mdi-movie mdi-24px'></i>`,
                     `</div>`,
                     `<div class="vertDiv"></div>`,
+        ].join('\n')
+
+        // Add the right buttons to the left if mobile to consolidate them
+        if (L_.UserInterface_?.isMobile === true) {
+            markup += [
+                    `<div id="mmgisTimeUIFitTime" class="mmgisTimeUIButton">`,
+                        `<i class='mdi mdi-calendar-expand-horizontal mdi-24px'></i>`,
+                    `</div>`,
+                    `<div id="mmgisTimeUIFitWindow" class="mmgisTimeUIButton">`,
+                        `<i class='mdi mdi-calendar-clock mdi-24px'></i>`,
+                    `</div>`,
+                    `<div id="mmgisTimeUIFollowFeature" class="mmgisTimeUIButton">`,
+                        `<i class='mdi mdi-crosshairs-gps mdi-24px'></i>`,
+                    `</div>`,
+                    `<div id="mmgisTimeUIPresent" class="mmgisTimeUIButton">`,
+                        `<i class='mdi mdi-clock-end mdi-24px'></i>`,
+                        `<div id="mmgisTimeUIPresentProgress"></div>`,
+                    `</div>`,
+            ].join('\n')
+        }
+
+        markup += [
                 `</div>`,
                 `<div id="mmgisTimeUIMain">`,
                     `<div class="mmgisTimeUIInput" id="mmgisTimeUIStartWrapper">`,
@@ -121,6 +143,11 @@ const TimeUI = {
                         `<span>Start Time</span>`,
                         `<input id="mmgisTimeUIStartFake" type="text"/>`,
                     `</div>`,
+        ].join('\n')
+
+        // Nest the timeline if not mobile
+        if (L_.UserInterface_?.isMobile !== true) {
+            markup += [
                     `<div id="mmgisTimeUITimeline">`,
                         `<div id="mmgisTimeUITimelineExtent"></div>`,
                         `<div id="mmgisTimeUITimelinePlayExtent"></div>`,
@@ -129,6 +156,10 @@ const TimeUI = {
                         `<div id="mmgisTimeUITimelineInner"></div>`,
                         `<div id='mmgisTimeUITimelineSlider' class='svelteSlider'></div>`,
                     `</div>`,
+            ].join('\n')
+        }
+
+        markup += [
                     `<div class="mmgisTimeUIInput" id="mmgisTimeUIEndWrapper">`,
                         `<span>End Time</span>`,
                         `<input id="mmgisTimeUIEnd"/>`,
@@ -138,6 +169,10 @@ const TimeUI = {
                         `<input id="mmgisTimeUIEndFake" type="text"/>`,
                     `</div>`,
                 `</div>`,
+        ].join('\n')
+
+        if (L_.UserInterface_?.isMobile !== true) {
+            markup += [
                 `<div id="mmgisTimeUIActionsRight">`,
                     `<div id="mmgisTimeUIFitTime" class="mmgisTimeUIButton">`,
                         `<i class='mdi mdi-calendar-expand-horizontal mdi-24px'></i>`,
@@ -176,7 +211,29 @@ const TimeUI = {
                         `<div id="mmgisTimeUIDaysRange" class="mmgisTimeUIExpandedRowRange"></div>`,
                         `<div id="mmgisTimeUIDaysContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
                     `</div>`,
+            ].join('\n')
+        }
+
+        // Put the timeline separately if mobile
+        if (L_.UserInterface_?.isMobile === true) {
+            markup += [
+                    `<div id="mmgisTimeUITimeline">`,
+                        `<div id="mmgisTimeUITimelineExtent"></div>`,
+                        `<div id="mmgisTimeUITimelinePlayExtent"></div>`,
+                        `<div id="mmgisTimeUITimelineHisto"></div>`,
+                        `<div id="mmgisTimeUITimelineInner"></div>`,
+                        `<div id='mmgisTimeUITimelineSlider' class='svelteSlider'></div>`,
+                    `</div>`,
+            ].join('\n')
+        }
+
+        markup += [
+                /*
+                `<div id="mmgisTimeUICurrentWrapper">`,
+                    `<div>Active Time</div>`,
+                    `<div id="mmgisTimeUICurrentTime"></div>`,
                 `</div>`,
+                */
             `</div>`
         ].join('\n')
 
@@ -317,7 +374,10 @@ const TimeUI = {
         if (L_.FUTURES.startTime == null && L_.FUTURES.endTime != null)
             TimeUI._startingModeIndex = 1
 
-        document.addEventListener('toolChange', TimeUI.alignPopovers)
+        // FIXME Figure out what this does
+        if (L_.UserInterface_?.isMobile !== true) {
+            document.addEventListener('toolChange', TimeUI.alignPopovers)
+        }
 
         // Popovers
         $(`#mmgisTimeUIQuickSelectTrigger`).on('click', () => {
@@ -742,7 +802,7 @@ const TimeUI = {
             }
         })
 
-        if (L_.UserInterface_.isMobile !== true) {
+        if (L_.UserInterface_?.isMobile !== true) {
             // tippy
             tippy('#mmgisTimeUIMode', {
                 content: 'Mode',
