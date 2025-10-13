@@ -226,6 +226,12 @@
     background: transparent;
 }
 
+/* Overwrite InfoTool CSS */
+.toolButton {
+    border-top: none !important;
+    border-bottom: none !important;
+}
+
 /* Hide other misc items */
 .Search {
     display: none;
@@ -238,4 +244,27 @@
 }
 .leaflet-top {
     top: 5px;
+}
+#mmgislogo {
+    left: 40px !important;
+}
+#topBarMenu {
+display: inherit;
+    padding: 9px 6px;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    z-index: 2005;
+    image-rendering: pixelated;
+}
+
+#barBottom {
+/* CSS for the top bar (for bottom bar items moved to the top bar) */
+    top: 40px;
+}
+#bottomBarSettings, #bottomBarHotkeys, #topBarFullscreen {
+    display: none !important;
 }

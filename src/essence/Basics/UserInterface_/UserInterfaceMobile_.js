@@ -88,6 +88,18 @@ var UserInterface = {
         //TopBar
         $('#main-container').append(topBarMarkup)
 
+        d3.select('#topBar')
+            .append('div')
+            .attr('id', 'topBarMenu')
+            .on('click', function () {
+                d3.select('#barBottom')
+                    .style('display', d3.select('#barBottom').style('display') === 'none' ? 'flex' : 'none')
+                // FIXME The hamburger button should close the barBottom items when somewhere else on the map is clicked
+            })
+            .append('i')
+            .attr('class', 'mdi mdi-menu mdi-24px')
+            .style('height', this.topSize + 'px')
+
         $('#topBarLeft').on('wheel', function (e) {
             e.preventDefault()
             this.scrollLeft += e.originalEvent.deltaY
@@ -107,22 +119,19 @@ var UserInterface = {
 
         Login.init()
 
-        /*
-        // FIXME Figure out what we want to do with the bottom bar
         this.barBottom = d3
-            .select('#main-container')
+            .select('#topBarMenu')
             .append('div')
             .attr('id', 'barBottom')
             .style('position', 'absolute')
             .style('width', '40px')
             .style('bottom', '0px')
             .style('left', '0px')
-            .style('display', 'flex')
+            .style('display', 'none')
             .style('flex-flow', 'column')
             .style('z-index', '1005')
 
         BottomBar.init('barBottom', this)
-        */
 
         this.toolPanel = d3
             .select('#main-container')
@@ -641,7 +650,8 @@ var UserInterface = {
 <path d="M0.222266 9.21339C-0.277832 14.7126 0.222266 133.713 0.222266 133.713H26.2223V45.7134C26.2223 45.7134 100.722 127.712 106.222 132.713C109.171 135.395 112.12 136.782 115.222 136.645C118.325 136.782 121.274 135.395 124.222 132.713C129.722 127.712 204.222 45.7134 204.222 45.7134V133.713H230.222C230.222 133.713 230.722 14.7126 230.222 9.21339C229.722 3.71413 218.222 -3.28766 210.222 1.71339C202.222 6.71444 115.222 104.713 115.222 104.713C115.222 104.713 28.2224 6.71444 20.2223 1.71339C12.2222 -3.28766 0.722363 3.71413 0.222266 9.21339Z" fill="#08AEEA"></path>
 </svg>`
             )
-            .on('click', F_.toHostForceLanding)
+            // FIXME Turn off redirection to parent page for now
+            //.on('click', F_.toHostForceLanding)
 
         this.dataLoadingSpinner = d3
             .select('#main-container')
