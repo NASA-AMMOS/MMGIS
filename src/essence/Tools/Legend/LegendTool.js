@@ -76,6 +76,12 @@ function interfaceWithMMWebGIS() {
         tools.style('background', 'var(--color-k)')
         //Clear it
         tools.selectAll('*').remove()
+
+        if (L_.UserInterface_.isMobile === true) {
+            tools = d3.select('#tools')
+            //Clear it
+            tools.selectAll('*').remove()
+        }
     }
 }
 
