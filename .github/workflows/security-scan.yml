@@ -18,10 +18,6 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "Extracted version: $VERSION"
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          queries: security-and-quality, security-extended
       - name: CodeQL Scan
         uses: github/codeql-action/analyze@v3
       - name: Post-Process CodeQL
