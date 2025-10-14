@@ -814,8 +814,21 @@ var UserInterface = {
         $('.leaflet-control-scalefactor').css({
             bottom: UserInterface.pxIsTools + 28 + 'px',
         })
-        $('#mmgis-map-compass').css({
-            bottom: UserInterface.pxIsTools + 38 + 'px',
+        $('#mmgis-attributions').css({
+            bottom:
+                UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 5 + 'px',
+        })
+        // Only set compass position if no attributions exist (Attributions.js manages it when they do)
+        if (
+            $('#mmgis-attributions').length === 0 ||
+            $('#mmgis-attributions').text().trim().length === 0
+        ) {
+            $('#mmgis-map-compass').css({
+                bottom: UserInterface.pxIsTools + 38 + 'px',
+            })
+        }
+        $('.leaflet-bottom.leaflet-right').css({
+            bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',
         })
         $('#CoordinatesDiv').css({
             bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',

@@ -804,6 +804,12 @@ function toggleTimeUI() {
     $('.leaflet-bottom.leaflet-left').css({
         bottom: newBottom + 'px',
     })
+    $('#mmgis-attributions').css({
+        bottom: newBottom + 5 + 'px',
+    })
+    $('.leaflet-bottom.leaflet-right').css({
+        bottom: newBottom + (UserInterface.pxIsTools || 0) + 'px',
+    })
     $('#photosphereAzIndicator').css({
         bottom: newBottom + (UserInterface.pxIsTools || 0) + 'px',
         transition: 'bottom 0.2s ease-in',

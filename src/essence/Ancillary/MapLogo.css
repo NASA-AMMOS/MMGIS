@@ -1,0 +1,22 @@
+/* MapLogo styles */
+#mmgis-map-logo {
+    position: absolute;
+    bottom: 45px;
+    right: 5px;
+    pointer-events: auto;
+    z-index: 1000;
+    padding: 5px;
+}
+
+#mmgis-map-logo a {
+    display: block;
+    line-height: 0;
+}
+
+#mmgis-map-logo img {
+    height: auto;
+}
+
+#mmgis-map-logo a:hover {
+    opacity: 0.8;
+}

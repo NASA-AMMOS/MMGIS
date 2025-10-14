@@ -875,6 +875,9 @@ body {
 .leaflet-bottom.leaflet-left {
     transition: bottom 0.2s ease-in;
 }
+.leaflet-bottom.leaflet-right {
+    transition: bottom 0.2s ease-in;
+}
 
 .leaflet-popup-annotation > .leaflet-popup-content-wrapper {
     overflow: visible;

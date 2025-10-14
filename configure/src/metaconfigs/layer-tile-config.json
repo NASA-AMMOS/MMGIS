@@ -616,6 +616,26 @@
               "width": 12
             }
           ]
+        },
+        {
+          "subname": "Attribution",
+          "subdescription": "Attribution information for the dataset. If configured, the attribution will be displayed horizontally below the scalebar when the layer is visible.",
+          "components": [
+            {
+              "field": "attribution",
+              "name": "Attribution Text",
+              "description": "Attribution text to display for this layer's dataset (e.g., 'NASA/JPL-Caltech', 'USGS', 'ESA').",
+              "type": "text",
+              "width": 6
+            },
+            {
+              "field": "attributionLink",
+              "name": "Attribution Link",
+              "description": "Optional URL to link the attribution text to (e.g., 'https://nasa.gov').",
+              "type": "text",
+              "width": 6
+            }
+          ]
         }
       ]
     },

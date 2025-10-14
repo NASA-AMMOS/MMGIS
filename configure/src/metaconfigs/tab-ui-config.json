@@ -21,6 +21,34 @@
       ]
     },
     {
+      "name": "Map Logo",
+      "components": [
+        {
+          "field": "look.mapLogoUrl",
+          "name": "Map Logo Image URL",
+          "description": "URL path to a logo image to display on the map. Supports: (1) Absolute URLs (e.g., 'https://example.com/logo.png'), (2) Mission-relative paths (e.g., 'logo.png' for Missions/[mission]/logo.png), (3) Public assets (e.g., 'public/images/logos/logo.png'). The logo will appear in the bottom-right corner of the map and will be included in screenshots.",
+          "type": "text",
+          "width": 12
+        },
+        {
+          "field": "look.mapLogoSize",
+          "name": "Map Logo Size",
+          "description": "Size of the map logo. Small: 64px, Medium: 128px, Large: 192px. Default is Medium.",
+          "type": "dropdown",
+          "width": 3,
+          "options": ["small", "medium", "large"],
+          "default": "medium"
+        },
+        {
+          "field": "look.mapLogoLink",
+          "name": "Map Logo Link URL",
+          "description": "Optional URL to navigate to when the logo is clicked (e.g., 'https://mission.nasa.gov').",
+          "type": "text",
+          "width": 6
+        }
+      ]
+    },
+    {
       "name": "Map Panel",
       "components": [
         {
