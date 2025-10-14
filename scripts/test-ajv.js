@@ -85,17 +85,4 @@ function fail(name, err) {
   } catch (e) {
     fail("Ajv zoom_to compile", e && e.message);
   }
-
-  // web_search_product
-  try {
-    const v = ajv.compile(tools.web_search_product.parameters);
-    const ok1 = v({ query: "nasa product" });
-    const ok2 = v({ query: "a" }) === false;
-    const ok3 = v({ query: "nasa", extra: 1 }) === false;
-    if (ok1 && ok2 && ok3)
-      pass("Ajv web_search_product minLength/additionalProperties");
-    else fail("Ajv web_search_product", v.errors);
-  } catch (e) {
-    fail("Ajv web_search_product compile", e && e.message);
-  }
 })();

@@ -17,9 +17,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "type": "object"
       },
       "name": "describe_layer",
@@ -31,29 +29,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "name"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "description": "Return a short overview of MMGIS with a docs citation.",
-      "execution": {
-        "adapter": "custom",
-        "ui": {
-          "type": "mmgis_overview"
-        }
-      },
-      "modelParameters": {
-        "additionalProperties": false,
-        "properties": {},
-        "type": "object"
-      },
-      "name": "describe_mmgis",
-      "parameters": {
-        "additionalProperties": false,
-        "properties": {},
+        "required": ["name"],
         "type": "object"
       }
     },
@@ -97,10 +73,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "name",
-          "opacity"
-        ],
+        "required": ["name", "opacity"],
         "type": "object"
       },
       "name": "set_layer_opacity",
@@ -118,10 +91,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "name",
-          "opacity"
-        ],
+        "required": ["name", "opacity"],
         "type": "object"
       }
     },
@@ -129,10 +99,7 @@
       "description": "Toggle a layer visibility by display name. If visible=true show; false hide.",
       "execution": {
         "adapter": "mmgisAPI",
-        "argOrder": [
-          "name",
-          "visible"
-        ],
+        "argOrder": ["name", "visible"],
         "method": "toggleLayer",
         "nameResolution": "displayNameToInternalId",
         "ui": {
@@ -149,10 +116,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "name",
-          "visible"
-        ],
+        "required": ["name", "visible"],
         "type": "object"
       },
       "name": "toggle_layer",
@@ -169,46 +133,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "name",
-          "visible"
-        ],
-        "type": "object"
-      }
-    },
-    {
-      "description": "Search the web for a NASA/NOAA product and return 2–4 links with a brief summary.",
-      "execution": {
-        "adapter": "openapi",
-        "operation": "web_search_product",
-        "ui": {
-          "type": "web_search_suggest"
-        }
-      },
-      "modelParameters": {
-        "additionalProperties": false,
-        "properties": {
-          "query": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "query"
-        ],
-        "type": "object"
-      },
-      "name": "web_search_product",
-      "parameters": {
-        "additionalProperties": false,
-        "properties": {
-          "query": {
-            "minLength": 2,
-            "type": "string"
-          }
-        },
-        "required": [
-          "query"
-        ],
+        "required": ["name", "visible"],
         "type": "object"
       }
     },
@@ -268,10 +193,7 @@
                 "type": "integer"
               }
             },
-            "required": [
-              "center",
-              "zoom"
-            ],
+            "required": ["center", "zoom"],
             "type": "object"
           },
           {
@@ -287,9 +209,7 @@
                 "type": "array"
               }
             },
-            "required": [
-              "bbox"
-            ],
+            "required": ["bbox"],
             "type": "object"
           }
         ],
@@ -304,17 +224,11 @@
     "layers_line": {
       "kind": "render_layers_line"
     },
-    "mmgis_overview": {
-      "kind": "render_text_with_citation"
-    },
     "opacity": {
       "kind": "set_opacity"
     },
     "toggle": {
       "kind": "toggle_visibility"
-    },
-    "web_search_suggest": {
-      "kind": "render_links_summary"
     },
     "zoom_view": {
       "kind": "zoom_view"
