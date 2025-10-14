@@ -289,7 +289,7 @@ var UserInterface = {
             .style('pointer-events', 'none')
             .style('overflow', 'hidden')
             .style('z-index', '1003')
-            .style('transition', 'bottom 0.2s ease-out')
+            .style('transition', 'bottom 0.2s ease-out, height 0.2s ease-out')
 
         this.mapTopBar = this.mapScreen
             .append('div')
@@ -815,8 +815,7 @@ var UserInterface = {
             bottom: UserInterface.pxIsTools + 28 + 'px',
         })
         $('#mmgis-attributions').css({
-            bottom:
-                UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 5 + 'px',
+            bottom: UserInterface.pxIsTools + 'px',
         })
         // Only set compass position if no attributions exist (Attributions.js manages it when they do)
         if (
@@ -825,6 +824,10 @@ var UserInterface = {
         ) {
             $('#mmgis-map-compass').css({
                 bottom: UserInterface.pxIsTools + 38 + 'px',
+            })
+        } else {
+            $('#mmgis-map-compass').css({
+                bottom: UserInterface.pxIsTools + 58 + 'px',
             })
         }
         $('.leaflet-bottom.leaflet-right').css({

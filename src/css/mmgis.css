@@ -85,6 +85,7 @@ body {
     --color-green2: #08ea58;
     --color-yellowgreen: #7eea08;
     --color-yellow: #d2b800;
+    --color-gold: #a98732;
     --color-blue: #00b6d2;
     --color-orange: #d26100;
     --color-orange2: #c57907;
@@ -873,10 +874,10 @@ body {
 }
 
 .leaflet-bottom.leaflet-left {
-    transition: bottom 0.2s ease-in;
+    transition: bottom 0.2s ease-out;
 }
 .leaflet-bottom.leaflet-right {
-    transition: bottom 0.2s ease-in;
+    transition: bottom 0.2s ease-out;
 }
 
 .leaflet-popup-annotation > .leaflet-popup-content-wrapper {

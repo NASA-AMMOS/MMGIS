@@ -124,11 +124,9 @@ const Coordinates = {
             !(
                 L_.configData.time &&
                 L_.configData.time.enabled === true &&
-                (
-                    L_.configData.time.visible === true ||
+                (L_.configData.time.visible === true ||
                     L_.configData.time.liveByDefault === true ||
-                    L_.FUTURES.live === true
-                )
+                    L_.FUTURES.live === true)
             )
         ) {
             $('#toggleTimeUI').css({ display: 'none' })
@@ -279,13 +277,10 @@ const Coordinates = {
         if (
             L_.configData.time &&
             L_.configData.time.enabled === true &&
-            (
-                L_.FUTURES.live === true ||
-                (L_.FUTURES.live == null && (
-                    L_.configData.time.initiallyOpen === true ||
-                    L_.configData.time.liveByDefault === true
-                ))
-            )
+            (L_.FUTURES.live === true ||
+                (L_.FUTURES.live == null &&
+                    (L_.configData.time.initiallyOpen === true ||
+                        L_.configData.time.liveByDefault === true)))
         ) {
             toggleTimeUI()
         }
@@ -805,7 +800,7 @@ function toggleTimeUI() {
         bottom: newBottom + 'px',
     })
     $('#mmgis-attributions').css({
-        bottom: newBottom + 5 + 'px',
+        bottom: (UserInterface.pxIsTools || 0) + 'px',
     })
     $('.leaflet-bottom.leaflet-right').css({
         bottom: newBottom + (UserInterface.pxIsTools || 0) + 'px',

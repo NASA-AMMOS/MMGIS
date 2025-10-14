@@ -77,7 +77,7 @@ var Attributions = {
 
         const attributionsHtml = [
             `<div id='mmgis-attributions'>`,
-            `| ${attributionItems.join(' | ')}`,
+            `@ ${attributionItems.join(' | ')}`,
             `</div>`,
         ].join('\n')
 

@@ -205,3 +205,7 @@
 .dropdown::after {
     color: #e1e1e1;
 }
+
+#polyline-measure-control {
+    display: none;
+}
