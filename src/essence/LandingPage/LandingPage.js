@@ -152,9 +152,15 @@ export default {
                                         'get',
                                         {
                                             mission: missionName,
+                                            full: true,
                                         },
-                                        function (data) {
-                                            s.init(data, missions)
+                                        function (response) {
+                                            // Extract DB mission name and attach to config
+                                            const config = response.config || response
+                                            if (response.mission) {
+                                                config._dbMissionName = response.mission
+                                            }
+                                            s.init(config, missions)
                                         },
                                         function (e) {
                                             console.log(
@@ -330,9 +336,15 @@ export default {
                         'get',
                         {
                             mission: missionUrl,
+                            full: true,
                         },
-                        function (data) {
-                            s.init(data, missions)
+                        function (response) {
+                            // Extract DB mission name and attach to config
+                            const config = response.config || response
+                            if (response.mission) {
+                                config._dbMissionName = response.mission
+                            }
+                            s.init(config, missions)
                         },
                         function (e) {
                             console.error(

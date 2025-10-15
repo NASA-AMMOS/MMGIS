@@ -183,24 +183,30 @@ function get(req, res, next, cb) {
           },
         })
           .then((mission) => {
+            // Apply fallback logic for missionFolderName
+            const config = mission.config;
+            if (config.msv && (!config.msv.missionFolderName || config.msv.missionFolderName === "")) {
+              config.msv.missionFolderName = config.msv.mission || "";
+            }
+
             if (req.query.full) {
               if (cb)
                 cb({
                   status: "success",
                   mission: mission.mission,
-                  config: mission.config,
+                  config: config,
                   version: mission.version,
                 });
               else
                 res.send({
                   status: "success",
                   mission: mission.mission,
-                  config: mission.config,
+                  config: config,
                   version: mission.version,
                 });
             } else {
-              if (cb) cb(mission.config);
-              else res.send(mission.config);
+              if (cb) cb(config);
+              else res.send(config);
             }
             return null;
           })
@@ -244,6 +250,8 @@ function add(req, res, next, cb) {
   }
   
   configTemplate.msv.mission = req.body.mission;
+  // Set missionFolderName to match the mission name by default
+  configTemplate.msv.missionFolderName = req.body.mission;
 
   // Fix validation logic: use OR conditions instead of AND
   if (
@@ -729,6 +737,8 @@ if (fullAccess)
     get(req, res, next, function (r) {
       if (r.status == "success") {
         r.config.msv.mission = req.body.cloneMission;
+        // Set missionFolderName to match the new mission name
+        r.config.msv.missionFolderName = req.body.cloneMission;
         req.body.config =
           req.body.hasPaths == "true"
             ? relativizePaths(r.config, req.body.existingMission)

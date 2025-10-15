@@ -3659,9 +3659,14 @@ async function parseConfig(configData, urlOnLayers) {
             )
     }
 
-    L_.mission = L_.configData.msv.mission
+    // Use DB mission name for L_.mission (for deeplinks)
+    // This will be set from the API response's mission field
+    // For now, keep backward compatibility
+    L_.mission = L_.configData._dbMissionName || L_.configData.msv.mission
     L_.recentMissions.unshift(L_.mission)
-    L_.missionPath = 'Missions/' + L_.configData.msv.mission + '/'
+    // Use missionFolderName if available, otherwise fallback to msv.mission
+    L_.missionFolderName = L_.configData.msv.missionFolderName || L_.configData.msv.mission
+    L_.missionPath = 'Missions/' + L_.missionFolderName + '/'
     L_.site = L_.configData.msv.site
 
     L_.view = [

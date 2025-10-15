@@ -1,6 +1,7 @@
 module.exports = {
   msv: {
     mission: "Test",
+    missionFolderName: "",
     site: "",
     masterdb: false,
     view: ["0", "0", "0"],

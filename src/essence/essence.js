@@ -209,7 +209,8 @@ var essence = {
             if (data.data) {
                 try {
                     const parsed = JSON.parse(data.data)
-                    const mission = essence.configData.msv.mission
+                    // Use DB mission name for comparison (L_.mission now contains DB name)
+                    const mission = L_.mission || essence.configData.msv.mission
 
                     if (
                         !parsed.body.mission ||
@@ -230,8 +231,15 @@ var essence = {
                                 'get',
                                 {
                                     mission,
+                                    full: true,
                                 },
-                                async function (data) {
+                                async function (response) {
+                                    // Extract DB mission name and attach to config
+                                    const data = response.config || response
+                                    if (response.mission) {
+                                        data._dbMissionName = response.mission
+                                    }
+
                                     if (Array.isArray(layerName)) {
                                         // If we're adding an array of new layers, add each layer to the queue individually
                                         for (let layer in layerName) {
@@ -318,10 +326,12 @@ var essence = {
             (urlSplit[1] && urlSplit[1].split('=')[0] === '_preview')
         ) {
             //then no parameters or old ones
+            // Use DB mission name for deeplinks (config._dbMissionName if available)
+            const missionForUrl = config._dbMissionName || config.msv.mission
             url =
                 window.location.href.split('?')[0] +
                 '?mission=' +
-                config.msv.mission
+                missionForUrl
             window.history.replaceState('', '', url)
             L_.url = window.location.href
         }
@@ -427,9 +437,15 @@ var essence = {
                 'get',
                 {
                     mission: to,
+                    full: true,
                 },
-                function (data) {
-                    essence.makeMission(data)
+                function (response) {
+                    // Extract DB mission name and attach to config
+                    const config = response.config || response
+                    if (response.mission) {
+                        config._dbMissionName = response.mission
+                    }
+                    essence.makeMission(config)
                 },
                 function (e) {
                     console.log(

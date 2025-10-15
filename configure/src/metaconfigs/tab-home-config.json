@@ -57,6 +57,19 @@
           "units": "meters"
         }
       ]
+    },
+    {
+      "name": "Paths",
+      "components": [
+        {
+          "field": "msv.missionFolderName",
+          "name": "/Missions Folder Name",
+          "description": "The actual folder name in the /Missions directory. This should match the physical folder name to ensure relative links work correctly. If the folder name differs from the mission name in the database, update this value accordingly.",
+          "type": "text",
+          "width": 4,
+          "required": true
+        }
+      ]
     }
   ]
 }
