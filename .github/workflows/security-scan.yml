@@ -3,6 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - development
       - sonarcloud_action
 jobs:
   sonarqube:
