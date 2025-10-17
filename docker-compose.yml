@@ -27,7 +27,7 @@ services:
     volumes:
       - ./Missions:/usr/src/app/Missions
       - ./ssl:/usr/src/app/ssl
-      - ${HOME}/.azure:/root/.azure:ro
+      - ${HOME}/.azure:/root/.azure
 
   stac-fastapi:
     image: ghcr.io/stac-utils/stac-fastapi-pgstac:5.0.2
