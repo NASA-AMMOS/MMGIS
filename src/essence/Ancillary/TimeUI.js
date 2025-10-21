@@ -80,6 +80,9 @@ const TimeUI = {
                     `<div id='mmgisTimeUIMode'>`,
                         `<div id='mmgisTimeUIModeDropdown' class='ui dropdown short'></div>`,
                     `</div>`,
+                    `<div id="mmgisTimeUIQuickSelectTrigger" class="mmgisTimeUIButton">`,
+                        `<i class='mdi mdi-calendar-cursor mdi-24px'></i>`,
+                    `</div>`,
                     `<div id="mmgisTimeUIPlayTrigger" class="mmgisTimeUIButton">`,
                         `<i class='mdi mdi-movie mdi-24px'></i>`,
                     `</div>`,
@@ -98,7 +101,8 @@ const TimeUI = {
                         `<div id="mmgisTimeUITimelineExtent"></div>`,
                         `<div id="mmgisTimeUITimelinePlayExtent"></div>`,
                         `<div id="mmgisTimeUITimelineHisto"></div>`,
-                        `<div id="mmgisTimeUITimelineInner"></div>`,
+                        `<div id="mmgisTimeUITimelineHover"></div>`,
+                        `<div id="mmgisTimeUITimelineInner" title="Double-Click to Select Period"></div>`,
                         `<div id='mmgisTimeUITimelineSlider' class='svelteSlider'></div>`,
                     `</div>`,
                     `<div class="mmgisTimeUIInput" id="mmgisTimeUIEndWrapper">`,
@@ -152,7 +156,7 @@ const TimeUI = {
                     `<div>Every</div>`,
                     `<div id='mmgisTimeUIRateDropdown' class='ui dropdown short'></div>`,
                 `</div>`,
-                
+
                 `<div id="mmgisTimeUIPopoverBottom">`,
                     `<div id="mmgisTimeUIPlay" class="mmgisTimeUIButton">`,
                         `<i class='mdi mdi-play mdi-24px'></i>`,
@@ -167,6 +171,15 @@ const TimeUI = {
             `</div>`,
         ].join('\n')
 
+        // prettier-ignore
+        const quickSelectPopoverMarkup = [
+            `<div id="timeUIQuickSelectPopover">`,
+                `<div id='mmgisTimeUIQuickSelectList'>`,
+                    `<div id='mmgisTimeUIQuickSelectDropdown' class='ui dropdown short'></div>`,
+                `</div>`,
+            `</div>`,
+        ].join('\n')
+
         d3.select('#splitscreens')
             .append('div')
             .attr('id', 'timeUI')
@@ -176,6 +189,11 @@ const TimeUI = {
             .append('div')
             .attr('id', 'timeUIPlayPopover_global')
             .html(playPopoverMarkup)
+
+        d3.select('body')
+            .append('div')
+            .attr('id', 'timeUIQuickSelectPopover_global')
+            .html(quickSelectPopoverMarkup)
 
         TimeUI.attachEvents()
 
@@ -206,9 +224,17 @@ const TimeUI = {
     },
     alignPopovers(e) {
         if (e == null) {
-            let bcr = $(`#mmgisTimeUIPlayTrigger`)
+            let bcr = $(`#mmgisTimeUIQuickSelectTrigger`)
                 .get(0)
                 .getBoundingClientRect()
+            $(`#timeUIQuickSelectPopover`).css({
+                position: 'fixed',
+                left: bcr.left,
+                right: bcr.right,
+                bottom: 40,
+            })
+
+            bcr = $(`#mmgisTimeUIPlayTrigger`).get(0).getBoundingClientRect()
             $(`#timeUIPlayPopover`).css({
                 position: 'fixed',
                 left: bcr.left,
@@ -230,6 +256,28 @@ const TimeUI = {
         document.addEventListener('toolChange', TimeUI.alignPopovers)
 
         // Popovers
+        $(`#mmgisTimeUIQuickSelectTrigger`).on('click', () => {
+            const pop = $(`#timeUIQuickSelectPopover`)
+            const willOpen = pop.css('display') === 'none'
+
+            pop.css({
+                display: willOpen ? 'block' : 'none',
+            })
+            $(`#mmgisTimeUIQuickSelectTrigger`).css({
+                color: willOpen ? 'var(--color-c)' : 'var(--color-a5)',
+            })
+            if (willOpen) {
+                TimeUI._popoverQuickSelectOpen = true
+                TimeUI.alignPopovers()
+                // Automatically open the dropdown when popover opens
+                setTimeout(() => {
+                    $('#mmgisTimeUIQuickSelectDropdown .dropy__title').click()
+                }, 25)
+            } else {
+                TimeUI._popoverQuickSelectOpen = false
+            }
+        })
+
         $(`#mmgisTimeUIPlayTrigger`).on('click', () => {
             const pop = $(`#timeUIPlayPopover`)
             const willOpen = pop.css('display') === 'none'
@@ -258,6 +306,8 @@ const TimeUI = {
         // zoom
         $('#mmgisTimeUITimelineInner').on('wheel', function (e) {
             if (TimeUI.play) return
+            // Hide hover highlight during zoom
+            $('#mmgisTimeUITimelineHover').css('opacity', 0)
             const x = e.originalEvent.offsetX
             const width = document
                 .getElementById('mmgisTimeUITimelineInner')
@@ -308,6 +358,142 @@ const TimeUI = {
                 TimeUI._lastDragPageX = 0
                 TimeUI._timelineDragging = false
             }
+        })
+
+        // Double-click to select timeline interval
+        $('#mmgisTimeUITimelineInner').on('dblclick', function (e) {
+            if (TimeUI.play) return
+            if (!TimeUI._currentTimelineUnit) return
+
+            const mode = TimeUI.modes[TimeUI.modeIndex]
+
+            // Disable Present mode if active
+            if (TimeUI.now) {
+                TimeUI.toggleTimeNow(false)
+            }
+
+            // Calculate clicked timestamp from mouse position
+            const x = e.originalEvent.offsetX
+            const width = document
+                .getElementById('mmgisTimeUITimelineInner')
+                .getBoundingClientRect().width
+
+            const clickedTimestamp = F_.linearScale(
+                [0, width],
+                [TimeUI._timelineStartTimestamp, TimeUI._timelineEndTimestamp],
+                x
+            )
+
+            // Snap to start of the period containing the clicked timestamp
+            const clickedMoment = moment.utc(clickedTimestamp)
+            let periodStart, periodEnd
+
+            // Handle decade specially (moment.js doesn't support 'decade')
+            if (TimeUI._currentTimelineUnit === 'decade') {
+                const year = clickedMoment.year()
+                const decadeStart = Math.floor(year / 10) * 10
+                periodStart = moment.utc().year(decadeStart).startOf('year')
+                periodEnd = moment
+                    .utc()
+                    .year(decadeStart + 10)
+                    .startOf('year')
+            } else if (TimeUI._currentTimelineUnit === 'second') {
+                // Handle second specially if needed
+                periodStart = clickedMoment.clone().startOf('second')
+                periodEnd = periodStart.clone().add(1, 'second')
+            } else {
+                // Normal moment.js units
+                periodStart = clickedMoment
+                    .clone()
+                    .startOf(TimeUI._currentTimelineUnit)
+                periodEnd = periodStart
+                    .clone()
+                    .add(1, TimeUI._currentTimelineUnit)
+            }
+
+            if (mode === 'Point') {
+                // Point mode: Set active time to the period start
+                TimeUI.updateTimes(
+                    null,
+                    periodStart.toISOString(),
+                    periodStart.toISOString()
+                )
+            } else {
+                // Range mode: Set start and end to encompass the period
+                TimeUI.updateTimes(
+                    periodStart.toISOString(),
+                    periodEnd.toISOString(),
+                    periodEnd.toISOString()
+                )
+            }
+
+            TimeUI._remakeTimeSlider(true)
+        })
+
+        // Hover to highlight timeline period
+        $('#mmgisTimeUITimelineInner').on('mousemove', function (e) {
+            if (TimeUI.play) return
+            if (!TimeUI._currentTimelineUnit) return
+
+            const x = e.originalEvent.offsetX
+            const width = document
+                .getElementById('mmgisTimeUITimelineInner')
+                .getBoundingClientRect().width
+
+            const hoveredTimestamp = F_.linearScale(
+                [0, width],
+                [TimeUI._timelineStartTimestamp, TimeUI._timelineEndTimestamp],
+                x
+            )
+
+            const hoveredMoment = moment.utc(hoveredTimestamp)
+            let periodStart, periodEnd
+
+            // Handle decade specially (moment.js doesn't support 'decade')
+            if (TimeUI._currentTimelineUnit === 'decade') {
+                const year = hoveredMoment.year()
+                const decadeStart = Math.floor(year / 10) * 10
+                periodStart = moment.utc().year(decadeStart).startOf('year')
+                periodEnd = moment
+                    .utc()
+                    .year(decadeStart + 10)
+                    .startOf('year')
+            } else if (TimeUI._currentTimelineUnit === 'second') {
+                periodStart = hoveredMoment.clone().startOf('second')
+                periodEnd = periodStart.clone().add(1, 'second')
+            } else {
+                periodStart = hoveredMoment
+                    .clone()
+                    .startOf(TimeUI._currentTimelineUnit)
+                periodEnd = periodStart
+                    .clone()
+                    .add(1, TimeUI._currentTimelineUnit)
+            }
+
+            // Calculate position and width for the highlight
+            let startPos = F_.linearScale(
+                [TimeUI._timelineStartTimestamp, TimeUI._timelineEndTimestamp],
+                [0, 100],
+                periodStart.valueOf()
+            )
+            let endPos = F_.linearScale(
+                [TimeUI._timelineStartTimestamp, TimeUI._timelineEndTimestamp],
+                [0, 100],
+                periodEnd.valueOf()
+            )
+
+            // Clamp to timeline bounds
+            startPos = Math.max(0, Math.min(100, startPos))
+            endPos = Math.max(0, Math.min(100, endPos))
+
+            $('#mmgisTimeUITimelineHover')
+                .css('opacity', 1)
+                .css('left', `${startPos}%`)
+                .css('width', `${endPos - startPos}%`)
+        })
+
+        $('#mmgisTimeUITimelineInner').on('mouseleave', function () {
+            $('#mmgisTimeUITimelineHover').css('opacity', 0)
         })
 
         // Time
@@ -424,6 +610,11 @@ const TimeUI = {
             placement: 'top',
             theme: 'blue',
         })
+        tippy('#mmgisTimeUIQuickSelectTrigger', {
+            content: 'Quick Select Period',
+            placement: 'top',
+            theme: 'blue',
+        })
         tippy('#mmgisTimeUIPlayTrigger', {
             content: 'Play',
             placement: 'top',
@@ -471,6 +662,26 @@ const TimeUI = {
         )
 
         Dropy.init($('#mmgisTimeUIModeDropdown'), TimeUI.changeMode)
+
+        // Quick Select dropdown
+        const quickSelectOptions = [
+            'Decade',
+            'Year',
+            'Month',
+            'Day',
+            'Hour',
+            'Minute',
+        ]
+        $('#mmgisTimeUIQuickSelectDropdown').html(
+            Dropy.construct(quickSelectOptions, 'Period', null, {
+                openUp: true,
+                dark: true,
+            })
+        )
+        Dropy.init(
+            $('#mmgisTimeUIQuickSelectDropdown'),
+            TimeUI.quickSelectPeriod
+        )
 
         // Step WithinBeyond dropdown
         $('#mmgisTimeUIStepWithinBeyondDropdown').html(
@@ -1084,6 +1295,78 @@ const TimeUI = {
         $('#mmgisTimeUITimelineHisto').empty()
         TimeUI._makeHistogram()
     },
+    quickSelectPeriod(idx) {
+        // Map index to period unit (must match quickSelectOptions order)
+        const periods = ['decade', 'year', 'month', 'day', 'hour', 'minute']
+        const unit = periods[idx]
+
+        const mode = TimeUI.modes[TimeUI.modeIndex]
+
+        // Disable Present mode if active
+        if (TimeUI.now) {
+            TimeUI.toggleTimeNow(false)
+        }
+
+        // Stop playback if active
+        if (TimeUI.play) {
+            TimeUI.togglePlay(false)
+        }
+
+        // Get the reference time (start time in Range mode, end time in Point mode)
+        let referenceTime
+        if (mode === 'Range') {
+            referenceTime = moment.utc(
+                TimeUI.removeOffset(TimeUI._startTimestamp)
+            )
+        } else {
+            referenceTime = moment.utc(
+                TimeUI.removeOffset(TimeUI._endTimestamp)
+            )
+        }
+
+        // Snap to start of the period
+        let periodStart, periodEnd
+
+        // Handle decade specially (moment.js doesn't support 'decade')
+        if (unit === 'decade') {
+            const year = referenceTime.year()
+            const decadeStart = Math.floor(year / 10) * 10
+            periodStart = moment.utc().year(decadeStart).startOf('year')
+            periodEnd = moment
+                .utc()
+                .year(decadeStart + 10)
+                .startOf('year')
+        } else {
+            periodStart = referenceTime.clone().startOf(unit)
+            periodEnd = periodStart.clone().add(1, unit)
+        }
+
+        if (mode === 'Point') {
+            // Point mode: Just set the active time to the period start
+            TimeUI.updateTimes(
+                null,
+                periodStart.toISOString(),
+                periodStart.toISOString()
+            )
+        } else {
+            // Range mode: Set start to period start and extend by period duration
+            TimeUI.updateTimes(
+                periodStart.toISOString(),
+                periodEnd.toISOString(),
+                periodEnd.toISOString()
+            )
+        }
+
+        TimeUI._remakeTimeSlider(true)
+
+        // Optionally fit the timeline window to show the selected period
+        TimeUI.fitWindowToTime()
+
+        // Close the Quick Select popover
+        $(`#timeUIQuickSelectPopover`).css({ display: 'none' })
+        $(`#mmgisTimeUIQuickSelectTrigger`).css({ color: 'var(--color-a5)' })
+        TimeUI._popoverQuickSelectOpen = false
+    },
     toggleTimeNow(force) {
         if ((!TimeUI.now && typeof force != 'boolean') || force === true) {
             $('#mmgisTimeUIPresent')
@@ -1417,9 +1700,7 @@ const TimeUI = {
                         .utc(TimeUI.removeOffset(offsetNowDate))
                         .format(FORMAT)
                 )
-                TimeUI._updateExtentIndicator(
-                    moment.utc(TimeUI.removeOffset(offsetNowDate))
-                )
+                TimeUI._updateExtentIndicator(moment.utc(offsetNowDate))
             }
             if (e.detail.activeHandle === idx + 1) {
                 $('#mmgisTimeUIEndWrapperFake').css('display', 'block')
@@ -1428,10 +1709,7 @@ const TimeUI = {
                         .utc(TimeUI.removeOffset(offsetNowDate))
                         .format(FORMAT)
                 )
-                TimeUI._updateExtentIndicator(
-                    null,
-                    moment.utc(TimeUI.removeOffset(offsetNowDate))
-                )
+                TimeUI._updateExtentIndicator(null, moment.utc(offsetNowDate))
             }
         })
         TimeUI.timeSlider.$on('stop', (e) => {
@@ -1885,6 +2163,9 @@ const TimeUI = {
         } else if (dif / MS.minute > 0.75) {
             unit = 'minute'
         } else unit = 'second'
+
+        // Store current timeline unit for double-click selection
+        TimeUI._currentTimelineUnit = unit
 
         let first = true
         const bigTicks = F_.getTimeStartsBetweenTimestamps(s, e, unit)

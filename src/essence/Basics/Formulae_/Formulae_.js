@@ -173,11 +173,28 @@ var Formulae_ = {
                         startDate.getDate()
                     )
                 )
+
+                // Helper function to add ordinal suffix
+                function getOrdinalSuffix(day) {
+                    if (day > 3 && day < 21) return day + 'th'
+                    switch (day % 10) {
+                        case 1:
+                            return day + 'st'
+                        case 2:
+                            return day + 'nd'
+                        case 3:
+                            return day + 'rd'
+                        default:
+                            return day + 'th'
+                    }
+                }
+
                 while (currentDate < endDate) {
                     currentDate.setUTCDate(currentDate.getUTCDate() + 1)
+                    const dayNum = currentDate.getUTCDate()
                     timeStarts.push({
                         ts: Date.parse(currentDate),
-                        label: currentDate.getUTCDate(),
+                        label: getOrdinalSuffix(dayNum),
                     })
                 }
                 break
@@ -194,7 +211,7 @@ var Formulae_ = {
                     currentDate.setUTCHours(currentDate.getUTCHours() + 1)
                     timeStarts.push({
                         ts: Date.parse(currentDate),
-                        label: currentDate.getUTCHours(),
+                        label: currentDate.getUTCHours() + 'h',
                     })
                 }
                 break
@@ -212,7 +229,7 @@ var Formulae_ = {
                     currentDate.setUTCMinutes(currentDate.getUTCMinutes() + 1)
                     timeStarts.push({
                         ts: Date.parse(currentDate),
-                        label: currentDate.getUTCMinutes(),
+                        label: currentDate.getUTCMinutes() + 'm',
                     })
                 }
                 break
@@ -231,7 +248,7 @@ var Formulae_ = {
                     currentDate.setUTCSeconds(currentDate.getUTCSeconds() + 1)
                     timeStarts.push({
                         ts: Date.parse(currentDate),
-                        label: currentDate.getUTCSeconds(),
+                        label: currentDate.getUTCSeconds() + 's',
                     })
                 }
                 break
@@ -810,14 +827,14 @@ var Formulae_ = {
     },
     csvToJSON: function (csv) {
         if (csv == null) return {}
-        
+
         // Ensure csv is a string
         if (typeof csv !== 'string') {
             return {}
         }
 
         var lines = csv.split('\n')
-        lines = lines.filter(i => i.length > 0)
+        lines = lines.filter((i) => i.length > 0)
 
         var result = []
 

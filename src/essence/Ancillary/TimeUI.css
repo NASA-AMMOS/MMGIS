@@ -145,6 +145,7 @@
     height: 100%;
     width: 100%;
     position: absolute;
+    cursor: pointer;
 }
 .mmgisTimeUITick {
     position: absolute;
@@ -224,9 +225,23 @@
     transition: margin-top 0.2s ease-in-out;
 }
 
+#mmgisTimeUITimelineHover {
+    opacity: 0;
+    height: 100%;
+    position: absolute;
+    background: rgba(255, 255, 255, 0.1);
+    transition: opacity 0.1s ease-in-out;
+    pointer-events: none;
+    z-index: 1;
+}
+
 #mmgisTimeUIModeDropdown {
     background: var(--color-a-5);
     width: 80px;
+}
+#mmgisTimeUIQuickSelectDropdown {
+    background: var(--color-a-5);
+    width: 100px;
 }
 #mmgisTimeUIStepWithinBeyondDropdown {
     background: var(--color-a-5);
@@ -241,11 +256,13 @@
     width: 110px;
 }
 #mmgisTimeUIModeDropdown .dropy__title i,
+#mmgisTimeUIQuickSelectDropdown .dropy__title i,
 #mmgisTimeUIStepWithinBeyondDropdown .dropy__title i,
 #mmgisTimeUIStepDropdown .dropy__title i,
 #mmgisTimeUIRateDropdown .dropy__title i {
     color: var(--color-a5);
 }
+#mmgisTimeUIQuickSelectDropdown .dropy__title i,
 #mmgisTimeUIStepDropdown .dropy__title i,
 #mmgisTimeUIStepWithinBeyondDropdown .dropy__title i,
 #mmgisTimeUIRateDropdown .dropy__title i {
@@ -256,6 +273,7 @@
     padding: 14px 0px 14px 12px;
     color: var(--color-a5);
 }
+#mmgisTimeUIQuickSelectDropdown .dropy__title span,
 #mmgisTimeUIStepWithinBeyondDropdown .dropy__title span,
 #mmgisTimeUIStepDropdown .dropy__title span,
 #mmgisTimeUIRateDropdown .dropy__title span {
@@ -269,6 +287,7 @@
 }
 
 #mmgisTimeUIModeDropdown li a,
+#mmgisTimeUIQuickSelectDropdown li a,
 #mmgisTimeUIStepWithinBeyondDropdown li a,
 #mmgisTimeUIStepDropdown li a,
 #mmgisTimeUIRateDropdown li a {
@@ -321,12 +340,27 @@
     color: var(--color-a7);
 }
 
+#mmgisTimeUIQuickSelectTrigger,
 #mmgisTimeUIPlayTrigger {
     margin: 0;
     width: 40px;
     height: 40px;
     line-height: 40px;
     color: var(--color-a5);
+}
+
+#timeUIQuickSelectPopover {
+    display: none;
+    background: var(--color-a);
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4);
+    width: 100px;
+    border-top: 1px solid var(--color-a1);
+    border-bottom: 1px solid var(--color-a1);
+    transition: left 0.2s ease-out;
+}
+
+#mmgisTimeUIQuickSelectDropdown .dropy {
+    margin-bottom: 0px;
 }
 
 #timeUIPlayPopover {
@@ -337,6 +371,12 @@
     border-top: 1px solid var(--color-a1);
     border-bottom: 1px solid var(--color-a1);
     transition: left 0.2s ease-out;
+}
+
+#mmgisTimeUIQuickSelectList {
+    display: flex;
+    justify-content: space-between;
+    padding: 0;
 }
 
 #mmgisTimeUIPopoverBottom {
