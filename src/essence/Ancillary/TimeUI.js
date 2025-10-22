@@ -102,7 +102,7 @@ const TimeUI = {
                         `<div id="mmgisTimeUITimelinePlayExtent"></div>`,
                         `<div id="mmgisTimeUITimelineHisto"></div>`,
                         `<div id="mmgisTimeUITimelineHover"></div>`,
-                        `<div id="mmgisTimeUITimelineInner" title="Double-Click to Select Period"></div>`,
+                        `<div id="mmgisTimeUITimelineInner"></div>`,
                         `<div id='mmgisTimeUITimelineSlider' class='svelteSlider'></div>`,
                     `</div>`,
                     `<div class="mmgisTimeUIInput" id="mmgisTimeUIEndWrapper">`,
@@ -345,6 +345,10 @@ const TimeUI = {
                 return
             }
             TimeUI._timelineDragging = true
+            TimeUI._dragOccurred = false  // Reset drag flag on mousedown
+            // Store initial mouse position for distance calculation
+            TimeUI._dragStartPageX = e.originalEvent.pageX
+            TimeUI._dragStartPageY = e.originalEvent.pageY
             $('#mmgisTimeUITimelineSlider').css({ pointerEvents: 'none' })
             TimeUI._lastDragPageX = e.originalEvent.pageX
             $('body').on('mousemove', TimeUI._timelineDrag)
@@ -355,13 +359,31 @@ const TimeUI = {
                     pointerEvents: 'inherit',
                 })
                 $('#mmgisTimeUITimelineInner').off('body', TimeUI._timelineDrag)
+
+                // If actual dragging occurred, set flag to ignore next click
+                if (TimeUI._dragOccurred) {
+                    TimeUI._justDragged = true
+                    // Reset the flag after a short delay to ensure click is blocked
+                    setTimeout(() => {
+                        TimeUI._justDragged = false
+                    }, 50)
+                }
+
                 TimeUI._lastDragPageX = 0
+                TimeUI._dragStartPageX = 0
+                TimeUI._dragStartPageY = 0
                 TimeUI._timelineDragging = false
             }
         })
 
-        // Double-click to select timeline interval
-        $('#mmgisTimeUITimelineInner').on('dblclick', function (e) {
+        // Click to select timeline interval
+        $('#mmgisTimeUITimelineInner').on('click', function (e) {
+            // Ignore click if it was actually a drag
+            if (TimeUI._justDragged) {
+                TimeUI._justDragged = false
+                return
+            }
+
             if (TimeUI.play) return
             if (!TimeUI._currentTimelineUnit) return
 
@@ -1359,8 +1381,17 @@ const TimeUI = {
 
         TimeUI._remakeTimeSlider(true)
 
-        // Optionally fit the timeline window to show the selected period
-        TimeUI.fitWindowToTime()
+        // Zoom timeline with 2-unit buffer on each side
+        let bufferedStart, bufferedEnd
+        if (unit === 'decade') {
+            bufferedStart = periodStart.clone().subtract(20, 'years')
+            bufferedEnd = periodEnd.clone().add(20, 'years')
+        } else {
+            bufferedStart = periodStart.clone().subtract(2, unit + 's')
+            bufferedEnd = periodEnd.clone().add(2, unit + 's')
+        }
+        TimeUI._drawTimeLine(bufferedStart.valueOf(), bufferedEnd.valueOf())
+        TimeUI._makeHistogram()
 
         // Close the Quick Select popover
         $(`#timeUIQuickSelectPopover`).css({ display: 'none' })
@@ -2108,7 +2139,20 @@ const TimeUI = {
     _timelineDrag: function (e) {
         if (TimeUI._timelineDragging === true) {
             const nextPageX = e.originalEvent.pageX
-            const dx = nextPageX - TimeUI._lastDragPageX
+            const nextPageY = e.originalEvent.pageY
+
+            // Calculate distance moved from initial mousedown position
+            const dx = nextPageX - TimeUI._dragStartPageX
+            const dy = nextPageY - TimeUI._dragStartPageY
+            const distanceMoved = Math.sqrt(dx * dx + dy * dy)
+
+            // Only consider it a drag if movement exceeds threshold (5 pixels)
+            const DRAG_THRESHOLD = 5
+            if (distanceMoved > DRAG_THRESHOLD) {
+                TimeUI._dragOccurred = true
+            }
+
+            const pageDx = nextPageX - TimeUI._lastDragPageX
             const width = document
                 .getElementById('mmgisTimeUITimelineInner')
                 .getBoundingClientRect().width
@@ -2116,9 +2160,9 @@ const TimeUI = {
                 TimeUI._timelineEndTimestamp - TimeUI._timelineStartTimestamp
 
             const nextStart =
-                TimeUI._timelineStartTimestamp - 0 - (dif / width) * dx
+                TimeUI._timelineStartTimestamp - 0 - (dif / width) * pageDx
             const nextEnd =
-                TimeUI._timelineEndTimestamp - 0 - (dif / width) * dx
+                TimeUI._timelineEndTimestamp - 0 - (dif / width) * pageDx
 
             TimeUI._drawTimeLine(nextStart, nextEnd)
 
