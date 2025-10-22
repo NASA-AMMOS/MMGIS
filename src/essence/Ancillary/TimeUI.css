@@ -446,6 +446,42 @@
     z-index: -1;
 }
 
+/* Middle drag handle for range extent */
+#mmgisTimeUITimelineExtentHandle {
+    position: absolute;
+    bottom: -8px;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 16px;
+    opacity: 0.5;
+    background: var(--color-a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    z-index: 5;
+    transition: background 0.15s ease-in-out, opacity 0.15s ease-in-out;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+#mmgisTimeUITimelineExtentHandle:hover {
+    background: var(--color-a-5);
+    opacity: 1;
+}
+#mmgisTimeUITimelineExtentHandle:active {
+    cursor: grabbing;
+    opacity: 1;
+    background: var(--color-a1);
+}
+#mmgisTimeUITimelineExtentHandle i {
+    color: var(--color-a6);
+    font-size: 16px;
+    line-height: 16px;
+    pointer-events: none;
+}
+#mmgisTimeUITimelineExtentHandle:hover i {
+    color: var(--color-h);
+}
+
 /* Subtle tick flash on Live update (title text) */
 #mmgisTimeUIEndWrapper > span.flash {
     animation: mmgis-time-text-flash 0.35s ease-out;
@@ -453,4 +489,33 @@
 @keyframes mmgis-time-text-flash {
     0% { color: var(--color-p4); }
     100% { color: var(--color-h); }
+}
+
+/* Range shift arrow buttons */
+.timeUIRangeShiftBtn {
+    position: absolute;
+    bottom: 0px;
+    width: 20px;
+    height: 16px;
+    opacity: 0.5;
+    background: var(--color-a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: background 0.15s ease-in-out, opacity 0.15s ease-in-out;
+    pointer-events: all;
+}
+.timeUIRangeShiftBtn:hover {
+    background: var(--color-a-5);
+    opacity: 1
+}
+.timeUIRangeShiftBtn i {
+    color: var(--color-a6);
+    font-size: 14px;
+    line-height: 14px;
+}
+.timeUIRangeShiftBtn:hover i {
+    color: var(--color-h);
 }

@@ -338,6 +338,50 @@ const TimeUI = {
             }, 3000)
         })
 
+        // Drag range extent middle handle to move entire range
+        $(document).on(
+            'mousedown',
+            '#mmgisTimeUITimelineExtentHandle',
+            function (e) {
+                if (TimeUI.play || TimeUI.modes[TimeUI.modeIndex] !== 'Range') {
+                    TimeUI._extentDragging = false
+                    return
+                }
+                e.stopPropagation() // Prevent timeline pan from triggering
+                TimeUI._extentDragging = true
+                TimeUI._extentDragStartX = e.originalEvent.pageX
+                TimeUI._extentDragStartTimestamp = TimeUI._startTimestamp
+                TimeUI._extentDragEndTimestamp = TimeUI._endTimestamp
+                // Show fake input boxes during drag
+                $('#mmgisTimeUIStartWrapperFake').css('display', 'block')
+                $('#mmgisTimeUIEndWrapperFake').css('display', 'block')
+                $('body').on('mousemove', TimeUI._extentDrag)
+            }
+        )
+        $('body').on('mouseup', function () {
+            if (TimeUI._extentDragging === true) {
+                $('body').off('mousemove', TimeUI._extentDrag)
+                TimeUI._extentDragging = false
+                // Hide fake input boxes
+                $('#mmgisTimeUIStartWrapperFake').css('display', 'none')
+                $('#mmgisTimeUIEndWrapperFake').css('display', 'none')
+
+                // Now actually update the times (only once)
+                if (
+                    TimeUI._extentDragFinalStart != null &&
+                    TimeUI._extentDragFinalEnd != null
+                ) {
+                    TimeUI.updateTimes(
+                        TimeUI.removeOffset(TimeUI._extentDragFinalStart),
+                        TimeUI.removeOffset(TimeUI._extentDragFinalEnd),
+                        TimeUI.removeOffset(TimeUI._extentDragFinalEnd)
+                    )
+                    TimeUI._extentDragFinalStart = null
+                    TimeUI._extentDragFinalEnd = null
+                }
+            }
+        })
+
         // pan
         $('#mmgisTimeUITimelineInner').on('mousedown', function (e) {
             if (TimeUI.play) {
@@ -345,7 +389,7 @@ const TimeUI = {
                 return
             }
             TimeUI._timelineDragging = true
-            TimeUI._dragOccurred = false  // Reset drag flag on mousedown
+            TimeUI._dragOccurred = false // Reset drag flag on mousedown
             // Store initial mouse position for distance calculation
             TimeUI._dragStartPageX = e.originalEvent.pageX
             TimeUI._dragStartPageY = e.originalEvent.pageY
@@ -1142,7 +1186,8 @@ const TimeUI = {
 
         const mode = TimeUI.modes[TimeUI.modeIndex]
 
-        if (mode === 'Point') {
+        if (mode === 'Point' || TimeUI.play) {
+            $('#mmgisTimeUITimelineExtentHandle').remove()
         } else {
             const timelineBCR = document
                 .getElementById('mmgisTimeUITimeline')
@@ -1169,6 +1214,21 @@ const TimeUI = {
                 .css('opacity', 1)
                 .css('width', `${((right - left) / timelineBCR.width) * 100}%`)
                 .css('left', `${(left / timelineBCR.width) * 100}%`)
+
+            // Add or update the middle drag handle
+            let extentHandle = $('#mmgisTimeUITimelineExtentHandle')
+            if (extentHandle.length === 0) {
+                $('#mmgisTimeUITimeline').append(
+                    '<div id="mmgisTimeUITimelineExtentHandle" title="Drag to Shift Range">' +
+                        '<i class="mdi mdi-drag-horizontal mdi-18px"></i>' +
+                        '</div>'
+                )
+                extentHandle = $('#mmgisTimeUITimelineExtentHandle')
+            }
+
+            // Position handle in the middle of the extent
+            const middlePos = left + (right - left) / 2
+            extentHandle.css('left', `${middlePos}px`)
         }
     },
     _refreshIntervals(dontChange) {
@@ -1681,6 +1741,9 @@ const TimeUI = {
 
         TimeUI._updateExtentIndicator()
 
+        if (!TimeUI.play) {
+            TimeUI._timeSliderTimestamp = TimeUI._endTimestamp
+        }
         TimeUI.timeSlider = new RangeSliderPips({
             target: document.querySelector('#mmgisTimeUITimelineSlider'),
             props: {
@@ -1742,6 +1805,10 @@ const TimeUI = {
                 )
                 TimeUI._updateExtentIndicator(null, moment.utc(offsetNowDate))
             }
+            // Update arrow button positions as handles move
+            if (rangeMode) {
+                TimeUI._updateRangeShiftButtonPositions()
+            }
         })
         TimeUI.timeSlider.$on('stop', (e) => {
             $('#mmgisTimeUIStartWrapperFake').css('display', 'none')
@@ -1767,8 +1834,79 @@ const TimeUI = {
             TimeUI._updateExtentIndicator()
         })
 
+        // Add arrow shift buttons to handles in range mode
+        if (rangeMode && !TimeUI.play) {
+            TimeUI._addRangeShiftButtons()
+            setTimeout(() => {
+                TimeUI._addRangeShiftButtons()
+            }, 10) // Delay to ensure slider is fully rendered
+        } else {
+            // Remove arrow buttons when not in range mode
+            $('.timeUIRangeShiftBtn').remove()
+            if (TimeUI.play) {
+                $('#mmgisTimeUITimelineExtentHandle').remove()
+            }
+        }
+
         if ($('#toggleTimeUI').hasClass('active') && ignoreHistogram !== true)
             TimeUI._makeHistogram()
+    },
+    _addRangeShiftButtons: function () {
+        // Remove any existing buttons first
+        $('.timeUIRangeShiftBtn').remove()
+
+        const handles = $('#mmgisTimeUITimelineSlider .rangeHandle')
+        if (handles.length !== 2) return
+
+        // Add buttons to the timeline container (not inside the slider)
+        const timeline = $('#mmgisTimeUITimeline')
+
+        // Add left arrow for start handle
+        timeline.append(
+            '<div class="timeUIRangeShiftBtn timeUIRangeShiftLeft" title="Shift Range Left">' +
+                '<i class="mdi mdi-chevron-left mdi-18px"></i>' +
+                '</div>'
+        )
+
+        // Add right arrow for end handle
+        timeline.append(
+            '<div class="timeUIRangeShiftBtn timeUIRangeShiftRight" title="Shift Range Right">' +
+                '<i class="mdi mdi-chevron-right mdi-18px"></i>' +
+                '</div>'
+        )
+
+        // Position the buttons based on handle positions
+        TimeUI._updateRangeShiftButtonPositions()
+
+        // Attach click handlers
+        $('.timeUIRangeShiftLeft').on('click', function (e) {
+            e.stopPropagation()
+            TimeUI._shiftRange(-1) // Shift left
+        })
+
+        $('.timeUIRangeShiftRight').on('click', function (e) {
+            e.stopPropagation()
+            TimeUI._shiftRange(1) // Shift right
+        })
+    },
+    _updateRangeShiftButtonPositions: function () {
+        const handles = $('#mmgisTimeUITimelineSlider .rangeHandle')
+        if (handles.length !== 2) return
+
+        const leftBtn = $('.timeUIRangeShiftLeft')
+        const rightBtn = $('.timeUIRangeShiftRight')
+
+        if (leftBtn.length && handles[0]) {
+            const leftHandle = $(handles[0])
+            const leftPos = leftHandle.position().left
+            leftBtn.css('left', `${leftPos + 16}px`)
+        }
+
+        if (rightBtn.length && handles[1]) {
+            const rightHandle = $(handles[1])
+            const rightPos = rightHandle.position().left
+            rightBtn.css('left', `${rightPos - 8}px`) // +20 to position at right edge of handle
+        }
     },
     _makeHistogram() {
         const startTimestamp = TimeUI.removeOffset(
@@ -2174,6 +2312,94 @@ const TimeUI = {
 
             TimeUI._lastDragPageX = nextPageX
         }
+    },
+    _extentDrag: function (e) {
+        if (TimeUI._extentDragging === true) {
+            const nextPageX = e.originalEvent.pageX
+            const dx = nextPageX - TimeUI._extentDragStartX
+            const width = document
+                .getElementById('mmgisTimeUITimelineInner')
+                .getBoundingClientRect().width
+            const timelineDif =
+                TimeUI._timelineEndTimestamp - TimeUI._timelineStartTimestamp
+            const timeDelta = (timelineDif / width) * dx
+
+            // Calculate new start and end, maintaining the range size
+            const rangeSize =
+                TimeUI._extentDragEndTimestamp -
+                TimeUI._extentDragStartTimestamp
+            let nextStart = TimeUI._extentDragStartTimestamp + timeDelta
+            let nextEnd = TimeUI._extentDragEndTimestamp + timeDelta
+
+            // Clamp to timeline bounds
+            if (nextStart < TimeUI._timelineStartTimestamp) {
+                nextStart = TimeUI._timelineStartTimestamp
+                nextEnd = nextStart + rangeSize
+            }
+            if (nextEnd > TimeUI._timelineEndTimestamp) {
+                nextEnd = TimeUI._timelineEndTimestamp
+                nextStart = nextEnd - rangeSize
+            }
+
+            // Store final values for mouseup
+            TimeUI._extentDragFinalStart = nextStart
+            TimeUI._extentDragFinalEnd = nextEnd
+
+            // Only update visual indicators during drag (not actual times)
+            const offsetStartDate = TimeUI.addOffset(nextStart)
+            const offsetEndDate = TimeUI.addOffset(nextEnd)
+
+            // Update fake input boxes
+            $('#mmgisTimeUIStartFake').val(
+                moment.utc(TimeUI.removeOffset(offsetStartDate)).format(FORMAT)
+            )
+            $('#mmgisTimeUIEndFake').val(
+                moment.utc(TimeUI.removeOffset(offsetEndDate)).format(FORMAT)
+            )
+
+            // Update extent indicator position
+            TimeUI._updateExtentIndicator(
+                moment.utc(TimeUI.removeOffset(nextStart)),
+                moment.utc(TimeUI.removeOffset(nextEnd))
+            )
+
+            // Update slider handle positions visually (without triggering events)
+            if (TimeUI.timeSlider) {
+                TimeUI.timeSlider.$set({
+                    values: [
+                        TimeUI.removeOffset(nextStart),
+                        TimeUI.removeOffset(nextEnd),
+                    ],
+                })
+                // Update arrow button positions to follow the handles
+                TimeUI._updateRangeShiftButtonPositions()
+            }
+        }
+    },
+    _shiftRange: function (direction) {
+        // direction: -1 for left, 1 for right
+        const rangeSize = TimeUI._endTimestamp - TimeUI._startTimestamp
+        const shift = rangeSize * direction
+
+        let nextStart = TimeUI._startTimestamp + shift
+        let nextEnd = TimeUI._endTimestamp + shift
+
+        // Clamp to timeline bounds
+        if (nextStart < TimeUI._timelineStartTimestamp) {
+            nextStart = TimeUI._timelineStartTimestamp
+            nextEnd = nextStart + rangeSize
+        }
+        if (nextEnd > TimeUI._timelineEndTimestamp) {
+            nextEnd = TimeUI._timelineEndTimestamp
+            nextStart = nextEnd - rangeSize
+        }
+
+        // Update times
+        TimeUI.updateTimes(
+            TimeUI.removeOffset(nextStart),
+            TimeUI.removeOffset(nextEnd),
+            TimeUI.removeOffset(nextEnd)
+        )
     },
     _drawTimeLine(forceStart, forceEnd) {
         const timelineElm = $('#mmgisTimeUITimelineInner')
