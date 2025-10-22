@@ -55,8 +55,251 @@ function interfaceWithMMGIS() {
         minimized: false,
         keyHandlersAttached: false,
         lastFocusedEl: null,
+        pendingConfirmation: null,
+        layerIndex: [],
     }
     const undoStack = []
+
+    const LAYER_ARG_KEYS = ['name', 'layer_name', 'layer_a', 'layer_b']
+
+    function normalizeName(value) {
+        return (value || '')
+            .toString()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, ' ')
+            .trim()
+    }
+
+    function levenshtein(a, b) {
+        const m = a.length
+        const n = b.length
+        if (m === 0) return n
+        if (n === 0) return m
+        const dp = Array.from({ length: m + 1 }, () =>
+            new Array(n + 1).fill(0)
+        )
+        for (let i = 0; i <= m; i += 1) dp[i][0] = i
+        for (let j = 0; j <= n; j += 1) dp[0][j] = j
+        for (let i = 1; i <= m; i += 1) {
+            for (let j = 1; j <= n; j += 1) {
+                const cost = a[i - 1] === b[j - 1] ? 0 : 1
+                dp[i][j] = Math.min(
+                    dp[i - 1][j] + 1,
+                    dp[i][j - 1] + 1,
+                    dp[i - 1][j - 1] + cost
+                )
+            }
+        }
+        return dp[m][n]
+    }
+
+    function scoreSimilarity(queryNorm, candidateNorm) {
+        if (!queryNorm) return 0
+        if (queryNorm === candidateNorm) return 1
+        if (candidateNorm.includes(queryNorm))
+            return Math.max(
+                0.8,
+                queryNorm.length / Math.max(candidateNorm.length, 1)
+            )
+        if (queryNorm.includes(candidateNorm))
+            return Math.max(
+                0.7,
+                candidateNorm.length / Math.max(queryNorm.length, 1)
+            )
+        const dist = levenshtein(queryNorm, candidateNorm)
+        const maxLen = Math.max(queryNorm.length, candidateNorm.length, 1)
+        return Math.max(0, 1 - dist / maxLen)
+    }
+
+    function buildLayerIndex() {
+        try {
+            const api = window.mmgisAPI
+            if (!api) return []
+            const configs = api.getLayerConfigs?.() || {}
+            const visibles = api.getVisibleLayers?.() || {}
+            const items = []
+            const seen = new Set()
+
+            Object.keys(configs).forEach((key) => {
+                const layer = configs[key] || {}
+                const uuid = String(layer.uuid || key || layer.name || '')
+                if (!uuid || seen.has(uuid)) return
+                seen.add(uuid)
+                const display =
+                    layer.display_name ||
+                    layer.displayName ||
+                    layer.title ||
+                    layer.name ||
+                    uuid
+                const canonical = layer.name || display
+                const aliases = new Set()
+                ;[
+                    display,
+                    canonical,
+                    layer.title,
+                    layer.display_name,
+                    layer.displayName,
+                    layer.shortName,
+                ].forEach((alias) => {
+                    if (typeof alias === 'string' && alias.trim())
+                        aliases.add(alias.trim())
+                })
+                if (Array.isArray(layer.aliases || layer.alias)) {
+                    ;(layer.aliases || layer.alias).forEach((alias) => {
+                        if (typeof alias === 'string' && alias.trim())
+                            aliases.add(alias.trim())
+                    })
+                } else if (typeof layer.alias === 'string') {
+                    layer.alias
+                        .split(/[,;]+/)
+                        .map((a) => a.trim())
+                        .filter(Boolean)
+                        .forEach((a) => aliases.add(a))
+                }
+                const normalizedAliases = Array.from(aliases).map((raw) => ({
+                    raw,
+                    normalized: normalizeName(raw),
+                }))
+                items.push({
+                    id: uuid,
+                    displayName: display,
+                    canonical,
+                    visible: !!visibles[uuid],
+                    normalizedAliases,
+                })
+            })
+            return items
+        } catch (_) {
+            return []
+        }
+    }
+
+    function refreshLayerIndex() {
+        state.layerIndex = buildLayerIndex()
+    }
+
+    function findLayerMatch(value) {
+        if (value == null) return null
+        if (!state.layerIndex.length) refreshLayerIndex()
+        const queryNorm = normalizeName(value)
+        if (!queryNorm) return null
+        let best = null
+        let bestScore = 0
+        state.layerIndex.forEach((layer) => {
+            layer.normalizedAliases.forEach((alias) => {
+                if (!alias.normalized) return
+                const score = scoreSimilarity(queryNorm, alias.normalized)
+                if (score > bestScore) {
+                    bestScore = score
+                    best = { layer, alias }
+                }
+            })
+        })
+        if (!best) return null
+        const exact =
+            normalizeName(best.layer.displayName) === queryNorm ||
+            best.alias.normalized === queryNorm
+        return {
+            original: value,
+            resolved: best.layer.displayName,
+            alias: best.alias.raw,
+            score: bestScore,
+            exact,
+            uuid: best.layer.id,
+            visible: best.layer.visible,
+        }
+    }
+
+    function resolveActionLayerArgs(action, { allowConfirmation = true } = {}) {
+        const args = action?.args || {}
+        const targetKeys = Object.keys(args).filter((key) =>
+            LAYER_ARG_KEYS.includes(key)
+        )
+        if (!targetKeys.length) {
+            return {
+                prepared: { ...action },
+                matches: [],
+                needsConfirmation: false,
+            }
+        }
+        const updatedArgs = { ...args }
+        const matches = []
+        let needsConfirmation = false
+
+        for (const key of targetKeys) {
+            const value = updatedArgs[key]
+            if (typeof value !== 'string' || !value.trim()) continue
+            const match = findLayerMatch(value)
+            if (!match) {
+                return {
+                    error: `Could not find a layer matching "${value}".`,
+                    key,
+                }
+            }
+            updatedArgs[key] = match.resolved
+            matches.push({ key, ...match })
+            if (allowConfirmation && !match.exact) needsConfirmation = true
+        }
+
+        return {
+            prepared: {
+                ...action,
+                args: updatedArgs,
+                __layerMatches: matches,
+            },
+            matches,
+            needsConfirmation,
+        }
+    }
+
+    function getLastUserMessage() {
+        for (let i = state.history.length - 1; i >= 0; i -= 1) {
+            const entry = state.history[i]
+            if (entry && entry.role === 'user' && typeof entry.text === 'string')
+                return entry.text
+        }
+        return ''
+    }
+
+    function composeConfirmationPrompt(matches) {
+        const fragments = matches.map((match) => {
+            const from = match.original || match.alias || 'unknown'
+            return `"${from}" → "${match.resolved}"`
+        })
+        const resolvedText = fragments.join(', ')
+        const userText = getLastUserMessage()
+        const prefix = userText
+            ? `You asked: "${userText}". `
+            : 'I interpreted your request. '
+        return (
+            prefix +
+            `Should I continue using ${resolvedText}? Please reply yes or no.`
+        )
+    }
+
+    function queueConfirmation(preparedActions, matches, entry) {
+        const prompt = composeConfirmationPrompt(matches)
+        state.pendingConfirmation = {
+            actions: preparedActions,
+            matches,
+            entry,
+            prompt,
+        }
+        addNoteToAssistant(entry, prompt)
+    }
+
+    function clearPendingConfirmation() {
+        state.pendingConfirmation = null
+    }
+
+    function interpretConfirmation(text) {
+        const normalized = normalizeName(text)
+        if (!normalized) return 'unknown'
+        if (/^(y|yes|sure|ok|okay|confirm|do it|go ahead)$/.test(normalized))
+            return 'yes'
+        if (/^(n|no|cancel|stop|not now|nope)$/.test(normalized)) return 'no'
+        return 'unknown'
+    }
 
     // Initialize UI only (no external assets/styles)
     initUI()
@@ -239,6 +482,57 @@ function interfaceWithMMGIS() {
             input.value = ''
             await undoLast()
             scrollTranscript()
+            return
+        }
+
+        const pending = state.pendingConfirmation
+        if (pending) {
+            input.value = ''
+            const decision = interpretConfirmation(msg)
+            if (decision === 'unknown') {
+                addNoteToAssistant(
+                    pending.entry,
+                    'Please reply with yes or no so I know whether to continue.'
+                )
+                scrollTranscript()
+                return
+            }
+            if (decision === 'no') {
+                addNoteToAssistant(
+                    pending.entry,
+                    'Canceled the pending action at your request.'
+                )
+                clearPendingConfirmation()
+                scrollTranscript()
+                return
+            }
+
+            const actionsToRun = pending.actions
+            const targetEntry = pending.entry
+            addNoteToAssistant(
+                targetEntry,
+                'Confirmed. Executing the requested action now.'
+            )
+            clearPendingConfirmation()
+            state.sendBtn?.setAttribute('data-loading', 'true')
+            input.setAttribute('disabled', '')
+            try {
+                const performed = await exec(actionsToRun, targetEntry, {
+                    allowConfirmation: false,
+                })
+                if (performed.length) {
+                    targetEntry.performed = Array.isArray(targetEntry.performed)
+                        ? targetEntry.performed.concat(performed)
+                        : performed
+                    saveHistory()
+                    renderMessages()
+                    scrollTranscript()
+                }
+            } finally {
+                state.sendBtn?.removeAttribute('data-loading')
+                input.removeAttribute('disabled')
+                input.focus()
+            }
             return
         }
 
@@ -677,12 +971,16 @@ function interfaceWithMMGIS() {
         return state.toolRegistry
     }
 
-    async function exec(actions, entry) {
+    async function exec(actions, entry, options = {}) {
+        const opts = { allowConfirmation: true, ...(options || {}) }
         await ensureRegistry()
+        refreshLayerIndex()
         const map = new Map(
             (state.toolRegistry?.tools || []).map((t) => [t.name, t])
         )
         const performed = []
+        const queue = []
+        const confirmationMatches = []
 
         for (const a of actions || []) {
             if (!a || typeof a !== 'object') continue
@@ -700,7 +998,38 @@ function interfaceWithMMGIS() {
                 )
                 continue
             }
-            const x = spec.execution || {}
+
+            const normalization = resolveActionLayerArgs(a, {
+                allowConfirmation: opts.allowConfirmation,
+            })
+            if (normalization.error) {
+                addFailure(
+                    entry,
+                    `Cannot execute tool "${a.tool}": ${normalization.error}`,
+                    null,
+                    { tool: a.tool, args: a.args, stage: 'layer_resolution' }
+                )
+                continue
+            }
+            if (
+                opts.allowConfirmation &&
+                normalization.needsConfirmation &&
+                normalization.matches.length
+            ) {
+                confirmationMatches.push(...normalization.matches)
+            }
+            queue.push({ action: normalization.prepared, spec })
+        }
+
+        if (opts.allowConfirmation && confirmationMatches.length) {
+            const preparedActions = queue.map((item) => item.action)
+            queueConfirmation(preparedActions, confirmationMatches, entry)
+            return performed
+        }
+
+        for (const item of queue) {
+            const a = item.action
+            const x = item.spec.execution || {}
 
             if (x.adapter === 'mmgisAPI') {
                 const r = await execMmgisApi(x, a, entry)
@@ -753,6 +1082,10 @@ function interfaceWithMMGIS() {
 
     async function execMmgisApi(desc, action, entry) {
         const displayName = action.args?.name
+        const matches = Array.isArray(action.__layerMatches)
+            ? action.__layerMatches
+            : []
+        const matchForKey = (key) => matches.find((m) => m.key === key)
         const method = desc.method
         const order = desc.argOrder || []
         const args = []
@@ -762,7 +1095,9 @@ function interfaceWithMMGIS() {
                 k === 'name' &&
                 desc.nameResolution === 'displayNameToInternalId'
             ) {
-                const id = resolveDisplayNameToId(displayName)
+                const resolvedMatch = matchForKey('name')
+                const id =
+                    resolvedMatch?.uuid || resolveDisplayNameToId(displayName)
                 if (!id) {
                     addFailure(
                         entry,
@@ -785,7 +1120,9 @@ function interfaceWithMMGIS() {
 
         let pendingUndo = null
         if (method === 'toggleLayer') {
-            const id = resolveDisplayNameToId(displayName)
+            const resolvedMatch = matchForKey('name')
+            const id =
+                resolvedMatch?.uuid || resolveDisplayNameToId(displayName)
             const wasVisible = !!(window.mmgisAPI?.getVisibleLayers?.() || {})[
                 id
             ]
@@ -796,7 +1133,9 @@ function interfaceWithMMGIS() {
             }
         }
         if (method === 'setLayerOpacity') {
-            const id = resolveDisplayNameToId(displayName)
+            const resolvedMatch = matchForKey('name')
+            const id =
+                resolvedMatch?.uuid || resolveDisplayNameToId(displayName)
             const prev =
                 L_?.layers?.opacity && typeof L_.layers.opacity[id] === 'number'
                     ? L_.layers.opacity[id]
@@ -839,24 +1178,24 @@ function interfaceWithMMGIS() {
     // ————— Layer helpers (robust name/id resolution) —————————————————————
 
     function collectLayers() {
-        try {
-            const cfg = window.mmgisAPI?.getLayerConfigs?.() || {}
-            const out = []
-            for (const c of Object.values(cfg)) {
-                const id = String(c?.uuid || c?.name || '')
-                if (!id) continue
-                const display = String(c?.display_name || c?.name || id)
-                const name = String(c?.name || c?.display_name || id)
-                out.push({ id, display, name })
-            }
-            return out
-        } catch {
-            return []
-        }
+        if (!state.layerIndex.length) refreshLayerIndex()
+        return state.layerIndex.map((layer) => ({
+            id: layer.id,
+            display: layer.displayName,
+            name: layer.canonical,
+        }))
     }
 
     function resolveDisplayNameToId(v) {
         if (!v) return null
+        if (!state.layerIndex.length) refreshLayerIndex()
+        const normalized = normalizeName(v)
+        const direct = state.layerIndex.find(
+            (layer) =>
+                normalizeName(layer.displayName) === normalized ||
+                normalizeName(layer.canonical) === normalized
+        )
+        if (direct) return direct.id
         return window.mmgisAPI?.asLayerUUID?.(String(v)) || null
     }
 

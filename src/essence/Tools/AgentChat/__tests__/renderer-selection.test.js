@@ -7,7 +7,10 @@ describe('renderer selection shape', () => {
     expect(typeof RENDERERS.zoom_view).toBe('function')
     expect(typeof RENDERERS.set_opacity).toBe('function')
     expect(typeof RENDERERS.toggle_visibility).toBe('function')
+    expect(typeof RENDERERS.render_layer_information).toBe('function')
+    expect(typeof RENDERERS.render_layer_mean).toBe('function')
+    expect(typeof RENDERERS.render_contour_overlay).toBe('function')
+    expect(typeof RENDERERS.render_layer_difference).toBe('function')
   })
 })
-
 
