@@ -35,6 +35,7 @@ function loadRegistry() {
 const registry = loadRegistry();
 const toolsList = registry.tools || [];
 const TOOL_NAMES = new Set(toolsList.map((t) => t.name));
+const TOOL_NAME_LIST = toolsList.map((t) => t.name).sort();
 const TOOL_DESCRIPTIONS = toolsList
   .map((t) => `- ${t.name}: ${t.description || "No description provided."}`)
   .join("\n");
@@ -53,6 +54,9 @@ function buildPrompt(message) {
     '{"actions":[{"tool":"string","args":{}}],"reply":"optional markdown string","citations":[{"title":"string","url":"string"}]}',
     "Guidelines:",
     "- Use actions for map-centric requests (layer visibility, opacity, zoom, etc.).",
+    "- Normalize typos or paraphrasing to identify the correct tool and layer.",
+    "- When a layer match is inferred (no exact match), confirm with the user first: respond with actions:[] and a clarifying reply that cites the resolved layer.",
+    "- Include the original user query in args.original_query when asking for confirmation on layer-specific tools.",
     "- For informational questions, set actions to [] and populate reply with a concise, grounded summary.",
     "- When reply cites external knowledge, include 2-4 representative citations array entries (title + URL).",
     "- Prefer sources from the MMGIS documentation and GitHub repositories surfaced via your Bing grounding connection.",
@@ -63,6 +67,10 @@ function buildPrompt(message) {
     '  * Toggle visibility -> {"actions":[{"tool":"toggle_layer","args":{"name":"Layer","visible":true}}]}',
     '  * Adjust opacity -> {"actions":[{"tool":"set_layer_opacity","args":{"name":"Layer","opacity":0.5}}]}',
     '  * Zoom -> {"actions":[{"tool":"zoom_to","args":{"center":[lon,lat],"zoom":12}}]}',
+    '  * Layer info -> {"actions":[{"tool":"layer_information","args":{"layer_name":"Air Quality Index","original_query":"Show me air quality data"}}]}',
+    '  * Mean value -> {"actions":[{"tool":"calculate_layer_mean","args":{"layer_name":"Sea Surface Temperature","geographical_area":"Beaufort Sea"}}]}',
+    '  * Contours -> {"actions":[{"tool":"visualize_contours","args":{"layer_name":"Sea Surface Temperature","variable":"temperature","operator":">","value":2.5,"time":"2024-06-01T00:00:00Z"}}]}',
+    '  * Difference -> {"actions":[{"tool":"calculate_layer_difference","args":{"layer_a":"Precipitation Rate","layer_b":"Vegetation Index"}}]}',
     "Examples:",
     'User: "Please list layers."\nAssistant: {"actions":[{"tool":"list_layers","args":{}}]}',
     'User: "What is MMGIS?"\nAssistant: {"actions":[],"reply":"<short grounded answer>","citations":[{"title":"MMGIS GitHub Repository","url":"https://github.com/NASA-AMMOS/MMGIS"}]}',
@@ -126,6 +134,7 @@ function parseAgentPlan(rawAssistantText) {
 }
 
 function normalizeActions(actions) {
+  if (actions == null) return [];
   if (!Array.isArray(actions)) {
     throw new Error("Azure Agent Service plan missing 'actions' array.");
   }
@@ -171,6 +180,12 @@ function normalizeCitations(citations) {
   return normalized;
 }
 
+function fallbackMessage() {
+  const list =
+    TOOL_NAME_LIST.length > 0 ? TOOL_NAME_LIST.join(", ") : "(no tools)";
+  return `I'm sorry, I can't perform that operation. Here are the available tools: ${list}.`;
+}
+
 async function planWithProvider(message) {
   const env = haveAzureEnv();
   if (!env.ok) {
@@ -195,11 +210,15 @@ async function planWithProvider(message) {
 
   const plan = parseAgentPlan(rawAssistantText);
   const actions = normalizeActions(plan.actions);
-  const reply =
+  let reply =
     typeof plan.reply === "string" && plan.reply.trim().length > 0
       ? plan.reply.trim()
       : rawAssistantText.trim();
   const citations = normalizeCitations(plan.citations);
+  const usedFallback = actions.length === 0 && (!reply || reply.length === 0);
+  if (usedFallback) {
+    reply = fallbackMessage();
+  }
 
   return {
     actions,
@@ -215,6 +234,7 @@ async function planWithProvider(message) {
             status: azure.run.status,
           }
         : undefined,
+      fallbackApplied: usedFallback,
     },
   };
 }

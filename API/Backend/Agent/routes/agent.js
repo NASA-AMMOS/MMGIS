@@ -3,6 +3,63 @@ const { planWithProvider } = require("../provider");
 
 const router = express.Router();
 
+function normalizeName(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function levenshtein(a, b) {
+  const m = a.length;
+  const n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i += 1) dp[i][0] = i;
+  for (let j = 0; j <= n; j += 1) dp[0][j] = j;
+  for (let i = 1; i <= m; i += 1) {
+    for (let j = 1; j <= n; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost,
+      );
+    }
+  }
+  return dp[m][n];
+}
+
+function scoreCandidate(query, candidate) {
+  const q = normalizeName(query);
+  const c = normalizeName(candidate);
+  if (!q) return 0;
+  if (q === c) return 1;
+  if (c && c.includes(q)) return Math.max(0.8, q.length / Math.max(c.length, 1));
+  if (q && q.includes(c)) return Math.max(0.7, c.length / Math.max(q.length, 1));
+  const dist = levenshtein(q, c);
+  const maxLen = Math.max(q.length, c.length, 1);
+  return Math.max(0, 1 - dist / maxLen);
+}
+
+function findBestLayerInfo(query, store) {
+  if (!store || !Array.isArray(store.index) || store.index.length === 0) {
+    return null;
+  }
+  let best = null;
+  let bestScore = 0;
+  for (const entry of store.index) {
+    const score = scoreCandidate(query, entry.item.name);
+    if (score > bestScore) {
+      bestScore = score;
+      best = entry.item;
+    }
+  }
+  if (!best) return null;
+  return { item: best, score: bestScore };
+}
+
 function getToolNames(req) {
   return req.app?.locals?.agentToolNames || new Set();
 }
@@ -113,6 +170,45 @@ router.post("/", express.json(), async function (req, res) {
       response.validationErrors = error.validationErrors;
     res.status(status).json(response);
   }
+});
+
+router.get("/layer-info", (req, res) => {
+  const store = req.app?.locals?.agentLayerInfo;
+  if (!store || store.error) {
+    res.status(404).json({
+      error: "Layer metadata is unavailable.",
+      code: "LayerInfoUnavailable",
+      details: store?.error || null,
+    });
+    return;
+  }
+
+  const query =
+    typeof req.query?.name === "string" ? req.query.name.trim() : "";
+  let items = store.items || [];
+  let match = null;
+  if (query) {
+    const found = findBestLayerInfo(query, store);
+    if (found && found.score >= 0.35) {
+      items = [found.item];
+      match = {
+        name: found.item.name,
+        score: Number(found.score.toFixed(3)),
+      };
+    } else {
+      items = [];
+      match = null;
+    }
+  }
+
+  res.status(200).json({
+    items,
+    match,
+    source: {
+      path: store.sourcePath || null,
+      loadedAt: store.loadedAt || null,
+    },
+  });
 });
 
 module.exports = router;
