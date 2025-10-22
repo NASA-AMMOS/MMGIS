@@ -9,6 +9,7 @@ import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import Description from '../../Ancillary/Description'
 import TimeControl from '../../Ancillary/TimeControl'
+import Modal from '../../Ancillary/Modal'
 import HTML2Canvas from 'html2canvas'
 import gifshot from 'gifshot'
 import { FFmpeg } from '@ffmpeg/ffmpeg'
@@ -62,7 +63,7 @@ const markup = [
                                 "<input type='number' id='bboxWest' step='0.000001' placeholder='-180.0'>",
                             "</div>",
                             "<div class='bbox-map-controls'>",
-                                "<button class='map-control-button' id='useDefaultExtents'>Use Default Extents</button>",
+                                "<button class='map-control-button' id='resetValues'>Reset Values</button>",
                                 "<button class='map-control-button' id='useCurrentView'>Use Current View</button>",
                                 "<button class='map-control-button' id='drawBoundingBox'>Draw on Map</button>",
                             "</div>",
@@ -109,10 +110,10 @@ const markup = [
                     "<div class='panel-content'>",
                         "<h4>Animation Settings</h4>",
                         "<div class='control-group'>",
-                            "<label>Frame Rate (FPS):</label>",
+                            "<label>One Frame:</label>",
                             "<div class='slider-container'>",
-                                "<input type='range' id='frameRateSlider' min='0.1' max='10' step='0.1' value='2'>",
-                                "<span class='slider-value' id='frameRateValue'>2</span>",
+                                "<input type='range' id='frameRateSlider' min='0.05' max='10' step='0.01' value='2'>",
+                                "<span class='slider-value' id='frameRateValue'>Every 0.5s</span>",
                             "</div>",
                         "</div>",
                         "<div class='control-group'>",
@@ -341,6 +342,37 @@ function interfaceWithMMGIS() {
         return rateInput.length ? parseFloat(rateInput.val() || 1) : 1
     }
     
+    function fpsToEverySeconds(fps) {
+        // Convert FPS to "Every X seconds" format for display
+        const seconds = 1 / fps
+        if (seconds < 1) {
+            return `Every ${seconds.toFixed(1)}s`
+        } else if (seconds === Math.floor(seconds)) {
+            return `Every ${seconds}s`
+        } else {
+            return `Every ${seconds.toFixed(1)}s`
+        }
+    }
+    
+    function showModalAlert(message, title = 'Animation Tool') {
+        const modalHtml = `
+            <div class='modal-content'>
+                <h3>${title}</h3>
+                <p>${message}</p>
+                <div class='modal-buttons'>
+                    <button class='btn btn-primary' id='modalOkButton'>OK</button>
+                </div>
+            </div>
+        `
+        
+        Modal.set(modalHtml, function(modalId) {
+            // Set up event handler for OK button
+            $('#modalOkButton').on('click', function() {
+                Modal.remove()
+            })
+        })
+    }
+    
     // Set up periodic synchronization to catch TimeUI changes
     function setupTimeUISync() {
         if (!TimeControl || !TimeControl.timeUI) return
@@ -431,7 +463,7 @@ function interfaceWithMMGIS() {
         if (Math.abs(newFPS - AnimationTool.animationSettings.frameRate) > 0.01) {
             AnimationTool.animationSettings.frameRate = newFPS
             $('#frameRateSlider').val(newFPS)
-            $('#frameRateValue').text(newFPS)
+            $('#frameRateValue').text(fpsToEverySeconds(newFPS))
             console.log('Synced FPS from TimeUI:', newFPS)
         }
     }
@@ -540,7 +572,7 @@ function interfaceWithMMGIS() {
             useCurrentView()
         })
         
-        $('#useDefaultExtents').on('click', () => {
+        $('#resetValues').on('click', () => {
             useDefaultExtents()
         })
         
@@ -561,21 +593,14 @@ function interfaceWithMMGIS() {
             syncTimeUIFromAnimation()
         })
         
-        // Animation controls
-        $('#frameRateSlider').on('input', (e) => {
-            let value = parseFloat(e.target.value)
-            
-            // Snap to whole numbers when close (within 0.1)
-            const wholeNumber = Math.round(value)
-            if (Math.abs(value - wholeNumber) <= 0.1) {
-                value = wholeNumber
-                e.target.value = value
-            }
-            
-            $('#frameRateValue').text(value)
-            AnimationTool.animationSettings.frameRate = value
-            syncTimeUIFromAnimation()
-        })
+         // Animation controls
+         $('#frameRateSlider').on('input', (e) => {
+             const value = parseFloat(e.target.value)
+             
+             $('#frameRateValue').text(fpsToEverySeconds(value))
+             AnimationTool.animationSettings.frameRate = value
+             syncTimeUIFromAnimation()
+         })
         
         $('input[name="playDirection"]').on('change', (e) => {
             AnimationTool.animationSettings.playDirection = e.target.value
@@ -660,7 +685,7 @@ function interfaceWithMMGIS() {
         if (!isNaN(north) && !isNaN(south) && !isNaN(east) && !isNaN(west)) {
             if (validateBoundingBox({ north, south, east, west })) {
                 AnimationTool.boundingBox = { north, south, east, west }
-                $('#useDefaultExtents').prop('disabled', false)
+                $('#resetValues').prop('disabled', false)
                 // Update screen rectangle from the bounding box
                 updateScreenRectFromBoundingBox()
             }
@@ -861,7 +886,7 @@ function interfaceWithMMGIS() {
         $('#bboxEast').val(bbox.east)
         $('#bboxWest').val(bbox.west)
         
-        $('#useDefaultExtents').prop('disabled', false)
+        $('#resetValues').prop('disabled', false)
     }
     
     function useDefaultExtents() {
@@ -877,7 +902,7 @@ function interfaceWithMMGIS() {
             AnimationTool.drawingLayer = null
         }
         
-        $('#useDefaultExtents').prop('disabled', true)
+        $('#resetValues').prop('disabled', true)
     }
     
     function updateScreenRectFromBoundingBox() {
@@ -961,12 +986,12 @@ function interfaceWithMMGIS() {
         })
         
         if (!AnimationTool.boundingBox) {
-            alert('Please complete Step 1 (Select Area) before exporting.')
+            showModalAlert('Please complete Step 1 (Select Area) before exporting.')
             return
         }
         
         if (!AnimationTool.timeRange) {
-            alert('Please complete Step 2 (Set Time Range) before exporting.')
+            showModalAlert('Please complete Step 2 (Set Time Range) before exporting.')
             return
         }
         
@@ -978,7 +1003,7 @@ function interfaceWithMMGIS() {
         generateAnimationFrames().then(frames => {
             if (frames.length === 0) {
                 button.text(originalText).prop('disabled', false)
-                alert('No frames generated. Please check your time range and settings.')
+                showModalAlert('No frames generated. Please check your time range and settings.')
                 return
             }
             
@@ -996,7 +1021,7 @@ function interfaceWithMMGIS() {
         }).catch(error => {
             console.error('Export error:', error)
             button.text(originalText).prop('disabled', false)
-            alert('Export failed: ' + error.message)
+            showModalAlert('Export failed: ' + error.message)
         })
     }
     
@@ -1339,7 +1364,7 @@ function interfaceWithMMGIS() {
         } catch (error) {
             console.error('GIF export error:', error)
             button.text(originalText).prop('disabled', false)
-            alert('GIF export failed: ' + error.message)
+            showModalAlert('GIF export failed: ' + error.message)
         }
     }
     
@@ -1363,13 +1388,16 @@ function interfaceWithMMGIS() {
                         console.log('All frames loaded, creating GIF...')
                         
                         // Create GIF using gifshot
+                        const frameInterval = 1 / AnimationTool.animationSettings.frameRate // Convert FPS to seconds per frame
+                        console.log('GIF frame interval:', frameInterval, 'seconds (FPS:', AnimationTool.animationSettings.frameRate, ')')
+                        
                         gifshot.createGIF({
                             images: images,
                             gifWidth: AnimationTool.screenRect?.width || 800,
                             gifHeight: AnimationTool.screenRect?.height || 600,
-                            interval: 0.1, // 0.1 seconds between frames (10 FPS)
+                            interval: frameInterval, // Use user's selected frame rate
                             numFrames: images.length,
-                            frameDuration: 0.1, // Duration of each frame
+                            frameDuration: frameInterval, // Duration of each frame
                             fontWeight: 'normal',
                             fontSize: '16px',
                             fontFamily: 'sans-serif',
@@ -1394,13 +1422,13 @@ function interfaceWithMMGIS() {
                                 const url = URL.createObjectURL(blob)
                                 downloadFile(url, 'animation.gif', 'image/gif')
                                 button.text(originalText).prop('disabled', false)
-                                alert('Animated GIF exported successfully!')
+                                showModalAlert('Animated GIF exported successfully!')
                             } else {
                                 console.error('Gifshot error:', obj.error)
                                 // Simple fallback - download first frame as PNG
                                 downloadFile(frames[0].data, 'animation_frame.png', 'image/png')
                                 button.text(originalText).prop('disabled', false)
-                                alert('GIF creation failed. First frame exported as PNG.')
+                                showModalAlert('GIF creation failed. First frame exported as PNG.')
                             }
                         })
                     }
@@ -1411,7 +1439,7 @@ function interfaceWithMMGIS() {
                     // Simple fallback on any error
                     downloadFile(frames[0].data, 'animation_frame.png', 'image/png')
                     button.text(originalText).prop('disabled', false)
-                    alert('GIF creation failed. First frame exported as PNG.')
+                    showModalAlert('GIF creation failed. First frame exported as PNG.')
                 }
                 
                 img.src = frameData.data
@@ -1421,7 +1449,7 @@ function interfaceWithMMGIS() {
             console.error('Gifshot GIF creation failed:', error)
             downloadFile(frames[0].data, 'animation_frame.png', 'image/png')
             button.text(originalText).prop('disabled', false)
-            alert('GIF creation failed. First frame exported as PNG.')
+            showModalAlert('GIF creation failed. First frame exported as PNG.')
         }
     }
     
@@ -1520,7 +1548,7 @@ function interfaceWithMMGIS() {
                 const url = URL.createObjectURL(blob)
                 downloadFile(url, 'animation.gif', 'image/gif')
                 button.text(originalText).prop('disabled', false)
-                alert('GIF animation exported successfully!')
+                showModalAlert('GIF animation exported successfully!')
             })
             
             // Add frames sequentially
@@ -1618,7 +1646,7 @@ function interfaceWithMMGIS() {
                 // Single frame - download as PNG
                 downloadFile(frames[0].data, 'animation_frame.png', 'image/png')
                 button.text(originalText).prop('disabled', false)
-                alert('Single frame exported as PNG')
+                showModalAlert('Single frame exported as PNG')
                 return
             }
             
@@ -1659,7 +1687,7 @@ function interfaceWithMMGIS() {
                             const url = URL.createObjectURL(blob)
                             downloadFile(url, 'animation_final_frame.png', 'image/png')
                             button.text(originalText).prop('disabled', false)
-                            alert('Animation frames exported as PNG (GIF creation unavailable)')
+                            showModalAlert('Animation frames exported as PNG (GIF creation unavailable)')
                         }, 'image/png')
                     }
                 }
@@ -1671,7 +1699,7 @@ function interfaceWithMMGIS() {
                         setTimeout(animate, 1000)
                     } else {
                         button.text(originalText).prop('disabled', false)
-                        alert('Animation export failed')
+                        showModalAlert('Animation export failed')
                     }
                 }
                 
@@ -1683,7 +1711,7 @@ function interfaceWithMMGIS() {
         } catch (error) {
             console.error('Simple GIF creation failed:', error)
             button.text(originalText).prop('disabled', false)
-            alert('GIF export completely failed: ' + error.message)
+            showModalAlert('GIF export completely failed: ' + error.message)
         }
     }
     
@@ -1699,7 +1727,7 @@ function interfaceWithMMGIS() {
                 console.log('Single frame detected, downloading as PNG...')
                 downloadFile(frames[0].data, 'animation_frame.png', 'image/png')
                 button.text(originalText).prop('disabled', false)
-                alert('Single frame exported as PNG (GIF creation not available)')
+                showModalAlert('Single frame exported as PNG (GIF creation not available)')
                 return
             }
             
@@ -1719,10 +1747,10 @@ function interfaceWithMMGIS() {
             if (firstFrame) {
                 downloadFile(firstFrame.data, 'animation_frame.png', 'image/png')
                 button.text(originalText).prop('disabled', false)
-                alert('First frame exported as PNG (all GIF methods failed)')
+                showModalAlert('First frame exported as PNG (all GIF methods failed)')
             } else {
                 button.text(originalText).prop('disabled', false)
-                alert('GIF export completely failed: ' + error.message)
+                showModalAlert('GIF export completely failed: ' + error.message)
             }
         }
     }
@@ -1814,13 +1842,13 @@ function interfaceWithMMGIS() {
             // Show completion message
             setTimeout(() => {
                 button.text(originalText).prop('disabled', false)
-                alert(`Animation exported as ${frames.length} individual PNG frames and 1 sprite sheet.\n\nTo create a GIF:\n1. Use online tools like ezgif.com\n2. Use image editing software\n3. Use command line tools like ImageMagick`)
+                showModalAlert(`Animation exported as ${frames.length} individual PNG frames and 1 sprite sheet.\n\nTo create a GIF:\n1. Use online tools like ezgif.com\n2. Use image editing software\n3. Use command line tools like ImageMagick`)
             }, 1000)
             
         } catch (error) {
             console.error('Individual frame download failed:', error)
             button.text(originalText).prop('disabled', false)
-            alert('Frame export failed: ' + error.message)
+            showModalAlert('Frame export failed: ' + error.message)
         }
     }
     
@@ -1831,7 +1859,7 @@ function interfaceWithMMGIS() {
         } catch (error) {
             console.error('MP4 export error:', error)
             button.text(originalText).prop('disabled', false)
-            alert('MP4 export failed: ' + error.message)
+            showModalAlert('MP4 export failed: ' + error.message)
         }
     }
     
@@ -1904,12 +1932,12 @@ function interfaceWithMMGIS() {
             
             downloadFile(videoUrl, 'animation.mp4', 'video/mp4')
             button.text(originalText).prop('disabled', false)
-            alert('MP4 video exported successfully!')
+            showModalAlert('MP4 video exported successfully!')
             
         } catch (error) {
             console.error('FFmpeg export error:', error)
             button.text(originalText).prop('disabled', false)
-            alert('MP4 export failed: ' + error.message)
+            showModalAlert('MP4 export failed: ' + error.message)
         }
     }
     
@@ -1921,7 +1949,7 @@ function interfaceWithMMGIS() {
         })
         
         button.text(originalText).prop('disabled', false)
-        alert(`${frames.length} frames exported successfully!`)
+        showModalAlert(`${frames.length} frames exported successfully!`)
     }
     
     
@@ -1947,7 +1975,7 @@ function interfaceWithMMGIS() {
         
         // Reset form inputs
         $('#bboxNorth, #bboxSouth, #bboxEast, #bboxWest').val('')
-        $('#useDefaultExtents').prop('disabled', true)
+        $('#resetValues').prop('disabled', true)
         
     }
     
@@ -1956,7 +1984,7 @@ function interfaceWithMMGIS() {
         $('#animationNextStep, #animationPrevStep, #animationReset').off()
         $('.animation-step').off()
         $('#bboxNorth, #bboxSouth, #bboxEast, #bboxWest').off()
-        $('#drawBoundingBox, #useCurrentView, #useDefaultExtents').off()
+        $('#drawBoundingBox, #useCurrentView, #resetValues').off()
         $('#timeStart, #timeEnd, #timeInterval, #timeStep').off()
         $('#frameRateSlider, input[name="playDirection"], #loopAnimation').off()
         $('#export-gif, #export-sequence, #export-mp4').off()

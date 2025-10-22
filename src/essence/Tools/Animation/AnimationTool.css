@@ -700,3 +700,54 @@
     }
 }
 
+/* Animation Tool Modal Styling */
+.mmgisModal .modal-content {
+    background: var(--color-k) !important;
+    border: 2px solid var(--color-primary) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+.mmgisModal .modal-content h3 {
+    background: var(--color-j) !important;
+    color: white !important;
+    margin: 0 !important;
+    padding: 15px 20px !important;
+    border-bottom: 1px solid var(--color-primary) !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+}
+
+.mmgisModal .modal-content p {
+    color: white !important;
+    padding: 20px !important;
+    margin: 0 !important;
+    line-height: 1.5 !important;
+    white-space: pre-line !important;
+}
+
+.mmgisModal .modal-buttons {
+    background: var(--color-j) !important;
+    padding: 15px 20px !important;
+    border-top: 1px solid var(--color-primary) !important;
+    text-align: right !important;
+}
+
+.mmgisModal .modal-buttons .btn {
+    min-width: 80px !important;
+    background: var(--color-primary) !important;
+    border: 1px solid var(--color-primary) !important;
+    color: white !important;
+    padding: 8px 16px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.mmgisModal .modal-buttons .btn:hover {
+    background: var(--color-a) !important;
+    border-color: var(--color-a) !important;
+}
+
