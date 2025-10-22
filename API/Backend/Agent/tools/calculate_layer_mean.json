@@ -1,0 +1,40 @@
+{
+  "name": "calculate_layer_mean",
+  "description": "Compute the mean value of a layer over a named geographic region.",
+  "parameters": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["layer_name", "geographical_area"],
+    "properties": {
+      "layer_name": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Layer display name or alias."
+      },
+      "geographical_area": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Named area of interest (e.g., 'Beaufort Sea')."
+      }
+    }
+  },
+  "modelParameters": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["layer_name", "geographical_area"],
+    "properties": {
+      "layer_name": {
+        "type": "string"
+      },
+      "geographical_area": {
+        "type": "string"
+      }
+    }
+  },
+  "execution": {
+    "adapter": "custom",
+    "ui": {
+      "type": "layer_mean"
+    }
+  }
+}

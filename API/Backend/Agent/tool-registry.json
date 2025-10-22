@@ -1,7 +1,99 @@
 {
-  "generatedAt": "2025-10-08T18:20:56.224Z",
+  "generatedAt": "2025-10-22T04:57:49.267Z",
   "kind": "mmgis-tool-registry",
   "tools": [
+    {
+      "description": "Compute a difference map between two layers and visualize the result.",
+      "execution": {
+        "adapter": "custom",
+        "ui": {
+          "type": "layer_difference"
+        }
+      },
+      "modelParameters": {
+        "additionalProperties": false,
+        "properties": {
+          "layer_a": {
+            "type": "string"
+          },
+          "layer_b": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer_a",
+          "layer_b"
+        ],
+        "type": "object"
+      },
+      "name": "calculate_layer_difference",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "layer_a": {
+            "description": "Display name or alias of the minuend layer.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "layer_b": {
+            "description": "Display name or alias of the subtrahend layer.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer_a",
+          "layer_b"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Compute the mean value of a layer over a named geographic region.",
+      "execution": {
+        "adapter": "custom",
+        "ui": {
+          "type": "layer_mean"
+        }
+      },
+      "modelParameters": {
+        "additionalProperties": false,
+        "properties": {
+          "geographical_area": {
+            "type": "string"
+          },
+          "layer_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer_name",
+          "geographical_area"
+        ],
+        "type": "object"
+      },
+      "name": "calculate_layer_mean",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "geographical_area": {
+            "description": "Named area of interest (e.g., 'Beaufort Sea').",
+            "minLength": 1,
+            "type": "string"
+          },
+          "layer_name": {
+            "description": "Layer display name or alias.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer_name",
+          "geographical_area"
+        ],
+        "type": "object"
+      }
+    },
     {
       "description": "Summarize metadata for a specific layer by display name.",
       "execution": {
@@ -17,7 +109,9 @@
             "type": "string"
           }
         },
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "type": "object"
       },
       "name": "describe_layer",
@@ -29,7 +123,52 @@
             "type": "string"
           }
         },
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Provide metadata details for a requested MMGIS layer using local knowledge or web grounding.",
+      "execution": {
+        "adapter": "custom",
+        "ui": {
+          "type": "layer_information"
+        }
+      },
+      "modelParameters": {
+        "additionalProperties": false,
+        "properties": {
+          "layer_name": {
+            "type": "string"
+          },
+          "original_query": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer_name"
+        ],
+        "type": "object"
+      },
+      "name": "layer_information",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "layer_name": {
+            "description": "Display name or alias of the layer to describe.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "original_query": {
+            "description": "Raw user query to echo for confirmation or paraphrasing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer_name"
+        ],
         "type": "object"
       }
     },
@@ -73,7 +212,10 @@
             "type": "number"
           }
         },
-        "required": ["name", "opacity"],
+        "required": [
+          "name",
+          "opacity"
+        ],
         "type": "object"
       },
       "name": "set_layer_opacity",
@@ -91,7 +233,10 @@
             "type": "number"
           }
         },
-        "required": ["name", "opacity"],
+        "required": [
+          "name",
+          "opacity"
+        ],
         "type": "object"
       }
     },
@@ -99,7 +244,10 @@
       "description": "Toggle a layer visibility by display name. If visible=true show; false hide.",
       "execution": {
         "adapter": "mmgisAPI",
-        "argOrder": ["name", "visible"],
+        "argOrder": [
+          "name",
+          "visible"
+        ],
         "method": "toggleLayer",
         "nameResolution": "displayNameToInternalId",
         "ui": {
@@ -116,7 +264,10 @@
             "type": "boolean"
           }
         },
-        "required": ["name", "visible"],
+        "required": [
+          "name",
+          "visible"
+        ],
         "type": "object"
       },
       "name": "toggle_layer",
@@ -133,7 +284,102 @@
             "type": "boolean"
           }
         },
-        "required": ["name", "visible"],
+        "required": [
+          "name",
+          "visible"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Draw contour overlays for thresholded variables and highlight the selected area.",
+      "execution": {
+        "adapter": "custom",
+        "ui": {
+          "type": "contour_overlay"
+        }
+      },
+      "modelParameters": {
+        "additionalProperties": false,
+        "properties": {
+          "geographical_area": {
+            "type": "string"
+          },
+          "layer_name": {
+            "type": "string"
+          },
+          "operator": {
+            "enum": [
+              ">",
+              ">=",
+              "<",
+              "<=",
+              "="
+            ],
+            "type": "string"
+          },
+          "time": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number"
+          },
+          "variable": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer_name",
+          "variable",
+          "operator",
+          "value"
+        ],
+        "type": "object"
+      },
+      "name": "visualize_contours",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "geographical_area": {
+            "description": "Optional named area to focus contours.",
+            "type": "string"
+          },
+          "layer_name": {
+            "description": "Layer display name or alias.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "operator": {
+            "description": "Comparison operator for the threshold.",
+            "enum": [
+              ">",
+              ">=",
+              "<",
+              "<=",
+              "="
+            ],
+            "type": "string"
+          },
+          "time": {
+            "description": "ISO timestamp or label for the requested time slice.",
+            "type": "string"
+          },
+          "value": {
+            "description": "Threshold value for the comparison.",
+            "type": "number"
+          },
+          "variable": {
+            "description": "Variable name within the layer to evaluate.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer_name",
+          "variable",
+          "operator",
+          "value"
+        ],
         "type": "object"
       }
     },
@@ -193,7 +439,10 @@
                 "type": "integer"
               }
             },
-            "required": ["center", "zoom"],
+            "required": [
+              "center",
+              "zoom"
+            ],
             "type": "object"
           },
           {
@@ -209,7 +458,9 @@
                 "type": "array"
               }
             },
-            "required": ["bbox"],
+            "required": [
+              "bbox"
+            ],
             "type": "object"
           }
         ],
@@ -218,17 +469,35 @@
     }
   ],
   "uiProfiles": {
+    "contour_overlay": {
+      "kind": "render_contour_overlay"
+    },
+    "layer_difference": {
+      "kind": "render_layer_difference"
+    },
+    "layer_information": {
+      "kind": "render_layer_information"
+    },
+    "layer_mean": {
+      "kind": "render_layer_mean"
+    },
     "layer_summary": {
       "kind": "render_layer_summary"
     },
     "layers_line": {
       "kind": "render_layers_line"
     },
+    "mmgis_overview": {
+      "kind": "render_text_with_citation"
+    },
     "opacity": {
       "kind": "set_opacity"
     },
     "toggle": {
       "kind": "toggle_visibility"
+    },
+    "web_search_suggest": {
+      "kind": "render_links_summary"
     },
     "zoom_view": {
       "kind": "zoom_view"

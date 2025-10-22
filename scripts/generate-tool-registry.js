@@ -57,13 +57,17 @@ function buildRegistry() {
     uiProfiles: {
       // Optional UI hints for the dispatcher; purely declarative
       // type -> behavior mapping (client-only concern)
+      contour_overlay: { kind: "render_contour_overlay" },
+      layer_difference: { kind: "render_layer_difference" },
+      layer_information: { kind: "render_layer_information" },
+      layer_mean: { kind: "render_layer_mean" },
+      layer_summary: { kind: "render_layer_summary" },
       layers_line: { kind: "render_layers_line" },
+      mmgis_overview: { kind: "render_text_with_citation" },
       opacity: { kind: "set_opacity" },
       toggle: { kind: "toggle_visibility" },
-      zoom_view: { kind: "zoom_view" },
-      mmgis_overview: { kind: "render_text_with_citation" },
-      layer_summary: { kind: "render_layer_summary" },
       web_search_suggest: { kind: "render_links_summary" },
+      zoom_view: { kind: "zoom_view" },
     },
     generatedAt: new Date().toISOString(),
     tools,
