@@ -171,3 +171,14 @@ img {
 #backIcon:hover {
   color: white;
 }
+
+.version {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  position: absolute;
+  width: 100%;
+  bottom: 14px;
+  font-family: monospace;
+}

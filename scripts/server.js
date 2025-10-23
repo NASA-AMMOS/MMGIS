@@ -6,6 +6,7 @@ const https = require("https");
 const { Pool } = require("pg");
 var path = require("path");
 const packagejson = require("../package.json");
+const configurePackageJson = require("../configure/package.json");
 var bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const express = require("express");
@@ -327,7 +328,10 @@ function ensureAdmin(toLoginPage, denyLongTermTokens, allowGets, disallow) {
     }
 
     if (toLoginPage) {
-      res.render("adminlogin", { user: req.user });
+      res.render("adminlogin", {
+        user: req.user,
+        VERSION: configurePackageJson.version
+      });
       return;
     }
 

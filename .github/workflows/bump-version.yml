@@ -1,0 +1,76 @@
+name: Bump Version
+
+on:
+  push:
+    branches:
+      - development
+
+jobs:
+  bump-version:
+    # Skip if commit message contains [skip ci]
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Bump version
+        id: bump
+        run: |
+          # Get current date in YYYYMMDD format
+          DATE=$(date +%Y%m%d)
+
+          # Read current version from package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+
+          # Strip any existing date suffix (e.g., 4.1.1-20251022 -> 4.1.1)
+          BASE_VERSION=$(echo $CURRENT_VERSION | sed 's/-[0-9]\{8\}$//')
+
+          # Split version into parts
+          MAJOR=$(echo $BASE_VERSION | cut -d. -f1)
+          MINOR=$(echo $BASE_VERSION | cut -d. -f2)
+          PATCH=$(echo $BASE_VERSION | cut -d. -f3)
+
+          # Increment patch version
+          PATCH=$((PATCH + 1))
+
+          # Create new version with date suffix
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH-$DATE"
+          echo "New version: $NEW_VERSION"
+
+          # Update package.json
+          node -e "
+            const fs = require('fs');
+            const pkg = require('./package.json');
+            pkg.version = '$NEW_VERSION';
+            fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+          # Update configure/package.json
+          node -e "
+            const fs = require('fs');
+            const pkg = require('./configure/package.json');
+            pkg.version = '$NEW_VERSION';
+            fs.writeFileSync('./configure/package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+          # Export new version for commit message
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Commit and push
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add package.json configure/package.json
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.NEW_VERSION }} [skip ci]"
+          git push

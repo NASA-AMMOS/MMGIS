@@ -6,7 +6,12 @@ import mmgisLogo from "../../images/mmgis.png";
 
 import clsx from "clsx";
 
-import { setMission, setModal, setPage, setSnackBarText } from "../../core/ConfigureStore";
+import {
+  setMission,
+  setModal,
+  setPage,
+  setSnackBarText,
+} from "../../core/ConfigureStore";
 import { calls } from "../../core/calls";
 
 import NewMissionModal from "./Modals/NewMissionModal/NewMissionModal";
@@ -34,7 +39,7 @@ const useStyles = makeStyles((theme) => ({
     flexFlow: "column",
   },
   title: {
-    padding: "30px 0px",
+    padding: "30px 0px 10px 0px",
     textAlign: "center",
   },
   titleImage: {
@@ -48,6 +53,13 @@ const useStyles = makeStyles((theme) => ({
     "& > span": {
       color: theme.palette.accent.main,
     },
+  },
+  version: {
+    color: theme.palette.swatches.grey[600],
+    fontSize: "10px",
+    fontFamily: "monospace",
+    marginTop: "2px",
+    textAlign: "center",
   },
   newMission: {
     width: "100%",
@@ -162,7 +174,7 @@ export default function Panel() {
     if (!userPermissions) return true; // Default to allowing until we know
     if (userPermissions.permission === "111") return true; // SuperAdmin can edit all
     if (userPermissions.permission !== "110") return false; // Non-admins, who can't even access this page, can't edit any
-    
+
     const managingMissions = userPermissions.missions_managing || [];
     return managingMissions.includes(mission);
   };
@@ -175,6 +187,9 @@ export default function Panel() {
           <div className={c.configurationName}>
             <span>Config</span>uration
           </div>
+          {window.mmgisglobal?.VERSION && (
+            <div className={c.version}>v{window.mmgisglobal.VERSION}</div>
+          )}
         </div>
         {window.mmgisglobal?.permission === "111" && (
           <div className={c.newMission}>
@@ -218,7 +233,9 @@ export default function Panel() {
                         );
                       }
                     }}
-                    title={canEdit ? mission : `No permission to edit "${mission}"`}
+                    title={
+                      canEdit ? mission : `No permission to edit "${mission}"`
+                    }
                   >
                     {mission}
                   </Button>

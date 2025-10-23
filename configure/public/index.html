@@ -22,11 +22,21 @@
       mmgisglobal.PORT = "#{PORT}";
       mmgisglobal.ENABLE_CONFIG_WEBSOCKETS = "#{ENABLE_CONFIG_WEBSOCKETS}";
       mmgisglobal.ENABLE_CONFIG_OVERRIDE = "#{ENABLE_CONFIG_OVERRIDE}";
+      mmgisglobal.VERSION = "#{VERSION}";
       mmgisglobal.IS_DOCKER = "#{IS_DOCKER}";
       mmgisglobal.WITH_STAC = "#{WITH_STAC}";
       mmgisglobal.WITH_TIPG = "#{WITH_TIPG}";
       mmgisglobal.WITH_TITILER = "#{WITH_TITILER}";
       mmgisglobal.WITH_TITILER_PGSTAC = "#{WITH_TITILER_PGSTAC}";
+
+      // prettier-ignore
+      console.info(
+            '███╗   ███╗███╗   ███╗ ██████╗ ██╗███████╗' + ' Multi-Mission\n' +
+            '████╗ ████║████╗ ████║██╔════╝ ██║██╔════╝' + ' Geographical\n' +
+            '██╔████╔██║██╔████╔██║██║  ███╗██║███████╗' + ' Information\n' +
+            '██║╚██╔╝██║██║╚██╔╝██║██║   ██║██║╚════██║' + ' System\n' +
+            '██║ ╚═╝ ██║██║ ╚═╝ ██║╚██████╔╝██║███████║' + ` Configure v${mmgisglobal.VERSION} (${mmgisglobal.NODE_ENV})\n` +
+            '╚═╝     ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝╚══════╝' + ' https://github.com/NASA-AMMOS/MMGIS');
     </script>
     <!--
       Notice the use of %PUBLIC_URL% in the tags above.
