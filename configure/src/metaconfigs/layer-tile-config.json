@@ -132,105 +132,6 @@
           ]
         },
         {
-          "name": "Cloud-Optimized GeoTiffs (COG)",
-          "components": [
-            {
-              "field": "throughTileServer",
-              "name": "Use TiTiler",
-              "description": "Uses the TiTiler service to serve tiles if URL is a Cloud-Optimized GeoTiff (COG). TiTiler must be configured via the .env.",
-              "type": "switch",
-              "width": 3,
-              "defaultChecked": false
-            },
-            {
-              "field": "tileMatrixSet",
-              "name": "Tile Matrix Set",
-              "description": "If using TiTiler or if using a 'stac-collection:{collection}' URL, specify the projection for which to serve the tiles. Defaults to 'WebMercatorQuad'.",
-              "type": "searchdropdown",
-              "width": 5,
-              "options": "{{TILE_MATRIX_SETS}}"
-            },
-            {
-              "field": "cogResampling",
-              "name": "Resampling Method",
-              "description": "The resampling method for generated tiles through TiTiler. Defaults to 'nearest'.",
-              "type": "dropdown",
-              "width": 4,
-              "options": [
-                "nearest",
-                "bilinear",
-                "cubic",
-                "cubic_spline",
-                "lanczos",
-                "average",
-                "mode",
-                "gauss",
-                "rms"
-              ]
-            }
-          ]
-        },
-        {
-          "components": [
-            {
-              "field": "cogBands",
-              "name": "Tile Bands",
-              "description": "Which bands from the COG from which to generate tiles. Defaults to '1,2,3' as RGB or '1' if it's a Transformed 32-bit COG. Can be a single number or a comma-separated list of numbers. Order matters.",
-              "type": "textarray",
-              "width": 4
-            },
-            {
-              "field": "cogBandsQuery",
-              "name": "Query Bands",
-              "description": "Which bands from the COG upon which to perform queries. Defaults to value of 'Tile Bands'.",
-              "type": "textarray",
-              "width": 4
-            }
-          ]
-        },
-        {
-          "subname": "32-bit COGs",
-          "components": [
-            {
-              "field": "cogTransform",
-              "name": "Transform 32-bit COG",
-              "description": "Enable rescaling and coloring 32-bit COGs on the fly. Will use TiTiler.",
-              "type": "switch",
-              "width": 3,
-              "defaultChecked": false
-            },
-            {
-              "field": "cogMin",
-              "name": "Minimum Pixel Data Value",
-              "description": "If using TiTiler, STAC and 32-bit COGs, the default minimum value for which to rescale.",
-              "type": "number",
-              "width": 2
-            },
-            {
-              "field": "cogMax",
-              "name": "Maximum Pixel Data Value",
-              "description": "If using TiTiler, STAC and 32-bit COGs, the default maximum value for which to rescale.",
-              "type": "number",
-              "width": 2
-            },
-            {
-              "field": "cogUnits",
-              "name": "Units",
-              "description": "Units string by which to suffix values. For instance if the units are meters, use 'm' so that values are displayed as '100m'.",
-              "type": "textnotrim",
-              "width": 2
-            },
-            {
-              "field": "cogColormap",
-              "name": "Colormap",
-              "description": "",
-              "type": "colordropdown",
-              "width": 3,
-              "options": "{{COLORMAP_NAMES}}"
-            }
-          ]
-        },
-        {
           "name": "Digital Elevation Model (DEM) Tiles",
           "components": [
             {
@@ -271,6 +172,131 @@
               "type": "button",
               "action": "tile-populate-from-x",
               "width": 6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "COG",
+      "rows": [
+        {
+          "name": "TiTiler Configuration",
+          "components": [
+            {
+              "field": "throughTileServer",
+              "name": "Use TiTiler",
+              "description": "Uses the TiTiler service to serve tiles if URL is a Cloud-Optimized GeoTiff (COG). TiTiler must be configured via the .env.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": false
+            },
+            {
+              "field": "tileMatrixSet",
+              "name": "Tile Matrix Set",
+              "description": "If using TiTiler or if using a 'stac-collection:{collection}' URL, specify the projection for which to serve the tiles. Defaults to 'WebMercatorQuad'.",
+              "type": "searchdropdown",
+              "width": 5,
+              "options": "{{TILE_MATRIX_SETS}}"
+            },
+            {
+              "field": "cogResampling",
+              "name": "Resampling Method",
+              "description": "The resampling method for generated tiles through TiTiler. Defaults to 'nearest'.",
+              "type": "dropdown",
+              "width": 4,
+              "options": [
+                "nearest",
+                "bilinear",
+                "cubic",
+                "cubic_spline",
+                "lanczos",
+                "average",
+                "mode",
+                "gauss",
+                "rms"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Bands",
+          "components": [
+            {
+              "field": "cogBands",
+              "name": "Tile Bands",
+              "description": "Which bands from the COG from which to generate tiles. Defaults to '1,2,3' as RGB or '1' if it's a Transformed Single Data Band COG. Can be a single number or a comma-separated list of numbers. Order matters.",
+              "type": "textarray",
+              "width": 4
+            },
+            {
+              "field": "cogBandsQuery",
+              "name": "Query Bands",
+              "description": "Which bands from the COG upon which to perform queries. Defaults to value of 'Tile Bands'.",
+              "type": "textarray",
+              "width": 4
+            }
+          ]
+        },
+        {
+          "subname": "Band Math Expression",
+          "components": [
+            {
+              "field": "cogExpression",
+              "name": "Band Math Expression",
+              "description": "TiTiler/rio-tiler band math expression. Uses standard math operators (+-/*) where asset_bX represents band X of an asset (e.g., 'asset_b1*2', '(asset_b1+asset_b2)/2'). For RGB output, use semicolons (e.g., 'asset_b1;asset_b2;asset_b3'). For multiple STAC assets, use different asset names (e.g., 'assetname1_b1 + assetname2_b1'). If you omit the asset prefix (e.g., 'b1'), it will automatically default to 'asset_b1'. When specified, this replaces the 'Tile Bands' parameter.",
+              "type": "textnotrim",
+              "width": 9
+            },
+            {
+              "field": "cogExpressionEditable",
+              "name": "Allow User Expression Editing",
+              "description": "If true, users can modify the band math expression in the LayersTool settings panel.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "name": "Single Data Band COG Transformation",
+          "components": [
+            {
+              "field": "cogTransform",
+              "name": "Transform Single Data Band COG",
+              "description": "Enable rescaling and coloring Single Data Band COGs on the fly. Will use TiTiler.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": false
+            },
+            {
+              "field": "cogMin",
+              "name": "Minimum Pixel Data Value",
+              "description": "If using TiTiler, STAC and Single Data Band COGs, the default minimum value for which to rescale.",
+              "type": "number",
+              "width": 2
+            },
+            {
+              "field": "cogMax",
+              "name": "Maximum Pixel Data Value",
+              "description": "If using TiTiler, STAC and Single Data Band COGs, the default maximum value for which to rescale.",
+              "type": "number",
+              "width": 2
+            },
+            {
+              "field": "cogUnits",
+              "name": "Units",
+              "description": "Units string by which to suffix values. For instance if the units are meters, use 'm' so that values are displayed as '100m'.",
+              "type": "textnotrim",
+              "width": 2
+            },
+            {
+              "field": "cogColormap",
+              "name": "Colormap",
+              "description": "",
+              "type": "colordropdown",
+              "width": 3,
+              "options": "{{COLORMAP_NAMES}}"
             }
           ]
         }

@@ -1159,6 +1159,14 @@ async function makeVelocityLayer(
 }
 
 async function makeTileLayer(layerObj) {
+    // Helper function to add default 'asset_' prefix to bands in expressions if not already prefixed
+    const processExpression = (expression) => {
+        if (!expression || expression.trim() === '') return expression
+        // Replace bX or BX (where X is a number) with asset_bX or asset_BX
+        // Only replace if not already prefixed with an asset name (word_bX pattern)
+        return expression.replace(/(?<!\w)([bB])(\d+)/g, 'asset_$1$2')
+    }
+
     let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
 
     let splitColonType
@@ -1173,13 +1181,17 @@ async function makeTileLayer(layerObj) {
                 splitColonType = splitColonLayerUrl[0]
                 const splitParams = splitColonLayerUrl[1].split('?')
 
-                // Bands
-                bandsParam = ''
-                b = layerObj.cogBands
-                if (b != null) {
-                    b.forEach((band) => {
-                        if (band != null) bandsParam += `&bidx=${band}`
-                    })
+                // Bands parameter (expression will be added dynamically in getTileUrl)
+                let bandsParamStac = ''
+
+                // Only add bands if no expression exists (expression takes precedence)
+                if (!layerObj.cogExpression || layerObj.cogExpression.trim() === '') {
+                    b = layerObj.cogBands
+                    if (b != null) {
+                        b.forEach((band) => {
+                            if (band != null) bandsParamStac += `&bidx=${band}`
+                        })
+                    }
                 }
 
                 // Resampling
@@ -1194,18 +1206,23 @@ async function makeTileLayer(layerObj) {
                     splitParams[0]
                 }/tiles/${
                     layerObj.tileMatrixSet || 'WebMercatorQuad'
-                }/{z}/{x}/{y}?assets=asset${bandsParam}${resamplingParam}`
+                }/{z}/{x}/{y}?assets=asset${bandsParamStac}${resamplingParam}`
                 layerObj.tileformat = 'wmts'
                 break
             case 'COG':
                 splitColonType = splitColonLayerUrl[0]
-                // Bands
+
+                // Bands parameter (expression will be added dynamically in getTileUrl)
                 bandsParam = ''
-                b = layerObj.cogBands
-                if (b != null) {
-                    b.forEach((band) => {
-                        if (band != null) bandsParam += `&bidx=${band}`
-                    })
+
+                // Only add bands if no expression exists (expression takes precedence)
+                if (!layerObj.cogExpression || layerObj.cogExpression.trim() === '') {
+                    b = layerObj.cogBands
+                    if (b != null) {
+                        b.forEach((band) => {
+                            if (band != null) bandsParam += `&bidx=${band}`
+                        })
+                    }
                 }
 
                 resamplingParam = ''
@@ -1274,6 +1291,8 @@ async function makeTileLayer(layerObj) {
         cogMax: layerObj.cogMax,
         currentCogMax: layerObj.currentCogMax,
         cogColormap: layerObj.cogColormap,
+        cogExpression: layerObj.cogExpression,
+        currentCogExpression: layerObj.currentCogExpression,
         variables: layerObj.variables || {},
     })
 

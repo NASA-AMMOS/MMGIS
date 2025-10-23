@@ -270,7 +270,12 @@ var LayersTool = {
         canvasElement.width = 256
         canvasElement.height = 1
         const context = canvasElement.getContext('2d')
-        if (imgElement && imgElement.complete && imgElement.naturalHeight !== 0 && layer.type === 'tile') {
+        if (
+            imgElement &&
+            imgElement.complete &&
+            imgElement.naturalHeight !== 0 &&
+            layer.type === 'tile'
+        ) {
             context.drawImage(imgElement, 0, 0, 256, 1, 0, 0, 256, 1)
         }
 
@@ -299,7 +304,12 @@ var LayersTool = {
             }
 
             let color
-            if (imgElement && imgElement.complete && imgElement.naturalHeight !== 0 && layer.type === 'tile') {
+            if (
+                imgElement &&
+                imgElement.complete &&
+                imgElement.naturalHeight !== 0 &&
+                layer.type === 'tile'
+            ) {
                 const c = context.getImageData(
                     parseInt((255 / 9) * i),
                     0,
@@ -311,7 +321,9 @@ var LayersTool = {
                 layer.type === 'image' ||
                 layer.type === 'velocity' ||
                 !imgElement ||
-                (imgElement && imgElement.naturalHeight === 0 && layer.type === 'tile')
+                (imgElement &&
+                    imgElement.naturalHeight === 0 &&
+                    layer.type === 'tile')
             ) {
                 const layerColormap = ['tile', 'image'].includes(layer.type)
                     ? layer.cogColormap
@@ -592,16 +604,16 @@ function interfaceWithMMGIS(fromInit) {
             }
 
             function additionalSettingsJSColormapHelper(colormap, reverse) {
-                let additionalSettings = colormapData[
-                    colormap
-                ].colors.map((hex) => {
-                    let rgb = hex
-                        .map((v) => {
-                            return Math.floor(v * 255)
-                        })
-                        .join(',')
-                    return `<div style="background: rgb(${rgb}); width: 20px; height: 100%; margin: 0px; flex-grow: 1;"></div>`
-                })
+                let additionalSettings = colormapData[colormap].colors.map(
+                    (hex) => {
+                        let rgb = hex
+                            .map((v) => {
+                                return Math.floor(v * 255)
+                            })
+                            .join(',')
+                        return `<div style="background: rgb(${rgb}); width: 20px; height: 100%; margin: 0px; flex-grow: 1;"></div>`
+                    }
+                )
 
                 if (reverse === true) {
                     additionalSettings.reverse()
@@ -672,17 +684,52 @@ function interfaceWithMMGIS(fromInit) {
                     }
 
                     additionalSettings = ''
-                    if (
-                        node[i].cogTransform === true &&
+                    let expressionSettings = ''
+
+                    // Check if layer supports expressions (COG or STAC)
+                    const supportsExpressions =
                         typeof node[i].url === 'string' &&
                         (node[i].url.split(':')[0] === 'stac-collection' ||
                             node[i].url.split(':')[0] === 'COG')
+
+                    // Add expression editor if cogExpressionEditable is true and layer supports expressions
+                    if (
+                        supportsExpressions &&
+                        node[i].cogExpressionEditable === true
                     ) {
-                        let { colormap, reverse } =
-                            LayersTool.findJSColormap(
-                                node[i],
-                                node[i].cogColormap
-                            )
+                        // Check currentCogExpression first (runtime value), then fall back to cogExpression (configured value)
+                        const currentExpression =
+                            node[i].currentCogExpression ||
+                            node[i].cogExpression ||
+                            ''
+                        // prettier-ignore
+                        expressionSettings = [
+                            '<div class="layerSettingsTitle">',
+                                '<div>Band Math Expression</div>',
+                                `<div class="tileexpressionreset" title="Reset Expression to Default" layername="${node[i].name}">`,
+                                    '<i class="mdi mdi-restore mdi-18px"></i>',
+                                '</div>',
+                            '</div>',
+                            `<li class="tileCogExpression">`,
+                                '<div>',
+                                    `<input class="tileexpression" layername="${node[i].name}" type="text" value="${currentExpression}" placeholder="e.g., b1*2 or asset_b1*2">`,
+                                    '<div class="expression-buttons">',
+                                        `<button class="tileexpressionapply" layername="${node[i].name}">Apply</button>`,
+                                    '</div>',
+                                '</div>',
+                                '<div>',
+                                    '<div class="expression-helper-text">Use asset_bX for bands (e.g., asset_b1, asset_b2). Supports math operators: +, -, *, /, () for grouping. For RGB output: asset_b1;asset_b2;asset_b3. Shorthand bX will auto-prefix to asset_bX.</div>',
+                                    `<div class="expression-stac-info" data-layername="${node[i].name}"></div>`,
+                                '</div>',
+                            '</li>',
+                        ].join('\n')
+                    }
+
+                    if (node[i].cogTransform === true && supportsExpressions) {
+                        let { colormap, reverse } = LayersTool.findJSColormap(
+                            node[i],
+                            node[i].cogColormap
+                        )
 
                         if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
@@ -693,7 +740,11 @@ function interfaceWithMMGIS(fromInit) {
                                 data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
                             ].join('\n')
                         } else {
-                            additionalSettings = additionalSettingsJSColormapHelper(colormap, reverse)
+                            additionalSettings =
+                                additionalSettingsJSColormapHelper(
+                                    colormap,
+                                    reverse
+                                )
                         }
 
                         // prettier-ignore
@@ -719,7 +770,7 @@ function interfaceWithMMGIS(fromInit) {
                             '<li id="tileCogLegend_4" class="tileCogLegend">-</li>',
                             '<li id="tileCogLegend_3" class="tileCogLegend">-</li>',
                             '<li id="tileCogLegend_2" class="tileCogLegend">-</li>',
-                            '<li id="tileCogLegend_1" class="tileCogLegend">-</li>',    
+                            '<li id="tileCogLegend_1" class="tileCogLegend">-</li>',
                             `<li class="tileCogMin">`,
                                 '<div>',
                                     '<div>Rescale Min Value</div>',
@@ -736,8 +787,12 @@ function interfaceWithMMGIS(fromInit) {
                                         `<ul id="tileCogColormapMapLines"></ul>`,
                                     `</div>`,
                                 '</li>',
-                            '</div>'
+                            '</div>',
+                            expressionSettings
                         ].join('\n')
+                    } else if (expressionSettings) {
+                        // If only expression settings (no COG transform), just show expression editor
+                        additionalSettings = expressionSettings
                     }
                     // prettier-ignore
                     settings = [
@@ -863,11 +918,10 @@ function interfaceWithMMGIS(fromInit) {
                         currentOpacity = L_.layers.opacity[node[i].name]
 
                     if (node[i].kind === 'streamlines') {
-                        let { colormap, reverse } =
-                            LayersTool.findJSColormap(
-                                node[i],
-                                node[i].variables?.streamlines?.colorScale
-                            )
+                        let { colormap, reverse } = LayersTool.findJSColormap(
+                            node[i],
+                            node[i].variables?.streamlines?.colorScale
+                        )
 
                         if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
@@ -878,7 +932,11 @@ function interfaceWithMMGIS(fromInit) {
                                 data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
                             ].join('\n')
                         } else {
-                            additionalSettings = additionalSettingsJSColormapHelper(colormap, reverse)
+                            additionalSettings =
+                                additionalSettingsJSColormapHelper(
+                                    colormap,
+                                    reverse
+                                )
                         }
 
                         // prettier-ignore
@@ -950,12 +1008,10 @@ function interfaceWithMMGIS(fromInit) {
                         L_.layers.layer[node[i].name].georasters[0]
                             .numberOfRasters === 1
                     ) {
-
-                        let { colormap, reverse } =
-                            LayersTool.findJSColormap(
-                                node[i],
-                                node[i].cogColormap
-                            )
+                        let { colormap, reverse } = LayersTool.findJSColormap(
+                            node[i],
+                            node[i].cogColormap
+                        )
 
                         if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
@@ -966,7 +1022,11 @@ function interfaceWithMMGIS(fromInit) {
                                 data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
                             ].join('\n')
                         } else {
-                            additionalSettings = additionalSettingsJSColormapHelper(colormap, reverse)
+                            additionalSettings =
+                                additionalSettingsJSColormapHelper(
+                                    colormap,
+                                    reverse
+                                )
                         }
 
                         // prettier-ignore
@@ -1262,15 +1322,20 @@ function interfaceWithMMGIS(fromInit) {
             if (window.mmgisglobal.WITH_TITILER === 'true') {
                 // Check if TiTiler images loaded
                 if ($(`#titlerCogColormapImage_${node[i].name}`).length) {
-                    $(`#titlerCogColormapImage_${node[i].name}`)
-                        .on('error', function() {
+                    $(`#titlerCogColormapImage_${node[i].name}`).on(
+                        'error',
+                        function () {
                             // Fallback to colormap JS library
                             var t = $(this).first()
                             t.parent().prepend(
-                                additionalSettingsJSColormapHelper(t.data('colormap'), t.data('colormap-reverse'))
+                                additionalSettingsJSColormapHelper(
+                                    t.data('colormap'),
+                                    t.data('colormap-reverse')
+                                )
                             )
                             t.remove()
-                        })
+                        }
+                    )
                 }
             }
 
@@ -1460,6 +1525,80 @@ function interfaceWithMMGIS(fromInit) {
         $('.layerDownload').parent().parent().removeClass('download_on')
         $('.gears').parent().parent().removeClass('gears_on')
         if (!wasOn) li.addClass('gears_on')
+
+        // Fetch STAC asset/band info if applicable
+        if (!wasOn && type === 'tile') {
+            const layerUUID = L_.asLayerUUID(layerName)
+            const layerData = L_.layers.data[layerUUID]
+
+            // Check if this is a STAC collection layer with expression editing enabled
+            if (
+                layerData.url?.startsWith('stac-collection:') &&
+                layerData.cogExpressionEditable === true
+            ) {
+                const collectionName = layerData.url
+                    .split('stac-collection:')[1]
+                    .split('?')[0]
+
+                // Fetch STAC items (lazy load on first open)
+                const stacUrl = `${window.location.origin}${(
+                    window.location.pathname || ''
+                ).replace(
+                    /\/$/g,
+                    ''
+                )}/stac/collections/${collectionName}/items?limit=1`
+
+                fetch(stacUrl)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.features && data.features.length > 0) {
+                            const assets = data.features[0].assets
+                            const bandList = []
+
+                            // Parse each asset and its bands, combining into asset_band format
+                            for (const [assetName, assetData] of Object.entries(
+                                assets
+                            )) {
+                                const bands = assetData['eo:bands'] || []
+
+                                // Combine asset name with band name
+                                if (bands.length > 0) {
+                                    bands.forEach((b) => {
+                                        const fullBandName = `${assetName}_${b.name}`
+                                        const description = b.description
+                                            ? ` (${b.description})`
+                                            : ''
+                                        bandList.push(
+                                            `<div class="stac-band-item">${fullBandName}${description}</div>`
+                                        )
+                                    })
+                                } else {
+                                    bandList.push(
+                                        `<div class="stac-band-item">${assetName} (no band info)</div>`
+                                    )
+                                }
+                            }
+
+                            // Update the info display
+                            const infoDiv = li.find(
+                                `.expression-stac-info[data-layername="${layerName}"]`
+                            )
+                            if (bandList.length > 0) {
+                                infoDiv.html(
+                                    `<div class="stac-header">Available Assets:</div>${bandList.join(
+                                        ''
+                                    )}`
+                                )
+                                infoDiv.show()
+                            }
+                        }
+                    })
+                    .catch((err) => {
+                        // Silently fail - don't show the section
+                        console.warn('Failed to fetch STAC asset info:', err)
+                    })
+            }
+        }
 
         //Support Filtering 1
         if (['vector', 'query'].includes(type)) {
@@ -1832,6 +1971,80 @@ function interfaceWithMMGIS(fromInit) {
         }
 
         LayersTool.populateCogScale(layer.name)
+        LegendTool.refreshLegends()
+    })
+
+    // Expression Apply button handler
+    $('.tileexpressionapply').on('click', function () {
+        let layerName = $(this).attr('layername')
+        let layerUUID = L_.asLayerUUID(layerName)
+        let layer = L_.layers.data[layerUUID]
+
+        if (L_.layers.layer[layer.name] === null) return
+
+        // Get the expression value from the input - look for it in the closest li.tileCogExpression
+        const expressionInput = $(this)
+            .closest('li.tileCogExpression')
+            .find('.tileexpression')
+        const newExpression = expressionInput.val().trim()
+
+        // Update the layer's currentCogExpression (runtime value) in the layer data
+        layer.currentCogExpression = newExpression
+
+        // Also update in the original layers configuration if it exists
+        if (L_.layers.data[layerUUID]) {
+            L_.layers.data[layerUUID].currentCogExpression = newExpression
+        }
+
+        // Refresh the layer to apply the expression, passing it as an update option
+        if (layer.type === 'tile') {
+            L_.layers.layer[layer.name].refresh(null, true, {
+                currentCogExpression: newExpression,
+            })
+        } else if (layer.type === 'image') {
+            L_.layers.layer[layer.name].refresh(null, true, {
+                currentCogExpression: newExpression,
+            })
+        }
+
+        // Refresh legends in case they're affected
+        LegendTool.refreshLegends()
+    })
+
+    // Expression Reset button handler
+    $('.tileexpressionreset').on('click', function () {
+        let layerName = $(this).attr('layername')
+        let layerUUID = L_.asLayerUUID(layerName)
+        const layerData = L_.layers.data[layerUUID]
+
+        if (L_.layers.layer[layerData.name] === null) return
+
+        // Get the original/configured expression (cogExpression is never modified, only currentCogExpression is)
+        const originalExpression = layerData.cogExpression || ''
+
+        // Reset currentCogExpression to the original/configured expression
+        // Setting it to null/undefined will make the system fall back to cogExpression
+        layerData.currentCogExpression = null
+
+        // Update the input field - the reset button is in the title, find the next li.tileCogExpression
+        $(this)
+            .closest('.layerSettingsTitle')
+            .next('li.tileCogExpression')
+            .find('.tileexpression')
+            .val(originalExpression)
+
+        // Refresh the layer, passing currentCogExpression as null to use the original
+        if (layerData.type === 'tile') {
+            L_.layers.layer[layerData.name].refresh(null, true, {
+                currentCogExpression: null,
+            })
+        } else if (layerData.type === 'image') {
+            L_.layers.layer[layerData.name].refresh(null, true, {
+                currentCogExpression: null,
+            })
+        }
+
+        // Refresh legends
         LegendTool.refreshLegends()
     })
 

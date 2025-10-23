@@ -692,6 +692,14 @@ function bestMatchInLegend(rgba, legendData) {
 }
 
 function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
+    // Helper function to add default 'asset_' prefix to bands in expressions if not already prefixed
+    const processExpression = (expression) => {
+        if (!expression || expression.trim() === '') return expression
+        // Replace bX or BX (where X is a number) with asset_bX or asset_BX
+        // Only replace if not already prefixed with an asset name (word_bX pattern)
+        return expression.replace(/(?<!\w)([bB])(\d+)/g, 'asset_$1$2')
+    }
+
     numBands = numBands || 1
     var dataPath
     if (url != null && url.startsWith('stac-collection:')) {
@@ -699,13 +707,24 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
         if (L_.layers.data[layerUUID].time?.enabled == true)
             timeParam = `&datetime=${L_.layers.data[layerUUID].time.start}/${L_.layers.data[layerUUID].time.end}`
 
-        // Bands
+        // Expression or Bands
+        let expressionParam = ''
         let bandsParam = ''
-        let b = L_.layers.data[layerUUID].cogBandsQuery
-        if (b != null) {
-            b.forEach((band) => {
-                if (band != null) bandsParam += `&bidx=${band}`
-            })
+        const layer = L_.layers.data[layerUUID]
+
+        // Check currentCogExpression first (runtime value), then fall back to cogExpression (configured value)
+        const expressionToUse = layer.currentCogExpression || layer.cogExpression
+        if (expressionToUse && expressionToUse.trim() !== '') {
+            const processedExpression = processExpression(expressionToUse)
+            expressionParam = `&expression=${encodeURIComponent(processedExpression)}`
+        } else {
+            // Fall back to bands if no expression
+            let b = layer.cogBandsQuery
+            if (b != null) {
+                b.forEach((band) => {
+                    if (band != null) bandsParam += `&bidx=${band}`
+                })
+            }
         }
 
         fetch(
@@ -717,7 +736,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
                       ).replace(/\/$/g, '')}`
             }/titilerpgstac/collections/${
                 url.split('stac-collection:')[1]
-            }/point/${lng},${lat}?assets=asset&items_limit=10${timeParam}${bandsParam}`,
+            }/point/${lng},${lat}?assets=asset&items_limit=10${timeParam}${expressionParam}${bandsParam}`,
             {
                 method: 'GET',
                 headers: {
@@ -753,15 +772,24 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
         if (L_.layers.data[layerUUID].time?.enabled == true)
             timeParam = `&datetime=${L_.layers.data[layerUUID].time.start}/${L_.layers.data[layerUUID].time.end}`
 
-        // Bands
+        // Expression or Bands
+        let expressionParam = ''
         let bandsParam = ''
-        let b =
-            L_.layers.data[layerUUID].cogBandsQuery ||
-            L_.layers.data[layerUUID].cogBands
-        if (b != null) {
-            b.forEach((band) => {
-                if (band != null) bandsParam += `&bidx=${band}`
-            })
+        const layer = L_.layers.data[layerUUID]
+
+        // Check currentCogExpression first (runtime value), then fall back to cogExpression (configured value)
+        const expressionToUse = layer.currentCogExpression || layer.cogExpression
+        if (expressionToUse && expressionToUse.trim() !== '') {
+            const processedExpression = processExpression(expressionToUse)
+            expressionParam = `&expression=${encodeURIComponent(processedExpression)}`
+        } else {
+            // Fall back to bands if no expression
+            let b = layer.cogBandsQuery || layer.cogBands
+            if (b != null) {
+                b.forEach((band) => {
+                    if (band != null) bandsParam += `&bidx=${band}`
+                })
+            }
         }
 
         fetch(
@@ -774,7 +802,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
             }/titiler/cog/point/${lng},${lat}?assets=asset&url=${L_.getUrl(
                 'tile',
                 url
-            )}${timeParam}${bandsParam}`,
+            )}${timeParam}${expressionParam}${bandsParam}`,
             {
                 method: 'GET',
                 headers: {
