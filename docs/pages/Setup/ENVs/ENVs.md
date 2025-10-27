@@ -213,6 +213,26 @@ A cron schedule expression for use in the [node-schedule npm library](https://ww
 
 When using composited time tiles, MMGIS queries the tileset's folder for existing time folders. It caches the results of the these folder listings every COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS milliseconds. Defaults to requerying every 30 minutes. If 0, no caching. If null or NaN, uses default. | number | default `1800000`
 
+## Azure AI Agent Service
+
+Authenticate with `az login` before starting the server to keep the Azure CLI session active for agent calls.
+
+#### `PROJECT_ENDPOINT=`
+
+Project-scoped endpoint for the Azure AI Agent Service. Example: `https://eastus.api.azureai.azure.com/projects/my-project` | string | default `null`
+
+#### `AZURE_AI_FOUNDRY_AGENT_ID=`
+
+Identifier of the agent created in Azure AI Foundry (for example `asst_PQEZ4BMQrLNyiheB6fH2TmXJ`). MMGIS uses this value to route requests to the correct agent. | string | default `null`
+
+#### `AZURE_BING_CONNECTION_ID=`
+
+ID of the Bing grounding connection configured in the Azure AI project. Required when the agent needs Bing search grounding. | string | default `null`
+
+#### `MODEL_DEPLOYMENT_NAME=`
+
+Optional default model deployment name to apply when creating new agents. Example: `gpt-4o`. | string | default `null`
+
 ## Adjacent Servers
 
 Enables and proxies to other self-hosted services. [Additional setup](/MMGIS/setup/adjacent-servers) may be required.

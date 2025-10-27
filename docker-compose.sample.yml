@@ -1,7 +1,7 @@
 services:
   mmgis:
-    # build: .
-    image: ghcr.io/nasa-ammos/mmgis:development
+    build: .
+    #image: ghcr.io/nasa-ammos/mmgis:development
     depends_on:
       db:
         condition: service_healthy
@@ -27,6 +27,7 @@ services:
     volumes:
       - ./Missions:/usr/src/app/Missions
       - ./ssl:/usr/src/app/ssl
+      - ${HOME}/.azure:/root/.azure
 
   stac-fastapi:
     image: ghcr.io/stac-utils/stac-fastapi-pgstac:5.0.2
@@ -35,9 +36,9 @@ services:
     environment:
       # Postgres connection
       ## UPDATE ME V============================================================================================V UPDATE ME
-      - POSTGRES_USER=username
+      - POSTGRES_USER=${DB_USER}
       ## UPDATE ME V============================================================================================V UPDATE ME
-      - POSTGRES_PASS=password
+      - POSTGRES_PASS=${DB_PASS}
       ## Leave this as mmgis-stac
       - POSTGRES_DBNAME=mmgis-stac
       - POSTGRES_HOST_READER=db
@@ -72,9 +73,9 @@ services:
       # - MAX_WORKERS=10
       # Postgres connection
       ## UPDATE ME V============================================================================================V UPDATE ME
-      - POSTGRES_USER=username
+      - POSTGRES_USER=${DB_USER}
       ## UPDATE ME V============================================================================================V UPDATE ME
-      - POSTGRES_PASS=password
+      - POSTGRES_PASS=${DB_PASS}
       ## Leave this as mmgis-stac
       - POSTGRES_DBNAME=mmgis-stac
       - POSTGRES_HOST=db
@@ -157,9 +158,9 @@ services:
       - MAX_WORKERS=10
       # Postgres connection
       ## UPDATE ME V============================================================================================V UPDATE ME
-      - POSTGRES_USER=username
+      - POSTGRES_USER=${DB_USER}
       ## UPDATE ME V============================================================================================V UPDATE ME
-      - POSTGRES_PASS=password
+      - POSTGRES_PASS=${DB_PASS}
       ## Leave this as mmgis-stac
       - POSTGRES_DBNAME=mmgis-stac
       - POSTGRES_HOST=db
@@ -196,7 +197,7 @@ services:
         restart: true
     command: bash -c "uvicorn titiler.pgstac.main:app --host 0.0.0.0 --port 8884"
     volumes:
-      - ./Missions:/Missions
+      - ./Missions:/usr/src/app/Missions
       - ./adjacent-servers/resources:/adjacent-servers/resources
 
   veloserver:
@@ -211,7 +212,7 @@ services:
     environment:
       - POSTGRES_USER=${DB_USER}
       ## UPDATE ME V============================================================================================V UPDATE ME
-      - POSTGRES_PASSWORD_OFF=Rename to 'POSTGRES_PASSWORD' and replace this with an initial root password for the DB
+      - POSTGRES_PASSWORD=${DB_PASS}
     ports:
       - 5432
     shm_size: '1g'
