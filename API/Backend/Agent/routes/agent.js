@@ -60,6 +60,78 @@ function findBestLayerInfo(query, store) {
   return { item: best, score: bestScore };
 }
 
+function sanitizeLayerHints(rawLayers) {
+  if (!Array.isArray(rawLayers)) return [];
+  const unique = new Map();
+  for (const raw of rawLayers.slice(0, 120)) {
+    if (!raw || typeof raw !== "object") continue;
+    const display =
+      typeof raw.display_name === "string"
+        ? raw.display_name.trim()
+        : typeof raw.displayName === "string"
+          ? raw.displayName.trim()
+          : typeof raw.name === "string"
+            ? raw.name.trim()
+            : "";
+    if (!display) continue;
+    const canonical =
+      typeof raw.canonical_name === "string"
+        ? raw.canonical_name.trim()
+        : typeof raw.canonicalName === "string"
+          ? raw.canonicalName.trim()
+          : "";
+    const aliasSource =
+      Array.isArray(raw.aliases) && raw.aliases.length
+        ? raw.aliases
+        : Array.isArray(raw.alias)
+          ? raw.alias
+          : [];
+    const aliases = Array.from(
+      new Set(
+        aliasSource
+          .map((value) =>
+            typeof value === "string" ? value.trim() : String(value || ""),
+          )
+          .filter((value) => value.length > 0),
+      ),
+    ).slice(0, 8);
+    const visible =
+      typeof raw.visible === "boolean"
+        ? raw.visible
+        : typeof raw.isVisible === "boolean"
+          ? raw.isVisible
+          : undefined;
+    const bboxArray =
+      Array.isArray(raw.bbox) && raw.bbox.length === 4
+        ? raw.bbox.map((value) => Number(value))
+        : null;
+    const normalizedBbox =
+      bboxArray && bboxArray.every((value) => Number.isFinite(value))
+        ? bboxArray
+        : undefined;
+    const key = display.toLowerCase();
+    if (!unique.has(key)) {
+      unique.set(key, {
+        displayName: display,
+        canonicalName: canonical || null,
+        aliases,
+        visible,
+        bbox: normalizedBbox,
+      });
+    }
+  }
+  return Array.from(unique.values());
+}
+
+function selectLayerSummaries(store) {
+  if (!store || !Array.isArray(store.items)) return [];
+  return store.items.slice(0, 80).map((item) => ({
+    name: item.name,
+    summary: item.summary || "",
+    citation: item.citation || "",
+  }));
+}
+
 function getToolNames(req) {
   return req.app?.locals?.agentToolNames || new Set();
 }
@@ -123,7 +195,15 @@ router.post("/", express.json(), async function (req, res) {
       throw err;
     }
 
-    const result = await planWithProvider(message);
+    const bodyContext = req.body?.context || {};
+    const clientLayerHints = sanitizeLayerHints(bodyContext.layers);
+    const layerInfoStore = req.app?.locals?.agentLayerInfo;
+    const layerSummaries = selectLayerSummaries(layerInfoStore);
+
+    const result = await planWithProvider(message, {
+      layerHints: clientLayerHints,
+      layerSummaries,
+    });
     if (!result || !Array.isArray(result.actions)) {
       throw new Error(
         "Provider returned malformed response (missing actions array).",

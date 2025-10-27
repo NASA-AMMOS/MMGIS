@@ -79,6 +79,110 @@ function scoreSimilarity(queryNorm, candidateNorm) {
     return Math.max(0, 1 - dist / maxLen)
 }
 
+function toNumber(value) {
+    const n = Number(value)
+    return Number.isFinite(n) ? n : null
+}
+
+function latLngBoundsToBbox(bounds) {
+    if (!bounds) return null
+    const sw =
+        typeof bounds.getSouthWest === 'function'
+            ? bounds.getSouthWest()
+            : bounds._southWest
+    const ne =
+        typeof bounds.getNorthEast === 'function'
+            ? bounds.getNorthEast()
+            : bounds._northEast
+    if (!sw || !ne) return null
+    const west = toNumber(sw.lng)
+    const south = toNumber(sw.lat)
+    const east = toNumber(ne.lng)
+    const north = toNumber(ne.lat)
+    if ([west, south, east, north].every((v) => v != null))
+        return [west, south, east, north]
+    return null
+}
+
+function normalizeBoundingBox(raw) {
+    if (!raw) return null
+    if (Array.isArray(raw) && raw.length >= 4) {
+        const west = toNumber(raw[0])
+        const south = toNumber(raw[1])
+        const east = toNumber(raw[2])
+        const north = toNumber(raw[3])
+        if ([west, south, east, north].every((v) => v != null))
+            return [west, south, east, north]
+        return null
+    }
+    if (typeof raw === 'object') {
+        if (raw._southWest && raw._northEast) {
+            return latLngBoundsToBbox(raw)
+        }
+        const west =
+            toNumber(raw.west) ??
+            toNumber(raw.minLon) ??
+            toNumber(raw.minX) ??
+            toNumber(raw.xmin)
+        const south =
+            toNumber(raw.south) ??
+            toNumber(raw.minLat) ??
+            toNumber(raw.minY) ??
+            toNumber(raw.ymin)
+        const east =
+            toNumber(raw.east) ??
+            toNumber(raw.maxLon) ??
+            toNumber(raw.maxX) ??
+            toNumber(raw.xmax)
+        const north =
+            toNumber(raw.north) ??
+            toNumber(raw.maxLat) ??
+            toNumber(raw.maxY) ??
+            toNumber(raw.ymax)
+        if ([west, south, east, north].every((v) => v != null))
+            return [west, south, east, north]
+    }
+    return null
+}
+
+function deriveLayerBoundingBox(layerConfig, layerInstance) {
+    let bbox =
+        normalizeBoundingBox(layerConfig?.boundingBox) ||
+        normalizeBoundingBox(layerConfig?.bounds) ||
+        normalizeBoundingBox(layerConfig?.extent) ||
+        normalizeBoundingBox(layerConfig?.bbox)
+    if (!bbox && layerInstance) {
+        if (typeof layerInstance.getBounds === 'function') {
+            bbox = normalizeBoundingBox(layerInstance.getBounds())
+        } else if (layerInstance.bounds) {
+            bbox = normalizeBoundingBox(layerInstance.bounds)
+        } else if (layerInstance.options?.bounds) {
+            bbox = normalizeBoundingBox(layerInstance.options.bounds)
+        }
+    }
+    return bbox
+}
+
+function isValidBbox(bbox) {
+    return (
+        Array.isArray(bbox) &&
+        bbox.length === 4 &&
+        bbox.every((value) => Number.isFinite(value)) &&
+        bbox[0] < bbox[2] &&
+        bbox[1] < bbox[3]
+    )
+}
+
+function intersectBbox(a, b) {
+    if (!isValidBbox(a) || !isValidBbox(b)) return null
+    const west = Math.max(a[0], b[0])
+    const south = Math.max(a[1], b[1])
+    const east = Math.min(a[2], b[2])
+    const north = Math.min(a[3], b[3])
+    if (east <= west || north <= south) return null
+    return [west, south, east, north]
+}
+
 function buildLayerIndex() {
     const api = window.mmgisAPI
     if (!api) throw new Error('mmgisAPI is not available.')
@@ -86,6 +190,7 @@ function buildLayerIndex() {
     if (!configs || typeof configs !== 'object')
         throw new Error('getLayerConfigs() returned no data.')
     const visibleLookup = api.getVisibleLayers?.() || {}
+    const liveLayers = api.getLayers?.() || {}
     const items = []
     const seen = new Set()
 
@@ -94,6 +199,11 @@ function buildLayerIndex() {
         const uuid = String(layer.uuid || key || layer.name || '')
         if (!uuid || seen.has(uuid)) return
         seen.add(uuid)
+        const liveInstance =
+            liveLayers[uuid] ||
+            liveLayers[layer.name] ||
+            liveLayers[layer.display_name] ||
+            null
         const displayName =
             layer.display_name ||
             layer.displayName ||
@@ -101,6 +211,7 @@ function buildLayerIndex() {
             layer.name ||
             uuid
         const canonical = layer.name || displayName
+        const bbox = deriveLayerBoundingBox(layer, liveInstance)
         const aliases = new Set()
         ;[
             displayName,
@@ -135,6 +246,7 @@ function buildLayerIndex() {
             displayName,
             canonical,
             visible: !!(visibleLookup[uuid] || visibleLookup[key]),
+            bbox,
             normalizedAliases,
         })
     })
@@ -175,6 +287,10 @@ function findLayerMatch(value, index = null) {
         displayName: best.layer.displayName,
         id: best.layer.id,
         score: bestScore,
+        bbox: Array.isArray(best.layer.bbox)
+            ? best.layer.bbox.slice()
+            : null,
+        layer: best.layer,
     }
 }
 
@@ -486,56 +602,39 @@ export async function render_contour_overlay(_ctx, payload) {
     if (!area) {
         throw new Error('Unable to determine area for contour overlay.')
     }
-    const { bounds } = drawAreaHighlight(area, 'contours', {
+    const index = buildLayerIndex()
+    const layerMatch = findLayerMatch(layerName, index)
+    let focusBbox = Array.isArray(area.bbox) ? area.bbox.slice() : null
+    let focusLabel = area.label
+    if (layerMatch?.bbox && isValidBbox(layerMatch.bbox)) {
+        const overlap = intersectBbox(focusBbox, layerMatch.bbox)
+        focusBbox = overlap || layerMatch.bbox.slice()
+        focusLabel = layerMatch.displayName || focusLabel
+    }
+    if (!isValidBbox(focusBbox)) {
+        throw new Error('Unable to determine a suitable bounding box.')
+    }
+    const focusArea = { label: focusLabel, bbox: focusBbox }
+    const { bounds, group } = drawAreaHighlight(focusArea, 'contours', {
         color: '#ef4444',
-        fillOpacity: 0.5,
+        fillOpacity: 0.28,
+        weight: 1.2,
+        dashArray: '6 8',
     })
-    const group =
-        window.__mmgisAgentChatOverlays &&
-        window.__mmgisAgentChatOverlays.contours
-            ? window.__mmgisAgentChatOverlays.contours
-            : ensureOverlayGroup('contours')
-
-    const steps = 3
-    for (let i = 1; i <= steps; i += 1) {
-        const lat =
-            area.bbox[1] + ((area.bbox[3] - area.bbox[1]) * i) / (steps + 1)
-        const poly = window.L.polyline(
-            [
-                [lat, area.bbox[0]],
-                [lat, area.bbox[2]],
-            ],
-            {
-                color: '#fca5a5',
-                weight: 1,
-                dashArray: '4 6',
-            }
-        )
-        poly.addTo(group)
-    }
-    for (let j = 1; j <= steps; j += 1) {
-        const lon =
-            area.bbox[0] + ((area.bbox[2] - area.bbox[0]) * j) / (steps + 1)
-        const poly = window.L.polyline(
-            [
-                [area.bbox[1], lon],
-                [area.bbox[3], lon],
-            ],
-            {
-                color: '#fca5a5',
-                weight: 1,
-                dashArray: '4 6',
-            }
-        )
-        poly.addTo(group)
-    }
+    const outline = window.L.rectangle(bounds, {
+        color: '#ef4444',
+        weight: 1.4,
+        fillOpacity: 0,
+        dashArray: '8 12',
+    })
+    outline.addTo(group)
     const descriptor = `${layerName} where ${variable} ${operator} ${value}`
     const timePart =
         typeof payload?.time === 'string' && payload.time
             ? ` at ${payload.time}`
             : ''
     appendLine(
-        `Contour overlay added for ${descriptor}${timePart} over ${area.label}.`
+        `Contour overlay prepared for ${descriptor}${timePart} within ${focusLabel}.`
     )
     ensureMap().fitBounds(bounds, { padding: [20, 20] })
 }

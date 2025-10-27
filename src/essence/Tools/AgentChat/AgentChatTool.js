@@ -55,7 +55,6 @@ function interfaceWithMMGIS() {
         minimized: false,
         keyHandlersAttached: false,
         lastFocusedEl: null,
-        pendingConfirmation: null,
         layerIndex: [],
     }
     const undoStack = []
@@ -111,12 +110,97 @@ function interfaceWithMMGIS() {
         return Math.max(0, 1 - dist / maxLen)
     }
 
+    function toNumber(value) {
+        const n = Number(value)
+        return Number.isFinite(n) ? n : null
+    }
+
+    function latLngBoundsToBbox(bounds) {
+        if (!bounds) return null
+        const sw =
+            typeof bounds.getSouthWest === 'function'
+                ? bounds.getSouthWest()
+                : bounds._southWest
+        const ne =
+            typeof bounds.getNorthEast === 'function'
+                ? bounds.getNorthEast()
+                : bounds._northEast
+        if (!sw || !ne) return null
+        const west = toNumber(sw.lng)
+        const south = toNumber(sw.lat)
+        const east = toNumber(ne.lng)
+        const north = toNumber(ne.lat)
+        if ([west, south, east, north].every((v) => v != null))
+            return [west, south, east, north]
+        return null
+    }
+
+    function normalizeBoundingBox(raw) {
+        if (!raw) return null
+        if (Array.isArray(raw) && raw.length >= 4) {
+            const west = toNumber(raw[0])
+            const south = toNumber(raw[1])
+            const east = toNumber(raw[2])
+            const north = toNumber(raw[3])
+            if ([west, south, east, north].every((v) => v != null))
+                return [west, south, east, north]
+            return null
+        }
+        if (typeof raw === 'object') {
+            if (raw._southWest && raw._northEast) {
+                return latLngBoundsToBbox(raw)
+            }
+            const west =
+                toNumber(raw.west) ??
+                toNumber(raw.minLon) ??
+                toNumber(raw.minX) ??
+                toNumber(raw.xmin)
+            const south =
+                toNumber(raw.south) ??
+                toNumber(raw.minLat) ??
+                toNumber(raw.minY) ??
+                toNumber(raw.ymin)
+            const east =
+                toNumber(raw.east) ??
+                toNumber(raw.maxLon) ??
+                toNumber(raw.maxX) ??
+                toNumber(raw.xmax)
+            const north =
+                toNumber(raw.north) ??
+                toNumber(raw.maxLat) ??
+                toNumber(raw.maxY) ??
+                toNumber(raw.ymax)
+            if ([west, south, east, north].every((v) => v != null))
+                return [west, south, east, north]
+        }
+        return null
+    }
+
+    function deriveLayerBoundingBox(layerConfig, layerInstance) {
+        let bbox =
+            normalizeBoundingBox(layerConfig?.boundingBox) ||
+            normalizeBoundingBox(layerConfig?.bounds) ||
+            normalizeBoundingBox(layerConfig?.extent) ||
+            normalizeBoundingBox(layerConfig?.bbox)
+        if (!bbox && layerInstance) {
+            if (typeof layerInstance.getBounds === 'function') {
+                bbox = normalizeBoundingBox(layerInstance.getBounds())
+            } else if (layerInstance.bounds) {
+                bbox = normalizeBoundingBox(layerInstance.bounds)
+            } else if (layerInstance.options?.bounds) {
+                bbox = normalizeBoundingBox(layerInstance.options.bounds)
+            }
+        }
+        return bbox
+    }
+
     function buildLayerIndex() {
         try {
             const api = window.mmgisAPI
             if (!api) return []
             const configs = api.getLayerConfigs?.() || {}
             const visibles = api.getVisibleLayers?.() || {}
+            const liveLayers = api.getLayers?.() || {}
             const items = []
             const seen = new Set()
 
@@ -125,6 +209,11 @@ function interfaceWithMMGIS() {
                 const uuid = String(layer.uuid || key || layer.name || '')
                 if (!uuid || seen.has(uuid)) return
                 seen.add(uuid)
+                const liveInstance =
+                    liveLayers[uuid] ||
+                    liveLayers[layer.name] ||
+                    liveLayers[layer.display_name] ||
+                    null
                 const display =
                     layer.display_name ||
                     layer.displayName ||
@@ -132,6 +221,7 @@ function interfaceWithMMGIS() {
                     layer.name ||
                     uuid
                 const canonical = layer.name || display
+                const bbox = deriveLayerBoundingBox(layer, liveInstance)
                 const aliases = new Set()
                 ;[
                     display,
@@ -165,6 +255,7 @@ function interfaceWithMMGIS() {
                     displayName: display,
                     canonical,
                     visible: !!visibles[uuid],
+                    bbox,
                     normalizedAliases,
                 })
             })
@@ -207,10 +298,13 @@ function interfaceWithMMGIS() {
             exact,
             uuid: best.layer.id,
             visible: best.layer.visible,
+            bbox: Array.isArray(best.layer.bbox)
+                ? best.layer.bbox.slice()
+                : null,
         }
     }
 
-    function resolveActionLayerArgs(action, { allowConfirmation = true } = {}) {
+    function resolveActionLayerArgs(action) {
         const args = action?.args || {}
         const targetKeys = Object.keys(args).filter((key) =>
             LAYER_ARG_KEYS.includes(key)
@@ -219,12 +313,10 @@ function interfaceWithMMGIS() {
             return {
                 prepared: { ...action },
                 matches: [],
-                needsConfirmation: false,
             }
         }
         const updatedArgs = { ...args }
         const matches = []
-        let needsConfirmation = false
 
         for (const key of targetKeys) {
             const value = updatedArgs[key]
@@ -238,7 +330,6 @@ function interfaceWithMMGIS() {
             }
             updatedArgs[key] = match.resolved
             matches.push({ key, ...match })
-            if (allowConfirmation && !match.exact) needsConfirmation = true
         }
 
         return {
@@ -248,57 +339,7 @@ function interfaceWithMMGIS() {
                 __layerMatches: matches,
             },
             matches,
-            needsConfirmation,
         }
-    }
-
-    function getLastUserMessage() {
-        for (let i = state.history.length - 1; i >= 0; i -= 1) {
-            const entry = state.history[i]
-            if (entry && entry.role === 'user' && typeof entry.text === 'string')
-                return entry.text
-        }
-        return ''
-    }
-
-    function composeConfirmationPrompt(matches) {
-        const fragments = matches.map((match) => {
-            const from = match.original || match.alias || 'unknown'
-            return `"${from}" → "${match.resolved}"`
-        })
-        const resolvedText = fragments.join(', ')
-        const userText = getLastUserMessage()
-        const prefix = userText
-            ? `You asked: "${userText}". `
-            : 'I interpreted your request. '
-        return (
-            prefix +
-            `Should I continue using ${resolvedText}? Please reply yes or no.`
-        )
-    }
-
-    function queueConfirmation(preparedActions, matches, entry) {
-        const prompt = composeConfirmationPrompt(matches)
-        state.pendingConfirmation = {
-            actions: preparedActions,
-            matches,
-            entry,
-            prompt,
-        }
-        addNoteToAssistant(entry, prompt)
-    }
-
-    function clearPendingConfirmation() {
-        state.pendingConfirmation = null
-    }
-
-    function interpretConfirmation(text) {
-        const normalized = normalizeName(text)
-        if (!normalized) return 'unknown'
-        if (/^(y|yes|sure|ok|okay|confirm|do it|go ahead)$/.test(normalized))
-            return 'yes'
-        if (/^(n|no|cancel|stop|not now|nope)$/.test(normalized)) return 'no'
-        return 'unknown'
     }
 
     // Initialize UI only (no external assets/styles)
@@ -363,24 +404,13 @@ function interfaceWithMMGIS() {
             </div>
           </div>
           <div class="ac-header-actions" style="display:flex; gap:6px;">
-            <button id="agentChatMin" class="ac-icon-btn" title="Minimize" aria-label="Minimize" style="min-width:32px; min-height:32px; padding:0 6px; border:1px solid rgba(255,255,255,0.2); background:#1b1b1b; color:#ddd; border-radius:8px; cursor:pointer;">–</button>
-            <button id="agentChatClose" class="ac-icon-btn" title="Close" aria-label="Close" style="min-width:32px; min-height:32px; padding:0 6px; border:1px solid rgba(255,255,255,0.2); background:#1b1b1b; color:#ddd; border-radius:8px; cursor:pointer;">×</button>
-          </div>
-        </header>
-
-        <div id="agentChatTranscript" class="ac-scroll" style="flex:1; overflow:auto; padding:16px;"></div>
-
-        <div class="ac-composer" style="border-top:1px solid rgba(255,255,255,0.10); padding:10px; background: rgba(18,18,18,0.88);">
-          <form id="agentChatComposer" class="ac-composer-row" style="display:flex; align-items:center; gap:8px;">
-            <input id="agentChatInput" type="text" autocomplete="off" placeholder='Ask: "List layers"' class="ac-input" style="background:#1a1a1a; color:#f2f2f2; border:1px solid #333; border-radius:999px; padding:10px 12px; outline:none; width:100%;" />
-            <button id="agentChatSend" type="submit" class="ac-btn-primary" style="background:#0ea5e9; color:#001018; border:none; border-radius:999px; padding:10px 14px; font-weight:600; cursor:pointer;">Send</button>
             <button
               id="agentChatClear"
               type="button"
               class="ac-icon-btn"
               title="Delete conversation history"
               aria-label="Delete conversation history"
-              style="background:#1f1f1f; color:#ddd; border:1px solid #333; border-radius:999px; padding:0; cursor:pointer; min-width:36px; min-height:36px; display:flex; align-items:center; justify-content:center;"
+              style="min-width:32px; min-height:32px; padding:0; border:1px solid rgba(255,255,255,0.2); background:#1b1b1b; color:#ddd; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center;"
             >
               <span aria-hidden="true" style="display:inline-flex; width:16px; height:16px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -393,6 +423,17 @@ function interfaceWithMMGIS() {
               </span>
               <span style="position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;">Clear conversation</span>
             </button>
+            <button id="agentChatMin" class="ac-icon-btn" title="Minimize" aria-label="Minimize" style="min-width:32px; min-height:32px; padding:0 6px; border:1px solid rgba(255,255,255,0.2); background:#1b1b1b; color:#ddd; border-radius:8px; cursor:pointer;">–</button>
+            <button id="agentChatClose" class="ac-icon-btn" title="Close" aria-label="Close" style="min-width:32px; min-height:32px; padding:0 6px; border:1px solid rgba(255,255,255,0.2); background:#1b1b1b; color:#ddd; border-radius:8px; cursor:pointer;">×</button>
+          </div>
+        </header>
+
+        <div id="agentChatTranscript" class="ac-scroll" style="flex:1; overflow:auto; padding:16px;"></div>
+
+        <div class="ac-composer" style="border-top:1px solid rgba(255,255,255,0.10); padding:10px; background: rgba(18,18,18,0.88);">
+          <form id="agentChatComposer" class="ac-composer-row" style="display:flex; align-items:center; gap:8px;">
+            <input id="agentChatInput" type="text" autocomplete="off" placeholder='Ask: "List layers"' class="ac-input" style="background:#1a1a1a; color:#f2f2f2; border:1px solid #333; border-radius:999px; padding:10px 12px; outline:none; width:100%;" />
+            <button id="agentChatSend" type="submit" class="ac-btn-primary" style="background:#0ea5e9; color:#001018; border:none; border-radius:999px; padding:10px 14px; font-weight:600; cursor:pointer;">Send</button>
           </form>
         </div>
 
@@ -503,57 +544,6 @@ function interfaceWithMMGIS() {
             return
         }
 
-        const pending = state.pendingConfirmation
-        if (pending) {
-            input.value = ''
-            const decision = interpretConfirmation(msg)
-            if (decision === 'unknown') {
-                addNoteToAssistant(
-                    pending.entry,
-                    'Please reply with yes or no so I know whether to continue.'
-                )
-                scrollTranscript()
-                return
-            }
-            if (decision === 'no') {
-                addNoteToAssistant(
-                    pending.entry,
-                    'Canceled the pending action at your request.'
-                )
-                clearPendingConfirmation()
-                scrollTranscript()
-                return
-            }
-
-            const actionsToRun = pending.actions
-            const targetEntry = pending.entry
-            addNoteToAssistant(
-                targetEntry,
-                'Confirmed. Executing the requested action now.'
-            )
-            clearPendingConfirmation()
-            state.sendBtn?.setAttribute('data-loading', 'true')
-            input.setAttribute('disabled', '')
-            try {
-                const performed = await exec(actionsToRun, targetEntry, {
-                    allowConfirmation: false,
-                })
-                if (performed.length) {
-                    targetEntry.performed = Array.isArray(targetEntry.performed)
-                        ? targetEntry.performed.concat(performed)
-                        : performed
-                    saveHistory()
-                    renderMessages()
-                    scrollTranscript()
-                }
-            } finally {
-                state.sendBtn?.removeAttribute('data-loading')
-                input.removeAttribute('disabled')
-                input.focus()
-            }
-            return
-        }
-
         input.value = ''
         state.sendBtn?.setAttribute('data-loading', 'true')
         input.setAttribute('disabled', '')
@@ -590,28 +580,36 @@ function interfaceWithMMGIS() {
 
     async function callAgent(message) {
         try {
+            const payload = { message }
+            const context = buildAgentContext()
+            if (context) payload.context = context
             const res = await fetch(
                 window.mmgisglobal.ROOT_PATH + '/api/agent',
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message }),
+                    body: JSON.stringify(payload),
                 }
             )
-            const payload = await res.json().catch(() => null)
+            const responsePayload = await res.json().catch(() => null)
             if (!res.ok) {
                 const errorMsg =
-                    (payload && (payload.error || payload.message)) ||
+                    (responsePayload &&
+                        (responsePayload.error || responsePayload.message)) ||
                     `Request failed with status ${res.status}`
                 const debug = {
                     reason: 'server_error',
                     status: res.status,
-                    serverError: payload && (payload.error || payload.message),
-                    serverStack: Array.isArray(payload?.stack)
-                        ? payload.stack
+                    serverError:
+                        responsePayload &&
+                        (responsePayload.error || responsePayload.message),
+                    serverStack: Array.isArray(responsePayload?.stack)
+                        ? responsePayload.stack
                         : undefined,
-                    validationErrors: Array.isArray(payload?.validationErrors)
-                        ? payload.validationErrors
+                    validationErrors: Array.isArray(
+                        responsePayload?.validationErrors
+                    )
+                        ? responsePayload.validationErrors
                         : undefined,
                 }
                 return {
@@ -621,9 +619,11 @@ function interfaceWithMMGIS() {
                     debug,
                 }
             }
-            if (payload?.debug?.azure?.reason)
-                pushSystem(`Provider note: ${payload.debug.azure.reason}`)
-            return payload
+            if (responsePayload?.debug?.azure?.reason)
+                pushSystem(
+                    `Provider note: ${responsePayload.debug.azure.reason}`
+                )
+            return responsePayload
         } catch (err) {
             const messageText =
                 err && err.message ? err.message : 'Unknown error'
@@ -989,8 +989,7 @@ function interfaceWithMMGIS() {
         return state.toolRegistry
     }
 
-    async function exec(actions, entry, options = {}) {
-        const opts = { allowConfirmation: true, ...(options || {}) }
+    async function exec(actions, entry) {
         await ensureRegistry()
         refreshLayerIndex()
         const map = new Map(
@@ -998,7 +997,6 @@ function interfaceWithMMGIS() {
         )
         const performed = []
         const queue = []
-        const confirmationMatches = []
 
         for (const a of actions || []) {
             if (!a || typeof a !== 'object') continue
@@ -1017,9 +1015,7 @@ function interfaceWithMMGIS() {
                 continue
             }
 
-            const normalization = resolveActionLayerArgs(a, {
-                allowConfirmation: opts.allowConfirmation,
-            })
+            const normalization = resolveActionLayerArgs(a)
             if (normalization.error) {
                 addFailure(
                     entry,
@@ -1029,20 +1025,7 @@ function interfaceWithMMGIS() {
                 )
                 continue
             }
-            if (
-                opts.allowConfirmation &&
-                normalization.needsConfirmation &&
-                normalization.matches.length
-            ) {
-                confirmationMatches.push(...normalization.matches)
-            }
             queue.push({ action: normalization.prepared, spec })
-        }
-
-        if (opts.allowConfirmation && confirmationMatches.length) {
-            const preparedActions = queue.map((item) => item.action)
-            queueConfirmation(preparedActions, confirmationMatches, entry)
-            return performed
         }
 
         for (const item of queue) {
@@ -1197,11 +1180,36 @@ function interfaceWithMMGIS() {
 
     function collectLayers() {
         if (!state.layerIndex.length) refreshLayerIndex()
-        return state.layerIndex.map((layer) => ({
-            id: layer.id,
-            display: layer.displayName,
-            name: layer.canonical,
+        return state.layerIndex.map((layer) => {
+            const aliases = Array.from(
+                new Set(
+                    (layer.normalizedAliases || [])
+                        .map((alias) => alias.raw)
+                        .filter(Boolean)
+                )
+            )
+            return {
+                id: layer.id,
+                display: layer.displayName,
+                name: layer.canonical,
+                aliases,
+                visible: layer.visible,
+                bbox: Array.isArray(layer.bbox) ? layer.bbox.slice() : null,
+            }
+        })
+    }
+
+    function buildAgentContext() {
+        const layers = collectLayers()
+        if (!layers.length) return null
+        const hints = layers.map((layer) => ({
+            display_name: layer.display,
+            canonical_name: layer.name,
+            aliases: layer.aliases,
+            visible: layer.visible,
+            bbox: layer.bbox,
         }))
+        return { layers: hints }
     }
 
     function resolveDisplayNameToId(v) {

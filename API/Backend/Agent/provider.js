@@ -40,22 +40,83 @@ const TOOL_DESCRIPTIONS = toolsList
   .map((t) => `- ${t.name}: ${t.description || "No description provided."}`)
   .join("\n");
 
+function formatLayerCatalog(layerHints = []) {
+  if (!Array.isArray(layerHints) || layerHints.length === 0) return "";
+  const lines = layerHints.slice(0, 120).map((layer, index) => {
+    const display = layer.displayName || layer.display_name || layer.name || "";
+    const canonical = layer.canonicalName || layer.canonical_name || "";
+    const aliases = Array.isArray(layer.aliases) ? layer.aliases : [];
+    const visible =
+      typeof layer.visible === "boolean"
+        ? layer.visible
+        : typeof layer.isVisible === "boolean"
+          ? layer.isVisible
+          : undefined;
+    const aliasText = aliases.length
+      ? ` | aliases: ${aliases.slice(0, 6).join(", ")}`
+      : "";
+    const canonicalText =
+      canonical && canonical !== display ? ` | canonical: ${canonical}` : "";
+    const visibleText =
+      visible === undefined ? "" : ` | visible: ${visible ? "true" : "false"}`;
+    const bboxValues =
+      Array.isArray(layer.bbox) && layer.bbox.length === 4
+        ? layer.bbox.map((value) => Number(value))
+        : [];
+    const bbox =
+      bboxValues.length === 4 && bboxValues.every((value) => Number.isFinite(value))
+        ? ` | bbox: [${bboxValues
+            .map((value) => value.toFixed(4))
+            .join(", ")}]`
+        : "";
+    return `${index + 1}. ${display}${canonicalText}${aliasText}${visibleText}${bbox}`;
+  });
+  return lines.join("\n");
+}
+
+function formatLayerSummaries(layerSummaries = []) {
+  if (!Array.isArray(layerSummaries) || layerSummaries.length === 0) return "";
+  const lines = layerSummaries.slice(0, 80).map((item) => {
+    const cite = item.citation ? ` (source: ${item.citation})` : "";
+    return `- ${item.name}: ${item.summary}${cite}`;
+  });
+  return lines.join("\n");
+}
+
 function haveAzureEnv() {
   const fas = haveFasEnv();
   return { ok: fas.ok, missing: fas.missing, ver: fas.apiVersion };
 }
 
-function buildPrompt(message) {
-  return [
+function buildPrompt(message, context = {}) {
+  const layerCatalog = formatLayerCatalog(context.layerHints);
+  const layerSummaries = formatLayerSummaries(context.layerSummaries);
+  const promptParts = [
     "You are the MMGIS Copilot assisting users inside the MMGIS web app.",
     "Available tools:",
     TOOL_DESCRIPTIONS || "- (none)",
+  ];
+  if (layerCatalog) {
+    promptParts.push(
+      "Layer catalog (display names, aliases, and visibility):",
+      layerCatalog,
+    );
+  }
+  if (layerSummaries) {
+    promptParts.push(
+      "Layer reference summaries:",
+      layerSummaries,
+    );
+  }
+  promptParts.push(
     "Always respond with minified JSON on a single line that matches this schema:",
     '{"actions":[{"tool":"string","args":{}}],"reply":"optional markdown string","citations":[{"title":"string","url":"string"}]}',
     "Guidelines:",
     "- Use actions for map-centric requests (layer visibility, opacity, zoom, etc.).",
     "- Normalize typos or paraphrasing to identify the correct tool and layer.",
+    "- Resolve layer names using the catalog above; prefer exact display_name matches when possible.",
     "- When a layer match is inferred (no exact match), confirm with the user first: respond with actions:[] and a clarifying reply that cites the resolved layer.",
+    "- If no available tool precisely satisfies the request, suggest the closest supported tool in the reply and wait for explicit user confirmation (keep actions empty until confirmed).",
     "- Include the original user query in args.original_query when asking for confirmation on layer-specific tools.",
     "- For informational questions, set actions to [] and populate reply with a concise, grounded summary.",
     "- When reply cites external knowledge, include 2-4 representative citations array entries (title + URL).",
@@ -75,7 +136,8 @@ function buildPrompt(message) {
     'User: "Please list layers."\nAssistant: {"actions":[{"tool":"list_layers","args":{}}]}',
     'User: "What is MMGIS?"\nAssistant: {"actions":[],"reply":"<short grounded answer>","citations":[{"title":"MMGIS GitHub Repository","url":"https://github.com/NASA-AMMOS/MMGIS"}]}',
     `User request: ${String(message).slice(0, 1000)}`,
-  ].join("\n");
+  );
+  return promptParts.join("\n");
 }
 
 function extractAssistantText(message) {
@@ -186,7 +248,7 @@ function fallbackMessage() {
   return `I'm sorry, I can't perform that operation. Here are the available tools: ${list}.`;
 }
 
-async function planWithProvider(message) {
+async function planWithProvider(message, context = {}) {
   const env = haveAzureEnv();
   if (!env.ok) {
     throw new Error(
@@ -194,7 +256,7 @@ async function planWithProvider(message) {
     );
   }
 
-  const prompt = buildPrompt(message);
+  const prompt = buildPrompt(message, context);
   const azure = await runAgentMessage(prompt);
   const assistantMessage = azure?.message;
   if (!assistantMessage) {
