@@ -173,16 +173,6 @@ function isValidBbox(bbox) {
     )
 }
 
-function intersectBbox(a, b) {
-    if (!isValidBbox(a) || !isValidBbox(b)) return null
-    const west = Math.max(a[0], b[0])
-    const south = Math.max(a[1], b[1])
-    const east = Math.min(a[2], b[2])
-    const north = Math.min(a[3], b[3])
-    if (east <= west || north <= south) return null
-    return [west, south, east, north]
-}
-
 function buildLayerIndex() {
     const api = window.mmgisAPI
     if (!api) throw new Error('mmgisAPI is not available.')
@@ -604,39 +594,78 @@ export async function render_contour_overlay(_ctx, payload) {
     }
     const index = buildLayerIndex()
     const layerMatch = findLayerMatch(layerName, index)
-    let focusBbox = Array.isArray(area.bbox) ? area.bbox.slice() : null
-    let focusLabel = area.label
-    if (layerMatch?.bbox && isValidBbox(layerMatch.bbox)) {
-        const overlap = intersectBbox(focusBbox, layerMatch.bbox)
-        focusBbox = overlap || layerMatch.bbox.slice()
-        focusLabel = layerMatch.displayName || focusLabel
+    if (!layerMatch || !layerMatch.layer) {
+        throw new Error(
+            `Unable to locate configuration for layer "${layerName}".`
+        )
     }
-    if (!isValidBbox(focusBbox)) {
-        throw new Error('Unable to determine a suitable bounding box.')
+    const layerConfig = layerMatch.layer
+    const sourceUrl =
+        layerConfig.url ||
+        layerConfig.source ||
+        layerConfig.path ||
+        layerConfig.cogUrl
+    if (typeof sourceUrl !== 'string' || !sourceUrl.trim()) {
+        throw new Error(
+            `Layer "${layerName}" is missing a COG source URL for highlighting.`
+        )
     }
-    const focusArea = { label: focusLabel, bbox: focusBbox }
-    const { bounds, group } = drawAreaHighlight(focusArea, 'contours', {
-        color: '#ef4444',
-        fillOpacity: 0.28,
-        weight: 1.2,
-        dashArray: '6 8',
+
+    const baseRoot = `${window.location.origin}${(
+        window.location.pathname || ''
+    ).replace(/\/$/g, '')}`
+    const tileMatrixSet = layerConfig.tileMatrixSet || 'WebMercatorQuad'
+    const tileMatrixStr = String(tileMatrixSet)
+    const colormapStops = '0:0,0,0,0|1:255,240,0,90'
+    const params = new URLSearchParams()
+    params.set('url', sourceUrl)
+    params.set('expression', `(b1>${value})`)
+    params.set('resampling', 'nearest')
+    params.set('colormap', colormapStops)
+
+    const highlightUrl = `${baseRoot}/titiler/cog/tiles/${tileMatrixStr}/{z}/{x}/{y}.png?${params.toString()}`
+    const map = ensureMap()
+    const store =
+        (window.__mmgisAgentChatOverlays =
+            window.__mmgisAgentChatOverlays || {})
+    if (store.contourTile && typeof store.contourTile.remove === 'function') {
+        try {
+            store.contourTile.remove()
+        } catch (_) {}
+    }
+    store.contourTile = window.L.tileLayer(highlightUrl, {
+        opacity: 1,
+        interactive: false,
+        pane: 'overlayPane',
+        tms: tileMatrixStr.toLowerCase().includes('tms')
+            ? true
+            : layerConfig.tileformat === 'tms' ||
+              layerConfig.tms === true ||
+              false,
+        zIndex: 650,
     })
-    const outline = window.L.rectangle(bounds, {
-        color: '#ef4444',
-        weight: 1.4,
-        fillOpacity: 0,
-        dashArray: '8 12',
-    })
-    outline.addTo(group)
+    store.contourTile.addTo(map)
+
+    const focusBbox =
+        (Array.isArray(layerMatch.bbox) && layerMatch.bbox.slice()) ||
+        (Array.isArray(layerConfig.boundingBox) && layerConfig.boundingBox) ||
+        null
+    if (isValidBbox(focusBbox)) {
+        const bounds = window.L.latLngBounds(
+            window.L.latLng(focusBbox[1], focusBbox[0]),
+            window.L.latLng(focusBbox[3], focusBbox[2])
+        )
+        map.fitBounds(bounds, { padding: [20, 20] })
+    }
+
     const descriptor = `${layerName} where ${variable} ${operator} ${value}`
     const timePart =
         typeof payload?.time === 'string' && payload.time
             ? ` at ${payload.time}`
             : ''
     appendLine(
-        `Contour overlay prepared for ${descriptor}${timePart} within ${focusLabel}.`
+        `Contour overlay prepared for ${descriptor}${timePart} using dynamic highlight tiles.`
     )
-    ensureMap().fitBounds(bounds, { padding: [20, 20] })
 }
 
 export async function render_layer_difference(_ctx, payload) {

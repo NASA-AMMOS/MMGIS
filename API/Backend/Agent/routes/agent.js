@@ -241,9 +241,12 @@ router.post("/", express.json(), async function (req, res) {
     });
   } catch (error) {
     const status = Number.isInteger(error.status) ? error.status : 500;
+    try {
+      // eslint-disable-next-line no-console
+      console.error("Agent planning error:", error);
+    } catch (_) {}
     const response = {
       error: error.message || "Agent planning failed",
-      stack: typeof error.stack === "string" ? error.stack.split(/\r?\n/) : [],
     };
     if (error.debug) response.debug = error.debug;
     if (error.validationErrors)
