@@ -320,10 +320,10 @@ export async function render_layers_line() {
     if (!items.length) {
         throw new Error('No layers available to list.')
     }
-    const summary = items
-        .map((item) => `${item.displayName} (${item.visible ? 'on' : 'off'})`)
-        .join(', ')
-    appendLine(`Layers: ${summary}`)
+    const summaryLines = items.map(
+        (item) => `- ${item.displayName} (${item.visible ? 'on' : 'off'})`
+    )
+    appendLine(`Layers:\n${summaryLines.join('\n')}`)
 }
 
 export async function render_text_with_citation(_ctx, payload) {

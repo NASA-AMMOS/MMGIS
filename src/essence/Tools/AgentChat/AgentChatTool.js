@@ -374,7 +374,25 @@ function interfaceWithMMGIS() {
           <form id="agentChatComposer" class="ac-composer-row" style="display:flex; align-items:center; gap:8px;">
             <input id="agentChatInput" type="text" autocomplete="off" placeholder='Ask: "List layers"' class="ac-input" style="background:#1a1a1a; color:#f2f2f2; border:1px solid #333; border-radius:999px; padding:10px 12px; outline:none; width:100%;" />
             <button id="agentChatSend" type="submit" class="ac-btn-primary" style="background:#0ea5e9; color:#001018; border:none; border-radius:999px; padding:10px 14px; font-weight:600; cursor:pointer;">Send</button>
-            <button id="agentChatClear" type="button" class="ac-btn" title="Clear conversation" style="background:#1f1f1f; color:#ddd; border:1px solid #333; border-radius:999px; padding:10px 12px; cursor:pointer;">Clear</button>
+            <button
+              id="agentChatClear"
+              type="button"
+              class="ac-icon-btn"
+              title="Delete conversation history"
+              aria-label="Delete conversation history"
+              style="background:#1f1f1f; color:#ddd; border:1px solid #333; border-radius:999px; padding:0; cursor:pointer; min-width:36px; min-height:36px; display:flex; align-items:center; justify-content:center;"
+            >
+              <span aria-hidden="true" style="display:inline-flex; width:16px; height:16px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6l-1 14H6L5 6"></path>
+                  <path d="M10 11v6"></path>
+                  <path d="M14 11v6"></path>
+                  <path d="M9 6V4h6v2"></path>
+                </svg>
+              </span>
+              <span style="position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;">Clear conversation</span>
+            </button>
           </form>
         </div>
 
