@@ -185,42 +185,42 @@ function buildLayerIndex() {
     const seen = new Set()
 
     Object.keys(configs).forEach((key) => {
-        const layer = configs[key] || {}
-        const uuid = String(layer.uuid || key || layer.name || '')
+        const layerConfig = configs[key] || {}
+        const uuid = String(layerConfig.uuid || key || layerConfig.name || '')
         if (!uuid || seen.has(uuid)) return
         seen.add(uuid)
         const liveInstance =
             liveLayers[uuid] ||
-            liveLayers[layer.name] ||
-            liveLayers[layer.display_name] ||
+            liveLayers[layerConfig.name] ||
+            liveLayers[layerConfig.display_name] ||
             null
         const displayName =
-            layer.display_name ||
-            layer.displayName ||
-            layer.title ||
-            layer.name ||
+            layerConfig.display_name ||
+            layerConfig.displayName ||
+            layerConfig.title ||
+            layerConfig.name ||
             uuid
-        const canonical = layer.name || displayName
-        const bbox = deriveLayerBoundingBox(layer, liveInstance)
+        const canonical = layerConfig.name || displayName
+        const bbox = deriveLayerBoundingBox(layerConfig, liveInstance)
         const aliases = new Set()
         ;[
             displayName,
             canonical,
-            layer.title,
-            layer.display_name,
-            layer.displayName,
-            layer.shortName,
+            layerConfig.title,
+            layerConfig.display_name,
+            layerConfig.displayName,
+            layerConfig.shortName,
         ].forEach((alias) => {
             if (typeof alias === 'string' && alias.trim())
                 aliases.add(alias.trim())
         })
-        if (Array.isArray(layer.aliases || layer.alias)) {
-            ;(layer.aliases || layer.alias).forEach((alias) => {
+        if (Array.isArray(layerConfig.aliases || layerConfig.alias)) {
+            ;(layerConfig.aliases || layerConfig.alias).forEach((alias) => {
                 if (typeof alias === 'string' && alias.trim())
                     aliases.add(alias.trim())
             })
-        } else if (typeof layer.alias === 'string') {
-            layer.alias
+        } else if (typeof layerConfig.alias === 'string') {
+            layerConfig.alias
                 .split(/[,;]+/)
                 .map((a) => a.trim())
                 .filter(Boolean)
@@ -232,12 +232,18 @@ function buildLayerIndex() {
         }))
         items.push({
             id: uuid,
-            name: layer.name || uuid,
+            name: layerConfig.name || uuid,
             displayName,
             canonical,
-            visible: !!(visibleLookup[uuid] || visibleLookup[key]),
+            visible: !!(
+                visibleLookup[uuid] ||
+                visibleLookup[key] ||
+                (layerConfig.name && visibleLookup[layerConfig.name])
+            ),
             bbox,
             normalizedAliases,
+            config: layerConfig,
+            liveInstance,
         })
     })
     return items
@@ -599,13 +605,29 @@ export async function render_contour_overlay(_ctx, payload) {
             `Unable to locate configuration for layer "${layerName}".`
         )
     }
-    const layerConfig = layerMatch.layer
+    const layerMeta = layerMatch.layer || {}
+    const layerConfig =
+        (layerMeta.config && typeof layerMeta.config === 'object'
+            ? layerMeta.config
+            : layerMeta) || {}
     const sourceUrl =
+        layerConfig.cogUrl ||
         layerConfig.url ||
         layerConfig.source ||
         layerConfig.path ||
-        layerConfig.cogUrl
-    if (typeof sourceUrl !== 'string' || !sourceUrl.trim()) {
+        layerConfig.href ||
+        layerMeta.cogUrl ||
+        layerMeta.url ||
+        layerMeta.source ||
+        layerMeta.path ||
+        layerMeta.href ||
+        layerMeta.liveInstance?.cogUrl ||
+        layerMeta.liveInstance?.url ||
+        layerMeta.liveInstance?.options?.url ||
+        layerMeta.liveInstance?.options?.source
+    const resolvedSourceUrl =
+        typeof sourceUrl === 'string' ? sourceUrl.trim() : ''
+    if (!resolvedSourceUrl) {
         throw new Error(
             `Layer "${layerName}" is missing a COG source URL for highlighting.`
         )
@@ -618,7 +640,7 @@ export async function render_contour_overlay(_ctx, payload) {
     const tileMatrixStr = String(tileMatrixSet)
     const colormapStops = '0:0,0,0,0|1:255,240,0,90'
     const params = new URLSearchParams()
-    params.set('url', sourceUrl)
+    params.set('url', resolvedSourceUrl)
     params.set('expression', `(b1>${value})`)
     params.set('resampling', 'nearest')
     params.set('colormap', colormapStops)
