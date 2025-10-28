@@ -804,18 +804,29 @@ var UserInterface = {
             }
         )
         let timeUIActive = false
+        let timeUIExpanded = false
         if ($('#timeUI').length) {
             timeUIActive = $('#timeUI').hasClass('active')
+            timeUIExpanded = $('#timeUI').hasClass('expanded')
         }
 
+        const timeUIHeight = timeUIActive ? (timeUIExpanded ? 145 : 40) : 0
+
         $('#mapToolBar').css({
-            bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',
+            bottom: UserInterface.pxIsTools + timeUIHeight + 'px',
         })
         $('.leaflet-control-scalefactor').css({
-            bottom: UserInterface.pxIsTools + 28 + 'px',
+            bottom:
+                UserInterface.pxIsTools +
+                28 +
+                (timeUIActive ? timeUIHeight - 40 : 0) +
+                'px',
         })
         $('#mmgis-attributions').css({
-            bottom: UserInterface.pxIsTools + 'px',
+            bottom:
+                UserInterface.pxIsTools +
+                (timeUIActive ? timeUIHeight - 40 : 0) +
+                'px',
         })
         // Only set compass position if no attributions exist (Attributions.js manages it when they do)
         if (
@@ -823,21 +834,32 @@ var UserInterface = {
             $('#mmgis-attributions').text().trim().length === 0
         ) {
             $('#mmgis-map-compass').css({
-                bottom: UserInterface.pxIsTools + 38 + 'px',
+                bottom:
+                    UserInterface.pxIsTools +
+                    38 +
+                    (timeUIActive ? timeUIHeight - 40 : 0) +
+                    'px',
             })
         } else {
             $('#mmgis-map-compass').css({
-                bottom: UserInterface.pxIsTools + 58 + 'px',
+                bottom:
+                    UserInterface.pxIsTools +
+                    58 +
+                    (timeUIActive ? timeUIHeight - 40 : 0) +
+                    'px',
             })
         }
         $('.leaflet-bottom.leaflet-right').css({
-            bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',
+            bottom: UserInterface.pxIsTools + timeUIHeight + 'px',
         })
         $('#CoordinatesDiv').css({
-            bottom: UserInterface.pxIsTools + (timeUIActive ? 40 : 0) + 'px',
+            bottom: UserInterface.pxIsTools + timeUIHeight + 'px',
         })
         $('#timeUI').css({
-            bottom: UserInterface.pxIsTools + (timeUIActive ? 0 : -40) + 'px',
+            bottom:
+                UserInterface.pxIsTools +
+                (timeUIActive ? 0 : timeUIExpanded ? -148 : -40) +
+                'px',
         })
 
         //The tools slider

@@ -10,6 +10,7 @@ import * as moment from 'moment'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
 import L_ from '../Basics/Layers_/Layers_'
+import UserInterface_ from '../Basics/UserInterface_/UserInterface_'
 import calls from '../../pre/calls'
 import tippy from 'tippy.js'
 import Dropy from '../../external/Dropy/dropy'
@@ -42,6 +43,7 @@ const TimeUI = {
     _timelineStartTimestamp: null,
     _timelineEndTimestamp: null,
     now: false,
+    expanded: false,
     numFrames: 24,
     durationIndex: 0,
     stepWithinBeyondIndex: 0,
@@ -76,7 +78,8 @@ const TimeUI = {
         // prettier-ignore
         const markup = [
             `<div id="mmgisTimeUI">`,
-                `<div id="mmgisTimeUIActionsLeft">`,
+                `<div id="mmgisTimeUITopBar">`,
+                    `<div id="mmgisTimeUIActionsLeft">`,
                     `<div id='mmgisTimeUIMode'>`,
                         `<div id='mmgisTimeUIModeDropdown' class='ui dropdown short'></div>`,
                     `</div>`,
@@ -128,13 +131,31 @@ const TimeUI = {
                         `<i class='mdi mdi-clock-end mdi-24px'></i>`,
                         `<div id="mmgisTimeUIPresentProgress"></div>`,
                     `</div>`,
+                    `<div id="mmgisTimeUIExpand" class="mmgisTimeUIButton">`,
+                        `<i class='mdi mdi-chevron-up mdi-24px'></i>`,
+                    `</div>`,
+                    `</div>`,
+                    /*
+                    `<div id="mmgisTimeUICurrentWrapper">`,
+                        `<div>Active Time</div>`,
+                        `<div id="mmgisTimeUICurrentTime"></div>`,
+                    `</div>`,
+                    */
                 `</div>`,
-                /*
-                `<div id="mmgisTimeUICurrentWrapper">`,
-                    `<div>Active Time</div>`,
-                    `<div id="mmgisTimeUICurrentTime"></div>`,
+                `<div id="mmgisTimeUIExpandedContent">`,
+                    `<div id="mmgisTimeUIYearsRow" class="mmgisTimeUIExpandedRow">`,
+                        `<div id="mmgisTimeUIYearsRange" class="mmgisTimeUIExpandedRowRange"></div>`,
+                        `<div id="mmgisTimeUIYearsContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
+                    `</div>`,
+                    `<div id="mmgisTimeUIMonthsRow" class="mmgisTimeUIExpandedRow">`,
+                        `<div id="mmgisTimeUIMonthsRange" class="mmgisTimeUIExpandedRowRange"></div>`,
+                        `<div id="mmgisTimeUIMonthsContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
+                    `</div>`,
+                    `<div id="mmgisTimeUIDaysRow" class="mmgisTimeUIExpandedRow">`,
+                        `<div id="mmgisTimeUIDaysRange" class="mmgisTimeUIExpandedRowRange"></div>`,
+                        `<div id="mmgisTimeUIDaysContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
+                    `</div>`,
                 `</div>`,
-                */
             `</div>`
         ].join('\n')
 
@@ -629,6 +650,10 @@ const TimeUI = {
 
                 TimeUI._remakeTimeSlider()
                 TimeUI.startTempus.dontChangeNext = false
+                // Update expanded rows if expanded
+                if (TimeUI.expanded) {
+                    TimeUI._populateExpandedRows()
+                }
             }
             TimeUI.startTempus.dontChangeAnythingElse = false
         })
@@ -652,6 +677,10 @@ const TimeUI = {
                 })
                 TimeUI._remakeTimeSlider()
                 TimeUI.endTempus.dontChangeNext = false
+                // Update expanded rows if expanded
+                if (TimeUI.expanded) {
+                    TimeUI._populateExpandedRows()
+                }
             }
             TimeUI.endTempus.dontChangeAnythingElse = false
         })
@@ -1010,6 +1039,7 @@ const TimeUI = {
         $('#mmgisTimeUIFitWindow').on('click', TimeUI.fitWindowToTime)
         $('#mmgisTimeUIFollowFeature').on('click', TimeUI.toggleFollowFeature)
         $('#mmgisTimeUIPresent').on('click', TimeUI.toggleTimeNow)
+        $('#mmgisTimeUIExpand').on('click', TimeUI.toggleExpanded)
 
         TimeUI._remakeTimeSlider()
         TimeUI._setCurrentTime(true, savedEndDate)
@@ -1599,6 +1629,423 @@ const TimeUI = {
         $('#mmgisTimeUIFollowFeature')
             .css('background', '')
             .css('color', 'var(--color-a5)')
+    },
+    toggleExpanded() {
+        TimeUI.expanded = !TimeUI.expanded
+
+        if (TimeUI.expanded) {
+            // Expand the TimeUI
+            $('#timeUI').addClass('expanded')
+            $('#mmgisTimeUIExpandedContent').addClass('show')
+            $('#mmgisTimeUIExpand > i')
+                .removeClass('mdi-chevron-up')
+                .addClass('mdi-chevron-down')
+
+            // Populate the rows on first expand or refresh
+            TimeUI._populateExpandedRows()
+        } else {
+            // Collapse the TimeUI
+            $('#timeUI').removeClass('expanded')
+            $('#mmgisTimeUIExpandedContent').removeClass('show')
+            $('#mmgisTimeUIExpand > i')
+                .removeClass('mdi-chevron-down')
+                .addClass('mdi-chevron-up')
+        }
+
+        // Update UI element positions to account for expanded TimeUI
+        UserInterface_.setToolHeight(UserInterface_.pxIsTools, true)
+    },
+    _populateExpandedRows() {
+        // Populate Years Row
+        TimeUI._populateYearsRow()
+
+        // Populate Months Row
+        TimeUI._populateMonthsRow()
+
+        // Populate Days Row
+        TimeUI._populateDaysRow()
+
+        // Update range indicators
+        TimeUI._updateRangeIndicators()
+    },
+    _calculateRangePositions(containerType) {
+        // Convert UTC timestamps to local time using addOffset to match display
+        const startTime = moment(TimeUI.removeOffset(TimeUI._startTimestamp))
+        const endTime = moment(TimeUI.removeOffset(TimeUI._endTimestamp))
+        const mode = TimeUI.modes[TimeUI.modeIndex]
+
+        let startPercent = 0
+        let endPercent = 100
+
+        if (containerType === 'years') {
+            // Calculate fractional range for years row (last 20 years)
+            const currentYear = moment().year()
+            const firstVisibleYear = currentYear - 19
+            const totalYears = 20
+
+            // Calculate fractional position within the year (in local time)
+            const startYearBegin = moment.utc([startTime.year(), 0, 1])
+            const startYearEnd = moment.utc([startTime.year() + 1, 0, 1])
+            const startYearFraction =
+                (startTime.valueOf() - startYearBegin.valueOf()) /
+                (startYearEnd.valueOf() - startYearBegin.valueOf())
+
+            const endYearBegin = moment.utc([endTime.year(), 0, 1])
+            const endYearEnd = moment.utc([endTime.year() + 1, 0, 1])
+            const endYearFraction =
+                (endTime.valueOf() - endYearBegin.valueOf()) /
+                (endYearEnd.valueOf() - endYearBegin.valueOf())
+
+            // Calculate position as percentage of visible years
+            startPercent =
+                ((startTime.year() - firstVisibleYear + startYearFraction) /
+                    totalYears) *
+                100
+            endPercent =
+                ((endTime.year() - firstVisibleYear + endYearFraction) /
+                    totalYears) *
+                100
+        } else if (containerType === 'months') {
+            // Calculate fractional range for months row (12 months)
+            const selectedYear = moment(
+                TimeUI.removeOffset(TimeUI._endTimestamp)
+            ).year()
+            const totalMonths = 12
+
+            // Calculate start position
+            if (startTime.year() === selectedYear) {
+                const startMonthBegin = moment.utc([
+                    selectedYear,
+                    startTime.month(),
+                    1,
+                ])
+                // Handle December (month 11) + 1 = month 12 which rolls to next year
+                const startMonthEnd = startTime.month() === 11
+                    ? moment.utc([selectedYear + 1, 0, 1])
+                    : moment.utc([selectedYear, startTime.month() + 1, 1])
+                const startMonthFraction =
+                    (startTime.valueOf() - startMonthBegin.valueOf()) /
+                    (startMonthEnd.valueOf() - startMonthBegin.valueOf())
+                startPercent =
+                    ((startTime.month() + startMonthFraction) / totalMonths) *
+                    100
+            } else if (startTime.year() < selectedYear) {
+                startPercent = 0
+            } else {
+                startPercent = 100
+            }
+
+            // Calculate end position
+            if (endTime.year() === selectedYear) {
+                const endMonthBegin = moment.utc([
+                    selectedYear,
+                    endTime.month(),
+                    1,
+                ])
+                // Handle December (month 11) + 1 = month 12 which rolls to next year
+                const endMonthEnd = endTime.month() === 11
+                    ? moment.utc([selectedYear + 1, 0, 1])
+                    : moment.utc([selectedYear, endTime.month() + 1, 1])
+                const endMonthFraction =
+                    (endTime.valueOf() - endMonthBegin.valueOf()) /
+                    (endMonthEnd.valueOf() - endMonthBegin.valueOf())
+                endPercent =
+                    ((endTime.month() + endMonthFraction) / totalMonths) * 100
+            } else if (endTime.year() > selectedYear) {
+                endPercent = 100
+            } else {
+                endPercent = 0
+            }
+        } else if (containerType === 'days') {
+            // Calculate fractional range for days row
+            const selectedYear = moment(
+                TimeUI.removeOffset(TimeUI._endTimestamp)
+            ).year()
+            const selectedMonth = moment(
+                TimeUI.removeOffset(TimeUI._endTimestamp)
+            ).month()
+            const daysInMonth = moment(
+                TimeUI.removeOffset(TimeUI._endTimestamp)
+            ).daysInMonth()
+
+            // Calculate start position
+            if (
+                startTime.year() === selectedYear &&
+                startTime.month() === selectedMonth
+            ) {
+                const startDayBegin = moment
+                    .utc([selectedYear, selectedMonth, startTime.date()])
+                    .startOf('day')
+                const startDayEnd = moment
+                    .utc([selectedYear, selectedMonth, startTime.date()])
+                    .endOf('day')
+
+                const startDayFraction =
+                    (startTime.valueOf() - startDayBegin.valueOf()) /
+                    (startDayEnd.valueOf() - startDayBegin.valueOf())
+                startPercent =
+                    ((startTime.date() - 1 + startDayFraction) / daysInMonth) *
+                    100
+            } else if (
+                startTime.isBefore(moment([selectedYear, selectedMonth, 1]))
+            ) {
+                startPercent = 0
+            } else {
+                startPercent = 100
+            }
+
+            // Calculate end position
+            if (
+                endTime.year() === selectedYear &&
+                endTime.month() === selectedMonth
+            ) {
+                const endDayBegin = moment
+                    .utc([selectedYear, selectedMonth, endTime.date()])
+                    .startOf('day')
+                const endDayEnd = moment
+                    .utc([selectedYear, selectedMonth, endTime.date()])
+                    .endOf('day')
+                const endDayFraction =
+                    (endTime.valueOf() - endDayBegin.valueOf()) /
+                    (endDayEnd.valueOf() - endDayBegin.valueOf())
+                endPercent =
+                    ((endTime.date() - 1 + endDayFraction) / daysInMonth) * 100
+            } else if (
+                endTime.isAfter(
+                    moment([selectedYear, selectedMonth, daysInMonth]).endOf(
+                        'day'
+                    )
+                )
+            ) {
+                endPercent = 100
+            } else {
+                endPercent = 0
+            }
+        }
+
+        // Clamp to visible range
+        startPercent = Math.max(0, Math.min(100, startPercent))
+        endPercent = Math.max(0, Math.min(100, endPercent))
+
+        let widthPercent = endPercent - startPercent
+
+        // In Point mode, show narrow indicator (minimum 2% width)
+        if (mode === 'Point') {
+            widthPercent = Math.max(2, widthPercent)
+        }
+
+        return {
+            left: startPercent,
+            width: widthPercent,
+        }
+    },
+    _updateRangeIndicators() {
+        // Calculate and apply range positions for all three rows
+        const yearsRange = TimeUI._calculateRangePositions('years')
+        const monthsRange = TimeUI._calculateRangePositions('months')
+        const daysRange = TimeUI._calculateRangePositions('days')
+
+        // Update years range indicator
+        $('#mmgisTimeUIYearsRange').css({
+            left: yearsRange.left + '%',
+            width: yearsRange.width + '%',
+        })
+
+        // Update months range indicator
+        $('#mmgisTimeUIMonthsRange').css({
+            left: monthsRange.left + '%',
+            width: monthsRange.width + '%',
+        })
+
+        // Update days range indicator
+        $('#mmgisTimeUIDaysRange').css({
+            left: daysRange.left + '%',
+            width: daysRange.width + '%',
+        })
+    },
+    _populateYearsRow() {
+        const container = $('#mmgisTimeUIYearsContainer')
+        container.empty()
+
+        // Get last 20 years
+        const currentYear = moment().year()
+        const startYear = currentYear - 19
+
+        // Determine which year is currently selected (use addOffset to get local time)
+        const selectedYear = moment(
+            TimeUI.removeOffset(TimeUI._endTimestamp)
+        ).year()
+
+        for (let year = startYear; year <= currentYear; year++) {
+            const yearButton = $('<div>')
+                .addClass('mmgisTimeUIExpandedItem')
+                .text(year)
+                .attr('data-year', year)
+
+            // Highlight if this is the selected year
+            if (year === selectedYear) {
+                yearButton.addClass('selected')
+            }
+
+            // Add click handler
+            yearButton.on('click', function () {
+                TimeUI._selectYear(year)
+            })
+
+            container.append(yearButton)
+        }
+        // Scroll to selected year
+        const selectedButton = container.find('.selected')[0]
+        if (selectedButton) {
+            selectedButton.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center',
+            })
+        }
+    },
+    _populateMonthsRow() {
+        const container = $('#mmgisTimeUIMonthsContainer')
+        container.empty()
+
+        // Get 12 months
+        const months = moment.months()
+
+        // Determine which month is currently selected (use addOffset to get local time)
+        const selectedMonth = moment(
+            TimeUI.removeOffset(TimeUI._endTimestamp)
+        ).month()
+
+        for (let i = 0; i < months.length; i++) {
+            const monthButton = $('<div>')
+                .addClass('mmgisTimeUIExpandedItem')
+                .text(months[i])
+                .attr('data-month', i)
+
+            // Highlight if this is the selected month
+            if (i === selectedMonth) {
+                monthButton.addClass('selected')
+            }
+
+            // Add click handler
+            monthButton.on('click', function () {
+                TimeUI._selectMonth(i)
+            })
+
+            container.append(monthButton)
+        }
+
+        // Scroll to selected month
+        const selectedButton = container.find('.selected')[0]
+        if (selectedButton) {
+            selectedButton.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center',
+            })
+        }
+    },
+    _populateDaysRow() {
+        const container = $('#mmgisTimeUIDaysContainer')
+        container.empty()
+
+        // Get the number of days in the selected month (use addOffset to get local time)
+        const selectedMoment = moment(TimeUI.removeOffset(TimeUI._endTimestamp))
+        const daysInMonth = selectedMoment.daysInMonth()
+        const selectedDay = selectedMoment.date()
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayButton = $('<div>')
+                .addClass('mmgisTimeUIExpandedItem')
+                .text(day)
+                .attr('data-day', day)
+
+            // Highlight if this is the selected day
+            if (day === selectedDay) {
+                dayButton.addClass('selected')
+            }
+
+            // Add click handler
+            dayButton.on('click', function () {
+                TimeUI._selectDay(day)
+            })
+
+            container.append(dayButton)
+        }
+
+        // Scroll to selected day
+        const selectedButton = container.find('.selected')[0]
+        if (selectedButton) {
+            selectedButton.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center',
+            })
+        }
+    },
+    _selectYear(year) {
+        // Select the entire year (Jan 1 00:00:00 to Dec 31 23:59:59)
+        const startOfYear = moment.utc([year, 0, 1]).startOf('year').valueOf()
+        const endOfYear = moment.utc([year, 11, 31]).endOf('year').valueOf()
+
+        // Use the proper updateTimes function (removeOffset to convert local to UTC)
+        TimeUI.updateTimes(startOfYear, endOfYear, endOfYear)
+
+        // Pan the timeline to show the selected extent
+        TimeUI.fitWindowToTime()
+
+        // Refresh the expanded rows to update selection
+        TimeUI._populateExpandedRows()
+    },
+    _selectMonth(monthIndex) {
+        // Select the entire month for the current year (use addOffset to get local time)
+        const selectedYear = moment(
+            TimeUI.addOffset(TimeUI._endTimestamp)
+        ).year()
+        const startOfMonth = moment([selectedYear, monthIndex, 1])
+            .startOf('month')
+            .valueOf()
+        const endOfMonth = moment([selectedYear, monthIndex, 1])
+            .endOf('month')
+            .valueOf()
+
+        // Use the proper updateTimes function (removeOffset to convert local to UTC)
+        TimeUI.updateTimes(
+            TimeUI.removeOffset(startOfMonth),
+            TimeUI.removeOffset(endOfMonth),
+            TimeUI.removeOffset(endOfMonth)
+        )
+
+        // Pan the timeline to show the selected extent
+        TimeUI.fitWindowToTime()
+
+        // Refresh the expanded rows to update selection
+        TimeUI._populateExpandedRows()
+    },
+    _selectDay(day) {
+        // Select the entire day for the current month/year (use addOffset to get local time)
+        const selectedMoment = moment(TimeUI.addOffset(TimeUI._endTimestamp))
+        const selectedYear = selectedMoment.year()
+        const selectedMonth = selectedMoment.month()
+        const startOfDay = moment([selectedYear, selectedMonth, day])
+            .startOf('day')
+            .valueOf()
+        const endOfDay = moment([selectedYear, selectedMonth, day])
+            .endOf('day')
+            .valueOf()
+
+        // Use the proper updateTimes function (removeOffset to convert local to UTC)
+        TimeUI.updateTimes(
+            TimeUI.removeOffset(startOfDay),
+            TimeUI.removeOffset(endOfDay),
+            TimeUI.removeOffset(endOfDay)
+        )
+
+        // Pan the timeline to show the selected extent
+        TimeUI.fitWindowToTime()
+
+        // Refresh the expanded rows to update selection
+        TimeUI._populateExpandedRows()
     },
     _findFollowedFeature: function (layerName) {
         if (!TimeUI.followedFeature) return null
@@ -2272,6 +2719,10 @@ const TimeUI = {
                       ).toISOString(),
                 new Date(TimeUI.getCurrentTimestamp(true)).toISOString()
             )
+        }
+        // Update expanded rows if expanded
+        if (TimeUI.expanded) {
+            TimeUI._populateExpandedRows()
         }
     },
     _timelineDrag: function (e) {
