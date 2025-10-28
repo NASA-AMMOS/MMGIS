@@ -9,6 +9,7 @@ import L_ from '../../Basics/Layers_/Layers_'
 import * as d3 from 'd3'
 import RENDERERS from './renderers'
 const HISTORY_KEY = 'mmgis.agent.chat.history.v1'
+const TRACE_PREF_KEY = 'mmgis.agent.chat.showDebug'
 const OVERLAY_ID = 'mmgis-agentchat-overlay'
 const PANEL_ID = 'mmgis-agentchat-panel'
 
@@ -56,8 +57,20 @@ function interfaceWithMMGIS() {
         keyHandlersAttached: false,
         lastFocusedEl: null,
         layerIndex: [],
+        showDebugTraces: loadTracePreference(),
     }
     const undoStack = []
+
+    window.mmgisAgentChatSetDebug = function (enabled) {
+        state.showDebugTraces = !!enabled
+        try {
+            localStorage.setItem(
+                TRACE_PREF_KEY,
+                state.showDebugTraces ? 'true' : 'false'
+            )
+        } catch (_) {}
+        renderMessages()
+    }
 
     const LAYER_ARG_KEYS = ['name', 'layer_name', 'layer_a', 'layer_b']
 
@@ -725,6 +738,7 @@ function interfaceWithMMGIS() {
     }
 
     function renderTrace(entry) {
+        if (!state.showDebugTraces) return ''
         const blocks = []
         if (entry.actions?.length) {
             blocks.push(
@@ -1339,6 +1353,16 @@ function interfaceWithMMGIS() {
             return Array.isArray(parsed) ? parsed.slice(-200) : []
         } catch {
             return []
+        }
+    }
+
+    function loadTracePreference() {
+        try {
+            const raw = localStorage.getItem(TRACE_PREF_KEY)
+            if (raw == null) return false
+            return raw === 'true' || raw === '1'
+        } catch (_) {
+            return false
         }
     }
     function saveHistory() {
