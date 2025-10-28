@@ -39,6 +39,8 @@ Alternatively you can use a prebuilt image from [github here.](https://github.co
   DB_NAME=<name>
   DB_USER=<user>
   DB_PASS=<password>
+  # Optional: docker-compose also reads DB_PASSWORD; set it to the same value
+  DB_PASSWORD=<password>
   ```
 
   From the install example:
@@ -67,6 +69,18 @@ This repo contains a `/docker-compose.sample.yml` file that defines a service fo
 ### Running
 
 Run: `docker-compose up -d`
+
+### Azure CLI Authentication inside the container
+
+Some tools (for example, the Azure AI Agent Service integration) require an authenticated Azure CLI session that runs from inside the container. Once the stack is running:
+
+- Check that the CLI is available and using the expected version:  
+  `docker compose exec mmgis az --version`
+- Sign in using the Azure CLI device-code flow from inside the container:  
+  `docker compose exec mmgis az login`
+- Follow the presented URL/code instructions. The container shares the host's `~/.azure` directory (`${HOME}/.azure` → `/root/.azure`), so the tokens created by the login persist across restarts.
+
+If you later revoke tokens or switch accounts, repeat the `az login` command to refresh the credentials.
 
 ### First Time UI Setup
 

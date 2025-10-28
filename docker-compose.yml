@@ -38,7 +38,7 @@ services:
       ## UPDATE ME V============================================================================================V UPDATE ME
       - POSTGRES_USER=${DB_USER}
       ## UPDATE ME V============================================================================================V UPDATE ME
-      - POSTGRES_PASS=${DB_PASS}
+      - POSTGRES_PASS=${DB_PASSWORD}
       ## Leave this as mmgis-stac
       - POSTGRES_DBNAME=mmgis-stac
       - POSTGRES_HOST_READER=db
@@ -75,7 +75,7 @@ services:
       ## UPDATE ME V============================================================================================V UPDATE ME
       - POSTGRES_USER=${DB_USER}
       ## UPDATE ME V============================================================================================V UPDATE ME
-      - POSTGRES_PASS=${DB_PASS}
+      - POSTGRES_PASS=${DB_PASSWORD}
             ## Leave this as mmgis-stac
       - POSTGRES_DBNAME=mmgis-stac
       - POSTGRES_HOST=db
@@ -158,11 +158,11 @@ services:
       - MAX_WORKERS=10
       # Postgres connection
       ## UPDATE ME V============================================================================================V UPDATE ME
-      - POSTGRES_USER={DB_USER}
+      - POSTGRES_USER=${DB_USER}
       ## UPDATE ME V============================================================================================V UPDATE ME
-      - POSTGRES_PASS={DB_PASS}
+      - POSTGRES_PASS=${DB_PASSWORD}
       ## Leave this as mmgis-stac
-      - POSTGRES_DBNAME=mmgis-stac
+      - POSTGRES_DBNAME=${DB_NAME}
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
       - DB_MIN_CONN_SIZE=1
@@ -212,7 +212,8 @@ services:
     environment:
       - POSTGRES_USER=${DB_USER}
       ## UPDATE ME V============================================================================================V UPDATE ME
-      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
     ports:
       - 5432
     shm_size: '1g'

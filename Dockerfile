@@ -1,15 +1,10 @@
 FROM oraclelinux:8.9
 
 RUN dnf -y update
-RUN dnf -y install ca-certificates
+RUN dnf -y install ca-certificates curl
 RUN update-ca-trust enable
 RUN update-ca-trust extract
 RUN dnf clean all
-
-RUN rpm --import https://packages.microsoft.com/keys/microsoft.asc && \
-    echo -e "[azure-cli]\nname=Azure CLI\nbaseurl=https://packages.microsoft.com/yumrepos/azure-cli\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" > /etc/yum.repos.d/azure-cli.repo && \
-    dnf install -y azure-cli && \
-    dnf clean all
 
 ARG PUBLIC_URL_ARG=
 ENV PUBLIC_URL=$PUBLIC_URL_ARG
@@ -46,6 +41,30 @@ RUN MAMBA_ROOT_PREFIX="/opt/micromamba"; /opt/micromamba/bin/micromamba shell in
 RUN echo 'export PATH="/opt/micromamba/bin:$PATH"' >> /root/.bashrc && echo 'export MAMBA_ROOT_PREFIX="/opt/micromamba"' >> /root/.bashrc
 
 RUN source ~/.bashrc && micromamba env create -y --name mmgis --file=python-environment.yml
+
+# Azure CLI (2.78.0) via dedicated micromamba environment
+RUN /opt/micromamba/bin/micromamba create -y -n azurecli python=3.12 pip && \
+    /opt/micromamba/bin/micromamba run -n azurecli pip install azure-cli==2.78.0 && \
+    ln -s /opt/micromamba/envs/azurecli/bin/az /usr/local/bin/az
+
+ENV PATH="/opt/micromamba/envs/azurecli/bin:${PATH}"
+
+#############################
+# PowerShell & Azure tooling
+#############################
+
+RUN rpm --import https://packages.microsoft.com/keys/microsoft.asc && \
+    curl -sSL https://packages.microsoft.com/config/rhel/8/prod.repo > /etc/yum.repos.d/microsoft-prod.repo && \
+    dnf makecache --refresh && \
+    dnf install -y powershell && \
+    dnf clean all
+
+RUN pwsh -NoLogo -NoProfile -Command "Set-PSRepository -Name PSGallery -InstallationPolicy Trusted; Install-Module -Name Az -Scope AllUsers -Force"
+
+RUN curl -fsSL https://aka.ms/install-azd.sh -o /tmp/install-azd.sh && \
+    chmod +x /tmp/install-azd.sh && \
+    /tmp/install-azd.sh && \
+    rm /tmp/install-azd.sh
 
 #############################
 # Node
