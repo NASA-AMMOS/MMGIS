@@ -109,11 +109,11 @@ const TimeUI = {
                         `<div id='mmgisTimeUITimelineSlider' class='svelteSlider'></div>`,
                     `</div>`,
                     `<div class="mmgisTimeUIInput" id="mmgisTimeUIEndWrapper">`,
-                        `<span>Active Time</span>`,
+                        `<span>End Time</span>`,
                         `<input id="mmgisTimeUIEnd"/>`,
                     `</div>`,
                     `<div class="mmgisTimeUIInput" id="mmgisTimeUIEndWrapperFake">`,
-                        `<span>Active Time</span>`,
+                        `<span>End Time</span>`,
                         `<input id="mmgisTimeUIEndFake" type="text"/>`,
                     `</div>`,
                 `</div>`,
@@ -1720,9 +1720,10 @@ const TimeUI = {
                     1,
                 ])
                 // Handle December (month 11) + 1 = month 12 which rolls to next year
-                const startMonthEnd = startTime.month() === 11
-                    ? moment.utc([selectedYear + 1, 0, 1])
-                    : moment.utc([selectedYear, startTime.month() + 1, 1])
+                const startMonthEnd =
+                    startTime.month() === 11
+                        ? moment.utc([selectedYear + 1, 0, 1])
+                        : moment.utc([selectedYear, startTime.month() + 1, 1])
                 const startMonthFraction =
                     (startTime.valueOf() - startMonthBegin.valueOf()) /
                     (startMonthEnd.valueOf() - startMonthBegin.valueOf())
@@ -1743,9 +1744,10 @@ const TimeUI = {
                     1,
                 ])
                 // Handle December (month 11) + 1 = month 12 which rolls to next year
-                const endMonthEnd = endTime.month() === 11
-                    ? moment.utc([selectedYear + 1, 0, 1])
-                    : moment.utc([selectedYear, endTime.month() + 1, 1])
+                const endMonthEnd =
+                    endTime.month() === 11
+                        ? moment.utc([selectedYear + 1, 0, 1])
+                        : moment.utc([selectedYear, endTime.month() + 1, 1])
                 const endMonthFraction =
                     (endTime.valueOf() - endMonthBegin.valueOf()) /
                     (endMonthEnd.valueOf() - endMonthBegin.valueOf())
@@ -2311,14 +2313,14 @@ const TimeUI = {
         // Add left arrow for start handle
         timeline.append(
             '<div class="timeUIRangeShiftBtn timeUIRangeShiftLeft" title="Shift Range Left">' +
-                '<i class="mdi mdi-chevron-left mdi-18px"></i>' +
+                '<i class="mdi mdi-menu-left mdi-36px"></i>' +
                 '</div>'
         )
 
         // Add right arrow for end handle
         timeline.append(
             '<div class="timeUIRangeShiftBtn timeUIRangeShiftRight" title="Shift Range Right">' +
-                '<i class="mdi mdi-chevron-right mdi-18px"></i>' +
+                '<i class="mdi mdi-menu-right mdi-36px"></i>' +
                 '</div>'
         )
 
@@ -2346,13 +2348,13 @@ const TimeUI = {
         if (leftBtn.length && handles[0]) {
             const leftHandle = $(handles[0])
             const leftPos = leftHandle.position().left
-            leftBtn.css('left', `${leftPos + 16}px`)
+            leftBtn.css('left', `${leftPos - 5}px`)
         }
 
         if (rightBtn.length && handles[1]) {
             const rightHandle = $(handles[1])
             const rightPos = rightHandle.position().left
-            rightBtn.css('left', `${rightPos - 8}px`) // +20 to position at right edge of handle
+            rightBtn.css('left', `${rightPos + 19}px`) // +20 to position at right edge of handle
         }
     },
     _makeHistogram() {

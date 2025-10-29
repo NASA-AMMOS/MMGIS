@@ -449,17 +449,19 @@
     background: rgb(96, 78, 26, 0.7);
     transition: opacity 0.2s ease-out;
     z-index: -1;
+    max-width: 100%;
 }
 
 /* Middle drag handle for range extent */
 #mmgisTimeUITimelineExtentHandle {
     position: absolute;
-    bottom: -8px;
+    bottom: 2px;
     transform: translate(-50%, -50%);
     width: 24px;
     height: 16px;
-    opacity: 0.5;
-    background: var(--color-a);
+    opacity: 0.4;
+    border-radius: 3px;
+    background: var(--color-h);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -469,24 +471,18 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 #mmgisTimeUITimelineExtentHandle:hover {
-    background: var(--color-a-5);
     opacity: 1;
 }
 #mmgisTimeUITimelineExtentHandle:active {
     cursor: grabbing;
     opacity: 1;
-    background: var(--color-a1);
 }
 #mmgisTimeUITimelineExtentHandle i {
-    color: var(--color-a6);
+    color: var(--color-a-5);
     font-size: 16px;
     line-height: 16px;
     pointer-events: none;
 }
-#mmgisTimeUITimelineExtentHandle:hover i {
-    color: var(--color-h);
-}
-
 /* Subtle tick flash on Live update (title text) */
 #mmgisTimeUIEndWrapper > span.flash {
     animation: mmgis-time-text-flash 0.35s ease-out;
@@ -500,29 +496,23 @@
 .timeUIRangeShiftBtn {
     position: absolute;
     bottom: 0px;
-    width: 20px;
-    height: 16px;
-    opacity: 0.5;
-    background: var(--color-a);
+    width: 14px;
+    height: 40px;
+    padding-top: 4px;
+    opacity: 0.4;
     display: flex;
     align-items: center;
+    color: var(--color-h);
     justify-content: center;
     cursor: pointer;
-    z-index: 10;
     transition: background 0.15s ease-in-out, opacity 0.15s ease-in-out;
     pointer-events: all;
 }
 .timeUIRangeShiftBtn:hover {
-    background: var(--color-a-5);
     opacity: 1
 }
-.timeUIRangeShiftBtn i {
-    color: var(--color-a6);
-    font-size: 14px;
-    line-height: 14px;
-}
-.timeUIRangeShiftBtn:hover i {
-    color: var(--color-h);
+.timeUIRangeShiftBtn i::before {
+    font-size: 48px !important;
 }
 
 /* Expanded TimeUI Styles */
@@ -536,6 +526,7 @@
     height: 105px;
     padding: 5px;
     transition: all 0.2s ease-in-out;
+    overflow: hidden;
 }
 
 #mmgisTimeUIExpandedContent.show {
@@ -613,7 +604,7 @@
 }
 
 .mmgisTimeUIExpandedItem.selected {
-    background: var(--color-p4);
+    background: var(--color-o);
     color: white;
     font-weight: bold;
 }
