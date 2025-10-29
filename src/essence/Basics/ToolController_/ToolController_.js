@@ -10,6 +10,8 @@ let ToolController_ = {
     incToolsDiv: null,
     excToolsDiv: null,
     separatedDiv: null,
+    separatedDivLeft: null,
+    separatedDivRight: null,
     activeSeparatedTools: [],
     toolModuleNames: [],
     toolModules: toolModules,
@@ -38,6 +40,16 @@ let ToolController_ = {
             .style('opacity', '0')
             .style('padding-bottom', '8px')
 
+        // Create three separate containers for left, center, and right justified tools
+        this.separatedDivLeft = d3
+            .select('#splitscreens')
+            .append('div')
+            .attr('id', 'toolcontroller_sepdiv_left')
+            .style('position', 'absolute')
+            .style('top', '40px')
+            .style('left', '5px')
+            .style('z-index', '1004')
+
         this.separatedDiv = d3
             .select('#splitscreens')
             .append('div')
@@ -47,97 +59,132 @@ let ToolController_ = {
             .style('left', '5px')
             .style('z-index', '1004')
 
+        // Adjust right position if zoom controls are enabled
+        const rightPosition = (L_.configData.look && L_.configData.look.zoomcontrol) ? '40px' : '5px'
+
+        this.separatedDivRight = d3
+            .select('#splitscreens')
+            .append('div')
+            .attr('id', 'toolcontroller_sepdiv_right')
+            .style('position', 'absolute')
+            .style('top', '40px')
+            .style('right', rightPosition)
+            .style('z-index', '1004')
+
+        // Helper function to create a separated tool
+        const createSeparatedTool = (i) => {
+            d3.select('#viewerToolBar').style('padding-left', '36px')
+
+            // Determine which container to use based on justification
+            let targetDiv = this.separatedDiv // default to center/left
+            const justification = tools[i].variables?.justification
+            if (justification === 'left') {
+                targetDiv = this.separatedDivLeft
+            } else if (justification === 'right') {
+                targetDiv = this.separatedDivRight
+            }
+
+            let sep = targetDiv
+                .append('div')
+                .attr('id', `toolSeparated_${tools[i].name}`)
+                .style('position', 'relative')
+                .style('border-radius', '3px')
+                .style('background', 'var(--color-a)')
+                .style('margin-bottom', '5px')
+
+            sep.append('div')
+                .attr('id', `toolContentSeparated_${tools[i].name}`)
+                .style('position', 'absolute')
+                .style('top', '0px')
+                .style('left', '0px')
+                .style('border-radius', '3px')
+                .style('background', 'var(--color-a)')
+
+            sep.append('div')
+                .attr('id', `toolButtonSeparated_${tools[i].name}`)
+                .attr('class', 'toolButtonSep')
+                .style('position', 'relative')
+                .style('width', '30px')
+                .style('height', '30px')
+                .style('display', 'inline-block')
+                .style('text-align', 'center')
+                .style('line-height', '30px')
+                //.style( 'text-shadow', '0px 1px #111' )
+                .style('vertical-align', 'middle')
+                .style('cursor', 'pointer')
+                .attr('tabindex', i + 1)
+                .style('transition', 'all 0.2s ease-in')
+                .style('color', ToolController_.defaultColor)
+                .on(
+                    'click',
+                    (function (i) {
+                        return function () {
+                            const tM =
+                                ToolController_.toolModules[
+                                    `${ToolController_.tools[i].name}Tool`
+                                ]
+                            if (tM) {
+                                if (tM.made === false) {
+                                    tM.make(
+                                        `toolContentSeparated_${ToolController_.tools[i].name}`
+                                    )
+                                    ToolController_.activeSeparatedTools.push(
+                                        ToolController_.tools[i].name +
+                                            'Tool'
+                                    )
+                                    $(
+                                        `#toolButtonSeparated_${tools[i].name}`
+                                    ).addClass('active')
+                                } else {
+                                    tM.destroy()
+                                    ToolController_.activeSeparatedTools =
+                                        ToolController_.activeSeparatedTools.filter(
+                                            (a) =>
+                                                a !=
+                                                ToolController_.tools[i]
+                                                    .name +
+                                                    'Tool'
+                                        )
+
+                                    $(
+                                        `#toolButtonSeparated_${tools[i].name}`
+                                    ).removeClass('active')
+                                }
+
+                                // Dispatch `toggleSeparatedTool` event
+                                let _event = new CustomEvent(
+                                    'toggleSeparatedTool',
+                                    {
+                                        detail: {
+                                            toggledToolName:
+                                                ToolController_.tools[i].js,
+                                            visible: tM.made,
+                                        },
+                                    }
+                                )
+                                document.dispatchEvent(_event)
+                            }
+                        }
+                    })(i)
+                )
+                .append('i')
+                .attr('id', tools[i].name + 'Tool')
+                .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
+                .style('cursor', 'pointer')
+        }
+
+        let legendToolIndex = -1
+
         for (let i = 0; i < tools.length; i++) {
             this.toolModuleNames.push(tools[i].js)
 
             if (tools[i].separatedTool) {
-                d3.select('#viewerToolBar').style('padding-left', '36px')
-                let sep = this.separatedDiv
-                    .append('div')
-                    .attr('id', `toolSeparated_${tools[i].name}`)
-                    .style('position', 'relative')
-                    .style('border-radius', '3px')
-                    .style('background', 'var(--color-a)')
-
-                sep.append('div')
-                    .attr('id', `toolContentSeparated_${tools[i].name}`)
-                    .style('position', 'absolute')
-                    .style('top', '0px')
-                    .style('left', '0px')
-                    .style('border-radius', '3px')
-                    .style('background', 'var(--color-a)')
-
-                sep.append('div')
-                    .attr('id', `toolButtonSeparated_${tools[i].name}`)
-                    .attr('class', 'toolButtonSep')
-                    .style('position', 'relative')
-                    .style('width', '30px')
-                    .style('height', '30px')
-                    .style('display', 'inline-block')
-                    .style('text-align', 'center')
-                    .style('line-height', '30px')
-                    //.style( 'text-shadow', '0px 1px #111' )
-                    .style('vertical-align', 'middle')
-                    .style('cursor', 'pointer')
-                    .attr('tabindex', i + 1)
-                    .style('transition', 'all 0.2s ease-in')
-                    .style('color', ToolController_.defaultColor)
-                    .on(
-                        'click',
-                        (function (i) {
-                            return function () {
-                                const tM =
-                                    ToolController_.toolModules[
-                                        `${ToolController_.tools[i].name}Tool`
-                                    ]
-                                if (tM) {
-                                    if (tM.made === false) {
-                                        tM.make(
-                                            `toolContentSeparated_${ToolController_.tools[i].name}`
-                                        )
-                                        ToolController_.activeSeparatedTools.push(
-                                            ToolController_.tools[i].name +
-                                                'Tool'
-                                        )
-                                        $(
-                                            `#toolButtonSeparated_${tools[i].name}`
-                                        ).addClass('active')
-                                    } else {
-                                        tM.destroy()
-                                        ToolController_.activeSeparatedTools =
-                                            ToolController_.activeSeparatedTools.filter(
-                                                (a) =>
-                                                    a !=
-                                                    ToolController_.tools[i]
-                                                        .name +
-                                                        'Tool'
-                                            )
-
-                                        $(
-                                            `#toolButtonSeparated_${tools[i].name}`
-                                        ).removeClass('active')
-                                    }
-
-                                    // Dispatch `toggleSeparatedTool` event
-                                    let _event = new CustomEvent(
-                                        'toggleSeparatedTool',
-                                        {
-                                            detail: {
-                                                toggledToolName:
-                                                    ToolController_.tools[i].js,
-                                                visible: tM.made,
-                                            },
-                                        }
-                                    )
-                                    document.dispatchEvent(_event)
-                                }
-                            }
-                        })(i)
-                    )
-                    .append('i')
-                    .attr('id', tools[i].name + 'Tool')
-                    .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
-                    .style('cursor', 'pointer')
+                // Legend tool should always be last in its container
+                if (tools[i].name === 'Legend') {
+                    legendToolIndex = i
+                    continue
+                }
+                createSeparatedTool(i)
             } else {
                 this.incToolsDiv
                     .append('div')
@@ -229,6 +276,11 @@ let ToolController_ = {
                     theme: 'blue',
                 })
             }
+        }
+
+        // Add Legend tool last if it exists
+        if (legendToolIndex >= 0) {
+            createSeparatedTool(legendToolIndex)
         }
 
         ToolController_.incToolsDiv

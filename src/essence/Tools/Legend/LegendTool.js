@@ -21,30 +21,7 @@ var LegendTool = {
         this.displayOnStart = L_.getToolVars('legend')['displayOnStart']
         this.justification = L_.getToolVars('legend')['justification']
         this.showHeadersInLegend = L_.getToolVars('legend')['showHeadersInLegend']
-        if (this.justification == 'right') {
-            const toolController = d3.select('#toolcontroller_sepdiv')
-            const toolContent = d3.select('#toolContentSeparated_Legend')
-            toolController.style('top', '110px')
-            toolController.style('left', null)
-            toolController.style('right', '5px')
-            toolContent.style('left', null)
-            toolContent.style('right', '0px')
-        } else {
-            const toolController = d3
-                .select('#toolcontroller_sepdiv')
-                .clone(false)
-                .attr('id', 'toolcontroller_sepdiv_left')
-            $('#toolSeparated_Legend').appendTo('#toolcontroller_sepdiv_left')
-            toolController.style(
-                'top',
-                (L_.getToolVars('identifier')['justification'] || 'left') ==
-                    'left'
-                    ? '75px'
-                    : '40px'
-            )
-            toolController.style('left', '5px')
-            toolController.style('right', null)
-        }
+        // Justification is now handled by ToolController_ during initialization
     },
     make: function (targetId) {
         this.targetId =
