@@ -1557,7 +1557,12 @@ const DrawTool_Templater = {
         }
         return true
     },
-    getTemplateDefaults: async function (template, layer, toAdd) {
+    getTemplateDefaults: async function (
+        template,
+        layer,
+        toAdd,
+        recomputeOnly = false
+    ) {
         return new Promise(async (resolve, reject) => {
             let defaultHasBeenSet = false
             const intersectedGeodatasets = {}
@@ -1745,70 +1750,83 @@ const DrawTool_Templater = {
                 ) {
                     let f = t.field
                     let v = t.default
+                    let overrideRecomputeOnlyHere = false
                     switch (t.type) {
                         case 'incrementer':
-                            const nextIncrement =
-                                DrawTool_Templater._validateIncrement(
-                                    t.default,
-                                    t,
-                                    layer
-                                )
-                            v = nextIncrement.newValue
+                            if (recomputeOnly != true) {
+                                const nextIncrement =
+                                    DrawTool_Templater._validateIncrement(
+                                        t.default,
+                                        t,
+                                        layer
+                                    )
+                                v = nextIncrement.newValue
+                            }
                             break
                         case 'date':
-                            if (v === 'NOW')
+                            if (v === 'NOW') {
                                 v = moment
                                     .utc(new Date().getTime())
                                     .format(t.format || 'YYYY-MM-DDTHH:mm:ss')
-                            else if (v === 'STARTTIME')
+                                overrideRecomputeOnlyHere = true
+                            } else if (v === 'STARTTIME') {
                                 v = moment
                                     .utc(TimeControl.getStartTime())
                                     .format(t.format || 'YYYY-MM-DDTHH:mm:ss')
-                            else if (v === 'ENDTIME')
+                                overrideRecomputeOnlyHere = true
+                            } else if (v === 'ENDTIME') {
                                 v = moment
                                     .utc(TimeControl.getEndTime())
                                     .format(t.format || 'YYYY-MM-DDTHH:mm:ss')
+                                overrideRecomputeOnlyHere = true
+                            }
                             break
                         default:
                     }
-                    defaultProps[f] = v
+                    if (
+                        recomputeOnly != true ||
+                        overrideRecomputeOnlyHere === true
+                    ) {
+                        defaultProps[f] = v
+                    }
                 }
 
                 // Last check to cast all non-bool checkbox values to bools
-                if (
-                    t.field != null &&
-                    t.type === 'checkbox' &&
-                    typeof defaultProps[t.field] !== 'boolean'
-                )
-                    defaultProps[t.field] = Boolean(defaultProps[t.field])
-                else if (
-                    t.field != null &&
-                    t.type === 'number' &&
-                    t.min != null &&
-                    t.max != null &&
-                    !isNaN(parseFloat(defaultProps[t.field])) &&
-                    (parseFloat(defaultProps[t.field]) > t.max ||
-                        parseFloat(defaultProps[t.field]) < t.min)
-                )
-                    defaultProps[t.field] = Math.min(
-                        Math.max(parseFloat(defaultProps[t.field]), t.min),
-                        t.max
+                if (recomputeOnly != true) {
+                    if (
+                        t.field != null &&
+                        t.type === 'checkbox' &&
+                        typeof defaultProps[t.field] !== 'boolean'
                     )
-                else if (
-                    t.field != null &&
-                    t.type === 'slider' &&
-                    t.min != null &&
-                    t.max != null &&
-                    !isNaN(parseFloat(defaultProps[t.field])) &&
-                    (parseFloat(defaultProps[t.field]) > t.max ||
-                        parseFloat(defaultProps[t.field]) < t.min)
-                )
-                    defaultProps[t.field] = Math.min(
-                        Math.max(parseFloat(defaultProps[t.field]), t.min),
-                        t.max
+                        defaultProps[t.field] = Boolean(defaultProps[t.field])
+                    else if (
+                        t.field != null &&
+                        t.type === 'number' &&
+                        t.min != null &&
+                        t.max != null &&
+                        !isNaN(parseFloat(defaultProps[t.field])) &&
+                        (parseFloat(defaultProps[t.field]) > t.max ||
+                            parseFloat(defaultProps[t.field]) < t.min)
                     )
+                        defaultProps[t.field] = Math.min(
+                            Math.max(parseFloat(defaultProps[t.field]), t.min),
+                            t.max
+                        )
+                    else if (
+                        t.field != null &&
+                        t.type === 'slider' &&
+                        t.min != null &&
+                        t.max != null &&
+                        !isNaN(parseFloat(defaultProps[t.field])) &&
+                        (parseFloat(defaultProps[t.field]) > t.max ||
+                            parseFloat(defaultProps[t.field]) < t.min)
+                    )
+                        defaultProps[t.field] = Math.min(
+                            Math.max(parseFloat(defaultProps[t.field]), t.min),
+                            t.max
+                        )
+                }
             }
-
             resolve(defaultProps)
         })
     },

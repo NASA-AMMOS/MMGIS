@@ -913,7 +913,8 @@ var Editing = {
                             geometry: JSON.stringify(
                                 DrawTool.contextMenuLayer?.feature?.geometry
                             ),
-                        }
+                        },
+                        true // recomputeOnly: only update time and intersected fields
                     )
 
                 $('#drawToolContextMenuPropertiesTemplate').empty()

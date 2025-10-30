@@ -277,7 +277,11 @@ const L_ = {
     //Takes in config layer obj
     //Toggles a layer on and off and accounts for sublayers
     //Takes in a config layer object
-    toggleLayer: async function (s, skipOrderedBringToFront) {
+    toggleLayer: async function (
+        s,
+        skipOrderedBringToFront,
+        ignoreToggleStateChange
+    ) {
         if (s == null) return
 
         const wasNeverOn = L_.layers.layer[s.name] === false
@@ -286,7 +290,13 @@ const L_ = {
         if (L_.layers.on[s.name] === true) on = true
         else on = false
 
-        await L_.toggleLayerHelper(s, on, null, null, skipOrderedBringToFront)
+        await L_.toggleLayerHelper(
+            s,
+            on,
+            ignoreToggleStateChange,
+            null,
+            skipOrderedBringToFront
+        )
 
         Object.keys(L_._onLayerToggleSubscriptions).forEach((k) => {
             L_._onLayerToggleSubscriptions[k](s.name, !on)
@@ -338,9 +348,12 @@ const L_ = {
                     L_.Map_.map.hasLayer(L_.layers.layer[s.name]) &&
                     globeOnly != true
                 ) {
-                    try {
-                        $('.drawToolContextMenuHeaderClose').click()
-                    } catch (err) {}
+                    // Only close DrawTool Edit Panel if this is a user-initiated toggle, not a refresh
+                    if (!ignoreToggleStateChange) {
+                        try {
+                            $('.drawToolContextMenuHeaderClose').click()
+                        } catch (err) {}
+                    }
                     L_.Map_.rmNotNull(L_.layers.layer[s.name])
                     if (L_.layers.attachments[s.name]) {
                         for (let sub in L_.layers.attachments[s.name]) {
@@ -3665,7 +3678,8 @@ async function parseConfig(configData, urlOnLayers) {
     L_.mission = L_.configData._dbMissionName || L_.configData.msv.mission
     L_.recentMissions.unshift(L_.mission)
     // Use missionFolderName if available, otherwise fallback to msv.mission
-    L_.missionFolderName = L_.configData.msv.missionFolderName || L_.configData.msv.mission
+    L_.missionFolderName =
+        L_.configData.msv.missionFolderName || L_.configData.msv.mission
     L_.missionPath = 'Missions/' + L_.missionFolderName + '/'
     L_.site = L_.configData.msv.site
 

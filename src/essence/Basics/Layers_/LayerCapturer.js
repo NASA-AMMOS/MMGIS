@@ -115,7 +115,10 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                     : null,
                         }
 
-                        if (layerData.time?.enabled === true && layerData.time?.type === 'requery') {
+                        if (
+                            layerData.time?.enabled === true &&
+                            layerData.time?.type === 'requery'
+                        ) {
                             body.starttime = layerData.time.start
                             body.startProp = layerData.time.startProp
                             body.endtime = layerData.time.end
@@ -257,7 +260,10 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             zoom: zoom,
                         }
 
-                        if (layerData.time?.enabled === true && layerData.time?.type === 'requery') {
+                        if (
+                            layerData.time?.enabled === true &&
+                            layerData.time?.type === 'requery'
+                        ) {
                             body.starttime = layerData.time.start
                             body.startProp = layerData.time.startProp
                             body.endtime = layerData.time.end
@@ -400,7 +406,10 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                     layer: urlSplitRaw[1],
                     type: 'geojson',
                 }
-                if (layerData.time?.enabled === true && layerData.time?.type === 'requery') {
+                if (
+                    layerData.time?.enabled === true &&
+                    layerData.time?.type === 'requery'
+                ) {
                     body.starttime = layerData.time.start
                     body.endtime = layerData.time.end
                 }
