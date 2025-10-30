@@ -53,10 +53,16 @@ ENV PATH="/opt/micromamba/envs/azurecli/bin:${PATH}"
 # PowerShell & Azure tooling
 #############################
 
-RUN rpm --import https://packages.microsoft.com/keys/microsoft.asc && \
-    curl -sSL https://packages.microsoft.com/config/rhel/8/prod.repo > /etc/yum.repos.d/microsoft-prod.repo && \
-    dnf makecache --refresh && \
-    dnf install -y powershell && \
+RUN set -eux; \
+    PS_VERSION="7.4.2"; \
+    case "${TARGETARCH:-amd64}" in \
+        "amd64"|"") PS_PACKAGE="powershell-${PS_VERSION}-1.rh.x86_64.rpm" ;; \
+        "arm64") PS_PACKAGE="powershell-${PS_VERSION}-1.rh.aarch64.rpm" ;; \
+        *) echo "Unsupported TARGETARCH ${TARGETARCH} for PowerShell"; exit 1 ;; \
+    esac; \
+    curl -L -o "/tmp/${PS_PACKAGE}" "https://github.com/PowerShell/PowerShell/releases/download/v${PS_VERSION}/${PS_PACKAGE}" && \
+    dnf install -y "/tmp/${PS_PACKAGE}" && \
+    rm -f "/tmp/${PS_PACKAGE}" && \
     dnf clean all
 
 RUN pwsh -NoLogo -NoProfile -Command "Set-PSRepository -Name PSGallery -InstallationPolicy Trusted; Install-Module -Name Az -Scope AllUsers -Force"

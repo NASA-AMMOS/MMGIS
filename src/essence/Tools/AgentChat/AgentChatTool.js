@@ -6,12 +6,166 @@
 */
 
 import L_ from '../../Basics/Layers_/Layers_'
+import Map_ from '../../Basics/Map_/Map_'
+import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import * as d3 from 'd3'
 import RENDERERS from './renderers'
 const HISTORY_KEY = 'mmgis.agent.chat.history.v1'
 const TRACE_PREF_KEY = 'mmgis.agent.chat.showDebug'
 const OVERLAY_ID = 'mmgis-agentchat-overlay'
 const PANEL_ID = 'mmgis-agentchat-panel'
+const AGENT_TOOL_NAME = 'AgentChatTool'
+let launcherControl = null
+let launcherResizeBound = false
+let launcherObserver = null
+
+function hideToolbarButton(retry = 0) {
+    const btn = document.getElementById('toolButtonAgentChat')
+    if (btn) {
+        btn.style.display = 'none'
+        return
+    }
+    if (retry < 10) setTimeout(() => hideToolbarButton(retry + 1), 200)
+}
+
+function ensureLauncherControl(retry = 0) {
+    const mapInstance = Map_?.map || window.mmgisAPI?.map
+    const L = window.L
+    if (!mapInstance || !L || !L.Control || !L.DomUtil) {
+        if (retry < 20) setTimeout(() => ensureLauncherControl(retry + 1), 250)
+        return
+    }
+    if (launcherControl) {
+        try {
+            mapInstance.removeControl(launcherControl)
+        } catch (_) {}
+        launcherControl = null
+    }
+    if (launcherObserver) {
+        launcherObserver.disconnect()
+        launcherObserver = null
+    }
+    const LauncherControl = L.Control.extend({
+        options: { position: 'topright' },
+        onAdd() {
+            const container = L.DomUtil.create(
+                'div',
+                'leaflet-control mmgis-copilot-launcher'
+            )
+            container.style.margin = '0'
+            container.style.marginTop = '0'
+            container.style.marginRight = '0'
+            container.style.position = 'relative'
+            container.style.zIndex = '1080'
+            const button = L.DomUtil.create(
+                'button',
+                'mmgis-copilot-button mdi mdi-robot-outline',
+                container
+            )
+            button.type = 'button'
+            button.title = 'Open MMGIS Copilot'
+            button.setAttribute('aria-label', 'Open MMGIS Copilot')
+            L.DomEvent.disableClickPropagation(container)
+            L.DomEvent.disableScrollPropagation(container)
+            L.DomEvent.on(button, 'click', (evt) => {
+                L.DomEvent.stop(evt)
+                openAgentChatFromLauncher()
+            })
+            return container
+        },
+    })
+    launcherControl = new LauncherControl()
+    launcherControl.addTo(mapInstance)
+    alignLauncherControlPosition(mapInstance)
+    const raf = typeof window !== 'undefined' ? window.requestAnimationFrame : null
+    if (typeof raf === 'function') {
+        raf(() => alignLauncherControlPosition(mapInstance))
+    }
+    const parent = launcherControl?.getContainer?.()?.parentElement
+    if (parent && !launcherObserver) {
+        launcherObserver = new MutationObserver(() => {
+            if (typeof raf === 'function') {
+                raf(() => alignLauncherControlPosition(mapInstance))
+            } else {
+                alignLauncherControlPosition(mapInstance)
+            }
+        })
+        launcherObserver.observe(parent, { childList: true })
+    }
+    if (!launcherResizeBound) {
+        launcherResizeBound = true
+        window.addEventListener('resize', () => ensureLauncherControl())
+    }
+}
+
+function alignLauncherControlPosition(mapInstance) {
+    if (!launcherControl || typeof launcherControl.getContainer !== 'function')
+        return
+    const container = launcherControl.getContainer()
+    if (!container) return
+    const zoomControl = mapInstance?.zoomControl
+    const zoomContainer = zoomControl && zoomControl._container
+    const parent = container.parentElement
+    container.style.pointerEvents = 'auto'
+    if (
+        !zoomContainer ||
+        !parent ||
+        !parent.contains(zoomContainer) ||
+        !parent.getBoundingClientRect
+    ) {
+        container.style.position = 'relative'
+        container.style.marginTop = '8px'
+        container.style.marginRight = '48px'
+        container.style.top = ''
+        container.style.right = ''
+        container.style.transform = ''
+        return
+    }
+
+    const parentRect = parent.getBoundingClientRect()
+    const zoomRect = zoomContainer.getBoundingClientRect()
+    const containerRect = container.getBoundingClientRect()
+    const zoomInButton = zoomContainer.querySelector(
+        '.leaflet-control-zoom-in'
+    )
+    const gap = 8
+
+    let topOffset = zoomRect.top - parentRect.top
+    if (zoomInButton) {
+        const zoomInRect = zoomInButton.getBoundingClientRect()
+        topOffset =
+            zoomInRect.top -
+            parentRect.top +
+            (zoomInRect.height - containerRect.height) / 2
+    }
+    const rightOffset = parentRect.right - zoomRect.right
+
+    container.style.position = 'absolute'
+    container.style.margin = '0'
+    container.style.top = `${Math.max(topOffset, 0)}px`
+    container.style.right = `${Math.max(rightOffset, 0)}px`
+    container.style.transform = `translateX(calc(-100% - ${gap}px))`
+}
+
+function openAgentChatFromLauncher(attempt = 0) {
+    const idx = getAgentToolIndex()
+    if (idx === -1) {
+        if (attempt < 5) {
+            setTimeout(() => openAgentChatFromLauncher(attempt + 1), 200)
+        }
+        return
+    }
+    ToolController_.makeTool(AGENT_TOOL_NAME, idx)
+}
+
+function getAgentToolIndex() {
+    if (
+        !ToolController_ ||
+        !Array.isArray(ToolController_.toolModuleNames)
+    )
+        return -1
+    return ToolController_.toolModuleNames.indexOf(AGENT_TOOL_NAME)
+}
 
 // IMPORTANT: declare before any reference (avoid TDZ)
 
@@ -19,6 +173,10 @@ const AgentChatTool = {
     height: 0,
     width: 'full',
     MMGISInterface: null,
+    initialize() {
+        hideToolbarButton()
+        ensureLauncherControl()
+    },
     make() {
         this.MMGISInterface = new interfaceWithMMGIS()
     },
@@ -60,6 +218,9 @@ function interfaceWithMMGIS() {
         showDebugTraces: loadTracePreference(),
     }
     const undoStack = []
+
+    hideToolbarButton()
+    ensureLauncherControl()
 
     window.mmgisAgentChatSetDebug = function (enabled) {
         state.showDebugTraces = !!enabled
