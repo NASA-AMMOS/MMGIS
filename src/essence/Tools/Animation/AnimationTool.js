@@ -323,8 +323,6 @@ function interfaceWithMMGIS() {
         
         // Update TimeUI Rate Input (the multiplier)
         updateTimeUIRateInput(stepValue)
-        
-        console.log('Updated TimeUI Rate Input to:', stepValue)
     }
     
     // Update TimeUI Rate Input (the number input next to Step dropdown)
@@ -332,7 +330,6 @@ function interfaceWithMMGIS() {
         const rateInput = $('#mmgisTimeUIRateInput')
         if (rateInput.length && rateInput.val() !== rateValue.toString()) {
             rateInput.val(rateValue)
-            console.log('Updated TimeUI Rate Input to:', rateValue)
         }
     }
     
@@ -395,21 +392,18 @@ function interfaceWithMMGIS() {
             
             // Check if Step changed
             if (currentStepIndex !== lastStepIndex) {
-                console.log('TimeUI Step changed from', lastStepIndex, 'to', currentStepIndex)
                 syncWithTimeUIAnimation()
                 lastStepIndex = currentStepIndex
             }
             
             // Check if Every (interval) changed
             if (currentIntervalIndex !== lastIntervalIndex) {
-                console.log('TimeUI Every changed from', lastIntervalIndex, 'to', currentIntervalIndex)
                 syncWithTimeUIAnimation()
                 lastIntervalIndex = currentIntervalIndex
             }
             
             // Check if Rate Input changed
             if (Math.abs(currentRateInputValue - lastRateInputValue) > 0.01) {
-                console.log('TimeUI Rate Input changed from', lastRateInputValue, 'to', currentRateInputValue)
                 syncWithTimeUIAnimation()
                 lastRateInputValue = currentRateInputValue
             }
@@ -439,7 +433,6 @@ function interfaceWithMMGIS() {
         if (newTimeInterval !== AnimationTool.animationSettings.timeInterval) {
             AnimationTool.animationSettings.timeInterval = newTimeInterval
             $('#timeInterval').val(newTimeInterval)
-            console.log('Synced Time Interval from TimeUI:', newTimeInterval, 'Step:', timeUI.stepIndex)
         }
         
         // Map TimeUI Every (interval) to Animation Tool FPS
@@ -464,7 +457,6 @@ function interfaceWithMMGIS() {
             AnimationTool.animationSettings.frameRate = newFPS
             $('#frameRateSlider').val(newFPS)
             $('#frameRateValue').text(fpsToEverySeconds(newFPS))
-            console.log('Synced FPS from TimeUI:', newFPS)
         }
     }
     
@@ -510,7 +502,6 @@ function interfaceWithMMGIS() {
             if (timeUI._refreshIntervals) {
                 timeUI._refreshIntervals()
             }
-            console.log('Synced TimeUI Step from Animation Tool:', newStepIndex)
         }
         
         // Update TimeUI Every (interval)
@@ -524,7 +515,6 @@ function interfaceWithMMGIS() {
             if (timeUI._refreshLiveProgress) {
                 timeUI._refreshLiveProgress()
             }
-            console.log('Synced TimeUI Every from Animation Tool:', newIntervalIndex)
         }
     }
     
@@ -875,7 +865,6 @@ function interfaceWithMMGIS() {
     
     function setBoundingBox(bbox) {
         AnimationTool.boundingBox = bbox
-        console.log('Bounding box set:', AnimationTool.boundingBox)
         
         // Update screen rectangle from the bounding box
         updateScreenRectFromBoundingBox()
@@ -937,8 +926,6 @@ function interfaceWithMMGIS() {
         const startDate = $('#timeStart').val()
         const endDate = $('#timeEnd').val()
         
-        console.log('updateTimeRange called:', { startDate, endDate })
-        
         if (startDate && endDate) {
             const start = new Date(startDate)
             const end = new Date(endDate)
@@ -951,12 +938,9 @@ function interfaceWithMMGIS() {
                     end: end,
                     interval: AnimationTool.animationSettings.timeInterval
                 }
-                console.log('Time range set:', AnimationTool.timeRange)
                 
                 // Update TimeControl if available
                 updateTimeControlFromAnimation()
-            } else {
-                console.log('Invalid time range: start >= end')
             }
         } else {
             console.log('Missing start or end date')
@@ -980,10 +964,6 @@ function interfaceWithMMGIS() {
     
     
     function startExport(format) {
-        console.log('Export validation:', {
-            boundingBox: AnimationTool.boundingBox,
-            timeRange: AnimationTool.timeRange
-        })
         
         if (!AnimationTool.boundingBox) {
             showModalAlert('Please complete Step 1 (Select Area) before exporting.')
@@ -1027,9 +1007,10 @@ function interfaceWithMMGIS() {
     
     function generateAnimationFrames() {
         return new Promise((resolve, reject) => {
+            // Track if drawing layer was visible so we can restore it
+            let drawingLayerWasVisible = false
+            
             try {
-                console.log('Generating animation frames...')
-                
                 // Store original TimeUI state before starting export
                 storeOriginalTimeUIState()
                 
@@ -1038,31 +1019,34 @@ function interfaceWithMMGIS() {
                 const interval = AnimationTool.animationSettings.timeInterval
                 const frameRate = AnimationTool.animationSettings.frameRate
                 
-                console.log('Time range:', { startDate, endDate, interval, frameRate })
-                
                 // Calculate time steps
                 const start = new Date(startDate)
                 const end = new Date(endDate)
                 const timeSteps = calculateTimeSteps(start, end, interval)
                 
-                console.log('Calculated', timeSteps.length, 'time steps')
-                
                 // Generate frames
                 let currentStep = 0
                 const generateFrame = () => {
                     if (currentStep >= timeSteps.length) {
-                        console.log('All frames generated:', frames.length)
                         // Restore original TimeUI state after export completion
                         restoreOriginalTimeUIState()
+                        // Restore the drawing layer if it was visible
+                        if (drawingLayerWasVisible && AnimationTool.drawingLayer) {
+                            AnimationTool.drawingLayer.addTo(Map_.map)
+                        }
                         resolve(frames)
                         return
                     }
                     
+                    // Hide the drawing layer (red bounding box) right before capturing the first frame
+                    if (currentStep === 0 && AnimationTool.drawingLayer && Map_.map.hasLayer(AnimationTool.drawingLayer)) {
+                        drawingLayerWasVisible = true
+                        Map_.map.removeLayer(AnimationTool.drawingLayer)
+                    }
+                    
                     const timeStep = timeSteps[currentStep]
-                    console.log('Capturing frame', currentStep + 1, 'of', timeSteps.length, 'at time:', timeStep.toISOString())
                     
                     captureMapFrame(timeStep).then(frameData => {
-                        console.log('Frame', currentStep + 1, 'captured successfully')
                         frames.push({
                             data: frameData,
                             timestamp: timeStep,
@@ -1074,6 +1058,11 @@ function interfaceWithMMGIS() {
                         console.error('Error capturing frame', currentStep + 1, ':', error)
                         // Restore original TimeUI state on error
                         restoreOriginalTimeUIState()
+                        // Restore the drawing layer if it was visible
+                        if (drawingLayerWasVisible && AnimationTool.drawingLayer) {
+                            AnimationTool.drawingLayer.addTo(Map_.map)
+                            console.log('Restored drawing layer after error')
+                        }
                         reject(error)
                     })
                 }
@@ -1083,6 +1072,13 @@ function interfaceWithMMGIS() {
                 console.error('Error generating animation frames:', error)
                 // Restore original TimeUI state on error
                 restoreOriginalTimeUIState()
+                // Restore the drawing layer if it was visible (use closure variable)
+                // Note: drawingLayerWasVisible might not be set if error occurs early
+                // so we check if drawing layer exists and isn't on map
+                if (drawingLayerWasVisible && AnimationTool.drawingLayer) {
+                    AnimationTool.drawingLayer.addTo(Map_.map)
+                    console.log('Restored drawing layer after early error')
+                }
                 reject(error)
             }
         })
@@ -1128,15 +1124,12 @@ function interfaceWithMMGIS() {
                 endTime: TimeControl.endTime,
                 currentTime: TimeControl.currentTime
             }
-            console.log('Stored original TimeUI state:', originalTimeUIState)
         }
     }
     
     // Helper function to restore original TimeUI state
     function restoreOriginalTimeUIState() {
         if (TimeControl && TimeControl.enabled && originalTimeUIState) {
-            console.log('Restoring original TimeUI state:', originalTimeUIState)
-            
             if (TimeControl.timeInputChange) {
                 TimeControl.timeInputChange(
                     originalTimeUIState.startTime,
@@ -1154,8 +1147,6 @@ function interfaceWithMMGIS() {
     // Helper function to update time for time-enabled layers
     function updateTimeForFrame(timestamp) {
         return new Promise((resolve) => {
-            console.log('Updating TimeUI Active Time (End Time) to:', timestamp.toISOString())
-            
             // Format timestamp for MMGIS time control
             const timeString = timestamp.toISOString().split('.')[0] + 'Z'
             
@@ -1164,8 +1155,6 @@ function interfaceWithMMGIS() {
                 // Preserve the original start time, but update the end time (which is the active time)
                 const startTime = TimeControl.startTime || timeString
                 const endTime = timeString // This is the active time for the current frame
-                
-                console.log('TimeControl update:', { startTime, endTime, currentTime: timeString })
                 
                 TimeControl.timeInputChange(
                     startTime,
@@ -1177,7 +1166,6 @@ function interfaceWithMMGIS() {
             
             // Also update TimeUI directly if available
             if (TimeControl && TimeControl.timeUI && TimeControl.timeUI.updateTimes) {
-                console.log('Updating TimeUI directly - setting End Time as Active Time')
                 // Convert timestamp to milliseconds for TimeUI
                 const timestampMs = timestamp.getTime()
                 // Update TimeUI with the timestamp as the end time (active time)
@@ -1276,8 +1264,6 @@ function interfaceWithMMGIS() {
         // Draw the source canvas onto the even-sized canvas
         ctx.drawImage(sourceCanvas, 0, 0, evenCanvas.width, evenCanvas.height)
         
-        console.log(`Adjusted canvas dimensions from ${width}x${height} to ${evenCanvas.width}x${evenCanvas.height} for H.264 compatibility`)
-        
         return evenCanvas
     }
     
@@ -1298,6 +1284,7 @@ function interfaceWithMMGIS() {
                 }
                 
                 // Temporarily hide UI elements for clean capture (similar to BottomBar.js)
+                // Note: drawing layer is already hidden at export level in generateAnimationFrames
                 const hiddenElements = hideUIElementsForCapture()
                 
                 // Capture the map with HTML2Canvas
@@ -1341,10 +1328,65 @@ function interfaceWithMMGIS() {
                 // Restore UI elements
                 restoreUIElements(hiddenElements)
                 
-                // Crop to the animation area if screenRect is defined
+                // Note: drawing layer restoration is handled at export level in generateAnimationFrames
+                
+                // Crop to the animation area if boundingBox is defined
                 let finalCanvas = canvas
-                if (AnimationTool.screenRect) {
-                    finalCanvas = cropCanvasToRect(canvas, AnimationTool.screenRect)
+                if (AnimationTool.boundingBox) {
+                    // Reconstruct LatLngBounds from stored bounding box
+                    // IMPORTANT: When creating bounds from north/south/east/west values,
+                    // we need to use the actual corner coordinates
+                    const bounds = L.latLngBounds(
+                        [AnimationTool.boundingBox.south, AnimationTool.boundingBox.west],  // Southwest corner
+                        [AnimationTool.boundingBox.north, AnimationTool.boundingBox.east]  // Northeast corner
+                    )
+                    
+                    // Get container point coordinates (relative to map container)
+                    const northWest = Map_.map.latLngToContainerPoint(bounds.getNorthWest())
+                    const southEast = Map_.map.latLngToContainerPoint(bounds.getSouthEast())
+                    
+                    // Get actual container dimensions
+                    const containerWidth = mapContainer.offsetWidth
+                    const containerHeight = mapContainer.offsetHeight
+                    
+                    // Get canvas dimensions
+                    const canvasWidth = canvas.width
+                    const canvasHeight = canvas.height
+                    
+                    // Calculate scale factors between container and canvas
+                    // HTML2Canvas may scale the output differently, so we need to account for this
+                    const scaleX = canvasWidth / containerWidth
+                    const scaleY = canvasHeight / containerHeight
+                    
+                    // Scale the container point coordinates to canvas coordinates
+                    const canvasNorthWest = {
+                        x: northWest.x * scaleX,
+                        y: northWest.y * scaleY
+                    }
+                    const canvasSouthEast = {
+                        x: southEast.x * scaleX,
+                        y: southEast.y * scaleY
+                    }
+                    
+                    // Ensure coordinates are within canvas bounds
+                    const minX = Math.max(0, Math.min(canvasNorthWest.x, canvasSouthEast.x))
+                    const minY = Math.max(0, Math.min(canvasNorthWest.y, canvasSouthEast.y))
+                    const maxX = Math.min(canvasWidth, Math.max(canvasNorthWest.x, canvasSouthEast.x))
+                    const maxY = Math.min(canvasHeight, Math.max(canvasNorthWest.y, canvasSouthEast.y))
+                    
+                    const currentScreenRect = {
+                        x: minX,
+                        y: minY,
+                        width: maxX - minX,
+                        height: maxY - minY
+                    }
+                    
+                    // Ensure we have valid dimensions
+                    if (currentScreenRect.width > 0 && currentScreenRect.height > 0) {
+                        finalCanvas = cropCanvasToRect(canvas, currentScreenRect)
+                    } else {
+                        console.warn('Invalid screen rect dimensions, using full canvas')
+                    }
                 }
                 
                 // Ensure dimensions are even for H.264 encoding compatibility
@@ -1359,7 +1401,6 @@ function interfaceWithMMGIS() {
     
     function exportAsGIF(frames, button, originalText) {
         try {
-            console.log('Starting GIF export with', frames.length, 'frames')
             createGIFWithGifshot(frames, button, originalText)
         } catch (error) {
             console.error('GIF export error:', error)
@@ -1370,8 +1411,6 @@ function interfaceWithMMGIS() {
     
     function createGIFWithGifshot(frames, button, originalText) {
         try {
-            console.log('Creating GIF with gifshot library...')
-            
             // Convert frames to images for gifshot
             const images = []
             let loadedCount = 0
@@ -1385,11 +1424,8 @@ function interfaceWithMMGIS() {
                     loadedCount++
                     
                     if (loadedCount === frames.length) {
-                        console.log('All frames loaded, creating GIF...')
-                        
                         // Create GIF using gifshot
                         const frameInterval = 1 / AnimationTool.animationSettings.frameRate // Convert FPS to seconds per frame
-                        console.log('GIF frame interval:', frameInterval, 'seconds (FPS:', AnimationTool.animationSettings.frameRate, ')')
                         
                         gifshot.createGIF({
                             images: images,
@@ -1408,8 +1444,6 @@ function interfaceWithMMGIS() {
                             numWorkers: 2
                         }, function(obj) {
                             if (!obj.error) {
-                                console.log('GIF created successfully, size:', obj.image.length)
-                                
                                 // Convert base64 to blob and download
                                 const byteCharacters = atob(obj.image.split(',')[1])
                                 const byteNumbers = new Array(byteCharacters.length)
@@ -1471,7 +1505,6 @@ function interfaceWithMMGIS() {
             }
             
             // Test GIF library first with a simple test
-            console.log('Testing GIF library functionality...')
             try {
                 const testGif = new GIF({
                     workers: 0,
@@ -1480,7 +1513,6 @@ function interfaceWithMMGIS() {
                     height: 100,
                     debug: true
                 })
-                console.log('GIF library test successful')
             } catch (testError) {
                 console.error('GIF library test failed:', testError)
                 throw new Error('GIF library not working properly: ' + testError.message)
@@ -1495,11 +1527,7 @@ function interfaceWithMMGIS() {
                 debug: true // Enable debug mode
             }
             
-            console.log('Creating GIF with options:', gifOptions)
-            console.log('GIF library available:', typeof GIF !== 'undefined')
-            
             const gif = new GIF(gifOptions)
-            console.log('GIF instance created successfully')
             
             // Add timeout to detect if GIF creation is stuck
             let progressTimeout = null
@@ -1508,7 +1536,6 @@ function interfaceWithMMGIS() {
             
             // Add progress callback
             gif.on('progress', (progress) => {
-                console.log('GIF progress:', Math.round(progress * 100) + '%')
                 button.text(`Creating GIF... ${Math.round(progress * 100)}%`)
                 
                 // Clear previous timeout
@@ -1530,18 +1557,15 @@ function interfaceWithMMGIS() {
             gif.on('error', (error) => {
                 console.error('GIF creation error:', error)
                 if (progressTimeout) clearTimeout(progressTimeout)
-                console.log('Falling back to simple GIF creation...')
                 createSimpleGIF(frames, button, originalText)
             })
             
             // Add finished callback
             gif.on('finished', (blob) => {
-                console.log('GIF finished, blob size:', blob.size)
                 if (progressTimeout) clearTimeout(progressTimeout)
                 
                 if (blob.size === 0) {
                     console.error('GIF blob is empty!')
-                    console.log('Falling back to simple GIF creation...')
                     createSimpleGIF(frames, button, originalText)
                     return
                 }
@@ -1556,34 +1580,21 @@ function interfaceWithMMGIS() {
             let framesFailed = 0
             
             frames.forEach((frameData, index) => {
-                console.log('Processing frame', index + 1, 'of', frames.length)
-                console.log('Frame data type:', typeof frameData.data)
-                console.log('Frame data starts with:', frameData.data.substring(0, 50) + '...')
-                
                 const img = new Image()
                 img.crossOrigin = 'anonymous' // Handle CORS
                 
                 img.onload = () => {
-                    console.log('Image loaded successfully for frame', index + 1)
-                    console.log('Image dimensions:', img.width, 'x', img.height)
-                    
                     try {
                         const delay = 1000 / AnimationTool.animationSettings.frameRate
-                        console.log('Adding frame', index + 1, 'with delay:', delay, 'ms')
                         
                         gif.addFrame(img, { delay: delay })
                         framesAdded++
-                        console.log('Frame', index + 1, 'added successfully. Total added:', framesAdded)
                         
                         // Start rendering after all frames are added
                         if (framesAdded === frames.length) {
-                            console.log('All frames added successfully, starting render...')
-                            console.log('Total frames processed:', framesAdded, 'Failed:', framesFailed)
-                            
                             try {
                                 renderStarted = true
                                 gif.render()
-                                console.log('GIF render() called successfully')
                                 
                                 // Set a longer timeout for render completion (no progress callback timeout)
                                 progressTimeout = setTimeout(() => {
@@ -1591,7 +1602,6 @@ function interfaceWithMMGIS() {
                                         console.warn('GIF render appears stuck, falling back...')
                                         createSimpleGIF(frames, button, originalText)
                                     } else {
-                                        console.log('GIF render taking longer than expected, but continuing...')
                                         // Extend timeout for large GIFs
                                         progressTimeout = setTimeout(() => {
                                             console.warn('GIF render timeout exceeded, falling back...')
@@ -1611,7 +1621,6 @@ function interfaceWithMMGIS() {
                         framesFailed++
                         
                         if (progressTimeout) clearTimeout(progressTimeout)
-                        console.log('Falling back to simple GIF creation...')
                         createSimpleGIF(frames, button, originalText)
                     }
                 }
@@ -1622,25 +1631,20 @@ function interfaceWithMMGIS() {
                     framesFailed++
                     
                     if (progressTimeout) clearTimeout(progressTimeout)
-                    console.log('Falling back to simple GIF creation...')
                     createSimpleGIF(frames, button, originalText)
                 }
                 
-                console.log('Setting image source for frame', index + 1)
                 img.src = frameData.data
             })
             
         } catch (error) {
             console.error('GIF creation with workers failed:', error)
-            console.log('Falling back to simple GIF creation...')
             createSimpleGIF(frames, button, originalText)
         }
     }
     
     function createSimpleGIF(frames, button, originalText) {
         try {
-            console.log('Creating simple animated GIF as final fallback...')
-            
             // Final fallback: Create a simple animated GIF using canvas
             if (frames.length === 1) {
                 // Single frame - download as PNG
@@ -1651,7 +1655,6 @@ function interfaceWithMMGIS() {
             }
             
             // Multiple frames - create a simple animated GIF using canvas
-            console.log('Creating simple animated GIF with', frames.length, 'frames...')
             
             const canvas = document.createElement('canvas')
             const ctx = canvas.getContext('2d')
@@ -1757,8 +1760,6 @@ function interfaceWithMMGIS() {
     
     function createSpriteSheet(frames, button, originalText) {
         try {
-            console.log('Creating sprite sheet from', frames.length, 'frames...')
-            
             const canvas = document.createElement('canvas')
             const ctx = canvas.getContext('2d')
             
@@ -1771,9 +1772,6 @@ function interfaceWithMMGIS() {
             canvas.width = frameWidth * framesPerRow
             canvas.height = frameHeight * rows
             
-            console.log('Sprite sheet dimensions:', canvas.width, 'x', canvas.height)
-            console.log('Frames per row:', framesPerRow, 'Rows:', rows)
-            
             let framesLoaded = 0
             
             frames.forEach((frameData, index) => {
@@ -1781,8 +1779,6 @@ function interfaceWithMMGIS() {
                 img.crossOrigin = 'anonymous'
                 
                 img.onload = () => {
-                    console.log('Loading frame', index + 1, 'into sprite sheet')
-                    
                     // Calculate position in sprite sheet
                     const row = Math.floor(index / framesPerRow)
                     const col = index % framesPerRow
@@ -1795,13 +1791,10 @@ function interfaceWithMMGIS() {
                     framesLoaded++
                     
                     if (framesLoaded === frames.length) {
-                        console.log('All frames loaded into sprite sheet, exporting...')
-                        
                         // Export sprite sheet as PNG
                         canvas.toBlob((blob) => {
                             const url = URL.createObjectURL(blob)
                             downloadFile(url, 'animation_spritesheet.png', 'image/png')
-                            console.log('Sprite sheet exported successfully')
                         }, 'image/png')
                     }
                 }
@@ -1815,7 +1808,6 @@ function interfaceWithMMGIS() {
                         canvas.toBlob((blob) => {
                             const url = URL.createObjectURL(blob)
                             downloadFile(url, 'animation_spritesheet_partial.png', 'image/png')
-                            console.log('Partial sprite sheet exported')
                         }, 'image/png')
                     }
                 }
@@ -1830,13 +1822,10 @@ function interfaceWithMMGIS() {
     
     function downloadIndividualFrames(frames, button, originalText) {
         try {
-            console.log('Downloading individual frames...')
-            
             // Download each frame as a separate PNG file
             frames.forEach((frameData, index) => {
                 const filename = `animation_frame_${String(index + 1).padStart(3, '0')}.png`
                 downloadFile(frameData.data, filename, 'image/png')
-                console.log('Downloaded frame', index + 1, 'as', filename)
             })
             
             // Show completion message
@@ -1865,8 +1854,6 @@ function interfaceWithMMGIS() {
     
     async function exportMP4WithFFmpeg(frames, button, originalText) {
         try {
-            console.log('Starting MP4 export with', frames.length, 'frames')
-            
             const ffmpeg = new FFmpeg()
             
             // Show loading message
@@ -1874,24 +1861,14 @@ function interfaceWithMMGIS() {
             
             // Add progress callback
             ffmpeg.on('progress', ({ progress }) => {
-                console.log('FFmpeg progress:', Math.round(progress * 100) + '%')
                 button.text(`Creating MP4... ${Math.round(progress * 100)}%`)
             })
             
-            // Add log callback for debugging
-            ffmpeg.on('log', ({ message }) => {
-                console.log('FFmpeg log:', message)
-            })
-            
-            console.log('Loading FFmpeg...')
             await ffmpeg.load()
-            console.log('FFmpeg loaded successfully')
             
             // Write frame files
-            console.log('Writing frame files...')
             for (let i = 0; i < frames.length; i++) {
                 const frameData = frames[i].data
-                console.log('Processing frame', i + 1, 'of', frames.length)
                 
                 // Convert data URL to Uint8Array
                 const response = await fetch(frameData)
@@ -1901,10 +1878,7 @@ function interfaceWithMMGIS() {
                 
                 const filename = `frame${i.toString().padStart(3, '0')}.png`
                 await ffmpeg.writeFile(filename, uint8Array)
-                console.log('Written frame file:', filename)
             }
-            
-            console.log('All frames written, starting FFmpeg processing...')
             
             // Run FFmpeg command to create MP4
             await ffmpeg.exec([
@@ -1917,11 +1891,8 @@ function interfaceWithMMGIS() {
                 'output.mp4'
             ])
             
-            console.log('FFmpeg processing complete, reading output file...')
-            
             // Read the output file
             const data = await ffmpeg.readFile('output.mp4')
-            console.log('Output file size:', data.length, 'bytes')
             
             if (data.length === 0) {
                 throw new Error('Generated MP4 file is empty')
@@ -1970,6 +1941,7 @@ function interfaceWithMMGIS() {
         AnimationTool.cachedImages = []
         AnimationTool.isPlaying = false
         AnimationTool.currentFrame = 0
+        AnimationTool.screenRect = null
         
         updateStepDisplay()
         
@@ -1977,6 +1949,14 @@ function interfaceWithMMGIS() {
         $('#bboxNorth, #bboxSouth, #bboxEast, #bboxWest').val('')
         $('#resetValues').prop('disabled', true)
         
+        // Remove drawing layer (red bounding box)
+        if (AnimationTool.drawingLayer) {
+            Map_.map.removeLayer(AnimationTool.drawingLayer)
+            AnimationTool.drawingLayer = null
+        }
+        
+        // Hide drawing instructions if visible
+        hideDrawingInstructions()
     }
     
     function separateFromMMGIS() {
