@@ -55,15 +55,12 @@ The Animation Tool allows users to create smooth animated sequences of map data 
 
 ## Configuration
 
-The tool can be configured through the MMGIS configuration interface with the following options:
+The Animation Tool has no configurable variables. All settings (frame rate, time range, bounding box, export options) are configured through the tool's user interface during use. The tool provides a step-by-step interface that guides users through:
 
-- `defaultFrameRate`: Default frames per second (0.5-10)
-- `maxFrames`: Maximum number of frames allowed
-- `cacheSize`: Number of map images to cache
-- `defaultTimeInterval`: Default time interval between frames
-- `enableGifExport`: Allow GIF export
-- `enableVideoExport`: Allow MP4 export
-- `defaultBoundingBox`: Default bounding box coordinates
+1. Selecting the animation area (bounding box)
+2. Setting the time range and intervals
+3. Configuring export settings (frame rate, overlays, scale bar)
+4. Exporting the animation in the desired format
 
 ## TimeControl Integration
 
