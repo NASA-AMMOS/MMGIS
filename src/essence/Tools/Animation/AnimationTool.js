@@ -135,6 +135,22 @@ const markup = [
                                 "<label for='loopAnimation'>Loop Animation</label>",
                             "</div>",
                         "</div>",
+                        "<div class='control-group'>",
+                            "<label for='exportTitle'>Title (optional):</label>",
+                            "<input type='text' id='exportTitle' placeholder='Enter animation title' style='width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;'>",
+                        "</div>",
+                        "<div class='control-group'>",
+                            "<div class='checkbox-group'>",
+                                "<input type='checkbox' id='showTimeStep'>",
+                                "<label for='showTimeStep'>Include Time Step</label>",
+                            "</div>",
+                        "</div>",
+                        "<div class='control-group'>",
+                            "<div class='checkbox-group'>",
+                                "<input type='checkbox' id='showScaleBar'>",
+                                "<label for='showScaleBar'>Include Scale Bar</label>",
+                            "</div>",
+                        "</div>",
                     "</div>",
                 "</div>",
                 "<div id='animationPanel4' class='animation-panel'>",
@@ -189,7 +205,10 @@ const AnimationTool = {
         frameRate: 2,
         timeInterval: 'day',
         loop: false,
-        playDirection: 'forward'
+        playDirection: 'forward',
+        title: '',
+        showTimeStep: false,
+        showScaleBar: false
     },
     cachedImages: [],
     isPlaying: false,
@@ -600,6 +619,20 @@ function interfaceWithMMGIS() {
             AnimationTool.animationSettings.loop = e.target.checked
         })
         
+        // Title input
+        $('#exportTitle').on('input', (e) => {
+            AnimationTool.animationSettings.title = e.target.value.trim()
+        })
+        
+        // Show time step checkbox
+        $('#showTimeStep').on('change', (e) => {
+            AnimationTool.animationSettings.showTimeStep = e.target.checked
+        })
+        
+        // Show scale bar checkbox
+        $('#showScaleBar').on('change', (e) => {
+            AnimationTool.animationSettings.showScaleBar = e.target.checked
+        })
         
         // Export controls
         $('#export-gif').on('click', () => {
@@ -642,13 +675,6 @@ function interfaceWithMMGIS() {
         // Update navigation buttons
         $('#animationPrevStep').prop('disabled', AnimationTool.currentStep === 1)
         $('#animationNextStep').prop('disabled', AnimationTool.currentStep === 4)
-        
-        // Update next button text
-        if (AnimationTool.currentStep === 4) {
-            $('#animationNextStep').text('Export')
-        } else {
-            $('#animationNextStep').text('Next')
-        }
     }
     
     function validateStep(step) {
@@ -1180,18 +1206,26 @@ function interfaceWithMMGIS() {
     // Helper function to hide UI elements during capture (similar to BottomBar.js)
     function hideUIElementsForCapture() {
         const hiddenElements = {}
+        const showScaleBar = AnimationTool.animationSettings.showScaleBar
         
         // Hide UI elements that shouldn't appear in animation frames
         const elementsToHide = [
-            '.leaflet-control-scalefactor',
             '#mmgis-map-compass',
             '.leaflet-control-zoom',
             '#topBarScreenshotLoading',
-            '#mapToolBar',
             '#toolbar',
             '#viewerToolBar',
             '#_lithosphere_controls'
         ]
+        
+        // Conditionally hide mapToolBar and scale factor control based on showScaleBar setting
+        if (!showScaleBar) {
+            elementsToHide.push('#mapToolBar')
+            elementsToHide.push('.leaflet-control-scalefactor')
+        } else {
+            // Keep mapToolBar visible but hide other elements in it (except scale bar)
+            elementsToHide.push('.leaflet-control-scalefactor')
+        }
         
         elementsToHide.forEach(selector => {
             const element = document.querySelector(selector)
@@ -1201,11 +1235,62 @@ function interfaceWithMMGIS() {
             }
         })
         
-        // Adjust scale bar margin
+        // Handle scale bar visibility - ensure it's visible when option is enabled
         const scaleBar = document.querySelector('#scaleBar')
-        if (scaleBar) {
-            hiddenElements['#scaleBar'] = scaleBar.style.marginTop
+        const scaleBarBounds = document.querySelector('#scaleBarBounds')
+        const mapToolBar = document.querySelector('#mapToolBar')
+        
+        if (showScaleBar && scaleBar) {
+            // Store original states
+            hiddenElements['#scaleBar_marginTop'] = scaleBar.style.marginTop || ''
+            hiddenElements['#scaleBar_display'] = scaleBar.style.display || ''
+            hiddenElements['#scaleBar_visibility'] = scaleBar.style.visibility || ''
+            
+            if (scaleBarBounds) {
+                hiddenElements['#scaleBarBounds_display'] = scaleBarBounds.style.display || ''
+                hiddenElements['#scaleBarBounds_visibility'] = scaleBarBounds.style.visibility || ''
+                // Ensure scale bar bounds container is visible
+                scaleBarBounds.style.display = 'block'
+                scaleBarBounds.style.visibility = 'visible'
+            }
+            
+            // Ensure scale bar SVG is visible
+            scaleBar.style.display = 'block'
+            scaleBar.style.visibility = 'visible'
             scaleBar.style.marginTop = '0px'
+            
+            // Keep mapToolBar visible for the scale bar, but hide other elements in it
+            if (mapToolBar) {
+                hiddenElements['#mapToolBar_display'] = mapToolBar.style.display || ''
+                hiddenElements['#mapToolBar_visibility'] = mapToolBar.style.visibility || ''
+                mapToolBar.style.display = 'block'
+                mapToolBar.style.visibility = 'visible'
+                
+                // Hide other children of mapToolBar except scaleBarBounds
+                const toolBarChildren = mapToolBar.childNodes
+                toolBarChildren.forEach(child => {
+                    if (child.nodeType === 1) { // Element node
+                        const originalDisplay = child.style.display || ''
+                        const originalVisibility = child.style.visibility || ''
+                        if (child.id && child.id !== 'scaleBarBounds') {
+                            hiddenElements[`#mapToolBar_${child.id}_display`] = originalDisplay
+                            hiddenElements[`#mapToolBar_${child.id}_visibility`] = originalVisibility
+                            child.style.display = 'none'
+                        }
+                    }
+                })
+            }
+        } else if (scaleBar) {
+            // Hide scale bar if option is not enabled
+            hiddenElements['#scaleBar_marginTop'] = scaleBar.style.marginTop || ''
+            hiddenElements['#scaleBar_display'] = scaleBar.style.display || ''
+            if (scaleBarBounds) {
+                hiddenElements['#scaleBarBounds_display'] = scaleBarBounds.style.display || ''
+            }
+            if (scaleBarBounds) {
+                scaleBarBounds.style.display = 'none'
+            }
+            scaleBar.style.display = 'none'
         }
         
         return hiddenElements
@@ -1214,17 +1299,149 @@ function interfaceWithMMGIS() {
     // Helper function to restore UI elements after capture
     function restoreUIElements(hiddenElements) {
         Object.keys(hiddenElements).forEach(selector => {
+            // Skip scale bar and mapToolBar special properties
+            if (selector.startsWith('#scaleBar_') || 
+                selector.startsWith('#scaleBarBounds_') ||
+                selector.startsWith('#mapToolBar_')) {
+                return
+            }
+            
             const element = document.querySelector(selector)
             if (element) {
-                element.style.display = hiddenElements[selector]
+                const storedValue = hiddenElements[selector]
+                if (storedValue !== undefined && storedValue !== null) {
+                    element.style.display = storedValue
+                }
             }
         })
         
-        // Restore scale bar margin
+        // Restore scale bar and its containers
         const scaleBar = document.querySelector('#scaleBar')
+        const scaleBarBounds = document.querySelector('#scaleBarBounds')
+        const mapToolBar = document.querySelector('#mapToolBar')
+        
         if (scaleBar) {
-            scaleBar.style.marginTop = '5px'
+            if (hiddenElements['#scaleBar_display'] !== undefined) {
+                scaleBar.style.display = hiddenElements['#scaleBar_display'] || ''
+            }
+            if (hiddenElements['#scaleBar_visibility'] !== undefined) {
+                scaleBar.style.visibility = hiddenElements['#scaleBar_visibility'] || ''
+            }
+            if (hiddenElements['#scaleBar_marginTop'] !== undefined) {
+                scaleBar.style.marginTop = hiddenElements['#scaleBar_marginTop'] || '5px'
+            } else {
+                scaleBar.style.marginTop = '5px'
+            }
         }
+        
+        if (scaleBarBounds) {
+            if (hiddenElements['#scaleBarBounds_display'] !== undefined) {
+                scaleBarBounds.style.display = hiddenElements['#scaleBarBounds_display'] || ''
+            }
+            if (hiddenElements['#scaleBarBounds_visibility'] !== undefined) {
+                scaleBarBounds.style.visibility = hiddenElements['#scaleBarBounds_visibility'] || ''
+            }
+        }
+        
+        if (mapToolBar) {
+            if (hiddenElements['#mapToolBar_display'] !== undefined) {
+                mapToolBar.style.display = hiddenElements['#mapToolBar_display'] || ''
+            }
+            if (hiddenElements['#mapToolBar_visibility'] !== undefined) {
+                mapToolBar.style.visibility = hiddenElements['#mapToolBar_visibility'] || ''
+            }
+            
+            // Restore other children of mapToolBar
+            Object.keys(hiddenElements).forEach(selector => {
+                if (selector.startsWith('#mapToolBar_') && selector.endsWith('_display')) {
+                    const childId = selector.replace('#mapToolBar_', '').replace('_display', '')
+                    const child = document.getElementById(childId)
+                    if (child) {
+                        child.style.display = hiddenElements[selector] || ''
+                    }
+                }
+            })
+        }
+    }
+    
+    // Helper function to draw text with white stroke (border) and black fill
+    function drawTextWithBorder(ctx, text, x, y, fontSize = 24) {
+        ctx.font = `bold ${fontSize}px Arial, sans-serif`
+        ctx.textAlign = 'left'
+        ctx.textBaseline = 'top'
+        
+        // Draw white stroke (border) - multiple strokes for thicker border
+        ctx.strokeStyle = 'white'
+        ctx.lineWidth = 4
+        ctx.lineJoin = 'round'
+        ctx.miterLimit = 2
+        
+        // Draw stroke multiple times for thicker border
+        for (let i = 0; i < 3; i++) {
+            ctx.strokeText(text, x, y)
+        }
+        
+        // Draw black fill
+        ctx.fillStyle = 'black'
+        ctx.fillText(text, x, y)
+    }
+    
+    // Helper function to add text overlays (title and time step) to canvas
+    function addTextOverlays(canvas, timestamp) {
+        const settings = AnimationTool.animationSettings
+        const hasTitle = settings.title && settings.title.trim() !== ''
+        const hasTimeStep = settings.showTimeStep
+        
+        // If no overlays needed, return canvas as-is
+        if (!hasTitle && !hasTimeStep) {
+            return canvas
+        }
+        
+        // Create a new canvas to draw overlays (to avoid mutating original)
+        const outputCanvas = document.createElement('canvas')
+        outputCanvas.width = canvas.width
+        outputCanvas.height = canvas.height
+        const ctx = outputCanvas.getContext('2d')
+        
+        // Draw the original canvas
+        ctx.drawImage(canvas, 0, 0)
+        
+        const padding = 10
+        const fontSize = Math.max(48, Math.min(72, canvas.width / 40 * 3)) // Responsive font size (3x larger)
+        const lineSpacing = fontSize * 0.2 // Space between title and time step (20% of font size)
+        
+        let currentY = padding
+        
+        // Draw title in top left corner
+        if (hasTitle) {
+            const titleText = settings.title.trim()
+            drawTextWithBorder(ctx, titleText, padding, currentY, fontSize)
+            currentY += fontSize + lineSpacing // Move down for time step
+        }
+        
+        // Draw time step just below the title (or at top if no title)
+        if (hasTimeStep) {
+            // Format timestamp for display
+            const timeStepText = formatTimestampForDisplay(timestamp)
+            drawTextWithBorder(ctx, timeStepText, padding, currentY, fontSize)
+        }
+        
+        return outputCanvas
+    }
+    
+    // Helper function to format timestamp for display
+    function formatTimestampForDisplay(timestamp) {
+        const date = new Date(timestamp)
+        
+        // Format as: YYYY-MM-DD HH:MM:SS
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        const seconds = String(date.getSeconds()).padStart(2, '0')
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
     }
     
     // Helper function to crop canvas to specific rectangle
@@ -1389,6 +1606,9 @@ function interfaceWithMMGIS() {
                     }
                 }
                 
+                // Add text overlays (title and time step) if configured
+                finalCanvas = addTextOverlays(finalCanvas, timestamp)
+                
                 // Ensure dimensions are even for H.264 encoding compatibility
                 finalCanvas = ensureEvenDimensions(finalCanvas)
                 
@@ -1454,7 +1674,8 @@ function interfaceWithMMGIS() {
                                 const blob = new Blob([byteArray], { type: 'image/gif' })
                                 
                                 const url = URL.createObjectURL(blob)
-                                downloadFile(url, 'animation.gif', 'image/gif')
+                                const filename = generateFilename('animation', 'gif')
+                                downloadFile(url, filename, 'image/gif')
                                 button.text(originalText).prop('disabled', false)
                                 showModalAlert('Animated GIF exported successfully!')
                             } else {
@@ -1570,7 +1791,8 @@ function interfaceWithMMGIS() {
                     return
                 }
                 const url = URL.createObjectURL(blob)
-                downloadFile(url, 'animation.gif', 'image/gif')
+                const filename = generateFilename('animation', 'gif')
+                downloadFile(url, filename, 'image/gif')
                 button.text(originalText).prop('disabled', false)
                 showModalAlert('GIF animation exported successfully!')
             })
@@ -1901,7 +2123,8 @@ function interfaceWithMMGIS() {
             const videoBlob = new Blob([data.buffer], { type: 'video/mp4' })
             const videoUrl = URL.createObjectURL(videoBlob)
             
-            downloadFile(videoUrl, 'animation.mp4', 'video/mp4')
+            const filename = generateFilename('animation', 'mp4')
+            downloadFile(videoUrl, filename, 'video/mp4')
             button.text(originalText).prop('disabled', false)
             showModalAlert('MP4 video exported successfully!')
             
@@ -1914,8 +2137,16 @@ function interfaceWithMMGIS() {
     
     function exportAsSequence(frames, button, originalText) {
         // Export individual frames as PNG files
+        const titlePrefix = AnimationTool.animationSettings.title
+            ? AnimationTool.animationSettings.title
+                .replace(/[^a-zA-Z0-9\s-_]/g, '')
+                .replace(/\s+/g, '_')
+                .toLowerCase()
+                .substring(0, 50) + '_'
+            : ''
+        
         frames.forEach((frame, index) => {
-            const filename = `frame_${String(index).padStart(3, '0')}.png`
+            const filename = `${titlePrefix}frame_${String(index).padStart(3, '0')}.png`
             downloadFile(frame.data, filename, 'image/png')
         })
         
@@ -1923,6 +2154,21 @@ function interfaceWithMMGIS() {
         showModalAlert(`${frames.length} frames exported successfully!`)
     }
     
+    
+    // Helper function to generate filename with optional title
+    function generateFilename(baseName, extension) {
+        const title = AnimationTool.animationSettings.title
+        if (title) {
+            // Sanitize title for filename: remove special characters, replace spaces with underscores
+            const sanitizedTitle = title
+                .replace(/[^a-zA-Z0-9\s-_]/g, '') // Remove special characters except spaces, hyphens, underscores
+                .replace(/\s+/g, '_') // Replace spaces with underscores
+                .toLowerCase()
+                .substring(0, 50) // Limit length
+            return `${sanitizedTitle}_${baseName}.${extension}`
+        }
+        return `${baseName}.${extension}`
+    }
     
     function downloadFile(data, filename, mimeType) {
         const link = document.createElement('a')
@@ -1943,10 +2189,18 @@ function interfaceWithMMGIS() {
         AnimationTool.currentFrame = 0
         AnimationTool.screenRect = null
         
+        // Reset animation settings to defaults
+        AnimationTool.animationSettings.title = ''
+        AnimationTool.animationSettings.showTimeStep = false
+        AnimationTool.animationSettings.showScaleBar = false
+        
         updateStepDisplay()
         
         // Reset form inputs
         $('#bboxNorth, #bboxSouth, #bboxEast, #bboxWest').val('')
+        $('#exportTitle').val('')
+        $('#showTimeStep').prop('checked', false)
+        $('#showScaleBar').prop('checked', false)
         $('#resetValues').prop('disabled', true)
         
         // Remove drawing layer (red bounding box)
@@ -1966,7 +2220,8 @@ function interfaceWithMMGIS() {
         $('#bboxNorth, #bboxSouth, #bboxEast, #bboxWest').off()
         $('#drawBoundingBox, #useCurrentView, #resetValues').off()
         $('#timeStart, #timeEnd, #timeInterval, #timeStep').off()
-        $('#frameRateSlider, input[name="playDirection"], #loopAnimation').off()
+        $('#frameRateSlider, input[name="playDirection"], #loopAnimation, #showTimeStep, #showScaleBar').off()
+        $('#exportTitle').off()
         $('#export-gif, #export-sequence, #export-mp4').off()
         
         // Unsubscribe from TimeControl
