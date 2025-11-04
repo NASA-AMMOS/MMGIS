@@ -224,10 +224,11 @@ function overwriteLegends(legends) {
 function drawLegendHeader() {
     //MMWebGIS should always have a div with id 'tools'
     let divID = '#toolPanel'
-    if (LegendTool.targetId) {
-        divID = `#${LegendTool.targetId}`
-    } else if (L_.UserInterface_.isMobile === true) {
+
+    if (L_.UserInterface_.isMobile === true) {
         divID = '#tools'
+    } else if (LegendTool.targetId) {
+        divID = `#${LegendTool.targetId}`
     }
 
     var tools = d3.select(divID)
