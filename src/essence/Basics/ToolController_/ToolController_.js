@@ -1,6 +1,7 @@
 import $ from 'jquery'
 import * as d3 from 'd3'
 import L_ from '../Layers_/Layers_'
+import TimeUI from '../../Ancillary/TimeUI'
 import { toolModules, toolConfigs } from '../../../pre/tools'
 
 import tippy from 'tippy.js'
@@ -173,20 +174,12 @@ let ToolController_ = {
                 .style('cursor', 'pointer')
         }
 
-        if (L_.configData.time && L_.configData.time.enabled === true) {
-            tools.push({
-                'icon' : 'clock',
-                'js': 'TimeUI',
-                'name': "Time"
-            })
-        }
-
         let legendToolIndex = -1
 
         for (let i = 0; i < tools.length; i++) {
             this.toolModuleNames.push(tools[i].js)
 
-            if (tools[i].separatedTool) {
+            if (tools[i].separatedTool && L_.UserInterface_.isMobile !== true) {
                 // Legend tool should always be last in its container
                 if (tools[i].name === 'Legend') {
                     legendToolIndex = i
@@ -292,6 +285,66 @@ let ToolController_ = {
         // Add Legend tool last if it exists
         if (legendToolIndex >= 0) {
             createSeparatedTool(legendToolIndex)
+        }
+
+        // Add the time UI button if time is enabled and in mobile mode
+        if (L_.UserInterface_?.isMobile === true && L_.configData.time && L_.configData.time.enabled === true) {
+            let timeSelect = d3.select('#toolcontroller_incdiv')
+                .append('div')
+                .attr('id', 'toggleTimeUI')
+                .style('position', 'relative')
+                .style('width', '30px')
+                .style('height', '30px')
+                .style('display', 'inline-block')
+                .style('text-align', 'center')
+                .style('line-height', '30px')
+                .style('vertical-align', 'middle')
+                .style('cursor', 'pointer')
+                .style('transition', 'all 0.2s ease-in')
+                .style('color', ToolController_.defaultColor)
+                .on(
+                    'click',
+                    (function () {
+                        return function () {
+                            var hasActive = false
+                            if ($(this).hasClass('active')) {
+                                hasActive = true
+                            }
+                            var prevActive = $(
+                                '#toolcontroller_incdiv .active'
+                            )
+                            prevActive.removeClass('active').css({
+                                color: ToolController_.defaultColor,
+                                background: 'none',
+                            })
+                            prevActive.parent().css({
+                                background: 'none',
+                            })
+                            if (!hasActive) {
+                                var newActive = $('#toolcontroller_incdiv #toggleTimeUI')
+                                newActive.addClass('active').css({
+                                    color: ToolController_.activeColor,
+                                })
+                                newActive.parent().css({
+                                    background: ToolController_.activeBG,
+                                })
+
+                                TimeUI.initialize()
+                                ToolController_.setToolHeight(TimeUI.height)
+                                ToolController_.setToolWidth()
+                                TimeUI.make()
+                            } else {
+                                ToolController_.setToolHeight(0)
+                                ToolController_.setToolWidth()
+                                TimeUI.destroy()
+                            }
+                        }
+                    })()
+                )
+
+            timeSelect.append('i')
+                .attr('class', 'mdi mdi-clock mdi-18px')
+                .style('cursor', 'pointer')
         }
 
         ToolController_.incToolsDiv

@@ -3066,7 +3066,7 @@ function interfaceWithMMWebGIS() {
     TimeUI.init(null, true)
 
     function separateFromMMWebGIS() {
-        let tools = d3.select('#toolPanel')
+        let tools = d3.select('#tools')
 
         //Clear it
         tools.selectAll('*').remove()
