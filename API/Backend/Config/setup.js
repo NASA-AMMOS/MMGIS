@@ -1,5 +1,6 @@
 const router = require("./routes/configs");
 const triggerWebhooks = require("../Webhooks/processes/triggerwebhooks.js");
+const configurePackageJson = require("../../../configure/package.json");
 
 let setup = {
   //Once the app initializes
@@ -18,6 +19,7 @@ let setup = {
             user: user,
             AUTH: process.env.AUTH,
             NODE_ENV: process.env.NODE_ENV,
+            VERSION: configurePackageJson.version,
             PORT: process.env.PORT || "8888",
             ENABLE_CONFIG_WEBSOCKETS: process.env.ENABLE_CONFIG_WEBSOCKETS,
             ENABLE_CONFIG_OVERRIDE: process.env.ENABLE_CONFIG_OVERRIDE,
@@ -46,6 +48,7 @@ let setup = {
             permission: permission,
             AUTH: process.env.AUTH,
             NODE_ENV: process.env.NODE_ENV,
+            VERSION: configurePackageJson.version,
             PORT: process.env.PORT || "8888",
             ENABLE_CONFIG_WEBSOCKETS: process.env.ENABLE_CONFIG_WEBSOCKETS,
             ENABLE_CONFIG_OVERRIDE: process.env.ENABLE_CONFIG_OVERRIDE,

@@ -162,14 +162,16 @@ export const theme = {
       },
     },
     MuiTooltip: {
-      tooltip: {
-        fontSize: "1em",
-        color: palette.text.secondary,
-        backgroundColor: palette.swatches.grey.grey800,
-        maxWidth: "1400px",
-      },
-      arrow: {
-        color: palette.secondary.main,
+      styleOverrides: {
+        tooltip: {
+          fontSize: "1em",
+          color: palette.swatches.grey.grey800,
+          backgroundColor: palette.secondary.main,
+          maxWidth: "1400px",
+        },
+        arrow: {
+          color: palette.secondary.main,
+        },
       },
     },
     MuiBadge: {

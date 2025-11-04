@@ -908,12 +908,13 @@ var Editing = {
                 const templateDefaults =
                     await DrawTool_Templater.getTemplateDefaults(
                         file?.template?.template,
-                        L_.layers.layer[`DrawTool_${file.file_id}`],
+                        L_.layers.layer[`DrawTool_${file.id}`],
                         {
                             geometry: JSON.stringify(
                                 DrawTool.contextMenuLayer?.feature?.geometry
                             ),
-                        }
+                        },
+                        true // recomputeOnly: only update time and intersected fields
                     )
 
                 $('#drawToolContextMenuPropertiesTemplate').empty()

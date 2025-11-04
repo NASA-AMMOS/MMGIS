@@ -1,0 +1,264 @@
+name: Auto Bump Version on PR
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - development
+
+jobs:
+  bump-version:
+    # Skip if commit message contains [skip ci] or [version bump]
+    if: |
+      !contains(github.event.head_commit.message, '[skip ci]') &&
+      !contains(github.event.head_commit.message, '[version bump]')
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # Required to push to PR branch
+      pull-requests: write # Required to comment on PR
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }} # Check out the PR branch, not merge commit
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check if version needs bumping
+        id: check
+        run: |
+          # Fetch the base branch to compare against
+          git fetch origin ${{ github.base_ref }}
+          BASE_SHA=$(git rev-parse origin/${{ github.base_ref }})
+
+          echo "Comparing against base branch: ${{ github.base_ref }} ($BASE_SHA)"
+
+          # Get current date in YYYYMMDD format
+          TODAY=$(date +%Y%m%d)
+          echo "Today's date: $TODAY"
+
+          # Check if package.json was modified in this PR by a non-bot user
+          CHANGED_FILES=$(git diff --name-only $BASE_SHA HEAD)
+
+          if echo "$CHANGED_FILES" | grep -qE "^package\.json$|^configure/package\.json$"; then
+            echo "✓ Version files were modified in this PR"
+
+            # Check if the modification was made by the bot (exclude bot commits)
+            PKG_JSON_COMMITS=$(git log --format="%an|%ae|%s" $BASE_SHA..HEAD -- package.json configure/package.json)
+
+            # Check if ALL package.json commits are from the bot
+            NON_BOT_COMMITS=$(echo "$PKG_JSON_COMMITS" | grep -v "github-actions\[bot\]" | grep -v "\[version bump\]" || true)
+
+            if [ -z "$NON_BOT_COMMITS" ]; then
+              echo "✓ All version changes were made by the bot, checking if date is current..."
+
+              # Get current version and extract date
+              CURRENT_VERSION=$(node -p "require('./package.json').version")
+              VERSION_DATE=$(echo $CURRENT_VERSION | grep -oE '[0-9]{8}$' || echo "")
+
+              if [ "$VERSION_DATE" == "$TODAY" ]; then
+                echo "✓ Version date is current ($TODAY)"
+                echo "needs_bump=false" >> $GITHUB_OUTPUT
+                echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+              else
+                echo "✗ Version date is outdated ($VERSION_DATE vs $TODAY), will re-bump with today's date"
+                echo "needs_bump=true" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "✓ Version was manually updated by a user"
+              CURRENT_VERSION=$(node -p "require('./package.json').version")
+              echo "needs_bump=false" >> $GITHUB_OUTPUT
+              echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "✗ Version files not modified, will auto-bump"
+            echo "needs_bump=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bump version
+        if: steps.check.outputs.needs_bump == 'true'
+        id: bump
+        run: |
+          # Get current date in YYYYMMDD format
+          DATE=$(date +%Y%m%d)
+
+          # Read current version from package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+
+          # Strip any existing date suffix (e.g., 4.1.1-20251022 -> 4.1.1)
+          BASE_VERSION=$(echo $CURRENT_VERSION | sed 's/-[0-9]\{8\}$//')
+
+          # Split version into parts
+          MAJOR=$(echo $BASE_VERSION | cut -d. -f1)
+          MINOR=$(echo $BASE_VERSION | cut -d. -f2)
+          PATCH=$(echo $BASE_VERSION | cut -d. -f3)
+
+          # Increment patch version
+          PATCH=$((PATCH + 1))
+
+          # Create new version with date suffix
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH-$DATE"
+          echo "New version: $NEW_VERSION"
+
+          # Validate the new version format
+          if ! echo "$NEW_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+-[0-9]{8}$'; then
+            echo "Error: Generated invalid version format: $NEW_VERSION"
+            exit 1
+          fi
+
+          # Update package.json
+          node -e "
+            const fs = require('fs');
+            const pkg = require('./package.json');
+            pkg.version = '$NEW_VERSION';
+            fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          echo "✓ Updated package.json"
+
+          # Update configure/package.json (with error handling)
+          if [ -f configure/package.json ]; then
+            node -e "
+              const fs = require('fs');
+              const pkg = require('./configure/package.json');
+              pkg.version = '$NEW_VERSION';
+              fs.writeFileSync('./configure/package.json', JSON.stringify(pkg, null, 2) + '\n');
+            "
+            echo "✓ Updated configure/package.json"
+          else
+            echo "ℹ configure/package.json not found, skipping"
+          fi
+
+          # Export new version for commit message and PR comment
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Commit version bump to PR branch
+        if: steps.check.outputs.needs_bump == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add package.json configure/package.json
+
+          # Check if there are actually changes to commit
+          if git diff --staged --quiet; then
+            echo "⚠ No changes to commit"
+            exit 0
+          fi
+
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.NEW_VERSION }} [version bump]"
+
+          echo "✓ Committed version bump"
+
+      - name: Push to PR branch
+        if: steps.check.outputs.needs_bump == 'true'
+        run: |
+          # Push to the PR branch (head_ref is the source branch of the PR)
+          git push origin HEAD:${{ github.head_ref }}
+
+          echo "✓ Pushed version bump to PR branch: ${{ github.head_ref }}"
+
+      - name: Comment on PR - Version Auto-Bumped
+        if: steps.check.outputs.needs_bump == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `## 🤖 Version Auto-Bumped
+
+            The version has been automatically incremented to **\`${{ steps.bump.outputs.NEW_VERSION }}\`**
+
+            This commit was added to your PR branch. When you merge this PR, the new version will be included.
+
+            ---
+            <sub>If you want a different version, update \`package.json\` manually and push to this PR.</sub>`;
+
+            // Check for existing bot comment to avoid spam
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Version Auto-Bumped')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+              console.log('Updated existing comment');
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+              console.log('Created new comment');
+            }
+
+      - name: Comment on PR - Version Already Updated
+        if: steps.check.outputs.needs_bump == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `## ✅ Version Already Updated
+
+            This PR includes a manual version update to **\`${{ steps.check.outputs.current_version }}\`**
+
+            No automatic version bump needed.`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              (comment.body.includes('Version Already Updated') || comment.body.includes('Version Auto-Bumped'))
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ "${{ steps.check.outputs.needs_bump }}" == "true" ]; then
+            echo "### 🤖 Version Auto-Bumped" >> $GITHUB_STEP_SUMMARY
+            echo "Automatically bumped to version **${{ steps.bump.outputs.NEW_VERSION }}**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The version bump has been committed to the PR branch." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ✅ Version Already Updated" >> $GITHUB_STEP_SUMMARY
+            echo "PR already includes version **${{ steps.check.outputs.current_version }}**" >> $GITHUB_STEP_SUMMARY
+          fi

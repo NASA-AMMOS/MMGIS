@@ -158,6 +158,21 @@
               "type": "colordropdown",
               "width": 3,
               "options": "{{COLORMAP_NAMES}}"
+            },
+            {
+              "field": "cogExpression",
+              "name": "Band Math Expression",
+              "description": "TiTiler/rio-tiler band math expression. Uses standard math operators (+-/*) where asset_bX represents band X of an asset (e.g., 'asset_b1*2', '(asset_b1+asset_b2)/2'). For RGB output, use semicolons (e.g., 'asset_b1;asset_b2;asset_b3'). For multiple STAC assets, use different asset names (e.g., 'assetname1_b1 + assetname2_b1'). If you omit the asset prefix (e.g., 'b1'), it will automatically default to 'asset_b1'. When specified, this replaces the 'Tile Bands' parameter.",
+              "type": "textnotrim",
+              "width": 6
+            },
+            {
+              "field": "cogExpressionEditable",
+              "name": "Allow User Expression Editing",
+              "description": "If true, users can modify the band math expression in the LayersTool settings panel.",
+              "type": "switch",
+              "width": 3,
+              "defaultChecked": false
             }
           ]
         },

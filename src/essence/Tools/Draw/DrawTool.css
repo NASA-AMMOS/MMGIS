@@ -2371,7 +2371,6 @@
 }
 
 .drawToolContextMenuPropertiesTitle {
-    height: 30px;
     line-height: 30px;
     color: #91c676;
 }
@@ -2410,6 +2409,18 @@ line-height: 20px;
     display: flex;
     justify-content: space-between;
     padding: 2px 0px;
+    transition: background 0.2s ease-in-out;
+}
+.drawToolContextMenuPropertiesExtended > li:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+.drawToolContextMenuPropertiesExtended > li > div:first-child {
+    color: var(--color-a5);
+}
+.drawToolContextMenuPropertiesExtended > li > div:last-child {
+    word-break: break-all;
+    text-align: end;
+    margin-left: 20px;
 }
 
 #drawToolContextMenuPropertiesTemplate {

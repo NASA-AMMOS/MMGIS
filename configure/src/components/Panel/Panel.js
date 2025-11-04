@@ -3,15 +3,22 @@ import { useSelector, useDispatch } from "react-redux";
 import {} from "./PanelSlice";
 import { makeStyles } from "@mui/styles";
 import mmgisLogo from "../../images/mmgis.png";
+import packageJson from "../../../package.json";
 
 import clsx from "clsx";
 
-import { setMission, setModal, setPage, setSnackBarText } from "../../core/ConfigureStore";
+import {
+  setMission,
+  setModal,
+  setPage,
+  setSnackBarText,
+} from "../../core/ConfigureStore";
 import { calls } from "../../core/calls";
 
 import NewMissionModal from "./Modals/NewMissionModal/NewMissionModal";
 
 import Button from "@mui/material/Button";
+import Tooltip from "@mui/material/Tooltip";
 
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 import ShapeLineIcon from "@mui/icons-material/ShapeLine";
@@ -22,6 +29,7 @@ import ApiIcon from "@mui/icons-material/Api";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import HorizontalSplitIcon from "@mui/icons-material/HorizontalSplit";
 import AccountBoxIcon from "@mui/icons-material/AccountBox";
+import WarningIcon from "@mui/icons-material/Warning";
 
 const useStyles = makeStyles((theme) => ({
   Panel: {
@@ -34,7 +42,7 @@ const useStyles = makeStyles((theme) => ({
     flexFlow: "column",
   },
   title: {
-    padding: "30px 0px",
+    padding: "30px 0px 10px 0px",
     textAlign: "center",
   },
   titleImage: {
@@ -47,6 +55,39 @@ const useStyles = makeStyles((theme) => ({
     textTransform: "uppercase",
     "& > span": {
       color: theme.palette.accent.main,
+    },
+  },
+  version: {
+    color: theme.palette.swatches.grey[600],
+    fontSize: "10px",
+    fontFamily: "monospace",
+    marginTop: "2px",
+    textAlign: "center",
+  },
+  versionMismatch: {
+    color: "#ff9800",
+    fontSize: "10px",
+    fontFamily: "monospace",
+    marginTop: "2px",
+    textAlign: "center",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "4px",
+    "& svg": {
+      fontSize: "12px",
+    },
+  },
+  versionMismatchTooltip: {
+    background: theme.palette.secondary.main,
+    padding: "8px",
+    "& > div:first-child": {
+      marginBottom: "4px",
+      fontSize: "12px",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px",
+      color: "#ff9800",
     },
   },
   newMission: {
@@ -162,10 +203,25 @@ export default function Panel() {
     if (!userPermissions) return true; // Default to allowing until we know
     if (userPermissions.permission === "111") return true; // SuperAdmin can edit all
     if (userPermissions.permission !== "110") return false; // Non-admins, who can't even access this page, can't edit any
-    
+
     const managingMissions = userPermissions.missions_managing || [];
     return managingMissions.includes(mission);
   };
+
+  // Version mismatch detection
+  const buildVersion = packageJson.version;
+  const serverVersion = window.mmgisglobal?.VERSION;
+  const isVersionMismatch =
+    buildVersion && serverVersion && buildVersion !== serverVersion;
+
+  // Log version mismatch for debugging
+  useEffect(() => {
+    if (isVersionMismatch) {
+      console.warn(
+        `⚠️ Version Mismatch Detected!\nConfigure UI (build): v${buildVersion}\nServer: v${serverVersion}\n\nPlease refresh the page or contact your administrator.`
+      );
+    }
+  }, [isVersionMismatch, buildVersion, serverVersion]);
 
   return (
     <>
@@ -175,6 +231,35 @@ export default function Panel() {
           <div className={c.configurationName}>
             <span>Config</span>uration
           </div>
+          {buildVersion && (
+            <>
+              {isVersionMismatch ? (
+                <Tooltip
+                  title={
+                    <div className={c.versionMismatchTooltip}>
+                      <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
+                        Version Mismatch
+                      </div>
+                      <div>Configure UI: v{buildVersion}</div>
+                      <div>Server: v{serverVersion}</div>
+                      <div style={{ marginTop: "4px", fontSize: "11px" }}>
+                        Please refresh or contact admin
+                      </div>
+                    </div>
+                  }
+                  placement="right"
+                  arrow
+                >
+                  <div className={c.versionMismatch}>
+                    <WarningIcon />
+                    <span>v{buildVersion}</span>
+                  </div>
+                </Tooltip>
+              ) : (
+                <div className={c.version}>v{buildVersion}</div>
+              )}
+            </>
+          )}
         </div>
         {window.mmgisglobal?.permission === "111" && (
           <div className={c.newMission}>
@@ -218,7 +303,9 @@ export default function Panel() {
                         );
                       }
                     }}
-                    title={canEdit ? mission : `No permission to edit "${mission}"`}
+                    title={
+                      canEdit ? mission : `No permission to edit "${mission}"`
+                    }
                   >
                     {mission}
                   </Button>

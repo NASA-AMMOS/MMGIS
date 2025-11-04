@@ -402,6 +402,7 @@
 #layersTool .reload,
 #layersTool .reset,
 #layersTool .resetCog,
+#layersTool .tileexpressionreset,
 #layersTool .layerDownload,
 #layersTool .gears,
 #layersTool .locate,
@@ -431,15 +432,18 @@
     background: var(--color-k);
 }
 #layersTool .reset:hover,
-#layersTool .resetCog:hover {
+#layersTool .resetCog:hover,
+#layersTool .layerSettingsTitle .tileexpressionreset:hover {
     color: white;
 }
 #layersTool .reset,
-#layersTool .resetCog {
+#layersTool .resetCog,
+#layersTool .layerSettingsTitle .tileexpressionreset {
     display: none;
 }
 #layersTool #layersToolList > li.gears_on .reset,
-#layersTool #layersToolList > li.gears_on .resetCog {
+#layersTool #layersToolList > li.gears_on .resetCog,
+#layersTool #layersToolList > li.gears_on .layerSettingsTitle .tileexpressionreset {
     display: block;
 }
 
@@ -916,4 +920,78 @@
     font-size: 12px;
     color: var(--color-a4);
     font-family: monospace;
+}
+
+/* Band Math Expression Editor */
+#layersTool .tileCogExpression {
+    padding: 8px 0;
+}
+
+#layersTool .tileCogExpression > div:last-child {
+    display: block !important;
+}
+
+#layersTool .tileCogExpressionl {
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+#layersTool .tileexpression {
+    width: 100%;
+    border: none;
+    background: #222;
+    color: #ddd;
+    height: 30px;
+    padding: 4px 8px;
+    font-family: monospace;
+}
+
+#layersTool .tileexpression:focus {
+    outline: none;
+    border-color: var(--color-p4);
+}
+
+#layersTool .expression-helper-text {
+    font-size: 13px !important;
+    color: var(--color-a6) !important;
+    margin-top: 6px;
+    font-style: italic;
+    line-height: 18px;
+}
+
+#layersTool .expression-stac-info {
+    font-size: 12px;
+    color: var(--color-a6);
+    margin-top: 6px;
+    line-height: 16px;
+    display: none;
+}
+
+#layersTool .stac-header {
+    color: var(--color-a7);
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+#layersTool .stac-band-item {
+    margin-left: 12px;
+    line-height: 18px;
+}
+
+#layersTool .expression-buttons {
+    height: 30px;
+    display: flex;
+}
+
+#layersTool .tileexpressionapply {
+    border: none;
+    padding: 4px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    background: #3b8dd8;
+    color: white;
+}
+
+#layersTool .tileexpressionapply:hover {
+    background: #2a7fc7;
 }
