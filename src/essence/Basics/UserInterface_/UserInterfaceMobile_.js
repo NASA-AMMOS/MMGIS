@@ -55,7 +55,6 @@ var UserInterface = {
     layerUpdatedControl: null,
     isMobile: false,
     init: function () {
-        console.log("I am the mobile version.")
         //Other stylings in mmgis.css
 
         // prettier-ignore
@@ -574,7 +573,6 @@ var UserInterface = {
         var c = 'rgba(' + bodyRGB[0] + ',' + bodyRGB[1] + ',' + bodyRGB[2]
         var c = 'rgba(0,0,0'
 
-        console.log("this.pxIsTools", this.pxIsTools)
         //The tools screen
         this.toolsScreen = this.tScreen
             .append('div')
@@ -612,7 +610,6 @@ var UserInterface = {
             .style('bottom', this.pxIsTools - this.splitterSize / 2 + 'px')
             .style('z-index', '3')
 
-        console.log("im the right version")
         //The toolbar
         this.toolbar = d3
             .select('#main-container')
@@ -796,7 +793,6 @@ var UserInterface = {
     },
     // can also be 'full'
     setToolHeight: function (pxHeight, shouldntAnimate) {
-        console.log("----- setToolHeight -----")
         if (pxHeight == 'full') {
             UserInterface.pxIsTools =
                 this.mainHeight - this.splitterSize - this.topSize
@@ -1020,8 +1016,6 @@ var UserInterface = {
         resize()
     },
     minimalist(is) {
-        console.log("minimalist", is, this.toolbar)
-
         if (is) {
             this.toolbarLogo.style('display', 'inherit')
             this.toolbar.style('bottom', '0px')
