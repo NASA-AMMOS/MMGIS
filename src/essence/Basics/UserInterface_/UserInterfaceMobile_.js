@@ -223,7 +223,6 @@ var UserInterface = {
                     (this.fullSizeViews ? '0' : this.topSize) +
                     'px )'
             )
-            //.style('left', 40 + 'px')
             .style('left', 0 + 'px')
 
         this.hide()
@@ -851,15 +850,8 @@ var UserInterface = {
         if ($('#timeUI').length) {
             timeUIActive = $('#timeUI').hasClass('active')
         }
-
-        $('#mapToolBar').css({
-            bottom:  40 + 'px',
-        })
         $('.leaflet-control-scalefactor').css({
             bottom: UserInterface.pxIsTools + 28 + 'px',
-        })
-        $('#mmgis-map-compass').css({
-            bottom: 38 + 'px',
         })
         $('#CoordinatesDiv').css({
             bottom: UserInterface.pxIsTools + 'px',
@@ -1152,6 +1144,13 @@ var UserInterface = {
             BottomBar.changeUIVisibility('coordinates', false)
         if (l_.configData.look && l_.configData.look.miscellaneous === false)
             BottomBar.changeUIVisibility('miscellaneous', false)
+
+        $('#mapToolBar').css({
+            bottom:  40 + 'px',
+        })
+        $('#mmgis-map-compass').css({
+            bottom: 78 + 'px',
+        })
 
         BottomBar.fina()
         UserInterface.show()
