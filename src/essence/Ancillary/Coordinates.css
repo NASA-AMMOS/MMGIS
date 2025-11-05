@@ -187,3 +187,11 @@
     border-top-left-radius: 3px;
     height: 42px;
 }
+#tools > #CoordinatesDiv {
+    position: inherit !important;
+    bottom: inherit !important;
+    right: 0px;
+    padding: 5px;
+    margin: 0;
+    margin-right: inherit !important;
+}

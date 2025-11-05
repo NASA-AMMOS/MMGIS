@@ -4,6 +4,7 @@ import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
 import L_ from '../Basics/Layers_/Layers_'
+import TimeUI from './TimeUI'
 import Dropy from '../../external/Dropy/dropy'
 import * as _UserInterface_ from '../Basics/UserInterface_/UserInterface_'
 import calls from '../../pre/calls'
@@ -103,29 +104,57 @@ const Coordinates = {
             coordENMultiplier: [1, 1],
         },
     },
+    initialize: function () {
+        if (UserInterface.isMobile === true) {
+            this.width = 'full'
+            this.height = 300
+        }
+    },
+    make: function () {
+        this.MMWebGISInterface = new interfaceWithMMWebGIS()
+    },
+    destroy: function () {
+        this.MMWebGISInterface.separateFromMMWebGIS()
+    },
     init: function () {
-        console.log("Init CoordinatesDiv")
         d3.select('#CoordinatesDiv').remove()
 
-        // FIXME Hide the coordinates for now
         if (!UserInterface.isMobile) {
             d3.select('body')
                 .append('div')
                 .attr('id', 'CoordinatesDiv')
                 .html(markup)
+        } else {
+            var additionalDiv = [
+                "<div class='left'>",
+                    "<div id='coordUITitle'>Coordinates</div>",
+                "</div>",
+            ].join('\n');
+
+            d3.select('#tools')
+                .append('div')
+                .attr('id', 'coordUIHeader')
+                .html(additionalDiv)
+
+            d3.select('#tools')
+                .append('div')
+                .attr('id', 'CoordinatesDiv')
+                .html(markup)
         }
 
-        tippy('#pickLngLat', {
-            content: 'Pick Coordinates',
-            placement: 'top',
-            theme: 'blue',
-        })
-        tippy('#toggleTimeUI', {
-            content: 'Time',
-            placement: 'top',
-            theme: 'blue',
-            offset: [0, 20],
-        })
+        if (!UserInterface.isMobile) {
+            tippy('#pickLngLat', {
+                content: 'Pick Coordinates',
+                placement: 'top',
+                theme: 'blue',
+            })
+            tippy('#toggleTimeUI', {
+                content: 'Time',
+                placement: 'top',
+                theme: 'blue',
+                offset: [0, 20],
+            })
+        }
 
         if (
             !(
@@ -252,11 +281,15 @@ const Coordinates = {
             if (L_.configData.coordinates.coordsite)
                 Coordinates.states.site.available = true
         }
-        // Remove all unavailable state
-        Object.keys(Coordinates.states).forEach((s) => {
-            if (!Coordinates.states[s].available) delete Coordinates.states[s]
-            else delete Coordinates.states[s].available
-        })
+
+        // If the available key does not exist, it means they were already deleted
+        if (Object.keys(Coordinates.states).length === Object.values(Coordinates.states).filter(i => i.available != undefined).length) {
+            // Remove all unavailable state
+            Object.keys(Coordinates.states).forEach((s) => {
+                if (!Coordinates.states[s].available) delete Coordinates.states[s]
+                else delete Coordinates.states[s].available
+            })
+        }
         Coordinates.stateIndices = Object.keys(Coordinates.states)
 
         // Set main type and, if invalid main type, default back to ll
@@ -287,7 +320,8 @@ const Coordinates = {
             (L_.FUTURES.live === true ||
                 (L_.FUTURES.live == null &&
                     (L_.configData.time.initiallyOpen === true ||
-                        L_.configData.time.liveByDefault === true)))
+                        L_.configData.time.liveByDefault === true))) &&
+            !UserInterface.isMobile
         ) {
             toggleTimeUI()
         }
@@ -829,6 +863,34 @@ function toggleTimeUI() {
     Object.keys(L_._onTimeUIToggleSubscriptions).forEach((k) => {
         L_._onTimeUIToggleSubscriptions[k](!active)
     })
+}
+
+
+function interfaceWithMMWebGIS() {
+    this.separateFromMMWebGIS = function () {
+        separateFromMMWebGIS()
+    }
+
+    //MMWebGIS should always have a div with id 'tools'
+    var tools = d3.select('#tools')
+    //Clear it
+    tools.selectAll('*').remove()
+
+    //Add the markup to tools or do it manually
+    //tools.html(markup)
+
+    Coordinates.init()
+
+    if (UserInterface.isMobile) {
+        d3.select('#CoordinatesDiv > #toggleTimeUI').remove()
+    }
+
+    function separateFromMMWebGIS() {
+        let tools = d3.select('#tools')
+
+        //Clear it
+        tools.selectAll('*').remove()
+    }
 }
 
 export default Coordinates

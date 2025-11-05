@@ -687,11 +687,9 @@ var UserInterface = {
 
         shouldRotateSplitterText()
 
-
-        // Hide coordinates for now
-        // FIXME Move this into the bottom display panel 
+        // Due to the order in which things are are initialized, just remove
+        // the coordinates div and then redraw it as a "tool"
         d3.select('#CoordinatesDiv').remove()
-        console.log("try to remove CoordinatesDiv")
     },
     resize: function () {
         windowresize()

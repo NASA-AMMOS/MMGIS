@@ -325,9 +325,6 @@ let ToolController_ = {
                                 newActive.addClass('active').css({
                                     color: ToolController_.activeColor,
                                 })
-                                newActive.parent().css({
-                                    background: ToolController_.activeBG,
-                                })
 
                                 TimeUI.initialize()
                                 ToolController_.setToolHeight(TimeUI.height)
@@ -337,13 +334,85 @@ let ToolController_ = {
                                 ToolController_.setToolHeight(0)
                                 ToolController_.setToolWidth()
                                 TimeUI.destroy()
+                                ToolController_.closeActiveTool()
                             }
+
+                            $('#topBar').css({
+                                'padding-left': '40px',
+                                'margin-left': '0px',
+                                width: '100%',
+                            })
                         }
                     })()
                 )
 
             timeSelect.append('i')
                 .attr('class', 'mdi mdi-clock mdi-18px')
+                .style('cursor', 'pointer')
+        }
+
+        if (L_.UserInterface_?.isMobile === true &&
+                (L_.configData.coordinates.coordll == true || L_.configData.coordinates.coorden == true)) {
+            let coordSelect = d3.select('#toolcontroller_incdiv')
+                .append('div')
+                .attr('id', 'coordinatesDiv')
+                .style('position', 'relative')
+                .style('width', '30px')
+                .style('height', '30px')
+                .style('display', 'inline-block')
+                .style('text-align', 'center')
+                .style('line-height', '30px')
+                .style('vertical-align', 'middle')
+                .style('cursor', 'pointer')
+                .style('transition', 'all 0.2s ease-in')
+                .style('color', ToolController_.defaultColor)
+                .on(
+                    'click',
+                    (function () {
+                        return function () {
+                            var hasActive = false
+                            if ($(this).hasClass('active')) {
+                                hasActive = true
+                            }
+                            var prevActive = $(
+                                '#toolcontroller_incdiv .active'
+                            )
+                            prevActive.removeClass('active').css({
+                                color: ToolController_.defaultColor,
+                                background: 'none',
+                            })
+                            prevActive.parent().css({
+                                background: 'none',
+                            })
+                            if (!hasActive) {
+                                var newActive = $('#toolcontroller_incdiv #coordinatesDiv')
+                                newActive.addClass('active').css({
+                                    color: ToolController_.activeColor,
+                                })
+
+                                L_.Coordinates.initialize()
+                                L_.Coordinates.init()
+                                ToolController_.setToolHeight(L_.Coordinates.height)
+                                ToolController_.setToolWidth()
+                                L_.Coordinates.make()
+                            } else {
+                                ToolController_.setToolHeight(0)
+                                ToolController_.setToolWidth()
+                                L_.Coordinates.destroy()
+                                ToolController_.closeActiveTool()
+                            }
+
+                            $('#topBar').css({
+                                'padding-left': '40px',
+                                'margin-left': '0px',
+                                width: '100%',
+                            })
+                        }
+                    })()
+                )
+
+            coordSelect.append('i')
+                .attr('class', 'mdi mdi-target mdi-18px')
                 .style('cursor', 'pointer')
         }
 
