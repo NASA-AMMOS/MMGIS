@@ -41,19 +41,46 @@ jobs:
 
           echo "Comparing against base branch: ${{ github.base_ref }} ($BASE_SHA)"
 
-          # Check if package.json was modified in this PR
+          # Get current date in YYYYMMDD format
+          TODAY=$(date +%Y%m%d)
+          echo "Today's date: $TODAY"
+
+          # Check if package.json was modified in this PR by a non-bot user
           CHANGED_FILES=$(git diff --name-only $BASE_SHA HEAD)
 
           if echo "$CHANGED_FILES" | grep -qE "^package\.json$|^configure/package\.json$"; then
-            echo "needs_bump=false" >> $GITHUB_OUTPUT
-            echo "✓ Version files were already modified in this PR"
-            
-            # Get the version for reporting
-            CURRENT_VERSION=$(node -p "require('./package.json').version")
-            echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "✓ Version files were modified in this PR"
+
+            # Check if the modification was made by the bot (exclude bot commits)
+            PKG_JSON_COMMITS=$(git log --format="%an|%ae|%s" $BASE_SHA..HEAD -- package.json configure/package.json)
+
+            # Check if ALL package.json commits are from the bot
+            NON_BOT_COMMITS=$(echo "$PKG_JSON_COMMITS" | grep -v "github-actions\[bot\]" | grep -v "\[version bump\]" || true)
+
+            if [ -z "$NON_BOT_COMMITS" ]; then
+              echo "✓ All version changes were made by the bot, checking if date is current..."
+
+              # Get current version and extract date
+              CURRENT_VERSION=$(node -p "require('./package.json').version")
+              VERSION_DATE=$(echo $CURRENT_VERSION | grep -oE '[0-9]{8}$' || echo "")
+
+              if [ "$VERSION_DATE" == "$TODAY" ]; then
+                echo "✓ Version date is current ($TODAY)"
+                echo "needs_bump=false" >> $GITHUB_OUTPUT
+                echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+              else
+                echo "✗ Version date is outdated ($VERSION_DATE vs $TODAY), will re-bump with today's date"
+                echo "needs_bump=true" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "✓ Version was manually updated by a user"
+              CURRENT_VERSION=$(node -p "require('./package.json').version")
+              echo "needs_bump=false" >> $GITHUB_OUTPUT
+              echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            fi
           else
-            echo "needs_bump=true" >> $GITHUB_OUTPUT
             echo "✗ Version files not modified, will auto-bump"
+            echo "needs_bump=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Bump version

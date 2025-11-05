@@ -954,7 +954,7 @@ async function makeVectorLayer(
                 L_.Map_.map.hasLayer(L_.layers.layer[layerObj.name])
             ) {
                 wasOnForRefresh = true
-                L_.toggleLayer(L_.layers.data[layerObj.name], true)
+                L_.toggleLayer(L_.layers.data[layerObj.name], true, true)
             }
 
             L_.layers.attachments[layerObj.name] = vl.sublayers
@@ -962,7 +962,7 @@ async function makeVectorLayer(
 
             // For refresh operations, turn the new layer back on if the old one was on
             if (isRefresh && wasOnForRefresh) {
-                L_.toggleLayer(L_.layers.data[layerObj.name], true)
+                L_.toggleLayer(L_.layers.data[layerObj.name], false, true)
             }
 
             d3.selectAll('.' + F_.getSafeName(layerObj.name)).data(
@@ -1185,7 +1185,10 @@ async function makeTileLayer(layerObj) {
                 let bandsParamStac = ''
 
                 // Only add bands if no expression exists (expression takes precedence)
-                if (!layerObj.cogExpression || layerObj.cogExpression.trim() === '') {
+                if (
+                    !layerObj.cogExpression ||
+                    layerObj.cogExpression.trim() === ''
+                ) {
                     b = layerObj.cogBands
                     if (b != null) {
                         b.forEach((band) => {
@@ -1216,7 +1219,10 @@ async function makeTileLayer(layerObj) {
                 bandsParam = ''
 
                 // Only add bands if no expression exists (expression takes precedence)
-                if (!layerObj.cogExpression || layerObj.cogExpression.trim() === '') {
+                if (
+                    !layerObj.cogExpression ||
+                    layerObj.cogExpression.trim() === ''
+                ) {
                     b = layerObj.cogBands
                     if (b != null) {
                         b.forEach((band) => {

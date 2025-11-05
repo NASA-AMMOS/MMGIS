@@ -31,28 +31,9 @@ var IdentifierTool = {
     justification: 'left',
     vars: {},
     initialize: function () {
-        //Get tool variables and UI adjustments
+        //Get tool variables
         this.justification = L_.getToolVars('identifier')['justification']
-        var toolContent = d3.select('#toolSeparated_Identifier')
-        var toolController = d3.select('#toolcontroller_sepdiv')
-        if (this.justification === 'right') {
-            toolController.style('top', '110px')
-            toolController.style('left', null)
-            toolController.style('right', '5px')
-            toolContent.style('left', null)
-            toolContent.style('right', '0px')
-            toolContent.style('margin-bottom', '5px')
-        } else if (
-            this.justification !== L_.getToolVars('legend')['justification']
-        ) {
-            toolController.clone(false).attr('id', 'toolcontroller_sepdiv_left')
-            $('#toolSeparated_Identifier').appendTo(
-                '#toolcontroller_sepdiv_left'
-            )
-            toolController.style('top', '40px')
-            toolController.style('left', '5px')
-            toolController.style('right', null)
-        }
+        // Justification is now handled by ToolController_ during initialization
     },
     make: function (targetId) {
         this.targetId = targetId
