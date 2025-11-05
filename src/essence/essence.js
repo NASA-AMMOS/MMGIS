@@ -46,6 +46,8 @@ import { makeMissionNotFoundDiv } from './LandingPage/LandingPage'
 import { stylize } from './Ancillary/Stylize'
 //Requiring UserInterface_ initializes itself
 
+const UserInterface_ = await _UserInterface_.default()
+
 if (typeof window.mmgisglobal.groups === 'string') {
     window.mmgisglobal.groups = window.mmgisglobal.groups.replace(
         /&quot;/g,
