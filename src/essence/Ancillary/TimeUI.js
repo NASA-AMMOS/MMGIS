@@ -1068,6 +1068,31 @@ const TimeUI = {
         }
         TimeUI._refreshLiveProgress()
 
+        // Apply expandedByDefault configuration
+        // If TimeUI is currently visible, expand it now
+        // If TimeUI is hidden, set the state so it expands when opened
+        if (L_.configData.time?.expandedByDefault === true) {
+            if ($('#timeUI').hasClass('active')) {
+                // TimeUI is visible, expand it now
+                // So that it gets flipped to true
+                TimeUI.expanded = false
+                TimeUI.toggleExpanded()
+            } else {
+                L_.subscribeOnTimeUIToggle(
+                    'timeui_expanded_layout',
+                    (isOpen) => {
+                        if (isOpen) {
+                            // So that it gets flipped to true
+                            TimeUI.expanded = false
+                            TimeUI.toggleExpanded()
+                        }
+                    }
+                )
+            }
+            // Add the marker class to indicate default expanded state
+            $('#timeUI').addClass('defaultExpanded')
+        }
+
         // Restore follow state from deeplink after a delay to ensure layers are loaded
         if (L_.FUTURES.follow && L_.FUTURES.activePoint) {
             setTimeout(() => {
@@ -1651,9 +1676,7 @@ const TimeUI = {
                 .removeClass('mdi-chevron-down')
                 .addClass('mdi-chevron-up')
         }
-
-        // Update UI element positions to account for expanded TimeUI
-        UserInterface_.setToolHeight(UserInterface_.pxIsTools, true)
+        TimeUI._updateBottomUIHeight()
     },
     _populateExpandedRows() {
         // Populate Years Row
@@ -1896,15 +1919,6 @@ const TimeUI = {
 
             container.append(yearButton)
         }
-        // Scroll to selected year
-        const selectedButton = container.find('.selected')[0]
-        if (selectedButton) {
-            selectedButton.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest',
-                inline: 'center',
-            })
-        }
     },
     _populateMonthsRow() {
         const container = $('#mmgisTimeUIMonthsContainer')
@@ -1936,16 +1950,6 @@ const TimeUI = {
 
             container.append(monthButton)
         }
-
-        // Scroll to selected month
-        const selectedButton = container.find('.selected')[0]
-        if (selectedButton) {
-            selectedButton.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest',
-                inline: 'center',
-            })
-        }
     },
     _populateDaysRow() {
         const container = $('#mmgisTimeUIDaysContainer')
@@ -1974,16 +1978,6 @@ const TimeUI = {
 
             container.append(dayButton)
         }
-
-        // Scroll to selected day
-        const selectedButton = container.find('.selected')[0]
-        if (selectedButton) {
-            selectedButton.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest',
-                inline: 'center',
-            })
-        }
     },
     _selectYear(year) {
         // Select the entire year (Jan 1 00:00:00 to Dec 31 23:59:59)
@@ -2001,9 +1995,7 @@ const TimeUI = {
     },
     _selectMonth(monthIndex) {
         // Select the entire month for the current year (use addOffset to get local time)
-        const selectedYear = moment(
-            TimeUI.addOffset(TimeUI._endTimestamp)
-        ).year()
+        const selectedYear = moment(TimeUI._endTimestamp).year()
         const startOfMonth = moment([selectedYear, monthIndex, 1])
             .startOf('month')
             .valueOf()
@@ -2026,7 +2018,7 @@ const TimeUI = {
     },
     _selectDay(day) {
         // Select the entire day for the current month/year (use addOffset to get local time)
-        const selectedMoment = moment(TimeUI.addOffset(TimeUI._endTimestamp))
+        const selectedMoment = moment(TimeUI._endTimestamp)
         const selectedYear = selectedMoment.year()
         const selectedMonth = selectedMoment.month()
         const startOfDay = moment([selectedYear, selectedMonth, day])
@@ -2911,6 +2903,41 @@ const TimeUI = {
         }
 
         TimeUI._remakeTimeSlider(true)
+    },
+    _updateBottomUIHeight() {
+        const active = !$('#toggleTimeUI').hasClass('active')
+
+        const defaultExpanded = $('#timeUI').hasClass('expanded')
+        const timeUIHeight = defaultExpanded ? 145 : 40
+        const newBottom = !active ? timeUIHeight : 0
+        const timeBottom = 0
+
+        $('#CoordinatesDiv').css({
+            bottom: newBottom + (UserInterface_.pxIsTools || 0) + 'px',
+        })
+        $('#mapToolBar').css({
+            bottom: newBottom + (UserInterface_.pxIsTools || 0) + 'px',
+        })
+        $('.leaflet-bottom.leaflet-left').css({
+            bottom: newBottom + 'px',
+        })
+        $('#mmgis-attributions').css({
+            bottom: (UserInterface_.pxIsTools || 0) + 'px',
+        })
+        $('.leaflet-bottom.leaflet-right').css({
+            bottom: newBottom + (UserInterface_.pxIsTools || 0) + 'px',
+        })
+        $('#photosphereAzIndicator').css({
+            bottom: newBottom + (UserInterface_.pxIsTools || 0) + 'px',
+            transition: 'bottom 0.2s ease-in',
+        })
+        $('#_lithosphere_controls_bottomleft').css({
+            bottom: newBottom + (UserInterface_.pxIsTools || 0) + 10 + 'px',
+            transition: 'bottom 0.2s ease-in',
+        })
+        $('#timeUI').css({
+            bottom: timeBottom + (UserInterface_.pxIsTools || 0) + 'px',
+        })
     },
 }
 

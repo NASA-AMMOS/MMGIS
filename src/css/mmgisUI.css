@@ -1099,9 +1099,11 @@ blink {
 }
 
 .slider::-moz-range-thumb {
-    width: 25px;
-    height: 25px;
-    background: rgba(255, 255, 255, 0);
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 25px;
+    background: rgb(211, 129, 22);
     cursor: pointer;
 }
 /*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ switch slider ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
@@ -1140,8 +1142,9 @@ blink {
 }
 
 .slider2::-moz-range-thumb {
-    width: 25px;
-    height: 25px;
+    appearance: none;
+    width: 17px;
+    height: 17px;
     border-radius: 50%;
     background: #eee;
     cursor: pointer;
@@ -1176,8 +1179,9 @@ blink {
 }
 
 .slider3::-moz-range-thumb {
-    width: 25px;
-    height: 25px;
+    appearance: none;
+    width: 17px;
+    height: 17px;
     border-radius: 50%;
     background: #111;
     cursor: pointer;

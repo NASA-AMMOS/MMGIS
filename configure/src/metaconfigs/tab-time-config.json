@@ -33,6 +33,15 @@
           "width": 3,
           "disableSwitch": "time.enabled",
           "defaultChecked": false
+        },
+        {
+          "field": "time.expandedByDefault",
+          "name": "Expanded By Default",
+          "description": "If enabled, the Time UI will start with the expanded view (Years/Months/Days selector) open.",
+          "type": "checkbox",
+          "width": 3,
+          "disableSwitch": "time.enabled",
+          "defaultChecked": false
         }
       ]
     },
@@ -45,7 +54,7 @@
           "description": "The time format to be displayed on the Time UI. Uses D3 time format specifiers: <a target='_blank' href='https://github.com/d3/d3-time-format'>https://github.com/d3/d3-time-format</a>. Default: %Y-%m-%dT%H:%M:%SZ",
           "type": "text",
           "disableSwitch": "time.enabled",
-          "width": 6
+          "width": 3
         },
         {
           "field": "time.liveByDefault",
