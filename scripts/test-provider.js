@@ -5,7 +5,7 @@ const {
   planWithProvider,
   listProviderTools,
   haveAzureEnv,
-} = require("../API/Backend/Agent/provider");
+} = require("../API/Frozon-MMGIS-Plugin-Backend/Agent/provider");
 
 function printDebug(label, r) {
   const dbg = r && r.debug ? r.debug : {};
@@ -57,7 +57,7 @@ async function runAll() {
     __dirname,
     "..",
     "API",
-    "Backend",
+    "Frozon-MMGIS-Plugin-Backend",
     "Agent",
     "tool-registry.json",
   );

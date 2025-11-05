@@ -1,0 +1,9 @@
+[submodule "API/Frozon-MMGIS-Plugin-Backend"]
+	path = API/Frozon-MMGIS-Plugin-Backend
+	url = https://github.jpl.nasa.gov/huikyole/Frozon-MMGIS-Plugin-Backend.git
+[submodule "Frozon-MMGIS-Plugin-Tools"]
+	path = Frozon-MMGIS-Plugin-Tools
+	url = https://github.jpl.nasa.gov/huikyole/Frozon-MMGIS-Plugin-Tools.git
+[submodule "Frozon-Analytics-API"]
+	path = Frozon-Analytics-API
+	url = https://github.jpl.nasa.gov/Frozon/Frozon-Analytics-API

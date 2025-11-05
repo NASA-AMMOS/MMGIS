@@ -48,7 +48,7 @@
         "test:provider": "node scripts/test-provider.js",
         "test:ajv": "node scripts/test-ajv.js",
         "test:e2e:agent": "node scripts/test-e2e-agent.js",
-        "fmt": "prettier --write --loglevel warn \"API/Backend/Agent/**/*.{js,json}\" \"scripts/**/*.js\" \"src/essence/Tools/AgentChat/**/*.{js}\" \"src/essence/mmgisAPI/mmgisAPI.js\""
+        "fmt": "prettier --write --loglevel warn \"API/Frozon-MMGIS-Plugin-Backend/Agent/**/*.{js,json}\" \"scripts/**/*.js\" \"src/essence/Tools/AgentChat/**/*.{js}\" \"src/essence/mmgisAPI/mmgisAPI.js\""
     },
     "dependencies": {
         "@babel/runtime": "^7.23.1",

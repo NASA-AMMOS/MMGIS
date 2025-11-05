@@ -79,6 +79,309 @@ function scoreSimilarity(queryNorm, candidateNorm) {
     return Math.max(0, 1 - dist / maxLen)
 }
 
+const ANALYTICS_DEFAULT_BASE = null
+let analyticsLayerCatalogPromise = null
+
+function getAnalyticsBaseUrl() {
+    const override =
+        (window?.frozonAnalyticsBase &&
+            String(window.frozonAnalyticsBase).trim()) ||
+        (window?.mmgisglobal?.FROZON_ANALYTICS_BASE_URL &&
+            String(window.mmgisglobal.FROZON_ANALYTICS_BASE_URL).trim()) ||
+        (window?.mmgisglobal?.ANALYTICS_BASE_URL &&
+            String(window.mmgisglobal.ANALYTICS_BASE_URL).trim())
+    const root = (window?.mmgisglobal?.ROOT_PATH || '').replace(/\/+$/, '')
+    const base =
+        override && override.length
+            ? override
+            : `${root}/api/agent/analytics`
+    return base.replace(/\/+$/, '')
+}
+
+function buildAnalyticsUrl(path) {
+    const safePath = String(path || '').replace(/^\/+/, '')
+    return `${getAnalyticsBaseUrl()}/${safePath}`
+}
+
+async function fetchAnalyticsLayerCatalog() {
+    if (analyticsLayerCatalogPromise) return analyticsLayerCatalogPromise
+    const url = buildAnalyticsUrl('layers')
+    analyticsLayerCatalogPromise = fetch(url, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+    })
+        .then((res) => {
+            if (!res.ok) {
+                throw new Error(
+                    `Analytics catalog request failed (${res.status})`
+                )
+            }
+            return res.json()
+        })
+        .catch((error) => {
+            analyticsLayerCatalogPromise = null
+            throw error
+        })
+    return analyticsLayerCatalogPromise
+}
+
+function gatherAnalyticsAliases(key, info, layerConfig) {
+    const values = new Set()
+    const push = (value) => {
+        if (typeof value === 'string' && value.trim()) values.add(value.trim())
+    }
+    const pushPath = (value) => {
+        if (typeof value !== 'string' || !value.trim()) return
+        push(value)
+        const parts = value.split(/[\\/]/)
+        const file = parts[parts.length - 1]
+        if (file) {
+            push(file)
+            const withoutExt = file.replace(/\.[^.]+$/, '')
+            if (withoutExt !== file) push(withoutExt)
+            push(file.replace(/[_-]+/g, ' '))
+            push(withoutExt.replace(/[_-]+/g, ' '))
+        }
+    }
+    push(key)
+    if (info) {
+        push(info.name)
+        push(info.display_name)
+        push(info.displayName)
+        push(info.title)
+        if (Array.isArray(info.aliases)) info.aliases.forEach(push)
+        if (Array.isArray(info.alias)) info.alias.forEach(push)
+        if (Array.isArray(info.tags)) info.tags.forEach(push)
+        if (info.path) pushPath(info.path)
+        if (info.dataset) push(info.dataset)
+    }
+    if (layerConfig) {
+        push(layerConfig.name)
+        push(layerConfig.display_name)
+        push(layerConfig.displayName)
+        push(layerConfig.title)
+        if (Array.isArray(layerConfig.aliases))
+            layerConfig.aliases.forEach(push)
+        else if (typeof layerConfig.alias === 'string') {
+            layerConfig.alias
+                .split(/[,;]+/)
+                .map((a) => a.trim())
+                .filter(Boolean)
+                .forEach(push)
+        }
+        if (layerConfig.url) pushPath(layerConfig.url)
+        if (layerConfig.cogUrl) pushPath(layerConfig.cogUrl)
+        if (layerConfig.source) pushPath(layerConfig.source)
+    }
+    return Array.from(values)
+}
+
+async function resolveAnalyticsLayerKey(layerName, layerConfig) {
+    try {
+        const catalog = await fetchAnalyticsLayerCatalog()
+        const layersRaw = catalog?.layers
+        const entries = []
+        if (Array.isArray(layersRaw)) {
+            layersRaw.forEach((info) => {
+                if (!info || typeof info !== 'object') return
+                const key =
+                    (typeof info.name === 'string' && info.name) ||
+                    (typeof info.id === 'string' && info.id) ||
+                    (typeof info.dataset === 'string' && info.dataset) ||
+                    null
+                entries.push({ key, info })
+            })
+        } else if (layersRaw && typeof layersRaw === 'object') {
+            Object.keys(layersRaw).forEach((key) => {
+                entries.push({ key, info: layersRaw[key] })
+            })
+        }
+        if (!entries.length) return null
+        const targetNorm = normalizeName(layerName)
+        if (!targetNorm) return null
+    let best = null
+    let bestScore = 0
+    entries.forEach(({ key, info }) => {
+        const candidates = gatherAnalyticsAliases(key, info, layerConfig)
+        candidates.forEach((candidate) => {
+            const candidateNorm = normalizeName(candidate)
+            if (!candidateNorm) return
+            const score = scoreSimilarity(targetNorm, candidateNorm)
+            if (score > bestScore) {
+                bestScore = score
+                best = { key, info }
+            }
+        })
+    })
+    if (!best) {
+        if (entries.length === 1) {
+            best = entries[0]
+            bestScore = 0
+        } else {
+            return null
+        }
+    }
+    const MIN_SCORE = 0.32
+    if (bestScore < MIN_SCORE && entries.length > 1) {
+        return {
+            key:
+                (typeof best.key === 'string' && best.key) ||
+                (best.info && typeof best.info.name === 'string'
+                    ? best.info.name
+                    : null) ||
+                null,
+            info: best.info,
+            confidence: bestScore,
+        }
+    }
+    let resolvedKey =
+        (typeof best.key === 'string' && best.key) ||
+        (best.info && typeof best.info.name === 'string'
+            ? best.info.name
+            : null) ||
+        null
+    if (!resolvedKey && best.info?.dataset) {
+        resolvedKey = best.info.dataset
+    }
+        if (!resolvedKey && typeof best.info?.path === 'string') {
+            const parts = best.info.path.split(/[\\/]/)
+            resolvedKey = parts[parts.length - 1]?.replace(/\.[^.]+$/, '')
+        }
+    if (!resolvedKey) {
+        if (entries.length === 1) {
+            resolvedKey = entries[0].key || entries[0].info?.name || 'default'
+        } else {
+            return null
+        }
+    }
+    return {
+        key: resolvedKey,
+        info: best.info,
+        confidence: bestScore,
+    }
+} catch (error) {
+    console.error('Failed to resolve analytics layer:', error)
+    return null
+}
+}
+
+async function fetchAnalyticsStatistics(layerKey, bbox, timeRange, layerName) {
+    const params = new URLSearchParams()
+    if (layerKey) params.set('layer', layerKey)
+    if (layerName) params.set('layer_name', layerName)
+    if (
+        Array.isArray(bbox) &&
+        bbox.length === 4 &&
+        bbox.every((value) => Number.isFinite(value))
+    ) {
+        params.set('lon_min', bbox[0])
+        params.set('lat_min', bbox[1])
+        params.set('lon_max', bbox[2])
+        params.set('lat_max', bbox[3])
+    }
+    if (timeRange && typeof timeRange === 'object') {
+        if (timeRange.start) params.set('time_start', timeRange.start)
+        if (timeRange.end) params.set('time_end', timeRange.end)
+    }
+    const url = `${buildAnalyticsUrl('statistics')}?${params.toString()}`
+    const res = await fetch(url, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+    })
+    if (!res.ok) {
+        throw new Error(`Analytics statistics failed (${res.status})`)
+    }
+    return res.json()
+}
+
+async function fetchAnalyticsHistogram(
+    layerKey,
+    bbox,
+    timeRange,
+    bins = 60,
+    layerName
+) {
+    const params = new URLSearchParams()
+    if (layerKey) params.set('ds', layerKey)
+    if (layerName) params.set('layer_name', layerName)
+    if (timeRange && typeof timeRange === 'object') {
+        if (timeRange.start) params.set('startTime', timeRange.start)
+        if (timeRange.end) params.set('endTime', timeRange.end)
+    }
+    if (
+        Array.isArray(bbox) &&
+        bbox.length === 4 &&
+        bbox.every((value) => Number.isFinite(value))
+    ) {
+        params.set('b', bbox.join(','))
+    }
+    params.set('bins', String(bins))
+    const url = `${buildAnalyticsUrl('histogram/data')}?${params.toString()}`
+    const res = await fetch(url, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+    })
+    if (!res.ok) {
+        throw new Error(`Analytics histogram failed (${res.status})`)
+    }
+    return res.json()
+}
+
+function sanitizeHistogramResponse(raw) {
+    const edges = Array.isArray(raw?.bin_edges) ? raw.bin_edges : []
+    const counts = Array.isArray(raw?.counts) ? raw.counts : []
+    if (edges.length !== counts.length + 1 || !counts.length) return null
+    const nodata =
+        typeof raw?.nodata_value === 'number' ? raw.nodata_value : null
+    const filteredCounts = []
+    const filteredEdges = []
+    for (let i = 0; i < counts.length; i += 1) {
+        const c = counts[i]
+        const start = edges[i]
+        const end = edges[i + 1]
+        if (!Number.isFinite(start) || !Number.isFinite(end)) continue
+        if (c == null || c <= 0) continue
+        if (start === end) continue
+        const containsNoData =
+            nodata != null &&
+            ((nodata >= start && nodata <= end) ||
+                (start <= 0 && end >= 0 && nodata === 0))
+        if (containsNoData) continue
+        if (!filteredEdges.length) filteredEdges.push(start)
+        filteredCounts.push(c)
+        filteredEdges.push(end)
+    }
+    if (!filteredCounts.length) return null
+    return { binEdges: filteredEdges, counts: filteredCounts }
+}
+
+function computeHistogramQuantiles(histogram, percentiles) {
+    if (!histogram) return null
+    const { binEdges, counts } = histogram
+    const total = counts.reduce((sum, c) => sum + c, 0)
+    if (!total) return null
+    const cumulative = []
+    let running = 0
+    counts.forEach((c) => {
+        running += c
+        cumulative.push(running)
+    })
+    const result = {}
+    percentiles.forEach((p) => {
+        const target = total * p
+        let idx = cumulative.findIndex((value) => value >= target)
+        if (idx === -1) idx = cumulative.length - 1
+        const lowerCum = idx > 0 ? cumulative[idx - 1] : 0
+        const interval = cumulative[idx] - lowerCum
+        const start = binEdges[idx]
+        const end = binEdges[idx + 1]
+        const fraction = interval > 0 ? (target - lowerCum) / interval : 0
+        const value = start + fraction * (end - start)
+        result[p] = value
+    })
+    return { total, quantiles: result }
+}
+
 function toNumber(value) {
     const n = Number(value)
     return Number.isFinite(n) ? n : null
@@ -564,19 +867,178 @@ export async function render_layer_mean(_ctx, payload) {
             'calculate_layer_mean requires layer_name and geographical_area.'
         )
     }
+    const layerMatch = findLayerMatch(layerName)
+    const resolvedLayerName =
+        (layerMatch && layerMatch.displayName) || layerName
     const area = resolveArea(areaName)
     if (!area) {
         throw new Error(`Unable to resolve geographical area "${areaName}".`)
     }
     drawAreaHighlight(area, 'mean', { color: '#0ea5e9', fillOpacity: 0.18 })
-    const mean = deterministicNumber(
-        `${normalizeName(layerName)}|${normalizeName(area.label)}`,
-        -20,
-        45
-    )
-    appendLine(
-        `Mean value for ${layerName} across ${area.label}: ${mean.toFixed(2)}`
-    )
+    try {
+        const analyticsLayer = await resolveAnalyticsLayerKey(
+            resolvedLayerName,
+            layerMatch?.layer?.config
+        )
+        const timeRange = {
+            start:
+                (payload?.time_start && String(payload.time_start)) ||
+                analyticsLayer?.info?.time_range?.start ||
+                null,
+            end:
+                (payload?.time_end && String(payload.time_end)) ||
+                analyticsLayer?.info?.time_range?.end ||
+                null,
+        }
+        const matchConfidence =
+            typeof analyticsLayer?.confidence === 'number'
+                ? analyticsLayer.confidence
+                : layerMatch?.score ?? null
+
+        let datasetKey = analyticsLayer?.key || null
+        let stats
+        let matchNote = null
+        try {
+            stats = await fetchAnalyticsStatistics(
+                datasetKey,
+                area.bbox,
+                timeRange,
+                resolvedLayerName
+            )
+        } catch (primaryError) {
+            if (datasetKey) {
+                stats = await fetchAnalyticsStatistics(
+                    null,
+                    area.bbox,
+                    timeRange,
+                    resolvedLayerName
+                )
+                matchNote = `Analytics dataset "${datasetKey}" unavailable; fell back to service default.`
+                datasetKey = null
+            } else {
+                throw primaryError
+            }
+        }
+        if (!stats || typeof stats.mean !== 'number') {
+            throw new Error('Analytics service did not return a numeric mean.')
+        }
+
+        let quantiles = null
+        if (
+            typeof stats.q25 === 'number' ||
+            typeof stats.q75 === 'number' ||
+            typeof stats.median === 'number' ||
+            typeof stats.q50 === 'number'
+        ) {
+            quantiles = {
+                quantiles: {
+                    0.25: stats.q25,
+                    0.5:
+                        typeof stats.median === 'number'
+                            ? stats.median
+                            : typeof stats.q50 === 'number'
+                              ? stats.q50
+                              : undefined,
+                    0.75: stats.q75,
+                },
+            }
+        } else if (datasetKey) {
+            try {
+                const histogramRaw = await fetchAnalyticsHistogram(
+                    datasetKey,
+                    area.bbox,
+                    timeRange,
+                    60,
+                    resolvedLayerName
+                )
+                const histogram = sanitizeHistogramResponse(histogramRaw)
+                const computed = computeHistogramQuantiles(histogram, [
+                    0.25,
+                    0.5,
+                    0.75,
+                ])
+                if (computed && computed.quantiles) {
+                    quantiles = computed
+                }
+            } catch (histError) {
+                console.warn(
+                    'Histogram-based quantiles unavailable:',
+                    histError
+                )
+            }
+        }
+
+        const lines = []
+        if (matchConfidence !== null && matchConfidence < 0.92) {
+            lines.push(
+                `Interpreting layer "${layerName}" as "${resolvedLayerName}" (confidence ${(matchConfidence * 100).toFixed(1)}%).`
+            )
+            lines.push(
+                'Please confirm this is the intended dataset before using the statistics below.'
+            )
+        } else if (resolvedLayerName !== layerName) {
+            lines.push(
+                `Normalized layer name "${layerName}" → "${resolvedLayerName}".`
+            )
+        } else if (!analyticsLayer?.key) {
+            lines.push(
+                'Layer not found in analytics catalog; using default dataset.'
+            )
+        }
+        if (matchNote) {
+            lines.push(matchNote)
+        }
+        lines.push(
+            `Confirmed area: ${area.label} (bbox ${area.bbox
+                .map((v) => v.toFixed(4))
+                .join(', ')})`
+        )
+        lines.push(
+            `Mean: ${stats.mean.toFixed(4)} (std ${
+                typeof stats.std === 'number' ? stats.std.toFixed(4) : 'n/a'
+            })`
+        )
+        if (quantiles?.quantiles) {
+            const { quantiles: q } = quantiles
+            if (typeof q[0.25] === 'number') {
+                lines.push(`25th percentile: ${q[0.25].toFixed(4)}`)
+            }
+            if (typeof q[0.5] === 'number') {
+                lines.push(`Median: ${q[0.5].toFixed(4)}`)
+            } else if (typeof stats.median === 'number') {
+                lines.push(`Median: ${stats.median.toFixed(4)}`)
+            }
+            if (typeof q[0.75] === 'number') {
+                lines.push(`75th percentile: ${q[0.75].toFixed(4)}`)
+            }
+        } else if (typeof stats.median === 'number') {
+            lines.push(`Median: ${stats.median.toFixed(4)}`)
+        }
+        if (typeof stats.min === 'number') {
+            lines.push(`Min: ${stats.min.toFixed(4)}`)
+        }
+        if (typeof stats.max === 'number') {
+            lines.push(`Max: ${stats.max.toFixed(4)}`)
+        }
+        if (typeof stats.valid_count === 'number') {
+            const formatted =
+                typeof stats.valid_count.toLocaleString === 'function'
+                    ? stats.valid_count.toLocaleString()
+                    : String(stats.valid_count)
+            lines.push(`Valid samples: ${formatted}`)
+        }
+        if (stats.is_sampled) {
+            lines.push('Note: statistics computed from sampled data.')
+        }
+        appendLine(lines.join('\n'))
+    } catch (error) {
+        appendLine(
+            `Unable to compute mean for ${resolvedLayerName}: ${
+                error?.message || error
+            }`
+        )
+        throw error
+    }
 }
 
 export async function render_contour_overlay(_ctx, payload) {

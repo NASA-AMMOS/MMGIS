@@ -2,7 +2,7 @@
 /*
  KISS deterministic generator for the Agent Tool Registry.
  - Single source of truth for tool contracts (schemas + execution descriptors)
- - Emits API/Backend/Agent/tool-registry.json
+ - Emits API/Frozon-MMGIS-Plugin-Backend/Agent/tool-registry.json
  - No I/O beyond writing the artifact; no dynamic environment dependencies
 */
 
@@ -45,7 +45,7 @@ function buildRegistry() {
     __dirname,
     "..",
     "API",
-    "Backend",
+    "Frozon-MMGIS-Plugin-Backend",
     "Agent",
     "tools",
   );
@@ -79,7 +79,7 @@ function main() {
     __dirname,
     "..",
     "API",
-    "Backend",
+    "Frozon-MMGIS-Plugin-Backend",
     "Agent",
     "tool-registry.json",
   );

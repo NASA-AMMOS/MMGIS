@@ -2,7 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const http = require("http");
 const fetch = require("node-fetch");
-const setup = require("../API/Backend/Agent/setup");
+const setup = require("../API/Frozon-MMGIS-Plugin-Backend/Agent/setup");
 
 (async () => {
   const app = express();
