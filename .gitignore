@@ -19,6 +19,7 @@
 # Wildcard patterns for tool plugins
 /src/essence/*Private-Tools*
 /src/essence/*Plugin-Tools*
+!/src/essence/Frozon-MMGIS-Plugin-Tools
 
 /config/pre/toolConfigs.json
 /src/pre/tools.js

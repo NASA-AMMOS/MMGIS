@@ -1,6 +1,0 @@
-# Layer metadata lookup
-# Each line: Display Name|Summary|Citation URL (optional)
-Air Quality Index|Hourly AQI measurements aggregated across monitoring stations. Data updated every hour from EPA AIRNow.|https://www.airnow.gov/
-Sea Surface Temperature|NOAA blended analysis of sea surface temperature anomalies at 5km resolution.|https://www.ncei.noaa.gov/products/sea-surface-temperature-analysis
-Vegetation Index|Normalized Difference Vegetation Index (NDVI) derived from MODIS Terra/Aqua composites.|https://modis.gsfc.nasa.gov/data/dataprod/mod13.php
-Precipitation Rate|GPM IMERG near real-time precipitation estimates with half-hour cadence.|https://gpm.nasa.gov/data/directory
