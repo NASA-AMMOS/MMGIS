@@ -287,8 +287,9 @@ let ToolController_ = {
             createSeparatedTool(legendToolIndex)
         }
 
+        // FIXME For now, remove the time button in the toolbar
         // Add the time UI button if time is enabled and in mobile mode
-        if (L_.UserInterface_?.isMobile === true && L_.configData.time && L_.configData.time.enabled === true) {
+        if (false && L_.UserInterface_?.isMobile === true && L_.configData.time && L_.configData.time.enabled === true) {
             let timeSelect = d3.select('#toolcontroller_incdiv')
                 .append('div')
                 .attr('id', 'toggleTimeUI')

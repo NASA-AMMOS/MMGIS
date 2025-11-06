@@ -242,6 +242,10 @@
 .mmgisHelpButton {
     display: none !important;
 }
+#ContextMenuMap, #topBarSecondary, .LayersToolInfo {
+    display: none !important;
+}
+
 .leaflet-top {
     top: 5px;
 }

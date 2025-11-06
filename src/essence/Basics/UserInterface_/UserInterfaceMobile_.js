@@ -14,6 +14,8 @@ var Viewer_ = null
 var Map_ = null
 var Globe_ = null
 
+var mobileTools = ['Layers','Legend', 'Info']
+
 var UserInterface = {
     splitterSize: 0,
     splitterSizeHidden: 17,
@@ -1144,6 +1146,16 @@ var UserInterface = {
         })
         $('#mmgis-map-compass').css({
             bottom: 78 + 'px',
+        })
+
+        // Remove the cursor info
+        d3.select('#cursorInfo').remove()
+
+        // Remove toolbar elements that aren't mobile features
+        ToolController_.tools.map(i => i.name).forEach((tool) => {
+            if (!mobileTools.includes(tool)) {
+                d3.select('#toolButton' + tool).remove()
+            }
         })
 
         BottomBar.fina()
