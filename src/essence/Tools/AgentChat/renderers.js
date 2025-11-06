@@ -1195,6 +1195,165 @@ export async function render_layer_difference(_ctx, payload) {
     ensureMap().fitBounds(bounds, { padding: [18, 18] })
 }
 
+// Threshold highlight overlay (ephemeral)
+function parseUnits(raw, fallback = 1) {
+    const s = String(raw || '').trim().toLowerCase()
+    if (!s) return fallback
+    if (s === 'm' || s === 'meter' || s === 'meters') return 1
+    if (s === 'cm' || s === 'centimeter' || s === 'centimeters') return 0.01
+    if (s === 'mm' || s === 'millimeter' || s === 'millimeters') return 0.001
+    return fallback
+}
+
+function getHighlightStore() {
+    const store =
+        (window.__mmgisAgentChatOverlays =
+            window.__mmgisAgentChatOverlays || {})
+    return store
+}
+
+export async function render_threshold_highlight(_ctx, payload) {
+    const variable = (payload?.variable || payload?.name || '').toString()
+    const operator = (payload?.operator || '>').toString()
+    let value = Number(payload?.value)
+    if (!Number.isFinite(value)) {
+        throw new Error(
+            "I couldn't parse a numeric threshold. Try, e.g., 'ssha > 0.2 m'."
+        )
+    }
+    // Unit conversion if provided (default assume meters)
+    const unitMult = parseUnits(payload?.unit, 1)
+    value = value * unitMult
+
+    const index = buildLayerIndex()
+    const q = normalizeName(variable)
+    const visible = index.filter((i) => i.visible)
+    const candidates = visible.filter((i) =>
+        i.normalizedAliases.some((a) => a.normalized.includes(q))
+    )
+    if (!candidates.length) {
+        appendLine(
+            `I couldn't find a visible ${variable} layer to highlight. Turn one on and try again.`
+        )
+        return
+    }
+    // Pick topmost visible: assume later entries rendered above
+    const target = candidates[candidates.length - 1]
+    const layerName = target.displayName || target.name
+
+    // Resolve source URL from config/live instance
+    const layerMeta = target.layer || {}
+    const layerConfig =
+        (layerMeta && layerMeta.config ? layerMeta.config : layerMeta) || {}
+    const sourceUrl =
+        layerConfig.cogUrl ||
+        layerConfig.url ||
+        layerConfig.source ||
+        layerConfig.path ||
+        layerConfig.href ||
+        layerMeta.cogUrl ||
+        layerMeta.url ||
+        layerMeta.source ||
+        layerMeta.path ||
+        layerMeta.href ||
+        layerMeta.liveInstance?.cogUrl ||
+        layerMeta.liveInstance?.url ||
+        layerMeta.liveInstance?.options?.url ||
+        layerMeta.liveInstance?.options?.source
+    const resolvedSourceUrl =
+        typeof sourceUrl === 'string' ? sourceUrl.trim() : ''
+    if (!resolvedSourceUrl) {
+        throw new Error(
+            `Layer "${layerName}" is missing a COG source URL for highlighting.`
+        )
+    }
+
+    const map = ensureMap()
+    const store = getHighlightStore()
+    // Clear any existing highlight overlay
+    if (store.highlightTile && typeof store.highlightTile.remove === 'function') {
+        try {
+            store.highlightTile.remove()
+        } catch (_) {}
+    }
+
+    const tileMatrixSet = layerConfig.tileMatrixSet || 'WebMercatorQuad'
+    const tileMatrixStr = String(tileMatrixSet)
+    const baseRoot = `${window.location.origin}${(
+        window.location.pathname || ''
+    ).replace(/\/$/g, '')}`
+
+    // Build binary-like highlight via titiler expression
+    // Note: We rely on tile opacity for subtle overlay per spec
+    const op = operator === '>=' || operator === '<=' || operator === '<' || operator === '>'
+        ? operator
+        : '>'
+    const expr = `(b1${op}${value})`
+    const params = new URLSearchParams()
+    params.set('url', resolvedSourceUrl)
+    params.set('expression', expr)
+    params.set('resampling', 'nearest')
+    // colormap 0 -> transparent, 1 -> bright highlight
+    params.set('colormap', '0:0,0,0,0|1:255,255,0,255')
+
+    const highlightUrl = `${baseRoot}/titiler/cog/tiles/${tileMatrixStr}/{z}/{x}/{y}.png?${params.toString()}`
+    store.highlightTile = window.L.tileLayer(highlightUrl, {
+        opacity: 0.2, // subtle overlay
+        interactive: false,
+        pane: 'overlayPane',
+        zIndex: 650,
+        tms: tileMatrixStr.toLowerCase().includes('tms')
+            ? true
+            : layerConfig.tileformat === 'tms' || layerConfig.tms === true || false,
+    })
+    store.highlightTile.addTo(map)
+
+    const nameText = `Highlight: ${variable} ${op} ${payload?.value}${
+        payload?.unit ? ' ' + payload.unit : ''
+    }`
+    appendLine(`${nameText} on ${layerName}`)
+}
+
+export async function toggle_highlight() {
+    const store = getHighlightStore()
+    const tile = store.highlightTile
+    if (!tile) {
+        appendLine('No highlight overlay to hide/show.')
+        return
+    }
+    const current = tile.options.opacity ?? 0.2
+    const isHidden = current <= 0.001
+    tile.setOpacity(isHidden ? (store.highlightOpacity ?? 0.2) : 0)
+}
+
+export async function clear_highlight() {
+    const store = getHighlightStore()
+    const tile = store.highlightTile
+    if (tile && typeof tile.remove === 'function') {
+        try {
+            tile.remove()
+            store.highlightTile = null
+            appendLine('Cleared highlight overlay.')
+        } catch (_) {}
+    } else {
+        appendLine('No highlight overlay to clear.')
+    }
+}
+
+export async function adjust_highlight_opacity(_ctx, payload) {
+    const delta = Number(payload?.delta)
+    const store = getHighlightStore()
+    const tile = store.highlightTile
+    if (!tile) {
+        appendLine('No highlight overlay to adjust.')
+        return
+    }
+    const cur = Number(tile.options.opacity ?? 0.2)
+    const next = Math.max(0.05, Math.min(0.4, cur + (Number.isFinite(delta) ? delta : 0)))
+    store.highlightOpacity = next
+    tile.setOpacity(next)
+    appendLine(`Highlight opacity set to ${next.toFixed(2)}.`)
+}
 export const RENDERERS = {
     layers_line: render_layers_line,
     text_with_citation: render_text_with_citation,
@@ -1206,6 +1365,10 @@ export const RENDERERS = {
     layer_mean: render_layer_mean,
     contour_overlay: render_contour_overlay,
     layer_difference: render_layer_difference,
+    threshold_highlight: render_threshold_highlight,
+    highlight_toggle: toggle_highlight,
+    highlight_clear: clear_highlight,
+    highlight_opacity: adjust_highlight_opacity,
 }
 
 RENDERERS.render_layers_line = render_layers_line
