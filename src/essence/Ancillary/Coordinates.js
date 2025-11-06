@@ -883,6 +883,21 @@ function interfaceWithMMWebGIS() {
 
     if (UserInterface.isMobile) {
         d3.select('#CoordinatesDiv > #toggleTimeUI').remove()
+
+        const mapRect = document.getElementById('map').getBoundingClientRect()
+
+        // Find center of map
+        const wOffset = mapRect.width / 2
+        const hOffset = mapRect.height / 2
+
+        //Find coordinates at map center and at another point one pixel below the center
+        const centerlatlong = Map_.map.containerPointToLatLng([
+            wOffset,
+            hOffset,
+        ])
+
+        // Set the coordinates to the center of the map
+        $('#mouseLngLat').text(`${centerlatlong.lng}, ${centerlatlong.lat}`)
     }
 
     function separateFromMMWebGIS() {
