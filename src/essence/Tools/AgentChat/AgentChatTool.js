@@ -15,9 +15,8 @@ const TRACE_PREF_KEY = 'mmgis.agent.chat.showDebug'
 const OVERLAY_ID = 'mmgis-agentchat-overlay'
 const PANEL_ID = 'mmgis-agentchat-panel'
 const AGENT_TOOL_NAME = 'AgentChatTool'
-let launcherControl = null
-let launcherResizeBound = false
-let launcherObserver = null
+const TOPBAR_LAUNCHER_ID = 'mmgisCopilotTopbarButton'
+const TOPBAR_WRAPPER_ID = 'mmgisCopilotTopbarWrapper'
 
 function hideToolbarButton(retry = 0) {
     const btn = document.getElementById('toolButtonAgentChat')
@@ -29,122 +28,60 @@ function hideToolbarButton(retry = 0) {
 }
 
 function ensureLauncherControl(retry = 0) {
-    const mapInstance = Map_?.map || window.mmgisAPI?.map
-    const L = window.L
-    if (!mapInstance || !L || !L.Control || !L.DomUtil) {
+    try {
+        document
+            .querySelectorAll('.mmgis-copilot-launcher')
+            .forEach((el) => el.remove())
+    } catch (_) {}
+
+    const topBar =
+        document.getElementById('loginDiv') ||
+        document.getElementById('topBarRight')
+    if (!topBar) {
         if (retry < 20) setTimeout(() => ensureLauncherControl(retry + 1), 250)
         return
     }
-    if (launcherControl) {
-        try {
-            mapInstance.removeControl(launcherControl)
-        } catch (_) {}
-        launcherControl = null
+
+    let wrapper = document.getElementById(TOPBAR_WRAPPER_ID)
+    if (!wrapper) {
+        wrapper = document.createElement('div')
+        wrapper.id = TOPBAR_WRAPPER_ID
+        wrapper.style.display = 'flex'
+        wrapper.style.flexDirection = 'column'
+        wrapper.style.alignItems = 'center'
+        wrapper.style.justifyContent = 'center'
+        wrapper.style.marginLeft = '6px'
+        wrapper.style.pointerEvents = 'auto'
+        const insertionPoint =
+            topBar.querySelector('#loginoutButton') ||
+            topBar.querySelector('#forceSignupButton')?.nextSibling ||
+            null
+        topBar.insertBefore(wrapper, insertionPoint)
     }
-    if (launcherObserver) {
-        launcherObserver.disconnect()
-        launcherObserver = null
-    }
-    const LauncherControl = L.Control.extend({
-        options: { position: 'topright' },
-        onAdd() {
-            const container = L.DomUtil.create(
-                'div',
-                'leaflet-control mmgis-copilot-launcher'
-            )
-            container.style.margin = '0'
-            container.style.marginTop = '0'
-            container.style.marginRight = '0'
-            container.style.position = 'relative'
-            container.style.zIndex = '1080'
-            const button = L.DomUtil.create(
-                'button',
-                'mmgis-copilot-button mdi mdi-robot-outline',
-                container
-            )
-            button.type = 'button'
-            button.title = 'Open MMGIS Copilot'
-            button.setAttribute('aria-label', 'Open MMGIS Copilot')
-            L.DomEvent.disableClickPropagation(container)
-            L.DomEvent.disableScrollPropagation(container)
-            L.DomEvent.on(button, 'click', (evt) => {
-                L.DomEvent.stop(evt)
-                openAgentChatFromLauncher()
-            })
-            return container
-        },
-    })
-    launcherControl = new LauncherControl()
-    launcherControl.addTo(mapInstance)
-    alignLauncherControlPosition(mapInstance)
-    const raf = typeof window !== 'undefined' ? window.requestAnimationFrame : null
-    if (typeof raf === 'function') {
-        raf(() => alignLauncherControlPosition(mapInstance))
-    }
-    const parent = launcherControl?.getContainer?.()?.parentElement
-    if (parent && !launcherObserver) {
-        launcherObserver = new MutationObserver(() => {
-            if (typeof raf === 'function') {
-                raf(() => alignLauncherControlPosition(mapInstance))
-            } else {
-                alignLauncherControlPosition(mapInstance)
-            }
+
+    let button = document.getElementById(TOPBAR_LAUNCHER_ID)
+    if (!button) {
+        button = document.createElement('button')
+        button.id = TOPBAR_LAUNCHER_ID
+        button.type = 'button'
+        button.className = 'mmgis-copilot-button mdi mdi-robot-outline'
+        button.setAttribute('aria-label', 'Open MMGIS Copilot')
+        button.setAttribute('title', 'Open MMGIS Copilot')
+        button.addEventListener('click', (evt) => {
+            evt.preventDefault()
+            evt.stopPropagation()
+            openAgentChatFromLauncher()
         })
-        launcherObserver.observe(parent, { childList: true })
-    }
-    if (!launcherResizeBound) {
-        launcherResizeBound = true
-        window.addEventListener('resize', () => ensureLauncherControl())
-    }
-}
-
-function alignLauncherControlPosition(mapInstance) {
-    if (!launcherControl || typeof launcherControl.getContainer !== 'function')
-        return
-    const container = launcherControl.getContainer()
-    if (!container) return
-    const zoomControl = mapInstance?.zoomControl
-    const zoomContainer = zoomControl && zoomControl._container
-    const parent = container.parentElement
-    container.style.pointerEvents = 'auto'
-    if (
-        !zoomContainer ||
-        !parent ||
-        !parent.contains(zoomContainer) ||
-        !parent.getBoundingClientRect
-    ) {
-        container.style.position = 'relative'
-        container.style.marginTop = '8px'
-        container.style.marginRight = '48px'
-        container.style.top = ''
-        container.style.right = ''
-        container.style.transform = ''
-        return
+        wrapper.appendChild(button)
     }
 
-    const parentRect = parent.getBoundingClientRect()
-    const zoomRect = zoomContainer.getBoundingClientRect()
-    const containerRect = container.getBoundingClientRect()
-    const zoomInButton = zoomContainer.querySelector(
-        '.leaflet-control-zoom-in'
-    )
-    const gap = 8
-
-    let topOffset = zoomRect.top - parentRect.top
-    if (zoomInButton) {
-        const zoomInRect = zoomInButton.getBoundingClientRect()
-        topOffset =
-            zoomInRect.top -
-            parentRect.top +
-            (zoomInRect.height - containerRect.height) / 2
+    if (!wrapper.querySelector('.mmgis-copilot-label')) {
+        const label = document.createElement('span')
+        label.className = 'mmgis-copilot-label'
+        label.textContent = 'Copilot'
+        wrapper.appendChild(label)
     }
-    const rightOffset = parentRect.right - zoomRect.right
 
-    container.style.position = 'absolute'
-    container.style.margin = '0'
-    container.style.top = `${Math.max(topOffset, 0)}px`
-    container.style.right = `${Math.max(rightOffset, 0)}px`
-    container.style.transform = `translateX(calc(-100% - ${gap}px))`
 }
 
 function openAgentChatFromLauncher(attempt = 0) {

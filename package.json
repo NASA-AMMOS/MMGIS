@@ -51,6 +51,9 @@
         "fmt": "prettier --write --loglevel warn \"API/Frozon-MMGIS-Plugin-Backend/Agent/**/*.{js,json}\" \"scripts/**/*.js\" \"src/essence/Tools/AgentChat/**/*.{js}\" \"src/essence/mmgisAPI/mmgisAPI.js\""
     },
     "dependencies": {
+        "@azure/ai-agents": "^1.0.0-beta.1",
+        "@azure/core-auth": "^1.7.2",
+        "@azure/identity": "^4.4.0",
         "@babel/runtime": "^7.23.1",
         "@eonasdan/tempus-dominus": "^6.2.6",
         "@mapbox/shp-write": "^0.4.3",
@@ -59,9 +62,6 @@
         "@terraformer/wkt": "^2.2.0",
         "@turf/turf": "^6.5.0",
         "ajv": "^8.17.1",
-        "@azure/ai-agents": "^1.0.0-beta.1",
-        "@azure/identity": "^4.4.0",
-        "@azure/core-auth": "^1.7.2",
         "bcryptjs": "^2.4.3",
         "busboy": "1.6",
         "camelcase": "^5.3.1",
@@ -78,6 +78,7 @@
         "deepmerge": "^4.2.2",
         "dotenv": "8.2.0",
         "dotenv-expand": "5.1.0",
+        "echarts": "^6.0.0",
         "express": "^4.18.2",
         "express-oas-generator": "^1.0.46",
         "express-rate-limit": "^5.1.3",
