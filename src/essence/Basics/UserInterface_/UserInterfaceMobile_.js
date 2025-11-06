@@ -1075,10 +1075,6 @@ var UserInterface = {
                 l_.configData.look.pagename == ''
             )
                 $('#topBarTitleName').css({ display: 'none' })
-            else {
-                // FIXME Move the location of this name maybe? For now just hide it
-                // $('#topBarTitleName').html(l_.configData.look.pagename)
-            }
         }
 
         //Disable toolbar presets when needed

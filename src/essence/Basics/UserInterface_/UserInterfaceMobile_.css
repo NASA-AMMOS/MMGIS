@@ -253,7 +253,7 @@
     left: 40px !important;
 }
 #topBarMenu {
-display: inherit;
+    display: inherit;
     padding: 9px 6px;
     cursor: pointer;
     width: 40px;
@@ -263,12 +263,23 @@ display: inherit;
     left: 0px;
     z-index: 2005;
     image-rendering: pixelated;
+    background: var(--color-a);
 }
-
+#topBarLink, #topBarScreenshot, #barBottom  {
+    background: inherit;
+}
 #barBottom {
 /* CSS for the top bar (for bottom bar items moved to the top bar) */
     top: 40px;
 }
 #bottomBarSettings, #bottomBarHotkeys, #topBarFullscreen {
     display: none !important;
+}
+#tools > #CoordinatesDiv {
+    position: inherit !important;
+    bottom: inherit !important;
+    right: 0px;
+    padding: 5px;
+    margin: 0;
+    margin-right: inherit !important;
 }

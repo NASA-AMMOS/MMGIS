@@ -41,8 +41,7 @@ var TimeControl = {
             return
         }
 
-        // FIXME Need to uncomment this
-        //TimeControl.timeUI = TimeUI.init(timeInputChange, TimeControl.enabled)
+        TimeControl.timeUI = TimeUI.init(timeInputChange, TimeControl.enabled)
 
         //updateTime()
 
