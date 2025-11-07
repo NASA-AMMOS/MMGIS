@@ -42,4 +42,5 @@ docker-compose.env.yml
 .mcp.json
 .serena
 .claude
+CLAUDE.md
 #tools
