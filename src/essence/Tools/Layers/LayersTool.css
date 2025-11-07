@@ -400,6 +400,7 @@
 }
 
 #layersTool .reload,
+#layersTool .setGlobalTimeFromExtent,
 #layersTool .reset,
 #layersTool .resetCog,
 #layersTool .tileexpressionreset,
@@ -431,16 +432,21 @@
 #layersTool .LayersToolInfo:hover {
     background: var(--color-k);
 }
+
+#layersTool .setGlobalTimeFromExtent:hover,
 #layersTool .reset:hover,
 #layersTool .resetCog:hover,
 #layersTool .layerSettingsTitle .tileexpressionreset:hover {
     color: white;
 }
+
+#layersTool .setGlobalTimeFromExtent,
 #layersTool .reset,
 #layersTool .resetCog,
 #layersTool .layerSettingsTitle .tileexpressionreset {
     display: none;
 }
+#layersTool #layersToolList > li.gears_on .setGlobalTimeFromExtent,
 #layersTool #layersToolList > li.gears_on .reset,
 #layersTool #layersToolList > li.gears_on .resetCog,
 #layersTool #layersToolList > li.gears_on .layerSettingsTitle .tileexpressionreset {
@@ -994,4 +1000,11 @@
 
 #layersTool .tileexpressionapply:hover {
     background: #2a7fc7;
+}
+
+#layersTool .layerDataExtentTitle {
+    display: flex;
+}
+#layersTool .setGlobalTimeFromExtent {
+    text-align: center;
 }

@@ -10,6 +10,7 @@ import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
 import Filtering from '../../Basics/Layers_/Filtering/Filtering'
 import Help from '../../Ancillary/Help'
 import CursorInfo from '../../Ancillary/CursorInfo'
+import TimeUI from '../../Ancillary/TimeUI'
 
 import LegendTool from '../Legend/LegendTool.js'
 
@@ -28,41 +29,88 @@ import './LayersTool.css'
 
 const helpKey = 'LayersTool'
 
-//Add the tool markup if you want to do it this way
-// prettier-ignore
-var markup = [
-    "<div id='layersTool'>",
-        "<div id='layersToolHeader'>",
-            "<div id='filterLayers'>",
-                "<div class='left'>",
-                    '<div id="title">Layers</div>',
-                    Help.getComponent(helpKey),
+/**
+ * Generate the tool markup dynamically based on available layer types
+ * @returns {string} HTML markup for the LayersTool
+ */
+function generateMarkup() {
+    const availableTypes = getAvailableLayerTypes()
+
+    // Define all possible filter icons with their properties
+    const filterIcons = [
+        {
+            type: 'vector',
+            title: 'Hide/Show Vector Layers',
+            icon: 'mdi-vector-square',
+        },
+        {
+            type: 'vectortile',
+            title: 'Hide/Show VectorTile Layers',
+            icon: 'mdi-grid',
+        },
+        {
+            type: 'tile',
+            title: 'Hide/Show Raster Layers',
+            icon: 'mdi-map-outline',
+        },
+        {
+            type: 'query',
+            title: 'Hide/Show Query Layers',
+            icon: 'mdi-binoculars',
+        },
+        {
+            type: 'data',
+            title: 'Hide/Show Data Layers',
+            icon: 'mdi-file-table',
+        },
+        {
+            type: 'model',
+            title: 'Hide/Show Model Layers',
+            icon: 'mdi-cube-outline',
+        },
+    ]
+
+    // Generate filter icon HTML only for available types
+    let filterIconsHtml = ''
+    filterIcons.forEach((filter) => {
+        if (availableTypes.has(filter.type)) {
+            filterIconsHtml += `<div class="${filter.type}" type="${filter.type}" title="${filter.title}"><i class="mdi ${filter.icon} mdi-18px"></i></div>`
+        }
+    })
+
+    // Always add the visible (eye) icon
+    filterIconsHtml +=
+        '<div class="visible" type="visible" title="Hide/Show Off Layers"><i class="mdi mdi-eye mdi-18px"></i></div>'
+
+    // prettier-ignore
+    return [
+        "<div id='layersTool'>",
+            "<div id='layersToolHeader'>",
+                "<div id='filterLayers'>",
+                    "<div class='left'>",
+                        '<div id="title">Layers</div>',
+                        Help.getComponent(helpKey),
+                    "</div>",
+                    "<div class='right'>",
+                        filterIconsHtml,
+                    "</div>",
                 "</div>",
-                "<div class='right'>",
-                    '<div class="vector" type="vector" title="Hide/Show Vector Layers"><i class="mdi mdi-vector-square mdi-18px"></i></div>',
-                    '<div class="vectortile" type="vectortile" title="Hide/Show VectorTile Layers"><i class="mdi mdi-grid mdi-18px"></i></div>',
-                    '<div class="tile" type="tile" title="Hide/Show Raster Layers"><i class="mdi mdi-map-outline mdi-18px"></i></div>',
-                    '<div class="query" type="query" title="Hide/Show Query Layers"><i class="mdi mdi-binoculars mdi-18px"></i></div>',
-                    '<div class="data" type="data" title="Hide/Show Data Layers"><i class="mdi mdi-file-table mdi-18px"></i></div>',
-                    '<div class="model" type="model" title="Hide/Show Model Layers"><i class="mdi mdi-cube-outline mdi-18px"></i></div>',
-                    '<div class="visible" type="visible" title="Hide/Show Off Layers"><i class="mdi mdi-eye mdi-18px"></i></div>',
+                "<div id='searchLayers'>",
+                    '<i class="mdi mdi-magnify mdi-18px"></i>',
+                    "<input type='text' placeholder='Search Layers (# for tags)' />",
+                    '<div id="clear"><i class="mdi mdi-close mdi-18px"></i></div>',
+                    '<div id="restore"><i class="mdi mdi-restore mdi-18px"></i></div>',
+                    '<div id="expand"><i class="mdi mdi-arrow-expand-vertical mdi-18px"></i></div>',
+                    '<div id="collapse"><i class="mdi mdi-arrow-collapse-vertical mdi-18px"></i></div>',
                 "</div>",
             "</div>",
-            "<div id='searchLayers'>",
-                '<i class="mdi mdi-magnify mdi-18px"></i>',
-                "<input type='text' placeholder='Search Layers (# for tags)' />",
-                '<div id="clear"><i class="mdi mdi-close mdi-18px"></i></div>',
-                '<div id="restore"><i class="mdi mdi-restore mdi-18px"></i></div>',
-                '<div id="expand"><i class="mdi mdi-arrow-expand-vertical mdi-18px"></i></div>',
-                '<div id="collapse"><i class="mdi mdi-arrow-collapse-vertical mdi-18px"></i></div>',
+            "<div id='layersToolContent'>",
+                "<ul id='layersToolList'>",
+                "</ul>",
             "</div>",
         "</div>",
-        "<div id='layersToolContent'>",
-            "<ul id='layersToolList'>",
-            "</ul>",
-        "</div>",
-    "</div>",
-].join('\n')
+    ].join('\n')
+}
 
 // These layers are a bit different and we need to account for that.
 // Either they have no map data or not initial data
@@ -422,7 +470,7 @@ function interfaceWithMMGIS(fromInit) {
     tools = tools.append('div').style('height', '100%')
     if (fromInit) tools.style('display', 'none')
     //Add the markup to tools or do it manually
-    tools.html(markup)
+    tools.html(generateMarkup())
 
     Help.finalize(helpKey)
 
@@ -556,35 +604,52 @@ function interfaceWithMMGIS(fromInit) {
             var timeDisplay = ''
             if (node[i].time != null) {
                 if (node[i].time.enabled == true) {
+                    // Determine if we have data extent info to display
+                    const hasDataExtent =
+                        node[i].time.dataStartTime || node[i].time.dataEndTime
+                    const dataExtentDisplay = hasDataExtent
+                        ? [
+                              '<li class="layerDataExtentTitle">',
+                              '<div>Data Time Extent</div>',
+                              '<div class="setGlobalTimeFromExtent" data-layername="' +
+                                  node[i].name +
+                                  '" title="Set Global Time to Data Extent">',
+                              "<i class='mdi mdi-crosshairs-gps mdi-18px'></i>",
+                              '</div>',
+                              '</li>',
+                              '<li>',
+                              '<div>',
+                              '<div>Data Start Time</div>',
+                              '<label class="dataStartTime ' +
+                                  F_.getSafeName(node[i].name) +
+                                  '">' +
+                                  (node[i].time.dataStartTime || 'Not Set') +
+                                  '</label>',
+                              '</div>',
+                              '</li>',
+                              '<li>',
+                              '<div>',
+                              '<div>Data End Time</div>',
+                              '<label class="dataEndTime ' +
+                                  F_.getSafeName(node[i].name) +
+                                  '">' +
+                                  (node[i].time.dataEndTime || 'Not Set') +
+                                  '</label>',
+                              '</div>',
+                              '</li>',
+                          ].join('\n')
+                        : ''
+
                     // prettier-ignore
                     timeDisplay = [
                         '<ul>',
                             '<li class="layerTimeTitle">',
                                 '<div>Time</div>',
                             '</li>',
-                            '<li>',
-                                '<div>',
-                                '<div>Start Time</div>',
-                                '<label class="starttime ' +
-                                    F_.getSafeName(node[i].name) +
-                                    '">' +
-                                    node[i].time.start +
-                                    '</label>',
-                                '</div>',
-                            '</li>',
-                            '<li>',
-                                '<div>',
-                                '<div>End Time</div>',
-                                '<label class="endtime ' +
-                                    F_.getSafeName(node[i].name) +
-                                    '">' +
-                                    node[i].time.end +
-                                    '</label>',
-                                '</div>',
-                            '</li>',
+                            dataExtentDisplay,
                             (
                                 node[i].time.refreshIntervalEnabled === true
-                            ) ? 
+                            ) ?
                             [
                             '<li>',
                                 '<div>',
@@ -1682,6 +1747,47 @@ function interfaceWithMMGIS(fromInit) {
             return
         }
     })
+
+    // Set global time to layer's data extent
+    $('#layersTool').on('click', '.setGlobalTimeFromExtent', function (e) {
+        e.stopPropagation()
+        const layerName = $(this).attr('data-layername')
+        const layerUUID = L_.asLayerUUID(layerName)
+        const layerData = L_.layers.data[layerUUID]
+
+        if (
+            layerData &&
+            layerData.time &&
+            layerData.time.dataStartTime &&
+            layerData.time.dataEndTime
+        ) {
+            // Convert ISO strings to timestamps
+            const startTime = new Date(layerData.time.dataStartTime).getTime()
+            const endTime = new Date(layerData.time.dataEndTime).getTime()
+
+            // Update TimeUI with the layer's data extent
+            TimeUI.updateTimes(startTime, endTime, endTime)
+
+            CursorInfo.update(
+                'Global time set to layer extent.',
+                3000,
+                false,
+                { x: 395, y: 6 },
+                '#0792c5',
+                'white'
+            )
+        } else {
+            CursorInfo.update(
+                'Layer data extent not configured!',
+                3000,
+                true,
+                { x: 395, y: 6 },
+                '#ff2626',
+                'white'
+            )
+        }
+    })
+
     //Enables the time dialogue box
     $('.LayersToolInfo').on('click', function (e) {
         e.stopPropagation()
@@ -2956,5 +3062,24 @@ function interfaceWithMMGIS(fromInit) {
 }
 
 //Other functions
+
+/**
+ * Get a Set of all layer types that exist in the current configuration
+ * @returns {Set<string>} Set of layer type strings (e.g., 'vector', 'tile', 'query')
+ */
+function getAvailableLayerTypes() {
+    const types = new Set()
+
+    // Iterate through all layers in the configuration
+    if (L_.layers && L_.layers.dataFlat) {
+        L_.layers.dataFlat.forEach((layer) => {
+            if (layer && layer.type && layer.type !== 'header') {
+                types.add(layer.type)
+            }
+        })
+    }
+
+    return types
+}
 
 export default LayersTool

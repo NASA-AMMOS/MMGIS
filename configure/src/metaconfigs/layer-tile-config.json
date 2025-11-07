@@ -415,6 +415,25 @@
               "width": 3
             }
           ]
+        },
+        {
+          "subname": "Data Time Extent",
+          "components": [
+            {
+              "field": "time.dataStartTime",
+              "name": "Data Start Time",
+              "description": "The earliest time for which data is available in this layer. This is for display purposes only and does not constrain queries. Format: ISO 8601 datetime string (e.g., 2020-01-01T00:00:00Z).",
+              "type": "text",
+              "width": 6
+            },
+            {
+              "field": "time.dataEndTime",
+              "name": "Data End Time",
+              "description": "The latest time for which data is available in this layer. This is for display purposes only and does not constrain queries. Format: ISO 8601 datetime string (e.g., 2025-12-31T23:59:59Z).",
+              "type": "text",
+              "width": 6
+            }
+          ]
         }
       ]
     },

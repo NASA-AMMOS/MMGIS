@@ -1265,10 +1265,21 @@ const TimeUI = {
                         : TimeUI._endTimestamp
                 )
             )
+
+            // Calculate percentages
+            let leftPercent = (left / timelineBCR.width) * 100
+            let rightPercent = (right / timelineBCR.width) * 100
+
+            // Clamp to 0-100% range to only show visible portion
+            leftPercent = Math.max(0, Math.min(100, leftPercent))
+            rightPercent = Math.max(0, Math.min(100, rightPercent))
+
+            const widthPercent = rightPercent - leftPercent
+
             $('#mmgisTimeUITimelineExtent')
                 .css('opacity', 1)
-                .css('width', `${((right - left) / timelineBCR.width) * 100}%`)
-                .css('left', `${(left / timelineBCR.width) * 100}%`)
+                .css('width', `${widthPercent}%`)
+                .css('left', `${leftPercent}%`)
 
             // Add or update the middle drag handle
             let extentHandle = $('#mmgisTimeUITimelineExtentHandle')
