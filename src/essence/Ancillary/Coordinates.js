@@ -107,7 +107,7 @@ const Coordinates = {
     initialize: function () {
         if (UserInterface.isMobile === true) {
             this.width = 'full'
-            this.height = 300
+            this.height = 100
         }
     },
     make: function () {
