@@ -648,8 +648,10 @@ var UserInterface = {
 <path d="M0.222266 9.21339C-0.277832 14.7126 0.222266 133.713 0.222266 133.713H26.2223V45.7134C26.2223 45.7134 100.722 127.712 106.222 132.713C109.171 135.395 112.12 136.782 115.222 136.645C118.325 136.782 121.274 135.395 124.222 132.713C129.722 127.712 204.222 45.7134 204.222 45.7134V133.713H230.222C230.222 133.713 230.722 14.7126 230.222 9.21339C229.722 3.71413 218.222 -3.28766 210.222 1.71339C202.222 6.71444 115.222 104.713 115.222 104.713C115.222 104.713 28.2224 6.71444 20.2223 1.71339C12.2222 -3.28766 0.722363 3.71413 0.222266 9.21339Z" fill="#08AEEA"></path>
 </svg>`
             )
-            // FIXME Turn off redirection to parent page for now
-            //.on('click', F_.toHostForceLanding)
+            .on('click', function () {
+                d3.select('#landingMissionsWrapper')
+                    .style('display', d3.select('#landingMissionsWrapper').style('display') === 'none' ? 'block' : 'none')
+            })
 
         this.dataLoadingSpinner = d3
             .select('#main-container')
@@ -1153,6 +1155,55 @@ var UserInterface = {
                 d3.select('#toolButton' + tool).remove()
             }
         })
+
+        // Add the elements for mission switching
+        let missionsDiv = d3.select('#main-container')
+            .append('div')
+            .attr('id', 'landingMissionsWrapper')
+            .style('top', '40px')
+            .style('left', '40px')
+            .style('background', 'var(--color-a)')
+            .style('opacity', '0.8')
+            .style('position', 'absolute')
+            .style('display', 'none')
+            .style('z-index', '1005')
+
+        var missionsUl = missionsDiv
+            .append('ul')
+            .style('margin', '0')
+            .style('padding', '10px')
+            .style('max-height', '50vh')
+            .style('max-width', '50vw')
+            .style('overflow-y', 'auto')
+            .style('padding-right', '20px')
+
+        let missions = L_.missionsList
+        for (let m in missions) {
+            missionsUl
+                .append('li')
+                .attr('class', 'landingPageMission')
+                .html(missions[m])
+                .on('click', function () {
+                    var missionName = d3.select(this).html()
+                    $('#main-container').animate(
+                        {
+                            opacity: 0,
+                        },
+                        1000,
+                        function () {
+                            const url = `${
+                                mmgisglobal.NODE_ENV === 'development'
+                                    ? 'http://localhost:8889'
+                                    : `${window.location.origin}${(
+                                          window.location.pathname || ''
+                                      ).replace(/\/$/g, '')}`
+                            }/?mission=${missionName}`
+
+                            window.location.replace(url)
+                        }
+                    )
+                })
+        }
 
         BottomBar.fina()
         UserInterface.show()
