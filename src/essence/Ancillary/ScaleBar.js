@@ -219,7 +219,7 @@ function setScaleBars() {
                         .attr('y1', 0)
                         .attr('x2', x)
                         .attr('y2', 0)
-                        .style('stroke', bw((i + 1) % 2))
+                        .style('stroke', bw(0))
                         .style('stroke-width', '14px')
                     d3.select('#scale_axis_xS')
                         .append('line')
@@ -227,7 +227,7 @@ function setScaleBars() {
                         .attr('y1', 0)
                         .attr('x2', x)
                         .attr('y2', 0)
-                        .style('stroke', bw(i % 2))
+                        .style('stroke', bw(1))
                         .style('stroke-width', '10px')
                     prevX = x
             } else {
