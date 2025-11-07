@@ -3,6 +3,7 @@ import $ from 'jquery'
 import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
+import L_ from '../Basics/Layers_/Layers_'
 
 var ScaleBar = {
     scaleBarSVG: null,
@@ -89,11 +90,12 @@ function setScaleBars() {
             if (d > 1000) return d / 1000 + 'km'
             return d + 'm'
         })
+
     var xAxisSmall = d3
         .axisBottom()
         .scale(XScaleS)
         .tickSize(8)
-        .ticks(1)
+        .ticks(L_.UserInterface_?.isMobile === true ? 2 : 1)
         .tickFormat(function (d) {
             if (d == 0) return d
             if (d < 1) return d * 100 + 'cm'
@@ -119,83 +121,135 @@ function setScaleBars() {
         .style('font-weight', 'bold')
         .attr('transform', 'translate(12, 8)')
 
-    axisGroupXL.call(xAxisLarge)
-    axisGroupXS.call(xAxisSmall)
-
-    d3.select('#scale_axis_xL path').remove()
-    d3.select('#scale_axis_xS path').remove()
 
     var bw = d3.scaleLinear().domain([0, 1]).range(['#161616', '#DCDCDC'])
     var prevX = 0
-    d3.selectAll('#scale_axis_xL .tick').each(function (d, i) {
-        if (i != 0) {
+
+    if (L_.UserInterface_?.isMobile != true) {
+        axisGroupXL.call(xAxisLarge)
+        axisGroupXS.call(xAxisSmall)
+
+        d3.select('#scale_axis_xL path').remove()
+        d3.select('#scale_axis_xS path').remove()
+
+        d3.selectAll('#scale_axis_xL .tick').each(function (d, i) {
+            if (i != 0) {
+                var x = d3.select(this).attr('transform')
+                x = x.replace('translate(', '')
+                x = x.split(',')[0]
+                if (x < barLength - 10) {
+                    d3.select('#scale_axis_xL')
+                        .append('line')
+                        .attr('x1', prevX)
+                        .attr('y1', 0)
+                        .attr('x2', x)
+                        .attr('y2', 0)
+                        .style('stroke', bw((i + 1) % 2))
+                        .style('stroke-width', '14px')
+                    d3.select('#scale_axis_xL')
+                        .append('line')
+                        .attr('x1', prevX)
+                        .attr('y1', 0)
+                        .attr('x2', x)
+                        .attr('y2', 0)
+                        .style('stroke', bw(i % 2))
+                        .style('stroke-width', '10px')
+                    prevX = x
+                }// else d3.select(this).remove()
+            }
+            d3.select(this).select('line').remove()
+
+            d3.select(this)
+                .select('text')
+                .style('fill', '#DCDCDC')
+                .style('stroke', '#000000')
+                .style('stroke-width', '3px')
+                .style('paint-order', 'stroke')
+        })
+
+        prevX = 0
+        d3.selectAll('#scale_axis_xS .tick').each(function (d, i) {
             var x = d3.select(this).attr('transform')
             x = x.replace('translate(', '')
             x = x.split(',')[0]
-            if (x < barLength - 10) {
-                d3.select('#scale_axis_xL')
-                    .append('line')
-                    .attr('x1', prevX)
-                    .attr('y1', 0)
-                    .attr('x2', x)
-                    .attr('y2', 0)
-                    .style('stroke', bw((i + 1) % 2))
-                    .style('stroke-width', '14px')
-                d3.select('#scale_axis_xL')
+            if (i != 0) {
+                d3.select('#scale_axis_xS')
                     .append('line')
                     .attr('x1', prevX)
                     .attr('y1', 0)
                     .attr('x2', x)
                     .attr('y2', 0)
                     .style('stroke', bw(i % 2))
+                    .style('stroke-width', '14px')
+                d3.select('#scale_axis_xS')
+                    .append('line')
+                    .attr('x1', prevX)
+                    .attr('y1', 0)
+                    .attr('x2', x)
+                    .attr('y2', 0)
+                    .style('stroke', bw((i + 1) % 2))
                     .style('stroke-width', '10px')
-                prevX = x
-            } else d3.select(this).remove()
-        }
-        d3.select(this).select('line').remove()
+            }
+            prevX = x
 
-        d3.select(this)
-            .select('text')
-            .style('fill', '#fff')
-            .style('stroke', '#000000')
-            .style('stroke-width', '3px')
-            .style('paint-order', 'stroke')
-    })
+            d3.select(this).select('line').remove()
 
-    prevX = 0
-    d3.selectAll('#scale_axis_xS .tick').each(function (d, i) {
-        var x = d3.select(this).attr('transform')
-        x = x.replace('translate(', '')
-        x = x.split(',')[0]
-        if (i != 0) {
-            d3.select('#scale_axis_xS')
-                .append('line')
-                .attr('x1', prevX)
-                .attr('y1', 0)
-                .attr('x2', x)
-                .attr('y2', 0)
-                .style('stroke', bw(i % 2))
-                .style('stroke-width', '14px')
-            d3.select('#scale_axis_xS')
-                .append('line')
-                .attr('x1', prevX)
-                .attr('y1', 0)
-                .attr('x2', x)
-                .attr('y2', 0)
-                .style('stroke', bw((i + 1) % 2))
-                .style('stroke-width', '10px')
-        }
-        prevX = x
+            d3.select(this)
+                .select('text')
+                .style('fill', '#DCDCDC')
+                .style('stroke', '#000000')
+                .style('stroke-width', '3px')
+                .style('paint-order', 'stroke')
+        })
 
-        d3.select(this).select('line').remove()
+    } else {
+        axisGroupXS.call(xAxisSmall)
 
-        d3.select(this)
-            .select('text')
-            .style('fill', '#fff')
-            .style('stroke', '#000000')
-            .style('stroke-width', '3px')
-            .style('paint-order', 'stroke')
-    })
+        d3.select('#scale_axis_xS path').remove()
+
+        let ticks = d3.selectAll('#scale_axis_xS .tick').size()
+        d3.selectAll('#scale_axis_xS .tick').each(function (d, i) {
+            if (i != 0 && i == ticks - 1) {
+                var x = d3.select(this).attr('transform')
+                x = x.replace('translate(', '')
+                x = x.split(',')[0]
+                    d3.select('#scale_axis_xS')
+                        .append('line')
+                        .attr('x1', prevX)
+                        .attr('y1', 0)
+                        .attr('x2', x)
+                        .attr('y2', 0)
+                        .style('stroke', bw((i + 1) % 2))
+                        .style('stroke-width', '14px')
+                    d3.select('#scale_axis_xS')
+                        .append('line')
+                        .attr('x1', prevX)
+                        .attr('y1', 0)
+                        .attr('x2', x)
+                        .attr('y2', 0)
+                        .style('stroke', bw(i % 2))
+                        .style('stroke-width', '10px')
+                    prevX = x
+            } else {
+                d3.select(this).remove()
+            }
+
+            d3.select(this).select('line').remove()
+
+            // Try to center the text
+            var width =  d3.select('#scale_axis_xS').select('line').node().getBoundingClientRect().width
+            d3.select(this)
+                .select('text')
+                .attr('x', -width / 2)
+
+            d3.select(this)
+                .select('text')
+                .style('fill', '#DCDCDC')
+                .style('stroke', '#000000')
+                .style('stroke-width', '3px')
+                .style('paint-order', 'stroke')
+        })
+    }
 
     //d3.select('#scale_axis_xS .tick').style('opacity', '0')
 }
