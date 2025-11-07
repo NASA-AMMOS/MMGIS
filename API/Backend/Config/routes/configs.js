@@ -185,7 +185,11 @@ function get(req, res, next, cb) {
           .then((mission) => {
             // Apply fallback logic for missionFolderName
             const config = mission.config;
-            if (config.msv && (!config.msv.missionFolderName || config.msv.missionFolderName === "")) {
+            if (
+              config.msv &&
+              (!config.msv.missionFolderName ||
+                config.msv.missionFolderName === "")
+            ) {
               config.msv.missionFolderName = config.msv.mission || "";
             }
 
@@ -243,12 +247,12 @@ router.get("/get", function (req, res, next) {
 
 function add(req, res, next, cb) {
   let configTemplate = JSON.parse(JSON.stringify(config_template));
-  
+
   // If a config is provided, deep merge it with the template
   if (req.body.config) {
     configTemplate = deepmerge(configTemplate, req.body.config);
   }
-  
+
   configTemplate.msv.mission = req.body.mission;
   // Set missionFolderName to match the mission name by default
   configTemplate.msv.missionFolderName = req.body.mission;
