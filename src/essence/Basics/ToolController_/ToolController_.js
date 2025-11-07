@@ -289,7 +289,7 @@ let ToolController_ = {
 
         // FIXME For now, remove the time button in the toolbar
         // Add the time UI button if time is enabled and in mobile mode
-        if (false && L_.UserInterface_?.isMobile === true && L_.configData.time && L_.configData.time.enabled === true) {
+        if (L_.UserInterface_?.isMobile === true && L_.configData.time && L_.configData.time.enabled === true) {
             let timeSelect = d3.select('#toolcontroller_incdiv')
                 .append('div')
                 .attr('id', 'toggleTimeUI')
@@ -331,6 +331,8 @@ let ToolController_ = {
                                 ToolController_.setToolHeight(TimeUI.height)
                                 ToolController_.setToolWidth()
                                 TimeUI.make()
+                                TimeUI.toggleExpanded()
+                                TimeUI.fina()
                             } else {
                                 ToolController_.setToolHeight(0)
                                 ToolController_.setToolWidth()
