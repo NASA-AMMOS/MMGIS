@@ -690,6 +690,9 @@ var UserInterface = {
         // Due to the order in which things are are initialized, just remove
         // the coordinates div and then redraw it as a "tool"
         d3.select('#CoordinatesDiv').remove()
+
+        // Try to lock the orientation
+        window.screen.orientation.lock('portrait')
     },
     resize: function () {
         windowresize()
