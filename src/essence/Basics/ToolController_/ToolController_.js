@@ -1,6 +1,7 @@
 import $ from 'jquery'
 import * as d3 from 'd3'
 import L_ from '../Layers_/Layers_'
+import TimeUI from '../../Ancillary/TimeUI'
 import { toolModules, toolConfigs } from '../../../pre/tools'
 
 import tippy from 'tippy.js'
@@ -178,7 +179,7 @@ let ToolController_ = {
         for (let i = 0; i < tools.length; i++) {
             this.toolModuleNames.push(tools[i].js)
 
-            if (tools[i].separatedTool) {
+            if (tools[i].separatedTool && L_.UserInterface_.isMobile !== true) {
                 // Legend tool should always be last in its container
                 if (tools[i].name === 'Legend') {
                     legendToolIndex = i
@@ -190,8 +191,8 @@ let ToolController_ = {
                     .append('div')
                     .attr('id', `toolButton${tools[i].name}`)
                     .attr('class', 'toolButton')
-                    .style('width', '100%')
-                    .style('height', '36px')
+                    .style('width', L_.UserInterface_.isMobile === true ? '36px' : '100%')
+                    .style('height', L_.UserInterface_.isMobile === true ? '100%': '36px')
                     .style('display', 'inline-block')
                     .style('text-align', 'center')
                     .style('line-height', '36px')
@@ -270,17 +271,150 @@ let ToolController_ = {
                     .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
                     .style('cursor', 'pointer')
 
-                tippy(`#toolButton${tools[i].name}`, {
-                    content: tools[i].name,
-                    placement: 'right',
-                    theme: 'blue',
-                })
+                if (!L_.UserInterface_.isMobile) {
+                    // Only show tooltip if not in mobile mode
+                    tippy(`#toolButton${tools[i].name}`, {
+                        content: tools[i].name,
+                        placement: 'right',
+                        theme: 'blue',
+                    })
+                }
             }
         }
 
         // Add Legend tool last if it exists
         if (legendToolIndex >= 0) {
             createSeparatedTool(legendToolIndex)
+        }
+
+        // FIXME For now, remove the time button in the toolbar
+        // Add the time UI button if time is enabled and in mobile mode
+        if (false && L_.UserInterface_?.isMobile === true && L_.configData.time && L_.configData.time.enabled === true) {
+            let timeSelect = d3.select('#toolcontroller_incdiv')
+                .append('div')
+                .attr('id', 'toggleTimeUI')
+                .style('position', 'relative')
+                .style('width', '30px')
+                .style('height', '30px')
+                .style('display', 'inline-block')
+                .style('text-align', 'center')
+                .style('line-height', '30px')
+                .style('vertical-align', 'middle')
+                .style('cursor', 'pointer')
+                .style('transition', 'all 0.2s ease-in')
+                .style('color', ToolController_.defaultColor)
+                .on(
+                    'click',
+                    (function () {
+                        return function () {
+                            var hasActive = false
+                            if ($(this).hasClass('active')) {
+                                hasActive = true
+                            }
+                            var prevActive = $(
+                                '#toolcontroller_incdiv .active'
+                            )
+                            prevActive.removeClass('active').css({
+                                color: ToolController_.defaultColor,
+                                background: 'none',
+                            })
+                            prevActive.parent().css({
+                                background: 'none',
+                            })
+                            if (!hasActive) {
+                                var newActive = $('#toolcontroller_incdiv #toggleTimeUI')
+                                newActive.addClass('active').css({
+                                    color: ToolController_.activeColor,
+                                })
+
+                                TimeUI.initialize()
+                                ToolController_.setToolHeight(TimeUI.height)
+                                ToolController_.setToolWidth()
+                                TimeUI.make()
+                            } else {
+                                ToolController_.setToolHeight(0)
+                                ToolController_.setToolWidth()
+                                TimeUI.destroy()
+                                ToolController_.closeActiveTool()
+                            }
+
+                            $('#topBar').css({
+                                'padding-left': '40px',
+                                'margin-left': '0px',
+                                width: '100%',
+                            })
+                        }
+                    })()
+                )
+
+            timeSelect.append('i')
+                .attr('class', 'mdi mdi-clock mdi-18px')
+                .style('cursor', 'pointer')
+        }
+
+        if (L_.UserInterface_?.isMobile === true &&
+                (L_.configData.coordinates.coordll == true || L_.configData.coordinates.coorden == true)) {
+            let coordSelect = d3.select('#toolcontroller_incdiv')
+                .append('div')
+                .attr('id', 'coordinatesDiv')
+                .style('position', 'relative')
+                .style('width', '30px')
+                .style('height', '30px')
+                .style('display', 'inline-block')
+                .style('text-align', 'center')
+                .style('line-height', '30px')
+                .style('vertical-align', 'middle')
+                .style('cursor', 'pointer')
+                .style('transition', 'all 0.2s ease-in')
+                .style('color', ToolController_.defaultColor)
+                .on(
+                    'click',
+                    (function () {
+                        return function () {
+                            var hasActive = false
+                            if ($(this).hasClass('active')) {
+                                hasActive = true
+                            }
+                            var prevActive = $(
+                                '#toolcontroller_incdiv .active'
+                            )
+                            prevActive.removeClass('active').css({
+                                color: ToolController_.defaultColor,
+                                background: 'none',
+                            })
+                            prevActive.parent().css({
+                                background: 'none',
+                            })
+                            if (!hasActive) {
+                                var newActive = $('#toolcontroller_incdiv #coordinatesDiv')
+                                newActive.addClass('active').css({
+                                    color: ToolController_.activeColor,
+                                })
+
+                                L_.Coordinates.initialize()
+                                L_.Coordinates.init()
+                                ToolController_.setToolHeight(L_.Coordinates.height)
+                                ToolController_.setToolWidth()
+                                L_.Coordinates.make()
+                            } else {
+                                ToolController_.setToolHeight(0)
+                                ToolController_.setToolWidth()
+                                L_.Coordinates.destroy()
+                                ToolController_.closeActiveTool()
+                            }
+
+                            $('#topBar').css({
+                                'padding-left': '40px',
+                                'margin-left': '0px',
+                                width: '100%',
+                            })
+                        }
+                    })()
+                )
+
+            coordSelect.append('i')
+                .attr('class', 'mdi mdi-target mdi-18px')
+                .style('cursor', 'pointer')
         }
 
         ToolController_.incToolsDiv

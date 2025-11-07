@@ -723,6 +723,12 @@ let MeasureTool = {
     ],
     polylineMeasure: null,
     init: function () {},
+    initialize: function () {
+        if (L_.UserInterface_.isMobile === true) {
+            this.width = 'full'
+            this.height = 500
+        }
+    },
     make: function () {
         Map_.rmNotNull(measureToolLayer)
         MeasureTool.data = []

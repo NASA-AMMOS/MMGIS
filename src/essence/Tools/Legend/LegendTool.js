@@ -17,6 +17,11 @@ var LegendTool = {
     displayOnStart: false,
     justification: 'left',
     initialize: function () {
+        if (L_.UserInterface_.isMobile === true) {
+            this.width = 'full'
+            this.height = 500
+        }
+
         //Get tool variables
         this.displayOnStart = L_.getToolVars('legend')['displayOnStart']
         this.justification = L_.getToolVars('legend')['justification']
@@ -71,6 +76,12 @@ function interfaceWithMMWebGIS() {
         tools.style('background', 'var(--color-k)')
         //Clear it
         tools.selectAll('*').remove()
+
+        if (L_.UserInterface_.isMobile === true) {
+            tools = d3.select('#tools')
+            //Clear it
+            tools.selectAll('*').remove()
+        }
     }
 }
 
@@ -212,9 +223,15 @@ function overwriteLegends(legends) {
 
 function drawLegendHeader() {
     //MMWebGIS should always have a div with id 'tools'
-    let tools = d3.select(
-        LegendTool.targetId ? `#${LegendTool.targetId}` : '#toolPanel'
-    )
+    let divID = '#toolPanel'
+
+    if (L_.UserInterface_.isMobile === true) {
+        divID = '#tools'
+    } else if (LegendTool.targetId) {
+        divID = `#${LegendTool.targetId}`
+    }
+
+    var tools = d3.select(divID)
     tools.style('background', 'var(--color-k)')
     //Clear it
     tools.selectAll('*').remove()

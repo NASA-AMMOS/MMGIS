@@ -62,7 +62,7 @@ var Attributions = {
                 $('#mapToolBar').css('height', '40px')
             }
             // Set compass to base position when no attributions
-            $('#mmgis-map-compass').css('bottom', '38px')
+            $('#mmgis-map-compass').css('bottom', L_.UserInterface_?.isMobile === true ? '78px' : '38px')
             return
         }
 

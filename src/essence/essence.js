@@ -26,7 +26,7 @@ import L_ from './Basics/Layers_/Layers_'
 import Viewer_ from './Basics/Viewer_/Viewer_'
 import Map_ from './Basics/Map_/Map_'
 import Globe_ from './Basics/Globe_/Globe_'
-import UserInterface_ from './Basics/UserInterface_/UserInterface_'
+import * as _UserInterface_ from './Basics/UserInterface_/UserInterface_'
 import ToolController_ from './Basics/ToolController_/ToolController_'
 import CursorInfo from './Ancillary/CursorInfo'
 import ContextMenu from './Ancillary/ContextMenu'
@@ -45,6 +45,8 @@ import { mmgisAPI_, mmgisAPI } from './mmgisAPI/mmgisAPI'
 import { makeMissionNotFoundDiv } from './LandingPage/LandingPage'
 import { stylize } from './Ancillary/Stylize'
 //Requiring UserInterface_ initializes itself
+
+const UserInterface_ = await _UserInterface_.default()
 
 if (typeof window.mmgisglobal.groups === 'string') {
     window.mmgisglobal.groups = window.mmgisglobal.groups.replace(
