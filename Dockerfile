@@ -42,6 +42,11 @@ RUN echo 'export PATH="/opt/micromamba/bin:$PATH"' >> /root/.bashrc && echo 'exp
 
 RUN source ~/.bashrc && micromamba env create -y --name mmgis --file=python-environment.yml
 
+# Ensure raster analytics dependencies are installed in the mmgis environment
+RUN /opt/micromamba/bin/micromamba run -n mmgis pip install --no-cache-dir -r /usr/src/app/python-requirements.txt
+
+ENV MMGIS_PYTHON=/opt/micromamba/envs/mmgis/bin/python
+
 # Azure CLI (2.78.0) via dedicated micromamba environment
 RUN /opt/micromamba/bin/micromamba create -y -n azurecli python=3.12 pip && \
     /opt/micromamba/bin/micromamba run -n azurecli pip install azure-cli==2.78.0 && \
