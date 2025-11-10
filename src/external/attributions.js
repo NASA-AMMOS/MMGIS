@@ -42,6 +42,17 @@ export default [
         githublink: 'https://github.com/DataTables/DataTables',
     },
     {
+        library: 'FFmpeg.wasm',
+        librarylink: 'https://ffmpegwasm.netlify.app/',
+        version: '0.12.10 (@ffmpeg/ffmpeg, @ffmpeg/util 0.12.1)',
+        author: 'Jerome Wu',
+        authorlink: 'https://github.com/ffmpegwasm',
+        license: 'MIT',
+        licenselink:
+            'https://github.com/ffmpegwasm/ffmpeg.wasm/blob/master/LICENSE',
+        githublink: 'https://github.com/ffmpegwasm/ffmpeg.wasm',
+    },
+    {
         library: 'Great Circle Calculator',
         librarylink: 'https://github.com/seangrogan/great_circle_calculator',
         version: '1.2.0',
@@ -53,6 +64,17 @@ export default [
         githublink: 'https://github.com/seangrogan/great_circle_calculator',
     },
     {
+        library: 'gifshot',
+        librarylink: 'https://yahoo.github.io/gifshot/',
+        version: '0.4.5',
+        author: 'Yahoo',
+        authorlink: 'https://github.com/yahoo',
+        license: 'BSD',
+        licenselink:
+            'https://github.com/yahoo/gifshot/blob/master/LICENSE',
+        githublink: 'https://github.com/yahoo/gifshot',
+    },
+    {
         library: 'Highcharts JS',
         librarylink: 'https://www.highcharts.com/',
         version: '7.1.1',
@@ -61,6 +83,17 @@ export default [
         license: 'CC BY-NC 3.0',
         licenselink: 'https://creativecommons.org/licenses/by-nc/3.0/',
         githublink: 'https://github.com/highcharts/highcharts',
+    },
+    {
+        library: 'html2canvas',
+        librarylink: 'https://html2canvas.hertzen.com/',
+        version: '1.4.1',
+        author: 'Niklas von Hertzen',
+        authorlink: 'https://github.com/niklasvh',
+        license: 'MIT',
+        licenselink:
+            'https://github.com/niklasvh/html2canvas/blob/master/LICENSE',
+        githublink: 'https://github.com/niklasvh/html2canvas',
     },
     {
         library: 'Hammer.JS',

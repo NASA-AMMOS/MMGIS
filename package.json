@@ -48,6 +48,8 @@
   "dependencies": {
     "@babel/runtime": "^7.23.1",
     "@eonasdan/tempus-dominus": "^6.2.6",
+    "@ffmpeg/ffmpeg": "^0.12.10",
+    "@ffmpeg/util": "^0.12.1",
     "@mapbox/shp-write": "^0.4.3",
     "@maphubs/tokml": "^0.6.1",
     "@popperjs/core": "^2.11.6",
@@ -88,6 +90,7 @@
     "geotiff": "^2.1.3",
     "geowarp": "^1.26.2",
     "geowarp-canvas": "^0.2.0",
+    "gifshot": "^0.4.5",
     "hammerjs": "^2.0.8",
     "helmet": "^4.1.1",
     "hotkeys-js": "^3.12.0",

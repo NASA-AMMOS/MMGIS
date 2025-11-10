@@ -1,0 +1,15 @@
+{
+    "defaultIcon": "video",
+    "description": "Create animated sequences of map data with custom time ranges and export options.",
+    "descriptionFull": {
+        "title": "The Animation tool allows users to create smooth animated sequences of map data by selecting a bounding box area, defining a time range, and configuring playback options. Users can export animations as GIF, MP4, or other formats."
+    },
+    "hasVars": false,
+    "name": "Animation",
+    "toolbarPriority": 1002,
+    "paths": {
+        "AnimationTool": "essence/Tools/Animation/AnimationTool"
+    },
+    "expandable": true
+}
+

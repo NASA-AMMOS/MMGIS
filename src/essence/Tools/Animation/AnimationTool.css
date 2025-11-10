@@ -1,0 +1,753 @@
+/* Animation Tool Styles */
+#animationTool {
+    font-family: 'Roboto', sans-serif;
+    background: var(--color-k);
+    color: var(--color-a);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+}
+
+#animationToolHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--color-j);
+    background: var(--color-l);
+}
+
+#animationToolHeader .left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#animationToolHeader .right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#animationToolTitle {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--color-a);
+}
+
+#animationToolHeader h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#animationToolClose {
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+#animationToolClose:hover {
+    background: var(--color-j);
+}
+
+#animationToolContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+/* Step Navigation */
+#animationToolSteps {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+#animationToolSteps::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    height: 2px;
+    background: var(--color-j);
+    z-index: 1;
+}
+
+.animation-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    z-index: 2;
+    transition: all 0.3s ease;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-j);
+    color: var(--color-a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+
+.step-title {
+    font-size: 12px;
+    text-align: center;
+    color: var(--color-c);
+    transition: color 0.3s ease;
+}
+
+.animation-step.active .step-number {
+    background: var(--color-primary);
+    color: white;
+}
+
+.animation-step.active .step-title {
+    color: white;
+}
+
+.animation-step.valid .step-number {
+    background: var(--color-success);
+    color: white;
+}
+
+.animation-step:hover .step-number {
+    transform: scale(1.1);
+}
+
+/* Panels */
+#animationToolPanels {
+    flex: 1;
+    position: relative;
+}
+
+.animation-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    opacity: 0;
+    transform: translateX(20px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.animation-panel.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+.panel-content {
+    padding: 20px 0;
+}
+
+/* Panel Content */
+.panel-content {
+    padding: 20px;
+}
+
+.panel-content h4 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: white;
+}
+
+.panel-content p {
+    margin: 0 0 20px 0;
+    font-size: 14px;
+    color: var(--color-c);
+}
+
+/* Bounding Box Selector */
+.bbox-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.bbox-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.bbox-input-group label {
+    min-width: 60px;
+    font-weight: 500;
+    color: white;
+}
+
+.bbox-input-group input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--color-j);
+    border-radius: 4px;
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 14px;
+}
+
+.bbox-input-group input::placeholder {
+    color: #666;
+    opacity: 1;
+}
+
+.bbox-input-group input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.bbox-map-controls {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-j);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.map-control-button {
+    background: var(--color-primary);
+    color: white;
+    border: 1px solid var(--color-primary);
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    flex: 1;
+    min-width: 120px;
+}
+
+.map-control-button:hover {
+    background: var(--color-primary-dark);
+}
+
+.map-control-button:disabled {
+    background: var(--color-j);
+    cursor: not-allowed;
+}
+
+/* Time Range Selector */
+.time-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.time-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.time-input-group label {
+    min-width: 80px;
+    font-weight: 500;
+    color: white;
+}
+
+.time-input-group input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--color-j);
+    border-radius: 4px;
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 14px;
+}
+
+.time-input-group input[type="datetime-local"] {
+    background: #fff !important;
+    color: #000 !important;
+}
+
+.time-input-group input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+
+    color: #000;
+    cursor: pointer;
+}
+
+.time-input-group input[type="datetime-local"]::-webkit-datetime-edit {
+    color: #000;
+}
+
+.time-input-group input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+    background: #fff;
+    color: #000;
+}
+
+.time-input-group input[type="datetime-local"]::-webkit-datetime-edit-text {
+    color: #000;
+}
+
+.time-input-group input[type="datetime-local"]::-webkit-datetime-edit-month-field,
+.time-input-group input[type="datetime-local"]::-webkit-datetime-edit-day-field,
+.time-input-group input[type="datetime-local"]::-webkit-datetime-edit-year-field,
+.time-input-group input[type="datetime-local"]::-webkit-datetime-edit-hour-field,
+.time-input-group input[type="datetime-local"]::-webkit-datetime-edit-minute-field {
+    background: #fff;
+    color: #000;
+}
+
+.time-input-group input::placeholder {
+    color: #666;
+    opacity: 1;
+}
+
+.time-input-group input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.interval-selector {
+    margin-top: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.step-selector {
+    margin-top: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.step-selector label {
+    display: inline-block;
+    margin-bottom: 0;
+    font-weight: 500;
+    color: white;
+    min-width: 50px;
+}
+
+.step-selector input {
+    width: 60px;
+    padding: 8px 12px;
+    border: 1px solid var(--color-j);
+    border-radius: 4px;
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 14px;
+    text-align: center;
+}
+
+.step-selector input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.interval-selector label {
+    display: inline-block;
+    margin-bottom: 0;
+    font-weight: 500;
+    color: white;
+    min-width: 100px;
+}
+
+.interval-selector select {
+    width: auto;
+    min-width: 120px;
+    padding: 8px 12px;
+    border: 1px solid var(--color-j);
+    border-radius: 4px;
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 14px;
+}
+
+.interval-selector select option {
+    background: #fff !important;
+    color: #000 !important;
+    padding: 8px 12px;
+}
+
+.time-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.time-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.time-input-group label {
+    min-width: 80px;
+    font-weight: 500;
+    color: white;
+}
+
+
+/* Animation Controls */
+#animationControls {
+    background: var(--color-l);
+    border: 1px solid var(--color-j);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.control-group {
+    margin-bottom: 20px;
+}
+
+.control-group:last-child {
+    margin-bottom: 0;
+}
+
+.control-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: white;
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+}
+
+.slider-container::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: repeating-linear-gradient(
+        to right,
+        transparent 0,
+        transparent calc(10% - 1px),
+        rgba(255, 255, 255, 0.4) calc(10% - 1px),
+        rgba(255, 255, 255, 0.4) calc(10% + 1px),
+        transparent calc(10% + 1px)
+    );
+    transform: translateY(-50%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.slider-container input[type="range"] {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--color-j);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    position: relative;
+    z-index: 2;
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(1.05);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.slider-container input[type="range"]::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+.slider-value {
+    min-width: 40px;
+    text-align: center;
+    font-weight: 500;
+    color: white;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-primary);
+}
+
+.checkbox-group label {
+    color: white;
+    cursor: pointer;
+}
+
+.radio-group {
+    display: flex;
+    gap: 20px;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: white;
+}
+
+.radio-option input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-primary);
+}
+
+.radio-option span {
+    color: white;
+    font-size: 14px;
+}
+
+
+/* Export Controls */
+#exportControls {
+    background: var(--color-l);
+    border: 1px solid var(--color-j);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.export-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.export-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: var(--color-l);
+    border: 1px solid var(--color-j);
+    border-radius: 6px;
+}
+
+.export-option-info h4 {
+    margin: 0 0 5px 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: #000;
+}
+
+.export-option-info p {
+    margin: 0;
+    font-size: 14px;
+    color: #666;
+}
+
+.export-button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.export-button:hover {
+    background: #0056b3;
+}
+
+.export-button:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+/* Footer */
+#animationToolFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-top: 1px solid var(--color-j);
+    background: var(--color-k);
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: var(--color-j);
+    color: white;
+    border: 1px solid var(--color-j);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--color-i);
+    border: 1px solid var(--color-i);
+}
+
+.btn-secondary {
+    background: var(--color-j);
+    color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--color-i);
+}
+
+.btn-outline-secondary {
+    background: var(--color-j);
+    color: white;
+    border: 1px solid var(--color-j);
+}
+
+.btn-outline-secondary:hover {
+    background: var(--color-i);
+    color: white;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    #animationToolSteps {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    #animationToolSteps::before {
+        display: none;
+    }
+    
+    .animation-step {
+        flex-direction: row;
+        gap: 15px;
+    }
+    
+    .step-number {
+        margin-bottom: 0;
+    }
+    
+    
+    .export-option {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    #animationToolFooter {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+
+/* Animation Tool Modal Styling */
+.mmgisModal .modal-content {
+    background: var(--color-k) !important;
+    border: 2px solid var(--color-primary) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+.mmgisModal .modal-content h3 {
+    background: var(--color-j) !important;
+    color: white !important;
+    margin: 0 !important;
+    padding: 15px 20px !important;
+    border-bottom: 1px solid var(--color-primary) !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+}
+
+.mmgisModal .modal-content p {
+    color: white !important;
+    padding: 20px !important;
+    margin: 0 !important;
+    line-height: 1.5 !important;
+    white-space: pre-line !important;
+}
+
+.mmgisModal .modal-buttons {
+    background: var(--color-j) !important;
+    padding: 15px 20px !important;
+    border-top: 1px solid var(--color-primary) !important;
+    text-align: right !important;
+}
+
+.mmgisModal .modal-buttons .btn {
+    min-width: 80px !important;
+    background: var(--color-primary) !important;
+    border: 1px solid var(--color-primary) !important;
+    color: white !important;
+    padding: 8px 16px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.mmgisModal .modal-buttons .btn:hover {
+    background: var(--color-a) !important;
+    border-color: var(--color-a) !important;
+}
+
