@@ -32,11 +32,33 @@ jobs:
           results_dir=`realpath ${{ github.workspace }}/../results`
           sarif_files=`find $results_dir -name '*.sarif'`
 
+          echo "Processing SARIF files from: $results_dir"
+          echo "Found SARIF files:"
+          echo "$sarif_files"
+
           for sarif_file in $sarif_files
           do
             output_file="$results_dir/$(basename $sarif_file .sarif)_stripped.sarif"
+            echo "Processing: $sarif_file -> $output_file"
 
-            python3 -m scrub.tools.parsers.translate_results $sarif_file $output_file ${{ github.workspace }} sarifv2.1.0
+            # Run translate_results and check if it succeeds
+            if python3 -m scrub.tools.parsers.translate_results "$sarif_file" "$output_file" "${{ github.workspace }}" sarifv2.1.0; then
+              # Verify the output file exists and is valid JSON
+              if [ -f "$output_file" ]; then
+                if python3 -c "import json; json.load(open('$output_file'))"; then
+                  echo "Successfully processed and validated: $output_file"
+                else
+                  echo "ERROR: Invalid JSON in $output_file, using original file"
+                  cp "$sarif_file" "$output_file"
+                fi
+              else
+                echo "ERROR: Output file not created: $output_file, using original file"
+                cp "$sarif_file" "$output_file"
+              fi
+            else
+              echo "ERROR: translate_results failed for $sarif_file, using original file"
+              cp "$sarif_file" "$output_file"
+            fi
           done
 
           echo "RESULTS_DIR=$results_dir" >> $GITHUB_ENV
@@ -46,6 +68,14 @@ jobs:
           # Create comma-separated list of SARIF files for SonarQube
           sarif_list=$(find $results_dir -name '*_stripped.sarif' | tr '\n' ',' | sed 's/,$//')
           echo "SARIF_FILES=$sarif_list" >> $GITHUB_ENV
+
+          # List and validate all stripped files
+          echo "Final SARIF files:"
+          for file in $results_dir/*_stripped.sarif; do
+            if [ -f "$file" ]; then
+              echo "  - $file ($(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null) bytes)"
+            fi
+          done
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
