@@ -206,6 +206,10 @@
     height: 40px;
 }
 
+.mmgisTimeUIExpandedRowRange {
+    display: none;
+}
+
 /* Overwrite LayersTool CSS */
 #layersTool .layerName {
     overflow: hidden;

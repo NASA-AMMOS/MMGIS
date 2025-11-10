@@ -100,40 +100,26 @@ const TimeUI = {
                     "</div>",
                 "</div>",
                 `<div id="mmgisTimeUITopBar">`,
-                    `<div id="mmgisTimeUIActionsLeft">`,
-                    `<div id='mmgisTimeUIMode'>`,
-                        `<div id='mmgisTimeUIModeDropdown' class='ui dropdown short'></div>`,
-                    `</div>`,
-                    `<div id="mmgisTimeUIQuickSelectTrigger" class="mmgisTimeUIButton">`,
-                        `<i class='mdi mdi-calendar-cursor mdi-24px'></i>`,
-                    `</div>`,
-                    `<div id="mmgisTimeUIPlayTrigger" class="mmgisTimeUIButton">`,
-                        `<i class='mdi mdi-movie mdi-24px'></i>`,
-                    `</div>`,
-                    `<div class="vertDiv"></div>`,
         ].join('\n')
 
-        // Add the right buttons to the left if mobile to consolidate them
-        if (L_.UserInterface_?.isMobile === true) {
+        if (L_.UserInterface_?.isMobile !== true) {
             markup += [
-                    `<div id="mmgisTimeUIFitTime" class="mmgisTimeUIButton">`,
-                        `<i class='mdi mdi-calendar-expand-horizontal mdi-24px'></i>`,
-                    `</div>`,
-                    `<div id="mmgisTimeUIFitWindow" class="mmgisTimeUIButton">`,
-                        `<i class='mdi mdi-calendar-clock mdi-24px'></i>`,
-                    `</div>`,
-                    `<div id="mmgisTimeUIFollowFeature" class="mmgisTimeUIButton">`,
-                        `<i class='mdi mdi-crosshairs-gps mdi-24px'></i>`,
-                    `</div>`,
-                    `<div id="mmgisTimeUIPresent" class="mmgisTimeUIButton">`,
-                        `<i class='mdi mdi-clock-end mdi-24px'></i>`,
-                        `<div id="mmgisTimeUIPresentProgress"></div>`,
+                    `<div id="mmgisTimeUIActionsLeft">`,
+                        `<div id='mmgisTimeUIMode'>`,
+                            `<div id='mmgisTimeUIModeDropdown' class='ui dropdown short'></div>`,
+                        `</div>`,
+                        `<div id="mmgisTimeUIQuickSelectTrigger" class="mmgisTimeUIButton">`,
+                            `<i class='mdi mdi-calendar-cursor mdi-24px'></i>`,
+                        `</div>`,
+                        `<div id="mmgisTimeUIPlayTrigger" class="mmgisTimeUIButton">`,
+                            `<i class='mdi mdi-movie mdi-24px'></i>`,
+                        `</div>`,
+                        `<div class="vertDiv"></div>`,
                     `</div>`,
             ].join('\n')
         }
 
         markup += [
-                `</div>`,
                 `<div id="mmgisTimeUIMain">`,
                     `<div class="mmgisTimeUIInput" id="mmgisTimeUIStartWrapper">`,
                         `<span>Start Time</span>`,
@@ -214,26 +200,26 @@ const TimeUI = {
             ].join('\n')
         }
 
-        // Put the timeline separately if mobile
+        // Put the expanded content separately if mobile
         if (L_.UserInterface_?.isMobile === true) {
             markup += [
-                    `<div id="mmgisTimeUITimeline">`,
-                        `<div id="mmgisTimeUITimelineExtent"></div>`,
-                        `<div id="mmgisTimeUITimelinePlayExtent"></div>`,
-                        `<div id="mmgisTimeUITimelineHisto"></div>`,
-                        `<div id="mmgisTimeUITimelineInner"></div>`,
-                        `<div id='mmgisTimeUITimelineSlider' class='svelteSlider'></div>`,
+                `<div id="mmgisTimeUIExpandedContent" class="show">`,
+                    `<div id="mmgisTimeUIYearsRow" class="mmgisTimeUIExpandedRow">`,
+                        `<div id="mmgisTimeUIYearsRange" class="mmgisTimeUIExpandedRowRange"></div>`,
+                        `<div id="mmgisTimeUIYearsContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
+                    `</div>`,
+                    `<div id="mmgisTimeUIMonthsRow" class="mmgisTimeUIExpandedRow">`,
+                        `<div id="mmgisTimeUIMonthsRange" class="mmgisTimeUIExpandedRowRange"></div>`,
+                        `<div id="mmgisTimeUIMonthsContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
+                    `</div>`,
+                    `<div id="mmgisTimeUIDaysRow" class="mmgisTimeUIExpandedRow">`,
+                        `<div id="mmgisTimeUIDaysRange" class="mmgisTimeUIExpandedRowRange"></div>`,
+                        `<div id="mmgisTimeUIDaysContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
                     `</div>`,
             ].join('\n')
         }
 
         markup += [
-                /*
-                `<div id="mmgisTimeUICurrentWrapper">`,
-                    `<div>Active Time</div>`,
-                    `<div id="mmgisTimeUICurrentTime"></div>`,
-                `</div>`,
-                */
             `</div>`
         ].join('\n')
 
@@ -344,6 +330,10 @@ const TimeUI = {
         return { dateString, additionalSeconds }
     },
     alignPopovers(e) {
+        if (L_.UserInterface_?.isMobile === true) {
+            return
+        }
+
         if (e == null) {
             let bcr = $(`#mmgisTimeUIQuickSelectTrigger`)
                 .get(0)
@@ -1208,6 +1198,26 @@ const TimeUI = {
                 TimeUI._restoreFollowFromDeeplink()
             }, 2000)
         }
+
+        if (L_.UserInterface_?.isMobile === true) {
+            d3.select('#mmgisTimeUIExpandedContent')
+                .style('position', 'absolute')
+                .style('top', '100px')
+
+            // Shift to view the selected elements in the expanded timeline
+            const containers = ['mmgisTimeUIYearsContainer', 'mmgisTimeUIMonthsContainer', 'mmgisTimeUIDaysContainer']
+            for (let container in containers) {
+                let found = document.querySelectorAll(`#${containers[container]} > .selected`)
+                if (found.length > 0) {
+                    found[0].scrollIntoView()
+                }
+            }
+
+            // FIXME Improve time pickers for mobile mode?
+            //  Do not allow users to edit using the start/time pickers
+            d3.select('#mmgisTimeUIMain')
+                .style('pointer-events', 'none')
+        }
     },
     changeMode(idx) {
         TimeUI.modeIndex = idx
@@ -1778,6 +1788,10 @@ const TimeUI = {
     toggleExpanded() {
         TimeUI.expanded = !TimeUI.expanded
 
+        if (L_.UserInterface_?.isMobile === true) {
+            TimeUI.expanded = true
+        }
+
         if (TimeUI.expanded) {
             // Expand the TimeUI
             $('#timeUI').addClass('expanded')
@@ -2283,6 +2297,10 @@ const TimeUI = {
         waitForActiveFeature()
     },
     _remakeTimeSlider(ignoreHistogram) {
+        if (L_.UserInterface_?.isMobile === true) {
+            return
+        }
+
         const rangeMode =
             TimeUI.modes[TimeUI.modeIndex] === 'Range' ? true : false
 
@@ -3025,6 +3043,10 @@ const TimeUI = {
         TimeUI._remakeTimeSlider(true)
     },
     _updateBottomUIHeight() {
+        if (L_.UserInterface_?.isMobile === true) {
+            return
+        }
+
         const active = !$('#toggleTimeUI').hasClass('active')
 
         const defaultExpanded = $('#timeUI').hasClass('expanded')
@@ -3074,7 +3096,7 @@ function interfaceWithMMWebGIS() {
     //Add the markup to tools or do it manually
     //tools.html(markup)
 
-    TimeUI.init(null, true)
+    TimeUI.init(TimeUI.timeChange, true)
 
     function separateFromMMWebGIS() {
         let tools = d3.select('#tools')

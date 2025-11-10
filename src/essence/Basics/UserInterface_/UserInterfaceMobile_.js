@@ -1205,6 +1205,9 @@ var UserInterface = {
                 })
         }
 
+        // Throw the TimeUI div away and create it on demand later
+        d3.select('#timeUI').remove()
+
         BottomBar.fina()
         UserInterface.show()
     },
