@@ -49,6 +49,15 @@ RUN source ~/.bashrc && micromamba env create -y --name mmgis --file=python-envi
 RUN dnf module install nodejs:20
 
 #############################
+# Azure CLI
+#############################
+
+RUN rpm --import https://packages.microsoft.com/keys/microsoft.asc && \
+    printf "[azure-cli]\nname=Azure CLI\nbaseurl=https://packages.microsoft.com/yumrepos/azure-cli\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc\n" > /etc/yum.repos.d/azure-cli.repo
+
+RUN dnf install -y azure-cli && dnf clean all
+
+#############################
 # MMGIS
 #############################
 
