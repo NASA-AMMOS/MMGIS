@@ -330,6 +330,10 @@ const TimeUI = {
         return { dateString, additionalSeconds }
     },
     alignPopovers(e) {
+        if (L_.UserInterface_?.isMobile === true) {
+            return
+        }
+
         if (e == null) {
             let bcr = $(`#mmgisTimeUIQuickSelectTrigger`)
                 .get(0)
@@ -3039,6 +3043,10 @@ const TimeUI = {
         TimeUI._remakeTimeSlider(true)
     },
     _updateBottomUIHeight() {
+        if (L_.UserInterface_?.isMobile === true) {
+            return
+        }
+
         const active = !$('#toggleTimeUI').hasClass('active')
 
         const defaultExpanded = $('#timeUI').hasClass('expanded')
