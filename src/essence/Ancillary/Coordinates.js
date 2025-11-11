@@ -127,9 +127,9 @@ const Coordinates = {
         } else {
             var additionalDiv = [
                 "<div class='left'>",
-                    "<div id='coordUITitle'>Coordinates</div>",
-                "</div>",
-            ].join('\n');
+                "<div id='coordUITitle'>Coordinates</div>",
+                '</div>',
+            ].join('\n')
 
             d3.select('#tools')
                 .append('div')
@@ -283,10 +283,16 @@ const Coordinates = {
         }
 
         // If the available key does not exist, it means they were already deleted
-        if (Object.keys(Coordinates.states).length === Object.values(Coordinates.states).filter(i => i.available != undefined).length) {
+        if (
+            Object.keys(Coordinates.states).length ===
+            Object.values(Coordinates.states).filter(
+                (i) => i.available != undefined
+            ).length
+        ) {
             // Remove all unavailable state
             Object.keys(Coordinates.states).forEach((s) => {
-                if (!Coordinates.states[s].available) delete Coordinates.states[s]
+                if (!Coordinates.states[s].available)
+                    delete Coordinates.states[s]
                 else delete Coordinates.states[s].available
             })
         }
@@ -826,10 +832,10 @@ function toggleTimeUI() {
     $('#toggleTimeUI').toggleClass('active')
     $('#timeUI').toggleClass('active')
 
-    const defaultExpanded = $('#timeUI').hasClass('defaultExpanded') || $('#timeUI').hasClass('expanded')
-    const timeUIHeight = defaultExpanded ? 165 : 60
+    const defaultExpanded = $('#timeUI').hasClass('defaultExpanded')
+    const timeUIHeight = defaultExpanded ? 177 : 0
     const newBottom = !active ? timeUIHeight : 0
-    const timeBottom = active ? -40 : 16
+    const timeBottom = 0
 
     Map_.map._fadeAnimated = active
 
@@ -864,7 +870,6 @@ function toggleTimeUI() {
         L_._onTimeUIToggleSubscriptions[k](!active)
     })
 }
-
 
 function interfaceWithMMWebGIS() {
     this.separateFromMMWebGIS = function () {
