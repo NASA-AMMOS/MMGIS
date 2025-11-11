@@ -25,61 +25,25 @@ jobs:
           queries: security-and-quality, security-extended
       - name: CodeQL Scan
         uses: github/codeql-action/analyze@v3
-      - name: Post-Process CodeQL
+      - name: Prepare SARIF Files
         run: |
-          python3 -m pip install nasa-scrub
-
           results_dir=`realpath ${{ github.workspace }}/../results`
-          sarif_files=`find $results_dir -name '*.sarif'`
 
-          echo "Processing SARIF files from: $results_dir"
-          echo "Found SARIF files:"
-          echo "$sarif_files"
+          echo "SARIF files directory: $results_dir"
+          echo "Available SARIF files:"
+          ls -lh $results_dir/*.sarif
 
-          for sarif_file in $sarif_files
-          do
-            output_file="$results_dir/$(basename $sarif_file .sarif)_stripped.sarif"
-            temp_file="$results_dir/$(basename $sarif_file .sarif)_temp.sarif"
-            echo "Processing: $sarif_file -> $output_file"
-
-            # Run translate_results to temp file
-            if python3 -m scrub.tools.parsers.translate_results "$sarif_file" "$temp_file" "${{ github.workspace }}" sarifv2.1.0; then
-              # Re-encode to ensure clean UTF-8 without BOM
-              if [ -f "$temp_file" ]; then
-                python3 -c "import json; data=json.load(open('$temp_file', 'r', encoding='utf-8-sig')); json.dump(data, open('$output_file', 'w', encoding='utf-8', newline='\n'), ensure_ascii=False, indent=2)" && \
-                  echo "Successfully normalized: $output_file" && \
-                  rm "$temp_file" || \
-                  (echo "ERROR: Normalization failed, using original file" && cp "$sarif_file" "$output_file" && rm -f "$temp_file")
-              else
-                echo "ERROR: Output file not created, using original file"
-                cp "$sarif_file" "$output_file"
-              fi
-            else
-              echo "ERROR: translate_results failed, using original file"
-              cp "$sarif_file" "$output_file"
-            fi
-          done
+          # Use original CodeQL SARIF files directly for SonarQube
+          # Note: nasa-scrub processing causes SonarQube SARIF parser errors
+          # If path stripping is needed for artifact uploads, add it as a separate step
+          sarif_list=$(find $results_dir -name '*.sarif' -not -name '*_stripped.sarif' | tr '\n' ',' | sed 's/,$//')
 
           echo "RESULTS_DIR=$results_dir" >> $GITHUB_ENV
-          echo "Results generated: "
-          echo $results_dir
-
-          # Create comma-separated list of SARIF files for SonarQube
-          sarif_list=$(find $results_dir -name '*_stripped.sarif' | tr '\n' ',' | sed 's/,$//')
           echo "SARIF_FILES=$sarif_list" >> $GITHUB_ENV
 
-          # List and validate all stripped files
-          echo "Final SARIF files:"
-          for file in $results_dir/*_stripped.sarif; do
-            if [ -f "$file" ]; then
-              file_size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null)
-              echo "  - $file ($file_size bytes)"
-              # Check for BOM
-              if file "$file" | grep -q "UTF-8 Unicode (with BOM)"; then
-                echo "    WARNING: File has BOM!"
-              fi
-            fi
-          done
+          echo ""
+          echo "SARIF files for SonarQube:"
+          echo "$sarif_list"
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
