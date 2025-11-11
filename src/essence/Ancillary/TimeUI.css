@@ -518,14 +518,14 @@
 
 /* Expanded TimeUI Styles */
 #timeUI.expanded {
-    height: 145px;
+    height: 177px;
 }
 
 #mmgisTimeUIExpandedContent {
     display: none;
     background: rgba(0, 0, 0, 0.8);
     width: 100%;
-    height: 105px;
+    height: 137px;
     padding: 5px;
     transition: all 0.2s ease-in-out;
     overflow: hidden;

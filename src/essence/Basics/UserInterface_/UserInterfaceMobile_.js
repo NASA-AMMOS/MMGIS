@@ -14,7 +14,7 @@ var Viewer_ = null
 var Map_ = null
 var Globe_ = null
 
-var mobileTools = ['Layers','Legend', 'Info']
+var mobileTools = ['Layers', 'Legend', 'Info']
 
 var UserInterface = {
     splitterSize: 0,
@@ -93,8 +93,12 @@ var UserInterface = {
             .append('div')
             .attr('id', 'topBarMenu')
             .on('click', function () {
-                d3.select('#barBottom')
-                    .style('display', d3.select('#barBottom').style('display') === 'none' ? 'flex' : 'none')
+                d3.select('#barBottom').style(
+                    'display',
+                    d3.select('#barBottom').style('display') === 'none'
+                        ? 'flex'
+                        : 'none'
+                )
                 // FIXME The hamburger button should close the barBottom items when somewhere else on the map is clicked
             })
             .append('i')
@@ -275,7 +279,7 @@ var UserInterface = {
             .append('div')
             .attr('class', 'splitterV')
             .attr('id', 'viewerSplit')
-            /*
+        /*
             .style('width', this.splitterSize + 'px')
             .style('height', this.mainHeight + 'px')
             .style('left', -this.splitterSize + 'px')
@@ -333,7 +337,7 @@ var UserInterface = {
             .append('div')
             .attr('class', 'splitterV')
             .attr('id', 'mapSplit')
-            /*
+        /*
             .style('width', this.splitterSizeHidden + 'px')
             .style('height', this.mainHeight + 'px')
             .style('left', this.pxIsViewer - this.splitterSizeHidden / 2 + 'px')
@@ -343,7 +347,7 @@ var UserInterface = {
             .append('div')
             .attr('class', 'splitterVInner')
             .attr('id', 'mapSplitInner')
-            //.style('width', this.splitterSizeHidden * 2 + 'px')
+        //.style('width', this.splitterSizeHidden * 2 + 'px')
 
         /*
         this.mapSplitInner
@@ -449,7 +453,7 @@ var UserInterface = {
             .append('div')
             .attr('class', 'splitterV')
             .attr('id', 'globeSplit')
-            /*
+        /*
             .style('width', this.splitterSizeHidden + 'px')
             .style('height', this.mainHeight + 'px')
             .style(
@@ -617,14 +621,11 @@ var UserInterface = {
             .select('#main-container')
             .append('div')
             .attr('id', 'toolbar')
-            //.style( 'box-shadow', 'inset 0px 0px 9px #0F1111' )
-            //.style( 'background-color', bodyHEX )
-            //.style( 'box-shadow', 'inset 0px 2px 7px black' )
-            //.style( 'box-shadow', '7px 0px 7px rgba(0,0,0,0.2)' )
+            .style('box-shadow', '0px -3px 3px 0px rgba(0, 0, 0, 0.3)')
             .style('height', this.topSize + 'px')
             .style('padding-top', '0px') // 40px
             .style('background', 'var(--color-a)')
-            .style('border-top', '1px solid var(--color-a-5)')
+            .style('border-bottom', '2px solid black')
             .style('bottom', '0px')
             .style('width', '100%')
             .style('z-index', '1004')
@@ -649,8 +650,13 @@ var UserInterface = {
 </svg>`
             )
             .on('click', function () {
-                d3.select('#landingMissionsWrapper')
-                    .style('display', d3.select('#landingMissionsWrapper').style('display') === 'none' ? 'block' : 'none')
+                d3.select('#landingMissionsWrapper').style(
+                    'display',
+                    d3.select('#landingMissionsWrapper').style('display') ===
+                        'none'
+                        ? 'block'
+                        : 'none'
+                )
             })
 
         this.dataLoadingSpinner = d3
@@ -913,17 +919,15 @@ var UserInterface = {
         )
 
         // Set height of the map
-        UserInterface.mapScreen
-            .style(
-                'height',
-                 UserInterface.mainHeight - pxHeight + 'px'
-            )
+        UserInterface.mapScreen.style(
+            'height',
+            UserInterface.mainHeight - pxHeight + 'px'
+        )
 
-        UserInterface.mapSplit
-            .style(
-                'height',
-                 UserInterface.mainHeight - pxHeight + 'px'
-            )
+        UserInterface.mapSplit.style(
+            'height',
+            UserInterface.mainHeight - pxHeight + 'px'
+        )
 
         resize()
     },
@@ -1140,24 +1144,27 @@ var UserInterface = {
             BottomBar.changeUIVisibility('miscellaneous', false)
 
         $('#mapToolBar').css({
-            bottom:  40 + 'px',
+            bottom: 25 + 'px',
         })
         $('#mmgis-map-compass').css({
-            bottom: 78 + 'px',
+            bottom: 85 + 'px',
         })
 
         // Remove the cursor info
         d3.select('#cursorInfo').remove()
 
         // Remove toolbar elements that aren't mobile features
-        ToolController_.tools.map(i => i.name).forEach((tool) => {
-            if (!mobileTools.includes(tool)) {
-                d3.select('#toolButton' + tool).remove()
-            }
-        })
+        ToolController_.tools
+            .map((i) => i.name)
+            .forEach((tool) => {
+                if (!mobileTools.includes(tool)) {
+                    d3.select('#toolButton' + tool).remove()
+                }
+            })
 
         // Add the elements for mission switching
-        let missionsDiv = d3.select('#main-container')
+        let missionsDiv = d3
+            .select('#main-container')
             .append('div')
             .attr('id', 'landingMissionsWrapper')
             .style('top', '40px')

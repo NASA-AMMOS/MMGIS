@@ -296,6 +296,23 @@
           opacity: 1;
         }
       }
+
+      /* Mobile-specific centering for LoadingPage title and loading dots */
+      @media screen and (max-width: 600px) {
+        .LoadingPage #title {
+          left: 50%;
+          transform: translateX(-50%);
+          text-align: center;
+        }
+        .LoadingPage #loading2 {
+          left: 50%;
+          transform: translateX(-50%);
+          width: 204px;
+        }
+        .LoadingPage #loading2 span {
+          margin: 0px 8px 0px 8px;
+        }
+      }
     </style>
   </head>
   <body>
