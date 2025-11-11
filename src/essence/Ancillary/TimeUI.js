@@ -3049,10 +3049,10 @@ const TimeUI = {
 
         const active = !$('#toggleTimeUI').hasClass('active')
 
-        const defaultExpanded = $('#timeUI').hasClass('expanded')
-        const timeUIHeight = defaultExpanded ? 145 : 40
+        const defaultExpanded = $('#timeUI').hasClass('defaultExpanded') || $('#timeUI').hasClass('expanded')
+        const timeUIHeight = defaultExpanded ? 165 : 60
         const newBottom = !active ? timeUIHeight : 0
-        const timeBottom = 0
+        const timeBottom = 16
 
         $('#CoordinatesDiv').css({
             bottom: newBottom + (UserInterface_.pxIsTools || 0) + 'px',
