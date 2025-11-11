@@ -826,10 +826,10 @@ function toggleTimeUI() {
     $('#toggleTimeUI').toggleClass('active')
     $('#timeUI').toggleClass('active')
 
-    const defaultExpanded = $('#timeUI').hasClass('defaultExpanded')
-    const timeUIHeight = defaultExpanded ? 145 : 0
+    const defaultExpanded = $('#timeUI').hasClass('defaultExpanded') || $('#timeUI').hasClass('expanded')
+    const timeUIHeight = defaultExpanded ? 165 : 60
     const newBottom = !active ? timeUIHeight : 0
-    const timeBottom = 0
+    const timeBottom = active ? -40 : 16
 
     Map_.map._fadeAnimated = active
 
