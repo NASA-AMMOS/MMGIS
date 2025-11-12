@@ -295,7 +295,13 @@ function ensureGroup(allowedGroups) {
   };
 }
 
-function ensureAdmin(toLoginPage, denyLongTermTokens, allowGets, disallow) {
+function ensureAdmin(
+  toLoginPage,
+  denyLongTermTokens,
+  allowGets,
+  allowPosts,
+  disallow
+) {
   return (req, res, next) => {
     let url = req.originalUrl.split("?")[0].toLowerCase();
     const remoteAddress =
@@ -327,10 +333,20 @@ function ensureAdmin(toLoginPage, denyLongTermTokens, allowGets, disallow) {
       }
     }
 
+    if (allowPosts === true && req.method === "POST") {
+      if (
+        disallow == null ||
+        disallow.filter((path) => url.endsWith(path)).length == 0
+      ) {
+        next();
+        return;
+      }
+    }
+
     if (toLoginPage) {
       res.render("adminlogin", {
         user: req.user,
-        VERSION: configurePackageJson.version
+        VERSION: configurePackageJson.version,
       });
       return;
     }

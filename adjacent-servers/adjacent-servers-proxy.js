@@ -59,7 +59,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
     }`;
     app.use(
       `${process.env.ROOT_PATH || ""}/titiler`,
-      ensureAdmin(false, false, true, ["/cog/stac"]), // true to allow all GETs (except /cog/stac) - others require admin auth
+      ensureAdmin(false, false, true, false, ["/cog/stac"]), // true to allow all GETs (except /cog/stac) - others require admin auth
       createProxyMiddleware({
         target: titilerTarget,
         changeOrigin: true,
