@@ -200,7 +200,7 @@ function setupCustomAdjacentServer(app, isDocker, ensureAdmin, config) {
 
   app.use(
     routePath,
-    ensureAdmin(false, false, true), // true to allow all GETs - others require admin auth
+    ensureAdmin(false, false, true, true), // true, true to allow all GETs and POSTs - others require admin auth
     createProxyMiddleware({
       target: target,
       changeOrigin: true,
