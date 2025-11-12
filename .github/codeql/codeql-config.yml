@@ -1,0 +1,48 @@
+name: "CodeQL Security Scan Configuration"
+
+# Disable default query suite - we'll specify exactly what we want
+disable-default-queries: false
+
+# Query suites to run
+queries:
+  - uses: security-extended
+
+# Paths to exclude from analysis
+paths-ignore:
+  - '**/node_modules/**'
+  - '**/vendor/**'
+  - '**/vendors/**'
+  - '**/third_party/**'
+  - '**/*.min.js'
+  - '**/*.min.css'
+  - '**/config/js/jquery*.js'
+  - '**/config/js/materialize.min.js'
+  - '**/config/js/papaparse.min.js'
+  - '**/config/js/codemirror/**'
+  - '**/build/**'
+  - '**/dist/**'
+  - '**/coverage/**'
+  - '**/test/**'
+  - '**/tests/**'
+  - '**/__tests__/**'
+  - '**/*.test.js'
+  - '**/*.test.jsx'
+  - '**/*.test.ts'
+  - '**/*.test.tsx'
+  - '**/*.spec.js'
+  - '**/*.spec.jsx'
+  - '**/*.spec.ts'
+  - '**/*.spec.tsx'
+  - '**/Missions/**'
+  - '**/auxiliary/**'
+  - '**/public/**'
+
+# Query filters to reduce false positives
+query-filters:
+  # Exclude low-severity findings in test files
+  - exclude:
+      problem.severity: recommendation
+
+  # You can add specific query exclusions here if needed
+  # - exclude:
+  #     id: js/useless-assignment-to-local
