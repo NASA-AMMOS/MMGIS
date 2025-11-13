@@ -10,7 +10,6 @@ import * as moment from 'moment'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
 import L_ from '../Basics/Layers_/Layers_'
-import UserInterface_ from '../Basics/UserInterface_/UserInterface_'
 import calls from '../../pre/calls'
 import tippy from 'tippy.js'
 import Dropy from '../../external/Dropy/dropy'
@@ -368,6 +367,10 @@ const TimeUI = {
                 right: bcr.right,
                 bottom: timeUIHeight,
             })
+
+            // Update timeline handles when layout changes
+            TimeUI._updateRangeShiftButtonPositions()
+            TimeUI._updateExtentIndicator()
         } else {
             setTimeout(() => {
                 TimeUI.alignPopovers()
@@ -3262,30 +3265,30 @@ const TimeUI = {
         const timeBottom = 0
 
         $('#CoordinatesDiv').css({
-            bottom: newBottom + (UserInterface_.pxIsTools || 0) + 'px',
+            bottom: newBottom + (L_.UserInterface_.pxIsTools || 0) + 'px',
         })
         $('#mapToolBar').css({
-            bottom: newBottom + (UserInterface_.pxIsTools || 0) + 'px',
+            bottom: newBottom + (L_.UserInterface_.pxIsTools || 0) + 'px',
         })
         $('.leaflet-bottom.leaflet-left').css({
             bottom: newBottom + 'px',
         })
         $('#mmgis-attributions').css({
-            bottom: (UserInterface_.pxIsTools || 0) + 'px',
+            bottom: (L_.UserInterface_.pxIsTools || 0) + 'px',
         })
         $('.leaflet-bottom.leaflet-right').css({
-            bottom: newBottom + (UserInterface_.pxIsTools || 0) + 'px',
+            bottom: newBottom + (L_.UserInterface_.pxIsTools || 0) + 'px',
         })
         $('#photosphereAzIndicator').css({
-            bottom: newBottom + (UserInterface_.pxIsTools || 0) + 'px',
+            bottom: newBottom + (L_.UserInterface_.pxIsTools || 0) + 'px',
             transition: 'bottom 0.2s ease-in',
         })
         $('#_lithosphere_controls_bottomleft').css({
-            bottom: newBottom + (UserInterface_.pxIsTools || 0) + 10 + 'px',
+            bottom: newBottom + (L_.UserInterface_.pxIsTools || 0) + 10 + 'px',
             transition: 'bottom 0.2s ease-in',
         })
         $('#timeUI').css({
-            bottom: timeBottom + (UserInterface_.pxIsTools || 0) + 'px',
+            bottom: timeBottom + (L_.UserInterface_.pxIsTools || 0) + 'px',
         })
     },
 }

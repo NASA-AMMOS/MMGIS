@@ -5,7 +5,6 @@ import L_ from '../../Basics/Layers_/Layers_'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import Map_ from '../../Basics/Map_/Map_'
 import Viewer_ from '../../Basics/Viewer_/Viewer_'
-import UserInterface_ from '../../Basics/UserInterface_/UserInterface_'
 import chemistrychart from './chemistrychart'
 //import chemistryplot from './chemistryplot'
 
@@ -71,7 +70,9 @@ function interfaceWithMMWebGIS() {
     }
 
     //MMWebGIS should always have a div with id 'tools'
-    var tools = d3.select(L_.UserInterface_.isMobile === true ?  '#tools' : '#toolPanel')
+    var tools = d3.select(
+        L_.UserInterface_.isMobile === true ? '#tools' : '#toolPanel'
+    )
     //Clear it
     tools.selectAll('*').remove()
     //Add a semantic container
@@ -102,16 +103,16 @@ function interfaceWithMMWebGIS() {
     function _ct0() {
         cPSelectorOn = false
         d3.select('#chemistry_panel').selectAll('*').remove()
-        UserInterface_.setToolWidth(ChemistryTool.widths[0])
-        UserInterface_.setToolHeight(ChemistryTool.heights[0])
+        L_.UserInterface_.setToolWidth(ChemistryTool.widths[0])
+        L_.UserInterface_.setToolHeight(ChemistryTool.heights[0])
     }
     $('#chemistryToolOptions #chemistryToolSingleMode').click(_ct0)
 
     function _ct1() {
         cPSelectorOn = true
         d3.select('#chemistry_panel').selectAll('*').remove()
-        UserInterface_.setToolWidth(ChemistryTool.widths[1])
-        UserInterface_.setToolHeight(ChemistryTool.heights[1])
+        L_.UserInterface_.setToolWidth(ChemistryTool.widths[1])
+        L_.UserInterface_.setToolHeight(ChemistryTool.heights[1])
     }
     $('#chemistryToolOptions #chemistryToolMultiMode').click(_ct1)
 
