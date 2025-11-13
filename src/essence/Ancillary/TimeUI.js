@@ -3249,8 +3249,16 @@ const TimeUI = {
         const active = !$('#toggleTimeUI').hasClass('active')
 
         const defaultExpanded = $('#timeUI').hasClass('expanded')
-        const timeUIHeight = defaultExpanded ? 177 : 40
-        const newBottom = !active ? timeUIHeight : 0
+        const timeUIHeight = defaultExpanded
+            ? 177
+            : $('#timeUI').hasClass('active')
+            ? 40
+            : 0
+        const newBottom = !active
+            ? timeUIHeight
+            : $('#timeUI').hasClass('active')
+            ? 40
+            : 0
         const timeBottom = 0
 
         $('#CoordinatesDiv').css({
