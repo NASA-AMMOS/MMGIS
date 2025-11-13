@@ -1232,30 +1232,34 @@ const TimeUI = {
             }, 2000)
         }
 
+        // Shift to view the selected elements in the expanded timeline
+        TimeUI._shiftExpandedContainerView()
+
         if (L_.UserInterface_?.isMobile === true) {
             d3.select('#mmgisTimeUIExpandedContent')
                 .style('position', 'absolute')
                 .style('top', '80px')
 
-            // Shift to view the selected elements in the expanded timeline
-            const containers = [
-                'mmgisTimeUIYearsContainer',
-                'mmgisTimeUIMonthsContainer',
-                'mmgisTimeUIDaysContainer',
-                'mmgisTimeUIHoursContainer',
-            ]
-            for (let container in containers) {
-                let found = document.querySelectorAll(
-                    `#${containers[container]} > .selected`
-                )
-                if (found.length > 0) {
-                    found[0].scrollIntoView()
-                }
-            }
-
             // FIXME Improve time pickers for mobile mode?
             //  Do not allow users to edit using the start/time pickers
             d3.select('#mmgisTimeUIMain').style('pointer-events', 'none')
+        }
+    },
+    _shiftExpandedContainerView() {
+        // Shift to view the selected elements in the expanded timeline
+        const containers = [
+            'mmgisTimeUIYearsContainer',
+            'mmgisTimeUIMonthsContainer',
+            'mmgisTimeUIDaysContainer',
+            'mmgisTimeUIHoursContainer',
+        ]
+        for (let container in containers) {
+            let found = document.querySelectorAll(
+                `#${containers[container]} > .selected`
+            )
+            if (found.length > 0) {
+                found[0].scrollIntoView()
+            }
         }
     },
     changeMode(idx) {
@@ -3071,6 +3075,7 @@ const TimeUI = {
         // Update expanded rows if expanded
         if (TimeUI.expanded) {
             TimeUI._populateExpandedRows()
+            TimeUI._shiftExpandedContainerView()
         }
     },
     _timelineDrag: function (e) {
