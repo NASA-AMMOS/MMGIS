@@ -1103,13 +1103,27 @@ const TimeUI = {
 
         // FIXME
         if (TimeUI.timeChange) {
-            // Initialize the time control times, but don't trigger events
-            TimeUI.timeChange(
-                TimeUI._initialStart.toISOString(),
-                TimeUI._initialEnd.toISOString(),
-                null,
-                true
-            )
+            if (L_.UserInterface_?.isMobile !== true) {
+                // Initialize the time control times, but don't trigger events
+                TimeUI.timeChange(
+                    TimeUI._initialStart.toISOString(),
+                    TimeUI._initialEnd.toISOString(),
+                    null,
+                    true
+                )
+            } else {
+                // If in mobile mode, the TimeUI is created and destroyed based on whether it is visible
+                // or not and the user selected time should persist after the TimeUI is opened/closed
+                TimeUI._initialStart = L_.TimeControl_?.startTime
+                TimeUI._initialEnd = L_.TimeControl_?.endTime
+
+                TimeUI.timeChange(
+                    L_.TimeControl_?.startTime,
+                    L_.TimeControl_?.endTime,
+                    null,
+                    true
+                )
+            }
         }
     },
     fina() {
