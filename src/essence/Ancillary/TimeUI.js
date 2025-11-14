@@ -1429,7 +1429,7 @@ const TimeUI = {
             let extentHandle = $('#mmgisTimeUITimelineExtentHandle')
             if (extentHandle.length === 0) {
                 $('#mmgisTimeUITimeline').append(
-                    '<div id="mmgisTimeUITimelineExtentHandle" title="Drag to Shift Range">' +
+                    '<div id="mmgisTimeUITimelineExtentHandle">' +
                         '<i class="mdi mdi-drag-horizontal mdi-18px"></i>' +
                         '</div>'
                 )
@@ -2644,14 +2644,14 @@ const TimeUI = {
 
         // Add left arrow for start handle
         timeline.append(
-            '<div class="timeUIRangeShiftBtn timeUIRangeShiftLeft" title="Shift Range Left">' +
+            '<div class="timeUIRangeShiftBtn timeUIRangeShiftLeft">' +
                 '<i class="mdi mdi-menu-left mdi-36px"></i>' +
                 '</div>'
         )
 
         // Add right arrow for end handle
         timeline.append(
-            '<div class="timeUIRangeShiftBtn timeUIRangeShiftRight" title="Shift Range Right">' +
+            '<div class="timeUIRangeShiftBtn timeUIRangeShiftRight">' +
                 '<i class="mdi mdi-menu-right mdi-36px"></i>' +
                 '</div>'
         )
@@ -3117,12 +3117,16 @@ const TimeUI = {
             let nextEnd = TimeUI._extentDragEndTimestamp + timeDelta
 
             // Clamp to timeline bounds
-            if (nextStart < TimeUI._timelineStartTimestamp) {
-                nextStart = TimeUI._timelineStartTimestamp
+            if (nextStart < TimeUI.addOffset(TimeUI._timelineStartTimestamp)) {
+                nextStart = TimeUI.addOffset(
+                    TimeUI._timelineStartTimestamp
+                ).getTime()
                 nextEnd = nextStart + rangeSize
             }
-            if (nextEnd > TimeUI._timelineEndTimestamp) {
-                nextEnd = TimeUI._timelineEndTimestamp
+            if (nextEnd > TimeUI.addOffset(TimeUI._timelineEndTimestamp)) {
+                nextEnd = TimeUI.addOffset(
+                    TimeUI._timelineEndTimestamp
+                ).getTime()
                 nextStart = nextEnd - rangeSize
             }
 
@@ -3131,8 +3135,8 @@ const TimeUI = {
             TimeUI._extentDragFinalEnd = nextEnd
 
             // Only update visual indicators during drag (not actual times)
-            const offsetStartDate = TimeUI.addOffset(nextStart)
-            const offsetEndDate = TimeUI.addOffset(nextEnd)
+            const offsetStartDate = nextStart
+            const offsetEndDate = nextEnd
 
             // Update fake input boxes
             $('#mmgisTimeUIStartFake').val(
@@ -3144,8 +3148,8 @@ const TimeUI = {
 
             // Update extent indicator position
             TimeUI._updateExtentIndicator(
-                moment.utc(TimeUI.removeOffset(nextStart)),
-                moment.utc(TimeUI.removeOffset(nextEnd))
+                moment.utc(nextStart),
+                moment.utc(nextEnd)
             )
 
             // Update slider handle positions visually (without triggering events)

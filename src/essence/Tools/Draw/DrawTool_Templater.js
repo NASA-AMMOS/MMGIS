@@ -238,21 +238,95 @@ const DrawTool_Templater = {
         })
 
         $(`#drawToolTemplater_setTimeStart`).on('click', () => {
-            L_.TimeControl_.setTime(
-                L_.TimeControl_.timeUI.removeOffset(
-                    new Date(properties[startTime]).getTime()
-                ),
-                L_.TimeControl_.getEndTime()
-            )
+            // Force UTC by adding 'Z' if not present
+            let startTimeValue = properties[startTime]
+            if (
+                typeof startTimeValue === 'string' &&
+                startTimeValue.indexOf('T') !== -1 &&
+                !startTimeValue.endsWith('Z')
+            ) {
+                startTimeValue += 'Z'
+            }
+            const newStartTime = new Date(startTimeValue).getTime()
+            const currentEndTime = L_.TimeControl_.getEndTime()
+
+            // Convert both to timestamps for proper comparison
+            const newStartTimeMs =
+                typeof newStartTime === 'number'
+                    ? newStartTime
+                    : new Date(newStartTime).getTime()
+            const currentEndTimeMs =
+                typeof currentEndTime === 'number'
+                    ? currentEndTime
+                    : new Date(currentEndTime).getTime()
+
+            // Check if new start time would be later than current end time
+            if (newStartTimeMs > currentEndTimeMs) {
+                // Set end time to 1 day after start time
+                const oneDayMs = 24 * 60 * 60 * 1000
+                const newEndTime = newStartTimeMs + oneDayMs
+                L_.TimeControl_.setTime(newStartTime, newEndTime)
+
+                // Show warning to user
+                CursorInfo.update(
+                    `Start time is later than end time. End time has been set to 1 day after start time.`,
+                    6000,
+                    true,
+                    { x: 305, y: 6 },
+                    '#e9ff26',
+                    'black'
+                )
+            } else {
+                // Normal case: just set the start time
+                L_.TimeControl_.setTime(newStartTime, currentEndTime)
+            }
+
             L_.TimeControl_.timeUI.fitWindowToTime()
         })
         $(`#drawToolTemplater_setTimeEnd`).on('click', () => {
-            L_.TimeControl_.setTime(
-                L_.TimeControl_.getStartTime(),
-                L_.TimeControl_.timeUI.removeOffset(
-                    new Date(properties[endTime]).getTime()
+            // Force UTC by adding 'Z' if not present
+            let endTimeValue = properties[endTime]
+            if (
+                typeof endTimeValue === 'string' &&
+                endTimeValue.indexOf('T') !== -1 &&
+                !endTimeValue.endsWith('Z')
+            ) {
+                endTimeValue += 'Z'
+            }
+            const newEndTime = new Date(endTimeValue).getTime()
+            const currentStartTime = L_.TimeControl_.getStartTime()
+
+            // Convert both to timestamps for proper comparison
+            const newEndTimeMs =
+                typeof newEndTime === 'number'
+                    ? newEndTime
+                    : new Date(newEndTime).getTime()
+            const currentStartTimeMs =
+                typeof currentStartTime === 'number'
+                    ? currentStartTime
+                    : new Date(currentStartTime).getTime()
+
+            // Check if new end time would be earlier than current start time
+            if (newEndTimeMs < currentStartTimeMs) {
+                // Set start time to 1 day before end time
+                const oneDayMs = 24 * 60 * 60 * 1000
+                const newStartTime = newEndTimeMs - oneDayMs
+                L_.TimeControl_.setTime(newStartTime, newEndTime)
+
+                // Show warning to user
+                CursorInfo.update(
+                    `End time is earlier than start time. Start time has been set to 1 day before end time.`,
+                    6000,
+                    true,
+                    { x: 305, y: 6 },
+                    '#e9ff26',
+                    'black'
                 )
-            )
+            } else {
+                // Normal case: just set the end time
+                L_.TimeControl_.setTime(currentStartTime, newEndTime)
+            }
+
             L_.TimeControl_.timeUI.fitWindowToTime()
         })
 

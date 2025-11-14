@@ -1325,12 +1325,9 @@ var DrawTool = {
     },
     _isFeatureTemporallyVisible(feature, startField, endField) {
         if (DrawTool.timeToggledOn !== true) return true
-        const startTime = F_.removeTimeZoneOffset(
-            new Date(L_.TimeControl_.getStartTime()).getTime()
-        )
-        const endTime = F_.removeTimeZoneOffset(
-            new Date(L_.TimeControl_.getEndTime()).getTime()
-        )
+        const startTime = new Date(L_.TimeControl_.getStartTime()).getTime()
+
+        const endTime = new Date(L_.TimeControl_.getEndTime()).getTime()
 
         let startTimeValue = false
         if (startField)
@@ -1343,7 +1340,8 @@ var DrawTool = {
         if (endTimeValue === false) return false
         else if (
             typeof endTimeValue === 'string' &&
-            endTimeValue.indexOf('T') != -1
+            endTimeValue.indexOf('T') != -1 &&
+            !endTimeValue.endsWith('Z')
         )
             endTimeValue += 'Z'
 
@@ -1358,7 +1356,8 @@ var DrawTool = {
         } else {
             if (
                 typeof startTimeValue === 'string' &&
-                startTimeValue.indexOf('T') != -1
+                startTimeValue.indexOf('T') != -1 &&
+                !startTimeValue.endsWith('Z')
             )
                 startTimeValue += 'Z'
             // Then we have a range

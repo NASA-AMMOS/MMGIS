@@ -61,7 +61,10 @@ let ToolController_ = {
             .style('z-index', '1004')
 
         // Adjust right position if zoom controls are enabled
-        const rightPosition = (L_.configData.look && L_.configData.look.zoomcontrol) ? '40px' : '5px'
+        const rightPosition =
+            L_.configData.look && L_.configData.look.zoomcontrol
+                ? '40px'
+                : '5px'
 
         this.separatedDivRight = d3
             .select('#splitscreens')
@@ -100,6 +103,12 @@ let ToolController_ = {
                 .style('left', '0px')
                 .style('border-radius', '3px')
                 .style('background', 'var(--color-a)')
+                .style(
+                    'transform',
+                    justification === 'right'
+                        ? 'translateX(calc(-100% + 30px))'
+                        : 'unset'
+                )
 
             sep.append('div')
                 .attr('id', `toolButtonSeparated_${tools[i].name}`)
@@ -130,8 +139,7 @@ let ToolController_ = {
                                         `toolContentSeparated_${ToolController_.tools[i].name}`
                                     )
                                     ToolController_.activeSeparatedTools.push(
-                                        ToolController_.tools[i].name +
-                                            'Tool'
+                                        ToolController_.tools[i].name + 'Tool'
                                     )
                                     $(
                                         `#toolButtonSeparated_${tools[i].name}`
@@ -142,8 +150,7 @@ let ToolController_ = {
                                         ToolController_.activeSeparatedTools.filter(
                                             (a) =>
                                                 a !=
-                                                ToolController_.tools[i]
-                                                    .name +
+                                                ToolController_.tools[i].name +
                                                     'Tool'
                                         )
 
@@ -191,8 +198,14 @@ let ToolController_ = {
                     .append('div')
                     .attr('id', `toolButton${tools[i].name}`)
                     .attr('class', 'toolButton')
-                    .style('width', L_.UserInterface_.isMobile === true ? '36px' : '100%')
-                    .style('height', L_.UserInterface_.isMobile === true ? '100%': '36px')
+                    .style(
+                        'width',
+                        L_.UserInterface_.isMobile === true ? '36px' : '100%'
+                    )
+                    .style(
+                        'height',
+                        L_.UserInterface_.isMobile === true ? '100%' : '36px'
+                    )
                     .style('display', 'inline-block')
                     .style('text-align', 'center')
                     .style('line-height', '36px')
@@ -289,8 +302,13 @@ let ToolController_ = {
 
         // FIXME For now, remove the time button in the toolbar
         // Add the time UI button if time is enabled and in mobile mode
-        if (L_.UserInterface_?.isMobile === true && L_.configData.time && L_.configData.time.enabled === true) {
-            let timeSelect = d3.select('#toolcontroller_incdiv')
+        if (
+            L_.UserInterface_?.isMobile === true &&
+            L_.configData.time &&
+            L_.configData.time.enabled === true
+        ) {
+            let timeSelect = d3
+                .select('#toolcontroller_incdiv')
                 .append('div')
                 .attr('id', 'toggleTimeUI')
                 .style('position', 'relative')
@@ -311,9 +329,7 @@ let ToolController_ = {
                             if ($(this).hasClass('active')) {
                                 hasActive = true
                             }
-                            var prevActive = $(
-                                '#toolcontroller_incdiv .active'
-                            )
+                            var prevActive = $('#toolcontroller_incdiv .active')
                             prevActive.removeClass('active').css({
                                 color: ToolController_.defaultColor,
                                 background: 'none',
@@ -322,7 +338,9 @@ let ToolController_ = {
                                 background: 'none',
                             })
                             if (!hasActive) {
-                                var newActive = $('#toolcontroller_incdiv #toggleTimeUI')
+                                var newActive = $(
+                                    '#toolcontroller_incdiv #toggleTimeUI'
+                                )
                                 newActive.addClass('active').css({
                                     color: ToolController_.activeColor,
                                 })
@@ -349,14 +367,19 @@ let ToolController_ = {
                     })()
                 )
 
-            timeSelect.append('i')
+            timeSelect
+                .append('i')
                 .attr('class', 'mdi mdi-clock mdi-18px')
                 .style('cursor', 'pointer')
         }
 
-        if (L_.UserInterface_?.isMobile === true &&
-                (L_.configData.coordinates.coordll == true || L_.configData.coordinates.coorden == true)) {
-            let coordSelect = d3.select('#toolcontroller_incdiv')
+        if (
+            L_.UserInterface_?.isMobile === true &&
+            (L_.configData.coordinates.coordll == true ||
+                L_.configData.coordinates.coorden == true)
+        ) {
+            let coordSelect = d3
+                .select('#toolcontroller_incdiv')
                 .append('div')
                 .attr('id', 'coordinatesDiv')
                 .style('position', 'relative')
@@ -377,9 +400,7 @@ let ToolController_ = {
                             if ($(this).hasClass('active')) {
                                 hasActive = true
                             }
-                            var prevActive = $(
-                                '#toolcontroller_incdiv .active'
-                            )
+                            var prevActive = $('#toolcontroller_incdiv .active')
                             prevActive.removeClass('active').css({
                                 color: ToolController_.defaultColor,
                                 background: 'none',
@@ -388,14 +409,18 @@ let ToolController_ = {
                                 background: 'none',
                             })
                             if (!hasActive) {
-                                var newActive = $('#toolcontroller_incdiv #coordinatesDiv')
+                                var newActive = $(
+                                    '#toolcontroller_incdiv #coordinatesDiv'
+                                )
                                 newActive.addClass('active').css({
                                     color: ToolController_.activeColor,
                                 })
 
                                 L_.Coordinates.initialize()
                                 L_.Coordinates.init()
-                                ToolController_.setToolHeight(L_.Coordinates.height)
+                                ToolController_.setToolHeight(
+                                    L_.Coordinates.height
+                                )
                                 ToolController_.setToolWidth()
                                 L_.Coordinates.make()
                             } else {
@@ -414,7 +439,8 @@ let ToolController_ = {
                     })()
                 )
 
-            coordSelect.append('i')
+            coordSelect
+                .append('i')
                 .attr('class', 'mdi mdi-target mdi-18px')
                 .style('cursor', 'pointer')
         }

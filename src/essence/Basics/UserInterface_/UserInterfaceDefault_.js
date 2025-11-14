@@ -1509,6 +1509,11 @@ function resize() {
     if (Globe_ != null) Globe_.litho.invalidateSize()
 
     shouldRotateSplitterText()
+
+    // Update TimeUI positions when layout changes
+    if (L_.TimeControl_ && L_.TimeControl_.timeUI && typeof L_.TimeControl_.timeUI.alignPopovers === 'function') {
+        L_.TimeControl_.timeUI.alignPopovers()
+    }
 }
 function windowresize() {
     //Could've just used percents overall but oh well
