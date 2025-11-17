@@ -22,7 +22,7 @@ except ImportError:
 
 # Make gdal use exceptions instead of their own errors so that they can be caught
 gdal.UseExceptions()
-
+gdal.SetConfigOption('CPL_LOG', '/dev/null')
 
 def getValueAtBand(b):
     try:

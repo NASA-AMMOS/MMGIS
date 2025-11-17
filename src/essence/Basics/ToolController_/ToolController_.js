@@ -305,6 +305,12 @@ let ToolController_ = {
                         theme: 'blue',
                     })
                 }
+
+                tippy(`#toolButton${tools[i].name}`, {
+                    content: ((tools[i].name == 'Sites') ? 'Target Areas' : tools[i].name),
+                    placement: 'right',
+                    theme: 'blue',
+                })
             }
         }
 

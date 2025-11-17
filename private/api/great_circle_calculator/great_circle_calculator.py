@@ -11,7 +11,7 @@ from math import sin
 from math import sqrt
 from math import tan
 
-def distance_between_points(p1, p2, unit='meters', radius=None, haversine=True, vincenty=False):
+def distance_between_points(p1, p2, unit='meters', haversine=True, vincenty=False):
     """ This function computes the distance between two points in the unit given in the unit parameter.  It will
     calculate the distance using the haversine unless the user specifies haversine to be False.  Then law of cosines
     will be used
@@ -26,8 +26,6 @@ def distance_between_points(p1, p2, unit='meters', radius=None, haversine=True, 
     lon2, lat2 = _point_to_radians(_error_check_point(p2))
     r_earth = getattr(radius_earth, unit, 'meters')
     
-    if radius is not None:
-        r_earth = radius
     
     if vincenty:  # from https://nathanrooy.github.io/posts/2016-12-18/vincenty-formula-with-python/
         
@@ -151,7 +149,7 @@ def intermediate_point(p1, p2, fraction=0.5):
     """
     lon1, lat1 = _point_to_radians(_error_check_point(p1))
     lon2, lat2 = _point_to_radians(_error_check_point(p2))
-    delta = distance_between_points(p1, p2, vincenty=False) / radius_earth.meters
+    delta = distance_between_points(p1, p2, vincenty=True) / radius_earth.meters
     a = sin((1 - fraction) * delta) / sin(delta)
     b = sin(fraction * delta) / sin(delta)
     x = a * cos(lat1) * cos(lon1) + b * cos(lat2) * cos(lon2)

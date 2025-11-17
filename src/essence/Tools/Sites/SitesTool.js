@@ -60,7 +60,7 @@ var SitesTool = {
                 'text-transform': 'uppercase',
                 'padding-left': '6px'
             })
-            .html('Sites')
+            .html('Target Areas')
         toolsContainer.append(headerDiv)
 
         const tools = $('<div>')
