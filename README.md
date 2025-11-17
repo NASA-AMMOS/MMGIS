@@ -113,6 +113,82 @@ Navigate to `http://localhost:8888`.
 
 See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configure/) for more information on how to use the configure page to customize and add data to MMGIS.
 
+### Setting up the Frozon Mission
+
+The Frozon mission is a pre-configured mission for Arctic sea ice analysis with SWOT and ICESat-2 data:
+
+1. **Ensure Docker services are running:**
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Import the Frozon mission configuration:**
+   
+   First, create an empty mission entry in the database:
+   ```bash
+   docker exec mmgis-db-1 psql -U user -d name -c "INSERT INTO configs (mission, config, version, \"createdAt\") VALUES ('frozon', '{}', 1, NOW())"
+   ```
+   
+   Then, copy and import the full configuration:
+   ```bash
+   docker cp Missions/frozon/config.json mmgis-db-1:/tmp/frozon_config.json
+   docker exec mmgis-db-1 psql -U user -d name -c "UPDATE configs SET config = (SELECT pg_read_file('/tmp/frozon_config.json')::json) WHERE mission = 'frozon';"
+   ```
+
+3. **Restart MMGIS to load the new configuration:**
+   ```bash
+   docker-compose restart mmgis
+   ```
+
+4. **Access the Frozon mission:**
+   
+   Navigate to `http://localhost:8888/?mission=frozon` (or port 8889 if you've configured it differently)
+   
+   The mission includes:
+   - Arctic polar stereographic projection (EPSG:3413)
+   - SWOT sea ice freeboard data layers
+   - ICESat-2 monthly binned freeboard data
+   - Areas of Interest and Polar Countries boundaries
+   - Time-enabled raster layers for temporal analysis
+
+**Note:** If you need to run on a different port (e.g., 8889), update the port mapping in `docker-compose.yml`:
+```yaml
+ports:
+  - 8889:8888
+```
+Then recreate the container:
+```bash
+docker-compose down mmgis && docker-compose up -d mmgis
+```
+
+### Troubleshooting Docker Setup
+
+**Common Issues:**
+
+1. **PowerShell installation fails during Docker build (ARM64/M1 Macs):**
+   - Use the pre-built image instead of building locally
+   - In `docker-compose.yml`, comment out `build: .` and uncomment `image: ghcr.io/nasa-ammos/mmgis:development`
+
+2. **Database connection errors:**
+   - Ensure `DB_HOST=db` in `.env` when using Docker Compose (not `localhost`)
+   - Wait for the database to be healthy before accessing MMGIS
+
+3. **Mission not appearing:**
+   - Check if the mission exists in the database: 
+     ```bash
+     docker exec mmgis-db-1 psql -U user -d name -c "SELECT mission FROM configs;"
+     ```
+   - If missing, follow the Frozon mission setup steps above
+
+4. **Layers not loading:**
+   - Clear browser cache and hard refresh (Ctrl+F5 or Cmd+Shift+R)
+   - Check browser console for errors
+   - Verify the mission config is complete:
+     ```bash
+     docker exec mmgis-db-1 psql -U user -d name -c "SELECT LENGTH(config::text) FROM configs WHERE mission='frozon';"
+     ```
+     (Should return ~30000+ for a full config)
+
 ## Installing Without Docker
 
 ### System Requirements
