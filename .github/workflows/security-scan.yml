@@ -22,30 +22,44 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          queries: security-and-quality, security-extended
+          config-file: ./.github/codeql/codeql-config.yml
       - name: CodeQL Scan
         uses: github/codeql-action/analyze@v3
-      - name: Post-Process CodeQL
+      - name: Prepare SARIF Files
         run: |
-          python3 -m pip install nasa-scrub
-
           results_dir=`realpath ${{ github.workspace }}/../results`
-          sarif_files=`find $results_dir -name '*.sarif'`
+          workspace_path="${{ github.workspace }}"
 
-          for sarif_file in $sarif_files
-          do
-            output_file="$results_dir/$(basename $sarif_file .sarif)_stripped.sarif"
+          echo "SARIF files directory: $results_dir"
+          echo "Workspace path: $workspace_path"
+          echo "Available SARIF files:"
+          ls -lh $results_dir/*.sarif
 
-            python3 -m scrub.tools.parsers.translate_results $sarif_file $output_file ${{ github.workspace }} sarifv2.1.0
+          # Fix file paths in SARIF files to be relative to workspace
+          # This is necessary for SonarQube to correctly map issues to files
+          for sarif_file in $results_dir/*.sarif; do
+            if [ -f "$sarif_file" ]; then
+              output_file="${sarif_file%.sarif}_processed.sarif"
+              echo "Processing: $(basename $sarif_file)"
+
+              python3 .github/scripts/fix_sarif_paths.py "$sarif_file" "$output_file" "$workspace_path"
+
+              if [ $? -ne 0 ]; then
+                echo "ERROR: Failed to process $sarif_file, using original"
+                cp "$sarif_file" "$output_file"
+              fi
+            fi
           done
 
-          echo "RESULTS_DIR=$results_dir" >> $GITHUB_ENV
-          echo "Results generated: "
-          echo $results_dir
+          # Use processed SARIF files for SonarQube
+          sarif_list=$(find $results_dir -name '*_processed.sarif' | tr '\n' ',' | sed 's/,$//')
 
-          # Create comma-separated list of SARIF files for SonarQube
-          sarif_list=$(find $results_dir -name '*_stripped.sarif' | tr '\n' ',' | sed 's/,$//')
+          echo "RESULTS_DIR=$results_dir" >> $GITHUB_ENV
           echo "SARIF_FILES=$sarif_list" >> $GITHUB_ENV
+
+          echo ""
+          echo "SARIF files for SonarQube:"
+          echo "$sarif_list"
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
