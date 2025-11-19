@@ -127,13 +127,14 @@
 }
 
 #drawToolShapesFilterAdvancedDiv {
-    overflow: hidden;
     width: 100%;
     max-height: 0px;
+    overflow: hidden;
     transition: height 0.2s ease-in-out;
 }
 #drawToolShapesFilterAdvancedDiv.on {
     max-height: 50vh;
+    overflow: visible;
 }
 
 #drawToolShapes {
@@ -255,14 +256,118 @@
     padding: 0px 4px;
     color: #d6d6d6;
 }
+
+/* Sort Controls */
+#drawToolShapesSortDiv {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    background: var(--color-a1);
+    border-bottom: 1px solid var(--color-a1);
+}
+
+#drawToolShapesSortLabel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-top: 1px;
+    background: var(--color-a);
+}
+
+#drawToolShapesSortLabel i {
+    color: var(--color-a5);
+}
+
+#drawToolShapesSortProperty {
+    flex: 1;
+    min-width: 0;
+    background-color: #222;
+    border: none;
+    margin: 1px 0px;
+    width: 100%;
+    height: 28px;
+    font-size: 14px;
+    color: var(--color-f);
+    padding: 0px 2px;
+}
+#drawToolShapesSortProperty .dropy {
+    height: 28px;
+    margin-bottom: 0;
+}
+#drawToolShapesSortProperty .dropy__title {
+    height: 28px;
+    line-height: 12px;
+    font-size: 14px;
+}
+#drawToolShapesSortProperty .dropy__title > span {
+    color: var(--color-a5);
+}
+#drawToolShapesSortProperty .dropy__title > i {
+    line-height: 13px;
+}
+
+#drawToolShapesSortButtons {
+    display: flex;
+}
+#drawToolShapesSortButtons > div {
+    border-left: 1px solid var(--color-a1);
+}
+
+.drawToolShapesSortButton {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-a);
+    border-radius: 2px;
+    cursor: pointer;
+    border-top: 3px solid rgba(0, 0, 0, 0);
+    border-bottom: 3px solid rgba(0, 0, 0, 0);
+    transition: all 0.2s ease;
+}
+
+.drawToolShapesSortButton:hover {
+    background: var(--color-a2);
+}
+
+.drawToolShapesSortButton.active {
+    background: var(--color-a);
+    border-bottom: 3px solid var(--color-c);
+}
+
+.drawToolShapesSortButton i {
+    color: var(--color-a6);
+}
+
+.drawToolShapesSortButton.active i {
+    color: var(--color-c);
+}
+
+.drawToolShapesSortButton.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.drawToolShapesSortButton.disabled:hover {
+    background: var(--color-a);
+    border-color: var(--color-a2);
+}
+
+#drawToolShapes_filtering_add_group,
 #drawToolShapes_filtering_add_value {
     padding: 0px 6px;
     color: var(--color-a6);
+    margin-left: 4px;
 }
+#drawToolShapes_filtering_add_group:hover,
 #drawToolShapes_filtering_add_value:hover {
     background: var(--color-c);
     color: var(--color-a7);
 }
+#drawToolShapes_filtering_add_group > div,
 #drawToolShapes_filtering_add_value > div {
     font-size: 11px;
     margin-right: 2px;
@@ -273,7 +378,6 @@
 #drawToolShapes_filtering_filters {
     border-left: 1px solid var(--color-a2);
     background: var(--color-a1-5);
-    overflow: auto;
     flex: 1;
 }
 #drawToolShapes_filtering_filters_list {
@@ -380,6 +484,81 @@
 }
 .drawToolShapes_filtering_value_operator_select:hover {
     background: var(--color-a2);
+}
+
+/* Group Styles */
+.drawToolShapes_filtering_group {
+    display: flex;
+    height: 33px;
+    border-bottom: 1px solid var(--color-a2);
+    align-items: center;
+}
+
+.drawToolShapes_filtering_group > div:first-child {
+    display: flex;
+    flex: 1;
+    align-items: center;
+}
+
+.drawToolShapes_filtering_group_key {
+padding: 0 8px;
+    color: var(--color-a5);
+}
+
+.drawToolShapes_filtering_group_operator {
+    flex: 1;
+}
+
+.drawToolShapes_filtering_group_operator_select {
+    color: var(--color-f);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    height: 22px;
+    margin: 4px 0px;
+    transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+
+.drawToolShapes_filtering_group_operator_select.op_and {
+    background: var(--color-query);
+}
+
+.drawToolShapes_filtering_group_operator_select.op_or {
+    background: var(--color-c2);
+}
+
+.drawToolShapes_filtering_group_operator_select.op_not_and {
+    background: var(--color-orange2);
+}
+
+.drawToolShapes_filtering_group_operator_select.op_not_or {
+    background: var(--color-p4);
+}
+
+.drawToolShapes_filtering_group_operator_select .dropy__title span {
+    padding: 4px 0px !important;
+    width: 100%;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-align: center !important;
+}
+
+/* Drag Handle Styles */
+.drawFilterDragHandle {
+    cursor: grab;
+    padding: 0 3px;
+    color: var(--color-a3);
+    display: flex;
+    align-items: center;
+}
+
+.drawFilterDragHandle:hover {
+    color: var(--color-f);
+}
+
+.drawFilterDragHandle:active {
+    cursor: grabbing;
 }
 
 .drawToolShapes_filtering_value_remove .mmgisButton5 {
