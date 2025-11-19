@@ -501,7 +501,7 @@
 }
 
 .drawToolShapes_filtering_group_key {
-padding: 0 8px;
+    padding: 0 8px;
     color: var(--color-a5);
 }
 
@@ -559,6 +559,10 @@ padding: 0 8px;
 
 .drawFilterDragHandle:active {
     cursor: grabbing;
+}
+
+.drawToolShapes_filtering_value > .drawFilterDragHandle {
+    background: var(--color-a1);
 }
 
 .drawToolShapes_filtering_value_remove .mmgisButton5 {
