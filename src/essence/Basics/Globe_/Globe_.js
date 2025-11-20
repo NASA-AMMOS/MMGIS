@@ -2,7 +2,7 @@ import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import $ from 'jquery'
 
-import LithoSphere from 'lithosphere'
+import GlobeRenderer from './GlobeRenderer'
 
 let Globe_ = {
     litho: null,
@@ -105,8 +105,15 @@ let Globe_ = {
                     L_.configData.panelSettings.demFallbackType || 'rgba',
             }
 
-        // CONSTRUCTOR
-        this.litho = new LithoSphere(containerId, lithoConfig)
+        // Determine which renderer to use (default to lithosphere)
+        const rendererType =
+            L_.configData.panelSettings &&
+            L_.configData.panelSettings.globeRenderer
+                ? L_.configData.panelSettings.globeRenderer
+                : 'lithosphere'
+
+        // CONSTRUCTOR - Use GlobeRenderer abstraction
+        this.litho = new GlobeRenderer(containerId, lithoConfig, rendererType)
 
         if (!L_.hasGlobe) {
             this.litho = this.getMockLitho(this.litho)

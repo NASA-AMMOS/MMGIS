@@ -20,6 +20,7 @@ const getClientEnvironment = require("./env");
 const ModuleNotFoundPlugin = require("react-dev-utils/ModuleNotFoundPlugin");
 const ForkTsCheckerWebpackPlugin = require("react-dev-utils/ForkTsCheckerWebpackPlugin");
 const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 const postcssNormalize = require("postcss-normalize");
 
@@ -303,6 +304,14 @@ module.exports = function (webpackEnv) {
       ],
       fallback: {
         fs: false,
+        // Cesium requires these Node.js core modules
+        path: false,
+        url: false,
+        http: false,
+        https: false,
+        zlib: false,
+        stream: false,
+        buffer: false,
       },
     },
     resolveLoader: {},
@@ -595,6 +604,31 @@ module.exports = function (webpackEnv) {
       new webpack.IgnorePlugin({
         resourceRegExp: /^\.\/locale$/,
         contextRegExp: /moment$/,
+      }),
+      // Copy Cesium static assets
+      new CopyWebpackPlugin({
+        patterns: [
+          {
+            from: path.join(__dirname, "../node_modules/cesium/Build/Cesium/Workers"),
+            to: "Workers",
+          },
+          {
+            from: path.join(__dirname, "../node_modules/cesium/Build/Cesium/ThirdParty"),
+            to: "ThirdParty",
+          },
+          {
+            from: path.join(__dirname, "../node_modules/cesium/Build/Cesium/Assets"),
+            to: "Assets",
+          },
+          {
+            from: path.join(__dirname, "../node_modules/cesium/Build/Cesium/Widgets"),
+            to: "Widgets",
+          },
+        ],
+      }),
+      // Define Cesium base URL for static assets
+      new webpack.DefinePlugin({
+        CESIUM_BASE_URL: JSON.stringify("/"),
       }),
       // TypeScript type checking
       useTypeScript &&
