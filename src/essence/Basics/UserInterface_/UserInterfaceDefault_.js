@@ -951,6 +951,10 @@ var UserInterface = {
         if (!UserInterface.hasGlobe && globePercent != 0) return
         if (viewerPercent + mapPercent + globePercent != 100) return
 
+        // Check if Globe is being opened for the first time
+        const wasGlobeClosed = UserInterface.pxIsGlobe === 0
+        const isGlobeOpening = globePercent > 0
+
         UserInterface.pxIsViewer =
             UserInterface.mainWidth * (viewerPercent / 100) -
             UserInterface.splitterSize / 2
@@ -1000,6 +1004,17 @@ var UserInterface = {
         )
 
         resize()
+
+        // Sync Globe to Map's current center on first open
+        if (wasGlobeClosed && isGlobeOpening && Globe_ != null) {
+            if (!Globe_.hasBeenOpened) {
+                Globe_.hasBeenOpened = true
+                // Use setTimeout to ensure resize completes first
+                setTimeout(() => {
+                    Globe_.syncToMapCenter()
+                }, 100)
+            }
+        }
     },
     minimalist(is) {
         if (is) {

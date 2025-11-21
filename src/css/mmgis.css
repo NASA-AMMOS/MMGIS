@@ -1262,3 +1262,7 @@ mark {
     padding: 0.425rem 1.0375em;
     height: 30px;
 }
+
+.cesium-widget-credits {
+    display: none !important;
+}

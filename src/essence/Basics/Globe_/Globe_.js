@@ -7,9 +7,11 @@ import GlobeRenderer from './GlobeRenderer'
 let Globe_ = {
     litho: null,
     id: 'globe',
+    renderType: null, // default lithosphere
     controls: {
         link: null,
     },
+    hasBeenOpened: false, // Track if Globe panel has been opened before
     init: function () {
         const containerId = this.id
         let initialView = null
@@ -20,6 +22,12 @@ let Globe_ = {
         } else {
             initialView = L_.view
         }
+
+        this.rendererType =
+            L_.configData.panelSettings &&
+            L_.configData.panelSettings.globeRenderer
+                ? L_.configData.panelSettings.globeRenderer
+                : 'lithosphere'
 
         initialView = {
             lat: initialView[0],
@@ -105,15 +113,12 @@ let Globe_ = {
                     L_.configData.panelSettings.demFallbackType || 'rgba',
             }
 
-        // Determine which renderer to use (default to lithosphere)
-        const rendererType =
-            L_.configData.panelSettings &&
-            L_.configData.panelSettings.globeRenderer
-                ? L_.configData.panelSettings.globeRenderer
-                : 'lithosphere'
-
         // CONSTRUCTOR - Use GlobeRenderer abstraction
-        this.litho = new GlobeRenderer(containerId, lithoConfig, rendererType)
+        this.litho = new GlobeRenderer(
+            containerId,
+            lithoConfig,
+            this.rendererType
+        )
 
         if (!L_.hasGlobe) {
             this.litho = this.getMockLitho(this.litho)
@@ -183,6 +188,9 @@ let Globe_ = {
                 },
                 onToggle: (isLinked) => {},
                 onFirstPersonUpdate: () => {
+                    // Only LithoSphere supports first-person camera mode
+                    if (this.rendererType !== 'lithosphere') return
+
                     const center = this.litho.getCenter()
                     L_.Map_.setPlayerArrow(
                         center.lng,
@@ -255,7 +263,31 @@ let Globe_ = {
     },
     reset: function () {},
     setLink: function () {},
-    highlight: function () {},
+    syncToMapCenter: function () {
+        // Sync Globe center to Map's current center on first open
+        if (L_.Map_ && L_.Map_.map) {
+            const mapCenter = L_.Map_.map.getCenter()
+            const mapZoom = L_.Map_.map.getZoom()
+
+            if (this.litho && this.litho.setCenter) {
+                this.litho.setCenter({
+                    lat: mapCenter.lat,
+                    lng: mapCenter.lng,
+                    zoom: mapZoom,
+                })
+            }
+        }
+    },
+    highlight: function (layerName, feature) {
+        if (this.litho && this.litho.highlightFeature) {
+            this.litho.highlightFeature(layerName, feature)
+        }
+    },
+    clearHighlight: function () {
+        if (this.litho && this.litho.clearHighlight) {
+            this.litho.clearHighlight()
+        }
+    },
     findSpriteObject: function () {},
     radargram: function () {},
 }

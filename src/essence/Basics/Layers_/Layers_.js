@@ -1140,13 +1140,17 @@ const L_ = {
 
         if (layer) {
             const props = layer.feature?.properties || layer.properties || {}
-            L_.Globe_.highlight(
-                L_.Globe_.findSpriteObject(
-                    layer.options.layerName,
-                    props[layer.useKeyAsName]
-                ),
-                false
-            )
+
+            // Highlight the feature in Globe
+            if (
+                L_.Globe_ &&
+                L_.Globe_.highlight &&
+                layer.feature &&
+                layer.options?.layerName
+            ) {
+                L_.Globe_.highlight(layer.options.layerName, layer.feature)
+            }
+
             L_.Viewer_.highlight(layer)
         }
 
@@ -2106,6 +2110,31 @@ const L_ = {
                     )
                 ) {
                     if (layers[layerKeys[i + (relation || 0)]] != null) {
+                        // Set flag to prevent Globe click handler from firing
+                        if (
+                            L_.Globe_ &&
+                            L_.Globe_.litho &&
+                            L_.Globe_.litho._justSelectedFromMap !== undefined
+                        ) {
+                            L_.Globe_.litho._justSelectedFromMap = true
+                            // Clear flag after short delay
+                            if (L_.Globe_.litho._justSelectedTimeout) {
+                                clearTimeout(
+                                    L_.Globe_.litho._justSelectedTimeout
+                                )
+                            }
+                            L_.Globe_.litho._justSelectedTimeout = setTimeout(
+                                () => {
+                                    L_.Globe_.litho._justSelectedFromMap = false
+                                },
+                                500
+                            )
+                        }
+
+                        // Highlight the feature in Globe
+                        if (L_.Globe_ && L_.Globe_.highlight) {
+                            L_.Globe_.highlight(layerName, f)
+                        }
                         layers[layerKeys[i + (relation || 0)]].fireEvent(
                             'click'
                         )
