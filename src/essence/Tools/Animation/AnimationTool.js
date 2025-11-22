@@ -160,17 +160,17 @@ const markup = [
                         "<div class='export-options'>",
                             "<div class='export-option'>",
                                 "<div class='export-option-info'>",
-                                    "<h4>MP4 Video</h4>",
-                                    "<p>High-quality MP4 video file</p>",
-                                "</div>",
-                                "<button class='export-button' id='export-mp4'>Export MP4</button>",
-                            "</div>",
-                            "<div class='export-option'>",
-                                "<div class='export-option-info'>",
                                     "<h4>GIF Animation</h4>",
                                     "<p>Animated GIF file suitable for web sharing</p>",
                                 "</div>",
                                 "<button class='export-button' id='export-gif'>Export GIF</button>",
+                            "</div>",
+                            "<div class='export-option'>",
+                                "<div class='export-option-info'>",
+                                    "<h4>MP4 Video</h4>",
+                                    "<p>High-quality MP4 video file</p>",
+                                "</div>",
+                                "<button class='export-button' id='export-mp4'>Export MP4</button>",
                             "</div>",
                             "<div class='export-option'>",
                                 "<div class='export-option-info'>",
@@ -253,9 +253,39 @@ function interfaceWithMMGIS() {
     tools = tools.append('div').style('height', '100%')
     tools.html(markup)
     
+    // Update export options visibility based on config
+    updateExportOptionsVisibility()
+    
     // Initialize components
     initializeComponents()
     setupEventHandlers()
+    
+    function updateExportOptionsVisibility() {
+        // Get config variables
+        const toolVars = L_.getToolVars('animation') || {}
+        
+        // Show/hide export options based on config
+        const showGIF = toolVars.animationGIF !== false
+        const showMP4 = toolVars.animationMP4 === true
+        const showPNG = toolVars.animationPNG === true
+        
+        // Find the export-option divs and show/hide them
+        const exportOptions = $('.export-option')
+        
+        exportOptions.each(function() {
+            const $option = $(this)
+            const $button = $option.find('.export-button')
+            
+            // Check which export option this is based on the button ID
+            if ($button.attr('id') === 'export-gif') {
+                $option.toggle(showGIF)
+            } else if ($button.attr('id') === 'export-mp4') {
+                $option.toggle(showMP4)
+            } else if ($button.attr('id') === 'export-sequence') {
+                $option.toggle(showPNG)
+            }
+        })
+    }
     
     function initializeComponents() {
         // Sync with TimeControl if available
