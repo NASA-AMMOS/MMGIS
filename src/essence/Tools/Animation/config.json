@@ -10,6 +10,38 @@
     "paths": {
         "AnimationTool": "essence/Tools/Animation/AnimationTool"
     },
-    "expandable": true
+    "expandable": true,
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.animationGIF",
+                        "name": "GIF",
+                        "description": "Export animation as GIF format",
+                        "type": "checkbox",
+                        "width": 2,
+                        "defaultChecked": true
+                    },
+                    {
+                        "field": "variables.animationMP4",
+                        "name": "MP4",
+                        "description": "Export animation as MP4 video format",
+                        "type": "checkbox",
+                        "width": 2,
+                        "defaultChecked": false
+                    },
+                    {
+                        "field": "variables.animationPNG",
+                        "name": "PNG",
+                        "description": "Export animation as PNG format",
+                        "type": "checkbox",
+                        "width": 2,
+                        "defaultChecked": false
+                    }
+                ]
+            }
+        ]
+    }
 }
 
