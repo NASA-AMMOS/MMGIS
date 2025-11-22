@@ -151,6 +151,13 @@ const markup = [
                                 "<label for='showScaleBar'>Include Scale Bar</label>",
                             "</div>",
                         "</div>",
+                        "<div class='control-group'>",
+                            "<label>Layer Refresh Rate:</label>",
+                            "<div class='slider-container'>",
+                                "<input type='range' id='layerRefreshRateSlider' min='100' max='60000' step='100' value='500'>",
+                                "<span class='slider-value' id='layerRefreshRateValue'>0.5s</span>",
+                            "</div>",
+                        "</div>",
                     "</div>",
                 "</div>",
                 "<div id='animationPanel4' class='animation-panel'>",
@@ -208,7 +215,8 @@ const AnimationTool = {
         playDirection: 'forward',
         title: '',
         showTimeStep: false,
-        showScaleBar: false
+        showScaleBar: false,
+        layerRefreshRate: 500 // Delay after updating time to wait for layers to update (in milliseconds)
     },
     cachedImages: [],
     isPlaying: false,
@@ -324,6 +332,11 @@ function interfaceWithMMGIS() {
         
         // Set up periodic sync to catch TimeUI changes
         setupTimeUISync()
+        
+        // Initialize layer refresh rate slider
+        $('#layerRefreshRateSlider').val(AnimationTool.animationSettings.layerRefreshRate)
+        const initialSeconds = (AnimationTool.animationSettings.layerRefreshRate / 1000).toFixed(1)
+        $('#layerRefreshRateValue').text(initialSeconds + 's')
     }
     
     function syncWithTimeControl() {
@@ -666,6 +679,14 @@ function interfaceWithMMGIS() {
         // Show scale bar checkbox
         $('#showScaleBar').on('change', (e) => {
             AnimationTool.animationSettings.showScaleBar = e.target.checked
+        })
+        
+        // Layer refresh rate slider
+        $('#layerRefreshRateSlider').on('input', (e) => {
+            const value = parseInt(e.target.value)
+            AnimationTool.animationSettings.layerRefreshRate = value
+            const seconds = (value / 1000).toFixed(1)
+            $('#layerRefreshRateValue').text(seconds + 's')
         })
         
         // Export controls
@@ -1402,8 +1423,8 @@ function interfaceWithMMGIS() {
                 TimeControl.timeUI.updateTimes(null, timestampMs, null)
             }
             
-            // Wait for layers to update and TimeUI to reflect changes
-            setTimeout(resolve, 500) // Increased wait time for proper layer updates
+            // Wait for layers to update using configured delay
+            setTimeout(resolve, AnimationTool.animationSettings.layerRefreshRate)
         })
     }
     
@@ -1693,9 +1714,6 @@ function interfaceWithMMGIS() {
             try {
                 // Update time for time-enabled layers
                 await updateTimeForFrame(timestamp)
-                
-                // Wait for layers to update
-                await new Promise(resolve => setTimeout(resolve, 500))
                 
                 // Use html2canvas to capture the map area
                 const mapContainer = document.querySelector('#mapScreen')
@@ -2397,6 +2415,7 @@ function interfaceWithMMGIS() {
         AnimationTool.animationSettings.title = ''
         AnimationTool.animationSettings.showTimeStep = false
         AnimationTool.animationSettings.showScaleBar = false
+        AnimationTool.animationSettings.layerRefreshRate = 500
         
         updateStepDisplay()
         
@@ -2405,6 +2424,8 @@ function interfaceWithMMGIS() {
         $('#exportTitle').val('')
         $('#showTimeStep').prop('checked', false)
         $('#showScaleBar').prop('checked', false)
+        $('#layerRefreshRateSlider').val(500)
+        $('#layerRefreshRateValue').text('0.5s')
         $('#resetValues').prop('disabled', true)
         
         // Remove drawing layer (red bounding box)
@@ -2426,6 +2447,7 @@ function interfaceWithMMGIS() {
         $('#timeStart, #timeEnd, #timeInterval, #timeStep').off()
         $('#frameRateSlider, input[name="playDirection"], #loopAnimation, #showTimeStep, #showScaleBar').off()
         $('#exportTitle').off()
+        $('#layerRefreshRateSlider').off()
         $('#export-gif, #export-sequence, #export-mp4').off()
         
         // Unsubscribe from TimeControl
