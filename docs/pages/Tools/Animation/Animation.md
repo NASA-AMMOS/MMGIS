@@ -14,10 +14,11 @@ The Animation Tool allows users to create smooth animated sequences of map data 
 - **Bounding Box Selection**: Draw on the map or enter coordinates manually to define the animation area (screen-aligned rectangles)
 - **Time Range Configuration**: Set start/end dates and time intervals (second, minute, hour, day, week, month, year, decade, century) with step multiplier
 - **TimeControl Integration**: Automatic synchronization with MMGIS TimeControl and TimeUI for seamless time-based layer updates
-- **Export Settings**: Configure frame rate, play direction, and loop settings for export
+- **Export Settings**: Configure frame rate, play direction, loop settings, and layer refresh rate for export
+- **Layer Refresh Rate**: Configurable delay (0.1s - 60s) after updating time to wait for layers to update before capturing each frame
 - **Text Overlays**: Optional title and timestamp overlays on exported frames
 - **Scale Bar**: Option to include or exclude scale bar in exported frames
-- **Export Options**: Export as GIF, MP4 video, or individual PNG image sequence
+- **Export Options**: Export as GIF, MP4 video, or individual PNG image sequence (configurable via tool variables)
 
 ## Usage
 
@@ -39,9 +40,11 @@ The Animation Tool allows users to create smooth animated sequences of map data 
 - Optionally add a title that will appear as an overlay
 - Enable/disable time step display as an overlay
 - Enable/disable scale bar inclusion in frames
+- Configure Layer Refresh Rate (0.1s - 60s): Delay after updating time to wait for layers to update before capturing each frame
 
 ### Step 4: Export
-- Choose export format (GIF, MP4, or image sequence)
+- Choose export format from available options (GIF, MP4, or image sequence)
+- Only export formats enabled in the tool configuration will be visible
 - Click the export button for your desired format
 - Monitor export progress in the button text
 - Download the generated file(s)
@@ -49,17 +52,26 @@ The Animation Tool allows users to create smooth animated sequences of map data 
 **Note**: During export, the tool will:
 - Temporarily hide UI elements for clean frames
 - Update time-enabled layers for each frame
+- Wait for the configured Layer Refresh Rate delay before capturing each frame
 - Crop frames to the selected bounding box area
 - Apply text overlays if configured
 - Restore the original map view and TimeControl state after export
 
 ## Configuration
 
-The Animation Tool has no configurable variables. All settings (frame rate, time range, bounding box, export options) are configured through the tool's user interface during use. The tool provides a step-by-step interface that guides users through:
+The Animation Tool can be configured to control which export format options are available to users. Administrators can enable or disable the following export formats:
+
+- **GIF Export**: Enable or disable the animated GIF export option (enabled by default)
+- **MP4 Export**: Enable or disable the MP4 video export option (disabled by default)
+- **PNG Sequence Export**: Enable or disable the individual PNG frame export option (disabled by default)
+
+These settings are configured in the tool's configuration. When an export format is disabled, that option will not appear in the export interface.
+
+All other settings (frame rate, time range, bounding box, layer refresh rate, overlays, scale bar) are configured through the tool's user interface during use. The tool provides a step-by-step interface that guides users through:
 
 1. Selecting the animation area (bounding box)
 2. Setting the time range and intervals
-3. Configuring export settings (frame rate, overlays, scale bar)
+3. Configuring export settings (frame rate, layer refresh rate, overlays, scale bar)
 4. Exporting the animation in the desired format
 
 ## TimeControl Integration
@@ -145,6 +157,7 @@ The Animation Tool integrates with MMGIS's existing systems:
 ### Frame Generation
 - Frames are generated sequentially with small delays to prevent UI blocking
 - Each frame updates TimeControl to refresh time-enabled layers
+- After updating time, the tool waits for the configured Layer Refresh Rate (0.1s - 60s) before capturing the frame
 - Original TimeControl state is stored and restored after export
 
 ### Performance Considerations
