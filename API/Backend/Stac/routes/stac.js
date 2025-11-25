@@ -107,4 +107,75 @@ router.get("/collections", function (req, res, next) {
     });
 });
 
+// Export collection with all items
+router.get("/collections/:collection/export", async function (req, res, next) {
+  const { collection } = req.params;
+
+  const stacUrl = `http://${
+    process.env.IS_DOCKER === "true" ? "stac-fastapi" : "localhost"
+  }:${process.env.STAC_PORT || 8881}`;
+
+  try {
+    // Fetch collection metadata
+    const collectionResponse = await fetch(
+      `${stacUrl}/collections/${collection}`,
+      {
+        method: "GET",
+        headers: { "content-type": "application/json" },
+      }
+    );
+
+    if (!collectionResponse.ok) {
+      throw new Error("Collection not found");
+    }
+
+    const collectionData = await collectionResponse.json();
+
+    // Fetch all items with pagination
+    let allItems = [];
+    let nextUrl = `${stacUrl}/collections/${collection}/items?limit=10000`;
+
+    while (nextUrl) {
+      const itemsResponse = await fetch(nextUrl, {
+        method: "GET",
+        headers: { "content-type": "application/json" },
+      });
+
+      if (!itemsResponse.ok) {
+        throw new Error("Failed to fetch items");
+      }
+
+      const itemsData = await itemsResponse.json();
+      allItems = allItems.concat(itemsData.features || []);
+
+      // Check for next page link
+      const nextLink = itemsData.links?.find((link) => link.rel === "next");
+      nextUrl = nextLink ? nextLink.href : null;
+    }
+
+    // Combine into export format
+    const exportData = {
+      collection: collectionData,
+      items: allItems,
+    };
+
+    res.send({
+      status: "success",
+      body: exportData,
+    });
+  } catch (error) {
+    logger(
+      "error",
+      "Failed to export STAC Collection",
+      req.originalUrl,
+      req,
+      error
+    );
+    res.status(500).send({
+      status: "failure",
+      message: error.message || "Failed to export STAC Collection",
+    });
+  }
+});
+
 module.exports = router;

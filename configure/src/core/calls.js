@@ -114,6 +114,14 @@ const c = {
     type: "DELETE",
     url: "stac/collections/:collection/items/:item",
   },
+  stac_bulk_items: {
+    type: "POST",
+    url: "stac/collections/:collection/bulk_items",
+  },
+  stac_export_collection: {
+    type: "GET",
+    url: "api/stac/collections/:collection/export",
+  },
   account_entries: {
     type: "GET",
     url: "api/accounts/entries",
