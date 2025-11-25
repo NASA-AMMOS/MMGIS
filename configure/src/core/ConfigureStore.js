@@ -39,6 +39,7 @@ export const ConfigureStore = createSlice({
       stacCollectionJson: false,
       layersUsedByStacCollection: false,
       deleteStacCollection: false,
+      importStacItems: false,
       uploadConfig: false,
       cloneConfig: false,
       deleteConfig: false,

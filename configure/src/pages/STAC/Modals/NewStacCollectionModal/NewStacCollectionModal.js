@@ -14,6 +14,8 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
+import Divider from "@mui/material/Divider";
+import CircularProgress from "@mui/material/CircularProgress";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
 import HorizontalSplitIcon from "@mui/icons-material/HorizontalSplit";
@@ -43,9 +45,13 @@ const useStyles = makeStyles((theme) => ({
   contents: {
     background: theme.palette.primary.main,
     height: "100%",
-    maxWidth: "unset !important",
+    maxWidth: "900px !important",
     maxHeight: "calc(100vh - 64px) !important",
-    width: "calc(100vw - 64px)",
+    width: "900px",
+    [theme.breakpoints.down("sm")]: {
+      width: "calc(100vw - 64px)",
+      maxWidth: "calc(100vw - 64px) !important",
+    },
   },
   heading: {
     height: theme.headHeights[2],
@@ -489,64 +495,233 @@ const NewStacCollectionModal = (props) => {
 
   const dispatch = useDispatch();
 
+  // State for import functionality
+  const [importFile, setImportFile] = useState(null);
+  const [importData, setImportData] = useState(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  // Dropzone for importing collection JSON
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    maxFiles: 1,
+    accept: { "application/json": [".json"] },
+    onDropAccepted: (files) => {
+      const file = files[0];
+      setImportFile(file);
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const json = JSON.parse(e.target.result);
+          setImportData(json);
+        } catch (error) {
+          dispatch(
+            setSnackBarText({
+              text: "Invalid JSON file",
+              severity: "error",
+            })
+          );
+          setImportFile(null);
+        }
+      };
+      reader.readAsText(file);
+    },
+    onDropRejected: () => {
+      dispatch(
+        setSnackBarText({
+          text: "Please upload a valid JSON file",
+          severity: "warning",
+        })
+      );
+    },
+  });
+
   const handleClose = () => {
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
 
   const handleSubmit = () => {
-    const nextStacCollection = JSON.parse(JSON.stringify(newStacCollection));
-    nextStacCollection.type = "Collection";
-    nextStacCollection.stac_version = "1.0.0";
+    setIsImporting(true);
 
-    nextStacCollection.links = nextStacCollection.links || [];
-    nextStacCollection.description =
-      nextStacCollection.description || "A STAC Collection";
-    nextStacCollection.license = nextStacCollection.license || "MIT";
-    if (nextStacCollection == null || nextStacCollection.id == null) {
+    // Start with form data or empty object
+    let collectionData = newStacCollection
+      ? JSON.parse(JSON.stringify(newStacCollection))
+      : {};
+
+    // If importing, merge imported collection data but allow form overrides
+    if (importData) {
+      let importedCollection;
+      if (importData.collection) {
+        importedCollection = importData.collection;
+      } else if (importData.type === "Collection") {
+        importedCollection = importData;
+      } else {
+        dispatch(
+          setSnackBarText({
+            text: "Invalid import format. Expected collection data.",
+            severity: "error",
+          })
+        );
+        setIsImporting(false);
+        return;
+      }
+
+      // Merge: imported data as base, form data overrides
+      collectionData = {
+        ...importedCollection,
+        ...collectionData,
+      };
+
+      // If user hasn't entered an ID, use the imported ID
+      if (!collectionData.id && importedCollection.id) {
+        collectionData.id = importedCollection.id;
+      }
+    }
+
+    collectionData.type = "Collection";
+    collectionData.stac_version = "1.0.0";
+
+    collectionData.links = collectionData.links || [];
+    collectionData.description =
+      collectionData.description || "A STAC Collection";
+    collectionData.license = collectionData.license || "MIT";
+
+    if (collectionData == null || collectionData.id == null) {
       dispatch(
         setSnackBarText({
-          text: "Please fill out all Required Fields.",
+          text: "Please fill out a Collection ID.",
           severity: "warning",
         })
       );
+      setIsImporting(false);
       return;
     }
 
-    nextStacCollection.extent = nextStacCollection.extent || {};
+    collectionData.extent = collectionData.extent || {};
 
-    nextStacCollection.extent.spatial = nextStacCollection.extent.spatial || {};
-    nextStacCollection.extent.spatial.bbox = JSON.parse(
-      nextStacCollection.extent.spatial.bbox || "[[-180.0, -90.0, 180.0, 90.0]]"
-    );
+    collectionData.extent.spatial = collectionData.extent.spatial || {};
+    if (typeof collectionData.extent.spatial.bbox === "string") {
+      collectionData.extent.spatial.bbox = JSON.parse(
+        collectionData.extent.spatial.bbox || "[[-180.0, -90.0, 180.0, 90.0]]"
+      );
+    } else {
+      collectionData.extent.spatial.bbox =
+        collectionData.extent.spatial.bbox || [[-180.0, -90.0, 180.0, 90.0]];
+    }
 
-    nextStacCollection.extent.temporal =
-      nextStacCollection.extent.temporal || {};
-    nextStacCollection.extent.temporal.interval = JSON.parse(
-      nextStacCollection.extent.temporal.interval ||
-        '[["1970-01-01T00:00:00Z", null]]'
-    );
+    collectionData.extent.temporal = collectionData.extent.temporal || {};
+    if (typeof collectionData.extent.temporal.interval === "string") {
+      collectionData.extent.temporal.interval = JSON.parse(
+        collectionData.extent.temporal.interval ||
+          '[["1970-01-01T00:00:00Z", null]]'
+      );
+    } else {
+      collectionData.extent.temporal.interval =
+        collectionData.extent.temporal.interval || [
+          ["1970-01-01T00:00:00Z", null],
+        ];
+    }
 
+    // Create collection first
     calls.api(
       "stac_create_collection",
-      nextStacCollection || {},
+      collectionData || {},
       (res) => {
         if (res?.type === "Collection") {
-          querySTAC();
-          dispatch(
-            setSnackBarText({
-              text: "Successfully made a new STAC Collection!",
-              severity: "success",
-            })
-          );
-          handleClose();
-        } else
+          // If we have items to import, upload them
+          let itemsToImport = [];
+          if (importData) {
+            if (importData.items && Array.isArray(importData.items)) {
+              itemsToImport = importData.items;
+            } else if (
+              importData.features &&
+              Array.isArray(importData.features)
+            ) {
+              itemsToImport = importData.features;
+            } else if (Array.isArray(importData)) {
+              itemsToImport = importData;
+            }
+          }
+
+          if (itemsToImport.length > 0) {
+            // Transform items array to object format and remove collection field
+            const itemsObject = {};
+            try {
+              itemsToImport.forEach((item) => {
+                if (!item.id) {
+                  throw new Error("All items must have an 'id' field");
+                }
+                // Clone item and remove collection field to avoid ID mismatch errors
+                const itemCopy = { ...item };
+                delete itemCopy.collection;
+                itemsObject[item.id] = itemCopy;
+              });
+            } catch (error) {
+              dispatch(
+                setSnackBarText({
+                  text: error.message || "Invalid item format",
+                  severity: "error",
+                })
+              );
+              setIsImporting(false);
+              querySTAC();
+              return;
+            }
+
+            // Bulk upload items
+            calls.api(
+              "stac_bulk_items",
+              {
+                items: itemsObject,
+                method: "insert",
+                urlReplacements: {
+                  collection: collectionData.id,
+                },
+              },
+              (itemsRes) => {
+                querySTAC();
+                dispatch(
+                  setSnackBarText({
+                    text: `Successfully created collection with ${itemsToImport.length} items!`,
+                    severity: "success",
+                  })
+                );
+                setIsImporting(false);
+                handleClose();
+              },
+              (itemsErr) => {
+                dispatch(
+                  setSnackBarText({
+                    text:
+                      itemsErr?.message ||
+                      "Collection created but failed to import items",
+                    severity: "warning",
+                  })
+                );
+                setIsImporting(false);
+                querySTAC();
+              }
+            );
+          } else {
+            querySTAC();
+            dispatch(
+              setSnackBarText({
+                text: "Successfully made a new STAC Collection!",
+                severity: "success",
+              })
+            );
+            setIsImporting(false);
+            handleClose();
+          }
+        } else {
           dispatch(
             setSnackBarText({
               text: "Failed to create STAC Collections. ",
               severity: "error",
             })
           );
+          setIsImporting(false);
+        }
       },
       (res) => {
         dispatch(
@@ -555,6 +730,7 @@ const NewStacCollectionModal = (props) => {
             severity: "error",
           })
         );
+        setIsImporting(false);
       }
     );
   };
@@ -592,6 +768,46 @@ const NewStacCollectionModal = (props) => {
             "Create a new STAC collection. For more, see the STAC Collection Spec: https://github.com/radiantearth/stac-spec/blob/master/collection-spec/collection-spec.md"
           }
         </Typography>
+
+        <Typography className={c.subtitle2}>
+          Import Collection (Optional)
+        </Typography>
+        <div className={c.dropzone}>
+          <div {...getRootProps()}>
+            <input {...getInputProps()} />
+            {importFile ? (
+              <div>
+                <InsertDriveFileIcon style={{ fontSize: 48 }} />
+                <div className={c.fileName}>{importFile.name}</div>
+                {importData && (
+                  <Typography variant="body2" style={{ marginTop: 8 }}>
+                    {importData.items?.length || importData.features?.length
+                      ? `Collection with ${
+                          importData.items?.length ||
+                          importData.features?.length
+                        } items`
+                      : "Collection metadata only"}
+                  </Typography>
+                )}
+              </div>
+            ) : (
+              <div className={c.dropzoneMessage}>
+                <p>
+                  {isDragActive
+                    ? "Drop the file here..."
+                    : "Drag & drop a STAC collection JSON file here"}
+                </p>
+                <p>or click to select a file</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <Divider style={{ margin: "16px 0" }} />
+
+        <Typography className={c.subtitle2}>
+          Or Create Manually
+        </Typography>
         <Maker config={config} inlineHelp={true} />
       </DialogContent>
       <DialogActions>
@@ -599,8 +815,10 @@ const NewStacCollectionModal = (props) => {
           className={c.addSelected}
           variant="contained"
           onClick={handleSubmit}
+          disabled={isImporting}
+          startIcon={isImporting ? <CircularProgress size={20} /> : null}
         >
-          Create STAC Collection
+          {isImporting ? "Creating..." : "Create STAC Collection"}
         </Button>
       </DialogActions>
     </Dialog>
