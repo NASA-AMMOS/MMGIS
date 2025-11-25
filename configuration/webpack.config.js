@@ -300,6 +300,8 @@ module.exports = function (webpackEnv) {
           babelRuntimeEntry,
           babelRuntimeEntryHelpers,
           babelRuntimeRegenerator,
+          // Allow Cesium imports (needed for CSS and source files)
+          path.resolve(paths.appNodeModules, "cesium"),
         ]),
       ],
       fallback: {
@@ -610,25 +612,27 @@ module.exports = function (webpackEnv) {
         patterns: [
           {
             from: path.join(__dirname, "../node_modules/cesium/Build/Cesium/Workers"),
-            to: "Workers",
+            to: path.join("static", "cesium", "Workers"),
           },
           {
             from: path.join(__dirname, "../node_modules/cesium/Build/Cesium/ThirdParty"),
-            to: "ThirdParty",
+            to: path.join("static", "cesium", "ThirdParty"),
           },
           {
             from: path.join(__dirname, "../node_modules/cesium/Build/Cesium/Assets"),
-            to: "Assets",
+            to: path.join("static", "cesium", "Assets"),
           },
           {
             from: path.join(__dirname, "../node_modules/cesium/Build/Cesium/Widgets"),
-            to: "Widgets",
+            to: path.join("static", "cesium", "Widgets"),
           },
         ],
       }),
-      // Define Cesium base URL for static assets
+      // Define Cesium base URL for static assets (must match publicPath)
       new webpack.DefinePlugin({
-        CESIUM_BASE_URL: JSON.stringify("/"),
+        CESIUM_BASE_URL: JSON.stringify(
+          paths.publicUrlOrPath.replace(/\/$/, "") + "/static/cesium/"
+        ),
       }),
       // TypeScript type checking
       useTypeScript &&
