@@ -310,7 +310,7 @@ export default function STAC() {
   const [order, setOrder] = React.useState("asc");
   const [orderBy, setOrderBy] = React.useState("name");
   const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(25);
+  const [rowsPerPage, setRowsPerPage] = React.useState(50);
   const [searchTerm, setSearchTerm] = React.useState("");
 
   const c = useStyles();

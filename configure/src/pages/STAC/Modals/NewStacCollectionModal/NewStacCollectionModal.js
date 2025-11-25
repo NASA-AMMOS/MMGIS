@@ -45,9 +45,13 @@ const useStyles = makeStyles((theme) => ({
   contents: {
     background: theme.palette.primary.main,
     height: "100%",
-    maxWidth: "unset !important",
+    maxWidth: "900px !important",
     maxHeight: "calc(100vh - 64px) !important",
-    width: "calc(100vw - 64px)",
+    width: "900px",
+    [theme.breakpoints.down("sm")]: {
+      width: "calc(100vw - 64px)",
+      maxWidth: "calc(100vw - 64px) !important",
+    },
   },
   heading: {
     height: theme.headHeights[2],
@@ -539,14 +543,18 @@ const NewStacCollectionModal = (props) => {
   const handleSubmit = () => {
     setIsImporting(true);
 
-    // Determine collection data source
-    let collectionData;
+    // Start with form data or empty object
+    let collectionData = newStacCollection
+      ? JSON.parse(JSON.stringify(newStacCollection))
+      : {};
+
+    // If importing, merge imported collection data but allow form overrides
     if (importData) {
-      // Use imported collection data
+      let importedCollection;
       if (importData.collection) {
-        collectionData = importData.collection;
+        importedCollection = importData.collection;
       } else if (importData.type === "Collection") {
-        collectionData = importData;
+        importedCollection = importData;
       } else {
         dispatch(
           setSnackBarText({
@@ -557,9 +565,17 @@ const NewStacCollectionModal = (props) => {
         setIsImporting(false);
         return;
       }
-    } else {
-      // Use form data
-      collectionData = JSON.parse(JSON.stringify(newStacCollection));
+
+      // Merge: imported data as base, form data overrides
+      collectionData = {
+        ...importedCollection,
+        ...collectionData,
+      };
+
+      // If user hasn't entered an ID, use the imported ID
+      if (!collectionData.id && importedCollection.id) {
+        collectionData.id = importedCollection.id;
+      }
     }
 
     collectionData.type = "Collection";
@@ -573,7 +589,7 @@ const NewStacCollectionModal = (props) => {
     if (collectionData == null || collectionData.id == null) {
       dispatch(
         setSnackBarText({
-          text: "Please fill out all Required Fields.",
+          text: "Please fill out a Collection ID.",
           severity: "warning",
         })
       );
