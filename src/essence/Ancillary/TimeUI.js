@@ -215,20 +215,24 @@ const TimeUI = {
             markup += [
                 `<div id="mmgisTimeUIExpandedContent" class="show">`,
                     `<div id="mmgisTimeUIYearsRow" class="mmgisTimeUIExpandedRow">`,
-                        `<div id="mmgisTimeUIYearsRange" class="mmgisTimeUIExpandedRowRange"></div>`,
-                        `<div id="mmgisTimeUIYearsContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
+                        `<div id="mmgisTimeUIYearsContainer" class="mmgisTimeUIExpandedRowContainer">`,
+                            `<div id="mmgisTimeUIYearsRange" class="mmgisTimeUIExpandedRowRange"></div>`,
+                        `</div>`,
                     `</div>`,
                     `<div id="mmgisTimeUIMonthsRow" class="mmgisTimeUIExpandedRow">`,
-                        `<div id="mmgisTimeUIMonthsRange" class="mmgisTimeUIExpandedRowRange"></div>`,
-                        `<div id="mmgisTimeUIMonthsContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
+                        `<div id="mmgisTimeUIMonthsContainer" class="mmgisTimeUIExpandedRowContainer">`,
+                            `<div id="mmgisTimeUIMonthsRange" class="mmgisTimeUIExpandedRowRange"></div>`,
+                        `</div>`,
                     `</div>`,
                     `<div id="mmgisTimeUIDaysRow" class="mmgisTimeUIExpandedRow">`,
-                        `<div id="mmgisTimeUIDaysRange" class="mmgisTimeUIExpandedRowRange"></div>`,
-                        `<div id="mmgisTimeUIDaysContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
+                        `<div id="mmgisTimeUIDaysContainer" class="mmgisTimeUIExpandedRowContainer">`,
+                            `<div id="mmgisTimeUIDaysRange" class="mmgisTimeUIExpandedRowRange"></div>`,
+                        `</div>`,
                     `</div>`,
                     `<div id="mmgisTimeUIHoursRow" class="mmgisTimeUIExpandedRow">`,
-                        `<div id="mmgisTimeUIHoursRange" class="mmgisTimeUIExpandedRowRange"></div>`,
-                        `<div id="mmgisTimeUIHoursContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
+                        `<div id="mmgisTimeUIHoursContainer" class="mmgisTimeUIExpandedRowContainer">`,
+                            `<div id="mmgisTimeUIHoursRange" class="mmgisTimeUIExpandedRowRange"></div>`,
+                        `</div>`,
                     `</div>`,
             ].join('\n')
         }
@@ -2149,33 +2153,52 @@ const TimeUI = {
         const daysRange = TimeUI._calculateRangePositions('days')
         const hoursRange = TimeUI._calculateRangePositions('hours')
 
-        // Update years range indicator
-        $('#mmgisTimeUIYearsRange').css({
-            left: yearsRange.left + '%',
-            width: yearsRange.width + '%',
-        })
+        // Helper function to convert percentage to pixels based on scrollable content width
+        const applyRangePosition = (
+            rangeSelector,
+            containerSelector,
+            rangeData
+        ) => {
+            const container = $(containerSelector)
+            const scrollWidth = container[0].scrollWidth
 
-        // Update months range indicator
-        $('#mmgisTimeUIMonthsRange').css({
-            left: monthsRange.left + '%',
-            width: monthsRange.width + '%',
-        })
+            // Convert percentage to pixels based on full scrollable content width
+            const leftPx = (rangeData.left / 100) * scrollWidth
+            const widthPx = (rangeData.width / 100) * scrollWidth
 
-        // Update days range indicator
-        $('#mmgisTimeUIDaysRange').css({
-            left: daysRange.left + '%',
-            width: daysRange.width + '%',
-        })
+            $(rangeSelector).css({
+                left: leftPx + 'px',
+                width: widthPx + 'px',
+            })
+        }
 
-        // Update hours range indicator
-        $('#mmgisTimeUIHoursRange').css({
-            left: hoursRange.left + '%',
-            width: hoursRange.width + '%',
-        })
+        // Update all range indicators with pixel-based positioning
+        applyRangePosition(
+            '#mmgisTimeUIYearsRange',
+            '#mmgisTimeUIYearsContainer',
+            yearsRange
+        )
+        applyRangePosition(
+            '#mmgisTimeUIMonthsRange',
+            '#mmgisTimeUIMonthsContainer',
+            monthsRange
+        )
+        applyRangePosition(
+            '#mmgisTimeUIDaysRange',
+            '#mmgisTimeUIDaysContainer',
+            daysRange
+        )
+        applyRangePosition(
+            '#mmgisTimeUIHoursRange',
+            '#mmgisTimeUIHoursContainer',
+            hoursRange
+        )
     },
     _populateYearsRow() {
         const container = $('#mmgisTimeUIYearsContainer')
+        const rangeIndicator = $('#mmgisTimeUIYearsRange').detach()
         container.empty()
+        container.append(rangeIndicator)
 
         // Get last 20 years
         const currentYear = moment().year()
@@ -2207,7 +2230,9 @@ const TimeUI = {
     },
     _populateMonthsRow() {
         const container = $('#mmgisTimeUIMonthsContainer')
+        const rangeIndicator = $('#mmgisTimeUIMonthsRange').detach()
         container.empty()
+        container.append(rangeIndicator)
 
         // Get 12 months
         const months = moment.months()
@@ -2238,10 +2263,12 @@ const TimeUI = {
     },
     _populateDaysRow() {
         const container = $('#mmgisTimeUIDaysContainer')
+        const rangeIndicator = $('#mmgisTimeUIDaysRange').detach()
         container.empty()
+        container.append(rangeIndicator)
 
         // Get the number of days in the selected month (use addOffset to get local time)
-        const selectedMoment = moment(TimeUI.removeOffset(TimeUI._endTimestamp))
+        const selectedMoment = moment(TimeUI._endTimestamp)
         const daysInMonth = selectedMoment.daysInMonth()
         const selectedDay = selectedMoment.date()
 
@@ -2328,9 +2355,11 @@ const TimeUI = {
     },
     _populateHoursRow() {
         const container = $('#mmgisTimeUIHoursContainer')
+        const rangeIndicator = $('#mmgisTimeUIHoursRange').detach()
         container.empty()
+        container.append(rangeIndicator)
 
-        // Get the selected hour (use moment to get local time)
+        // Get the selected hour
         const selectedMoment = moment(TimeUI._endTimestamp)
         const selectedHour = selectedMoment.hour()
 
