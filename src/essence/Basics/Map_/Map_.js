@@ -862,6 +862,13 @@ function featureDefaultClick(feature, layer, e) {
         }
 
         QueryURL.writeSearchURL([searchStr], layer.options.layerName)
+
+        let _event = new CustomEvent('newActiveFeature', {
+            detail: {
+                activeFeature: L_.activeFeature,
+            },
+        })
+        document.dispatchEvent(_event)
     })
 }
 
