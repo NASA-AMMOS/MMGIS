@@ -124,7 +124,7 @@ const c = {
   },
   stac_update_collection: {
     type: "PUT",
-    url: "api/stac/collections/:collection",
+    url: "stac/collections/:collection",
   },
   account_entries: {
     type: "GET",

@@ -334,27 +334,28 @@ const EditStacCollectionModal = (props) => {
       "stac_update_collection",
       apiPayload,
       (res) => {
-        if (res?.status === "success") {
-          // Update Redux state
-          const updatedCollections = stacCollections.map((col) =>
-            col.id === originalCollectionId ? res.body : col
-          );
-          dispatch(setStacCollections(updatedCollections));
+        // stac-fastapi returns the collection directly, not wrapped in { status, body }
+        const updatedCollection = res;
 
-          dispatch(
-            setSnackBarText({
-              text: `Successfully updated collection: ${res.body.id}`,
-              severity: "success",
-            })
-          );
+        // Update Redux state
+        const updatedCollections = stacCollections.map((col) =>
+          col.id === originalCollectionId ? updatedCollection : col
+        );
+        dispatch(setStacCollections(updatedCollections));
 
-          setIsSaving(false);
-          setHasUnsavedChanges(false);
-          handleClose();
+        dispatch(
+          setSnackBarText({
+            text: `Successfully updated collection: ${updatedCollection.id}`,
+            severity: "success",
+          })
+        );
 
-          // Refresh from server to ensure consistency
-          querySTAC();
-        }
+        setIsSaving(false);
+        setHasUnsavedChanges(false);
+        handleClose();
+
+        // Refresh from server to ensure consistency
+        querySTAC();
       },
       (err) => {
         dispatch(
