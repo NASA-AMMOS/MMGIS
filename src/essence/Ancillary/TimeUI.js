@@ -1880,6 +1880,154 @@ const TimeUI = {
 
         // Update range indicators
         TimeUI._updateRangeIndicators()
+
+        // Update highlighted buttons as range if mobile
+        if (L_.UserInterface_?.isMobile === true) {
+            TimeUI._updateRangeIndicatorsMobile()
+        }
+
+        // Convert UTC timestamps to local time using addOffset to match display
+        const startTime = moment(TimeUI.removeOffset(TimeUI._startTimestamp))
+        const endTime = moment(TimeUI.removeOffset(TimeUI._endTimestamp))
+    },
+    _calculateRangePositionsMobile(containerType) {
+        // Use UTC timestamps
+        const startTime = moment.utc(moment(TimeUI.removeOffset(TimeUI._startTimestamp))).utc()
+        const endTime = moment.utc(moment(TimeUI.removeOffset(TimeUI._endTimestamp))).utc()
+
+        let startPeriod = null
+        let endPeriod = null
+
+        if (containerType === 'years') {
+            startPeriod = moment(TimeUI._startTimestamp).year()
+            endPeriod = moment(TimeUI._endTimestamp).year()
+        } else if (containerType === 'months') {
+            // Calculate fractional range for months row (12 months)
+            const selectedYear = moment(TimeUI._endTimestamp).year()
+            const totalMonths = 12
+            // Calculate start position
+            if (startTime.year() === selectedYear) {
+                startPeriod = startTime.month()
+            } else if (startTime.year() < selectedYear) {
+                startPeriod = 0
+            } else {
+                startPeriod = 11
+            }
+
+            // Calculate end position
+            if (endTime.year() === selectedYear) {
+                const endMonthBegin = moment.utc([
+                    selectedYear,
+                    endTime.month(),
+                    1,
+                ])
+                endPeriod = endTime.month()
+            } else if (endTime.year() > selectedYear) {
+                endPeriod = 11
+            } else {
+                endPeriod = 0
+            }
+
+        } else if (containerType === 'days') {
+            // Calculate fractional range for days row
+            const selectedYear = moment(
+                TimeUI.removeOffset(TimeUI._endTimestamp)
+            ).year()
+            const selectedMonth = moment(
+                TimeUI.removeOffset(TimeUI._endTimestamp)
+            ).month()
+            const daysInMonth = moment(
+                TimeUI.removeOffset(TimeUI._endTimestamp)
+            ).daysInMonth()
+
+            // Calculate start position
+            if (
+                startTime.year() === selectedYear &&
+                startTime.month() === selectedMonth
+            ) {
+                startPeriod = startTime.date()
+            } else if (
+                startTime.isBefore(moment([selectedYear, selectedMonth, 1]))
+            ) {
+                startPeriod = 0
+            } else {
+                startPeriod = daysInMonth
+            }
+
+            // Calculate end position
+            if (
+                endTime.year() === selectedYear &&
+                endTime.month() === selectedMonth
+            ) {
+                endPeriod = endTime.date()
+            } else if (
+                endTime.isAfter(
+                    moment([selectedYear, selectedMonth, daysInMonth]).endOf(
+                        'day'
+                    )
+                )
+            ) {
+                endPeriod = daysInMonth
+            } else {
+                endPeriod = 0
+            }
+        } else if (containerType === 'hours') {
+            // Calculate fractional range for hours row (24 hours)
+            const selectedYear = moment(
+                TimeUI.removeOffset(TimeUI._endTimestamp)
+            ).year()
+            const selectedMonth = moment(
+                TimeUI.removeOffset(TimeUI._endTimestamp)
+            ).month()
+            const selectedDay = moment(
+                TimeUI.removeOffset(TimeUI._endTimestamp)
+            ).date()
+            const totalHours = 24
+
+            // Calculate start position
+            if (
+                startTime.year() === selectedYear &&
+                startTime.month() === selectedMonth &&
+                startTime.date() === selectedDay
+            ) {
+                startPeriod = startTime.hour()
+            } else if (
+                startTime.isBefore(
+                    moment([selectedYear, selectedMonth, selectedDay])
+                )
+            ) {
+                startPeriod = 0
+            } else {
+                startPeriod = totalHours
+            }
+
+            // Calculate end position
+            if (
+                endTime.year() === selectedYear &&
+                endTime.month() === selectedMonth &&
+                endTime.date() === selectedDay
+            ) {
+                endPeriod = endTime.hour()
+            } else if (
+                endTime.isAfter(
+                    moment([
+                        selectedYear,
+                        selectedMonth,
+                        selectedDay,
+                        23,
+                    ]).endOf('hour')
+                )
+            ) {
+                endPeriod = totalHours
+            } else {
+                endPeriod = 0
+            }
+        }
+
+        return {
+            startPeriod,
+            endPeriod,
+        }
     },
     _calculateRangePositions(containerType) {
         // Convert UTC timestamps to local time using addOffset to match display
@@ -2193,6 +2341,32 @@ const TimeUI = {
             '#mmgisTimeUIHoursContainer',
             hoursRange
         )
+    },
+    _updateRangeIndicatorsMobile() {
+        const yearsRange = TimeUI._calculateRangePositionsMobile('years')
+        const monthsRange = TimeUI._calculateRangePositionsMobile('months')
+        const daysRange = TimeUI._calculateRangePositionsMobile('days')
+        const hoursRange = TimeUI._calculateRangePositionsMobile('hours')
+
+        const applyMobileRange = (
+            containerSelector,
+            containerType,
+            rangeData
+        ) => {
+            const test = d3.select(containerSelector)
+                .selectAll('.mmgisTimeUIExpandedItem')
+                .each(function () {
+                    if (d3.select(this).attr(`data-${containerType}`) >= rangeData.startPeriod &&
+                            d3.select(this).attr(`data-${containerType}`) < rangeData.endPeriod) {
+                        d3.select(this).classed('range', true)
+                    }
+                })
+        }
+
+        applyMobileRange('#mmgisTimeUIYearsContainer', 'year', yearsRange)
+        applyMobileRange('#mmgisTimeUIMonthsContainer', 'month', monthsRange)
+        applyMobileRange('#mmgisTimeUIDaysContainer', 'day', daysRange)
+        applyMobileRange('#mmgisTimeUIHoursContainer', 'hour', hoursRange)
     },
     _populateYearsRow() {
         const container = $('#mmgisTimeUIYearsContainer')

@@ -210,6 +210,18 @@
     display: none;
 }
 
+.mmgisTimeUIExpandedItem.selected {
+    background: var(--color-o) !important;
+    color: white;
+    font-weight: bold;
+}
+
+.mmgisTimeUIExpandedItem.range {
+    background: var(--color-a2);
+    color: white;
+    font-weight: bold;
+}
+
 /* Overwrite LayersTool CSS */
 #layersTool .layerName {
     overflow: hidden;
