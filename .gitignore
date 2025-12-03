@@ -1,6 +1,7 @@
 .vscode
 .DS_Store
 .env
+nul
 
 /node_modules/
 /ssl/*

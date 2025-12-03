@@ -393,9 +393,9 @@ const getComponent = (
   
   // Get the configurable disabled message or use a default
   const disabledMessage = com.disabledMessage || "This feature is disabled.";
-  
+
   let inner;
-  let disabled = false;
+  let disabled = com.disabled || false;
   if (com.disableSwitch) {
     let switchVal = getIn(configuration, com.disableSwitch, null);
     if (switchVal == null) {
@@ -407,7 +407,7 @@ const getComponent = (
         switchVal = false;
       }
     }
-    disabled = !switchVal;
+    disabled = disabled || !switchVal;
   }
   const isRequired = isFieldRequired(com, layer, configuration);
   const fieldValue = value != null ? value : getIn(directConf, com.field, "");
