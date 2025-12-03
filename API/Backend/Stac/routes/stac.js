@@ -107,6 +107,50 @@ router.get("/collections", function (req, res, next) {
     });
 });
 
+// Update STAC collection
+router.put("/collections/:collection", function (req, res, next) {
+  const { collection } = req.params;
+  const collectionData = req.body;
+
+  fetch(
+    `http://${
+      process.env.IS_DOCKER === "true" ? "stac-fastapi" : "localhost"
+    }:${process.env.STAC_PORT || 8881}/collections/${collection}`,
+    {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(collectionData),
+    }
+  )
+    .then((response) => {
+      if (!response.ok) {
+        return response.text().then((text) => {
+          throw new Error(text);
+        });
+      }
+      return response.json();
+    })
+    .then((json) => {
+      res.send({
+        status: "success",
+        body: json,
+      });
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        "Failed to update STAC Collection",
+        req.originalUrl,
+        req,
+        err
+      );
+      res.status(500).send({
+        status: "failure",
+        message: err.message || "Failed to update STAC Collection",
+      });
+    });
+});
+
 // Export collection with all items
 router.get("/collections/:collection/export", async function (req, res, next) {
   const { collection } = req.params;

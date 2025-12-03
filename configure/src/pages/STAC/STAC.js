@@ -35,6 +35,7 @@ import { visuallyHidden } from "@mui/utils";
 
 import InventoryIcon from "@mui/icons-material/Inventory";
 import InfoIcon from "@mui/icons-material/Info";
+import EditIcon from "@mui/icons-material/Edit";
 import WidgetsIcon from "@mui/icons-material/Widgets";
 import DownloadIcon from "@mui/icons-material/Download";
 import UploadIcon from "@mui/icons-material/Upload";
@@ -50,6 +51,7 @@ import LayersUsedByModal from "./Modals/LayersUsedByModal/LayersUsedByModal";
 import StacCollectionItemsModal from "./Modals/StacCollectionItemsModal/StacCollectionItemsModal";
 import StacCollectionJsonModal from "./Modals/StacCollectionJsonModal/StacCollectionJsonModal";
 import ImportStacItemsModal from "./Modals/ImportStacItemsModal/ImportStacItemsModal";
+import EditStacCollectionModal from "./Modals/EditStacCollectionModal/EditStacCollectionModal";
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -532,21 +534,21 @@ export default function STAC() {
                             </IconButton>
                           </Tooltip>
 
-                          <Tooltip title={"Info"} placement="top" arrow>
+                          <Tooltip title={"Edit Collection"} placement="top" arrow>
                             <IconButton
                               className={c.previewIcon}
-                              title="Info"
-                              aria-label="info"
+                              title="Edit Collection"
+                              aria-label="edit"
                               onClick={() => {
                                 dispatch(
                                   setModal({
-                                    name: "stacCollectionJson",
+                                    name: "editStacCollection",
                                     collection: row,
                                   })
                                 );
                               }}
                             >
-                              <InfoIcon fontSize="small" />
+                              <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
 
@@ -644,6 +646,7 @@ export default function STAC() {
       <StacCollectionItemsModal />
       <StacCollectionJsonModal />
       <ImportStacItemsModal querySTAC={querySTAC} />
+      <EditStacCollectionModal querySTAC={querySTAC} />
     </>
   );
 }
