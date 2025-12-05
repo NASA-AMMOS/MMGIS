@@ -532,18 +532,50 @@ const _templateConform = (req, from) => {
         let numVal = response.newValue.replace(start, "").replace(end, "");
         if (numVal != "#") {
           numVal = parseInt(numVal);
+
+          // Check if this value collides with existing values
+          // Need to distinguish between editing an existing feature vs adding a new one
+          let hasCollision = false;
+
           if (existingProperties[t.field] === response.newValue) {
-            // In case of a resave, make sure the id exists only once
+            // Value didn't change from what was sent by frontend
+            // Count occurrences excluding this feature's UUID
             let count = 0;
-            usedValues.forEach((v) => {
-              if (numVal === v) count++;
-            });
-            if (count > 1)
-              response.error = `Incrementing field: '${t.field}' is not unique`;
+            for (let i = 0; i < layer.length; i++) {
+              if (layer[i] == null) continue;
+              let geojson = layer[i];
+              if (geojson?.properties?.[t.field] != null) {
+                let featuresVal = geojson?.properties?.[t.field];
+                let extractedVal = parseInt(featuresVal.replace(start, "").replace(end, ""));
+                // Count this occurrence only if it's a DIFFERENT feature (different UUID)
+                if (extractedVal === numVal &&
+                    geojson?.properties?.uuid !== existingProperties.uuid) {
+                  count++;
+                }
+              }
+            }
+            // If ANY other feature has this value, it's a collision
+            if (count > 0) {
+              hasCollision = true;
+            }
           } else {
-            // In case a manual change, make sure the id is unique
-            if (usedValues.indexOf(numVal) !== -1)
-              response.error = `Incrementing field: '${t.field}' is not unique`;
+            // Manual change to a different value - check if it already exists
+            if (usedValues.indexOf(numVal) !== -1) {
+              hasCollision = true;
+            }
+          }
+
+          if (hasCollision) {
+            // Auto-assign next available value instead of error
+            let bestVal = 0;
+            usedValues.sort(function (a, b) {
+              return a - b;
+            });
+            usedValues = [...new Set(usedValues)]; // makes it unique
+            usedValues.forEach((v) => {
+              if (bestVal === v) bestVal++;
+            });
+            response.newValue = start + bestVal + end;
           }
         }
       }
@@ -552,27 +584,6 @@ const _templateConform = (req, from) => {
       const incRegex = new RegExp(`^${start}\\d+${end}$`);
       if (incRegex.test(response.newValue) == false) {
         response.error = `Incrementing field: '${t.field}' must follow syntax: '${start}{#}${end}'`;
-      }
-
-      // Check that incrementer is unique
-      let numMatches = 0;
-      for (let i = 0; i < layer.length; i++) {
-        if (layer[i] == null) continue;
-        let geojson = layer[i];
-        if (geojson?.properties?.[t.field] != null) {
-          let featuresVal = geojson?.properties?.[t.field];
-          if (
-            (value || "").indexOf("#") == -1 &&
-            response.newValue === featuresVal &&
-            geojson?.properties?.uuid != existingProperties.uuid
-          ) {
-            numMatches++;
-          }
-        }
-      }
-      // If we're are editing and the value did not change, allow a single match
-      if (numMatches > 0) {
-        response.error = `Incrementing field: '${t.field}' is not unique`;
       }
 
       return response;
