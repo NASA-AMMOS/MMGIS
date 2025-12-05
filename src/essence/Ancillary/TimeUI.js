@@ -1878,11 +1878,11 @@ const TimeUI = {
         // Populate Hours Row
         TimeUI._populateHoursRow()
 
-        // Update range indicators
-        TimeUI._updateRangeIndicators()
-
-        // Update highlighted buttons as range if mobile
-        if (L_.UserInterface_?.isMobile === true) {
+        if (L_.UserInterface_?.isMobile !== true) {
+            // Update range indicators
+            TimeUI._updateRangeIndicators()
+        } else {
+            // Update highlighted buttons as range if mobile
             TimeUI._updateRangeIndicatorsMobile()
         }
 
@@ -1890,153 +1890,18 @@ const TimeUI = {
         const startTime = moment(TimeUI.removeOffset(TimeUI._startTimestamp))
         const endTime = moment(TimeUI.removeOffset(TimeUI._endTimestamp))
     },
-    _calculateRangePositionsMobile(containerType) {
-        // Use UTC timestamps
-        const startTime = moment.utc(moment(TimeUI.removeOffset(TimeUI._startTimestamp))).utc()
-        const endTime = moment.utc(moment(TimeUI.removeOffset(TimeUI._endTimestamp))).utc()
-
-        let startPeriod = null
-        let endPeriod = null
-
-        if (containerType === 'years') {
-            startPeriod = moment(TimeUI._startTimestamp).year()
-            endPeriod = moment(TimeUI._endTimestamp).year()
-        } else if (containerType === 'months') {
-            // Calculate fractional range for months row (12 months)
-            const selectedYear = moment(TimeUI._endTimestamp).year()
-            const totalMonths = 12
-            // Calculate start position
-            if (startTime.year() === selectedYear) {
-                startPeriod = startTime.month()
-            } else if (startTime.year() < selectedYear) {
-                startPeriod = 0
-            } else {
-                startPeriod = 11
-            }
-
-            // Calculate end position
-            if (endTime.year() === selectedYear) {
-                const endMonthBegin = moment.utc([
-                    selectedYear,
-                    endTime.month(),
-                    1,
-                ])
-                endPeriod = endTime.month()
-            } else if (endTime.year() > selectedYear) {
-                endPeriod = 11
-            } else {
-                endPeriod = 0
-            }
-
-        } else if (containerType === 'days') {
-            // Calculate fractional range for days row
-            const selectedYear = moment(
-                TimeUI.removeOffset(TimeUI._endTimestamp)
-            ).year()
-            const selectedMonth = moment(
-                TimeUI.removeOffset(TimeUI._endTimestamp)
-            ).month()
-            const daysInMonth = moment(
-                TimeUI.removeOffset(TimeUI._endTimestamp)
-            ).daysInMonth()
-
-            // Calculate start position
-            if (
-                startTime.year() === selectedYear &&
-                startTime.month() === selectedMonth
-            ) {
-                startPeriod = startTime.date()
-            } else if (
-                startTime.isBefore(moment([selectedYear, selectedMonth, 1]))
-            ) {
-                startPeriod = 0
-            } else {
-                startPeriod = daysInMonth
-            }
-
-            // Calculate end position
-            if (
-                endTime.year() === selectedYear &&
-                endTime.month() === selectedMonth
-            ) {
-                endPeriod = endTime.date()
-            } else if (
-                endTime.isAfter(
-                    moment([selectedYear, selectedMonth, daysInMonth]).endOf(
-                        'day'
-                    )
-                )
-            ) {
-                endPeriod = daysInMonth
-            } else {
-                endPeriod = 0
-            }
-        } else if (containerType === 'hours') {
-            // Calculate fractional range for hours row (24 hours)
-            const selectedYear = moment(
-                TimeUI.removeOffset(TimeUI._endTimestamp)
-            ).year()
-            const selectedMonth = moment(
-                TimeUI.removeOffset(TimeUI._endTimestamp)
-            ).month()
-            const selectedDay = moment(
-                TimeUI.removeOffset(TimeUI._endTimestamp)
-            ).date()
-            const totalHours = 24
-
-            // Calculate start position
-            if (
-                startTime.year() === selectedYear &&
-                startTime.month() === selectedMonth &&
-                startTime.date() === selectedDay
-            ) {
-                startPeriod = startTime.hour()
-            } else if (
-                startTime.isBefore(
-                    moment([selectedYear, selectedMonth, selectedDay])
-                )
-            ) {
-                startPeriod = 0
-            } else {
-                startPeriod = totalHours
-            }
-
-            // Calculate end position
-            if (
-                endTime.year() === selectedYear &&
-                endTime.month() === selectedMonth &&
-                endTime.date() === selectedDay
-            ) {
-                endPeriod = endTime.hour()
-            } else if (
-                endTime.isAfter(
-                    moment([
-                        selectedYear,
-                        selectedMonth,
-                        selectedDay,
-                        23,
-                    ]).endOf('hour')
-                )
-            ) {
-                endPeriod = totalHours
-            } else {
-                endPeriod = 0
-            }
-        }
-
-        return {
-            startPeriod,
-            endPeriod,
-        }
-    },
     _calculateRangePositions(containerType) {
         // Convert UTC timestamps to local time using addOffset to match display
-        const startTime = moment(TimeUI.removeOffset(TimeUI._startTimestamp))
-        const endTime = moment(TimeUI.removeOffset(TimeUI._endTimestamp))
+        const startTime = moment.utc(moment(TimeUI.removeOffset(TimeUI._startTimestamp)))
+        const endTime = moment.utc(moment(TimeUI.removeOffset(TimeUI._endTimestamp)))
+
         const mode = TimeUI.modes[TimeUI.modeIndex]
 
         let startPercent = 0
         let endPercent = 100
+
+        let startPeriod = null
+        let endPeriod = null
 
         if (containerType === 'years') {
             // Calculate fractional range for years row (last 20 years)
@@ -2066,11 +1931,13 @@ const TimeUI = {
                 ((endTime.year() - firstVisibleYear + endYearFraction) /
                     totalYears) *
                 100
+            startPeriod = moment(TimeUI._startTimestamp).year()
+            endPeriod = moment(TimeUI._endTimestamp).year()
         } else if (containerType === 'months') {
             // Calculate fractional range for months row (12 months)
-            const selectedYear = moment(
+            const selectedYear = moment.utc(moment(
                 TimeUI.removeOffset(TimeUI._endTimestamp)
-            ).year()
+            )).year()
             const totalMonths = 12
 
             // Calculate start position
@@ -2091,10 +1958,13 @@ const TimeUI = {
                 startPercent =
                     ((startTime.month() + startMonthFraction) / totalMonths) *
                     100
+                startPeriod = startTime.month()
             } else if (startTime.year() < selectedYear) {
                 startPercent = 0
+                startPeriod = 0
             } else {
                 startPercent = 100
+                startPeriod = 11
             }
 
             // Calculate end position
@@ -2114,22 +1984,25 @@ const TimeUI = {
                     (endMonthEnd.valueOf() - endMonthBegin.valueOf())
                 endPercent =
                     ((endTime.month() + endMonthFraction) / totalMonths) * 100
+                endPeriod = endTime.month()
             } else if (endTime.year() > selectedYear) {
                 endPercent = 100
+                endPeriod = 11
             } else {
                 endPercent = 0
+                endPeriod = 0
             }
         } else if (containerType === 'days') {
             // Calculate fractional range for days row
-            const selectedYear = moment(
+            const selectedYear = moment.utc(moment(
                 TimeUI.removeOffset(TimeUI._endTimestamp)
-            ).year()
-            const selectedMonth = moment(
+            )).year()
+            const selectedMonth = moment.utc(moment(
                 TimeUI.removeOffset(TimeUI._endTimestamp)
-            ).month()
-            const daysInMonth = moment(
+            )).month()
+            const daysInMonth = moment.utc(moment(
                 TimeUI.removeOffset(TimeUI._endTimestamp)
-            ).daysInMonth()
+            )).daysInMonth()
 
             // Calculate start position
             if (
@@ -2149,12 +2022,15 @@ const TimeUI = {
                 startPercent =
                     ((startTime.date() - 1 + startDayFraction) / daysInMonth) *
                     100
+                startPeriod = startTime.date()
             } else if (
                 startTime.isBefore(moment([selectedYear, selectedMonth, 1]))
             ) {
                 startPercent = 0
+                startPeriod = 0
             } else {
                 startPercent = 100
+                endPeriod = 0
             }
 
             // Calculate end position
@@ -2173,6 +2049,7 @@ const TimeUI = {
                     (endDayEnd.valueOf() - endDayBegin.valueOf())
                 endPercent =
                     ((endTime.date() - 1 + endDayFraction) / daysInMonth) * 100
+                endPeriod = endTime.date()
             } else if (
                 endTime.isAfter(
                     moment([selectedYear, selectedMonth, daysInMonth]).endOf(
@@ -2181,6 +2058,7 @@ const TimeUI = {
                 )
             ) {
                 endPercent = 100
+                endPeriod = daysInMonth
             } else {
                 endPercent = 0
             }
@@ -2225,14 +2103,17 @@ const TimeUI = {
                     (startHourEnd.valueOf() - startHourBegin.valueOf())
                 startPercent =
                     ((startTime.hour() + startHourFraction) / totalHours) * 100
+                startPeriod = startTime.hour()
             } else if (
                 startTime.isBefore(
                     moment([selectedYear, selectedMonth, selectedDay])
                 )
             ) {
                 startPercent = 0
+                startPeriod = 0
             } else {
                 startPercent = 100
+                startPeriod = totalHours
             }
 
             // Calculate end position
@@ -2262,6 +2143,7 @@ const TimeUI = {
                     (endHourEnd.valueOf() - endHourBegin.valueOf())
                 endPercent =
                     ((endTime.hour() + endHourFraction) / totalHours) * 100
+                endPeriod = endTime.hour()
             } else if (
                 endTime.isAfter(
                     moment([
@@ -2273,8 +2155,10 @@ const TimeUI = {
                 )
             ) {
                 endPercent = 100
+                endPeriod = totalHours
             } else {
                 endPercent = 0
+                endPeriod = 0
             }
         }
 
@@ -2292,6 +2176,8 @@ const TimeUI = {
         return {
             left: startPercent,
             width: widthPercent,
+            startPeriod,
+            endPeriod,
         }
     },
     _updateRangeIndicators() {
@@ -2343,10 +2229,10 @@ const TimeUI = {
         )
     },
     _updateRangeIndicatorsMobile() {
-        const yearsRange = TimeUI._calculateRangePositionsMobile('years')
-        const monthsRange = TimeUI._calculateRangePositionsMobile('months')
-        const daysRange = TimeUI._calculateRangePositionsMobile('days')
-        const hoursRange = TimeUI._calculateRangePositionsMobile('hours')
+        const yearsRange = TimeUI._calculateRangePositions('years')
+        const monthsRange = TimeUI._calculateRangePositions('months')
+        const daysRange = TimeUI._calculateRangePositions('days')
+        const hoursRange = TimeUI._calculateRangePositions('hours')
 
         const applyMobileRange = (
             containerSelector,
@@ -2379,9 +2265,9 @@ const TimeUI = {
         const startYear = currentYear - 19
 
         // Determine which year is currently selected (use addOffset to get local time)
-        const selectedYear = moment(
+        const selectedYear = moment.utc(moment(
             TimeUI.removeOffset(TimeUI._endTimestamp)
-        ).year()
+        )).year()
 
         for (let year = startYear; year <= currentYear; year++) {
             const yearButton = $('<div>')
@@ -2412,9 +2298,9 @@ const TimeUI = {
         const months = moment.months()
 
         // Determine which month is currently selected (use addOffset to get local time)
-        const selectedMonth = moment(
+        const selectedMonth = moment.utc(moment(
             TimeUI.removeOffset(TimeUI._endTimestamp)
-        ).month()
+        )).month()
 
         for (let i = 0; i < months.length; i++) {
             const monthButton = $('<div>')
@@ -2481,7 +2367,10 @@ const TimeUI = {
     },
     _selectMonth(monthIndex) {
         // Select the entire month for the current year (use addOffset to get local time)
-        const selectedYear = moment(TimeUI._endTimestamp).year()
+        const selectedYear = moment.utc(moment(
+            TimeUI.removeOffset(TimeUI._endTimestamp)
+        )).utc().year()
+
         const startOfMonth = moment([selectedYear, monthIndex, 1])
             .startOf('month')
             .valueOf()
@@ -2504,7 +2393,10 @@ const TimeUI = {
     },
     _selectDay(day) {
         // Select the entire day for the current month/year (use addOffset to get local time)
-        const selectedMoment = moment(TimeUI._endTimestamp)
+        const selectedMoment = moment.utc(moment(
+            TimeUI.removeOffset(TimeUI._endTimestamp)
+        )).utc()
+
         const selectedYear = selectedMoment.year()
         const selectedMonth = selectedMoment.month()
         const startOfDay = moment([selectedYear, selectedMonth, day])
@@ -2534,7 +2426,10 @@ const TimeUI = {
         container.append(rangeIndicator)
 
         // Get the selected hour
-        const selectedMoment = moment(TimeUI._endTimestamp)
+        const selectedMoment = moment.utc(moment(
+            TimeUI.removeOffset(TimeUI._endTimestamp)
+        ))
+
         const selectedHour = selectedMoment.hour()
 
         // Generate 24 hours in 12-hour format with AM/PM
