@@ -255,12 +255,30 @@ body {
     padding: 0px 8px;
     border-radius: 3px;
     pointer-events: none;
+    margin-top: -38px;
     opacity: 0;
     transition: opacity 0.2s ease-out;
 }
 .splitterVInner i:hover ~ #mapSplitInnerViewerInfo {
     opacity: 1;
 }
+#mapSplitInnerVMapInfo {
+    position: absolute;
+    left: -75px;
+    background: var(--color-a);
+    height: 30px;
+    line-height: 30px;
+    padding: 0px 8px;
+    border-radius: 3px;
+    pointer-events: none;
+    margin-top: -38px;
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+}
+.splitterVInner i:hover ~ #mapSplitInnerVMapInfo {
+    opacity: 1;
+}
+
 
 #mapSplitInnerGlobeInfo {
     position: absolute;
@@ -271,10 +289,27 @@ body {
     padding: 0px 8px;
     border-radius: 3px;
     pointer-events: none;
+    margin-top: 38px;
     opacity: 0;
     transition: opacity 0.2s ease-out;
 }
 .splitterVInner i:hover ~ #mapSplitInnerGlobeInfo {
+    opacity: 1;
+}
+#mapSplitInnerGMapInfo {
+    position: absolute;
+    left: 59px;
+    background: var(--color-a);
+    height: 30px;
+    line-height: 30px;
+    padding: 0px 8px;
+    border-radius: 3px;
+    pointer-events: none;
+    margin-top: 38px;
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+}
+.splitterVInner i:hover ~ #mapSplitInnerGMapInfo {
     opacity: 1;
 }
 

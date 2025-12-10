@@ -330,6 +330,7 @@ var UserInterface = {
             .style('height', '30px')
             .style('position', 'absolute')
             .style('left', '-19px')
+            .style('margin-top', '-38px')
             .style('z-index', '-1')
         this.mapSplitInner
             .append('i')
@@ -339,6 +340,7 @@ var UserInterface = {
             .attr('class', 'mdi mdi-chevron-double-left mdi-24px')
             .style('position', 'absolute')
             .style('left', '-28px')
+            .style('margin-top', '-38px')
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
                 if (pp.map == 0) {
@@ -358,7 +360,8 @@ var UserInterface = {
             .style('width', '30px')
             .style('height', '30px')
             .style('position', 'absolute')
-            .style('left', '23px')
+            .style('left', '22px')
+            .style('margin-top', '-38px')
             .style('z-index', '-1')
         this.mapSplitInner
             .append('i')
@@ -367,7 +370,8 @@ var UserInterface = {
             .attr('tabindex', 501)
             .attr('class', 'mdi mdi-chevron-double-right mdi-24px')
             .style('position', 'absolute')
-            .style('right', '-29px')
+            .style('right', '-28px')
+            .style('margin-top', '-38px')
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
                 if (pp.map == 0) {
@@ -389,6 +393,11 @@ var UserInterface = {
             .append('div')
             .attr('id', 'mapSplitInnerViewerInfo')
             .html('Viewer')
+
+        this.mapSplitInner
+            .append('div')
+            .attr('id', 'mapSplitInnerVMapInfo')
+            .html('Map')
 
         //The globe screen
         this.globeScreen = this.vmgScreen
@@ -446,6 +455,7 @@ var UserInterface = {
             .style('height', '30px')
             .style('position', 'absolute')
             .style('left', '-18px')
+            .style('margin-top', '38px')
             .style('z-index', '-1')
         this.globeSplitInner
             .append('i')
@@ -455,6 +465,7 @@ var UserInterface = {
             .attr('class', 'mdi mdi-chevron-double-left mdi-24px')
             .style('position', 'absolute')
             .style('left', '-27px')
+            .style('margin-top', '38px')
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
                 if (pp.map == 0) {
@@ -479,6 +490,7 @@ var UserInterface = {
             .style('height', '30px')
             .style('position', 'absolute')
             .style('left', '22px')
+            .style('margin-top', '38px')
             .style('z-index', '-1')
         this.globeSplitInner
             .append('i')
@@ -488,10 +500,15 @@ var UserInterface = {
             .attr('class', 'mdi mdi-chevron-double-right mdi-24px')
             .style('position', 'absolute')
             .style('right', '-28px')
+            .style('margin-top', '38px')
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
                 if (pp.map == 0) {
-                    UserInterface.setPanelPercents(100, 0, 0)
+                    UserInterface.setPanelPercents(
+                        pp.viewer,
+                        pp.map + pp.globe / 2,
+                        pp.globe - pp.globe / 2
+                    )
                 } else {
                     UserInterface.setPanelPercents(
                         pp.viewer,
@@ -505,6 +522,11 @@ var UserInterface = {
             .append('div')
             .attr('id', 'mapSplitInnerGlobeInfo')
             .html('Globe')
+
+        this.globeSplitInner
+            .append('div')
+            .attr('id', 'mapSplitInnerGMapInfo')
+            .html('Map')
 
         //thumb lines
         /*
@@ -1058,6 +1080,25 @@ var UserInterface = {
 
         $('#topBarTitleName').on('click', L_.home)
 
+        // Apply configured default panel widths (if present)
+        if (l_.configData.panels && l_.configData.panels.defaultWidths) {
+            const dw = l_.configData.panels.defaultWidths
+            const viewer = dw.viewer != null ? dw.viewer : 0
+            const map = dw.map != null ? dw.map : 100
+            const globe = dw.globe != null ? dw.globe : 0
+
+            // Validate sum equals 100 before applying
+            if (viewer + map + globe === 100) {
+                UserInterface.setPanelPercents(viewer, map, globe)
+            } else {
+                console.warn(
+                    `Panel default widths (${viewer}%, ${map}%, ${globe}%) do not sum to 100. ` +
+                        `Using system defaults.`
+                )
+            }
+        }
+
+        // Deeplinks override config defaults
         if (l_.FUTURES.panelPercents != null)
             UserInterface.setPanelPercents(
                 l_.FUTURES.panelPercents[0],
@@ -1526,7 +1567,11 @@ function resize() {
     shouldRotateSplitterText()
 
     // Update TimeUI positions when layout changes
-    if (L_.TimeControl_ && L_.TimeControl_.timeUI && typeof L_.TimeControl_.timeUI.alignPopovers === 'function') {
+    if (
+        L_.TimeControl_ &&
+        L_.TimeControl_.timeUI &&
+        typeof L_.TimeControl_.timeUI.alignPopovers === 'function'
+    ) {
         L_.TimeControl_.timeUI.alignPopovers()
     }
 }
