@@ -215,20 +215,24 @@ const TimeUI = {
             markup += [
                 `<div id="mmgisTimeUIExpandedContent" class="show">`,
                     `<div id="mmgisTimeUIYearsRow" class="mmgisTimeUIExpandedRow">`,
-                        `<div id="mmgisTimeUIYearsRange" class="mmgisTimeUIExpandedRowRange"></div>`,
-                        `<div id="mmgisTimeUIYearsContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
+                        `<div id="mmgisTimeUIYearsContainer" class="mmgisTimeUIExpandedRowContainer">`,
+                            `<div id="mmgisTimeUIYearsRange" class="mmgisTimeUIExpandedRowRange"></div>`,
+                        `</div>`,
                     `</div>`,
                     `<div id="mmgisTimeUIMonthsRow" class="mmgisTimeUIExpandedRow">`,
-                        `<div id="mmgisTimeUIMonthsRange" class="mmgisTimeUIExpandedRowRange"></div>`,
-                        `<div id="mmgisTimeUIMonthsContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
+                        `<div id="mmgisTimeUIMonthsContainer" class="mmgisTimeUIExpandedRowContainer">`,
+                            `<div id="mmgisTimeUIMonthsRange" class="mmgisTimeUIExpandedRowRange"></div>`,
+                        `</div>`,
                     `</div>`,
                     `<div id="mmgisTimeUIDaysRow" class="mmgisTimeUIExpandedRow">`,
-                        `<div id="mmgisTimeUIDaysRange" class="mmgisTimeUIExpandedRowRange"></div>`,
-                        `<div id="mmgisTimeUIDaysContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
+                        `<div id="mmgisTimeUIDaysContainer" class="mmgisTimeUIExpandedRowContainer">`,
+                            `<div id="mmgisTimeUIDaysRange" class="mmgisTimeUIExpandedRowRange"></div>`,
+                        `</div>`,
                     `</div>`,
                     `<div id="mmgisTimeUIHoursRow" class="mmgisTimeUIExpandedRow">`,
-                        `<div id="mmgisTimeUIHoursRange" class="mmgisTimeUIExpandedRowRange"></div>`,
-                        `<div id="mmgisTimeUIHoursContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
+                        `<div id="mmgisTimeUIHoursContainer" class="mmgisTimeUIExpandedRowContainer">`,
+                            `<div id="mmgisTimeUIHoursRange" class="mmgisTimeUIExpandedRowRange"></div>`,
+                        `</div>`,
                     `</div>`,
             ].join('\n')
         }
@@ -1874,17 +1878,30 @@ const TimeUI = {
         // Populate Hours Row
         TimeUI._populateHoursRow()
 
-        // Update range indicators
-        TimeUI._updateRangeIndicators()
-    },
-    _calculateRangePositions(containerType) {
+        if (L_.UserInterface_?.isMobile !== true) {
+            // Update range indicators
+            TimeUI._updateRangeIndicators()
+        } else {
+            // Update highlighted buttons as range if mobile
+            TimeUI._updateRangeIndicatorsMobile()
+        }
+
         // Convert UTC timestamps to local time using addOffset to match display
         const startTime = moment(TimeUI.removeOffset(TimeUI._startTimestamp))
         const endTime = moment(TimeUI.removeOffset(TimeUI._endTimestamp))
+    },
+    _calculateRangePositions(containerType) {
+        // Convert UTC timestamps to local time using addOffset to match display
+        const startTime = moment.utc(moment(TimeUI.removeOffset(TimeUI._startTimestamp)))
+        const endTime = moment.utc(moment(TimeUI.removeOffset(TimeUI._endTimestamp)))
+
         const mode = TimeUI.modes[TimeUI.modeIndex]
 
         let startPercent = 0
         let endPercent = 100
+
+        let startPeriod = null
+        let endPeriod = null
 
         if (containerType === 'years') {
             // Calculate fractional range for years row (last 20 years)
@@ -1914,11 +1931,13 @@ const TimeUI = {
                 ((endTime.year() - firstVisibleYear + endYearFraction) /
                     totalYears) *
                 100
+            startPeriod = moment(TimeUI._startTimestamp).year()
+            endPeriod = moment(TimeUI._endTimestamp).year()
         } else if (containerType === 'months') {
             // Calculate fractional range for months row (12 months)
-            const selectedYear = moment(
+            const selectedYear = moment.utc(moment(
                 TimeUI.removeOffset(TimeUI._endTimestamp)
-            ).year()
+            )).year()
             const totalMonths = 12
 
             // Calculate start position
@@ -1939,10 +1958,13 @@ const TimeUI = {
                 startPercent =
                     ((startTime.month() + startMonthFraction) / totalMonths) *
                     100
+                startPeriod = startTime.month()
             } else if (startTime.year() < selectedYear) {
                 startPercent = 0
+                startPeriod = 0
             } else {
                 startPercent = 100
+                startPeriod = 11
             }
 
             // Calculate end position
@@ -1962,22 +1984,25 @@ const TimeUI = {
                     (endMonthEnd.valueOf() - endMonthBegin.valueOf())
                 endPercent =
                     ((endTime.month() + endMonthFraction) / totalMonths) * 100
+                endPeriod = endTime.month()
             } else if (endTime.year() > selectedYear) {
                 endPercent = 100
+                endPeriod = 11
             } else {
                 endPercent = 0
+                endPeriod = 0
             }
         } else if (containerType === 'days') {
             // Calculate fractional range for days row
-            const selectedYear = moment(
+            const selectedYear = moment.utc(moment(
                 TimeUI.removeOffset(TimeUI._endTimestamp)
-            ).year()
-            const selectedMonth = moment(
+            )).year()
+            const selectedMonth = moment.utc(moment(
                 TimeUI.removeOffset(TimeUI._endTimestamp)
-            ).month()
-            const daysInMonth = moment(
+            )).month()
+            const daysInMonth = moment.utc(moment(
                 TimeUI.removeOffset(TimeUI._endTimestamp)
-            ).daysInMonth()
+            )).daysInMonth()
 
             // Calculate start position
             if (
@@ -1997,12 +2022,15 @@ const TimeUI = {
                 startPercent =
                     ((startTime.date() - 1 + startDayFraction) / daysInMonth) *
                     100
+                startPeriod = startTime.date()
             } else if (
                 startTime.isBefore(moment([selectedYear, selectedMonth, 1]))
             ) {
                 startPercent = 0
+                startPeriod = 0
             } else {
                 startPercent = 100
+                endPeriod = 0
             }
 
             // Calculate end position
@@ -2021,6 +2049,7 @@ const TimeUI = {
                     (endDayEnd.valueOf() - endDayBegin.valueOf())
                 endPercent =
                     ((endTime.date() - 1 + endDayFraction) / daysInMonth) * 100
+                endPeriod = endTime.date()
             } else if (
                 endTime.isAfter(
                     moment([selectedYear, selectedMonth, daysInMonth]).endOf(
@@ -2029,6 +2058,7 @@ const TimeUI = {
                 )
             ) {
                 endPercent = 100
+                endPeriod = daysInMonth
             } else {
                 endPercent = 0
             }
@@ -2073,14 +2103,17 @@ const TimeUI = {
                     (startHourEnd.valueOf() - startHourBegin.valueOf())
                 startPercent =
                     ((startTime.hour() + startHourFraction) / totalHours) * 100
+                startPeriod = startTime.hour()
             } else if (
                 startTime.isBefore(
                     moment([selectedYear, selectedMonth, selectedDay])
                 )
             ) {
                 startPercent = 0
+                startPeriod = 0
             } else {
                 startPercent = 100
+                startPeriod = totalHours
             }
 
             // Calculate end position
@@ -2110,6 +2143,7 @@ const TimeUI = {
                     (endHourEnd.valueOf() - endHourBegin.valueOf())
                 endPercent =
                     ((endTime.hour() + endHourFraction) / totalHours) * 100
+                endPeriod = endTime.hour()
             } else if (
                 endTime.isAfter(
                     moment([
@@ -2121,8 +2155,10 @@ const TimeUI = {
                 )
             ) {
                 endPercent = 100
+                endPeriod = totalHours
             } else {
                 endPercent = 0
+                endPeriod = 0
             }
         }
 
@@ -2140,6 +2176,8 @@ const TimeUI = {
         return {
             left: startPercent,
             width: widthPercent,
+            startPeriod,
+            endPeriod,
         }
     },
     _updateRangeIndicators() {
@@ -2149,42 +2187,87 @@ const TimeUI = {
         const daysRange = TimeUI._calculateRangePositions('days')
         const hoursRange = TimeUI._calculateRangePositions('hours')
 
-        // Update years range indicator
-        $('#mmgisTimeUIYearsRange').css({
-            left: yearsRange.left + '%',
-            width: yearsRange.width + '%',
-        })
+        // Helper function to convert percentage to pixels based on scrollable content width
+        const applyRangePosition = (
+            rangeSelector,
+            containerSelector,
+            rangeData
+        ) => {
+            const container = $(containerSelector)
+            const scrollWidth = container[0].scrollWidth
 
-        // Update months range indicator
-        $('#mmgisTimeUIMonthsRange').css({
-            left: monthsRange.left + '%',
-            width: monthsRange.width + '%',
-        })
+            // Convert percentage to pixels based on full scrollable content width
+            const leftPx = (rangeData.left / 100) * scrollWidth
+            const widthPx = (rangeData.width / 100) * scrollWidth
 
-        // Update days range indicator
-        $('#mmgisTimeUIDaysRange').css({
-            left: daysRange.left + '%',
-            width: daysRange.width + '%',
-        })
+            $(rangeSelector).css({
+                left: leftPx + 'px',
+                width: widthPx + 'px',
+            })
+        }
 
-        // Update hours range indicator
-        $('#mmgisTimeUIHoursRange').css({
-            left: hoursRange.left + '%',
-            width: hoursRange.width + '%',
-        })
+        // Update all range indicators with pixel-based positioning
+        applyRangePosition(
+            '#mmgisTimeUIYearsRange',
+            '#mmgisTimeUIYearsContainer',
+            yearsRange
+        )
+        applyRangePosition(
+            '#mmgisTimeUIMonthsRange',
+            '#mmgisTimeUIMonthsContainer',
+            monthsRange
+        )
+        applyRangePosition(
+            '#mmgisTimeUIDaysRange',
+            '#mmgisTimeUIDaysContainer',
+            daysRange
+        )
+        applyRangePosition(
+            '#mmgisTimeUIHoursRange',
+            '#mmgisTimeUIHoursContainer',
+            hoursRange
+        )
+    },
+    _updateRangeIndicatorsMobile() {
+        const yearsRange = TimeUI._calculateRangePositions('years')
+        const monthsRange = TimeUI._calculateRangePositions('months')
+        const daysRange = TimeUI._calculateRangePositions('days')
+        const hoursRange = TimeUI._calculateRangePositions('hours')
+
+        const applyMobileRange = (
+            containerSelector,
+            containerType,
+            rangeData
+        ) => {
+            const test = d3.select(containerSelector)
+                .selectAll('.mmgisTimeUIExpandedItem')
+                .each(function () {
+                    if (d3.select(this).attr(`data-${containerType}`) >= rangeData.startPeriod &&
+                            d3.select(this).attr(`data-${containerType}`) < rangeData.endPeriod) {
+                        d3.select(this).classed('range', true)
+                    }
+                })
+        }
+
+        applyMobileRange('#mmgisTimeUIYearsContainer', 'year', yearsRange)
+        applyMobileRange('#mmgisTimeUIMonthsContainer', 'month', monthsRange)
+        applyMobileRange('#mmgisTimeUIDaysContainer', 'day', daysRange)
+        applyMobileRange('#mmgisTimeUIHoursContainer', 'hour', hoursRange)
     },
     _populateYearsRow() {
         const container = $('#mmgisTimeUIYearsContainer')
+        const rangeIndicator = $('#mmgisTimeUIYearsRange').detach()
         container.empty()
+        container.append(rangeIndicator)
 
         // Get last 20 years
         const currentYear = moment().year()
         const startYear = currentYear - 19
 
         // Determine which year is currently selected (use addOffset to get local time)
-        const selectedYear = moment(
+        const selectedYear = moment.utc(moment(
             TimeUI.removeOffset(TimeUI._endTimestamp)
-        ).year()
+        )).year()
 
         for (let year = startYear; year <= currentYear; year++) {
             const yearButton = $('<div>')
@@ -2207,15 +2290,17 @@ const TimeUI = {
     },
     _populateMonthsRow() {
         const container = $('#mmgisTimeUIMonthsContainer')
+        const rangeIndicator = $('#mmgisTimeUIMonthsRange').detach()
         container.empty()
+        container.append(rangeIndicator)
 
         // Get 12 months
         const months = moment.months()
 
         // Determine which month is currently selected (use addOffset to get local time)
-        const selectedMonth = moment(
+        const selectedMonth = moment.utc(moment(
             TimeUI.removeOffset(TimeUI._endTimestamp)
-        ).month()
+        )).month()
 
         for (let i = 0; i < months.length; i++) {
             const monthButton = $('<div>')
@@ -2238,10 +2323,12 @@ const TimeUI = {
     },
     _populateDaysRow() {
         const container = $('#mmgisTimeUIDaysContainer')
+        const rangeIndicator = $('#mmgisTimeUIDaysRange').detach()
         container.empty()
+        container.append(rangeIndicator)
 
         // Get the number of days in the selected month (use addOffset to get local time)
-        const selectedMoment = moment(TimeUI.removeOffset(TimeUI._endTimestamp))
+        const selectedMoment = moment(TimeUI._endTimestamp)
         const daysInMonth = selectedMoment.daysInMonth()
         const selectedDay = selectedMoment.date()
 
@@ -2280,7 +2367,10 @@ const TimeUI = {
     },
     _selectMonth(monthIndex) {
         // Select the entire month for the current year (use addOffset to get local time)
-        const selectedYear = moment(TimeUI._endTimestamp).year()
+        const selectedYear = moment.utc(moment(
+            TimeUI.removeOffset(TimeUI._endTimestamp)
+        )).utc().year()
+
         const startOfMonth = moment([selectedYear, monthIndex, 1])
             .startOf('month')
             .valueOf()
@@ -2303,7 +2393,10 @@ const TimeUI = {
     },
     _selectDay(day) {
         // Select the entire day for the current month/year (use addOffset to get local time)
-        const selectedMoment = moment(TimeUI._endTimestamp)
+        const selectedMoment = moment.utc(moment(
+            TimeUI.removeOffset(TimeUI._endTimestamp)
+        )).utc()
+
         const selectedYear = selectedMoment.year()
         const selectedMonth = selectedMoment.month()
         const startOfDay = moment([selectedYear, selectedMonth, day])
@@ -2328,10 +2421,15 @@ const TimeUI = {
     },
     _populateHoursRow() {
         const container = $('#mmgisTimeUIHoursContainer')
+        const rangeIndicator = $('#mmgisTimeUIHoursRange').detach()
         container.empty()
+        container.append(rangeIndicator)
 
-        // Get the selected hour (use moment to get local time)
-        const selectedMoment = moment(TimeUI._endTimestamp)
+        // Get the selected hour
+        const selectedMoment = moment.utc(moment(
+            TimeUI.removeOffset(TimeUI._endTimestamp)
+        ))
+
         const selectedHour = selectedMoment.hour()
 
         // Generate 24 hours in 12-hour format with AM/PM

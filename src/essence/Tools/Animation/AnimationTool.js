@@ -151,6 +151,13 @@ const markup = [
                                 "<label for='showScaleBar'>Include Scale Bar</label>",
                             "</div>",
                         "</div>",
+                        "<div class='control-group'>",
+                            "<label>Layer Refresh Rate:</label>",
+                            "<div class='slider-container'>",
+                                "<input type='range' id='layerRefreshRateSlider' min='100' max='60000' step='100' value='500'>",
+                                "<span class='slider-value' id='layerRefreshRateValue'>0.5s</span>",
+                            "</div>",
+                        "</div>",
                     "</div>",
                 "</div>",
                 "<div id='animationPanel4' class='animation-panel'>",
@@ -160,17 +167,17 @@ const markup = [
                         "<div class='export-options'>",
                             "<div class='export-option'>",
                                 "<div class='export-option-info'>",
-                                    "<h4>MP4 Video</h4>",
-                                    "<p>High-quality MP4 video file</p>",
-                                "</div>",
-                                "<button class='export-button' id='export-mp4'>Export MP4</button>",
-                            "</div>",
-                            "<div class='export-option'>",
-                                "<div class='export-option-info'>",
                                     "<h4>GIF Animation</h4>",
                                     "<p>Animated GIF file suitable for web sharing</p>",
                                 "</div>",
                                 "<button class='export-button' id='export-gif'>Export GIF</button>",
+                            "</div>",
+                            "<div class='export-option'>",
+                                "<div class='export-option-info'>",
+                                    "<h4>MP4 Video</h4>",
+                                    "<p>High-quality MP4 video file</p>",
+                                "</div>",
+                                "<button class='export-button' id='export-mp4'>Export MP4</button>",
                             "</div>",
                             "<div class='export-option'>",
                                 "<div class='export-option-info'>",
@@ -208,7 +215,8 @@ const AnimationTool = {
         playDirection: 'forward',
         title: '',
         showTimeStep: false,
-        showScaleBar: false
+        showScaleBar: false,
+        layerRefreshRate: 500 // Delay after updating time to wait for layers to update (in milliseconds)
     },
     cachedImages: [],
     isPlaying: false,
@@ -220,6 +228,10 @@ const AnimationTool = {
     screenRect: null,
     offscreenMap: null,
     offscreenContainer: null,
+    tempRectangle: null,
+    drawingStartPoint: null,
+    drawingHandlers: null,
+    originalCursor: null,
     
     make: function () {
         this.MMGISInterface = new interfaceWithMMGIS()
@@ -249,9 +261,39 @@ function interfaceWithMMGIS() {
     tools = tools.append('div').style('height', '100%')
     tools.html(markup)
     
+    // Update export options visibility based on config
+    updateExportOptionsVisibility()
+    
     // Initialize components
     initializeComponents()
     setupEventHandlers()
+    
+    function updateExportOptionsVisibility() {
+        // Get config variables
+        const toolVars = L_.getToolVars('animation') || {}
+        
+        // Show/hide export options based on config
+        const showGIF = toolVars.animationGIF !== false
+        const showMP4 = toolVars.animationMP4 === true
+        const showPNG = toolVars.animationPNG === true
+        
+        // Find the export-option divs and show/hide them
+        const exportOptions = $('.export-option')
+        
+        exportOptions.each(function() {
+            const $option = $(this)
+            const $button = $option.find('.export-button')
+            
+            // Check which export option this is based on the button ID
+            if ($button.attr('id') === 'export-gif') {
+                $option.toggle(showGIF)
+            } else if ($button.attr('id') === 'export-mp4') {
+                $option.toggle(showMP4)
+            } else if ($button.attr('id') === 'export-sequence') {
+                $option.toggle(showPNG)
+            }
+        })
+    }
     
     function initializeComponents() {
         // Sync with TimeControl if available
@@ -290,6 +332,11 @@ function interfaceWithMMGIS() {
         
         // Set up periodic sync to catch TimeUI changes
         setupTimeUISync()
+        
+        // Initialize layer refresh rate slider
+        $('#layerRefreshRateSlider').val(AnimationTool.animationSettings.layerRefreshRate)
+        const initialSeconds = (AnimationTool.animationSettings.layerRefreshRate / 1000).toFixed(1)
+        $('#layerRefreshRateValue').text(initialSeconds + 's')
     }
     
     function syncWithTimeControl() {
@@ -634,6 +681,14 @@ function interfaceWithMMGIS() {
             AnimationTool.animationSettings.showScaleBar = e.target.checked
         })
         
+        // Layer refresh rate slider
+        $('#layerRefreshRateSlider').on('input', (e) => {
+            const value = parseInt(e.target.value)
+            AnimationTool.animationSettings.layerRefreshRate = value
+            const seconds = (value / 1000).toFixed(1)
+            $('#layerRefreshRateValue').text(seconds + 's')
+        })
+        
         // Export controls
         $('#export-gif').on('click', () => {
             startExport('gif')
@@ -731,93 +786,228 @@ function interfaceWithMMGIS() {
         // Create a new layer for drawing
         AnimationTool.drawingLayer = L.layerGroup().addTo(Map_.map)
         
-        // Initialize Leaflet Draw rectangle drawing with screen-aligned behavior
-        AnimationTool.drawRectangle = new L.Draw.Rectangle(Map_.map, {
-            shapeOptions: {
-                color: '#ff6b6b',
-                weight: 3,
-                fillOpacity: 0.2,
-                fillColor: '#ff6b6b'
-            }
-        })
+        // Create a temporary rectangle polygon for drawing
+        AnimationTool.tempRectangle = null
+        AnimationTool.drawingStartPoint = null
         
-        // Enable drawing
-        AnimationTool.drawRectangle.enable()
-        
-        // Listen for drawing completion
-        Map_.map.on('draw:created', onDrawingComplete)
+        // Use custom screen-space rectangle drawing
+        setupCustomRectangleDrawing()
         
         // Add drawing instructions
-        showDrawingInstructions()
+        showDrawingInstructions('Click once to set the first corner, then click again to set the opposite corner.')
         
         // Update button text
         $('#drawBoundingBox').text('Drawing...').prop('disabled', true)
+        AnimationTool.isDrawing = true
     }
     
-    function onDrawingComplete(e) {
-        const layer = e.layer
-        const bounds = layer.getBounds()
+    function setupCustomRectangleDrawing() {
+        const map = Map_.map
         
-        // Convert geographic bounds to screen coordinates
-        const northWest = Map_.map.latLngToContainerPoint(bounds.getNorthWest())
-        const southEast = Map_.map.latLngToContainerPoint(bounds.getSouthEast())
+        // Store original cursor
+        AnimationTool.originalCursor = map.getContainer().style.cursor || ''
         
-        // Create screen-aligned rectangle coordinates
-        const minX = Math.min(northWest.x, southEast.x)
-        const maxX = Math.max(northWest.x, southEast.x)
-        const minY = Math.min(northWest.y, southEast.y)
-        const maxY = Math.max(northWest.y, southEast.y)
+        // Change cursor to indicate drawing mode
+        map.getContainer().style.cursor = 'crosshair'
         
-        // Store screen rectangle for animation
-        AnimationTool.screenRect = {
-            x: minX,
-            y: minY,
-            width: maxX - minX,
-            height: maxY - minY
+        // Track if we've started drawing (first click)
+        let hasStarted = false
+        
+        // Click handler - start drawing or complete drawing
+        const onClick = (e) => {
+            // Only handle left click
+            if (e.originalEvent.button !== 0) return
+            
+            L.DomEvent.stop(e)
+            
+            // Get container point from the mouse event
+            const containerPoint = e.containerPoint
+            
+            if (!hasStarted) {
+                // First click - start drawing
+                hasStarted = true
+                AnimationTool.drawingStartPoint = containerPoint
+                
+                // Clear any existing temporary rectangle
+                if (AnimationTool.tempRectangle) {
+                    AnimationTool.drawingLayer.removeLayer(AnimationTool.tempRectangle)
+                }
+                
+                // Create initial rectangle (will be a single point initially)
+                const startLatLng = map.containerPointToLatLng(containerPoint)
+                AnimationTool.tempRectangle = L.polygon([
+                    [startLatLng.lat, startLatLng.lng],
+                    [startLatLng.lat, startLatLng.lng],
+                    [startLatLng.lat, startLatLng.lng],
+                    [startLatLng.lat, startLatLng.lng]
+                ], {
+                    color: '#ff6b6b',
+                    weight: 3,
+                    fillOpacity: 0.2,
+                    fillColor: '#ff6b6b'
+                }).addTo(AnimationTool.drawingLayer)
+            } else {
+                // Second click - complete drawing
+                if (!AnimationTool.drawingStartPoint || !AnimationTool.tempRectangle) return
+                
+                // Get final container points
+                const startPoint = AnimationTool.drawingStartPoint
+                const endPoint = containerPoint
+                
+                // Calculate final screen rectangle bounds
+                const minX = Math.min(startPoint.x, endPoint.x)
+                const maxX = Math.max(startPoint.x, endPoint.x)
+                const minY = Math.min(startPoint.y, endPoint.y)
+                const maxY = Math.max(startPoint.y, endPoint.y)
+                
+                // Ensure minimum size
+                if (Math.abs(maxX - minX) < 5 || Math.abs(maxY - minY) < 5) {
+                    return // Too small, don't complete
+                }
+                
+                // Store screen rectangle for animation
+                AnimationTool.screenRect = {
+                    x: minX,
+                    y: minY,
+                    width: maxX - minX,
+                    height: maxY - minY
+                }
+                
+                // Convert four screen corners to geographic coordinates
+                const topLeft = map.containerPointToLatLng({ x: minX, y: minY })
+                const topRight = map.containerPointToLatLng({ x: maxX, y: minY })
+                const bottomRight = map.containerPointToLatLng({ x: maxX, y: maxY })
+                const bottomLeft = map.containerPointToLatLng({ x: minX, y: maxY })
+                
+                // Update the polygon one more time to ensure it's correct
+                AnimationTool.tempRectangle.setLatLngs([
+                    [topLeft.lat, topLeft.lng],
+                    [topRight.lat, topRight.lng],
+                    [bottomRight.lat, bottomRight.lng],
+                    [bottomLeft.lat, bottomLeft.lng]
+                ])
+                
+                // Get the actual bounds of the displayed polygon
+                // This ensures the bounding box matches exactly what's drawn
+                const polygonBounds = AnimationTool.tempRectangle.getBounds()
+                
+                const bbox = {
+                    north: polygonBounds.getNorth(),
+                    south: polygonBounds.getSouth(),
+                    east: polygonBounds.getEast(),
+                    west: polygonBounds.getWest()
+                }
+                
+                // Store bounding box
+                AnimationTool.boundingBox = bbox
+                
+                // Update input fields
+                $('#bboxNorth').val(bbox.north)
+                $('#bboxSouth').val(bbox.south)
+                $('#bboxEast').val(bbox.east)
+                $('#bboxWest').val(bbox.west)
+                $('#resetValues').prop('disabled', false)
+                
+                // The tempRectangle is already correct and displayed
+                // No need to recreate it - just clear the temp reference
+                AnimationTool.tempRectangle = null
+                
+                // Clean up event listeners
+                cleanupCustomRectangleDrawing()
+                
+                // Disable drawing mode
+                disableDrawingMode()
+            }
         }
         
-        // Convert screen rectangle back to geographic coordinates
-        const topLeft = Map_.map.containerPointToLatLng({ x: minX, y: minY })
-        const bottomRight = Map_.map.containerPointToLatLng({ x: maxX, y: maxY })
-        
-        const screenAlignedBounds = L.latLngBounds(topLeft, bottomRight)
-        
-        // Remove the original drawn rectangle
-        AnimationTool.drawingLayer.removeLayer(layer)
-        
-        // Create screen-aligned rectangle polygon
-        const screenAlignedRectangle = L.rectangle(screenAlignedBounds, {
-            color: '#ff6b6b',
-            weight: 3,
-            fillOpacity: 0.2,
-            fillColor: '#ff6b6b'
-        }).addTo(AnimationTool.drawingLayer)
-        
-        // Calculate geographic bounding box for form
-        const bbox = {
-            north: screenAlignedBounds.getNorth(),
-            south: screenAlignedBounds.getSouth(),
-            east: screenAlignedBounds.getEast(),
-            west: screenAlignedBounds.getWest()
+        // Mouse move handler - update rectangle while moving mouse
+        const onMouseMove = (e) => {
+            if (!hasStarted || !AnimationTool.drawingStartPoint || !AnimationTool.tempRectangle) return
+            
+            // Get current container point
+            const currentContainerPoint = e.containerPoint
+            
+            // Calculate screen rectangle bounds
+            const minX = Math.min(AnimationTool.drawingStartPoint.x, currentContainerPoint.x)
+            const maxX = Math.max(AnimationTool.drawingStartPoint.x, currentContainerPoint.x)
+            const minY = Math.min(AnimationTool.drawingStartPoint.y, currentContainerPoint.y)
+            const maxY = Math.max(AnimationTool.drawingStartPoint.y, currentContainerPoint.y)
+            
+            // Convert four screen corners to geographic coordinates
+            const topLeft = map.containerPointToLatLng({ x: minX, y: minY })
+            const topRight = map.containerPointToLatLng({ x: maxX, y: minY })
+            const bottomRight = map.containerPointToLatLng({ x: maxX, y: maxY })
+            const bottomLeft = map.containerPointToLatLng({ x: minX, y: maxY })
+            
+            // Update the polygon to be a screen-aligned rectangle
+            AnimationTool.tempRectangle.setLatLngs([
+                [topLeft.lat, topLeft.lng],
+                [topRight.lat, topRight.lng],
+                [bottomRight.lat, bottomRight.lng],
+                [bottomLeft.lat, bottomLeft.lng]
+            ])
         }
         
-        // Update the form
-        setBoundingBox(bbox)
+        // Escape key handler - cancel drawing
+        const onEscape = (e) => {
+            if (e.key === 'Escape' || e.keyCode === 27) {
+                L.DomEvent.stop(e)
+                
+                // Remove temporary rectangle
+                if (AnimationTool.tempRectangle) {
+                    AnimationTool.drawingLayer.removeLayer(AnimationTool.tempRectangle)
+                    AnimationTool.tempRectangle = null
+                }
+                
+                // Clean up
+                cleanupCustomRectangleDrawing()
+                disableDrawingMode()
+            }
+        }
         
-        // Disable drawing mode
-        disableDrawingMode()
+        // Store event handlers for cleanup
+        AnimationTool.drawingHandlers = {
+            click: onClick,
+            mousemove: onMouseMove,
+            keydown: onEscape
+        }
+        
+        // Attach event listeners
+        map.on('click', onClick)
+        map.on('mousemove', onMouseMove)
+        document.addEventListener('keydown', onEscape)
+        
+        // Note: Don't disable dragging - let users pan the map between clicks
+    }
+    
+    function cleanupCustomRectangleDrawing() {
+        const map = Map_.map
+        
+        // Restore original cursor
+        if (AnimationTool.originalCursor !== null && AnimationTool.originalCursor !== undefined) {
+            map.getContainer().style.cursor = AnimationTool.originalCursor
+            AnimationTool.originalCursor = null
+        }
+        
+        // Remove event listeners
+        if (AnimationTool.drawingHandlers) {
+            map.off('click', AnimationTool.drawingHandlers.click)
+            map.off('mousemove', AnimationTool.drawingHandlers.mousemove)
+            document.removeEventListener('keydown', AnimationTool.drawingHandlers.keydown)
+            AnimationTool.drawingHandlers = null
+        }
+        
+        // Clear drawing state
+        AnimationTool.drawingStartPoint = null
     }
     
     function disableDrawingMode() {
         AnimationTool.isDrawing = false
         
-        // Disable drawing
-        if (AnimationTool.drawRectangle) {
-            AnimationTool.drawRectangle.disable()
+        // Clean up custom drawing handlers if still active
+        if (AnimationTool.drawingHandlers) {
+            cleanupCustomRectangleDrawing()
         }
-        
-        // Remove event listener
-        Map_.map.off('draw:created', onDrawingComplete)
         
         // Hide instructions
         hideDrawingInstructions()
@@ -939,6 +1129,41 @@ function interfaceWithMMGIS() {
             width: Math.abs(southEast.x - northWest.x),
             height: Math.abs(southEast.y - northWest.y)
         }
+        
+        // Update visual rectangle on map if it exists
+        updateVisualRectangle()
+    }
+    
+    // Helper function to update the visual rectangle on the map to keep it screen-aligned
+    function updateVisualRectangle() {
+        if (!AnimationTool.screenRect || !AnimationTool.drawingLayer) return
+        
+        // Clear existing polygons in drawing layer
+        AnimationTool.drawingLayer.clearLayers()
+        
+        // Get screen rectangle coordinates
+        const { x: minX, y: minY, width, height } = AnimationTool.screenRect
+        const maxX = minX + width
+        const maxY = minY + height
+        
+        // Convert the four screen-aligned corners to geographic coordinates
+        const topLeft = Map_.map.containerPointToLatLng({ x: minX, y: minY })
+        const topRight = Map_.map.containerPointToLatLng({ x: maxX, y: minY })
+        const bottomRight = Map_.map.containerPointToLatLng({ x: maxX, y: maxY })
+        const bottomLeft = Map_.map.containerPointToLatLng({ x: minX, y: maxY })
+        
+        // Create a polygon from the four corners to maintain screen-aligned rectangle
+        L.polygon([
+            [topLeft.lat, topLeft.lng],
+            [topRight.lat, topRight.lng],
+            [bottomRight.lat, bottomRight.lng],
+            [bottomLeft.lat, bottomLeft.lng]
+        ], {
+            color: '#ff6b6b',
+            weight: 3,
+            fillOpacity: 0.2,
+            fillColor: '#ff6b6b'
+        }).addTo(AnimationTool.drawingLayer)
     }
     
     function getScreenRectForAnimation() {
@@ -1198,8 +1423,8 @@ function interfaceWithMMGIS() {
                 TimeControl.timeUI.updateTimes(null, timestampMs, null)
             }
             
-            // Wait for layers to update and TimeUI to reflect changes
-            setTimeout(resolve, 500) // Increased wait time for proper layer updates
+            // Wait for layers to update using configured delay
+            setTimeout(resolve, AnimationTool.animationSettings.layerRefreshRate)
         })
     }
     
@@ -1489,9 +1714,6 @@ function interfaceWithMMGIS() {
             try {
                 // Update time for time-enabled layers
                 await updateTimeForFrame(timestamp)
-                
-                // Wait for layers to update
-                await new Promise(resolve => setTimeout(resolve, 500))
                 
                 // Use html2canvas to capture the map area
                 const mapContainer = document.querySelector('#mapScreen')
@@ -2193,6 +2415,7 @@ function interfaceWithMMGIS() {
         AnimationTool.animationSettings.title = ''
         AnimationTool.animationSettings.showTimeStep = false
         AnimationTool.animationSettings.showScaleBar = false
+        AnimationTool.animationSettings.layerRefreshRate = 500
         
         updateStepDisplay()
         
@@ -2201,6 +2424,8 @@ function interfaceWithMMGIS() {
         $('#exportTitle').val('')
         $('#showTimeStep').prop('checked', false)
         $('#showScaleBar').prop('checked', false)
+        $('#layerRefreshRateSlider').val(500)
+        $('#layerRefreshRateValue').text('0.5s')
         $('#resetValues').prop('disabled', true)
         
         // Remove drawing layer (red bounding box)
@@ -2222,6 +2447,7 @@ function interfaceWithMMGIS() {
         $('#timeStart, #timeEnd, #timeInterval, #timeStep').off()
         $('#frameRateSlider, input[name="playDirection"], #loopAnimation, #showTimeStep, #showScaleBar').off()
         $('#exportTitle').off()
+        $('#layerRefreshRateSlider').off()
         $('#export-gif, #export-sequence, #export-mp4').off()
         
         // Unsubscribe from TimeControl
@@ -2245,6 +2471,16 @@ function interfaceWithMMGIS() {
             Map_.map.removeLayer(AnimationTool.drawingLayer)
             AnimationTool.drawingLayer = null
         }
+        
+        // Clean up custom drawing handlers
+        if (AnimationTool.drawingHandlers) {
+            cleanupCustomRectangleDrawing()
+        }
+        
+        // Clean up temporary drawing state
+        AnimationTool.tempRectangle = null
+        AnimationTool.drawingStartPoint = null
+        AnimationTool.originalCursor = null
         
         // Clean up instructions
         hideDrawingInstructions()

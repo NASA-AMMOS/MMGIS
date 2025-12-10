@@ -35,6 +35,7 @@ import { visuallyHidden } from "@mui/utils";
 
 import InventoryIcon from "@mui/icons-material/Inventory";
 import InfoIcon from "@mui/icons-material/Info";
+import EditIcon from "@mui/icons-material/Edit";
 import WidgetsIcon from "@mui/icons-material/Widgets";
 import DownloadIcon from "@mui/icons-material/Download";
 import UploadIcon from "@mui/icons-material/Upload";
@@ -49,6 +50,8 @@ import DeleteStacCollectionModal from "./Modals/DeleteStacCollectionModal/Delete
 import LayersUsedByModal from "./Modals/LayersUsedByModal/LayersUsedByModal";
 import StacCollectionItemsModal from "./Modals/StacCollectionItemsModal/StacCollectionItemsModal";
 import StacCollectionJsonModal from "./Modals/StacCollectionJsonModal/StacCollectionJsonModal";
+import ImportStacItemsModal from "./Modals/ImportStacItemsModal/ImportStacItemsModal";
+import EditStacCollectionModal from "./Modals/EditStacCollectionModal/EditStacCollectionModal";
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -309,7 +312,7 @@ export default function STAC() {
   const [order, setOrder] = React.useState("asc");
   const [orderBy, setOrderBy] = React.useState("name");
   const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(25);
+  const [rowsPerPage, setRowsPerPage] = React.useState(50);
   const [searchTerm, setSearchTerm] = React.useState("");
 
   const c = useStyles();
@@ -392,6 +395,59 @@ export default function STAC() {
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
     setPage(0); // Reset to first page when searching
+  };
+
+  const handleExport = (collection) => {
+    calls.api(
+      "stac_export_collection",
+      {
+        urlReplacements: {
+          collection: collection.id,
+        },
+      },
+      (res) => {
+        if (res?.body) {
+          // Pre-stringify to minified JSON to avoid pretty printing in downloadObject
+          const minifiedJson = JSON.stringify(res.body);
+          downloadObject(
+            minifiedJson,
+            `stac-collection-${collection.id}-export`,
+            ".json",
+            "json"
+          );
+          dispatch(
+            setSnackBarText({
+              text: `Successfully exported collection: ${collection.id}`,
+              severity: "success",
+            })
+          );
+        } else {
+          dispatch(
+            setSnackBarText({
+              text: "Failed to export collection",
+              severity: "error",
+            })
+          );
+        }
+      },
+      (err) => {
+        dispatch(
+          setSnackBarText({
+            text: err?.message || "Failed to export collection",
+            severity: "error",
+          })
+        );
+      }
+    );
+  };
+
+  const handleOpenImportItems = (collection) => {
+    dispatch(
+      setModal({
+        name: "importStacItems",
+        collection: collection,
+      })
+    );
   };
 
   return (
@@ -478,21 +534,21 @@ export default function STAC() {
                             </IconButton>
                           </Tooltip>
 
-                          <Tooltip title={"Info"} placement="top" arrow>
+                          <Tooltip title={"Edit Collection"} placement="top" arrow>
                             <IconButton
                               className={c.previewIcon}
-                              title="Info"
-                              aria-label="info"
+                              title="Edit Collection"
+                              aria-label="edit"
                               onClick={() => {
                                 dispatch(
                                   setModal({
-                                    name: "stacCollectionJson",
+                                    name: "editStacCollection",
                                     collection: row,
                                   })
                                 );
                               }}
                             >
-                              <InfoIcon fontSize="small" />
+                              <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
 
@@ -511,6 +567,28 @@ export default function STAC() {
                               }}
                             >
                               <WidgetsIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+
+                          <Tooltip title={"Import Items"} placement="top" arrow>
+                            <IconButton
+                              className={c.previewIcon}
+                              title="Import Items"
+                              aria-label="import items"
+                              onClick={() => handleOpenImportItems(row)}
+                            >
+                              <UploadIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+
+                          <Tooltip title={"Export Collection + Items"} placement="top" arrow>
+                            <IconButton
+                              className={c.previewIcon}
+                              title="Export"
+                              aria-label="export"
+                              onClick={() => handleExport(row)}
+                            >
+                              <DownloadIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
 
@@ -567,6 +645,8 @@ export default function STAC() {
       <LayersUsedByModal />
       <StacCollectionItemsModal />
       <StacCollectionJsonModal />
+      <ImportStacItemsModal querySTAC={querySTAC} />
+      <EditStacCollectionModal querySTAC={querySTAC} />
     </>
   );
 }

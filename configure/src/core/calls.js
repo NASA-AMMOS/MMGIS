@@ -114,6 +114,18 @@ const c = {
     type: "DELETE",
     url: "stac/collections/:collection/items/:item",
   },
+  stac_bulk_items: {
+    type: "POST",
+    url: "stac/collections/:collection/bulk_items",
+  },
+  stac_export_collection: {
+    type: "GET",
+    url: "api/stac/collections/:collection/export",
+  },
+  stac_update_collection: {
+    type: "PUT",
+    url: "stac/collections/:collection",
+  },
   account_entries: {
     type: "GET",
     url: "api/accounts/entries",
@@ -197,8 +209,10 @@ function api(call, data, success, error) {
     delete data.forceParams;
   }
 
-  if (c[call].type === "POST") options.body = JSON.stringify(data);
-  else if (c[call].type === "GET") options.data = JSON.stringify(data);
+  if (c[call].type === "POST" || c[call].type === "PUT" || c[call].type === "PATCH")
+    options.body = JSON.stringify(data);
+  else if (c[call].type === "GET")
+    options.data = JSON.stringify(data);
 
   fetch(
     `${domain}${url}${

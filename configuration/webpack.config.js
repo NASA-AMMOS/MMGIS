@@ -667,5 +667,14 @@ module.exports = function (webpackEnv) {
     // Turn off performance processing because we utilize
     // our own hints via the FileSizeReporter
     performance: false,
+    // Suppress warnings from node_modules dependencies
+    ignoreWarnings: [
+      // Suppress warning from @ffmpeg/ffmpeg worker.js. This is a known issue with the
+      // library's dynamic imports for worker files, but it works correctly at runtime.
+      {
+        module: /node_modules\/@ffmpeg\/ffmpeg/,
+        message: /Critical dependency: the request of a dependency is an expression/,
+      },
+    ],
   };
 };

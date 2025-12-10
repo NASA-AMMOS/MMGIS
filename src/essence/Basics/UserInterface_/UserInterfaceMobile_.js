@@ -1144,7 +1144,7 @@ var UserInterface = {
             BottomBar.changeUIVisibility('miscellaneous', false)
 
         $('#mapToolBar').css({
-            bottom: 25 + 'px',
+            bottom: 40 + 'px',
         })
         $('#mmgis-map-compass').css({
             bottom: 85 + 'px',
