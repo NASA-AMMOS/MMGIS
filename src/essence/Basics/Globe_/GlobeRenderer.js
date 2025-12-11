@@ -897,10 +897,17 @@ class GlobeRenderer {
             })
         }
 
-        // Add new layer at same position
-        const newLayer = this.renderer.imageryLayers.add(newProvider, index)
+        // Add new layer using addImageryProvider (returns ImageryLayer)
+        const newLayer = this.renderer.imageryLayers.addImageryProvider(newProvider)
         newLayer.alpha = alpha
         newLayer.show = show
+
+        // Move to correct position if not already there
+        const currentIndex = this.renderer.imageryLayers.indexOf(newLayer)
+        if (currentIndex !== index && index >= 0) {
+            this.renderer.imageryLayers.remove(newLayer, false)
+            this.renderer.imageryLayers.add(newLayer, index)
+        }
 
         // Update reference
         layerInfo.layer = newLayer
@@ -1809,15 +1816,49 @@ class GlobeRenderer {
     }
 
     /**
-     * Compare two GeoJSON geometries (simple JSON comparison)
-     * Matches Layers_.js F_.isEqual() with isSimple=true
+     * Round coordinates to specified precision
+     * @param {Array} coords - Coordinate array (can be nested)
+     * @param {number} precision - Number of decimal places
+     * @returns {Array} Rounded coordinates
+     */
+    _roundCoordinates(coords, precision) {
+        if (typeof coords[0] === 'number') {
+            // Single coordinate pair [lng, lat]
+            return coords.map(c => parseFloat(c.toFixed(precision)))
+        } else {
+            // Nested array of coordinates
+            return coords.map(c => this._roundCoordinates(c, precision))
+        }
+    }
+
+    /**
+     * Round geometry coordinates to GEOJSON_PRECISION
+     * @param {Object} geometry - GeoJSON geometry object
+     * @returns {Object} Geometry with rounded coordinates
+     */
+    _roundGeometry(geometry) {
+        if (!geometry || !geometry.coordinates) return geometry
+        const rounded = JSON.parse(JSON.stringify(geometry))
+        rounded.coordinates = this._roundCoordinates(rounded.coordinates, 10) // 10 = GEOJSON_PRECISION
+        return rounded
+    }
+
+    /**
+     * Compare two GeoJSON geometries with precision-aware comparison
+     * Rounds coordinates to GEOJSON_PRECISION before comparing
      */
     _compareGeometry(geometry1, geometry2) {
         if (!geometry1 && !geometry2) return true
         if (!geometry1 || !geometry2) return false
 
-        // Simple JSON stringify comparison (matches F_.isEqual with isSimple=true)
-        return JSON.stringify(geometry1) === JSON.stringify(geometry2)
+        // Round both geometries to GEOJSON_PRECISION before comparing
+        // This accounts for precision differences between Cesium (which receives
+        // precision-reduced GeoJSON) and Leaflet (which has full precision)
+        const rounded1 = this._roundGeometry(geometry1)
+        const rounded2 = this._roundGeometry(geometry2)
+
+        // Compare rounded geometries
+        return JSON.stringify(rounded1) === JSON.stringify(rounded2)
     }
 
     /**

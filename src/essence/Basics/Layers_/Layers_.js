@@ -2063,6 +2063,24 @@ const L_ = {
     // if field is null, relation is relative to initial geojson order
     // otherwise sort by field first
     selectFeature(layerName, feature, relation, field) {
+        // Helper function to round coordinates to match GEOJSON_PRECISION
+        const roundCoordinates = (coords, precision) => {
+            if (typeof coords[0] === 'number') {
+                // Single coordinate pair [lng, lat]
+                return coords.map(c => parseFloat(c.toFixed(precision)))
+            } else {
+                // Nested array of coordinates
+                return coords.map(c => roundCoordinates(c, precision))
+            }
+        }
+
+        const roundGeometry = (geometry) => {
+            if (!geometry || !geometry.coordinates) return geometry
+            const rounded = JSON.parse(JSON.stringify(geometry))
+            rounded.coordinates = roundCoordinates(rounded.coordinates, L_.GEOJSON_PRECISION)
+            return rounded
+        }
+
         let f = JSON.parse(JSON.stringify(feature))
         layerName = L_.asLayerUUID(layerName)
         const layer = L_.layers.layer[layerName]
@@ -2101,14 +2119,20 @@ const L_ = {
                 if (lfeatureWithout_.properties?.feature_id != null)
                     delete lfeatureWithout_.properties.feature_id
 
-                if (
-                    F_.isEqual(layers[l].feature.geometry, f.geometry, true) &&
-                    F_.isEqual(
-                        lfeatureWithout_.properties,
-                        featureWithout_.properties,
-                        true
-                    )
-                ) {
+                // Round both geometries to GEOJSON_PRECISION before comparing
+                // This accounts for precision differences between Cesium (which receives
+                // precision-reduced GeoJSON) and Leaflet (which has full precision)
+                const roundedClickedGeometry = roundGeometry(f.geometry)
+                const roundedLayerGeometry = roundGeometry(layers[l].feature.geometry)
+
+                const geometryMatch = F_.isEqual(roundedLayerGeometry, roundedClickedGeometry, true)
+                const propertiesMatch = F_.isEqual(
+                    lfeatureWithout_.properties,
+                    featureWithout_.properties,
+                    true
+                )
+
+                if (geometryMatch && propertiesMatch) {
                     if (layers[layerKeys[i + (relation || 0)]] != null) {
                         // Set flag to prevent Globe click handler from firing
                         if (
