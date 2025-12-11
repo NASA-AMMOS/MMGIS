@@ -211,6 +211,20 @@ let Globe_ = {
             }
         )
 
+        // Subscribe to time changes for Cesium renderer
+        if (
+            this.rendererType === 'cesium' &&
+            typeof TimeControl !== 'undefined'
+        ) {
+            L_.subscribeTimeChange('globe_cesium_time', (timeData) => {
+                this.litho.updateAllTimeEnabledLayers(
+                    timeData.startTime,
+                    timeData.currentTime,
+                    timeData.endTime
+                )
+            })
+        }
+
         //console.log(this.litho)
     },
     fina: function (coordinates) {

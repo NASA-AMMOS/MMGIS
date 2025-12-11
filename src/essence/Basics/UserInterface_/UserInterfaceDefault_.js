@@ -729,10 +729,26 @@ var UserInterface = {
             width: `calc(100% - ${width + 40}px)`,
         })
         UserInterface.splitscreens.style('left', width + 40 + 'px')
+
+        // Update widths only - positions are relative to splitscreens container
+        const oldMainWidth = UserInterface.mainWidth
         UserInterface.mainWidth = $('#splitscreens').width()
         UserInterface.mainHeight = $('#splitscreens').height()
-        const pp = UserInterface.getPanelPercents()
-        UserInterface.setPanelPercents(pp.viewer, pp.map, pp.globe)
+
+        // Scale panel widths proportionally
+        if (oldMainWidth > 0) {
+            const scale = UserInterface.mainWidth / oldMainWidth
+            UserInterface.pxIsViewer = UserInterface.pxIsViewer * scale
+            UserInterface.pxIsGlobe = UserInterface.pxIsGlobe * scale
+            UserInterface.pxIsMap = UserInterface.mainWidth - UserInterface.pxIsViewer - UserInterface.pxIsGlobe
+
+            // Update only widths, not positions
+            UserInterface.viewerScreen.style('width', UserInterface.pxIsViewer + 'px')
+            UserInterface.mapScreen.style('width', UserInterface.pxIsMap - UserInterface.splitterSize * 2 + 'px')
+            UserInterface.globeScreen.style('width', UserInterface.pxIsGlobe + 'px')
+
+            resize()
+        }
     },
     resizeToolPanel: function (width) {
         width = Math.max(
@@ -752,10 +768,26 @@ var UserInterface = {
             width: `calc(100% - ${width + 40}px)`,
         })
         UserInterface.splitscreens.style('left', width + 40 + 'px')
+
+        // Update widths only - positions are relative to splitscreens container
+        const oldMainWidth = UserInterface.mainWidth
         UserInterface.mainWidth = $('#splitscreens').width()
         UserInterface.mainHeight = $('#splitscreens').height()
-        const pp = UserInterface.getPanelPercents()
-        UserInterface.setPanelPercents(pp.viewer, pp.map, pp.globe)
+
+        // Scale panel widths proportionally
+        if (oldMainWidth > 0) {
+            const scale = UserInterface.mainWidth / oldMainWidth
+            UserInterface.pxIsViewer = UserInterface.pxIsViewer * scale
+            UserInterface.pxIsGlobe = UserInterface.pxIsGlobe * scale
+            UserInterface.pxIsMap = UserInterface.mainWidth - UserInterface.pxIsViewer - UserInterface.pxIsGlobe
+
+            // Update only widths, not positions
+            UserInterface.viewerScreen.style('width', UserInterface.pxIsViewer + 'px')
+            UserInterface.mapScreen.style('width', UserInterface.pxIsMap - UserInterface.splitterSize * 2 + 'px')
+            UserInterface.globeScreen.style('width', UserInterface.pxIsGlobe + 'px')
+
+            resize()
+        }
     },
     closeToolPanel: function () {
         UserInterface.toolPanel.selectAll('*').remove()
@@ -769,10 +801,26 @@ var UserInterface = {
         UserInterface.toolbar.style('box-shadow', 'none')
         UserInterface.splitscreens.style('width', 'calc(100% - ' + 40 + 'px)')
         UserInterface.splitscreens.style('left', 40 + 'px')
+
+        // Update widths only - positions are relative to splitscreens container
+        const oldMainWidth = UserInterface.mainWidth
         UserInterface.mainWidth = $('#splitscreens').width()
         UserInterface.mainHeight = $('#splitscreens').height()
-        var pp = UserInterface.getPanelPercents()
-        UserInterface.setPanelPercents(pp.viewer, pp.map, pp.globe)
+
+        // Scale panel widths proportionally
+        if (oldMainWidth > 0) {
+            const scale = UserInterface.mainWidth / oldMainWidth
+            UserInterface.pxIsViewer = UserInterface.pxIsViewer * scale
+            UserInterface.pxIsGlobe = UserInterface.pxIsGlobe * scale
+            UserInterface.pxIsMap = UserInterface.mainWidth - UserInterface.pxIsViewer - UserInterface.pxIsGlobe
+
+            // Update only widths, not positions
+            UserInterface.viewerScreen.style('width', UserInterface.pxIsViewer + 'px')
+            UserInterface.mapScreen.style('width', UserInterface.pxIsMap - UserInterface.splitterSize * 2 + 'px')
+            UserInterface.globeScreen.style('width', UserInterface.pxIsGlobe + 'px')
+
+            resize()
+        }
     },
     // can also be 'full'
     setToolHeight: function (pxHeight, shouldntAnimate) {
@@ -954,7 +1002,9 @@ var UserInterface = {
         })
     },
     getPanelPercents: function () {
-        var vp = (UserInterface.pxIsViewer / UserInterface.mainWidth) * 100
+        // Account for the splitterSize that was subtracted when setting pxIsViewer
+        var adjustedPxIsViewer = UserInterface.pxIsViewer + UserInterface.splitterSize / 2
+        var vp = (adjustedPxIsViewer / UserInterface.mainWidth) * 100
         var gp = (UserInterface.pxIsGlobe / UserInterface.mainWidth) * 100
         var mp = 100 - vp - gp
         return {
@@ -1027,14 +1077,17 @@ var UserInterface = {
 
         resize()
 
-        // Sync Globe to Map's current center on first open
+        // Sync Globe to Map's current center on first open (only if no globe coords in URL)
         if (wasGlobeClosed && isGlobeOpening && Globe_ != null) {
             if (!Globe_.hasBeenOpened) {
                 Globe_.hasBeenOpened = true
-                // Use setTimeout to ensure resize completes first
-                setTimeout(() => {
-                    Globe_.syncToMapCenter()
-                }, 100)
+                // Only sync to map center if no globe coordinates were specified in URL
+                if (L_.FUTURES.globeView == null) {
+                    // Use setTimeout to ensure resize completes first
+                    setTimeout(() => {
+                        Globe_.syncToMapCenter()
+                    }, 100)
+                }
             }
         }
     },

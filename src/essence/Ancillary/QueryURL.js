@@ -57,14 +57,17 @@ var QueryURL = {
         if (
             urlGlobeLat !== false &&
             urlGlobeLon != false &&
-            urlGlobeZoom != false
+            urlGlobeZoom != false &&
+            urlGlobeZoom !== 'undefined'
         ) {
             // lat, lon, zoom
-            L_.FUTURES.globeView = [
-                parseFloat(urlGlobeLat),
-                parseFloat(urlGlobeLon),
-                parseInt(urlGlobeZoom),
-            ]
+            const parsedLat = parseFloat(urlGlobeLat)
+            const parsedLon = parseFloat(urlGlobeLon)
+            const parsedZoom = parseInt(urlGlobeZoom)
+
+            if (!isNaN(parsedLat) && !isNaN(parsedLon) && !isNaN(parsedZoom)) {
+                L_.FUTURES.globeView = [parsedLat, parsedLon, parsedZoom]
+            }
         }
 
         if (urlGlobeCamera !== false) {
@@ -300,7 +303,7 @@ var QueryURL = {
         if (globeCenter) {
             if (globeLon == undefined) globeLon = globeCenter.lng
             if (globeLat == undefined) globeLat = globeCenter.lat
-            if (globeZoom == undefined) globeZoom = L_.Globe_.litho.zoom
+            if (globeZoom == undefined) globeZoom = globeCenter.zoom
         }
 
         var viewerImg = L_.Viewer_.getLastImageId()
@@ -328,11 +331,11 @@ var QueryURL = {
         urlAppendage += '&globeLat=' + globeLat
 
         //globeZoom
-        urlAppendage += '&globeZoom=' + globeZoom
+        if (globeZoom != undefined) urlAppendage += '&globeZoom=' + globeZoom
 
         //globeCamera
         const lithoCams = L_.Globe_.litho.getCameras()
-        if (lithoCams != null) {
+        if (lithoCams != null && lithoCams.orbit) {
             var orbit = lithoCams.orbit
             var cam = orbit.camera
             var con = orbit.controls

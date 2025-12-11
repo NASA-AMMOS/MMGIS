@@ -505,7 +505,7 @@ const L_ = {
                         minZoom: s.minZoom,
                         maxZoom: s.maxNativeZoom,
                         //boundingBox: s.boundingBox,
-                        //time: s.time == null ? '' : s.time.end,
+                        time: s.time,
                     })
                 } else if (s.type === 'data') {
                 } else if (s.type === 'model') {
@@ -960,7 +960,7 @@ const L_ = {
                             minZoom: s.minZoom,
                             maxZoom: s.maxNativeZoom,
                             //boundingBox: s.boundingBox,
-                            //time: s.time == null ? '' : s.time.end,
+                            time: s.time,
                         })
                 } else if (s.type === 'model') {
                     L_.Globe_.litho.addLayer('model', {

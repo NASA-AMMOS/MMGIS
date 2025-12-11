@@ -1,5 +1,6 @@
 import LithoSphere from 'lithosphere'
 import * as Cesium from 'cesium'
+import * as d3 from 'd3'
 import 'cesium/Source/Widgets/widgets.css'
 
 /**
@@ -14,7 +15,8 @@ class GlobeRenderer {
         this.containerId = containerId
         this.config = config
         this.renderer = null
-        this.CESIUM_ZOOM_RATIO = 1500000
+        // Earth's circumference in meters (Web Mercator standard)
+        this.EARTH_CIRCUMFERENCE = 40075017
 
         // Initialize the appropriate renderer
         if (rendererType === 'cesium') {
@@ -22,6 +24,26 @@ class GlobeRenderer {
         } else {
             this._initLithoSphere()
         }
+    }
+
+    /**
+     * Convert Leaflet zoom level to Cesium camera height
+     * Uses exponential formula: height = Earth_circumference / 2^zoom
+     * @param {number} zoom - Leaflet zoom level (0-22)
+     * @returns {number} Camera height in meters
+     */
+    _zoomToHeight(zoom) {
+        return this.EARTH_CIRCUMFERENCE / Math.pow(2, zoom)
+    }
+
+    /**
+     * Convert Cesium camera height to Leaflet zoom level
+     * Uses logarithmic formula: zoom = log2(Earth_circumference / height)
+     * @param {number} height - Camera height in meters
+     * @returns {number} Leaflet-equivalent zoom level
+     */
+    _heightToZoom(height) {
+        return Math.log2(this.EARTH_CIRCUMFERENCE / height)
     }
 
     /**
@@ -49,12 +71,12 @@ class GlobeRenderer {
         // Create Cesium viewer with configuration
         this.renderer = new Cesium.Viewer(cesiumContainer, {
             // Initial view
-            ...(this.config.initialCamera && {
+            ...(this.config.initialView && {
                 camera: {
                     destination: Cesium.Cartesian3.fromDegrees(
                         this.config.initialView.lng,
                         this.config.initialView.lat,
-                        this.config.initialView.zoom * this.CESIUM_ZOOM_RATIO // Convert zoom to height
+                        this._zoomToHeight(this.config.initialView.zoom) // Convert zoom to height
                     ),
                 },
             }),
@@ -97,7 +119,7 @@ class GlobeRenderer {
                 destination: Cesium.Cartesian3.fromDegrees(
                     this.config.initialView.lng,
                     this.config.initialView.lat,
-                    this.config.initialView.zoom * this.CESIUM_ZOOM_RATIO
+                    this._zoomToHeight(this.config.initialView.zoom)
                 ),
             })
         }
@@ -381,22 +403,96 @@ class GlobeRenderer {
         const { name } = layerConfig
 
         if (type === 'tile') {
-            // Add raster tile layer
-            const imageryProvider = new Cesium.UrlTemplateImageryProvider({
-                url: this._convertTileUrl(layerConfig.path, layerConfig.format),
-                maximumLevel: layerConfig.maxZoom || 18,
-                minimumLevel: layerConfig.minZoom || 0,
-            })
+            // Extract time configuration (matches structure from Layers_.js)
+            // layerConfig.time contains: { enabled, start, end, customTimes, format, ... }
+            const timeConfig = layerConfig.time
+                ? {
+                      enabled: layerConfig.time.enabled || false,
+                      start: layerConfig.time.start || null,
+                      end: layerConfig.time.end || null,
+                      customTimes: layerConfig.time.customTimes || null,
+                      format: layerConfig.time.format || null,
+                      originalUrl: layerConfig.path, // Store original template
+                  }
+                : null
 
+            // Replace time parameters in URL if time is enabled
+            const processedUrl = timeConfig?.enabled
+                ? this._replaceTimeParameters(layerConfig.path, timeConfig)
+                : layerConfig.path
+
+            let imageryProvider
+
+            // Check if this is a WMS layer
+            if (layerConfig.format === 'wms') {
+                // Parse WMS URL
+                const { baseUrl, wmsParams } = this._parseWmsUrl(processedUrl)
+
+                // Validate required LAYERS parameter
+                if (!wmsParams.LAYERS) {
+                    console.warn(
+                        `WMS layer ${name} has no LAYERS parameter in URL: ${processedUrl}`
+                    )
+                }
+
+                // Create WMS imagery provider
+                imageryProvider = new Cesium.WebMapServiceImageryProvider({
+                    url: baseUrl,
+                    layers: wmsParams.LAYERS || '',
+                    parameters: {
+                        format: wmsParams.FORMAT || 'image/png',
+                        transparent:
+                            wmsParams.TRANSPARENT !== undefined
+                                ? wmsParams.TRANSPARENT
+                                : 'true',
+                        version: wmsParams.VERSION || '1.1.1',
+                        // Pass through other WMS params (STYLES, etc.)
+                        ...Object.fromEntries(
+                            Object.entries(wmsParams).filter(
+                                ([key]) =>
+                                    ![
+                                        'SERVICE',
+                                        'REQUEST',
+                                        'LAYERS',
+                                        'FORMAT',
+                                        'TRANSPARENT',
+                                        'VERSION',
+                                        'SRS',
+                                        'CRS',
+                                    ].includes(key)
+                            )
+                        ),
+                    },
+                    enablePickFeatures: false,
+                    maximumLevel: layerConfig.maxZoom || 18,
+                    minimumLevel: layerConfig.minZoom || 0,
+                })
+            } else {
+                // Use UrlTemplateImageryProvider for TMS/WMTS
+                imageryProvider = new Cesium.UrlTemplateImageryProvider({
+                    url: this._convertTileUrl(processedUrl, layerConfig.format),
+                    maximumLevel: layerConfig.maxZoom || 18,
+                    minimumLevel: layerConfig.minZoom || 0,
+                })
+            }
+
+            // Add imagery provider (creates ImageryLayer wrapper)
             const layer =
                 this.renderer.imageryLayers.addImageryProvider(imageryProvider)
             layer.alpha =
                 layerConfig.opacity !== undefined ? layerConfig.opacity : 1.0
 
+            // Store layer metadata including time config
             this._layers[name] = {
                 type: 'tile',
                 layer: layer,
                 visible: true,
+                timeConfig: timeConfig,
+                format: layerConfig.format,
+                maxZoom: layerConfig.maxZoom,
+                minZoom: layerConfig.minZoom,
+                opacity: layerConfig.opacity,
+                order: layerConfig.order, // Store layer order for proper stacking
             }
         } else if (type === 'vector' || type === 'clamped') {
             // Check if this layer is already being loaded (prevent duplicate async loads)
@@ -442,21 +538,28 @@ class GlobeRenderer {
                 })
             }
 
+            // Parse colors with fallbacks
+            const strokeColor =
+                Cesium.Color.fromCssColorString(defaultStyle.color || '#ffffff') ||
+                Cesium.Color.WHITE
+            const fillColor =
+                Cesium.Color.fromCssColorString(
+                    defaultStyle.fillColor || '#ffffff'
+                ) || Cesium.Color.WHITE
+            const fillOpacity = parseFloat(defaultStyle.fillOpacity)
+            const fillWithAlpha = isNaN(fillOpacity)
+                ? fillColor.withAlpha(0.5)
+                : fillColor.withAlpha(fillOpacity)
+
             const dataSource = Cesium.GeoJsonDataSource.load(
                 geojsonWithIds, // Use GeoJSON with injected IDs
                 {
                     clampToGround: type === 'clamped', // Only clamp 'clamped' type, not 'vector'
-                    stroke: Cesium.Color.fromCssColorString(
-                        defaultStyle.color || '#ffffff'
-                    ),
+                    stroke: strokeColor,
                     strokeWidth: defaultStyle.weight || 2,
-                    fill: Cesium.Color.fromCssColorString(
-                        defaultStyle.fillColor || '#ffffff'
-                    ).withAlpha(parseFloat(defaultStyle.fillOpacity) || 0.5),
+                    fill: fillWithAlpha,
                     markerSize: defaultStyle.radius || 8,
-                    markerColor: Cesium.Color.fromCssColorString(
-                        defaultStyle.fillColor || '#ffffff'
-                    ),
+                    markerColor: fillColor,
                 }
             )
 
@@ -494,26 +597,30 @@ class GlobeRenderer {
                             // Apply feature-specific styles to polygons
                             if (entity.polygon) {
                                 if (featureStyle.fillColor) {
-                                    entity.polygon.material =
+                                    const polygonFillColor =
                                         Cesium.Color.fromCssColorString(
                                             featureStyle.fillColor
-                                        ).withAlpha(
-                                            parseFloat(
-                                                featureStyle.fillOpacity
-                                            ) != null
-                                                ? parseFloat(
-                                                      featureStyle.fillOpacity
-                                                  )
-                                                : parseFloat(
-                                                      defaultStyle.fillOpacity
-                                                  ) || 0.5
-                                        )
+                                        ) || Cesium.Color.WHITE
+                                    const polygonOpacity =
+                                        parseFloat(featureStyle.fillOpacity) !=
+                                        null
+                                            ? parseFloat(
+                                                  featureStyle.fillOpacity
+                                              )
+                                            : parseFloat(
+                                                  defaultStyle.fillOpacity
+                                              ) || 0.5
+                                    entity.polygon.material =
+                                        polygonFillColor.withAlpha(polygonOpacity)
                                 }
                                 if (featureStyle.color) {
-                                    entity.polygon.outlineColor =
+                                    const outlineColor =
                                         Cesium.Color.fromCssColorString(
                                             featureStyle.color
                                         )
+                                    if (outlineColor) {
+                                        entity.polygon.outlineColor = outlineColor
+                                    }
                                 }
                                 if (featureStyle.weight != null) {
                                     entity.polygon.outlineWidth = parseFloat(
@@ -525,10 +632,13 @@ class GlobeRenderer {
                             // Apply feature-specific styles to polylines
                             if (entity.polyline) {
                                 if (featureStyle.color) {
-                                    entity.polyline.material =
+                                    const polylineColor =
                                         Cesium.Color.fromCssColorString(
                                             featureStyle.color
                                         )
+                                    if (polylineColor) {
+                                        entity.polyline.material = polylineColor
+                                    }
                                 }
                                 if (featureStyle.weight != null) {
                                     entity.polyline.width = parseFloat(
@@ -545,10 +655,13 @@ class GlobeRenderer {
                                     )
                                 }
                                 if (featureStyle.fillColor) {
-                                    entity.point.color =
+                                    const pointColor =
                                         Cesium.Color.fromCssColorString(
                                             featureStyle.fillColor
                                         )
+                                    if (pointColor) {
+                                        entity.point.color = pointColor
+                                    }
                                 }
                             }
 
@@ -598,6 +711,225 @@ class GlobeRenderer {
     }
 
     /**
+     * Calculate the correct index for a tile layer in the imageryLayers collection
+     * based on the global layer ordering (L_._layersOrdered)
+     */
+    _calculateTileLayerIndex(layerName, orderedLayerNames) {
+        if (!orderedLayerNames || !Array.isArray(orderedLayerNames)) {
+            return undefined // Let Cesium add at default position (top)
+        }
+
+        // Get position in global order
+        const globalIndex = orderedLayerNames.indexOf(layerName)
+        if (globalIndex === -1) {
+            return undefined // Layer not in order array
+        }
+
+        // Count how many tile layers should be BELOW this layer
+        // (tile layers with lower index in orderedLayerNames)
+        let tileBelowCount = 0
+        for (let i = 0; i < globalIndex; i++) {
+            const checkName = orderedLayerNames[i]
+            const checkLayer = this._layers[checkName]
+            // Only count visible tile layers
+            if (checkLayer && checkLayer.type === 'tile' && checkLayer.visible) {
+                tileBelowCount++
+            }
+        }
+
+        return tileBelowCount
+    }
+
+    /**
+     * Parse WMS URL to extract base URL and parameters
+     */
+    _parseWmsUrl(url) {
+        const urlSplit = url.split('?')
+        const baseUrl = urlSplit[0]
+        const queryString = urlSplit[1] || ''
+
+        const wmsParams = {}
+        if (queryString) {
+            const urlParams = new URLSearchParams(queryString)
+            for (const [key, value] of urlParams.entries()) {
+                // WMS parameters are case-insensitive, store as uppercase
+                wmsParams[key.toUpperCase()] = value
+            }
+        }
+
+        return { baseUrl, wmsParams }
+    }
+
+    /**
+     * Replace time parameters in URL with actual time values
+     */
+    _replaceTimeParameters(url, timeConfig) {
+        if (!timeConfig || !timeConfig.enabled) return url
+
+        // Create time formatter based on layer's time format
+        // Default to ISO format if no format specified
+        const timeFormat =
+            timeConfig.format == null || timeConfig.format == ''
+                ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
+                : d3.utcFormat(timeConfig.format)
+
+        let processedUrl = url
+
+        // Replace {time} and {endtime} with formatted end time
+        if (timeConfig.end) {
+            const formattedEnd = timeFormat(Date.parse(timeConfig.end))
+            processedUrl = processedUrl
+                .replace(/{time}/g, formattedEnd)
+                .replace(/{endtime}/g, formattedEnd)
+        }
+
+        // Replace {starttime} with formatted start time
+        if (timeConfig.start) {
+            const formattedStart = timeFormat(Date.parse(timeConfig.start))
+            processedUrl = processedUrl.replace(/{starttime}/g, formattedStart)
+        }
+
+        // Replace {customtime.N}
+        if (timeConfig.customTimes?.times) {
+            for (let i = 0; i < timeConfig.customTimes.times.length; i++) {
+                const regex = new RegExp(`\\{customtime\\.${i}\\}`, 'g')
+                const formattedCustomTime = timeFormat(
+                    Date.parse(timeConfig.customTimes.times[i])
+                )
+                processedUrl = processedUrl.replace(regex, formattedCustomTime)
+            }
+        }
+
+        return processedUrl
+    }
+
+    /**
+     * Update time parameters for a specific layer
+     */
+    updateLayerTime(layerName, startTime, endTime, customTimes) {
+        const layerInfo = this._layers[layerName]
+        if (
+            !layerInfo ||
+            !layerInfo.timeConfig ||
+            !layerInfo.timeConfig.enabled
+        ) {
+            return
+        }
+
+        // Update time configuration
+        layerInfo.timeConfig.start = startTime
+        layerInfo.timeConfig.end = endTime
+        layerInfo.timeConfig.customTimes = customTimes
+
+        // Refresh the layer
+        this._refreshTimeEnabledLayer(layerName)
+    }
+
+    /**
+     * Refresh a time-enabled layer by recreating its imagery provider
+     */
+    _refreshTimeEnabledLayer(layerName) {
+        const layerInfo = this._layers[layerName]
+
+        if (
+            this.rendererType !== 'cesium' ||
+            layerInfo.type !== 'tile' ||
+            !layerInfo.timeConfig?.enabled
+        ) {
+            return
+        }
+
+        // Store current state
+        const alpha = layerInfo.layer.alpha
+        const show = layerInfo.layer.show
+        const index = this.renderer.imageryLayers.indexOf(layerInfo.layer)
+
+        // Remove old layer
+        this.renderer.imageryLayers.remove(layerInfo.layer)
+
+        // Create new URL with updated time parameters
+        const url = this._replaceTimeParameters(
+            layerInfo.timeConfig.originalUrl,
+            layerInfo.timeConfig
+        )
+
+        let newProvider
+
+        // Create appropriate provider based on format
+        if (layerInfo.format === 'wms') {
+            const { baseUrl, wmsParams } = this._parseWmsUrl(url)
+
+            newProvider = new Cesium.WebMapServiceImageryProvider({
+                url: baseUrl,
+                layers: wmsParams.LAYERS || '',
+                parameters: {
+                    format: wmsParams.FORMAT || 'image/png',
+                    transparent:
+                        wmsParams.TRANSPARENT !== undefined
+                            ? wmsParams.TRANSPARENT
+                            : 'true',
+                    version: wmsParams.VERSION || '1.1.1',
+                    ...Object.fromEntries(
+                        Object.entries(wmsParams).filter(
+                            ([key]) =>
+                                ![
+                                    'SERVICE',
+                                    'REQUEST',
+                                    'LAYERS',
+                                    'FORMAT',
+                                    'TRANSPARENT',
+                                    'VERSION',
+                                    'SRS',
+                                    'CRS',
+                                ].includes(key)
+                        )
+                    ),
+                },
+                enablePickFeatures: false,
+                maximumLevel: layerInfo.maxZoom || 18,
+                minimumLevel: layerInfo.minZoom || 0,
+            })
+        } else {
+            newProvider = new Cesium.UrlTemplateImageryProvider({
+                url: this._convertTileUrl(url, layerInfo.format),
+                maximumLevel: layerInfo.maxZoom || 18,
+                minimumLevel: layerInfo.minZoom || 0,
+            })
+        }
+
+        // Add new layer at same position
+        const newLayer = this.renderer.imageryLayers.add(newProvider, index)
+        newLayer.alpha = alpha
+        newLayer.show = show
+
+        // Update reference
+        layerInfo.layer = newLayer
+    }
+
+    /**
+     * Update all time-enabled layers with new time values
+     */
+    updateAllTimeEnabledLayers(startTime, currentTime, endTime) {
+        if (this.rendererType !== 'cesium') return
+
+        // Access TimeControl if available
+        const customTimes =
+            typeof TimeControl !== 'undefined' ? TimeControl.customTimes : null
+
+        for (const layerName in this._layers) {
+            const layerInfo = this._layers[layerName]
+            if (layerInfo.timeConfig?.enabled) {
+                this.updateLayerTime(
+                    layerName,
+                    startTime,
+                    currentTime,
+                    customTimes
+                )
+            }
+        }
+    }
+
+    /**
      * Remove a layer from the globe
      * @param {string} name - Layer name
      */
@@ -631,16 +963,44 @@ class GlobeRenderer {
     toggleLayer(name, visible) {
         if (this.rendererType === 'lithosphere') {
             return this.renderer.toggleLayer(name, visible)
-        } else {
-            const layerInfo = this._layers[name]
-            if (layerInfo) {
-                if (layerInfo.type === 'tile') {
-                    layerInfo.layer.show = visible
-                } else if (layerInfo.type === 'vector') {
-                    layerInfo.dataSource.show = visible
+        }
+
+        const layerInfo = this._layers[name]
+        if (!layerInfo) return
+
+        if (layerInfo.type === 'tile') {
+            if (visible && !layerInfo.visible) {
+                // Turning layer ON - need to re-add at correct position
+
+                // Calculate correct index based on layer order
+                const correctIndex = this._calculateTileLayerIndex(
+                    name,
+                    layerInfo.order
+                )
+
+                // Remove if already in collection (shouldn't be, but safe)
+                if (this.renderer.imageryLayers.contains(layerInfo.layer)) {
+                    this.renderer.imageryLayers.remove(layerInfo.layer)
                 }
-                layerInfo.visible = visible
+
+                // Re-add at correct position
+                const newLayer = this.renderer.imageryLayers.add(
+                    layerInfo.layer,
+                    correctIndex
+                )
+
+                // Update reference (in case Cesium creates a new wrapper)
+                if (newLayer) layerInfo.layer = newLayer
+            } else if (!visible && layerInfo.visible) {
+                // Turning layer OFF - remove from collection
+                this.renderer.imageryLayers.remove(layerInfo.layer)
             }
+
+            layerInfo.visible = visible
+        } else if (layerInfo.type === 'vector') {
+            // Vector layers use simple visibility toggle
+            layerInfo.dataSource.show = visible
+            layerInfo.visible = visible
         }
     }
 
@@ -670,7 +1030,7 @@ class GlobeRenderer {
             return {
                 lng: Cesium.Math.toDegrees(center.longitude),
                 lat: Cesium.Math.toDegrees(center.latitude),
-                zoom: center.height / this.CESIUM_ZOOM_RATIO, // Convert height to approximate zoom
+                zoom: this._heightToZoom(center.height), // Convert height to Leaflet zoom
             }
         }
     }
@@ -695,7 +1055,7 @@ class GlobeRenderer {
                 destination: Cesium.Cartesian3.fromDegrees(
                     lng,
                     lat,
-                    zoom * this.CESIUM_ZOOM_RATIO
+                    this._zoomToHeight(zoom)
                 ),
             })
         }
@@ -740,12 +1100,40 @@ class GlobeRenderer {
     orderLayers(orderedLayerNames) {
         if (this.rendererType === 'lithosphere') {
             return this.renderer.orderLayers(orderedLayerNames)
-        } else {
-            // Reorder imagery layers in Cesium
-            // This is more complex in Cesium as layer ordering is managed differently
-            console.warn(
-                'Layer ordering not yet fully supported for Cesium renderer'
+        }
+
+        if (this.rendererType !== 'cesium') return
+
+        // Update order reference for all layers
+        for (const name in this._layers) {
+            this._layers[name].order = orderedLayerNames
+        }
+
+        // Reorder all visible tile layers
+        const visibleTileLayers = []
+
+        // Collect all visible tile layers with their desired position
+        for (const name of orderedLayerNames) {
+            const layerInfo = this._layers[name]
+            if (layerInfo && layerInfo.type === 'tile' && layerInfo.visible) {
+                visibleTileLayers.push({ name, layerInfo })
+            }
+        }
+
+        // Remove all tile layers from collection
+        for (const { layerInfo } of visibleTileLayers) {
+            this.renderer.imageryLayers.remove(layerInfo.layer)
+        }
+
+        // Re-add in correct order (bottom to top)
+        for (let i = 0; i < visibleTileLayers.length; i++) {
+            const { layerInfo } = visibleTileLayers[i]
+            const newLayer = this.renderer.imageryLayers.add(
+                layerInfo.layer,
+                i
             )
+            // Update reference
+            if (newLayer) layerInfo.layer = newLayer
         }
     }
 
@@ -911,9 +1299,11 @@ class GlobeRenderer {
         if (this.rendererType === 'lithosphere') {
             return this.renderer.invalidateSize()
         } else {
-            // Cesium handles resizing automatically via ResizeObserver
-            // But we can force a resize check
-            this.renderer.resize()
+            // Cesium needs to resize after DOM updates complete
+            // Use requestAnimationFrame to ensure layout has been applied
+            requestAnimationFrame(() => {
+                this.renderer.resize()
+            })
         }
     }
 
