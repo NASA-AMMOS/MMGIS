@@ -673,6 +673,7 @@ const DrawTool_Templater = {
                 name: '',
                 template: [],
             }
+
             Object.keys(featureToMakeTemplateFrom.properties).forEach(
                 (propKey) => {
                     const newTemplateItem = {
@@ -1144,12 +1145,14 @@ const DrawTool_Templater = {
         })
 
         if (
-            (isReadOnly || featureToMakeTemplateFrom != null) &&
+            isReadOnly ||
+            featureToMakeTemplateFrom != null ||
             Array.isArray(templateObj.template)
         ) {
-            templateObj.template.forEach((t) => {
-                add(t)
-            })
+            if (Array.isArray(templateObj.template))
+                templateObj.template.forEach((t) => {
+                    add(t)
+                })
         }
 
         const listToSort = document.getElementById(
