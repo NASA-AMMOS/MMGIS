@@ -33,6 +33,8 @@ nul
 /data/*
 *__pycache__
 
+*_ignore*
+
 sessions
 .terraform/
 .terraform.lock.hcl
@@ -43,5 +45,6 @@ docker-compose.env.yml
 .mcp.json
 .serena
 .claude
+.playwright-mcp
 CLAUDE.md
 #tools
