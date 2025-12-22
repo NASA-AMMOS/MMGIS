@@ -611,30 +611,6 @@ setups.getBackendSetups(function (setups) {
     express.static(path.join(rootDir, "/README.md"))
   );
   app.use(
-    `${ROOT_PATH}/config/login`,
-    express.static(path.join(rootDir, "/config/login"))
-  );
-  app.use(
-    `${ROOT_PATH}/config/css`,
-    ensureUser(),
-    express.static(path.join(rootDir, "/config/css"))
-  );
-  app.use(
-    `${ROOT_PATH}/config/js`,
-    ensureUser(),
-    express.static(path.join(rootDir, "/config/js"))
-  );
-  app.use(
-    `${ROOT_PATH}/config/pre`,
-    ensureUser(),
-    express.static(path.join(rootDir, "/config/pre"))
-  );
-  app.use(
-    `${ROOT_PATH}/config/fonts`,
-    ensureUser(),
-    express.static(path.join(rootDir, "/config/fonts"))
-  );
-  app.use(
     `${ROOT_PATH}/configure/build`,
     ensureUser(),
     express.static(path.join(rootDir, "/configure/build"))
