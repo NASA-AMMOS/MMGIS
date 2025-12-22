@@ -1,31 +1,48 @@
-# WebSocket Real-time Communication - Implementation Plan
+# Real-Time Collaboration Infrastructure - Implementation Plan
 
 ## Implementation Overview
 
-This document describes the retrospective implementation plan for the MMGIS WebSocket Real-time Communication feature, which was successfully completed and integrated into the system. The feature was implemented to enable real-time layer updates, configuration change notifications, and collaborative features for NASA planetary mission operations.
+This document describes the retrospective implementation plan for the MMGIS Real-Time Collaboration Infrastructure, which was successfully completed and integrated into the system. This infrastructure provides the underlying WebSocket communication layer that enables real-time collaboration across multiple MMGIS features including the Draw Tool, Configure interface, and layer management systems. Rather than being a user-facing feature itself, this infrastructure layer supports collaborative functionality throughout the application.
 
 ## Phase 1: Server Infrastructure
 
 ### 1.1 WebSocket Server Foundation
 **Status:** Completed
 
+**Purpose:** Create the foundational infrastructure layer for real-time communication between server and clients. This infrastructure enables features like Draw Tool collaboration, Configure multi-admin editing, and layer update notifications.
+
 **Implementation:**
 - Created `API/websocket.js` module with WebSocket server initialization
 - Integrated `isomorphic-ws` library for cross-platform WebSocket support
-- Implemented `noServer` mode for manual HTTP upgrade handling
-- Added pathname validation to restrict connections to specific routes
-- Created `wss.broadcast()` function for message relay pattern
-- Integrated with main HTTP server via `upgrade` event listener
+- Implemented `noServer` mode for manual HTTP upgrade handling via Express HTTP server
+- Added pathname validation to restrict connections to specific routes (security)
+- Created `wss.broadcast()` function implementing broadcast-relay message pattern
+- Integrated with main HTTP server via `upgrade` event listener for protocol handshake
 
-**Files Modified:**
-- `API/websocket.js` (created)
-- `scripts/server.js` (WebSocket initialization added)
+**Files Created/Modified:**
+- `API/websocket.js` (created) - Core WebSocket server infrastructure
+- `scripts/server.js` (modified) - Added WebSocket initialization to server startup sequence
 
-**Key Decisions:**
-- Chose `isomorphic-ws` over native `ws` for consistent client/server API
-- Selected broadcast relay pattern instead of pub/sub for simplicity
-- Used `noServer: true` to share HTTP port with Express server
-- Implemented pathname-based access control for security
+**Key Architectural Decisions:**
+
+1. **Library Selection: `isomorphic-ws` over native `ws`**
+   - **Rationale**: Provides consistent API across browser (client) and Node.js (server), simplifying code maintenance
+   - **Trade-off**: Slightly larger bundle size, but gains cross-platform compatibility
+
+2. **Message Pattern: Broadcast-relay instead of pub/sub**
+   - **Rationale**: Simpler implementation, easier to debug, sufficient for typical team sizes (<50 concurrent users)
+   - **Trade-off**: All clients receive all messages (client-side filtering required), but avoids complexity of Redis pub/sub
+   - **Future Consideration**: May need room-based routing if user concurrency exceeds 100+
+
+3. **Port Sharing: `noServer: true` mode**
+   - **Rationale**: Allows WebSocket to share the same port as Express HTTP server
+   - **Benefit**: Simplifies deployment, avoids firewall configuration for additional ports
+   - **Implementation**: Manual upgrade handling via `server.on('upgrade', ...)` event
+
+4. **Security: Pathname-based access control**
+   - **Rationale**: Restricts WebSocket connections to specific URL paths
+   - **Implementation**: Validates request pathname matches `WEBSOCKET_ROOT_PATH` or `ROOT_PATH` before upgrade
+   - **Limitation**: No session authentication at WebSocket level (relies on HTTP endpoint authentication)
 
 **Configuration:**
 ```javascript
@@ -80,38 +97,45 @@ ENABLE_CONFIG_OVERRIDE=false
 WEBSOCKET_ROOT_PATH=
 ```
 
-## Phase 2: Configuration Broadcasting
+## Phase 2: Feature Integration - Configuration Broadcasting
 
 ### 2.1 Configuration Save Integration
 **Status:** Completed
 
+**Purpose:** Integrate the WebSocket infrastructure with the Configure interface to enable multi-administrator collaboration. This allows multiple admins to work on mission configuration safely without overwriting each other's changes.
+
 **Implementation:**
-- Created `openWebSocket()` function in config routes
-- Added WebSocket message construction with `info` and `body` objects
-- Implemented client connection to own WebSocket server for broadcasting
-- Added mission-specific metadata to all messages
-- Integrated `forceClientUpdate` flag for automatic updates
+- Created `openWebSocket()` function in config routes to broadcast configuration changes
+- Implemented WebSocket message construction with structured `info` and `body` objects
+- Server opens client connection to its own WebSocket server for broadcasting (self-connection pattern)
+- Added mission-specific metadata to enable client-side filtering
+- Integrated `forceClientUpdate` flag for automated/scripted update scenarios
 
 **Files Modified:**
-- `API/Backend/Config/routes/configs.js`
+- `API/Backend/Config/routes/configs.js` - Added broadcast triggers to config save endpoint
 
-**Message Structure:**
+**Broadcast Message Protocol:**
 ```javascript
 {
   info: {
-    type: "addLayer | updateLayer | removeLayer",
-    layerName: "string or array",
-    route: "config",
-    id: version_number,
-    mission: mission_name
+    type: "addLayer | updateLayer | removeLayer",  // Action type
+    layerName: "string or array",                   // Affected layer(s)
+    route: "config",                                 // Message category
+    id: version_number,                              // Config version (for conflict detection)
+    mission: mission_name                            // Target mission (for client filtering)
   },
   body: {
-    mission: mission_name,
-    config: full_config_object (optional)
+    mission: mission_name,                           // Redundant mission identifier
+    config: full_config_object (optional)            // Complete config (optional, for full syncs)
   },
-  forceClientUpdate: boolean (optional)
+  forceClientUpdate: boolean (optional)              // Bypass user confirmation (scripts/automation)
 }
 ```
+
+**Use Cases Enabled:**
+- **Admin A** modifies layer "Mars CTX" → All admins viewing that mission receive notification
+- **Admin B** attempts to save → Client detects version mismatch → UI locks with warning
+- **Automated script** adds layer with `forceClientUpdate: true` → All clients apply immediately
 
 ### 2.2 Layer CRUD Triggers
 **Status:** Completed
@@ -136,22 +160,77 @@ WEBSOCKET_ROOT_PATH=
 - Multiple layers: `info.layerName = ["string1", "string2", ...]`
 - Layer UUIDs: Tracked in `newlyAddedUUIDs` array in response
 
+## Phase 2.3: Feature Integration - Draw Tool Collaboration
+**Status:** Completed
+
+**Purpose:** Enable real-time collaborative vector drawing by integrating Draw Tool with WebSocket infrastructure. When multiple users edit the same drawing file, all see updates instantly without manual refresh.
+
+**Implementation:**
+- Draw Tool backend broadcasts feature CRUD operations via WebSocket infrastructure
+- Draw Tool frontend subscribes to file-specific WebSocket messages
+- Real-time synchronization of drawing features across all connected clients
+- File metadata changes (rename, permissions) also broadcast via infrastructure
+
+**Files Integrated:**
+- `src/essence/Tools/Draw/DrawTool.js` - Subscribes to drawing file updates
+- `API/Backend/APIs/Draw.js` - Broadcasts feature add/edit/delete operations
+- `API/Backend/APIs/Files.js` - Broadcasts file metadata changes
+
+**Collaborative Drawing Flow:**
+```
+1. User A draws polygon on "Site_Survey_Sol_150" file
+2. Draw Tool frontend calls /api/draw/add endpoint
+3. Server persists feature to user_features table
+4. Server calls openWebSocket() with {file_id, action: "add", feature_data}
+5. WebSocket infrastructure broadcasts to all connected clients
+6. User B (also viewing same file) receives message
+7. User B's Draw Tool adds feature to local layer immediately
+8. Both users see polygon without refresh
+```
+
+**Message Protocol (Draw Tool-Specific):**
+```javascript
+{
+  info: {
+    type: "draw",
+    action: "add | edit | delete",
+    file_id: number
+  },
+  body: {
+    feature_id: number,
+    geometry: GeoJSON,
+    properties: object,
+    file_name: string
+  }
+}
+```
+
+**Synchronization Scenarios Enabled:**
+- **Multi-user ROI annotation** - Field geologists simultaneously mark regions of interest
+- **Campaign planning** - Multiple planners collaboratively design traverse routes
+- **Real-time markup** - Team members annotate maps during planning meetings
+- **Concurrent editing** - Multiple users work on different features in same file simultaneously
+
+**Note**: Draw Tool implements its own message routing logic on top of the WebSocket infrastructure. The infrastructure provides reliable message delivery; Draw Tool handles file-specific filtering and feature synchronization. See spec 007 for full Draw Tool implementation details.
+
 ## Phase 3: MMGIS Client Implementation
 
 ### 3.1 WebSocket Client Initialization
 **Status:** Completed
 
+**Purpose:** Establish persistent WebSocket connections from MMGIS clients to enable real-time collaboration features. This client-side infrastructure receives broadcasts and routes them to appropriate feature handlers (Draw Tool, Layers, etc.).
+
 **Implementation:**
-- Created WebSocket initialization logic in essence.js
-- Implemented automatic connection on application start
-- Added protocol detection (ws:// vs wss://) based on page protocol
-- Created connection path construction using environment variables
-- Added environment variable check before initialization
+- Created WebSocket initialization logic in essence.js (main client entry point)
+- Implemented automatic connection on application start (if enabled via environment)
+- Added protocol detection (ws:// vs wss://) based on page protocol (HTTP vs HTTPS)
+- Created connection path construction using environment variables (respects proxy configurations)
+- Added environment variable check before initialization (graceful degradation if disabled)
 
 **Files Modified:**
-- `src/essence/essence.js`
-- `views/index.html` (injected environment variables)
-- `public/index.html` (injected environment variables)
+- `src/essence/essence.js` - Core client WebSocket initialization and message routing
+- `views/index.html` (injected environment variables) - Pug template for server-rendered page
+- `public/index.html` (injected environment variables) - Static HTML fallback
 
 **Initialization Logic:**
 ```javascript

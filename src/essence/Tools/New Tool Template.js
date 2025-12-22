@@ -34,14 +34,12 @@ function interfaceWithMMGIS() {
     }
 
     //MMGIS should always have a div with id 'toolPanel'
-    let tools = d3.select('#toolPanel')
-    tools.style('background', 'var(--color-k)')
+    let tools = $('#toolPanel')
+    tools.css('background', 'var(--color-k)')
     //Clear it
-    tools.selectAll('*').remove()
-
-    tools = tools.append('div').style('height', '100%')
+    tools.empty()
     //Add the markup to tools or do it manually
-    tools.html(markup)
+    tools.html('<div style="height: 100%">' + markup + '</div>')
 
     //Add event functions and whatnot
 

@@ -1,8 +1,8 @@
-# Administrative Tools Feature Specification
+# Configure Page Feature Specification
 
 ## Overview
 
-The MMGIS Administrative Tools feature is a comprehensive web-based configuration and management interface that enables administrators to configure, manage, and maintain MMGIS missions, layers, tools, users, and system resources. This feature was implemented as a React-based single-page application (SPA) that provides a centralized administrative hub for all MMGIS system management tasks.
+The MMGIS Configure Page feature is a comprehensive web-based configuration and management interface that enables administrators to configure, manage, and maintain MMGIS missions, layers, tools, users, and system resources. This feature was implemented as a React-based single-page application (SPA) that provides a centralized administrative hub for all MMGIS system management tasks.
 
 ## Feature Status
 
@@ -14,7 +14,7 @@ This feature has been fully implemented and is currently in production use.
 
 ### Technology Stack
 
-The Administrative Tools interface was built using the following technologies:
+The Configure Page interface was built using the following technologies:
 
 - **React 17.0.2**: Core UI framework
 - **Redux Toolkit 2.0.1**: State management
@@ -127,6 +127,7 @@ The tool configuration system manages MMGIS analysis and interaction tools.
 **Technical Implementation**:
 
 Tool configurations are loaded from two sources:
+
 1. Core tool configs in `src/essence/Tools/{TOOL}/config.json`
 2. Mission-specific tool settings in the mission configuration
 
@@ -151,6 +152,7 @@ Comprehensive user account and permission management system.
 **Permission Model**:
 
 The permission system uses a three-digit code:
+
 - First digit: SuperAdmin privileges (1) or not (0)
 - Second digit: Admin privileges (1) or not (0)
 - Third digit: Currently reserved (typically 0)
@@ -206,6 +208,7 @@ System for triggering HTTP requests on specific MMGIS events.
 - **Request Body**: JSON body configuration with variable substitution
 
 **Available Webhook Variables**:
+
 ```
 {created_on}, {efolders}, {file_description}, {file_id}, {file_name},
 {file_owner}, {file_owner_group}, {folders}, {geojson}, {hidden},
@@ -247,6 +250,7 @@ System for triggering HTTP requests on specific MMGIS events.
 System for managing geographic data files that can be served by MMGIS.
 
 **Features**:
+
 - File upload and management
 - Spatial data organization
 - Layer linkage tracking
@@ -258,6 +262,7 @@ System for managing geographic data files that can be served by MMGIS.
 Integration with SpatioTemporal Asset Catalog (STAC) for cloud-optimized geospatial data.
 
 **Features**:
+
 - STAC collection browsing
 - STAC item search and filtering
 - TiTiler integration for COG rendering
@@ -270,6 +275,7 @@ Integration with SpatioTemporal Asset Catalog (STAC) for cloud-optimized geospat
 The interface uses a two-panel layout:
 
 **Left Panel (220px width)**:
+
 - MMGIS logo and version display
 - Version mismatch warnings
 - New Mission button (SuperAdmins only)
@@ -277,6 +283,7 @@ The interface uses a two-panel layout:
 - Bottom navigation buttons for system pages
 
 **Right Panel (Remaining width)**:
+
 - Top bar with navigation tabs and user controls
 - Main content area
 - Context-specific modals and dialogs
@@ -315,6 +322,7 @@ The `Maker.js` component generates forms dynamically from JSON metaconfiguration
 - **Validation**: Built-in type checking and constraints
 
 **Supported Form Components**:
+
 - Text input
 - Number input (with min/max/step)
 - Dropdown select
@@ -366,6 +374,7 @@ The `SaveBar.js` component provides:
 - **Status Messages**: Success/error feedback via snackbar
 
 **Save Process**:
+
 1. User modifies configuration (tracked in Redux)
 2. SaveBar appears with unsaved indicator
 3. User clicks Save
@@ -381,6 +390,7 @@ The `SaveBar.js` component provides:
 The administrative interface integrates with MMGIS's authentication system:
 
 **AUTH Modes**:
+
 - **off**: No authentication, no user management
 - **none**: Optional authentication, allows guest access
 - **local**: Required authentication with local user database
@@ -389,11 +399,13 @@ The administrative interface integrates with MMGIS's authentication system:
 ### Permission Enforcement
 
 **Client-Side**:
+
 - Mission list filters based on user permissions
 - Disabled UI elements for unauthorized actions
 - Role-based feature visibility
 
 **Server-Side**:
+
 - All API endpoints validate user permissions
 - SuperAdmin checks for sensitive operations
 - Mission-specific permission validation
@@ -419,6 +431,7 @@ This admin can only edit the Mars2020 and Europa missions. SuperAdmins (permissi
 The configure interface communicates with the backend via the following API endpoints (implemented in `calls.js`):
 
 **Mission Management**:
+
 - `GET /api/missions` - List all missions
 - `GET /api/get?mission={name}` - Get mission configuration
 - `POST /api/update` - Save mission configuration
@@ -428,6 +441,7 @@ The configure interface communicates with the backend via the following API endp
 - `POST /api/clone` - Clone mission
 
 **User Management**:
+
 - `GET /api/account_entries` - List all users
 - `GET /api/user_permissions` - Get current user permissions
 - `POST /api/account_create` - Create user
@@ -436,6 +450,7 @@ The configure interface communicates with the backend via the following API endp
 - `POST /api/account_reset_password` - Reset user password
 
 **Dataset Management**:
+
 - `GET /api/datasets_entries` - List datasets
 - `POST /api/datasets_create` - Create dataset
 - `POST /api/datasets_update` - Update dataset
@@ -443,6 +458,7 @@ The configure interface communicates with the backend via the following API endp
 - `POST /api/datasets_delete` - Delete dataset
 
 **System Configuration**:
+
 - `GET /api/get_generaloptions` - Get system options
 - `POST /api/update_generaloptions` - Update system options
 - `GET /api/webhooks_entries` - Get webhooks
@@ -450,17 +466,20 @@ The configure interface communicates with the backend via the following API endp
 - `GET /api/getToolConfig` - Get tool configuration templates
 
 **Authentication**:
+
 - `POST /api/logout` - Sign out user
 
 ### API Client Implementation
 
 The `calls.js` module provides a wrapper around fetch with:
+
 - Automatic error handling
 - Request/response interceptors
 - Success and error callbacks
 - Global error messaging
 
 Example usage:
+
 ```javascript
 calls.api(
   "missions",
@@ -471,10 +490,12 @@ calls.api(
   },
   (res) => {
     // Error callback
-    dispatch(setSnackBarText({
-      text: res?.message || "Failed to get missions.",
-      severity: "error",
-    }));
+    dispatch(
+      setSnackBarText({
+        text: res?.message || "Failed to get missions.",
+        severity: "error",
+      })
+    );
   }
 );
 ```
@@ -486,6 +507,7 @@ calls.api(
 The configuration system uses "metaconfigs" - JSON schemas that define form layouts and validation rules. These schemas drive the dynamic form generation in `Maker.js`.
 
 **MetaConfig Structure**:
+
 ```json
 {
   "rows": [
@@ -520,6 +542,7 @@ For nested components (like objectarray), field paths are relative to the parent
 **Component Width System**:
 
 Layout uses a 12-column grid. Components specify width as a number 1-12:
+
 - width: 12 = full row
 - width: 6 = half row
 - width: 4 = third row
@@ -534,6 +557,7 @@ Each layer type has its own metaconfiguration defining available properties:
 **Location**: `/configure/src/metaconfigs/layer-{type}-config.json`
 
 Example layer types:
+
 - layer-header-config.json
 - layer-vector-config.json
 - layer-tile-config.json
@@ -547,6 +571,7 @@ Tool configurations can be defined in two places:
 2. **Plugin Tool Config**: Custom tools in plugin directories
 
 Each tool config includes:
+
 - `defaultIcon`: Material Design Icon name
 - `description`: Short description
 - `descriptionFull`: Detailed information
@@ -555,6 +580,7 @@ Each tool config includes:
 ### Tab MetaConfigs
 
 System-level tabs have metaconfigs in `/configure/src/metaconfigs/`:
+
 - tab-home-config.json
 - tab-coordinates-config.json
 - tab-time-config.json
@@ -579,6 +605,7 @@ npm run build
 ```
 
 Build steps:
+
 1. React Scripts builds the SPA
 2. `scripts/make-pug-index.js` converts HTML to Pug template
 3. Output placed in `configure/build/`
@@ -587,12 +614,14 @@ Build steps:
 ### Production Build
 
 The production build:
+
 - Minifies JavaScript and CSS
 - Optimizes images and assets
 - Generates source maps
 - Creates a static bundle served by the Node.js backend
 
 **Build Output**:
+
 ```
 configure/build/
 ├── static/
@@ -608,6 +637,7 @@ configure/build/
 **Version Display**:
 
 The configure UI displays its version from `package.json`:
+
 ```json
 {
   "version": "4.1.18-20251205"
@@ -621,7 +651,8 @@ The UI compares its build version with the server version (`window.mmgisglobal.V
 ```javascript
 const buildVersion = packageJson.version;
 const serverVersion = window.mmgisglobal.VERSION;
-const isVersionMismatch = buildVersion && serverVersion && buildVersion !== serverVersion;
+const isVersionMismatch =
+  buildVersion && serverVersion && buildVersion !== serverVersion;
 ```
 
 This helps prevent issues when the configure UI is cached but the server has been updated.
@@ -650,16 +681,19 @@ This helps prevent issues when the configure UI is cached but the server has bee
 ### Key Redux Actions
 
 **Configuration Management**:
+
 - `setMission(name)` - Select a mission
 - `setConfiguration(config)` - Update mission config
 - `clearLockConfig()` - Release configuration lock
 
 **UI State**:
+
 - `setPage({ page })` - Navigate to system page
 - `setModal({ name, ...props })` - Open modal dialog
 - `setSnackBarText({ text, severity })` - Show notification
 
 **Data Loading**:
+
 - `setMissions(missions)` - Update mission list
 - `setDatasets(datasets)` - Update dataset list
 - `setUserEntries(users)` - Update user list
@@ -667,6 +701,7 @@ This helps prevent issues when the configure UI is cached but the server has bee
 ### State Persistence
 
 Configuration changes are tracked in Redux but not persisted until explicitly saved. This allows:
+
 - **Undo/Revert**: Discard unsaved changes
 - **Validation**: Check configuration before saving
 - **Preview**: Test changes without committing
@@ -677,6 +712,7 @@ Configuration changes are tracked in Redux but not persisted until explicitly sa
 ### Responsive Design
 
 The interface adapts to different screen sizes:
+
 - Minimum supported width: 1280px
 - Grid layouts adjust column count
 - Tables paginate and scroll
@@ -685,17 +721,20 @@ The interface adapts to different screen sizes:
 ### Accessibility
 
 **Keyboard Navigation**:
+
 - Tab through form fields
 - Enter to submit forms
 - Escape to close modals
 - Arrow keys in dropdowns
 
 **Screen Reader Support**:
+
 - ARIA labels on interactive elements
 - Semantic HTML structure
 - Focus management in modals
 
 **Visual Feedback**:
+
 - Loading indicators for async operations
 - Success/error messages
 - Disabled state styling
@@ -704,18 +743,21 @@ The interface adapts to different screen sizes:
 ### Error Handling
 
 **Client-Side Validation**:
+
 - Required field checking
 - Type validation (number, email, etc.)
 - Range validation (min/max)
 - Format validation (JSON, regex)
 
 **Server Error Handling**:
+
 - Network error detection
 - API error message display
 - Graceful degradation
 - Retry mechanisms
 
 **User Feedback**:
+
 - Snackbar notifications for all operations
 - Color-coded severity (success=green, error=red, warning=orange)
 - Auto-dismiss after 6 seconds
@@ -724,21 +766,25 @@ The interface adapts to different screen sizes:
 ### Performance Optimizations
 
 **Code Splitting**:
+
 - Lazy loading of modal components
 - Route-based code splitting
 - Dynamic imports for heavy dependencies
 
 **Memoization**:
+
 - React.useMemo for expensive computations
 - useSelector for Redux state slicing
 - React.memo for pure components
 
 **Virtualization**:
+
 - Paginated tables for large datasets
 - Scrollable containers
 - Limited initial render
 
 **Debouncing**:
+
 - Search input debouncing
 - Resize event throttling
 - Auto-save debouncing
@@ -808,7 +854,7 @@ Key dependencies and their purposes:
 
 ## Related Features
 
-The Administrative Tools feature integrates with and supports:
+The Configure Page feature integrates with and supports:
 
 - **Authentication System**: User login and session management
 - **Mission Runtime**: Loads configurations created in admin interface
@@ -821,12 +867,14 @@ The Administrative Tools feature integrates with and supports:
 ## Documentation and Training
 
 **In-App Help**:
+
 - Inline help text for all configuration fields
 - Tool descriptions and usage information
 - Icon tooltips throughout interface
 - Link to external documentation (https://nasa-ammos.github.io/MMGIS/)
 
 **External Documentation**:
+
 - README.md in `/configure` directory
 - Main MMGIS documentation site
 - GitHub repository (https://github.com/NASA-AMMOS/MMGIS)
@@ -836,6 +884,7 @@ The Administrative Tools feature integrates with and supports:
 ### Configuration Backup
 
 Administrators should regularly:
+
 1. Export mission configurations via "Export Unsaved Config.JSON"
 2. Back up the MMGIS database (contains all configurations and users)
 3. Version control configuration files in external repository
@@ -853,6 +902,7 @@ Administrators should regularly:
 ### Monitoring
 
 The interface provides visibility into:
+
 - User activity (last login times)
 - Dataset usage (which layers use which datasets)
 - Configuration history (version timeline)
@@ -860,6 +910,6 @@ The interface provides visibility into:
 
 ## Conclusion
 
-The MMGIS Administrative Tools feature provides a comprehensive, user-friendly interface for managing all aspects of MMGIS missions and system configuration. Its architecture balances flexibility (metaconfigs, plugin tools) with consistency (dynamic form generation, Material-UI components), enabling both administrators and developers to effectively configure and extend MMGIS for their specific mission needs.
+The MMGIS Configure Page feature provides a comprehensive, user-friendly interface for managing all aspects of MMGIS missions and system configuration. Its architecture balances flexibility (metaconfigs, plugin tools) with consistency (dynamic form generation, Material-UI components), enabling both administrators and developers to effectively configure and extend MMGIS for their specific mission needs.
 
 The feature successfully supports multiple concurrent missions, role-based access control, and real-time collaboration, making it suitable for multi-user, multi-mission deployment scenarios. Its modular architecture and configuration-driven approach make it maintainable and extensible for future enhancements.

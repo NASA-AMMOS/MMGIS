@@ -6,7 +6,7 @@
 
 ## Important Instructions
 
-Use the Serena MCP tools when possible for code analysis, symbol navigation, and code modifications.
+Use MCP tools when possible for code analysis, symbol navigation, and code modifications.
 
 ## Project Overview
 
@@ -17,6 +17,7 @@ Use the Serena MCP tools when possible for code analysis, symbol navigation, and
 ## Quick Start
 
 **Setup**:
+
 ```bash
 # Install dependencies
 npm install
@@ -30,15 +31,14 @@ npm start
 ```
 
 **Build**:
+
 ```bash
 # Production build
 npm run build
-
-# Development build with watch
-npm run build:dev
 ```
 
 **Test**:
+
 ```bash
 # Run all tests
 npm test
@@ -48,6 +48,7 @@ npm test -- --coverage
 ```
 
 **Docker**:
+
 ```bash
 # Build image
 docker build -t mmgis .
@@ -63,20 +64,24 @@ This project uses **spec-kit** for feature development. All new features must fo
 ### Workflow Commands
 
 1. **Specify**: `/speckit.specify "feature description"`
+
    - Creates spec.md with requirements and user scenarios
    - Ensures clear understanding before implementation
 
 2. **Plan**: `/speckit.plan`
+
    - Creates plan.md with technical design
    - Documents architecture and decisions
    - Checks against constitution principles
 
 3. **Tasks**: `/speckit.tasks`
+
    - Creates tasks.md with breakdown of work
    - Each task is 1-2 days of work maximum
    - Tracks dependencies and blockers
 
 4. **Implement**: `/speckit.implement`
+
    - Executes tasks from tasks.md
    - Updates task status as work progresses
    - Ensures constitution compliance
@@ -96,28 +101,40 @@ MMGIS/
 │   │   ├── APIs/                 # RESTful endpoint handlers
 │   │   │   ├── routes.js         # Main route definitions
 │   │   │   ├── User.js           # User management & auth
-│   │   │   ├── Files.js          # File upload/download (MinIO)
+│   │   │   ├── Files.js          # File upload/download
 │   │   │   ├── Geodatasets.js    # Geodata management
 │   │   │   ├── Draw.js           # Vector drawing & collaboration
 │   │   │   └── Websocket.js      # Real-time WebSocket server
 │   │   ├── Databases/            # Sequelize models & migrations
 │   │   └── Utils/                # Backend utilities
-│   ├── index.js                  # Server entry point
-│   └── package.json              # Backend dependencies
+│   ├── connection.js             # Database connection config
+│   ├── database.js               # Database initialization
+│   ├── logger.js                 # Winston logger configuration
+│   └── websocket.js              # WebSocket server setup
 ├── src/                          # Frontend source code
 │   └── essence/
 │       ├── Basics/               # Core map functionality
 │       │   └── Map_.js           # Map rendering engine (Leaflet/Cesium)
-│       ├── Tools/                # Interactive tool plugins (16+ tools)
-│       │   ├── Draw/             # Drawing tool frontend
-│       │   ├── Globe/            # 3D Cesium globe
-│       │   ├── Measure/          # Measurement tools
+│       ├── Tools/                # Interactive tool plugins (16 core tools)
+│       │   ├── Animation/        # Map animation creation (GIF/MP4)
+│       │   ├── Chemistry/        # Chemical composition visualization
+│       │   ├── Curtain/          # GPR subsurface imagery
+│       │   ├── Draw/             # Collaborative vector drawing
+│       │   ├── Identifier/       # Pixel value queries
+│       │   ├── Info/             # Feature property display
+│       │   ├── Isochrone/        # Terrain traversability analysis
+│       │   ├── Kinds/            # Layer click behavior configuration
+│       │   ├── Layers/           # Layer management interface
+│       │   ├── Legend/           # Map legend display
+│       │   ├── Measure/          # Distance & elevation profiles
 │       │   ├── Query/            # Spatial query interface
-│       │   ├── TimeControl/      # Temporal data control
-│       │   └── [13 more tools]
+│       │   ├── Shade/            # Sun/shadow illumination
+│       │   ├── Sites/            # Quick navigation bookmarks
+│       │   └── Viewshed/         # Line-of-sight visibility
 │       └── Ancillary/            # UI components and helpers
+│           └──TimeControl/       # Temporal data control
 ├── configure/                    # Admin configuration interface
-│   └── public/                   # Configuration UI
+│   └── build/                    # Configuration UI
 ├── docs/                         # Documentation (Jekyll site)
 ├── public/                       # Static assets
 ├── Missions/                     # Mission data storage
@@ -132,8 +149,11 @@ MMGIS/
 │   └── scripts/bash/             # Workflow automation scripts
 ├── specs/                        # Feature specifications (retrospective + new)
 ├── package.json                  # Root package.json (build scripts)
-├── webpack.config.js             # Webpack configuration
-└── docker-compose.yml            # Docker services definition
+├── configuration/                # Project configurations
+│   └── webpack.config.js         # Webpack configuration
+└── docker-compose.sample.yml     # Sample Docker services definition
+└── Dockerfile                    # Dockerfile definition
+└── auxiliary                     # Useful scripts for data processing, etc.
 ```
 
 ### Key Directories
@@ -142,7 +162,7 @@ MMGIS/
 - **`API/Backend/Databases/`** - Sequelize ORM models and database migrations
 - **`src/essence/Tools/`** - Plugin-based interactive mapping tools. Each tool is self-contained with defined interfaces.
 - **`src/essence/Basics/Map_.js`** - Core map rendering engine managing both Leaflet (2D) and Cesium (3D)
-- **`configure/`** - Separate admin interface for mission configuration, user management, and tool setup
+- **`configure/`** - Separate admin interface for mission configuration, user management, and tool setup. Also known as the "Configure Page" or "CMS"
 - **`specs/`** - Feature specifications following spec-kit format
 
 ## Active Features
@@ -150,63 +170,66 @@ MMGIS/
 _Features documented during retrospective initialization. See individual specs for details._
 
 ### 001-authentication-and-user-management
+
 OAuth2 and local authentication with role-based access control for user identity management.
 📄 Spec: [specs/001-authentication-and-user-management/spec.md](specs/001-authentication-and-user-management/spec.md)
 📋 Plan: [specs/001-authentication-and-user-management/plan.md](specs/001-authentication-and-user-management/plan.md)
 **Status**: ✅ Implemented and deployed
 
 ### 002-geodata-management-and-tile-serving
-File upload, geodataset management, vector/raster tile serving with MinIO storage integration.
+
+File upload, geodataset management, vector/raster tile serving.
 📄 Spec: [specs/002-geodata-management-and-tile-serving/spec.md](specs/002-geodata-management-and-tile-serving/spec.md)
 📋 Plan: [specs/002-geodata-management-and-tile-serving/plan.md](specs/002-geodata-management-and-tile-serving/plan.md)
 **Status**: ✅ Implemented and deployed
 
-### 003-vector-drawing-and-collaboration
-Real-time collaborative vector drawing with feature history tracking and GeoJSON export.
-📄 Spec: [specs/003-vector-drawing-and-collaboration/spec.md](specs/003-vector-drawing-and-collaboration/spec.md)
-📋 Plan: [specs/003-vector-drawing-and-collaboration/plan.md](specs/003-vector-drawing-and-collaboration/plan.md)
+### 003-real-time-collaboration-infrastructure
+
+WebSocket-based infrastructure layer enabling real-time collaboration features (Draw Tool sync, Configure coordination, layer notifications).
+📄 Spec: [specs/003-real-time-collaboration-infrastructure/spec.md](specs/003-real-time-collaboration-infrastructure/spec.md)
+📋 Plan: [specs/003-real-time-collaboration-infrastructure/plan.md](specs/003-real-time-collaboration-infrastructure/plan.md)
 **Status**: ✅ Implemented and deployed
 
-### 004-websocket-real-time-communication
-WebSocket server for real-time collaboration features including cursor sharing and chat.
-📄 Spec: [specs/004-websocket-real-time-communication/spec.md](specs/004-websocket-real-time-communication/spec.md)
-📋 Plan: [specs/004-websocket-real-time-communication/plan.md](specs/004-websocket-real-time-communication/plan.md)
-**Status**: ✅ Implemented and deployed
+### 004-mission-project-configuration
 
-### 005-mission-project-configuration
 Mission creation and configuration with layer management and tool customization.
-📄 Spec: [specs/005-mission-project-configuration/spec.md](specs/005-mission-project-configuration/spec.md)
-📋 Plan: [specs/005-mission-project-configuration/plan.md](specs/005-mission-project-configuration/plan.md)
+📄 Spec: [specs/004-mission-project-configuration/spec.md](specs/004-mission-project-configuration/spec.md)
+📋 Plan: [specs/004-mission-project-configuration/plan.md](specs/004-mission-project-configuration/plan.md)
 **Status**: ✅ Implemented and deployed
 
-### 006-dual-map-rendering-engines
-Synchronized 2D (Leaflet) and 3D (Cesium) map rendering with custom projections.
-📄 Spec: [specs/006-dual-map-rendering-engines/spec.md](specs/006-dual-map-rendering-engines/spec.md)
-📋 Plan: [specs/006-dual-map-rendering-engines/plan.md](specs/006-dual-map-rendering-engines/plan.md)
+### 005-dual-map-rendering-engines
+
+Tri-rendering architecture with synchronized 2D (Leaflet), 3D (Cesium/LithoSphere), and Viewer panel (OpenSeadragon, Photosphere, Model, PDF, Video) supporting custom projections.
+📄 Spec: [specs/005-dual-map-rendering-engines/spec.md](specs/005-dual-map-rendering-engines/spec.md)
+📋 Plan: [specs/005-dual-map-rendering-engines/plan.md](specs/005-dual-map-rendering-engines/plan.md)
 **Status**: ✅ Implemented and deployed
 
-### 007-interactive-mapping-tools
-Plugin-based tool system with 16+ interactive tools (measure, query, search, etc.).
-📄 Spec: [specs/007-interactive-mapping-tools/spec.md](specs/007-interactive-mapping-tools/spec.md)
-📋 Plan: [specs/007-interactive-mapping-tools/plan.md](specs/007-interactive-mapping-tools/plan.md)
+### 006-interactive-mapping-tools
+
+Plugin-based tool system with 16 interactive tools (Animation, Chemistry, Curtain, Draw, Identifier, Info, Isochrone, Kinds, Layers, Legend, Measure, Query, Shade, Sites, TimeControl, Viewshed) comprehensively documented.
+📄 Spec: [specs/006-interactive-mapping-tools/spec.md](specs/006-interactive-mapping-tools/spec.md)
+📋 Plan: [specs/006-interactive-mapping-tools/plan.md](specs/006-interactive-mapping-tools/plan.md)
 **Status**: ✅ Implemented and deployed
 
-### 008-data-visualization
-Time series charts, spectral plots, cross-section views, and statistical analysis.
-📄 Spec: [specs/008-data-visualization/spec.md](specs/008-data-visualization/spec.md)
-📋 Plan: [specs/008-data-visualization/plan.md](specs/008-data-visualization/plan.md)
-**Status**: ✅ Implemented and deployed
+### 007-layer-and-map-configuration
 
-### 009-layer-and-map-configuration
 Layer styling, data source configuration, visibility controls, and legend management.
-📄 Spec: [specs/009-layer-and-map-configuration/spec.md](specs/009-layer-and-map-configuration/spec.md)
-📋 Plan: [specs/009-layer-and-map-configuration/plan.md](specs/009-layer-and-map-configuration/plan.md)
+📄 Spec: [specs/007-layer-and-map-configuration/spec.md](specs/007-layer-and-map-configuration/spec.md)
+📋 Plan: [specs/007-layer-and-map-configuration/plan.md](specs/007-layer-and-map-configuration/plan.md)
 **Status**: ✅ Implemented and deployed
 
-### 010-administrative-tools
+### 008-configure-page
+
 Admin configuration UI for mission setup, user management, and permission controls.
-📄 Spec: [specs/010-administrative-tools/spec.md](specs/010-administrative-tools/spec.md)
-📋 Plan: [specs/010-administrative-tools/plan.md](specs/010-administrative-tools/plan.md)
+📄 Spec: [specs/008-configure-page/spec.md](specs/008-configure-page/spec.md)
+📋 Plan: [specs/008-configure-page/plan.md](specs/008-configure-page/plan.md)
+**Status**: ✅ Implemented and deployed
+
+### 009-data-formats-and-layer-types
+
+Comprehensive reference for all layer types (vector, tile, data, model, image, vectortile, velocity, video, header, query), file formats, storage locations, and configuration options.
+📄 Spec: [specs/009-data-formats-and-layer-types/spec.md](specs/009-data-formats-and-layer-types/spec.md)
+📋 Plan: [specs/009-data-formats-and-layer-types/plan.md](specs/009-data-formats-and-layer-types/plan.md)
 **Status**: ✅ Implemented and deployed
 
 ## Architecture
@@ -214,18 +237,20 @@ Admin configuration UI for mission setup, user management, and permission contro
 ### Tech Stack
 
 **Backend**:
+
 - **Framework**: Express 4.18 (Node.js 20+)
-- **Database**: PostgreSQL with PostGIS (geospatial extension)
+- **Database**: PostgreSQL with PostGIS (geospatial extension) and PgStac
 - **ORM**: Sequelize 6.33
-- **Authentication**: Passport.js (local, Google OAuth, GitHub OAuth, LDAP)
-- **Storage**: MinIO (S3-compatible object storage)
+- **Authentication**: Local, SSO, or none.
+- **Storage**: Local file system (`Missions/` directory) and PostgreSQL
 - **WebSocket**: ws library for real-time communication
 - **Session**: express-session with connect-pg-simple
 
 **Frontend**:
+
 - **Languages**: JavaScript (ES6+), TypeScript (partial), SCSS
 - **Build**: Webpack 5
-- **UI**: Custom jQuery-based UI with Materialize CSS
+- **UI**: Custom jQuery-based UI
 - **Mapping**:
   - Leaflet 1.x (2D slippy maps)
   - Cesium 1.121 (3D globe with terrain)
@@ -233,33 +258,38 @@ Admin configuration UI for mission setup, user management, and permission contro
 - **Geospatial**: Turf.js, Proj4js, GeoTIFF
 
 **Testing**:
+
 - **Framework**: Jest 29
 - **Coverage Target**: 80% (see constitution)
 
 **CI/CD**:
+
 - **Platform**: GitHub Actions
 - **Deployment**: Docker with docker-compose
 
 ### Architectural Patterns
 
 **Backend**:
+
 - **Pattern**: Layered architecture
-- **Structure**: Routes → Controllers (APIs/*.js) → Models (Databases/*.js) → PostgreSQL
+- **Structure**: Routes → Controllers (APIs/_.js) → Models (Databases/_.js) → PostgreSQL
 - **API Design**: RESTful with WebSocket for real-time features
 - **Authentication**: Middleware-based with Passport strategies
 
 **Frontend**:
+
 - **Pattern**: Tool plugin architecture
-- **Structure**: Modular tools with defined interfaces (Tool_.js base class)
+- **Structure**: Modular tools with defined interfaces (Tool\_.js base class)
 - **Communication**: Custom event bus for inter-tool communication
-- **Rendering**: Dual-engine (Leaflet + Cesium) with synchronized views
+- **Rendering**: Tri-engine architecture (Leaflet 2D + Cesium/LithoSphere 3D + Viewer panel) with synchronized views
 - **State Management**: Custom global state object with event-driven updates
 
 **Geospatial Data Flow**:
+
 ```
-User Upload → MinIO Storage → Backend Processing → PostGIS → Tile Generation → Frontend Rendering
-                                                   ↓
-                                         Vector/Raster Tiles
+User Upload → Local Storage (Missions/) → Backend Processing → PostGIS → Tile Generation → Frontend Rendering
+                                                               ↓
+                                                    Vector/Raster Tiles
 ```
 
 ## Constitution & Governance
@@ -267,21 +297,26 @@ User Upload → MinIO Storage → Backend Processing → PostGIS → Tile Genera
 This project follows 7 core principles defined in `.specify/memory/constitution.md`:
 
 ### I. Documentation-First Development
+
 All features require spec.md before implementation. No code without documentation.
 
 ### II. Clear Requirements
+
 Requirements must be specific, measurable, and testable with clear acceptance criteria.
 
 ### III. Incremental Delivery
+
 Features delivered in small chunks (1-2 day tasks) that can be independently tested and deployed.
 
 ### IV. Quality Standards
+
 - **ESLint**: Must pass with no errors
 - **Test Coverage**: 80% minimum
 - **Security**: Input validation, no SQL injection, XSS prevention
 - **Code Review**: All PRs require approval
 
 ### V. Node.js and Web Mapping Best Practices
+
 - Async/await over callbacks
 - Proper error handling
 - GeoJSON as standard format
@@ -289,6 +324,7 @@ Features delivered in small chunks (1-2 day tasks) that can be independently tes
 - Sequelize ORM for database
 
 ### VI. Geospatial Data Integrity
+
 - Always specify CRS explicitly
 - Validate geodata on ingestion
 - Test coordinate transformations
@@ -296,6 +332,7 @@ Features delivered in small chunks (1-2 day tasks) that can be independently tes
 - Maintain data provenance
 
 ### VII. Real-time Collaboration Safety
+
 - Authenticate all WebSocket connections
 - Validate message payloads
 - Handle concurrent edits gracefully
@@ -307,24 +344,26 @@ Features delivered in small chunks (1-2 day tasks) that can be independently tes
 ## Common Commands
 
 ### Development
+
 ```bash
 # Install dependencies
 npm install
 
-# Start development server (backend + frontend watch)
+# Initialize database and start server
 npm start
 
-# Start backend only
-node scripts/server.js
+# Start production server
+npm run start:prod
 
-# Build frontend with watch
-npm run build:dev
+# Start with examples
+npm run start:prod:with_examples
 
-# Lint code
-npm run lint
+# Start with bundle analyzer
+npm run start:analyzer
 ```
 
 ### Testing
+
 ```bash
 # Run all tests
 npm test
@@ -336,25 +375,30 @@ npm test -- --coverage
 npm test -- path/to/test.js
 ```
 
-### Database
+### Build
+
 ```bash
-# Initialize database
+# Production build
+npm run build
+
+# Initialize database only
 node scripts/init-db.js
 
-# Run migrations
-npm run migrate
-
-# Seed database
-npm run seed
+# Start server only (after manual init)
+node scripts/server.js
 ```
 
 ### Docker
+
 ```bash
 # Build Docker image
 docker build -t mmgis .
 
 # Run with docker-compose
 docker-compose up -d
+
+# Start production in Docker
+npm run start:prod-docker
 
 # View logs
 docker-compose logs -f mmgis
@@ -363,16 +407,11 @@ docker-compose logs -f mmgis
 docker-compose down
 ```
 
-### Deployment
+### Documentation
+
 ```bash
-# Production build
-npm run build
-
-# Start production server
-npm run start:prod
-
-# Deploy bundle
-npm run deploy:bundle
+# Start Jekyll docs server
+npm run start:docs
 ```
 
 ## Code Patterns
@@ -381,27 +420,27 @@ npm run deploy:bundle
 
 ```javascript
 // API/Backend/APIs/FeatureName.js
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const authenticate = require('../Utils/authenticate');
+const authenticate = require("../Utils/authenticate");
 
-router.post('/api/feature', authenticate, async (req, res) => {
-    try {
-        // Validate input
-        const { field } = req.body;
-        if (!field) {
-            return res.status(400).json({ error: 'field is required' });
-        }
-
-        // Business logic
-        const result = await SomeModel.create({ field });
-
-        // Response
-        res.status(201).json({ success: true, data: result });
-    } catch (err) {
-        console.error('Error in /api/feature:', err);
-        res.status(500).json({ error: 'Internal server error' });
+router.post("/api/feature", authenticate, async (req, res) => {
+  try {
+    // Validate input
+    const { field } = req.body;
+    if (!field) {
+      return res.status(400).json({ error: "field is required" });
     }
+
+    // Business logic
+    const result = await SomeModel.create({ field });
+
+    // Response
+    res.status(201).json({ success: true, data: result });
+  } catch (err) {
+    console.error("Error in /api/feature:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 module.exports = router;
@@ -412,30 +451,34 @@ module.exports = router;
 ```javascript
 // API/Backend/Databases/models/ModelName.js
 module.exports = (sequelize, DataTypes) => {
-    const ModelName = sequelize.define('ModelName', {
-        id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true
-        },
-        name: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        geometry: {
-            type: DataTypes.GEOMETRY('POINT', 4326), // PostGIS geometry
-            allowNull: true
-        }
-    }, {
-        tableName: 'model_name',
-        timestamps: true
-    });
+  const ModelName = sequelize.define(
+    "ModelName",
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
+      name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      geometry: {
+        type: DataTypes.GEOMETRY("POINT", 4326), // PostGIS geometry
+        allowNull: true,
+      },
+    },
+    {
+      tableName: "model_name",
+      timestamps: true,
+    }
+  );
 
-    ModelName.associate = function(models) {
-        // Define associations
-    };
+  ModelName.associate = function (models) {
+    // Define associations
+  };
 
-    return ModelName;
+  return ModelName;
 };
 ```
 
@@ -443,67 +486,81 @@ module.exports = (sequelize, DataTypes) => {
 
 ```javascript
 // src/essence/Tools/ToolName/ToolName.js
-define([
-    'jquery',
-    'd3',
-    'Formulae_',
-    'Layers_'
-], function($, d3, F_, L_) {
-    const ToolName = {
-        height: 0,
-        width: 280,
+import $ from "jquery";
+import F_ from "../../Basics/Formulae_/Formulae_";
+import L_ from "../../Basics/Layers_/Layers_";
+import Map_ from "../../Basics/Map_/Map_";
 
-        make: function() {
-            // Initialize tool UI
-            this.MMGISInterface = new interfaceWithMMGIS();
-        },
+const markup = [`<div id='toolName'>`, `</div>`].join("\n");
 
-        destroy: function() {
-            // Cleanup on tool close
-            this.MMGISInterface.separateFromMMGIS();
-        }
-    };
+const ToolName = {
+  height: 0,
+  width: 300,
+  MMGISInterface: null,
+  make: function () {
+    this.MMGISInterface = new interfaceWithMMGIS();
+  },
+  destroy: function () {
+    this.MMGISInterface.separateFromMMGIS();
+  },
+  getUrlString: function () {
+    return "";
+  },
+};
 
-    function interfaceWithMMGIS() {
-        this.separateFromMMGIS = function() {
-            // Event cleanup
-        };
-    }
+function interfaceWithMMGIS() {
+  this.separateFromMMGIS = function () {
+    separateFromMMGIS();
+  };
 
-    return ToolName;
-});
+  // MMGIS should always have a div with id 'toolPanel'
+  let tools = $("#toolPanel");
+  tools.css("background", "var(--color-k)");
+  // Clear it
+  tools.empty();
+  // Add the markup to tools
+  tools.html('<div style="height: 100%">' + markup + "</div>");
+
+  // Add event functions and whatnot
+
+  function separateFromMMGIS() {
+    // Event cleanup
+  }
+}
+
+export default ToolName;
 ```
 
 ### WebSocket Message Handling
 
 ```javascript
 // API/Backend/APIs/Websocket.js
-ws.on('message', function(message) {
-    try {
-        const msg = JSON.parse(message);
+ws.on("message", function (message) {
+  try {
+    const msg = JSON.parse(message);
 
-        // Validate message structure
-        if (!msg.type || !msg.room) {
-            return ws.send(JSON.stringify({ error: 'Invalid message format' }));
-        }
-
-        // Authenticate
-        if (!isAuthenticated(ws.userId)) {
-            return ws.send(JSON.stringify({ error: 'Unauthorized' }));
-        }
-
-        // Route message
-        switch (msg.type) {
-            case 'draw':
-                broadcastToRoom(msg.room, msg, ws);
-                break;
-            default:
-                ws.send(JSON.stringify({ error: 'Unknown message type' }));
-        }
-    } catch (err) {
-        console.error('WebSocket error:', err);
-        ws.send(JSON.stringify({ error: 'Invalid JSON' }));
+    // Validate message structure
+    if (!msg.type || !msg.room) {
+      return ws.send(JSON.stringify({ error: "Invalid message format" }));
     }
+
+    // Authenticate
+    if (!isAuthenticated(ws.userId)) {
+      return ws.send(JSON.stringify({ error: "Unauthorized" }));
+    }
+
+    // Route message
+    switch (msg.type) {
+      case "draw":
+        broadcastToRoom(msg.room, msg, ws);
+        break;
+      default:
+        ws.send(JSON.stringify({ error: "Unknown message type" }));
+    }
+  } catch (err) {
+    console.error("WebSocket error:", err);
+    ws.send(JSON.stringify({ error: "Invalid JSON" }));
+  }
 });
 ```
 
@@ -512,6 +569,7 @@ ws.on('message', function(message) {
 ### Environment Variables (.env)
 
 **Required**:
+
 - `DB_HOST` - PostgreSQL host (default: localhost)
 - `DB_PORT` - PostgreSQL port (default: 5432)
 - `DB_NAME` - Database name
@@ -522,11 +580,7 @@ ws.on('message', function(message) {
 - `SESSION_SECRET` - Secret for session encryption
 
 **Optional**:
-- `MINIO_ENDPOINT` - MinIO endpoint for file storage
-- `MINIO_ACCESS_KEY` - MinIO access key
-- `MINIO_SECRET_KEY` - MinIO secret key
-- `GOOGLE_CLIENT_ID` - Google OAuth client ID
-- `GITHUB_CLIENT_ID` - GitHub OAuth client ID
+
 - `WITH_STAC` - Enable STAC service (true/false)
 - `WITH_TITILER` - Enable TiTiler service (true/false)
 
@@ -538,27 +592,30 @@ ws.on('message', function(message) {
 - **`jest.config.js`** - Test configuration
 - **`.eslintrc.js`** - Linting rules
 - **`tsconfig.json`** - TypeScript configuration (partial)
-- **`docker-compose.yml`** - Docker services (MMGIS, PostgreSQL, MinIO, STAC, TiTiler)
-- **`API/Backend/Databases/config.json`** - Sequelize database configuration
+- **`docker-compose.yml`** - Docker services (MMGIS, PostgreSQL, STAC, TiTiler)
 
 ## Testing Strategy
 
 ### Unit Tests
+
 - **Location**: Alongside source files (`*.test.js`, `*.spec.js`)
 - **Coverage**: Business logic, utility functions, data transformations
 - **Framework**: Jest with JSDOM for browser APIs
 - **Run**: `npm test`
 
 ### Integration Tests
+
 - **Location**: `API/Backend/**/*.test.js`
 - **Coverage**: API endpoints, database interactions, authentication flows
 - **Run**: `npm test -- --testPathPattern=API`
 
 ### E2E Tests
+
 - **Location**: TBD (consider adding Playwright or Cypress)
 - **Coverage**: Critical user workflows (drawing, mission config, collaboration)
 
 ### Coverage Target
+
 - **Minimum**: 80% overall
 - **Critical paths**: 100% (auth, data validation, geospatial transformations)
 
@@ -567,6 +624,7 @@ ws.on('message', function(message) {
 ## Key Conventions
 
 ### Naming Conventions
+
 - **Files**: PascalCase for modules (e.g., `User.js`, `Map_.js`)
 - **Directories**: camelCase (e.g., `essence/`, `Ancillary/`)
 - **Variables**: camelCase (e.g., `userName`, `geodatasetId`)
@@ -574,13 +632,16 @@ ws.on('message', function(message) {
 - **CSS Classes**: kebab-case (e.g., `.tool-panel`, `.map-container`)
 
 ### Code Style
-- **Indentation**: 4 spaces (enforced by ESLint)
+
+- **Prettier**: VSCode Prettier extension defaults
+- **Indentation**: 4 spaces
 - **Quotes**: Single quotes for strings
 - **Semicolons**: Optional but consistent within file
-- **Line length**: 100 characters preferred
+- **Line length**: 80 characters preferred
 - **Async**: Use async/await over callbacks and raw promises
 
 ### Git Workflow
+
 - **Branches**:
   - `master` - Main production branch
   - `feature/NNN-feature-name` - Feature branches (from spec-kit)
@@ -594,6 +655,7 @@ ws.on('message', function(message) {
   - Link to related issues
 
 ### Tool Plugin Conventions
+
 - Each tool is a self-contained module in `src/essence/Tools/ToolName/`
 - Implement `make()` and `destroy()` lifecycle methods
 - Use `interfaceWithMMGIS()` for event handling and cleanup
@@ -602,34 +664,42 @@ ws.on('message', function(message) {
 ## Troubleshooting
 
 ### Issue: Database connection fails
+
 **Solution**:
+
 - Check `.env` has correct `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`
 - Verify PostgreSQL is running: `docker-compose ps`
 - Check PostgreSQL logs: `docker-compose logs db`
 
 ### Issue: WebSocket connections not working
+
 **Solution**:
+
 - Ensure WebSocket port is not blocked by firewall
 - Check browser console for WebSocket errors
 - Verify authentication is working (WebSocket requires valid session)
 - Review `API/Backend/APIs/Websocket.js` logs
 
 ### Issue: Maps not rendering
+
 **Solution**:
+
 - Check browser console for Leaflet/Cesium errors
 - Verify tile URLs are accessible
 - Check mission configuration in configure interface
 - Ensure layers are enabled and visible
 
 ### Issue: File upload fails
+
 **Solution**:
-- Verify MinIO is running: `docker-compose ps`
-- Check MinIO credentials in `.env`
+
 - Ensure `Missions/` directory is writable
 - Check file size limits in Express configuration
 
 ### Issue: Build fails with Webpack errors
+
 **Solution**:
+
 - Clear node_modules: `rm -rf node_modules && npm install`
 - Check for syntax errors in modified files
 - Review `webpack.config.js` for misconfigurations

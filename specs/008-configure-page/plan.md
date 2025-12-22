@@ -1,8 +1,8 @@
-# Administrative Tools Implementation Plan
+# Configure Page Implementation Plan
 
 ## Overview
 
-This document outlines the implementation plan that was followed to create the MMGIS Administrative Tools feature. This is a retrospective document describing the architecture, component structure, and development approach that was used to build the complete administrative interface.
+This document outlines the implementation plan that was followed to create the MMGIS Configure Page. This is a retrospective document describing the architecture, component structure, and development approach that was used to build the complete administrative interface.
 
 **Note**: This feature has been fully implemented. This plan documents the approach that was taken.
 
@@ -15,6 +15,7 @@ This document outlines the implementation plan that was followed to create the M
 #### 1.1 Project Setup
 
 **Implementation**:
+
 - Created `/configure` directory as a separate React application
 - Initialized with Create React App (react-scripts)
 - Configured package.json with required dependencies:
@@ -24,6 +25,7 @@ This document outlines the implementation plan that was followed to create the M
   - React Router DOM 6.22.3
 
 **Configuration Files Created**:
+
 ```
 configure/
 ├── package.json          # Dependencies and build scripts
@@ -33,6 +35,7 @@ configure/
 ```
 
 **Build Integration**:
+
 - Created `scripts/make-pug-index.js` to convert HTML to Pug
 - Configured build command: `react-scripts build && node scripts/make-pug-index.js`
 - Set homepage to `./configure/build` for proper asset paths
@@ -40,6 +43,7 @@ configure/
 #### 1.2 Core Application Structure
 
 **Files Created**:
+
 ```
 src/
 ├── index.js                    # React entry point
@@ -53,12 +57,14 @@ src/
 ```
 
 **Configure.js Implementation**:
+
 - Two-panel layout (left navigation, right content)
 - WebSocket connection initialization
 - Mission list loading on mount
 - Global error handling setup
 
 **Redux Store Structure**:
+
 ```javascript
 {
   core: {
@@ -81,6 +87,7 @@ src/
 **File Created**: `src/core/calls.js`
 
 **Implementation**:
+
 - Wrapper around fetch API
 - Automatic error handling
 - Request/response interceptors
@@ -88,16 +95,13 @@ src/
 - Global error snackbar integration
 
 **Example API Method Structure**:
+
 ```javascript
-calls.api(
-  endpoint,
-  payload,
-  successCallback,
-  errorCallback
-);
+calls.api(endpoint, payload, successCallback, errorCallback);
 ```
 
 **API Endpoints Implemented**:
+
 - missions: List all missions
 - get: Get mission configuration
 - update: Save mission configuration
@@ -117,6 +121,7 @@ calls.api(
 **File Created**: `src/components/Panel/Panel.js`
 
 **Components Implemented**:
+
 - MMGIS logo and version display
 - Mission list with scroll
 - Permission-based mission filtering
@@ -124,6 +129,7 @@ calls.api(
 - Bottom navigation for system pages
 
 **Features**:
+
 - Alphabetically sorted mission list
 - Active mission highlighting
 - Disabled state for unauthorized missions
@@ -131,6 +137,7 @@ calls.api(
 - Sign-out button
 
 **Styling Approach**:
+
 - Material-UI makeStyles
 - Dark theme with gradients
 - Background image (contours.png)
@@ -141,7 +148,9 @@ calls.api(
 **File Created**: `src/components/Main/Main.js`
 
 **Layout Sections**:
+
 1. **Top Bar**:
+
    - GitHub and documentation links
    - Tab navigation (when mission selected)
    - Username display
@@ -153,6 +162,7 @@ calls.api(
    - Welcome screen (no selection)
 
 **Tab Navigation**:
+
 - Home (overview and general settings)
 - Layers (layer hierarchy management)
 - Tools (tool configuration)
@@ -161,6 +171,7 @@ calls.api(
 - User Interface (theme and layout)
 
 **Conditional Rendering**:
+
 ```javascript
 // Show tabs when mission is selected
 if (mission != null) {
@@ -187,6 +198,7 @@ return <IntroScreen />;
 **Supported Form Components**:
 
 1. **Text Input**:
+
 ```json
 {
   "field": "name",
@@ -197,6 +209,7 @@ return <IntroScreen />;
 ```
 
 2. **Number Input**:
+
 ```json
 {
   "field": "opacity",
@@ -208,6 +221,7 @@ return <IntroScreen />;
 ```
 
 3. **Dropdown**:
+
 ```json
 {
   "field": "type",
@@ -217,6 +231,7 @@ return <IntroScreen />;
 ```
 
 4. **Switch/Checkbox**:
+
 ```json
 {
   "field": "enabled",
@@ -226,6 +241,7 @@ return <IntroScreen />;
 ```
 
 5. **Color Picker**:
+
 ```json
 {
   "field": "color",
@@ -234,6 +250,7 @@ return <IntroScreen />;
 ```
 
 6. **Markdown Editor**:
+
 ```json
 {
   "field": "description",
@@ -242,6 +259,7 @@ return <IntroScreen />;
 ```
 
 7. **JSON Editor**:
+
 ```json
 {
   "field": "config",
@@ -251,6 +269,7 @@ return <IntroScreen />;
 ```
 
 8. **Text Array**:
+
 ```json
 {
   "field": "tags",
@@ -259,6 +278,7 @@ return <IntroScreen />;
 ```
 
 9. **Object Array**:
+
 ```json
 {
   "field": "items",
@@ -271,6 +291,7 @@ return <IntroScreen />;
 ```
 
 10. **Slider**:
+
 ```json
 {
   "field": "opacity",
@@ -282,6 +303,7 @@ return <IntroScreen />;
 ```
 
 11. **Map Preview**:
+
 ```json
 {
   "type": "map",
@@ -291,12 +313,14 @@ return <IntroScreen />;
 ```
 
 **Layout System**:
+
 - 12-column grid layout
 - Width property controls column span
 - Automatic row wrapping
 - Responsive grid spacing
 
 **State Management**:
+
 - Uses Redux for value storage
 - Dot notation for nested paths
 - Immediate updates on change
@@ -307,6 +331,7 @@ return <IntroScreen />;
 **Directory Created**: `src/metaconfigs/`
 
 **MetaConfig Structure**:
+
 ```json
 {
   "rows": [
@@ -330,6 +355,7 @@ return <IntroScreen />;
 ```
 
 **MetaConfigs Created**:
+
 - tab-home-config.json
 - tab-coordinates-config.json
 - tab-time-config.json
@@ -337,6 +363,7 @@ return <IntroScreen />;
 - layer-{type}-config.json (for each layer type)
 
 **Tool Configs**:
+
 - Located in `/src/essence/Tools/{TOOL}/config.json`
 - Same structure as metaconfigs
 - Includes defaultIcon and descriptions
@@ -346,6 +373,7 @@ return <IntroScreen />;
 **File Created**: `src/core/validators.js`
 
 **Validation Rules**:
+
 - Required fields
 - Type checking (string, number, boolean)
 - Range validation (min/max)
@@ -354,6 +382,7 @@ return <IntroScreen />;
 - Conditional validation (depends on other fields)
 
 **Validation Timing**:
+
 - On change (immediate feedback)
 - On blur (field exit)
 - On save (final validation)
@@ -376,6 +405,7 @@ const handleMissionSelect = (mission) => {
 ```
 
 **Permission Checking**:
+
 ```javascript
 const canEditMission = (mission) => {
   if (userPermissions.permission === "111") return true; // SuperAdmin
@@ -389,14 +419,17 @@ const canEditMission = (mission) => {
 **File Created**: `src/components/Tabs/Home/Home.js`
 
 **Features Implemented**:
+
 1. **Mission Title Display**: Large, styled mission name
 2. **Action Buttons**:
+
    - Export Configuration (downloads JSON)
    - Upload Configuration (replaces current)
    - Clone Mission (duplicates to new name)
    - Delete Mission (with confirmation)
 
 3. **Version History Component**:
+
    - Chronological list of saved versions
    - Restore to previous version
    - View version metadata
@@ -408,11 +441,13 @@ const canEditMission = (mission) => {
    - Description and metadata
 
 **Modals Created**:
+
 - UploadConfigModal.js
 - CloneConfigModal.js
 - DeleteConfigModal.js
 
 **Version History Implementation** (`Versions.js`):
+
 ```javascript
 const Versions = ({ queryVersions }) => {
   useEffect(() => {
@@ -421,7 +456,7 @@ const Versions = ({ queryVersions }) => {
 
   return (
     <VersionTimeline>
-      {versions.map(version => (
+      {versions.map((version) => (
         <VersionCard
           key={version.id}
           version={version}
@@ -438,11 +473,13 @@ const Versions = ({ queryVersions }) => {
 **File Created**: `src/components/Panel/Modals/NewMissionModal/NewMissionModal.js`
 
 **Form Fields**:
+
 - Mission Name (required, validated for uniqueness)
 - Description (optional)
 - Template Selection (dropdown of existing missions or "blank")
 
 **Workflow**:
+
 1. User clicks "New Mission" button
 2. Modal opens with form
 3. User fills in details
@@ -462,18 +499,21 @@ const Versions = ({ queryVersions }) => {
 **Key Features**:
 
 1. **Hierarchical Display**:
+
    - Flattens layer tree for rendering
    - Visual indentation (40px per level)
    - Vertical guide lines showing hierarchy
    - Up to 12 levels deep
 
 2. **Drag-and-Drop Reordering**:
+
    - react-beautiful-dnd integration
    - Visual drag feedback
    - Automatic hierarchy adjustment
    - Maintains parent-child relationships
 
 3. **Layer Type Icons**:
+
    - Material Design Icons for each type
    - Color-coded backgrounds
    - Visual indicators for visibility and time-enabled
@@ -484,11 +524,12 @@ const Versions = ({ queryVersions }) => {
    - Add layer at position button
 
 **Layer Flattening Algorithm**:
+
 ```javascript
 const flattenLayers = (layers) => {
   const flat = [];
   const traverse = (nodes, depth) => {
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       flat.push({ layer: node, depth });
       if (node.sublayers) {
         traverse(node.sublayers, depth + 1);
@@ -501,6 +542,7 @@ const flattenLayers = (layers) => {
 ```
 
 **Layer Reconstruction Algorithm**:
+
 ```javascript
 const reconstructHierarchy = (flatLayers) => {
   const root = [];
@@ -512,7 +554,7 @@ const reconstructHierarchy = (flatLayers) => {
     }
     const parent = stack[stack.length - 1];
     parent.sublayers.push(layer);
-    if (layer.type === 'header') {
+    if (layer.type === "header") {
       layer.sublayers = [];
       stack.push({ ...layer, depth });
     }
@@ -527,12 +569,14 @@ const reconstructHierarchy = (flatLayers) => {
 **File Created**: `src/components/Tabs/Layers/Modals/LayerModal/LayerModal.js`
 
 **Modal Structure**:
+
 - Full-screen dialog
 - Tabbed interface for complex layers
 - Dynamic form based on layer type
 - Save/Cancel actions
 
 **Tab Organization**:
+
 - General: Basic properties (name, type, visibility)
 - Data: Data source configuration
 - Style: Visual styling options
@@ -541,6 +585,7 @@ const reconstructHierarchy = (flatLayers) => {
 - Legend: Legend configuration
 
 **Layer Type Detection**:
+
 ```javascript
 const LayerModal = ({ layerUUID }) => {
   const layer = findLayerByUUID(configuration.layers, layerUUID);
@@ -556,6 +601,7 @@ const LayerModal = ({ layerUUID }) => {
 ```
 
 **Save Logic**:
+
 ```javascript
 const handleSave = () => {
   const updatedConfig = JSON.parse(JSON.stringify(configuration));
@@ -570,11 +616,13 @@ const handleSave = () => {
 **Layer Type Configurations Created**:
 
 1. **Header Layer** (`layer-header-config.json`):
+
    - Name and description
    - Sublayer container properties
    - No data source required
 
 2. **Vector Layer** (`layer-vector-config.json`):
+
    - GeoJSON URL or inline data
    - Style configuration (colors, widths, fills)
    - Popup templates
@@ -582,6 +630,7 @@ const handleSave = () => {
    - Feature filtering
 
 3. **Tile Layer** (`layer-tile-config.json`):
+
    - Tile URL template
    - Attribution
    - Min/max zoom
@@ -589,12 +638,14 @@ const handleSave = () => {
    - Bounds
 
 4. **Model Layer** (`layer-model-config.json`):
+
    - 3D model URL (glTF, COLLADA)
    - Position and orientation
    - Scale and rotation
    - Shader properties
 
 5. **Data Layer** (`layer-data-config.json`):
+
    - Database query configuration
    - Real-time update settings
    - Point rendering options
@@ -604,6 +655,7 @@ const handleSave = () => {
 
 **Common Properties**:
 All layers share:
+
 - UUID (unique identifier)
 - Name (display name)
 - Type (layer type)
@@ -621,28 +673,31 @@ All layers share:
 **Implementation**:
 
 1. **Tool Card Grid**:
+
    - Responsive grid layout (Material-UI Grid)
    - Cards show: icon, name, description, on/off indicator
    - Hover effects
    - Click to configure
 
 2. **Tool Configuration Loading**:
+
 ```javascript
 useEffect(() => {
-  calls.api('getToolConfig', null, (res) => {
+  calls.api("getToolConfig", null, (res) => {
     dispatch(setToolConfiguration(res));
   });
 }, []);
 ```
 
 3. **Tool Card Generation**:
+
 ```javascript
 const getToolCards = () => {
   return Object.keys(toolConfiguration)
     .sort()
-    .map(toolName => {
+    .map((toolName) => {
       const toolConfig = toolConfiguration[toolName];
-      const missionTool = configuration.tools.find(t => t.name === toolName);
+      const missionTool = configuration.tools.find((t) => t.name === toolName);
       const isActive = missionTool?.on !== false;
 
       return (
@@ -670,6 +725,7 @@ const getToolCards = () => {
 **File Created**: `src/components/Tabs/Tools/Modals/ToolModal/ToolModal.js`
 
 **Modal Features**:
+
 - Full-screen dialog for complex tools
 - Tabbed interface when needed
 - On/Off toggle at top
@@ -677,6 +733,7 @@ const getToolCards = () => {
 - Dynamic form from tool's config.json
 
 **Tool Configuration Structure**:
+
 ```javascript
 // Example tool config structure
 {
@@ -696,12 +753,13 @@ const getToolCards = () => {
 ```
 
 **Save Tool Configuration**:
+
 ```javascript
 const handleSaveToolConfig = (toolName, toolSettings) => {
   const updatedConfig = JSON.parse(JSON.stringify(configuration));
 
   // Find existing tool or create new entry
-  let tool = updatedConfig.tools.find(t => t.name === toolName);
+  let tool = updatedConfig.tools.find((t) => t.name === toolName);
   if (!tool) {
     tool = { name: toolName };
     updatedConfig.tools.push(tool);
@@ -723,12 +781,14 @@ const handleSaveToolConfig = (toolName, toolSettings) => {
 **Table Implementation**:
 
 1. **Material-UI Table**:
+
    - Sortable columns
    - Pagination (25, 50, 100 rows per page)
    - Sticky header
    - Responsive design
 
 2. **Table Columns**:
+
    - ID
    - Username
    - Email
@@ -739,6 +799,7 @@ const handleSaveToolConfig = (toolName, toolSettings) => {
    - Actions (Update, Reset Password, Delete)
 
 3. **Role Display**:
+
 ```javascript
 const getRoleBadge = (permission) => {
   if (permission === "111") {
@@ -757,6 +818,7 @@ const getRoleBadge = (permission) => {
    - Color-coded based on security level
 
 **User Actions**:
+
 - Update User: Opens modal to edit role and missions
 - Reset Password: Opens modal to set new password
 - Delete User: Confirmation dialog then delete
@@ -764,26 +826,28 @@ const getRoleBadge = (permission) => {
 #### 7.2 User Modals
 
 **Files Created**:
+
 - `NewUserModal.js`: Create new user account
 - `UpdateUserModal.js`: Modify user permissions
 - `ResetPasswordModal.js`: Change user password
 - `DeleteUserModal.js`: Confirm and delete user
 
 **NewUserModal Implementation**:
+
 ```javascript
 const NewUserModal = ({ queryUsers }) => {
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    permission: '100',
-    missions_managing: []
+    username: "",
+    email: "",
+    password: "",
+    permission: "100",
+    missions_managing: [],
   });
 
   const handleSubmit = () => {
-    calls.api('account_create', formData, (res) => {
-      if (res.status === 'success') {
-        showSuccess('User created successfully');
+    calls.api("account_create", formData, (res) => {
+      if (res.status === "success") {
+        showSuccess("User created successfully");
         queryUsers(); // Refresh user list
         closeModal();
       }
@@ -800,7 +864,7 @@ const NewUserModal = ({ queryUsers }) => {
         <MenuItem value="110">Admin</MenuItem>
         <MenuItem value="100">User</MenuItem>
       </Select>
-      {formData.permission === '110' && (
+      {formData.permission === "110" && (
         <MultiSelect
           label="Assigned Missions"
           options={missions}
@@ -813,14 +877,14 @@ const NewUserModal = ({ queryUsers }) => {
 ```
 
 **Permission Logic**:
+
 ```javascript
 // Only SuperAdmins can create SuperAdmins
 const canCreateSuperAdmin = currentUser.permission === "111";
 
 // Admins can only create Users, not other Admins
-const availableRoles = currentUser.permission === "111"
-  ? ["111", "110", "100"]
-  : ["100"];
+const availableRoles =
+  currentUser.permission === "111" ? ["111", "110", "100"] : ["100"];
 ```
 
 ### Phase 8: Dataset Management
@@ -832,11 +896,13 @@ const availableRoles = currentUser.permission === "111"
 **Features**:
 
 1. **Dataset Table**:
+
    - Name, Last Updated, Actions
    - Sortable and paginated
    - Usage badge (how many layers use it)
 
 2. **Dataset Actions**:
+
    - View Usage: Shows which missions/layers use the dataset
    - Download: Export dataset as JSON
    - Update: Replace or append data
@@ -850,6 +916,7 @@ const availableRoles = currentUser.permission === "111"
 #### 8.2 Dataset Modals
 
 **Files Created**:
+
 - `NewDatasetModal.js`: Upload new dataset
 - `UpdateDatasetModal.js`: Update existing dataset
 - `DeleteDatasetModal.js`: Delete with confirmation
@@ -860,22 +927,22 @@ const availableRoles = currentUser.permission === "111"
 ```javascript
 const NewDatasetModal = ({ queryDatasets }) => {
   const [file, setFile] = useState(null);
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
   const [parseOptions, setParseOptions] = useState({
-    delimiter: ',',
+    delimiter: ",",
     header: true,
-    skipEmptyLines: true
+    skipEmptyLines: true,
   });
 
   const handleUpload = () => {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('name', name);
-    formData.append('options', JSON.stringify(parseOptions));
+    formData.append("file", file);
+    formData.append("name", name);
+    formData.append("options", JSON.stringify(parseOptions));
 
-    calls.api('datasets_create', formData, (res) => {
-      if (res.status === 'success') {
-        showSuccess('Dataset created successfully');
+    calls.api("datasets_create", formData, (res) => {
+      if (res.status === "success") {
+        showSuccess("Dataset created successfully");
         queryDatasets();
         closeModal();
       }
@@ -885,9 +952,7 @@ const NewDatasetModal = ({ queryDatasets }) => {
   return (
     <Dialog open={true}>
       <TextField label="Dataset Name" value={name} />
-      <Dropzone onDrop={setFile}>
-        Drop CSV or JSON file here
-      </Dropzone>
+      <Dropzone onDrop={setFile}>Drop CSV or JSON file here</Dropzone>
       <TextField label="Delimiter" value={parseOptions.delimiter} />
       <Switch label="First row is header" checked={parseOptions.header} />
     </Dialog>
@@ -896,6 +961,7 @@ const NewDatasetModal = ({ queryDatasets }) => {
 ```
 
 **LayersUsedByModal**:
+
 - Lists all missions and layers referencing the dataset
 - Prevents deletion if in use
 - Links to edit those layers
@@ -909,11 +975,13 @@ const NewDatasetModal = ({ queryDatasets }) => {
 **Configuration Sections**:
 
 1. **STAC/TiTiler Settings**:
+
    - Item Limit (default: 100)
    - Scan Limit (default: 10000)
    - Time Limit (default: 5 seconds)
 
 2. **Form Implementation**:
+
 ```javascript
 const config = {
   rows: [
@@ -928,21 +996,22 @@ const config = {
           min: 0,
           step: 1,
           default: 100,
-          width: 3
-        }
+          width: 3,
+        },
         // ... more fields
-      ]
-    }
-  ]
+      ],
+    },
+  ],
 };
 ```
 
 3. **Save Logic**:
+
 ```javascript
 const saveGeneralOptions = () => {
-  const options = getIn(configuration, 'temp.generalOptions', null);
-  calls.api('update_generaloptions', { options }, (res) => {
-    showSuccess('General Options saved');
+  const options = getIn(configuration, "temp.generalOptions", null);
+  calls.api("update_generaloptions", { options }, (res) => {
+    showSuccess("General Options saved");
   });
 };
 ```
@@ -954,6 +1023,7 @@ const saveGeneralOptions = () => {
 **Features**:
 
 1. **Webhook Configuration Array**:
+
    - Action trigger dropdown
    - HTTP method selection
    - URL with variable injection
@@ -961,6 +1031,7 @@ const saveGeneralOptions = () => {
    - Request body (JSON editor)
 
 2. **Variable Substitution System**:
+
 ```javascript
 // Available variables
 const webhookVariables = [
@@ -998,6 +1069,7 @@ const webhookVariables = [
 **Features**:
 
 1. **Token Table**:
+
    - Token name
    - Creation date
    - Expiration date
@@ -1005,16 +1077,21 @@ const webhookVariables = [
    - Actions (Copy, Revoke)
 
 2. **Token Generation**:
+
 ```javascript
 const generateToken = (name, permissions, expiresIn) => {
-  calls.api('generate_token', {
-    name,
-    permissions,
-    expiresIn  // Days until expiration
-  }, (res) => {
-    setGeneratedToken(res.token);
-    showTokenModal(); // Shows token once, not retrievable later
-  });
+  calls.api(
+    "generate_token",
+    {
+      name,
+      permissions,
+      expiresIn, // Days until expiration
+    },
+    (res) => {
+      setGeneratedToken(res.token);
+      showTokenModal(); // Shows token once, not retrievable later
+    }
+  );
 };
 ```
 
@@ -1028,11 +1105,13 @@ const generateToken = (name, permissions, expiresIn) => {
 #### 9.4 GeoDatasets, STAC, APIs
 
 **Files Created**:
+
 - `src/pages/GeoDatasets/GeoDatasets.js`
 - `src/pages/STAC/STAC.js`
 - `src/pages/APIs/APIs.js`
 
 **Implementation Similar to Datasets**:
+
 - Table-based interface
 - Upload/download capabilities
 - Usage tracking
@@ -1047,6 +1126,7 @@ const generateToken = (name, permissions, expiresIn) => {
 **Features**:
 
 1. **Unsaved Changes Detection**:
+
 ```javascript
 const hasUnsavedChanges = () => {
   const currentHash = hash(configuration);
@@ -1056,39 +1136,47 @@ const hasUnsavedChanges = () => {
 ```
 
 2. **Action Buttons**:
+
    - Save: Commit changes to database
    - Revert: Discard unsaved changes
    - Preview: Open mission in iframe
 
 3. **Save Process**:
+
 ```javascript
 const handleSave = () => {
   setLoading(true);
 
-  calls.api('update', {
-    mission: mission,
-    config: configuration
-  }, (res) => {
-    setLoading(false);
-    if (res.status === 'success') {
-      showSuccess('Configuration saved successfully');
-      updateSavedConfig(configuration);
-      releaseLock();
+  calls.api(
+    "update",
+    {
+      mission: mission,
+      config: configuration,
+    },
+    (res) => {
+      setLoading(false);
+      if (res.status === "success") {
+        showSuccess("Configuration saved successfully");
+        updateSavedConfig(configuration);
+        releaseLock();
+      }
     }
-  });
+  );
 };
 ```
 
 4. **Revert Process**:
+
 ```javascript
 const handleRevert = () => {
-  if (confirm('Discard all unsaved changes?')) {
+  if (confirm("Discard all unsaved changes?")) {
     dispatch(setConfiguration(savedConfiguration));
   }
 };
 ```
 
 5. **Preview Feature**:
+
 ```javascript
 const handlePreview = () => {
   // Save current config to temp location
@@ -1097,7 +1185,7 @@ const handlePreview = () => {
   // Open iframe with temp config
   setPreviewModal({
     open: true,
-    url: `/configure/preview?mission=${mission}&temp=true`
+    url: `/configure/preview?mission=${mission}&temp=true`,
   });
 };
 ```
@@ -1115,21 +1203,23 @@ const Websocket = () => {
       const message = JSON.parse(event.data);
 
       switch (message.type) {
-        case 'config_locked':
-          dispatch(setLockConfig({
-            locked: true,
-            user: message.user,
-            mission: message.mission
-          }));
+        case "config_locked":
+          dispatch(
+            setLockConfig({
+              locked: true,
+              user: message.user,
+              mission: message.mission,
+            })
+          );
           break;
 
-        case 'config_unlocked':
+        case "config_unlocked":
           dispatch(clearLockConfig());
           break;
 
-        case 'config_updated':
+        case "config_updated":
           if (message.mission === currentMission) {
-            showNotification('Configuration updated by another user');
+            showNotification("Configuration updated by another user");
             // Optionally reload configuration
           }
           break;
@@ -1144,10 +1234,11 @@ const Websocket = () => {
 ```
 
 **Lock Acquisition**:
+
 ```javascript
 // When user selects a mission
 const handleMissionSelect = (mission) => {
-  calls.api('acquire_lock', { mission }, (res) => {
+  calls.api("acquire_lock", { mission }, (res) => {
     if (res.locked) {
       showError(`Mission is being edited by ${res.user}`);
     } else {
@@ -1158,11 +1249,12 @@ const handleMissionSelect = (mission) => {
 ```
 
 **Lock Release**:
+
 ```javascript
 // On save, revert, or mission deselect
 const releaseLock = () => {
-  calls.api('release_lock', { mission }, () => {
-    console.log('Lock released');
+  calls.api("release_lock", { mission }, () => {
+    console.log("Lock released");
   });
 };
 
@@ -1181,12 +1273,14 @@ useEffect(() => {
 #### 11.1 Reusable Components
 
 **ColorButton Component** (`src/components/ColorButton/ColorButton.js`):
+
 - Color picker with presets
 - Hex, RGB, HSL input support
 - Outside click detection to close
 - Integration with react-color
 
 **SnackBar Component** (`src/components/SnackBar/SnackBar.js`):
+
 - Global notification system
 - Success, error, warning, info variants
 - Auto-dismiss after 6 seconds
@@ -1194,12 +1288,14 @@ useEffect(() => {
 - Queue for multiple messages
 
 **Map Component** (`src/components/Map/Map.js`):
+
 - Leaflet integration
 - Shows layer preview
 - Displays current bounds
 - Click to set coordinates
 
 **VideoPreview Component** (`src/components/VideoPreview/VideoPreview.js`):
+
 - Preview video layers
 - Playback controls
 - Seek to timestamp
@@ -1211,10 +1307,11 @@ useEffect(() => {
 **Key Utilities**:
 
 1. **Deep Get/Set**:
+
 ```javascript
 // Get value from nested object using dot notation
 const getIn = (obj, path, defaultValue) => {
-  const keys = path.split('.');
+  const keys = path.split(".");
   let value = obj;
   for (const key of keys) {
     if (value == null) return defaultValue;
@@ -1225,7 +1322,7 @@ const getIn = (obj, path, defaultValue) => {
 
 // Set value in nested object using dot notation
 const setIn = (obj, path, value) => {
-  const keys = path.split('.');
+  const keys = path.split(".");
   const last = keys.pop();
   let target = obj;
   for (const key of keys) {
@@ -1238,6 +1335,7 @@ const setIn = (obj, path, value) => {
 ```
 
 2. **Array Manipulation**:
+
 ```javascript
 // Reorder array items (for drag-and-drop)
 const reorderArray = (array, startIndex, endIndex) => {
@@ -1266,13 +1364,14 @@ const insertLayerAfterUUID = (layers, newLayer, afterUUID) => {
 ```
 
 3. **Download Utilities**:
+
 ```javascript
 // Download object as JSON file
-const downloadObject = (obj, filename, extension = '.json') => {
+const downloadObject = (obj, filename, extension = ".json") => {
   const json = JSON.stringify(obj, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
+  const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
   link.download = filename + extension;
   link.click();
@@ -1281,6 +1380,7 @@ const downloadObject = (obj, filename, extension = '.json') => {
 ```
 
 4. **UUID Generation**:
+
 ```javascript
 // Generate unique layer IDs
 window.newUUIDCount = Date.now();
@@ -1300,12 +1400,12 @@ const generateUUID = () => {
 ```javascript
 // Required field
 const required = (value) => {
-  return value != null && value !== '' ? null : 'This field is required';
+  return value != null && value !== "" ? null : "This field is required";
 };
 
 // Valid number
 const isNumber = (value) => {
-  return !isNaN(value) ? null : 'Must be a valid number';
+  return !isNaN(value) ? null : "Must be a valid number";
 };
 
 // Valid JSON
@@ -1314,7 +1414,7 @@ const isJSON = (value) => {
     JSON.parse(value);
     return null;
   } catch (e) {
-    return 'Must be valid JSON';
+    return "Must be valid JSON";
   }
 };
 
@@ -1324,7 +1424,7 @@ const isURL = (value) => {
     new URL(value);
     return null;
   } catch (e) {
-    return 'Must be a valid URL';
+    return "Must be a valid URL";
   }
 };
 
@@ -1346,38 +1446,38 @@ const inRange = (min, max) => (value) => {
 ```javascript
 const theme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: "dark",
     primary: {
-      main: '#2196f3'
+      main: "#2196f3",
     },
     secondary: {
-      main: '#424242'
+      main: "#424242",
     },
     accent: {
-      main: '#ffd740'
+      main: "#ffd740",
     },
     swatches: {
       grey: {
-        0: '#ffffff',
-        100: '#f5f5f5',
-        200: '#eeeeee',
-        300: '#e0e0e0',
+        0: "#ffffff",
+        100: "#f5f5f5",
+        200: "#eeeeee",
+        300: "#e0e0e0",
         // ... through 1000
-        1000: '#1a1a1a'
+        1000: "#1a1a1a",
       },
       p: {
-        0: '#2196f3',
+        0: "#2196f3",
         // ... color palette
-        13: '#ff9800'
+        13: "#ff9800",
       },
       red: {
-        500: '#f44336'
-      }
-    }
+        500: "#f44336",
+      },
+    },
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
-  }
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+  },
 });
 ```
 
@@ -1388,17 +1488,17 @@ const theme = createTheme({
 ```javascript
 const useStyles = makeStyles((theme) => ({
   componentName: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     background: theme.palette.swatches.grey[1000],
-    color: theme.palette.swatches.grey[200]
+    color: theme.palette.swatches.grey[200],
   },
   subElement: {
     padding: theme.spacing(2),
-    '&:hover': {
-      background: theme.palette.swatches.grey[900]
-    }
-  }
+    "&:hover": {
+      background: theme.palette.swatches.grey[900],
+    },
+  },
 }));
 
 const Component = () => {
@@ -1414,16 +1514,16 @@ const Component = () => {
 ```javascript
 const useStyles = makeStyles((theme) => ({
   container: {
-    [theme.breakpoints.down('sm')]: {
-      padding: '8px'
+    [theme.breakpoints.down("sm")]: {
+      padding: "8px",
     },
-    [theme.breakpoints.up('md')]: {
-      padding: '16px'
+    [theme.breakpoints.up("md")]: {
+      padding: "16px",
     },
-    [theme.breakpoints.up('lg')]: {
-      padding: '32px'
-    }
-  }
+    [theme.breakpoints.up("lg")]: {
+      padding: "32px",
+    },
+  },
 }));
 ```
 
@@ -1446,6 +1546,7 @@ const useStyles = makeStyles((theme) => ({
 <!-- HUMAN REVIEW NEEDED: What tests were implemented? What testing strategy was used? -->
 
 **Testing Libraries**:
+
 - @testing-library/react
 - @testing-library/jest-dom
 - @testing-library/user-event
@@ -1455,11 +1556,13 @@ const useStyles = makeStyles((theme) => ({
 **Developer Experience Enhancements**:
 
 1. **Console Logging**:
+
    - Structured logging for debugging
    - Warning messages for misuse
    - Error tracking
 
 2. **Redux DevTools Integration**:
+
    - Time-travel debugging
    - State inspection
    - Action history
@@ -1474,6 +1577,7 @@ const useStyles = makeStyles((theme) => ({
 #### 14.1 Build Configuration
 
 **package.json Scripts**:
+
 ```json
 {
   "scripts": {
@@ -1486,15 +1590,16 @@ const useStyles = makeStyles((theme) => ({
 ```
 
 **make-pug-index.js Script**:
+
 ```javascript
 // Converts build/index.html to build/index.pug for Node.js templating
-const fs = require('fs');
-const html2pug = require('html2pug');
+const fs = require("fs");
+const html2pug = require("html2pug");
 
-const html = fs.readFileSync('./build/index.html', 'utf8');
+const html = fs.readFileSync("./build/index.html", "utf8");
 const pug = html2pug(html, { tabs: true });
-fs.writeFileSync('./build/index.pug', pug);
-console.log('Created build/index.pug');
+fs.writeFileSync("./build/index.pug", pug);
+console.log("Created build/index.pug");
 ```
 
 #### 14.2 Production Optimization
@@ -1502,16 +1607,19 @@ console.log('Created build/index.pug');
 **Optimizations Applied**:
 
 1. **Code Splitting**:
+
    - Route-based splitting
    - Lazy loading of modals
    - Dynamic imports for heavy components
 
 2. **Asset Optimization**:
+
    - Image compression
    - CSS minification
    - JS minification and uglification
 
 3. **Bundle Analysis**:
+
    - Identifying large dependencies
    - Removing unused code
    - Optimizing imports
@@ -1527,9 +1635,9 @@ console.log('Created build/index.pug');
 
 ```javascript
 // In main MMGIS server.js
-app.use('/configure', express.static('configure/build'));
-app.get('/configure/*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'configure/build/index.html'));
+app.use("/configure", express.static("configure/build"));
+app.get("/configure/*", (req, res) => {
+  res.sendFile(path.join(__dirname, "configure/build/index.html"));
 });
 ```
 
@@ -1540,15 +1648,15 @@ app.get('/configure/*', (req, res) => {
 const requireAdmin = (req, res, next) => {
   if (!req.user || req.user.permission < 110) {
     return res.status(403).json({
-      status: 'error',
-      message: 'Admin access required'
+      status: "error",
+      message: "Admin access required",
     });
   }
   next();
 };
 
 // Apply to configure API routes
-app.use('/api/configure', requireAdmin);
+app.use("/api/configure", requireAdmin);
 ```
 
 ### Phase 15: Documentation and Training
@@ -1558,6 +1666,7 @@ app.use('/api/configure', requireAdmin);
 **README.md Created**: `/configure/README.md`
 
 **Contents**:
+
 - Development setup instructions
 - Build process explanation
 - MetaConfig documentation
@@ -1566,6 +1675,7 @@ app.use('/api/configure', requireAdmin);
 #### 15.2 Code Comments
 
 **Documentation Standards**:
+
 - Component purpose and usage
 - Complex algorithm explanations
 - API endpoint documentation
@@ -1576,21 +1686,25 @@ app.use('/api/configure', requireAdmin);
 ### Architecture Decisions
 
 1. **Separate React App**:
+
    - **Decision**: Create standalone React app in /configure
    - **Rationale**: Isolation from main MMGIS client code, independent build process, easier maintenance
    - **Tradeoff**: Separate build step, duplicate dependencies
 
 2. **Redux for State Management**:
+
    - **Decision**: Use Redux Toolkit for global state
    - **Rationale**: Complex nested data, undo/redo support, time-travel debugging
    - **Alternative Considered**: React Context API (insufficient for deep trees)
 
 3. **Material-UI Component Library**:
+
    - **Decision**: Use MUI for all UI components
    - **Rationale**: Consistent design, accessibility built-in, extensive component library
    - **Alternative Considered**: Custom components (too time-consuming)
 
 4. **MetaConfig System**:
+
    - **Decision**: JSON-driven dynamic form generation
    - **Rationale**: Consistency, maintainability, extensibility without UI changes
    - **Alternative Considered**: Hard-coded forms (unmaintainable at scale)
@@ -1603,16 +1717,19 @@ app.use('/api/configure', requireAdmin);
 ### UI/UX Decisions
 
 1. **Two-Panel Layout**:
+
    - **Decision**: Fixed left nav, scrollable right content
    - **Rationale**: Always-visible mission list, familiar pattern
    - **Alternative Considered**: Single panel with drawer (less efficient)
 
 2. **Drag-and-Drop Layers**:
+
    - **Decision**: Visual drag-and-drop with react-beautiful-dnd
    - **Rationale**: Intuitive layer organization, visual feedback
    - **Alternative Considered**: Up/down buttons (less intuitive)
 
 3. **Full-Screen Modals**:
+
    - **Decision**: Use full-screen dialogs for complex forms
    - **Rationale**: More space for nested tabs and complex configurations
    - **Alternative Considered**: Side drawers (insufficient space)
@@ -1625,16 +1742,19 @@ app.use('/api/configure', requireAdmin);
 ### Data Management Decisions
 
 1. **Configuration as JSON Blob**:
+
    - **Decision**: Store full configuration as JSON in database
    - **Rationale**: Flexibility, easy export/import, version control friendly
    - **Alternative Considered**: Normalized tables (inflexible schema)
 
 2. **Client-Side Validation**:
+
    - **Decision**: Validate in browser before sending to server
    - **Rationale**: Immediate feedback, reduced server load
    - **Note**: Server still validates for security
 
 3. **Optimistic Updates**:
+
    - **Decision**: Update UI immediately, then save to server
    - **Rationale**: Responsive feel, can revert on failure
    - **Alternative Considered**: Wait for server (feels slow)
@@ -1656,6 +1776,6 @@ app.use('/api/configure', requireAdmin);
 
 ## Conclusion
 
-This implementation plan documents the comprehensive approach taken to build the MMGIS Administrative Tools feature. The modular architecture, metaconfiguration system, and thoughtful component design resulted in a maintainable, extensible administrative interface that successfully supports the complex requirements of multi-mission MMGIS deployments.
+This implementation plan documents the comprehensive approach taken to build the MMGIS Configure Page feature. The modular architecture, metaconfiguration system, and thoughtful component design resulted in a maintainable, extensible administrative interface that successfully supports the complex requirements of multi-mission MMGIS deployments.
 
 The feature was implemented incrementally across 15 phases, from foundation through deployment, with each phase building on the previous. The use of modern React patterns, Material-UI components, and a dynamic form generation system created a consistent, professional interface that administrators can learn quickly and use effectively.

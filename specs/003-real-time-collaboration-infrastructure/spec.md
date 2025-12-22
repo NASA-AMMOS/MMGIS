@@ -1,61 +1,91 @@
-# WebSocket Real-time Communication - Feature Specification
+# Real-Time Collaboration Infrastructure - Feature Specification
 
 ## Overview
 
-The MMGIS WebSocket Real-time Communication system provides bidirectional, real-time messaging capabilities for collaborative features in the Multi-Mission Geographic Information System. The feature was implemented to enable instant layer updates, configuration change notifications, and real-time collaboration between multiple users working on the same mission.
+The MMGIS Real-Time Collaboration Infrastructure provides the underlying WebSocket-based communication layer that enables multiple collaborative features throughout the system. This infrastructure enables instant synchronization of layer updates, configuration changes, and other real-time interactions between users working on the same mission. Rather than being a user-facing feature itself, this infrastructure supports collaborative functionality in other features including the Draw Tool, Configure interface, and layer management systems.
 
 ## Feature Description
 
 ### Core Capabilities
 
-The WebSocket system supports two primary operational modes, each serving distinct purposes within the MMGIS architecture:
+The WebSocket infrastructure supports two primary operational modes, providing the foundation for collaborative features throughout MMGIS:
 
-1. **MMGIS WebSockets** - Real-time layer and configuration updates for the main MMGIS client application
-2. **Config WebSockets** - Configuration change notifications for the administrative Configure interface
+1. **MMGIS WebSockets** (`ENABLE_MMGIS_WEBSOCKETS`) - Infrastructure for real-time layer and configuration synchronization in the main MMGIS client, supporting features like:
+   - Draw Tool real-time file synchronization
+   - Layer update notifications
+   - Configuration change alerts
+
+2. **Config WebSockets** (`ENABLE_CONFIG_WEBSOCKETS`) - Infrastructure for administrative interface collaboration, enabling features like:
+   - Configuration conflict detection
+   - Multi-admin coordination
+   - Version control warnings
 
 ### WebSocket Modes
 
 #### MMGIS WebSockets (`ENABLE_MMGIS_WEBSOCKETS`)
 
-Provides real-time communication for the main MMGIS mapping interface:
+Provides the underlying infrastructure for real-time collaboration features in the main MMGIS mapping interface. This infrastructure layer enables several user-facing collaborative features:
 
-- **Layer Update Broadcasting** - Notify all connected clients when layers are added, updated, or removed
-- **Configuration Change Detection** - Alert users when the mission configuration has been modified
-- **Automatic Reconnection** - Client-side retry logic with exponential backoff
-- **Mission-Specific Routing** - Messages are filtered by mission name to ensure proper targeting
+**Infrastructure Capabilities:**
+- **Message Broadcasting** - Real-time relay of updates to all connected clients
+- **Connection Management** - Automatic reconnection with exponential backoff
+- **Mission-Specific Routing** - Messages filtered by mission name for proper targeting
+- **Protocol Upgrade** - HTTP to WebSocket upgrade handling
 
-**Message Types:**
-- `addLayer` - New layer added to mission configuration
-- `updateLayer` - Existing layer modified
-- `removeLayer` - Layer removed from mission configuration
-- Configuration updates (generic changes to mission config)
+**Supported Collaborative Features:**
+- **Draw Tool Synchronization** - Real-time file updates across multiple users editing the same drawing files
+- **Layer Update Notifications** - Alerts when administrators add, modify, or remove layers
+- **Configuration Change Detection** - Notifications when mission configuration changes
+- **Custom Event Broadcasting** - Infrastructure for future collaborative features (cursor sharing, chat, etc.)
+
+**Message Protocol Types:**
+- `addLayer` - Broadcast layer additions to all clients
+- `updateLayer` - Broadcast layer modifications
+- `removeLayer` - Broadcast layer deletions
+- Configuration updates - Generic mission config change notifications
 
 #### Config WebSockets (`ENABLE_CONFIG_WEBSOCKETS`)
 
-Provides real-time notifications for the Configure administrative interface:
+Provides infrastructure for multi-administrator collaboration in the Configure interface, enabling safe concurrent configuration editing:
 
-- **Configuration Lock Warnings** - Alert when another user modifies the configuration
-- **Version Conflict Detection** - Prevent overwriting changes made by other administrators
-- **Automatic Reconnection** - Similar retry logic as MMGIS WebSockets
-- **Mission-Specific Filtering** - Only show alerts for the currently active mission
+**Infrastructure Capabilities:**
+- **Connection Management** - Persistent WebSocket connections for all active Configure sessions
+- **Version Tracking** - Configuration version metadata in all messages
+- **Mission Filtering** - Ensures admins only receive updates for their current mission
+- **Automatic Reconnection** - Connection recovery with retry logic
+
+**Supported Collaborative Features:**
+- **Configuration Lock Warnings** - Alerts administrators when another user modifies the configuration
+- **Version Conflict Prevention** - Blocks saves that would overwrite concurrent changes
+- **Multi-Admin Coordination** - Enables safe collaboration on mission configuration
+- **Real-Time Feedback** - Immediate notification of configuration state changes
 
 ### WebSocket Architecture
+
+This infrastructure provides the foundation for all real-time collaborative features in MMGIS, using a broadcast-relay pattern for simplicity and reliability.
 
 #### Server-Side Implementation
 
 **Technology Stack:**
-- **isomorphic-ws** - Cross-platform WebSocket library (browser + Node.js)
-- **ws** - Native WebSocket Server implementation
-- **Upgrade Protocol** - HTTP to WebSocket protocol upgrade handling
+- **isomorphic-ws** - Cross-platform WebSocket library providing consistent API across browser and Node.js
+- **ws** - Native WebSocket Server implementation for high performance
+- **HTTP Upgrade Protocol** - Standard protocol upgrade from HTTP to WebSocket
 
-**Server Configuration:**
+**Infrastructure Configuration:**
 ```javascript
-Location: API/websocket.js
-Server Mode: noServer (manual upgrade handling)
-Protocol: ws:// (development) or wss:// (production HTTPS)
-Path: {WEBSOCKET_ROOT_PATH || ROOT_PATH}/
-Broadcast Pattern: Message relay to all connected clients
+Location: API/websocket.js (WebSocket server initialization)
+Server Mode: noServer (manual upgrade handling via HTTP server)
+Protocol: ws:// (development) or wss:// (production HTTPS with TLS)
+Connection Path: {WEBSOCKET_ROOT_PATH || ROOT_PATH}/
+Message Pattern: Broadcast-relay (all messages to all connected clients)
+Routing: Client-side mission filtering
 ```
+
+**Design Rationale:**
+- **Broadcast-relay pattern** - Simple, reliable, easy to debug; sufficient for typical NASA mission operations team sizes (<50 concurrent users)
+- **Client-side filtering** - Reduces server complexity; clients filter messages by mission name
+- **No message authentication** - Relies on HTTP session authentication; suitable for trusted network environments
+- **No message persistence** - Stateless design; clients responsible for handling missed messages during disconnection
 
 **Connection Lifecycle:**
 1. HTTP server receives upgrade request at configured path
@@ -216,48 +246,111 @@ Ping Interval: Same as retry interval, updated on reconnect
 
 ### Integration Points
 
-#### Configuration Management
+This infrastructure enables real-time collaboration across multiple MMGIS features. The WebSocket layer acts as a central nervous system, broadcasting state changes to all connected clients.
 
-**Trigger Points:**
-- `/API/configure/set` - Main configuration save endpoint
-- Layer CRUD operations via `addLayer()`, `removeLayer()`, `modifyLayer()`
-- Configuration version changes
+#### Feature Integration: Configure Interface
+
+**How Configure Interface Uses This Infrastructure:**
+- **Configuration Saves**: When an administrator saves configuration changes via `/API/configure/set`, the server broadcasts the update to all connected Configure clients
+- **Version Conflict Detection**: Configure clients receive version metadata to detect concurrent edits
+- **UI Lock/Unlock**: Based on incoming messages, the Configure interface locks or unlocks the save button to prevent overwrites
 
 **Broadcast Flow:**
 ```
-1. Admin saves configuration change
-2. Server validates and persists to database
+1. Admin A saves configuration change
+2. Server validates and persists to database (version ID increments)
 3. openWebSocket() called with change metadata
-4. Server opens client connection to own WebSocket
-5. Server sends message with info + body
-6. Broadcast relay sends to all connected clients
-7. Clients filter by mission and update UI
+4. Server opens client connection to own WebSocket server
+5. Message sent with {info: {id: version, mission: "X"}, body: {...}}
+6. WebSocket server broadcasts to all connected clients
+7. Admin B's Configure client receives message
+8. Admin B's client compares message version with local version
+9. If mismatch: UI locks with "Configuration changed by another user" warning
+10. Admin B must refresh to get latest version before saving
 ```
 
-#### Layer Management
+**Integration Files:**
+- `API/Backend/Config/routes/configs.js` - Triggers broadcasts on config save
+- `configure/src/core/Websocket.js` - React Configure client receiver
+- `config/js/websocket.js` - Legacy Configure client receiver
 
-**Client-Side Layer Queue:**
+#### Feature Integration: Layer Management
+
+**How Layer Management Uses This Infrastructure:**
+- **Layer Addition**: When an administrator adds a new layer via Configure, all MMGIS clients receive `addLayer` notification
+- **Layer Updates**: Configuration changes to existing layers broadcast as `updateLayer` messages
+- **Layer Removal**: Layer deletions broadcast as `removeLayer` messages
+- **User Control**: Rather than forcing immediate updates, changes queue for user review via LayerUpdatedControl UI
+
+**Client-Side Processing:**
 ```javascript
 Location: src/essence/Basics/Layers_/Layers_.js
-Queue Structure: L_.addLayerQueue[]
-Queue Items: { newLayerName, data, type }
-Processing: User-triggered via LayerUpdatedControl modal
+Queue Structure: L_.addLayerQueue[] array
+Queue Items: { newLayerName: string, data: config, type: "addLayer|updateLayer|removeLayer" }
+User Interface: LayerUpdatedControl button with badge counter
+Processing: User clicks "Update" → L_.updateQueueLayers() applies changes
 ```
 
-**Update Types:**
-- `addLayer` - Calls `L_.addLayerToLayersData()`
-- `updateLayer` - Calls `L_.TimeControl_.reloadLayer()` with force flags
-- `removeLayer` - Calls `L_.removeLayerFromLayersData()`
+**Update Flow:**
+```
+1. Admin adds layer "Mars CTX" in Configure interface
+2. Server saves layer to mission configuration
+3. openWebSocket() broadcasts {type: "addLayer", layerName: "Mars CTX", mission: "MSL"}
+4. All connected MMGIS clients receive message
+5. Clients filter by mission name (skip if different mission)
+6. Matching clients queue layer for review: L_.addLayerQueue.push({...})
+7. LayerUpdatedControl shows notification badge with count
+8. User clicks button to review queued changes
+9. Modal displays table of pending updates
+10. User clicks "Update" to apply changes
+11. L_.addLayerToLayersData() adds new layer to map
+12. Queue cleared, control removed
+```
 
-**Forced Updates:**
-- If `forceClientUpdate: true`, changes applied immediately
-- Bypasses user confirmation modal
-- Useful for automated/scripted updates
+**Automated Updates:**
+- **Forced Update Path**: If `forceClientUpdate: true` flag set in message, bypasses user confirmation
+- **Use Case**: Automated scripts or administrative overrides
+- **Implementation**: Immediately calls `L_.updateQueueLayers()` without UI interaction
+
+**Integration Files:**
+- `src/essence/essence.js` - WebSocket message receiver, queue populator
+- `src/essence/Basics/Layers_/Layers_.js` - Queue management, update application
+- `src/essence/Basics/UserInterface_/LayerUpdatedControl.js` - UI notification control
+
+#### Feature Integration: Draw Tool Collaboration
+
+**How Draw Tool Uses This Infrastructure:**
+The Draw Tool leverages this WebSocket infrastructure to enable real-time collaborative vector drawing. When multiple users work on the same drawing file, the infrastructure ensures all users see updates immediately.
+
+**Collaborative Drawing Flow:**
+```
+1. User A adds a polygon to drawing file "Site_Survey_Sol_150"
+2. Server persists feature to database (user_features table)
+3. Draw Tool backend broadcasts file update via openWebSocket()
+4. Message includes {file_id, action: "add", feature_id, geometry, properties}
+5. WebSocket infrastructure broadcasts to all connected clients
+6. User B (also viewing "Site_Survey_Sol_150") receives message
+7. User B's Draw Tool adds feature to local layer without server fetch
+8. Both users now see the new polygon in real-time
+```
+
+**Synchronization Scenarios:**
+- **Feature Addition**: New drawings appear instantly on all users' maps
+- **Feature Editing**: Geometry or property changes broadcast immediately
+- **Feature Deletion**: Removed features disappear from all users' views
+- **File Updates**: Changes to file metadata (name, description, permissions) broadcast to subscribers
+
+**Draw Tool Integration Files:**
+- `src/essence/Tools/Draw/DrawTool.js` - Subscribes to file-specific WebSocket messages
+- `API/Backend/APIs/Draw.js` - Broadcasts feature CRUD operations
+- `API/Backend/APIs/Files.js` - Broadcasts file metadata changes
+
+**Note**: While the WebSocket infrastructure provides the communication layer, the Draw Tool implements its own message protocol and routing logic for file-specific updates. See spec 007 (Interactive Mapping Tools) for Draw Tool implementation details.
 
 #### User Interface Components
 
 **LayerUpdatedControl (Leaflet Control):**
-- Shows notification icon when updates available
+- Shows notification icon when layer updates available
 - Three button types: `ADD_LAYER`, `RELOAD`, `DISCONNECTED`
 - Badge displays count of queued updates (max shows "+" for 10+)
 - Modal interface for reviewing and applying changes
@@ -365,9 +458,12 @@ Based on the current implementation, potential enhancements could include:
 
 ## Related Features
 
-- **003-vector-drawing-and-collaboration** - DrawTool file synchronization (different mechanism)
-- **005-mission-project-configuration** - Configuration versioning and conflict detection
-- **009-layer-and-map-configuration** - Layer CRUD operations that trigger broadcasts
+This infrastructure spec documents the underlying WebSocket communication layer. User-facing collaborative features that leverage this infrastructure are documented in:
+
+- **007-interactive-mapping-tools** - Draw Tool collaborative editing (uses this infrastructure for real-time file synchronization)
+- **005-mission-project-configuration** - Mission configuration system (uses this infrastructure for admin conflict detection)
+- **009-layer-and-map-configuration** - Layer management system (uses this infrastructure for layer update notifications)
+- **010-administrative-tools** - Configure interface (uses this infrastructure for multi-admin coordination)
 
 ## References
 
