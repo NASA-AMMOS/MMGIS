@@ -149,6 +149,20 @@
     {
       "components": [
         {
+          "field": "panelSettings.globeRenderer",
+          "name": "3D Globe Renderer",
+          "description": "Select which 3D rendering engine to use for the Globe Panel. LithoSphere is the default renderer. CesiumJS offers improved performance and different visualization capabilities.",
+          "type": "dropdown",
+          "disableSwitch": "panels.globe",
+          "width": 4,
+          "options": ["lithosphere", "cesium"],
+          "default": "lithosphere"
+        }
+      ]
+    },
+    {
+      "components": [
+        {
           "field": "panelSettings.demFallbackPath",
           "name": "DEM Fallback URL",
           "description": "A URL to an underlying and ever-present DEM terrain tileset to fill in any missing elevation tiles of active layers.",
@@ -172,6 +186,51 @@
           "type": "dropdown",
           "width": 2,
           "options": ["rgba", "tif"]
+        }
+      ]
+    },
+    {
+      "name": "Panel Default Widths",
+      "components": [
+        {
+          "field": "panels.defaultWidths.viewer",
+          "name": "Default Viewer Width (%)",
+          "description": "Default percentage width for the Viewer panel (0-100). The sum of Viewer, Map, and Globe widths must equal 100. These defaults are overridden by URL deeplinks (panePercents parameter). Leave blank to use system default (0).",
+          "type": "number",
+          "min": 0,
+          "max": 100,
+          "width": 4,
+          "default": 0
+        },
+        {
+          "field": "panels.defaultWidths.map",
+          "name": "Default Map Width (%)",
+          "description": "Default percentage width for the Map panel (0-100). The sum must equal 100. Overridden by deeplinks. Leave blank for default (100).",
+          "type": "number",
+          "min": 0,
+          "max": 100,
+          "width": 4,
+          "default": 100
+        },
+        {
+          "field": "panels.defaultWidths.globe",
+          "name": "Default Globe Width (%)",
+          "description": "Default percentage width for the Globe panel (0-100). The sum must equal 100. Overridden by deeplinks. Leave blank for default (0).",
+          "type": "number",
+          "min": 0,
+          "max": 100,
+          "width": 4,
+          "default": 0
+        }
+      ]
+    },
+    {
+      "subname": "Width Validation",
+      "components": [
+        {
+          "type": "gap",
+          "width": 12,
+          "description": "⚠️ Important: The three panel width percentages must sum to exactly 100. If they don't sum to 100, the system will fall back to the default layout (Viewer 0%, Map 100%, Globe 0%). Deeplinks with the 'panePercents' parameter will always override these configured defaults."
         }
       ]
     },

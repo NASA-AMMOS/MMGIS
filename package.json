@@ -1,6 +1,6 @@
 {
   "name": "mmgis",
-  "version": "4.1.18-20251205",
+  "version": "4.2.1-20251222",
   "description": "A web-based mapping and localization solution for science operation on planetary missions.",
   "homepage": "build",
   "repository": {
@@ -61,6 +61,7 @@
     "bcryptjs": "^2.4.3",
     "busboy": "1.6",
     "camelcase": "^5.3.1",
+    "cesium": "^1.121.0",
     "chart.js": "^3.6.0",
     "chartjs-plugin-zoom": "^1.2.1",
     "chroma-js": "^1.4.1",
@@ -232,6 +233,7 @@
     "babel-plugin-named-asset-import": "^0.3.8",
     "babel-preset-react-app": "^10.0.1",
     "case-sensitive-paths-webpack-plugin": "2.3.0",
+    "copy-webpack-plugin": "^11.0.0",
     "css-loader": "3.4.2",
     "css-minimizer-webpack-plugin": "^5.0.1",
     "eslint": "^6.6.0",

@@ -143,10 +143,8 @@ function updateTools() {
       return obj;
     }, {});
 
-  // Build dynamic /config/pre/toolConfigs.json file
-  // (configure page is still old school)
+  // Build dynamic toolConfigs.json file for configure page
   try {
-    fs.writeFileSync("./config/pre/toolConfigs.json", JSON.stringify(tools));
     fs.writeFileSync(
       "./configure/public/toolConfigs.json",
       JSON.stringify(tools)

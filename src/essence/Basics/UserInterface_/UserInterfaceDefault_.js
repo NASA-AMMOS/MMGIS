@@ -90,32 +90,28 @@ var UserInterface = {
             this.scrollLeft += e.originalEvent.deltaY
         })
 
-        this.rightPanel = $('<div>')
-            .attr('id', 'uiRightPanel')
-            .css({
-                'position': 'absolute',
-                'top': '0px',
-                'right': '0px',
-                'display': 'none',
-                'width': '0px',
-                'height': '100vh',
-                'background': '#000'
-            })
+        this.rightPanel = $('<div>').attr('id', 'uiRightPanel').css({
+            position: 'absolute',
+            top: '0px',
+            right: '0px',
+            display: 'none',
+            width: '0px',
+            height: '100vh',
+            background: '#000',
+        })
         $('body').append(this.rightPanel)
 
         Login.init()
 
-        this.barBottom = $('<div>')
-            .attr('id', 'barBottom')
-            .css({
-                'position': 'absolute',
-                'width': '40px',
-                'bottom': '0px',
-                'left': '0px',
-                'display': 'flex',
-                'flex-flow': 'column',
-                'z-index': '1005'
-            })
+        this.barBottom = $('<div>').attr('id', 'barBottom').css({
+            position: 'absolute',
+            width: '40px',
+            bottom: '0px',
+            left: '0px',
+            display: 'flex',
+            'flex-flow': 'column',
+            'z-index': '1005',
+        })
         $('#main-container').append(this.barBottom)
 
         BottomBar.init('barBottom', this)
@@ -123,40 +119,39 @@ var UserInterface = {
         this.toolPanel = $('<div>')
             .attr('id', 'toolPanel')
             .css({
-                'position': 'absolute',
-                'width': '0px',
-                'top': this.topSize + 'px',
-                'height': 'calc( 100% - ' + this.topSize + 'px )',
-                'left': this.topSize + 'px',
-                'background': 'var(--color-k)',
+                position: 'absolute',
+                width: '0px',
+                top: this.topSize + 'px',
+                height: 'calc( 100% - ' + this.topSize + 'px )',
+                left: this.topSize + 'px',
+                background: 'var(--color-k)',
                 //'border-left': '1px solid #26a8ff',
                 //'box-shadow': '5px 0px 3px rgba(0,0,0,0.2)',
-                'transition': 'width 0.2s ease-out',
-                'overflow': 'hidden',
-                'z-index': '1400'
+                transition: 'width 0.2s ease-out',
+                overflow: 'hidden',
+                'z-index': '1400',
             })
         $('#main-container').append(this.toolPanel)
         // Drag
-        this.toolPanelDrag = $('<div>')
-            .attr('id', 'toolPanelDrag')
-            .css({
-                'position': 'absolute',
-                'width': '24px',
-                'height': `28px`,
-                'padding': '10px 2px',
-                'margin': '0px 3px',
-                'text-align': 'center',
-                'top': '1px',
-                'color': 'var(--color-a3)',
-                'overflow': 'hidden',
-                'cursor': 'col-resize',
-                'display': 'none',
-                'z-index': '1400',
-                'border-right': '1px solid transparent'
-            })
+        this.toolPanelDrag = $('<div>').attr('id', 'toolPanelDrag').css({
+            position: 'absolute',
+            width: '24px',
+            height: `28px`,
+            padding: '10px 2px',
+            margin: '0px 3px',
+            'text-align': 'center',
+            top: '1px',
+            color: 'var(--color-a3)',
+            overflow: 'hidden',
+            cursor: 'col-resize',
+            display: 'none',
+            'z-index': '1400',
+            'border-right': '1px solid transparent',
+        })
         $('#main-container').append(this.toolPanelDrag)
-        const toolPanelDragInner = $('<div>')
-            .html("<i class='mdi mdi-drag-vertical mdi-18px'></i>")
+        const toolPanelDragInner = $('<div>').html(
+            "<i class='mdi mdi-drag-vertical mdi-18px'></i>"
+        )
         this.toolPanelDrag.append(toolPanelDragInner)
         UserInterface.handleToolDragDragging = function (e) {
             UserInterface.toolDrags.left =
@@ -166,9 +161,9 @@ var UserInterface = {
             $('body').css('user-select', 'none')
 
             UserInterface.toolPanelDrag.css({
-                'left': UserInterface.toolDrags.left + 'px',
-                'height': '100%',
-                'border-right': '2px solid var(--color-a1)'
+                left: UserInterface.toolDrags.left + 'px',
+                height: '100%',
+                'border-right': '2px solid var(--color-a1)',
             })
         }
 
@@ -182,9 +177,9 @@ var UserInterface = {
                 )
             $('body').css('user-select', 'auto')
             UserInterface.toolPanelDrag.css({
-                'color': 'var(--color-a3)',
-                'height': '28px',
-                'border-right': '1px solid transparent'
+                color: 'var(--color-a3)',
+                height: '28px',
+                'border-right': '1px solid transparent',
             })
         }
         UserInterface.handleToolDragMousedown = function (e) {
@@ -203,13 +198,14 @@ var UserInterface = {
         this.splitscreens = $('<div>')
             .attr('id', 'splitscreens')
             .css({
-                'position': 'absolute',
-                'top': (this.fullSizeViews ? '0' : this.topSize) + 'px',
-                'width': 'calc( 100% - ' + 40 + 'px )',
-                'height': 'calc( 100% - ' +
+                position: 'absolute',
+                top: (this.fullSizeViews ? '0' : this.topSize) + 'px',
+                width: 'calc( 100% - ' + 40 + 'px )',
+                height:
+                    'calc( 100% - ' +
                     (this.fullSizeViews ? '0' : this.topSize) +
                     'px )',
-                'left': 40 + 'px'
+                left: 40 + 'px',
             })
         $('#main-container').append(this.splitscreens)
 
@@ -232,34 +228,30 @@ var UserInterface = {
         this.viewerScreen = $('<div>')
             .attr('id', 'viewerScreen')
             .css({
-                'position': 'absolute',
-                'width': this.pxIsViewer + 'px',
-                'height': this.mainHeight + 'px',
-                'top': '0px',
-                'overflow': 'hidden',
-                'left': 0 + 'px'
+                position: 'absolute',
+                width: this.pxIsViewer + 'px',
+                height: this.mainHeight + 'px',
+                top: '0px',
+                overflow: 'hidden',
+                left: 0 + 'px',
             })
         this.vmgScreen.append(this.viewerScreen)
 
-        const viewerDiv = $('<div>')
-            .attr('id', 'viewer')
-            .css({
-                'position': 'absolute',
-                'background-color': 'var(--color-a-5)',
-                'width': '100%',
-                'height': '100%'
-            })
+        const viewerDiv = $('<div>').attr('id', 'viewer').css({
+            position: 'absolute',
+            'background-color': 'var(--color-a-5)',
+            width: '100%',
+            height: '100%',
+        })
         this.viewerScreen.append(viewerDiv)
-        this.viewerToolBar = $('<div>')
-            .attr('id', 'viewerToolBar')
-            .css({
-                'position': 'absolute',
-                'top': `40px`,
-                'width': '100%',
-                'height': '48px',
-                'pointer-events': 'none',
-                'z-index': '5'
-            })
+        this.viewerToolBar = $('<div>').attr('id', 'viewerToolBar').css({
+            position: 'absolute',
+            top: `40px`,
+            width: '100%',
+            height: '48px',
+            'pointer-events': 'none',
+            'z-index': '5',
+        })
         this.viewerScreen.append(this.viewerToolBar)
 
         //The viewer slider
@@ -267,10 +259,10 @@ var UserInterface = {
             .attr('class', 'splitterV')
             .attr('id', 'viewerSplit')
             .css({
-                'width': this.splitterSize + 'px',
-                'height': this.mainHeight + 'px',
-                'left': -this.splitterSize + 'px',
-                'cursor': 'default'
+                width: this.splitterSize + 'px',
+                height: this.mainHeight + 'px',
+                left: -this.splitterSize + 'px',
+                cursor: 'default',
             })
         this.vmgScreen.append(this.viewerSplit)
 
@@ -278,53 +270,49 @@ var UserInterface = {
         this.mapScreen = $('<div>')
             .attr('id', 'mapScreen')
             .css({
-                'position': 'absolute',
-                'width': this.pxIsMap - this.splitterSize * 2 + 'px',
-                'height': this.mainHeight + 'px',
-                'top': '0px',
-                'left': this.pxIsViewer + this.splitterSize + 'px'
+                position: 'absolute',
+                width: this.pxIsMap - this.splitterSize * 2 + 'px',
+                height: this.mainHeight + 'px',
+                top: '0px',
+                left: this.pxIsViewer + this.splitterSize + 'px',
             })
         this.vmgScreen.append(this.mapScreen)
-        const mapDiv = $('<div>')
-            .attr('id', 'map')
-            .css({
-                'position': 'absolute',
-                'background-color': 'var(--color-a-5)',
-                'width': '100%',
-                'height': '100%'
-                //'height': 'calc( 100% - ' + this.splitterSize + 'px )'
-            })
+        const mapDiv = $('<div>').attr('id', 'map').css({
+            position: 'absolute',
+            'background-color': 'var(--color-a-5)',
+            width: '100%',
+            height: '100%',
+            //'height': 'calc( 100% - ' + this.splitterSize + 'px )'
+        })
         this.mapScreen.append(mapDiv)
-        this.mapToolBar = $('<div>')
-            .attr('id', 'mapToolBar')
-            .css({
-                'position': 'absolute',
-                'bottom': '0px',
-                'width': '100%',
-                'height': '40px',
-                'pointer-events': 'none',
-                'overflow': 'hidden',
-                'z-index': '1003',
-                'transition': 'bottom 0.2s ease-out, height 0.2s ease-out'
-            })
+        this.mapToolBar = $('<div>').attr('id', 'mapToolBar').css({
+            position: 'absolute',
+            bottom: '0px',
+            width: '100%',
+            height: '40px',
+            'pointer-events': 'none',
+            overflow: 'hidden',
+            'z-index': '1003',
+            transition: 'bottom 0.2s ease-out, height 0.2s ease-out',
+        })
         this.mapScreen.append(this.mapToolBar)
 
         this.mapTopBar = $('<div>')
             .attr('id', 'mapTopBar')
             .css({
                 'z-index': '400',
-                'display': 'flex',
+                display: 'flex',
                 'justify-content': 'space-between',
-                'position': 'absolute',
-                'top': '0px',
+                position: 'absolute',
+                top: '0px',
                 'pointer-events': 'none',
-                'width': '100%',
-                'height': this.topSize + 'px',
-                'left': '0px',
-                'background': 'transparent',
+                width: '100%',
+                height: this.topSize + 'px',
+                left: '0px',
+                background: 'transparent',
                 'font-family': 'sans-serif',
                 'font-size': '24px',
-                'padding': '5px'
+                padding: '5px',
             })
         this.mapScreen.append(this.mapTopBar)
 
@@ -333,9 +321,9 @@ var UserInterface = {
             .attr('class', 'splitterV')
             .attr('id', 'mapSplit')
             .css({
-                'width': this.splitterSizeHidden + 'px',
-                'height': this.mainHeight + 'px',
-                'left': this.pxIsViewer - this.splitterSizeHidden / 2 + 'px'
+                width: this.splitterSizeHidden + 'px',
+                height: this.mainHeight + 'px',
+                left: this.pxIsViewer - this.splitterSizeHidden / 2 + 'px',
             })
         this.vmgScreen.append(this.mapSplit)
 
@@ -343,19 +331,18 @@ var UserInterface = {
             .attr('class', 'splitterVInner')
             .attr('id', 'mapSplitInner')
             .css({
-                'width': this.splitterSizeHidden * 2 + 'px'
+                width: this.splitterSizeHidden * 2 + 'px',
             })
         this.mapSplit.append(this.mapSplitInner)
 
-        const mapSplitInnerLeftBg = $('<div>')
-            .css({
-                'background': 'var(--color-a)',
-                'width': '30px',
-                'height': '30px',
-                'position': 'absolute',
-                'left': '-19px',
-                'z-index': '-1'
-            })
+        const mapSplitInnerLeftBg = $('<div>').css({
+            background: 'var(--color-a)',
+            width: '30px',
+            height: '30px',
+            position: 'absolute',
+            left: '-19px',
+            'z-index': '-1',
+        })
         this.mapSplitInner.append(mapSplitInnerLeftBg)
 
         const mapSplitInnerLeft = $('<i>')
@@ -363,9 +350,9 @@ var UserInterface = {
             .attr('tabindex', 500)
             .attr('class', 'mdi mdi-chevron-double-left mdi-24px')
             .css({
-                'transition': 'all 0.2s ease-in',
-                'position': 'absolute',
-                'left': '-28px'
+                transition: 'all 0.2s ease-in',
+                position: 'absolute',
+                left: '-28px',
             })
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
@@ -381,15 +368,14 @@ var UserInterface = {
             })
         this.mapSplitInner.append(mapSplitInnerLeft)
 
-        const mapSplitInnerRightBg = $('<div>')
-            .css({
-                'background': 'var(--color-a)',
-                'width': '30px',
-                'height': '30px',
-                'position': 'absolute',
-                'left': '23px',
-                'z-index': '-1'
-            })
+        const mapSplitInnerRightBg = $('<div>').css({
+            background: 'var(--color-a)',
+            width: '30px',
+            height: '30px',
+            position: 'absolute',
+            left: '23px',
+            'z-index': '-1',
+        })
         this.mapSplitInner.append(mapSplitInnerRightBg)
 
         const mapSplitInnerRight = $('<i>')
@@ -397,9 +383,9 @@ var UserInterface = {
             .attr('tabindex', 501)
             .attr('class', 'mdi mdi-chevron-double-right mdi-24px')
             .css({
-                'transition': 'all 0.2s ease-in',
-                'position': 'absolute',
-                'right': '-29px'
+                transition: 'all 0.2s ease-in',
+                position: 'absolute',
+                right: '-29px',
             })
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
@@ -424,40 +410,43 @@ var UserInterface = {
             .html('Viewer')
         this.mapSplitInner.append(mapSplitInnerViewerInfo)
 
+        this.mapSplitInner
+            .append('div')
+            .attr('id', 'mapSplitInnerVMapInfo')
+            .html('Map')
+
         //The globe screen
         this.globeScreen = $('<div>')
             .attr('id', 'globeScreen')
             .css({
-                'position': 'absolute',
-                'width': this.pxIsGlobe + 'px',
-                'height': this.mainHeight + 'px',
-                'top': '0px',
-                'overflow': 'hidden',
-                'left': this.pxIsViewer + this.pxIsMap + 'px',
-                'z-index': '401'
+                position: 'absolute',
+                width: this.pxIsGlobe + 'px',
+                height: this.mainHeight + 'px',
+                top: '0px',
+                overflow: 'hidden',
+                left: this.pxIsViewer + this.pxIsMap + 'px',
+                'z-index': '401',
             })
         this.vmgScreen.append(this.globeScreen)
 
-        const globeDiv = $('<div>')
-            .attr('id', 'globe')
-            .css({
-                'position': 'absolute',
-                'background-color': 'var(--color-a1)',
-                'width': '100%',
-                'height': '100%'
-            })
+        const globeDiv = $('<div>').attr('id', 'globe').css({
+            position: 'absolute',
+            'background-color': 'var(--color-a1)',
+            width: '100%',
+            height: '100%',
+        })
         this.globeScreen.append(globeDiv)
 
         this.globeToolBar = $('<div>')
             .attr('id', 'globeToolBar')
             .css({
-                'position': 'absolute',
-                'top': `40px`,
-                'width': '100%',
+                position: 'absolute',
+                top: `40px`,
+                width: '100%',
                 'padding-right': this.fullSizeViews ? '70px' : '0px',
-                'height': '40px',
+                height: '40px',
                 'pointer-events': 'none',
-                'z-index': '5'
+                'z-index': '5',
             })
         this.globeScreen.append(this.globeToolBar)
 
@@ -466,13 +455,13 @@ var UserInterface = {
             .attr('class', 'splitterV')
             .attr('id', 'globeSplit')
             .css({
-                'width': this.splitterSizeHidden + 'px',
-                'height': this.mainHeight + 'px',
-                'left':
+                width: this.splitterSizeHidden + 'px',
+                height: this.mainHeight + 'px',
+                left:
                     this.pxIsViewer +
                     this.pxIsMap -
                     this.splitterSizeHidden / 2 +
-                    'px'
+                    'px',
             })
         this.vmgScreen.append(this.globeSplit)
 
@@ -480,19 +469,18 @@ var UserInterface = {
             .attr('class', 'splitterVInner')
             .attr('id', 'globeSplitInner')
             .css({
-                'width': this.splitterSizeHidden * 2 + 'px'
+                width: this.splitterSizeHidden * 2 + 'px',
             })
         this.globeSplit.append(this.globeSplitInner)
 
-        const globeSplitInnerLeftBg = $('<div>')
-            .css({
-                'background': 'var(--color-a)',
-                'width': '30px',
-                'height': '30px',
-                'position': 'absolute',
-                'left': '-18px',
-                'z-index': '-1'
-            })
+        const globeSplitInnerLeftBg = $('<div>').css({
+            background: 'var(--color-a)',
+            width: '30px',
+            height: '30px',
+            position: 'absolute',
+            left: '-18px',
+            'z-index': '-1',
+        })
         this.globeSplitInner.append(globeSplitInnerLeftBg)
 
         const globeSplitInnerLeft = $('<i>')
@@ -500,9 +488,9 @@ var UserInterface = {
             .attr('tabindex', 502)
             .attr('class', 'mdi mdi-chevron-double-left mdi-24px')
             .css({
-                'transition': 'all 0.2s ease-in',
-                'position': 'absolute',
-                'left': '-27px'
+                transition: 'all 0.2s ease-in',
+                position: 'absolute',
+                left: '-27px',
             })
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
@@ -522,15 +510,14 @@ var UserInterface = {
             })
         this.globeSplitInner.append(globeSplitInnerLeft)
 
-        const globeSplitInnerRightBg = $('<div>')
-            .css({
-                'background': 'var(--color-a)',
-                'width': '30px',
-                'height': '30px',
-                'position': 'absolute',
-                'left': '22px',
-                'z-index': '-1'
-            })
+        const globeSplitInnerRightBg = $('<div>').css({
+            background: 'var(--color-a)',
+            width: '30px',
+            height: '30px',
+            position: 'absolute',
+            left: '22px',
+            'z-index': '-1',
+        })
         this.globeSplitInner.append(globeSplitInnerRightBg)
 
         const globeSplitInnerRight = $('<i>')
@@ -538,14 +525,18 @@ var UserInterface = {
             .attr('tabindex', 503)
             .attr('class', 'mdi mdi-chevron-double-right mdi-24px')
             .css({
-                'transition': 'all 0.2s ease-in',
-                'position': 'absolute',
-                'right': '-28px'
+                transition: 'all 0.2s ease-in',
+                position: 'absolute',
+                right: '-28px',
             })
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
                 if (pp.map == 0) {
-                    UserInterface.setPanelPercents(100, 0, 0)
+                    UserInterface.setPanelPercents(
+                        pp.viewer,
+                        pp.map + pp.globe / 2,
+                        pp.globe - pp.globe / 2
+                    )
                 } else {
                     UserInterface.setPanelPercents(
                         pp.viewer,
@@ -560,6 +551,11 @@ var UserInterface = {
             .attr('id', 'mapSplitInnerGlobeInfo')
             .html('Globe')
         this.globeSplitInner.append(mapSplitInnerGlobeInfo)
+
+        this.globeSplitInner
+            .append('div')
+            .attr('id', 'mapSplitInnerGMapInfo')
+            .html('Map')
 
         //thumb lines
         /*
@@ -605,25 +601,23 @@ var UserInterface = {
         this.toolsScreen = $('<div>')
             .attr('id', 'toolsWrapper')
             .css({
-                'height': this.pxIsTools + 'px',
-                'width': '0%',
-                'margin': '0',
-                'background': 'var(--color-a)',
-                'left': 0 + 'px',
-                'bottom': '0px',
-                'z-index': '1003'
+                height: this.pxIsTools + 'px',
+                width: '0%',
+                margin: '0',
+                background: 'var(--color-a)',
+                left: 0 + 'px',
+                bottom: '0px',
+                'z-index': '1003',
             })
         this.tScreen.append(this.toolsScreen)
 
-        const toolsDiv = $('<div>')
-            .attr('id', 'tools')
-            .css({
-                'position': 'absolute',
-                'top': '0px',
-                'height': '100%',
-                'padding-bottom': '0px',
-                'width': '100%'
-            })
+        const toolsDiv = $('<div>').attr('id', 'tools').css({
+            position: 'absolute',
+            top: '0px',
+            height: '100%',
+            'padding-bottom': '0px',
+            width: '100%',
+        })
         this.toolsScreen.append(toolsDiv)
 
         //The tools slider
@@ -631,10 +625,10 @@ var UserInterface = {
             .attr('class', 'splitterH')
             .attr('id', 'toolsSplit')
             .css({
-                'height': this.splitterSize / 2 + 'px',
-                'left': 0 + 'px',
-                'bottom': this.pxIsTools - this.splitterSize / 2 + 'px',
-                'z-index': '3'
+                height: this.splitterSize / 2 + 'px',
+                left: 0 + 'px',
+                bottom: this.pxIsTools - this.splitterSize / 2 + 'px',
+                'z-index': '3',
             })
         this.toolsScreen.append(this.toolsSplit)
         //The toolbar
@@ -645,29 +639,29 @@ var UserInterface = {
                 //'background-color': bodyHEX,
                 //'box-shadow': 'inset 0px 2px 7px black',
                 //'box-shadow': '7px 0px 7px rgba(0,0,0,0.2)',
-                'width': this.topSize + 'px',
+                width: this.topSize + 'px',
                 'padding-top': '40px',
-                'background': 'var(--color-a)',
+                background: 'var(--color-a)',
                 'border-right': '1px solid var(--color-a-5)',
-                'top': '0px',
-                'height': '100%',
-                'z-index': '1004'
+                top: '0px',
+                height: '100%',
+                'z-index': '1004',
             })
         $('#main-container').append(this.toolbar)
 
         this.toolbarLogo = $('<div>')
             .attr('id', 'mmgislogo')
             .css({
-                'display': this.topSize == 0 ? 'inherit' : 'none',
-                'padding': '9px 6px',
-                'cursor': 'pointer',
-                'width': '40px',
-                'height': '40px',
-                'position': 'absolute',
-                'top': '0px',
-                'left': '0px',
+                display: this.topSize == 0 ? 'inherit' : 'none',
+                padding: '9px 6px',
+                cursor: 'pointer',
+                width: '40px',
+                height: '40px',
+                position: 'absolute',
+                top: '0px',
+                left: '0px',
                 'z-index': '2005',
-                'image-rendering': 'pixelated'
+                'image-rendering': 'pixelated',
             })
             .html(
                 `<svg width="27" height="27" viewBox="0 0 231 137" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -680,24 +674,24 @@ var UserInterface = {
         this.dataLoadingSpinner = $('<div>')
             .attr('id', 'dataLoadingSpinner')
             .css({
-                'opacity': 0,
-                'transition': 'opacity 0.3s ease-in-out',
+                opacity: 0,
+                transition: 'opacity 0.3s ease-in-out',
                 'pointer-events': 'none',
-                'width': '40px',
-                'height': '40px',
-                'background': 'var(--color-a)',
-                'position': 'absolute',
-                'top': '0px',
-                'left': '0px',
-                'z-index': '2005'
+                width: '40px',
+                height: '40px',
+                background: 'var(--color-a)',
+                position: 'absolute',
+                top: '0px',
+                left: '0px',
+                'z-index': '2005',
             })
         $('#main-container').append(this.dataLoadingSpinner)
         const dataLoadingSpinnerInner = $('<div>')
             .attr('class', 'mmgis-spinner2')
             .css({
-                'position': 'absolute',
-                'top': '6px',
-                'left': '6px'
+                position: 'absolute',
+                top: '6px',
+                left: '6px',
             })
         this.dataLoadingSpinner.append(dataLoadingSpinnerInner)
 
@@ -794,8 +788,33 @@ var UserInterface = {
         UserInterface.splitscreens.css('left', width + 40 + 'px')
         UserInterface.mainWidth = $('#splitscreens').width()
         UserInterface.mainHeight = $('#splitscreens').height()
-        const pp = UserInterface.getPanelPercents()
-        UserInterface.setPanelPercents(pp.viewer, pp.map, pp.globe)
+
+        // Scale panel widths proportionally
+        if (oldMainWidth > 0) {
+            const scale = UserInterface.mainWidth / oldMainWidth
+            UserInterface.pxIsViewer = UserInterface.pxIsViewer * scale
+            UserInterface.pxIsGlobe = UserInterface.pxIsGlobe * scale
+            UserInterface.pxIsMap =
+                UserInterface.mainWidth -
+                UserInterface.pxIsViewer -
+                UserInterface.pxIsGlobe
+
+            // Update only widths, not positions
+            UserInterface.viewerScreen.style(
+                'width',
+                UserInterface.pxIsViewer + 'px'
+            )
+            UserInterface.mapScreen.style(
+                'width',
+                UserInterface.pxIsMap - UserInterface.splitterSize * 2 + 'px'
+            )
+            UserInterface.globeScreen.style(
+                'width',
+                UserInterface.pxIsGlobe + 'px'
+            )
+
+            resize()
+        }
     },
     closeToolPanel: function () {
         UserInterface.toolPanel.empty()
@@ -994,7 +1013,10 @@ var UserInterface = {
         })
     },
     getPanelPercents: function () {
-        var vp = (UserInterface.pxIsViewer / UserInterface.mainWidth) * 100
+        // Account for the splitterSize that was subtracted when setting pxIsViewer
+        var adjustedPxIsViewer =
+            UserInterface.pxIsViewer + UserInterface.splitterSize / 2
+        var vp = (adjustedPxIsViewer / UserInterface.mainWidth) * 100
         var gp = (UserInterface.pxIsGlobe / UserInterface.mainWidth) * 100
         var mp = 100 - vp - gp
         return {
@@ -1013,6 +1035,10 @@ var UserInterface = {
         if (!UserInterface.hasGlobe && globePercent != 0) return
         if (viewerPercent + mapPercent + globePercent != 100) return
 
+        // Check if Globe is being opened for the first time
+        const wasGlobeClosed = UserInterface.pxIsGlobe === 0
+        const isGlobeOpening = globePercent > 0
+
         UserInterface.pxIsViewer =
             UserInterface.mainWidth * (viewerPercent / 100) -
             UserInterface.splitterSize / 2
@@ -1023,14 +1049,12 @@ var UserInterface = {
             UserInterface.pxIsGlobe
 
         //The viewer screen
-        UserInterface.viewerScreen.css(
-            'width',
-            UserInterface.pxIsViewer + 'px'
-        )
+        UserInterface.viewerScreen.css('width', UserInterface.pxIsViewer + 'px')
         //The map screen
         UserInterface.mapScreen.css({
-            'width': UserInterface.pxIsMap - UserInterface.splitterSize * 2 + 'px',
-            'left': UserInterface.pxIsViewer + UserInterface.splitterSize + 'px'
+            width:
+                UserInterface.pxIsMap - UserInterface.splitterSize * 2 + 'px',
+            left: UserInterface.pxIsViewer + UserInterface.splitterSize + 'px',
         })
         //The map slider
         UserInterface.mapSplit.css(
@@ -1042,8 +1066,8 @@ var UserInterface = {
 
         //The globe screen
         UserInterface.globeScreen.css({
-            'width': UserInterface.pxIsGlobe + 'px',
-            'left': UserInterface.pxIsViewer + UserInterface.pxIsMap + 'px'
+            width: UserInterface.pxIsGlobe + 'px',
+            left: UserInterface.pxIsViewer + UserInterface.pxIsMap + 'px',
         })
         //The globe slider
         UserInterface.globeSplit.css(
@@ -1055,22 +1079,36 @@ var UserInterface = {
         )
 
         resize()
+
+        // Sync Globe to Map's current center on first open (only if no globe coords in URL)
+        if (wasGlobeClosed && isGlobeOpening && Globe_ != null) {
+            if (!Globe_.hasBeenOpened) {
+                Globe_.hasBeenOpened = true
+                // Only sync to map center if no globe coordinates were specified in URL
+                if (L_.FUTURES.globeView == null) {
+                    // Use setTimeout to ensure resize completes first
+                    setTimeout(() => {
+                        Globe_.syncToMapCenter()
+                    }, 100)
+                }
+            }
+        }
     },
     minimalist(is) {
         if (is) {
             this.toolbarLogo.css('display', 'inherit')
             this.toolbar.css({
-                'top': '0px',
-                'height': '100%',
-                'padding-top': '40px'
+                top: '0px',
+                height: '100%',
+                'padding-top': '40px',
             })
             this.toolPanel.css({
-                'top': '0px',
-                'height': '100%'
+                top: '0px',
+                height: '100%',
             })
             this.splitscreens.css({
-                'top': '0px',
-                'height': '100%'
+                top: '0px',
+                height: '100%',
             })
         }
     },
@@ -1104,6 +1142,25 @@ var UserInterface = {
 
         $('#topBarTitleName').on('click', L_.home)
 
+        // Apply configured default panel widths (if present)
+        if (l_.configData.panels && l_.configData.panels.defaultWidths) {
+            const dw = l_.configData.panels.defaultWidths
+            const viewer = dw.viewer != null ? dw.viewer : 0
+            const map = dw.map != null ? dw.map : 100
+            const globe = dw.globe != null ? dw.globe : 0
+
+            // Validate sum equals 100 before applying
+            if (viewer + map + globe === 100) {
+                UserInterface.setPanelPercents(viewer, map, globe)
+            } else {
+                console.warn(
+                    `Panel default widths (${viewer}%, ${map}%, ${globe}%) do not sum to 100. ` +
+                        `Using system defaults.`
+                )
+            }
+        }
+
+        // Deeplinks override config defaults
         if (l_.FUTURES.panelPercents != null)
             UserInterface.setPanelPercents(
                 l_.FUTURES.panelPercents[0],
@@ -1342,14 +1399,12 @@ function mapSplitOnMouseMove(e) {
         }
 
         //The viewer screen
-        UserInterface.viewerScreen.css(
-            'width',
-            UserInterface.pxIsViewer + 'px'
-        )
+        UserInterface.viewerScreen.css('width', UserInterface.pxIsViewer + 'px')
         //The map screen
         UserInterface.mapScreen.css({
-            'width': UserInterface.pxIsMap - UserInterface.splitterSize * 2 + 'px',
-            'left': UserInterface.pxIsViewer + UserInterface.splitterSize + 'px'
+            width:
+                UserInterface.pxIsMap - UserInterface.splitterSize * 2 + 'px',
+            left: UserInterface.pxIsViewer + UserInterface.splitterSize + 'px',
         })
         //The map slider
         UserInterface.mapSplit.css(
@@ -1361,8 +1416,8 @@ function mapSplitOnMouseMove(e) {
 
         //The globe screen
         UserInterface.globeScreen.css({
-            'width': UserInterface.pxIsGlobe + 'px',
-            'left': UserInterface.pxIsViewer + UserInterface.pxIsMap + 'px'
+            width: UserInterface.pxIsGlobe + 'px',
+            left: UserInterface.pxIsViewer + UserInterface.pxIsMap + 'px',
         })
         //The globe slider
         UserInterface.globeSplit.css(
@@ -1437,15 +1492,13 @@ function globeSplitOnMouseMove(e) {
         }
 
         //The viewer screen
-        UserInterface.viewerScreen.css(
-            'width',
-            UserInterface.pxIsViewer + 'px'
-        )
+        UserInterface.viewerScreen.css('width', UserInterface.pxIsViewer + 'px')
 
         //The map screen
         UserInterface.mapScreen.css({
-            'width': UserInterface.pxIsMap - UserInterface.splitterSize * 2 + 'px',
-            'left': UserInterface.pxIsViewer + UserInterface.splitterSize + 'px'
+            width:
+                UserInterface.pxIsMap - UserInterface.splitterSize * 2 + 'px',
+            left: UserInterface.pxIsViewer + UserInterface.splitterSize + 'px',
         })
         //The map slider
         UserInterface.mapSplit.css(
@@ -1457,8 +1510,8 @@ function globeSplitOnMouseMove(e) {
 
         //The globe screen
         UserInterface.globeScreen.css({
-            'width': UserInterface.pxIsGlobe + 'px',
-            'left': UserInterface.pxIsViewer + UserInterface.pxIsMap + 'px'
+            width: UserInterface.pxIsGlobe + 'px',
+            left: UserInterface.pxIsViewer + UserInterface.pxIsMap + 'px',
         })
         //The globe slider
         UserInterface.globeSplit.css(
@@ -1529,10 +1582,7 @@ function toolsSplitOnMouseMove(e) {
         )
 
         //The tools screen
-        UserInterface.toolsScreen.css(
-            'height',
-            UserInterface.pxIsTools + 'px'
-        )
+        UserInterface.toolsScreen.css('height', UserInterface.pxIsTools + 'px')
         //The tools slider
         UserInterface.toolsSplit.css(
             'bottom',
@@ -1558,7 +1608,11 @@ function resize() {
     shouldRotateSplitterText()
 
     // Update TimeUI positions when layout changes
-    if (L_.TimeControl_ && L_.TimeControl_.timeUI && typeof L_.TimeControl_.timeUI.alignPopovers === 'function') {
+    if (
+        L_.TimeControl_ &&
+        L_.TimeControl_.timeUI &&
+        typeof L_.TimeControl_.timeUI.alignPopovers === 'function'
+    ) {
         L_.TimeControl_.timeUI.alignPopovers()
     }
 }
@@ -1608,40 +1662,41 @@ function windowresize() {
     //Update their sizes now
     //The viewer screen
     UserInterface.viewerScreen.css({
-        'width': UserInterface.pxIsViewer + 'px',
-        'height': UserInterface.mainHeight + 'px'
+        width: UserInterface.pxIsViewer + 'px',
+        height: UserInterface.mainHeight + 'px',
     })
     //The viewer slider
     UserInterface.viewerSplit.css('height', UserInterface.mainHeight + 'px')
 
     //The map screen
     UserInterface.mapScreen.css({
-        'width': UserInterface.pxIsMap - UserInterface.splitterSize * 2 + 'px',
-        'height': UserInterface.mainHeight + 'px',
-        'left': UserInterface.pxIsViewer + UserInterface.splitterSize + 'px'
+        width: UserInterface.pxIsMap - UserInterface.splitterSize * 2 + 'px',
+        height: UserInterface.mainHeight + 'px',
+        left: UserInterface.pxIsViewer + UserInterface.splitterSize + 'px',
     })
     //The map slider
     UserInterface.mapSplit.css({
-        'height': UserInterface.mainHeight + 'px',
-        'left': UserInterface.pxIsViewer -
+        height: UserInterface.mainHeight + 'px',
+        left:
+            UserInterface.pxIsViewer -
             UserInterface.splitterSizeHidden / 2 +
-            'px'
+            'px',
     })
 
     //The globe screen
     UserInterface.globeScreen.css({
-        'width': UserInterface.pxIsGlobe + 'px',
-        'height': UserInterface.mainHeight + 'px',
-        'left': UserInterface.pxIsViewer + UserInterface.pxIsMap + 'px'
+        width: UserInterface.pxIsGlobe + 'px',
+        height: UserInterface.mainHeight + 'px',
+        left: UserInterface.pxIsViewer + UserInterface.pxIsMap + 'px',
     })
     //The globe slider
     UserInterface.globeSplit.css({
-        'height': UserInterface.mainHeight + 'px',
-        'left':
+        height: UserInterface.mainHeight + 'px',
+        left:
             UserInterface.pxIsViewer +
             UserInterface.pxIsMap -
             UserInterface.splitterSizeHidden / 2 +
-            'px'
+            'px',
     })
 
     //Don't let tools exceed max
@@ -1693,9 +1748,7 @@ function clearUnwantedPanels(hasViewer, hasMap, hasGlobe) {
         $('#viewerSplit').empty()
         $('#viewerSplit').css('width', 0)
         $('#mapSplit div:not(#mapSplitText)').remove()
-        $('#mapSplit')
-            .css('cursor', 'default')
-            .css('box-shadow', 'none')
+        $('#mapSplit').css('cursor', 'default').css('box-shadow', 'none')
         $('#globeSplit').off('mousedown', globeSplitOnMouseDown)
         $('#globeSplit').off('touchstart', globeSplitOnMouseDown)
         $('#globeSplit').empty()
@@ -1713,9 +1766,7 @@ function clearUnwantedPanels(hasViewer, hasMap, hasGlobe) {
         $('#viewerSplit').empty()
         $('#viewerSplit').css('width', 0)
         $('#mapSplit div:not(#mapSplitText)').remove()
-        $('#mapSplit')
-            .css('cursor', 'default')
-            .css('box-shadow', 'none')
+        $('#mapSplit').css('cursor', 'default').css('box-shadow', 'none')
     } else if (!hasGlobe) {
         $('#globeSplit').off('mousedown', globeSplitOnMouseDown)
         $('#globeSplit').off('touchstart', globeSplitOnMouseDown)

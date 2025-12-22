@@ -1,5 +1,101 @@
 # MMGIS Changelog
 
+## Unreleased
+
+_TBD_
+
+#### Changed
+
+- Moved admin login assets from `config/login/` to `public/` directory
+  - `adminlogin.js` and `adminlogin.css` now served from `/public`
+
+#### Removed
+
+- Legacy jQuery/Materialize configure page and `/configure-legacy` route (#830)
+  - Removed entire `config/` directory (css, js, fonts, pre, login subdirectories)
+  - Removed `views/configure.pug` template
+  - Use `/configure` for React-based configure interface
+- `database/` directory - Old Docker Postgres migration/upgrade scripts
+- `src/essence/Tools/_OLD/` directory (Distance, FileManager, Query, Search, Sketch tools)
+- `Dockerfile.legacy` (superseded by main Dockerfile)
+
+## 4.1.0
+
+_December 22, 2025_
+
+#### Summary
+
+This release introduces comprehensive STAC (SpatioTemporal Asset Catalog) support, a new mobile mode, the Animation Tool, and user account management with per-mission permissions. Major enhancements include an expanded timeline UI, live follow mode, feature style animations, and preliminary video support. The DrawTool gains templating from intersected GeoDatasets and advanced filtering capabilities. Legend and LayersTool receive significant improvements including custom marker icons, horizontal layouts, and enhanced filtering. TiTiler integration expands with planetcantile support and expression capabilities.
+
+#### Added
+
+- Comprehensive STAC support including catalogs, collections, and items
+- STAC item management: show, delete, search (including regex), and bulk operations
+- STAC UI import/export and collection metadata updates
+- Mobile mode with TimeUI integration
+- Animation Tool
+- User Account Management with per-mission permissions
+- Live Follow Mode with default configuration support
+- Expanded Timeline view
+- Feature Style Animations
+- Preliminary Video Support
+- DrawTool templating from intersected GeoDatasets
+- DrawTool Advanced Filter Improvements
+- Minimal GeoDataset Spatial Queries
+- SSL database connections support
+- Multiple Private Backends/Tools support
+- Configurable wrapping for 2D Map
+- Legend-based property styling for vector layers
+- Custom marker icons in legend (ShapeImage and ShapeIcon fields)
+- Prerendered images for layer legends
+- Horizontal legend layouts
+- Legend display options and max-on-top positioning
+- Layer header expanded state configuration
+- InfoTool hotkeys
+- Default/preset filters for vector layers
+- LayersTool enhanced filtering capabilities and time-related improvements
+- Great circle lines in Measure Tool
+- TimeUI improvements: fit timewindow to current range, hours display, quick select day/month/year times
+- Configure page: required field indicators, projection tab autocomplete, case insensitive mission sorting
+- Mission planet radii configuration
+- Branding and Dataset Attribution
+- Webhook endpoint authorization
+- TiTiler planetcantile integration
+- TiTiler expressions support
+- CITATION.cff file
+- URL prefix sourceType dropdowns
+- Multi-platform Docker build (arm64 architecture support)
+- Callback for newActiveFeature
+- Workflow to bump minor version
+
+#### Changed
+
+- Upgraded all adjacent servers
+- TimeUI is now DST-aware
+- Configure preview iframe now respects subpaths
+- Separated tool interface improvements
+- Scale bar position in mobile mode
+- Blank CSV entries are now filtered out
+- AMD64 Docker image suffix and build order
+
+#### Fixed
+
+- DrawTool incrementer value multi-user race conditions
+- DrawTool export and reimport template issues
+- DrawTool recompute template now only recomputes time and intersected fields
+- LayersTool filtering on non-dynamicExtent props-on-click geodatasets
+- Vector layer updates causing features to flash
+- Globe controls clashing with separated tool buttons
+- GeoDataset LOCAL issues
+- API tokens visibility to all admin types
+- Mission name and msv.mission conflicts
+- TimeUI location and mobile mode integration
+- Expanded timeline local versus UTC time display
+- NoDataValue for single banded COGs
+- Critical security vulnerabilities identified in SonarQube analysis
+
+---
+
 ## 4.0.0
 
 _April 17, 2025_
@@ -35,7 +131,7 @@ This major release adds support for TiTiler (a tiling server), STAC (a geo-spati
 #### Changed
 
 - MMGIS now requires a micromamba python environment to run
-- `/configure-beta` is now `/configure` and the old configure page is now at `/configure-legacy`
+- `/configure-beta` is now `/configure` (the legacy configure page has been removed as of 4.2.0)
 - Better 404 handling
 - Better Screenshot Filenames
 

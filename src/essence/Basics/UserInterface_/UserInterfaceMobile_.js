@@ -1113,6 +1113,25 @@ var UserInterface = {
 
         $('#topBarTitleName').on('click', L_.home)
 
+        // Apply configured default panel widths (if present)
+        if (l_.configData.panels && l_.configData.panels.defaultWidths) {
+            const dw = l_.configData.panels.defaultWidths
+            const viewer = dw.viewer != null ? dw.viewer : 0
+            const map = dw.map != null ? dw.map : 100
+            const globe = dw.globe != null ? dw.globe : 0
+
+            // Validate sum equals 100 before applying
+            if (viewer + map + globe === 100) {
+                UserInterface.setPanelPercents(viewer, map, globe)
+            } else {
+                console.warn(
+                    `Panel default widths (${viewer}%, ${map}%, ${globe}%) do not sum to 100. ` +
+                    `Using system defaults.`
+                )
+            }
+        }
+
+        // Deeplinks override config defaults
         if (l_.FUTURES.panelPercents != null)
             UserInterface.setPanelPercents(
                 l_.FUTURES.panelPercents[0],
