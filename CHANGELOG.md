@@ -131,7 +131,7 @@ This major release adds support for TiTiler (a tiling server), STAC (a geo-spati
 #### Changed
 
 - MMGIS now requires a micromamba python environment to run
-- `/configure-beta` is now `/configure` and the old configure page is now at `/configure-legacy`
+- `/configure-beta` is now `/configure` (the legacy configure page has been removed as of 4.2.0)
 - Better 404 handling
 - Better Screenshot Filenames
 

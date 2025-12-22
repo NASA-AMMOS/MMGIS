@@ -50,25 +50,6 @@
         "tags": ["Webpages"]
       }
     },
-    "/configure-legacy": {
-      "get": {
-        "summary": "MMGIS Configure CMS (legacy)",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string",
-                  "example": "<!DOCTYPE html><html></html>"
-                }
-              }
-            }
-          }
-        },
-        "tags": ["Webpages"]
-      }
-    },
     "/api/docs": {
       "get": {
         "summary": "MMGIS API Documentation",
