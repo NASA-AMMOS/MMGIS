@@ -1,5 +1,4 @@
 import $ from 'jquery'
-import * as d3 from 'd3'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import LayerGeologic from '../../Basics/Layers_/LayerGeologic/LayerGeologic'
@@ -392,13 +391,13 @@ var Files = {
                 "</div>",
                 ].join('\n');
             if (file.is_master && !efoldersOnly) {
-                d3.select('#drawToolDrawFilesListMaster')
-                    .append('li')
+                const masterLi = $('<li>')
                     .attr('class', `drawToolDrawFilesListElem${checkState}`)
                     .attr('file_id', file.id)
                     .attr('file_name', file.file_name)
                     .attr('file_owner', file.file_owner)
                     .html(markup)
+                $('#drawToolDrawFilesListMaster').append(masterLi)
 
                 var lastMasterName = $(
                     '#drawToolDrawFilesListMaster li:last-child .drawToolFileName'
@@ -417,40 +416,37 @@ var Files = {
                     file._tagFolders[groupingType].forEach((g) => {
                         const gEnc = encodeURIComponent(g)
 
-                        const group = d3.select(
+                        const group = $(
                             `#drawToolDrawFilesList > .drawToolDrawFilesGroupElem[group_name="${gEnc}"]`
                         )
 
                         let iconClass =
                             Files.getGroupingIcons(groupingType).closed
-                        if (group.size() === 0) {
+                        if (group.length === 0) {
                             // prettier-ignore
-                            d3.select('#drawToolDrawFilesList')
-                            .append('div')
-                            .attr('class', `drawToolDrawFilesGroupElem`)
-                            .attr('group_name', gEnc)
-                            .html(
-                                [
-                                    `<div class='drawToolDrawFilesGroupElemHead' state='off' group_name='${gEnc}' groupingtype='${groupingType}'>`,
-                                        `<div class='${g === 'unassigned' || g === 'untagged' ? 'drawToolDrawFilesGroupElemUn' : ''}'>`,
-                                            `<div class='drawToolDrawFilesGroupElemChevron'><i class='mdi ${iconClass} mdi-18px'></i></div>`,
-                                            `<div>${groupingType === 'alphabetical' ? g.substring(1) : g}</div>`,
+                            const groupElem = $('<div>')
+                                .attr('class', `drawToolDrawFilesGroupElem`)
+                                .attr('group_name', gEnc)
+                                .html(
+                                    [
+                                        `<div class='drawToolDrawFilesGroupElemHead' state='off' group_name='${gEnc}' groupingtype='${groupingType}'>`,
+                                            `<div class='${g === 'unassigned' || g === 'untagged' ? 'drawToolDrawFilesGroupElemUn' : ''}'>`,
+                                                `<div class='drawToolDrawFilesGroupElemChevron'><i class='mdi ${iconClass} mdi-18px'></i></div>`,
+                                                `<div>${groupingType === 'alphabetical' ? g.substring(1) : g}</div>`,
+                                            `</div>`,
+                                            `<div class='drawToolDrawFilesGroupElemCount' count='0'></div>`,
                                         `</div>`,
-                                        `<div class='drawToolDrawFilesGroupElemCount' count='0'></div>`,
-                                    `</div>`,
-                                    '<div class="drawToolDrawFilesGroupListElem" style="display: none;"></div>',
-                                ].join('\n')
-                            )
+                                        '<div class="drawToolDrawFilesGroupListElem" style="display: none;"></div>',
+                                    ].join('\n')
+                                )
+                            $('#drawToolDrawFilesList').append(groupElem)
                         }
                         if (
                             $(
                                 `.drawToolDrawFilesGroupElem[group_name="${gEnc}"] .drawToolDrawFilesGroupListElem > .drawToolDrawFilesListElem[file_id="${file.id}"]`
                             ).length === 0
                         ) {
-                            d3.select(
-                                `.drawToolDrawFilesGroupElem[group_name="${gEnc}"] .drawToolDrawFilesGroupListElem`
-                            )
-                                .append('li')
+                            const groupLi = $('<li>')
                                 .attr(
                                     'class',
                                     `drawToolDrawFilesListElem${checkState}`
@@ -459,16 +455,17 @@ var Files = {
                                 .attr('file_name', file.file_name)
                                 .attr('file_owner', file.file_owner)
                                 .html(markup)
+                            $(`.drawToolDrawFilesGroupElem[group_name="${gEnc}"] .drawToolDrawFilesGroupListElem`).append(groupLi)
                         }
                     })
                 } else if (!efoldersOnly) {
-                    d3.select(`#drawToolDrawFilesList`)
-                        .append('li')
+                    const ungroupedLi = $('<li>')
                         .attr('class', `drawToolDrawFilesListElem${checkState}`)
                         .attr('file_id', file.id)
                         .attr('file_name', file.file_name)
                         .attr('file_owner', file.file_owner)
                         .html(markup)
+                    $('#drawToolDrawFilesList').append(ungroupedLi)
                 }
             }
         }

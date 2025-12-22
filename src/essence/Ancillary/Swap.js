@@ -2,7 +2,6 @@
 //In the very least, each tool needs to be defined through require.js and return
 // an object with 'make' and 'destroy' functions
 import $ from 'jquery'
-import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
 import L_ from '../Basics/Layers_/Layers_'
 import Viewer_ from '../Basics/Viewer_/Viewer_'
@@ -57,45 +56,31 @@ function interfaceWithMMGIS() {
     this.separateFromMMGIS = function () {
         separateFromMMGIS()
     }
-    /*
-    //MMGIS should always have a div with id 'tools'
-    var tools = d3.select( '#tools' );
-    //Clear it
-    tools.selectAll( '*' ).remove();
-    //Add a semantic container
-    tools = tools.append( 'div' )
-      .attr('class', 'ui padded grid' )
-      .style( 'height', '100%' );
-    //Add the markup to tools or do it manually
-    tools.html( markup );
-    */
+
     $('#topBarTitleIcon').off('click')
-    var swap = d3
-        .select('#mmgisUseSwap')
+    var swap = $('#mmgisUseSwap')
         //.attr( 'class', 'mdi mdi-menu-down mdi-24px' )
         .on('click', function () {
             Swap.shown = !Swap.shown
             setSwap()
         })
 
-    if (d3.select('#swapContainer')._groups[0][0] === null) {
-        var swapCont = d3
-            .select('#topBar')
-            .append('div')
+    if ($('#swapContainer').length === 0) {
+        var swapCont = $('<div>')
             .attr('id', 'swapContainer')
-            .style('position', 'fixed')
-            .style('background', '#001')
-            .style('font-family', 'roboto, sans-serif')
-            .style('font-size', '12px')
-            .style('width', Swap.width + 'px')
-            .style('height', Swap.height + 'px')
-            .style('top', -Swap.height + 'px')
-            .style('box-shadow', '0px 0px 3px 0px rgba(0,0,0,0.3)')
-            .style(
-                'transition',
-                'top 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95)'
-            )
-            .style('left', '36px')
+            .css({
+                position: 'fixed',
+                background: '#001',
+                'font-family': 'roboto, sans-serif',
+                'font-size': '12px',
+                width: Swap.width + 'px',
+                height: Swap.height + 'px',
+                top: -Swap.height + 'px',
+                'box-shadow': '0px 0px 3px 0px rgba(0,0,0,0.3)',
+                transition: 'top 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95)',
+                left: '36px',
+            })
+        $('#topBar').append(swapCont)
 
         swapCont.html(markup)
 
@@ -104,38 +89,36 @@ function interfaceWithMMGIS() {
             makeMissionList(Swap.usingMissionList, $(this).val())
         })
 
-        d3.select('#swapAll').on('click', function () {
+        $('#swapAll').on('click', function () {
             makeMissionList(L_.missionsList)
-            d3.select('#swapRecent')
-                .style('background', 'transparent')
-                .style('color', '#777')
+            $('#swapRecent')
+                .css('background', 'transparent')
+                .css('color', '#777')
 
-            d3.select(this).style('background', 'black').style('color', 'white')
+            $(this).css('background', 'black').css('color', 'white')
         })
 
-        d3.select('#swapRecent').on('click', function () {
+        $('#swapRecent').on('click', function () {
             makeMissionList(F_.uniqueArray(L_.recentMissions))
-            d3.select('#swapAll')
-                .style('background', 'transparent')
-                .style('color', '#777')
+            $('#swapAll').css('background', 'transparent').css('color', '#777')
 
-            d3.select(this).style('background', 'black').style('color', 'white')
+            $(this).css('background', 'black').css('color', 'white')
         })
     }
 
     function setSwap() {
         if (Swap.shown) {
             makeMissionList(L_.missionsList)
-            d3.select('#swapContainer').style('top', '0')
+            $('#swapContainer').css('top', '0')
         } else {
-            d3.select('#swapContainer').style('top', -Swap.height + 'px')
+            $('#swapContainer').css('top', -Swap.height + 'px')
         }
     }
 
     function makeMissionList(missionList, filterString) {
         Swap.usingMissionList = missionList
 
-        d3.select('#swapMissionsList').html('')
+        $('#swapMissionsList').html('')
 
         for (var m in missionList) {
             if (
@@ -145,65 +128,71 @@ function interfaceWithMMGIS() {
                     .toLowerCase()
                     .includes(filterString.toLowerCase())
             ) {
-                var li = d3
-                    .select('#swapMissionsList')
-                    .append('li')
-                    .style('cursor', 'pointer')
-                    .style('display', 'flex')
-                    .style('height', '22px')
-                    .style('overflow', 'hidden')
-                    .style('color', '#bbb')
-                    .style(
-                        'transition',
-                        'color 0.1s cubic-bezier(0.445, 0.05, 0.55, 0.95)'
-                    )
-                    .style('justify-content', 'flex-start')
+                var li = $('<li>')
+                    .css({
+                        cursor: 'pointer',
+                        display: 'flex',
+                        height: '22px',
+                        overflow: 'hidden',
+                        color: '#bbb',
+                        transition:
+                            'color 0.1s cubic-bezier(0.445, 0.05, 0.55, 0.95)',
+                        'justify-content': 'flex-start',
+                    })
                     .on(
                         'click',
                         (function (missionName, m) {
                             return function () {
-                                Swap.currentLi.style('opacity', '0')
-                                Swap.currentLi = d3.select('#swapMission_' + m)
-                                Swap.currentLi.style('opacity', '1')
+                                Swap.currentLi.css('opacity', '0')
+                                Swap.currentLi = $('#swapMission_' + m)
+                                Swap.currentLi.css('opacity', '1')
 
                                 Swap.s.swapMission(missionName)
                             }
                         })(missionList[m], m)
                     )
                     .on('mouseenter', function () {
-                        d3.select(this).style('color', 'white')
+                        $(this).css('color', 'white')
                     })
                     .on('mouseleave', function () {
-                        d3.select(this).style('color', '#bbb')
+                        $(this).css('color', '#bbb')
                     })
 
-                li.append('div')
-                    .attr('id', 'swapMission_' + m)
-                    .style('opacity', '0')
-                    .style('font-size', '12px')
-                    .style('line-height', '15px')
-                    .style('width', '22px')
-                    .style('height', '22px')
-                    .style('margin-right', '3px')
-                    .style(
-                        'transition',
-                        'opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95)'
-                    )
-                    .html(
-                        "<i class='mdi mdi-arrow-right-box mdi-24px' style='color: white; line-height: 22px;'></i>"
-                    )
+                $('#swapMissionsList').append(li)
 
-                li.append('div')
-                    .attr('id', 'swapMissionName_' + m)
-                    .style('font-size', '15px')
-                    .style('line-height', '22px')
-                    .style('flex', '1')
-                    .style('border-bottom', '1px solid #3a3a3a')
-                    .text(missionList[m])
+                li.append(
+                    $('<div>')
+                        .attr('id', 'swapMission_' + m)
+                        .css({
+                            opacity: '0',
+                            'font-size': '12px',
+                            'line-height': '15px',
+                            width: '22px',
+                            height: '22px',
+                            'margin-right': '3px',
+                            transition:
+                                'opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95)',
+                        })
+                        .html(
+                            "<i class='mdi mdi-arrow-right-box mdi-24px' style='color: white; line-height: 22px;'></i>"
+                        )
+                )
+
+                li.append(
+                    $('<div>')
+                        .attr('id', 'swapMissionName_' + m)
+                        .css({
+                            'font-size': '15px',
+                            'line-height': '22px',
+                            flex: '1',
+                            'border-bottom': '1px solid #3a3a3a',
+                        })
+                        .text(missionList[m])
+                )
 
                 if (L_.mission === missionList[m]) {
-                    Swap.currentLi = d3.select('#swapMission_' + m)
-                    Swap.currentLi.style('opacity', '1')
+                    Swap.currentLi = $('#swapMission_' + m)
+                    Swap.currentLi.css('opacity', '1')
                 }
 
                 //mark

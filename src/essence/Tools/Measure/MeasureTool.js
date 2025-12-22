@@ -1,5 +1,5 @@
 import $ from 'jquery'
-import * as d3 from 'd3'
+import { curveLinearClosed } from 'd3-shape'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Viewer_ from '../../Basics/Viewer_/Viewer_'
@@ -92,7 +92,7 @@ const Measure = () => {
             'canvas-click',
             MeasureTool.clickViewer
         )
-        Viewer_.imageViewer.style('cursor', 'default')
+        Viewer_.imageViewer.css('cursor', 'default')
     }, [])
 
     useEffect(() => {
@@ -842,7 +842,7 @@ let MeasureTool = {
             MeasureTool.clickViewer
         )
         $('#map').css({ cursor: 'grab' })
-        Viewer_.imageViewer.style('cursor', 'map')
+        Viewer_.imageViewer.css('cursor', 'map')
 
         Map_.rmNotNull(distLineToMouse)
         Map_.rmNotNull(distMousePoint)
@@ -1080,15 +1080,16 @@ let MeasureTool = {
         Globe_.litho.removeLayer('_measurePoint')
         Globe_.litho.removeLayer('_measurePolyline')
 
-        d3.select('#' + profileDivId)
-            .selectAll('*')
-            .remove()
-        d3.select('#' + profileDivId)
-            .append('div')
-            .style('text-align', 'center')
-            .style('line-height', '140px')
-            .style('font-size', '20px')
+        const profileDiv = $('#' + profileDivId)
+        profileDiv.empty()
+        const messageDiv = $('<div>')
+            .css({
+                'text-align': 'center',
+                'line-height': '140px',
+                'font-size': '20px'
+            })
             .html('Click on the map!')
+        profileDiv.append(messageDiv)
 
         MeasureTool.clearFocusPoint()
         MeasureTool.clearInfo()
@@ -1481,9 +1482,7 @@ function makeProfile() {
                 axes: axes,
             },
             success: function (data) {
-                d3.select('#' + profileDivId)
-                    .selectAll('*')
-                    .remove()
+                $('#' + profileDivId).empty()
                 if (data.length < 3) {
                     console.warn(
                         'Warning: MeasureTool: No elevation data found in ' +
@@ -1595,9 +1594,7 @@ function makeBandProfile(xy) {
             bands: '[[1,489]]',
         },
         success: function (data) {
-            d3.select('#' + profileDivId)
-                .selectAll('*')
-                .remove()
+            $('#' + profileDivId).empty()
             //Convert python's Nones to nulls
             data = data.replace(/none/gi, 'null')
             try {
@@ -1615,7 +1612,7 @@ function makeBandProfile(xy) {
                 data: newData,
                 area: false,
                 missing_is_hidden: true,
-                interpolate: d3.curveLinearClosed,
+                interpolate: curveLinearClosed,
                 full_height: true,
                 full_width: true,
                 left: 95,

@@ -1,5 +1,4 @@
 import $ from 'jquery'
-import * as d3 from 'd3'
 import L_ from '../Layers_/Layers_'
 import TimeUI from '../../Ancillary/TimeUI'
 import { toolModules, toolConfigs } from '../../../pre/tools'
@@ -27,38 +26,42 @@ let ToolController_ = {
     init: function (tools) {
         this.tools = tools
 
-        var mainDiv = d3
-            .select('#toolbar')
-            .append('div')
+        var mainDiv = $('<div>')
             .attr('id', 'toolbarTools')
-            .style('height', '100%')
-        this.incToolsDiv = mainDiv
-            .append('div')
+            .css('height', '100%')
+        $('#toolbar').append(mainDiv)
+
+        this.incToolsDiv = $('<div>')
             .attr('id', 'toolcontroller_incdiv')
             .attr('class', 'sixteen wide column')
-            .style('transition', 'all 0.25s ease-in')
-            .style('pointer-events', 'none')
-            .style('opacity', '0')
-            .style('padding-bottom', '8px')
+            .css({
+                'transition': 'all 0.25s ease-in',
+                'pointer-events': 'none',
+                'opacity': '0',
+                'padding-bottom': '8px'
+            })
+        mainDiv.append(this.incToolsDiv)
 
         // Create three separate containers for left, center, and right justified tools
-        this.separatedDivLeft = d3
-            .select('#splitscreens')
-            .append('div')
+        this.separatedDivLeft = $('<div>')
             .attr('id', 'toolcontroller_sepdiv_left')
-            .style('position', 'absolute')
-            .style('top', '40px')
-            .style('left', '5px')
-            .style('z-index', '1004')
+            .css({
+                'position': 'absolute',
+                'top': '40px',
+                'left': '5px',
+                'z-index': '1004'
+            })
+        $('#splitscreens').append(this.separatedDivLeft)
 
-        this.separatedDiv = d3
-            .select('#splitscreens')
-            .append('div')
+        this.separatedDiv = $('<div>')
             .attr('id', 'toolcontroller_sepdiv')
-            .style('position', 'absolute')
-            .style('top', '40px')
-            .style('left', '5px')
-            .style('z-index', '1004')
+            .css({
+                'position': 'absolute',
+                'top': '40px',
+                'left': '5px',
+                'z-index': '1004'
+            })
+        $('#splitscreens').append(this.separatedDiv)
 
         // Adjust right position if zoom controls are enabled
         const rightPosition =
@@ -66,18 +69,19 @@ let ToolController_ = {
                 ? '40px'
                 : '5px'
 
-        this.separatedDivRight = d3
-            .select('#splitscreens')
-            .append('div')
+        this.separatedDivRight = $('<div>')
             .attr('id', 'toolcontroller_sepdiv_right')
-            .style('position', 'absolute')
-            .style('top', '40px')
-            .style('right', rightPosition)
-            .style('z-index', '1004')
+            .css({
+                'position': 'absolute',
+                'top': '40px',
+                'right': rightPosition,
+                'z-index': '1004'
+            })
+        $('#splitscreens').append(this.separatedDivRight)
 
         // Helper function to create a separated tool
         const createSeparatedTool = (i) => {
-            d3.select('#viewerToolBar').style('padding-left', '36px')
+            $('#viewerToolBar').css('padding-left', '36px')
 
             // Determine which container to use based on justification
             let targetDiv = this.separatedDiv // default to center/left
@@ -88,43 +92,47 @@ let ToolController_ = {
                 targetDiv = this.separatedDivRight
             }
 
-            let sep = targetDiv
-                .append('div')
+            let sep = $('<div>')
                 .attr('id', `toolSeparated_${tools[i].name}`)
-                .style('position', 'relative')
-                .style('border-radius', '3px')
-                .style('background', 'var(--color-a)')
-                .style('margin-bottom', '5px')
+                .css({
+                    'position': 'relative',
+                    'border-radius': '3px',
+                    'background': 'var(--color-a)',
+                    'margin-bottom': '5px'
+                })
+            targetDiv.append(sep)
 
-            sep.append('div')
+            const toolContent = $('<div>')
                 .attr('id', `toolContentSeparated_${tools[i].name}`)
-                .style('position', 'absolute')
-                .style('top', '0px')
-                .style('left', '0px')
-                .style('border-radius', '3px')
-                .style('background', 'var(--color-a)')
-                .style(
-                    'transform',
-                    justification === 'right'
+                .css({
+                    'position': 'absolute',
+                    'top': '0px',
+                    'left': '0px',
+                    'border-radius': '3px',
+                    'background': 'var(--color-a)',
+                    'transform': justification === 'right'
                         ? 'translateX(calc(-100% + 30px))'
                         : 'unset'
-                )
+                })
+            sep.append(toolContent)
 
-            sep.append('div')
+            const toolButton = $('<div>')
                 .attr('id', `toolButtonSeparated_${tools[i].name}`)
                 .attr('class', 'toolButtonSep')
-                .style('position', 'relative')
-                .style('width', '30px')
-                .style('height', '30px')
-                .style('display', 'inline-block')
-                .style('text-align', 'center')
-                .style('line-height', '30px')
-                //.style( 'text-shadow', '0px 1px #111' )
-                .style('vertical-align', 'middle')
-                .style('cursor', 'pointer')
                 .attr('tabindex', i + 1)
-                .style('transition', 'all 0.2s ease-in')
-                .style('color', ToolController_.defaultColor)
+                .css({
+                    'position': 'relative',
+                    'width': '30px',
+                    'height': '30px',
+                    'display': 'inline-block',
+                    'text-align': 'center',
+                    'line-height': '30px',
+                    //'text-shadow': '0px 1px #111',
+                    'vertical-align': 'middle',
+                    'cursor': 'pointer',
+                    'transition': 'all 0.2s ease-in',
+                    'color': ToolController_.defaultColor
+                })
                 .on(
                     'click',
                     (function (i) {
@@ -175,10 +183,13 @@ let ToolController_ = {
                         }
                     })(i)
                 )
-                .append('i')
+            sep.append(toolButton)
+
+            const sepIcon = $('<i>')
                 .attr('id', tools[i].name + 'Tool')
                 .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
-                .style('cursor', 'pointer')
+                .css('cursor', 'pointer')
+            toolButton.append(sepIcon)
         }
 
         let legendToolIndex = -1
@@ -194,32 +205,31 @@ let ToolController_ = {
                 }
                 createSeparatedTool(i)
             } else {
-                this.incToolsDiv
-                    .append('div')
+                const toolButton = $('<div>')
                     .attr('id', `toolButton${tools[i].name}`)
                     .attr('class', 'toolButton')
-                    .style(
+                    .css(
                         'width',
                         L_.UserInterface_.isMobile === true ? '36px' : '100%'
                     )
-                    .style(
+                    .css(
                         'height',
                         L_.UserInterface_.isMobile === true ? '100%' : '36px'
                     )
-                    .style('display', 'inline-block')
-                    .style('text-align', 'center')
-                    .style('line-height', '36px')
-                    .style(
+                    .css('display', 'inline-block')
+                    .css('text-align', 'center')
+                    .css('line-height', '36px')
+                    .css(
                         'border-top',
                         i === 0 ? '1px solid var(--color-a-5)' : 'none'
                     )
-                    .style('border-bottom', '1px solid var(--color-a-5)')
-                    //.style( 'text-shadow', '0px 1px #111' )
-                    .style('vertical-align', 'middle')
-                    .style('cursor', 'pointer')
+                    .css('border-bottom', '1px solid var(--color-a-5)')
+                    //.css( 'text-shadow', '0px 1px #111' )
+                    .css('vertical-align', 'middle')
+                    .css('cursor', 'pointer')
                     .attr('tabindex', i + 1)
-                    .style('transition', 'all 0.2s ease-in')
-                    .style('color', ToolController_.defaultColor)
+                    .css('transition', 'all 0.2s ease-in')
+                    .css('color', ToolController_.defaultColor)
                     .on(
                         'click',
                         (function (i) {
@@ -279,10 +289,13 @@ let ToolController_ = {
                             $(this).css({ color: ToolController_.defaultColor })
                         }
                     })
-                    .append('i')
+                this.incToolsDiv.append(toolButton)
+
+                const toolIcon = $('<i>')
                     .attr('id', tools[i].name + 'Tool')
                     .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
-                    .style('cursor', 'pointer')
+                    .css('cursor', 'pointer')
+                toolButton.append(toolIcon)
 
                 if (!L_.UserInterface_.isMobile) {
                     // Only show tooltip if not in mobile mode
@@ -307,20 +320,20 @@ let ToolController_ = {
             L_.configData.time &&
             L_.configData.time.enabled === true
         ) {
-            let timeSelect = d3
-                .select('#toolcontroller_incdiv')
-                .append('div')
+            let timeSelect = $('<div>')
                 .attr('id', 'toggleTimeUI')
-                .style('position', 'relative')
-                .style('width', '30px')
-                .style('height', '30px')
-                .style('display', 'inline-block')
-                .style('text-align', 'center')
-                .style('line-height', '30px')
-                .style('vertical-align', 'middle')
-                .style('cursor', 'pointer')
-                .style('transition', 'all 0.2s ease-in')
-                .style('color', ToolController_.defaultColor)
+                .css({
+                    'position': 'relative',
+                    'width': '30px',
+                    'height': '30px',
+                    'display': 'inline-block',
+                    'text-align': 'center',
+                    'line-height': '30px',
+                    'vertical-align': 'middle',
+                    'cursor': 'pointer',
+                    'transition': 'all 0.2s ease-in',
+                    'color': ToolController_.defaultColor
+                })
                 .on(
                     'click',
                     (function () {
@@ -366,11 +379,13 @@ let ToolController_ = {
                         }
                     })()
                 )
+            $('#toolcontroller_incdiv').append(timeSelect)
 
             timeSelect
-                .append('i')
-                .attr('class', 'mdi mdi-clock mdi-18px')
-                .style('cursor', 'pointer')
+                .append($('<i>')
+                    .attr('class', 'mdi mdi-clock mdi-18px')
+                    .css('cursor', 'pointer')
+                )
         }
 
         if (
@@ -378,20 +393,20 @@ let ToolController_ = {
             (L_.configData.coordinates.coordll == true ||
                 L_.configData.coordinates.coorden == true)
         ) {
-            let coordSelect = d3
-                .select('#toolcontroller_incdiv')
-                .append('div')
+            let coordSelect = $('<div>')
                 .attr('id', 'coordinatesDiv')
-                .style('position', 'relative')
-                .style('width', '30px')
-                .style('height', '30px')
-                .style('display', 'inline-block')
-                .style('text-align', 'center')
-                .style('line-height', '30px')
-                .style('vertical-align', 'middle')
-                .style('cursor', 'pointer')
-                .style('transition', 'all 0.2s ease-in')
-                .style('color', ToolController_.defaultColor)
+                .css({
+                    'position': 'relative',
+                    'width': '30px',
+                    'height': '30px',
+                    'display': 'inline-block',
+                    'text-align': 'center',
+                    'line-height': '30px',
+                    'vertical-align': 'middle',
+                    'cursor': 'pointer',
+                    'transition': 'all 0.2s ease-in',
+                    'color': ToolController_.defaultColor
+                })
                 .on(
                     'click',
                     (function () {
@@ -438,16 +453,18 @@ let ToolController_ = {
                         }
                     })()
                 )
+            $('#toolcontroller_incdiv').append(coordSelect)
 
             coordSelect
-                .append('i')
-                .attr('class', 'mdi mdi-target mdi-18px')
-                .style('cursor', 'pointer')
+                .append($('<i>')
+                    .attr('class', 'mdi mdi-target mdi-18px')
+                    .css('cursor', 'pointer')
+                )
         }
 
         ToolController_.incToolsDiv
-            .style('pointer-events', 'auto')
-            .style('opacity', '1')
+            .css('pointer-events', 'auto')
+            .css('opacity', '1')
 
         ToolController_.toolModuleNames.forEach((t) => {
             if (
@@ -463,7 +480,7 @@ let ToolController_ = {
         L_.fullyLoaded()
     },
     clear() {
-        d3.select('#toolbarTools').remove()
+        $('#toolbarTools').remove()
         this.tools = null
         this.incToolsDiv = null
         this.excToolsDiv = null
@@ -555,7 +572,7 @@ let ToolController_ = {
 
         if (this.activeTool != null) {
             this.activeTool.destroy()
-            d3.select('#tools').selectAll('*').remove()
+            $('#tools').empty()
             this.UserInterface.closeToolPanel()
         }
         this.activeTool = null

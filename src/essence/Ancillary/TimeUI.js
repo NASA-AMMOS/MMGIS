@@ -5,7 +5,6 @@
   Modal.remove() programmatically removes it.
 */
 import $ from 'jquery'
-import * as d3 from 'd3'
 import * as moment from 'moment'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
@@ -282,40 +281,41 @@ const TimeUI = {
         ].join('\n')
 
         if (L_.UserInterface_?.isMobile === true) {
-            var tools = d3.select('#tools')
+            const toolsContainer = $('#tools')
             //Add a semantic container
-            tools = tools
-                .append('div')
+            const tools = $('<div>')
                 .attr('id', 'timeUI')
-                .style('display', 'flex')
-                .style('flex-flow', 'column')
-                .style('overflow', 'hidden')
-                .style('height', '100%')
+                .css({
+                    'display': 'flex',
+                    'flex-flow': 'column',
+                    'overflow': 'hidden',
+                    'height': '100%'
+                })
+                .html(markup)
+            toolsContainer.append(tools)
 
             //Add the markup to tools or do it manually
-            tools.html(markup)
-
-            d3.select('body')
-                .append('div')
+            const playPopover = $('<div>')
                 .attr('id', 'timeUIPlayPopover_global')
                 .html(playPopoverMarkup)
+            $('body').append(playPopover)
 
             $('#timeUI').toggleClass('active')
         } else {
-            d3.select('#splitscreens')
-                .append('div')
+            const timeUIDiv = $('<div>')
                 .attr('id', 'timeUI')
                 .html(markup)
+            $('#splitscreens').append(timeUIDiv)
 
-            d3.select('body')
-                .append('div')
+            const playPopover = $('<div>')
                 .attr('id', 'timeUIPlayPopover_global')
                 .html(playPopoverMarkup)
+            $('body').append(playPopover)
 
-            d3.select('body')
-                .append('div')
+            const quickSelectPopover = $('<div>')
                 .attr('id', 'timeUIQuickSelectPopover_global')
                 .html(quickSelectPopoverMarkup)
+            $('body').append(quickSelectPopover)
         }
 
         TimeUI.attachEvents()
@@ -1240,13 +1240,14 @@ const TimeUI = {
         TimeUI._shiftExpandedContainerView()
 
         if (L_.UserInterface_?.isMobile === true) {
-            d3.select('#mmgisTimeUIExpandedContent')
-                .style('position', 'absolute')
-                .style('top', '80px')
+            $('#mmgisTimeUIExpandedContent').css({
+                'position': 'absolute',
+                'top': '80px'
+            })
 
             // FIXME Improve time pickers for mobile mode?
             //  Do not allow users to edit using the start/time pickers
-            d3.select('#mmgisTimeUIMain').style('pointer-events', 'none')
+            $('#mmgisTimeUIMain').css('pointer-events', 'none')
         }
     },
     _shiftExpandedContainerView() {
@@ -2239,12 +2240,12 @@ const TimeUI = {
             containerType,
             rangeData
         ) => {
-            const test = d3.select(containerSelector)
-                .selectAll('.mmgisTimeUIExpandedItem')
+            $(containerSelector)
+                .find('.mmgisTimeUIExpandedItem')
                 .each(function () {
-                    if (d3.select(this).attr(`data-${containerType}`) >= rangeData.startPeriod &&
-                            d3.select(this).attr(`data-${containerType}`) < rangeData.endPeriod) {
-                        d3.select(this).classed('range', true)
+                    if ($(this).attr(`data-${containerType}`) >= rangeData.startPeriod &&
+                            $(this).attr(`data-${containerType}`) < rangeData.endPeriod) {
+                        $(this).addClass('range')
                     }
                 })
         }
@@ -3420,9 +3421,9 @@ function interfaceWithMMWebGIS() {
     }
 
     //MMWebGIS should always have a div with id 'tools'
-    var tools = d3.select('#tools')
+    const tools = $('#tools')
     //Clear it
-    tools.selectAll('*').remove()
+    tools.empty()
 
     //Add the markup to tools or do it manually
     //tools.html(markup)
@@ -3430,10 +3431,10 @@ function interfaceWithMMWebGIS() {
     TimeUI.init(TimeUI.timeChange, true)
 
     function separateFromMMWebGIS() {
-        let tools = d3.select('#tools')
+        const tools = $('#tools')
 
         //Clear it
-        tools.selectAll('*').remove()
+        tools.empty()
     }
 }
 

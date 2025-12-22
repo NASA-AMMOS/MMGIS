@@ -1,6 +1,5 @@
 //The bottom left text that describes to the user the basic mmgis state
 import $ from 'jquery'
-import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Dropy from '../../external/Dropy/dropy'
 import flat from 'flat'
@@ -31,8 +30,8 @@ const Description = {
     init: function (mission, site, Map_, L_) {
         this.L_ = L_
         this.Map_ = Map_
-        this.descCont = d3.select('.mainDescription').attr('title', '')
-        this.descInfoCont = d3.select('.mainInfo')
+        this.descCont = $('.mainDescription').attr('title', '')
+        this.descInfoCont = $('.mainInfo')
         /*
             this.descMission = descCont
                 .append('div')
@@ -107,15 +106,15 @@ const Description = {
                 `</div>`,
             `</div>`,
         ].join('\n')
-        this.descNav = this.descCont
-            .append('div')
+        this.descNav = $('<div>')
             .attr('id', 'mainDescNav')
             .html(navMarkup)
+        this.descCont.append(this.descNav)
 
-        d3.select('body')
-            .append('div')
+        $('body')
+            .append($('<div>')
             .attr('id', 'mainDescNavPopover_global')
-            .html(navPopoverMarkup)
+            .html(navPopoverMarkup))
 
         document.addEventListener('toolChange', Description.alignNavPopover)
 
@@ -189,31 +188,37 @@ const Description = {
             }
         })
 
-        this.descPoint = this.descCont.append('p').attr('id', 'mainDescPoint')
+        this.descPoint = $('<p>').attr('id', 'mainDescPoint')
+        this.descCont.append(this.descPoint)
 
-        this.descPointInner = this.descPoint
-            .append('div')
+        this.descPointInner = $('<div>')
             .attr('id', 'mainDescPointInner')
             .attr('tabindex', 300)
-            .style('display', 'flex')
-            .style('white-space', 'nowrap')
-            .style('line-height', '29px')
-            .style('color', 'var(--color-mw2)')
-            .style('font-weight', 'bold')
-            .style('cursor', 'pointer')
-            .style('margin', '0')
-        this.descPointLinks = this.descPoint
-            .append('div')
+            .css({
+                'display': 'flex',
+                'white-space': 'nowrap',
+                'line-height': '29px',
+                'color': 'var(--color-mw2)',
+                'font-weight': 'bold',
+                'cursor': 'pointer',
+                'margin': '0'
+            })
+        this.descPoint.append(this.descPointInner)
+
+        this.descPointLinks = $('<div>')
             .attr('id', 'mainDescPointLinks')
-            .style('display', 'flex')
-            .style('white-space', 'nowrap')
-            .style('line-height', '29px')
-            .style('font-size', '14px')
-            .style('color', '#AAA')
-            .style('font-weight', 'bold')
-            .style('cursor', 'pointer')
-            .style('margin', '0')
-            .style('overflow', 'hidden')
+            .css({
+                'display': 'flex',
+                'white-space': 'nowrap',
+                'line-height': '29px',
+                'font-size': '14px',
+                'color': '#AAA',
+                'font-weight': 'bold',
+                'cursor': 'pointer',
+                'margin': '0',
+                'overflow': 'hidden'
+            })
+        this.descPoint.append(this.descPointLinks)
 
         Description.descPointInner.on('click', function () {
             Description.panToActive()
@@ -1045,7 +1050,7 @@ const Description = {
         }
         this.descInfoCont.html(infos.join('\n'))
 
-        this.descInfoCont.style('display', 'flex')
+        this.descInfoCont.css('display', 'flex')
         $('.mainInfo').animate(
             {
                 opacity: 1,
@@ -1053,9 +1058,9 @@ const Description = {
             80
         )
 
-        d3.select('.mainInfo > div').on('click', function () {
-            let lat = d3.select(this).attr('lat')
-            let lng = d3.select(this).attr('lng')
+        $('.mainInfo > div').on('click', function () {
+            let lat = $(this).attr('lat')
+            let lng = $(this).attr('lng')
 
             if (lat != null && lng != null && lat != 'null' && lng != 'null') {
                 Description.Map_.map.setView(
@@ -1083,7 +1088,7 @@ const Description = {
                 display: 'block',
             })
         }
-        this.descCont.style('display', 'flex')
+        this.descCont.css('display', 'flex')
         $('.mainDescription').animate(
             {
                 opacity: 1,

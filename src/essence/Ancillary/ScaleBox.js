@@ -1,5 +1,4 @@
 import $ from 'jquery'
-import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
 
@@ -18,34 +17,36 @@ var ScaleBox = {
     threshold: 3,
     mouseIsDown: false,
     init: function () {
-        this.box = d3
-            .select('#mapScreen')
-            .append('div')
+        this.box = $('<div>')
             .attr('id', 'scaleBox')
             .attr('class', 'unselectable')
-            .style('position', 'absolute')
-            .style('top', '0px')
-            .style('left', '0px')
-            .style('background', '#EEE')
-            .style('border', '1px solid black')
-            .style('cursor', 'move')
-            .style('opacity', '0.7')
-            .style('display', 'none')
-            .style('z-index', 1010)
+            .css({
+                'position': 'absolute',
+                'top': '0px',
+                'left': '0px',
+                'background': '#EEE',
+                'border': '1px solid black',
+                'cursor': 'move',
+                'opacity': '0.7',
+                'display': 'none',
+                'z-index': 1010
+            })
+        $('#mapScreen').append(this.box)
 
-        this.popup = d3
-            .select('#mapScreen')
-            .append('div')
+        this.popup = $('<div>')
             .attr('id', 'scaleBoxPopup')
             .attr('class', 'unselectable')
-            .style('position', 'absolute')
-            .style('top', '0px')
-            .style('left', '0px')
-            .style('width', '200px')
-            .style('opacity', '0.9')
-            .style('pointer-events', 'none')
-            .style('display', 'none')
-            .style('z-index', 1011)
+            .css({
+                'position': 'absolute',
+                'top': '0px',
+                'left': '0px',
+                'width': '200px',
+                'opacity': '0.9',
+                'pointer-events': 'none',
+                'display': 'none',
+                'z-index': 1011
+            })
+        $('#mapScreen').append(this.popup)
 
         // prettier-ignore
         this.popup.html(
@@ -130,10 +131,10 @@ var ScaleBox = {
                     ScaleBox.docked = true
                 }
                 if (ScaleBox.dragThreshold < ScaleBox.threshold) {
-                    if (ScaleBox.popup.style('display') == 'none') {
-                        ScaleBox.popup.style('display', 'inherit')
+                    if (ScaleBox.popup.css('display') == 'none') {
+                        ScaleBox.popup.css('display', 'inherit')
                     } else {
-                        ScaleBox.popup.style('display', 'none')
+                        ScaleBox.popup.css('display', 'none')
                     }
                 }
                 ScaleBox.update()
@@ -150,7 +151,7 @@ var ScaleBox = {
                 ScaleBox.boxCenterY = e.pageY
 
                 if (ScaleBox.docked) {
-                    ScaleBox.popup.style('display', 'inherit')
+                    ScaleBox.popup.css('display', 'inherit')
                     ScaleBox.docked = false
                 }
                 ScaleBox.update()
@@ -173,16 +174,16 @@ var ScaleBox = {
                 ScaleBox.heightM / getMetersPerPixelLat(containerPt)
 
             ScaleBox.box
-                .style('width', ScaleBox.widthPx + 'px')
-                .style('height', ScaleBox.heightPx + 'px')
-                .style(
+                .css('width', ScaleBox.widthPx + 'px')
+                .css('height', ScaleBox.heightPx + 'px')
+                .css(
                     'top',
                     ScaleBox.boxCenterY -
                         ScaleBox.heightPx / 2 -
                         offset.top +
                         'px'
                 )
-                .style(
+                .css(
                     'left',
                     ScaleBox.boxCenterX -
                         ScaleBox.widthPx / 2 -
@@ -198,16 +199,16 @@ var ScaleBox = {
                 offset.top
             if (popupTop < 0) popupTop = 0
             ScaleBox.popup
-                .style('top', popupTop + 'px')
-                .style(
+                .css('top', popupTop + 'px')
+                .css(
                     'left',
                     ScaleBox.boxCenterX - 200 / 2 - offset.left + 'px'
                 )
 
-            ScaleBox.box.style('display', 'inherit')
+            ScaleBox.box.css('display', 'inherit')
         } else {
-            ScaleBox.box.style('display', 'none')
-            ScaleBox.popup.style('display', 'none')
+            ScaleBox.box.css('display', 'none')
+            ScaleBox.popup.css('display', 'none')
         }
     },
 }

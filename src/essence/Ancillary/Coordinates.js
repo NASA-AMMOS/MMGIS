@@ -1,6 +1,5 @@
 //Coordinates sets up a div that displays the cursor's lng lat
 import $ from 'jquery'
-import * as d3 from 'd3'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
 import L_ from '../Basics/Layers_/Layers_'
@@ -117,13 +116,13 @@ const Coordinates = {
         this.MMWebGISInterface.separateFromMMWebGIS()
     },
     init: function () {
-        d3.select('#CoordinatesDiv').remove()
+        $('#CoordinatesDiv').remove()
 
         if (!UserInterface.isMobile) {
-            d3.select('body')
-                .append('div')
+            $('body')
+                .append($('<div>')
                 .attr('id', 'CoordinatesDiv')
-                .html(markup)
+                .html(markup))
         } else {
             var additionalDiv = [
                 "<div class='left'>",
@@ -131,15 +130,15 @@ const Coordinates = {
                 '</div>',
             ].join('\n')
 
-            d3.select('#tools')
-                .append('div')
+            $('#tools')
+                .append($('<div>')
                 .attr('id', 'coordUIHeader')
-                .html(additionalDiv)
+                .html(additionalDiv))
 
-            d3.select('#tools')
-                .append('div')
+            $('#tools')
+                .append($('<div>')
                 .attr('id', 'CoordinatesDiv')
-                .html(markup)
+                .html(markup))
         }
 
         if (!UserInterface.isMobile) {
@@ -389,19 +388,18 @@ const Coordinates = {
     },
     getAllCoordinates: function () {
         return {
-            description: d3
-                .select('#changeCoordTypeDropdown .dropy__title > span')
+            description: $('#changeCoordTypeDropdown .dropy__title > span')
                 .html(),
             coordinates: [
-                ...d3.select('#mouseLngLat').html().split(','),
-                d3.select('#mouseElev').html(),
+                ...$('#mouseLngLat').html().split(','),
+                $('#mouseElev').html(),
             ].map((c) => parseFloat(c.replace(/,/g, ''))),
         }
     },
     //rawLngLat is same type as mouseLngLat and coordsString is whatever
     setCoords: function (rawLngLat, coordsString) {
         Coordinates.mouseLngLat = rawLngLat
-        d3.select('#mouseLngLat').html(coordsString)
+        $('#mouseLngLat').html(coordsString)
     },
     refresh: function () {
         const newCoords = Coordinates.convertLngLat(
@@ -885,9 +883,9 @@ function interfaceWithMMWebGIS() {
     }
 
     //MMWebGIS should always have a div with id 'tools'
-    var tools = d3.select('#tools')
+    var tools = $('#tools')
     //Clear it
-    tools.selectAll('*').remove()
+    tools.empty()
 
     //Add the markup to tools or do it manually
     //tools.html(markup)
@@ -895,7 +893,7 @@ function interfaceWithMMWebGIS() {
     Coordinates.init()
 
     if (UserInterface.isMobile) {
-        d3.select('#CoordinatesDiv > #toggleTimeUI').remove()
+        $('#CoordinatesDiv > #toggleTimeUI').remove()
 
         const mapRect = document.getElementById('map').getBoundingClientRect()
 
@@ -914,10 +912,10 @@ function interfaceWithMMWebGIS() {
     }
 
     function separateFromMMWebGIS() {
-        let tools = d3.select('#tools')
+        let tools = $('#tools')
 
         //Clear it
-        tools.selectAll('*').remove()
+        tools.empty()
     }
 }
 
