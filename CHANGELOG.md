@@ -1,5 +1,24 @@
 # MMGIS Changelog
 
+## Unreleased
+
+_TBD_
+
+#### Changed
+
+- Moved admin login assets from `config/login/` to `public/` directory
+  - `adminlogin.js` and `adminlogin.css` now served from `/public`
+
+#### Removed
+
+- Legacy jQuery/Materialize configure page and `/configure-legacy` route (#830)
+  - Removed entire `config/` directory (css, js, fonts, pre, login subdirectories)
+  - Removed `views/configure.pug` template
+  - Use `/configure` for React-based configure interface
+- `database/` directory - Old Docker Postgres migration/upgrade scripts
+- `src/essence/Tools/_OLD/` directory (Distance, FileManager, Query, Search, Sketch tools)
+- `Dockerfile.legacy` (superseded by main Dockerfile)
+
 ## 4.1.0
 
 _December 22, 2025_

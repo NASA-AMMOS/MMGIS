@@ -10,6 +10,7 @@ nul
 /Missions/*
 !/Missions/.gitkeep
 /private/api/spice/kernels/*
+/configure/public/toolConfigs.json
 
 #Nested repos where private backend might reside
 # Wildcard patterns for backend plugins
@@ -21,7 +22,6 @@ nul
 /src/essence/*Private-Tools*
 /src/essence/*Plugin-Tools*
 
-/config/pre/toolConfigs.json
 /src/pre/tools.js
 
 /spice/kernels/*
