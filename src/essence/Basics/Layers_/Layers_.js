@@ -505,7 +505,7 @@ const L_ = {
                         minZoom: s.minZoom,
                         maxZoom: s.maxNativeZoom,
                         //boundingBox: s.boundingBox,
-                        //time: s.time == null ? '' : s.time.end,
+                        time: s.time,
                     })
                 } else if (s.type === 'data') {
                 } else if (s.type === 'model') {
@@ -960,7 +960,7 @@ const L_ = {
                             minZoom: s.minZoom,
                             maxZoom: s.maxNativeZoom,
                             //boundingBox: s.boundingBox,
-                            //time: s.time == null ? '' : s.time.end,
+                            time: s.time,
                         })
                 } else if (s.type === 'model') {
                     L_.Globe_.litho.addLayer('model', {
@@ -1140,13 +1140,17 @@ const L_ = {
 
         if (layer) {
             const props = layer.feature?.properties || layer.properties || {}
-            L_.Globe_.highlight(
-                L_.Globe_.findSpriteObject(
-                    layer.options.layerName,
-                    props[layer.useKeyAsName]
-                ),
-                false
-            )
+
+            // Highlight the feature in Globe
+            if (
+                L_.Globe_ &&
+                L_.Globe_.highlight &&
+                layer.feature &&
+                layer.options?.layerName
+            ) {
+                L_.Globe_.highlight(layer.options.layerName, layer.feature)
+            }
+
             L_.Viewer_.highlight(layer)
         }
 
@@ -2059,6 +2063,24 @@ const L_ = {
     // if field is null, relation is relative to initial geojson order
     // otherwise sort by field first
     selectFeature(layerName, feature, relation, field) {
+        // Helper function to round coordinates to match GEOJSON_PRECISION
+        const roundCoordinates = (coords, precision) => {
+            if (typeof coords[0] === 'number') {
+                // Single coordinate pair [lng, lat]
+                return coords.map(c => parseFloat(c.toFixed(precision)))
+            } else {
+                // Nested array of coordinates
+                return coords.map(c => roundCoordinates(c, precision))
+            }
+        }
+
+        const roundGeometry = (geometry) => {
+            if (!geometry || !geometry.coordinates) return geometry
+            const rounded = JSON.parse(JSON.stringify(geometry))
+            rounded.coordinates = roundCoordinates(rounded.coordinates, L_.GEOJSON_PRECISION)
+            return rounded
+        }
+
         let f = JSON.parse(JSON.stringify(feature))
         layerName = L_.asLayerUUID(layerName)
         const layer = L_.layers.layer[layerName]
@@ -2097,15 +2119,46 @@ const L_ = {
                 if (lfeatureWithout_.properties?.feature_id != null)
                     delete lfeatureWithout_.properties.feature_id
 
-                if (
-                    F_.isEqual(layers[l].feature.geometry, f.geometry, true) &&
-                    F_.isEqual(
-                        lfeatureWithout_.properties,
-                        featureWithout_.properties,
-                        true
-                    )
-                ) {
+                // Round both geometries to GEOJSON_PRECISION before comparing
+                // This accounts for precision differences between Cesium (which receives
+                // precision-reduced GeoJSON) and Leaflet (which has full precision)
+                const roundedClickedGeometry = roundGeometry(f.geometry)
+                const roundedLayerGeometry = roundGeometry(layers[l].feature.geometry)
+
+                const geometryMatch = F_.isEqual(roundedLayerGeometry, roundedClickedGeometry, true)
+                const propertiesMatch = F_.isEqual(
+                    lfeatureWithout_.properties,
+                    featureWithout_.properties,
+                    true
+                )
+
+                if (geometryMatch && propertiesMatch) {
                     if (layers[layerKeys[i + (relation || 0)]] != null) {
+                        // Set flag to prevent Globe click handler from firing
+                        if (
+                            L_.Globe_ &&
+                            L_.Globe_.litho &&
+                            L_.Globe_.litho._justSelectedFromMap !== undefined
+                        ) {
+                            L_.Globe_.litho._justSelectedFromMap = true
+                            // Clear flag after short delay
+                            if (L_.Globe_.litho._justSelectedTimeout) {
+                                clearTimeout(
+                                    L_.Globe_.litho._justSelectedTimeout
+                                )
+                            }
+                            L_.Globe_.litho._justSelectedTimeout = setTimeout(
+                                () => {
+                                    L_.Globe_.litho._justSelectedFromMap = false
+                                },
+                                500
+                            )
+                        }
+
+                        // Highlight the feature in Globe
+                        if (L_.Globe_ && L_.Globe_.highlight) {
+                            L_.Globe_.highlight(layerName, f)
+                        }
                         layers[layerKeys[i + (relation || 0)]].fireEvent(
                             'click'
                         )

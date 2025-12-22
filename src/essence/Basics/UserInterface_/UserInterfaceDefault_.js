@@ -330,6 +330,7 @@ var UserInterface = {
             .style('height', '30px')
             .style('position', 'absolute')
             .style('left', '-19px')
+            .style('margin-top', '-38px')
             .style('z-index', '-1')
         this.mapSplitInner
             .append('i')
@@ -339,6 +340,7 @@ var UserInterface = {
             .attr('class', 'mdi mdi-chevron-double-left mdi-24px')
             .style('position', 'absolute')
             .style('left', '-28px')
+            .style('margin-top', '-38px')
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
                 if (pp.map == 0) {
@@ -358,7 +360,8 @@ var UserInterface = {
             .style('width', '30px')
             .style('height', '30px')
             .style('position', 'absolute')
-            .style('left', '23px')
+            .style('left', '22px')
+            .style('margin-top', '-38px')
             .style('z-index', '-1')
         this.mapSplitInner
             .append('i')
@@ -367,7 +370,8 @@ var UserInterface = {
             .attr('tabindex', 501)
             .attr('class', 'mdi mdi-chevron-double-right mdi-24px')
             .style('position', 'absolute')
-            .style('right', '-29px')
+            .style('right', '-28px')
+            .style('margin-top', '-38px')
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
                 if (pp.map == 0) {
@@ -389,6 +393,11 @@ var UserInterface = {
             .append('div')
             .attr('id', 'mapSplitInnerViewerInfo')
             .html('Viewer')
+
+        this.mapSplitInner
+            .append('div')
+            .attr('id', 'mapSplitInnerVMapInfo')
+            .html('Map')
 
         //The globe screen
         this.globeScreen = this.vmgScreen
@@ -446,6 +455,7 @@ var UserInterface = {
             .style('height', '30px')
             .style('position', 'absolute')
             .style('left', '-18px')
+            .style('margin-top', '38px')
             .style('z-index', '-1')
         this.globeSplitInner
             .append('i')
@@ -455,6 +465,7 @@ var UserInterface = {
             .attr('class', 'mdi mdi-chevron-double-left mdi-24px')
             .style('position', 'absolute')
             .style('left', '-27px')
+            .style('margin-top', '38px')
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
                 if (pp.map == 0) {
@@ -479,6 +490,7 @@ var UserInterface = {
             .style('height', '30px')
             .style('position', 'absolute')
             .style('left', '22px')
+            .style('margin-top', '38px')
             .style('z-index', '-1')
         this.globeSplitInner
             .append('i')
@@ -488,10 +500,15 @@ var UserInterface = {
             .attr('class', 'mdi mdi-chevron-double-right mdi-24px')
             .style('position', 'absolute')
             .style('right', '-28px')
+            .style('margin-top', '38px')
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
                 if (pp.map == 0) {
-                    UserInterface.setPanelPercents(100, 0, 0)
+                    UserInterface.setPanelPercents(
+                        pp.viewer,
+                        pp.map + pp.globe / 2,
+                        pp.globe - pp.globe / 2
+                    )
                 } else {
                     UserInterface.setPanelPercents(
                         pp.viewer,
@@ -505,6 +522,11 @@ var UserInterface = {
             .append('div')
             .attr('id', 'mapSplitInnerGlobeInfo')
             .html('Globe')
+
+        this.globeSplitInner
+            .append('div')
+            .attr('id', 'mapSplitInnerGMapInfo')
+            .html('Map')
 
         //thumb lines
         /*
@@ -707,6 +729,8 @@ var UserInterface = {
             width: `calc(100% - ${width + 40}px)`,
         })
         UserInterface.splitscreens.style('left', width + 40 + 'px')
+
+        UserInterface.splitscreens.style('left', width + 40 + 'px')
         UserInterface.mainWidth = $('#splitscreens').width()
         UserInterface.mainHeight = $('#splitscreens').height()
         const pp = UserInterface.getPanelPercents()
@@ -730,10 +754,38 @@ var UserInterface = {
             width: `calc(100% - ${width + 40}px)`,
         })
         UserInterface.splitscreens.style('left', width + 40 + 'px')
+
+        // Update widths only - positions are relative to splitscreens container
+        const oldMainWidth = UserInterface.mainWidth
         UserInterface.mainWidth = $('#splitscreens').width()
         UserInterface.mainHeight = $('#splitscreens').height()
-        const pp = UserInterface.getPanelPercents()
-        UserInterface.setPanelPercents(pp.viewer, pp.map, pp.globe)
+
+        // Scale panel widths proportionally
+        if (oldMainWidth > 0) {
+            const scale = UserInterface.mainWidth / oldMainWidth
+            UserInterface.pxIsViewer = UserInterface.pxIsViewer * scale
+            UserInterface.pxIsGlobe = UserInterface.pxIsGlobe * scale
+            UserInterface.pxIsMap =
+                UserInterface.mainWidth -
+                UserInterface.pxIsViewer -
+                UserInterface.pxIsGlobe
+
+            // Update only widths, not positions
+            UserInterface.viewerScreen.style(
+                'width',
+                UserInterface.pxIsViewer + 'px'
+            )
+            UserInterface.mapScreen.style(
+                'width',
+                UserInterface.pxIsMap - UserInterface.splitterSize * 2 + 'px'
+            )
+            UserInterface.globeScreen.style(
+                'width',
+                UserInterface.pxIsGlobe + 'px'
+            )
+
+            resize()
+        }
     },
     closeToolPanel: function () {
         UserInterface.toolPanel.selectAll('*').remove()
@@ -743,7 +795,6 @@ var UserInterface = {
             'margin-left': '0px',
             width: '100%',
         })
-        //UserInterface.toolPanel.style( 'border-left', '1px solid rgb(38, 168, 255)' );
         UserInterface.toolbar.style('box-shadow', 'none')
         UserInterface.splitscreens.style('width', 'calc(100% - ' + 40 + 'px)')
         UserInterface.splitscreens.style('left', 40 + 'px')
@@ -932,7 +983,10 @@ var UserInterface = {
         })
     },
     getPanelPercents: function () {
-        var vp = (UserInterface.pxIsViewer / UserInterface.mainWidth) * 100
+        // Account for the splitterSize that was subtracted when setting pxIsViewer
+        var adjustedPxIsViewer =
+            UserInterface.pxIsViewer + UserInterface.splitterSize / 2
+        var vp = (adjustedPxIsViewer / UserInterface.mainWidth) * 100
         var gp = (UserInterface.pxIsGlobe / UserInterface.mainWidth) * 100
         var mp = 100 - vp - gp
         return {
@@ -950,6 +1004,10 @@ var UserInterface = {
         if (!UserInterface.hasViewer && viewerPercent != 0) return
         if (!UserInterface.hasGlobe && globePercent != 0) return
         if (viewerPercent + mapPercent + globePercent != 100) return
+
+        // Check if Globe is being opened for the first time
+        const wasGlobeClosed = UserInterface.pxIsGlobe === 0
+        const isGlobeOpening = globePercent > 0
 
         UserInterface.pxIsViewer =
             UserInterface.mainWidth * (viewerPercent / 100) -
@@ -1000,6 +1058,20 @@ var UserInterface = {
         )
 
         resize()
+
+        // Sync Globe to Map's current center on first open (only if no globe coords in URL)
+        if (wasGlobeClosed && isGlobeOpening && Globe_ != null) {
+            if (!Globe_.hasBeenOpened) {
+                Globe_.hasBeenOpened = true
+                // Only sync to map center if no globe coordinates were specified in URL
+                if (L_.FUTURES.globeView == null) {
+                    // Use setTimeout to ensure resize completes first
+                    setTimeout(() => {
+                        Globe_.syncToMapCenter()
+                    }, 100)
+                }
+            }
+        }
     },
     minimalist(is) {
         if (is) {
@@ -1043,6 +1115,25 @@ var UserInterface = {
 
         $('#topBarTitleName').on('click', L_.home)
 
+        // Apply configured default panel widths (if present)
+        if (l_.configData.panels && l_.configData.panels.defaultWidths) {
+            const dw = l_.configData.panels.defaultWidths
+            const viewer = dw.viewer != null ? dw.viewer : 0
+            const map = dw.map != null ? dw.map : 100
+            const globe = dw.globe != null ? dw.globe : 0
+
+            // Validate sum equals 100 before applying
+            if (viewer + map + globe === 100) {
+                UserInterface.setPanelPercents(viewer, map, globe)
+            } else {
+                console.warn(
+                    `Panel default widths (${viewer}%, ${map}%, ${globe}%) do not sum to 100. ` +
+                        `Using system defaults.`
+                )
+            }
+        }
+
+        // Deeplinks override config defaults
         if (l_.FUTURES.panelPercents != null)
             UserInterface.setPanelPercents(
                 l_.FUTURES.panelPercents[0],
@@ -1511,7 +1602,11 @@ function resize() {
     shouldRotateSplitterText()
 
     // Update TimeUI positions when layout changes
-    if (L_.TimeControl_ && L_.TimeControl_.timeUI && typeof L_.TimeControl_.timeUI.alignPopovers === 'function') {
+    if (
+        L_.TimeControl_ &&
+        L_.TimeControl_.timeUI &&
+        typeof L_.TimeControl_.timeUI.alignPopovers === 'function'
+    ) {
         L_.TimeControl_.timeUI.alignPopovers()
     }
 }
