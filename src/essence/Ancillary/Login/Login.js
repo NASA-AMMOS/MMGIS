@@ -1,6 +1,5 @@
 //Depends on a div with id 'topBar'
 import $ from 'jquery'
-import * as d3 from 'd3'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
@@ -79,36 +78,36 @@ var Login = {
             }
         }
 
-        Login.loginBar = d3
-            .select('#topBarRight')
-            .append('div')
+        Login.loginBar = $('<div>')
             .attr('id', 'loginDiv')
-            .style('display', 'flex')
-            .style('z-index', '2006')
-            .style('color', '#aaa')
-            .style('mix-blend-mode', 'luminosity')
+            .css({
+                'display': 'flex',
+                'z-index': '2006',
+                'color': '#aaa',
+                'mix-blend-mode': 'luminosity'
+            })
+        $('#topBarRight').append(Login.loginBar)
 
         Login.loginBar
-            .append('div')
+            .append($('<div>')
             .attr('id', 'loginUser')
-            .style('text-align', 'center')
-            .style('font-size', '12px')
-            .style('font-weight', 'bold')
-            .style('font-family', 'sans-serif')
-            .style('margin-left', '5px')
-            .style('cursor', 'pointer')
-            .style('width', '30px')
-            .style('height', '30px')
-            .style('line-height', '30px')
-            .style('color', 'white')
-            .style(
-                'background',
-                Login.loggedIn ? 'var(--color-a)' : 'transparent'
-            )
-            .style('display', Login.loggedIn ? 'block' : 'none')
-            .style('text-transform', 'uppercase')
-            .style('transition', 'opacity 0.2s ease-out')
-            .html(Login.loggedIn ? Login.username[0] : '')
+            .css({
+                'text-align': 'center',
+                'font-size': '12px',
+                'font-weight': 'bold',
+                'font-family': 'sans-serif',
+                'margin-left': '5px',
+                'cursor': 'pointer',
+                'width': '30px',
+                'height': '30px',
+                'line-height': '30px',
+                'color': 'white',
+                'background': Login.loggedIn ? 'var(--color-a)' : 'transparent',
+                'display': Login.loggedIn ? 'block' : 'none',
+                'text-transform': 'uppercase',
+                'transition': 'opacity 0.2s ease-out'
+            })
+            .html(Login.loggedIn ? Login.username[0] : ''))
 
         if (Login.loggedIn) {
             if (window._tippyLoginUser && window._tippyLoginUser[0])
@@ -127,17 +126,18 @@ var Login = {
             window.mmgisglobal.AUTH === 'local' &&
             window.mmgisglobal.permission === '111'
         ) {
-            Login.loginBar
-                .append('div')
+            const forceSignupButton = $('<div>')
                 .attr('id', 'forceSignupButton')
-                .style('text-align', 'center')
-                .style('cursor', 'pointer')
-                .style('width', '30px')
-                .style('height', '30px')
-                .style('line-height', '26px')
-                .style('margin-right', '4px')
-                .style('background', 'var(--color-a)')
-                .style('pointer-events', 'all')
+                .css({
+                    'text-align': 'center',
+                    'cursor': 'pointer',
+                    'width': '30px',
+                    'height': '30px',
+                    'line-height': '26px',
+                    'margin-right': '4px',
+                    'background': 'var(--color-a)',
+                    'pointer-events': 'all'
+                })
                 .on('click', function () {
                     //Open login
                     //default to signup
@@ -149,13 +149,13 @@ var Login = {
                     //and open modal
                     Login.openModal()
                 })
-                .append('i')
+            forceSignupButton.append($('<i>')
                 .attr('id', 'forceSignupButtonIcon')
-                .attr('class', 'mdi mdi-account-multiple mdi-18px')
+                .attr('class', 'mdi mdi-account-multiple mdi-18px'))
+            Login.loginBar.append(forceSignupButton)
         }
 
-        Login.loginBar
-            .append('div')
+        const loginoutButton = $('<div>')
             .attr('id', 'loginoutButton')
             .attr('title', Login.loggedIn ? 'Logout' : 'Login')
             .attr('tabindex', 500)
@@ -179,14 +179,14 @@ var Login = {
 
                                 Login.username = null
                                 Login.loggedIn = false
-                                d3.select('#loginUser')
-                                    .style('display', 'none')
+                                $('#loginUser')
+                                    .css('display', 'none')
                                     .html('')
-                                d3.select('#loginoutButton').attr(
+                                $('#loginoutButton').attr(
                                     'title',
                                     'Login'
                                 )
-                                d3.select('#loginoutButtonIcon').attr(
+                                $('#loginoutButtonIcon').attr(
                                     'class',
                                     'mdi mdi-login mdi-18px'
                                 )
@@ -224,14 +224,15 @@ var Login = {
                     Login.openModal()
                 }
             })
-            .append('i')
+        loginoutButton.append($('<i>')
             .attr('id', 'loginoutButtonIcon')
             .attr(
                 'class',
                 Login.loggedIn
                     ? 'mdi mdi-logout mdi-18px'
                     : 'mdi mdi-login mdi-18px'
-            )
+            ))
+        Login.loginBar.append(loginoutButton)
 
         // Sign in at page load from cookie if possible
         if (
@@ -263,16 +264,15 @@ var Login = {
     createModal: function () {
         this.removeModal()
 
-        const wrapper = d3
-            .select('#topBar')
-            .append('div')
+        const wrapper = $('<div>')
             .attr('id', 'loginModalWrapper')
+        $('#topBar').append(wrapper)
 
         wrapper
-            .append('div')
+            .append($('<div>')
             .attr('id', 'loginModalClose')
-            .html("<i class='mdi mdi-close mdi-24px'></i>")
-        wrapper.append('div').attr('id', 'loginModal').html(modalFormSignIn)
+            .html("<i class='mdi mdi-close mdi-24px'></i>"))
+        wrapper.append($('<div>').attr('id', 'loginModal').html(modalFormSignIn))
 
         $('#loginModal #loginInUpToggle').on('click', function () {
             $('#loginErrorMessage').animate({ opacity: '0' }, 500)
@@ -536,13 +536,13 @@ function loginSuccess(data, ignoreError) {
             )
 
         $('#loginButton').html('logout')
-        d3.select('#loginoutButton').attr('title', 'Logout')
-        d3.select('#loginoutButtonIcon').attr(
+        $('#loginoutButton').attr('title', 'Logout')
+        $('#loginoutButtonIcon').attr(
             'class',
             'mdi mdi-logout mdi-18px'
         )
 
-        d3.select('#loginUser').attr(
+        $('#loginUser').attr(
             'title',
             Login.loggedIn ? Login.username : ''
         )

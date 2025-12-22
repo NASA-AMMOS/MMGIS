@@ -4,7 +4,7 @@
 //Send data to shadeder
 
 import $ from 'jquery'
-import * as d3 from 'd3'
+import { utcParse, utcFormat } from 'd3-time-format'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
@@ -532,7 +532,7 @@ let ShadeTool = {
                 return function () {
                     let time = $(this).val()
                     if (ShadeTool.vars.utcTimeFormat) {
-                        const parseTime = d3.utcParse(
+                        const parseTime = utcParse(
                             ShadeTool.vars.utcTimeFormat
                         )
                         time = parseTime(time).toISOString()
@@ -1719,7 +1719,7 @@ let ShadeTool = {
     },
     parseToUTCTime(time, formatted) {
         if (formatted && ShadeTool.vars.utcTimeFormat) {
-            const tF = d3.utcFormat(ShadeTool.vars.utcTimeFormat)
+            const tF = utcFormat(ShadeTool.vars.utcTimeFormat)
             return tF(Date.parse(time))
         }
         //'2023-06-28T03:15:20.883Z' -> '2023 JUL 16 03:56:00'
@@ -1787,15 +1787,14 @@ function interfaceWithMMGIS() {
 
     if (TimeControl.enabled != true) {
         console.error('ERROR: ShadeTool - Time must be enabled.')
-        let tools = d3.select('#toolPanel')
+        const toolsContainer = $('#toolPanel')
         //Clear it
-        tools.selectAll('*').remove()
+        toolsContainer.empty()
         //Add a semantic container
-        tools = tools.append('div').style('height', '100%')
-        //Add the markup to tools or do it manually
-        tools.html(
+        const tools = $('<div>').css('height', '100%').html(
             `<div style="position: absolute; top: 50%; left: 50%; transform: translateX(-50%) translateY(-50%); text-align: center; color: var(--color-h);">The Shade Tool requires that Time be enabled by the administrators.</div>`
         )
+        toolsContainer.append(tools)
 
         return
     }
@@ -1826,14 +1825,13 @@ function interfaceWithMMGIS() {
     ].join('\n');
 
     //MMGIS should always have a div with id 'tools'
-    var tools = d3.select('#toolPanel')
-    tools.style('background', 'var(--color-a1)')
+    const toolsContainer = $('#toolPanel')
+    toolsContainer.css('background', 'var(--color-a1)')
     //Clear it
-    tools.selectAll('*').remove()
+    toolsContainer.empty()
     //Add a semantic container
-    tools = tools.append('div').style('height', '100%')
-    //Add the markup to tools or do it manually
-    tools.html(markup)
+    const tools = $('<div>').css('height', '100%').html(markup)
+    toolsContainer.append(tools)
 
     Help.finalize(helpKey)
 

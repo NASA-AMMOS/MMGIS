@@ -2,7 +2,6 @@ import $ from 'jquery'
 import F_ from '../Basics/Formulae_/Formulae_'
 //jqueryUI
 import { center } from '@turf/turf'
-import * as d3 from 'd3'
 
 import Dropy from '../../external/Dropy/dropy'
 import '../../external/JQuery/jquery.autocomplete'
@@ -83,9 +82,9 @@ function interfaceWithMMWebGIS(classSel) {
     Search.lname = null
     Search.arrayToSearch = []
 
-    var cont = d3.select(classSel)
-    if (cont == null) return
-    cont.selectAll('*').remove()
+    var cont = $(classSel)
+    if (cont.length == 0) return
+    cont.empty()
     cont.html(markup)
 
     Search.adjustedFieldUUIDs = []
@@ -109,17 +108,17 @@ function interfaceWithMMWebGIS(classSel) {
     })
     changeSearchField(Search.adjustedFieldUUIDs[0])
 
-    d3.select('#SearchGo').on('click', searchGo)
-    d3.select('#SearchSelect').on('click', searchSelect)
-    d3.select('#SearchClear').on('click', function () {
+    $('#SearchGo').on('click', searchGo)
+    $('#SearchSelect').on('click', searchSelect)
+    $('#SearchClear').on('click', function () {
         $('#auto_search').val('')
     })
-    d3.select('#SearchBoth').on('click', searchBoth)
+    $('#SearchBoth').on('click', searchBoth)
 
     function separateFromMMWebGIS() {
-        d3.select('#SearchGo').on('click', null)
-        d3.select('#SearchSelect').on('click', null)
-        d3.select('#SearchBoth').on('click', null)
+        $('#SearchGo').off('click', searchGo)
+        $('#SearchSelect').off('click', searchSelect)
+        $('#SearchBoth').off('click', searchBoth)
         if ($('#auto_search').hasClass('ui-autocomplete-input')) {
             //MMGIS2 $('#auto_search').autocomplete('destroy')
         }

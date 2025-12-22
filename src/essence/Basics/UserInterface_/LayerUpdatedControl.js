@@ -1,5 +1,4 @@
 import $ from 'jquery'
-import * as d3 from 'd3'
 
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'

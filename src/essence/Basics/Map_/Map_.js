@@ -1,5 +1,4 @@
 import $ from 'jquery'
-import * as d3 from 'd3'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import { captureVector } from '../Layers_/LayerCapturer'
@@ -242,7 +241,7 @@ let Map_ = {
         }
 
         //Remove attribution
-        d3.select('.leaflet-control-attribution').remove()
+        $('.leaflet-control-attribution').remove()
 
         //Make our layers
         makeLayers(L_.layers.dataFlat)
@@ -972,9 +971,6 @@ async function makeVectorLayer(
                 L_.toggleLayer(L_.layers.data[layerObj.name], false, true)
             }
 
-            d3.selectAll('.' + F_.getSafeName(layerObj.name)).data(
-                data.features
-            )
             L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
 
             allLayersLoaded()
@@ -1891,7 +1887,8 @@ function allLayersLoaded() {
             // Turn on legend if displayOnStart is true
             if ('LegendTool' in ToolController_.toolModules) {
                 if (
-                    ToolController_.toolModules['LegendTool'].displayOnStart == true
+                    ToolController_.toolModules['LegendTool'].displayOnStart ==
+                    true
                 ) {
                     ToolController_.toolModules['LegendTool'].make(
                         'toolContentSeparated_Legend'
@@ -1911,22 +1908,25 @@ function allLayersLoaded() {
 }
 
 function buildToolBar() {
-    d3.select('#mapToolBar').html('')
+    $('#mapToolBar').html('')
 
-    Map_.toolBar = d3
-        .select('#mapToolBar')
-        .append('div')
+    Map_.toolBar = $('<div>')
         .attr('class', 'row childpointerevents')
-        .style('height', '100%')
-    Map_.toolBar
-        .append('div')
-        .attr('id', 'scaleBarBounds')
-        .style('width', '270px')
-        .style('height', '36px')
-        .append('svg')
-        .attr('id', 'scaleBar')
-        .attr('width', '270px')
-        .attr('height', '36px')
+        .css('height', '100%')
+    $('#mapToolBar').append(Map_.toolBar)
+
+    const scaleBarBounds = $('<div>').attr('id', 'scaleBarBounds').css({
+        width: '270px',
+        height: '36px',
+    })
+    Map_.toolBar.append(scaleBarBounds)
+
+    // Create SVG with proper namespace for D3 compatibility
+    const scaleBarSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    scaleBarSvg.setAttribute('id', 'scaleBar')
+    scaleBarSvg.setAttribute('width', '270px')
+    scaleBarSvg.setAttribute('height', '36px')
+    scaleBarBounds.append(scaleBarSvg)
 }
 
 function clearOnMapClick(event) {

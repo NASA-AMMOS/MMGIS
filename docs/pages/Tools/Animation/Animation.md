@@ -23,17 +23,20 @@ The Animation Tool allows users to create smooth animated sequences of map data 
 ## Usage
 
 ### Step 1: Select Area
+
 - Use the "Draw on Map" button to interactively select a bounding box
 - Use "Use Current View" to capture the current map extent
 - Or manually enter north, south, east, west coordinates
 
 ### Step 2: Set Time Range
+
 - Choose start and end dates for your animation
 - Set the step multiplier (number of time intervals per frame)
 - Select the time interval between frames (second, minute, hour, day, week, month, year, decade, century)
 - The tool automatically syncs with MMGIS TimeControl and TimeUI
 
 ### Step 3: Configure Export Settings
+
 - Set frame rate (0.05 - 10 FPS) using the "One Frame" slider
 - Choose play direction (forward, backward) for export
 - Enable/disable looping for GIF exports
@@ -43,6 +46,7 @@ The Animation Tool allows users to create smooth animated sequences of map data 
 - Configure Layer Refresh Rate (0.1s - 60s): Delay after updating time to wait for layers to update before capturing each frame
 
 ### Step 4: Export
+
 - Choose export format from available options (GIF, MP4, or image sequence)
 - Only export formats enabled in the tool configuration will be visible
 - Click the export button for your desired format
@@ -50,6 +54,7 @@ The Animation Tool allows users to create smooth animated sequences of map data 
 - Download the generated file(s)
 
 **Note**: During export, the tool will:
+
 - Temporarily hide UI elements for clean frames
 - Update time-enabled layers for each frame
 - Wait for the configured Layer Refresh Rate delay before capturing each frame
@@ -86,7 +91,9 @@ The Animation Tool integrates deeply with MMGIS's TimeControl and TimeUI systems
 ## Technical Details
 
 ### Frame Capture
+
 The tool captures frames using HTML2Canvas:
+
 - Frames are captured directly from the map container (`#mapScreen`)
 - UI elements are temporarily hidden during capture for clean frames
 - SVG layers and tile layers are handled with special positioning fixes
@@ -96,12 +103,14 @@ The tool captures frames using HTML2Canvas:
 ### Export Formats
 
 #### GIF Export
+
 - Uses gifshot library for creation
 - Frame rate determines animation speed
 - Optimized for web sharing
 - Falls back gracefully if GIF creation fails
 
 #### MP4 Export
+
 - Uses FFmpeg WASM for video encoding
 - H.264 codec with yuv420p pixel format
 - CRF 23 quality setting
@@ -109,12 +118,14 @@ The tool captures frames using HTML2Canvas:
 - Progress updates during encoding
 
 #### Image Sequence
+
 - Individual PNG frames exported
 - Filenames include optional title prefix (sanitized)
 - Frame numbering with zero-padding (e.g., `frame_000.png`, `frame_001.png`)
 - All frames download sequentially
 
 ### Text Overlays
+
 - Title overlay: Optional custom text displayed in top-left corner
 - Time step overlay: Optional timestamp displayed below title (format: `YYYY-MM-DD HH:MM:SS`)
 - Text rendered with white stroke (border) and black fill for readability
@@ -123,6 +134,7 @@ The tool captures frames using HTML2Canvas:
 ## Integration with MMGIS
 
 The Animation Tool integrates with MMGIS's existing systems:
+
 - Uses MMGIS's `Map_` module for bounding box selection and coordinate conversion
 - Integrates with `TimeControl` and `TimeUI` for time-based layer management
 - Uses Leaflet Draw for interactive bounding box drawing
@@ -134,7 +146,6 @@ The Animation Tool integrates with MMGIS's existing systems:
 ## Dependencies
 
 - jQuery for DOM manipulation and event handling
-- D3.js for initial tool panel setup
 - Leaflet and Leaflet Draw for map interaction and bounding box drawing
 - HTML2Canvas for map frame capture
 - gifshot for GIF creation
@@ -149,20 +160,22 @@ The Animation Tool integrates with MMGIS's existing systems:
 ## Notes
 
 ### Bounding Box Drawing
+
 - Uses Leaflet Draw rectangle tool
 - Creates screen-aligned rectangles for consistent frame cropping
 - Supports drawing mode with ESC key cancellation
 - Drawing layer is automatically hidden during export
 
 ### Frame Generation
+
 - Frames are generated sequentially with small delays to prevent UI blocking
 - Each frame updates TimeControl to refresh time-enabled layers
 - After updating time, the tool waits for the configured Layer Refresh Rate (0.1s - 60s) before capturing the frame
 - Original TimeControl state is stored and restored after export
 
 ### Performance Considerations
+
 - Large time ranges with small intervals may generate many frames
 - Export process is asynchronous with progress feedback
 - MP4 encoding may take time for large frame counts
 - Browser memory limits may affect very large animations
-

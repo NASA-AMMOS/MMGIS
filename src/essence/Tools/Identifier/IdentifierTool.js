@@ -1,7 +1,7 @@
 //Finds the tile png under the mouse of all active tile layers
 //Draws those tiles their owns canvases and get the appropriate pixel value
 import $ from 'jquery'
-import * as d3 from 'd3'
+import { utcFormat } from 'd3-time-format'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
@@ -103,7 +103,7 @@ var IdentifierTool = {
     },
     fillURLParameters: function (url, layerUUID) {
         if (IdentifierTool.vars.data?.[layerUUID]?.data?.[0]) {
-            const layerTimeFormat = d3.utcFormat(
+            const layerTimeFormat = utcFormat(
                 IdentifierTool.vars.data[layerUUID].data[0].timeFormat
             )
 
@@ -564,21 +564,21 @@ function interfaceWithMMWebGIS() {
 
     //MMWebGIS should always have a div with id 'tools'
     if (IdentifierTool.targetId !== 'toolContentSeparated_Identifier') {
-        var tools = d3.select('#tools')
+        const toolsContainer = $('#tools')
         //Clear it
-        tools.selectAll('*').remove()
+        toolsContainer.empty()
         //Add a semantic container
-        tools = tools
-            .append('div')
+        const tools = $('<div>')
             .attr('class', 'center aligned ui padded grid')
-            .style('height', '100%')
+            .css('height', '100%')
+        toolsContainer.append(tools)
         //Add the markup to tools or do it manually
         //tools.html( markup );
     }
 
     //Add event functions and whatnot
-    var previousCursor = d3.select('#map').style('cursor')
-    d3.select('#map').style('cursor', 'crosshair')
+    var previousCursor = $('#map').css('cursor')
+    $('#map').css('cursor', 'crosshair')
 
     Map_.map.on('mousemove', IdentifierTool.idPixelMap)
     Map_.map.on('mouseout', IdentifierTool.clearCursor)
@@ -621,15 +621,15 @@ function interfaceWithMMWebGIS() {
         }
 
         if (IdentifierTool.targetId === 'toolContentSeparated_Identifier') {
-            d3.select('#map').style('cursor', 'grab')
-            let tools = d3.select(
+            $('#map').css('cursor', 'grab')
+            const tools = $(
                 IdentifierTool.targetId
                     ? `#${IdentifierTool.targetId}`
                     : '#toolPanel'
             )
-            tools.style('background', 'var(--color-k)')
+            tools.css('background', 'var(--color-k)')
             //Clear it
-            tools.selectAll('*').remove()
+            tools.empty()
             var prevActive = $(
                 '#toolcontroller_sepdiv #' + 'Identifier' + 'Tool'
             )
@@ -641,7 +641,7 @@ function interfaceWithMMWebGIS() {
                 background: 'none',
             })
         } else {
-            d3.select('#map').style('cursor', previousCursor)
+            $('#map').css('cursor', previousCursor)
         }
     }
 }

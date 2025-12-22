@@ -1,5 +1,4 @@
 import $ from 'jquery'
-import * as d3 from 'd3'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
@@ -51,24 +50,21 @@ var Shapes = {
             if (s[0] == 'DrawTool' && DrawTool.filesOn.indexOf(onId) != -1) {
                 var file = DrawTool.getFileObjectWithId(s[1])
                 fileIds.push(onId)
-                if (L_.layers.layer[l].length > 0)
-                    d3.select('#drawToolShapesFeaturesList')
-                        .append('li')
+                if (L_.layers.layer[l].length > 0) {
+                    const headerLi = $('<li>')
                         .attr('class', 'drawToolShapesFeaturesListFileHeader')
-                        .style(
-                            'background',
-                            DrawTool.categoryStyles[file.intent].color
-                        )
-                        .style(
-                            'color',
-                            file.intent == 'campaign' ||
+                        .css({
+                            'background': DrawTool.categoryStyles[file.intent].color,
+                            'color': file.intent == 'campaign' ||
                                 file.intent == 'campsite' ||
                                 file.intent == 'trail' ||
                                 file.intent == 'all'
                                 ? 'black'
                                 : 'white'
-                        )
+                        })
                         .html(file.file_name)
+                    $('#drawToolShapesFeaturesList').append(headerLi)
+                }
                 for (var i = 0; i < L_.layers.layer[l].length; i++) {
                     addShapeToList(L_.layers.layer[l][i], file, l, i, s[1])
                 }
@@ -274,8 +270,7 @@ var Shapes = {
             let activeClass = ''
             if (stillActive.indexOf(shapeLiId) != -1) activeClass = ' active'
 
-            d3.select('#drawToolShapesFeaturesList')
-                .append('li')
+            const shapeLi = $('<li>')
                 .attr('id', 'drawToolShapeLiItem_' + layer + '_' + index)
                 .attr('class', 'drawToolShapeLi' + activeClass)
                 .attr('layer', layer)
@@ -287,6 +282,7 @@ var Shapes = {
                 .attr('intent', properties._.intent)
                 .attr('shape_id', properties._.id)
                 .html(markup)
+            $('#drawToolShapesFeaturesList').append(shapeLi)
 
             $('#drawToolShapeLiItem_' + layer + '_' + index)
                 .find('.drawToolShapeLiItemB')
@@ -708,7 +704,7 @@ var Shapes = {
         $('#drawToolShapesCopyDropdown').html(
             "<select id='drawToolShapesCopySelect' class='ui dropdown dropdown_1'></select>"
         )
-        d3.select('#drawToolShapesCopySelect').html(
+        $('#drawToolShapesCopySelect').html(
             "<option value='' disabled selected hidden>" +
                 defaultOpt +
                 '</option>'
@@ -760,10 +756,10 @@ var Shapes = {
                             DrawTool.files[i].intent == 'signpost') ||
                         intent == DrawTool.files[i].intent)
                 ) {
-                    d3.select('#drawToolShapesCopySelect')
-                        .append('option')
+                    const leadOption = $('<option>')
                         .attr('value', DrawTool.files[i].id)
                         .text(DrawTool.files[i].file_name + ' [Lead]')
+                    $('#drawToolShapesCopySelect').append(leadOption)
                 } else if (
                     (mmgisglobal.user == DrawTool.files[i].file_owner ||
                         isListEdit ||
@@ -772,10 +768,10 @@ var Shapes = {
                     intent == DrawTool.files[i].intent &&
                     DrawTool.files[i].hidden == '0'
                 ) {
-                    d3.select('#drawToolShapesCopySelect')
-                        .append('option')
+                    const fileOption = $('<option>')
                         .attr('value', DrawTool.files[i].id)
                         .text(DrawTool.files[i].file_name)
+                    $('#drawToolShapesCopySelect').append(fileOption)
                 }
             }
         }

@@ -1,6 +1,5 @@
 import s from '../essence'
 import $ from 'jquery'
-import * as d3 from 'd3'
 import QueryURL from '../Ancillary/QueryURL'
 import calls from '../../pre/calls'
 import { mmgisAPI_ } from '../mmgisAPI/mmgisAPI'
@@ -48,23 +47,25 @@ export default {
         }
 
         if (missionUrl == false && !forceConfig) {
-            var background = d3
-                .select('body')
-                .append('div')
+            var background = $('<div>')
                 .attr('class', 'landingPage')
-                .style('position', 'absolute')
-                .style('top', '0')
-                .style('left', '0')
-                .style('width', '100%')
-                .style('height', '100%')
+                .css({
+                    'position': 'absolute',
+                    'top': '0',
+                    'left': '0',
+                    'width': '100%',
+                    'height': '100%'
+                })
+            $('body').append(background)
 
-            background.append('div').attr('class', 'gradient')
+            background.append($('<div>').attr('class', 'gradient'))
 
-            let bottom = background.append('div').attr('class', 'landingBottom')
-            var imageCredit = bottom.append('div').attr('class', 'imagecredit')
-            imageCredit.append('div').text('Wind at Work')
-            imageCredit
-                .append('a')
+            let bottom = $('<div>').attr('class', 'landingBottom')
+            background.append(bottom)
+            var imageCredit = $('<div>').attr('class', 'imagecredit')
+            bottom.append(imageCredit)
+            imageCredit.append($('<div>').text('Wind at Work'))
+            const imageCreditLink = $('<a>')
                 .attr('target', '__blank')
                 .attr('rel', 'noreferrer')
                 .attr(
@@ -75,14 +76,14 @@ export default {
                     'title',
                     'Splash Image Credit: NASA/JPL-Caltech/Univ. of Arizona'
                 )
-                .append('i')
-                .attr('class', 'mdi mdi-information-outline mdi-14px')
+            imageCreditLink.append($('<i>').attr('class', 'mdi mdi-information-outline mdi-14px'))
+            imageCredit.append(imageCreditLink)
 
             bottom
-                .append('div')
+                .append($('<div>')
                 .attr('class', 'version')
-                .style('cursor', 'pointer')
-                .text(`v${window.mmgisglobal.version}`)
+                .css('cursor', 'pointer')
+                .text(`v${window.mmgisglobal.version}`))
 
             $('.version').on('click', function () {
                 window.location.href = `https://github.com/NASA-AMMOS/MMGIS/releases/tag/${window.mmgisglobal.version}`
@@ -93,52 +94,58 @@ export default {
                 window.mmgisglobal.CLEARANCE_NUMBER != 'undefined'
             ) {
                 bottom
-                    .append('div')
+                    .append($('<div>')
                     .attr('class', 'clearance')
-                    .text(window.mmgisglobal.CLEARANCE_NUMBER)
+                    .text(window.mmgisglobal.CLEARANCE_NUMBER))
             }
 
-            var mainDiv = background
-                .append('div')
-                .style('position', 'absolute')
-                .style('top', '40%')
-                .style('left', '50%')
-                .style('transform', 'translate(-50%, -50%)')
+            var mainDiv = $('<div>')
+                .css({
+                    'position': 'absolute',
+                    'top': '40%',
+                    'left': '50%',
+                    'transform': 'translate(-50%, -50%)'
+                })
+            background.append(mainDiv)
 
             var mmgisLogoURL = 'public/images/logos/mmgis.png'
-            var titleDiv = background
-                .append('div')
+            var titleDiv = $('<div>')
                 .attr('id', 'title')
-                .style('z-index', '200')
-                .append('p')
+                .css('z-index', '200')
+            const titleP = $('<p>')
                 .attr('class', 'unselectable')
-                .style('font-size', '40px')
-                .style('opacity', '1')
-                //.style( 'text-shadow', '0px 4px white' )
-                .style('cursor', 'default')
-                .style('padding', '0px 10px')
+                .css({
+                    'font-size': '40px',
+                    'opacity': '1',
+                    'cursor': 'default',
+                    'padding': '0px 10px'
+                })
+                //.css( 'text-shadow', '0px 4px white' )
                 .html("<img src='" + mmgisLogoURL + "' alt='Full logo'/>")
-            background.append('div').attr('id', 'landingPanel')
+            titleDiv.append(titleP)
+            background.append(titleDiv)
+            background.append($('<div>').attr('id', 'landingPanel'))
 
-            var missionsDiv = background
-                .append('div')
+            var missionsDiv = $('<div>')
                 .attr('id', 'landingMissionsWrapper')
-            //.style( 'background-color', '#222526' )
-            //.style( 'box-shadow', 'inset 0px 0px 10px #000' );
-            var missionsUl = missionsDiv
-                .append('ul')
-                .style('margin', '0')
-                .style('padding', '0')
-                .style('height', 'calc( 100vh - 200px)')
-                .style('overflow-y', 'auto')
-                .style('padding-right', '20px')
+            background.append(missionsDiv)
+            //.css( 'background-color', '#222526' )
+            //.css( 'box-shadow', 'inset 0px 0px 10px #000' );
+            var missionsUl = $('<ul>')
+                .css({
+                    'margin': '0',
+                    'padding': '0',
+                    'height': 'calc( 100vh - 200px)',
+                    'overflow-y': 'auto',
+                    'padding-right': '20px'
+                })
+            missionsDiv.append(missionsUl)
             for (let m in missions) {
-                missionsUl
-                    .append('li')
+                const missionLi = $('<li>')
                     .attr('class', 'landingPageMission')
                     .html(missions[m])
                     .on('click', function () {
-                        var missionName = d3.select(this).html()
+                        var missionName = $(this).html()
                         $('.landingPage').animate(
                             {
                                 opacity: 0,
@@ -197,6 +204,7 @@ export default {
                             }
                         )
                     })
+                missionsUl.append(missionLi)
             }
             $('.landingPage').animate(
                 {
@@ -206,11 +214,11 @@ export default {
             )
 
             if (window.mmgisglobal.NODE_ENV == 'development') {
-                var configIcon = background
-                    .append('div')
+                var configIcon = $('<div>')
                     .attr('id', 'configIcon')
                     .attr('class', 'mdi mdi-tune mdi-24px')
                     .attr('title', 'Configure')
+                background.append(configIcon)
 
                 $('#configIcon').on('click', function () {
                     if (window.mmgisglobal.SERVER === 'node')
@@ -221,11 +229,11 @@ export default {
                             window.location.href.split('?')[0] + 'config'
                 })
 
-                var docsIcon = background
-                    .append('div')
+                var docsIcon = $('<div>')
                     .attr('id', 'docsIcon')
                     .attr('class', 'mdi mdi-book-open mdi-24px')
                     .attr('title', 'Documentation')
+                background.append(docsIcon)
 
                 $('#docsIcon').on('click', function () {
                     window.location.href = 'https://nasa-ammos.github.io/MMGIS/'
@@ -234,11 +242,11 @@ export default {
             }
 
             //Attributions
-            var attributionIcon = background
-                .append('div')
+            var attributionIcon = $('<div>')
                 .attr('id', 'attributionIcon')
                 .attr('class', 'mdi mdi-dna mdi-24px')
                 .attr('title', 'Attributions')
+            background.append(attributionIcon)
 
             // prettier-ignore
             var markupAttributions = [
@@ -373,62 +381,69 @@ export default {
 }
 
 export const makeMissionNotFoundDiv = () => {
-    var notfounddiv = d3
-        .select('body')
-        .append('div')
+    var notfounddiv = $('<div>')
         .attr('id', 'notfound')
-        .style('position', 'absolute')
-        .style('top', '0')
-        .style('left', '0')
-        .style('width', '100%')
-        .style('height', '100%')
-        .style('background', '#efefef')
-        .style('color', '#757575')
-        .style('opacity', 0)
-        .style('cursor', 'pointer')
-        .style('z-index', 1000)
+        .css({
+            'position': 'absolute',
+            'top': '0',
+            'left': '0',
+            'width': '100%',
+            'height': '100%',
+            'background': '#efefef',
+            'color': '#757575',
+            'opacity': 0,
+            'cursor': 'pointer',
+            'z-index': 1000
+        })
         .on('click', function () {
             document.location.href = window.location.href.split('?')[0]
         })
+    $('body').append(notfounddiv)
 
     notfounddiv
-        .append('p')
+        .append($('<p>')
         .attr('id', 'mnfmmgis')
-        .style('font-family', 'lato')
-        .style('font-size', '20px')
-        .style('margin', '90px 0')
-        .style('text-align', 'center')
-        .style('position', 'absolute')
-        .style('top', '50%')
-        .style('left', '50%')
-        .style('transform', 'translateX(-50%)')
-        .text(window.mmgisglobal.name || 'MMGIS')
+        .css({
+            'font-family': 'lato',
+            'font-size': '20px',
+            'margin': '90px 0',
+            'text-align': 'center',
+            'position': 'absolute',
+            'top': '50%',
+            'left': '50%',
+            'transform': 'translateX(-50%)'
+        })
+        .text(window.mmgisglobal.name || 'MMGIS'))
 
     notfounddiv
-        .append('p')
+        .append($('<p>')
         .attr('id', 'returnmmgis')
-        .style('font-family', 'lato')
-        .style('font-size', '14px')
-        .style('margin', '125px 0 90px 0')
-        .style('text-align', 'center')
-        .style('position', 'absolute')
-        .style('top', '50%')
-        .style('left', '50%')
-        .style('transform', 'translateX(-50%)')
-        .text('Click anywhere to return home...')
+        .css({
+            'font-family': 'lato',
+            'font-size': '14px',
+            'margin': '125px 0 90px 0',
+            'text-align': 'center',
+            'position': 'absolute',
+            'top': '50%',
+            'left': '50%',
+            'transform': 'translateX(-50%)'
+        })
+        .text('Click anywhere to return home...'))
 
     notfounddiv
-        .append('div')
+        .append($('<div>')
         .attr('id', 'nf404')
-        .style('font-family', 'monospace')
-        .style('font-size', '200px')
-        .style('margin-top', '5px')
-        .style('position', 'absolute')
-        .style('top', '50%')
-        .style('left', '50%')
-        .style('transform', 'translateX(-50%) translateY(-50%)')
-        .style('color', 'var(--color-b)')
-        .html('404')
+        .css({
+            'font-family': 'monospace',
+            'font-size': '200px',
+            'margin-top': '5px',
+            'position': 'absolute',
+            'top': '50%',
+            'left': '50%',
+            'transform': 'translateX(-50%) translateY(-50%)',
+            'color': 'var(--color-b)'
+        })
+        .html('404'))
 
     $('#notfound').animate(
         {

@@ -4,7 +4,6 @@
 //Send data to viewshedder
 
 import $ from 'jquery'
-import * as d3 from 'd3'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
@@ -1571,14 +1570,13 @@ function interfaceWithMMGIS() {
     }
 
     //MMGIS should always have a div with id 'tools'
-    var tools = d3.select('#toolPanel')
-    tools.style('background', 'var(--color-a1)')
+    const toolsContainer = $('#toolPanel')
+    toolsContainer.css('background', 'var(--color-a1)')
     //Clear it
-    tools.selectAll('*').remove()
+    toolsContainer.empty()
     //Add a semantic container
-    tools = tools.append('div').style('height', '100%')
-    //Add the markup to tools or do it manually
-    tools.html(markup)
+    const tools = $('<div>').css('height', '100%').html(markup)
+    toolsContainer.append(tools)
 
     Help.finalize(helpKey)
 
