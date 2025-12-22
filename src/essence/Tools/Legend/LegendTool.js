@@ -1,5 +1,4 @@
 import $ from 'jquery'
-import * as d3 from 'd3'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
@@ -70,17 +69,17 @@ function interfaceWithMMWebGIS() {
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
     function separateFromMMWebGIS() {
-        let tools = d3.select(
+        const tools = $(
             LegendTool.targetId ? `#${LegendTool.targetId}` : '#toolPanel'
         )
-        tools.style('background', 'var(--color-k)')
+        tools.css('background', 'var(--color-k)')
         //Clear it
-        tools.selectAll('*').remove()
+        tools.empty()
 
         if (L_.UserInterface_.isMobile === true) {
-            tools = d3.select('#tools')
+            const mobileTools = $('#tools')
             //Clear it
-            tools.selectAll('*').remove()
+            mobileTools.empty()
         }
     }
 }
@@ -231,67 +230,42 @@ function drawLegendHeader() {
         divID = `#${LegendTool.targetId}`
     }
 
-    var tools = d3.select(divID)
-    tools.style('background', 'var(--color-k)')
+    const tools = $(divID)
+    tools.css('background', 'var(--color-k)')
     //Clear it
-    tools.selectAll('*').remove()
+    tools.empty()
     
-    // Add CSS to make tooltips appear faster
-    if (!document.getElementById('legend-tooltip-styles')) {
-        const style = document.createElement('style')
-        style.id = 'legend-tooltip-styles'
-        style.textContent = `
-            [title] {
-                transition-delay: 0s !important;
-            }
-            [title]:hover::after {
-                content: attr(title);
-                position: absolute;
-                background: rgba(0, 0, 0, 0.8);
-                color: white;
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 12px;
-                white-space: nowrap;
-                z-index: 1000;
-                pointer-events: none;
-                margin-top: -25px;
-                margin-left: 10px;
-            }
-        `
-        document.head.appendChild(style)
-    }
-    tools
-        .append('div')
-        .style('height', '30px')
-        .style('line-height', '30px')
-        .style('font-size', '13px')
-        .style(
-            'padding-right',
-            LegendTool.justification === 'right' ? '30px' : '8px'
-        )
-        .style(
-            'padding-left',
-            LegendTool.justification === 'right' ? '10px' : '30px'
-        )
-        .style('color', 'var(--color-l)')
-        .style('background', 'var(--color-i)')
-        .style('font-family', 'lato-light')
-        .style('text-transform', 'uppercase')
-        .style('border-top-left-radius', '3px')
-        .style('border-top-right-radius', '3px')
-        .style('border-bottom', '1px solid var(--color-i)')
+    const legendHeader = $('<div>')
+        .css({
+            'height': '30px',
+            'line-height': '30px',
+            'font-size': '13px',
+            'padding-right': LegendTool.justification === 'right' ? '30px' : '8px',
+            'padding-left': LegendTool.justification === 'right' ? '10px' : '30px',
+            'color': 'var(--color-l)',
+            'background': 'var(--color-i)',
+            'font-family': 'lato-light',
+            'text-transform': 'uppercase',
+            'border-top-left-radius': '3px',
+            'border-top-right-radius': '3px',
+            'border-bottom': '1px solid var(--color-i)'
+        })
         .html('Legend')
+    tools.append(legendHeader)
+
     //Add a semantic container
-    tools = tools
-        .append('div')
+    const legendContainer = $('<div>')
         .attr('id', 'LegendTool')
-        .style('color', '#dcdcdc')
-        .style('height', 'calc(100% - 40px)')
-        .style('max-height', 'calc(100vh - 185px)')
-        .style('border-bottom-left-radius', '3px')
-        .style('border-bottom-right-radius', '3px')
-        .style('overflow-y', 'auto')
+        .css({
+            'color': '#dcdcdc',
+            'height': 'calc(100% - 40px)',
+            'max-height': 'calc(100vh - 185px)',
+            'border-bottom-left-radius': '3px',
+            'border-bottom-right-radius': '3px',
+            'overflow-y': 'auto'
+        })
+    tools.append(legendContainer)
+    const toolsContainer = legendContainer
 
     return tools
 }
@@ -309,25 +283,30 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
     // If option to hide layer name in legend is checked in the configuration
     const hideLegendLayerName = layerConfig.variables?.hideLegendLayerName || false
 
-    var c = tools
-        .append('div')
+    var c = $('<div>')
         .attr('class', 'mmgisScrollbar')
-        .style('width', '100%')
-        .style('display', 'inline-block')
-        .style('padding-top', '5px')
-        .style('padding-right', '12px')
-        .style('padding-left', shift > 0 ? `${shift * 16}px` : '')
-        .style('border-bottom', isHeader ? '' : '1px solid var(--color-i)')
+        .css({
+            'width': '100%',
+            'display': 'inline-block',
+            'padding-top': '5px',
+            'padding-right': '12px',
+            'padding-left': shift > 0 ? `${shift * 16}px` : '',
+            'border-bottom': isHeader ? '' : '1px solid var(--color-i)'
+        })
+    tools.append(c)
 
-    c.append('div')
-        .attr('class', 'row')
-        .append('p')
-        .style('font-size', '13px')
-        .style('color', 'var(--color-f)')
-        .style('margin-bottom', isHeader ? '' : '5px')
-        .style('padding-left', '8px')
-        .style('font-weight', isHeader ? 'bold' : '')
+    const rowDiv = $('<div>').attr('class', 'row')
+    const legendTitle = $('<p>')
+        .css({
+            'font-size': '13px',
+            'color': 'var(--color-f)',
+            'margin-bottom': isHeader ? '' : '5px',
+            'padding-left': '8px',
+            'font-weight': isHeader ? 'bold' : ''
+        })
         .text(hideLegendLayerName ? '' : display_name)
+    rowDiv.append(legendTitle)
+    c.append(rowDiv)
 
     if (isHeader) return
 
@@ -337,42 +316,49 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
     // Check if _legend is an image URL (string)
     if (typeof _legend === 'string') {
         // Render image directly
-        const imageContainer = c
-            .append('div')
+        const imageContainer = $('<div>')
             .attr('class', 'legend-image-container')
-            .style('display', 'flex')
-            .style('justify-content', 'center')
-            .style('margin', '4px')
-            .style('padding', '4px')
-            .style('overflow-x', 'hidden')
-        imageContainer
-            .append('img')
+            .css({
+                'display': 'flex',
+                'justify-content': 'center',
+                'margin': '4px',
+                'padding': '4px',
+                'overflow-x': 'hidden'
+            })
+        c.append(imageContainer)
+
+        const legendImage = $('<img>')
             .attr('src', _legend.startsWith('http') ? _legend : L_.missionPath + _legend)
             .attr('alt', `Legend for ${display_name}`)
-            .style('max-width', '300px')
-            .style('max-height', '220px')
-            .style('height', 'auto')
-            .style('background-color', 'white')
-            .style('border', '1px solid var(--color-i)')
-            .style('border-radius', '3px')
-            .style('opacity', opacity)
+            .css({
+                'max-width': '300px',
+                'max-height': '220px',
+                'height': 'auto',
+                'background-color': 'white',
+                'border': '1px solid var(--color-i)',
+                'border-radius': '3px',
+                'opacity': opacity
+            })
             .on('load', function() {
                 // Set container max-width to image width (capped at 300px)
                 const maxImageWidth = Math.min(this.naturalWidth, 300)
                 imageContainer
-                    .style('max-width', maxImageWidth + 'px')
-                    .style('width', 'fit-content')
+                    .css('max-width', maxImageWidth + 'px')
+                    .css('width', 'fit-content')
             })
+        imageContainer.append(legendImage)
             .on('error', function() {
                 // Handle image load error
-                d3.select(this.parentNode)
-                    .append('div')
-                    .style('color', '#ff6b6b')
-                    .style('padding', '8px')
-                    .style('text-align', 'center')
-                    .style('font-size', '12px')
+                const errorDiv = $('<div>')
+                    .css({
+                        'color': '#ff6b6b',
+                        'padding': '8px',
+                        'text-align': 'center',
+                        'font-size': '12px'
+                    })
                     .text('Failed to load legend.')
-                d3.select(this).remove()
+                $(this.parentNode).append(errorDiv)
+                $(this).remove()
             })
         
         return // Exit early since we've rendered the image
@@ -408,12 +394,14 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 pushScale(legendEntries)
                 legendEntries = []
             }
-            var r = c
-                .append('div')
+            var r = $('<div>')
                 .attr('class', 'row')
-                .style('display', 'flex')
-                .style('margin', orientation === 'horizontal' ? '0px 8px 8px 0px' : '0px 0px 8px 9px')
-                .style('flex-direction', orientation === 'horizontal' ? 'row' : 'row')
+                .css({
+                    'display': 'flex',
+                    'margin': orientation === 'horizontal' ? '0px 8px 8px 0px' : '0px 0px 8px 9px',
+                    'flex-direction': orientation === 'horizontal' ? 'row' : 'row'
+                })
+            c.append(r)
 
             if (
                 shape == 'circle' ||
@@ -422,88 +410,109 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             ) {
                 switch (shape) {
                     case 'circle':
-                        r.append('div')
+                        const circleShape = $('<div>')
                             .attr('class', layerUUID + '_legendshape')
-                            .style('width', '18px')
-                            .style('height', '18px')
-                            .style('background', _legend[d].color)
-                            .style('opacity', opacity)
-                            .style('border', `1px solid ${_legend[d].strokecolor}`)
-                            .style('border-radius', '50%')
-                            .style('position', 'relative')
-                            .style('cursor', 'crosshair')
+                            .css({
+                                'width': '18px',
+                                'height': '18px',
+                                'background': _legend[d].color,
+                                'opacity': opacity,
+                                'border': `1px solid ${_legend[d].strokecolor}`,
+                                'border-radius': '50%',
+                                'position': 'relative',
+                                'cursor': 'crosshair'
+                            })
                             .attr('title', _legend[d].value)
+                        r.append(circleShape)
                         break
                     case 'square':
-                        r.append('div')
+                        const squareShape = $('<div>')
                             .attr('class', layerUUID + '_legendshape')
-                            .style('width', '18px')
-                            .style('height', '18px')
-                            .style('background', _legend[d].color)
-                            .style('opacity', opacity)
-                            .style('border', `1px solid ${_legend[d].strokecolor}`)
-                            .style('position', 'relative')
-                            .style('cursor', 'crosshair')
+                            .css({
+                                'width': '18px',
+                                'height': '18px',
+                                'background': _legend[d].color,
+                                'opacity': opacity,
+                                'border': `1px solid ${_legend[d].strokecolor}`,
+                                'position': 'relative',
+                                'cursor': 'crosshair'
+                            })
                             .attr('title', _legend[d].value)
+                        r.append(squareShape)
                         break
                     case 'rect':
-                        r.append('div')
+                        const rectShape = $('<div>')
                             .attr('class', layerUUID + '_legendshape')
-                            .style('width', '18px')
-                            .style('height', '8px')
-                            .style('margin', '5px 0px 5px 0px')
-                            .style('background', _legend[d].color)
-                            .style('opacity', opacity)
-                            .style('border', `1px solid ${_legend[d].strokecolor}`)
-                            .style('position', 'relative')
-                            .style('cursor', 'crosshair')
+                            .css({
+                                'width': '18px',
+                                'height': '8px',
+                                'margin': '5px 0px 5px 0px',
+                                'background': _legend[d].color,
+                                'opacity': opacity,
+                                'border': `1px solid ${_legend[d].strokecolor}`,
+                                'position': 'relative',
+                                'cursor': 'crosshair'
+                            })
                             .attr('title', _legend[d].value)
+                        r.append(rectShape)
                         break
                     default:
                 }
             } else if (String(shape).toLowerCase().match(/\.(jpeg|jpg|gif|png|svg|webp)$/) != null) {
-                // Image markers   
-                r.append('div')
+                // Image markers
+                const imageMarker = $('<div>')
                     .attr('class', layerUUID + '_legendcustom')
-                    .style('width', '24px')
-                    .style('height', '24px')
-                    .style('background', _legend[d].color)
-                    .style('opacity', opacity)
-                    .style('border', `1px solid ${_legend[d].strokecolor}`)
-                    .style('background-image', `url(${shape.startsWith("http") 
-                        ? shape : L_.missionPath + shape})`)
-                    .style('background-size', 'contain')
-                    .style('background-repeat', 'no-repeat')
-                    .style('position', 'relative')
-                    .style('cursor', 'crosshair')
+                    .css({
+                        'width': '24px',
+                        'height': '24px',
+                        'background': _legend[d].color,
+                        'opacity': opacity,
+                        'border': `1px solid ${_legend[d].strokecolor}`,
+                        'background-image': `url(${shape.startsWith("http")
+                            ? shape : L_.missionPath + shape})`,
+                        'background-size': 'contain',
+                        'background-repeat': 'no-repeat',
+                        'position': 'relative',
+                        'cursor': 'crosshair'
+                    })
                     .attr('title', _legend[d].value)
+                r.append(imageMarker)
             } else { // try using shape from Material Design Icon (mdi) library    
-                const iconContainer = r.append('div')
+                const iconContainer = $('<div>')
                     .attr('class', layerUUID + '_legendicon')
-                    .style('width', '18px')
-                    .style('height', '18px')
-                    .style('position', 'relative')
-                    .style('cursor', 'crosshair')
+                    .css({
+                        'width': '18px',
+                        'height': '18px',
+                        'position': 'relative',
+                        'cursor': 'crosshair'
+                    })
                     .attr('title', _legend[d].value)
-                
-                iconContainer.append('i')
+                r.append(iconContainer)
+
+                const iconElement = $('<i>')
                     .attr('class', 'mdi mdi-18px mdi-' + shape)
-                    .style('color', _legend[d].color)
-                    .style('opacity', opacity)
-                    .style('border', `1px solid ${_legend[d].strokecolor}`)
+                    .css({
+                        'color': _legend[d].color,
+                        'opacity': opacity,
+                        'border': `1px solid ${_legend[d].strokecolor}`
+                    })
+                iconContainer.append(iconElement)
             }
 
-            r.append('div')
-            .style('margin-left', orientation === 'horizontal' ? '8px' : '5px')
-            .style('height', '100%')
-            .style('line-height', '19px')
-            .style('font-size', '14px')
-            .style('overflow', 'hidden')
-            .style('white-space', 'nowrap')
-            .style('max-width', orientation === 'horizontal' ? 'none' : '270px')
-            .style('text-overflow', 'ellipsis')
-            .attr('title', _legend[d].value)
-            .text(_legend[d].value)
+            const legendLabel = $('<div>')
+                .css({
+                    'margin-left': orientation === 'horizontal' ? '8px' : '5px',
+                    'height': '100%',
+                    'line-height': '19px',
+                    'font-size': '14px',
+                    'overflow': 'hidden',
+                    'white-space': 'nowrap',
+                    'max-width': orientation === 'horizontal' ? 'none' : '270px',
+                    'text-overflow': 'ellipsis'
+                })
+                .attr('title', _legend[d].value)
+                .text(_legend[d].value)
+            r.append(legendLabel)
         }
     }
     if (legendEntries.length > 0) {
@@ -512,37 +521,43 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
     }
 
     function pushScale(legendEntries) {
-        var r = c
-            .append('div')
+        var r = $('<div>')
             .attr('class', 'row')
-            .style('display', 'flex')
-            .style('flex-direction', 'column')
-            .style('margin', orientation === 'horizontal' ? '8px 0px 8px 0px' : '0px 0px 8px 8px')
-            .style('width', '100%') // Ensure full width
-            .style('position', 'relative') // Add relative positioning for absolute positioned children
+            .css({
+                'display': 'flex',
+                'flex-direction': 'column',
+                'margin': orientation === 'horizontal' ? '8px 0px 8px 0px' : '0px 0px 8px 8px',
+                'width': '100%', // Ensure full width
+                'position': 'relative' // Add relative positioning for absolute positioned children
+            })
+        c.append(r)
 
         // Container for gradient and labels
-        var legendContainer = r
-            .append('div')
-            .style('display', 'flex')
-            .style('flex-direction', orientation === 'horizontal' ? 'column' : 'row')
-            .style('align-items', orientation === 'horizontal' ? 'flex-start' : 'center')
-            .style('gap', orientation === 'horizontal' ? '4px' : '8px')
-            .style('width', orientation === 'horizontal' ? '320px' : 'auto') // Set to 320px for horizontal legends
-            .style('max-width', orientation === 'horizontal' ? '320px' : 'none') // Ensure it doesn't exceed 320px
-            .style('padding-left', orientation === 'horizontal' ? '8px' : '0px') // Add left padding to align with vertical legends
+        var legendContainer = $('<div>')
+            .css({
+                'display': 'flex',
+                'flex-direction': orientation === 'horizontal' ? 'column' : 'row',
+                'align-items': orientation === 'horizontal' ? 'flex-start' : 'center',
+                'gap': orientation === 'horizontal' ? '4px' : '8px',
+                'width': orientation === 'horizontal' ? '320px' : 'auto', // Set to 320px for horizontal legends
+                'max-width': orientation === 'horizontal' ? '320px' : 'none', // Ensure it doesn't exceed 320px
+                'padding-left': orientation === 'horizontal' ? '8px' : '0px' // Add left padding to align with vertical legends
+            })
+        r.append(legendContainer)
 
         // Calculate gradient width based on container width and number of sections
         const gradientWidth = orientation === 'horizontal' ? '100%' : '19px'
-        
-        var gradient = legendContainer
-            .append('div')
-            .style('width', gradientWidth)
-            .style('height', orientation === 'horizontal' ? '19px' : (19 * legendEntries.length + 'px'))
-            .style('border', '1px solid black')
-            .style('flex-shrink', '0')
-            .style('position', 'relative')
-            .style('cursor', 'crosshair')
+
+        var gradient = $('<div>')
+            .css({
+                'width': gradientWidth,
+                'height': orientation === 'horizontal' ? '19px' : (19 * legendEntries.length + 'px'),
+                'border': '1px solid black',
+                'flex-shrink': '0',
+                'position': 'relative',
+                'cursor': 'crosshair'
+            })
+        legendContainer.append(gradient)
 
         // For horizontal legends, ensure data is in ascending order (min to max)
         // Source data is typically in descending order, so we reverse it for horizontal display
@@ -613,18 +628,20 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
 
         const fontSize = calculateFontSize()
 
-        var values = legendContainer
-            .append('div')
-            .style('display', (orientation === 'horizontal' && legendEntries[0].shape === 'continuous') ? 'block' : 'flex')
-            .style('flex-direction', orientation === 'horizontal' ? 'row' : 'column')
-            .style('justify-content', 'flex-start') // Left justify
-            .style('width', orientation === 'horizontal' ? '100%' : 'auto')
-            .style('height', orientation === 'horizontal' ? 'auto' : (19 * visibleLabels.length + 'px'))
-            .style('gap', orientation === 'horizontal' ? '0' : '0')
-            .style('position', 'relative')
-            .style('padding-left', (orientation === 'horizontal' && legendEntries[0].shape === 'continuous') ? '8px' : '0px')
-            .style('padding-right', (orientation === 'horizontal' && legendEntries[0].shape === 'continuous') ? '8px' : '0px')
-            .style('padding-bottom', (orientation === 'horizontal' && legendEntries[0].shape === 'continuous') ? '12px' : '0px')
+        var values = $('<div>')
+            .css({
+                'display': (orientation === 'horizontal' && legendEntries[0].shape === 'continuous') ? 'block' : 'flex',
+                'flex-direction': orientation === 'horizontal' ? 'row' : 'column',
+                'justify-content': 'flex-start', // Left justify
+                'width': orientation === 'horizontal' ? '100%' : 'auto',
+                'height': orientation === 'horizontal' ? 'auto' : (19 * visibleLabels.length + 'px'),
+                'gap': orientation === 'horizontal' ? '0' : '0',
+                'position': 'relative',
+                'padding-left': (orientation === 'horizontal' && legendEntries[0].shape === 'continuous') ? '8px' : '0px',
+                'padding-right': (orientation === 'horizontal' && legendEntries[0].shape === 'continuous') ? '8px' : '0px',
+                'padding-bottom': (orientation === 'horizontal' && legendEntries[0].shape === 'continuous') ? '12px' : '0px'
+            })
+        legendContainer.append(values)
 
         // Create gradient using all legend entries for accurate color representation
         var gradientArray = []
@@ -695,58 +712,66 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 }
 
                 // Create tick mark
-                const tickMark = gradient
-                    .append('div')
-                    .style('position', 'absolute')
-                    .style('background', 'white')
-                    .style('mix-blend-mode', 'difference')
-                    .style('pointer-events', 'none')
-                    .style('z-index', '10')
+                const tickMark = $('<div>')
+                    .css({
+                        'position': 'absolute',
+                        'background': 'white',
+                        'mix-blend-mode': 'difference',
+                        'pointer-events': 'none',
+                        'z-index': '10'
+                    })
+                gradient.append(tickMark)
 
                 if (orientation === 'horizontal') {
                     // Horizontal tick marks
-                    tickMark
-                        .style('width', '1px')
-                        .style('height', '3px')
-                        .style('left', `${tickPosition * 100}%`)
-                        .style('top', '0px')
-                        .style('transform', 'translateX(-50%)')
-                    
+                    tickMark.css({
+                        'width': '1px',
+                        'height': '3px',
+                        'left': `${tickPosition * 100}%`,
+                        'top': '0px',
+                        'transform': 'translateX(-50%)'
+                    })
+
                     // Add a bottom tick mark for better visibility
-                    gradient
-                        .append('div')
-                        .style('position', 'absolute')
-                        .style('width', '1px')
-                        .style('height', '3px')
-                        .style('background', 'white')
-                        .style('mix-blend-mode', 'difference')
-                        .style('pointer-events', 'none')
-                        .style('z-index', '10')
-                        .style('left', `${tickPosition * 100}%`)
-                        .style('bottom', '0px')
-                        .style('transform', 'translateX(-50%)')
+                    const bottomTickMark = $('<div>')
+                        .css({
+                            'position': 'absolute',
+                            'width': '1px',
+                            'height': '3px',
+                            'background': 'white',
+                            'mix-blend-mode': 'difference',
+                            'pointer-events': 'none',
+                            'z-index': '10',
+                            'left': `${tickPosition * 100}%`,
+                            'bottom': '0px',
+                            'transform': 'translateX(-50%)'
+                        })
+                    gradient.append(bottomTickMark)
                 } else {
                     // Vertical tick marks
-                    tickMark
-                        .style('width', '3px')
-                        .style('height', '1px')
-                        .style('top', `${tickPosition * 100}%`)
-                        .style('left', '0px')
-                        .style('transform', 'translateY(-50%)')
-                    
+                    tickMark.css({
+                        'width': '3px',
+                        'height': '1px',
+                        'top': `${tickPosition * 100}%`,
+                        'left': '0px',
+                        'transform': 'translateY(-50%)'
+                    })
+
                     // Add a right tick mark for better visibility
-                    gradient
-                        .append('div')
-                        .style('position', 'absolute')
-                        .style('width', '3px')
-                        .style('height', '1px')
-                        .style('background', 'white')
-                        .style('mix-blend-mode', 'difference')
-                        .style('pointer-events', 'none')
-                        .style('z-index', '10')
-                        .style('top', `${tickPosition * 100}%`)
-                        .style('right', '0px')
-                        .style('transform', 'translateY(-50%)')
+                    const rightTickMark = $('<div>')
+                        .css({
+                            'position': 'absolute',
+                            'width': '3px',
+                            'height': '1px',
+                            'background': 'white',
+                            'mix-blend-mode': 'difference',
+                            'pointer-events': 'none',
+                            'z-index': '10',
+                            'top': `${tickPosition * 100}%`,
+                            'right': '0px',
+                            'transform': 'translateY(-50%)'
+                        })
+                    gradient.append(rightTickMark)
                 }
             }
             
@@ -766,20 +791,22 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                         lastIndex / (visibleLabels.length - 1)
                     
                     // Add units label above the last tick mark
-                    gradient
-                        .append('div')
-                        .style('position', 'absolute')
-                        .style('right', '0px')
-                        .style('top', '-20px')
-                        .style('font-size', '12px')
-                        .style('color', 'var(--color-f)')
-                        .style('text-align', 'right')
-                        .style('white-space', 'nowrap')
-                        .style('z-index', '100')
-                        .style('background', 'var(--color-k)')
-                        .style('padding', '2px 4px')
-                        .style('border-radius', '2px')
+                    const unitsLabelContinuous = $('<div>')
+                        .css({
+                            'position': 'absolute',
+                            'right': '0px',
+                            'top': '-20px',
+                            'font-size': '12px',
+                            'color': 'var(--color-f)',
+                            'text-align': 'right',
+                            'white-space': 'nowrap',
+                            'z-index': '100',
+                            'background': 'var(--color-k)',
+                            'padding': '2px 4px',
+                            'border-radius': '2px'
+                        })
                         .text(units)
+                    gradient.append(unitsLabelContinuous)
                 }
             }
         }
@@ -791,20 +818,22 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             const { units } = extractUnits(values)
 
             if (units) {
-                const unitsLabel = r
-                    .append('div')
-                    .style('position', 'absolute')
-                    .style('top', '-20px')
-                    .style('right', '8px')
-                    .style('font-size', '12px')
-                    .style('color', 'var(--color-f)')
-                    .style('text-align', 'right')
-                    .style('white-space', 'nowrap')
-                    .style('z-index', '100')
-                    .style('background', 'var(--color-k)')
-                    .style('padding', '2px 4px')
-                    .style('border-radius', '2px')
+                const unitsLabel = $('<div>')
+                    .css({
+                        'position': 'absolute',
+                        'top': '-20px',
+                        'right': '8px',
+                        'font-size': '12px',
+                        'color': 'var(--color-f)',
+                        'text-align': 'right',
+                        'white-space': 'nowrap',
+                        'z-index': '100',
+                        'background': 'var(--color-k)',
+                        'padding': '2px 4px',
+                        'border-radius': '2px'
+                    })
                     .text(units)
+                r.append(unitsLabel)
             }
         }
 
@@ -856,53 +885,61 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 labelPosition = i / (visibleLabels.length - 1)
             }
 
-            let v = values
-                .append('div')
-                .style('margin', '0')
-                .style('padding', '0')
-                .style('height', '19px')
-                .style('line-height', '19px')
-                .style('font-size', `${fontSize}px`)
-                .style('white-space', 'nowrap')
-                .style('overflow', 'hidden')
-                .style('text-overflow', 'ellipsis')
+            let v = $('<div>')
+                .css({
+                    'margin': '0',
+                    'padding': '0',
+                    'height': '19px',
+                    'line-height': '19px',
+                    'font-size': `${fontSize}px`,
+                    'white-space': 'nowrap',
+                    'overflow': 'hidden',
+                    'text-overflow': 'ellipsis'
+                })
                 .attr('title', visibleLabels[i].value) // Keep full value in tooltip
                 .text(displayText)
+            values.append(v)
 
             if (orientation === 'horizontal' && visibleLabels[i].shape === 'continuous') {
                 // Position labels to align exactly with tick marks for continuous legends only
                 // Adjust positioning to prevent leftmost labels from extending outside container
                 let adjustedPosition = labelPosition
                 let transform = 'translateX(-50%)'
-                
+
                 // For first label, shift it right to prevent left overflow
                 if (i === 0 && labelPosition < 0.1) {
                     transform = 'translateX(0%)'
                 }
                 // Keep last label center-justified (no special transform)
-                
-                v.style('position', 'absolute')
-                 .style('left', `${adjustedPosition * 100}%`)
-                 .style('transform', transform)
-                 .style('text-align', 'center')
-                 .style('width', 'auto')
-                 .style('max-width', '80px') // Prevent overlap
+
+                v.css({
+                    'position': 'absolute',
+                    'left': `${adjustedPosition * 100}%`,
+                    'transform': transform,
+                    'text-align': 'center',
+                    'width': 'auto',
+                    'max-width': '80px' // Prevent overlap
+                })
             } else if (orientation === 'horizontal') {
                 // For non-continuous horizontal legends, use original layout
-                v.style('position', 'relative')
-                 .style('text-align', visibleLabels[i].shape === 'continuous' ? 
-                     (i === 0 ? 'left' : i === visibleLabels.length - 1 ? 'right' : 'center') : 
-                     'center')
-                 .style('width', `${100/visibleLabels.length}%`)
+                v.css({
+                    'position': 'relative',
+                    'text-align': visibleLabels[i].shape === 'continuous' ?
+                        (i === 0 ? 'left' : i === visibleLabels.length - 1 ? 'right' : 'center') :
+                        'center',
+                    'width': `${100/visibleLabels.length}%`
+                })
             } else {
                 // For vertical legends, keep original positioning
-                v.style('position', 'relative')
-                 .style('text-align', 'left')
-                 .style('width', 'auto')
+                v.css({
+                    'position': 'relative',
+                    'text-align': 'left',
+                    'width': 'auto'
+                })
             }
         }
 
-        gradient.style(
+        gradient.css(
             'background',
             orientation === 'horizontal'
                 ? 'linear-gradient(to right, ' + gradientArray.join(',') + ')'
@@ -910,18 +947,20 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
         )
 
         // Add hover functionality for gradient legends
-        const tooltip = gradient
-            .append('div')
-            .style('position', 'absolute')
-            .style('background', 'rgba(0, 0, 0, 0.8)')
-            .style('color', 'white')
-            .style('padding', '4px 8px')
-            .style('border-radius', '4px')
-            .style('font-size', '12px')
-            .style('pointer-events', 'none')
-            .style('z-index', '1000')
-            .style('visibility', 'hidden')
-            .style('white-space', 'nowrap')
+        const tooltip = $('<div>')
+            .css({
+                'position': 'absolute',
+                'background': 'rgba(0, 0, 0, 0.8)',
+                'color': 'white',
+                'padding': '4px 8px',
+                'border-radius': '4px',
+                'font-size': '12px',
+                'pointer-events': 'none',
+                'z-index': '1000',
+                'visibility': 'hidden',
+                'white-space': 'nowrap'
+            })
+        gradient.append(tooltip)
 
         gradient
             .on('mousemove', function(event) {
@@ -965,13 +1004,15 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 }
                 
                 tooltip
-                    .style('visibility', 'visible')
-                    .style('left', (event.clientX - rect.left - 15) + 'px')
-                    .style('top', (event.clientY - rect.top - 30) + 'px')
+                    .css({
+                        'visibility': 'visible',
+                        'left': (event.clientX - rect.left - 15) + 'px',
+                        'top': (event.clientY - rect.top - 30) + 'px'
+                    })
                     .text(value)
             })
             .on('mouseleave', function() {
-                tooltip.style('visibility', 'hidden')
+                tooltip.css('visibility', 'hidden')
             })
     }
 }

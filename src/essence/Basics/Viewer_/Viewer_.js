@@ -1,5 +1,4 @@
 import $ from 'jquery'
-import * as d3 from 'd3'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 
@@ -52,115 +51,137 @@ var Viewer_ = {
     Map_: null,
     init: function () {
         this.viewer = $('#viewer')
-        this.imageViewer = d3
-            .select('#viewer')
-            .append('div')
+        this.imageViewer = $('<div>')
             .attr('id', 'imageViewerMap')
-            .style('position', 'absolute')
-            .style('width', '100%')
-            .style('height', '100%')
-            .style('display', 'none')
-            .style('cursor', 'crosshair')
+            .css({
+                'position': 'absolute',
+                'width': '100%',
+                'height': '100%',
+                'display': 'none',
+                'cursor': 'crosshair'
+            })
+        $('#viewer').append(this.imageViewer)
 
-        this.imagePanorama = d3
-            .select('#viewer')
-            .append('div')
+        this.imagePanorama = $('<div>')
             .attr('id', 'imagePanoramaWebGL')
-            .style('position', 'absolute')
-            .style('width', '100%')
-            .style('height', '100%')
-            .style('display', 'none')
+            .css({
+                'position': 'absolute',
+                'width': '100%',
+                'height': '100%',
+                'display': 'none'
+            })
+        $('#viewer').append(this.imagePanorama)
 
-        this.imageModel = d3
-            .select('#viewer')
-            .append('div')
+        this.imageModel = $('<div>')
             .attr('id', 'imageModelWebGL')
-            .style('position', 'absolute')
-            .style('width', '100%')
-            .style('height', '100%')
-            .style('display', 'none')
+            .css({
+                'position': 'absolute',
+                'width': '100%',
+                'height': '100%',
+                'display': 'none'
+            })
+        $('#viewer').append(this.imageModel)
 
-        this.imagePDF = d3
-            .select('#viewer')
-            .append('div')
+        this.imagePDF = $('<div>')
             .attr('id', 'imagePDF')
-            .style('position', 'absolute')
-            .style('width', '100%')
-            .style('height', '100%')
-            .style('display', 'none')
+            .css({
+                'position': 'absolute',
+                'width': '100%',
+                'height': '100%',
+                'display': 'none'
+            })
+        $('#viewer').append(this.imagePDF)
 
-        this.imagePDF
-            .append('div')
-            .style('position', 'absolute')
-            .style('width', '100%')
-            .style('height', '100%')
-            .style('overflow-y', 'auto')
-            .style('display', 'flex')
-            .style('justify-content', 'center')
-            .append('div')
+        const pdfInnerDiv = $('<div>')
+            .css({
+                'position': 'absolute',
+                'width': '100%',
+                'height': '100%',
+                'overflow-y': 'auto',
+                'display': 'flex',
+                'justify-content': 'center'
+            })
+        this.imagePDF.append(pdfInnerDiv)
+
+        const pdfViewerWrapper = $('<div>')
             .attr('id', 'pdfViewerWrapper')
-            .style('position', 'absolute')
-            .style('overflow-y', 'auto')
-            .style('width', '100%')
-            .style('top', '35px')
-            .style('padding', '60px 0px')
-            .style('height', 'calc(100% - 35px)')
+            .css({
+                'position': 'absolute',
+                'overflow-y': 'auto',
+                'width': '100%',
+                'top': '35px',
+                'padding': '60px 0px',
+                'height': 'calc(100% - 35px)'
+            })
+        pdfInnerDiv.append(pdfViewerWrapper)
 
-        this.imageVideo = d3
-            .select('#viewer')
-            .append('div')
+        this.imageVideo = $('<div>')
             .attr('id', 'imageVideo')
-            .style('position', 'absolute')
-            .style('width', '100%')
-            .style('top', '40px')
-            .style('height', 'calc(100% - 80px)')
-            .style('display', 'none')
-            .style('background', 'black')
+            .css({
+                'position': 'absolute',
+                'width': '100%',
+                'top': '40px',
+                'height': 'calc(100% - 80px)',
+                'display': 'none',
+                'background': 'black'
+            })
+        $('#viewer').append(this.imageVideo)
 
-        this.imageVideo
-            .append('video')
-            .attr('id', 'videoPlayer')
-            .attr('controls', true)
-            .style('position', 'absolute')
-            .style('width', '100%')
-            .style('height', '100%')
-            .style('object-fit', 'contain')
+        const videoPlayer = $('<video>')
+            .attr({
+                'id': 'videoPlayer',
+                'controls': true
+            })
+            .css({
+                'position': 'absolute',
+                'width': '100%',
+                'height': '100%',
+                'object-fit': 'contain'
+            })
+        this.imageVideo.append(videoPlayer)
 
-        this.imageGif = d3
-            .select('#viewer')
-            .append('div')
+        this.imageGif = $('<div>')
             .attr('id', 'imageGif')
-            .style('position', 'absolute')
-            .style('width', '100%')
-            .style('height', '100%')
-            .style('display', 'none')
-            .style('align-items', 'center')
-            .style('justify-content', 'center')
-            .style('background', 'var(--color-a)')
+            .css({
+                'position': 'absolute',
+                'width': '100%',
+                'height': '100%',
+                'display': 'none',
+                'align-items': 'center',
+                'justify-content': 'center',
+                'background': 'var(--color-a)'
+            })
+        $('#viewer').append(this.imageGif)
 
-        this.imageGif
-            .append('img')
+        const gifImage = $('<img>')
             .attr('id', 'gifImage')
-            .style('max-width', '100%')
-            .style('max-height', '100%')
-            .style('object-fit', 'contain')
+            .css({
+                'max-width': '100%',
+                'max-height': '100%',
+                'object-fit': 'contain'
+            })
+        this.imageGif.append(gifImage)
 
-        this.imageIntro = d3
-            .select('#viewer')
-            .append('div')
+        this.imageIntro = $('<div>')
             .attr('id', 'imageViewerIntro')
-            .style('position', 'absolute')
-            .style('width', '100%')
-            .style('height', '100%')
-        this.imageIntro
-            .append('div')
-            .style('position', 'absolute')
-            .style('top', '50%')
-            .style('left', '50%')
-            .style('transform', 'translateX(-50%) translateY(-50%)')
-            .style('width', '200px')
-            .style('text-align', 'center')
+            .css({
+                'position': 'absolute',
+                'width': '100%',
+                'height': '100%'
+            })
+        $('#viewer').append(this.imageIntro)
+
+        const introMessage = $('<div>')
+            .css({
+                'position': 'absolute',
+                'top': '50%',
+                'left': '50%',
+                'transform': 'translateX(-50%) translateY(-50%)',
+                'width': '200px',
+                'text-align': 'center'
+            })
             .html('To begin, select any imagery-enabled feature.')
+        this.imageIntro.append(introMessage)
 
         this.lookupPath =
             'Missions/' + L_.mission + '/' + 'Data/mosaic_parameters.csv'
@@ -195,14 +216,14 @@ var Viewer_ = {
         Viewer_.Map_ = map_
     },
     clearImage: function () {
-        this.imagePanorama.style('display', 'none')
-        this.imageViewer.style('display', 'none')
-        this.imageModel.style('display', 'none')
-        this.imagePDF.style('display', 'none')
-        this.imageVideo.style('display', 'none')
-        this.imageGif.style('display', 'none')
-        this.baseToolbar.style('display', 'none')
-        this.imageIntro.style('display', 'block')
+        this.imagePanorama.css('display', 'none')
+        this.imageViewer.css('display', 'none')
+        this.imageModel.css('display', 'none')
+        this.imagePDF.css('display', 'none')
+        this.imageVideo.css('display', 'none')
+        this.imageGif.css('display', 'none')
+        this.baseToolbar.css('display', 'none')
+        this.imageIntro.css('display', 'block')
     },
     //This sets the main image url that the shown image derives from
     //This image can be any size as it won't ever be displayed
@@ -259,14 +280,14 @@ var Viewer_ = {
 
         Viewer_.lastImageId = imageId
         if (o == null) {
-            this.imageModel.style('display', 'none')
-            this.imagePDF.style('display', 'none')
-            this.imagePanorama.style('display', 'none')
-            this.imageViewer.style('display', 'none')
-            this.imageVideo.style('display', 'none')
-            this.imageGif.style('display', 'none')
-            this.baseToolbar.style('display', 'none')
-            this.imageIntro.style('display', 'block')
+            this.imageModel.css('display', 'none')
+            this.imagePDF.css('display', 'none')
+            this.imagePanorama.css('display', 'none')
+            this.imageViewer.css('display', 'none')
+            this.imageVideo.css('display', 'none')
+            this.imageGif.css('display', 'none')
+            this.baseToolbar.css('display', 'none')
+            this.imageIntro.css('display', 'block')
             return
         }
 
@@ -289,15 +310,15 @@ var Viewer_ = {
         } else this.masterImg = null
 
         if (o.isModel) {
-            this.imageModel.style('display', 'inherit')
-            this.imagePDF.style('display', 'none')
-            this.imagePanorama.style('display', 'none')
-            this.imageViewer.style('display', 'none')
-            this.imageVideo.style('display', 'none')
-            this.imageGif.style('display', 'none')
-            this.baseToolbar.style('display', 'none')
+            this.imageModel.css('display', 'inherit')
+            this.imagePDF.css('display', 'none')
+            this.imagePanorama.css('display', 'none')
+            this.imageViewer.css('display', 'none')
+            this.imageVideo.css('display', 'none')
+            this.imageGif.css('display', 'none')
+            this.baseToolbar.css('display', 'none')
 
-            this.imageIntro.style('display', 'none')
+            this.imageIntro.css('display', 'none')
 
             if (this.modelviewer == null) {
                 this.modelviewer = ModelViewer(
@@ -311,7 +332,7 @@ var Viewer_ = {
                 textureURL = '../../../../' + L_.missionPath + textureURL
 
             window.onresize = this.modelviewer.resize
-            Viewer_.toolBarLoading.style('opacity', '1')
+            Viewer_.toolBarLoading.css('opacity', '1')
             this.modelviewer.changeModel(
                 url,
                 textureURL,
@@ -327,7 +348,7 @@ var Viewer_ = {
                 function (progress) {
                     Viewer_.toolBarLoading.html('Loading ' + progress + '%')
                     if (progress == 100) {
-                        Viewer_.toolBarLoading.style('opacity', '0')
+                        Viewer_.toolBarLoading.css('opacity', '0')
                         if (setLocAfter) {
                             var l = L_.FUTURES.viewerLoc
                             Viewer_.modelviewer.setTarget(
@@ -344,14 +365,14 @@ var Viewer_ = {
                 }
             )
         } else if (o.isPanoramic) {
-            this.imagePanorama.style('display', 'inherit')
-            this.imageViewer.style('display', 'none')
-            this.imageModel.style('display', 'none')
-            this.imagePDF.style('display', 'none')
-            this.imageVideo.style('display', 'none')
-            this.imageGif.style('display', 'none')
-            this.baseToolbar.style('display', 'none')
-            this.imageIntro.style('display', 'none')
+            this.imagePanorama.css('display', 'inherit')
+            this.imageViewer.css('display', 'none')
+            this.imageModel.css('display', 'none')
+            this.imagePDF.css('display', 'none')
+            this.imageVideo.css('display', 'none')
+            this.imageGif.css('display', 'none')
+            this.baseToolbar.css('display', 'none')
+            this.imageIntro.css('display', 'none')
 
             if (this.photosphere == null) {
                 this.photosphere = Photosphere(
@@ -363,7 +384,7 @@ var Viewer_ = {
             }
             window.onresize = this.photosphere.resize
 
-            Viewer_.toolBarLoading.style('opacity', '1')
+            Viewer_.toolBarLoading.css('opacity', '1')
             this.photosphere.changeImage(
                 o,
                 Viewer_.feature,
@@ -373,7 +394,7 @@ var Viewer_ = {
                         console.log(err)
                         Viewer_.toolBarLoading.html(err)
                     } else {
-                        Viewer_.toolBarLoading.style('opacity', '0')
+                        Viewer_.toolBarLoading.css('opacity', '0')
                         if (setLocAfter) {
                             var l = L_.FUTURES.viewerLoc
                             Viewer_.photosphere.setTarget(
@@ -389,14 +410,14 @@ var Viewer_ = {
                 }
             )
         } else if (/*o.type === 'document' && */ extLow === 'pdf') {
-            this.imagePDF.style('display', 'inherit')
-            this.imagePanorama.style('display', 'none')
-            this.imageViewer.style('display', 'none')
-            this.imageModel.style('display', 'none')
-            this.imageVideo.style('display', 'none')
-            this.imageGif.style('display', 'none')
-            this.baseToolbar.style('display', 'none')
-            this.imageIntro.style('display', 'none')
+            this.imagePDF.css('display', 'inherit')
+            this.imagePanorama.css('display', 'none')
+            this.imageViewer.css('display', 'none')
+            this.imageModel.css('display', 'none')
+            this.imageVideo.css('display', 'none')
+            this.imageGif.css('display', 'none')
+            this.baseToolbar.css('display', 'none')
+            this.imageIntro.css('display', 'none')
 
             if (this.pdfviewer == null) {
                 this.pdfviewer = PDFViewer()
@@ -410,14 +431,14 @@ var Viewer_ = {
                 }
             })
         } else if (o.isVideo || extLow === 'webm' || extLow === 'mp4') {
-            this.imageVideo.style('display', 'inherit')
-            this.imagePDF.style('display', 'none')
-            this.imagePanorama.style('display', 'none')
-            this.imageViewer.style('display', 'none')
-            this.imageModel.style('display', 'none')
-            this.imageGif.style('display', 'none')
-            this.baseToolbar.style('display', 'none')
-            this.imageIntro.style('display', 'none')
+            this.imageVideo.css('display', 'inherit')
+            this.imagePDF.css('display', 'none')
+            this.imagePanorama.css('display', 'none')
+            this.imageViewer.css('display', 'none')
+            this.imageModel.css('display', 'none')
+            this.imageGif.css('display', 'none')
+            this.baseToolbar.css('display', 'none')
+            this.imageIntro.css('display', 'none')
 
             // Get the video element
             const videoElement = document.getElementById('videoPlayer')
@@ -426,27 +447,27 @@ var Viewer_ = {
             videoElement.src = url
 
             // Handle loading events
-            Viewer_.toolBarLoading.style('opacity', '1')
+            Viewer_.toolBarLoading.css('opacity', '1')
 
             videoElement.onloadeddata = function () {
-                Viewer_.toolBarLoading.style('opacity', '0')
+                Viewer_.toolBarLoading.css('opacity', '0')
             }
 
             videoElement.onerror = function () {
                 Viewer_.toolBarLoading.html('Error loading video')
                 setTimeout(() => {
-                    Viewer_.toolBarLoading.style('opacity', '0')
+                    Viewer_.toolBarLoading.css('opacity', '0')
                 }, 2000)
             }
         } else if (o.isGif || extLow === 'gif') {
-            this.imageGif.style('display', 'flex')
-            this.imageVideo.style('display', 'none')
-            this.imagePDF.style('display', 'none')
-            this.imagePanorama.style('display', 'none')
-            this.imageViewer.style('display', 'none')
-            this.imageModel.style('display', 'none')
-            this.baseToolbar.style('display', 'flex')
-            this.imageIntro.style('display', 'none')
+            this.imageGif.css('display', 'flex')
+            this.imageVideo.css('display', 'none')
+            this.imagePDF.css('display', 'none')
+            this.imagePanorama.css('display', 'none')
+            this.imageViewer.css('display', 'none')
+            this.imageModel.css('display', 'none')
+            this.baseToolbar.css('display', 'flex')
+            this.imageIntro.css('display', 'none')
 
             // Get the img element
             const imgElement = document.getElementById('gifImage')
@@ -455,34 +476,34 @@ var Viewer_ = {
             imgElement.src = url
 
             // Handle loading events
-            Viewer_.toolBarLoading.style('opacity', '1')
+            Viewer_.toolBarLoading.css('opacity', '1')
 
             imgElement.onload = function () {
-                Viewer_.toolBarLoading.style('opacity', '0')
+                Viewer_.toolBarLoading.css('opacity', '0')
             }
 
             imgElement.onerror = function () {
                 Viewer_.toolBarLoading.html('Error loading GIF')
                 setTimeout(() => {
-                    Viewer_.toolBarLoading.style('opacity', '0')
+                    Viewer_.toolBarLoading.css('opacity', '0')
                 }, 2000)
             }
         } else {
-            this.imageViewer.style('display', 'inherit')
-            this.imagePanorama.style('display', 'none')
-            this.imageModel.style('display', 'none')
-            this.imagePDF.style('display', 'none')
-            this.imageVideo.style('display', 'none')
-            this.imageGif.style('display', 'none')
-            this.baseToolbar.style('display', 'flex')
-            this.imageIntro.style('display', 'none')
+            this.imageViewer.css('display', 'inherit')
+            this.imagePanorama.css('display', 'none')
+            this.imageModel.css('display', 'none')
+            this.imagePDF.css('display', 'none')
+            this.imageVideo.css('display', 'none')
+            this.imageGif.css('display', 'none')
+            this.baseToolbar.css('display', 'flex')
+            this.imageIntro.css('display', 'none')
 
             if (Viewer_.imageViewerOverlay != null) {
                 Viewer_.imageViewerMap.removeLayer(Viewer_.imageViewerOverlay)
             }
             //Save the old image to get rid of it when the new one is loaded
             //var oldImage = this.imageViewerMap.world.getItemAt( 0 );
-            Viewer_.toolBarLoading.style('opacity', '1')
+            Viewer_.toolBarLoading.css('opacity', '1')
 
             if (o.isDZI || F_.getExtension(url).toLowerCase() === 'xml') {
                 finishLoad()
@@ -501,7 +522,7 @@ var Viewer_ = {
                 }
             }
 
-            Viewer_.toolBarLoading.style('opacity', '0')
+            Viewer_.toolBarLoading.css('opacity', '0')
 
             if (setLocAfter) {
                 setTimeout(function () {
@@ -590,87 +611,87 @@ var Viewer_ = {
 }
 
 function buildToolBar() {
-    d3.select('#viewerToolBar').html('')
+    $('#viewerToolBar').html('')
 
-    Viewer_.toolBar = d3
-        .select('#viewerToolBar')
-        .append('div')
-        .append('div')
+    const toolBarContainer = $('<div>').append($('<div>')
         .attr('class', 'row childpointerevents')
-        .style('display', 'flex')
-        .style('justify-content', 'space-between')
-        .style('padding', '0px 5px')
-    //.style()
+        .css({
+            'display': 'flex',
+            'justify-content': 'space-between',
+            'padding': '0px 5px'
+        }))
+    $('#viewerToolBar').append(toolBarContainer)
+    Viewer_.toolBar = toolBarContainer.children().first()
 
-    let left = Viewer_.toolBar.append('div')
+    const left = $('<div>')
+    Viewer_.toolBar.append(left)
 
-    Viewer_.baseToolbar = left
-        .append('div')
+    Viewer_.baseToolbar = $('<div>')
         .attr('class', 'osd-custom-buttons')
-        .style('display', 'flex')
-    Viewer_.baseToolbar
-        .append('div')
+        .css('display', 'flex')
+    left.append(Viewer_.baseToolbar)
+
+    Viewer_.baseToolbar.append($('<div>')
         .attr('id', 'osd-zoomin')
-        .html("<i class='mdi mdi-plus mdi-18px'></i>")
-    Viewer_.baseToolbar
-        .append('div')
+        .html("<i class='mdi mdi-plus mdi-18px'></i>"))
+    Viewer_.baseToolbar.append($('<div>')
         .attr('id', 'osd-zoomout')
-        .html("<i class='mdi mdi-minus mdi-18px'></i>")
-    Viewer_.baseToolbar
-        .append('div')
+        .html("<i class='mdi mdi-minus mdi-18px'></i>"))
+    Viewer_.baseToolbar.append($('<div>')
         .attr('id', 'osd-home')
-        .html("<i class='mdi mdi-home-variant-outline mdi-18px'></i>")
+        .html("<i class='mdi mdi-home-variant-outline mdi-18px'></i>"))
 
     // prettier-ignore
-    Viewer_.baseToolbar
-            .append('div')
-            .attr('id', 'osd-settings')
-            .style('display', 'flex')
-            .style('width', 'auto')
-            .style('padding', '0px 6px')
-            .html(
-                [
-                    '<div>',
-                        "<div id='Viewer_Settings' class='mmgisButton3' title='Link' style='height: unset; line-height: 24px; margin: unset; padding-left: unset; padding-right: unset; border-radius: unset;'>",
-                            "<i class='mdi mdi-tune mdi-18px'></i>",
-                        '</div>',
-                        "<div id='Viewer_SettingsSettings' class='mmgisButton3' style='height: unset; line-height: 24px; margin: unset; padding-left: unset; padding-right: unset; border-radius: unset;'>",
-                            "<i class='mdi mdi-menu-down mdi-18px'></i>",
-                        '</div>',
-                        "<div id='Viewer_SettingsReset' class='mmgisButton3' style='display: none; height: unset; line-height: 24px; margin: unset; padding-left: unset; padding-right: unset; border-radius: unset;'>",
-                            "<i class='mdi mdi-refresh mdi-18px'></i>",
-                        '</div>',
-                        "<div id='Viewer_SettingsSettingsPanel' style='display: none; position: absolute; top: 27px; background: var(--color-a); width: 42px; margin-left: 6px;'>",
-                            '<ul style="position: absolute; left: -12px; list-style-type: none; margin: 0; padding: 8px 8px 5px 8px; border-radius: 3px; width: 220px; background: var(--color-a);">',
-                                '<li style="height: 19px; line-height: 19px;">',
-                                    '<div style="display: flex; justify-content: space-between;">',
-                                        '<div style="font-size: 13px;">Rotation</div>',
-                                        '<input class="viewer_rotationslider slider2" style="background: #444444; width: 120px;" type="range" min="0" max="360" step="1" value="0" default="0">',
-                                    '</div>',
-                                '</li>',
-                                '<li style="height: 19px; line-height: 19px;">',
-                                    '<div style="display: flex; justify-content: space-between;">',
-                                        '<div style="font-size: 13px;">Brightness</div>',
-                                        '<input class="viewer_filterslider viewer_filterslider_brightness slider2" style="background: #444444; width: 120px;" type="range" min="0.25" max="2" step="0.05" value="1" default="1">',
-                                    '</div>',
-                                '</li>',
-                                '<li style="height: 19px; line-height: 19px;">',
-                                    '<div style="display: flex; justify-content: space-between;">',
-                                        '<div style="font-size: 13px;">Contrast</div>',
-                                        '<input class="viewer_filterslider viewer_filterslider_contrast slider2" style="background: #444444; width: 120px;" type="range" min="0.25" max="6" step="0.05" value="1" default="1">',
-                                    '</div>',
-                                '</li>',
-                                '<li style="height: 19px; line-height: 19px;">',
-                                    '<div style="display: flex; justify-content: space-between;">',
-                                        '<div style="font-size: 13px;">Saturation</div>',
-                                        '<input class="viewer_filterslider viewer_filterslider_saturate slider2" style="background: #444444; width: 120px;" type="range" min="0" max="2" step="0.05" value="1" default="1">',
-                                    '</div>',
-                                '</li>',
-                            '</ul>',
-                        '</div>',
-                    '<div>',
-                ].join('')
-            )
+    Viewer_.baseToolbar.append($('<div>')
+        .attr('id', 'osd-settings')
+        .css({
+            'display': 'flex',
+            'width': 'auto',
+            'padding': '0px 6px'
+        })
+        .html(
+            [
+                '<div>',
+                    "<div id='Viewer_Settings' class='mmgisButton3' title='Link' style='height: unset; line-height: 24px; margin: unset; padding-left: unset; padding-right: unset; border-radius: unset;'>",
+                        "<i class='mdi mdi-tune mdi-18px'></i>",
+                    '</div>',
+                    "<div id='Viewer_SettingsSettings' class='mmgisButton3' style='height: unset; line-height: 24px; margin: unset; padding-left: unset; padding-right: unset; border-radius: unset;'>",
+                        "<i class='mdi mdi-menu-down mdi-18px'></i>",
+                    '</div>',
+                    "<div id='Viewer_SettingsReset' class='mmgisButton3' style='display: none; height: unset; line-height: 24px; margin: unset; padding-left: unset; padding-right: unset; border-radius: unset;'>",
+                        "<i class='mdi mdi-refresh mdi-18px'></i>",
+                    '</div>',
+                    "<div id='Viewer_SettingsSettingsPanel' style='display: none; position: absolute; top: 27px; background: var(--color-a); width: 42px; margin-left: 6px;'>",
+                        '<ul style="position: absolute; left: -12px; list-style-type: none; margin: 0; padding: 8px 8px 5px 8px; border-radius: 3px; width: 220px; background: var(--color-a);">',
+                            '<li style="height: 19px; line-height: 19px;">',
+                                '<div style="display: flex; justify-content: space-between;">',
+                                    '<div style="font-size: 13px;">Rotation</div>',
+                                    '<input class="viewer_rotationslider slider2" style="background: #444444; width: 120px;" type="range" min="0" max="360" step="1" value="0" default="0">',
+                                '</div>',
+                            '</li>',
+                            '<li style="height: 19px; line-height: 19px;">',
+                                '<div style="display: flex; justify-content: space-between;">',
+                                    '<div style="font-size: 13px;">Brightness</div>',
+                                    '<input class="viewer_filterslider viewer_filterslider_brightness slider2" style="background: #444444; width: 120px;" type="range" min="0.25" max="2" step="0.05" value="1" default="1">',
+                                '</div>',
+                            '</li>',
+                            '<li style="height: 19px; line-height: 19px;">',
+                                '<div style="display: flex; justify-content: space-between;">',
+                                    '<div style="font-size: 13px;">Contrast</div>',
+                                    '<input class="viewer_filterslider viewer_filterslider_contrast slider2" style="background: #444444; width: 120px;" type="range" min="0.25" max="6" step="0.05" value="1" default="1">',
+                                '</div>',
+                            '</li>',
+                            '<li style="height: 19px; line-height: 19px;">',
+                                '<div style="display: flex; justify-content: space-between;">',
+                                    '<div style="font-size: 13px;">Saturation</div>',
+                                    '<input class="viewer_filterslider viewer_filterslider_saturate slider2" style="background: #444444; width: 120px;" type="range" min="0" max="2" step="0.05" value="1" default="1">',
+                                '</div>',
+                            '</li>',
+                        '</ul>',
+                    '</div>',
+                '<div>',
+            ].join('')
+        ))
 
     $('#Viewer_SettingsSettings, #Viewer_Settings').click(function () {
         var display = $('#Viewer_SettingsSettingsPanel').css('display')
@@ -720,31 +741,30 @@ function buildToolBar() {
         })
     })
 
-    Viewer_.toolBarSelector = Viewer_.toolBar
-        .append('div')
+    Viewer_.toolBarSelector = $('<div>')
         .attr('id', 'viewer_dropdownselector')
+    Viewer_.toolBar.append(Viewer_.toolBarSelector)
 
-    Viewer_.toolBarLoading = d3
-        .select('#viewer')
-        .append('div')
+    Viewer_.toolBarLoading = $('<div>')
         .attr('id', 'viewer_loading')
         .html('Loading')
+    $('#viewer').append(Viewer_.toolBarLoading)
 
-    Viewer_.toolBarhelp = Viewer_.toolBar
-        .append('div')
+    Viewer_.toolBarhelp = $('<div>')
         .attr('id', 'viewer_Help')
         .html('Rotate - Left Click and Drag<br>Zoom - Mouse Wheel')
+    Viewer_.toolBar.append(Viewer_.toolBarhelp)
 
     //I know, I know; it's not in the toolbar.
-    var oc = Viewer_.imagePanorama
-        .append('button')
+    const oc = $('<button>')
         .attr('id', 'viewerDeviceOrientationButton')
+    Viewer_.imagePanorama.append(oc)
 
-    oc.append('i')
-        .style('transition', 'all 0.2s ease-in')
+    oc.append($('<i>')
+        .css('transition', 'all 0.2s ease-in')
         .attr('class', 'mdi mdi-screen-rotation mdi-24px')
-        .style('cursor', 'pointer')
-    oc.append('div').style('line-height', '27px')
+        .css('cursor', 'pointer'))
+    oc.append($('<div>').css('line-height', '27px'))
 
     var ocButton = document.getElementById('viewerDeviceOrientationButton')
     ocButton.onmouseleave = function () {

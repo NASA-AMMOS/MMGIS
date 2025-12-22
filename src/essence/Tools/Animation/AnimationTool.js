@@ -1,5 +1,4 @@
 import $ from 'jquery'
-import * as d3 from 'd3'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
@@ -254,12 +253,12 @@ function interfaceWithMMGIS() {
     }
     
     // Initialize the tool UI
-    let tools = d3.select('#toolPanel')
-    tools.style('background', 'var(--color-k)')
-    tools.selectAll('*').remove()
-    
-    tools = tools.append('div').style('height', '100%')
-    tools.html(markup)
+    const toolPanel = $('#toolPanel')
+    toolPanel.css('background', 'var(--color-k)')
+    toolPanel.empty()
+
+    const tools = $('<div>').css('height', '100%').html(markup)
+    toolPanel.append(tools)
     
     // Update export options visibility based on config
     updateExportOptionsVisibility()

@@ -1,5 +1,4 @@
 import $ from 'jquery'
-import * as d3 from 'd3'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
@@ -168,14 +167,14 @@ var InfoTool = {
         const divID = L_.UserInterface_.isMobile === true ?  '#tools' : '#toolPanel'
 
         // MMGIS should always have a div with id 'tools'
-        var tools = d3.select(divID)
-        tools.style('background', 'var(--color-k)')
+        const toolsContainer = $(divID)
+        toolsContainer.css('background', 'var(--color-k)')
         //Clear it
-        tools.selectAll('*').remove()
+        toolsContainer.empty()
         //Add a semantic container
-        tools = tools.append('div').style('height', '100%')
+        const tools = $('<div>').css('height', '100%').html(markup)
         //Add the markup to tools or do it manually
-        tools.html(markup)
+        toolsContainer.append(tools)
 
         tippy('#infoToolSelected', {
             content: 'Select An Overlapping Feature (Shift + ⇆)',

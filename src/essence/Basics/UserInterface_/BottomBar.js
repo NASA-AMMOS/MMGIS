@@ -1,5 +1,4 @@
 import $ from 'jquery'
-import * as d3 from 'd3'
 import hotkeys from 'hotkeys-js'
 
 import F_ from '../Formulae_/Formulae_'
@@ -17,19 +16,20 @@ let BottomBar = {
     settings: {},
     init: function (containerId, UI) {
         this.UI_ = UI
-        const bottomBar = d3.select(`#${containerId}`)
+        const bottomBar = $(`#${containerId}`)
 
         // Copy Link
-        bottomBar
-            .append('i')
+        const topBarLink = $('<i>')
             .attr('id', 'topBarLink')
             .attr('tabindex', 100)
             .attr('class', 'mmgisHoverBlue mdi mdi-open-in-new mdi-18px')
-            .style('padding', '5px 10px')
-            .style('width', '40px')
-            .style('height', '36px')
-            .style('line-height', '26px')
-            .style('cursor', 'pointer')
+            .css({
+                'padding': '5px 10px',
+                'width': '40px',
+                'height': '36px',
+                'line-height': '26px',
+                'cursor': 'pointer'
+            })
             .on('click', function () {
                 const linkButton = $(this)
                 QueryURL.writeCoordinateURL(true, function () {
@@ -45,6 +45,7 @@ let BottomBar = {
                     }, 3000)
                 })
             })
+        bottomBar.append(topBarLink)
 
         tippy(`#topBarLink`, {
             content: `Copy Link`,
@@ -53,18 +54,19 @@ let BottomBar = {
         })
 
         // Screenshot
-        bottomBar
-            .append('i')
+        const topBarScreenshot = $('<i>')
             .attr('id', 'topBarScreenshot')
             .attr('title', 'Screenshot')
             .attr('tabindex', 101)
             .attr('class', 'mmgisHoverBlue mdi mdi-camera mdi-18px')
-            .style('padding', '5px 10px')
-            .style('width', '40px')
-            .style('height', '36px')
-            .style('line-height', '26px')
-            .style('cursor', 'pointer')
-            .style('opacity', '0.8')
+            .css({
+                'padding': '5px 10px',
+                'width': '40px',
+                'height': '36px',
+                'line-height': '26px',
+                'cursor': 'pointer',
+                'opacity': '0.8'
+            })
             .on('click', function () {
                 //We need to manually order leaflet z-indices for this to work
                 let zIndices = []
@@ -165,6 +167,7 @@ let BottomBar = {
                 $('#scaleBar').css('margin-top', '5px')
                 $('#mapToolBar').css('bottom', 'savedMapToolBarBottom')
             })
+        bottomBar.append(topBarScreenshot)
 
         tippy(`#topBarScreenshot`, {
             content: `Take Screenshot`,
@@ -173,63 +176,67 @@ let BottomBar = {
         })
 
         // Screenshot loading
-        d3.select('#topBarScreenshot')
-            .append('i')
+        const topBarScreenshotLoading = $('<i>')
             .attr('id', 'topBarScreenshotLoading')
             .attr(
                 'title',
                 'Taking Screenshot...\nYou may need to permit multiple downloads in your browser.'
             )
             .attr('tabindex', 102)
-            .style('display', 'none')
-            .style('border-radius', '50%')
-            .style('border', '8px solid #ffe100')
-            .style('border-right-color', 'transparent')
-            .style('border-left-color', 'transparent')
-            .style('position', 'relative')
-            .style('top', '3px')
-            .style('left', '-17px')
-            .style('width', '20px')
-            .style('height', '20px')
-            .style('line-height', '26px')
-            .style('color', '#d2b800')
-            .style('cursor', 'pointer')
-            .style('animation-name', 'rotate-forever')
-            .style('animation-duration', '2s')
-            .style('animation-iteration-count', 'infinite')
-            .style('animation-timing', 'linear')
+            .css({
+                'display': 'none',
+                'border-radius': '50%',
+                'border': '8px solid #ffe100',
+                'border-right-color': 'transparent',
+                'border-left-color': 'transparent',
+                'position': 'relative',
+                'top': '3px',
+                'left': '-17px',
+                'width': '20px',
+                'height': '20px',
+                'line-height': '26px',
+                'color': '#d2b800',
+                'cursor': 'pointer',
+                'animation-name': 'rotate-forever',
+                'animation-duration': '2s',
+                'animation-iteration-count': 'infinite',
+                'animation-timing': 'linear'
+            })
+        $('#topBarScreenshot').append(topBarScreenshotLoading)
 
         // Fullscreen
-        bottomBar
-            .append('i')
+        const topBarFullscreen = $('<i>')
             .attr('id', 'topBarFullscreen')
             .attr('tabindex', 103)
             .attr('class', 'mmgisHoverBlue mdi mdi-fullscreen mdi-18px')
-            .style('padding', '5px 10px')
-            .style('width', '40px')
-            .style('height', '36px')
-            .style('line-height', '26px')
-            .style('cursor', 'pointer')
+            .css({
+                'padding': '5px 10px',
+                'width': '40px',
+                'height': '36px',
+                'line-height': '26px',
+                'cursor': 'pointer'
+            })
             .on('click', function () {
                 BottomBar.fullscreen()
                 if (
-                    d3.select(this).attr('class') ==
+                    $(this).attr('class') ==
                     'mmgisHoverBlue mdi mdi-fullscreen mdi-18px'
                 )
-                    d3.select(this)
+                    $(this)
                         .attr(
                             'class',
                             'mmgisHoverBlue mdi mdi-fullscreen-exit mdi-18px'
                         )
                         .attr('title', 'Exit Fullscreen')
                 else
-                    d3.select(this)
+                    $(this)
                         .attr(
                             'class',
                             'mmgisHoverBlue mdi mdi-fullscreen mdi-18px'
                         )
                         .attr('title', 'Fullscreen')
             })
+        bottomBar.append(topBarFullscreen)
 
         tippy(`#topBarFullscreen`, {
             content: `Fullscreen`,
@@ -238,21 +245,23 @@ let BottomBar = {
         })
 
         // Hotkeys
-        bottomBar
-            .append('i')
+        const bottomBarHotkeys = $('<i>')
             .attr('id', 'bottomBarHotkeys')
             .attr('tabindex', 104)
             .attr('class', 'mmgisHoverBlue mdi mdi-keyboard mdi-18px')
-            .style('padding', '5px 10px')
-            .style('width', '40px')
-            .style('height', '36px')
-            .style('line-height', '26px')
-            .style('cursor', 'pointer')
+            .css({
+                'padding': '5px 10px',
+                'width': '40px',
+                'height': '36px',
+                'line-height': '26px',
+                'cursor': 'pointer'
+            })
             .on('click', function () {
                 const that = $('#bottomBarHotkeys')
                 const wasOn = that.hasClass('active')
                 BottomBar.toggleHotkeys(!wasOn)
             })
+        bottomBar.append(bottomBarHotkeys)
         tippy(`#bottomBarHotkeys`, {
             content: `Hotkeys`,
             placement: 'right',
@@ -260,21 +269,23 @@ let BottomBar = {
         })
 
         // Settings
-        bottomBar
-            .append('i')
+        const bottomBarSettings = $('<i>')
             .attr('id', 'bottomBarSettings')
             .attr('tabindex', 104)
             .attr('class', 'mmgisHoverBlue mdi mdi-cog mdi-18px')
-            .style('padding', '5px 10px')
-            .style('width', '40px')
-            .style('height', '36px')
-            .style('line-height', '26px')
-            .style('cursor', 'pointer')
+            .css({
+                'padding': '5px 10px',
+                'width': '40px',
+                'height': '36px',
+                'line-height': '26px',
+                'cursor': 'pointer'
+            })
             .on('click', function () {
                 const that = $('#bottomBarSettings')
                 const wasOn = that.hasClass('active')
                 BottomBar.toggleSettings(!wasOn)
             })
+        bottomBar.append(bottomBarSettings)
 
         tippy(`#bottomBarSettings`, {
             content: `Settings`,
@@ -283,8 +294,7 @@ let BottomBar = {
         })
 
         // Info
-        bottomBar
-            .append('i')
+        const topBarInfo = $('<i>')
             .attr('id', 'topBarInfo')
             .attr('title', 'Info')
             .attr('tabindex', 105)
@@ -292,19 +302,22 @@ let BottomBar = {
                 'class',
                 'mmgisHoverBlue mdi mdi-information-outline mdi-18px'
             )
-            .style('padding', '5px 10px')
-            .style('width', '40px')
-            .style('height', '36px')
-            .style('line-height', '26px')
-            .style('cursor', 'pointer')
+            .css({
+                'padding': '5px 10px',
+                'width': '40px',
+                'height': '36px',
+                'line-height': '26px',
+                'cursor': 'pointer'
+            })
             .on('click', function () {
                 this.infoOn = !this.infoOn
                 if (this.infoOn) {
-                    d3.select('#viewer_Info').style('display', 'inherit')
+                    $('#viewer_Info').css('display', 'inherit')
                 } else {
-                    d3.select('#viewer_Info').style('display', 'none')
+                    $('#viewer_Info').css('display', 'none')
                 }
             })
+        bottomBar.append(topBarInfo)
 
         tippy(`#topBarInfo`, {
             content: `Info`,
@@ -313,25 +326,27 @@ let BottomBar = {
         })
 
         // Help
-        bottomBar
-            .append('i')
+        const topBarHelp = $('<i>')
             .attr('id', 'topBarHelp')
             .attr('title', 'Help')
             .attr('tabindex', 106)
             .attr('class', 'mmgisHoverBlue mdi mdi-help mdi-18px')
-            .style('padding', '5px 10px')
-            .style('width', '40px')
-            .style('height', '36px')
-            .style('line-height', '26px')
-            .style('cursor', 'pointer')
+            .css({
+                'padding': '5px 10px',
+                'width': '40px',
+                'height': '36px',
+                'line-height': '26px',
+                'cursor': 'pointer'
+            })
             .on('click', function () {
                 this.helpOn = !this.helpOn
                 if (this.helpOn) {
-                    //d3.select('#viewer_Help').style('display', 'inherit')
+                    //$('#viewer_Help').css('display', 'inherit')
                 } else {
-                    d3.select('#viewer_Help').style('display', 'none')
+                    $('#viewer_Help').css('display', 'none')
                 }
             })
+        bottomBar.append(topBarHelp)
 
         tippy(`#topBarHelp`, {
             content: `Help`,

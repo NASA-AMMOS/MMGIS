@@ -1,5 +1,4 @@
 import $ from 'jquery'
-import * as d3 from 'd3'
 import Sortable from 'sortablejs'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
@@ -470,20 +469,21 @@ function interfaceWithMMGIS(fromInit) {
 
     const divID = L_.UserInterface_.isMobile === true ?  '#tools' : '#toolPanel'
 
-    var tools = d3.select(divID)
+    const toolsContainer = $(divID)
     //Clear it
-    tools.selectAll('*').remove()
+    toolsContainer.empty()
     //Add a semantic container
-    tools = tools
-        .append('div')
+    const tools = $('<div>')
         .attr('id', 'layersTool')
-        .style('display', 'flex')
-        .style('flex-flow', 'column')
-        .style('overflow', 'hidden')
-        .style('height', '100%')
+        .css({
+            'display': 'flex',
+            'flex-flow': 'column',
+            'overflow': 'hidden',
+            'height': '100%'
+        })
+    toolsContainer.append(tools)
 
-
-    if (fromInit) tools.style('display', 'none')
+    if (fromInit) tools.css('display', 'none')
     //Add the markup to tools or do it manually
     tools.html(generateMarkup())
 

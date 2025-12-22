@@ -6,7 +6,6 @@ import Attributions from '../../Ancillary/Attributions'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import LayerGeologic from './LayerGeologic/LayerGeologic'
 import $ from 'jquery'
-import * as d3 from 'd3'
 
 const L_ = {
     url: window.location.href,
@@ -1914,7 +1913,7 @@ const L_ = {
                                 layer.feature.properties._.file_id +
                                 '_' +
                                 layer.feature.properties._.id
-                            d3.select(id).style(
+                            $(id).css(
                                 'color',
                                 layer.feature.properties.style.fillColor
                             )

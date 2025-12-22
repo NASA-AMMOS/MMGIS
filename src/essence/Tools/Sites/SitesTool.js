@@ -1,5 +1,4 @@
 import $ from 'jquery'
-import * as d3 from 'd3'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import TC_ from '../../Basics/ToolController_/ToolController_'
@@ -42,46 +41,52 @@ var SitesTool = {
     make: function () {
         const divID = L_.UserInterface_.isMobile === true ?  '#tools' : '#toolPanel'
 
-        var tools = d3.select(divID)
-        tools
-            .style('background', 'var(--color-k)')
-            .style('box-shadow', 'inset 2px 0px 10px 0px rgba(0,0,0,0.2)')
+        const toolsContainer = $(divID)
+        toolsContainer.css({
+            'background': 'var(--color-k)',
+            'box-shadow': 'inset 2px 0px 10px 0px rgba(0,0,0,0.2)'
+        })
 
-        tools.selectAll('*').remove()
-        tools
-            .append('div')
-            .style('height', '40px')
-            .style('line-height', '40px')
-            .style('font-size', '16px')
-            .style('color', 'var(--color-l)')
-            .style('background', 'var(--color-a)')
-            .style('font-family', 'lato-light')
-            .style('text-transform', 'uppercase')
-            .style('padding-left', '6px')
+        toolsContainer.empty()
+
+        const headerDiv = $('<div>')
+            .css({
+                'height': '40px',
+                'line-height': '40px',
+                'font-size': '16px',
+                'color': 'var(--color-l)',
+                'background': 'var(--color-a)',
+                'font-family': 'lato-light',
+                'text-transform': 'uppercase',
+                'padding-left': '6px'
+            })
             .html('Sites')
+        toolsContainer.append(headerDiv)
 
-        tools = tools
-            .append('div')
+        const tools = $('<div>')
             .attr('id', 'SitesTool')
             .attr('class', 'mmgisScrollbar')
-            .style('color', '#cfcfcf')
-            .style('height', '100%')
-            .style('overflow-y', 'auto')
+            .css({
+                'color': '#cfcfcf',
+                'height': '100%',
+                'overflow-y': 'auto'
+            })
+        toolsContainer.append(tools)
 
-        var sitesRadio = tools
-            .append('div')
+        const sitesRadio = $('<div>')
             .attr('class', 'mmgisRadioBar2 sitesRadio')
-            .style('width', '100%')
+            .css('width', '100%')
+        tools.append(sitesRadio)
 
         if (this.sitesVar == null) {
             console.warn('Warning: SitesTool found no sites.')
         } else {
             for (var i = 0; i < this.sitesVar.length; i++) {
                 var id = this.sitesVar[i].code.replace(/ /g, '_')
-                var newestSiteButton = sitesRadio
-                    .append('div')
+                var newestSiteButton = $('<div>')
                     .attr('id', id + '_tool_site')
                     .html(this.sitesVar[i].name)
+                sitesRadio.append(newestSiteButton)
 
                 if (this.sitesVar[i].code == L_.site) {
                     newestSiteButton.attr('class', 'active')

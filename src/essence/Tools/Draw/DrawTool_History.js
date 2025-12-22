@@ -1,5 +1,4 @@
 import $ from 'jquery'
-import * as d3 from 'd3'
 import F_ from '../../Basics/Formulae_/Formulae_'
 
 var DrawTool = null
@@ -97,9 +96,8 @@ var History = {
                     "</div>"
                 ].join('\n');
 
-            d3.select('#drawToolHistorySequenceList ul')
-                .append('li')
-                .html(markup)
+            const historyLi = $('<li>').html(markup)
+            $('#drawToolHistorySequenceList ul').append(historyLi)
         }
     },
 }

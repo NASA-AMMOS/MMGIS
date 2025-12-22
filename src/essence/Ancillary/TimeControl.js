@@ -1,5 +1,5 @@
 // TimeControl sets up a div that displays the time controller
-import * as d3 from 'd3'
+import { utcFormat } from 'd3-time-format'
 import * as moment from 'moment'
 import $ from 'jquery'
 import F_ from '../Basics/Formulae_/Formulae_'
@@ -32,7 +32,7 @@ var TimeControl = {
     init: function () {
         if (L_.configData.time && L_.configData.time.enabled === true) {
             TimeControl.enabled = true
-            TimeControl.globalTimeFormat = d3.utcFormat(
+            TimeControl.globalTimeFormat = utcFormat(
                 L_.configData.time.format
             )
         } else {
@@ -142,10 +142,10 @@ var TimeControl = {
             layer.time.start = startTime
             layer.time.end = endTime
             layer.time.customTimes = TimeControl.customTimes
-            d3.select('.starttime.' + F_.getSafeName(layer.name)).text(
+            $('.starttime.' + F_.getSafeName(layer.name)).text(
                 layer.time.start
             )
-            d3.select('.endtime.' + F_.getSafeName(layer.name)).text(
+            $('.endtime.' + F_.getSafeName(layer.name)).text(
                 layer.time.end
             )
 
@@ -197,8 +197,8 @@ var TimeControl = {
 
         let layerTimeFormat =
             layer.time?.format == null || layer.time?.format == ''
-                ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
-                : d3.utcFormat(layer.time.format)
+                ? utcFormat('%Y-%m-%dT%H:%M:%SZ')
+                : utcFormat(layer.time.format)
         layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
 
         let originalUrl = layer.url
@@ -336,8 +336,8 @@ var TimeControl = {
         return new Promise(async (resolve, reject) => {
             let layerTimeFormat =
                 layer.time?.format == null || layer.time?.format == ''
-                    ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
-                    : d3.utcFormat(layer.time.format)
+                    ? utcFormat('%Y-%m-%dT%H:%M:%SZ')
+                    : utcFormat(layer.time.format)
 
             let nextUrl = url
             if (layer.variables?.urlReplacements) {
@@ -506,10 +506,10 @@ var TimeControl = {
                 layer.time.start = TimeControl.startTime
                 layer.time.end = TimeControl.currentTime
                 layer.time.customTimes = TimeControl.customTimes
-                d3.select('.starttime.' + F_.getSafeName(layer.name)).text(
+                $('.starttime.' + F_.getSafeName(layer.name)).text(
                     layer.time.start
                 )
-                d3.select('.endtime.' + F_.getSafeName(layer.name)).text(
+                $('.endtime.' + F_.getSafeName(layer.name)).text(
                     layer.time.end
                 )
                 updatedLayers.push(layer.name)
@@ -527,7 +527,7 @@ var TimeControl = {
         }
         if (layer.time) {
             layer.time.status = color
-            d3.select('#timesettings' + F_.getSafeName(layer.name)).style(
+            $('#timesettings' + F_.getSafeName(layer.name)).css(
                 'color',
                 layer.time.status
             )
@@ -552,8 +552,8 @@ var TimeControl = {
     setLayerWmsParams: function (layer) {
         let layerTimeFormat =
             layer.time?.format == null || layer.time?.format == ''
-                ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
-                : d3.utcFormat(layer.time.format)
+                ? utcFormat('%Y-%m-%dT%H:%M:%SZ')
+                : utcFormat(layer.time.format)
         const l = L_.layers.layer[layer.name]
 
         if (l != null && layer.type === 'tile') {
@@ -590,10 +590,10 @@ function initLayerTimes() {
                 ? L_.FUTURES.endTime.toISOString().split('.')[0] + 'Z'
                 : TimeControl.endTime
             layer.time.customTimes = TimeControl.customTimes
-            d3.select('.starttime.' + F_.getSafeName(layer.name)).text(
+            $('.starttime.' + F_.getSafeName(layer.name)).text(
                 layer.time.start
             )
-            d3.select('.endtime.' + F_.getSafeName(layer.name)).text(
+            $('.endtime.' + F_.getSafeName(layer.name)).text(
                 layer.time.end
             )
 
