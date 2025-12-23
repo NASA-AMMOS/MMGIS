@@ -4,8 +4,8 @@ import F_ from '../Basics/Formulae_/Formulae_'
 import L_ from '../Basics/Layers_/Layers_'
 import T_ from '../Basics/ToolController_/ToolController_'
 import calls from '../../pre/calls'
-import TimeControl from './TimeControl'
-import TimeUI from './TimeUI'
+import TimeControl from '../Basics/TimeControl_/TimeControl'
+import TimeUI from '../Basics/TimeControl_/TimeUI'
 
 var QueryURL = {
     checkIfMission: function () {

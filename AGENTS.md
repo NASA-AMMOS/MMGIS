@@ -114,7 +114,8 @@ MMGIS/
 ├── src/                          # Frontend source code
 │   └── essence/
 │       ├── Basics/               # Core map functionality
-│       │   └── Map_.js           # Map rendering engine (Leaflet/Cesium)
+│       │   ├── Map_.js           # Map rendering engine (Leaflet/Cesium)
+│       │   └── TimeControl_/     # Temporal data control and UI
 │       ├── Tools/                # Interactive tool plugins (16 core tools)
 │       │   ├── Animation/        # Map animation creation (GIF/MP4)
 │       │   ├── Chemistry/        # Chemical composition visualization
@@ -132,7 +133,6 @@ MMGIS/
 │       │   ├── Sites/            # Quick navigation bookmarks
 │       │   └── Viewshed/         # Line-of-sight visibility
 │       └── Ancillary/            # UI components and helpers
-│           └──TimeControl/       # Temporal data control
 ├── configure/                    # Admin configuration interface
 │   └── build/                    # Configuration UI
 ├── docs/                         # Documentation (Jekyll site)
@@ -162,6 +162,7 @@ MMGIS/
 - **`API/Backend/Databases/`** - Sequelize ORM models and database migrations
 - **`src/essence/Tools/`** - Plugin-based interactive mapping tools. Each tool is self-contained with defined interfaces.
 - **`src/essence/Basics/Map_.js`** - Core map rendering engine managing both Leaflet (2D) and Cesium (3D)
+- **`src/essence/Basics/TimeControl_/`** - Temporal data control system for time-enabled layers
 - **`configure/`** - Separate admin interface for mission configuration, user management, and tool setup. Also known as the "Configure Page" or "CMS"
 - **`specs/`** - Feature specifications following spec-kit format
 

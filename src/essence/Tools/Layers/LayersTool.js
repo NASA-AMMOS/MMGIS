@@ -9,7 +9,7 @@ import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
 import Filtering from '../../Basics/Layers_/Filtering/Filtering'
 import Help from '../../Ancillary/Help'
 import CursorInfo from '../../Ancillary/CursorInfo'
-import TimeUI from '../../Ancillary/TimeUI'
+import TimeUI from '../../Basics/TimeControl_/TimeUI'
 
 import LegendTool from '../Legend/LegendTool.js'
 

@@ -46,5 +46,4 @@ docker-compose.env.yml
 .serena
 .claude
 .playwright-mcp
-CLAUDE.md
 #tools

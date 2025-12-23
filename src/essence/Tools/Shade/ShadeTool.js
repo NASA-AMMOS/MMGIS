@@ -11,7 +11,7 @@ import Map_ from '../../Basics/Map_/Map_'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import DataShaders from '../../Ancillary/DataShaders'
-import TimeControl from '../../Ancillary/TimeControl'
+import TimeControl from '../../Basics/TimeControl_/TimeControl'
 import Help from '../../Ancillary/Help'
 
 import '../../../external/ColorPicker/jqColorPicker'

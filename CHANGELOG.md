@@ -6,6 +6,10 @@ _TBD_
 
 #### Changed
 
+- Moved TimeControl from `Ancillary/` to `Basics/TimeControl_/` to reflect its role as core infrastructure (#835)
+  - TimeControl and TimeUI now located in `src/essence/Basics/TimeControl_/`
+  - Updated import paths across 19 files
+  - **Breaking change for external plugins**: Import path changed from `'Ancillary/TimeControl'` to `'Basics/TimeControl_/TimeControl'`
 - Moved admin login assets from `config/login/` to `public/` directory
   - `adminlogin.js` and `adminlogin.css` now served from `/public`
 

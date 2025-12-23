@@ -1,6 +1,6 @@
 import $ from 'jquery'
 import L_ from '../Layers_/Layers_'
-import TimeUI from '../../Ancillary/TimeUI'
+import TimeUI from '../TimeControl_/TimeUI'
 import { toolModules, toolConfigs } from '../../../pre/tools'
 
 import tippy from 'tippy.js'
