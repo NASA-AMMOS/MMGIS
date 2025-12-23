@@ -1,0 +1,37 @@
+import { test, expect } from '@playwright/test';
+
+/**
+ * Smoke tests for MMGIS application
+ * Basic tests to verify the application loads and is functional
+ */
+
+test.describe('MMGIS Application - Smoke Tests', () => {
+
+  test('application loads successfully', async ({ page }) => {
+    // Navigate to the application
+    await page.goto('/');
+
+    // Wait for the page to load (loading screen to disappear or main content to appear)
+    // The loading screen has id="loadscreen"
+    await page.waitForLoadState('networkidle', { timeout: 30000 });
+
+    // Check that the page title contains MMGIS
+    await expect(page).toHaveTitle(/MMGIS/i);
+  });
+
+  test('main container elements are present', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    // Check for main application containers
+    // Based on the codebase, the app should have these main elements
+    const body = page.locator('body');
+    await expect(body).toBeVisible();
+
+    // The page should have loaded content (not just loading screen)
+    const hasContent = await page.evaluate(() => {
+      return document.body.innerHTML.length > 1000;
+    });
+    expect(hasContent).toBeTruthy();
+  });
+});

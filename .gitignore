@@ -46,4 +46,9 @@ docker-compose.env.yml
 .serena
 .claude
 .playwright-mcp
+
+# Playwright Test Artifacts
+/playwright-report/
+/test-results/
+/.playwright/
 #tools
