@@ -3,7 +3,7 @@ import { utcFormat } from 'd3-time-format'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import calls from '../../../pre/calls'
-import TimeControl from '../../Ancillary/TimeControl'
+import TimeControl from '../TimeControl_/TimeControl'
 
 // This is so that an eariler and slower dynamic geodataset request
 // does not override an earlier shorter one

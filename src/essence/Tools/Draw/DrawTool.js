@@ -16,7 +16,7 @@ import Viewer_ from '../../Basics/Viewer_/Viewer_'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import Description from '../../Ancillary/Description'
-import TimeControl from '../../Ancillary/TimeControl'
+import TimeControl from '../../Basics/TimeControl_/TimeControl'
 import { Kinds } from '../../../pre/tools'
 import turf from 'turf'
 

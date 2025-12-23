@@ -2,9 +2,9 @@
 import { utcFormat } from 'd3-time-format'
 import * as moment from 'moment'
 import $ from 'jquery'
-import F_ from '../Basics/Formulae_/Formulae_'
-import L_ from '../Basics/Layers_/Layers_'
-import Map_ from '../Basics/Map_/Map_'
+import F_ from '../Formulae_/Formulae_'
+import L_ from '../Layers_/Layers_'
+import Map_ from '../Map_/Map_'
 import TimeUI from './TimeUI'
 
 import './TimeControl.css'

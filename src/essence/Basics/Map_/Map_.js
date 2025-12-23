@@ -17,7 +17,7 @@ import MetadataCapturer from '../Layers_/MetadataCapturer.js'
 import { Kinds } from '../../../pre/tools'
 import DataShaders from '../../Ancillary/DataShaders'
 import calls from '../../../pre/calls'
-import TimeControl from '../../Ancillary/TimeControl'
+import TimeControl from '../TimeControl_/TimeControl'
 
 import gjv from 'geojson-validation'
 import {

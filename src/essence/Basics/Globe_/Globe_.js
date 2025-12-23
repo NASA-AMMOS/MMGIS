@@ -2,7 +2,7 @@ import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import $ from 'jquery'
 
-import TimeControl from '../../Ancillary/TimeControl'
+import TimeControl from '../TimeControl_/TimeControl'
 import GlobeRenderer from './GlobeRenderer'
 
 let Globe_ = {

@@ -5,7 +5,7 @@ import Dropy from '../../external/Dropy/dropy'
 import flat from 'flat'
 import { booleanIntersects, bbox } from '@turf/turf'
 import calls from '../../pre/calls'
-import TimeControl from './TimeControl'
+import TimeControl from '../Basics/TimeControl_/TimeControl'
 
 import tippy from 'tippy.js'
 

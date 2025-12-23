@@ -6,12 +6,12 @@
 */
 import $ from 'jquery'
 import * as moment from 'moment'
-import F_ from '../Basics/Formulae_/Formulae_'
-import Map_ from '../Basics/Map_/Map_'
-import L_ from '../Basics/Layers_/Layers_'
-import calls from '../../pre/calls'
+import F_ from '../Formulae_/Formulae_'
+import Map_ from '../Map_/Map_'
+import L_ from '../Layers_/Layers_'
+import calls from '../../../pre/calls'
 import tippy from 'tippy.js'
-import Dropy from '../../external/Dropy/dropy'
+import Dropy from '../../../external/Dropy/dropy'
 
 import { TempusDominus, Namespace } from '@eonasdan/tempus-dominus'
 import '@eonasdan/tempus-dominus/dist/css/tempus-dominus.css'

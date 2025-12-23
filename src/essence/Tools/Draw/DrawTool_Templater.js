@@ -3,7 +3,7 @@ import $ from 'jquery'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import Dropy from '../../../external/Dropy/dropy'
-import TimeControl from '../../Ancillary/TimeControl'
+import TimeControl from '../../Basics/TimeControl_/TimeControl'
 import calls from '../../../pre/calls'
 
 import * as moment from 'moment'
