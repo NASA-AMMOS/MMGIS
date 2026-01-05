@@ -358,6 +358,7 @@ function ensureAdmin(
           req.isLongTermToken = true;
           req.tokenUserPermission = tokenData.permission;
           req.tokenUserMissions = tokenData.missions_managing;
+          req.user = tokenData.username;
           next();
         },
         () => {
@@ -389,7 +390,7 @@ function validateLongTermToken(token, successCallback, failureCallback) {
 
   sequelize
     .query(
-      'SELECT lt.*, u.permission, u.missions_managing FROM "long_term_tokens" lt JOIN "users" u ON lt.created_by_user_id = u.id WHERE lt.token=:token',
+      'SELECT lt.*, u.permission, u.missions_managing, u.username FROM "long_term_tokens" lt JOIN "users" u ON lt.created_by_user_id = u.id WHERE lt.token=:token',
       {
         replacements: {
           token: token,
@@ -420,8 +421,19 @@ function validateLongTermToken(token, successCallback, failureCallback) {
 
 function ensureUser() {
   return (req, res, next) => {
+    /* If the request is:
+      - Not trying to use an authorization header (longtermtoken)
+      - And MMGIS is not configured to use AUTH-local
+        OR
+      - There is already a user session with valid permissions set
+        Then continue
+
+      Otherwise, if there is an authorization header (longtermtoken), try to validate it.
+
+      Still if not, redirect to the login page
+    */
     if (
-      process.env.AUTH != "local" ||
+      (req.headers.authorization == null && process.env.AUTH != "local") ||
       (typeof req.session.permission === "string" &&
         (req.session.permission === "111" ||
           req.session.permission === "110" ||
@@ -438,6 +450,7 @@ function ensureUser() {
             req.isLongTermToken = true;
             req.tokenUserPermission = tokenData.permission;
             req.tokenUserMissions = tokenData.missions_managing;
+            req.user = tokenData.username;
             next();
           },
           () => {
