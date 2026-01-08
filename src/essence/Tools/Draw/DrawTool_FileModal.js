@@ -418,6 +418,8 @@ const DrawTool_FileModal = {
             })
 
             $('#drawToolFileModalActionsCancel').on('click', function () {
+                // Clean up any temporary point markers before closing
+                DrawTool_Templater.cleanupAllPointMarkers()
                 Modal.remove()
                 $('.drawToolFileModalName').val('')
             })

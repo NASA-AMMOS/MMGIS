@@ -682,6 +682,9 @@ var DrawTool = {
                         f = f._layers[Object.keys(f._layers)[0]]
                     }
 
+                    // Skip if feature still doesn't exist after drill-down
+                    if (!f || !f.feature) continue
+
                     var properties = f.feature.properties
 
                     if (f.hasOwnProperty('_layers')) f = f._layers

@@ -2,6 +2,7 @@ import $ from 'jquery'
 
 import F_ from '../../Basics/Formulae_/Formulae_'
 import CursorInfo from '../../Ancillary/CursorInfo'
+import Map_ from '../../Basics/Map_/Map_'
 import Dropy from '../../../external/Dropy/dropy'
 import TimeControl from '../../Basics/TimeControl_/TimeControl'
 import calls from '../../../pre/calls'
@@ -108,6 +109,20 @@ const DrawTool_Templater = {
                                 `<input type='text' placeholder="${t.default != null ? ` value='${t.default}'` : ''}" autocomplete="off"
                                     ${t.default != null ? ` value='${t.default}'` : ''}
                                     />`,
+                            `</li>`
+                        ].join('\n')
+                    case 'point':
+                        return [
+                            `<li id='drawToolTemplater_${idx}' class='drawToolTemplaterpoint'>`,
+                                `<div class='drawToolTemplaterpointHeaderWrapper'>`,    
+                                    `<div title='${t.field}'>${t.field}:</div>`,
+                                    `<button class='drawToolTemplaterPointAddBtn' data-field-idx='${idx}'>`,
+                                        `<i class='mdi mdi-map-marker-plus mdi-14px'></i> Add Point`,
+                                    `</button>`,
+                                `</div>`,
+                                `<div class='drawToolTemplaterPointContainer'>`,
+                                    `<ul class='drawToolTemplaterPointList' id='drawToolTemplaterPointList_${idx}'></ul>`,
+                                `</div>`,
                             `</li>`
                         ].join('\n')
                     default:
@@ -231,6 +246,65 @@ const DrawTool_Templater = {
                         const parsed = dateTempus.dates.parseInput(new Date(d))
                         dateTempus.dates.setValue(parsed)
                     }
+                    break
+                case 'point':
+                    // Initialize from existing data
+                    const existingPoints = properties[t.field] || []
+                    helperStates[idx] = existingPoints
+
+                    // Render initial point list
+                    DrawTool_Templater.renderPointList(
+                        idx,
+                        existingPoints,
+                        helperStates,
+                        t
+                    )
+
+                    // Capture parent feature info for this field
+                    const parentUUID =
+                        properties.uuid ||
+                        properties._?.id?.toString() ||
+                        'unknown'
+                    const parentName = properties.name || 'Unnamed Feature'
+
+                    // Add Pt button click handler
+                    $(
+                        `#drawToolTemplater_${idx} .drawToolTemplaterPointAddBtn`
+                    ).on('click', (e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+
+                        // Check if max points already reached
+                        const maxPoints = t.maxPoints || 0
+                        const currentCount = helperStates[idx]
+                            ? helperStates[idx].length
+                            : 0
+                        if (maxPoints > 0 && currentCount >= maxPoints) {
+                            CursorInfo.update(
+                                `Maximum of ${maxPoints} points reached. Delete a point to add more.`,
+                                4000,
+                                true,
+                                { x: 305, y: 6 },
+                                '#e9ff26',
+                                'black'
+                            )
+                            return
+                        }
+
+                        DrawTool_Templater.startAddingPoint(
+                            idx,
+                            t.field,
+                            t,
+                            parentUUID,
+                            parentName,
+                            helperStates
+                        )
+                    })
+
+                    // Render existing temporary markers
+                    existingPoints.forEach((point) => {
+                        DrawTool_Templater.renderPointMarker(point, parentName)
+                    })
                     break
                 default:
                     break
@@ -480,6 +554,9 @@ const DrawTool_Templater = {
                             else values[t.field] = nextIncrement.newValue
 
                             break
+                        case 'point':
+                            values[t.field] = helperStates[idx] || []
+                            break
                         default:
                             break
                     }
@@ -548,6 +625,606 @@ const DrawTool_Templater = {
                     } else return values
                 }
             },
+        }
+    },
+    /**
+     * Delete a point from the list and map
+     * @param {number} fieldIdx - Index of the field in helperStates
+     * @param {number} pointIdx - Index of the point to delete
+     * @param {object} helperStates - Reference to helperStates object
+     * @param {object} fieldConfig - Template field configuration
+     */
+    deletePoint: function (fieldIdx, pointIdx, helperStates, fieldConfig) {
+        // Get the point before removing it
+        const point = helperStates[fieldIdx][pointIdx]
+
+        // Remove from helperStates array
+        helperStates[fieldIdx].splice(pointIdx, 1)
+
+        // Remove marker from map
+        DrawTool_Templater.removePointMarker(point)
+
+        // Re-render point list
+        DrawTool_Templater.renderPointList(
+            fieldIdx,
+            helperStates[fieldIdx],
+            helperStates,
+            fieldConfig
+        )
+    },
+    // Color palette for point markers
+    _pointColors: [
+        '#ff0000', // Red
+        '#ff8800', // Orange
+        '#ffff00', // Yellow
+        '#00ff00', // Green
+        '#00ffff', // Cyan
+        '#0088ff', // Blue
+        '#8800ff', // Purple
+        '#ff00ff', // Magenta
+        '#ffffff', // White
+        '#888888', // Gray
+        '#000000', // Black
+        '#8b4513', // Brown
+    ],
+    // Helper function to render point list in UI
+    renderPointList: function (fieldIdx, points, helperStates, fieldConfig) {
+        const listEl = $(`#drawToolTemplaterPointList_${fieldIdx}`)
+        listEl.empty()
+
+        if (!points || points.length === 0) {
+            listEl.append('<li class="empty">No points added</li>')
+            // Still need to update button state even when no points
+            const maxPoints = fieldConfig?.maxPoints || 0
+            const addBtn = $(
+                `#drawToolTemplater_${fieldIdx} .drawToolTemplaterPointAddBtn`
+            )
+            if (maxPoints > 0 && points && points.length >= maxPoints) {
+                addBtn
+                    .addClass('at-max')
+                    .attr('title', `Maximum of ${maxPoints} points reached`)
+            } else {
+                addBtn.removeClass('at-max').attr('title', 'Add a new point')
+            }
+            return
+        }
+
+        // Check if we should use dropdown for names
+        const defaultName = fieldConfig?.defaultName || ''
+        const hasNameOptions = defaultName.indexOf(',') !== -1
+        const nameOptions = hasNameOptions
+            ? defaultName.split(',').map((s) => s.trim())
+            : []
+
+        points.forEach((point, i) => {
+            // Build the name field - either input or dropdown container
+            let nameField
+            if (hasNameOptions) {
+                nameField = `<div class='drawToolTemplaterPointNameDropdown' id='drawToolTemplaterPointNameDropdown_${fieldIdx}_${i}' data-point-idx='${i}'></div>`
+            } else {
+                nameField = `<input class='drawToolTemplaterPointNameInput' type='text' value='${F_.sanitize(
+                    point.name
+                )}' data-point-idx='${i}' />`
+            }
+
+            const li = $(`
+                <li class='drawToolTemplaterPointItem' data-point-idx='${i}'>
+                    <div class='drawToolTemplaterPointColor' style='background: ${
+                        point.color
+                    }' data-point-idx='${i}' title='Click to change color'></div>
+                    ${nameField}
+                    <div class='drawToolTemplaterPointActions'>
+                        <div class='drawToolTemplaterPointDelete' data-point-idx='${i}' title='Delete'>
+                            <i class='mdi mdi-delete mdi-14px'></i>
+                        </div>
+                    </div>
+                    <div class='drawToolTemplaterPointColorPicker' data-point-idx='${i}' style='display: none;'>
+                        ${DrawTool_Templater._pointColors
+                            .map(
+                                (color) =>
+                                    `<div class='drawToolTemplaterPointColorOption ${
+                                        color === point.color ? 'active' : ''
+                                    }'
+                                 style='background: ${color}'
+                                 data-color='${color}'
+                                 data-point-idx='${i}'></div>`
+                            )
+                            .join('')}
+                    </div>
+                </li>
+            `)
+
+            // Attach name handler - either input or dropdown
+            if (hasNameOptions) {
+                // Extract the number from this point's current name
+                const pointNumberMatch = point.name.match(/\d+/)
+                const pointNumber = pointNumberMatch ? parseInt(pointNumberMatch[0]) : (i + 1)
+
+                // Apply # replacement to all name options using the actual point number
+                const processedNameOptions = nameOptions.map((opt) =>
+                    opt.replace('#', pointNumber)
+                )
+
+                // Initialize dropdown
+                const currentNameIdx = processedNameOptions.indexOf(point.name)
+                const selectedIdx = currentNameIdx >= 0 ? currentNameIdx : 0
+
+                li.find('.drawToolTemplaterPointNameDropdown').html(
+                    Dropy.construct(
+                        processedNameOptions,
+                        'Point Name',
+                        selectedIdx,
+                        {
+                            openUp: false,
+                            dark: true,
+                        }
+                    )
+                )
+                Dropy.init(
+                    li.find('.drawToolTemplaterPointNameDropdown'),
+                    function (idx) {
+                        const newName = processedNameOptions[idx]
+                        helperStates[fieldIdx][i].name = newName
+                        // Update marker popup if it exists
+                        const marker =
+                            DrawTool_Templater._tempPointMarkers[
+                                helperStates[fieldIdx][i].id
+                            ]
+                        if (marker) {
+                            const parentName =
+                                helperStates[fieldIdx][i].parentName ||
+                                'Unnamed Feature'
+                            const popupContent = `
+                                <div style="font-size: 13px;">
+                                    <strong>${F_.sanitize(newName)}</strong><br>
+                                    <em>Parent: ${F_.sanitize(parentName)}</em>
+                                </div>
+                            `
+                            marker.setPopupContent(popupContent)
+                        }
+                    }
+                )
+            } else {
+                // Attach text input handler
+                li.find('.drawToolTemplaterPointNameInput').on(
+                    'change',
+                    function () {
+                        const pointIdx = $(this).data('point-idx')
+                        const newName = $(this).val()
+                        helperStates[fieldIdx][pointIdx].name = newName
+                        // Update marker popup if it exists
+                        const marker =
+                            DrawTool_Templater._tempPointMarkers[
+                                helperStates[fieldIdx][pointIdx].id
+                            ]
+                        if (marker) {
+                            const parentName =
+                                helperStates[fieldIdx][pointIdx].parentName ||
+                                'Unnamed Feature'
+                            const popupContent = `
+                            <div style="font-size: 13px;">
+                                <strong>${F_.sanitize(newName)}</strong><br>
+                                <em>Parent: ${F_.sanitize(parentName)}</em>
+                            </div>
+                        `
+                            marker.setPopupContent(popupContent)
+                        }
+                    }
+                )
+            }
+
+            // Attach color badge click handler to toggle color picker
+            li.find('.drawToolTemplaterPointColor').on('click', function () {
+                const pointIdx = $(this).data('point-idx')
+                $(
+                    `#drawToolTemplaterPointList_${fieldIdx} .drawToolTemplaterPointColorPicker`
+                )
+                    .not(`[data-point-idx="${pointIdx}"]`)
+                    .hide()
+                li.find('.drawToolTemplaterPointColorPicker').toggle()
+            })
+
+            // Attach color option handlers
+            li.find('.drawToolTemplaterPointColorOption').on(
+                'click',
+                function () {
+                    const pointIdx = $(this).data('point-idx')
+                    const newColor = $(this).data('color')
+
+                    // Update point color in helperStates
+                    helperStates[fieldIdx][pointIdx].color = newColor
+
+                    // Update color badge immediately
+                    li.find('.drawToolTemplaterPointColor').css(
+                        'background-color',
+                        newColor
+                    )
+
+                    // Update active state
+                    li.find('.drawToolTemplaterPointColorOption').removeClass(
+                        'active'
+                    )
+                    $(this).addClass('active')
+
+                    // Update marker fill color if it exists (stroke stays black)
+                    const point = helperStates[fieldIdx][pointIdx]
+                    const marker =
+                        DrawTool_Templater._tempPointMarkers[point.id]
+                    if (marker) {
+                        marker.setStyle({
+                            fillColor: newColor,
+                        })
+                    }
+
+                    // Hide color picker
+                    li.find('.drawToolTemplaterPointColorPicker').hide()
+                }
+            )
+
+            // Attach delete button handler
+            li.find('.drawToolTemplaterPointDelete').on('click', function () {
+                const pointIdx = $(this).data('point-idx')
+                DrawTool_Templater.deletePoint(
+                    fieldIdx,
+                    pointIdx,
+                    helperStates,
+                    fieldConfig
+                )
+            })
+
+            listEl.append(li)
+        })
+
+        // Check if max points reached and add visual indicator to Add Pt button
+        const maxPoints = fieldConfig?.maxPoints || 0
+        const addBtn = $(
+            `#drawToolTemplater_${fieldIdx} .drawToolTemplaterPointAddBtn`
+        )
+        if (maxPoints > 0 && points.length >= maxPoints) {
+            addBtn
+                .addClass('at-max')
+                .attr('title', `Maximum of ${maxPoints} points reached`)
+        } else {
+            addBtn.removeClass('at-max').attr('title', 'Add a new point')
+        }
+    },
+    // Module-level state for point-adding mode
+    _addingPointState: null,
+    _tempPointMarkers: {},
+    /**
+     * Start point-adding mode for a specific field
+     * @param {number} fieldIdx - Index of the field in helperStates
+     * @param {string} fieldName - Name of the point field
+     * @param {object} fieldConfig - Template configuration for this field
+     * @param {string} parentUUID - UUID of the parent feature
+     * @param {string} parentName - Name of the parent feature
+     * @param {object} helperStates - Reference to helperStates object from renderTemplate
+     */
+    startAddingPoint: function (
+        fieldIdx,
+        fieldName,
+        fieldConfig,
+        parentUUID,
+        parentName,
+        helperStates
+    ) {
+        // Check if already in point-adding mode
+        if (DrawTool_Templater._addingPointState != null) {
+            CursorInfo.update(
+                'Already adding a point. Press ESC to cancel current operation.',
+                3000,
+                true,
+                { x: 305, y: 6 },
+                '#e9ff26',
+                'black'
+            )
+            return
+        }
+
+        // Validate parent UUID
+        if (!parentUUID || parentUUID === 'unknown') {
+            console.error('Cannot add point: no parent feature UUID')
+            CursorInfo.update(
+                'Error: Cannot add point to this feature',
+                3000,
+                true,
+                { x: 305, y: 6 },
+                '#ff0000',
+                'white'
+            )
+            return
+        }
+
+        // Initialize state
+        DrawTool_Templater._addingPointState = {
+            fieldIdx: fieldIdx,
+            fieldName: fieldName,
+            fieldConfig: fieldConfig,
+            parentUUID: parentUUID,
+            parentName: parentName,
+            helperStates: helperStates,
+            drawingHandler: null,
+        }
+
+        // Create L.Draw.CircleMarker handler
+        const drawOptions = {
+            stroke: true,
+            color: 'black', // Stroke is always black
+            weight: 2,
+            opacity: 1,
+            fill: true,
+            fillColor: fieldConfig.defaultColor || '#ff0000',
+            fillOpacity: 0.8,
+            radius: 6,
+        }
+
+        DrawTool_Templater._addingPointState.drawingHandler =
+            new L.Draw.CircleMarker(Map_.map, drawOptions)
+
+        // Enable drawing
+        DrawTool_Templater._addingPointState.drawingHandler.enable()
+
+        // Listen for draw:created event (provides the layer with coordinates)
+        Map_.map.on('draw:created', DrawTool_Templater._onPointPlacedHandler)
+
+        // Listen for ESC key
+        $(document).on('keydown.addpoint', DrawTool_Templater._onEscKeyHandler)
+
+        // Show user feedback
+        CursorInfo.update(
+            'Click map to place point. Press ESC to cancel.',
+            null,
+            true,
+            { x: 305, y: 6 },
+            '#08aeea',
+            'black'
+        )
+
+        // Add active class to button
+        $(
+            `#drawToolTemplater_${fieldIdx} .drawToolTemplaterPointAddBtn`
+        ).addClass('active')
+    },
+    /**
+     * Handler for draw:drawstop event (bound to preserve context)
+     */
+    _onPointPlacedHandler: function (e) {
+        DrawTool_Templater.onPointPlaced(e)
+    },
+    /**
+     * Handler for ESC key (bound to preserve context)
+     */
+    _onEscKeyHandler: function (e) {
+        if (e.key === 'Escape' || e.keyCode === 27) {
+            DrawTool_Templater.endAddingPoint(false)
+        }
+    },
+    /**
+     * Called when user clicks map to place a point
+     * @param {object} e - Leaflet draw:created event
+     */
+    onPointPlaced: function (e) {
+        const state = DrawTool_Templater._addingPointState
+        if (!state) return
+
+        // Extract coordinates from the created layer
+        const latlng = e.layer.getLatLng()
+        if (!latlng) {
+            console.error('No coordinates captured')
+            DrawTool_Templater.endAddingPoint(false)
+            return
+        }
+
+        // Generate point name from template pattern
+        const existingPoints = state.helperStates[state.fieldIdx] || []
+        const namePattern = state.fieldConfig.defaultName || 'Point #'
+
+        // Find next available number by looking at existing point names
+        const findNextAvailableNumber = (pattern, existingPoints) => {
+            // Extract all numbers from existing point names matching this pattern
+            const usedNumbers = existingPoints
+                .map(p => {
+                    // Extract number from point name by replacing the pattern
+                    const match = p.name.match(/\d+/)
+                    return match ? parseInt(match[0]) : null
+                })
+                .filter(n => n !== null)
+
+            // Find the smallest unused number starting from 1
+            let nextNum = 1
+            while (usedNumbers.includes(nextNum)) {
+                nextNum++
+            }
+            return nextNum
+        }
+
+        const nextNumber = findNextAvailableNumber(namePattern, existingPoints)
+
+        let pointName
+        // Check if we have comma-separated options (dropdown will be shown in list)
+        if (namePattern.indexOf(',') !== -1) {
+            const nameOptions = namePattern.split(',').map((s) => s.trim())
+            // Default to first option with # replacement if present
+            pointName = nameOptions[0].replace('#', nextNumber)
+        } else {
+            // Use pattern with # replacement
+            pointName = namePattern.replace('#', nextNumber)
+        }
+
+        // Generate unique point ID (include field index to avoid collisions across multiple point fields)
+        const parentUUID = state.parentUUID
+        const pointId = `${parentUUID}-${state.fieldIdx}-${nextNumber}`
+
+        // Check max points limit BEFORE adding
+        if (!state.helperStates[state.fieldIdx]) {
+            state.helperStates[state.fieldIdx] = []
+        }
+
+        const maxPoints = state.fieldConfig.maxPoints || 0
+        if (
+            maxPoints > 0 &&
+            state.helperStates[state.fieldIdx].length >= maxPoints
+        ) {
+            CursorInfo.update(
+                `Maximum of ${maxPoints} points reached.`,
+                3000,
+                true,
+                { x: 305, y: 6 },
+                '#e9ff26',
+                'black'
+            )
+            // End point-adding mode since max is reached
+            DrawTool_Templater.endAddingPoint(false)
+            return
+        }
+
+        // Get default color
+        const color = state.fieldConfig.defaultColor || '#ff0000'
+
+        // Create point object
+        const point = {
+            id: pointId,
+            name: pointName || defaultName,
+            color: color,
+            coords: [latlng.lng, latlng.lat],
+        }
+
+        // Add to helperStates
+        state.helperStates[state.fieldIdx].push(point)
+
+        // Render temporary marker
+        DrawTool_Templater.renderPointMarker(point, state.parentName)
+
+        // Update point list UI
+        DrawTool_Templater.renderPointList(
+            state.fieldIdx,
+            state.helperStates[state.fieldIdx],
+            state.helperStates,
+            state.fieldConfig
+        )
+
+        // End point-adding mode after each point (user must click "Add Pt" again for next point)
+        DrawTool_Templater.endAddingPoint(true)
+    },
+    /**
+     * End point-adding mode and cleanup
+     * @param {boolean} success - Whether points were successfully added
+     */
+    endAddingPoint: function (success) {
+        const state = DrawTool_Templater._addingPointState
+        if (!state) return
+
+        // Disable drawing handler
+        if (state.drawingHandler) {
+            state.drawingHandler.disable()
+        }
+
+        // Remove event listeners
+        Map_.map.off('draw:created', DrawTool_Templater._onPointPlacedHandler)
+        $(document).off('keydown.addpoint')
+
+        // Clear CursorInfo
+        CursorInfo.update('', 0, true)
+
+        // Remove active class from button
+        $(
+            `#drawToolTemplater_${state.fieldIdx} .drawToolTemplaterPointAddBtn`
+        ).removeClass('active')
+
+        // Clear state
+        DrawTool_Templater._addingPointState = null
+    },
+    /**
+     * Render temporary marker for a point during editing
+     * @param {object} point - Point object with id, name, color, coords
+     * @param {string} parentName - Name of parent feature for popup
+     */
+    renderPointMarker: function (point, parentName) {
+        // Ensure point marker pane exists with high z-index (above all other layers)
+        if (!Map_.map.getPane('drawToolPoints')) {
+            Map_.map.createPane('drawToolPoints')
+            Map_.map.getPane('drawToolPoints').style.zIndex = 650
+        }
+
+        // Create circle marker in the high z-index pane
+        const marker = L.circleMarker([point.coords[1], point.coords[0]], {
+            radius: 6,
+            weight: 2,
+            color: 'black', // Stroke is always black
+            fillColor: point.color,
+            fillOpacity: 0.8,
+            pane: 'drawToolPoints',
+        })
+
+        // Bind popup
+        const popupContent = `
+            <div style="font-size: 13px;">
+                <strong>${F_.sanitize(point.name)}</strong><br>
+                <em>Parent: ${F_.sanitize(parentName || 'Unnamed Feature')}</em>
+            </div>
+        `
+        marker.bindPopup(popupContent)
+
+        // Add to map
+        marker.addTo(Map_.map)
+
+        // Store reference
+        DrawTool_Templater._tempPointMarkers[point.id] = marker
+    },
+    /**
+     * Remove temporary marker for a point
+     * @param {object} point - Point object with id
+     */
+    removePointMarker: function (point) {
+        const marker = DrawTool_Templater._tempPointMarkers[point.id]
+        if (marker) {
+            Map_.rmNotNull(marker)
+            delete DrawTool_Templater._tempPointMarkers[point.id]
+        }
+    },
+    /**
+     * Remove point markers for a specific feature
+     * @param {string} featureUUID - The UUID of the feature whose points should be removed
+     */
+    cleanupPointMarkersForFeature: function (featureUUID) {
+        if (!featureUUID) return
+
+        // Find and remove all point markers that belong to this feature
+        Object.keys(DrawTool_Templater._tempPointMarkers).forEach((pointId) => {
+            // Point IDs are formatted as: featureUUID-fieldIdx-pointCount
+            if (pointId.startsWith(featureUUID + '-')) {
+                const marker = DrawTool_Templater._tempPointMarkers[pointId]
+                if (marker) {
+                    Map_.rmNotNull(marker)
+                }
+                delete DrawTool_Templater._tempPointMarkers[pointId]
+            }
+        })
+
+        // If we're currently adding a point for this feature, cancel it
+        if (
+            DrawTool_Templater._addingPointState &&
+            DrawTool_Templater._addingPointState.parentUUID === featureUUID
+        ) {
+            DrawTool_Templater.endAddingPoint(false)
+        }
+    },
+    /**
+     * Remove all temporary point markers from the map
+     * Called when Edit Panel closes or layer is toggled off
+     */
+    cleanupAllPointMarkers: function () {
+        Object.keys(DrawTool_Templater._tempPointMarkers).forEach((pointId) => {
+            const marker = DrawTool_Templater._tempPointMarkers[pointId]
+            if (marker) {
+                Map_.rmNotNull(marker)
+            }
+        })
+        DrawTool_Templater._tempPointMarkers = {}
+
+        // Also end point-adding mode if active
+        if (DrawTool_Templater._addingPointState != null) {
+            DrawTool_Templater.endAddingPoint(false)
         }
     },
     addOffset(timestamp) {
@@ -647,6 +1324,7 @@ const DrawTool_Templater = {
         'dropdown',
         'incrementer',
         'number',
+        'point',
         'slider',
         'text',
         'textarea',
@@ -1078,12 +1756,51 @@ const DrawTool_Templater = {
                             "</div>"
                         ]
                         break
+                    case 'point':
+                        const currentColor = opts.defaultColor || '#ff0000'
+                        // prettier-ignore
+                        typeMarkup = [
+                            `<div class='drawToolTemplaterLiBody_${type}'>`,
+                                `<div class='drawToolTemplaterLiBody_${type}_defaultName'>`,
+                                    `<div title='Single name or comma-separated list. Use # for auto-incrementing number (e.g., "Point #" or "A#, B#, C#")'>Default Name: </div>`,
+                                    `<input title='Single name or comma-separated list. Use # for auto-incrementing number (e.g., "Point #" or "A#, B#, C#")' id='drawToolTemplaterLiFieldInput_${idx}_defaultName' placeholder='Point #' type='text' value='${opts.defaultName != null ? opts.defaultName : 'Point #'}' style='width: 240px;'></input>`,
+                                "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_defaultColor'>`,
+                                    `<div>Default Color: </div>`,
+                                    `<div class='drawToolTemplaterColorSelector' id='drawToolTemplaterColorSelector_${idx}'>`,
+                                        DrawTool_Templater._pointColors.map(color =>
+                                            `<div class='drawToolTemplaterColorOption ${color === currentColor ? 'active' : ''}'
+                                                 style='background: ${color}'
+                                                 data-color='${color}'
+                                                 data-idx='${idx}'></div>`
+                                        ).join(''),
+                                    `</div>`,
+                                "</div>",
+                                `<div class='drawToolTemplaterLiBody_${type}_maxPoints'>`,
+                                    `<div title='Maximum number of points. 0 or empty = unlimited'>Max Points: </div>`,
+                                    `<input title='Maximum number of points. 0 or empty = unlimited' id='drawToolTemplaterLiFieldInput_${idx}_maxPoints' type='number' min='0' value='${opts.maxPoints != null ? opts.maxPoints : 0}' style='width: 80px;'></input>`,
+                                "</div>",
+                            "</div>"
+                        ]
+                        break
                     default:
                         break
                 }
 
                 // Add html
                 $(`#drawToolTemplaterLiBody_${idx}`).html(typeMarkup.join('\n'))
+
+                // Init color selector for point type
+                if (type === 'point') {
+                    $(
+                        `#drawToolTemplaterColorSelector_${idx} .drawToolTemplaterColorOption`
+                    ).on('click', function () {
+                        $(
+                            `#drawToolTemplaterColorSelector_${idx} .drawToolTemplaterColorOption`
+                        ).removeClass('active')
+                        $(this).addClass('active')
+                    })
+                }
 
                 // Init dropdowns
                 const f =
@@ -1425,6 +2142,28 @@ const DrawTool_Templater = {
                                 item.field
                             ] = `'${item.field}' must contain exactly one '#' symbol`
                         }
+                        break
+                    case 'point':
+                        item.default = []
+                        item.defaultName =
+                            $(this)
+                                .find(
+                                    '.drawToolTemplaterLiBody_point_defaultName input'
+                                )
+                                .val() || 'Point #'
+                        item.defaultColor =
+                            $(this)
+                                .find(
+                                    '.drawToolTemplaterColorSelector .drawToolTemplaterColorOption.active'
+                                )
+                                .data('color') || '#ff0000'
+                        item.maxPoints = $(this)
+                            .find(
+                                '.drawToolTemplaterLiBody_point_maxPoints input'
+                            )
+                            .val()
+                        if (item.maxPoints != '')
+                            item.maxPoints = parseInt(item.maxPoints)
                         break
                     default:
                         break
@@ -1857,6 +2596,9 @@ const DrawTool_Templater = {
                                     .format(t.format || 'YYYY-MM-DDTHH:mm:ss')
                                 overrideRecomputeOnlyHere = true
                             }
+                            break
+                        case 'point':
+                            defaultProps[f] = t.default || []
                             break
                         default:
                     }
