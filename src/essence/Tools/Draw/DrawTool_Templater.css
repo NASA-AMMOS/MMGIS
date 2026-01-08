@@ -351,3 +351,334 @@
 .drawToolTemplaterLiBody_incrementer_default {
     width: 100%;
 }
+
+/* Point field styles */
+.drawToolTemplaterpoint {
+    height: auto !important;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.drawToolTemplaterpoint > div:first-child {
+    width: 100% !important;
+    padding-bottom: 4px;
+}
+
+.drawToolTemplaterPointContainer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    margin-left: 10px;
+}
+.drawToolTemplaterpointHeaderWrapper {
+    display: flex;
+    justify-content: space-between;
+}
+
+.drawToolTemplaterPointAddBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 20px;
+    padding: 2px 8px;
+    margin-top: 4px;
+    background: var(--color-a1);
+    color: var(--color-a5);
+    border: none;
+    border-radius: 3px;
+    font-size: 11px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    letter-spacing: 0.5px;
+}
+
+.drawToolTemplaterPointAddBtn:hover {
+    background: var(--color-a2);
+    color: var(--color-a7);
+}
+
+.drawToolTemplaterPointAddBtn:active {
+    background: var(--color-blue);
+    color: white;
+}
+
+.drawToolTemplaterPointAddBtn.active {
+    background: var(--color-blue);
+    color: white;
+    animation: pointButtonPulse 1.5s ease-in-out infinite;
+}
+
+.drawToolTemplaterPointAddBtn.at-max {
+    background: var(--color-a1);
+    color: var(--color-a5);
+    opacity: 0.5;
+}
+
+.drawToolTemplaterPointAddBtn.at-max:hover {
+    background: var(--color-a1);
+    color: var(--color-a6);
+}
+
+@keyframes pointButtonPulse {
+    0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(41, 128, 185, 0.7);
+    }
+    50% {
+        opacity: 0.9;
+        box-shadow: 0 0 0 8px rgba(41, 128, 185, 0);
+    }
+}
+
+.drawToolTemplaterPointAddBtn i {
+    margin-right: 6px;
+    font-size: 14px;
+}
+
+.drawToolTemplaterPointList {
+    width: 100%;
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    background: var(--color-a);
+    border-radius: 3px;
+}
+
+.drawToolTemplaterPointList li.empty {
+    padding: 12px 8px;
+    text-align: center;
+    color: var(--color-a3);
+    font-size: 12px;
+    font-style: italic;
+}
+
+.drawToolTemplaterPointItem {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--color-a1);
+    transition: background 0.15s ease-in-out;
+}
+
+.drawToolTemplaterPointItem:last-child {
+    border-bottom: none;
+}
+
+.drawToolTemplaterPointItem:hover {
+    background: var(--color-a1-5);
+}
+
+.drawToolTemplaterPointColor {
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 1px solid var(--color-a-5);
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+}
+
+.drawToolTemplaterPointColor:hover {
+    transform: scale(1.2);
+    border-color: var(--color-a5);
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+.drawToolTemplaterPointName {
+    flex: 1;
+    font-size: 13px;
+    color: var(--color-a6);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 18px;
+}
+
+.drawToolTemplaterPointDelete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    margin-left: 8px;
+    background: var(--color-a1);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    opacity: 0.7;
+}
+
+.drawToolTemplaterPointDelete:hover {
+    background: var(--color-p4);
+    opacity: 1;
+}
+
+.drawToolTemplaterPointDelete i {
+    color: var(--color-a5);
+    font-size: 14px;
+}
+
+.drawToolTemplaterPointNameInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    text-align: left !important;
+    color: var(--color-a6);
+    font-size: 13px;
+    padding: 2px 4px;
+    margin-right: 4px;
+    border-radius: 2px;
+    transition: background 0.15s ease-in-out;
+}
+
+.drawToolTemplaterPointNameInput:focus {
+    outline: none;
+    background: var(--color-a1);
+}
+
+.drawToolTemplaterPointItem .drawToolTemplaterPointNameDropdown {
+    flex: 1;
+    margin-right: 4px;
+}
+
+.drawToolTemplaterPointItem .drawToolTemplaterPointNameDropdown {
+    width: 100%;
+    height: 24px;
+    background: var(--color-a1);
+}
+
+.drawToolTemplaterPointItem .drawToolTemplaterPointNameDropdown.dropy {
+    margin-bottom: 0;
+}
+
+.drawToolTemplaterPointItem .drawToolTemplaterPointNameDropdown .dropy__title {
+    line-height: 6px;
+    font-size: 13px;
+}
+
+.drawToolTemplaterPointItem .drawToolTemplaterPointNameDropdown .dropy__title > i {
+    transform: translateY(20%);
+}
+
+.drawToolTemplaterPointActions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.drawToolTemplaterPointColorPicker {
+    position: absolute;
+    top: 100%;
+    margin-top: 4px;
+    padding: 8px;
+    background: var(--color-a2);
+    border: 1px solid var(--color-a-5);
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    width: 185px;
+}
+
+.drawToolTemplaterPointColorOption {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid  var(--color-a-5);
+    transition: all 0.15s ease-in-out;
+    opacity: 0.6;
+}
+
+.drawToolTemplaterPointColorOption:hover {
+    opacity: 1;
+}
+
+.drawToolTemplaterPointColorOption.active {
+    border-color: white;
+    opacity: 1;
+    box-shadow: 0 0 0 1px var(--color-a), 0 0 6px rgba(255, 255, 255, 0.5);
+}
+
+.drawToolTemplaterPointItem {
+    position: relative;
+}
+
+/* Template designer point field configuration styles */
+.drawToolTemplaterLiBody_point {
+    height: auto !important;
+}
+
+.drawToolTemplaterLiBody_point > div {
+    display: flex;
+    align-items: center;
+    padding-bottom: 4px;
+}
+
+.drawToolTemplaterLiBody_point_defaultColor,
+.drawToolTemplaterLiBody_point_maxPoints {
+    display: flex;
+    align-items: center;
+}
+
+.drawToolTemplaterLiBody_point_defaultColor > div:first-child,
+.drawToolTemplaterLiBody_point_maxPoints > div:first-child {
+    margin: 0px 8px 0px 8px;
+    line-height: 31px;
+    color: var(--color-mh);
+    font-size: 13px;
+    min-width: 80px;
+}
+
+.drawToolTemplaterLiBody_point_defaultColor input[type='color'] {
+    width: 60px !important;
+    height: 30px;
+    padding: 2px;
+    cursor: pointer;
+    border: 1px solid var(--color-a2);
+    border-radius: 3px;
+    background: var(--color-a1);
+}
+
+.drawToolTemplaterLiBody_point_defaultColor input[type='color']:hover {
+    border-color: var(--color-a3);
+}
+
+.drawToolTemplaterLiBody_point_maxPoints input[type='number'] {
+    width: 80px !important;
+}
+
+.drawToolTemplaterColorSelector {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    padding: 4px;
+    background: var(--color-a1-5);
+    border-radius: 3px;
+    width: 168px;
+}
+
+.drawToolTemplaterColorSelector .drawToolTemplaterColorOption {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid  var(--color-a-5);
+    transition: all 0.15s ease-in-out;
+    opacity: 0.6;
+}
+
+.drawToolTemplaterColorSelector .drawToolTemplaterColorOption:hover {
+    opacity: 1;
+}
+
+.drawToolTemplaterColorSelector .drawToolTemplaterColorOption.active {
+    border-color: white;
+    opacity: 1;
+    box-shadow: 0 0 0 1px var(--color-a), 0 0 6px rgba(255, 255, 255, 0.5);
+}

@@ -41,6 +41,9 @@ var Editing = {
     ) {
         if (!DrawTool.open && !displayOnly) return
 
+        // Clean up any temporary point markers when switching features
+        DrawTool_Templater.cleanupAllPointMarkers()
+
         // Force corner
         x = 40
         y = 40
@@ -891,11 +894,27 @@ var Editing = {
         $('#uiRightPanel').empty()
         $('#uiRightPanel').append(markup)
 
+        // Save a deep copy of original properties for reset/cancel functionality
+        if (DrawTool.contextMenuLayer?.feature?.properties) {
+            DrawTool.contextMenuLayer._originalProperties = JSON.parse(
+                JSON.stringify(DrawTool.contextMenuLayer.feature.properties)
+            )
+            // Track whether changes have been saved
+            DrawTool.contextMenuLayer._changesSaved = false
+        }
+
         templater = DrawTool_Templater.renderTemplate(
             'drawToolContextMenuPropertiesTemplate',
             file.template,
             DrawTool.contextMenuLayer?.feature?.properties
         )
+
+        // Hide permanent associated points while editing (temporary edit markers will show)
+        const featureId = DrawTool.contextMenuLayer?.feature?.properties?._?.id
+        if (featureId) {
+            DrawTool.hideAssociatedPoints(featureId, layer)
+        }
+
         $(
             `.drawToolContextMenuPropertiesCollapsible > .drawToolContextMenuPropertiesTitle`
         ).on('click', function () {
@@ -1003,6 +1022,26 @@ var Editing = {
 
         //RESET
         $('.drawToolContextMenuReset').on('click', function () {
+            // Restore original properties
+            if (DrawTool.contextMenuLayer?._originalProperties) {
+                DrawTool.contextMenuLayer.feature.properties = JSON.parse(
+                    JSON.stringify(DrawTool.contextMenuLayer._originalProperties)
+                )
+            }
+
+            // Clean up temporary point markers and re-render template from original properties
+            DrawTool_Templater.cleanupAllPointMarkers()
+
+            // Re-render template with restored original properties
+            if (file.template && DrawTool.contextMenuLayer?.feature?.properties) {
+                $('#drawToolContextMenuPropertiesTemplate').empty()
+                templater = DrawTool_Templater.renderTemplate(
+                    'drawToolContextMenuPropertiesTemplate',
+                    file.template,
+                    DrawTool.contextMenuLayer.feature.properties
+                )
+            }
+
             resetShape()
         })
         function resetShape(justThis) {
@@ -1174,6 +1213,12 @@ var Editing = {
                 id: properties._.id,
             }
             DrawTool.removeDrawing(body, function () {
+                // Clean up point markers for this specific feature
+                const featureUUID = properties.uuid || properties._?.id?.toString()
+                if (featureUUID) {
+                    DrawTool_Templater.cleanupPointMarkersForFeature(featureUUID)
+                }
+
                 Map_.rmNotNull(DrawTool.contextMenuLayer)
                 L_.layers.layer[DrawTool.lastContextLayerIndexFileId.layer][
                     DrawTool.lastContextLayerIndexFileId.index
@@ -2299,6 +2344,39 @@ var Editing = {
             if (DrawTool.contextMenuLayer)
                 DrawTool.contextMenuLayer.dragging = false
 
+            // Clean up temporary point markers first
+            DrawTool_Templater.cleanupAllPointMarkers()
+
+            const featureId = DrawTool.contextMenuLayer?.feature?.properties?._?.id
+            const layerId = DrawTool.lastContextLayerIndexFileId?.layer
+
+            // Only restore original properties if changes weren't saved
+            if (DrawTool.contextMenuLayer?._originalProperties &&
+                !DrawTool.contextMenuLayer?._changesSaved) {
+
+                // Restore original properties when closing without save
+                DrawTool.contextMenuLayer.feature.properties = JSON.parse(
+                    JSON.stringify(DrawTool.contextMenuLayer._originalProperties)
+                )
+
+                // Remove ALL associated points for this feature (both hidden and visible)
+                if (featureId && layerId && DrawTool.removeAssociatedPoints) {
+                    DrawTool.removeAssociatedPoints(featureId, layerId)
+                }
+
+                // Re-render permanent associated points from restored original properties
+                const feature = DrawTool.contextMenuLayer?.feature
+                if (featureId && layerId && feature && file?.id && DrawTool.renderAssociatedPoints) {
+                    DrawTool.renderAssociatedPoints(feature, file.id, layerId)
+                }
+            } else if (DrawTool.contextMenuLayer?._changesSaved) {
+                // If changes were saved, refreshFile already updated permanent points
+                // Just show any that were hidden during editing
+                if (featureId && layerId && DrawTool.showAssociatedPoints) {
+                    DrawTool.showAssociatedPoints(featureId, layerId)
+                }
+            }
+
             Editing.removeContextMenu()
         })
 
@@ -2537,6 +2615,11 @@ var Editing = {
                             fileid
                         ) {
                             return function (data) {
+                                // Mark that changes have been saved
+                                if (DrawTool.contextMenuLayer) {
+                                    DrawTool.contextMenuLayer._changesSaved = true
+                                }
+
                                 DrawTool.refreshFile(
                                     fileid,
                                     null,

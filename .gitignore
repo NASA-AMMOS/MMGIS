@@ -19,7 +19,7 @@ nul
 
 #Nested repos where private tools might reside
 # Wildcard patterns for tool plugins
-/src/essence/*Private-Tools*
+#/src/essence/*Private-Tools*
 /src/essence/*Plugin-Tools*
 
 /src/pre/tools.js

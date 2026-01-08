@@ -199,6 +199,9 @@ var Shapes = {
         function addShapeToList(shape, file, layer, index, layerId) {
             if (shape == null) return
 
+            // Skip associated points - they are not independent features
+            if (shape._isAssociatedPoint === true) return
+
             var f = shape
 
             if (
@@ -291,6 +294,9 @@ var Shapes = {
 
             for (var elayer in f) {
                 var e = f[elayer]
+
+                // Skip associated points - they are not independently interactive
+                if (e._isAssociatedPoint === true) continue
 
                 var pUpfeature = e.feature
                 if (e.feature == null && shape.feature != null)

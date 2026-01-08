@@ -208,6 +208,11 @@ const clipOver = function (
     })
     .then((historyObj) => {
       let history = historyObj.history;
+      // If history is null or empty, use a placeholder value that won't match any IDs
+      // This prevents SQL syntax error "IN ()" while still allowing the query to run
+      if (!history || (Array.isArray(history) && history.length === 0)) {
+        history = [-1];
+      }
       //RETURN ALL THE CHANGED SHAPE IDs AND GEOMETRIES
       let q = [
         "SELECT clipped.id, ST_AsGeoJSON( (ST_Dump(clipped.newgeom)).geom ) AS newgeom FROM",
@@ -339,6 +344,11 @@ const clipUnder = function (
     })
     .then((historyObj) => {
       let history = historyObj.history;
+      // If history is null or empty, use a placeholder value that won't match any IDs
+      // This prevents SQL syntax error "IN ()" while still allowing the query to run
+      if (!history || (Array.isArray(history) && history.length === 0)) {
+        history = [-1];
+      }
 
       //Continually clip the added feature with the other features of the file
       let q = [
