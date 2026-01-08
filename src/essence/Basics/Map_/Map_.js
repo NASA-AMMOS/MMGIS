@@ -1932,10 +1932,27 @@ function buildToolBar() {
 function clearOnMapClick(event) {
     if (Map_._justSetActiveLayer) {
         Map_._justSetActiveLayer = false
+
+        L_.setActiveFeature(null)
+
+        let _event = new CustomEvent('newActiveFeature', {
+            detail: {
+                activeFeature: null,
+            },
+        })
+        document.dispatchEvent(_event)
         return
     }
     // Skip if there is no actively selected feature
     if (!Map_.activeLayer) {
+        L_.setActiveFeature(null)
+
+        let _event = new CustomEvent('newActiveFeature', {
+            detail: {
+                activeFeature: null,
+            },
+        })
+        document.dispatchEvent(_event)
         return
     }
 
