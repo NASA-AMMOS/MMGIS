@@ -265,9 +265,8 @@ function drawLegendHeader() {
             'overflow-y': 'auto'
         })
     tools.append(legendContainer)
-    const toolsContainer = legendContainer
 
-    return tools
+    return legendContainer
 }
 
 function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
