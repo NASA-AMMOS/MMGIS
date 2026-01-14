@@ -13,6 +13,7 @@ export const ConfigureStore = createSlice({
     mission: null,
     configuration: {},
     toolConfiguration: {},
+    componentConfiguration: {},
     geodatasets: [],
     datasets: [],
     stacCollections: [],
@@ -23,6 +24,7 @@ export const ConfigureStore = createSlice({
       newMission: false,
       layer: false,
       tool: false,
+      component: false,
       preview: false,
       newGeoDataset: false,
       deleteGeoDataset: false,
@@ -73,6 +75,9 @@ export const ConfigureStore = createSlice({
     },
     setToolConfiguration: (state, action) => {
       state.toolConfiguration = action.payload;
+    },
+    setComponentConfiguration: (state, action) => {
+      state.componentConfiguration = action.payload;
     },
     setGeodatasets: (state, action) => {
       state.geodatasets = action.payload;
@@ -212,6 +217,7 @@ export const {
   setMission,
   setConfiguration,
   setToolConfiguration,
+  setComponentConfiguration,
   setGeodatasets,
   setDatasets,
   setStacCollections,

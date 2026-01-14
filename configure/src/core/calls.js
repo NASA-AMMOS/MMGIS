@@ -14,6 +14,10 @@ const c = {
     type: "GET",
     url: "configure/public/toolConfigs.json",
   },
+  getComponentConfig: {
+    type: "GET",
+    url: "configure/public/componentConfigs.json",
+  },
   get: {
     type: "GET",
     url: "api/configure/get",

@@ -29,7 +29,7 @@ const { sequelize } = require("../API/connection");
 
 const setups = require("../API/setups");
 
-const { updateTools } = require("../API/updateTools");
+const { updateTools, updateComponents } = require("../API/updateTools");
 
 const { websocket } = require("../API/websocket");
 
@@ -692,6 +692,9 @@ setups.getBackendSetups(function (setups) {
   if (process.env.NODE_ENV === "development") {
     console.log(chalk.cyan("Updating Tools...\n"));
     updateTools();
+
+    console.log(chalk.cyan("Updating Components...\n"));
+    updateComponents();
   }
 
   //////Setups Init//////

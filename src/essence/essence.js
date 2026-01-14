@@ -28,6 +28,7 @@ import Map_ from './Basics/Map_/Map_'
 import Globe_ from './Basics/Globe_/Globe_'
 import * as _UserInterface_ from './Basics/UserInterface_/UserInterface_'
 import ToolController_ from './Basics/ToolController_/ToolController_'
+import ComponentController_ from './Basics/ComponentController_/ComponentController_'
 import CursorInfo from './Ancillary/CursorInfo'
 import ContextMenu from './Ancillary/ContextMenu'
 import Coordinates from './Ancillary/Coordinates'
@@ -533,6 +534,13 @@ var essence = {
             mmgisAPI_.fina(Map_)
 
             stylize()
+
+            // Initialize components after UI finalization
+            try {
+                ComponentController_.initializeComponents()
+            } catch (err) {
+                console.error('[essence] Error initializing components:', err)
+            }
         }
     },
 }
