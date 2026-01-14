@@ -410,10 +410,10 @@ var UserInterface = {
             .html('Viewer')
         this.mapSplitInner.append(mapSplitInnerViewerInfo)
 
-        this.mapSplitInner
-            .append('div')
+        const mapSplitInnerVMapInfo = $('<div>')
             .attr('id', 'mapSplitInnerVMapInfo')
             .html('Map')
+        this.mapSplitInner.append(mapSplitInnerVMapInfo)
 
         //The globe screen
         this.globeScreen = $('<div>')
@@ -552,10 +552,10 @@ var UserInterface = {
             .html('Globe')
         this.globeSplitInner.append(mapSplitInnerGlobeInfo)
 
-        this.globeSplitInner
-            .append('div')
+        const mapSplitInnerGMapInfo = $('<div>')
             .attr('id', 'mapSplitInnerGMapInfo')
             .html('Map')
+        this.globeSplitInner.append(mapSplitInnerGMapInfo)
 
         //thumb lines
         /*
