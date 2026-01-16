@@ -351,6 +351,21 @@ var Kinds = {
                 )
                 useInfo(false)
                 break
+            case 'viewer_open':
+                useInfo(false)
+
+                const layerData = L_.layers.data[layerName]
+
+                // Only expand the Viewer Panel if it isn't already visible
+                var pp = L_.UserInterface_.getPanelPercents()
+                if (pp.map == 100) {
+                    L_.UserInterface_.openViewerPanel()
+                }
+
+                // Center the view onto the selected feature
+                const zoom = (layerData.minZoom + layerData.maxZoom) / 4
+                Map_.map.setView([feature.properties.latitude, feature.properties.longitude], zoom)
+                break
             default:
                 useInfo(false)
                 return
