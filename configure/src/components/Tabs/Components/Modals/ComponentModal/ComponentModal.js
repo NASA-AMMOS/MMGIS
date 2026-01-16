@@ -13,6 +13,7 @@ import { setModal, setConfiguration } from "../../../../../core/ConfigureStore";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
@@ -343,34 +344,8 @@ const ComponentModal = (props) => {
         {componentConfig?.hasVars ? (
           <Maker
             config={componentConfig.config}
-            data={component?.variables || {}}
-            onChange={(field, value) => {
-              const nextConfiguration = JSON.parse(
-                JSON.stringify(configuration)
-              );
-              if (!nextConfiguration.components)
-                nextConfiguration.components = [];
-
-              if (component != null && component.name != null) {
-                updateComponentInConfiguration(
-                  component.name,
-                  nextConfiguration,
-                  ["variables", ...field.split(".")],
-                  value
-                );
-              } else {
-                const newComponent = {
-                  on: true,
-                  name: componentName,
-                  icon: componentConfig.defaultIcon,
-                  js: Object.keys(componentConfig.paths)[0],
-                  variables: {},
-                };
-                setIn(newComponent.variables, field.split("."), value, true);
-                nextConfiguration.components.push(newComponent);
-              }
-              dispatch(setConfiguration(nextConfiguration));
-            }}
+            componentName={componentName}
+            inlineHelp={true}
           />
         ) : (
           <Typography className={c.noFurtherConf}>
@@ -378,6 +353,11 @@ const ComponentModal = (props) => {
           </Typography>
         )}
       </DialogContent>
+      <DialogActions>
+        <Button variant="contained" onClick={handleClose}>
+          Done
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 };

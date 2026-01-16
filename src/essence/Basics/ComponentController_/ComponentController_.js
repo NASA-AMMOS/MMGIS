@@ -32,19 +32,12 @@ const ComponentController_ = {
      * other components from initializing or break the page.
      */
     initializeComponents: function () {
-        const startTime = performance.now()
-
-        console.log('[ComponentController] Starting component initialization...')
-
         // Get mission configuration
         // L_.configData contains the full mission configuration loaded from the API
         const config = L_.configData
 
         // Check if configuration exists and has components
         if (!config) {
-            console.warn(
-                '[ComponentController] No mission configuration found. Skipping component initialization.'
-            )
             return
         }
 
@@ -52,15 +45,8 @@ const ComponentController_ = {
         const configuredComponents = config.components || []
 
         if (configuredComponents.length === 0) {
-            console.log(
-                '[ComponentController] No components configured for this mission.'
-            )
             return
         }
-
-        console.log(
-            `[ComponentController] Found ${configuredComponents.length} configured component(s)`
-        )
 
         // Filter to only enabled components
         const enabledComponents = configuredComponents.filter(
@@ -68,15 +54,8 @@ const ComponentController_ = {
         )
 
         if (enabledComponents.length === 0) {
-            console.log(
-                '[ComponentController] No components enabled (all have on: false)'
-            )
             return
         }
-
-        console.log(
-            `[ComponentController] Initializing ${enabledComponents.length} enabled component(s)...`
-        )
 
         // Track initialization statistics
         let successCount = 0
@@ -86,15 +65,8 @@ const ComponentController_ = {
         enabledComponents.forEach((component, index) => {
             const componentName = component.name
             const componentVars = component.variables || {}
-            const componentStartTime = performance.now()
 
             try {
-                console.log(
-                    `[ComponentController] [${index + 1}/${
-                        enabledComponents.length
-                    }] Initializing "${componentName}"...`
-                )
-
                 // Get the component module from the imported modules
                 const componentModule = componentModules[component.js]
 
@@ -117,44 +89,17 @@ const ComponentController_ = {
                 // Call the component's init() method with its configured variables
                 componentModule.init(componentVars)
 
-                const componentDuration = (
-                    performance.now() - componentStartTime
-                ).toFixed(2)
-                console.log(
-                    `[ComponentController] ✓ "${componentName}" initialized successfully (${componentDuration}ms)`
-                )
-
                 successCount++
             } catch (err) {
                 // Catch and log errors but continue to next component
                 // This ensures one broken component doesn't break the entire page
-                const componentDuration = (
-                    performance.now() - componentStartTime
-                ).toFixed(2)
                 console.error(
-                    `[ComponentController] ✗ Error initializing component "${componentName}" (${componentDuration}ms):`,
+                    `[ComponentController] ✗ Error initializing component "${componentName}"):`,
                     err
                 )
                 errorCount++
             }
         })
-
-        // Calculate total initialization time
-        const totalDuration = (performance.now() - startTime).toFixed(2)
-
-        // Log summary
-        console.log(
-            `[ComponentController] Component initialization complete: ` +
-                `${successCount} succeeded, ${errorCount} failed (${totalDuration}ms total)`
-        )
-
-        // Warn if initialization took too long
-        if (totalDuration > 1000) {
-            console.warn(
-                `[ComponentController] Warning: Component initialization took ${totalDuration}ms ` +
-                    `(> 1000ms threshold). Consider optimizing slow components.`
-            )
-        }
     },
 }
 

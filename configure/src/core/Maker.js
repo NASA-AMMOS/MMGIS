@@ -37,6 +37,8 @@ import {
   traverseLayers,
   getToolFromConfiguration,
   updateToolInConfiguration,
+  getComponentFromConfiguration,
+  updateComponentInConfiguration,
   getLayerByUUID,
   isUrlAbsolute,
 } from "./utils";
@@ -373,6 +375,7 @@ const getComponent = (
   configuration,
   layer,
   tool,
+  component,
   updateConfiguration,
   c,
   inlineHelp,
@@ -382,7 +385,7 @@ const getComponent = (
   fieldDefaults
 ) => {
   const directConf =
-    layer == null ? (tool == null ? configuration : tool) : layer;
+    layer == null ? (tool == null ? (component == null ? configuration : component) : tool) : layer;
   
   // Check if this is a planetary projection component and if TiTiler is available
   const isPlanetaryProjectionComponent = 
@@ -1349,6 +1352,7 @@ const getComponent = (
                           configuration,
                           layer,
                           tool,
+                          component,
                           updateConfiguration,
                           c,
                           inlineHelp,
@@ -1360,6 +1364,7 @@ const getComponent = (
                           configuration,
                           layer,
                           tool,
+                          component,
                           updateConfiguration,
                           c,
                           inlineHelp,
@@ -1514,6 +1519,7 @@ const makeConfig = (
   configuration,
   layer,
   tool,
+  component,
   c,
   shadowed,
   inlineHelp,
@@ -1606,6 +1612,7 @@ const makeConfig = (
                     configuration,
                     layer,
                     tool,
+                    component,
                     updateConfiguration,
                     c,
                     inlineHelp,
@@ -1629,7 +1636,7 @@ const makeConfig = (
 };
 
 export default function Maker(props) {
-  const { config, layer, toolName, shadowed, inlineHelp } = props;
+  const { config, layer, toolName, componentName, shadowed, inlineHelp } = props;
   const c = useStyles();
 
   const dispatch = useDispatch();
@@ -1640,6 +1647,9 @@ export default function Maker(props) {
 
   let tool = null;
   if (toolName) tool = getToolFromConfiguration(toolName, configuration);
+
+  let component = null;
+  if (componentName) component = getComponentFromConfiguration(componentName, configuration);
 
   const updateConfiguration = (
     keyPath,
@@ -1655,6 +1665,13 @@ export default function Maker(props) {
     if (tool != null) {
       updateToolInConfiguration(
         tool.name,
+        nextConfiguration,
+        keyPath.split("."),
+        value
+      );
+    } else if (component != null) {
+      updateComponentInConfiguration(
+        component.name,
         nextConfiguration,
         keyPath.split("."),
         value
@@ -1689,6 +1706,7 @@ export default function Maker(props) {
           configuration,
           layer,
           tool,
+          component,
           c,
           shadowed,
           inlineHelp,
