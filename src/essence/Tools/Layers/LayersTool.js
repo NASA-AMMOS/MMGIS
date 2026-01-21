@@ -205,6 +205,14 @@ var LayersTool = {
                 t.attr('childrenon', wasOn[currentHeaderIdx] ? 'false' : 'true')
                 t.find('.headerChevron').toggleClass('mdi-chevron-right')
                 t.find('.headerChevron').toggleClass('mdi-chevron-down')
+
+                let _event = new CustomEvent('layersToolHeaderStateChange', {
+                    detail: {
+                        header_id: elmIndex.split('_')[1],
+                        onState: wasOn[currentHeaderIdx] ? 'false' : 'true',
+                    },
+                })
+                document.dispatchEvent(_event)
             } else if (found) {
                 if (t.attr('depth') <= elmDepth[currentHeaderIdx]) {
                     if (currentHeaderIdx <= 0) done = true
@@ -458,6 +466,28 @@ var LayersTool = {
             colormap = Object.keys(colormapData)[index]
         }
         return { reverse, colormap }
+    },
+    traverseHeaderLayersExpandedState: function (node, parent, depth) {
+        for (var i = 0; i < node.length; i++) {
+            if (node[i].type == 'header') {
+                if (
+                    (node[i].expanded && node[i].expanded === true) ||
+                    (node[i].expanded === undefined &&
+                        $(`#layersToolList > li#header_${parent.name}`).attr(
+                            'childrenon'
+                        ) === true)
+                ) {
+                    LayersTool.toggleHeader(`header_${node[i].name}`)
+                }
+            }
+
+            if (node[i].sublayers)
+                LayersTool.traverseHeaderLayersExpandedState(
+                    node[i].sublayers,
+                    node[i],
+                    depth + 1
+                )
+        }
     },
 }
 
@@ -2610,7 +2640,7 @@ function interfaceWithMMGIS(fromInit) {
         $('#searchLayers > #collapse').click()
 
         // Expand individual headers based on its configuration settings
-        traverseHeaderLayersExpandedState(L_.configData.layers, {}, 0)
+        LayersTool.traverseHeaderLayersExpandedState(L_.configData.layers, {}, 0)
     })
 
     $('#filterLayers .right > div').on('click', function () {
@@ -2856,30 +2886,7 @@ function interfaceWithMMGIS(fromInit) {
     if (LayersTool.vars.expanded !== true) {
         $('#searchLayers > #collapse').click()
         // Expand individual headers based on its configuration settings
-        traverseHeaderLayersExpandedState(L_.configData.layers, {}, 0)
-    }
-
-    function traverseHeaderLayersExpandedState(node, parent, depth) {
-        for (var i = 0; i < node.length; i++) {
-            if (node[i].type == 'header') {
-                if (
-                    (node[i].expanded && node[i].expanded === true) ||
-                    (node[i].expanded === undefined &&
-                        $(`#layersToolList > li#header_${parent.name}`).attr(
-                            'childrenon'
-                        ) === true)
-                ) {
-                    LayersTool.toggleHeader(`header_${node[i].name}`)
-                }
-            }
-
-            if (node[i].sublayers)
-                traverseHeaderLayersExpandedState(
-                    node[i].sublayers,
-                    node[i],
-                    depth + 1
-                )
-        }
+        LayersTool.traverseHeaderLayersExpandedState(L_.configData.layers, {}, 0)
     }
 
     // Sublayer things
