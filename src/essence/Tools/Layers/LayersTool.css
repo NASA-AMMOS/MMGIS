@@ -400,6 +400,7 @@
 }
 
 #layersTool .reload,
+#layersTool .refreshWarning,
 #layersTool .setGlobalTimeFromExtent,
 #layersTool .reset,
 #layersTool .resetCog,
@@ -424,6 +425,12 @@
 #layersTool .locate,
 #layersTool .LayersToolInfo {
     color: transparent;
+}
+#layersTool .refreshWarning {
+    color: var(--color-h);
+    display: none;
+    align-items: center;
+    justify-content: center;
 }
 #layersTool .reload:hover,
 #layersTool .layerDownload:hover,

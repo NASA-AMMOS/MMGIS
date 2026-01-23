@@ -929,6 +929,29 @@ async function makeVectorLayer(
                         `ERROR: ${layerObj.display_name} has invalid GeoJSON!`
                     )
                 }
+
+                // For refresh operations, preserve the existing layer on failure
+                // to prevent temporary network issues from marking the layer as "layernotfound"
+                if (isRefresh && data === null) {
+                    const existingLayer = L_.layers.layer[layerObj.name]
+                    if (existingLayer != null && existingLayer !== false) {
+                        console.warn(
+                            `[${new Date().toISOString()}] Refresh failed for ${layerObj.display_name}, ` +
+                            `keeping existing layer. Next refresh in ${layerObj.time?.refreshIntervalAmount || 60}s`
+                        )
+                        // Mark layer as having a failed refresh
+                        L_.layers.refreshFailed[layerObj.name] = true
+                        // Dispatch event so LayersTool can update the UI
+                        const event = new CustomEvent('layerRefreshStatusChanged', {
+                            detail: { layerName: layerObj.name, failed: true }
+                        })
+                        document.dispatchEvent(event)
+                        resolve()
+                        return
+                    }
+                }
+
+                // Only set to null for initial loads or if no existing layer
                 L_._layersLoaded[
                     L_._layersOrdered.indexOf(layerObj.name)
                 ] = true
@@ -965,6 +988,16 @@ async function makeVectorLayer(
 
             L_.layers.attachments[layerObj.name] = vl.sublayers
             L_.layers.layer[layerObj.name] = vl.layer
+
+            // Clear refresh failed status on successful load/refresh
+            if (L_.layers.refreshFailed[layerObj.name]) {
+                L_.layers.refreshFailed[layerObj.name] = false
+                // Dispatch event so LayersTool can update the UI
+                const event = new CustomEvent('layerRefreshStatusChanged', {
+                    detail: { layerName: layerObj.name, failed: false }
+                })
+                document.dispatchEvent(event)
+            }
 
             // For refresh operations, turn the new layer back on if the old one was on
             if (isRefresh && wasOnForRefresh) {
