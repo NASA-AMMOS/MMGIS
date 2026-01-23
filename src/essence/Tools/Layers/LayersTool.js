@@ -1362,6 +1362,9 @@ function interfaceWithMMGIS(fromInit) {
                                     `<div class="layerName" title="${node[i].display_name}">`,
                                         node[i].display_name,
                                     '</div>',
+                                    '<div class="refreshWarning" title="Layer refresh failed. Using cached data." style="display: none;">',
+                                        '<i class="mdi mdi-alert mdi-18px"></i>',
+                                    '</div>',
                                     node[i].type === 'vector' ?
                                     ['<div class="reload" title="Reload Layer">',
                                         '<i class="mdi mdi-refresh mdi-18px"></i>',
@@ -1548,6 +1551,16 @@ function interfaceWithMMGIS(fromInit) {
     })
 
     setSublayerEvents()
+
+    // Initialize refresh warning icons for layers that already have failed refreshes
+    Object.keys(L_.layers.refreshFailed).forEach((layerName) => {
+        if (L_.layers.refreshFailed[layerName]) {
+            const safeName = F_.getSafeName(layerName)
+            const layerElement = $(`#LayersTool${safeName}`)
+            const warningIcon = layerElement.find('.refreshWarning')
+            warningIcon.css('display', 'flex')
+        }
+    })
 
     // Collapse header
     $('.layersToolHeader').on('click', function () {
@@ -3078,9 +3091,27 @@ function interfaceWithMMGIS(fromInit) {
         )
     }
 
+    // Listen for layer refresh status changes
+    const handleRefreshStatusChange = (event) => {
+        const { layerName, failed } = event.detail
+        const safeName = F_.getSafeName(layerName)
+        const layerElement = $(`#LayersTool${safeName}`)
+        const warningIcon = layerElement.find('.refreshWarning')
+
+        if (failed) {
+            warningIcon.css('display', 'flex')
+        } else {
+            warningIcon.css('display', 'none')
+        }
+    }
+
+    document.addEventListener('layerRefreshStatusChanged', handleRefreshStatusChange)
+
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
-    function separateFromMMGIS() {}
+    function separateFromMMGIS() {
+        document.removeEventListener('layerRefreshStatusChanged', handleRefreshStatusChange)
+    }
 }
 
 //Other functions

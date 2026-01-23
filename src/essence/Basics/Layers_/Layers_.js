@@ -36,6 +36,7 @@ const L_ = {
         filters: {}, // layerFilters
         nameToUUID: {},
         refreshIntervals: {}, // In order to reloadLayer
+        refreshFailed: {}, // Track layers with failed refreshes
     },
     // ===== Private ======
     //Index -> layer name
