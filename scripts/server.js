@@ -684,6 +684,7 @@ setups.getBackendSetups(function (setups) {
       res.render("docs", {});
     }
   );
+*/
 
   app.get(
     `${ROOT_PATH}/help`,
@@ -693,7 +694,7 @@ setups.getBackendSetups(function (setups) {
       res.render("help", {});
     }
   );
-*/
+
   // Validate envs
   if (process.env.NODE_ENV === "development") {
     console.log(chalk.cyan("Validating Environment Variables...\n"));
