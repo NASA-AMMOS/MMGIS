@@ -27,7 +27,7 @@ const printHostingInstructions = require("react-dev-utils/printHostingInstructio
 const FileSizeReporter = require("react-dev-utils/FileSizeReporter");
 const printBuildError = require("react-dev-utils/printBuildError");
 
-const { updateTools } = require("../API/updateTools");
+const { updateTools, updateComponents } = require("../API/updateTools");
 
 const measureFileSizesBeforeBuild =
   FileSizeReporter.measureFileSizesBeforeBuild;
@@ -55,6 +55,10 @@ const { checkBrowsers } = require("react-dev-utils/browsersHelper");
 // Attach any tool plugins to the application
 console.log(chalk.cyan("Updating Tools...\n"));
 updateTools();
+
+// Attach any component plugins to the application
+console.log(chalk.cyan("Updating Components...\n"));
+updateComponents();
 
 checkBrowsers(paths.appPath, isInteractive)
   .then(() => {

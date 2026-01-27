@@ -11,6 +11,7 @@ nul
 !/Missions/.gitkeep
 /private/api/spice/kernels/*
 /configure/public/toolConfigs.json
+/configure/public/componentConfigs.json
 
 #Nested repos where private backend might reside
 # Wildcard patterns for backend plugins
@@ -22,7 +23,13 @@ nul
 /src/essence/*Private-Tools*
 /src/essence/*Plugin-Tools*
 
+#Nested repos where private components might reside
+# Wildcard patterns for component plugins
+/src/essence/*Private-Components*
+/src/essence/*Plugin-Components*
+
 /src/pre/tools.js
+/src/pre/components.js
 
 /spice/kernels/*
 !/spice/kernels/.gitkeep
@@ -34,6 +41,7 @@ nul
 *__pycache__
 
 *_ignore*
+*_reference
 
 sessions
 .terraform/

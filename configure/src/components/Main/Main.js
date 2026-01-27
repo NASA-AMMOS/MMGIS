@@ -13,6 +13,7 @@ import Tooltip from "@mui/material/Tooltip";
 import HomeIcon from "@mui/icons-material/Home";
 import LayersIcon from "@mui/icons-material/Layers";
 import HandymanIcon from "@mui/icons-material/Handyman";
+import ExtensionIcon from "@mui/icons-material/Extension";
 import ExploreIcon from "@mui/icons-material/Explore";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import ViewQuiltIcon from "@mui/icons-material/ViewQuilt";
@@ -23,6 +24,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { calls } from "../../core/calls";
 import {
   setConfiguration,
+  setComponentConfiguration,
   setSnackBarText,
   clearLockConfig,
 } from "../../core/ConfigureStore";
@@ -32,6 +34,7 @@ import SaveBar from "../SaveBar/SaveBar";
 import Home from "../Tabs/Home/Home";
 import Layers from "../Tabs/Layers/Layers";
 import Tools from "../Tabs/Tools/Tools";
+import Components from "../Tabs/Components/Components";
 import Coordinates from "../Tabs/Coordinates/Coordinates";
 import Time from "../Tabs/Time/Time";
 import UserInterface from "../Tabs/UserInterface/UserInterface";
@@ -156,9 +159,13 @@ export default function Main() {
   const dispatch = useDispatch();
   const mission = useSelector((state) => state.core.mission);
   const page = useSelector((state) => state.core.page);
+  const componentConfiguration = useSelector(
+    (state) => state.core.componentConfiguration
+  );
 
   useEffect(() => {
-    if (mission != null)
+    if (mission != null) {
+      // Fetch mission configuration
       calls.api(
         "get",
         { mission: mission },
@@ -191,6 +198,21 @@ export default function Main() {
           );
         }
       );
+
+      // Fetch component configuration to determine tab visibility
+      calls.api(
+        "getComponentConfig",
+        null,
+        (res) => {
+          dispatch(setComponentConfiguration(res));
+        },
+        (res) => {
+          // Silently fail - if no components available, tab won't show
+          // This is expected behavior, not an error condition
+          dispatch(setComponentConfiguration({}));
+        }
+      );
+    }
   }, [dispatch, mission]);
 
   let Page = null;
@@ -224,6 +246,11 @@ export default function Main() {
 
   const [tabValue, setTabValue] = useState(0);
 
+  // Check if components are available
+  const hasComponents =
+    componentConfiguration &&
+    Object.keys(componentConfiguration).length > 0;
+
   let TabPage = null;
   switch (tabValue) {
     case 0:
@@ -236,12 +263,27 @@ export default function Main() {
       TabPage = <Tools />;
       break;
     case 3:
-      TabPage = <Coordinates />;
+      if (hasComponents) {
+        TabPage = <Components />;
+      } else {
+        TabPage = <Coordinates />;
+      }
       break;
     case 4:
-      TabPage = <Time />;
+      if (hasComponents) {
+        TabPage = <Coordinates />;
+      } else {
+        TabPage = <Time />;
+      }
       break;
     case 5:
+      if (hasComponents) {
+        TabPage = <Time />;
+      } else {
+        TabPage = <UserInterface />;
+      }
+      break;
+    case 6:
       TabPage = <UserInterface />;
       break;
     default:
@@ -361,6 +403,13 @@ export default function Main() {
                   iconPosition="start"
                   label="Tools"
                 />
+                {hasComponents ? (
+                  <Tab
+                    icon={<ExtensionIcon />}
+                    iconPosition="start"
+                    label="Components"
+                  />
+                ) : null}
                 <Tab
                   icon={<ExploreIcon />}
                   iconPosition="start"

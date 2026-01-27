@@ -1509,6 +1509,32 @@ const TimeUI = {
         progress.css('transition', `width ${dur}ms linear`)
         // Kick off the ramp
         progress.css('width', '100%')
+
+        // Notify subscribers that progress is restarting
+        if (TimeUI._progressCallbacks) {
+            TimeUI._progressCallbacks.forEach(callback => {
+                try {
+                    callback(dur)
+                } catch (err) {
+                    console.error('[TimeUI] Error in progress callback:', err)
+                }
+            })
+        }
+    },
+    // Callback registration for components that want to sync with live progress
+    _progressCallbacks: [],
+    subscribeToProgress(callback) {
+        if (!TimeUI._progressCallbacks) {
+            TimeUI._progressCallbacks = []
+        }
+        TimeUI._progressCallbacks.push(callback)
+    },
+    unsubscribeFromProgress(callback) {
+        if (!TimeUI._progressCallbacks) return
+        const index = TimeUI._progressCallbacks.indexOf(callback)
+        if (index > -1) {
+            TimeUI._progressCallbacks.splice(index, 1)
+        }
     },
     _loopTime(loopBackwards) {
         const mode = TimeUI.modes[TimeUI.modeIndex]

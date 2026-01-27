@@ -213,4 +213,137 @@ function updateTools() {
   }
 }
 
-module.exports = { updateTools };
+function updateComponents() {
+    let components = {};
+
+    // Scan src/essence/ for component plugin directories
+    const essencePath = path.join(__dirname, "..", "src", "essence");
+    let essenceItems = [];
+    try {
+        essenceItems = fs.readdirSync(essencePath, { withFileTypes: true });
+    } catch (err) {
+        logger(
+            "warn",
+            "Could not read essence directory for plugin components",
+            "Components",
+            null,
+            err
+        );
+    }
+
+    // Filter directories that match *Private-Components* or *Plugin-Components*
+    const pluginComponentDirs = essenceItems.filter((item) => {
+        try {
+            return (
+                item.isDirectory() &&
+                (item.name.includes("Private-Components") ||
+                    item.name.includes("Plugin-Components"))
+            );
+        } catch (err) {
+            return false;
+        }
+    });
+
+    // Process each plugin components directory
+    pluginComponentDirs.forEach((pluginDir) => {
+        const pluginPath = `${essencePath}/${pluginDir.name}`;
+        let pluginItems = [];
+
+        try {
+            pluginItems = fs.readdirSync(pluginPath, { withFileTypes: true });
+        } catch (err) {
+            logger(
+                "warn",
+                `Could not read plugin components directory: ${pluginDir.name}`,
+                "Components",
+                null,
+                err
+            );
+            return;
+        }
+
+        for (let i = 0; i < pluginItems.length; i++) {
+            if (
+                pluginItems[i].isDirectory() &&
+                pluginItems[i].name[0] != "_" &&
+                pluginItems[i].name[0] != "."
+            ) {
+                try {
+                    const contents = fs.readFileSync(
+                        pluginPath + "/" + pluginItems[i].name + "/config.json"
+                    );
+                    const jsonContent = JSON.parse(contents);
+                    components[pluginItems[i].name] = jsonContent;
+                    logger(
+                        "info",
+                        `Loaded component: ${pluginItems[i].name} from ${pluginDir.name}`,
+                        "Components"
+                    );
+                } catch (err) {
+                    logger(
+                        "error",
+                        `The following component could not be added from ${pluginDir.name}: ${pluginItems[i].name}`,
+                        "Components",
+                        null,
+                        err
+                    );
+                }
+            }
+        }
+    });
+
+    // Build dynamic componentConfigs.json file for configure page
+    try {
+        fs.writeFileSync(
+            "./configure/public/componentConfigs.json",
+            JSON.stringify(components)
+        );
+        logger(
+            "success",
+            "Successfully updated source component configurations.",
+            "Components"
+        );
+    } catch (err) {
+        logger(
+            "error",
+            "Failed to write componentConfigs.json",
+            "Components",
+            null,
+            err
+        );
+    }
+
+    // Build dynamic /src/pre/components.js file
+    let componentConfigs = "";
+    let componentModules = {};
+
+    for (let c in components) {
+        for (let p in components[c].paths) {
+            componentModules[p] = p;
+            componentConfigs += `import ${p} from '../${components[c].paths[p]}'\n`;
+        }
+    }
+
+    componentConfigs += `\n`;
+    componentConfigs += `export const componentConfigs = ${JSON.stringify(
+        components
+    )}\n`;
+    componentConfigs += `export const componentModules = ${JSON.stringify(
+        componentModules
+    ).replace(/"/g, "")}\n`;
+
+    try {
+        fs.writeFileSync("./src/pre/components.js", componentConfigs);
+        logger("success", "Successfully plugged-in components.", "Components");
+    } catch (err) {
+        logger(
+            "error",
+            "Failed to write component paths to src/pre/components.js",
+            "Components",
+            null,
+            err
+        );
+    }
+}
+
+module.exports = { updateTools, updateComponents };
