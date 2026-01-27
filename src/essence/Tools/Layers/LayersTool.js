@@ -205,6 +205,14 @@ var LayersTool = {
                 t.attr('childrenon', wasOn[currentHeaderIdx] ? 'false' : 'true')
                 t.find('.headerChevron').toggleClass('mdi-chevron-right')
                 t.find('.headerChevron').toggleClass('mdi-chevron-down')
+
+                let _event = new CustomEvent('layersToolHeaderStateChange', {
+                    detail: {
+                        header_id: elmIndex.split('_')[1],
+                        onState: wasOn[currentHeaderIdx] ? 'false' : 'true',
+                    },
+                })
+                document.dispatchEvent(_event)
             } else if (found) {
                 if (t.attr('depth') <= elmDepth[currentHeaderIdx]) {
                     if (currentHeaderIdx <= 0) done = true
@@ -458,6 +466,28 @@ var LayersTool = {
             colormap = Object.keys(colormapData)[index]
         }
         return { reverse, colormap }
+    },
+    traverseHeaderLayersExpandedState: function (node, parent, depth) {
+        for (var i = 0; i < node.length; i++) {
+            if (node[i].type == 'header') {
+                if (
+                    (node[i].expanded && node[i].expanded === true) ||
+                    (node[i].expanded === undefined &&
+                        $(`#layersToolList > li#header_${parent.name}`).attr(
+                            'childrenon'
+                        ) === true)
+                ) {
+                    LayersTool.toggleHeader(`header_${node[i].name}`)
+                }
+            }
+
+            if (node[i].sublayers)
+                LayersTool.traverseHeaderLayersExpandedState(
+                    node[i].sublayers,
+                    node[i],
+                    depth + 1
+                )
+        }
     },
 }
 
@@ -1332,6 +1362,9 @@ function interfaceWithMMGIS(fromInit) {
                                     `<div class="layerName" title="${node[i].display_name}">`,
                                         node[i].display_name,
                                     '</div>',
+                                    '<div class="refreshWarning" title="Layer refresh failed. Using cached data." style="display: none;">',
+                                        '<i class="mdi mdi-alert mdi-18px"></i>',
+                                    '</div>',
                                     node[i].type === 'vector' ?
                                     ['<div class="reload" title="Reload Layer">',
                                         '<i class="mdi mdi-refresh mdi-18px"></i>',
@@ -1518,6 +1551,16 @@ function interfaceWithMMGIS(fromInit) {
     })
 
     setSublayerEvents()
+
+    // Initialize refresh warning icons for layers that already have failed refreshes
+    Object.keys(L_.layers.refreshFailed).forEach((layerName) => {
+        if (L_.layers.refreshFailed[layerName]) {
+            const safeName = F_.getSafeName(layerName)
+            const layerElement = $(`#LayersTool${safeName}`)
+            const warningIcon = layerElement.find('.refreshWarning')
+            warningIcon.css('display', 'flex')
+        }
+    })
 
     // Collapse header
     $('.layersToolHeader').on('click', function () {
@@ -2610,7 +2653,7 @@ function interfaceWithMMGIS(fromInit) {
         $('#searchLayers > #collapse').click()
 
         // Expand individual headers based on its configuration settings
-        traverseHeaderLayersExpandedState(L_.configData.layers, {}, 0)
+        LayersTool.traverseHeaderLayersExpandedState(L_.configData.layers, {}, 0)
     })
 
     $('#filterLayers .right > div').on('click', function () {
@@ -2856,30 +2899,7 @@ function interfaceWithMMGIS(fromInit) {
     if (LayersTool.vars.expanded !== true) {
         $('#searchLayers > #collapse').click()
         // Expand individual headers based on its configuration settings
-        traverseHeaderLayersExpandedState(L_.configData.layers, {}, 0)
-    }
-
-    function traverseHeaderLayersExpandedState(node, parent, depth) {
-        for (var i = 0; i < node.length; i++) {
-            if (node[i].type == 'header') {
-                if (
-                    (node[i].expanded && node[i].expanded === true) ||
-                    (node[i].expanded === undefined &&
-                        $(`#layersToolList > li#header_${parent.name}`).attr(
-                            'childrenon'
-                        ) === true)
-                ) {
-                    LayersTool.toggleHeader(`header_${node[i].name}`)
-                }
-            }
-
-            if (node[i].sublayers)
-                traverseHeaderLayersExpandedState(
-                    node[i].sublayers,
-                    node[i],
-                    depth + 1
-                )
-        }
+        LayersTool.traverseHeaderLayersExpandedState(L_.configData.layers, {}, 0)
     }
 
     // Sublayer things
@@ -3071,9 +3091,27 @@ function interfaceWithMMGIS(fromInit) {
         )
     }
 
+    // Listen for layer refresh status changes
+    const handleRefreshStatusChange = (event) => {
+        const { layerName, failed } = event.detail
+        const safeName = F_.getSafeName(layerName)
+        const layerElement = $(`#LayersTool${safeName}`)
+        const warningIcon = layerElement.find('.refreshWarning')
+
+        if (failed) {
+            warningIcon.css('display', 'flex')
+        } else {
+            warningIcon.css('display', 'none')
+        }
+    }
+
+    document.addEventListener('layerRefreshStatusChanged', handleRefreshStatusChange)
+
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
-    function separateFromMMGIS() {}
+    function separateFromMMGIS() {
+        document.removeEventListener('layerRefreshStatusChanged', handleRefreshStatusChange)
+    }
 }
 
 //Other functions
