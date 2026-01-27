@@ -80,7 +80,6 @@ const useStyles = makeStyles((theme) => ({
   },
   backgroundIcon: {
     margin: "7px 8px 0px 0px",
-    color: theme.palette.swatches.grey[700],
   },
   top: {
     display: "flex",

@@ -904,9 +904,7 @@ var UserInterface = {
         if ($('#timeUI').length) {
             timeUIActive = $('#timeUI').hasClass('active')
         }
-        $('.leaflet-control-scalefactor').css({
-            bottom: UserInterface.pxIsTools + 28 + 'px',
-        })
+        // Scalebar and compass are now at top, don't adjust their position
         $('#CoordinatesDiv').css({
             bottom: UserInterface.pxIsTools + 'px',
         })
@@ -1210,11 +1208,14 @@ var UserInterface = {
         if (l_.configData.look && l_.configData.look.miscellaneous === false)
             BottomBar.changeUIVisibility('miscellaneous', false)
 
+        // Position mapToolBar at top under topbar (contains scalebar)
         $('#mapToolBar').css({
-            bottom: 40 + 'px',
+            top: 48 + 'px',
+            bottom: 'auto',
         })
+        // Position compass at bottom
         $('#mmgis-map-compass').css({
-            bottom: 85 + 'px',
+            bottom: 60 + 'px',
         })
 
         // Remove the cursor info
