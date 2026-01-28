@@ -52,7 +52,36 @@ Each plugin directory should contain subdirectories for individual backends with
 
 **Important**: Only `npm start` is required - backends are loaded dynamically.
 
-All plugin directories are automatically gitignored and can override standard tools/backends by using the same names.
+### Component Plugins
+
+Custom components can be added by creating directories in `/src/essence/` that match these patterns:
+- `*Private-Components*` (e.g., `My-Private-Components`, `MMGIS-Private-Components`)
+- `*Plugin-Components*` (e.g., `NASA-Plugin-Components`, `Mission-Plugin-Components-v2`)
+
+Components are lightweight initialization plugins that run once after the UI is finalized. They're ideal for:
+- Analytics integrations
+- Global keyboard shortcuts
+- Custom page-level enhancements
+- Background services
+
+Each plugin directory should contain subdirectories for individual components with:
+- `config.json` - Component metadata and configuration schema
+- `[ComponentName].js` - Component implementation with `init()` method
+
+**Important**: Run `npm run build` after adding or modifying component plugins.
+
+**Component Lifecycle**: Components have a single `init(vars)` method that is called once after the MMGIS UI is finalized (after `fina()`). Components receive their configured variables as a parameter and should handle initialization quickly (< 100ms recommended).
+
+**Example Component Structure**:
+```
+/src/essence/MMGIS-Private-Components/
+  └── ExampleComponent/
+      ├── config.json           # Component metadata and config schema
+      ├── ExampleComponent.js   # Component with init() method
+      └── README.md             # Optional documentation
+```
+
+All plugin directories are automatically gitignored and can override standard tools/backends/components by using the same names.
 
 ### Quickstart to Contributing
 

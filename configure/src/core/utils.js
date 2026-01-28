@@ -120,6 +120,28 @@ export const updateToolInConfiguration = (
   }
 };
 
+export const getComponentFromConfiguration = (componentName, configuration) => {
+  if (!configuration.components) return null;
+  for (let i = 0; i < configuration.components.length; i++) {
+    if (configuration.components[i].name === componentName)
+      return configuration.components[i];
+  }
+};
+
+export const updateComponentInConfiguration = (
+  componentName,
+  configuration,
+  keyArray,
+  value
+) => {
+  if (!configuration.components) configuration.components = [];
+  for (let i = 0; i < configuration.components.length; i++) {
+    if (configuration.components[i].name === componentName) {
+      setIn(configuration.components[i], keyArray, value, true);
+    }
+  }
+};
+
 export const reorderArray = (list, startIndex, endIndex) => {
   const result = Array.from(list);
   const [removed] = result.splice(startIndex, 1);

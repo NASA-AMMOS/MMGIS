@@ -420,6 +420,7 @@ var mmgisAPI_ = {
             'websocketChange',
             'toggleSeparatedTool',
             'newActiveFeature',
+            'layersToolHeaderStateChange',
         ]
         return validEvents.includes(eventName)
     },
