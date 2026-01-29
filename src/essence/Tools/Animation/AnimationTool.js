@@ -1049,33 +1049,51 @@ function interfaceWithMMGIS() {
     }
     
     function useCurrentView() {
-        // Get current map bounds
-        const bounds = Map_.map.getBounds()
-        
-        // Convert geographic bounds to screen coordinates
-        const northWest = Map_.map.latLngToContainerPoint(bounds.getNorthWest())
-        const southEast = Map_.map.latLngToContainerPoint(bounds.getSouthEast())
-        
-        // Create a proper screen rectangle
-        const screenRect = {
-            x: Math.min(northWest.x, southEast.x),
-            y: Math.min(northWest.y, southEast.y),
-            width: Math.abs(southEast.x - northWest.x),
-            height: Math.abs(southEast.y - northWest.y)
+        try {
+            // Get current map bounds
+            const bounds = Map_.map.getBounds()
+
+            // Convert ALL FOUR CORNERS from geographic to screen coordinates
+            // This handles non-Mercator projections correctly
+            const nw = bounds.getNorthWest()
+            const ne = bounds.getNorthEast()
+            const se = bounds.getSouthEast()
+            const sw = bounds.getSouthWest()
+
+            const nwScreen = Map_.map.latLngToContainerPoint(nw)
+            const neScreen = Map_.map.latLngToContainerPoint(ne)
+            const seScreen = Map_.map.latLngToContainerPoint(se)
+            const swScreen = Map_.map.latLngToContainerPoint(sw)
+
+            // Find bounding rectangle that contains all four corners
+            const minX = Math.min(nwScreen.x, neScreen.x, seScreen.x, swScreen.x)
+            const maxX = Math.max(nwScreen.x, neScreen.x, seScreen.x, swScreen.x)
+            const minY = Math.min(nwScreen.y, neScreen.y, seScreen.y, swScreen.y)
+            const maxY = Math.max(nwScreen.y, neScreen.y, seScreen.y, swScreen.y)
+
+            // Create a proper screen rectangle
+            const screenRect = {
+                x: minX,
+                y: minY,
+                width: maxX - minX,
+                height: maxY - minY
+            }
+
+            // Store the screen rectangle for animation purposes
+            AnimationTool.screenRect = screenRect
+
+            // Convert to geographic coordinates for form display
+            const bbox = {
+                north: bounds.getNorth(),
+                south: bounds.getSouth(),
+                east: bounds.getEast(),
+                west: bounds.getWest()
+            }
+
+            setBoundingBox(bbox)
+        } catch (err) {
+            console.error('Error in useCurrentView:', err)
         }
-        
-        // Store the screen rectangle for animation purposes
-        AnimationTool.screenRect = screenRect
-        
-        // Convert to geographic coordinates for form display
-        const bbox = {
-            north: bounds.getNorth(),
-            south: bounds.getSouth(),
-            east: bounds.getEast(),
-            west: bounds.getWest()
-        }
-        
-        setBoundingBox(bbox)
     }
     
     function setBoundingBox(bbox) {
@@ -1111,26 +1129,41 @@ function interfaceWithMMGIS() {
     
     function updateScreenRectFromBoundingBox() {
         if (!AnimationTool.boundingBox) return
-        
-        // Convert geographic bounding box to screen coordinates
-        const bounds = L.latLngBounds(
-            [AnimationTool.boundingBox.south, AnimationTool.boundingBox.west],
-            [AnimationTool.boundingBox.north, AnimationTool.boundingBox.east]
-        )
-        
-        const northWest = Map_.map.latLngToContainerPoint(bounds.getNorthWest())
-        const southEast = Map_.map.latLngToContainerPoint(bounds.getSouthEast())
-        
-        // Create a proper screen rectangle
-        AnimationTool.screenRect = {
-            x: Math.min(northWest.x, southEast.x),
-            y: Math.min(northWest.y, southEast.y),
-            width: Math.abs(southEast.x - northWest.x),
-            height: Math.abs(southEast.y - northWest.y)
+
+        try {
+            const bbox = AnimationTool.boundingBox
+
+            // Convert ALL FOUR CORNERS from geographic to screen coordinates
+            // This handles non-Mercator projections correctly (e.g., polar stereographic)
+            const nw = L.latLng(bbox.north, bbox.west)
+            const ne = L.latLng(bbox.north, bbox.east)
+            const se = L.latLng(bbox.south, bbox.east)
+            const sw = L.latLng(bbox.south, bbox.west)
+
+            const nwScreen = Map_.map.latLngToContainerPoint(nw)
+            const neScreen = Map_.map.latLngToContainerPoint(ne)
+            const seScreen = Map_.map.latLngToContainerPoint(se)
+            const swScreen = Map_.map.latLngToContainerPoint(sw)
+
+            // Find bounding rectangle that contains all four corners
+            const minX = Math.min(nwScreen.x, neScreen.x, seScreen.x, swScreen.x)
+            const maxX = Math.max(nwScreen.x, neScreen.x, seScreen.x, swScreen.x)
+            const minY = Math.min(nwScreen.y, neScreen.y, seScreen.y, swScreen.y)
+            const maxY = Math.max(nwScreen.y, neScreen.y, seScreen.y, swScreen.y)
+
+            // Create a proper screen rectangle
+            AnimationTool.screenRect = {
+                x: minX,
+                y: minY,
+                width: maxX - minX,
+                height: maxY - minY
+            }
+
+            // Update visual rectangle on map if it exists
+            updateVisualRectangle()
+        } catch (err) {
+            console.error('Error updating screen rect from bounding box:', err)
         }
-        
-        // Update visual rectangle on map if it exists
-        updateVisualRectangle()
     }
     
     // Helper function to update the visual rectangle on the map to keep it screen-aligned
@@ -1771,59 +1804,77 @@ function interfaceWithMMGIS() {
                 // Crop to the animation area if boundingBox is defined
                 let finalCanvas = canvas
                 if (AnimationTool.boundingBox) {
-                    // Reconstruct LatLngBounds from stored bounding box
-                    // IMPORTANT: When creating bounds from north/south/east/west values,
-                    // we need to use the actual corner coordinates
-                    const bounds = L.latLngBounds(
-                        [AnimationTool.boundingBox.south, AnimationTool.boundingBox.west],  // Southwest corner
-                        [AnimationTool.boundingBox.north, AnimationTool.boundingBox.east]  // Northeast corner
-                    )
-                    
-                    // Get container point coordinates (relative to map container)
-                    const northWest = Map_.map.latLngToContainerPoint(bounds.getNorthWest())
-                    const southEast = Map_.map.latLngToContainerPoint(bounds.getSouthEast())
-                    
-                    // Get actual container dimensions
-                    const containerWidth = mapContainer.offsetWidth
-                    const containerHeight = mapContainer.offsetHeight
-                    
-                    // Get canvas dimensions
-                    const canvasWidth = canvas.width
-                    const canvasHeight = canvas.height
-                    
-                    // Calculate scale factors between container and canvas
-                    // HTML2Canvas may scale the output differently, so we need to account for this
-                    const scaleX = canvasWidth / containerWidth
-                    const scaleY = canvasHeight / containerHeight
-                    
-                    // Scale the container point coordinates to canvas coordinates
-                    const canvasNorthWest = {
-                        x: northWest.x * scaleX,
-                        y: northWest.y * scaleY
-                    }
-                    const canvasSouthEast = {
-                        x: southEast.x * scaleX,
-                        y: southEast.y * scaleY
-                    }
-                    
-                    // Ensure coordinates are within canvas bounds
-                    const minX = Math.max(0, Math.min(canvasNorthWest.x, canvasSouthEast.x))
-                    const minY = Math.max(0, Math.min(canvasNorthWest.y, canvasSouthEast.y))
-                    const maxX = Math.min(canvasWidth, Math.max(canvasNorthWest.x, canvasSouthEast.x))
-                    const maxY = Math.min(canvasHeight, Math.max(canvasNorthWest.y, canvasSouthEast.y))
-                    
-                    const currentScreenRect = {
-                        x: minX,
-                        y: minY,
-                        width: maxX - minX,
-                        height: maxY - minY
-                    }
-                    
-                    // Ensure we have valid dimensions
-                    if (currentScreenRect.width > 0 && currentScreenRect.height > 0) {
-                        finalCanvas = cropCanvasToRect(canvas, currentScreenRect)
-                    } else {
-                        console.warn('Invalid screen rect dimensions, using full canvas')
+                    try {
+                        // Reconstruct LatLngBounds from stored bounding box
+                        const bbox = AnimationTool.boundingBox
+
+                        // FIX FOR NON-MERCATOR PROJECTIONS:
+                        // Convert ALL FOUR CORNERS from geographic to screen coordinates.
+                        // In non-Mercator projections (e.g., polar stereographic), a geographic
+                        // rectangle becomes a trapezoid in screen space. Converting only NW/SE
+                        // corners results in warped output because NE/SW corners may be significantly
+                        // offset from where they would be in a screen-aligned rectangle.
+                        const nw = L.latLng(bbox.north, bbox.west)
+                        const ne = L.latLng(bbox.north, bbox.east)
+                        const se = L.latLng(bbox.south, bbox.east)
+                        const sw = L.latLng(bbox.south, bbox.west)
+
+                        // Convert each corner to screen coordinates (relative to map container)
+                        const nwScreen = Map_.map.latLngToContainerPoint(nw)
+                        const neScreen = Map_.map.latLngToContainerPoint(ne)
+                        const seScreen = Map_.map.latLngToContainerPoint(se)
+                        const swScreen = Map_.map.latLngToContainerPoint(sw)
+
+                        // Find bounding rectangle that contains all four corners
+                        // This ensures the captured area includes the entire geographic bounding box
+                        // even when it's trapezoidal in screen space
+                        const containerMinX = Math.min(nwScreen.x, neScreen.x, seScreen.x, swScreen.x)
+                        const containerMaxX = Math.max(nwScreen.x, neScreen.x, seScreen.x, swScreen.x)
+                        const containerMinY = Math.min(nwScreen.y, neScreen.y, seScreen.y, swScreen.y)
+                        const containerMaxY = Math.max(nwScreen.y, neScreen.y, seScreen.y, swScreen.y)
+
+                        // Get actual container dimensions
+                        const containerWidth = mapContainer.offsetWidth
+                        const containerHeight = mapContainer.offsetHeight
+
+                        // Get canvas dimensions
+                        const canvasWidth = canvas.width
+                        const canvasHeight = canvas.height
+
+                        // Calculate scale factors between container and canvas
+                        // HTML2Canvas may scale the output differently, so we need to account for this
+                        const scaleX = canvasWidth / containerWidth
+                        const scaleY = canvasHeight / containerHeight
+
+                        // Scale the container point coordinates to canvas coordinates
+                        const canvasMinX = containerMinX * scaleX
+                        const canvasMaxX = containerMaxX * scaleX
+                        const canvasMinY = containerMinY * scaleY
+                        const canvasMaxY = containerMaxY * scaleY
+
+                        // Ensure coordinates are within canvas bounds
+                        const minX = Math.max(0, canvasMinX)
+                        const minY = Math.max(0, canvasMinY)
+                        const maxX = Math.min(canvasWidth, canvasMaxX)
+                        const maxY = Math.min(canvasHeight, canvasMaxY)
+
+                        const currentScreenRect = {
+                            x: minX,
+                            y: minY,
+                            width: maxX - minX,
+                            height: maxY - minY
+                        }
+
+                        // Ensure we have valid dimensions
+                        if (currentScreenRect.width > 0 && currentScreenRect.height > 0) {
+                            finalCanvas = cropCanvasToRect(canvas, currentScreenRect)
+                        } else {
+                            console.warn('Invalid screen rect dimensions, using full canvas')
+                        }
+                    } catch (err) {
+                        console.error('Error converting bounding box coordinates:', err)
+                        console.warn('Falling back to full canvas capture')
+                        // finalCanvas already set to full canvas above
                     }
                 }
                 
