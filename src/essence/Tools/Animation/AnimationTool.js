@@ -13,6 +13,7 @@ import HTML2Canvas from 'html2canvas'
 import gifshot from 'gifshot'
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile } from '@ffmpeg/util'
+import OffscreenMapManager from './OffscreenMapManager'
 
 import './AnimationTool.css'
 
@@ -225,8 +226,9 @@ const AnimationTool = {
     drawRectangle: null,
     instructionsControl: null,
     screenRect: null,
-    offscreenMap: null,
-    offscreenContainer: null,
+    offscreenManager: null,  // OffscreenMapManager instance for background rendering
+    offscreenMap: null,       // Deprecated - kept for backward compatibility
+    offscreenContainer: null, // Deprecated - kept for backward compatibility
     tempRectangle: null,
     drawingStartPoint: null,
     drawingHandlers: null,
@@ -1289,19 +1291,57 @@ function interfaceWithMMGIS() {
     }
     
     function generateAnimationFrames() {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             // Track if drawing layer was visible so we can restore it
             let drawingLayerWasVisible = false
-            
+
             try {
                 // Store original TimeUI state before starting export
                 storeOriginalTimeUIState()
-                
+
+                // NEW: Initialize offscreen map for background rendering
+                console.log('🚀 [OFFSCREEN] Starting offscreen map initialization...')
+                try {
+                    if (!AnimationTool.offscreenManager) {
+                        console.log('📦 [OFFSCREEN] Creating OffscreenMapManager instance')
+                        AnimationTool.offscreenManager = new OffscreenMapManager(
+                            Map_.map,
+                            window.mmgisglobal.customCRS,
+                            L_.configData
+                        )
+                    }
+
+                    // Calculate screen rect dimensions from bbox
+                    const screenRect = getScreenRectForAnimation()
+                    console.log('📐 [OFFSCREEN] Screen rect:', screenRect)
+
+                    // Initialize offscreen map with bbox and dimensions
+                    console.log('🗺️ [OFFSCREEN] Initializing Leaflet map with bbox:', AnimationTool.boundingBox)
+                    await AnimationTool.offscreenManager.initialize(
+                        AnimationTool.boundingBox,
+                        screenRect.width,
+                        screenRect.height
+                    )
+
+                    // Build visible layers on offscreen map
+                    console.log('🎨 [OFFSCREEN] Building visible layers...')
+                    await AnimationTool.offscreenManager.buildVisibleLayers()
+
+                    console.log('✅ [OFFSCREEN] Offscreen map initialized successfully')
+                } catch (offscreenError) {
+                    console.error('❌ [OFFSCREEN] Failed to initialize offscreen map, will use main map fallback:', offscreenError)
+                    // Continue without offscreen map - captureMapFrame will use fallback
+                    if (AnimationTool.offscreenManager) {
+                        AnimationTool.offscreenManager.destroy()
+                        AnimationTool.offscreenManager = null
+                    }
+                }
+
                 const frames = []
                 const { startDate, endDate } = AnimationTool.timeRange
                 const interval = AnimationTool.animationSettings.timeInterval
                 const frameRate = AnimationTool.animationSettings.frameRate
-                
+
                 // Calculate time steps
                 const start = new Date(startDate)
                 const end = new Date(endDate)
@@ -1311,6 +1351,12 @@ function interfaceWithMMGIS() {
                 let currentStep = 0
                 const generateFrame = () => {
                     if (currentStep >= timeSteps.length) {
+                        // Cleanup offscreen map
+                        if (AnimationTool.offscreenManager) {
+                            AnimationTool.offscreenManager.destroy()
+                            AnimationTool.offscreenManager = null
+                        }
+
                         // Restore original TimeUI state after export completion
                         restoreOriginalTimeUIState()
                         // Restore the drawing layer if it was visible
@@ -1339,6 +1385,13 @@ function interfaceWithMMGIS() {
                         setTimeout(generateFrame, 100) // Small delay to prevent UI blocking
                     }).catch(error => {
                         console.error('Error capturing frame', currentStep + 1, ':', error)
+
+                        // Cleanup offscreen map
+                        if (AnimationTool.offscreenManager) {
+                            AnimationTool.offscreenManager.destroy()
+                            AnimationTool.offscreenManager = null
+                        }
+
                         // Restore original TimeUI state on error
                         restoreOriginalTimeUIState()
                         // Restore the drawing layer if it was visible
@@ -1349,10 +1402,17 @@ function interfaceWithMMGIS() {
                         reject(error)
                     })
                 }
-                
+
                 generateFrame()
             } catch (error) {
                 console.error('Error generating animation frames:', error)
+
+                // Cleanup offscreen map
+                if (AnimationTool.offscreenManager) {
+                    AnimationTool.offscreenManager.destroy()
+                    AnimationTool.offscreenManager = null
+                }
+
                 // Restore original TimeUI state on error
                 restoreOriginalTimeUIState()
                 // Restore the drawing layer if it was visible (use closure variable)
@@ -1622,22 +1682,34 @@ function interfaceWithMMGIS() {
     }
     
     // Helper function to draw text with white stroke (border) and black fill
-    function drawTextWithBorder(ctx, text, x, y, fontSize = 24) {
-        ctx.font = `bold ${fontSize}px Arial, sans-serif`
+    function drawTextWithBorder(ctx, text, x, y, fontSize = 24, maxWidth = null) {
+        // Use monospaced font for better readability
+        ctx.font = `bold ${fontSize}px "Courier New", Courier, monospace`
         ctx.textAlign = 'left'
         ctx.textBaseline = 'top'
-        
-        // Draw white stroke (border) - multiple strokes for thicker border
+
+        // Calculate max width if not provided (canvas width minus padding on both sides)
+        const effectiveMaxWidth = maxWidth || (ctx.canvas.width - (x * 2))
+
+        // Check if text fits within max width
+        const textWidth = ctx.measureText(text).width
+
+        // Scale down font size if text is too wide
+        let adjustedFontSize = fontSize
+        if (textWidth > effectiveMaxWidth) {
+            adjustedFontSize = Math.floor(fontSize * (effectiveMaxWidth / textWidth))
+            ctx.font = `bold ${adjustedFontSize}px "Courier New", Courier, monospace`
+        }
+
+        // Draw white stroke (border) - thinner border for less aggressiveness
         ctx.strokeStyle = 'white'
-        ctx.lineWidth = 4
+        ctx.lineWidth = Math.max(1.5, adjustedFontSize / 12)
         ctx.lineJoin = 'round'
         ctx.miterLimit = 2
-        
-        // Draw stroke multiple times for thicker border
-        for (let i = 0; i < 3; i++) {
-            ctx.strokeText(text, x, y)
-        }
-        
+
+        // Draw stroke once (not multiple times)
+        ctx.strokeText(text, x, y)
+
         // Draw black fill
         ctx.fillStyle = 'black'
         ctx.fillText(text, x, y)
@@ -1664,7 +1736,11 @@ function interfaceWithMMGIS() {
         ctx.drawImage(canvas, 0, 0)
         
         const padding = 10
-        const fontSize = Math.max(48, Math.min(72, canvas.width / 40 * 3)) // Responsive font size (3x larger)
+        // Calculate responsive font size based on canvas width
+        // For small canvases (< 400px): 12-16px
+        // For medium canvases (400-800px): 16-24px
+        // For large canvases (> 800px): 24-32px
+        const fontSize = Math.max(12, Math.min(32, canvas.width / 30))
         const lineSpacing = fontSize * 0.2 // Space between title and time step (20% of font size)
         
         let currentY = padding
@@ -1744,16 +1820,51 @@ function interfaceWithMMGIS() {
     function captureMapFrame(timestamp) {
         return new Promise(async (resolve, reject) => {
             try {
+                // NEW: Use offscreen map if available for background rendering
+                if (AnimationTool.offscreenManager && AnimationTool.offscreenManager.initialized) {
+                    console.log('🎬 [OFFSCREEN] Capturing frame from offscreen map at', timestamp.toISOString())
+                    try {
+                        const canvas = await AnimationTool.offscreenManager.captureFrame(
+                            AnimationTool.boundingBox,
+                            timestamp
+                        )
+
+                        console.log('✅ [OFFSCREEN] Frame captured successfully from offscreen map')
+
+                        // Add scale bar if enabled
+                        let processedCanvas = canvas
+                        if (AnimationTool.animationSettings.showScaleBar) {
+                            processedCanvas = AnimationTool.offscreenManager.renderScaleBarOnCanvas(canvas)
+                        }
+
+                        // Add text overlays (title and time step) if configured
+                        const finalCanvas = addTextOverlays(processedCanvas, timestamp)
+
+                        // Ensure dimensions are even for H.264 encoding compatibility
+                        const evenCanvas = ensureEvenDimensions(finalCanvas)
+
+                        resolve(evenCanvas.toDataURL('image/png'))
+                        return
+                    } catch (offscreenError) {
+                        console.error('❌ [OFFSCREEN] Offscreen capture failed, falling back to main map:', offscreenError)
+                        // Fall through to old method
+                    }
+                } else {
+                    console.warn('⚠️ [FALLBACK] Offscreen manager not initialized, using main map. initialized=', AnimationTool.offscreenManager?.initialized)
+                }
+
+                // FALLBACK: Original method using main map
+                console.log('📸 [MAIN MAP] Capturing frame from main map at', timestamp.toISOString())
                 // Update time for time-enabled layers
                 await updateTimeForFrame(timestamp)
-                
+
                 // Use html2canvas to capture the map area
                 const mapContainer = document.querySelector('#mapScreen')
                 if (!mapContainer) {
                     reject(new Error('Map container not found'))
                     return
                 }
-                
+
                 // Temporarily hide UI elements for clean capture (similar to BottomBar.js)
                 // Note: drawing layer is already hidden at export level in generateAnimationFrames
                 const hiddenElements = hideUIElementsForCapture()
@@ -2535,12 +2646,18 @@ function interfaceWithMMGIS() {
         // Clean up instructions
         hideDrawingInstructions()
         
-        // Clean up offscreen elements
+        // Clean up offscreen map manager
+        if (AnimationTool.offscreenManager) {
+            AnimationTool.offscreenManager.destroy()
+            AnimationTool.offscreenManager = null
+        }
+
+        // Clean up old offscreen elements (deprecated, kept for backward compatibility)
         if (AnimationTool.offscreenContainer) {
             document.body.removeChild(AnimationTool.offscreenContainer)
             AnimationTool.offscreenContainer = null
         }
-        
+
         if (AnimationTool.offscreenMap) {
             AnimationTool.offscreenMap.remove()
             AnimationTool.offscreenMap = null
