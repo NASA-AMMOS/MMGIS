@@ -389,19 +389,8 @@ var UserInterface = {
             })
             .on('click touchstart', function () {
                 var pp = UserInterface.getPanelPercents()
-                if (pp.map == 0) {
-                    UserInterface.setPanelPercents(
-                        pp.viewer + pp.globe / 2,
-                        0,
-                        pp.globe - pp.globe / 2
-                    )
-                } else {
-                    UserInterface.setPanelPercents(
-                        pp.viewer + pp.map / 2,
-                        pp.map - pp.map / 2,
-                        pp.globe
-                    )
-                }
+                UserInterface.openViewerPanel()
+                return
             })
         this.mapSplitInner.append(mapSplitInnerRight)
 
@@ -1092,6 +1081,22 @@ var UserInterface = {
                     }, 100)
                 }
             }
+        }
+    },
+    openViewerPanel() {
+        var pp = UserInterface.getPanelPercents()
+        if (pp.map == 0) {
+            UserInterface.setPanelPercents(
+                pp.viewer + pp.globe / 2,
+                0,
+                pp.globe - pp.globe / 2
+            )
+        } else {
+            UserInterface.setPanelPercents(
+                pp.viewer + pp.map / 2,
+                pp.map - pp.map / 2,
+                pp.globe
+            )
         }
     },
     minimalist(is) {

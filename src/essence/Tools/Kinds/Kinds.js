@@ -351,6 +351,59 @@ var Kinds = {
                 )
                 useInfo(false)
                 break
+            case 'viewer_open':
+                useInfo(false)
+
+                // Only expand the Viewer Panel if it isn't already visible
+                var pp = L_.UserInterface_.getPanelPercents()
+                if (pp.map == 100) {
+                    L_.UserInterface_.openViewerPanel()
+                }
+
+                const geoJSONFeatures = [
+                    'multipolygon',
+                    'polygon',
+                    'multilinestring',
+                    'linestring',
+                    'multipoint',
+                ]
+
+                let bounds = null
+                let zoom = null
+                if (feature.geometry.type.toLowerCase() === 'point') {
+                    // Center and zoom the view to the selected feature
+                    // Zoom to 'Zoom Level of Map Scale' if set in UI config, otherwise use current zoom
+                    bounds = [feature.properties.latitude, feature.properties.longitude]
+                    zoom = L_.configData.msv.mapscale || L_.Map_.map.getZoom()
+                } else if (geoJSONFeatures.includes(feature.geometry.type.toLowerCase())) {
+                    if ('getBounds' in layer) {
+                        // Use the pixel bounds because longitude/latitude conversions for bounds
+                        // may be odd in the case of polar projections
+                        bounds = layer._pxBounds
+
+                        let center = L.bounds([bounds.min.x, bounds.min.y], [bounds.max.x, bounds.max.y]).getCenter()
+                        let min = Map_.map.layerPointToLatLng([bounds.min.x, bounds.min.y])
+                        let max = Map_.map.layerPointToLatLng([bounds.max.x, bounds.max.y])
+                        bounds = [
+                            [min.lat, min.lng],
+                            [max.lat, max.lng],
+                        ]
+
+                        // Add some padding to avoid zooming to the edges of the feature
+                        const padding = [100, 100];
+                        zoom = Map_.map.getBoundsZoom(bounds, false, padding)
+                        bounds = Map_.map.layerPointToLatLng([center.x, center.y])
+                    } else {
+                        console.warn('Feature is missing getBounds', feature)
+                        break
+                    }
+                } else {
+                    console.warn('Feature has an unknown type', feature)
+                    break
+                }
+
+                Map_.map.setView(bounds, zoom)
+                break
             default:
                 useInfo(false)
                 return
