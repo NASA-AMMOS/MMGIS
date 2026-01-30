@@ -60,22 +60,21 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 20px;
 }
 
 /* Step Navigation */
 #animationToolSteps {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 30px;
+    padding: 20px;
     position: relative;
 }
 
 #animationToolSteps::before {
     content: '';
     position: absolute;
-    top: 20px;
-    left: 20px;
+    top: 40px;
+    left: 32px;
     right: 20px;
     height: 2px;
     background: var(--color-j);
@@ -114,7 +113,7 @@
 }
 
 .animation-step.active .step-number {
-    background: var(--color-primary);
+    background: var(--color-c2);
     color: white;
 }
 
@@ -135,6 +134,7 @@
 #animationToolPanels {
     flex: 1;
     position: relative;
+    overflow: hidden;
 }
 
 .animation-panel {
@@ -142,10 +142,13 @@
     top: 0;
     left: 0;
     right: 0;
+    bottom: 0;
     opacity: 0;
     transform: translateX(20px);
     transition: all 0.3s ease;
     pointer-events: none;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .animation-panel.active {
@@ -173,7 +176,7 @@
 .panel-content p {
     margin: 0 0 20px 0;
     font-size: 14px;
-    color: var(--color-c);
+    color: var(--color-a5);
 }
 
 /* Bounding Box Selector */
@@ -200,9 +203,10 @@
     padding: 8px 12px;
     border: 1px solid var(--color-j);
     border-radius: 4px;
-    background: #fff !important;
-    color: #000 !important;
+    background: var(--color-a-5) !important;
+    color: var(--color-a6) !important;
     font-size: 14px;
+    text-align: right;
 }
 
 .bbox-input-group input::placeholder {
@@ -212,7 +216,7 @@
 
 .bbox-input-group input:focus {
     outline: none;
-    border-color: var(--color-primary);
+    border-color: var(--color-c2);
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
@@ -226,9 +230,9 @@
 }
 
 .map-control-button {
-    background: var(--color-primary);
+    background: var(--color-a1);
     color: white;
-    border: 1px solid var(--color-primary);
+    border: 1px solid var(--color-a1);
     padding: 10px 20px;
     border-radius: 4px;
     cursor: pointer;
@@ -239,7 +243,7 @@
 }
 
 .map-control-button:hover {
-    background: var(--color-primary-dark);
+    background: var(--color-a2);
 }
 
 .map-control-button:disabled {
@@ -256,14 +260,17 @@
 
 .time-input-group {
     display: flex;
-    gap: 10px;
+    flex-direction: row;
+    justify-content: space-between;
     align-items: center;
+    gap: 10px;
 }
 
 .time-input-group label {
-    min-width: 80px;
+    min-width: 100px;
     font-weight: 500;
     color: white;
+    flex-shrink: 0;
 }
 
 .time-input-group input {
@@ -271,33 +278,32 @@
     padding: 8px 12px;
     border: 1px solid var(--color-j);
     border-radius: 4px;
-    background: #fff !important;
-    color: #000 !important;
+    background: var(--color-a-5) !important;
+    color: var(--color-a6) !important;
     font-size: 14px;
 }
 
 .time-input-group input[type="datetime-local"] {
-    background: #fff !important;
-    color: #000 !important;
+    background: var(--color-a-5) !important;
+    color: var(--color-a6) !important;
 }
 
 .time-input-group input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-
-    color: #000;
+    filter: invert(1);
     cursor: pointer;
 }
 
 .time-input-group input[type="datetime-local"]::-webkit-datetime-edit {
-    color: #000;
+    color: var(--color-a6);
 }
 
 .time-input-group input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
-    background: #fff;
-    color: #000;
+    background: var(--color-a-5);
+    color: var(--color-a6);
 }
 
 .time-input-group input[type="datetime-local"]::-webkit-datetime-edit-text {
-    color: #000;
+    color: var(--color-a6);
 }
 
 .time-input-group input[type="datetime-local"]::-webkit-datetime-edit-month-field,
@@ -305,8 +311,8 @@
 .time-input-group input[type="datetime-local"]::-webkit-datetime-edit-year-field,
 .time-input-group input[type="datetime-local"]::-webkit-datetime-edit-hour-field,
 .time-input-group input[type="datetime-local"]::-webkit-datetime-edit-minute-field {
-    background: #fff;
-    color: #000;
+    background: var(--color-a-5);
+    color: var(--color-a6);
 }
 
 .time-input-group input::placeholder {
@@ -316,71 +322,71 @@
 
 .time-input-group input:focus {
     outline: none;
-    border-color: var(--color-primary);
+    border-color: var(--color-c2);
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    background: var(--color-a-5) !important;
 }
 
 .interval-selector {
-    margin-top: 15px;
     display: flex;
+    flex-direction: row;
+    justify-content: space-between;
     align-items: center;
     gap: 10px;
 }
 
 .step-selector {
-    margin-top: 15px;
     display: flex;
+    flex-direction: row;
+    justify-content: space-between;
     align-items: center;
     gap: 10px;
 }
 
 .step-selector label {
-    display: inline-block;
-    margin-bottom: 0;
+    min-width: 100px;
     font-weight: 500;
     color: white;
-    min-width: 50px;
+    flex-shrink: 0;
 }
 
 .step-selector input {
-    width: 60px;
     padding: 8px 12px;
     border: 1px solid var(--color-j);
     border-radius: 4px;
-    background: #fff !important;
-    color: #000 !important;
+    background: var(--color-a-5) !important;
+    color: var(--color-a6) !important;
     font-size: 14px;
-    text-align: center;
+    text-align: right;
+    width: 96px;
 }
 
 .step-selector input:focus {
     outline: none;
-    border-color: var(--color-primary);
+    border-color: var(--color-c2);
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 .interval-selector label {
-    display: inline-block;
-    margin-bottom: 0;
+    min-width: 100px;
     font-weight: 500;
     color: white;
-    min-width: 100px;
+    flex-shrink: 0;
 }
 
 .interval-selector select {
-    width: auto;
-    min-width: 120px;
-    padding: 8px 12px;
+    flex: 1;
+    padding: 6px 12px;
     border: 1px solid var(--color-j);
     border-radius: 4px;
-    background: #fff !important;
-    color: #000 !important;
+    background: var(--color-a-5) !important;
+    color: var(--color-a6) !important;
     font-size: 14px;
 }
 
 .interval-selector select option {
-    background: #fff !important;
-    color: #000 !important;
+    background: var(--color-a-5) !important;
+    color: var(--color-a6) !important;
     padding: 8px 12px;
 }
 
@@ -422,15 +428,16 @@
 
 .control-group label {
     display: block;
-    margin-bottom: 8px;
+    margin: 3px 0px;
     font-weight: 500;
-    color: white;
+    color: var(--color-a6);
 }
 
 .slider-container {
     display: flex;
     align-items: center;
     gap: 15px;
+    margin-top: 8px;
     position: relative;
 }
 
@@ -470,12 +477,12 @@
 .slider-container input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    background: var(--color-primary);
+    background: var(--color-a);
     cursor: pointer;
-    border: 3px solid white;
+    border: 2px solid white;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     transition: all 0.2s ease;
 }
@@ -494,7 +501,7 @@
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: var(--color-primary);
+    background: var(--color-c2);
     cursor: pointer;
     border: 3px solid white;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
@@ -514,10 +521,33 @@
     gap: 10px;
 }
 
+/* Export Title Input */
+#exportTitle {
+    width: 100%;
+    padding: 8px 12px;
+    margin-top: 5px;
+    border: 1px solid var(--color-j);
+    border-radius: 4px;
+    background: var(--color-a-5) !important;
+    color: var(--color-a6) !important;
+    font-size: 14px;
+}
+
+#exportTitle:focus {
+    outline: none;
+    border-color: var(--color-c2);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+#exportTitle::placeholder {
+    color: #666;
+    opacity: 1;
+}
+
 .checkbox-group input[type="checkbox"] {
     width: 18px;
     height: 18px;
-    accent-color: var(--color-primary);
+    accent-color: var(--color-c2);
 }
 
 .checkbox-group label {
@@ -541,7 +571,7 @@
 .radio-option input[type="radio"] {
     width: 18px;
     height: 18px;
-    accent-color: var(--color-primary);
+    accent-color: var(--color-c2);
 }
 
 .radio-option span {
@@ -569,8 +599,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 15px;
-    background: var(--color-l);
-    border: 1px solid var(--color-j);
+    background: var(--color-a-5);
+    border: 1px solid var(--color-a1);
     border-radius: 6px;
 }
 
@@ -578,23 +608,24 @@
     margin: 0 0 5px 0;
     font-size: 16px;
     font-weight: 500;
-    color: #000;
+    color: var(--color-a6);
 }
 
 .export-option-info p {
     margin: 0;
     font-size: 14px;
-    color: #666;
+    color: var(--color-a4);
 }
 
 .export-button {
-    background: #007bff;
+    background: var(--color-c2);
     color: white;
     border: none;
     padding: 10px 20px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
+    width: 132px;
     transition: background-color 0.2s;
 }
 
@@ -612,7 +643,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 10px;
     border-top: 1px solid var(--color-j);
     background: var(--color-k);
 }

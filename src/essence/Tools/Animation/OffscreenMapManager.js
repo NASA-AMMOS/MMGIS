@@ -48,17 +48,24 @@ class OffscreenMapManager {
         // Hidden DOM container
         this.container = null
 
+        // Screen-aligned rectangle from main map
+        this.screenRect = null
+
+        // Stored view parameters (calculated once at initialization, never recalculated)
+        this.storedCenter = null
+        this.storedZoom = null
+
         // Shadow layer registry (isolated from global L_.layers)
         // Must match structure of L_.layers to avoid undefined errors
         this.layers = {
-            data: {},           // Cloned layer configs by UUID
-            layer: {},          // Leaflet layer instances by UUID
-            on: {},             // Visibility state by UUID
-            opacity: {},        // Opacity values by UUID
-            attachments: {},    // Sublayers (labels, models, etc.) by UUID
-            filters: {},        // CSS filters by UUID
-            refreshFailed: {},  // Failed refresh tracking by UUID
-            dataFlat: []        // Ordered array for z-index management
+            data: {}, // Cloned layer configs by UUID
+            layer: {}, // Leaflet layer instances by UUID
+            on: {}, // Visibility state by UUID
+            opacity: {}, // Opacity values by UUID
+            attachments: {}, // Sublayers (labels, models, etc.) by UUID
+            filters: {}, // CSS filters by UUID
+            refreshFailed: {}, // Failed refresh tracking by UUID
+            dataFlat: [], // Ordered array for z-index management
         }
 
         // State
@@ -74,11 +81,14 @@ class OffscreenMapManager {
      * @param {Object} bbox - Animation bounding box {north, south, east, west}
      * @param {number} width - Output width in pixels
      * @param {number} height - Output height in pixels
+     * @param {Object} screenRect - Optional screen-aligned rectangle {x, y, width, height}
      * @returns {Promise<void>}
      */
-    async initialize(bbox, width, height) {
+    async initialize(bbox, width, height, screenRect = null) {
         if (this.initialized) {
-            console.warn('OffscreenMapManager already initialized. Call destroy() first.')
+            console.warn(
+                'OffscreenMapManager already initialized. Call destroy() first.'
+            )
             return
         }
 
@@ -89,11 +99,13 @@ class OffscreenMapManager {
             // Initialize Leaflet map
             this._initializeLeafletMap()
 
+            // Store screenRect for accurate positioning
+            this.screenRect = screenRect
+
             // Set view to bbox
             this.setViewToBBox(bbox)
 
             this.initialized = true
-            console.log('OffscreenMapManager initialized', { width, height, bbox })
         } catch (error) {
             console.error('Failed to initialize OffscreenMapManager:', error)
             this.destroy() // Cleanup on failure
@@ -116,6 +128,7 @@ class OffscreenMapManager {
         this.container.id = 'offscreen-map-container'
 
         // DEBUG: Make visible on screen for debugging (use outline instead of border to avoid capture)
+        /*
         this.container.style.cssText = `
             position: fixed;
             right: 20px;
@@ -125,20 +138,21 @@ class OffscreenMapManager {
             outline: 3px solid red;
             z-index: 10000;
             background: white;
+            overflow: hidden;
         `
+        */
 
         // PRODUCTION: Hidden offscreen (uncomment this and remove DEBUG block above)
-        /*
+
         this.container.style.cssText = `
             position: absolute;
             left: -10000px;
             top: 0;
             width: ${width}px;
             height: ${height}px;
-            visibility: hidden;
+            overflow: hidden;
             z-index: -9999;
         `
-        */
 
         // Create nested map div (Leaflet requires a container)
         const mapDiv = document.createElement('div')
@@ -150,7 +164,6 @@ class OffscreenMapManager {
         this.container.appendChild(mapDiv)
 
         document.body.appendChild(this.container)
-        console.log('Offscreen container created:', { width, height })
     }
 
     /**
@@ -168,7 +181,6 @@ class OffscreenMapManager {
         if (this.projection) {
             // Use custom projection from main map
             crs = this.projection
-            console.log('Using custom projection for offscreen map:', crs)
         }
 
         // Map options matching main map but with interactions disabled
@@ -186,7 +198,15 @@ class OffscreenMapManager {
             zoomAnimation: false,
             fadeAnimation: false,
             editable: false,
-            worldCopyJump: this.config?.msv?.worldCopyJump || false
+            worldCopyJump: this.config?.msv?.worldCopyJump || false,
+        }
+
+        // Copy zoom settings from main map to ensure consistent scale
+        if (this.mainMap.options.zoomDelta !== undefined) {
+            mapOptions.zoomDelta = this.mainMap.options.zoomDelta
+        }
+        if (this.mainMap.options.zoomSnap !== undefined) {
+            mapOptions.zoomSnap = this.mainMap.options.zoomSnap
         }
 
         // Add maxBounds if configured on main map
@@ -196,37 +216,69 @@ class OffscreenMapManager {
 
         // Initialize Leaflet map
         this.leafletMap = L.map('offscreen-map', mapOptions)
-
-        console.log('Offscreen Leaflet map initialized')
     }
 
     /**
      * Set the map view to match the animation bounding box
      *
+     * IMPORTANT: This method calculates and stores view parameters on first call,
+     * then reuses those stored values on subsequent calls. This prevents the offscreen
+     * map from following the main map if the user pans during animation generation.
+     *
      * @param {Object} bbox - Bounding box {north, south, east, west}
+     * @param {boolean} forceRecalculate - Force recalculation (default: false, uses stored values)
      */
-    setViewToBBox(bbox) {
+    setViewToBBox(bbox, forceRecalculate = false) {
         if (!this.leafletMap) {
             console.warn('Cannot set view: Leaflet map not initialized')
             return
         }
 
-        // Calculate bbox center
-        const bboxCenter = [
-            (bbox.north + bbox.south) / 2,
-            (bbox.east + bbox.west) / 2
-        ]
+        // If we have stored view parameters and not forcing recalculation, use them
+        if (this.storedCenter && this.storedZoom && !forceRecalculate) {
+            this.leafletMap.setView(this.storedCenter, this.storedZoom, {
+                animate: false,
+            })
+            return
+        }
 
-        // Use the main map's zoom (so scale matches)
+        // Calculate view parameters (only done once during initialization)
         const mainZoom = this.mainMap.getZoom()
+        let calculatedCenter = null
 
-        // Center the offscreen map on the bbox center at the same zoom as main map
-        this.leafletMap.setView(bboxCenter, mainZoom, { animate: false })
+        // For custom projections (like polar stereographic), use screenRect center if available
+        // This ensures the offscreen map matches the exact view of the main map
+        if (this.screenRect && this.projection) {
+            // Calculate the geographic center from the screen rectangle on the main map
+            const centerX = this.screenRect.x + this.screenRect.width / 2
+            const centerY = this.screenRect.y + this.screenRect.height / 2
+            calculatedCenter = this.mainMap.containerPointToLatLng({
+                x: centerX,
+                y: centerY,
+            })
+        } else {
+            // Fallback: use fitBounds (for when screenRect is not available)
+            const bounds = L.latLngBounds(
+                L.latLng(bbox.south, bbox.west),
+                L.latLng(bbox.north, bbox.east)
+            )
 
-        console.log('Offscreen map view set to bbox center:', {
-            center: bboxCenter,
-            zoom: mainZoom,
-            bbox: bbox
+            this.leafletMap.fitBounds(bounds, {
+                padding: [0, 0],
+                animate: false,
+                maxZoom: mainZoom,
+            })
+
+            calculatedCenter = this.leafletMap.getCenter()
+        }
+
+        // Store the calculated parameters for reuse
+        this.storedCenter = calculatedCenter
+        this.storedZoom = mainZoom
+
+        // Apply the view
+        this.leafletMap.setView(this.storedCenter, this.storedZoom, {
+            animate: false,
         })
     }
 
@@ -253,24 +305,21 @@ class OffscreenMapManager {
             // Create map context pointing to offscreen registry
             const mapContext = {
                 map: this.leafletMap,
-                layerRegistry: this.layers
+                layerRegistry: this.layers,
             }
-
-            console.log(`🎨 [OFFSCREEN] Building layer: ${clonedConfig.name} (type: ${clonedConfig.type})`)
 
             // Call Map_.makeLayer with offscreen context
             if (typeof Map_.makeLayer !== 'function') {
                 throw new Error('Map_.makeLayer is not available')
             }
 
-            console.log(`🔧 [OFFSCREEN] Calling Map_.makeLayer for ${clonedConfig.name}`)
             await Map_.makeLayer(
                 clonedConfig,
                 evenIfOff,
-                null,  // forceGeoJSON
-                null,  // id
-                null,  // forceMake
-                null,  // stopLoops
+                null, // forceGeoJSON
+                null, // id
+                null, // forceMake
+                null, // stopLoops
                 false, // isRefresh
                 mapContext // NEW: targetMapContext for offscreen rendering
             )
@@ -279,27 +328,29 @@ class OffscreenMapManager {
             const layer = this.layers.layer[clonedConfig.name]
 
             if (layer) {
+
                 // Store config in shadow registry
                 this.layers.data[clonedConfig.name] = clonedConfig
                 this.layers.dataFlat.push(clonedConfig)
                 this.layers.on[clonedConfig.name] = true
-                this.layers.opacity[clonedConfig.name] = layerConfig.opacity || 1
-
-                console.log(`✅ [OFFSCREEN] Layer built successfully: ${clonedConfig.name}`, layer)
+                this.layers.opacity[clonedConfig.name] =
+                    layerConfig.opacity || 1
 
                 // Check if layer is actually on the map
-                if (this.leafletMap.hasLayer(layer)) {
-                    console.log(`✅ [OFFSCREEN] Layer ${clonedConfig.name} is on the map`)
-                } else {
-                    console.warn(`⚠️ [OFFSCREEN] Layer ${clonedConfig.name} was built but is NOT on the map!`)
+                if (!this.leafletMap.hasLayer(layer)) {
+                    console.warn(
+                        `⚠️ Layer ${clonedConfig.name} was built but is NOT on the map!`
+                    )
                 }
             } else {
-                console.warn(`❌ [OFFSCREEN] Layer construction returned null: ${clonedConfig.name}`)
+                console.warn(
+                    `❌ Layer construction returned null: ${clonedConfig.name}`
+                )
             }
 
             return layer
         } catch (error) {
-            console.error(`❌ [OFFSCREEN] Failed to build layer ${layerConfig.name}:`, error)
+            console.error(`Failed to build layer ${layerConfig.name}:`, error)
             return null
         }
     }
@@ -318,14 +369,10 @@ class OffscreenMapManager {
             return
         }
 
-        console.log('Building visible layers on offscreen map...')
-
         // Get list of visible layers from main map
         const visibleLayerNames = Object.keys(L_.layers.on).filter(
-            name => L_.layers.on[name] === true
+            (name) => L_.layers.on[name] === true
         )
-
-        console.log(`Found ${visibleLayerNames.length} visible layers:`, visibleLayerNames)
 
         // Build each visible layer
         for (const layerName of visibleLayerNames) {
@@ -341,23 +388,97 @@ class OffscreenMapManager {
 
         // Apply layer ordering (z-index)
         this._reorderLayers()
-
-        console.log('Visible layers built on offscreen map')
     }
 
     /**
      * Reorder layers on the offscreen map to match main map z-index
      *
+     * Uses the same logic as Map_.orderedBringToFront to ensure proper layer ordering.
+     * Vector layers are removed and re-added in order.
+     * Tile/raster layers use setZIndex with calculated values.
+     *
      * @private
      */
     _reorderLayers() {
-        // Bring layers to front in order (matches Map_.orderedBringToFront logic)
-        this.layers.dataFlat.forEach((layerConfig) => {
-            const layer = this.layers.layer[layerConfig.name]
-            if (layer && layer.bringToFront) {
-                layer.bringToFront()
+        // Use L_._layersOrdered for the canonical layer order
+        if (!window.L_ || !window.L_._layersOrdered) {
+            console.warn(
+                'L_._layersOrdered not available, using simple ordering'
+            )
+            // Fallback to simple ordering
+            this.layers.dataFlat.forEach((layerConfig) => {
+                const layer = this.layers.layer[layerConfig.name]
+                if (layer && layer.bringToFront) {
+                    layer.bringToFront()
+                }
+            })
+            return
+        }
+
+        const layersOrdered = window.L_._layersOrdered
+        const hasIndex = []
+        const hasIndexRaster = []
+
+        // Identify which layers need reordering
+        // Go through in reverse order (bottom to top)
+        for (let i = layersOrdered.length - 1; i >= 0; i--) {
+            const layerName = layersOrdered[i]
+            const layer = this.layers.layer[layerName]
+            const layerConfig = this.layers.data[layerName]
+
+            if (!layer || !layerConfig || !this.leafletMap.hasLayer(layer)) {
+                continue
             }
-        })
+
+            if (layerConfig.type === 'vector' || layerConfig.type === 'image') {
+                // Remove vector and image layers (will be re-added in order)
+                this.leafletMap.removeLayer(layer)
+                hasIndex.push(i)
+            } else if (
+                layerConfig.type === 'tile' ||
+                layerConfig.type === 'data'
+            ) {
+                // Track raster layers for z-index adjustment
+                hasIndexRaster.push(i)
+            }
+        }
+
+        // Re-add vector and image layers in correct order (bottom to top)
+        for (let i = 0; i < hasIndex.length; i++) {
+            const layerName = layersOrdered[hasIndex[i]]
+            const layer = this.layers.layer[layerName]
+            const layerConfig = this.layers.data[layerName]
+
+            if (layer && layerConfig) {
+                // Add layer back to map
+                this.leafletMap.addLayer(layer)
+
+                // If image layer, set z-index and redraw
+                if (layerConfig.type === 'image') {
+                    const zIndex =
+                        layersOrdered.length +
+                        1 -
+                        layersOrdered.indexOf(layerName)
+                    if (layer.setZIndex) {
+                        layer.setZIndex(zIndex)
+                    }
+                    if (layer.clearCache) layer.clearCache()
+                    if (layer.redraw) layer.redraw()
+                }
+            }
+        }
+
+        // Set z-index for tile/raster layers
+        for (let i = 0; i < hasIndexRaster.length; i++) {
+            const layerName = layersOrdered[hasIndexRaster[i]]
+            const layer = this.layers.layer[layerName]
+
+            if (layer && layer.setZIndex) {
+                const zIndex =
+                    layersOrdered.length + 1 - layersOrdered.indexOf(layerName)
+                layer.setZIndex(zIndex)
+            }
+        }
     }
 
     /**
@@ -368,33 +489,49 @@ class OffscreenMapManager {
      */
     async updateTimeForLayers(timestamp) {
         const timeString = timestamp.toISOString()
-
-        console.log('Updating time for offscreen layers:', timeString)
+        let vectorLayersRebuilt = false
 
         for (const layerName in this.layers.layer) {
             const layerConfig = this.layers.data[layerName]
             const layer = this.layers.layer[layerName]
 
             if (layerConfig.time && layerConfig.time.enabled) {
-                console.log(`Updating time for layer: ${layerName}`)
-
                 if (layerConfig.type === 'tile') {
                     // Update tile layer URL with time parameter
-                    const newUrl = this._replaceTimeTokens(layerConfig.url, timeString)
+                    const newUrl = this._replaceTimeTokens(
+                        layerConfig.url,
+                        timeString
+                    )
                     layer.setUrl(newUrl)
 
                     // Wait for tiles to load
                     await this._waitForLayerLoad(layer, 5000)
                 } else if (layerConfig.type === 'vector') {
-                    // Vector layers with time may need re-fetching
-                    // This is more complex and may be implemented later
-                    if (!this._vectorTimeWarnings) this._vectorTimeWarnings = new Set()
-                    if (!this._vectorTimeWarnings.has(layerName)) {
-                        console.warn(`⚠️ Time-enabled vector layers not yet fully supported: ${layerName}`)
-                        this._vectorTimeWarnings.add(layerName)
+                    // Vector layers with time need to be rebuilt with new URL
+                    // Remove old layer
+                    if (this.leafletMap.hasLayer(layer)) {
+                        this.leafletMap.removeLayer(layer)
                     }
+
+                    // Update URL with time tokens
+                    const updatedConfig = JSON.parse(
+                        JSON.stringify(layerConfig)
+                    )
+                    updatedConfig.url = this._replaceTimeTokens(
+                        updatedConfig.url,
+                        timeString
+                    )
+
+                    // Rebuild the layer
+                    await this.buildLayer(updatedConfig, true)
+                    vectorLayersRebuilt = true
                 }
             }
+        }
+
+        // Reorder layers if any vector layers were rebuilt
+        if (vectorLayersRebuilt) {
+            this._reorderLayers()
         }
     }
 
@@ -472,7 +609,7 @@ class OffscreenMapManager {
             this.setViewToBBox(bbox)
 
             // Wait a bit for Leaflet to render (asynchronous rendering)
-            await new Promise(resolve => setTimeout(resolve, 100))
+            await new Promise((resolve) => setTimeout(resolve, 100))
 
             // Capture using HTML2Canvas
             const canvas = await HTML2Canvas(this.container, {
@@ -482,51 +619,92 @@ class OffscreenMapManager {
                 backgroundColor: null,
                 width: this.container.offsetWidth,
                 height: this.container.offsetHeight,
-                onclone: (clonedDoc) => {
-                    // Fix SVG layer positioning (from AnimationTool.js captureMapFrame)
-                    const originalSVG = this.container.querySelectorAll('svg.leaflet-zoom-animated')
-                    const copySVG = clonedDoc.body.querySelectorAll('svg.leaflet-zoom-animated')
+                x: 0,
+                y: 0,
+                scrollX: 0,
+                scrollY: 0,
+                windowWidth: this.container.offsetWidth,
+                windowHeight: this.container.offsetHeight,
+
+                onclone: function (e) {
+                    // Fix svg layer shift
+                    const originalSVG = document.body.querySelectorAll(
+                        '#offscreen-map-container .leaflet-overlay-pane > svg'
+                    )
+                    const copySVG = e.body.querySelectorAll(
+                        '#offscreen-map-container .leaflet-overlay-pane > svg'
+                    )
                     copySVG.forEach((copyEle, i) => {
-                        const attribute = originalSVG.item(i)?.getAttribute('style')
-                        if (attribute) {
-                            const parentElement = copyEle.parentElement
-                            parentElement.removeChild(copyEle)
-                            const temp = document.createElement('div')
-                            temp.appendChild(copyEle)
-                            parentElement.appendChild(temp)
-                            temp.setAttribute('style', attribute)
-                            copyEle.removeAttribute('style')
-                        }
+                        const attribute = originalSVG
+                            .item(i)
+                            .getAttribute('style')
+                        const parentElement = copyEle.parentElement
+                        parentElement.removeChild(copyEle)
+                        const temp = document.createElement('div')
+                        temp.appendChild(copyEle)
+                        parentElement.appendChild(temp)
+                        temp.setAttribute('style', attribute)
+                        copyEle.removeAttribute('style')
                     })
 
                     // Fix tile layer z-indices
-                    const originalZ = this.container.querySelectorAll('.leaflet-tile-pane > div.leaflet-layer')
-                    const copyZ = clonedDoc.body.querySelectorAll('.leaflet-tile-pane > div.leaflet-layer')
+                    const originalZ = document.body.querySelectorAll(
+                        '#offscreen-map-container .leaflet-tile-pane > div.leaflet-layer'
+                    )
+                    const copyZ = e.body.querySelectorAll(
+                        '#offscreen-map-container .leaflet-tile-pane > div.leaflet-layer'
+                    )
                     copyZ.forEach((copyEle, i) => {
-                        const attribute = originalZ.item(i)?.getAttribute('style')
-                        if (attribute) {
-                            copyEle.setAttribute('style', attribute)
-                        }
+                        const attribute = originalZ
+                            .item(i)
+                            .getAttribute('style')
+                        copyEle.setAttribute('style', attribute)
                     })
-                }
+                },
             })
 
-            // Create a NEW canvas and copy HTML2Canvas result to it
-            // This ensures we have full control over the canvas
-            const finalCanvas = document.createElement('canvas')
-            finalCanvas.width = canvas.width
-            finalCanvas.height = canvas.height
-            const finalCtx = finalCanvas.getContext('2d')
+            // Since the offscreen container was sized to match the drawn bbox dimensions
+            // (screenRect.width × screenRect.height), and the view was set to show the bbox,
+            // the entire captured canvas already represents the correct extent.
+            // No cropping needed - just return the canvas.
 
-            // Copy the HTML2Canvas result
-            finalCtx.drawImage(canvas, 0, 0)
+            // DEBUG: Display the canvas at bottom right for debugging
+            this._displayDebugCanvas(canvas, 'Captured Canvas')
 
-            console.log('Frame captured from offscreen map, copied to new canvas')
-            return finalCanvas
+            return canvas
         } catch (error) {
             console.error('Failed to capture frame from offscreen map:', error)
             throw error
         }
+    }
+
+    /**
+     * Display a canvas in the AnimationTool debug preview
+     *
+     * @private
+     * @param {HTMLCanvasElement} canvas - Canvas to display
+     * @param {string} label - Label for the canvas
+     */
+    _displayDebugCanvas(canvas, label) {
+        const debugPreview = document.getElementById('animationDebugPreview')
+        const debugCanvas = document.getElementById('animationDebugCanvas')
+        const debugInfo = document.getElementById('animationDebugInfo')
+
+        if (!debugPreview || !debugCanvas || !debugInfo) {
+            return // Elements not ready yet
+        }
+
+        // Show the preview section
+        debugPreview.style.display = 'block'
+
+        // Update the canvas
+        debugCanvas.width = canvas.width
+        debugCanvas.height = canvas.height
+        const ctx = debugCanvas.getContext('2d')
+        ctx.drawImage(canvas, 0, 0)
+
+        // Update info
+        debugInfo.textContent = `${canvas.width} × ${canvas.height}px`
     }
 
     /**
@@ -583,7 +761,14 @@ class OffscreenMapManager {
         }
 
         // Adjust bar length based on rounded distance
-        const adjustedBarLength = barLength * (roundedDist / (unit === 'km' ? distance / 1000 : unit === 'cm' ? distance * 100 : distance))
+        const adjustedBarLength =
+            barLength *
+            (roundedDist /
+                (unit === 'km'
+                    ? distance / 1000
+                    : unit === 'cm'
+                      ? distance * 100
+                      : distance))
 
         // Position scale bar in bottom left corner
         const padding = 20
@@ -648,8 +833,6 @@ class OffscreenMapManager {
         if (this.leafletMap) {
             this.leafletMap.invalidateSize()
         }
-
-        console.log('Offscreen map resized:', { width, height })
     }
 
     /**
@@ -659,8 +842,6 @@ class OffscreenMapManager {
      * and nulls all references.
      */
     destroy() {
-        console.log('Destroying OffscreenMapManager...')
-
         // Remove all layers from map
         if (this.leafletMap) {
             this.leafletMap.eachLayer((layer) => {
@@ -687,12 +868,15 @@ class OffscreenMapManager {
             attachments: {},
             filters: {},
             refreshFailed: {},
-            dataFlat: []
+            dataFlat: [],
         }
 
-        this.initialized = false
+        // Clear stored view parameters
+        this.storedCenter = null
+        this.storedZoom = null
+        this.screenRect = null
 
-        console.log('OffscreenMapManager destroyed')
+        this.initialized = false
     }
 }
 
