@@ -123,6 +123,24 @@
           "name": "Cloud-Optimized GeoTiffs (COG)",
           "components": [
             {
+              "field": "cogBands",
+              "name": "Tile Bands",
+              "description": "Which bands from the COG from which to generate tiles. Defaults to '1,2,3' as RGB or '1' if it's a Transformed 32-bit COG. Can be a single number or a comma-separated list of numbers. Order matters.",
+              "type": "textarray",
+              "width": 4
+            },
+            {
+              "field": "cogBandsQuery",
+              "name": "Query Bands",
+              "description": "Which bands from the COG upon which to perform queries. Defaults to value of 'Tile Bands'.",
+              "type": "textarray",
+              "width": 4
+            }
+          ]
+        },
+        {
+          "components": [
+            {
               "field": "cogTransform",
               "name": "Transform COG",
               "description": "Enable rescaling and coloring single banded COGs on the fly.",
