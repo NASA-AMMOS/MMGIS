@@ -169,19 +169,15 @@ class OffscreenMapManager {
     /**
      * Initialize the Leaflet map with matching configuration from main map
      *
-     * Clones the CRS/projection and map options to ensure consistent rendering.
+     * Uses the EXACT SAME CRS as the main map to ensure consistent rendering.
      * Disables all interactions since this is for rendering only.
      *
      * @private
      */
     _initializeLeafletMap() {
-        // Determine CRS to use
-        let crs = L.CRS.EPSG3857 // Default
-
-        if (this.projection) {
-            // Use custom projection from main map
-            crs = this.projection
-        }
+        // Use the EXACT SAME CRS as the main map
+        // This ensures consistency whether it's default EPSG3857 or custom projection
+        const crs = this.mainMap.options.crs
 
         // Map options matching main map but with interactions disabled
         const mapOptions = {
@@ -246,9 +242,9 @@ class OffscreenMapManager {
         const mainZoom = this.mainMap.getZoom()
         let calculatedCenter = null
 
-        // For custom projections (like polar stereographic), use screenRect center if available
+        // Use screenRect center if available (works for any CRS, not just custom projections)
         // This ensures the offscreen map matches the exact view of the main map
-        if (this.screenRect && this.projection) {
+        if (this.screenRect) {
             // Calculate the geographic center from the screen rectangle on the main map
             const centerX = this.screenRect.x + this.screenRect.width / 2
             const centerY = this.screenRect.y + this.screenRect.height / 2
