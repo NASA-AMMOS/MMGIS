@@ -188,7 +188,10 @@ const markup = [
                             "</div>",
                         "</div>",
                         "<div id='animationProgress' style='display: none; margin-top: 20px;'>",
-                            "<h4 style='margin-bottom: 10px;'>Generating Animation</h4>",
+                            "<div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;'>",
+                                "<h4 style='margin: 0;'>Generating Animation</h4>",
+                                "<button id='animationCancelBtn' class='btn btn-secondary' style='padding: 4px 12px; font-size: 12px;'>Cancel</button>",
+                            "</div>",
                             "<div style='background: #2a2a2a; border-radius: 4px; padding: 3px; margin-bottom: 10px;'>",
                                 "<div id='animationProgressBar' style='height: 24px; background: linear-gradient(90deg, #4CAF50, #45a049); border-radius: 2px; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center;'>",
                                     "<span id='animationProgressText' style='color: white; font-weight: bold; font-size: 12px;'></span>",
@@ -237,6 +240,7 @@ const AnimationTool = {
     currentFrame: 0,
     isDrawing: false,
     drawingLayer: null,
+    isCancelling: false, // Flag to signal user-requested cancellation
     drawRectangle: null,
     instructionsControl: null,
     screenRect: null,
@@ -742,6 +746,11 @@ function interfaceWithMMGIS() {
 
         $('#export-mp4').on('click', () => {
             startExport('mp4')
+        })
+
+        // Cancel button for animation generation
+        $('#animationCancelBtn').on('click', function () {
+            cancelAnimationGeneration()
         })
 
         // Projection-aware event listeners
@@ -1497,7 +1506,14 @@ function interfaceWithMMGIS() {
             .catch((error) => {
                 console.error('Export error:', error)
                 button.text(originalText).prop('disabled', false)
-                showModalAlert('Export failed: ' + error.message)
+
+                // Don't show error modal if user cancelled
+                if (
+                    !error.message ||
+                    !error.message.includes('cancelled by user')
+                ) {
+                    showModalAlert('Export failed: ' + error.message)
+                }
             })
     }
 
@@ -1507,6 +1523,9 @@ function interfaceWithMMGIS() {
             let drawingLayerWasVisible = false
 
             try {
+                // Reset cancellation flag at start of new export
+                AnimationTool.isCancelling = false
+
                 // Store original TimeUI state before starting export
                 storeOriginalTimeUIState()
 
@@ -1562,6 +1581,61 @@ function interfaceWithMMGIS() {
                 // Generate frames
                 let currentStep = 0
                 const generateFrame = () => {
+                    // Check for user-requested cancellation FIRST (before processing frame)
+                    if (AnimationTool.isCancelling) {
+                        console.log('Animation generation cancelled by user')
+
+                        // Update UI to show cancellation
+                        updateProgress(
+                            currentStep,
+                            timeSteps.length,
+                            'Cancelled by user'
+                        )
+
+                        // Perform cleanup after short delay so user can see status
+                        setTimeout(() => {
+                            hideProgressUI()
+
+                            // Cleanup offscreen map
+                            if (AnimationTool.offscreenManager) {
+                                AnimationTool.offscreenManager.destroy()
+                                AnimationTool.offscreenManager = null
+                            }
+
+                            // Restore original TimeUI state
+                            restoreOriginalTimeUIState()
+
+                            // Restore drawing layer if it was visible
+                            if (
+                                drawingLayerWasVisible &&
+                                AnimationTool.drawingLayer
+                            ) {
+                                AnimationTool.drawingLayer.addTo(Map_.map)
+                            }
+
+                            // Reset cancellation flag for next export
+                            AnimationTool.isCancelling = false
+
+                            // Re-enable export buttons
+                            $('.export-button')
+                                .prop('disabled', false)
+                                .text(function () {
+                                    const id = $(this).attr('id')
+                                    if (id === 'export-gif') return 'Export GIF'
+                                    if (id === 'export-mp4') return 'Export MP4'
+                                    if (id === 'export-sequence')
+                                        return 'Export Images'
+                                })
+                        }, 1000)
+
+                        // Reject promise to trigger catch block in startExport
+                        reject(
+                            new Error('Animation generation cancelled by user')
+                        )
+                        return
+                    }
+
+                    // Continue with existing logic...
                     if (currentStep >= timeSteps.length) {
                         // Hide progress UI
                         hideProgressUI()
@@ -1681,12 +1755,29 @@ function interfaceWithMMGIS() {
         progressDiv.show()
         previewDiv.show()
 
+        // Reset Cancel button state for new export
+        $('#animationCancelBtn').text('Cancel').prop('disabled', false)
+
         updateProgress(0, totalFrames, 'Initializing...')
     }
 
     function hideProgressUI() {
         const progressDiv = $('#animationProgress')
         progressDiv.hide()
+    }
+
+    function cancelAnimationGeneration() {
+        if (!AnimationTool.isCancelling) {
+            AnimationTool.isCancelling = true
+
+            // Update UI to show cancellation in progress
+            $('#animationCancelBtn')
+                .text('Cancelling...')
+                .prop('disabled', true)
+            $('#animationProgressStatus').text('Cancellation requested...')
+
+            console.log('Animation generation cancellation requested')
+        }
     }
 
     function updateProgress(current, total, status) {
@@ -2017,7 +2108,7 @@ function interfaceWithMMGIS() {
 
         // Draw white stroke (border) - thinner border for less aggressiveness
         ctx.strokeStyle = 'white'
-        ctx.lineWidth = Math.max(1.5, adjustedFontSize / 12)
+        ctx.lineWidth = Math.max(1, adjustedFontSize / 12)
         ctx.lineJoin = 'round'
         ctx.miterLimit = 2
 
@@ -2050,11 +2141,21 @@ function interfaceWithMMGIS() {
         ctx.drawImage(canvas, 0, 0)
 
         const padding = 10
+
+        // Detect device pixel ratio for retina/high-DPI displays
+        // Retina displays have devicePixelRatio >= 2, which makes text appear smaller
+        // Scale font size by 1.4x for better readability on high-DPI displays
+        const pixelRatio = window.devicePixelRatio || 1
+        const isRetina = pixelRatio >= 1.5
+
         // Calculate responsive font size based on canvas width
-        // For small canvases (< 400px): 12-16px
-        // For medium canvases (400-800px): 16-24px
-        // For large canvases (> 800px): 24-32px
-        const fontSize = Math.max(12, Math.min(32, canvas.width / 30))
+        // Base: canvas.width / 30
+        // Retina scaling: 1.4x multiplier for devicePixelRatio >= 1.5
+        // Range: 12px min, 45px max (increased from 32px for retina support)
+        const baseSize = canvas.width / 30
+        const scaledSize = isRetina ? baseSize * 1.4 : baseSize
+        const fontSize = Math.max(12, Math.min(45, scaledSize))
+
         const lineSpacing = fontSize * 0.2 // Space between title and time step (20% of font size)
 
         let currentY = padding
@@ -2088,7 +2189,7 @@ function interfaceWithMMGIS() {
         const minutes = String(date.getMinutes()).padStart(2, '0')
         const seconds = String(date.getSeconds()).padStart(2, '0')
 
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}Z`
     }
 
     // Helper function to crop canvas to specific rectangle
@@ -2780,6 +2881,7 @@ function interfaceWithMMGIS() {
         $('#exportTitle').off()
         $('#layerRefreshRateSlider').off()
         $('#export-gif, #export-sequence, #export-mp4').off()
+        $('#animationCancelBtn').off('click')
 
         // Unsubscribe from TimeControl
         if (TimeControl && TimeControl.unsubscribe) {
