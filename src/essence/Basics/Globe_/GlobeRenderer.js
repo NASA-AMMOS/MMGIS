@@ -389,7 +389,6 @@ class GlobeRenderer {
      */
     addLayer(type, layerConfig) {
         if (this.rendererType === 'lithosphere') {
-            console.log(type, layerConfig)
             return this.renderer.addLayer(type, layerConfig)
         } else {
             return this._addCesiumLayer(type, layerConfig)
@@ -540,8 +539,9 @@ class GlobeRenderer {
 
             // Parse colors with fallbacks
             const strokeColor =
-                Cesium.Color.fromCssColorString(defaultStyle.color || '#ffffff') ||
-                Cesium.Color.WHITE
+                Cesium.Color.fromCssColorString(
+                    defaultStyle.color || '#ffffff'
+                ) || Cesium.Color.WHITE
             const fillColor =
                 Cesium.Color.fromCssColorString(
                     defaultStyle.fillColor || '#ffffff'
@@ -611,7 +611,9 @@ class GlobeRenderer {
                                                   defaultStyle.fillOpacity
                                               ) || 0.5
                                     entity.polygon.material =
-                                        polygonFillColor.withAlpha(polygonOpacity)
+                                        polygonFillColor.withAlpha(
+                                            polygonOpacity
+                                        )
                                 }
                                 if (featureStyle.color) {
                                     const outlineColor =
@@ -619,7 +621,8 @@ class GlobeRenderer {
                                             featureStyle.color
                                         )
                                     if (outlineColor) {
-                                        entity.polygon.outlineColor = outlineColor
+                                        entity.polygon.outlineColor =
+                                            outlineColor
                                     }
                                 }
                                 if (featureStyle.weight != null) {
@@ -732,7 +735,11 @@ class GlobeRenderer {
             const checkName = orderedLayerNames[i]
             const checkLayer = this._layers[checkName]
             // Only count visible tile layers
-            if (checkLayer && checkLayer.type === 'tile' && checkLayer.visible) {
+            if (
+                checkLayer &&
+                checkLayer.type === 'tile' &&
+                checkLayer.visible
+            ) {
                 tileBelowCount++
             }
         }
@@ -898,7 +905,8 @@ class GlobeRenderer {
         }
 
         // Add new layer using addImageryProvider (returns ImageryLayer)
-        const newLayer = this.renderer.imageryLayers.addImageryProvider(newProvider)
+        const newLayer =
+            this.renderer.imageryLayers.addImageryProvider(newProvider)
         newLayer.alpha = alpha
         newLayer.show = show
 
@@ -1135,10 +1143,7 @@ class GlobeRenderer {
         // Re-add in correct order (bottom to top)
         for (let i = 0; i < visibleTileLayers.length; i++) {
             const { layerInfo } = visibleTileLayers[i]
-            const newLayer = this.renderer.imageryLayers.add(
-                layerInfo.layer,
-                i
-            )
+            const newLayer = this.renderer.imageryLayers.add(layerInfo.layer, i)
             // Update reference
             if (newLayer) layerInfo.layer = newLayer
         }
@@ -1824,10 +1829,10 @@ class GlobeRenderer {
     _roundCoordinates(coords, precision) {
         if (typeof coords[0] === 'number') {
             // Single coordinate pair [lng, lat]
-            return coords.map(c => parseFloat(c.toFixed(precision)))
+            return coords.map((c) => parseFloat(c.toFixed(precision)))
         } else {
             // Nested array of coordinates
-            return coords.map(c => this._roundCoordinates(c, precision))
+            return coords.map((c) => this._roundCoordinates(c, precision))
         }
     }
 

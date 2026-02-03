@@ -26,10 +26,10 @@
                     {
                         "field": "variables.animationMP4",
                         "name": "MP4",
-                        "description": "Export animation as MP4 video format",
+                        "description": "Export animation as MP4 video format using ffmpeg.wasm (runs in browser, no server installation needed)",
                         "type": "checkbox",
                         "width": 2,
-                        "defaultChecked": false
+                        "defaultChecked": true
                     },
                     {
                         "field": "variables.animationPNG",
