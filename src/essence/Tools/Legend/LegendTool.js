@@ -40,6 +40,13 @@ var LegendTool = {
         })
 
         this.made = true
+
+        let _event = new CustomEvent('madeLegendTool', {
+            detail: {
+                made: true,
+            },
+        })
+        document.dispatchEvent(_event)
     },
     destroy: function () {
         this.MMWebGISInterface.separateFromMMWebGIS()
