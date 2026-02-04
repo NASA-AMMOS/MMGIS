@@ -62,6 +62,52 @@ var Editing = {
             return
         }
 
+        // Check if we're showing the context menu for the same feature that's already displayed
+        // This preserves unsaved changes in the edit panel during dynamicExtent reloads
+        if (DrawTool.contextMenuLayer && layer && index != null) {
+            const currentFeatureId = DrawTool.contextMenuLayer.feature?.properties?._.id
+
+            // Get the actual Leaflet layer object (layer param is the layer name, not the object!)
+            var shape = L_.layers.layer[layer][index]
+
+            if (shape) {
+                // Get the new feature ID, handling arrow layers
+                let newFeatureId
+                const isArrowLayer = shape.hasOwnProperty('_layers') &&
+                    !(shape.hasOwnProperty('feature') && shape.feature.properties.arrow == true)
+
+                if (isArrowLayer) {
+                    newFeatureId = shape._layers[Object.keys(shape._layers)[0]]?.feature?.properties?._.id
+                } else {
+                    newFeatureId = shape.feature?.properties?._.id
+                }
+
+                if (currentFeatureId && newFeatureId && currentFeatureId === newFeatureId) {
+                    // Same feature - just update the layer reference, don't rebuild panel
+                    // Copy over any custom methods/properties from the old layer to the new one
+                    const oldLayer = DrawTool.contextMenuLayer
+                    const newLayer = isArrowLayer ? shape._layers[Object.keys(shape._layers)[0]] : shape
+
+                    // Preserve custom methods/properties that were attached to the old layer
+                    if (oldLayer.resetGeoJSON) {
+                        newLayer.resetGeoJSON = oldLayer.resetGeoJSON
+                    }
+                    if (oldLayer._originalProperties) {
+                        newLayer._originalProperties = oldLayer._originalProperties
+                    }
+                    if (oldLayer._changesSaved !== undefined) {
+                        newLayer._changesSaved = oldLayer._changesSaved
+                    }
+                    if (oldLayer.justDragged !== undefined) {
+                        newLayer.justDragged = oldLayer.justDragged
+                    }
+
+                    DrawTool.contextMenuLayer = newLayer
+                    return // Skip the rest of showContextMenu to preserve unsaved changes
+                }
+            }
+        }
+
         let templater
 
         //ctrl does lots. Here, if ctrl is pressed, check whether the layer is already selected.

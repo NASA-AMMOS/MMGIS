@@ -694,7 +694,8 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
         const layer = L_.layers.data[layerUUID]
 
         // Check currentCogExpression first (runtime value), then fall back to cogExpression (configured value)
-        const expressionToUse = layer.currentCogExpression || layer.cogExpression
+        const expressionToUse =
+            layer.currentCogExpression || layer.cogExpression
         if (expressionToUse && expressionToUse.trim() !== '') {
             const processedExpression = processExpression(expressionToUse)
             expressionParam = `&expression=${encodeURIComponent(processedExpression)}`
@@ -759,7 +760,8 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
         const layer = L_.layers.data[layerUUID]
 
         // Check currentCogExpression first (runtime value), then fall back to cogExpression (configured value)
-        const expressionToUse = layer.currentCogExpression || layer.cogExpression
+        const expressionToUse =
+            layer.currentCogExpression || layer.cogExpression
         if (expressionToUse && expressionToUse.trim() !== '') {
             const processedExpression = processExpression(expressionToUse)
             expressionParam = `&expression=${encodeURIComponent(processedExpression)}`

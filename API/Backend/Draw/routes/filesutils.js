@@ -161,32 +161,82 @@ function getfile(req, res, next) {
                 bestHistory = bestHistory.concat(results[i].history);
               }
 
+              // Extract extent parameters (optional)
+              const minx = parseFloat(req.body.minx);
+              const miny = parseFloat(req.body.miny);
+              const maxx = parseFloat(req.body.maxx);
+              const maxy = parseFloat(req.body.maxy);
+              const crs = req.body.crs || 'EPSG:4326'; // Default to WGS84
+              const metadataOnly = req.body.metadataOnly === 'true' || req.body.metadataOnly === true;
+              const featureId = req.body.featureId ? parseInt(req.body.featureId) : null;
+
+              // Temporal extent parameters
+              const startTime = req.body.startTime; // Unix timestamp
+              const endTime = req.body.endTime;
+              const timeProp = req.body.timeProp || 'time';
+
+              // Build SELECT clause
+              let selectClause = metadataOnly
+                ? "id, file_id, level, intent, properties"
+                : "id, file_id, level, intent, properties, ST_AsGeoJSON(geom)";
+
+              // Build WHERE clause
+              let whereClause = (idArray ? "file_id IN (:id)" : "file_id=:id") +
+                                " AND id IN (:bestHistory)";
+
+              let replacements = {
+                id: ids,
+                bestHistory:
+                  bestHistory != null && bestHistory.length > 0
+                    ? bestHistory
+                    : null,
+              };
+
+              // Add spatial filter if bounds provided
+              let hasSpatialFilter = false;
+              if (!isNaN(minx) && !isNaN(miny) && !isNaN(maxx) && !isNaN(maxy)) {
+                // Use ST_Transform to handle different CRS
+                // Create envelope in the requested CRS, then transform to 4326, then intersect with geom
+                whereClause += " AND ST_Intersects(geom, ST_Transform(ST_MakeEnvelope(:minx, :miny, :maxx, :maxy, :srid), 4326))";
+
+                replacements.minx = minx;
+                replacements.miny = miny;
+                replacements.maxx = maxx;
+                replacements.maxy = maxy;
+
+                // Parse SRID from CRS string (e.g., "EPSG:4326" -> 4326)
+                const sridMatch = crs.match(/EPSG:(\d+)/i);
+                replacements.srid = sridMatch ? parseInt(sridMatch[1]) : 4326;
+
+                hasSpatialFilter = true;
+              }
+
+              // Add feature ID filter if provided (for single feature loading)
+              if (featureId != null) {
+                whereClause += " AND id = :featureId";
+                replacements.featureId = featureId;
+              }
+
+              // Add temporal filter if time range provided
+              let hasTemporalFilter = false;
+              if (startTime != null && endTime != null) {
+                const start = typeof startTime === 'number' ? startTime : new Date(startTime).getTime();
+                const end = typeof endTime === 'number' ? endTime : new Date(endTime).getTime();
+
+                if (!isNaN(start) && !isNaN(end)) {
+                  // Filter features that have time property in range OR no time property
+                  whereClause += " AND ((properties->>'" + timeProp + "') IS NULL OR (properties->>'" + timeProp + "')::bigint BETWEEN :startTime AND :endTime)";
+                  replacements.startTime = start;
+                  replacements.endTime = end;
+                  hasTemporalFilter = true;
+                }
+              }
+
+              const query = `SELECT ${selectClause} FROM user_features${req.body.test === "true" ? "_tests" : ""} WHERE ${whereClause}`;
+
               //Find best history
               sequelize
-                .query(
-                  "SELECT " +
-                    "id, file_id, level, intent, properties, ST_AsGeoJSON(geom)" +
-                    " " +
-                    "FROM user_features" +
-                    (req.body.test === "true" ? "_tests" : "") +
-                    " " +
-                    "WHERE" +
-                    " " +
-                    (idArray ? "file_id IN (:id)" : "file_id=:id") +
-                    " " +
-                    "AND id IN (" +
-                    ":bestHistory" +
-                    ")",
-                  {
-                    replacements: {
-                      id: ids,
-                      bestHistory:
-                        bestHistory != null && bestHistory.length > 0
-                          ? bestHistory
-                          : null,
-                    },
-                  }
-                )
+                .query(query, { replacements: replacements })
                 .then(([results]) => {
                   let geojson = { type: "FeatureCollection", features: [] };
                   for (let i = 0; i < results.length; i++) {
@@ -252,6 +302,8 @@ function getfile(req, res, next) {
                     body: {
                       file: file,
                       geojson: geojson,
+                      spatialFiltered: hasSpatialFilter,  // New field
+                      temporalFiltered: hasTemporalFilter, // New field
                     },
                   });
                 });

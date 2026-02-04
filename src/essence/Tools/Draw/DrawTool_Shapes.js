@@ -138,10 +138,17 @@ var Shapes = {
             }
 
             $('.drawToolShapeLi').each(function () {
-                var l =
-                    L_.layers.layer[$(this).attr('layer')][
-                        $(this).attr('index')
-                    ]
+                var layer = $(this).attr('layer')
+                var index = $(this).attr('index')
+
+                // Defensive check: skip if feature reference is stale
+                if (!L_.layers.layer[layer] || !L_.layers.layer[layer][index]) {
+                    $(this).css('display', 'none')
+                    off++
+                    return true // continue
+                }
+
+                var l = L_.layers.layer[layer][index]
                 if (l.feature == null && l.hasOwnProperty('_layers'))
                     l = l._layers[Object.keys(l._layers)[0]]
 
@@ -555,11 +562,19 @@ var Shapes = {
             var layer = $(this).find('.drawToolShapeLiItem').attr('layer')
             var index = $(this).find('.drawToolShapeLiItem').attr('index')
 
-            if (typeof L_.layers.layer[layer][index].setStyle === 'function')
-                L_.layers.layer[layer][index].setStyle({ color: '#7fff00' })
-            else if (L_.layers.layer[layer][index].hasOwnProperty('_layers')) {
+            // Defensive check: ensure layer and feature exist at this index
+            if (!L_.layers.layer[layer] || !L_.layers.layer[layer][index]) {
+                console.warn('DrawTool Shapes: Feature reference stale, ignoring hover')
+                return
+            }
+
+            var shape = L_.layers.layer[layer][index]
+
+            if (typeof shape.setStyle === 'function')
+                shape.setStyle({ color: '#7fff00' })
+            else if (shape.hasOwnProperty('_layers')) {
                 //Arrow
-                var layers = L_.layers.layer[layer][index]._layers
+                var layers = shape._layers
                 layers[Object.keys(layers)[0]].setStyle({
                     color: '#7fff00',
                 })
@@ -580,6 +595,13 @@ var Shapes = {
             var layer = $(this).find('.drawToolShapeLiItem').attr('layer')
             var index = $(this).find('.drawToolShapeLiItem').attr('index')
             var shapeId = $(this).attr('shape_id')
+
+            // Defensive check: ensure layer and feature exist at this index
+            if (!L_.layers.layer[layer] || !L_.layers.layer[layer][index]) {
+                console.warn('DrawTool Shapes: Feature reference stale, ignoring hover')
+                return
+            }
+
             var shape = L_.layers.layer[layer][index]
 
             var style

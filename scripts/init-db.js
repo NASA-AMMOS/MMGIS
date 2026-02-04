@@ -317,9 +317,9 @@ async function initializeDatabase() {
               "expire" timestamp(6) NOT NULL
             )
             WITH (OIDS=FALSE);
-            
+
             ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;
-            
+
             CREATE INDEX "IDX_session_expire" ON "session" ("expire");`
             )
             .then(() => {
@@ -334,6 +334,29 @@ async function initializeDatabase() {
               );
               return null;
             });
+
+          // Add spatial indexes for DrawTool dynamicExtent performance
+          await sequelize
+            .query(`
+              CREATE INDEX IF NOT EXISTS idx_user_features_geom
+              ON user_features USING GIST (geom);
+
+              CREATE INDEX IF NOT EXISTS idx_user_features_tests_geom
+              ON user_features_tests USING GIST (geom);
+            `)
+            .then(() => {
+              logger("info", `Created spatial indexes on user_features tables.`, "connection");
+              return null;
+            })
+            .catch((err) => {
+              logger(
+                "info",
+                `Spatial indexes on user_features tables already exist or failed to create. Nothing to do...`,
+                "connection"
+              );
+              return null;
+            });
+
           resolve();
         })
         .catch((err) => {

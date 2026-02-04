@@ -315,6 +315,17 @@ var DrawTool = {
     tags: [],
     labelsOn: [],
     fileGeoJSONFeatures: {},
+    // DynamicExtent configuration and state
+    dynamicExtent: {
+        enabled: true,  // Default to enabled for better performance
+        moveThreshold: '1000/z',
+        timeProp: 'time',
+        // Runtime state per file
+        lastRequestedExtent: {},    // { fileId: { minx, miny, maxx, maxy, crs, timestamp } }
+        lastRequestedLocation: {},  // { fileId: { lng, lat } }
+        isLoading: {},              // { fileId: boolean }
+        mapEventHandlers: null,     // Store event handler for cleanup
+    },
     palettes: [
         [
             '#26a8ff',
@@ -625,6 +636,36 @@ var DrawTool = {
         }
 
         this.MMGISInterface = new interfaceWithMMGIS()
+
+        // Load dynamicExtent config from tool variables
+        // Default to enabled unless explicitly disabled
+        if (this.vars.dynamicExtent) {
+            // Only disable if explicitly set to false
+            if (this.vars.dynamicExtent.enabled === false) {
+                this.dynamicExtent.enabled = false
+            }
+            // Override defaults if provided
+            if (this.vars.dynamicExtent.moveThreshold) {
+                this.dynamicExtent.moveThreshold = this.vars.dynamicExtent.moveThreshold
+            }
+            if (this.vars.dynamicExtent.timeProp) {
+                this.dynamicExtent.timeProp = this.vars.dynamicExtent.timeProp
+            }
+        }
+        // If no config exists at all, still use defaults (enabled: true)
+
+        // Attach map event listeners for extent changes
+        if (this.dynamicExtent.enabled) {
+            this.attachDynamicExtentListeners()
+        }
+
+        // Subscribe to TimeControl changes
+        if (typeof TimeControl?.subscribe === 'function') {
+            TimeControl.subscribe('DrawTool_DynamicExtent', () => {
+                this.handleTimeChange()
+            })
+        }
+
         //Start on the draw tab
         $('#drawToolNavButtonDraw').click()
 
@@ -663,6 +704,22 @@ var DrawTool = {
     },
     destroy: function () {
         if (this.MMGISInterface) this.MMGISInterface.separateFromMMGIS()
+
+        // Remove dynamic extent listeners
+        if (this.dynamicExtent.enabled && this.dynamicExtent.mapEventHandlers) {
+            Map_.map.off('moveend', this.dynamicExtent.mapEventHandlers)
+            Map_.map.off('zoomend', this.dynamicExtent.mapEventHandlers)
+        }
+
+        // Unsubscribe from TimeControl
+        if (typeof TimeControl?.unsubscribe === 'function') {
+            TimeControl.unsubscribe('DrawTool_DynamicExtent')
+        }
+
+        // Clear state
+        this.dynamicExtent.lastRequestedExtent = {}
+        this.dynamicExtent.lastRequestedLocation = {}
+        this.dynamicExtent.isLoading = {}
 
         for (var l in L_.layers.layer) {
             var s = l.split('_')
@@ -824,6 +881,83 @@ var DrawTool = {
                 }
             }
         }
+    },
+    attachDynamicExtentListeners: function() {
+        const self = this
+        let reloadTimeout = null
+
+        const handleExtentChange = function(e) {
+            // Debounce to avoid excessive requests during rapid panning
+            clearTimeout(reloadTimeout)
+            reloadTimeout = setTimeout(() => {
+                // Capture currently selected DrawTool feature ID and editing state before reload
+                // Note: DrawTool features use DrawTool.contextMenuLayer, NOT Map_.activeLayer
+                let selectedFeatureId = null
+                let wasEditing = false
+
+                if (self.contextMenuLayer?.feature?.properties?._) {
+                    selectedFeatureId = self.contextMenuLayer.feature.properties._.id
+                    // Check if the feature was being edited
+                    if (self.contextMenuLayer?.editEnabled) {
+                        wasEditing = self.contextMenuLayer.editEnabled()
+                    }
+                }
+
+                // Store state for restoration
+                self.dynamicExtent.pendingRestore = {
+                    selectedFeatureId: selectedFeatureId,
+                    wasEditing: wasEditing
+                }
+
+                // Reload all active files in the new extent
+                Object.keys(self.filesOn).forEach((idx) => {
+                    const fileId = self.filesOn[idx]
+                    if (fileId != null && fileId !== 'master') {
+                        self.Files.reloadFileInExtent(fileId, null, null, selectedFeatureId ? [selectedFeatureId] : null)
+                    }
+                })
+            }, 300) // 300ms debounce
+        }
+
+        // Listen to map movement events (matching LayerCapturer pattern)
+        Map_.map.on('moveend', handleExtentChange)
+        Map_.map.on('zoomend', handleExtentChange)
+
+        // Store reference for cleanup
+        this.dynamicExtent.mapEventHandlers = handleExtentChange
+    },
+    handleTimeChange: function() {
+        if (!this.dynamicExtent.enabled) return
+
+        // Clear last requested extents to force reload with new time
+        this.dynamicExtent.lastRequestedExtent = {}
+        this.dynamicExtent.lastRequestedLocation = {}
+
+        // Capture currently selected DrawTool feature ID and editing state before reload
+        // Note: DrawTool features use DrawTool.contextMenuLayer, NOT Map_.activeLayer
+        let selectedFeatureId = null
+        let wasEditing = false
+        if (this.contextMenuLayer?.feature?.properties?._) {
+            selectedFeatureId = this.contextMenuLayer.feature.properties._.id
+            // Check if the feature was being edited
+            if (this.contextMenuLayer?.editEnabled) {
+                wasEditing = this.contextMenuLayer.editEnabled()
+            }
+        }
+
+        // Store state for restoration
+        this.dynamicExtent.pendingRestore = {
+            selectedFeatureId: selectedFeatureId,
+            wasEditing: wasEditing
+        }
+
+        // Reload all active files
+        Object.keys(this.filesOn).forEach((idx) => {
+            const fileId = this.filesOn[idx]
+            if (fileId != null && fileId !== 'master') {
+                this.Files.reloadFileInExtent(fileId, null, null, selectedFeatureId ? [selectedFeatureId] : null)
+            }
+        })
     },
     getUrlString: function () {
         // Structure is fileOnId.fileOnId.fileOnId,filtersOnBinary

@@ -32,6 +32,7 @@ var Files = {
         DrawTool.showAssociatedPoints = Files.showAssociatedPoints
         DrawTool.removeAssociatedPoints = Files.removeAssociatedPoints
         DrawTool.renderAssociatedPoints = Files.renderAssociatedPoints
+        DrawTool.Files = Files // Expose Files object for access from DrawTool
     },
     currentOpenFolderName: null,
     prevFilterString: '',
@@ -1935,6 +1936,25 @@ var Files = {
         )
             return
 
+        // Check if DynamicExtent is enabled and should be used
+        const useDynamicExtent = DrawTool.dynamicExtent.enabled &&
+                                  !forceGeoJSON &&
+                                  !asPublished &&
+                                  parsedId !== 'master'
+
+        if (useDynamicExtent) {
+            // Use extent-based loading
+            Files.reloadFileInExtent(
+                parsedId,
+                time,
+                populateShapesAfter,
+                selectedFeatureIds,
+                cb,
+                dontUpdateSourceGeoJSON
+            )
+            return
+        }
+
         var body = {
             id: JSON.stringify(id),
             time: time,
@@ -2148,10 +2168,223 @@ var Files = {
                 DrawTool.toggleLabels(index + '')
             }
 
+            // Restore feature selection after reload
+            const restoreState = DrawTool.dynamicExtent?.pendingRestore
+            if (restoreState?.selectedFeatureId) {
+                const selectedId = restoreState.selectedFeatureId
+                const wasEditing = restoreState.wasEditing || false
+                let featureFound = false
+
+                // Find the reloaded feature with this ID
+                for (let i = 0; i < L_.layers.layer[layerId].length; i++) {
+                    const layer = L_.layers.layer[layerId][i]
+                    if (!layer) continue
+
+                    let feature = layer.feature
+                    let contextMenuLayer = layer
+
+                    // Handle arrow/grouped layers
+                    if (!feature && layer.hasOwnProperty('_layers')) {
+                        const sublayers = layer._layers
+                        feature = sublayers[Object.keys(sublayers)[0]]?.feature
+                        contextMenuLayer = sublayers[Object.keys(sublayers)[0]]
+                    }
+
+                    if (feature?.properties?._ && feature.properties._.id === selectedId) {
+                        featureFound = true
+
+                        // Trigger click event on the layer (matching DrawTool_Shapes.js pattern)
+                        // Small delay to ensure layer is fully added to map
+                        setTimeout(() => {
+                            if (layer.hasOwnProperty('_layers')) {
+                                // Arrow layer - fire on first sublayer
+                                layer._layers[Object.keys(layer._layers)[0]].fireEvent('click')
+                            } else {
+                                // Regular layer
+                                layer.fireEvent('click')
+                            }
+
+                            // Restore editing mode if it was active
+                            if (wasEditing && DrawTool.contextMenuLayer?.enableEdit) {
+                                setTimeout(() => {
+                                    if (DrawTool.contextMenuLayer.snapediting) {
+                                        DrawTool.contextMenuLayer.snapediting.enable()
+                                    } else {
+                                        DrawTool.contextMenuLayer.enableEdit()
+                                    }
+                                    DrawTool.isEditing = true
+                                }, 50)
+                            }
+                        }, 10)
+
+                        break
+                    }
+                }
+
+                // If feature not found (panned out of extent), deselect it
+                if (!featureFound) {
+                    if (DrawTool.contextMenuLayer?.feature?.properties?._
+                        && DrawTool.contextMenuLayer.feature.properties._.id === selectedId) {
+                        DrawTool.contextMenuLayer = null
+                        DrawTool.isEditing = false
+                        L_.resetLayerFills()
+                    }
+                }
+
+                // Clear pending restore state
+                delete DrawTool.dynamicExtent.pendingRestore
+            }
+
             if (typeof cb === 'function') {
                 cb()
             }
         }
+    },
+    /**
+     * Reload file features based on current map extent (DynamicExtent)
+     * @param {int} fileId
+     * @param {number} time
+     * @param {boolean} populateShapesAfter
+     * @param {array} selectedFeatureIds
+     * @param {function} cb
+     * @param {boolean} dontUpdateSourceGeoJSON
+     */
+    reloadFileInExtent: function(
+        fileId,
+        time,
+        populateShapesAfter,
+        selectedFeatureIds,
+        cb,
+        dontUpdateSourceGeoJSON
+    ) {
+        const parsedId = fileId || 'master'
+
+        // Check if already loading
+        if (DrawTool.dynamicExtent.isLoading[parsedId]) {
+            return // Avoid duplicate requests
+        }
+
+        // Get current map bounds
+        const bounds = Map_.map.getBounds()
+        const zoom = Map_.map.getZoom()
+        const center = Map_.map.getCenter()
+
+        // Get the map's CRS (from L_.layers.data projection or default)
+        const mapCRS = Map_.projection?.epsg || 'EPSG:4326'
+
+        // Check if we should reload based on move threshold
+        const lastLoc = DrawTool.dynamicExtent.lastRequestedLocation[parsedId]
+        const moveThreshold = DrawTool.dynamicExtent.moveThreshold
+
+        if (lastLoc != null) {
+            // Calculate distance moved
+            const dist = F_.lngLatDistBetween(lastLoc.lng, lastLoc.lat, center.lng, center.lat)
+
+            // Parse threshold (format: "1000" or "1000/z")
+            let thresholdMeters = parseFloat(moveThreshold)
+            if (moveThreshold.indexOf('/z') > -1) {
+                thresholdMeters = thresholdMeters / Math.pow(2, zoom)
+            }
+
+            // Don't reload if we haven't moved far enough
+            if (dist < thresholdMeters) {
+                if (typeof cb === 'function') cb()
+                return
+            }
+        }
+
+        // Mark as loading
+        DrawTool.dynamicExtent.isLoading[parsedId] = true
+
+        // Build request body with extent
+        const body = {
+            id: JSON.stringify(parsedId),
+            time: time || Math.floor(Date.now()),
+            minx: bounds.getWest(),
+            miny: bounds.getSouth(),
+            maxx: bounds.getEast(),
+            maxy: bounds.getNorth(),
+            crs: mapCRS,
+        }
+
+        // Add temporal filter if TimeControl is enabled
+        if (typeof TimeControl !== 'undefined' && L_.TimeControl_) {
+            const currentTime = L_.TimeControl_
+            if (currentTime) {
+                try {
+                    const startTime = new Date(L_.TimeControl_.getStartTime()).getTime()
+                    const endTime = new Date(L_.TimeControl_.getEndTime()).getTime()
+                    if (!isNaN(startTime) && !isNaN(endTime)) {
+                        body.startTime = startTime
+                        body.endTime = endTime
+                        body.timeProp = DrawTool.dynamicExtent.timeProp
+                    }
+                } catch (e) {
+                    // TimeControl not available or error getting times
+                }
+            }
+        }
+
+        // Store the requested extent and location
+        DrawTool.dynamicExtent.lastRequestedExtent[parsedId] = {
+            minx: body.minx,
+            miny: body.miny,
+            maxx: body.maxx,
+            maxy: body.maxy,
+            crs: mapCRS,
+            timestamp: Date.now(),
+        }
+        DrawTool.dynamicExtent.lastRequestedLocation[parsedId] = {
+            lng: center.lng,
+            lat: center.lat,
+        }
+
+        // Make API request
+        DrawTool.getFile(body, function(data) {
+            // Mark as no longer loading
+            DrawTool.dynamicExtent.isLoading[parsedId] = false
+
+            if (!data || !data.geojson) {
+                console.error('DrawTool: Failed to load features in extent')
+                if (typeof cb === 'function') cb()
+                return
+            }
+
+            // Clear existing features (matching LayerCapturer behavior)
+            const layerId = 'DrawTool_' + parsedId
+            if (L_.layers.layer.hasOwnProperty(layerId)) {
+                for (let i = 0; i < L_.layers.layer[layerId].length; i++) {
+                    const popupLayer = L_.layers.layer[layerId][i]
+                    DrawTool.removePopupsFromLayer(popupLayer)
+                    Map_.rmNotNull(L_.layers.layer[layerId][i])
+                    L_.layers.layer[layerId][i] = null
+                }
+                Globe_.litho.removeLayer('camptool_' + layerId)
+            }
+
+            // Render new features using existing keepGoing logic
+            const features = data.geojson.features
+            if (dontUpdateSourceGeoJSON != true) {
+                DrawTool.fileGeoJSONFeatures[parsedId] = features
+            }
+
+            // Call the keepGoing function from refreshFile with the loaded data
+            // We need to invoke it in a way that reuses the existing rendering logic
+            // For now, let's trigger a refresh with forceGeoJSON
+            // If Shapes tab is active, ensure we refresh it to sync with new indices
+            const shouldPopulateShapes = populateShapesAfter || DrawTool.activeContent === 'shapes'
+
+            DrawTool.refreshFile(
+                parsedId,
+                time,
+                shouldPopulateShapes,
+                selectedFeatureIds,
+                false,
+                cb,
+                data.geojson,
+                dontUpdateSourceGeoJSON
+            )
+        })
     },
     /**
      * Adds or removes a file
