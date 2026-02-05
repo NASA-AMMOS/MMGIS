@@ -1923,7 +1923,8 @@ var Files = {
         asPublished,
         cb,
         forceGeoJSON,
-        dontUpdateSourceGeoJSON
+        dontUpdateSourceGeoJSON,
+        forceReload
     ) {
         let parsedId =
             typeof parseInt(id) === 'number' && !Array.isArray(id)
@@ -1950,7 +1951,8 @@ var Files = {
                 populateShapesAfter,
                 selectedFeatureIds,
                 cb,
-                dontUpdateSourceGeoJSON
+                dontUpdateSourceGeoJSON,
+                forceReload
             )
             return
         }
@@ -2255,7 +2257,8 @@ var Files = {
         populateShapesAfter,
         selectedFeatureIds,
         cb,
-        dontUpdateSourceGeoJSON
+        dontUpdateSourceGeoJSON,
+        forceReload
     ) {
         const parsedId = fileId || 'master'
 
@@ -2272,11 +2275,11 @@ var Files = {
         // Get the map's CRS (from L_.layers.data projection or default)
         const mapCRS = Map_.projection?.epsg || 'EPSG:4326'
 
-        // Check if we should reload based on move threshold
+        // Check if we should reload based on move threshold (unless forceReload is true)
         const lastLoc = DrawTool.dynamicExtent.lastRequestedLocation[parsedId]
         const moveThreshold = DrawTool.dynamicExtent.moveThreshold
 
-        if (lastLoc != null) {
+        if (lastLoc != null && !forceReload) {
             // Calculate distance moved
             const dist = F_.lngLatDistBetween(lastLoc.lng, lastLoc.lat, center.lng, center.lat)
 
@@ -2350,17 +2353,8 @@ var Files = {
                 return
             }
 
-            // Clear existing features (matching LayerCapturer behavior)
-            const layerId = 'DrawTool_' + parsedId
-            if (L_.layers.layer.hasOwnProperty(layerId)) {
-                for (let i = 0; i < L_.layers.layer[layerId].length; i++) {
-                    const popupLayer = L_.layers.layer[layerId][i]
-                    DrawTool.removePopupsFromLayer(popupLayer)
-                    Map_.rmNotNull(L_.layers.layer[layerId][i])
-                    L_.layers.layer[layerId][i] = null
-                }
-                Globe_.litho.removeLayer('camptool_' + layerId)
-            }
+            // Don't clear features here - let refreshFile's keepGoing handle it
+            // This prevents flickering where features disappear before new ones load
 
             // Render new features using existing keepGoing logic
             const features = data.geojson.features
@@ -2369,8 +2363,7 @@ var Files = {
             }
 
             // Call the keepGoing function from refreshFile with the loaded data
-            // We need to invoke it in a way that reuses the existing rendering logic
-            // For now, let's trigger a refresh with forceGeoJSON
+            // refreshFile with forceGeoJSON will go through keepGoing which clears and re-renders
             // If Shapes tab is active, ensure we refresh it to sync with new indices
             const shouldPopulateShapes = populateShapesAfter || DrawTool.activeContent === 'shapes'
 

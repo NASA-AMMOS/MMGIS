@@ -2530,7 +2530,7 @@ var Editing = {
                         function (data) {
                             DrawTool.refreshFile(fileid, null, true, [
                                 data.body.id,
-                            ])
+                            ], false, null, null, null, true)
 
                             if (DrawTool.isReviewOpen) DrawTool.showReview()
                         },
@@ -2683,7 +2683,10 @@ var Editing = {
                                                 'var(--color-a)'
                                             )
                                         }, 1500)
-                                    }
+                                    },
+                                    null,
+                                    null,
+                                    true
                                 )
 
                                 if (DrawTool.isReviewOpen) DrawTool.showReview()
@@ -2723,7 +2726,12 @@ var Editing = {
                             fileid,
                             null,
                             true,
-                            newSelectedFeatureIds
+                            newSelectedFeatureIds,
+                            false,
+                            null,
+                            null,
+                            null,
+                            true
                         )
                     } else {
                         var l = DrawTool.contextMenuLayers[i]

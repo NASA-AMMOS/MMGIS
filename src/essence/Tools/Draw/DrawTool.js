@@ -218,6 +218,7 @@ var markup = [
           "<div id='drawToolShapesFilterDiv'>",
             "<div id='drawToolShapesFilterAdvanced'><i class='mdi mdi-filter mdi-18px'></i></div>",
             "<input id='drawToolShapesFilter' type='text' placeholder='Filter Shapes' />",
+            "<button id='drawToolShapesFilterToggle' class='mmgisButton5' title='Show onscreen features only'><i class='mdi mdi-monitor mdi-18px'></i></button>",
             "<div id='drawToolShapesFilterClear'><i class='mdi mdi-close mdi-18px'></i></div>",
             "<div id='drawToolShapesFilterCount'></div>",
           "</div>",
@@ -256,6 +257,16 @@ var markup = [
           "<div id='drawToolDrawShapesList' class='mmgisScrollbar2'>",
             "<ul id='drawToolShapesFeaturesList' class='unselectable'>",
             "</ul>",
+          "</div>",
+          "<div id='drawToolShapesPagination' style='display: none;'>",
+            "<div class='drawToolPagination-info'>",
+              "<span id='drawToolPaginationInfo'>0-0 of 0</span>",
+            "</div>",
+            "<div class='drawToolPagination-controls'>",
+              "<button id='drawToolPaginationPrev' class='mmgisButton5'>◀</button>",
+              "<span>Page <input type='number' id='drawToolPaginationPage' value='1' min='1'> of <span id='drawToolPaginationTotalPages'>1</span></span>",
+              "<button id='drawToolPaginationNext' class='mmgisButton5'>▶</button>",
+            "</div>",
           "</div>",
           "<div id='drawToolShapesCopyDiv'>",
             "<div>Copy to</div>",
@@ -1952,7 +1963,7 @@ function interfaceWithMMGIS() {
                             parseInt(copyBodies[0].file_id)
                         ) != -1
                     ) {
-                        DrawTool.refreshFile(copyBodies[0].file_id, null, true)
+                        DrawTool.refreshFile(copyBodies[0].file_id, null, true, null, false, null, null, null, true)
                     }
                     if (copiedSI < numToCopy) {
                         CursorInfo.update(
