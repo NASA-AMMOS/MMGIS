@@ -100,12 +100,33 @@ function getfile(req, res, next) {
 
     let ids = req.body.id;
 
+    // Validate that all IDs are numeric (reject non-numeric strings like "master")
     if (idArray) {
       if (ids == null) ids = null;
       if (!Array.isArray(ids)) ids = [ids];
       if (ids.length === 0) ids = null;
+
+      // Validate each ID is a number
+      if (ids !== null && !ids.every(id => typeof id === 'number' && !isNaN(id))) {
+        logger("error", `[DrawTool] Received non-numeric file ID(s): ${JSON.stringify(ids)}`, req.originalUrl, req);
+        return res.status(400).json({
+          status: 'failure',
+          message: 'Invalid file ID format. File IDs must be numeric.',
+          body: {}
+        });
+      }
     } else {
       if (ids == null) ids = null;
+
+      // Validate single ID is a number
+      if (ids !== null && (typeof ids !== 'number' || isNaN(ids))) {
+        logger("error", `[DrawTool] Received non-numeric file ID: ${ids}`, req.originalUrl, req);
+        return res.status(400).json({
+          status: 'failure',
+          message: 'Invalid file ID format. File IDs must be numeric.',
+          body: {}
+        });
+      }
     }
 
     let atThisTime = published
@@ -186,7 +207,6 @@ function getfile(req, res, next) {
               // Decode filters (following GeodatasetFilterer pattern)
               let filters = null;
               if (req.body.filters != null && req.body.filters !== '') {
-                console.log('[DrawTool Backend] Received filters:', req.body.filters);
                 const filterSplit = req.body.filters.split(',');
                 filters = [];
                 filterSplit.forEach((f) => {
@@ -204,8 +224,10 @@ function getfile(req, res, next) {
                     }
                   }
                 });
-                console.log('[DrawTool Backend] Decoded filters:', JSON.stringify(filters, null, 2));
               }
+
+              // Note: geometry.type filters are now handled inline within the filter loop
+              // Don't extract them separately to preserve grouping logic
 
               // Build SELECT clause
               let selectClause = metadataOnly
@@ -224,14 +246,38 @@ function getfile(req, res, next) {
               whereClause += " AND id IN (:bestHistory)";
               replacements.bestHistory = bestHistory != null && bestHistory.length > 0 ? bestHistory : null;
 
-              // Add filter WHERE clauses
+              // Add filter WHERE clauses (following geodatasets pattern)
               if (filters != null && filters.length > 0) {
-                let groupOp = 'AND'; // Default group operator
+                let filterSQL = [];
+                let currentGroupOp = null;
+                let currentGroup = [];
 
                 filters.forEach((filter, idx) => {
-                  if (filter.isGroup) {
-                    // Update group operator for subsequent filters
-                    groupOp = filter.op;
+                  if (filter.isGroup === true) {
+                    // When we encounter a different operator, finalize the current group
+                    if (
+                      currentGroupOp != null &&
+                      currentGroupOp != filter.op &&
+                      currentGroup.length > 0
+                    ) {
+                      filterSQL.push(
+                        `${
+                          currentGroupOp == "NOT_AND" || currentGroupOp == "NOT_OR"
+                            ? "NOT "
+                            : ""
+                        }(${currentGroup.join(
+                          ` ${
+                            currentGroupOp == "NOT_AND"
+                              ? "AND"
+                              : currentGroupOp == "NOT_OR"
+                              ? "OR"
+                              : currentGroupOp
+                          } `
+                        )})`
+                      );
+                      currentGroup = [];
+                    }
+                    currentGroupOp = filter.op;
                   } else {
                     // Build SQL condition for this filter
                     const propKey = filter.key;
@@ -244,26 +290,19 @@ function getfile(req, res, next) {
 
                     if (op === '=') {
                       sqlOp = '=';
-                      sqlValue = value;
                     } else if (op === '!=') {
                       sqlOp = '!=';
-                      sqlValue = value;
                     } else if (op === ',') {
-                      // IN operator - split comma-separated values
                       sqlOp = 'IN';
                       sqlValue = value.split(',').map(v => v.trim());
                     } else if (op === '<') {
                       sqlOp = '<';
-                      sqlValue = value;
                     } else if (op === '>') {
                       sqlOp = '>';
-                      sqlValue = value;
                     } else if (op === '<=') {
                       sqlOp = '<=';
-                      sqlValue = value;
                     } else if (op === '>=') {
                       sqlOp = '>=';
-                      sqlValue = value;
                     } else if (op === 'contains') {
                       sqlOp = 'LIKE';
                       sqlValue = `%${value}%`;
@@ -275,40 +314,76 @@ function getfile(req, res, next) {
                       sqlValue = `%${value}`;
                     }
 
-                    // Build property access
-                    // NOTE: properties is double-encoded JSON (stored as JSON string, not JSON object)
-                    // So we need to unwrap with #>>'{}'', parse with ::json, then extract the field
-                    const propAccess = `((properties#>>'{}')::json->>'${propKey}')`;
-
-                    // Cast to appropriate type if needed
-                    const castPropAccess = filter.type === 'number'
-                      ? `(${propAccess})::numeric`
-                      : propAccess;
-
                     // Build SQL condition
                     let condition;
-                    if (sqlOp === 'IN') {
-                      const placeholderKey = `filter_${idx}`;
-                      condition = `${castPropAccess} IN (:${placeholderKey})`;
-                      replacements[placeholderKey] = sqlValue;
+
+                    // Special handling for geometry.type (derived field, not a property)
+                    if (propKey === 'geometry.type') {
+                      // PostGIS returns geometry types prefixed with 'ST_' (e.g., 'ST_Point')
+                      const geomTypeValue = `ST_${value}`;
+
+                      if (sqlOp === '=') {
+                        condition = `ST_GeometryType(geom) = '${geomTypeValue}'`;
+                      } else if (sqlOp === '!=') {
+                        condition = `ST_GeometryType(geom) != '${geomTypeValue}'`;
+                      } else if (sqlOp === 'IN') {
+                        const values = sqlValue.map(v => `'ST_${v.trim()}'`).join(',');
+                        condition = `ST_GeometryType(geom) IN (${values})`;
+                      }
                     } else {
-                      const placeholderKey = `filter_${idx}`;
-                      condition = `${castPropAccess} ${sqlOp} :${placeholderKey}`;
-                      replacements[placeholderKey] = sqlValue;
+                      // Regular property access
+                      // NOTE: properties is double-encoded JSON (stored as JSON string, not JSON object)
+                      const propAccess = `((properties#>>'{}')::json->>'${propKey}')`;
+
+                      // Cast to appropriate type if needed
+                      const castPropAccess = filter.type === 'number'
+                        ? `(${propAccess})::numeric`
+                        : propAccess;
+
+                      if (sqlOp === 'IN') {
+                        const placeholderKey = `filter_${idx}`;
+                        condition = `${castPropAccess} IN (:${placeholderKey})`;
+                        replacements[placeholderKey] = sqlValue;
+                      } else {
+                        const placeholderKey = `filter_${idx}`;
+                        condition = `${castPropAccess} ${sqlOp} :${placeholderKey}`;
+                        replacements[placeholderKey] = sqlValue;
+                      }
                     }
 
-                    // Apply group operator
-                    if (groupOp === 'AND') {
-                      whereClause += ` AND ${condition}`;
-                    } else if (groupOp === 'OR') {
-                      whereClause += ` OR ${condition}`;
-                    } else if (groupOp === 'NOT_AND') {
-                      whereClause += ` AND NOT ${condition}`;
-                    } else if (groupOp === 'NOT_OR') {
-                      whereClause += ` OR NOT ${condition}`;
+                    // Add to appropriate group or standalone list
+                    if (currentGroupOp == null) {
+                      filterSQL.push(condition);
+                    } else {
+                      currentGroup.push(condition);
                     }
                   }
                 });
+
+                // Finalize any remaining group
+                if (currentGroup.length > 0) {
+                  const groupSQL = `${
+                    currentGroupOp == "NOT_AND" || currentGroupOp == "NOT_OR"
+                      ? "NOT "
+                      : ""
+                  }(${currentGroup.join(
+                    ` ${
+                      currentGroupOp === "NOT_AND"
+                        ? "AND"
+                        : currentGroupOp === "NOT_OR"
+                        ? "OR"
+                        : currentGroupOp || "AND"
+                    } `
+                  )})`;
+
+                  filterSQL.push(groupSQL);
+                }
+
+                // Join all filter groups with AND
+                if (filterSQL.length > 0) {
+                  const filterClause = filterSQL.join(' AND ');
+                  whereClause += ` AND ${filterClause}`;
+                }
               }
 
               // Add spatial filter if bounds provided
@@ -355,15 +430,39 @@ function getfile(req, res, next) {
               let orderByClause = '';
               if (sortBy != null) {
                 const sortDirection = sortOrder === 'desc' ? 'DESC' : 'ASC';
-                // Handle nested properties (e.g., "properties.name")
-                if (sortBy.startsWith('properties.')) {
-                  const propKey = sortBy.substring(11); // Remove "properties." prefix
-                  orderByClause = ` ORDER BY (properties->>'${propKey}') ${sortDirection}`;
-                } else if (sortBy === 'geometry.type') {
-                  orderByClause = ` ORDER BY ST_GeometryType(geom) ${sortDirection}`;
-                } else {
-                  // Direct column access
-                  orderByClause = ` ORDER BY ${sortBy} ${sortDirection}`;
+
+                // Determine if this is a geometry type sort
+                if (sortBy === 'geometry.type') {
+                  orderByClause = ` ORDER BY ST_GeometryType(geom) ${sortDirection} NULLS LAST`;
+                }
+                // Check if it's a direct database column (id, file_id, level, intent)
+                else if (['id', 'file_id', 'level', 'intent'].includes(sortBy)) {
+                  orderByClause = ` ORDER BY ${sortBy} ${sortDirection} NULLS LAST`;
+                }
+                // Otherwise, treat it as a JSON property key in the properties column
+                else {
+                  // Handle both "properties.key" format and plain "key" format
+                  const propKey = sortBy.startsWith('properties.')
+                    ? sortBy.substring(11)  // Remove "properties." prefix
+                    : sortBy;                // Use as-is (already just the key)
+
+                  // SQL Injection Prevention: Use Sequelize replacements for the JSON key
+                  // We use a replacement parameter for the property key value
+                  replacements.sortPropKey = propKey;
+
+                  // Smart sorting: Try numeric first (for timestamps/numbers), fall back to text
+                  // For ISO date strings, text sorting works correctly due to lexicographic order
+                  // For pure numbers, cast to numeric for proper sorting
+                  // Note: Match the filter pattern - use (properties#>>'{}')::json->> for key extraction
+                  const jsonPath = `((properties#>>'{}')::json->>:sortPropKey)`;
+                  const numericCheck = `${jsonPath} ~ '^[0-9]+\\.?[0-9]*\\$'`;
+                  orderByClause = ` ORDER BY
+                    CASE
+                      WHEN ${numericCheck}
+                      THEN ${jsonPath}::numeric
+                      ELSE NULL
+                    END ${sortDirection} NULLS LAST,
+                    ${jsonPath}::text ${sortDirection} NULLS LAST`;
                 }
               }
 
@@ -374,9 +473,6 @@ function getfile(req, res, next) {
               }
 
               const query = `SELECT ${selectClause} FROM user_features${req.body.test === "true" ? "_tests" : ""} WHERE ${whereClause}${orderByClause}${limitClause}`;
-
-              console.log('[DrawTool Backend] Final query:', query);
-              console.log('[DrawTool Backend] Query replacements:', JSON.stringify(replacements, null, 2));
 
               // Get total count for pagination (when filters are applied)
               let totalCount = null;
@@ -394,7 +490,7 @@ function getfile(req, res, next) {
               ])
               .then(([[results], [countResults]]) => {
                 totalCount = countResults && countResults[0] ? parseInt(countResults[0].count) : results.length;
-                console.log('[DrawTool Backend] Query returned', results.length, 'results, totalCount:', totalCount);
+
                   let geojson = { type: "FeatureCollection", features: [] };
                   for (let i = 0; i < results.length; i++) {
                     let properties = JSON.parse(results[i].properties);
@@ -411,21 +507,24 @@ function getfile(req, res, next) {
                     geojson.features.push(feature);
                   }
 
-                  //Sort features by level
-                  geojson.features.sort((a, b) =>
-                    a.properties._.level > b.properties._.level
-                      ? 1
-                      : b.properties._.level > a.properties._.level
-                      ? -1
-                      : 0
-                  );
+                  // Only apply default sorting if no sortBy was specified
+                  // Otherwise, preserve the database ORDER BY results
+                  if (!sortBy) {
+                    //Sort features by level
+                    geojson.features.sort((a, b) =>
+                      a.properties._.level > b.properties._.level
+                        ? 1
+                        : b.properties._.level > a.properties._.level
+                        ? -1
+                        : 0
+                    );
 
-                  if (req.body.test !== "true") {
-                    //Sort features by geometry type
-                    geojson.features.sort((a, b) => {
-                      if (
-                        a.geometry.type == "Point" &&
-                        b.geometry.type == "Polygon"
+                    if (req.body.test !== "true") {
+                      //Sort features by geometry type
+                      geojson.features.sort((a, b) => {
+                        if (
+                          a.geometry.type == "Point" &&
+                          b.geometry.type == "Polygon"
                       )
                         return 1;
                       if (
@@ -451,6 +550,7 @@ function getfile(req, res, next) {
                       if (a.geometry.type == b.geometry.type) return 0;
                       return 0;
                     });
+                    }
                   }
 
                   res.send({

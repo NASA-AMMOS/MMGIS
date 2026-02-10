@@ -1997,8 +1997,10 @@ var Files = {
                     var popupLayer = L_.layers.layer[layerId][i]
                     DrawTool.removePopupsFromLayer(popupLayer)
                     Map_.rmNotNull(L_.layers.layer[layerId][i])
-                    L_.layers.layer[layerId][i] = null
                 }
+                // Reset to empty array instead of leaving null holes
+                // This ensures new features start at index 0 and stay synchronized
+                L_.layers.layer[layerId] = []
                 //And from the Globe
                 Globe_.litho.removeLayer('camptool_' + layerId)
             }
@@ -2364,8 +2366,13 @@ var Files = {
 
             // Call the keepGoing function from refreshFile with the loaded data
             // refreshFile with forceGeoJSON will go through keepGoing which clears and re-renders
-            // If Shapes tab is active, ensure we refresh it to sync with new indices
-            const shouldPopulateShapes = populateShapesAfter || DrawTool.activeContent === 'shapes'
+            // Only repopulate shapes if:
+            // - Explicitly requested via populateShapesAfter, OR
+            // - Shapes tab is active AND we're in 'onscreen' mode (not filtered)
+            const isShapesTabInOnscreenMode = DrawTool.activeContent === 'shapes' &&
+                                               DrawTool.Shapes &&
+                                               DrawTool.Shapes.mode === 'onscreen'
+            const shouldPopulateShapes = populateShapesAfter || isShapesTabInOnscreenMode
 
             DrawTool.refreshFile(
                 parsedId,

@@ -1646,8 +1646,6 @@ var Editing = {
                                     DrawTool.populateShapes()
                                 }
                             )
-                        } else {
-                            console.log('n/a')
                         }
                     }
                 }

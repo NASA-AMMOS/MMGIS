@@ -81,7 +81,6 @@
     background: var(--color-a1);
     color: var(--color-a7);
 }
-#drawToolShapesFilterToggle,
 #drawToolShapesFilterAdvanced,
 #drawToolShapesFilterClear {
     border-bottom: 1px solid rgba(0, 0, 0, 0.3);
@@ -97,7 +96,6 @@
     padding: 0;
 }
 
-#drawToolShapesFilterToggle > i,
 #drawToolShapesFilterAdvanced > i,
 #drawToolShapesFilterClear > i {
     background: none !important;
@@ -106,7 +104,6 @@
     margin: 0 !important;
 }
 
-#drawToolShapesFilterToggle:hover > i,
 #drawToolShapesFilterAdvanced:hover > i,
 #drawToolShapesFilterClear:hover > i {
     color: var(--color-a7) !important;
@@ -160,7 +157,6 @@
 .drawToolShapesFeaturesListFileHeader {
     border-bottom: 1px solid var(--color-m3);
     font-size: 13px;
-    width: max-content;
     padding: 4px 8px;
 }
 .drawToolShapeLi {
@@ -655,7 +651,6 @@
 .drawToolPagination-controls {
     display: flex;
     align-items: center;
-    gap: 8px;
     font-size: 13px;
     color: var(--color-a5);
 }
@@ -665,7 +660,8 @@
     background: var(--color-a2);
     color: var(--color-a7);
     border: none;
-    padding: 4px 8px;
+    border-radius: 2px;
+    padding: 4px;
     cursor: pointer;
     font-size: 14px;
     height: 24px;
@@ -693,8 +689,22 @@
     color: var(--color-a7);
     border: 1px solid var(--color-e);
     width: 50px;
+    height: 24px;
     padding: 4px;
     text-align: center;
     border-radius: 2px;
     font-size: 13px;
+    margin: 0px 2px;
+}
+
+/* Mode Message Styles */
+#drawToolShapesModeMessage {
+    background: var(--color-a1);
+    color: var(--color-a5);
+    font-size: 12px;
+    text-align: center;
+    padding: 8px 10px;
+    border-top: 1px solid rgba(0, 0, 0, 0.3);
+    line-height: 1.4;
+    word-wrap: break-word;
 }

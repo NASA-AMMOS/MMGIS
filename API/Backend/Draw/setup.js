@@ -1,6 +1,7 @@
 const routeFiles = require("./routes/files");
 const routerFiles = routeFiles.router;
 const routerDraw = require("./routes/draw").router;
+const routerAggregations = require("./routes/aggregations");
 const ufiles = require("./models/userfiles");
 const file_histories = require("./models/filehistories");
 
@@ -23,6 +24,15 @@ let setup = {
       s.setContentType,
       s.stopGuests,
       routerDraw
+    );
+
+    s.app.use(
+      s.ROOT_PATH + "/api/draw",
+      s.ensureUser(),
+      s.checkHeadersCodeInjection,
+      s.setContentType,
+      s.stopGuests,
+      routerAggregations
     );
   },
   //Once the server starts

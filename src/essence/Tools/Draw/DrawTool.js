@@ -218,7 +218,6 @@ var markup = [
           "<div id='drawToolShapesFilterDiv'>",
             "<div id='drawToolShapesFilterAdvanced'><i class='mdi mdi-filter mdi-18px'></i></div>",
             "<input id='drawToolShapesFilter' type='text' placeholder='Filter Shapes' />",
-            "<button id='drawToolShapesFilterToggle' class='mmgisButton5' title='Show onscreen features only'><i class='mdi mdi-monitor mdi-18px'></i></button>",
             "<div id='drawToolShapesFilterClear'><i class='mdi mdi-close mdi-18px'></i></div>",
             "<div id='drawToolShapesFilterCount'></div>",
           "</div>",
@@ -258,14 +257,15 @@ var markup = [
             "<ul id='drawToolShapesFeaturesList' class='unselectable'>",
             "</ul>",
           "</div>",
+          "<div id='drawToolShapesModeMessage' style='display: none;'></div>",
           "<div id='drawToolShapesPagination' style='display: none;'>",
             "<div class='drawToolPagination-info'>",
               "<span id='drawToolPaginationInfo'>0-0 of 0</span>",
             "</div>",
             "<div class='drawToolPagination-controls'>",
-              "<button id='drawToolPaginationPrev' class='mmgisButton5'>◀</button>",
-              "<span>Page <input type='number' id='drawToolPaginationPage' value='1' min='1'> of <span id='drawToolPaginationTotalPages'>1</span></span>",
-              "<button id='drawToolPaginationNext' class='mmgisButton5'>▶</button>",
+              "<button id='drawToolPaginationPrev' class='mmgisButton5'><i class='mdi mdi-chevron-left mdi-18px'></i></button>",
+              "<input type='number' id='drawToolPaginationPage' value='1' min='1'>",
+              "<button id='drawToolPaginationNext' class='mmgisButton5'><i class='mdi mdi-chevron-right mdi-18px'></i></button>",
             "</div>",
           "</div>",
           "<div id='drawToolShapesCopyDiv'>",
@@ -328,14 +328,14 @@ var DrawTool = {
     fileGeoJSONFeatures: {},
     // DynamicExtent configuration and state
     dynamicExtent: {
-        enabled: true,  // Default to enabled for better performance
+        enabled: true, // Default to enabled for better performance
         moveThreshold: '1000/z',
         timeProp: 'time',
         // Runtime state per file
-        lastRequestedExtent: {},    // { fileId: { minx, miny, maxx, maxy, crs, timestamp } }
-        lastRequestedLocation: {},  // { fileId: { lng, lat } }
-        isLoading: {},              // { fileId: boolean }
-        mapEventHandlers: null,     // Store event handler for cleanup
+        lastRequestedExtent: {}, // { fileId: { minx, miny, maxx, maxy, crs, timestamp } }
+        lastRequestedLocation: {}, // { fileId: { lng, lat } }
+        isLoading: {}, // { fileId: boolean }
+        mapEventHandlers: null, // Store event handler for cleanup
     },
     palettes: [
         [
@@ -558,8 +558,19 @@ var DrawTool = {
                     const fileIds = tUrl2[0].split('.')
                     let finishedFileIdsCount = 0
                     for (let f of fileIds) {
+                        // Skip empty strings and validate numeric IDs
+                        if (f === '') continue
+
+                        const fileId = parseInt(f)
+                        // Skip invalid IDs (NaN or non-numeric strings like "master")
+                        if (isNaN(fileId)) {
+                            console.warn(`[DrawTool] Skipping invalid file ID from URL: "${f}"`)
+                            finishedFileIdsCount++
+                            continue
+                        }
+
                         this.toggleFile(
-                            parseInt(f),
+                            fileId,
                             null,
                             null,
                             null,
@@ -657,7 +668,8 @@ var DrawTool = {
             }
             // Override defaults if provided
             if (this.vars.dynamicExtent.moveThreshold) {
-                this.dynamicExtent.moveThreshold = this.vars.dynamicExtent.moveThreshold
+                this.dynamicExtent.moveThreshold =
+                    this.vars.dynamicExtent.moveThreshold
             }
             if (this.vars.dynamicExtent.timeProp) {
                 this.dynamicExtent.timeProp = this.vars.dynamicExtent.timeProp
@@ -893,11 +905,11 @@ var DrawTool = {
             }
         }
     },
-    attachDynamicExtentListeners: function() {
+    attachDynamicExtentListeners: function () {
         const self = this
         let reloadTimeout = null
 
-        const handleExtentChange = function(e) {
+        const handleExtentChange = function (e) {
             // Debounce to avoid excessive requests during rapid panning
             clearTimeout(reloadTimeout)
             reloadTimeout = setTimeout(() => {
@@ -907,7 +919,8 @@ var DrawTool = {
                 let wasEditing = false
 
                 if (self.contextMenuLayer?.feature?.properties?._) {
-                    selectedFeatureId = self.contextMenuLayer.feature.properties._.id
+                    selectedFeatureId =
+                        self.contextMenuLayer.feature.properties._.id
                     // Check if the feature was being edited
                     if (self.contextMenuLayer?.editEnabled) {
                         wasEditing = self.contextMenuLayer.editEnabled()
@@ -917,14 +930,19 @@ var DrawTool = {
                 // Store state for restoration
                 self.dynamicExtent.pendingRestore = {
                     selectedFeatureId: selectedFeatureId,
-                    wasEditing: wasEditing
+                    wasEditing: wasEditing,
                 }
 
                 // Reload all active files in the new extent
                 Object.keys(self.filesOn).forEach((idx) => {
                     const fileId = self.filesOn[idx]
                     if (fileId != null && fileId !== 'master') {
-                        self.Files.reloadFileInExtent(fileId, null, null, selectedFeatureId ? [selectedFeatureId] : null)
+                        self.Files.reloadFileInExtent(
+                            fileId,
+                            null,
+                            DrawTool.activeContent === 'shapes', // Re-attach click handlers when Shapes tab is active
+                            selectedFeatureId ? [selectedFeatureId] : null
+                        )
                     }
                 })
             }, 300) // 300ms debounce
@@ -937,7 +955,7 @@ var DrawTool = {
         // Store reference for cleanup
         this.dynamicExtent.mapEventHandlers = handleExtentChange
     },
-    handleTimeChange: function() {
+    handleTimeChange: function () {
         if (!this.dynamicExtent.enabled) return
 
         // Clear last requested extents to force reload with new time
@@ -959,14 +977,19 @@ var DrawTool = {
         // Store state for restoration
         this.dynamicExtent.pendingRestore = {
             selectedFeatureId: selectedFeatureId,
-            wasEditing: wasEditing
+            wasEditing: wasEditing,
         }
 
         // Reload all active files
         Object.keys(this.filesOn).forEach((idx) => {
             const fileId = this.filesOn[idx]
             if (fileId != null && fileId !== 'master') {
-                this.Files.reloadFileInExtent(fileId, null, null, selectedFeatureId ? [selectedFeatureId] : null)
+                this.Files.reloadFileInExtent(
+                    fileId,
+                    null,
+                    null,
+                    selectedFeatureId ? [selectedFeatureId] : null
+                )
             }
         })
     },
@@ -987,8 +1010,13 @@ var DrawTool = {
         )
             ? 1
             : 0
+
+        // Filter out "master" from filesOn - master files are loaded by default
+        // and should not be persisted in URLs as they're system-wide state
+        const numericFilesOn = this.filesOn.filter(id => typeof id === 'number')
+
         return (
-            this.filesOn.toString().replace(/,/g, '.') +
+            numericFilesOn.toString().replace(/,/g, '.') +
             `-${publicFilterOn}${yoursOnlyFilterOn}${onFilterOn}`
         )
     },
@@ -1963,7 +1991,17 @@ function interfaceWithMMGIS() {
                             parseInt(copyBodies[0].file_id)
                         ) != -1
                     ) {
-                        DrawTool.refreshFile(copyBodies[0].file_id, null, true, null, false, null, null, null, true)
+                        DrawTool.refreshFile(
+                            copyBodies[0].file_id,
+                            null,
+                            true,
+                            null,
+                            false,
+                            null,
+                            null,
+                            null,
+                            true
+                        )
                     }
                     if (copiedSI < numToCopy) {
                         CursorInfo.update(
@@ -2085,7 +2123,7 @@ function interfaceWithMMGIS() {
                 DrawTool.populateHistory()
             },
             function () {
-                console.log('History save failed')
+                // History save failed
             }
         )
     })
