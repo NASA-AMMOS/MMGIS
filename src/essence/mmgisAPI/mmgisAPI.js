@@ -421,6 +421,7 @@ var mmgisAPI_ = {
             'toggleSeparatedTool',
             'newActiveFeature',
             'layersToolHeaderStateChange',
+            'madeLegendTool',
         ]
         return validEvents.includes(eventName)
     },
@@ -691,7 +692,7 @@ var mmgisAPI = {
     getVisibleLayers: mmgisAPI_.getVisibleLayers,
 
     /** addEventListener - adds map event or MMGIS action listener.
-     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick, toolChange, layerVisibilityChange, toggleSeparatedTool, newActiveFeature
+     * @param {string} - eventName - name of event to add listener to. Available events: onPan, onZoom, onClick, toolChange, layerVisibilityChange, toggleSeparatedTool, newActiveFeature, layersToolHeaderStateChange, madeLegendTool
 
      * @param {function} - functionReference - function reference to listener event callback function. null value removes all functions for a given eventName
 
