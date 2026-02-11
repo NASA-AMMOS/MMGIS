@@ -1274,37 +1274,8 @@ async function makeTileLayer(layerObj, mapContext = null) {
         switch (splitColonLayerUrl[0]) {
             case 'stac-collection':
                 splitColonType = splitColonLayerUrl[0]
-                const splitParams = splitColonLayerUrl[1].split('?')
-
-                // Bands parameter (expression will be added dynamically in getTileUrl)
-                let bandsParamStac = ''
-
-                // Only add bands if no expression exists (expression takes precedence)
-                if (
-                    !layerObj.cogExpression ||
-                    layerObj.cogExpression.trim() === ''
-                ) {
-                    b = layerObj.cogBands
-                    if (b != null) {
-                        b.forEach((band) => {
-                            if (band != null) bandsParamStac += `&bidx=${band}`
-                        })
-                    }
-                }
-
-                // Resampling
-                resamplingParam = ''
-                if (layerObj.cogResampling) {
-                    resamplingParam = `&resampling=${layerObj.cogResampling}`
-                }
-
-                layerUrl = `${window.location.origin}${(
-                    window.location.pathname || ''
-                ).replace(/\/$/g, '')}/titilerpgstac/collections/${
-                    splitParams[0]
-                }/tiles/${
-                    layerObj.tileMatrixSet || 'WebMercatorQuad'
-                }/{z}/{x}/{y}?assets=asset${bandsParamStac}${resamplingParam}`
+                // Use shared transformation function
+                layerUrl = L_.transformStacUrl(layerObj.url, layerObj, 'tile')
                 layerObj.tileformat = 'wmts'
                 break
             case 'COG':
