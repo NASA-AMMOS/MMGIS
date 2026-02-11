@@ -677,7 +677,8 @@ async function makeLayer(
     // Default to main map context for backward compatibility
     const mapContext = targetMapContext || {
         map: Map_.map,
-        layerRegistry: L_.layers
+        layerRegistry: L_.layers,
+        default: true,
     }
     return new Promise(async (resolve, reject) => {
         const layerName = L_.asLayerUUID(layerObj.name)
@@ -721,7 +722,14 @@ async function makeLayer(
                     makeVectorTileLayer(layerObj, mapContext)
                     break
                 case 'query':
-                    await makeVectorLayer(layerObj, false, true, forceGeoJSON, false, mapContext)
+                    await makeVectorLayer(
+                        layerObj,
+                        false,
+                        true,
+                        forceGeoJSON,
+                        false,
+                        mapContext
+                    )
                     break
                 case 'data':
                     makeDataLayer(layerObj, mapContext)
@@ -891,7 +899,8 @@ async function makeVectorLayer(
     // Default to main map context for backward compatibility
     const ctx = mapContext || {
         map: Map_.map,
-        layerRegistry: L_.layers
+        layerRegistry: L_.layers,
+        default: true,
     }
 
     return new Promise((resolve, reject) => {
@@ -952,14 +961,20 @@ async function makeVectorLayer(
                     if (existingLayer != null && existingLayer !== false) {
                         console.warn(
                             `[${new Date().toISOString()}] Refresh failed for ${layerObj.display_name}, ` +
-                            `keeping existing layer. Next refresh in ${layerObj.time?.refreshIntervalAmount || 60}s`
+                                `keeping existing layer. Next refresh in ${layerObj.time?.refreshIntervalAmount || 60}s`
                         )
                         // Mark layer as having a failed refresh
                         ctx.layerRegistry.refreshFailed[layerObj.name] = true
                         // Dispatch event so LayersTool can update the UI
-                        const event = new CustomEvent('layerRefreshStatusChanged', {
-                            detail: { layerName: layerObj.name, failed: true }
-                        })
+                        const event = new CustomEvent(
+                            'layerRefreshStatusChanged',
+                            {
+                                detail: {
+                                    layerName: layerObj.name,
+                                    failed: true,
+                                },
+                            }
+                        )
                         document.dispatchEvent(event)
                         resolve()
                         return
@@ -967,10 +982,10 @@ async function makeVectorLayer(
                 }
 
                 // Only set to null for initial loads or if no existing layer
-                L_._layersLoaded[
-                    L_._layersOrdered.indexOf(layerObj.name)
-                ] = true
-                ctx.layerRegistry.layer[layerObj.name] = data == null ? null : false
+                L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] =
+                    true
+                ctx.layerRegistry.layer[layerObj.name] =
+                    data == null ? null : false
                 allLayersLoaded()
                 resolve()
                 return
@@ -979,14 +994,15 @@ async function makeVectorLayer(
             layerObj.style = layerObj.style || {}
             layerObj.style.layerName = layerObj.name
 
-            layerObj.style.opacity = ctx.layerRegistry.opacity[layerObj.name] || 1
+            layerObj.style.opacity =
+                ctx.layerRegistry.opacity[layerObj.name] || 1
             //layerObj.style.fillOpacity = ctx.layerRegistry.opacity[layerObj.name]
 
             const vl = constructVectorLayer(
                 data,
                 layerObj,
                 onEachFeatureDefault,
-                Map_  // Keep passing Map_ - constructVectorLayer expects this
+                Map_ // Keep passing Map_ - constructVectorLayer expects this
             )
 
             // For refresh operations, toggle off old layer and handle seamless swap
@@ -998,30 +1014,41 @@ async function makeVectorLayer(
                 ctx.map.hasLayer(ctx.layerRegistry.layer[layerObj.name])
             ) {
                 wasOnForRefresh = true
-                L_.toggleLayer(ctx.layerRegistry.data[layerObj.name], true, true)
+                L_.toggleLayer(
+                    ctx.layerRegistry.data[layerObj.name],
+                    true,
+                    true
+                )
             }
 
             ctx.layerRegistry.attachments[layerObj.name] = vl.sublayers
             ctx.layerRegistry.layer[layerObj.name] = vl.layer
 
             // Add to appropriate map
-            if (vl.layer) {
+            if (vl.layer && ctx.default != true) {
                 vl.layer.addTo(ctx.map)
             }
 
             // Clear refresh failed status on successful load/refresh
-            if (ctx.layerRegistry.refreshFailed && ctx.layerRegistry.refreshFailed[layerObj.name]) {
+            if (
+                ctx.layerRegistry.refreshFailed &&
+                ctx.layerRegistry.refreshFailed[layerObj.name]
+            ) {
                 ctx.layerRegistry.refreshFailed[layerObj.name] = false
                 // Dispatch event so LayersTool can update the UI
                 const event = new CustomEvent('layerRefreshStatusChanged', {
-                    detail: { layerName: layerObj.name, failed: false }
+                    detail: { layerName: layerObj.name, failed: false },
                 })
                 document.dispatchEvent(event)
             }
 
             // For refresh operations, turn the new layer back on if the old one was on
             if (isRefresh && wasOnForRefresh) {
-                L_.toggleLayer(ctx.layerRegistry.data[layerObj.name], false, true)
+                L_.toggleLayer(
+                    ctx.layerRegistry.data[layerObj.name],
+                    false,
+                    true
+                )
             }
 
             L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
@@ -1043,7 +1070,7 @@ async function makeVelocityLayer(
     // Default to main map context for backward compatibility
     const ctx = mapContext || {
         map: Map_.map,
-        layerRegistry: L_.layers
+        layerRegistry: L_.layers,
     }
     return new Promise((resolve, reject) => {
         if (forceGeoJSON) add(forceGeoJSON)
@@ -1210,9 +1237,8 @@ async function makeVelocityLayer(
                     rainLayer.setZIndex = function () {}
                     L_.layers.layer[layerObj.name] = rainLayer
                 }
-                L_._layersLoaded[
-                    L_._layersOrdered.indexOf(layerObj.name)
-                ] = true
+                L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] =
+                    true
             }
             allLayersLoaded()
             resolve()
@@ -1224,7 +1250,8 @@ async function makeTileLayer(layerObj, mapContext = null) {
     // Default to main map context for backward compatibility
     const ctx = mapContext || {
         map: Map_.map,
-        layerRegistry: L_.layers
+        layerRegistry: L_.layers,
+        default: true,
     }
 
     // Helper function to add default 'asset_' prefix to bands in expressions if not already prefixed
@@ -1370,10 +1397,15 @@ async function makeTileLayer(layerObj, mapContext = null) {
         variables: layerObj.variables || {},
     })
 
-    // Add to appropriate map
-    ctx.layerRegistry.layer[layerObj.name].addTo(ctx.map)
+    // Add to map
+    if (ctx.default != true) {
+        ctx.layerRegistry.layer[layerObj.name].addTo(ctx.map)
+    }
 
-    L_.setLayerOpacity(layerObj.name, ctx.layerRegistry.opacity[layerObj.name] || 1)
+    L_.setLayerOpacity(
+        layerObj.name,
+        ctx.layerRegistry.opacity[layerObj.name] || 1
+    )
 
     L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
     ctx.layerRegistry.layer[layerObj.name].off('loading')
@@ -1429,7 +1461,7 @@ function makeVectorTileLayer(layerObj, mapContext = null) {
     // Default to main map context for backward compatibility
     const ctx = mapContext || {
         map: Map_.map,
-        layerRegistry: L_.layers
+        layerRegistry: L_.layers,
     }
     let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
 
@@ -1612,7 +1644,7 @@ function makeModelLayer(layerObj, mapContext = null) {
     // Default to main map context for backward compatibility
     const ctx = mapContext || {
         map: Map_.map,
-        layerRegistry: L_.layers
+        layerRegistry: L_.layers,
     }
     L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
     allLayersLoaded()
@@ -1622,7 +1654,7 @@ function makeDataLayer(layerObj, mapContext = null) {
     // Default to main map context for backward compatibility
     const ctx = mapContext || {
         map: Map_.map,
-        layerRegistry: L_.layers
+        layerRegistry: L_.layers,
     }
     let layerUrl = L_.getUrl(layerObj.type, layerObj.demtileurl, layerObj)
 
@@ -1668,7 +1700,7 @@ function makeImageLayer(layerObj, mapContext = null) {
     // Default to main map context for backward compatibility
     const ctx = mapContext || {
         map: Map_.map,
-        layerRegistry: L_.layers
+        layerRegistry: L_.layers,
     }
     let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
     if (!F_.isUrlAbsolute(layerUrl)) {
@@ -1860,7 +1892,7 @@ function makeVideoLayer(layerObj, mapContext = null) {
     // Default to main map context for backward compatibility
     const ctx = mapContext || {
         map: Map_.map,
-        layerRegistry: L_.layers
+        layerRegistry: L_.layers,
     }
     let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
     if (!F_.isUrlAbsolute(layerUrl)) {
@@ -2015,7 +2047,10 @@ function buildToolBar() {
     Map_.toolBar.append(scaleBarBounds)
 
     // Create SVG with proper namespace for D3 compatibility
-    const scaleBarSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    const scaleBarSvg = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'svg'
+    )
     scaleBarSvg.setAttribute('id', 'scaleBar')
     scaleBarSvg.setAttribute('width', '270px')
     scaleBarSvg.setAttribute('height', '36px')

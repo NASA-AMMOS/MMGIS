@@ -198,11 +198,42 @@
                 ]
             },
             {
+                "name": "Dynamic Extent Settings",
+                "description": "Load features incrementally based on visible map extent to improve performance for large files.",
+                "components": [
+                    {
+                        "field": "variables.dynamicExtent.enabled",
+                        "name": "Enable Dynamic Extent",
+                        "description": "Load features incrementally based on visible map extent. Improves performance for large files.",
+                        "type": "checkbox",
+                        "width": 6,
+                        "defaultChecked": true
+                    },
+                    {
+                        "field": "variables.dynamicExtent.moveThreshold",
+                        "name": "Dynamic Extent Move Threshold",
+                        "description": "Only reload features when map moves by this distance. Format: '1000' (meters) or '1000/z' (meters divided by 2^zoom). Example: '1000/z' at zoom 10 = 0.98 meters.",
+                        "type": "text",
+                        "width": 6,
+                        "default": "1000/z"
+                    },
+                    {
+                        "field": "variables.dynamicExtent.timeProp",
+                        "name": "Time Property Name",
+                        "description": "Name of the time property in feature properties for temporal filtering.",
+                        "type": "text",
+                        "width": 6,
+                        "default": "time"
+                    }
+                ]
+            },
+            {
+                "name": "Default Templates",
                 "components": [
                     {
                         "field": "variables.templates",
                         "name": "Default File Property Templates",
-                        "description": "Templates create forms for feature properties. For instance, all features in a given draw file could, in the feature's edit panel, have the field “Reviewed” be togglable via a checkbox. Users may make their own templates too but the ones configured here are promoted and cannot be delete.",
+                        "description": "Templates create forms for feature properties. For instance, all features in a given draw file could, in the feature's edit panel, have the field 'Reviewed' be togglable via a checkbox. Users may make their own templates too but the ones configured here are promoted and cannot be delete.",
                         "type": "objectarray",
                         "width": 12,
                         "object": [

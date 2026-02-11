@@ -32,6 +32,23 @@ var Drawing = {
         let tag = null
         if (d.shape && d.shape.properties) tag = d.shape.properties.uuid
 
+        // Add a temporary copy of the feature to the map immediately
+        // This keeps it visible while we wait for the database save and reload
+        const tempFeature = {
+            type: 'Feature',
+            geometry: typeof d.shape.geometry === 'string' ? JSON.parse(d.shape.geometry) : d.shape.geometry,
+            properties: typeof d.shape.properties === 'string' ? JSON.parse(d.shape.properties) : d.shape.properties
+        }
+
+        let tempLayer
+        try {
+            tempLayer = L.geoJson(tempFeature, {
+                style: tempFeature.properties.style || DrawTool.defaultStyle
+            }).addTo(Map_.map)
+        } catch (e) {
+            console.error('[DrawTool] Failed to create temporary layer:', e)
+        }
+
         DrawTool.addDrawing(
             {
                 file_id: file_id,
@@ -41,18 +58,27 @@ var Drawing = {
                 tag: tag,
                 clip: clip,
             },
-            (function (shape) {
+            (function (shape, tempLayer) {
                 return function (data) {
-                    DrawTool.refreshFile(DrawTool.currentFileId, null, true)
+                    DrawTool.refreshFile(DrawTool.currentFileId, null, true, null, false, function() {
+                        // Remove the temporary layer now that the real feature is rendered
+                        if (tempLayer) {
+                            try {
+                                Map_.map.removeLayer(tempLayer)
+                            } catch (e) {
+                                console.error('[DrawTool] Failed to remove temporary layer:', e)
+                            }
+                        }
 
-                    if (d.end && d.begin) {
-                        d.end()
-                        d.begin()
-                    }
-
-                    if (typeof callback === 'function') callback(data)
+                        // Clean up and restart drawing mode after refresh completes
+                        if (d.end && d.begin) {
+                            d.end()
+                            d.begin()
+                        }
+                        if (typeof callback === 'function') callback(data)
+                    }, null, null, true)
                 }
-            })(JSON.parse(JSON.stringify(d.shape))),
+            })(JSON.parse(JSON.stringify(d.shape)), tempLayer),
             function () {
                 if (d.end && d.begin) {
                     d.end()
@@ -422,7 +448,9 @@ var drawing = {
             $('body').off('keydown', d.keydown)
             $('body').off('keyup', d.keyup)
 
-            if (typeof d.drawing.disable === 'function') d.drawing.disable()
+            if (typeof d.drawing.disable === 'function') {
+                d.drawing.disable()
+            }
         },
         start: function (e) {
             var d = drawing.polygon
@@ -693,9 +721,10 @@ var drawing = {
                     geometry: JSON.stringify(d.circleFeature.geometry),
                 },
                 function (data) {
-                    d.end()
-                    DrawTool.refreshFile(DrawTool.currentFileId, null, true)
-                    d.begin()
+                    DrawTool.refreshFile(DrawTool.currentFileId, null, true, null, false, function() {
+                        d.end()
+                        d.begin()
+                    }, null, null, true)
                 },
                 function () {
                     if (d.end && d.begin) {
@@ -795,9 +824,9 @@ var drawing = {
                 },
                 (function (shape) {
                     return function (data) {
-                        DrawTool.refreshFile(DrawTool.currentFileId, null, true)
-
-                        d.begin()
+                        DrawTool.refreshFile(DrawTool.currentFileId, null, true, null, false, function() {
+                            d.begin()
+                        }, null, null, true)
                     }
                 })(JSON.parse(JSON.stringify(d.shape))),
                 function () {
@@ -996,9 +1025,9 @@ var drawing = {
                 },
                 (function (shape) {
                     return function (data) {
-                        DrawTool.refreshFile(DrawTool.currentFileId, null, true)
-
-                        d.begin()
+                        DrawTool.refreshFile(DrawTool.currentFileId, null, true, null, false, function() {
+                            d.begin()
+                        }, null, null, true)
                     }
                 })(JSON.parse(JSON.stringify(d.shape))),
                 function () {
@@ -1130,9 +1159,9 @@ var drawing = {
                 },
                 (function (shape) {
                     return function (data) {
-                        DrawTool.refreshFile(DrawTool.currentFileId, null, true)
-
-                        d.begin()
+                        DrawTool.refreshFile(DrawTool.currentFileId, null, true, null, false, function() {
+                            d.begin()
+                        }, null, null, true)
                     }
                 })(JSON.parse(JSON.stringify(d.shape))),
                 function () {
@@ -1322,11 +1351,10 @@ var drawing = {
                 },
                 (function (shape) {
                     return function (data) {
-                        Map_.rmNotNull(DrawTool.activeAnnotation)
-
-                        DrawTool.refreshFile(DrawTool.currentFileId, null, true)
-
-                        d.begin()
+                        DrawTool.refreshFile(DrawTool.currentFileId, null, true, null, false, function() {
+                            Map_.rmNotNull(DrawTool.activeAnnotation)
+                            d.begin()
+                        }, null, null, true)
                     }
                 })(JSON.parse(JSON.stringify(d.shape))),
                 function () {
@@ -1498,7 +1526,7 @@ var drawing = {
                 },
                 (function (shape, start, end) {
                     return function (data) {
-                        DrawTool.refreshFile(DrawTool.currentFileId, null, true)
+                        DrawTool.refreshFile(DrawTool.currentFileId, null, true, null, false, null, null, null, true)
 
                         d.begin()
                     }

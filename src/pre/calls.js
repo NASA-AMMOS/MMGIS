@@ -151,6 +151,10 @@ const c = {
         type: 'POST',
         url: 'api/geodatasets/search',
     },
+    draw_aggregations: {
+        type: 'POST',
+        url: 'api/draw/aggregations',
+    },
     spatial_published: {
         type: 'POST',
         url: 'api/spatial/published',

@@ -92,6 +92,8 @@
     height: 30px;
     cursor: pointer;
     transition: color 0.2s ease-in-out;
+    border: none;
+    padding: 0;
 }
 
 #drawToolShapesFilterAdvanced > i,
@@ -155,7 +157,6 @@
 .drawToolShapesFeaturesListFileHeader {
     border-bottom: 1px solid var(--color-m3);
     font-size: 13px;
-    width: max-content;
     padding: 4px 8px;
 }
 .drawToolShapeLi {
@@ -628,4 +629,82 @@
     to {
         transform: rotate(360deg);
     }
+}
+
+/* Pagination Styles */
+#drawToolShapesPagination {
+    background: var(--color-a);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-top: 1px solid var(--color-d);
+    height: 40px;
+}
+
+.drawToolPagination-info {
+    color: var(--color-a5);
+    font-size: 13px;
+    padding-left: 4px;
+}
+
+.drawToolPagination-controls {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    color: var(--color-a5);
+}
+
+#drawToolPaginationPrev,
+#drawToolPaginationNext {
+    background: var(--color-a2);
+    color: var(--color-a7);
+    border: none;
+    border-radius: 2px;
+    padding: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    height: 24px;
+    line-height: 16px;
+}
+
+#drawToolPaginationPrev:hover,
+#drawToolPaginationNext:hover {
+    background: var(--color-c);
+}
+
+#drawToolPaginationPrev:disabled,
+#drawToolPaginationNext:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+#drawToolPaginationPrev:disabled:hover,
+#drawToolPaginationNext:disabled:hover {
+    background: var(--color-a2);
+}
+
+#drawToolPaginationPage {
+    background: var(--color-a2);
+    color: var(--color-a7);
+    border: 1px solid var(--color-e);
+    width: 50px;
+    height: 24px;
+    padding: 4px;
+    text-align: center;
+    border-radius: 2px;
+    font-size: 13px;
+    margin: 0px 2px;
+}
+
+/* Mode Message Styles */
+#drawToolShapesModeMessage {
+    background: var(--color-a1);
+    color: var(--color-a5);
+    font-size: 12px;
+    text-align: center;
+    padding: 8px 10px;
+    border-top: 1px solid rgba(0, 0, 0, 0.3);
+    line-height: 1.4;
+    word-wrap: break-word;
 }

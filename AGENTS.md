@@ -7,6 +7,7 @@
 ## Important Instructions
 
 Use MCP tools when possible for code analysis, symbol navigation, and code modifications.
+Local development uses hot-reloading and therefore there is little reason to run `npm run build` for the user.
 
 ## Project Overview
 
@@ -64,24 +65,20 @@ This project uses **spec-kit** for feature development. All new features must fo
 ### Workflow Commands
 
 1. **Specify**: `/speckit.specify "feature description"`
-
    - Creates spec.md with requirements and user scenarios
    - Ensures clear understanding before implementation
 
 2. **Plan**: `/speckit.plan`
-
    - Creates plan.md with technical design
    - Documents architecture and decisions
    - Checks against constitution principles
 
 3. **Tasks**: `/speckit.tasks`
-
    - Creates tasks.md with breakdown of work
    - Each task is 1-2 days of work maximum
    - Tracks dependencies and blockers
 
 4. **Implement**: `/speckit.implement`
-
    - Executes tasks from tasks.md
    - Updates task status as work progresses
    - Ensures constitution compliance
@@ -472,7 +469,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       tableName: "model_name",
       timestamps: true,
-    }
+    },
   );
 
   ModelName.associate = function (models) {
