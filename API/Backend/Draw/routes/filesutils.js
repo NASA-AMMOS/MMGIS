@@ -172,7 +172,7 @@ function getfile(req, res, next) {
                 replacements: {
                   id: ids,
                   time: atThisTime,
-                  first: published ? req.body.id.length : 1,
+                  first: published ? req.body.id.length : (idArray ? ids.length : 1),
                 },
               }
             )
@@ -180,6 +180,22 @@ function getfile(req, res, next) {
               let bestHistory = [];
               for (let i = 0; i < results.length; i++) {
                 bestHistory = bestHistory.concat(results[i].history);
+              }
+
+              // If no history found, return empty results early
+              // This prevents "id IN (NULL)" which returns no rows
+              if (bestHistory.length === 0) {
+                return res.send({
+                  status: "success",
+                  message: "Successfully got file.",
+                  body: {
+                    file: file,
+                    geojson: { type: "FeatureCollection", features: [] },
+                    spatialFiltered: false,
+                    temporalFiltered: false,
+                    totalCount: 0,
+                  },
+                });
               }
 
               // Extract extent parameters (optional)

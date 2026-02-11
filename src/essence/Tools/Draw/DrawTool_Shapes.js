@@ -19,7 +19,9 @@ var Shapes = {
         totalCount: 0,
     },
     currentResults: null,
-    currentFilter: null, // Store active filter for pagination
+    currentFilter: null, // Store active filter for pagination (combined text + advanced)
+    currentAdvancedFilter: null, // Store advanced filter separately
+    currentTextFilter: null, // Store text filter separately
     currentFileIds: null, // Store active file IDs for pagination/sorting
     pendingSelection: null, // Store pending feature selection {fileId, featureId}
     sortBy: null,
@@ -33,8 +35,19 @@ var Shapes = {
         DrawTool.populateShapes = Shapes.populateShapes
         DrawTool.updateCopyTo = Shapes.updateCopyTo
         DrawTool.setSubmitButtonState = Shapes.setSubmitButtonState
+        DrawTool.clearSelectionRestore = Shapes.clearSelectionRestore
+    },
+    clearSelectionRestore: function () {
+        Shapes._selectionToRestore = null
     },
     populateShapes: function (fileId, selectedFeatureIds) {
+        // Force hide tooltip when rebuilding features (in case it's showing a removed feature) (Fix #4)
+        $('#drawToolMouseoverText').removeClass('active')
+
+        // If in filtered mode with active filter, skip DOM rebuild (will be restored at end)
+        // But still attach map layer handlers below for click functionality
+        const skipDOMRebuild = Shapes.mode === 'all' && Shapes.currentFilter
+
         //If we get an array of fileIds, split them
         if (Array.isArray(fileId)) {
             /*
@@ -54,9 +67,24 @@ var Shapes = {
             }
         )
 
+        // Also capture selection in _selectionToRestore for consistency across modes
+        if (!Shapes._selectionToRestore && !skipDOMRebuild) {
+            const activeFeature = $('.drawToolShapeLi.active').first()
+            if (activeFeature.length > 0) {
+                Shapes._selectionToRestore = {
+                    featureId:
+                        activeFeature.attr('shape_id') ||
+                        activeFeature.attr('feature_id'),
+                    fileId: activeFeature.attr('file_id'),
+                }
+            }
+        }
+
         //Populate shapes
         const fileIds = []
-        $('#drawToolShapesFeaturesList *').remove()
+        if (!skipDOMRebuild) {
+            $('#drawToolShapesFeaturesList *').remove()
+        }
         for (var l in L_.layers.layer) {
             var s = l.split('_')
             var onId = s[1] != 'master' ? parseInt(s[1]) : s[1]
@@ -78,13 +106,40 @@ var Shapes = {
                                     : 'white',
                         })
                         .html(file.file_name)
-                    $('#drawToolShapesFeaturesList').append(headerLi)
+                    if (!skipDOMRebuild) {
+                        $('#drawToolShapesFeaturesList').append(headerLi)
+                    }
                 }
                 for (var i = 0; i < L_.layers.layer[l].length; i++) {
-                    addShapeToList(L_.layers.layer[l][i], file, l, i, s[1])
+                    addShapeToList(
+                        L_.layers.layer[l][i],
+                        file,
+                        l,
+                        i,
+                        s[1],
+                        skipDOMRebuild
+                    )
                 }
             }
         }
+
+        // Set up global map handler to hide tooltip when mouse moves over empty map areas (Fix #1)
+        // Use namespaced event for easy cleanup, and check if not already bound
+        if (!Shapes._globalTooltipHandlerBound) {
+            Map_.map.off('mousemove.drawToolTooltip') // Remove any existing handler first
+            Map_.map.on('mousemove.drawToolTooltip', function (e) {
+                // Check if mouse is NOT over a feature (leaflet-interactive class is on vector features)
+                if (
+                    e.originalEvent &&
+                    e.originalEvent.target &&
+                    !e.originalEvent.target.closest('.leaflet-interactive')
+                ) {
+                    $('#drawToolMouseoverText').removeClass('active')
+                }
+            })
+            Shapes._globalTooltipHandlerBound = true
+        }
+
         // Store fileIds for sort/pagination handlers
         Shapes.currentFileIds = fileIds
         Shapes.filters = Shapes.filters || {
@@ -108,31 +163,45 @@ var Shapes = {
             return
         }
 
-        // Fetch aggregations from backend instead of using LocalFilterer
-        Shapes.fetchAggregations(fileIds, (aggregations) => {
-            Shapes.filters.aggs = aggregations
+        // Only fetch aggregations if fileIds have changed
+        const fileIdsKey = fileIds.sort().join(',')
+        const shouldFetchAggregations =
+            !Shapes._cachedAggregationsFileIds ||
+            Shapes._cachedAggregationsFileIds !== fileIdsKey
 
-            // Continue with event attachment after aggregations load
-            Shapes.attachEvents(fileIds)
+        if (shouldFetchAggregations) {
+            Shapes._cachedAggregationsFileIds = fileIdsKey
 
-            // Refresh autocomplete for any existing value rows with new aggregations
-            $('.drawToolShapes_filtering_value').each(function() {
-                const idMatch = $(this).attr('id').match(/_(\d+)$/)
-                if (idMatch) {
-                    const id = parseInt(idMatch[1])
-                    Shapes.refreshValueAutocomplete(id)
+            // Fetch aggregations from backend instead of using LocalFilterer
+            Shapes.fetchAggregations(fileIds, (aggregations) => {
+                Shapes.filters.aggs = aggregations
+
+                // Continue with event attachment after aggregations load
+                Shapes.attachEvents(fileIds)
+
+                // Refresh autocomplete for any existing value rows with new aggregations
+                $('.drawToolShapes_filtering_value').each(function () {
+                    const idMatch = $(this)
+                        .attr('id')
+                        .match(/_(\d+)$/)
+                    if (idMatch) {
+                        const id = parseInt(idMatch[1])
+                        Shapes.refreshValueAutocomplete(id)
+                    }
+                })
+
+                // Start with one empty row added if none exist
+                if (
+                    $(
+                        '#drawToolShapes_filtering_filters_list .drawToolShapes_filtering_value'
+                    ).length === 0
+                ) {
+                    Shapes.addValue()
                 }
             })
-
-            // Start with one empty row added if none exist
-            if (
-                $(
-                    '#drawToolShapes_filtering_filters_list .drawToolShapes_filtering_value'
-                ).length === 0
-            ) {
-                Shapes.addValue()
-            }
-        })
+        } else {
+            // Aggregations already cached, no need to refetch
+        }
 
         $('#drawToolShapesFilterAdvanced').off('click')
         $('#drawToolShapesFilterAdvanced').on('click', function () {
@@ -145,9 +214,18 @@ var Shapes = {
         $('#drawToolShapesFilterClear').off('click')
         $('#drawToolShapesFilterClear').on('click', function () {
             $('#drawToolShapesFilter').val('')
-            // Clear filter = return to onscreen mode
-            Shapes.mode = 'onscreen'
-            DrawTool.populateShapes()
+            // Clear text filter
+            Shapes.currentTextFilter = null
+
+            // If advanced filter exists, apply it
+            if (Shapes.currentAdvancedFilter) {
+                Shapes.mode = 'all'
+                Shapes.fetchAllFeatures(fileIds, Shapes.currentAdvancedFilter)
+            } else {
+                // No filters, return to onscreen mode
+                Shapes.mode = 'onscreen'
+                DrawTool.populateShapes()
+            }
         })
         $('#drawToolShapesFilter').off('input')
         $('#drawToolShapesFilter').on('input', shapeFilter)
@@ -166,15 +244,32 @@ var Shapes = {
 
         function shapeFilter() {
             var v = $('#drawToolShapesFilter').val()
+            const textValue =
+                v != null && v != '' && v.trim() !== '' ? v.trim() : null
 
-            if (v != null && v != '' && v.trim() !== '') {
-                // HAS FILTER: Query server for all results
-                v = v.trim()
+            // Store text filter separately
+            Shapes.currentTextFilter = textValue
+
+            // Combine text filter with advanced filter
+            let combinedFilter = null
+
+            if (textValue && Shapes.currentAdvancedFilter) {
+                // Both text and advanced filter: combine with AND
+                const textFilter = `name+contains+string+${textValue}`
+                combinedFilter = `${textFilter},and,${Shapes.currentAdvancedFilter}`
+            } else if (textValue) {
+                // Only text filter
+                const textFilter = `name+contains+string+${textValue}`
+                combinedFilter = textFilter
+            } else if (Shapes.currentAdvancedFilter) {
+                // Only advanced filter
+                combinedFilter = Shapes.currentAdvancedFilter
+            }
+
+            if (combinedFilter) {
+                // Has filter: Query server for all results
                 Shapes.mode = 'all'
-
-                // Create a simple contains filter for name
-                const textFilter = `name+contains+string+${v}`
-                Shapes.fetchAllFeatures(fileIds, textFilter)
+                Shapes.fetchAllFeatures(fileIds, combinedFilter)
             } else {
                 // NO FILTER: Show onscreen features only
                 Shapes.mode = 'onscreen'
@@ -189,7 +284,14 @@ var Shapes = {
             }
         }
 
-        function addShapeToList(shape, file, layer, index, layerId) {
+        function addShapeToList(
+            shape,
+            file,
+            layer,
+            index,
+            layerId,
+            skipDOMRebuild
+        ) {
             if (shape == null) return
 
             // Skip associated points - they are not independent features
@@ -266,6 +368,15 @@ var Shapes = {
             let activeClass = ''
             if (stillActive.indexOf(shapeLiId) != -1) activeClass = ' active'
 
+            // Also check _selectionToRestore for consistency
+            if (
+                Shapes._selectionToRestore &&
+                Shapes._selectionToRestore.featureId == properties._.id &&
+                Shapes._selectionToRestore.fileId == file.id
+            ) {
+                activeClass = ' active'
+            }
+
             const shapeLi = $('<li>')
                 .attr('id', 'drawToolShapeLiItem_' + layer + '_' + index)
                 .attr('class', 'drawToolShapeLi' + activeClass)
@@ -278,7 +389,9 @@ var Shapes = {
                 .attr('intent', properties._.intent)
                 .attr('shape_id', properties._.id)
                 .html(markup)
-            $('#drawToolShapesFeaturesList').append(shapeLi)
+            if (!skipDOMRebuild) {
+                $('#drawToolShapesFeaturesList').append(shapeLi)
+            }
 
             $('#drawToolShapeLiItem_' + layer + '_' + index)
                 .find('.drawToolShapeLiItemB')
@@ -399,27 +512,40 @@ var Shapes = {
                 )
                 e.off('mouseout')
                 e.on('mouseout', function () {
+                    // ALWAYS hide tooltip, even during drag (Fix #2)
+                    $('#drawToolMouseoverText').removeClass('active')
+
+                    // Skip other cleanup if dragging
                     if (
                         DrawTool.contextMenuLayer &&
                         DrawTool.contextMenuLayer.dragging
                     )
                         return
+
                     $('.drawToolShapeLi').removeClass('hovered')
                     $('.drawToolShapeLi .drawToolShapeLiItem').mouseleave()
-                    $('#drawToolMouseoverText').removeClass('active')
                 })
                 e.off('click')
                 e.on(
                     'click',
-                    (function (layer, index, fileid) {
+                    (function (layer, index, fileid, featureId) {
                         return function (event) {
                             if (DrawTool.activeContent != 'shapes')
                                 DrawTool.showContent('shapes')
 
                             var ctrl = mmgisglobal.ctrlDown
+                            // Try to find list item by layer/index (onscreen mode)
                             var elm = $(
                                 '#drawToolShapeLiItem_' + layer + '_' + index
                             )
+
+                            // If not found, try by file_id/feature_id (filtered mode)
+                            if (elm.length === 0 && featureId) {
+                                elm = $(
+                                    `.drawToolShapeLi[file_id="${fileid}"][feature_id="${featureId}"]`
+                                )
+                            }
+
                             var intent = elm.attr('intent')
 
                             //No mismatched intents
@@ -535,7 +661,7 @@ var Shapes = {
                                 ctrl
                             )
                         }
-                    })(layer, index, file.id)
+                    })(layer, index, file.id, properties._.id)
                 )
                 $('body').off('keydown', Shapes.prevNext)
                 $('body').on('keydown', Shapes.prevNext)
@@ -661,6 +787,12 @@ var Shapes = {
         $('.drawToolShapeLiItem').on('click', function (e) {
             var layer = $(this).attr('layer')
             var index = $(this).attr('index')
+
+            // Skip if this is a filtered list item (has feature_id instead of layer/index)
+            if (!layer || !index) {
+                return // Filtered items have their own handler
+            }
+
             var shape = L_.layers.layer[layer][index]
             if (!mmgisglobal.shiftDown) {
                 if (typeof shape.getBounds === 'function')
@@ -686,7 +818,9 @@ var Shapes = {
             else shape.fireEvent('click')
         })
 
+        // Only auto-select if we actually built the DOM list
         if (
+            !skipDOMRebuild &&
             fileId != null &&
             selectedFeatureIds != null &&
             !(selectedFeatureIds.length == 1 && selectedFeatureIds[0] == null)
@@ -709,11 +843,35 @@ var Shapes = {
                         )
                     else shape.fireEvent('click')
                 } else {
-                    console.warn('[DrawTool Shapes] Auto-select: Item not found in list')
+                    console.warn(
+                        '[DrawTool Shapes] Auto-select: Item not found in list'
+                    )
                 }
                 mmgisglobal.ctrlDown = true
             }
             mmgisglobal.ctrlDown = false
+        }
+
+        // Restore selection if one was stored (add checked class)
+        if (Shapes._selectionToRestore && !skipDOMRebuild) {
+            const { featureId, fileId } = Shapes._selectionToRestore
+
+            const itemToSelect = $(
+                `.drawToolShapeLi[file_id="${fileId}"][shape_id="${featureId}"]`
+            )
+            if (itemToSelect.length > 0) {
+                // Active class already added during creation, just add checked
+                if (!itemToSelect.hasClass('active')) {
+                    itemToSelect.addClass('active')
+                }
+                itemToSelect
+                    .find('.drawToolShapeLiItemCheck')
+                    .addClass('checked')
+            } else {
+            }
+
+            // Clear the flag
+            Shapes._selectionToRestore = null
         }
 
         // Apply pending selection if any (for onscreen mode)
@@ -721,21 +879,98 @@ var Shapes = {
             const { fileId, featureId } = Shapes.pendingSelection
             Shapes.pendingSelection = null // Clear it
 
-            // Find and click the feature
-            setTimeout(() => {
-                // Try both onscreen format and filtered format
-                const item = $(`.drawToolShapeLi[file_id="${fileId}"][shape_id="${featureId}"] .drawToolShapeLiItem`)
-                if (item.length === 0) {
-                    item = $(`.drawToolShapeLi[file_id="${fileId}"][feature_id="${featureId}"] .drawToolShapeLiItem`)
-                }
-                if (item.length > 0) {
-                    item.click()
-                }
-            }, 100)
+            // Select directly - no timing needed since DOM is already built
+            const itemToSelect = $(
+                `.drawToolShapeLi[file_id="${fileId}"][shape_id="${featureId}"]`
+            )
+            if (itemToSelect.length > 0) {
+                itemToSelect.addClass('active')
+                itemToSelect
+                    .find('.drawToolShapeLiItemCheck')
+                    .addClass('checked')
+                // Select on map
+                Shapes.selectFeatureOnMap(fileId, featureId)
+            }
         }
 
         // Update mode message
         Shapes.updateModeMessage()
+
+        // If we're in filtered mode, restore the filtered results
+        // (populateShapes always rebuilds from onscreen features, so we need to restore the filter)
+        if (Shapes.mode === 'all' && Shapes.currentFilter) {
+            // Preserve which feature should be selected (if any)
+            const activeFeature = $('.drawToolShapeLi.active').first()
+            const featureIdToReselect =
+                activeFeature.length > 0
+                    ? activeFeature.attr('feature_id')
+                    : null
+            const fileIdToReselect =
+                activeFeature.length > 0 ? activeFeature.attr('file_id') : null
+
+            // Store selection for restoration AFTER fetchAllFeatures completes
+            if (featureIdToReselect && fileIdToReselect) {
+                Shapes._selectionToRestore = {
+                    featureId: featureIdToReselect,
+                    fileId: fileIdToReselect,
+                }
+            } else {
+                Shapes._selectionToRestore = null
+            }
+
+            // Prevent redundant fetches - skip if already fetching or if list already matches filter
+            const now = Date.now()
+            const timeSinceLastCall = Shapes._lastFetchAllFeaturesCall
+                ? now - Shapes._lastFetchAllFeaturesCall
+                : Infinity
+
+            // Check if list already shows filtered results (correct filter and has items)
+            const listHasFilteredResults =
+                $('.drawToolShapeLi[id^="drawToolShapeLiItem_all_"]').length > 0
+            const filterMatches =
+                Shapes._lastAppliedFilter === Shapes.currentFilter
+
+            if (Shapes._isFetchingAllFeatures) {
+                return
+            }
+
+            if (
+                listHasFilteredResults &&
+                filterMatches &&
+                timeSinceLastCall < 2000
+            ) {
+                // Even though we're skipping the fetch, ensure selection is still highlighted
+                if (featureIdToReselect && fileIdToReselect) {
+                    const itemToSelect = $(
+                        `.drawToolShapeLi[file_id="${fileIdToReselect}"][feature_id="${featureIdToReselect}"]`
+                    )
+                    if (itemToSelect.length > 0) {
+                        // Ensure active class and checked class are present
+                        if (!itemToSelect.hasClass('active')) {
+                            itemToSelect.addClass('active')
+                        }
+                        const checkbox = itemToSelect.find(
+                            '.drawToolShapeLiItemCheck'
+                        )
+                        if (!checkbox.hasClass('checked')) {
+                            checkbox.addClass('checked')
+                        }
+                    }
+                }
+                return
+            }
+
+            Shapes._lastFetchAllFeaturesCall = now
+            Shapes._lastAppliedFilter = Shapes.currentFilter
+            Shapes._isFetchingAllFeatures = true
+
+            requestAnimationFrame(() => {
+                const fileIds = Object.keys(DrawTool.filesOn)
+                    .map((idx) => DrawTool.filesOn[idx])
+                    .filter((id) => id != null && id !== 'master')
+                Shapes.fetchAllFeatures(fileIds, Shapes.currentFilter)
+            })
+        }
     },
     updateCopyTo: function (intent, subintent) {
         //if( intent === DrawTool.lastShapeIntent ) return;
@@ -876,7 +1111,10 @@ var Shapes = {
                 ? filters
                 : Shapes.currentFilter !== null
                   ? Shapes.currentFilter
-                  : Shapes.encodeFilters(Shapes.filters.values, Shapes.filters.valuesOrder)
+                  : Shapes.encodeFilters(
+                        Shapes.filters.values,
+                        Shapes.filters.valuesOrder
+                    )
         sortBy = sortBy !== undefined ? sortBy : Shapes.sortBy
         sortOrder = sortOrder !== undefined ? sortOrder : Shapes.sortOrder
         page = page !== undefined ? page : Shapes.pagination.page
@@ -921,12 +1159,30 @@ var Shapes = {
                     data
                 )
                 if (data && data.error) {
-                    console.error('[DrawTool Shapes] Error from backend:', data.error)
+                    console.error(
+                        '[DrawTool Shapes] Error from backend:',
+                        data.error
+                    )
                 }
             }
         })
     },
     populateShapesFromResults: function (features, fileIds) {
+        // Clear the fetching flag since we're now processing results
+        Shapes._isFetchingAllFeatures = false
+
+        // If there's no stored selection, preserve whatever is currently active
+        // This ensures selection persists through any rebuild, not just from populateShapes
+        if (!Shapes._selectionToRestore) {
+            const activeFeature = $('.drawToolShapeLi.active').first()
+            if (activeFeature.length > 0) {
+                Shapes._selectionToRestore = {
+                    featureId: activeFeature.attr('feature_id'),
+                    fileId: activeFeature.attr('file_id'),
+                }
+            }
+        }
+
         // Clear current list
         $('#drawToolShapesFeaturesList *').remove()
 
@@ -1001,12 +1257,24 @@ var Shapes = {
                 .attr('class', 'drawToolShapeLi')
                 .attr('file_id', file.id)
                 .attr('feature_id', properties._.id)
-                .attr('shape_id', properties._.id)  // Add for refreshFile auto-select compatibility
+                .attr('shape_id', properties._.id) // Add for refreshFile auto-select compatibility
                 .attr('file_owner', file.file_owner)
                 .attr('file_name', file.file_name)
                 .attr('intent', properties._.intent)
                 .attr('shape_id', properties._.id)
                 .html(markup)
+
+            // If this is the item we're about to restore, add active class immediately
+            // This prevents flickering by ensuring the item is never shown in an inactive state
+            if (
+                Shapes._selectionToRestore &&
+                Shapes._selectionToRestore.featureId == properties._.id &&
+                Shapes._selectionToRestore.fileId == file.id
+            ) {
+                shapeLi.addClass('active')
+            }
+
+            // Always append in filtered results handler
             $('#drawToolShapesFeaturesList').append(shapeLi)
 
             $('#drawToolShapeLiItem_all_' + idx)
@@ -1017,23 +1285,73 @@ var Shapes = {
 
         // Attach click handlers
         $('.drawToolShapeLiItem').on('click', function (e) {
-            const featureId = $(this).attr('feature_id')
-            const fileId = $(this).attr('file_id')
+            const $item = $(this)
+            const featureId = $item.attr('feature_id')
+            const fileId = $item.attr('file_id')
+            const $li = $item.parent() // The .drawToolShapeLi parent
+            const intent = $li.attr('intent')
+
+            // Get ctrl key state
+            const ctrl = e.ctrlKey || e.metaKey
+
+            // Clear all active if ctrl not held
+            if (!ctrl) {
+                $('.drawToolShapeLi').removeClass('active')
+                $('.drawToolShapeLi')
+                    .find('.drawToolShapeLiItemCheck')
+                    .removeClass('checked')
+            }
+
+            // Add active class to clicked item
+            $li.addClass('active')
+            $li.find('.drawToolShapeLiItemCheck').addClass('checked')
+
+            // Update last shape tracking
+            DrawTool.lastShapeIntent = intent
+
+            // Call the feature click handler to pan/select on map
             Shapes.handleFeatureClick(featureId, fileId)
         })
 
-        // Apply pending selection if any
+        // Restore selection if one was stored (from filter restoration flow)
+        if (Shapes._selectionToRestore) {
+            const { featureId, fileId } = Shapes._selectionToRestore
+            Shapes._selectionToRestore = null // Clear it
+
+            const itemToSelect = $(
+                `.drawToolShapeLi[file_id="${fileId}"][feature_id="${featureId}"]`
+            )
+            if (itemToSelect.length > 0) {
+                // Ensure active class is present (should already be from creation, but just in case)
+                if (!itemToSelect.hasClass('active')) {
+                    itemToSelect.addClass('active')
+                }
+                // Add checked class to checkbox (couldn't do this during creation)
+                itemToSelect
+                    .find('.drawToolShapeLiItemCheck')
+                    .addClass('checked')
+                // Select on map
+                Shapes.selectFeatureOnMap(fileId, featureId)
+            }
+        }
+
+        // Apply pending selection if any (from onscreen mode click flow)
         if (Shapes.pendingSelection) {
             const { fileId, featureId } = Shapes.pendingSelection
             Shapes.pendingSelection = null // Clear it
 
-            // Find and click the feature
-            setTimeout(() => {
-                const item = $(`.drawToolShapeLi[file_id="${fileId}"][feature_id="${featureId}"] .drawToolShapeLiItem`)
-                if (item.length > 0) {
-                    item.click()
-                }
-            }, 100)
+            // Select directly - no timing needed since DOM is already built
+            const itemToSelect = $(
+                `.drawToolShapeLi[file_id="${fileId}"][feature_id="${featureId}"]`
+            )
+            if (itemToSelect.length > 0) {
+                itemToSelect.addClass('active')
+                itemToSelect
+                    .find('.drawToolShapeLiItemCheck')
+                    .addClass('checked')
+                // Select on map
+                Shapes.selectFeatureOnMap(fileId, featureId)
+            }
         }
     },
     handleFeatureClick: function (featureId, fileId) {
@@ -1064,7 +1382,9 @@ var Shapes = {
 
                         // Fire click event to select feature
                         if (layer.hasOwnProperty('_layers'))
-                            layer._layers[Object.keys(layer._layers)[0]].fireEvent('click')
+                            layer._layers[
+                                Object.keys(layer._layers)[0]
+                            ].fireEvent('click')
                         else layer.fireEvent('click')
 
                         return
@@ -1088,28 +1408,37 @@ var Shapes = {
                     const feature = data.geojson.features[0]
                     // Calculate bounds
                     const bounds = L.geoJSON(feature).getBounds()
+
                     // Pan and zoom to feature
                     Map_.map.fitBounds(bounds)
-                    
+
                     // In 'all' mode (filtered), don't repopulate list to preserve filtered view
                     // In 'onscreen' mode, repopulate list as usual
                     const shouldPopulateShapes = Shapes.mode !== 'all'
-                    
+
                     setTimeout(() => {
                         if (shouldPopulateShapes) {
                             // Onscreen mode - use existing pending selection logic
-                            Shapes.pendingSelection = { fileId: parseInt(fileId), featureId: featureId }
+                            Shapes.pendingSelection = {
+                                fileId: parseInt(fileId),
+                                featureId: featureId,
+                            }
                             DrawTool.refreshFile(parseInt(fileId), null, true)
                         } else {
-                            // All mode - use callback to select after load
-                            DrawTool.refreshFile(parseInt(fileId), null, false, null, false, () => {
-                                // Feature loaded, select it directly on map
-                                Shapes.selectFeatureOnMap(parseInt(fileId), featureId)
-                            })
+                            // All mode - wait for DynamicExtent to load the feature, then select it
+                            // DynamicExtent has 300ms debounce, so wait a bit longer
+                            setTimeout(() => {
+                                Shapes.selectFeatureOnMap(
+                                    parseInt(fileId),
+                                    featureId
+                                )
+                            }, 400) // 300ms debounce + 100ms buffer
                         }
                     }, 500)
                 } else {
-                    console.warn('[DrawTool Shapes] No feature data returned from server')
+                    console.warn(
+                        '[DrawTool Shapes] No feature data returned from server'
+                    )
                 }
             })
         }
@@ -1119,27 +1448,30 @@ var Shapes = {
      * Selects a feature on the map by finding its layer and firing a click event
      * Used when feature is loaded dynamically and we want to select it without rebuilding the list
      */
-    selectFeatureOnMap: function(fileId, featureId) {
+    selectFeatureOnMap: function (fileId, featureId) {
         // Find the feature layer and fire click event to select it
         for (var l in L_.layers.layer) {
             var s = l.split('_')
             if (s[0] == 'DrawTool' && s[1] == fileId) {
                 const layers = L_.layers.layer[l]
+
                 for (let i = 0; i < layers.length; i++) {
                     const layer = layers[i]
                     if (!layer) continue
 
                     let feature = layer.feature
                     if (!feature && layer._layers) {
-                        feature = layer._layers[Object.keys(layer._layers)[0]].feature
+                        feature =
+                            layer._layers[Object.keys(layer._layers)[0]].feature
                     }
 
                     if (feature && feature.properties._.id == featureId) {
                         // Fire click event to select feature
                         if (layer.hasOwnProperty('_layers'))
-                            layer._layers[Object.keys(layer._layers)[0]].fireEvent('click')
-                        else
-                            layer.fireEvent('click')
+                            layer._layers[
+                                Object.keys(layer._layers)[0]
+                            ].fireEvent('click')
+                        else layer.fireEvent('click')
                         return
                     }
                 }
@@ -1183,9 +1515,36 @@ var Shapes = {
         const messageEl = $('#drawToolShapesModeMessage')
 
         if (Shapes.mode === 'onscreen') {
-            // In onscreen mode: show informational message
-            messageEl.text('Only listing on screen features. Submit a filter to see all filtered results.')
+            // Check if any active file hit the 1k limit
+            let anyTruncated = false
+            if (DrawTool.dynamicExtent && DrawTool.dynamicExtent.truncated) {
+                // DrawTool.filesOn is an array of file IDs
+                for (let i = 0; i < DrawTool.filesOn.length; i++) {
+                    const fileId = DrawTool.filesOn[i]
+                    if (fileId && DrawTool.dynamicExtent.truncated[fileId]) {
+                        anyTruncated = true
+                        break
+                    }
+                }
+            }
+
+            let message =
+                'Only listing on screen features. Submit a filter to see all filtered results.'
+            if (anyTruncated) {
+                message += ' Only showing top 1k features.'
+            }
+
+            messageEl.text(message)
             messageEl.css('display', 'block')
+
+            // Set background to orange if truncated, otherwise use default
+            if (anyTruncated) {
+                messageEl.css('background', '#ff9800')
+                messageEl.css('color', 'white')
+            } else {
+                messageEl.css('background', 'var(--color-a1)')
+                messageEl.css('color', 'var(--color-a5)')
+            }
         } else {
             // In 'all' mode: hide message (pagination info will show instead)
             messageEl.text('')
@@ -1389,9 +1748,27 @@ var Shapes = {
             $(`.drawToolContextMenuHeaderClose`).click()
 
             // Check if there are any filters
-            const encodedFilters = Shapes.encodeFilters(Shapes.filters.values, Shapes.filters.valuesOrder)
+            const encodedFilters = Shapes.encodeFilters(
+                Shapes.filters.values,
+                Shapes.filters.valuesOrder
+            )
 
-            if (!encodedFilters || encodedFilters === '') {
+            // Store advanced filter separately
+            Shapes.currentAdvancedFilter = encodedFilters
+
+            // Combine with text filter if one exists
+            let combinedFilter = null
+            if (Shapes.currentTextFilter && encodedFilters) {
+                const textFilter = `name+contains+string+${Shapes.currentTextFilter}`
+                combinedFilter = `${textFilter},and,${encodedFilters}`
+            } else if (Shapes.currentTextFilter) {
+                const textFilter = `name+contains+string+${Shapes.currentTextFilter}`
+                combinedFilter = textFilter
+            } else if (encodedFilters) {
+                combinedFilter = encodedFilters
+            }
+
+            if (!combinedFilter) {
                 // NO FILTER: Show onscreen features
                 Shapes.mode = 'onscreen'
 
@@ -1426,7 +1803,7 @@ var Shapes = {
             } else {
                 // HAS FILTER: Query server
                 Shapes.mode = 'all'
-                Shapes.fetchAllFeatures(fileIds, encodedFilters)
+                Shapes.fetchAllFeatures(fileIds, combinedFilter)
             }
 
             $(`#drawToolShapes_filtering_submit_loading`).removeClass('active')
@@ -1452,38 +1829,49 @@ var Shapes = {
 
             $(`.drawToolContextMenuHeaderClose`).click()
 
-            // Clearing advanced filter = return to onscreen mode
-            Shapes.mode = 'onscreen'
+            // Clear advanced filter
+            Shapes.currentAdvancedFilter = null
 
-            fileIds.forEach((fileId) => {
-                const filter = {
-                    values: [],
-                    valuesOrder: [],
-                    geojson: {
-                        type: 'FeatureCollection',
-                        features: DrawTool.fileGeoJSONFeatures[fileId],
-                    },
-                    aggs: JSON.parse(JSON.stringify(Shapes.filters.aggs)),
-                }
-                LocalFilterer.filter(
-                    `DrawTool_${fileId}`,
-                    filter,
-                    (filteredGeoJSON) => {
-                        DrawTool.refreshFile(
-                            fileId,
-                            null,
-                            true,
-                            null,
-                            null,
-                            null,
-                            filteredGeoJSON,
-                            true
-                        )
+            // Check if text filter exists
+            if (Shapes.currentTextFilter) {
+                // Keep in 'all' mode with just text filter
+                Shapes.mode = 'all'
+                const textFilter = `name+contains+string+${Shapes.currentTextFilter}`
+                Shapes.fetchAllFeatures(fileIds, textFilter)
+            } else {
+                // No filters at all, return to onscreen mode
+                Shapes.mode = 'onscreen'
+
+                fileIds.forEach((fileId) => {
+                    const filter = {
+                        values: [],
+                        valuesOrder: [],
+                        geojson: {
+                            type: 'FeatureCollection',
+                            features: DrawTool.fileGeoJSONFeatures[fileId],
+                        },
+                        aggs: JSON.parse(JSON.stringify(Shapes.filters.aggs)),
                     }
-                )
-            })
-            // Re-apply sort after clearing filter
-            Shapes.applySort()
+                    LocalFilterer.filter(
+                        `DrawTool_${fileId}`,
+                        filter,
+                        (filteredGeoJSON) => {
+                            DrawTool.refreshFile(
+                                fileId,
+                                null,
+                                true,
+                                null,
+                                null,
+                                null,
+                                filteredGeoJSON,
+                                true
+                            )
+                        }
+                    )
+                })
+                // Re-apply sort after clearing filter
+                Shapes.applySort()
+            }
 
             // Update mode message
             Shapes.updateModeMessage()
@@ -1637,7 +2025,9 @@ var Shapes = {
     refreshValueAutocomplete: function (id) {
         // Refresh the property (key) autocomplete with updated aggregations
         const elmId = `#drawToolShapes_filtering_value_key_input_${id}`
-        const arrayToSearch = Object.keys(Shapes.filters.aggs).sort((a, b) => b.localeCompare(a))
+        const arrayToSearch = Object.keys(Shapes.filters.aggs).sort((a, b) =>
+            b.localeCompare(a)
+        )
 
         // Destroy existing autocomplete and reinitialize
         $(elmId).autocomplete('dispose')
@@ -1952,7 +2342,9 @@ var Shapes = {
             if (Shapes.currentFileIds) {
                 Shapes.fetchAllFeatures(Shapes.currentFileIds)
             } else {
-                console.warn('[DrawTool Shapes Sort] Cannot sort: currentFileIds is null')
+                console.warn(
+                    '[DrawTool Shapes Sort] Cannot sort: currentFileIds is null'
+                )
             }
         } else {
             // In 'onscreen' mode, use client-side sorting
@@ -2040,7 +2432,9 @@ var Shapes = {
                     comparison = aDate - bDate
                 } else {
                     // Fall back to string comparison if date parsing fails
-                    comparison = String(aVal).toLowerCase().localeCompare(String(bVal).toLowerCase())
+                    comparison = String(aVal)
+                        .toLowerCase()
+                        .localeCompare(String(bVal).toLowerCase())
                 }
             } else {
                 // Determine if numeric

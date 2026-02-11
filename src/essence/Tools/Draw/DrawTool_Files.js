@@ -2310,6 +2310,7 @@ var Files = {
             maxx: bounds.getEast(),
             maxy: bounds.getNorth(),
             crs: mapCRS,
+            limit: 1000, // Limit DynamicExtent to 1k features for performance
         }
 
         // Add temporal filter if TimeControl is enabled
@@ -2355,11 +2356,38 @@ var Files = {
                 return
             }
 
+            // Track if this file hit the feature limit
+            const features = data.geojson.features
+            const featureCount = features.length
+            const hitLimit = featureCount >= 1000
+
+            // Store truncation state per file
+            if (!DrawTool.dynamicExtent.truncated) {
+                DrawTool.dynamicExtent.truncated = {}
+            }
+
+            // Check if we should show notification (file just turned on)
+            const previouslyTruncated = DrawTool.dynamicExtent.truncated[parsedId]
+            DrawTool.dynamicExtent.truncated[parsedId] = hitLimit
+
+            // Show CursorInfo notification when file turns on and hits limit
+            // Only show if this is a new truncation state (wasn't truncated before, or first time loading)
+            if (hitLimit && !previouslyTruncated) {
+                const fileName = DrawTool.getFileObjectWithId(parsedId)?.file_name || 'file'
+                CursorInfo.update(
+                    `Only showing top 1k features for ${fileName}`,
+                    5000,
+                    false,
+                    { x: 305, y: 6 },
+                    '#ff9800',
+                    'white'
+                )
+            }
+
             // Don't clear features here - let refreshFile's keepGoing handle it
             // This prevents flickering where features disappear before new ones load
 
             // Render new features using existing keepGoing logic
-            const features = data.geojson.features
             if (dontUpdateSourceGeoJSON != true) {
                 DrawTool.fileGeoJSONFeatures[parsedId] = features
             }
@@ -2441,6 +2469,11 @@ var Files = {
 
             // Clean up any temporary point markers when toggling file off
             DrawTool_Templater.cleanupAllPointMarkers()
+
+            // Clear truncation state when file is turned off so notification shows again on next turn-on
+            if (DrawTool.dynamicExtent && DrawTool.dynamicExtent.truncated) {
+                delete DrawTool.dynamicExtent.truncated[id]
+            }
 
             DrawTool.refreshMasterCheckbox()
 

@@ -335,6 +335,7 @@ var DrawTool = {
         lastRequestedExtent: {}, // { fileId: { minx, miny, maxx, maxy, crs, timestamp } }
         lastRequestedLocation: {}, // { fileId: { lng, lat } }
         isLoading: {}, // { fileId: boolean }
+        truncated: {}, // { fileId: boolean } - Track which files hit the 1k feature limit
         mapEventHandlers: null, // Store event handler for cleanup
     },
     palettes: [
@@ -564,39 +565,34 @@ var DrawTool = {
                         const fileId = parseInt(f)
                         // Skip invalid IDs (NaN or non-numeric strings like "master")
                         if (isNaN(fileId)) {
-                            console.warn(`[DrawTool] Skipping invalid file ID from URL: "${f}"`)
+                            console.warn(
+                                `[DrawTool] Skipping invalid file ID from URL: "${f}"`
+                            )
                             finishedFileIdsCount++
                             continue
                         }
 
-                        this.toggleFile(
-                            fileId,
-                            null,
-                            null,
-                            null,
-                            null,
-                            () => {
-                                finishedFileIdsCount++
-                                if (finishedFileIdsCount >= fileIds.length) {
-                                    // We want to make sure that users of the javascript api can still hit drawing files if
-                                    // they were deeplinked to but the tool was never opened/maked
-                                    if (hadDrawLayersOn) {
-                                        DrawTool.getFiles(function () {
-                                            //Populate masterFilesIds
-                                            DrawTool.masterFileIds = []
-                                            for (var f in DrawTool.files) {
-                                                if (DrawTool.files[f].is_master)
-                                                    DrawTool.masterFileIds.push(
-                                                        DrawTool.files[f].id
-                                                    )
-                                            }
+                        this.toggleFile(fileId, null, null, null, null, () => {
+                            finishedFileIdsCount++
+                            if (finishedFileIdsCount >= fileIds.length) {
+                                // We want to make sure that users of the javascript api can still hit drawing files if
+                                // they were deeplinked to but the tool was never opened/maked
+                                if (hadDrawLayersOn) {
+                                    DrawTool.getFiles(function () {
+                                        //Populate masterFilesIds
+                                        DrawTool.masterFileIds = []
+                                        for (var f in DrawTool.files) {
+                                            if (DrawTool.files[f].is_master)
+                                                DrawTool.masterFileIds.push(
+                                                    DrawTool.files[f].id
+                                                )
+                                        }
 
-                                            DrawTool.destroy()
-                                        })
-                                    }
+                                        DrawTool.destroy()
+                                    })
                                 }
                             }
-                        )
+                        })
                     }
                     hadDrawLayersOn = true
 
@@ -945,6 +941,25 @@ var DrawTool = {
                         )
                     }
                 })
+
+                // After reload completes, restore filtered results if in filtered mode
+                // Check inside requestAnimationFrame when Shapes is guaranteed to be initialized
+                requestAnimationFrame(() => {
+                    // Try both DrawTool.Shapes and self.Shapes
+                    const Shapes = DrawTool.Shapes || self.Shapes
+
+                    if (
+                        Shapes &&
+                        Shapes.mode === 'all' &&
+                        Shapes.currentFilter
+                    ) {
+                        const fileIds = Object.keys(self.filesOn)
+                            .map((idx) => self.filesOn[idx])
+                            .filter((id) => id != null && id !== 'master')
+                        Shapes.fetchAllFeatures(fileIds, Shapes.currentFilter)
+                    } else {
+                    }
+                })
             }, 300) // 300ms debounce
         }
 
@@ -1013,7 +1028,9 @@ var DrawTool = {
 
         // Filter out "master" from filesOn - master files are loaded by default
         // and should not be persisted in URLs as they're system-wide state
-        const numericFilesOn = this.filesOn.filter(id => typeof id === 'number')
+        const numericFilesOn = this.filesOn.filter(
+            (id) => typeof id === 'number'
+        )
 
         return (
             numericFilesOn.toString().replace(/,/g, '.') +
@@ -2163,6 +2180,18 @@ function interfaceWithMMGIS() {
         L_.unsubscribeTimeChange('DrawTool')
         L_.unsubscribeOnTimeUIToggle('DrawTool')
         $('#DrawTool_TimeToggle').remove()
+
+        // Clean up tooltip (Fix #3)
+        $('#drawToolMouseoverText').removeClass('active')
+
+        // Remove global map event handler (Fix #3)
+        if (Map_ && Map_.map) {
+            Map_.map.off('mousemove.drawToolTooltip')
+        }
+
+        // Reset the global tooltip handler bound flag (Fix #3)
+        DrawTool_Shapes._globalTooltipHandlerBound = false
+
         DrawTool.open = false
     }
 }
