@@ -493,9 +493,15 @@ class OffscreenMapManager {
 
             if (layerConfig.time && layerConfig.time.enabled) {
                 if (layerConfig.type === 'tile') {
+                    // Transform STAC URLs to HTTP before time token replacement
+                    let baseUrl = layerConfig.url
+                    if (baseUrl && baseUrl.toLowerCase().startsWith('stac-collection:')) {
+                        baseUrl = L_.transformStacUrl(baseUrl, layerConfig, 'tile')
+                    }
+
                     // Update tile layer URL with time parameter
                     const newUrl = this._replaceTimeTokens(
-                        layerConfig.url,
+                        baseUrl,
                         timeString
                     )
                     layer.setUrl(newUrl)
@@ -513,8 +519,15 @@ class OffscreenMapManager {
                     const updatedConfig = JSON.parse(
                         JSON.stringify(layerConfig)
                     )
+
+                    // Transform STAC URLs to HTTP before time token replacement
+                    let baseUrl = updatedConfig.url
+                    if (baseUrl && baseUrl.toLowerCase().startsWith('stac-collection:')) {
+                        baseUrl = L_.transformStacUrl(baseUrl, updatedConfig, 'tile')
+                    }
+
                     updatedConfig.url = this._replaceTimeTokens(
-                        updatedConfig.url,
+                        baseUrl,
                         timeString
                     )
 
