@@ -6,6 +6,7 @@ import {
     constructVectorLayer,
     constructSublayers,
 } from '../Layers_/LayerConstructors'
+import { transformStacUrl } from '../Layers_/LayerUtils'
 import Filtering from '../Layers_/Filtering/Filtering'
 import Viewer_ from '../Viewer_/Viewer_'
 import Globe_ from '../Globe_/Globe_'
@@ -1254,14 +1255,6 @@ async function makeTileLayer(layerObj, mapContext = null) {
         default: true,
     }
 
-    // Helper function to add default 'asset_' prefix to bands in expressions if not already prefixed
-    const processExpression = (expression) => {
-        if (!expression || expression.trim() === '') return expression
-        // Replace bX or BX (where X is a number) with asset_bX or asset_BX
-        // Only replace if not already prefixed with an asset name (word_bX pattern)
-        return expression.replace(/(?<!\w)([bB])(\d+)/g, 'asset_$1$2')
-    }
-
     let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
 
     let splitColonType
@@ -1275,7 +1268,12 @@ async function makeTileLayer(layerObj, mapContext = null) {
             case 'stac-collection':
                 splitColonType = splitColonLayerUrl[0]
                 // Use shared transformation function
-                layerUrl = L_.transformStacUrl(layerObj.url, layerObj, 'tile')
+                layerUrl = transformStacUrl(
+                    layerObj.url,
+                    layerObj,
+                    'tile',
+                    window.location
+                )
                 layerObj.tileformat = 'wmts'
                 break
             case 'COG':

@@ -42,4 +42,7 @@ A single tile layer can be the product of many individual COGs mosaicked togethe
          ```
          python create-stac-items.py "http://localhost:8888" stac-c528a1badb86409f3c1e617aaaaaaaaa myCollection C:\Projects\MMGIS\Missions\Misc\sample_cogs
          ```
-1. Set a Tile Layer URL to `stac-collection:{collection_name}`
+1. Set a Tile Layer URL to `stac-collection:{collection_name}` for a local collection
+   - **Or** use `stac-collection:https://other-mmgis.com/titilerpgstac/collections/{collection_name}` to reference a collection from an external MMGIS instance
+   - External collections require CORS to be enabled on the target server
+   - See [Layer URLs](/configure/formats/layer-urls) for more details on external STAC collections
