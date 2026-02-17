@@ -1286,6 +1286,12 @@ var UserInterface = {
         // Throw the TimeUI div away and create it on demand later
         $('#timeUI').remove()
 
+        // Zoom in if needed
+        if ('mapZoomMobileInit' in window.L_.configData.msv) {
+            const zoom = L_.configData.msv.mapZoomMobileInit || L_.Map_.map.getZoom()
+            Map_.map.setZoom(zoom)
+        }
+
         BottomBar.fina()
         UserInterface.show()
     },

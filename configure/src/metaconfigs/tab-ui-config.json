@@ -71,6 +71,19 @@
       ]
     },
     {
+      "components": [
+        {
+          "field": "msv.mapZoomMobileInit",
+          "name": "Initial Zoom Level of Map in Mobile Mode",
+          "description": "This is the initial zoom when in mobile mode (if enabled).",
+          "type": "number",
+          "min": 0,
+          "max": 40,
+          "width": 4
+        }
+      ]
+    },
+    {
       "subname": "Max Bounds",
       "components": [
         {
