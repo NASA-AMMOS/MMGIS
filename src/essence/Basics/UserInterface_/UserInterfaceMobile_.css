@@ -299,3 +299,6 @@
     margin: 0;
     margin-right: inherit !important;
 }
+.leaflet-control-scalefactor {
+    display: none !important;
+}
