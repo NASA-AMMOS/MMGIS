@@ -682,14 +682,16 @@ async function makeLayer(
     }
     return new Promise(async (resolve, reject) => {
         const layerName = L_.asLayerUUID(layerObj.name)
-        if (forceMake !== true && L_._layersBeingMade[layerName] === true) {
+        // Use map-specific lock if available, otherwise fall back to global lock
+        const lockRegistry = mapContext.layerRegistry._layersBeingMade || L_._layersBeingMade
+        if (forceMake !== true && lockRegistry[layerName] === true) {
             console.error(
                 `ERROR - makeLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
             )
             resolve(false)
             return
         } else {
-            L_._layersBeingMade[layerName] = true
+            lockRegistry[layerName] = true
         }
         //Decide what kind of layer it is
         //Headers do not need to be made
@@ -749,8 +751,8 @@ async function makeLayer(
             }
         }
 
-        // release hold on layer
-        L_._layersBeingMade[layerName] = false
+        // release hold on layer (use same registry as above)
+        lockRegistry[layerName] = false
 
         if (stopLoops !== true && layerObj.type === 'vector') {
             Filtering.updateGeoJSON(layerObj.name)
@@ -1276,6 +1278,8 @@ async function makeTileLayer(layerObj, mapContext = null) {
                 splitColonType = splitColonLayerUrl[0]
                 // Use shared transformation function
                 layerUrl = L_.transformStacUrl(layerObj.url, layerObj, 'tile')
+                // Cache transformed URL for reuse (e.g., in animations)
+                layerObj._transformedUrl = layerUrl
                 layerObj.tileformat = 'wmts'
                 break
             case 'COG':
