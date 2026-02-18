@@ -76,7 +76,7 @@ const L_ = {
     toggledOffFeatures: [],
     mapAndGlobeLinked: false,
     addLayerQueue: [],
-    _layersBeingMade: {},
+    _layersBeingMade: {}, // Global layer construction lock (default for main map; offscreen maps use their own)
     _onLoadCallbacks: [],
     _loaded: false,
     init: async function (configData, missionsList, urlOnLayers) {

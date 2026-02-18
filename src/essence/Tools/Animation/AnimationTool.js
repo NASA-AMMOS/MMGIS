@@ -241,6 +241,8 @@ const AnimationTool = {
     isDrawing: false,
     drawingLayer: null,
     isCancelling: false, // Flag to signal user-requested cancellation
+    _syncingToTimeUI: false, // Flag to prevent circular sync with TimeUI
+    _syncTimeoutId: null, // Timeout ID for clearing sync flag
     drawRectangle: null,
     instructionsControl: null,
     screenRect: null,
@@ -483,6 +485,17 @@ function interfaceWithMMGIS() {
                 return
             }
 
+            // Skip sync if we're currently updating TimeUI from Animation Tool
+            // This prevents circular sync loops
+            if (AnimationTool._syncingToTimeUI) {
+                // Update our tracking values to match current TimeUI state
+                // so we don't trigger a sync when the flag clears
+                lastStepIndex = TimeControl.timeUI.stepIndex
+                lastIntervalIndex = TimeControl.timeUI.intervalIndex
+                lastRateInputValue = getTimeUIRateInputValue()
+                return
+            }
+
             const currentStepIndex = TimeControl.timeUI.stepIndex
             const currentIntervalIndex = TimeControl.timeUI.intervalIndex
             const currentRateInputValue = getTimeUIRateInputValue()
@@ -573,6 +586,14 @@ function interfaceWithMMGIS() {
     function syncTimeUIFromAnimation() {
         if (!TimeControl || !TimeControl.timeUI) return
 
+        // Clear any existing timeout to prevent premature flag clearing
+        if (AnimationTool._syncTimeoutId) {
+            clearTimeout(AnimationTool._syncTimeoutId)
+        }
+
+        // Set flag to prevent circular sync
+        AnimationTool._syncingToTimeUI = true
+
         const timeUI = TimeControl.timeUI
 
         // Map Animation Tool Time Interval to TimeUI Step
@@ -628,6 +649,14 @@ function interfaceWithMMGIS() {
                 timeUI._refreshLiveProgress()
             }
         }
+
+        // Clear the sync flag after a delay to allow TimeUI to settle
+        // Use 1000ms (longer than the 500ms sync interval) to prevent race conditions
+        // Store timeout ID so we can clear it if syncTimeUIFromAnimation is called again
+        AnimationTool._syncTimeoutId = setTimeout(() => {
+            AnimationTool._syncingToTimeUI = false
+            AnimationTool._syncTimeoutId = null
+        }, 1000)
     }
 
     function setupEventHandlers() {
@@ -1419,13 +1448,15 @@ function interfaceWithMMGIS() {
         const endDate = $('#timeEnd').val()
 
         if (startDate && endDate) {
-            const start = new Date(startDate)
-            const end = new Date(endDate)
+            // Parse datetime-local as UTC by appending 'Z'
+            // This prevents timezone offset issues
+            const start = new Date(startDate + 'Z')
+            const end = new Date(endDate + 'Z')
 
             if (start < end) {
                 AnimationTool.timeRange = {
-                    startDate: startDate,
-                    endDate: endDate,
+                    startDate: startDate + 'Z',
+                    endDate: endDate + 'Z',
                     start: start,
                     end: end,
                     interval: AnimationTool.animationSettings.timeInterval,
@@ -1680,14 +1711,19 @@ function interfaceWithMMGIS() {
                     }
 
                     const timeStep = timeSteps[currentStep]
+                    const interval = AnimationTool.animationSettings.timeInterval
 
-                    captureMapFrame(timeStep)
+                    captureMapFrame(timeStep, interval)
                         .then((frameData) => {
                             frames.push({
                                 data: frameData,
                                 timestamp: timeStep,
                                 index: currentStep,
                             })
+
+                            // Update preview canvas with latest frame
+                            updatePreviewCanvas(frameData, timeStep, currentStep + 1, timeSteps.length)
+
                             currentStep++
                             setTimeout(generateFrame, 100) // Small delay to prevent UI blocking
                         })
@@ -1790,14 +1826,53 @@ function interfaceWithMMGIS() {
         )
     }
 
+    function updatePreviewCanvas(frameData, timestamp, currentFrame, totalFrames) {
+        try {
+            const canvas = $('#animationDebugCanvas')[0]
+            const infoDiv = $('#animationDebugInfo')
+
+            if (!canvas || !infoDiv) return
+
+            // Create an image from the frame data
+            const img = new Image()
+            img.onload = function() {
+                // Update canvas dimensions to match image
+                canvas.width = img.width
+                canvas.height = img.height
+
+                // Draw the image on the canvas
+                const ctx = canvas.getContext('2d')
+                ctx.clearRect(0, 0, canvas.width, canvas.height)
+                ctx.drawImage(img, 0, 0)
+
+                // Update the info text with timestamp and frame number
+                const formattedTime = formatTimestampForDisplay(timestamp)
+                infoDiv.html(
+                    `<strong>Frame ${currentFrame} of ${totalFrames}</strong><br>` +
+                    `Time: ${formattedTime}`
+                )
+            }
+            img.src = frameData
+        } catch (error) {
+            console.warn('Failed to update preview canvas:', error)
+        }
+    }
+
     function calculateTimeSteps(start, end, interval) {
         const steps = []
         const current = new Date(start)
+        const MAX_FRAMES = 1000 // Prevent memory issues from too many frames
 
-        while (current <= end) {
+        while (current <= end && steps.length < MAX_FRAMES) {
             steps.push(new Date(current))
 
             switch (interval) {
+                case 'second':
+                    current.setSeconds(current.getSeconds() + 1)
+                    break
+                case 'minute':
+                    current.setMinutes(current.getMinutes() + 1)
+                    break
                 case 'hour':
                     current.setHours(current.getHours() + 1)
                     break
@@ -1813,7 +1888,24 @@ function interfaceWithMMGIS() {
                 case 'year':
                     current.setFullYear(current.getFullYear() + 1)
                     break
+                default:
+                    console.warn(`Unknown time interval: ${interval}`)
+                    return steps
             }
+        }
+
+        // Warn user if frame limit was reached
+        if (steps.length >= MAX_FRAMES) {
+            console.warn(
+                `Animation frame count limited to ${MAX_FRAMES} frames. ` +
+                `Selected time range would generate more frames. ` +
+                `Consider using a larger time interval or shorter time range.`
+            )
+            Modal.set(
+                `<b>Frame Limit Reached</b><br/><br/>` +
+                `Your animation has been limited to ${MAX_FRAMES} frames to prevent memory issues. ` +
+                `Consider using a larger time interval (e.g., hour instead of minute) or a shorter time range.`
+            )
         }
 
         return steps
@@ -2239,7 +2331,7 @@ function interfaceWithMMGIS() {
         return evenCanvas
     }
 
-    function captureMapFrame(timestamp) {
+    function captureMapFrame(timestamp, interval) {
         return new Promise(async (resolve, reject) => {
             try {
                 // Require offscreen manager - no fallback to main map
@@ -2255,7 +2347,8 @@ function interfaceWithMMGIS() {
                 const canvas =
                     await AnimationTool.offscreenManager.captureFrame(
                         AnimationTool.boundingBox,
-                        timestamp
+                        timestamp,
+                        interval
                     )
 
                 // Add scale bar if enabled
@@ -2711,7 +2804,9 @@ function interfaceWithMMGIS() {
             })
 
             // Load FFmpeg with local core files to avoid CSP issues
-            const baseURL = '/ffmpeg'
+            // Use pathname to support subpath deployments
+            const pathname = (window.location.pathname || '').replace(/\/$/g, '')
+            const baseURL = `${pathname}/ffmpeg`
             await ffmpeg.load({
                 coreURL: await toBlobURL(
                     `${baseURL}/ffmpeg-core.js`,

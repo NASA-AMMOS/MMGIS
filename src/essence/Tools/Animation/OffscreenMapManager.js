@@ -66,6 +66,7 @@ class OffscreenMapManager {
             filters: {}, // CSS filters by UUID
             refreshFailed: {}, // Failed refresh tracking by UUID
             dataFlat: [], // Ordered array for z-index management
+            _layersBeingMade: {}, // Map-specific layer construction lock
         }
 
         // State
@@ -480,11 +481,44 @@ class OffscreenMapManager {
     /**
      * Update time-enabled layers without touching global TimeControl
      *
-     * @param {Date} timestamp - The timestamp for the current frame
+     * @param {Date} timestamp - The start timestamp for the current frame
+     * @param {string} interval - Time interval ('second', 'minute', 'hour', 'day', etc.)
      * @returns {Promise<void>}
      */
-    async updateTimeForLayers(timestamp) {
-        const timeString = timestamp.toISOString()
+    async updateTimeForLayers(timestamp, interval = 'day') {
+        const startTime = new Date(timestamp)
+        const endTime = new Date(timestamp)
+
+        // Calculate end time based on interval
+        switch (interval) {
+            case 'second':
+                endTime.setSeconds(endTime.getSeconds() + 1)
+                break
+            case 'minute':
+                endTime.setMinutes(endTime.getMinutes() + 1)
+                break
+            case 'hour':
+                endTime.setHours(endTime.getHours() + 1)
+                break
+            case 'day':
+                endTime.setDate(endTime.getDate() + 1)
+                break
+            case 'week':
+                endTime.setDate(endTime.getDate() + 7)
+                break
+            case 'month':
+                endTime.setMonth(endTime.getMonth() + 1)
+                break
+            case 'year':
+                endTime.setFullYear(endTime.getFullYear() + 1)
+                break
+            default:
+                // Default to 1 day if unknown interval
+                endTime.setDate(endTime.getDate() + 1)
+        }
+
+        const startTimeString = startTime.toISOString()
+        const endTimeString = endTime.toISOString()
         let vectorLayersRebuilt = false
 
         for (const layerName in this.layers.layer) {
@@ -493,18 +527,35 @@ class OffscreenMapManager {
 
             if (layerConfig.time && layerConfig.time.enabled) {
                 if (layerConfig.type === 'tile') {
-                    // Transform STAC URLs to HTTP before time token replacement
-                    let baseUrl = layerConfig.url
-                    if (baseUrl && baseUrl.toLowerCase().startsWith('stac-collection:')) {
+                    // Use pre-transformed URL if available, otherwise transform
+                    let baseUrl = layerConfig._transformedUrl || layerConfig.url
+
+                    // Only transform if we don't have a cached transformed URL
+                    if (!layerConfig._transformedUrl &&
+                        baseUrl &&
+                        baseUrl.toLowerCase().startsWith('stac-collection:')) {
                         baseUrl = L_.transformStacUrl(baseUrl, layerConfig, 'tile')
+                        // Cache for next time
+                        layerConfig._transformedUrl = baseUrl
                     }
 
-                    // Update tile layer URL with time parameter
-                    const newUrl = this._replaceTimeTokens(
-                        baseUrl,
-                        timeString
-                    )
+                    // Replace time tokens in the transformed URL
+                    const newUrl = this._replaceTimeTokens(baseUrl, startTimeString)
                     layer.setUrl(newUrl)
+
+                    // Update starttime/endtime options for STAC layers
+                    // The leaflet-tilelayer-middleware uses these to construct the datetime parameter
+                    // Set as a time range (start to end) for proper STAC querying
+                    if (layer.options) {
+                        layer.options.starttime = startTimeString
+                        layer.options.endtime = endTimeString
+                        layer.options.time = startTimeString
+                    }
+
+                    // Force tile layer to clear cache and reload
+                    if (layer.redraw) {
+                        layer.redraw()
+                    }
 
                     // Wait for tiles to load
                     await this._waitForLayerLoad(layer, 5000)
@@ -528,7 +579,7 @@ class OffscreenMapManager {
 
                     updatedConfig.url = this._replaceTimeTokens(
                         baseUrl,
-                        timeString
+                        startTimeString
                     )
 
                     // Rebuild the layer
@@ -602,17 +653,18 @@ class OffscreenMapManager {
      * using HTML2Canvas.
      *
      * @param {Object} bbox - Animation bounding box {north, south, east, west}
-     * @param {Date} timestamp - The timestamp for this frame
+     * @param {Date} timestamp - The timestamp for this frame (start of time window)
+     * @param {string} interval - Time interval ('second', 'minute', 'hour', 'day', etc.)
      * @returns {Promise<HTMLCanvasElement>} - Canvas containing the captured frame
      */
-    async captureFrame(bbox, timestamp) {
+    async captureFrame(bbox, timestamp, interval = 'day') {
         if (!this.leafletMap) {
             throw new Error('Cannot capture frame: Leaflet map not initialized')
         }
 
         try {
             // Update time for all time-enabled layers
-            await this.updateTimeForLayers(timestamp)
+            await this.updateTimeForLayers(timestamp, interval)
 
             // Ensure map view matches bbox (in case it drifted)
             this.setViewToBBox(bbox)
