@@ -148,8 +148,8 @@ jobs:
             ${ARM64_TAGS} \
             --push \
             --platform linux/arm64 \
-            --cache-from type=registry,ref=ghcr.io/${{ github.repository }}:buildcache-arm64 \
-            --cache-to type=registry,ref=ghcr.io/${{ github.repository }}:buildcache-arm64,mode=max \
+            --cache-from type=registry,ref=${{ needs.generate-tags.outputs.image-id }}:buildcache-arm64 \
+            --cache-to type=registry,ref=${{ needs.generate-tags.outputs.image-id }}:buildcache-arm64,mode=max \
             --build-arg PUBLIC_URL_ARG=${{ secrets.PUBLIC_URL }} \
             ${CACHE_FLAG} \
             .
@@ -192,8 +192,8 @@ jobs:
             ${AMD64_TAGS} \
             --push \
             --platform linux/amd64 \
-            --cache-from type=registry,ref=ghcr.io/${{ github.repository }}:buildcache-amd64 \
-            --cache-to type=registry,ref=ghcr.io/${{ github.repository }}:buildcache-amd64,mode=max \
+            --cache-from type=registry,ref=${{ needs.generate-tags.outputs.image-id }}:buildcache-amd64 \
+            --cache-to type=registry,ref=${{ needs.generate-tags.outputs.image-id }}:buildcache-amd64,mode=max \
             --build-arg PUBLIC_URL_ARG=${{ secrets.PUBLIC_URL }} \
             ${CACHE_FLAG} \
             .
