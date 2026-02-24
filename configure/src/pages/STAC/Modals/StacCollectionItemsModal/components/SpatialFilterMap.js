@@ -31,30 +31,30 @@ const useStyles = makeStyles((theme) => ({
     position: "relative",
     flex: 1,
     zIndex: 9,
-    userSelect: 'none',
-    WebkitUserSelect: 'none',
-    MozUserSelect: 'none',
-    msUserSelect: 'none',
+    userSelect: "none",
+    WebkitUserSelect: "none",
+    MozUserSelect: "none",
+    msUserSelect: "none",
   },
   mapContainer: {
     width: "100%",
     height: "100%",
     position: "relative",
-    userSelect: 'none',
-    WebkitUserSelect: 'none',
-    MozUserSelect: 'none',
-    msUserSelect: 'none',
+    userSelect: "none",
+    WebkitUserSelect: "none",
+    MozUserSelect: "none",
+    msUserSelect: "none",
     "& .leaflet-container": {
       background: theme.palette.swatches?.grey?.[900] || "#111",
     },
   },
   mapContainerDrawing: {
-    cursor: 'crosshair',
+    cursor: "crosshair",
     "& .leaflet-container": {
-      cursor: 'crosshair !important',
+      cursor: "crosshair !important",
     },
     "& .leaflet-control-zoom": {
-      cursor: 'pointer !important',
+      cursor: "pointer !important",
     },
   },
   coordinateDisplay: {
@@ -82,8 +82,9 @@ const useStyles = makeStyles((theme) => ({
   },
   disabledBadge: {
     position: "absolute",
-    left: 8,
+    right: 8,
     bottom: 8,
+    zIndex: 1000,
     background: "rgba(0,0,0,0.5)",
     color: "#fff",
     padding: "4px 8px",
@@ -126,9 +127,14 @@ export default function SpatialFilterMap({
   const bboxLayerRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const isDrawingRef = useRef(false);
-  const drawStateRef = useRef({ isDown: false, startLatLng: null, tempRect: null });
+  const drawStateRef = useRef({
+    isDown: false,
+    startLatLng: null,
+    tempRect: null,
+  });
   const [is32BitCollection, setIs32BitCollection] = useState(false);
   const [collectionStats, setCollectionStats] = useState(null);
+  const [currentZoom, setCurrentZoom] = useState(2);
 
   // Check first item in collection to determine if it contains 32-bit rasters
   useEffect(() => {
@@ -140,7 +146,7 @@ export default function SpatialFilterMap({
       }
 
       const firstItem = items[0];
-      
+
       if (!firstItem?.assets) {
         setIs32BitCollection(false);
         setCollectionStats(null);
@@ -150,12 +156,17 @@ export default function SpatialFilterMap({
       // Use same logic as JsonViewModal to find COG asset
       const findCogAsset = (assets) => {
         const assetKeys = Object.keys(assets);
-        const cogKeys = ['data', 'cog', 'image', 'tif', 'tiff'];
+        const cogKeys = ["data", "cog", "image", "tif", "tiff"];
         for (const key of cogKeys) {
           if (assets[key] && assets[key].href) return assets[key];
         }
         for (const key of assetKeys) {
-          if (assets[key] && assets[key].href && (assets[key].href.includes('.tif') || assets[key].href.includes('.cog'))) {
+          if (
+            assets[key] &&
+            assets[key].href &&
+            (assets[key].href.includes(".tif") ||
+              assets[key].href.includes(".cog"))
+          ) {
             return assets[key];
           }
         }
@@ -163,10 +174,10 @@ export default function SpatialFilterMap({
       };
 
       const cogAsset = findCogAsset(firstItem.assets);
-      
-      if (cogAsset && cogAsset['raster:bands'] && cogAsset['raster:bands'][0]) {
-        const firstBand = cogAsset['raster:bands'][0];
-        if (firstBand.data_type === 'float32') {
+
+      if (cogAsset && cogAsset["raster:bands"] && cogAsset["raster:bands"][0]) {
+        const firstBand = cogAsset["raster:bands"][0];
+        if (firstBand.data_type === "float32") {
           setIs32BitCollection(true);
           // Store statistics if available
           if (firstBand.statistics) {
@@ -175,7 +186,7 @@ export default function SpatialFilterMap({
           return;
         }
       }
-      
+
       setIs32BitCollection(false);
       setCollectionStats(null);
     };
@@ -193,11 +204,13 @@ export default function SpatialFilterMap({
         drawStateRef.current.tempRect = null;
       }
       mapInstRef.current.dragging.enable();
-      if (mapInstRef.current.scrollWheelZoom) mapInstRef.current.scrollWheelZoom.enable();
+      if (mapInstRef.current.scrollWheelZoom)
+        mapInstRef.current.scrollWheelZoom.enable();
     }
     if (isDrawing && mapInstRef.current) {
       // While drawing, prevent accidental zooming
-      if (mapInstRef.current.scrollWheelZoom) mapInstRef.current.scrollWheelZoom.disable();
+      if (mapInstRef.current.scrollWheelZoom)
+        mapInstRef.current.scrollWheelZoom.disable();
     }
   }, [isDrawing]);
 
@@ -212,9 +225,11 @@ export default function SpatialFilterMap({
       boxZoom: false,
       dragging: true,
     });
-    const osm = leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-    }).addTo(map);
+    const osm = leaflet
+      .tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 18,
+      })
+      .addTo(map);
 
     map.on("mousemove", (e) => {
       const { lat, lng } = e.latlng;
@@ -227,6 +242,11 @@ export default function SpatialFilterMap({
       if (coordRef.current) coordRef.current.style.display = "none";
     });
 
+    // Track zoom level changes
+    map.on("zoomend", () => {
+      setCurrentZoom(map.getZoom());
+    });
+
     map.on("mousedown", (e) => {
       if (!isDrawingRef.current) return;
       drawStateRef.current.isDown = true;
@@ -237,23 +257,42 @@ export default function SpatialFilterMap({
       }
     });
     map.on("mousemove", (e) => {
-      if (!isDrawingRef.current || !drawStateRef.current.isDown || !drawStateRef.current.startLatLng) return;
+      if (
+        !isDrawingRef.current ||
+        !drawStateRef.current.isDown ||
+        !drawStateRef.current.startLatLng
+      )
+        return;
       const { startLatLng } = drawStateRef.current;
       const bounds = [
-        [Math.min(startLatLng.lat, e.latlng.lat), Math.min(startLatLng.lng, e.latlng.lng)],
-        [Math.max(startLatLng.lat, e.latlng.lat), Math.max(startLatLng.lng, e.latlng.lng)],
+        [
+          Math.min(startLatLng.lat, e.latlng.lat),
+          Math.min(startLatLng.lng, e.latlng.lng),
+        ],
+        [
+          Math.max(startLatLng.lat, e.latlng.lat),
+          Math.max(startLatLng.lng, e.latlng.lng),
+        ],
       ];
-      if (drawStateRef.current.tempRect) map.removeLayer(drawStateRef.current.tempRect);
-      drawStateRef.current.tempRect = leaflet.rectangle(bounds, {
-        color: '#ff7800',
-        weight: 2,
-        opacity: 1,
-        fillColor: '#ff7800',
-        fillOpacity: 0.1,
-      }).addTo(map);
+      if (drawStateRef.current.tempRect)
+        map.removeLayer(drawStateRef.current.tempRect);
+      drawStateRef.current.tempRect = leaflet
+        .rectangle(bounds, {
+          color: "#ff7800",
+          weight: 2,
+          opacity: 1,
+          fillColor: "#ff7800",
+          fillOpacity: 0.1,
+        })
+        .addTo(map);
     });
     const finalize = (e) => {
-      if (!isDrawingRef.current || !drawStateRef.current.isDown || !drawStateRef.current.startLatLng) return;
+      if (
+        !isDrawingRef.current ||
+        !drawStateRef.current.isDown ||
+        !drawStateRef.current.startLatLng
+      )
+        return;
       const start = drawStateRef.current.startLatLng;
       const end = e?.latlng || start;
       const boundsObj = {
@@ -269,7 +308,7 @@ export default function SpatialFilterMap({
       drawStateRef.current.isDown = false;
       drawStateRef.current.startLatLng = null;
       onBboxChange && onBboxChange(boundsObj);
-      
+
       // Turn off drawing mode and re-enable map interactions after drawing is complete
       setIsDrawing(false);
       isDrawingRef.current = false;
@@ -298,16 +337,17 @@ export default function SpatialFilterMap({
         [bboxBounds.minLat, bboxBounds.minLng],
         [bboxBounds.maxLat, bboxBounds.maxLng],
       ];
-      bboxLayerRef.current = leaflet.rectangle(bounds, {
-        color: '#ff7800',
-        weight: 2,
-        opacity: 1,
-        fillColor: '#ff7800',
-        fillOpacity: 0.1,
-      }).addTo(map);
+      bboxLayerRef.current = leaflet
+        .rectangle(bounds, {
+          color: "#ff7800",
+          weight: 2,
+          opacity: 1,
+          fillColor: "#ff7800",
+          fillOpacity: 0.1,
+        })
+        .addTo(map);
     }
   }, [bboxBounds]);
-
 
   // Update mosaic on relevant changes
   useEffect(() => {
@@ -320,7 +360,13 @@ export default function SpatialFilterMap({
     }
     const enabled = window?.mmgisglobal?.WITH_TITILER_PGSTAC === "true";
     if (!enabled) return;
-    let domain = window.mmgisglobal.NODE_ENV === "development" ? "http://localhost:8888/" : window.mmgisglobal.ROOT_PATH || "";
+
+    // Only load mosaic when zoomed in sufficiently (zoom > 4)
+    if (currentZoom <= 4) return;
+    let domain =
+      window.mmgisglobal.NODE_ENV === "development"
+        ? "http://localhost:8888/"
+        : window.mmgisglobal.ROOT_PATH || "";
     if (domain.length > 0 && !domain.endsWith("/")) domain += "/";
     const zxy = "WebMercatorQuad/{z}/{x}/{y}";
     const urlParams = new URLSearchParams();
@@ -328,9 +374,9 @@ export default function SpatialFilterMap({
     urlParams.set("resampling", "nearest");
     urlParams.set("exitwhenfull", "false");
     urlParams.set("skipcovered", "false");
-    urlParams.set("items_limit", "1000");
-    urlParams.set("scan_limit", "10000");
-    urlParams.set("time_limit", "10");
+    urlParams.set("items_limit", "10");
+    urlParams.set("scan_limit", "100");
+    urlParams.set("time_limit", "5");
     if (dateFrom || dateTo) {
       const dtFrom = dateFrom ? new Date(dateFrom).toISOString() : "";
       const dtTo = dateTo ? new Date(dateTo).toISOString() : "";
@@ -340,30 +386,51 @@ export default function SpatialFilterMap({
       const { minLng, minLat, maxLng, maxLat } = bboxBounds;
       urlParams.set("bbox", `${minLng},${minLat},${maxLng},${maxLat}`);
     }
-    
+
     // Add 32-bit raster parameters if detected
     if (is32BitCollection) {
       // Use statistics from the first item if available
-      if (collectionStats && collectionStats.minimum !== undefined && collectionStats.maximum !== undefined) {
-        urlParams.set("rescale", `${collectionStats.minimum},${collectionStats.maximum}`);
+      if (
+        collectionStats &&
+        collectionStats.minimum !== undefined &&
+        collectionStats.maximum !== undefined
+      ) {
+        urlParams.set(
+          "rescale",
+          `${collectionStats.minimum},${collectionStats.maximum}`,
+        );
       } else {
         // Use default rescaling for common 32-bit data types
         urlParams.set("rescale", "-1000,8000"); // Common for elevation data
       }
       urlParams.set("colormap_name", "viridis");
     }
-    
+
     const collectionName = collectionId || "";
     const mosaicUrl = `${domain}titilerpgstac/collections/${encodeURIComponent(collectionName)}/tiles/${zxy}?${urlParams.toString()}`;
-    mosaicLayerRef.current = leaflet.tileLayer(mosaicUrl, {
-      opacity: 0.8,
-      maxZoom: 18,
-    }).addTo(map);
-  }, [collectionId, dateFrom, dateTo, bboxBounds, is32BitCollection, collectionStats]);
+    mosaicLayerRef.current = leaflet
+      .tileLayer(mosaicUrl, {
+        opacity: 0.8,
+        maxZoom: 18,
+      })
+      .addTo(map);
+  }, [
+    collectionId,
+    dateFrom,
+    dateTo,
+    bboxBounds,
+    is32BitCollection,
+    collectionStats,
+    currentZoom,
+  ]);
 
   return (
     <div className={classes.container}>
-      <div className={clsx(classes.mapPanel, { [classes.mapContainerDrawing]: isDrawing })}>
+      <div
+        className={clsx(classes.mapPanel, {
+          [classes.mapContainerDrawing]: isDrawing,
+        })}
+      >
         <div ref={mapRef} className={clsx(classes.mapContainer)} />
         <div ref={coordRef} className={classes.coordinateDisplay}>
           Lat: 0.000000, Lng: 0.000000
@@ -373,6 +440,12 @@ export default function SpatialFilterMap({
             Mosaic overlay unavailable (WITH_TITILER_PGSTAC=false)
           </div>
         )}
+        {window?.mmgisglobal?.WITH_TITILER_PGSTAC === "true" &&
+          currentZoom <= 4 && (
+            <div className={classes.disabledBadge}>
+              Zoom in (level &gt; 4) to view mosaic preview
+            </div>
+          )}
         {isDrawing && (
           <div className={classes.drawingInstructions}>
             Click and drag to draw bounding box
@@ -383,24 +456,33 @@ export default function SpatialFilterMap({
             size="small"
             variant={isDrawing ? "contained" : "outlined"}
             sx={{
-              backgroundColor: isDrawing ? '#2196f3 !important' : '#f3f3f3 !important',
-              color: isDrawing ? '#ffffff !important' : '#000000 !important',
-              borderColor: isDrawing ? '#2196f3 !important' : '#000000 !important',
-              '&:hover': {
-                backgroundColor: isDrawing ? '#1976d2 !important' : '#ffffff !important',
-                color: isDrawing ? '#ffffff !important' : '#000000 !important',
-                borderColor: isDrawing ? '#1976d2 !important' : '#000000 !important',
+              backgroundColor: isDrawing
+                ? "#2196f3 !important"
+                : "#f3f3f3 !important",
+              color: isDrawing ? "#ffffff !important" : "#000000 !important",
+              borderColor: isDrawing
+                ? "#2196f3 !important"
+                : "#000000 !important",
+              "&:hover": {
+                backgroundColor: isDrawing
+                  ? "#1976d2 !important"
+                  : "#ffffff !important",
+                color: isDrawing ? "#ffffff !important" : "#000000 !important",
+                borderColor: isDrawing
+                  ? "#1976d2 !important"
+                  : "#000000 !important",
               },
-              '&.Mui-disabled': {
-                backgroundColor: '#f3f3f3 !important',
-                color: '#999999 !important',
-                borderColor: '#cccccc !important',
+              "&.Mui-disabled": {
+                backgroundColor: "#f3f3f3 !important",
+                color: "#999999 !important",
+                borderColor: "#cccccc !important",
               },
             }}
             onClick={() => {
               const next = !isDrawing;
               setIsDrawing(next);
-              if (mapInstRef.current) mapInstRef.current.dragging[next ? "disable" : "enable"]();
+              if (mapInstRef.current)
+                mapInstRef.current.dragging[next ? "disable" : "enable"]();
             }}
           >
             {isDrawing ? "Drawing…" : "Draw BBox"}
@@ -414,23 +496,24 @@ export default function SpatialFilterMap({
               setIsDrawing(false);
               if (mapInstRef.current) {
                 mapInstRef.current.dragging.enable();
-                if (mapInstRef.current.scrollWheelZoom) mapInstRef.current.scrollWheelZoom.enable();
+                if (mapInstRef.current.scrollWheelZoom)
+                  mapInstRef.current.scrollWheelZoom.enable();
               }
             }}
             disabled={!bboxBounds}
             sx={{
-              backgroundColor: '#f3f3f3 !important',
-              color: '#000000 !important',
-              borderColor: '#000000 !important',
-              '&:hover': {
-                backgroundColor: '#ffffff !important',
-                color: '#000000 !important',
-                borderColor: '#000000 !important',
+              backgroundColor: "#f3f3f3 !important",
+              color: "#000000 !important",
+              borderColor: "#000000 !important",
+              "&:hover": {
+                backgroundColor: "#ffffff !important",
+                color: "#000000 !important",
+                borderColor: "#000000 !important",
               },
-              '&.Mui-disabled': {
-                backgroundColor: '#f3f3f3 !important',
-                color: '#999999 !important',
-                borderColor: '#cccccc !important',
+              "&.Mui-disabled": {
+                backgroundColor: "#f3f3f3 !important",
+                color: "#999999 !important",
+                borderColor: "#cccccc !important",
               },
             }}
           >
@@ -441,4 +524,3 @@ export default function SpatialFilterMap({
     </div>
   );
 }
-

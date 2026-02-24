@@ -85,6 +85,8 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
       createProxyMiddleware({
         target: titilerpgstacTarget,
         changeOrigin: true,
+        timeout: 30000,
+        proxyTimeout: 30000,
         pathRewrite: {
           [`^${process.env.ROOT_PATH || ""}/titilerpgstac`]: "",
         },

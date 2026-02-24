@@ -145,6 +145,14 @@ services:
     image: ghcr.io/stac-utils/titiler-pgstac:1.8.0
     ports:
       - 8884
+    # Memory limits to prevent OOM cascade and swap pressure
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 8G
+    mem_swappiness: 0
     environment:
       # Application
       - HOST=0.0.0.0
@@ -170,14 +178,17 @@ services:
       # - DB_MAX_IDLE=10
       # GDAL Config
       - CPL_TMPDIR=/tmp
-      - GDAL_CACHEMAX=75%
+      - GDAL_CACHEMAX=8192
       - GDAL_INGESTED_BYTES_AT_OPEN=32768
       - GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR
       - GDAL_HTTP_MERGE_CONSECUTIVE_RANGES=YES
       - GDAL_HTTP_MULTIPLEX=YES
       - GDAL_HTTP_VERSION=2
       - VSI_CACHE=TRUE
-      - VSI_CACHE_SIZE=536870912
+      - VSI_CACHE_SIZE=5000000
+      # Limit parallel memory allocation in GDAL/NumPy
+      - OMP_NUM_THREADS=1
+      - MKL_NUM_THREADS=1
       # TiTiler Config
       - MOSAIC_CONCURRENCY=1
       # AWS S3 endpoint config
@@ -194,7 +205,7 @@ services:
       db:
         condition: service_healthy
         restart: true
-    command: bash -c "uvicorn titiler.pgstac.main:app --host 0.0.0.0 --port 8884"
+    command: bash -c "uvicorn titiler.pgstac.main:app --host 0.0.0.0 --port 8884 --timeout-keep-alive 30 --timeout-graceful-shutdown 10"
     volumes:
       - ./Missions:/Missions
       - ./adjacent-servers/resources:/adjacent-servers/resources
@@ -214,7 +225,7 @@ services:
       - POSTGRES_PASSWORD_OFF=Rename to 'POSTGRES_PASSWORD' and replace this with an initial root password for the DB
     ports:
       - 5432
-    shm_size: '1g'
+    shm_size: "1g"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d postgres -U ${DB_USER}"]
       interval: 10s
