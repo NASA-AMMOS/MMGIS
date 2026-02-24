@@ -1,11 +1,78 @@
-node_modules
+# Dependencies (installed in Docker)
+node_modules/
+**/node_modules/
 npm-debug.log
-API/node_modules
+
+# Mission data
 Missions
 Missions_rel
 Missions_dev
+
+# Environment and config
 .env
+
+# Git
 **/.git
+.git/
+.github/
+
+# Data directories
 data
+
+# Utility scripts and processing tools (not needed at runtime)
+auxiliary/
+sds/
+
+# SPICE kernels (large data files, mounted as volumes at runtime)
+spice/kernels/*
+!spice/kernels/.gitkeep
+
+# Build artifacts (rebuilt in Docker)
+build/
+**/build/
+dist/
+
+# Documentation (not needed at runtime)
+docs/
+!docs/mmgis-openapi.json
+specs/
+*.md
+!README.md
+
+# Tests
+tests/
+test-results/
+playwright-report/
+.playwright/
+*.test.js
+*.spec.js
+
+# Development tools
+.vscode/
+.idea/
+.claude/
+.specify/
+.playwright-mcp/
+.serena/
+_ignore/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+*.swp
+*.swo
+*~
 *DS_Store
 *__pycache__
+
+# IDE files
+*.iml
+
+# CI/CD artifacts
+.terraform/
+.terraform.lock.hcl
+sessions

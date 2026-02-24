@@ -23,3 +23,5 @@ dependencies:
       - titiler.application==0.22.2
       - titiler-pgstac==1.8.0
       - antimeridian==0.3.10
+      - matplotlib
+      - neat-tnp
