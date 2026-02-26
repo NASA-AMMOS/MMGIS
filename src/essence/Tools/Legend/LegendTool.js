@@ -17,8 +17,9 @@ var LegendTool = {
     justification: 'left',
     initialize: function () {
         if (L_.UserInterface_.isMobile === true) {
+            const mapRect = document.getElementById('map').getBoundingClientRect()
             this.width = 'full'
-            this.height = 500
+            this.height = Math.round(mapRect.height * 0.25)
         }
 
         //Get tool variables
