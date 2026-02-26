@@ -18,7 +18,7 @@ var mobileTools = ['Layers', 'Legend', 'Info']
 var UserInterface = {
     splitterSize: 0,
     splitterSizeHidden: 17,
-    topSize: 40,
+    topSize: 50,
     fullSizeViews: false, //Experimental!!!
     pxIsViewer: null,
     pxIsMap: null,

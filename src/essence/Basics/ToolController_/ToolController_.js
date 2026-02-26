@@ -210,7 +210,7 @@ let ToolController_ = {
                     .attr('class', 'toolButton')
                     .css(
                         'width',
-                        L_.UserInterface_.isMobile === true ? '36px' : '100%'
+                        L_.UserInterface_.isMobile === true ? '45px' : '100%'
                     )
                     .css(
                         'height',
@@ -322,13 +322,14 @@ let ToolController_ = {
         ) {
             let timeSelect = $('<div>')
                 .attr('id', 'toggleTimeUI')
+                .attr('class', 'toolButton')
                 .css({
                     'position': 'relative',
-                    'width': '30px',
-                    'height': '30px',
+                    'width': '45px',
+                    'height': '45px',
                     'display': 'inline-block',
                     'text-align': 'center',
-                    'line-height': '30px',
+                    'line-height': '45px',
                     'vertical-align': 'middle',
                     'cursor': 'pointer',
                     'transition': 'all 0.2s ease-in',
@@ -395,13 +396,14 @@ let ToolController_ = {
         ) {
             let coordSelect = $('<div>')
                 .attr('id', 'coordinatesDiv')
+                .attr('class', 'toolButton')
                 .css({
                     'position': 'relative',
-                    'width': '30px',
-                    'height': '30px',
+                    'width': '45px',
+                    'height': '45px',
                     'display': 'inline-block',
                     'text-align': 'center',
-                    'line-height': '30px',
+                    'line-height': '45px',
                     'vertical-align': 'middle',
                     'cursor': 'pointer',
                     'transition': 'all 0.2s ease-in',
