@@ -395,15 +395,26 @@ let Map_ = {
     },
     refreshLayer: async function (layerObj, cb) {
         // If it's a dynamic extent layer, just re-call its function
-        if (
-            L_._onSpecificLayerToggleSubscriptions[
-                `dynamicextent_${layerObj.name}`
-            ] != null
-        ) {
-            if (L_.layers.on[layerObj.name])
-                L_._onSpecificLayerToggleSubscriptions[
-                    `dynamicextent_${layerObj.name}`
-                ].func(layerObj.name)
+        const dynamicExtentKey = `dynamicextent_${layerObj.name}`
+        const dynamicGeodatasetKey = `dynamicgeodataset_${layerObj.name}`  // For velocity layers
+
+        const subscription = L_._onSpecificLayerToggleSubscriptions[dynamicExtentKey]
+                          || L_._onSpecificLayerToggleSubscriptions[dynamicGeodatasetKey]
+
+        if (subscription != null) {
+            if (L_.layers.on[layerObj.name]) {
+                const layerData = L_.layers.data[layerObj.name]
+
+                // Always bypass threshold for explicit refreshLayer() calls
+                // (refresh intervals, time changes, manual API calls)
+                // Pan/zoom events call the callback directly, not via refreshLayer
+                if (layerData) {
+                    layerData._ignoreDynamicExtentMoveThreshold = true
+                }
+
+                subscription.func(layerObj.name)
+            }
+
             if (typeof cb === 'function') cb()
             return true
         }
