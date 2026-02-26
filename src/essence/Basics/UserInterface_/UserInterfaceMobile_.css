@@ -241,6 +241,9 @@
 #layersTool .LayersToolInfo:hover {
     background: transparent;
 }
+.locate {
+    display: none;
+}
 
 /* Overwrite InfoTool CSS */
 .toolButton {
