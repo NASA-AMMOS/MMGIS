@@ -143,8 +143,9 @@ var LayersTool = {
         }
 
         if (L_.UserInterface_.isMobile === true) {
+            const mapRect = document.getElementById('map').getBoundingClientRect()
             this.width = 'full'
-            this.height = 500
+            this.height = Math.round(mapRect.height * 0.70)
         }
     },
     finalize: function () {
