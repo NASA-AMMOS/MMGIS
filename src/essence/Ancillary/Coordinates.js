@@ -106,7 +106,7 @@ const Coordinates = {
     initialize: function () {
         if (UserInterface.isMobile === true) {
             this.width = 'full'
-            this.height = 100
+            this.height = 120
         }
     },
     make: function () {
@@ -153,6 +153,41 @@ const Coordinates = {
                 theme: 'blue',
                 offset: [0, 20],
             })
+        } else {
+            var additionalDiv = [
+                "<div id='coordUICopy'>COPY</div>",
+            ].join('\n')
+
+            $('#tools')
+                .append($('<div>')
+                .attr('id', 'coordUIFooter')
+                .css('display', 'flex')
+                .css('position', 'relative')
+                .css('height', '30px')
+                .css('bottom', '-40px')
+                .css('width', '60px')
+                .css('line-height', '30px')
+                .css('border-radius', '2px')
+                .css('margin-left', '10px')
+                .css('justify-content', 'center')
+                .css('background-color', 'var(--color-a1-5)')
+                .css('color', 'var(--color-f)')
+                .html(additionalDiv))
+
+            $('#coordUIFooter')
+                .on('click', function() {
+                    const currentState = Coordinates.states[Coordinates.currentType]
+                    let text = $('#mouseLngLat').text()
+                    if (text.split(',').length == 2) {
+                        // Strip the units
+                        text = text.split(',')
+                        text = `${text[0].replace(currentState.units[0], '')}, ${text[1].replace(currentState.units[1], '')}`
+                    } else {
+                        text = $('#mouseLngLat').text()
+                    }
+
+                    F_.copyToClipboard(text)
+                })
         }
 
         if (
@@ -686,12 +721,14 @@ function pickLngLat() {
         $('.mouseLngLat').css({ display: 'flex' })
         $('.mouseLngLatPicking').removeClass('active')
         $('#pickLngLat').removeClass('active')
+        $('#coordUIFooter').css('display', 'flex')
 
         Map_.rmNotNull(Coordinates.tempIndicatorPoint)
     } else {
         $('.mouseLngLat').css({ display: 'none' })
         $('.mouseLngLatPicking').addClass('active')
         $('#pickLngLat').addClass('active')
+        $('#coordUIFooter').css('display', 'none')
 
         const currentDesc = $('#mouseDesc').html()
         $('#mouseDescPicking').html(currentDesc)
@@ -901,14 +938,23 @@ function interfaceWithMMWebGIS() {
         const wOffset = mapRect.width / 2
         const hOffset = mapRect.height / 2
 
-        //Find coordinates at map center and at another point one pixel below the center
+        // Find coordinates at map center
         const centerlatlong = Map_.map.containerPointToLatLng([
             wOffset,
             hOffset,
         ])
 
+        const newCoords = Coordinates.convertLngLat(
+            centerlatlong.lng,
+            centerlatlong.lat,
+            Coordinates.currentType,
+            true,
+            true,
+            true
+        )
+
         // Set the coordinates to the center of the map
-        $('#mouseLngLat').text(`${centerlatlong.lng}, ${centerlatlong.lat}`)
+        $('#mouseLngLat').text(`${newCoords[0]}, ${newCoords[1]}`)
     }
 
     function separateFromMMWebGIS() {
