@@ -9,6 +9,7 @@ import * as moment from 'moment'
 import F_ from '../Formulae_/Formulae_'
 import Map_ from '../Map_/Map_'
 import L_ from '../Layers_/Layers_'
+import { parseExternalStacUrl } from '../Layers_/LayerUtils'
 import calls from '../../../pre/calls'
 import tippy from 'tippy.js'
 import Dropy from '../../../external/Dropy/dropy'
@@ -2862,12 +2863,36 @@ const TimeUI = {
             ) {
                 let layerUrl = l.url
                 if (layerUrl.indexOf('stac-collection:') === 0) {
+                    const afterColon = layerUrl.substring(layerUrl.indexOf(':') + 1)
+                    let collectionName = afterColon
+                    let isExternal = false
+                    let externalBaseUrl = null
+
+                    // Handle external STAC URLs (format: https://example.com/mmgis/titilerpgstac/collections/name)
+                    if (afterColon.includes('://')) {
+                        const parsed = parseExternalStacUrl(afterColon)
+                        if (parsed) {
+                            collectionName = parsed.collectionName
+                            isExternal = true
+
+                            // Convert TiTiler URL to MMGIS base URL
+                            // From: https://example.com/mmgis/titilerpgstac
+                            // To:   https://example.com/mmgis
+                            externalBaseUrl = parsed.baseUrl.replace(/\/titilerpgstac$/, '')
+                        } else {
+                            console.error('Failed to parse external STAC URL for histogram:', layerUrl)
+                            return
+                        }
+                    } else {
+                        // Local format - just strip query params if present
+                        collectionName = afterColon.split('?')[0]
+                    }
+
                     sparklineLayers.push({
                         name: name,
-                        stacCollection: layerUrl.replace(
-                            'stac-collection:',
-                            ''
-                        ),
+                        stacCollection: collectionName,
+                        isExternal: isExternal,
+                        externalBaseUrl: externalBaseUrl
                     })
                 } else if (!F_.isUrlAbsolute(layerUrl)) {
                     layerUrl = L_.missionPath + layerUrl
@@ -2891,92 +2916,139 @@ const TimeUI = {
             1
         )
         let bins = new Array(NUM_BINS).fill(0)
-        let numBins = 0
+        let completedCalls = 0
 
-        sparklineLayers.forEach((l) => {
-            calls.api(
-                'query_tileset_times',
-                l.stacCollection != null
-                    ? {
-                          stacCollection: l.stacCollection,
-                          starttime: starttimeISO,
-                          endtime: endtimeISO,
-                      }
-                    : {
-                          path: l.path,
-                          starttime: starttimeISO,
-                          endtime: endtimeISO,
-                      },
-                function (data) {
-                    if (data.body && data.body.times) {
-                        if (l.stacCollection != null) {
-                            for (let i = 0; i < NUM_BINS; i++) {
-                                bins[i] = Math.floor(
-                                    F_.linearScale(
-                                        [0, NUM_BINS],
-                                        [
-                                            TimeUI._timelineStartTimestamp,
-                                            TimeUI._timelineEndTimestamp,
-                                        ],
-                                        i
-                                    )
-                                )
-                            }
+        // Helper function to bin STAC collection data
+        function binStacData(data, bins) {
+            if (data.body && data.body.times) {
+                // Create time bin boundaries
+                const timeBins = []
+                for (let i = 0; i < NUM_BINS; i++) {
+                    timeBins[i] = Math.floor(
+                        F_.linearScale(
+                            [0, NUM_BINS],
+                            [
+                                TimeUI._timelineStartTimestamp,
+                                TimeUI._timelineEndTimestamp,
+                            ],
+                            i
+                        )
+                    )
+                }
 
-                            const nextBins = []
-                            let ti = 0
-                            for (let bi = 1; bi < bins.length; bi++) {
-                                nextBins[bi - 1] = 0
-                                while (
-                                    data.body.times[ti] &&
-                                    new Date(data.body.times[ti].t).getTime() >=
-                                        bins[bi - 1] &&
-                                    new Date(data.body.times[ti].t).getTime() <
-                                        bins[bi]
-                                ) {
-                                    nextBins[bi - 1] += parseInt(
-                                        data.body.times[ti].total
-                                    )
-                                    ti++
-                                }
-                            }
-                            bins = nextBins
-                            numBins = bins.length
-                        } else {
-                            data.body.times.forEach((time) => {
-                                bins[
-                                    Math.floor(
-                                        F_.linearScale(
-                                            [startTimestamp, endTimestamp],
-                                            [0, NUM_BINS],
-                                            TimeUI.removeOffset(
-                                                new Date(time.t).getTime()
-                                            )
-                                        )
-                                    )
-                                ]++
-                            })
-                            numBins = NUM_BINS
-                        }
-
-                        const minmax = F_.getMinMaxOfArray(bins)
-
-                        const histoElm = $('#mmgisTimeUITimelineHisto')
-                        histoElm.empty()
-                        if (minmax.max > 0)
-                            bins.forEach((b) => {
-                                histoElm.append(
-                                    `<div style="width:${
-                                        (1 / numBins) * 100
-                                    }%; opacity:${
-                                        (b > 0 ? 20 : 0) + (b / minmax.max) * 80
-                                    }%;"></div>`
-                                )
-                            })
+                // Bin the timestamps
+                let ti = 0
+                for (let bi = 1; bi < timeBins.length; bi++) {
+                    while (
+                        data.body.times[ti] &&
+                        new Date(data.body.times[ti].t).getTime() >= timeBins[bi - 1] &&
+                        new Date(data.body.times[ti].t).getTime() < timeBins[bi]
+                    ) {
+                        bins[bi - 1] += parseInt(data.body.times[ti].total)
+                        ti++
                     }
-                },
-                function (e) {}
-            )
+                }
+            }
+        }
+
+        // Helper function to bin file-based layer data
+        function binFileData(data, bins) {
+            if (data.body && data.body.times) {
+                data.body.times.forEach((time) => {
+                    const binIndex = Math.floor(
+                        F_.linearScale(
+                            [startTimestamp, endTimestamp],
+                            [0, NUM_BINS],
+                            TimeUI.removeOffset(
+                                new Date(time.t).getTime()
+                            )
+                        )
+                    )
+                    if (binIndex >= 0 && binIndex < NUM_BINS) {
+                        bins[binIndex]++
+                    }
+                })
+            }
+        }
+
+        // Helper function to render histogram
+        function renderHistogram() {
+            const minmax = F_.getMinMaxOfArray(bins)
+            const histoElm = $('#mmgisTimeUITimelineHisto')
+            histoElm.empty()
+
+            if (minmax.max > 0) {
+                bins.forEach((b) => {
+                    histoElm.append(
+                        `<div style="width:${
+                            (1 / NUM_BINS) * 100
+                        }%; opacity:${
+                            (b > 0 ? 20 : 0) + (b / minmax.max) * 80
+                        }%;"></div>`
+                    )
+                })
+            }
+        }
+
+        // Query each layer for availability data
+        sparklineLayers.forEach((l) => {
+            const onComplete = () => {
+                completedCalls++
+                if (completedCalls === sparklineLayers.length) {
+                    renderHistogram()
+                }
+            }
+
+            // Check if this is an external STAC collection
+            if (l.isExternal && l.externalBaseUrl) {
+                // Query external MMGIS instance
+                const externalUrl = `${l.externalBaseUrl}/api/utils/queryTilesetTimes?` +
+                    `stacCollection=${encodeURIComponent(l.stacCollection)}&` +
+                    `starttime=${encodeURIComponent(starttimeISO)}&` +
+                    `endtime=${encodeURIComponent(endtimeISO)}`
+
+                fetch(externalUrl)
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+                        return response.json()
+                    })
+                    .then(data => {
+                        binStacData(data, bins)
+                        onComplete()
+                    })
+                    .catch(err => {
+                        console.error(`Failed to fetch external STAC times from ${l.externalBaseUrl}:`, err)
+                        onComplete()
+                    })
+            } else {
+                // Local STAC or file-based layer
+                calls.api(
+                    'query_tileset_times',
+                    l.stacCollection != null
+                        ? {
+                              stacCollection: l.stacCollection,
+                              starttime: starttimeISO,
+                              endtime: endtimeISO,
+                          }
+                        : {
+                              path: l.path,
+                              starttime: starttimeISO,
+                              endtime: endtimeISO,
+                          },
+                    function (data) {
+                        if (l.stacCollection != null) {
+                            binStacData(data, bins)
+                        } else {
+                            binFileData(data, bins)
+                        }
+                        onComplete()
+                    },
+                    function (e) {
+                        console.error('Failed to query tileset times:', e)
+                        onComplete()
+                    }
+                )
+            }
         })
     },
     _setCurrentTime(force, forceDate, disableChange) {
