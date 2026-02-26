@@ -362,6 +362,7 @@ let ToolController_ = {
                                 TimeUI.initialize()
                                 ToolController_.setToolHeight(TimeUI.height)
                                 ToolController_.setToolWidth()
+                                ToolController_.activeToolName = 'TimeUI'
                                 TimeUI.make()
                                 TimeUI.toggleExpanded()
                                 TimeUI.fina()
@@ -370,6 +371,7 @@ let ToolController_ = {
                                 ToolController_.setToolWidth()
                                 TimeUI.destroy()
                                 ToolController_.closeActiveTool()
+                                ToolController_.activeToolName = null
                             }
 
                             $('#topBar').css({
@@ -439,12 +441,14 @@ let ToolController_ = {
                                     L_.Coordinates.height
                                 )
                                 ToolController_.setToolWidth()
+                                ToolController_.activeToolName = 'CoordinatesTool'
                                 L_.Coordinates.make()
                             } else {
                                 ToolController_.setToolHeight(0)
                                 ToolController_.setToolWidth()
                                 L_.Coordinates.destroy()
                                 ToolController_.closeActiveTool()
+                                ToolController_.activeToolName = null
                             }
 
                             $('#topBar').css({
