@@ -304,6 +304,9 @@
     margin: 0;
     margin-right: inherit !important;
 }
+#CoordinatesDiv .mouseLngLat {
+    height: 30px;
+}
 .leaflet-control-scalefactor {
     display: none !important;
 }
