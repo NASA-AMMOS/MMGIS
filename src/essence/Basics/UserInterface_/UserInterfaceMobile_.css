@@ -315,3 +315,6 @@
 #topBar {
     height: 40px !important;
 }
+#mmgisTimeUI input {
+    width: 180px !important;
+}
