@@ -222,6 +222,13 @@
     font-weight: bold;
 }
 
+#mmgisTimeUI input {
+    width: 180px !important;
+}
+#mmgisTimeUIMain {
+    background-color: var(--color-a-5);
+}
+
 /* Overwrite LayersTool CSS */
 #layersTool .layerName {
     overflow: hidden;
@@ -314,7 +321,4 @@
 
 #topBar {
     height: 40px !important;
-}
-#mmgisTimeUI input {
-    width: 180px !important;
 }
