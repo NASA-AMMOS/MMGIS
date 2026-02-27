@@ -311,3 +311,8 @@
 .toolButton > .mdi-18.mdi-set, .toolButton > .mdi-18px.mdi:before {
     font-size: 22px !important;
 }
+
+/* Disable switching missions using the MMGIS logo button */
+#mmgislogo {
+    pointer-events: none;
+}
