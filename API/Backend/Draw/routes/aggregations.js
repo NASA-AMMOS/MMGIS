@@ -1,5 +1,6 @@
 const express = require("express");
 const logger = require("../../../logger");
+const Utils = require("../../../utils.js");
 const Sequelize = require("sequelize");
 const { sequelize } = require("../../../connection");
 const fhistories = require("../models/filehistories");
@@ -117,13 +118,13 @@ router.post("/aggregations", function (req, res, next) {
           const maxy = req.body.maxy;
 
           if (minx != null && miny != null && maxx != null && maxy != null) {
-            query += ` AND ST_Intersects(ST_MakeEnvelope(${parseFloat(minx)}, ${parseFloat(miny)}, ${parseFloat(maxx)}, ${parseFloat(maxy)}, 4326), geom)`;
+            query += ` AND ST_Intersects(ST_MakeEnvelope(${Utils.forceAlphaNumUnder(parseFloat(minx))}, ${Utils.forceAlphaNumUnder(parseFloat(miny))}, ${Utils.forceAlphaNumUnder(parseFloat(maxx))}, ${Utils.forceAlphaNumUnder(parseFloat(maxy))}, 4326), geom)`;
           }
 
           // Optional: Add temporal filter
           const startTime = req.body.startTime;
           const endTime = req.body.endTime;
-          const timeProp = req.body.timeProp || "time";
+          const timeProp = Utils.forceAlphaNumUnder(req.body.timeProp || "time");
 
           if (startTime != null && endTime != null) {
             // Note: This is a simplified temporal filter
