@@ -1,6 +1,7 @@
 const logger = require("../../../logger");
 const Sequelize = require("sequelize");
 const { sequelize } = require("../../../connection");
+const Utils = require("../../../utils.js");
 const fhistories = require("../models/filehistories");
 const Filehistories = fhistories.Filehistories;
 const FilehistoriesTEST = fhistories.FilehistoriesTEST;
@@ -210,7 +211,7 @@ function getfile(req, res, next) {
               // Temporal extent parameters
               const startTime = req.body.startTime; // Unix timestamp
               const endTime = req.body.endTime;
-              const timeProp = req.body.timeProp || 'time';
+              const timeProp = Utils.forceAlphaNumUnder(req.body.timeProp || 'time');
 
               // Pagination parameters
               const limit = req.body.limit ? parseInt(req.body.limit) : null;
@@ -458,9 +459,11 @@ function getfile(req, res, next) {
                 // Otherwise, treat it as a JSON property key in the properties column
                 else {
                   // Handle both "properties.key" format and plain "key" format
-                  const propKey = sortBy.startsWith('properties.')
-                    ? sortBy.substring(11)  // Remove "properties." prefix
-                    : sortBy;                // Use as-is (already just the key)
+                  const propKey = Utils.forceAlphaNumUnder(
+                    sortBy.startsWith('properties.')
+                      ? sortBy.substring(11)  // Remove "properties." prefix
+                      : sortBy                // Use as-is (already just the key)
+                  );
 
                   // SQL Injection Prevention: Use Sequelize replacements for the JSON key
                   // We use a replacement parameter for the property key value
@@ -485,7 +488,9 @@ function getfile(req, res, next) {
               // Build LIMIT/OFFSET clause
               let limitClause = '';
               if (limit != null) {
-                limitClause = ` LIMIT ${limit} OFFSET ${offset}`;
+                limitClause = ` LIMIT :limit OFFSET :offset`;
+                replacements.limit = limit;
+                replacements.offset = offset;
               }
 
               const query = `SELECT ${selectClause} FROM user_features${req.body.test === "true" ? "_tests" : ""} WHERE ${whereClause}${orderByClause}${limitClause}`;

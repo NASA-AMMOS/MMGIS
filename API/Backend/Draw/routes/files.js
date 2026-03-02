@@ -22,6 +22,7 @@ const draw = require("./draw");
 const filesutils = require("./filesutils");
 const getfile = filesutils.getfile;
 const triggerWebhooks = require("../../Webhooks/processes/triggerwebhooks");
+const Utils = require("../../../utils");
 
 const router = express.Router();
 const db = database.db;
@@ -517,9 +518,11 @@ router.post("/change", function (req, res, next) {
 router.post("/modifykeyword", function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
-  let keyword = req.body.keyword;
   const type = req.body.type;
-  const newKeyword = req.body.newKeyword;
+  // Sanitize user inputs to prevent SQL injection - removes all special characters including backslashes, quotes, etc.
+  let keyword = req.body.keyword ? Utils.forceAlphaNumUnder(req.body.keyword) : null;
+  const newKeyword = req.body.newKeyword ? Utils.forceAlphaNumUnder(req.body.newKeyword) : null;
+
   let symbol = null;
   switch (type.toLowerCase()) {
     case "tags":
@@ -535,19 +538,16 @@ router.post("/modifykeyword", function (req, res, next) {
       break;
   }
 
+  // Validate after sanitization
   if (
     symbol == null ||
     keyword == null ||
-    (keyword != null &&
-      (keyword.indexOf(" ") > -1 || keyword.indexOf("~") > -1)) ||
-    (newKeyword != null &&
-      (newKeyword.indexOf(" ") > -1 ||
-        newKeyword.indexOf("~") > -1 ||
-        newKeyword.indexOf("$") > -1))
+    keyword === "" ||
+    (newKeyword !== null && newKeyword === "")
   ) {
     res.send({
       status: "failure",
-      message: `Bad Input. Either: no 'keyword', no 'type', 'keyword' or 'newKeyword' contains spaces, dollar-signs, tildes.`,
+      message: `Bad Input. Either: no 'keyword', no 'type', or invalid characters in keyword/newKeyword.`,
       body: {},
     });
     return;

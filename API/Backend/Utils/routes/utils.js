@@ -54,6 +54,14 @@ function queryTilesetTimesDir(req, res) {
     });
     return;
   }
+  // Security: Block path traversal sequences
+  if (originalUrl.includes('..')) {
+    res.send({
+      status: "failure",
+      message: "Invalid path: traversal sequences not allowed.",
+    });
+    return;
+  }
   if (
     req.query.starttime == null ||
     req.query.endtime == null ||
