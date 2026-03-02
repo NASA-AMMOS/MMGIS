@@ -8,6 +8,7 @@ import Map_ from '../../Basics/Map_/Map_'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import calls from '../../../pre/calls'
+import { parseExternalStacUrl } from '../../Basics/Layers_/LayerUtils'
 
 //Add the tool markup if you want to do it this way
 var markup = [].join('\n')
@@ -672,6 +673,29 @@ function bestMatchInLegend(rgba, legendData) {
     return bestMatch
 }
 
+/**
+ * Parse STAC URL to extract base URL and collection name
+ * Uses LayerUtils.parseExternalStacUrl for consistent parsing logic
+ */
+function parseStacUrl(url) {
+    const afterColon = url.substring(url.indexOf(':') + 1)
+
+    if (afterColon.includes('://')) {
+        // External format - use LayerUtils function
+        return parseExternalStacUrl(afterColon)
+    } else {
+        // Local format
+        const origin = window.location.origin
+        const pathname = (window.location.pathname || '').replace(/\/$/g, '')
+        const baseUrl = mmgisglobal.NODE_ENV === 'development'
+            ? 'http://localhost:8888'
+            : `${origin}${pathname}`
+        const collectionName = afterColon.split('?')[0].trim()
+
+        return { baseUrl: `${baseUrl}/titilerpgstac`, collectionName }
+    }
+}
+
 function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
     // Helper function to add default 'asset_' prefix to bands in expressions if not already prefixed
     const processExpression = (expression) => {
@@ -684,6 +708,14 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
     numBands = numBands || 1
     var dataPath
     if (url != null && url.startsWith('stac-collection:')) {
+        const parsed = parseStacUrl(url)
+        if (!parsed) {
+            console.error('Failed to parse STAC URL for Identifier query:', url)
+            return
+        }
+
+        const { baseUrl, collectionName } = parsed
+
         let timeParam = ''
         if (L_.layers.data[layerUUID].time?.enabled == true)
             timeParam = `&datetime=${L_.layers.data[layerUUID].time.start}/${L_.layers.data[layerUUID].time.end}`
@@ -710,15 +742,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
         }
 
         fetch(
-            `${
-                mmgisglobal.NODE_ENV === 'development'
-                    ? 'http://localhost:8888'
-                    : `${window.location.origin}${(
-                          window.location.pathname || ''
-                      ).replace(/\/$/g, '')}`
-            }/titilerpgstac/collections/${
-                url.split('stac-collection:')[1]
-            }/point/${lng},${lat}?assets=asset&items_limit=10${timeParam}${expressionParam}${bandsParam}`,
+            `${baseUrl}/collections/${collectionName}/point/${lng},${lat}?assets=asset&items_limit=10${timeParam}${expressionParam}${bandsParam}`,
             {
                 method: 'GET',
                 headers: {
@@ -746,7 +770,17 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
                     if (typeof callback === 'function') callback(values)
                 }
             })
-            .catch((err) => {})
+            .catch((error) => {
+                console.error('Error querying STAC point:', error)
+                if (error.message && error.message.toLowerCase().includes('cors')) {
+                    console.error(
+                        'CORS error - the external STAC server must allow requests from this origin.',
+                        '\nRequired CORS headers on external server:',
+                        '\n  Access-Control-Allow-Origin: *',
+                        '\n  Access-Control-Allow-Methods: GET, OPTIONS'
+                    )
+                }
+            })
         return
     } else if (url != null && url.startsWith('COG:')) {
         // Time

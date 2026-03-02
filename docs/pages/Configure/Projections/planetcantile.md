@@ -70,10 +70,14 @@ Once the projection is configured, you can use planetary data:
 5. The tiles will be served in the correct planetary coordinate system
 
 #### STAC Collections
-1. Create a STAC Collection with planetary COGs
-2. Create a Tile Layer with URL: `stac-collection:{collection_name}`
+1. Create a STAC Collection with planetary COGs (or reference an external collection)
+2. Create a Tile Layer with URL:
+   - Local: `stac-collection:{collection_name}`
+   - External: `stac-collection:https://other-mmgis.com/titilerpgstac/collections/{collection_name}`
 3. Select the planetary TileMatrixSet
 4. The mosaicked tiles will render correctly in the planetary projection
+
+**Note:** External STAC collections work seamlessly with planetary projections. Ensure the external server has CORS enabled.
 
 ## Example Workflow
 

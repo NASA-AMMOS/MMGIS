@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { transformStacUrl, parseExternalStacUrl } from '../../src/essence/Basics/Layers_/LayerUtils.js';
 
 /**
  * STAC URL Transformation Unit Tests
@@ -8,70 +9,18 @@ import { test, expect } from '@playwright/test';
  * URLs (e.g., stac-collection:name?params) into proper TiTiler PgSTAC HTTP endpoints.
  *
  * The logic being tested is implemented in:
- * - src/essence/Basics/Layers_/Layers_.js (L_.getUrl() method)
- * - src/essence/Basics/Map_/Map_.js (transformStacUrl() function and makeTileLayer())
+ * - src/essence/Basics/Layers_/LayerUtils.js (transformStacUrl() and parseExternalStacUrl())
+ *
+ * These functions are imported directly from the source, ensuring tests validate
+ * the actual implementation rather than a copy.
  */
 
 test.describe('STAC URL Transformation Logic', () => {
-    /**
-     * Helper function that mimics the STAC URL transformation logic
-     * from L_.getUrl() and transformStacUrl()
-     */
-    function transformStacUrl(url, layerData, type) {
-        let nextUrl = url;
-
-        // Check if this is a STAC collection URL
-        if (
-            nextUrl != null &&
-            nextUrl.toLowerCase().startsWith('stac-collection:')
-        ) {
-            // Parse the STAC URL: stac-collection:collection_name?params
-            const splitColonUrl = nextUrl.split(':');
-            if (splitColonUrl.length >= 2) {
-                const splitParams = splitColonUrl[1].split('?');
-                const collectionName = splitParams[0];
-
-                // Build bands parameter (only if no expression exists)
-                let bandsParam = '';
-                if (
-                    layerData &&
-                    (!layerData.cogExpression ||
-                        layerData.cogExpression.trim() === '')
-                ) {
-                    const bands = layerData.cogBands;
-                    if (bands != null) {
-                        bands.forEach((band) => {
-                            if (band != null) bandsParam += `&bidx=${band}`;
-                        });
-                    }
-                }
-
-                // Build resampling parameter
-                let resamplingParam = '';
-                if (layerData && layerData.cogResampling) {
-                    resamplingParam = `&resampling=${layerData.cogResampling}`;
-                }
-
-                // Build the base URL
-                const origin = 'http://localhost:8888';
-                const pathname = '/MMGIS';
-
-                // Generate endpoint based on type
-                if (type === 'tile') {
-                    // Tile endpoint for raster tiles
-                    nextUrl = `${origin}${pathname}/titilerpgstac/collections/${collectionName}/tiles/${
-                        (layerData && layerData.tileMatrixSet) ||
-                        'WebMercatorQuad'
-                    }/{z}/{x}/{y}?assets=asset${bandsParam}${resamplingParam}`;
-                } else if (type === 'image') {
-                    // For images, use preview endpoint
-                    nextUrl = `${origin}${pathname}/titilerpgstac/collections/${collectionName}/preview?assets=asset${bandsParam}${resamplingParam}`;
-                }
-            }
-        }
-
-        return nextUrl;
-    }
+    // Mock location object for tests
+    const mockLocation = {
+        origin: 'http://localhost:8888',
+        pathname: '/MMGIS'
+    };
 
     test('transforms basic STAC collection URL for tiles', () => {
         const url = 'stac-collection:swot_freeboard_monthly_10km';
@@ -82,7 +31,7 @@ test.describe('STAC URL Transformation Logic', () => {
             cogResampling: null,
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         expect(result).toContain(
             'http://localhost:8888/MMGIS/titilerpgstac/collections/swot_freeboard_monthly_10km'
@@ -101,7 +50,7 @@ test.describe('STAC URL Transformation Logic', () => {
             cogResampling: null,
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         expect(result).toContain(
             'http://localhost:8888/MMGIS/titilerpgstac/collections/swot_freeboard_monthly_10km'
@@ -119,7 +68,7 @@ test.describe('STAC URL Transformation Logic', () => {
             cogResampling: null,
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         expect(result).toContain('?assets=asset&bidx=1&bidx=2&bidx=3');
     });
@@ -133,7 +82,7 @@ test.describe('STAC URL Transformation Logic', () => {
             cogResampling: 'bilinear',
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         expect(result).toContain('?assets=asset&resampling=bilinear');
     });
@@ -148,7 +97,7 @@ test.describe('STAC URL Transformation Logic', () => {
             tileMatrixSet: 'WorldCRS84Quad',
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         expect(result).toContain('/tiles/WorldCRS84Quad/{z}/{x}/{y}');
     });
@@ -162,7 +111,7 @@ test.describe('STAC URL Transformation Logic', () => {
             cogResampling: null,
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         // Should not include bidx parameters when expression is present
         expect(result).not.toContain('bidx=');
@@ -178,7 +127,7 @@ test.describe('STAC URL Transformation Logic', () => {
             cogResampling: null,
         };
 
-        const result = transformStacUrl(url, layerData, 'image');
+        const result = transformStacUrl(url, layerData, 'image', mockLocation);
 
         expect(result).toContain(
             'http://localhost:8888/MMGIS/titilerpgstac/collections/test_collection'
@@ -196,7 +145,7 @@ test.describe('STAC URL Transformation Logic', () => {
             tileMatrixSet: 'WorldCRS84Quad',
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         expect(result).toContain('/tiles/WorldCRS84Quad/{z}/{x}/{y}');
         expect(result).toContain('bidx=2&bidx=3&bidx=4');
@@ -206,7 +155,7 @@ test.describe('STAC URL Transformation Logic', () => {
     test('handles STAC URL with null layerData', () => {
         const url = 'stac-collection:test_collection';
 
-        const result = transformStacUrl(url, null, 'tile');
+        const result = transformStacUrl(url, null, 'tile', mockLocation);
 
         expect(result).toContain(
             'http://localhost:8888/MMGIS/titilerpgstac/collections/test_collection'
@@ -220,7 +169,7 @@ test.describe('STAC URL Transformation Logic', () => {
             name: 'Malformed Layer',
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         // Should still process but with empty collection name
         expect(result).toContain('titilerpgstac/collections/');
@@ -232,7 +181,7 @@ test.describe('STAC URL Transformation Logic', () => {
             name: 'Uppercase STAC',
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         expect(result).toContain('titilerpgstac/collections/test_collection');
     });
@@ -243,7 +192,7 @@ test.describe('STAC URL Transformation Logic', () => {
             name: 'Regular Tile Layer',
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         // Should return the original URL unchanged
         expect(result).toBe(url);
@@ -255,7 +204,7 @@ test.describe('STAC URL Transformation Logic', () => {
             name: 'COG Layer',
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         // Should not be transformed since it doesn't start with stac-collection:
         expect(result).toBe(url);
@@ -271,7 +220,7 @@ test.describe('STAC URL Transformation Logic', () => {
             cogResampling: null,
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         // Should not add any bidx parameters
         expect(result).not.toContain('bidx=');
@@ -287,7 +236,7 @@ test.describe('STAC URL Transformation Logic', () => {
             cogResampling: null,
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         // Should not add any bidx parameters
         expect(result).not.toContain('bidx=');
@@ -303,7 +252,7 @@ test.describe('STAC URL Transformation Logic', () => {
             cogResampling: null,
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         // Should only add bidx for non-null values
         expect(result).toContain('bidx=1');
@@ -320,7 +269,7 @@ test.describe('STAC URL Transformation Logic', () => {
             cogResampling: null,
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         // Should include bands since expression is empty
         expect(result).toContain('bidx=1&bidx=2');
@@ -335,9 +284,103 @@ test.describe('STAC URL Transformation Logic', () => {
             cogResampling: null,
         };
 
-        const result = transformStacUrl(url, layerData, 'tile');
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         // Should include bands since expression is only whitespace
         expect(result).toContain('bidx=1&bidx=2');
+    });
+
+    test('transforms external STAC URL with full path', () => {
+        const url = 'stac-collection:https://mars.nasa.gov/mmgis/titilerpgstac/collections/swot_collection';
+        const result = transformStacUrl(url, {}, 'tile', mockLocation);
+        expect(result).toContain('https://mars.nasa.gov/mmgis/titilerpgstac/collections/swot_collection');
+        expect(result).toContain('/tiles/WebMercatorQuad/{z}/{x}/{y}');
+        expect(result).toContain('?assets=asset');
+    });
+
+    test('handles external URL with port number', () => {
+        const url = 'stac-collection:https://example.com:8888/titilerpgstac/collections/test_collection';
+        const result = transformStacUrl(url, {}, 'tile', mockLocation);
+        expect(result).toContain('https://example.com:8888/titilerpgstac/collections/test_collection');
+    });
+
+    test('preserves bands with external URL', () => {
+        const url = 'stac-collection:https://example.com/titilerpgstac/collections/test_collection';
+        const layerData = { cogBands: [1, 2, 3] };
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
+        expect(result).toContain('bidx=1');
+        expect(result).toContain('bidx=2');
+        expect(result).toContain('bidx=3');
+    });
+
+    test('applies resampling to external URL', () => {
+        const url = 'stac-collection:https://example.com/titilerpgstac/collections/test_collection';
+        const layerData = { cogResampling: 'bilinear' };
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
+        expect(result).toContain('resampling=bilinear');
+    });
+
+    test('transforms external STAC URL for image preview', () => {
+        const url = 'stac-collection:https://example.com/titilerpgstac/collections/test_collection';
+        const result = transformStacUrl(url, {}, 'image', mockLocation);
+        expect(result).toContain('https://example.com/titilerpgstac/collections/test_collection/preview');
+        expect(result).toContain('?assets=asset');
+    });
+
+    test('applies custom tile matrix set to external URL', () => {
+        const url = 'stac-collection:https://example.com/titilerpgstac/collections/test_collection';
+        const layerData = { tileMatrixSet: 'WorldCRS84Quad' };
+        const result = transformStacUrl(url, layerData, 'tile', mockLocation);
+        expect(result).toContain('/tiles/WorldCRS84Quad/{z}/{x}/{y}');
+    });
+
+    test('rejects external URL without /collections/ path', () => {
+        const url = 'stac-collection:https://example.com/titilerpgstac/test_collection';
+        const result = transformStacUrl(url, {}, 'tile', mockLocation);
+        expect(result).toBe(url); // Returns original on error
+    });
+
+    test('rejects external URL missing collection name', () => {
+        const url = 'stac-collection:https://example.com/titilerpgstac/collections/';
+        const result = transformStacUrl(url, {}, 'tile', mockLocation);
+        expect(result).toBe(url); // Returns original on error
+    });
+
+    test('local STAC URLs continue working unchanged', () => {
+        const url = 'stac-collection:local_collection';
+        const result = transformStacUrl(url, {}, 'tile', mockLocation);
+        expect(result).toContain('/titilerpgstac/collections/local_collection');
+        expect(result).toMatch(/^http/); // Has origin
+    });
+
+    test('parseExternalStacUrl validates URLs correctly', () => {
+        // Valid external URL
+        const valid = parseExternalStacUrl('https://example.com/titilerpgstac/collections/collection');
+        expect(valid).toEqual({
+            baseUrl: 'https://example.com/titilerpgstac',
+            collectionName: 'collection'
+        });
+
+        // Missing /collections/ path
+        const invalid1 = parseExternalStacUrl('https://example.com/titilerpgstac/collection');
+        expect(invalid1).toBeNull();
+
+        // Missing collection name
+        const invalid2 = parseExternalStacUrl('https://example.com/titilerpgstac/collections/');
+        expect(invalid2).toBeNull();
+
+        // URL with port
+        const withPort = parseExternalStacUrl('https://example.com:8888/titilerpgstac/collections/collection');
+        expect(withPort).toEqual({
+            baseUrl: 'https://example.com:8888/titilerpgstac',
+            collectionName: 'collection'
+        });
+
+        // URL with subpath
+        const withSubpath = parseExternalStacUrl('https://example.com/mmgis/titilerpgstac/collections/my_collection');
+        expect(withSubpath).toEqual({
+            baseUrl: 'https://example.com/mmgis/titilerpgstac',
+            collectionName: 'my_collection'
+        });
     });
 });

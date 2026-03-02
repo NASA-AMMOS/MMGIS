@@ -5,6 +5,7 @@ import Search from '../../Ancillary/Search'
 import Attributions from '../../Ancillary/Attributions'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import LayerGeologic from './LayerGeologic/LayerGeologic'
+import { transformStacUrl, parseExternalStacUrl } from './LayerUtils'
 import $ from 'jquery'
 
 const L_ = {
@@ -244,72 +245,6 @@ const L_ = {
         if (L_._onSpecificLayerToggleSubscriptions[fid] != null)
             delete L_._onSpecificLayerToggleSubscriptions[fid]
     },
-    /**
-     * Transforms a STAC collection URL (stac-collection:name?params) into a proper HTTP URL
-     * for TiTiler PgSTAC endpoints.
-     *
-     * @param {string} url - The URL to transform (may or may not be a stac-collection: URL)
-     * @param {object} layerData - The layer configuration object
-     * @param {string} type - The type of endpoint to generate ('tile' or 'image')
-     * @returns {string} - The transformed URL or the original URL if not a STAC URL
-     */
-    transformStacUrl(url, layerData, type = 'tile') {
-        if (!url || typeof url !== 'string') return url
-
-        // Check if this is a STAC collection URL
-        const lowerUrl = url.toLowerCase()
-        if (!lowerUrl.startsWith('stac-collection:')) return url
-
-        // Parse the STAC URL: stac-collection:collection_name?params
-        const splitColonUrl = url.split(':')
-        if (splitColonUrl.length < 2) return url
-
-        const splitParams = splitColonUrl[1].split('?')
-        const collectionName = splitParams[0]
-
-        // Build bands parameter (only if no expression exists)
-        let bandsParam = ''
-        if (
-            layerData &&
-            (!layerData.cogExpression || layerData.cogExpression.trim() === '')
-        ) {
-            const bands = layerData.cogBands
-            if (bands != null) {
-                bands.forEach((band) => {
-                    if (band != null) bandsParam += `&bidx=${band}`
-                })
-            }
-        }
-
-        // Build resampling parameter
-        let resamplingParam = ''
-        if (layerData && layerData.cogResampling) {
-            resamplingParam = `&resampling=${layerData.cogResampling}`
-        }
-
-        // Build the base URL
-        const origin = window.location.origin
-        const pathname = (window.location.pathname || '').replace(/\/$/g, '')
-
-        // Generate different endpoints based on type
-        if (type === 'tile') {
-            // Tile endpoint for raster tiles
-            return `${origin}${pathname}/titilerpgstac/collections/${collectionName}/tiles/${
-                (layerData && layerData.tileMatrixSet) || 'WebMercatorQuad'
-            }/{z}/{x}/{y}?assets=asset${bandsParam}${resamplingParam}`
-        } else {
-            // For images, we use preview endpoint
-            // Note: STAC collections are typically designed for tile serving
-            if (layerData && layerData.name) {
-                console.warn(
-                    `STAC layer "${layerData.name}" is configured as an image layer. ` +
-                        `STAC collections work best with tile layer type. ` +
-                        `Attempting to use preview endpoint.`
-                )
-            }
-            return `${origin}${pathname}/titilerpgstac/collections/${collectionName}/preview?assets=asset${bandsParam}${resamplingParam}`
-        }
-    },
     getUrl: function (type, url, layerData) {
         let wasCOG = false
 
@@ -320,7 +255,7 @@ const L_ = {
             nextUrl != null &&
             nextUrl.toLowerCase().startsWith('stac-collection:')
         ) {
-            nextUrl = L_.transformStacUrl(nextUrl, layerData, type)
+            nextUrl = transformStacUrl(nextUrl, layerData, type, window.location)
             // After transformation, nextUrl is now an absolute HTTP URL
         }
 
