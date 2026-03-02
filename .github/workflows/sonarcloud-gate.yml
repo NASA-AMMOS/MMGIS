@@ -22,7 +22,7 @@ jobs:
           PR_NUMBER="${{ github.event.pull_request.number }}"
           PROJECT_KEY="NASA-AMMOS_MMGIS"
           MAX_ATTEMPTS=20
-          SLEEP_SECONDS=15
+          SLEEP_SECONDS=30
 
           echo "Checking SonarCloud for BLOCKER issues on PR #${PR_NUMBER}"
 
