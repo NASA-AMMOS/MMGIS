@@ -1,0 +1,99 @@
+name: SonarCloud Blocker Check
+
+on:
+  pull_request:
+    branches:
+      - development
+      - main
+      - master
+
+jobs:
+  blocker-check:
+    name: SonarCloud Blocker Check
+    runs-on: ubuntu-latest
+    # Skip fork PRs (no access to SONAR_TOKEN)
+    if: github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Check for BLOCKER issues
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PROJECT_KEY="NASA-AMMOS_MMGIS"
+          MAX_ATTEMPTS=20
+          SLEEP_SECONDS=15
+
+          echo "Checking SonarCloud for BLOCKER issues on PR #${PR_NUMBER}"
+
+          # Poll until SonarCloud has analyzed this PR
+          for attempt in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Attempt ${attempt}/${MAX_ATTEMPTS}: Querying SonarCloud..."
+
+            # Check if SonarCloud has analysis data for this PR
+            ANALYSIS_RESPONSE=$(curl -s -u "${SONAR_TOKEN}:" \
+              "https://sonarcloud.io/api/qualitygates/project_status?projectKey=${PROJECT_KEY}&pullRequest=${PR_NUMBER}")
+
+            ANALYSIS_STATUS=$(echo "$ANALYSIS_RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin).get('projectStatus', {}).get('status', 'NONE'))" 2>/dev/null || echo "NONE")
+
+            if [ "$ANALYSIS_STATUS" = "OK" ] || [ "$ANALYSIS_STATUS" = "ERROR" ]; then
+              echo "SonarCloud analysis complete (gate status: ${ANALYSIS_STATUS})."
+              break
+            fi
+
+            if [ "$attempt" -eq "$MAX_ATTEMPTS" ]; then
+              echo "Timed out after $((MAX_ATTEMPTS * SLEEP_SECONDS))s waiting for SonarCloud analysis."
+              exit 1
+            fi
+
+            echo "  Analysis not ready yet. Waiting ${SLEEP_SECONDS}s..."
+            sleep $SLEEP_SECONDS
+          done
+
+          # Query for BLOCKER issues on this PR's new code
+          ISSUES_RESPONSE=$(curl -s -u "${SONAR_TOKEN}:" \
+            "https://sonarcloud.io/api/issues/search?projectKeys=${PROJECT_KEY}&pullRequest=${PR_NUMBER}&severities=BLOCKER&statuses=OPEN,CONFIRMED,REOPENED&ps=1")
+
+          BLOCKER_COUNT=$(echo "$ISSUES_RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin).get('total', -1))" 2>/dev/null || echo "-1")
+
+          echo ""
+          echo "BLOCKER issues found: ${BLOCKER_COUNT}"
+
+          if [ "$BLOCKER_COUNT" = "-1" ]; then
+            echo "ERROR: Failed to parse SonarCloud response."
+            echo "$ISSUES_RESPONSE"
+            exit 1
+          elif [ "$BLOCKER_COUNT" = "0" ]; then
+            echo "No BLOCKER issues found. Check passed."
+            exit 0
+          else
+            echo "BLOCKER issues detected! Fetching details..."
+            echo ""
+
+            # Fetch up to 10 blocker issues with details
+            DETAILS=$(curl -s -u "${SONAR_TOKEN}:" \
+              "https://sonarcloud.io/api/issues/search?projectKeys=${PROJECT_KEY}&pullRequest=${PR_NUMBER}&severities=BLOCKER&statuses=OPEN,CONFIRMED,REOPENED&ps=10")
+
+            echo "$DETAILS" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          for issue in data.get('issues', []):
+              component = issue.get('component', '').replace('${PROJECT_KEY}:', '')
+              line = issue.get('line', '?')
+              msg = issue.get('message', 'No message')
+              rule = issue.get('rule', '?')
+              print(f'  [{rule}] {component}:{line} — {msg}')
+          "
+            echo ""
+            echo "Fix these BLOCKER issues before merging."
+            exit 1
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### SonarCloud Blocker Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "PR #${{ github.event.pull_request.number }} was checked for BLOCKER-severity issues." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View in SonarCloud](https://sonarcloud.io/summary/new_code?id=NASA-AMMOS_MMGIS&pullRequest=${{ github.event.pull_request.number }})" >> $GITHUB_STEP_SUMMARY
