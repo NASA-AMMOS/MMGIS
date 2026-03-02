@@ -222,6 +222,13 @@
     font-weight: bold;
 }
 
+#mmgisTimeUI input {
+    width: 180px !important;
+}
+#mmgisTimeUIMain {
+    background-color: var(--color-a-5);
+}
+
 /* Overwrite LayersTool CSS */
 #layersTool .layerName {
     overflow: hidden;
@@ -310,4 +317,8 @@
 /* Force the icons in the toolbar to be larger */
 .toolButton > .mdi-18.mdi-set, .toolButton > .mdi-18px.mdi:before {
     font-size: 22px !important;
+}
+
+#topBar {
+    height: 40px !important;
 }
