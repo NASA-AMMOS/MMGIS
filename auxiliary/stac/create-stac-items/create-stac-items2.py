@@ -1,6 +1,7 @@
 # Developed on python 3.11.4
-# python create-stac-items.py [mmgis_url] [mmgis_token] [collection_id] [file_or_folder_path] [--regex]
-# ex: python create-stac-items.py "http://localhost:8888" stac-201fb492061f9fe3575e18f76d8d3823 myCollection C:\Users\Documents\Projects\MMGIS\Missions\Earth\COGs --upsert --path_remove /var/www/html/mmgis/MMGIS/ --path_replace_with /
+# python create-stac-items2.py [mmgis_url] [mmgis_token] [collection_id] [file_or_folder_path] [--options]
+# ex: python create-stac-items2.py "http://localhost:8888" stac-token myCollection C:\Path\to\COGs --upsert --path_remove /var/www/html/mmgis/MMGIS/ --path_replace_with /
+# ex: python create-stac-items2.py "http://localhost:8888" stac-token myCollection C:\Path\to\COGs --output-file output.json --path_remove /local/path/ --path_replace_with /production/path/
 
 
 import requests
@@ -31,11 +32,12 @@ def parse_args():
     parser.add_argument('-r', '--regex', help='If folder, only create stac items for files that match this regex')
     parser.add_argument('-t', '--time_from_fn', help='time format to read from filename', type=str, default=None)
     parser.add_argument('-a', '--fix_antimeridian', help='Fix geometries that cross the antimeridian (±180° longitude)', action='store_true')
+    parser.add_argument('-o', '--output-file', dest='output_file', help='Output JSON file path. If provided, saves items to file instead of POSTing to API.')
 
     args = parser.parse_args()
     return args
 
-def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path, path_remove, path_replace_with, upsert=False, regex=None, time_from_fn=False, fix_antimeridian=True):
+def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path, path_remove, path_replace_with, upsert=False, regex=None, time_from_fn=False, fix_antimeridian=True, output_file=None):
 
     isDir = os.path.isdir(file_or_folder_path)
     
@@ -148,7 +150,29 @@ def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path
         items[item_dict.get('id')] = item_dict
 
     print(f'Gathering metadata {len(files)}/{len(files)}...')
-    
+
+    # Check if output to file or POST to API
+    if output_file:
+        # Convert items dictionary to array format for configure UI
+        items_array = list(items.values())
+
+        # Write to JSON file with each item on its own line
+        with open(output_file, 'w') as f:
+            f.write('[\n')
+            for i, item in enumerate(items_array):
+                f.write(json.dumps(item))
+                if i < len(items_array) - 1:
+                    f.write(',\n')
+                else:
+                    f.write('\n')
+            f.write(']\n')
+
+        print(f'Successfully wrote {len(items_array)} items to {output_file}')
+        print('Done!')
+        print(f'You can now upload this file via the MMGIS Configure UI > STAC > Import Items')
+        return
+
+    # Original behavior: POST to API
     print('Sending bulk item creation request...')
 
     method = 'insert'
@@ -167,5 +191,5 @@ def create_stac_items(mmgis_url, mmgis_token, collection_id, file_or_folder_path
 
 if __name__ == '__main__':
     args = parse_args()
-    create_stac_items(args.mmgis_url, args.mmgis_token, args.collection_id, args.file_or_folder_path, args.path_remove, args.path_replace_with, args.upsert, args.regex, args.time_from_fn, args.fix_antimeridian)
+    create_stac_items(args.mmgis_url, args.mmgis_token, args.collection_id, args.file_or_folder_path, args.path_remove, args.path_replace_with, args.upsert, args.regex, args.time_from_fn, args.fix_antimeridian, args.output_file)
     exit()

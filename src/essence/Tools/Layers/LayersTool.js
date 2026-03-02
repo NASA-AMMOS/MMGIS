@@ -143,8 +143,9 @@ var LayersTool = {
         }
 
         if (L_.UserInterface_.isMobile === true) {
+            const mapRect = document.getElementById('map').getBoundingClientRect()
             this.width = 'full'
-            this.height = 500
+            this.height = Math.round(mapRect.height * 0.70)
         }
     },
     finalize: function () {
@@ -209,7 +210,7 @@ var LayersTool = {
                 let _event = new CustomEvent('layersToolHeaderStateChange', {
                     detail: {
                         header_id: elmIndex.split('_')[1],
-                        onState: wasOn[currentHeaderIdx] ? 'false' : 'true',
+                        onState: wasOn[currentHeaderIdx] ? false : true,
                     },
                 })
                 document.dispatchEvent(_event)

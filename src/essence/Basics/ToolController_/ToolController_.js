@@ -210,7 +210,7 @@ let ToolController_ = {
                     .attr('class', 'toolButton')
                     .css(
                         'width',
-                        L_.UserInterface_.isMobile === true ? '36px' : '100%'
+                        L_.UserInterface_.isMobile === true ? '45px' : '100%'
                     )
                     .css(
                         'height',
@@ -322,13 +322,14 @@ let ToolController_ = {
         ) {
             let timeSelect = $('<div>')
                 .attr('id', 'toggleTimeUI')
+                .attr('class', 'toolButton')
                 .css({
                     'position': 'relative',
-                    'width': '30px',
-                    'height': '30px',
+                    'width': '45px',
+                    'height': '45px',
                     'display': 'inline-block',
                     'text-align': 'center',
-                    'line-height': '30px',
+                    'line-height': '45px',
                     'vertical-align': 'middle',
                     'cursor': 'pointer',
                     'transition': 'all 0.2s ease-in',
@@ -361,6 +362,7 @@ let ToolController_ = {
                                 TimeUI.initialize()
                                 ToolController_.setToolHeight(TimeUI.height)
                                 ToolController_.setToolWidth()
+                                ToolController_.activeToolName = 'TimeUI'
                                 TimeUI.make()
                                 TimeUI.toggleExpanded()
                                 TimeUI.fina()
@@ -369,6 +371,7 @@ let ToolController_ = {
                                 ToolController_.setToolWidth()
                                 TimeUI.destroy()
                                 ToolController_.closeActiveTool()
+                                ToolController_.activeToolName = null
                             }
 
                             $('#topBar').css({
@@ -395,13 +398,14 @@ let ToolController_ = {
         ) {
             let coordSelect = $('<div>')
                 .attr('id', 'coordinatesDiv')
+                .attr('class', 'toolButton')
                 .css({
                     'position': 'relative',
-                    'width': '30px',
-                    'height': '30px',
+                    'width': '45px',
+                    'height': '45px',
                     'display': 'inline-block',
                     'text-align': 'center',
-                    'line-height': '30px',
+                    'line-height': '45px',
                     'vertical-align': 'middle',
                     'cursor': 'pointer',
                     'transition': 'all 0.2s ease-in',
@@ -437,12 +441,14 @@ let ToolController_ = {
                                     L_.Coordinates.height
                                 )
                                 ToolController_.setToolWidth()
+                                ToolController_.activeToolName = 'CoordinatesTool'
                                 L_.Coordinates.make()
                             } else {
                                 ToolController_.setToolHeight(0)
                                 ToolController_.setToolWidth()
                                 L_.Coordinates.destroy()
                                 ToolController_.closeActiveTool()
+                                ToolController_.activeToolName = null
                             }
 
                             $('#topBar').css({

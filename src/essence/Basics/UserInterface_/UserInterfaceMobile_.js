@@ -18,7 +18,7 @@ var mobileTools = ['Layers', 'Legend', 'Info']
 var UserInterface = {
     splitterSize: 0,
     splitterSizeHidden: 17,
-    topSize: 40,
+    topSize: 50,
     fullSizeViews: false, //Experimental!!!
     pxIsViewer: null,
     pxIsMap: null,
@@ -1285,6 +1285,12 @@ var UserInterface = {
 
         // Throw the TimeUI div away and create it on demand later
         $('#timeUI').remove()
+
+        // Zoom in if needed
+        if ('mapZoomMobileInit' in window.L_.configData.msv) {
+            const zoom = L_.configData.msv.mapZoomMobileInit || L_.Map_.map.getZoom()
+            Map_.map.setZoom(zoom)
+        }
 
         BottomBar.fina()
         UserInterface.show()

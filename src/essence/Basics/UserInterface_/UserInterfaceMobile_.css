@@ -222,6 +222,13 @@
     font-weight: bold;
 }
 
+#mmgisTimeUI input {
+    width: 180px !important;
+}
+#mmgisTimeUIMain {
+    background-color: var(--color-a-5);
+}
+
 /* Overwrite LayersTool CSS */
 #layersTool .layerName {
     overflow: hidden;
@@ -241,11 +248,16 @@
 #layersTool .LayersToolInfo:hover {
     background: transparent;
 }
+.locate {
+    display: none;
+}
 
 /* Overwrite InfoTool CSS */
 .toolButton {
     border-top: none !important;
     border-bottom: none !important;
+    width: 45px !important;
+    line-height: 45px !important;
 }
 
 /* Hide other misc items */
@@ -298,4 +310,15 @@
     padding: 5px;
     margin: 0;
     margin-right: inherit !important;
+}
+.leaflet-control-scalefactor {
+    display: none !important;
+}
+/* Force the icons in the toolbar to be larger */
+.toolButton > .mdi-18.mdi-set, .toolButton > .mdi-18px.mdi:before {
+    font-size: 22px !important;
+}
+
+#topBar {
+    height: 40px !important;
 }

@@ -373,7 +373,7 @@ var Kinds = {
                 if (feature.geometry.type.toLowerCase() === 'point') {
                     // Center and zoom the view to the selected feature
                     // Zoom to 'Zoom Level of Map Scale' if set in UI config, otherwise use current zoom
-                    bounds = [feature.properties.latitude, feature.properties.longitude]
+                    bounds = [feature.geometry.coordinates[1], feature.geometry.coordinates[0]]
                     zoom = L_.configData.msv.mapscale || L_.Map_.map.getZoom()
                 } else if (geoJSONFeatures.includes(feature.geometry.type.toLowerCase())) {
                     if ('getBounds' in layer) {

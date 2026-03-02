@@ -509,15 +509,25 @@ let Map_ = {
         stopLoops
     ) {
         // If it's a dynamic extent layer, just re-call its function
-        if (
-            L_._onSpecificLayerToggleSubscriptions[
-                `dynamicextent_${layerObj.name}`
-            ] != null
-        ) {
-            if (L_.layers.on[layerObj.name])
-                L_._onSpecificLayerToggleSubscriptions[
-                    `dynamicextent_${layerObj.name}`
-                ].func(layerObj.name)
+        const dynamicExtentKey = `dynamicextent_${layerObj.name}`
+        const dynamicGeodatasetKey = `dynamicgeodataset_${layerObj.name}`  // For velocity layers
+
+        const subscription = L_._onSpecificLayerToggleSubscriptions[dynamicExtentKey]
+                          || L_._onSpecificLayerToggleSubscriptions[dynamicGeodatasetKey]
+
+        if (subscription != null) {
+            if (L_.layers.on[layerObj.name]) {
+                const layerData = L_.layers.data[layerObj.name]
+
+                // Always bypass threshold for explicit refreshLayer() calls
+                // (refresh intervals, time changes, manual API calls)
+                // Pan/zoom events call the callback directly, not via refreshLayer
+                if (layerData) {
+                    layerData._ignoreDynamicExtentMoveThreshold = true
+                }
+
+                subscription.func(layerObj.name)
+            }
 
             if (typeof cb === 'function') cb()
             return true
@@ -683,14 +693,16 @@ async function makeLayer(
     }
     return new Promise(async (resolve, reject) => {
         const layerName = L_.asLayerUUID(layerObj.name)
-        if (forceMake !== true && L_._layersBeingMade[layerName] === true) {
+        // Use map-specific lock if available, otherwise fall back to global lock
+        const lockRegistry = mapContext.layerRegistry._layersBeingMade || L_._layersBeingMade
+        if (forceMake !== true && lockRegistry[layerName] === true) {
             console.error(
                 `ERROR - makeLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
             )
             resolve(false)
             return
         } else {
-            L_._layersBeingMade[layerName] = true
+            lockRegistry[layerName] = true
         }
         //Decide what kind of layer it is
         //Headers do not need to be made
@@ -750,8 +762,8 @@ async function makeLayer(
             }
         }
 
-        // release hold on layer
-        L_._layersBeingMade[layerName] = false
+        // release hold on layer (use same registry as above)
+        lockRegistry[layerName] = false
 
         if (stopLoops !== true && layerObj.type === 'vector') {
             Filtering.updateGeoJSON(layerObj.name)
@@ -1274,6 +1286,8 @@ async function makeTileLayer(layerObj, mapContext = null) {
                     'tile',
                     window.location
                 )
+                // Cache transformed URL for reuse (e.g., in animations)
+                layerObj._transformedUrl = layerUrl
                 layerObj.tileformat = 'wmts'
                 break
             case 'COG':

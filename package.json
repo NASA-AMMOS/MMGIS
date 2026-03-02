@@ -1,6 +1,6 @@
 {
   "name": "mmgis",
-  "version": "4.2.9-20260212",
+  "version": "4.2.15-20260302",
   "description": "A web-based mapping and localization solution for science operation on planetary missions.",
   "homepage": "build",
   "repository": {
@@ -70,6 +70,7 @@
     "busboy": "1.6",
     "camelcase": "^5.3.1",
     "cesium": "^1.121.0",
+    "chalk": "^4.1.2",
     "chart.js": "^3.6.0",
     "chartjs-plugin-zoom": "^1.2.1",
     "chroma-js": "^1.4.1",
