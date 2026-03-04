@@ -1,21 +1,32 @@
-name: SonarCloud Blocker Check
+name: SonarCloud Security Gate
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
     branches:
       - development
       - main
       - master
 
 jobs:
-  blocker-check:
-    name: SonarCloud Blocker Check
+  security-gate:
+    name: SonarCloud Security Gate
     runs-on: ubuntu-latest
     # Skip fork PRs (no access to SONAR_TOKEN)
     if: github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
-      - name: Check for BLOCKER issues
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Check for security BLOCKER issues
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
@@ -24,13 +35,12 @@ jobs:
           MAX_ATTEMPTS=20
           SLEEP_SECONDS=30
 
-          echo "Checking SonarCloud for BLOCKER issues on PR #${PR_NUMBER}"
+          echo "Checking SonarCloud for security BLOCKER issues on PR #${PR_NUMBER}"
 
-          # Poll until SonarCloud has analyzed this PR
+          # Poll until SonarCloud has processed the analysis for this PR
           for attempt in $(seq 1 $MAX_ATTEMPTS); do
             echo "Attempt ${attempt}/${MAX_ATTEMPTS}: Querying SonarCloud..."
 
-            # Check if SonarCloud has analysis data for this PR
             ANALYSIS_RESPONSE=$(curl -s -u "${SONAR_TOKEN}:" \
               "https://sonarcloud.io/api/qualitygates/project_status?projectKey=${PROJECT_KEY}&pullRequest=${PR_NUMBER}")
 
@@ -50,29 +60,29 @@ jobs:
             sleep $SLEEP_SECONDS
           done
 
-          # Query for BLOCKER issues on this PR's new code
+          # Query for BLOCKER security issues on this PR's new code
           ISSUES_RESPONSE=$(curl -s -u "${SONAR_TOKEN}:" \
-            "https://sonarcloud.io/api/issues/search?projectKeys=${PROJECT_KEY}&pullRequest=${PR_NUMBER}&severities=BLOCKER&statuses=OPEN,CONFIRMED,REOPENED&ps=1")
+            "https://sonarcloud.io/api/issues/search?projectKeys=${PROJECT_KEY}&pullRequest=${PR_NUMBER}&severities=BLOCKER&types=VULNERABILITY&tags=security&statuses=OPEN,CONFIRMED,REOPENED&ps=1")
 
           BLOCKER_COUNT=$(echo "$ISSUES_RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin).get('total', -1))" 2>/dev/null || echo "-1")
 
           echo ""
-          echo "BLOCKER issues found: ${BLOCKER_COUNT}"
+          echo "Security BLOCKER issues found: ${BLOCKER_COUNT}"
 
           if [ "$BLOCKER_COUNT" = "-1" ]; then
             echo "ERROR: Failed to parse SonarCloud response."
             echo "$ISSUES_RESPONSE"
             exit 1
           elif [ "$BLOCKER_COUNT" = "0" ]; then
-            echo "No BLOCKER issues found. Check passed."
+            echo "No security BLOCKER issues found. Check passed."
             exit 0
           else
-            echo "BLOCKER issues detected! Fetching details..."
+            echo "Security BLOCKER issues detected! Fetching details..."
             echo ""
 
             # Fetch up to 10 blocker issues with details
             DETAILS=$(curl -s -u "${SONAR_TOKEN}:" \
-              "https://sonarcloud.io/api/issues/search?projectKeys=${PROJECT_KEY}&pullRequest=${PR_NUMBER}&severities=BLOCKER&statuses=OPEN,CONFIRMED,REOPENED&ps=10")
+              "https://sonarcloud.io/api/issues/search?projectKeys=${PROJECT_KEY}&pullRequest=${PR_NUMBER}&severities=BLOCKER&types=VULNERABILITY&tags=security&statuses=OPEN,CONFIRMED,REOPENED&ps=10")
 
             echo "$DETAILS" | python3 -c "
           import sys, json
@@ -82,18 +92,19 @@ jobs:
               line = issue.get('line', '?')
               msg = issue.get('message', 'No message')
               rule = issue.get('rule', '?')
-              print(f'  [{rule}] {component}:{line} — {msg}')
+              tags = ', '.join(issue.get('tags', []))
+              print(f'  [{rule}] {component}:{line} — {msg} (tags: {tags})')
           "
             echo ""
-            echo "Fix these BLOCKER issues before merging."
+            echo "Fix these security BLOCKER issues before merging."
             exit 1
           fi
 
       - name: Summary
         if: always()
         run: |
-          echo "### SonarCloud Blocker Check" >> $GITHUB_STEP_SUMMARY
+          echo "### SonarCloud Security Gate" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "PR #${{ github.event.pull_request.number }} was checked for BLOCKER-severity issues." >> $GITHUB_STEP_SUMMARY
+          echo "PR #${{ github.event.pull_request.number }} was checked for security BLOCKER issues." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "[View in SonarCloud](https://sonarcloud.io/summary/new_code?id=NASA-AMMOS_MMGIS&pullRequest=${{ github.event.pull_request.number }})" >> $GITHUB_STEP_SUMMARY
