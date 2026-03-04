@@ -145,6 +145,11 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                         layerData?.variables
                                             ?.dynamicExtentMoveThreshold ==
                                             null ||
+                                        layerData?.variables
+                                            ?.dynamicExtentMoveThreshold ===
+                                            '' ||
+                                        layerData._ignoreDynamicExtentMoveThreshold ===
+                                            true ||
                                         F_.lngLatDistBetween(
                                             lastLoc.lng,
                                             lastLoc.lat,
@@ -166,6 +171,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                                       )
                                                     : 1))
                                 ) {
+                                    layerData._ignoreDynamicExtentMoveThreshold = false
                                     L_.clearVectorLayer(layerObj.name)
                                     L_.updateVectorLayer(layerObj.name, data)
                                     _geodatasetRequestLastLoc[layerObj.name] =
@@ -288,6 +294,8 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                 (lastLoc == null ||
                                     layerData?.variables
                                         ?.dynamicExtentMoveThreshold == null ||
+                                    layerData._ignoreDynamicExtentMoveThreshold ===
+                                        true ||
                                     F_.lngLatDistBetween(
                                         lastLoc.lng,
                                         lastLoc.lat,
@@ -309,6 +317,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                                   )
                                                 : 1))
                             ) {
+                                layerData._ignoreDynamicExtentMoveThreshold = false
                                 L_.clearVectorLayer(layerObj.name)
                                 L_.updateVectorLayer(layerObj.name, data)
                                 _layerRequestLastLoc[layerObj.name] = nowLoc

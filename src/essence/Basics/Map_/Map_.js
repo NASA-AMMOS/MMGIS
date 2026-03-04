@@ -396,10 +396,11 @@ let Map_ = {
     refreshLayer: async function (layerObj, cb) {
         // If it's a dynamic extent layer, just re-call its function
         const dynamicExtentKey = `dynamicextent_${layerObj.name}`
-        const dynamicGeodatasetKey = `dynamicgeodataset_${layerObj.name}`  // For velocity layers
+        const dynamicGeodatasetKey = `dynamicgeodataset_${layerObj.name}` // For velocity layers
 
-        const subscription = L_._onSpecificLayerToggleSubscriptions[dynamicExtentKey]
-                          || L_._onSpecificLayerToggleSubscriptions[dynamicGeodatasetKey]
+        const subscription =
+            L_._onSpecificLayerToggleSubscriptions[dynamicExtentKey] ||
+            L_._onSpecificLayerToggleSubscriptions[dynamicGeodatasetKey]
 
         if (subscription != null) {
             if (L_.layers.on[layerObj.name]) {
@@ -853,9 +854,8 @@ async function makeVectorLayer(
                         `ERROR: ${layerObj.display_name} has invalid GeoJSON!`
                     )
                 }
-                L_._layersLoaded[
-                    L_._layersOrdered.indexOf(layerObj.name)
-                ] = true
+                L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] =
+                    true
                 L_.layers.layer[layerObj.name] = data == null ? null : false
                 allLayersLoaded()
                 resolve()

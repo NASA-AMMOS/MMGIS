@@ -82,34 +82,34 @@ export const constructVectorLayer = (
                         ? F_.parseColor(feature.properties[col.substring(5)]) ||
                           '#FFF'
                         : feature.style && feature.style.stroke != null
-                        ? feature.style.stroke
-                        : col
+                          ? feature.style.stroke
+                          : col
                 var finalOpa =
                     opa.toLowerCase().substring(0, 4) === 'prop'
                         ? feature.properties[opa.substring(5)] || '1'
                         : feature.style && feature.style.opacity != null
-                        ? feature.style.opacity
-                        : opa
+                          ? feature.style.opacity
+                          : opa
                 var finalWei =
                     wei.toLowerCase().substring(0, 4) === 'prop'
                         ? feature.properties[wei.substring(5)] || '1'
                         : feature.style && feature.style.weight != null
-                        ? feature.style.weight
-                        : wei
+                          ? feature.style.weight
+                          : wei
                 if (!isNaN(parseInt(finalWei))) finalWei = parseInt(finalWei)
                 var finalFiC =
                     fiC.toLowerCase().substring(0, 4) === 'prop'
                         ? F_.parseColor(feature.properties[fiC.substring(5)]) ||
                           '#000'
                         : feature.style && feature.style.fill != null
-                        ? feature.style.fill
-                        : fiC
+                          ? feature.style.fill
+                          : fiC
                 var finalFiO =
                     fiO.toLowerCase().substring(0, 4) === 'prop'
                         ? feature.properties[fiO.substring(5)] || '1'
                         : feature.style && feature.style.fillopacity != null
-                        ? feature.style.fillopacity
-                        : fiO
+                          ? feature.style.fillopacity
+                          : fiO
 
                 // Check for radius property if radius=1 (default/prop:radius)
                 layerObj.style.radius =
@@ -765,8 +765,8 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
             on: L_.layers.attachments[layerObj.name]?.labels
                 ? L_.layers.attachments[layerObj.name]?.labels.on
                 : labelsVar.initialVisibility != null
-                ? labelsVar.initialVisibility
-                : true,
+                  ? labelsVar.initialVisibility
+                  : true,
             type: 'labels',
             geojson: geojson,
             layer: layer,
@@ -936,8 +936,8 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
             on: L_.layers.attachments[layerObj.name]?.pairings
                 ? L_.layers.attachments[layerObj.name]?.pairings.on
                 : pairingsVar.initialVisibility != null
-                ? pairingsVar.initialVisibility
-                : true,
+                  ? pairingsVar.initialVisibility
+                  : true,
             pairedLayers: layers,
             pairProp: pairProp,
             layersAzProp: layersAzProp,
@@ -983,8 +983,8 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
             existingOn != null
                 ? existingOn
                 : uncertaintyVar.initialVisibility != null
-                ? uncertaintyVar.initialVisibility
-                : true
+                  ? uncertaintyVar.initialVisibility
+                  : true
 
         uncertaintyStyle = {
             fillOpacity: uncertaintyVar.fillOpacity || 0.25,
@@ -1157,8 +1157,8 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
             existingOn != null
                 ? existingOn
                 : imageVar.initialVisibility != null
-                ? imageVar.initialVisibility
-                : true
+                  ? imageVar.initialVisibility
+                  : true
 
         if (imageVar && imageShow === 'always')
             leafletLayerObjectImageOverlay = {

@@ -931,8 +931,8 @@ const L_ = {
                     geojson.features
                         ? geojson.features
                         : geojson.length > 0 && geojson[0].type === 'Feature'
-                        ? geojson
-                        : null
+                          ? geojson
+                          : null
                 )
             if (keepLastN && keepLastN > 0) {
                 layer._sourceGeoJSON.features =
