@@ -208,3 +208,25 @@ img {
   background: #08aeea;
   color: white;
 }
+@media (max-width: 480px) {
+  .header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .header > img {
+    left: auto !important;
+  }
+  .footer {
+    padding: 22px !important;
+  }
+  .box input[type="text"],
+  .box input[type="password"] {
+    font-size: 16px;
+  }
+}
+@media (max-width: 420px) {
+  #container {
+    transform: translateX(-50%) translateY(-50%) scale(0.8);
+  }
+}
