@@ -25,7 +25,7 @@ async function compositeImageUrls(urls) {
       .composite(
         urls.map((url) => {
           return { input: `${rootDirMissions}${url}` };
-        })
+        }),
       )
       .png()
       .toBuffer();
@@ -46,7 +46,7 @@ async function onlyExistingFilepaths(paths) {
         } catch (err) {
           resolve(false);
         }
-      })
+      }),
     );
   });
   const filesExist = await Promise.all(filePromises).catch((err) => {});
@@ -103,7 +103,7 @@ async function sendImage(req, res, next, relUrlSplit) {
       relUrlSplit[1],
       req.query.time,
       req.query.starttime,
-      true
+      true,
     );
 
     compositeUrls = await onlyExistingFilepaths(compositeUrls);
@@ -128,7 +128,7 @@ async function sendImage(req, res, next, relUrlSplit) {
       relUrlSplit[0],
       relUrlSplit[1],
       req.query.time,
-      req.query.starttime
+      req.query.starttime,
     );
     if (!newUrl) res.sendStatus(404);
     else {
@@ -139,16 +139,30 @@ async function sendImage(req, res, next, relUrlSplit) {
 }
 
 function isPathInsideRoot(logicalRootDirName, targetPath) {
-  const resolvedTarget = path.resolve(targetPath);
-  const pathParts = resolvedTarget.split(path.sep);
+  // Security: Validate path is inside the actual intended root directory
+  // Previous implementation was vulnerable to attacks using fake "Missions" directories
 
-  const rootIndex = pathParts.indexOf(logicalRootDirName);
-  if (rootIndex === -1) return false;
+  // Construct the actual allowed base directory
+  const allowedBase = path.resolve(rootDir, logicalRootDirName);
 
-  const resolvedRoot =
-    pathParts.slice(0, rootIndex + 1).join(path.sep) + path.sep;
+  // Strip leading slash to treat as relative path (URL paths start with /)
+  const relativePath = targetPath.startsWith("/")
+    ? targetPath.substring(1)
+    : targetPath;
 
-  return resolvedTarget.startsWith(resolvedRoot);
+  // Resolve the target path relative to rootDir
+  const resolvedTarget = path.resolve(rootDir, relativePath);
+
+  // Normalize paths for cross-platform comparison (handle Windows/Unix differences)
+  const normalizedTarget = resolvedTarget.replace(/\\/g, "/");
+  const normalizedBase = allowedBase.replace(/\\/g, "/");
+
+  // Ensure the resolved path is actually inside the allowed directory
+  // Check both with trailing slash (for subdirectories) and exact match (for the directory itself)
+  return (
+    normalizedTarget.startsWith(normalizedBase + "/") ||
+    normalizedTarget === normalizedBase
+  );
 }
 
 const middleware = {
@@ -197,7 +211,7 @@ const middleware = {
               } else {
                 res.sendStatus(404);
               }
-            }
+            },
           );
         } else {
           sendImage(req, res, next, relUrlSplit);
