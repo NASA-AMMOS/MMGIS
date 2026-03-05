@@ -356,7 +356,7 @@ var Kinds = {
 
                 // Only expand the Viewer Panel if it isn't already visible
                 var pp = L_.UserInterface_.getPanelPercents()
-                if (pp.map == 100 && L_.UserInterface_.openViewerPanel) {
+                if (pp.map == 100 && L_.hasViewer) {
                     L_.UserInterface_.openViewerPanel()
                 }
 
