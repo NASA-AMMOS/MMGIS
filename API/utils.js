@@ -189,7 +189,13 @@ const Utils = {
         .replace(/[`~!@#$%^&*|+\-=?;:'",.<>\{\}\[\]\\\//() ]/gi, "")
         .replace(/[^ -~]+/g, "");
     } else if (typeof str === "number") {
-      return str;
+      // Reject unsafe number values (NaN, Infinity, -Infinity)
+      // Return "0" as a safe fallback to prevent SQL injection
+      if (!isFinite(str)) {
+        return "0";
+      }
+      // Return as string to ensure safe SQL concatenation
+      return String(str);
     } else if (Array.isArray(str)) {
       return str
         .join(",")
