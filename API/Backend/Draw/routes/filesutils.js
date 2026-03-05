@@ -233,10 +233,10 @@ function getfile(req, res, next) {
                     const fSplit = f.split('+');
                     if (fSplit.length >= 4) {
                       filters.push({
-                        key: fSplit[0],
+                        key: Utils.forceAlphaNumUnder(fSplit[0]),
                         op: fSplit[1] === 'in' ? ',' : fSplit[1],
                         type: fSplit[2],
-                        value: fSplit[3].replaceAll('$', ',')
+                        value: fSplit[3].replaceAll('$', ',').replaceAll("'", "''")
                       });
                     }
                   }
