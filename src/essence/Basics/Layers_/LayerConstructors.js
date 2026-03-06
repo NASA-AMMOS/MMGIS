@@ -519,6 +519,9 @@ export const constructVectorLayer = (
                         : 'none',
                     Map_.map
                 )
+            } else {
+                // Clear fillPattern if feature doesn't have a geologic pattern
+                layerObj.style.fillPattern = null
             }
             return layerObj.style
         },

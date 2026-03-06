@@ -1664,7 +1664,12 @@ class GlobeRenderer {
                         }
 
                         // Trigger tile update for clamped layers
-                        if (this.renderer._ && this.renderer._.tiledWorld) {
+                        if (
+                            this.renderer._ &&
+                            this.renderer._.tiledWorld &&
+                            typeof this.renderer._.tiledWorld
+                                .updateClampedRasterForLayer === 'function'
+                        ) {
                             // Update all tiles for this layer
                             this.renderer._.tiledWorld.updateClampedRasterForLayer(
                                 layerName
@@ -2057,7 +2062,12 @@ class GlobeRenderer {
             }
         } else if (activeFeature.type === 'clamped' && activeFeature.layer) {
             // Clamped layer - update tiles
-            if (this.renderer._ && this.renderer._.tiledWorld) {
+            if (
+                this.renderer._ &&
+                this.renderer._.tiledWorld &&
+                typeof this.renderer._.tiledWorld
+                    .updateClampedRasterForLayer === 'function'
+            ) {
                 this.renderer._.tiledWorld.updateClampedRasterForLayer(
                     activeFeature.layerName
                 )

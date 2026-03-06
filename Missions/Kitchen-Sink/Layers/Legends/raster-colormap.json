@@ -1,0 +1,42 @@
+[
+  {
+    "value": 0,
+    "color": "#0d0887",
+    "label": "Very Low (0)"
+  },
+  {
+    "value": 50,
+    "color": "#5302a3",
+    "label": "Low (50)"
+  },
+  {
+    "value": 100,
+    "color": "#8b0aa5",
+    "label": "Below Average (100)"
+  },
+  {
+    "value": 150,
+    "color": "#b93289",
+    "label": "Average (150)"
+  },
+  {
+    "value": 200,
+    "color": "#db5c68",
+    "label": "Above Average (200)"
+  },
+  {
+    "value": 250,
+    "color": "#f48849",
+    "label": "High (250)"
+  },
+  {
+    "value": 300,
+    "color": "#febc2a",
+    "label": "Very High (300)"
+  },
+  {
+    "value": 350,
+    "color": "#f0f921",
+    "label": "Extreme (350)"
+  }
+]

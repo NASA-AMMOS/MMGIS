@@ -1,0 +1,187 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 5,
+        "name": "Activity Zone Day 5-10",
+        "startTime": "2024-01-05T00:00:00Z",
+        "description": "Area of activity from day 5 to 10",
+        "day": "5-10"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.4250, 37.7800],
+          [-122.4450, 37.7800],
+          [-122.4450, 37.7950],
+          [-122.4250, 37.7950],
+          [-122.4250, 37.7800]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 11,
+        "name": "Total Coverage Area",
+        "startTime": "2024-01-01T00:00:00Z",
+        "description": "Complete area covered across all time periods",
+        "day": "1-20"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.4150, 37.7700],
+          [-122.4650, 37.7700],
+          [-122.4650, 37.8050],
+          [-122.4150, 37.8050],
+          [-122.4150, 37.7700]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3,
+        "name": "Movement Path Day 1-5",
+        "startTime": "2024-01-01T00:00:00Z",
+        "description": "Path traveled in first 5 days",
+        "day": "1-5"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4194, 37.7749],
+          [-122.4250, 37.7800],
+          [-122.4300, 37.7850]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 6,
+        "name": "Movement Path Day 5-10",
+        "startTime": "2024-01-05T00:00:00Z",
+        "description": "Path traveled from day 5 to 10",
+        "day": "5-10"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4300, 37.7850],
+          [-122.4350, 37.7875],
+          [-122.4400, 37.7900]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 8,
+        "name": "Movement Path Day 10-15",
+        "startTime": "2024-01-10T00:00:00Z",
+        "description": "Path traveled from day 10 to 15",
+        "day": "10-15"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4400, 37.7900],
+          [-122.4450, 37.7925],
+          [-122.4500, 37.7950]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 10,
+        "name": "Movement Path Day 15-20",
+        "startTime": "2024-01-15T00:00:00Z",
+        "description": "Path traveled from day 15 to 20",
+        "day": "15-20"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4500, 37.7950],
+          [-122.4550, 37.7975],
+          [-122.4600, 37.8000]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "name": "Event Point Day 1",
+        "startTime": "2024-01-01T00:00:00Z",
+        "description": "Initial observation point",
+        "day": 1
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4194, 37.7749]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2,
+        "name": "Event Point Day 5",
+        "startTime": "2024-01-05T00:00:00Z",
+        "description": "Secondary observation point",
+        "day": 5
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4300, 37.7850]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 4,
+        "name": "Event Point Day 10",
+        "startTime": "2024-01-10T00:00:00Z",
+        "description": "Mid-period observation",
+        "day": 10
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4400, 37.7900]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 7,
+        "name": "Event Point Day 15",
+        "startTime": "2024-01-15T00:00:00Z",
+        "description": "Later observation point",
+        "day": 15
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4500, 37.7950]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 9,
+        "name": "Event Point Day 20",
+        "startTime": "2024-01-20T00:00:00Z",
+        "description": "Final observation point",
+        "day": 20
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4600, 37.8000]
+      }
+    }
+  ]
+}

@@ -291,6 +291,7 @@ All code must pass these gates before merging to main:
 - [ ] Security checklist completed
 - [ ] All 7 constitutional principles reviewed for compliance
 - [ ] AGENTS.md updated if needed
+- [ ] **Kitchen Sink mission updated** (if new feature or changed feature)
 - [ ] CI pipeline green
 
 ### Test Coverage Requirements
@@ -320,6 +321,29 @@ All code must pass these gates before merging to main:
 - **Database Queries**: < 100ms for 95th percentile (use indexes)
 
 **Measurement**: Use performance profiling tools and load testing.
+
+### Kitchen Sink Maintenance Requirements
+
+**Statement**: The Kitchen Sink demo mission (`Missions/Kitchen-Sink/config.kitchen-sink.json`) serves as living documentation of all MMGIS features and must be kept current.
+
+**Application**:
+- **New Features**: When adding a new feature (layer type, tool, configuration option), MUST add example to Kitchen Sink
+- **Changed Features**: When modifying existing features, MUST update Kitchen Sink configuration and examples
+- **Version Matching**: Kitchen Sink version MUST match MMGIS version (e.g., both at v4.1.18)
+- **Documentation**: Kitchen Sink examples MUST have clear naming conventions explaining what they demonstrate
+- **Testing**: Kitchen Sink serves as E2E test target; changes must not break existing tests
+
+**Rationale**:
+- Provides reference implementation for site admins
+- Ensures all features are documented by example
+- Validates that new features integrate with existing system
+- Maintains comprehensive test coverage
+- Prevents feature decay or loss of documentation
+
+**Enforcement**:
+- Pre-merge checklist includes Kitchen Sink update verification
+- Code reviewers check for Kitchen Sink updates when reviewing feature PRs
+- CI/CD pipeline validates Kitchen Sink configuration loads without errors
 
 ---
 

@@ -1,0 +1,81 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "name": "Embarcadero Route",
+        "description": "Waterfront pathway along the Embarcadero",
+        "type": "path",
+        "length": "5.2 km"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.3892, 37.7786],
+          [-122.3930, 37.7900],
+          [-122.3980, 37.8000],
+          [-122.4099, 37.8087]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2,
+        "name": "Market Street",
+        "description": "Major east-west thoroughfare through downtown SF",
+        "type": "street",
+        "length": "4.8 km"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4365, 37.7627],
+          [-122.4194, 37.7749],
+          [-122.4025, 37.7949],
+          [-122.3950, 37.7950]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3,
+        "name": "Golden Gate Park Path",
+        "description": "Popular walking and cycling route through the park",
+        "type": "park_path",
+        "length": "3.2 km"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.5110, 37.7694],
+          [-122.4900, 37.7694],
+          [-122.4700, 37.7680],
+          [-122.4550, 37.7685]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 4,
+        "name": "Bay Bridge Approach",
+        "description": "Route to the San Francisco-Oakland Bay Bridge",
+        "type": "highway",
+        "length": "2.5 km"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4100, 37.7900],
+          [-122.3900, 37.7900],
+          [-122.3700, 37.7950],
+          [-122.3600, 37.8000]
+        ]
+      }
+    }
+  ]
+}

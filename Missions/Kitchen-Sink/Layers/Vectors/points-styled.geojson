@@ -1,0 +1,163 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "name": "High Priority Location",
+        "description": "Critical point of interest requiring immediate attention",
+        "priority": "high",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.9,
+          "color": "#8b0000",
+          "weight": 3,
+          "radius": 12
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4194, 37.7749]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2,
+        "name": "Medium Priority Location",
+        "description": "Moderate importance point requiring attention",
+        "priority": "medium",
+        "style": {
+          "fillColor": "#ffa500",
+          "fillOpacity": 0.7,
+          "color": "#ff8c00",
+          "weight": 2,
+          "radius": 10
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4312, 37.7849]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3,
+        "name": "Low Priority Location",
+        "description": "Standard point of interest",
+        "priority": "low",
+        "style": {
+          "fillColor": "#00ff00",
+          "fillOpacity": 0.5,
+          "color": "#006400",
+          "weight": 1,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4450, 37.7950]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 4,
+        "name": "Information Point",
+        "description": "Informational marker with custom styling",
+        "type": "info",
+        "style": {
+          "fillColor": "#0000ff",
+          "fillOpacity": 0.8,
+          "color": "#000080",
+          "weight": 2,
+          "radius": 10
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4000, 37.7700]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 5,
+        "name": "Warning Location",
+        "description": "Caution point with high visibility",
+        "type": "warning",
+        "style": {
+          "fillColor": "#ffff00",
+          "fillOpacity": 0.9,
+          "color": "#ffd700",
+          "weight": 3,
+          "radius": 11
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4600, 37.7600]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 6,
+        "name": "Success Marker",
+        "description": "Completed objective marker",
+        "status": "complete",
+        "style": {
+          "fillColor": "#32cd32",
+          "fillOpacity": 0.6,
+          "color": "#228b22",
+          "weight": 2,
+          "radius": 9
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.3900, 37.8000]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 7,
+        "name": "Large Transparent Marker",
+        "description": "Demonstrates low opacity styling",
+        "style": {
+          "fillColor": "#800080",
+          "fillOpacity": 0.3,
+          "color": "#4b0082",
+          "weight": 1,
+          "radius": 15
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4100, 37.7400]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 8,
+        "name": "Small Bold Marker",
+        "description": "Demonstrates high stroke weight on small marker",
+        "style": {
+          "fillColor": "#ff1493",
+          "fillOpacity": 0.8,
+          "color": "#c71585",
+          "weight": 4,
+          "radius": 6
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4700, 37.8100]
+      }
+    }
+  ]
+}

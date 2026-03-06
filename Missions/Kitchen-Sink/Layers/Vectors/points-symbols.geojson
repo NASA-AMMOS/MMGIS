@@ -1,0 +1,185 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Circle",
+        "shape": "circle",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.9,
+          "color": "#ffffff",
+          "weight": 1,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.41, 37.79]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Square",
+        "shape": "square",
+        "style": {
+          "fillColor": "#ff8800",
+          "fillOpacity": 0.9,
+          "color": "#ffffff",
+          "weight": 1,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.42, 37.79]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Triangle",
+        "shape": "triangle",
+        "style": {
+          "fillColor": "#ffff00",
+          "fillOpacity": 0.9,
+          "color": "#ffffff",
+          "weight": 1,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.43, 37.79]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Diamond",
+        "shape": "diamond",
+        "style": {
+          "fillColor": "#00ff00",
+          "fillOpacity": 0.9,
+          "color": "#ffffff",
+          "weight": 1,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.44, 37.79]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Star",
+        "shape": "star",
+        "style": {
+          "fillColor": "#00ffff",
+          "fillOpacity": 0.9,
+          "color": "#ffffff",
+          "weight": 1,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.45, 37.79]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pentagon",
+        "shape": "pentagon",
+        "style": {
+          "fillColor": "#0088ff",
+          "fillOpacity": 0.9,
+          "color": "#ffffff",
+          "weight": 1,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.41, 37.78]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hexagon",
+        "shape": "hexagon",
+        "style": {
+          "fillColor": "#0000ff",
+          "fillOpacity": 0.9,
+          "color": "#ffffff",
+          "weight": 1,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.42, 37.78]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Plus",
+        "shape": "plus",
+        "style": {
+          "fillColor": "#8800ff",
+          "fillOpacity": 0.9,
+          "color": "#ffffff",
+          "weight": 1,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.43, 37.78]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pin",
+        "shape": "pin",
+        "style": {
+          "fillColor": "#ff00ff",
+          "fillOpacity": 0.9,
+          "color": "#ffffff",
+          "weight": 1,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.44, 37.78]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Directional Circle",
+        "shape": "directional-circle",
+        "style": {
+          "fillColor": "#ff0088",
+          "fillOpacity": 0.9,
+          "color": "#ffffff",
+          "weight": 1,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.45, 37.78]
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Keyboard Shortcut Demo Point",
+        "description": "Press Alt+K to toggle this layer on/off",
+        "type": "Demo Feature"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4, 37.8]
+      }
+    }
+  ]
+}
