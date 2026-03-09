@@ -1005,7 +1005,7 @@ const TimeUI = {
         )
         if (
             L_.configData.time.initialend != null &&
-            L_.configData.time.initialend != 'now'
+            dateAddSec.dateString != 'now'
         ) {
             const dateStaged = new Date(dateAddSec.dateString)
             if (dateStaged == 'Invalid Date') {
@@ -1019,21 +1019,26 @@ const TimeUI = {
             TimeUI._initialEnd.getSeconds() + dateAddSec.additionalSeconds
         )
 
-        if (
-            L_.configData.time.initialwindowend != null &&
-            L_.configData.time.initialwindowend != 'now'
-        ) {
+        if (L_.configData.time.initialwindowend != null) {
             // parse formats like "2024-03-04T14:05:00Z + 10000000" for relative times
             dateAddSec = TimeUI.getDateAdditionalSeconds(
                 L_.configData.time.initialwindowend
             )
-            const dateStaged = new Date(dateAddSec.dateString)
-            if (dateStaged == 'Invalid Date') {
-                TimeUI._timelineEndTimestamp = new Date()
-                console.warn(
-                    "Invalid 'Initial Window End Time' provided. Defaulting to 'now'."
-                )
+            if (dateAddSec.dateString != 'now') {
+                const dateStaged = new Date(dateAddSec.dateString)
+                if (dateStaged == 'Invalid Date') {
+                    TimeUI._timelineEndTimestamp = new Date()
+                    console.warn(
+                        "Invalid 'Initial Window End Time' provided. Defaulting to 'now'."
+                    )
+                } else {
+                    dateStaged.setSeconds(
+                        dateStaged.getSeconds() + dateAddSec.additionalSeconds
+                    )
+                    TimeUI._timelineEndTimestamp = dateStaged.getTime()
+                }
             } else {
+                const dateStaged = new Date()
                 dateStaged.setSeconds(
                     dateStaged.getSeconds() + dateAddSec.additionalSeconds
                 )
@@ -1058,15 +1063,30 @@ const TimeUI = {
                 L_.configData.time.initialstart
             )
 
-            const dateStaged = new Date(dateAddSec.dateString)
-            if (dateStaged == 'Invalid Date') {
-                TimeUI._initialStart.setUTCMonth(
-                    TimeUI._initialStart.getUTCMonth() - 1
-                )
-                console.warn(
-                    "Invalid 'Initial Start Time' provided. Defaulting to 1 month before the end time."
-                )
+            if (dateAddSec.dateString != 'now') {
+                const dateStaged = new Date(dateAddSec.dateString)
+                if (dateStaged == 'Invalid Date') {
+                    TimeUI._initialStart.setUTCMonth(
+                        TimeUI._initialStart.getUTCMonth() - 1
+                    )
+                    console.warn(
+                        "Invalid 'Initial Start Time' provided. Defaulting to 1 month before the end time."
+                    )
+                } else {
+                    dateStaged.setSeconds(
+                        dateStaged.getSeconds() + dateAddSec.additionalSeconds
+                    )
+                    if (dateStaged.getTime() > TimeUI._initialEnd.getTime()) {
+                        TimeUI._initialStart.setUTCMonth(
+                            TimeUI._initialStart.getUTCMonth() - 1
+                        )
+                        console.warn(
+                            "'Initial Start Time' cannot be later than the end time. Defaulting to 1 month before the end time."
+                        )
+                    } else TimeUI._initialStart = dateStaged
+                }
             } else {
+                const dateStaged = new Date()
                 dateStaged.setSeconds(
                     dateStaged.getSeconds() + dateAddSec.additionalSeconds
                 )
@@ -1088,10 +1108,25 @@ const TimeUI = {
                 L_.configData.time.initialwindowstart
             )
 
-            const dateStaged = new Date(dateAddSec.dateString)
-            if (dateStaged == 'Invalid Date') {
-                console.warn("Invalid 'Initial Window Start Time' provided.")
+            if (dateAddSec.dateString != 'now') {
+                const dateStaged = new Date(dateAddSec.dateString)
+                if (dateStaged == 'Invalid Date') {
+                    console.warn("Invalid 'Initial Window Start Time' provided.")
+                } else {
+                    dateStaged.setSeconds(
+                        dateStaged.getSeconds() + dateAddSec.additionalSeconds
+                    )
+                    if (
+                        TimeUI._timelineEndTimestamp == null ||
+                        dateStaged.getTime() > TimeUI._timelineEndTimestamp
+                    ) {
+                        console.warn(
+                            "'Initial Window Start Time' cannot be later than the Initial Window End Time."
+                        )
+                    } else TimeUI._timelineStartTimestamp = dateStaged.getTime()
+                }
             } else {
+                const dateStaged = new Date()
                 dateStaged.setSeconds(
                     dateStaged.getSeconds() + dateAddSec.additionalSeconds
                 )
