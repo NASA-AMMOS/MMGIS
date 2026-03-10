@@ -407,10 +407,10 @@
             {
               "field": "time.type",
               "name": "Time Type",
-              "description": "When the time changes, whether the layer should requery the source or filter the layer locally based on feature properties.",
+              "description": "URL-based time filtering for vector tile layers. Re-requests tiles with {starttime} and {endtime} injected into the URL. Vector tiles are pre-rendered on the server, so filtering must happen server-side via URL parameters.",
               "type": "dropdown",
               "width": 3,
-              "options": ["requery", "local"]
+              "options": ["requery"]
             }
           ]
         },
