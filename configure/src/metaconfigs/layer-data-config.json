@@ -356,10 +356,10 @@
             {
               "field": "time.type",
               "name": "Time Type",
-              "description": "",
+              "description": "URL-based time filtering. Re-requests the data with {starttime} and {endtime} injected into the URL, expecting the server to filter by time. The data layer will refresh whenever the time window changes.",
               "type": "dropdown",
               "width": 3,
-              "options": ["requery", "local"]
+              "options": ["requery"]
             },
             {
               "field": "time.format",

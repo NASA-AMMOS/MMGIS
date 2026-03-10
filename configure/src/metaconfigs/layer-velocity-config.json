@@ -307,10 +307,10 @@
             {
               "field": "time.type",
               "name": "Time Type",
-              "description": "When the time changes, whether the layer should requery the source or filter the layer locally based on feature properties.",
+              "description": "URL-based time filtering for velocity layers. Re-requests velocity data with {starttime} and {endtime} injected into the URL. For WMS-backed velocity layers, also sets WMS TIME parameters. Velocity data must be filtered server-side.",
               "type": "dropdown",
               "width": 3,
-              "options": ["requery", "local"]
+              "options": ["requery"]
             }
           ]
         },

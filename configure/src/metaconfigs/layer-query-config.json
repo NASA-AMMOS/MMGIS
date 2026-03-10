@@ -501,10 +501,10 @@
             {
               "field": "time.type",
               "name": "Time Type",
-              "description": "When the time changes, whether the layer should requery the source or filter the layer locally based on feature properties.",
+              "description": "URL-based time filtering for query layers. Re-requests the query results with {starttime} and {endtime} injected into the URL, expecting the server to filter by time. Query layers do not support client-side time filtering.",
               "type": "dropdown",
               "width": 3,
-              "options": ["requery", "local"]
+              "options": ["requery"]
             }
           ]
         },

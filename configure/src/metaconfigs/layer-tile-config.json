@@ -370,10 +370,10 @@
             {
               "field": "time.type",
               "name": "Time Type",
-              "description": "Whether the layer should use global time values or function independently with its own time values.",
+              "description": "URL-based time filtering for tile layers. Re-requests tiles with {starttime} and {endtime} injected into the URL. For WMS layers, also sets WMS TIME parameters automatically. Note: Client-side filtering is not possible for raster tile layers.",
               "type": "dropdown",
               "width": 4,
-              "options": ["requery", "local"]
+              "options": ["requery"]
             }
           ]
         },
