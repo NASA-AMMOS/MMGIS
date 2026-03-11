@@ -98,10 +98,11 @@ router.post("/aggregations", function (req, res, next) {
           }
 
           if (bestHistory.length === 0) {
-            return res.send({
+            res.send({
               status: "success",
               aggregations: {},
             });
+            return Promise.resolve(null); // Stop the promise chain
           }
 
           // Build query for sampling features
@@ -142,7 +143,13 @@ router.post("/aggregations", function (req, res, next) {
             },
           });
         })
-        .then(([features]) => {
+        .then((result) => {
+          // If result is null, we already sent a response (empty history case)
+          if (result === null) {
+            return;
+          }
+
+          const [features] = result;
           // Build aggregations from sampled features
           const aggregations = {
             "geometry.type": {

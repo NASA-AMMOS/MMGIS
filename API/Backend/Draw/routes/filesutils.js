@@ -224,23 +224,38 @@ function getfile(req, res, next) {
               // Decode filters (following GeodatasetFilterer pattern)
               let filters = null;
               if (req.body.filters != null && req.body.filters !== '') {
-                const filterSplit = req.body.filters.split(',');
-                filters = [];
-                filterSplit.forEach((f) => {
-                  if (f === 'OR' || f === 'AND' || f === 'NOT_AND' || f === 'NOT_OR') {
-                    filters.push({ isGroup: true, op: f });
-                  } else {
-                    const fSplit = f.split('+');
-                    if (fSplit.length >= 4) {
-                      filters.push({
-                        key: Utils.forceAlphaNumUnder(fSplit[0]),
-                        op: fSplit[1] === 'in' ? ',' : fSplit[1],
-                        type: fSplit[2],
-                        value: fSplit[3].replaceAll('$', ',').replaceAll("'", "''")
-                      });
+                try {
+                  const filterSplit = req.body.filters.split(',');
+                  filters = [];
+                  filterSplit.forEach((f) => {
+                    if (f === 'OR' || f === 'AND' || f === 'NOT_AND' || f === 'NOT_OR') {
+                      filters.push({ isGroup: true, op: f });
+                    } else {
+                      const fSplit = f.split('+');
+                      if (fSplit.length >= 4) {
+                        // Validate field name format (alphanumeric, spaces, dash, underscore only)
+                        const fieldName = fSplit[0];
+                        if (!/^[a-zA-Z0-9 _\-\.]+$/.test(fieldName)) {
+                          throw new Error(`Invalid filter field name: ${fieldName}`);
+                        }
+
+                        filters.push({
+                          key: fieldName.trim(),  // Preserve spaces, just trim whitespace
+                          op: fSplit[1] === 'in' ? ',' : fSplit[1],
+                          type: fSplit[2],
+                          value: fSplit[3].replaceAll('$', ',').replaceAll("'", "''")
+                        });
+                      }
                     }
-                  }
-                });
+                  });
+                } catch (err) {
+                  logger("error", `Invalid filter format: ${err.message}`, req.originalUrl, req);
+                  return res.status(400).json({
+                    status: 'failure',
+                    message: `Invalid filter format: ${err.message}`,
+                    body: {}
+                  });
+                }
               }
 
               // Note: geometry.type filters are now handled inline within the filter loop
@@ -329,6 +344,10 @@ function getfile(req, res, next) {
                     } else if (op === 'endswith') {
                       sqlOp = 'LIKE';
                       sqlValue = `%${value}`;
+                    } else if (op === 'isnull') {
+                      sqlOp = 'IS NULL';
+                    } else if (op === 'isnotnull') {
+                      sqlOp = 'IS NOT NULL';
                     }
 
                     // Build SQL condition
@@ -350,14 +369,19 @@ function getfile(req, res, next) {
                     } else {
                       // Regular property access
                       // NOTE: properties is double-encoded JSON (stored as JSON string, not JSON object)
-                      const propAccess = `((properties#>>'{}')::json->>'${propKey}')`;
+                      // Escape single quotes to prevent SQL injection
+                      const escapedPropKey = propKey.replace(/'/g, "''");
+                      const propAccess = `((properties#>>'{}')::json->>'${escapedPropKey}')`;
 
                       // Cast to appropriate type if needed
                       const castPropAccess = filter.type === 'number'
                         ? `(${propAccess})::numeric`
                         : propAccess;
 
-                      if (sqlOp === 'IN') {
+                      if (sqlOp === 'IS NULL' || sqlOp === 'IS NOT NULL') {
+                        // Null checks don't need parameterized values
+                        condition = `${propAccess} ${sqlOp}`;
+                      } else if (sqlOp === 'IN') {
                         const placeholderKey = `filter_${idx}`;
                         condition = `${castPropAccess} IN (:${placeholderKey})`;
                         replacements[placeholderKey] = sqlValue;
