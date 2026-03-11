@@ -2470,9 +2470,19 @@ var Files = {
             // Clean up any temporary point markers when toggling file off
             DrawTool_Templater.cleanupAllPointMarkers()
 
-            // Clear truncation state when file is turned off so notification shows again on next turn-on
-            if (DrawTool.dynamicExtent && DrawTool.dynamicExtent.truncated) {
-                delete DrawTool.dynamicExtent.truncated[id]
+            // Clear DynamicExtent state when file is turned off so it reloads fresh on next turn-on
+            if (DrawTool.dynamicExtent) {
+                // Clear truncation state so notification shows again on next turn-on
+                if (DrawTool.dynamicExtent.truncated) {
+                    delete DrawTool.dynamicExtent.truncated[id]
+                }
+                // Clear location/extent tracking to bypass moveThreshold check on next toggle ON
+                if (DrawTool.dynamicExtent.lastRequestedLocation) {
+                    delete DrawTool.dynamicExtent.lastRequestedLocation[id]
+                }
+                if (DrawTool.dynamicExtent.lastRequestedExtent) {
+                    delete DrawTool.dynamicExtent.lastRequestedExtent[id]
+                }
             }
 
             DrawTool.refreshMasterCheckbox()

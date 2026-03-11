@@ -1964,13 +1964,14 @@ var Shapes = {
         })
 
         $(elmId).on('blur', function (event) {
-            const property = Shapes.filters.aggs[event.value || $(this).val()]
+            const inputValue = $(this).val()
+            const property = Shapes.filters.aggs[inputValue]
             if (property) {
                 if (
                     Shapes.filters.values[id] &&
-                    Shapes.filters.values[id].key !== event.value
+                    Shapes.filters.values[id].key !== inputValue
                 ) {
-                    Shapes.filters.values[id].key = event.value
+                    Shapes.filters.values[id].key = inputValue
                     Shapes.filters.values[id].type = property.type
                     Shapes.updateValuesAutoComplete(id)
                     Shapes.setSubmitButtonState(true)
@@ -1993,6 +1994,8 @@ var Shapes = {
             'contains',
             'beginswith',
             'endswith',
+            'isnull',
+            'isnotnull',
         ]
         const opId = Math.max(ops.indexOf(options.op), 0)
         $(elmId).html(
@@ -2008,6 +2011,8 @@ var Shapes = {
                     `<i class='mdi mdi-contain mdi-18px' title='Contains'></i>`,
                     `<i class='mdi mdi-contain-start mdi-18px' title='Begins With'></i>`,
                     `<i class='mdi mdi-contain-end mdi-18px' title='Ends With'></i>`,
+                    `<i class='mdi mdi-null mdi-18px' title='Is Null (No Value)'></i>`,
+                    `<i class='mdi mdi-check-circle-outline mdi-18px' title='Is Not Null (Has Value)'></i>`,
                 ],
                 'op',
                 opId,
@@ -2016,11 +2021,16 @@ var Shapes = {
         )
         Dropy.init($(elmId), function (idx) {
             Shapes.filters.values[id].op = ops[idx]
+            // Hide/show value input based on operator
+            Shapes.toggleValueInput(id, ops[idx])
             Shapes.setSubmitButtonState(true)
         })
 
         // Value AutoComplete
         Shapes.updateValuesAutoComplete(id)
+
+        // Initialize value input visibility based on operator
+        Shapes.toggleValueInput(id, ops[opId])
     },
     refreshValueAutocomplete: function (id) {
         // Refresh the property (key) autocomplete with updated aggregations
@@ -2141,6 +2151,21 @@ var Shapes = {
                 $(numberElmId).css('display', 'none')
                 $(stringElmId).css('display', 'none')
                 break
+        }
+    },
+    toggleValueInput: function (id, operator) {
+        // Hide value input for null operators (they don't need a value)
+        const valueInputId = `#drawToolShapes_filtering_value_value_input_${id}`
+        const valueContainerId = `#drawToolShapes_filtering_value_value_${id}`
+
+        if (operator === 'isnull' || operator === 'isnotnull') {
+            // Hide value input for null checks
+            $(valueInputId).prop('disabled', true).css('opacity', '0.3')
+            $(valueInputId).val('') // Clear any existing value
+            Shapes.filters.values[id].value = '' // Clear stored value
+        } else {
+            // Show value input for other operators
+            $(valueInputId).prop('disabled', false).css('opacity', '1')
         }
     },
     attachGroupEvents: function (id, options) {

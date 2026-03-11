@@ -1864,9 +1864,9 @@ const DrawTool_Templater = {
         if (
             isReadOnly ||
             featureToMakeTemplateFrom != null ||
-            Array.isArray(templateObj.template)
+            Array.isArray(templateObj?.template)
         ) {
-            if (Array.isArray(templateObj.template))
+            if (Array.isArray(templateObj?.template))
                 templateObj.template.forEach((t) => {
                     add(t)
                 })
@@ -2230,6 +2230,18 @@ const DrawTool_Templater = {
             if (t.field == 'uuid') {
                 CursorInfo.update(
                     `Template cannot contain the field name 'uuid'`,
+                    6000,
+                    true,
+                    { x: 305, y: 6 },
+                    '#e9ff26',
+                    'black'
+                )
+                return false
+            }
+            // Validate field name format (alphanumeric, spaces, dash, underscore, dot only)
+            if (!/^[a-zA-Z0-9 _\-\.]+$/.test(t.field)) {
+                CursorInfo.update(
+                    `Template field name '${t.field}' contains invalid characters. Only letters, numbers, spaces, dashes, underscores, and dots are allowed.`,
                     6000,
                     true,
                     { x: 305, y: 6 },
