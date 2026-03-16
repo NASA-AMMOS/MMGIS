@@ -7,9 +7,11 @@ This document describes the retrospective implementation plan for the MMGIS Auth
 ## Phase 1: Foundation & Database Schema
 
 ### 1.1 Database Models
+
 **Status:** Completed
 
 **Implementation:**
+
 - Created Sequelize model for `users` table with comprehensive field set
 - Implemented bcrypt password hashing via Sequelize hooks (beforeCreate, beforeUpdate)
 - Added automatic salt generation for password security
@@ -19,9 +21,11 @@ This document describes the retrospective implementation plan for the MMGIS Auth
 - Implemented email validation via Sequelize validators
 
 **Files Modified:**
+
 - `API/Backend/Users/models/user.js`
 
 **Database Tables:**
+
 ```sql
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
@@ -39,18 +43,22 @@ CREATE TABLE users (
 ```
 
 ### 1.2 Long-Term Token Model
+
 **Status:** Completed
 
 **Implementation:**
+
 - Created Sequelize model for `long_term_tokens` table
 - Added foreign key relationship to users table via `created_by_user_id`
 - Implemented configurable expiration periods
 - Added migration for creator ID tracking
 
 **Files Modified:**
+
 - `API/Backend/LongTermToken/models/longtermtokens.js`
 
 **Database Tables:**
+
 ```sql
 CREATE TABLE long_term_tokens (
   id SERIAL PRIMARY KEY,
@@ -65,9 +73,11 @@ CREATE TABLE long_term_tokens (
 ## Phase 2: Core Authentication Logic
 
 ### 2.1 Session Management
+
 **Status:** Completed
 
 **Implementation:**
+
 - Integrated express-session with PostgreSQL storage (connect-pg-simple)
 - Configured session options: secure cookies, SameSite attributes, proxy trust
 - Implemented session regeneration on login/logout for security
@@ -75,9 +85,11 @@ CREATE TABLE long_term_tokens (
 - Created session validation middleware
 
 **Files Modified:**
+
 - `scripts/server.js` (session configuration)
 
 **Configuration:**
+
 ```javascript
 session({
   secret: process.env.SECRET,
@@ -88,16 +100,20 @@ session({
   cookie: {
     maxAge: 86400000, // 24 hours
     sameSite: process.env.THIRD_PARTY_COOKIES === "true" ? "None" : undefined,
-    secure: process.env.NODE_ENV === "production" && process.env.THIRD_PARTY_COOKIES === "true"
+    secure:
+      process.env.NODE_ENV === "production" &&
+      process.env.THIRD_PARTY_COOKIES === "true",
   },
-  store: new (require("connect-pg-simple")(session))({ pool })
-})
+  store: new (require("connect-pg-simple")(session))({ pool }),
+});
 ```
 
 ### 2.2 User Registration & Login
+
 **Status:** Completed
 
 **Implementation:**
+
 - Created POST `/api/users/signup` endpoint with strong password validation
 - Implemented first user auto-elevation to SuperAdmin (111)
 - Added permission checks for user creation (admin-only or configurable open signup)
@@ -108,9 +124,11 @@ session({
 - Implemented user groups assignment based on LEADS environment variable
 
 **Files Modified:**
+
 - `API/Backend/Users/routes/users.js`
 
 **Password Requirements:**
+
 - Minimum 8 characters
 - At least 1 uppercase letter
 - At least 1 lowercase letter
@@ -118,21 +136,26 @@ session({
 - At least 1 symbol
 
 ### 2.3 Logout Functionality
+
 **Status:** Completed
 
 **Implementation:**
+
 - Created POST `/api/users/logout` endpoint
 - Cleared session token from database on logout
 - Implemented session clearing via clearLoginSession helper
 - Added session regeneration after logout
 
 **Files Modified:**
+
 - `API/Backend/Users/routes/users.js`
 
 ### 2.4 Password Reset
+
 **Status:** Completed
 
 **Implementation:**
+
 - Created POST `/api/users/resetPassword` endpoint for token-based reset
 - Implemented admin-initiated reset link generation in `/api/accounts/generateResetPasswordLink`
 - Added time-limited token expiration (default 1 hour)
@@ -140,6 +163,7 @@ session({
 - Implemented password re-hashing via model save() hook
 
 **Files Modified:**
+
 - `API/Backend/Users/routes/users.js`
 - `API/Backend/Accounts/routes/accounts.js`
 - `views/resetpassword.pug`
@@ -147,9 +171,11 @@ session({
 ## Phase 3: Authorization & Middleware
 
 ### 3.1 Authentication Middleware
+
 **Status:** Completed
 
 **Implementation:**
+
 - Created `ensureUser()` middleware for user-level authentication
 - Implemented long-term token fallback authentication
 - Added Bearer token parsing from Authorization header
@@ -157,20 +183,24 @@ session({
 - Implemented `cssoHandler()` for CSSO header parsing
 
 **Files Modified:**
+
 - `scripts/server.js`
 
 **Middleware Functions:**
+
 ```javascript
-ensureUser()       // Requires authentication or valid token
-ensureAdmin()      // Requires 110/111 permission or admin token
-ensureGroup()      // Requires CSSO group membership
-stopGuests()       // Blocks guest users from specific endpoints
+ensureUser(); // Requires authentication or valid token
+ensureAdmin(); // Requires 110/111 permission or admin token
+ensureGroup(); // Requires CSSO group membership
+stopGuests(); // Blocks guest users from specific endpoints
 ```
 
 ### 3.2 Long-Term Token Validation
+
 **Status:** Completed
 
 **Implementation:**
+
 - Created `validateLongTermToken()` function with database lookup
 - Implemented token expiration checking (time-based or "never")
 - Added permission and mission inheritance from token creator
@@ -178,12 +208,15 @@ stopGuests()       // Blocks guest users from specific endpoints
 - Added request flags: `req.isLongTermToken`, `req.tokenUserPermission`, `req.tokenUserMissions`
 
 **Files Modified:**
+
 - `scripts/server.js`
 
 ### 3.3 CSSO Integration
+
 **Status:** Completed
 
 **Implementation:**
+
 - Implemented header parsing for X-Sub, X-Groups, X-Session
 - Added Base64 decoding for X-Groups header
 - Created group-to-permission mapping with CSSO_LEAD_GROUP
@@ -191,9 +224,11 @@ stopGuests()       // Blocks guest users from specific endpoints
 - Added development mode bypass for CSSO requirements
 
 **Files Modified:**
+
 - `scripts/server.js`
 
 **CSSO Headers:**
+
 ```
 X-Sub: username
 X-Groups: base64(JSON group object)
@@ -206,9 +241,11 @@ X-Activity: true
 ## Phase 4: API Endpoints
 
 ### 4.1 User Management APIs
+
 **Status:** Completed
 
 **Implementation:**
+
 - POST `/api/users/has` - Check if users exist
 - POST `/api/users/first_signup` - Initial admin creation
 - POST `/api/users/signup` - User registration
@@ -218,51 +255,62 @@ X-Activity: true
 - POST `/api/users/resetPassword` - Password reset with token
 
 **Files Modified:**
+
 - `API/Backend/Users/routes/users.js`
 - `API/Backend/Users/setup.js`
 
 ### 4.2 Account Administration APIs
+
 **Status:** Completed
 
 **Implementation:**
+
 - GET `/api/accounts/entries` - List all users with sanitized data
 - POST `/api/accounts/update` - Update user email/permission/missions
 - DELETE `/api/accounts/remove/:id` - Delete user (except ID 1)
 - POST `/api/accounts/generateResetPasswordLink` - Create reset token
 
 **Protection:**
+
 - All endpoints protected by `ensureAdmin()` middleware
 - Permission validation for user ID 1 (prevent permission changes)
 - Mission assignment only for Admin role (110)
 
 **Files Modified:**
+
 - `API/Backend/Accounts/routes/accounts.js`
 - `API/Backend/Accounts/setup.js`
 
 ### 4.3 Long-Term Token APIs
+
 **Status:** Completed
 
 **Implementation:**
+
 - GET `/api/longtermtokens/get` - List tokens (filtered by permission)
 - POST `/api/longtermtokens/generate` - Create token with optional name prefix
 - POST `/api/longtermtokens/clear` - Delete token (permission-based)
 
 **Access Control:**
+
 - SuperAdmins see all tokens
 - Regular admins see only their own tokens
 - SuperAdmins can delete any token
 - Regular admins can delete only their own tokens
 
 **Files Modified:**
+
 - `API/Backend/LongTermToken/routes/longtermtokens.js`
 - `API/Backend/LongTermToken/setup.js`
 
 ## Phase 5: User Interface
 
 ### 5.1 Login Page
+
 **Status:** Completed
 
 **Implementation:**
+
 - Created unified login/signup page with Pug template
 - Implemented client-side form toggle (login ↔ signup)
 - Added password strength indicator with descriptive text
@@ -272,11 +320,13 @@ X-Activity: true
 - Display clearance number and contact information
 
 **Files Modified:**
+
 - `views/login.pug`
 - `public/login.js`
 - `public/login.css`
 
 **Features:**
+
 - Username/password login
 - New user signup with email (optional)
 - Password validation feedback
@@ -284,32 +334,40 @@ X-Activity: true
 - Cookie-based session persistence
 
 ### 5.2 Admin Login Page
+
 **Status:** Completed
 
 **Implementation:**
+
 - Created specialized admin login for Configure application
 - Similar design to main login page
 - No signup option (admin-created accounts only)
 
 **Files Modified:**
+
 - `views/adminlogin.pug`
 
 ### 5.3 Password Reset Page
+
 **Status:** Completed
 
 **Implementation:**
+
 - Created token-based password reset interface
 - Implemented token validation with expiration checking
 - Added password strength requirements display
 - Created password confirmation field
 
 **Files Modified:**
+
 - `views/resetpassword.pug`
 
 ### 5.4 Users Management Interface
+
 **Status:** Completed
 
 **Implementation:**
+
 - Created React component with Material-UI table
 - Implemented sortable columns (ID, username, email, role, missions, dates)
 - Added role badges with color coding (SuperAdmin: pink, Admin: blue, User: grey)
@@ -323,6 +381,7 @@ X-Activity: true
 - Implemented real-time user list refresh after operations
 
 **Files Modified:**
+
 - `configure/src/pages/Users/Users.js`
 - `configure/src/pages/Users/Modals/NewUserModal/NewUserModal.js`
 - `configure/src/pages/Users/Modals/UpdateUserModal/UpdateUserModal.js`
@@ -330,6 +389,7 @@ X-Activity: true
 - `configure/src/pages/Users/Modals/ResetPasswordModal/ResetPasswordModal.js`
 
 **UI Features:**
+
 - Color-coded role badges
 - Mission assignment for Admin users
 - Inline action buttons (Update, Reset Password, Delete)
@@ -339,20 +399,25 @@ X-Activity: true
 ## Phase 6: Security Hardening
 
 ### 6.1 Rate Limiting
+
 **Status:** Completed
 
 **Implementation:**
+
 - Applied express-rate-limit to all `/api/*` endpoints
 - Configured 20,000 requests per 5-minute window per IP
 - No CAPTCHA or progressive backoff implemented
 
 **Files Modified:**
+
 - `scripts/server.js`
 
 ### 6.2 Security Headers
+
 **Status:** Completed
 
 **Implementation:**
+
 - Integrated Helmet.js for security headers
 - Configured Content-Security-Policy with MMGIS requirements
 - Added frame-ancestors support via FRAME_ANCESTORS environment variable
@@ -361,12 +426,15 @@ X-Activity: true
 - Enabled HTTPS support with custom certificates
 
 **Files Modified:**
+
 - `scripts/server.js`
 
 ### 6.3 Input Validation
+
 **Status:** Completed
 
 **Implementation:**
+
 - Created `checkHeadersCodeInjection()` middleware for basic XSS detection
 - Implemented Sequelize ORM for parameterized queries
 - Added email format validation in model
@@ -374,40 +442,48 @@ X-Activity: true
 - Validated user input on all update operations
 
 **Files Modified:**
+
 - `scripts/server.js`
 - `API/Backend/Users/routes/users.js`
 - `API/Backend/Accounts/routes/accounts.js`
 
 ### 6.4 HTTPS Support
+
 **Status:** Completed
 
 **Implementation:**
+
 - Added optional HTTPS server mode via HTTPS environment variable
 - Implemented custom certificate loading (HTTPS_KEY, HTTPS_CERT)
 - Added automatic Secure cookie flag in production
 - Documented recommended external proxy approach
 
 **Files Modified:**
+
 - `scripts/server.js`
 - `sample.env`
 
 ## Phase 7: Configuration & Documentation
 
 ### 7.1 Environment Variables
+
 **Status:** Completed
 
 **Implementation:**
+
 - Documented all authentication-related environment variables
 - Created sample.env with all options
 - Added validation and testing for critical variables
 - Implemented sensible defaults for optional variables
 
 **Files Modified:**
+
 - `sample.env`
 - `docs/pages/Setup/ENVs/ENVs.md`
 - `configuration/env.js`
 
 **Key Variables:**
+
 ```
 AUTH=local
 AUTH_LOCAL_ALLOW_SIGNUP=false
@@ -422,26 +498,31 @@ SKIP_CLIENT_INITIAL_LOGIN=
 ```
 
 ### 7.2 Documentation
+
 **Status:** Completed
 
 **Implementation:**
+
 - Created comprehensive ENVs documentation page
 - Documented authentication modes and use cases
 - Added API endpoint documentation
 - Created inline code comments for complex logic
 
 **Files Modified:**
+
 - `docs/pages/Setup/ENVs/ENVs.md`
 - Various source files with JSDoc comments
 
 ## Phase 8: Testing & Integration
 
 ### 8.1 Manual Testing
+
 **Status:** Completed
 
 <!-- HUMAN REVIEW NEEDED: Document actual test results and any discovered issues during testing -->
 
 **Test Scenarios:**
+
 1. First user signup (SuperAdmin creation)
 2. Additional user signup with various permission levels
 3. Login with username/password
@@ -461,9 +542,11 @@ SKIP_CLIENT_INITIAL_LOGIN=
 17. Cross-origin iframe authentication
 
 ### 8.2 Integration Testing
+
 **Status:** Completed
 
 **Integration Points Tested:**
+
 1. Session middleware with all application routes
 2. Authentication with Configure application
 3. Token validation with API endpoints
@@ -477,6 +560,7 @@ SKIP_CLIENT_INITIAL_LOGIN=
 <!-- HUMAN REVIEW NEEDED: Replace with actual implementation timeline if available -->
 
 **Estimated Timeline:**
+
 - Phase 1 (Foundation): 1 week
 - Phase 2 (Core Auth): 2 weeks
 - Phase 3 (Middleware): 1 week
@@ -491,17 +575,21 @@ SKIP_CLIENT_INITIAL_LOGIN=
 ## Key Design Decisions
 
 ### Decision 1: Four Authentication Modes
+
 **Rationale:** Different deployment scenarios require different security levels. NASA internal vs. public missions have different requirements.
 
 **Trade-offs:**
+
 - Increased complexity in code paths
 - More configuration options to document
 - Greater flexibility for various use cases
 
 ### Decision 2: Three-Character Permission String
+
 **Rationale:** Simple, extensible permission model that can be stored as an enum and easily checked.
 
 **Trade-offs:**
+
 - Limited to 8 permission combinations
 - Not as flexible as full RBAC system
 - Easy to understand and implement
@@ -509,17 +597,21 @@ SKIP_CLIENT_INITIAL_LOGIN=
 <!-- HUMAN REVIEW NEEDED: Verify if there are plans to use the other 5 permission combinations (000, 010, 011, 100, 101) -->
 
 ### Decision 3: PostgreSQL Session Storage
+
 **Rationale:** Production-grade persistence, integrates with existing database, supports clustering.
 
 **Trade-offs:**
+
 - Additional database load for session queries
 - Slower than in-memory stores (Redis)
 - No separate infrastructure required
 
 ### Decision 4: Long-Term Tokens Inherit Creator Permissions
+
 **Rationale:** Simplifies token management and ensures tokens can't exceed creator's access level.
 
 **Trade-offs:**
+
 - Tokens can't be scoped to fewer permissions
 - Deleting user doesn't invalidate tokens (references ID, not session)
 - Mission restrictions apply from creator, not current user
@@ -527,17 +619,21 @@ SKIP_CLIENT_INITIAL_LOGIN=
 <!-- HUMAN REVIEW NEEDED: Confirm if token permission inheritance is the intended behavior long-term -->
 
 ### Decision 5: bcrypt for Password Hashing
+
 **Rationale:** Industry standard, well-tested, built-in salt generation, configurable work factor.
 
 **Trade-offs:**
+
 - CPU-intensive (can impact performance under load)
 - Slower than alternatives like Argon2
 - Widely supported and trusted
 
 ### Decision 6: No Email Verification
+
 **Rationale:** Email is optional; MMGIS is often deployed in internal/closed environments where email infrastructure may not exist.
 
 **Trade-offs:**
+
 - Users can provide invalid emails
 - No password reset via email
 - Admins must manually communicate reset links
@@ -545,9 +641,11 @@ SKIP_CLIENT_INITIAL_LOGIN=
 <!-- HUMAN REVIEW NEEDED: Confirm if email-based password reset is planned for future implementation -->
 
 ### Decision 7: Session Token Rotation on Login
+
 **Rationale:** Security best practice to prevent session fixation attacks.
 
 **Trade-offs:**
+
 - Invalidates old session tokens (users logged out on new login)
 - Requires database update on each login
 - Improved security posture
@@ -555,11 +653,13 @@ SKIP_CLIENT_INITIAL_LOGIN=
 ## Dependencies & Prerequisites
 
 ### Software Requirements
-- Node.js v20.11.1+
-- PostgreSQL 12+ with PostGIS extension
+
+- Node.js v22.20.0+
+- PostgreSQL 16+ with PostGIS extension
 - npm/yarn package manager
 
 ### NPM Dependencies
+
 ```json
 {
   "express": "^4.x",
@@ -576,6 +676,7 @@ SKIP_CLIENT_INITIAL_LOGIN=
 ```
 
 ### Configuration Prerequisites
+
 1. PostgreSQL database created and accessible
 2. Environment variables configured in .env file
 3. Database connection pool sized appropriately
@@ -585,12 +686,14 @@ SKIP_CLIENT_INITIAL_LOGIN=
 ## Rollout Strategy
 
 ### Development Environment
+
 1. Set AUTH=none for testing
 2. Enable verbose logging
 3. Use lowercase secret for development
 4. Test all four authentication modes
 
 ### Staging Environment
+
 1. Use AUTH=local or AUTH=csso matching production
 2. Test with production-like data
 3. Validate session persistence
@@ -598,6 +701,7 @@ SKIP_CLIENT_INITIAL_LOGIN=
 5. Verify HTTPS configuration
 
 ### Production Deployment
+
 1. Set strong SECRET value (randomBytes(32).toString('hex'))
 2. Configure AUTH based on security requirements
 3. Enable HTTPS (built-in or proxy)
@@ -611,6 +715,7 @@ SKIP_CLIENT_INITIAL_LOGIN=
 ## Maintenance & Operations
 
 ### Monitoring Points
+
 1. Failed login attempts (potential brute force)
 2. Session store growth (cleanup needed?)
 3. Token validation performance
@@ -618,6 +723,7 @@ SKIP_CLIENT_INITIAL_LOGIN=
 5. Database connection pool utilization
 
 ### Regular Maintenance
+
 1. Review and clean up expired reset tokens
 2. Audit long-term tokens for inactive users
 3. Review user permissions periodically
@@ -625,6 +731,7 @@ SKIP_CLIENT_INITIAL_LOGIN=
 5. Rotate SECRET value periodically (requires re-login)
 
 ### Backup Considerations
+
 1. Backup users table regularly
 2. Backup long_term_tokens table
 3. Session table can be ephemeral (no backup needed)
@@ -667,6 +774,7 @@ SKIP_CLIENT_INITIAL_LOGIN=
 ## Success Metrics
 
 **Achieved Metrics:**
+
 - ✓ Multi-mode authentication supports all deployment scenarios
 - ✓ Session persistence prevents login re-prompts
 - ✓ Token-based API access enables automation
@@ -678,6 +786,7 @@ SKIP_CLIENT_INITIAL_LOGIN=
 ## References
 
 ### Implementation Files
+
 - `API/Backend/Users/` - User authentication routes and model
 - `API/Backend/Accounts/` - Account management routes
 - `API/Backend/LongTermToken/` - Token management routes and model
@@ -686,6 +795,7 @@ SKIP_CLIENT_INITIAL_LOGIN=
 - `views/` - Login page templates
 
 ### Related Documentation
+
 - `docs/pages/Setup/ENVs/ENVs.md` - Environment variable reference
 - `sample.env` - Configuration template
 - `README.md` - General setup instructions
