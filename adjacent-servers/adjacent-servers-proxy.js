@@ -4,6 +4,7 @@ const {
 } = require("http-proxy-middleware");
 
 const logger = require("../API/logger");
+const createTitilerUrlValidator = require("./validateTitilerUrl");
 
 function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
   ///////////////////////////
@@ -57,9 +58,14 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
     const titilerTarget = `http://${isDocker ? "titiler" : "localhost"}:${
       process.env.TITILER_PORT || 8883
     }`;
+
+    // Create URL validator instance (compiled at startup)
+    const validateTitilerUrl = createTitilerUrlValidator();
+
     app.use(
       `${process.env.ROOT_PATH || ""}/titiler`,
       ensureAdmin(false, false, true, false, ["/cog/stac"]), // true to allow all GETs (except /cog/stac) - others require admin auth
+      validateTitilerUrl, // URL validation middleware (SSRF prevention)
       createProxyMiddleware({
         target: titilerTarget,
         changeOrigin: true,
