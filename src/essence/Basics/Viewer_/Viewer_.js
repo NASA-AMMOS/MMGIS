@@ -191,7 +191,7 @@ var Viewer_ = {
         this.imageViewerMap = OpenSeadragon({
             id: 'imageViewerMap',
             //prefixUrl: 'scripts/external/OpenSeadragon/images/',
-            defaultZoomLevel: 0.5,
+            defaultZoomLevel: 1.0,
             //showNavigationControl: false,
             showFullPageControl: false,
             zoomInButton: 'osd-zoomin',
@@ -564,6 +564,15 @@ var Viewer_ = {
             this.imageViewerMap.invalidateSize()
             this.calculateBounds()
             this.imageViewerMap.setMaxBounds(this.bounds)
+        }
+        if (this.imageViewer != null) {
+            // Wait a bit for the viewer panel to be visible before updating the image viewer
+            setTimeout(function () {
+                Viewer_.imageViewerMap.viewport.fitBounds(
+                    Viewer_.imageViewerMap.viewport.getHomeBounds(),
+                    true
+                )
+            }, 10)
         }
     },
     getLastImageId() {
