@@ -2122,6 +2122,18 @@ function interfaceWithMMGIS(fromInit) {
                 currentCogMin: layer.currentCogMin,
                 currentCogMax: layer.currentCogMax,
             })
+
+            // Also update Cesium if Globe exists
+            if (
+                L_.Globe_ &&
+                L_.Globe_.litho &&
+                L_.Globe_.litho.updateLayerCogParameters
+            ) {
+                L_.Globe_.litho.updateLayerCogParameters(layer.name, {
+                    currentCogMin: layer.currentCogMin,
+                    currentCogMax: layer.currentCogMax,
+                })
+            }
         } else if (layer.type === 'image') {
             // TODO FIXME DOUBLE CHECK
             updateImageRange(
@@ -2166,6 +2178,17 @@ function interfaceWithMMGIS(fromInit) {
             L_.layers.layer[layer.name].refresh(null, true, {
                 currentCogExpression: newExpression,
             })
+
+            // Also update Cesium
+            if (
+                L_.Globe_ &&
+                L_.Globe_.litho &&
+                L_.Globe_.litho.updateLayerCogParameters
+            ) {
+                L_.Globe_.litho.updateLayerCogParameters(layer.name, {
+                    currentCogExpression: newExpression,
+                })
+            }
         } else if (layer.type === 'image') {
             L_.layers.layer[layer.name].refresh(null, true, {
                 currentCogExpression: newExpression,
@@ -2203,6 +2226,17 @@ function interfaceWithMMGIS(fromInit) {
             L_.layers.layer[layerData.name].refresh(null, true, {
                 currentCogExpression: null,
             })
+
+            // Also update Cesium
+            if (
+                L_.Globe_ &&
+                L_.Globe_.litho &&
+                L_.Globe_.litho.updateLayerCogParameters
+            ) {
+                L_.Globe_.litho.updateLayerCogParameters(layerData.name, {
+                    currentCogExpression: null,
+                })
+            }
         } else if (layerData.type === 'image') {
             L_.layers.layer[layerData.name].refresh(null, true, {
                 currentCogExpression: null,
@@ -2429,6 +2463,17 @@ function interfaceWithMMGIS(fromInit) {
             L_.layers.layer[layer.name].refresh(null, true, {
                 currentCogMin: layer.currentCogMin,
             })
+
+            // Also update Cesium
+            if (
+                L_.Globe_ &&
+                L_.Globe_.litho &&
+                L_.Globe_.litho.updateLayerCogParameters
+            ) {
+                L_.Globe_.litho.updateLayerCogParameters(layer.name, {
+                    currentCogMin: layer.currentCogMin,
+                })
+            }
         } else if (layer.type === 'image') {
             updateImageRange(
                 layer.name,
@@ -2466,6 +2511,17 @@ function interfaceWithMMGIS(fromInit) {
             L_.layers.layer[layer.name].refresh(null, true, {
                 currentCogMax: layer.currentCogMax,
             })
+
+            // Also update Cesium
+            if (
+                L_.Globe_ &&
+                L_.Globe_.litho &&
+                L_.Globe_.litho.updateLayerCogParameters
+            ) {
+                L_.Globe_.litho.updateLayerCogParameters(layer.name, {
+                    currentCogMax: layer.currentCogMax,
+                })
+            }
         } else if (layer.type === 'image') {
             updateImageRange(
                 layer.name,

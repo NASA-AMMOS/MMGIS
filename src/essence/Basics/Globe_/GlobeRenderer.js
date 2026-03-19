@@ -2,6 +2,7 @@ import LithoSphere from 'lithosphere'
 import * as Cesium from 'cesium'
 import * as d3 from 'd3'
 import 'cesium/Source/Widgets/widgets.css'
+import LayerUtils from '../Layers_/LayerUtils'
 
 /**
  * GlobeRenderer - Abstraction wrapper for 3D globe rendering engines
@@ -416,9 +417,12 @@ class GlobeRenderer {
                 : null
 
             // Replace time parameters in URL if time is enabled
-            const processedUrl = timeConfig?.enabled
+            let processedUrl = timeConfig?.enabled
                 ? this._replaceTimeParameters(layerConfig.path, timeConfig)
                 : layerConfig.path
+
+            // Add TiTiler query parameters for COG/STAC layers
+            processedUrl = this._buildTiTilerUrl(processedUrl, layerConfig)
 
             let imageryProvider
 
@@ -481,7 +485,7 @@ class GlobeRenderer {
             layer.alpha =
                 layerConfig.opacity !== undefined ? layerConfig.opacity : 1.0
 
-            // Store layer metadata including time config
+            // Store layer metadata including time config and COG config
             this._layers[name] = {
                 type: 'tile',
                 layer: layer,
@@ -492,6 +496,19 @@ class GlobeRenderer {
                 minZoom: layerConfig.minZoom,
                 opacity: layerConfig.opacity,
                 order: layerConfig.order, // Store layer order for proper stacking
+                // Store COG configuration for dynamic updates
+                cogConfig: {
+                    splitColonType: layerConfig.splitColonType,
+                    cogTransform: layerConfig.cogTransform,
+                    cogMin: layerConfig.cogMin,
+                    cogMax: layerConfig.cogMax,
+                    currentCogMin: layerConfig.currentCogMin,
+                    currentCogMax: layerConfig.currentCogMax,
+                    cogColormap: layerConfig.cogColormap,
+                    cogExpression: layerConfig.cogExpression,
+                    currentCogExpression: layerConfig.currentCogExpression,
+                },
+                originalUrl: layerConfig.path, // Store template URL for rebuilding
             }
         } else if (type === 'vector' || type === 'clamped') {
             // Check if this layer is already being loaded (prevent duplicate async loads)
@@ -714,6 +731,46 @@ class GlobeRenderer {
     }
 
     /**
+     * Build complete TiTiler URL with query parameters for COG and STAC layers
+     * @private
+     * @param {string} baseUrl - Base URL template
+     * @param {Object} layerConfig - Layer configuration with COG parameters
+     * @returns {string} Complete URL with query parameters
+     */
+    _buildTiTilerUrl(baseUrl, layerConfig) {
+        // Only process COG or STAC collection layers
+        if (
+            layerConfig.splitColonType !== 'COG' &&
+            layerConfig.splitColonType !== 'stac-collection'
+        ) {
+            return baseUrl
+        }
+
+        // Build query parameters using shared function
+        const queryParams = LayerUtils.buildTiTilerQueryParams({
+            splitColonType: layerConfig.splitColonType,
+            starttime: layerConfig.time?.start,
+            endtime: layerConfig.time?.end,
+            cogTransform: layerConfig.cogTransform,
+            cogMin: layerConfig.cogMin,
+            cogMax: layerConfig.cogMax,
+            currentCogMin: layerConfig.currentCogMin,
+            currentCogMax: layerConfig.currentCogMax,
+            cogColormap: layerConfig.cogColormap,
+            cogExpression: layerConfig.cogExpression,
+            currentCogExpression: layerConfig.currentCogExpression,
+        })
+
+        // Append query parameters to URL
+        if (queryParams) {
+            const separator = baseUrl.indexOf('?') === -1 ? '?' : '&'
+            return baseUrl + separator + queryParams
+        }
+
+        return baseUrl
+    }
+
+    /**
      * Calculate the correct index for a tile layer in the imageryLayers collection
      * based on the global layer ordering (L_._layersOrdered)
      */
@@ -833,6 +890,104 @@ class GlobeRenderer {
     }
 
     /**
+     * Update COG parameters for a layer and refresh
+     * @param {string} layerName - Name of the layer to update
+     * @param {Object} cogParams - COG parameters to update (partial update supported)
+     */
+    updateLayerCogParameters(layerName, cogParams) {
+        const layerInfo = this._layers[layerName]
+
+        // Validate layer exists and has COG config
+        if (!layerInfo || layerInfo.type !== 'tile' || !layerInfo.cogConfig) {
+            return
+        }
+
+        // Update COG parameters (merge with existing)
+        Object.assign(layerInfo.cogConfig, cogParams)
+
+        // Refresh the layer with new parameters
+        this._refreshCogEnabledLayer(layerName)
+    }
+
+    /**
+     * Refresh a COG-enabled layer by recreating imagery provider with updated parameters
+     * @private
+     * @param {string} layerName - Name of the layer to refresh
+     */
+    _refreshCogEnabledLayer(layerName) {
+        const layerInfo = this._layers[layerName]
+
+        // Only refresh Cesium tile layers
+        if (
+            this.rendererType !== 'cesium' ||
+            !layerInfo ||
+            layerInfo.type !== 'tile'
+        ) {
+            return
+        }
+
+        // Store current state
+        const alpha = layerInfo.layer.alpha
+        const show = layerInfo.layer.show
+        const index = this.renderer.imageryLayers.indexOf(layerInfo.layer)
+
+        // Remove old imagery layer
+        this.renderer.imageryLayers.remove(layerInfo.layer)
+
+        // Build URL with updated COG parameters
+        let url = layerInfo.originalUrl
+
+        // Apply time parameters if enabled
+        if (layerInfo.timeConfig?.enabled) {
+            url = this._replaceTimeParameters(url, layerInfo.timeConfig)
+        }
+
+        // Build complete URL with COG query parameters
+        url = this._buildTiTilerUrl(url, {
+            ...layerInfo.cogConfig,
+            time: layerInfo.timeConfig,
+        })
+
+        // Create new imagery provider
+        let newProvider
+
+        if (layerInfo.format === 'wms') {
+            const { baseUrl, wmsParams } = this._parseWmsUrl(url)
+            newProvider = new Cesium.WebMapServiceImageryProvider({
+                url: baseUrl,
+                layers: wmsParams.LAYERS || '',
+                parameters: wmsParams,
+            })
+        } else {
+            newProvider = new Cesium.UrlTemplateImageryProvider({
+                url: this._convertTileUrl(url, layerInfo.format),
+                maximumLevel: layerInfo.maxZoom || 18,
+                minimumLevel: layerInfo.minZoom || 0,
+            })
+        }
+
+        // Add new imagery layer
+        const newLayer =
+            this.renderer.imageryLayers.addImageryProvider(newProvider)
+
+        // Restore state
+        newLayer.alpha = alpha
+        newLayer.show = show
+
+        // Restore layer order
+        if (index >= 0) {
+            const currentIndex = this.renderer.imageryLayers.indexOf(newLayer)
+            if (currentIndex !== index) {
+                this.renderer.imageryLayers.remove(newLayer, false)
+                this.renderer.imageryLayers.add(newLayer, index)
+            }
+        }
+
+        // Update reference
+        layerInfo.layer = newLayer
+    }
+
+    /**
      * Refresh a time-enabled layer by recreating its imagery provider
      */
     _refreshTimeEnabledLayer(layerName) {
@@ -855,10 +1010,18 @@ class GlobeRenderer {
         this.renderer.imageryLayers.remove(layerInfo.layer)
 
         // Create new URL with updated time parameters
-        const url = this._replaceTimeParameters(
+        let url = this._replaceTimeParameters(
             layerInfo.timeConfig.originalUrl,
             layerInfo.timeConfig
         )
+
+        // Add COG parameters to preserve rescale/colormap/expression when time changes
+        if (layerInfo.cogConfig) {
+            url = this._buildTiTilerUrl(url, {
+                ...layerInfo.cogConfig,
+                time: layerInfo.timeConfig,
+            })
+        }
 
         let newProvider
 

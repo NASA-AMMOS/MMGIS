@@ -99,7 +99,6 @@ Run: `docker-compose up -d`
 ### First Time UI Setup
 
 1. Setup the admin account:
-
    - In your browser, navigate to `http://localhost:8888/configure`
    - Sign up for an Administrator account (The Administrator account is always the first user in the database and you are only prompted to create an Administrator account if there are no other users)
 
@@ -117,7 +116,7 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 
 ### System Requirements
 
-1. Install the latest version of [Node.js v20.11.1+](https://nodejs.org/en/download/).
+1. Install the latest version of [Node.js v22.20.0+](https://nodejs.org/en/download/).
 
 1. Install [PostgreSQL v16+](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads). Detailed [install instructions](https://www.postgresqltutorial.com/postgresql-getting-started/) for all platforms.
 1. Install [PostGIS 3+](https://postgis.net/install/). From the above install, you can use the 'Application Stack Builder' to install PostGIS or the default [PostGIS install instructions](https://postgis.net/install/) for all platforms.
@@ -140,6 +139,7 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
       ```
       micromamba env create -y --name mmgis --file=python-environment.yml
       ```
+
       - If you encounter an error like: `..\mamba\condabin\micromamba"' is not recognized as an internal or external command, operable program or batch file.`, then copy the `mamba.bat` file in that directory to `micromamba.bat`
    1. Confirm the installation and initialization went well with:
       ```
@@ -198,7 +198,6 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 1. Run `npm run start:prod`
 
 1. Setup the admin account:
-
    - In your browser, navigate to `http://localhost:8888/configure`
    - Sign up for an Administrator account (The Administrator account is always the first user in the database and you are only prompted to create an Administrator account if there are no other users)
 

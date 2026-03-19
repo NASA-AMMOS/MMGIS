@@ -1034,6 +1034,11 @@ async function makeVectorLayer(
                 )
             }
 
+            // Clear local time filter cache on refresh so new data is used
+            if (isRefresh && L_._localTimeFilterCache) {
+                delete L_._localTimeFilterCache[layerObj.name]
+            }
+
             ctx.layerRegistry.attachments[layerObj.name] = vl.sublayers
             ctx.layerRegistry.layer[layerObj.name] = vl.layer
 

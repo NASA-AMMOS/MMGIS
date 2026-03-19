@@ -25,6 +25,25 @@ All adjacent services are proxied through MMGIS and endpoints that perform write
 - https://{mmgis-domain}/titilerpgstac
 - https://{mmgis-domain}/veloserver
 
+## Security
+
+### TiTiler SSRF Protection
+
+The TiTiler proxy accepts a `?url=` parameter that specifies which geospatial file to process. Without proper validation, this can be exploited for Server-Side Request Forgery (SSRF) attacks, allowing attackers to:
+- Access internal network resources (e.g., `http://localhost:3306/`)
+- Read arbitrary files (e.g., `file:///etc/passwd`)
+- Scan internal ports and services
+- Exfiltrate sensitive data
+
+**Mitigation**: Configure the `TITILER_ALLOWED_URL_PATTERNS` environment variable to restrict URLs to trusted sources. See [ENVs documentation](../ENVs/ENVs.md#titiler_allowed_url_patterns) for detailed configuration instructions.
+
+**Recommended for Production**:
+```bash
+TITILER_ALLOWED_URL_PATTERNS='["^https://(?!.*\\.\\.)(?!.*\\x00).*$"]'
+```
+
+This pattern requires HTTPS and blocks common attack vectors (path traversal, null bytes).
+
 ### Upgrading Python and Installing the Adjacent Services
 
 **If using docker, this is unneeded.**

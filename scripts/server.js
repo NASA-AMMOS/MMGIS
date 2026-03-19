@@ -54,7 +54,7 @@ const ROOT_PATH = isDevEnv ? "" : process.env.ROOT_PATH || "";
 if (!(process.env.PUBLIC_URL == null || process.env.PUBLIC_URL == ""))
   logger(
     "warn",
-    `The 'PUBLIC_URL' env is deprecated. Please using 'ROOT_PATH' instead.`
+    `The 'PUBLIC_URL' env is deprecated. Please using 'ROOT_PATH' instead.`,
   );
 
 const rootDir = `${__dirname}/..`;
@@ -103,12 +103,12 @@ const pool = new Pool({
             process.env.DB_SSL_CERT_BASE64 != null &&
             process.env.DB_SSL_CERT_BASE64 !== ""
               ? Buffer.from(process.env.DB_SSL_CERT_BASE64, "base64").toString(
-                  "utf-8"
+                  "utf-8",
                 )
               : process.env.DB_SSL_CERT != null &&
-                process.env.DB_SSL_CERT !== ""
-              ? fs.readFileSync(process.env.DB_SSL_CERT)
-              : false,
+                  process.env.DB_SSL_CERT !== ""
+                ? fs.readFileSync(process.env.DB_SSL_CERT)
+                : false,
         }
       : false,
 });
@@ -123,13 +123,13 @@ app.use(
     store: new (require("connect-pg-simple")(session))({
       pool,
     }),
-  })
+  }),
 );
 
 if (process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD === "true")
   setSPICEKernelDownloadSchedule(
     process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD_ON_START,
-    process.env.SPICE_SCHEDULED_KERNEL_CRON_EXPR
+    process.env.SPICE_SCHEDULED_KERNEL_CRON_EXPR,
   );
 
 ///
@@ -151,7 +151,7 @@ const cssoHandler = (req, res, next) => {
   if (process.env.AUTH == "csso") {
     if (req.get("X-Groups") !== undefined) {
       req.groups = JSON.parse(
-        Buffer.from(req.get("X-Groups"), "base64").toString("ascii")
+        Buffer.from(req.get("X-Groups"), "base64").toString("ascii"),
       );
       if (req.groups[process.env.CSSO_LEAD_GROUP] === true) {
         req.groups[req.leadGroupName] = true;
@@ -211,7 +211,7 @@ function checkHeadersCodeInjection(req, res, next) {
     // res.setHeader('Content-Type', 'application/json');
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Origin, X-Requested-with, Content-Type, Methods"
+      "Origin, X-Requested-with, Content-Type, Methods",
     );
     next();
   }
@@ -286,7 +286,7 @@ function ensureAdmin(
   denyLongTermTokens,
   allowGets,
   allowPosts,
-  disallow
+  disallow,
 ) {
   return (req, res, next) => {
     let url = req.originalUrl.split("?")[0].toLowerCase();
@@ -353,9 +353,9 @@ function ensureAdmin(
             "warn",
             `Unauthorized token call made and rejected (from ${remoteAddress}, with token ${req.headers.authorization})`,
             req.originalUrl,
-            req
+            req,
           );
-        }
+        },
       );
       return;
     }
@@ -365,7 +365,7 @@ function ensureAdmin(
       "warn",
       `Unauthorized call made and rejected (from ${remoteAddress})`,
       req.originalUrl,
-      req
+      req,
     );
     return;
   };
@@ -381,7 +381,7 @@ function validateLongTermToken(token, successCallback, failureCallback) {
         replacements: {
           token: token,
         },
-      }
+      },
     )
     .then((result) => {
       try {
@@ -445,9 +445,9 @@ function ensureUser() {
               "warn",
               `Unauthorized token call made and rejected (from ${remoteAddress}, with token ${req.headers.authorization})`,
               req.originalUrl,
-              req
+              req,
             );
-          }
+          },
         );
       } else {
         res.render("login", {
@@ -545,7 +545,7 @@ app.disable("Origin");
 app.use(
   `${ROOT_PATH}/api/docs`,
   swaggerUi.serve,
-  useSwaggerSchema(swaggerDocumentMain)
+  useSwaggerSchema(swaggerDocumentMain),
 );
 
 // Pug is used to render pages.
@@ -560,7 +560,6 @@ app.use(cssoHandler);
 app.use(bodyParser.json({ limit: "500mb" })); // support json encoded bodies
 app.use(bodyParser.urlencoded({ limit: "500mb", extended: true })); // support encoded bodies
 
-app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 app.use(cors());
@@ -577,7 +576,7 @@ setups.getBackendSetups(function (setups) {
       logger(
         "success",
         "All needed tables exist or have been successfully created!",
-        "server"
+        "server",
       );
 
       //////Setups SYNC//////
@@ -589,8 +588,8 @@ setups.getBackendSetups(function (setups) {
       logger(
         "infrastructure_error",
         "Database tables might not be synced properly! " + error,
-        "server"
-      )
+        "server",
+      ),
     );
 
   // STATICS
@@ -598,39 +597,39 @@ setups.getBackendSetups(function (setups) {
   app.use(
     `${ROOT_PATH}/build`,
     ensureUser(),
-    express.static(path.join(rootDir, "/build"))
+    express.static(path.join(rootDir, "/build")),
   );
   app.use(
     `${ROOT_PATH}/docs`,
     ensureUser(),
-    express.static(path.join(rootDir, "/docs"))
+    express.static(path.join(rootDir, "/docs")),
   );
   app.use(
     `${ROOT_PATH}/README.md`,
-    express.static(path.join(rootDir, "/README.md"))
+    express.static(path.join(rootDir, "/README.md")),
   );
   app.use(
     `${ROOT_PATH}/configure/build`,
     ensureUser(),
-    express.static(path.join(rootDir, "/configure/build"))
+    express.static(path.join(rootDir, "/configure/build")),
   );
   app.use(
     `${ROOT_PATH}/configure/public`,
     ensureUser(),
-    express.static(path.join(rootDir, "/configure/public"))
+    express.static(path.join(rootDir, "/configure/public")),
   );
 
   if (process.argv.includes("--with_examples"))
     app.use(
       `${ROOT_PATH}/examples`,
-      express.static(path.join(rootDir, "/examples"))
+      express.static(path.join(rootDir, "/examples")),
     );
   app.use(`${ROOT_PATH}/public`, express.static(path.join(rootDir, "/public")));
   app.use(
     `${ROOT_PATH}/Missions`,
     ensureUser(),
     middleware.missions(ROOT_PATH),
-    express.static(path.join(rootDir, "/Missions"))
+    express.static(path.join(rootDir, "/Missions")),
   );
   app.get(s.ROOT_PATH + "/resetPassword", (req, res) => {
     const user = process.env.AUTH === "csso" ? req.user : req.user || "";
@@ -652,12 +651,12 @@ setups.getBackendSetups(function (setups) {
     app.use(
       `${ROOT_PATH}/css`,
       ensureUser(),
-      express.static(path.join(rootDir, "/css"))
+      express.static(path.join(rootDir, "/css")),
     );
     app.use(
       `${ROOT_PATH}/src`,
       ensureUser(),
-      express.static(path.join(rootDir, "/src"))
+      express.static(path.join(rootDir, "/src")),
     );
   }
 
@@ -693,7 +692,7 @@ setups.getBackendSetups(function (setups) {
         key: fs.readFileSync(process.env.HTTPS_KEY),
         cert: fs.readFileSync(process.env.HTTPS_CERT),
       },
-      app
+      app,
     );
   } else httpServer = http.createServer(app);
 
@@ -747,7 +746,7 @@ setups.getBackendSetups(function (setups) {
               scienceIntent: process.env.SCIENCE_INTENT_HOST,
             }),
           });
-        }
+        },
       );
     }
     if (err) {
@@ -767,7 +766,7 @@ setups.getBackendSetups(function (setups) {
     logger(
       "success",
       "MMGIS successfully started! It's listening on port: " + port,
-      "server"
+      "server",
     );
 
     if (process.env.ENABLE_MMGIS_WEBSOCKETS) {
@@ -806,7 +805,7 @@ function setupDevServer() {
     protocol,
     HOST,
     port,
-    paths.publicUrlOrPath.slice(0, -1)
+    paths.publicUrlOrPath.slice(0, -1),
   );
   const devSocket = {
     warnings: (warnings) =>
@@ -830,7 +829,7 @@ function setupDevServer() {
   const proxyConfig = prepareProxy(
     proxySetting,
     paths.appPublic,
-    paths.publicUrlOrPath
+    paths.publicUrlOrPath,
   );
 
   // Serve webpack assets generated by the compiler over a web server.
@@ -853,8 +852,8 @@ function setupDevServer() {
     if (process.env.NODE_PATH) {
       console.log(
         chalk.yellow(
-          "Setting NODE_PATH to resolve modules absolutely has been deprecated in favor of setting baseUrl in jsconfig.json (or tsconfig.json if you are using TypeScript) and will be removed in a future major release of create-react-app."
-        )
+          "Setting NODE_PATH to resolve modules absolutely has been deprecated in favor of setting baseUrl in jsconfig.json (or tsconfig.json if you are using TypeScript) and will be removed in a future major release of create-react-app.",
+        ),
       );
       console.log();
     }
