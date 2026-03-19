@@ -1,0 +1,267 @@
+/**
+ * OperationsClock Component Styles
+ *
+ * Simplified three-button interface for quick time range selection
+ */
+
+/* Main container - positioned at bottom center */
+.operationsClockComponent {
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    font-size: 14px;
+    user-select: none;
+    transition: bottom 0.2s ease-out;
+}
+
+/* Button group wrapper - Material UI Paper style */
+.operationsClockComponent .clock-button-group {
+    display: flex;
+    align-items: center;
+    background: var(--color-k);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 4px;
+    padding: 4px;
+    gap: 4px;
+    box-shadow: 0px 2px 4px 0px rgba(0,0,0,0.1);
+}
+
+/* Mobile positioning - starts at bottom, moves up with toolbar via JS */
+.operationsClockComponent.operationsClockComponent-mobile {
+    bottom: 40px;
+}
+
+/* Buttons - Material UI ToggleButton style */
+.operationsClockComponent .clock-btn {
+    padding: 8px 8px;
+    background: transparent;
+    border: none;
+    color: var(--color-a4);
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: capitalize;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    outline: none;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 4px;
+    min-width: auto;
+}
+
+/* Clock icon inside today button */
+.operationsClockComponent .clock-btn .clock-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+/* Today button wrapper (button + date) */
+.operationsClockComponent .clock-today-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    position: relative;
+}
+
+/* Date display beneath today button */
+.operationsClockComponent .clock-today-date {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    padding: 0 4px;
+    border-radius: 2px;
+    box-shadow: 0px 2px 4px 0px rgba(0,0,0,0.1);
+    position: absolute;
+    bottom: -14px;
+    color: var(--color-a4);
+    background: var(--color-a);
+    transition: all  0.2s ease-in;
+    width: 100%;
+    text-align: center;
+}
+
+.operationsClockComponent .clock-btn-today {
+    min-width: 86px;
+}
+/* When today button is active, update date color */
+.operationsClockComponent .clock-btn-today.active + .clock-today-date {
+    color: var(--color-a6);
+    background: var(--color-a1);
+}
+
+.operationsClockComponent .clock-btn:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-a6);
+}
+
+/* Active button state - Material UI selected style */
+.operationsClockComponent .clock-btn.active {
+    background: var(--color-a1);
+    color: white;
+}
+
+.operationsClockComponent .clock-btn.active:hover {
+    background: var(--color-a1);
+    opacity: 0.9;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .operationsClockComponent .clock-button-group {
+        gap: 2px;
+        padding: 3px;
+    }
+
+    .operationsClockComponent .clock-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .operationsClockComponent .clock-today-date {
+        font-size: 9px;
+    }
+}
+
+/* Tippy tooltip styling */
+.tippy-box[data-theme~='mmgis'] {
+    background-color: var(--color-a);
+    color: white;
+}
+
+.tippy-box[data-theme~='mmgis'][data-placement^='top'] > .tippy-arrow::before {
+    border-top-color: var(--color-a);
+}
+
+.tippy-box[data-theme~='mmgis'][data-placement^='bottom'] > .tippy-arrow::before {
+    border-bottom-color: var(--color-a);
+}
+
+.tippy-box[data-theme~='mmgis'][data-placement^='left'] > .tippy-arrow::before {
+    border-left-color: var(--color-a);
+}
+
+.tippy-box[data-theme~='mmgis'][data-placement^='right'] > .tippy-arrow::before {
+    border-right-color: var(--color-a);
+}
+
+/* Interval buttons */
+.operationsClockComponent .clock-btn-interval {
+    min-width: 36px;
+}
+
+/* Custom date indicator - shows "back to today" when custom date is active */
+.operationsClockComponent .clock-today-date.custom-date {
+    background: var(--color-a1-5) !important;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+.operationsClockComponent .clock-today-date.custom-date:hover {
+    background: var(--color-a1) !important;
+}
+
+/* Mobile dropdown layout */
+.operationsClockComponent .clock-mobile-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    background: var(--color-k);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 4px;
+    box-shadow: 0px 2px 4px 0px rgba(0,0,0,0.1);
+    min-width: 280px;
+}
+
+.operationsClockComponent .clock-mobile-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.operationsClockComponent .clock-mobile-row label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-a4);
+    min-width: 80px;
+}
+
+.operationsClockComponent .clock-select {
+    flex: 1;
+    padding: 6px 8px;
+    background: var(--color-k);
+    border: 1px solid var(--color-a2);
+    border-radius: 4px;
+    color: var(--color-a6);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.operationsClockComponent .clock-select:focus {
+    outline: none;
+    border-color: var(--color-a1);
+}
+
+.operationsClockComponent .clock-today-section {
+    padding: 8px;
+    background: var(--color-a);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.operationsClockComponent .clock-today-section:hover {
+    background: var(--color-a1);
+}
+
+.operationsClockComponent .clock-icon-large {
+    width: 24px;
+    height: 24px;
+    color: var(--color-a6);
+}
+
+.operationsClockComponent .clock-today-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-a4);
+}
+
+/* Scrollable button container for mobile (non-dropdown mode) */
+.operationsClockComponent.operationsClockComponent-mobile .clock-button-group {
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: calc(100vw - 32px);
+    -webkit-overflow-scrolling: touch;
+}
+
+.operationsClockComponent.operationsClockComponent-mobile .clock-button-group::-webkit-scrollbar {
+    height: 4px;
+}
+
+.operationsClockComponent.operationsClockComponent-mobile .clock-button-group::-webkit-scrollbar-thumb {
+    background: var(--color-a2);
+    border-radius: 2px;
+}
+
+/* Print styles - hide component when printing */
+@media print {
+    .operationsClockComponent {
+        display: none;
+    }
+}
+
+/* Custom positioning for OperationsClock date picker */
+.tempus-dominus-widget.operations-clock-picker {
+    margin-left: -100px !important;
+}
