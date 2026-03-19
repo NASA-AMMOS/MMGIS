@@ -62,6 +62,14 @@ const Coordinates = {
             available: true,
             coordOffset: [0, 0],
         },
+        ll_r: {
+            ancillaryTitle: 'lat/lon',
+            names: ['Latitude', 'Longitude', 'Elevation'],
+            units: ['°', '°', 'm'],
+            precision: [8, 8, 3],
+            available: true,
+            coordOffset: [0, 0],
+        },
         en: {
             ancillaryTitle: 'east/north',
             names: ['Easting', 'Northing', 'Elevation'],
@@ -184,6 +192,22 @@ const Coordinates = {
             )
                 Coordinates.states.ll.coordOffset[1] = parseFloat(
                     L_.configData.coordinates.coordlatoffset || 0
+                )
+
+            // ll_r
+            if (
+                L_.configData.coordinates.coordlatoffset != null &&
+                !isNaN(L_.configData.coordinates.coordlatoffset)
+            )
+                Coordinates.states.ll_r.coordOffset[0] = parseFloat(
+                    L_.configData.coordinates.coordlatoffset || 0
+                )
+            if (
+                L_.configData.coordinates.coordlngoffset != null &&
+                !isNaN(L_.configData.coordinates.coordlngoffset)
+            )
+                Coordinates.states.ll_r.coordOffset[1] = parseFloat(
+                    L_.configData.coordinates.coordlngoffset || 0
                 )
 
             // en
@@ -432,6 +456,12 @@ const Coordinates = {
             case 'll':
                 newCoords[0] = lng + currentState.coordOffset[0]
                 newCoords[1] = lat + currentState.coordOffset[1]
+                if (Coordinates.elevation != null)
+                    newCoords[2] = Coordinates.elevation
+                break
+            case 'll_r':
+                newCoords[0] = lat + currentState.coordOffset[0]
+                newCoords[1] = lng + currentState.coordOffset[1]
                 if (Coordinates.elevation != null)
                     newCoords[2] = Coordinates.elevation
                 break
@@ -729,6 +759,10 @@ function pickLngLatGo() {
         case 'll': //00 lnglat
             finalLng = valA - currentState.coordOffset[0]
             finalLat = valB - currentState.coordOffset[1]
+            break
+        case 'll_r':
+            finalLat = valA - currentState.coordOffset[0]
+            finalLng = valB - currentState.coordOffset[1]
             break
         case 'en': //01 easting northing
             const valALng =
