@@ -1672,6 +1672,8 @@ function windowresize() {
     })
     //The viewer slider
     UserInterface.viewerSplit.css('height', UserInterface.mainHeight + 'px')
+    //resize viewer
+    if (Viewer_ != null) Viewer_.invalidateSize()
 
     //The map screen
     UserInterface.mapScreen.css({

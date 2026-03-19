@@ -191,7 +191,6 @@ var Viewer_ = {
         this.imageViewerMap = OpenSeadragon({
             id: 'imageViewerMap',
             //prefixUrl: 'scripts/external/OpenSeadragon/images/',
-            defaultZoomLevel: 1.0,
             //showNavigationControl: false,
             showFullPageControl: false,
             zoomInButton: 'osd-zoomin',
