@@ -36,17 +36,10 @@ RUN dnf module install -y nodejs:24
 # Python (micromamba)
 #############################
 
-# Setup micromamba for Python environment
-RUN mkdir -p /opt/micromamba/bin && \
-    MICROMAMBA_URL="https://micro.mamba.pm/api/micromamba/linux-64/latest" && \
-    if [ "${TARGETARCH}" = "arm64" ]; then \
-        MICROMAMBA_URL="https://micro.mamba.pm/api/micromamba/linux-aarch64/latest"; \
-    elif [ -z "${TARGETARCH}" ]; then \
-        echo "TARGETARCH is empty, defaulting to amd64"; \
-    fi && \
-    echo "Downloading micromamba for ${TARGETARCH} from: ${MICROMAMBA_URL}" && \
-    curl -Ls "${MICROMAMBA_URL}" | tar -C /opt/micromamba -xvj bin/micromamba && \
-    MAMBA_ROOT_PREFIX="/opt/micromamba"; /opt/micromamba/bin/micromamba shell init -s bash && \
+# Setup micromamba for Python environment using official install script
+# The script automatically detects architecture and handles installation
+RUN curl -Ls https://micro.mamba.pm/install.sh | bash -s -- -b -p /opt/micromamba && \
+    /opt/micromamba/bin/micromamba shell init -s bash --root-prefix=/opt/micromamba && \
     echo 'export PATH="/opt/micromamba/bin:$PATH"' >> /root/.bashrc && \
     echo 'export MAMBA_ROOT_PREFIX="/opt/micromamba"' >> /root/.bashrc
 
