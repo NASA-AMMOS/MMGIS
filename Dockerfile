@@ -30,7 +30,7 @@ COPY python-environment.yml ./
 # Node.js
 #############################
 
-RUN dnf module install -y nodejs:20
+RUN dnf module install -y nodejs:24
 
 #############################
 # Python (micromamba)
@@ -103,6 +103,9 @@ RUN dnf -y update && \
 ARG PUBLIC_URL_ARG=
 ENV PUBLIC_URL=$PUBLIC_URL_ARG
 
+ARG PORT_ARG=8888
+ENV PORT=$PORT_ARG
+
 WORKDIR /usr/src/app
 
 # Copy micromamba and Python environment from builder
@@ -145,5 +148,5 @@ COPY --from=builder /usr/src/app/prepare ./prepare
 
 RUN chmod 755 _docker-entrypoint.sh
 
-EXPOSE 8888
+EXPOSE ${PORT}
 CMD ["./_docker-entrypoint.sh"]
