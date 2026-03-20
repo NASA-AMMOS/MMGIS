@@ -1829,9 +1829,7 @@ class GlobeRenderer {
                         // Trigger tile update for clamped layers
                         if (this.renderer._ && this.renderer._.tiledWorld) {
                             // Update all tiles for this layer
-                            this.renderer._.tiledWorld.updateClampedRasterForLayer(
-                                layerName
-                            )
+                            this.renderer._.tiledWorld.updateAllRasters()
                         }
                         return
                     }
@@ -2221,9 +2219,7 @@ class GlobeRenderer {
         } else if (activeFeature.type === 'clamped' && activeFeature.layer) {
             // Clamped layer - update tiles
             if (this.renderer._ && this.renderer._.tiledWorld) {
-                this.renderer._.tiledWorld.updateClampedRasterForLayer(
-                    activeFeature.layerName
-                )
+                this.renderer._.tiledWorld.updateAllRasters()
             }
         }
 
