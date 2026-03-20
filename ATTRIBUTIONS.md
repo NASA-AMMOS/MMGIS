@@ -2,15 +2,17 @@
 
 This document acknowledges third-party projects and components that have been integrated into or inspired features within MMGIS.
 
-## FROZON (Framework for Remote Observation of sea ice Zones and Ocean in Northern environments)
+---
 
-**Project**: FROZON/JPL Framework for Remote Observation of sea ice Zones and Ocean in Northern environments
-**Organization**: Jet Propulsion Laboratory (JPL)
-**Year**: 2026
+### FROZON (Framework for Remote Observation of sea ice Zones and Ocean in Northern environments)
 
-### Components
+**Project**: FROZON/JPL Framework for Remote Observation of sea ice Zones and Ocean in Northern environments  
+**Organization**: Jet Propulsion Laboratory (JPL)  
+**Year**: 2026  
 
-- **AnalysisTool**: Adapted from FROZON project
+#### Components
+
+- **AnalysisTool**: Adapted from FROZON project  
 - **OperationsClock Component**: Adapted from FROZON project
 
 ---
