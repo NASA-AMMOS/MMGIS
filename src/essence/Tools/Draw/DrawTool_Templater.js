@@ -430,26 +430,23 @@ const DrawTool_Templater = {
                                 t.min != '' &&
                                 values[t.field] < t.min
                             )
-                                invalids[
-                                    t.field
-                                ] = `'${t.field}' must be >= ${t.min}`
+                                invalids[t.field] =
+                                    `'${t.field}' must be >= ${t.min}`
                             if (
                                 t.max != null &&
                                 t.max != '' &&
                                 values[t.field] > t.max
                             )
-                                invalids[
-                                    t.field
-                                ] = `'${t.field}' must be <= ${t.max}`
+                                invalids[t.field] =
+                                    `'${t.field}' must be <= ${t.max}`
                             if (
                                 t.step != null &&
                                 t.step != '' &&
                                 values[t.field] / t.step !=
                                     parseInt(values[t.field] / t.step)
                             )
-                                invalids[
-                                    t.field
-                                ] = `'${t.field}' must be a multiple of ${t.step}`
+                                invalids[t.field] =
+                                    `'${t.field}' must be a multiple of ${t.step}`
 
                             break
                         case 'text':
@@ -461,9 +458,8 @@ const DrawTool_Templater = {
                                 t.minLength != '' &&
                                 values[t.field].length < t.minLength
                             )
-                                invalids[
-                                    t.field
-                                ] = `'${t.field}' must be >= ${t.minLength} characters`
+                                invalids[t.field] =
+                                    `'${t.field}' must be >= ${t.minLength} characters`
 
                             if (
                                 t.maxLength != null &&
@@ -471,9 +467,8 @@ const DrawTool_Templater = {
                                 values[t.field] != null &&
                                 values[t.field].length > t.maxLength
                             )
-                                invalids[
-                                    t.field
-                                ] = `'${t.field}' must be <= ${t.maxLength} characters`
+                                invalids[t.field] =
+                                    `'${t.field}' must be <= ${t.maxLength} characters`
 
                             if (
                                 t.regex != null &&
@@ -486,9 +481,8 @@ const DrawTool_Templater = {
                                             new RegExp(t.regex)
                                         ) == null
                                     )
-                                        invalids[
-                                            t.field
-                                        ] = `'${t.field}' does not match regex: ${t.regex}`
+                                        invalids[t.field] =
+                                            `'${t.field}' does not match regex: ${t.regex}`
                                 } catch (error) {
                                     // regex no good
                                 }
@@ -504,18 +498,16 @@ const DrawTool_Templater = {
                                 (values[t.field] == null ||
                                     values[t.field] == '')
                             )
-                                invalids[
-                                    t.field
-                                ] = `'${t.field}' cannot be empty`
+                                invalids[t.field] =
+                                    `'${t.field}' cannot be empty`
                             if (
                                 t.maxLength != null &&
                                 t.maxLength != '' &&
                                 values[t.field] != null &&
                                 values[t.field].length > t.maxLength
                             )
-                                invalids[
-                                    t.field
-                                ] = `'${t.field}' must be <= ${t.maxLength} characters`
+                                invalids[t.field] =
+                                    `'${t.field}' must be <= ${t.maxLength} characters`
                             break
                         case 'range':
                         case 'slider':
@@ -738,7 +730,9 @@ const DrawTool_Templater = {
             if (hasNameOptions) {
                 // Extract the number from this point's current name
                 const pointNumberMatch = point.name.match(/\d+/)
-                const pointNumber = pointNumberMatch ? parseInt(pointNumberMatch[0]) : (i + 1)
+                const pointNumber = pointNumberMatch
+                    ? parseInt(pointNumberMatch[0])
+                    : i + 1
 
                 // Apply # replacement to all name options using the actual point number
                 const processedNameOptions = nameOptions.map((opt) =>
@@ -1023,12 +1017,12 @@ const DrawTool_Templater = {
         const findNextAvailableNumber = (pattern, existingPoints) => {
             // Extract all numbers from existing point names matching this pattern
             const usedNumbers = existingPoints
-                .map(p => {
+                .map((p) => {
                     // Extract number from point name by replacing the pattern
                     const match = p.name.match(/\d+/)
                     return match ? parseInt(match[0]) : null
                 })
-                .filter(n => n !== null)
+                .filter((n) => n !== null)
 
             // Find the smallest unused number starting from 1
             let nextNum = 1
@@ -1243,11 +1237,19 @@ const DrawTool_Templater = {
     },
 
     /**
+     * Validates and auto-increments an incrementer field value across all features
      *
-     * @param {*} value
-     * @param {*} t
-     * @param {*} layer
-     * @returns {newValue: Number, error: String}
+     * @param {*} value - Current field value to validate
+     * @param {Object} t - Template field definition with _default/default property
+     * @param {Array} layer - Array of Leaflet layers (may contain mixed types):
+     *   - Regular features (have .feature property)
+     *   - Arrow layers (have ._layers with sublayers)
+     *   - Null entries - skipped
+     * @param {Object} existingProperties - Existing feature properties for uniqueness check
+     * @returns {Object} {newValue: String, error: String|null}
+     *
+     * Safely handles mixed layer types by checking for property existence before access.
+     * Temporary point markers are automatically skipped during validation.
      */
     _validateIncrement(value, t, layer, existingProperties) {
         const response = {
@@ -1262,9 +1264,19 @@ const DrawTool_Templater = {
 
         for (var i = 0; i < layer.length; i++) {
             if (layer[i] == null) continue
-            let geojson =
-                layer[i].feature ||
-                layer[i]._layers[Object.keys(layer[i]._layers)[0]].feature
+            let geojson = null
+            if (layer[i].feature) {
+                geojson = layer[i].feature
+            } else if (
+                layer[i].hasOwnProperty('_layers') &&
+                layer[i]._layers != null
+            ) {
+                const layerKeys = Object.keys(layer[i]._layers)
+                if (layerKeys.length > 0) {
+                    geojson = layer[i]._layers[layerKeys[0]].feature
+                }
+            }
+
             if (geojson?.properties?.[t.field] != null) {
                 let featuresVal = geojson?.properties?.[t.field]
 
@@ -2138,9 +2150,8 @@ const DrawTool_Templater = {
                         if (
                             ((item.default || '').match(/#/g) || []).length != 1
                         ) {
-                            invalids[
-                                item.field
-                            ] = `'${item.field}' must contain exactly one '#' symbol`
+                            invalids[item.field] =
+                                `'${item.field}' must contain exactly one '#' symbol`
                         }
                         break
                     case 'point':
