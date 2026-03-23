@@ -1,0 +1,1004 @@
+#analysisTool {
+    overflow: hidden;
+    overflow-y: auto;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-flow: column;
+    background: var(--color-k);
+    box-shadow: inset 2px 0px 10px 0px rgba(0, 0, 0, 0.2);
+}
+
+#analysisToolHeader {
+    width: 100%;
+}
+
+#analysisTool #analysisToolHeader .mmgisHelpButton {
+    margin: 11px 4px;
+}
+
+#analysisTool #filterAnalysis {
+    display: flex;
+    height: 40px;
+    line-height: 18px;
+    color: #ccc;
+    justify-content: space-between;
+}
+
+#analysisTool #filterAnalysis #title {
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    padding-left: 6px;
+    font-family: 'lato-light';
+    text-transform: uppercase;
+    color: var(--color-l);
+}
+
+#analysisTool #filterAnalysis > div {
+    display: flex;
+}
+
+
+#analysisToolContent {
+    flex: 1;
+    overflow-y: auto;
+    padding:  0px 8px;
+}
+
+/* Container for side-by-side sections */
+#analysisTopSections {
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+#analysisTimeSection {
+    width: 100%;
+}
+#analysisDataSection {
+    flex: 1;
+}
+
+/* Analysis sections */
+.analysisSection {
+    margin-bottom: 8px;
+    background: var(--color-a1);
+    border-radius: 4px;
+    border: 1px solid var(--color-a-5);
+    overflow: hidden;
+}
+
+.analysisSectionTitle {
+    padding: 8px 8px 0px 8px;
+    font-weight: 500;
+    color: var(--color-l);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Time section styling */
+.analysisTimeHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--color-a-5);
+}
+
+.analysisTimeHeader .analysisSectionTitle {
+    padding: 0;
+    margin: 0;
+}
+
+#analysisGraphSection .analysisSectionTitle {
+    padding: 11px 8px;
+    border-bottom: 1px solid var(--color-a-5);
+}
+
+#analysisTimeInputsWrapper {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+}
+
+.analysisTimeInputs {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.analysisTimeInput {
+    display: flex;
+    align-items: center;
+}
+
+.analysisTimeInput label {
+    font-size: 12px;
+    color: var(--color-a6);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    width: 50px;
+    padding-left: 4px;
+}
+
+.analysisTimeInputField {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+}
+
+.analysisClockIcon {
+    color: var(--color-a4);
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.analysisTimeInput input {
+    flex: 1;
+    background: var(--color-k);
+    border: 1px solid var(--color-a-5);
+    border-radius: 3px;
+    padding: 6px 8px;
+    color: var(--color-f);
+    font-size: 12px;
+    width: 200px;
+    font-family: 'courier new', monospace;
+}
+
+.analysisTimeInput input:focus {
+    outline: none;
+    border-color: var(--color-a);
+    background: var(--color-a0);
+}
+
+/* Data selection styling */
+.analysisDataModes {
+    padding: 4px 0px 4px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: auto;
+}
+
+.analysisDataLeft {
+    flex: 0 0 94px;
+    display: flex;
+    align-items: center;
+}
+
+.analysisRadioGroup {
+    width: 100%;
+}
+
+.analysisRadioOption {
+    display: flex;
+    align-items: center;
+    padding: 0px 0px;
+    margin-bottom: 4px;
+    background: var(--color-a2);
+    border: 1px solid var(--color-a-5);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 11px;
+    color: var(--color-f);
+}
+
+.analysisRadioOption:last-child {
+    margin-bottom: 0;
+}
+
+.analysisRadioOption:hover {
+    background: var(--color-a3);
+    border-color: var(--color-a);
+}
+
+.analysisRadioOption.active {
+    background: rgba(33, 150, 243, 0.4);
+    color: var(--color-a7);
+    border-color: rgba(33, 150, 243, 0.8);
+}
+
+/* LayersTool checkbox styling */
+#analysisTool .checkboxcont {
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+}
+
+#analysisTool .checkbox {
+    margin: 5px;
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--color-a3);
+    border-radius: 2px;
+    transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+        border 0.1s cubic-bezier(0.39, 0.575, 0.565, 1),
+        border-radius 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+
+#analysisTool .checkbox.on {
+    background: var(--color-c);
+    border: 0px solid #777;
+}
+
+#analysisTool .checkbox:not(.on):hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.analysisRadioOption i {
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.analysisRadioOption span {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-left: 4px;
+}
+
+.analysisDataRight {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+}
+
+.analysisInputGroup {
+    display: none;
+    width: 100%;
+    gap: 8px;
+}
+
+.analysisInputGroup.active {
+    display: flex;
+}
+
+.analysisInputGroup#analysisPointInputs {
+    flex-direction: row;
+    gap: 6px;
+}
+
+.analysisInputGroup#analysisBboxInputs.active {
+    display: flex;
+    flex-flow: row wrap;
+    gap: 4px;
+    grid-gap: 4px;
+    position: relative;
+}
+
+.analysisInputGroup#analysisLineInputs.active {
+    display: flex;
+    flex-flow: row wrap;
+    gap: 4px;
+    grid-gap: 4px;
+    position: relative;
+}
+
+.analysisInputGroup#analysisVectorPointsInputs.active {
+    display: flex;
+    flex-flow: row wrap;
+    gap: 4px;
+    grid-gap: 4px;
+    position: relative;
+}
+
+/* Coordinate input styling (used by both point and bbox modes) */
+.analysisCoordInput {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.analysisCoordCenter {
+    display: flex;
+    justify-content: center;
+}
+
+#analysisPointInputs .analysisCoordInput label {
+    font-size: 11px;
+    color: var(--color-a6);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    width: 30px;
+    flex-shrink: 0;
+}
+
+#analysisPointInputs .analysisCoordInput input {
+    flex: 1;
+    background: var(--color-k);
+    border: 1px solid var(--color-a-5);
+    border-radius: 3px;
+    padding: 6px 8px;
+    color: var(--color-f);
+    font-size: 11px;
+    font-family: 'courier new', monospace;
+    height: 26px;
+    min-width: 0;
+}
+
+#analysisPointInputs .analysisCoordInput input:focus {
+    outline: none;
+    border-color: var(--color-a);
+    background: var(--color-a1);
+}
+
+#analysisBboxInputs .analysisCoordInput label {
+    font-size: 10px;
+    color: var(--color-a6);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    width: 46px;
+    flex-shrink: 0;
+    display:none;
+}
+
+#analysisBboxInputs .analysisCoordInput input {
+    flex: 1;
+    background: var(--color-k);
+    border: 1px solid var(--color-a-5);
+    border-radius: 3px;
+    padding: 6px 8px;
+    color: var(--color-f);
+    font-size: 11px;
+    font-family: 'courier new', monospace;
+    height: 26px;
+    width: 108px;
+    min-width: 0;
+    margin-right: 5px;
+}
+#analysisBboxInputs .analysisCoordInput input:focus {
+    outline: none;
+    border-color: var(--color-a);
+    background: var(--color-a1);
+}
+
+#analysisBboxInputs .analysisCoordInput:first-child input {
+    margin-right: 0px;
+}
+.analysisCoordCenter:nth-child(2) .analysisCoordInput:first-child input {
+    margin-right: 5px !important;
+} 
+.analysisCoordCenter:nth-child(2) .analysisCoordInput:last-child input {
+    margin-right: 0px !important;
+} 
+
+#analysisLineInputs .analysisCoordInput label {
+    font-size: 10px;
+    color: var(--color-a6);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    width: 46px;
+    flex-shrink: 0;
+    display:none;
+}
+
+#analysisLineInputs .analysisCoordInput input {
+    flex: 1;
+    background: var(--color-k);
+    border: 1px solid var(--color-a-5);
+    border-radius: 3px;
+    padding: 6px 8px;
+    color: var(--color-f);
+    font-size: 11px;
+    font-family: 'courier new', monospace;
+    height: 26px;
+    width: 108px;
+    min-width: 0;
+}
+#analysisLineInputs .analysisCoordInput input:focus {
+    outline: none;
+    border-color: var(--color-a);
+    background: var(--color-a1);
+}
+#analysisLineInputs .analysisCoordInputShort input {
+    width: 54px;
+}
+
+#analysisLineInputs .analysisCoordInput:first-child input {
+    margin-right: 5px;
+}
+
+#analysisVectorPointsInputs .analysisCoordInput label {
+    font-size: 10px;
+    color: var(--color-a6);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    width: 46px;
+    flex-shrink: 0;
+    display:none;
+}
+
+#analysisVectorPointsInputs .analysisCoordInput input {
+    flex: 1;
+    background: var(--color-k);
+    border: 1px solid var(--color-a-5);
+    border-radius: 3px;
+    padding: 6px 8px;
+    color: var(--color-f);
+    font-size: 11px;
+    font-family: 'courier new', monospace;
+    height: 26px;
+    width: 108px;
+    min-width: 0;
+}
+#analysisVectorPointsInputs .analysisCoordInput input:focus {
+    outline: none;
+    border-color: var(--color-a);
+    background: var(--color-a1);
+}
+
+#analysisVectorPointsInputs .analysisCoordInput:first-child input {
+    margin-right: 5px;
+}
+
+/* Vector Points Info styling */
+.analysisVectorPointsInfo {
+    text-align: center;
+    padding: 4px 8px;
+    font-size: 11px;
+    color: var(--color-a6);
+    font-weight: 500;
+    position: absolute;
+    line-height: 20px;
+    right: 28px;
+}
+
+#analysisVectorPointsCount {
+    color: var(--color-a6);
+}
+
+/* Data selection message styling */
+.analysisPointMessage,
+.analysisBboxMessage,
+.analysisLineMessage,
+.analysisVectorPointsMessage {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    background: var(--color-h);
+    border-radius: 2px;
+    color: var(--color-a);
+    font-size: 12px;
+}
+
+.analysisPointMessage i,
+.analysisBboxMessage i,
+.analysisLineMessage i,
+.analysisVectorPointsMessage i {
+    color: var(--color-a);
+    padding-right: 8px;
+}
+
+.analysisPointMessage {
+    margin-right: 2px;
+}
+#analysisLat,
+#analysisLng {
+    width: 98px;
+}
+.analysisBboxMessage {
+    margin-right: 166px;
+}
+
+.analysisLineMessage {
+    margin-right: 228px;
+}
+.analysisVectorPointsMessage {
+    margin-right: 163px;
+}
+
+/* Clear bbox button styling */
+.analysisClearBbox,
+.analysisClearLine {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+}
+
+.analysisClearBtn {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 8px;
+    background: var(--color-a);
+    border: 0px solid var(--color-a);
+    border-radius: 3px;
+    color: var(--color-f);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.analysisClearBtn:hover {
+    background: var(--color-red2);
+    color: var(--color-a);
+}
+
+.analysisClearBtn i {
+    font-size: 12px;
+}
+
+/* Line mode styling */
+.analysisLineControls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.analysisLineInfo {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.analysisLineInfo .analysisCoordInput {
+    flex: 1;
+    min-width: 120px;
+}
+
+#analysisLinePointCount {
+    color: var(--color-a7);
+    font-weight: 500;
+}
+
+/* Analysis/Graph section styling */
+#analysisPlaceholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    padding: 110px 20px;
+}
+
+.analysisPlaceholderText {
+    text-align: center;
+    color: var(--color-f);
+    opacity: 0.7;
+}
+
+.analysisPlaceholderText i {
+    display: block;
+    margin-bottom: 16px;
+    color: var(--color-a4);
+}
+
+.analysisPlaceholderText h3 {
+    margin: 0 0 16px 0;
+    font-size: 20px;
+    font-weight: 300;
+    color: var(--color-l);
+}
+
+.analysisPlaceholderText p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--color-a4);
+}
+
+/* Analysis Controls */
+#analysisControls {
+    align-items: center;
+    padding: 4px 8px;
+    margin-bottom: 4px;
+}
+#analysisControls  > div {
+    display: flex;
+    justify-content: space-between;
+}
+
+.analysisChartType,
+.analysisDataSelect,
+.analysisLayerSelect,
+.analysisPropertySelect {
+    display: flex;
+    align-items: flex-start;
+    height: 32px;
+}
+
+.analysisChartType label,
+.analysisDataSelect label,
+.analysisLayerSelect label,
+.analysisPropertySelect label {
+    font-size: 12px;
+    color: var(--color-f);
+    white-space: nowrap;
+    margin-top: 10px;
+    margin-right: 4px;
+    width: 100px;
+    text-transform: uppercase;
+}
+
+.analysisLayerContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+#analysisChartTypeSelect,
+#analysisDataModeSelect,
+#analysisLayerSelect,
+#analysisPropertySelect,
+#analysisLayerSelectY {
+    background-color: #222;
+    border: none;
+    margin: 3px 0px;
+    width: 478px;
+    height: 28px;
+    font-size: 14px;
+    color: var(--color-f);
+    padding: 0px 2px;
+    border-radius: 3px;
+    border-right: 4px solid #222222;
+}
+
+#analysisDataSection {
+    justify-content: end !important;
+}
+
+.analysisLayerSubtext {
+    font-size: 12px;
+    color: var(--color-a5);
+    font-style: italic;
+    min-width: 110px;
+    margin-top: -3px;
+    display: none;
+}
+
+#analysisGenerateInline {
+    margin: 4px 0px 8px 0px;
+    display: flex;
+    justify-content: center !important;
+}
+
+.analysisBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--color-c2);
+    border: none;
+    border-radius: 4px;
+    color: var(--color-a7);
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.analysisBtn:hover {
+    background: var(--color-c);
+}
+
+.analysisBtn:disabled,
+.analysisBtn.disabled {
+    background: var(--color-a2);
+    color: var(--color-a4);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.analysisBtn:disabled:hover,
+.analysisBtn.disabled:hover {
+    background: var(--color-a2);
+}
+
+.analysisBtn.analysisBtn-secondary {
+    background: var(--color-a4);
+    border-color: var(--color-a4);
+    color: var(--color-k);
+}
+
+.analysisBtn.analysisBtn-secondary:hover {
+    background: var(--color-a5);
+    border-color: var(--color-a5);
+}
+
+/* Chart Container */
+#analysisChartContainer {
+    position: relative;
+    width: 100%;
+    min-height: 400px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    border-radius: 6px;
+    border: 1px solid #444444;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+    padding-top: 10px;
+}
+
+#analysisChartContainer > div {
+    display: none;
+}
+
+#analysisChartContainer > div.active {
+    display: flex;
+}
+
+#analysisChart {
+    width: 100%;
+    height: 500px;
+}
+
+/* Loading State */
+#analysisLoading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    color: var(--color-f);
+}
+
+.analysisLoadingSpinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--color-a3);
+    border-top: 3px solid var(--color-a7);
+    border-radius: 50%;
+    animation: analysisSpinner 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes analysisSpinner {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#analysisLoading p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--color-a4);
+}
+
+/* Error State */
+#analysisError {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.analysisErrorIcon i {
+    color: var(--color-a4);
+}
+
+#analysisError h3 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--color-l);
+}
+
+#analysisErrorMessage {
+    margin: 0 0 24px 0;
+    font-size: 14px;
+    line-height: 1.4;
+    max-width: 400px;
+    color: var(--color-p0);
+}
+
+/* Drawing mode feedback */
+.analysisDrawingIndicator {
+    position: absolute;
+    top: 6px;
+    right: 30px;
+    background: rgba(33, 150, 243, 0.95);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid rgba(33, 150, 243, 1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    z-index: 1001;
+    pointer-events: none;
+    white-space: nowrap;
+    display: none;
+}
+
+.analysisDrawingIndicator.active {
+    display: block;
+}
+
+.analysisRadioOption.drawing {
+    background: rgba(33, 150, 243, 0.4);
+    color: var(--color-a7);
+    border-color: rgba(33, 150, 243, 0.8);
+}
+
+
+/* Bins Control */
+.analysisBinsControl {
+    display: flex;
+    align-items: flex-start;
+    height: 32px;
+}
+
+.analysisBinsControl label {
+    font-size: 12px;
+    color: var(--color-f);
+    white-space: nowrap;
+    margin-top: 10px;
+    margin-right: 4px;
+    text-transform: uppercase;
+}
+
+#analysisBins,
+#analysisLineSubdivisions {
+    background-color: #222;
+    border: 0px solid var(--color-a-5);
+    margin: 3px 0px;
+    width: 60px;
+    height: 28px;
+    font-size: 14px;
+    color: var(--color-f);
+    padding: 0px 6px;
+    border-radius: 3px;
+}
+
+#analysisBins:focus,
+#analysisLineSubdivisions:focus {
+    outline: none;
+    background: var(--color-a1);
+}
+
+/* Dual Time Range Toggle Styling */
+.analysisToggleOption {
+    display: flex;
+    align-items: center;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 11px;
+    color: var(--color-f);
+}
+
+.analysisToggleOption:hover {
+    color: var(--color-a7);
+}
+
+.analysisToggleOption .checkboxcont {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    margin-right: 6px;
+}
+
+.analysisToggleOption .checkbox {
+    margin: 3px;
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--color-a3);
+    border-radius: 2px;
+    transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+        border 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+
+.analysisToggleOption .checkbox.on {
+    background: var(--color-c);
+    border: 0px solid #777;
+}
+
+.analysisToggleOption .checkbox:not(.on):hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.analysisToggleOption span {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* Time Range Label Styling */
+.analysisTimeRangeLabel {
+    font-size: 10px;
+    color: var(--color-a7);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+    padding: 0 0 4px 0;
+    margin: 0;
+    display: block;
+}
+
+/* Time Range 2 Inputs Styling */
+#analysisTimeRange2Inputs {
+    flex: 1;
+}
+
+/* Statistics Panel */
+.analysisStatsPanel {
+    display: none;
+    background: var(--color-a1);
+    border: 1px solid var(--color-a-5);
+    border-radius: 4px;
+    padding: 12px;
+    margin: 12px 8px 8px 8px;
+}
+
+.analysisStatsTitle {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-l);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.analysisStatsNote {
+    font-size: 10px;
+    font-weight: normal;
+    color: var(--color-a5);
+    text-transform: none;
+    letter-spacing: 0.3px;
+    font-style: italic;
+}
+
+.analysisStatsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    row-gap: 10px;
+}
+
+.analysisStatItem {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.analysisStatLabel {
+    font-size: 10px;
+    color: var(--color-a6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.analysisStatValue {
+    font-size: 14px;
+    color: var(--color-f);
+    font-weight: 500;
+    font-family: 'courier new', monospace;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #analysisControls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .analysisControlsLeft,
+    .analysisControlsRight {
+        width: 100%;
+    }
+
+    #analysisApiUrl {
+        min-width: auto;
+    }
+
+    .analysisStatsGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+

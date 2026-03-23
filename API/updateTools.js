@@ -216,8 +216,51 @@ function updateTools() {
 function updateComponents() {
     let components = {};
 
-    // Scan src/essence/ for component plugin directories
     const essencePath = path.join(__dirname, "..", "src", "essence");
+
+    // First, scan standard Components directory (lower precedence)
+    const componentsPath = path.join(essencePath, "Components");
+    try {
+        const componentItems = fs.readdirSync(componentsPath, { withFileTypes: true });
+
+        for (let i = 0; i < componentItems.length; i++) {
+            if (
+                componentItems[i].isDirectory() &&
+                componentItems[i].name[0] != "_" &&
+                componentItems[i].name[0] != "."
+            ) {
+                try {
+                    const contents = fs.readFileSync(
+                        path.join(componentsPath, componentItems[i].name, "config.json")
+                    );
+                    const jsonContent = JSON.parse(contents);
+                    components[componentItems[i].name] = jsonContent;
+                    logger(
+                        "info",
+                        `Loaded component: ${componentItems[i].name} from Components`,
+                        "Components"
+                    );
+                } catch (err) {
+                    logger(
+                        "error",
+                        `The following component could not be added from Components: ${componentItems[i].name}`,
+                        "Components",
+                        null,
+                        err
+                    );
+                }
+            }
+        }
+    } catch (err) {
+        // Components directory might not exist, that's okay
+        logger(
+            "info",
+            "No standard Components directory found (optional)",
+            "Components"
+        );
+    }
+
+    // Now scan plugin component directories (higher precedence - can override)
     let essenceItems = [];
     try {
         essenceItems = fs.readdirSync(essencePath, { withFileTypes: true });
@@ -273,10 +316,11 @@ function updateComponents() {
                         pluginPath + "/" + pluginItems[i].name + "/config.json"
                     );
                     const jsonContent = JSON.parse(contents);
+                    const isOverride = components[pluginItems[i].name] !== undefined;
                     components[pluginItems[i].name] = jsonContent;
                     logger(
                         "info",
-                        `Loaded component: ${pluginItems[i].name} from ${pluginDir.name}`,
+                        `Loaded component: ${pluginItems[i].name} from ${pluginDir.name}${isOverride ? ' (overriding standard component)' : ''}`,
                         "Components"
                     );
                 } catch (err) {
