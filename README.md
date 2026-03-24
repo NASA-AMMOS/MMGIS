@@ -11,7 +11,7 @@
   <a href="https://ammos.nasa.gov/media/NASA-AMMOS-MMGIS.mp4" target="_blank">
     <img src="/docs/assets/images/NASA-AMMOS-MMGIS-frame0.png" alt="MMGIS Demo Video" width="100%" />
   </a>
-  <p><i>Click to watch the demo video in a new tab.</i></p>
+  <p><i>Click to watch the demo video.</i></p>
 </div>
 
 <div align="center">
@@ -55,8 +55,8 @@
 
 ### Data & Layers
 
-- **10 layer types** - Vector, Tile, Image, Model, Vectortile, Velocity, Video, Data, Header, and Query layers
-- **Rich data formats** - GeoJSON, Shapefiles, GeoTIFF, COG, OBJ, GLTF, and more
+- **9 layer types** - Vector, Tile, Image, Model, Vectortile, Velocity, Video, Data, and Query layers
+- **Rich data formats** - GeoJSON, GeoTIFF, COG, OBJ, GLTF, and more
 - **Vector/raster tile serving** - MVT tile generation with PostGIS backend
 - **Cloud-optimized data** - COG support with TiTiler integration
 - **STAC catalogs** - Spatiotemporal Asset Catalog integration for discovering geospatial data
@@ -75,7 +75,7 @@
 - **Kinds** - Configure layer-specific click behaviors
 - **Layers** - Manage layer visibility, ordering, and properties
 - **Legend** - Auto-generated legends from layer styling and metadata
-- **Measure** - Distance measurements and elevation profiles
+- **Measure** - Distance measurements, elevation profiles and line-of-sight analysis
 - **Query** - Spatial and attribute queries across datasets
 - **Shade** - Solar/Orbiter/Body illumination and shadow visualization via NAIF's SPICE
 - **Sites** - Quick navigation bookmarks and saved viewpoints
