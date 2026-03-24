@@ -55,10 +55,11 @@
 
 ### Data & Layers
 
-- **9 layer types** - Vector, Tile, Image, Model, Vectortile, Velocity, Video, Data, and Query layers
-- **Rich data formats** - GeoJSON, GeoTIFF, COG, OBJ, GLTF, and more
+- **10 layer types** - Vector, Tile, Image, Model, Vectortile, Velocity, Video, Data, Header, and Query layers
+- **Rich data formats** - GeoJSON, Shapefiles, GeoTIFF, COG, OBJ, GLTF, and more
 - **Vector/raster tile serving** - MVT tile generation with PostGIS backend
-- **Cloud-optimized data** - COG support with TiTiler integration
+- **TiTiler integration** - Serve Cloud-Optimized GeoTIFFs (COGs) on-the-fly with dynamic styling and band combinations
+- **TiTiler STAC mosaicking** - Automatically mosaic multiple COGs from STAC catalogs into seamless, queryable layers
 - **STAC catalogs** - Spatiotemporal Asset Catalog integration for discovering geospatial data
 - **Dynamic styling** - Property-based styling with gradients, discrete values, and geologic patterns
 - **Hierarchical organization** - Nested layer groups with visibility and opacity controls
