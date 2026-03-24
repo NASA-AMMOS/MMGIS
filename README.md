@@ -7,13 +7,12 @@
 
 <pre align="center">Spatial Data Infrastructure for Planetary Missions</pre>
 
-https://ammos.nasa.gov/media/NASA-AMMOS-MMGIS.mp4
-
-<details>
-<summary><i>View screenshot</i></summary>
-<br>
-<span style="display:block;text-align:center">![Example](/docs/assets/images/Full_Example.png)</span>
-</details>
+<div align="center">
+  <a href="https://ammos.nasa.gov/media/NASA-AMMOS-MMGIS.mp4" target="_blank">
+    <img src="/docs/assets/images/NASA-AMMOS-MMGIS-frame0.png" alt="MMGIS Demo Video" width="100%" />
+  </a>
+  <p><i>Click to watch the demo video in a new tab.</i></p>
+</div>
 
 <div align="center">
 
