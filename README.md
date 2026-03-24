@@ -7,11 +7,7 @@
 
 <pre align="center">Spatial Data Infrastructure for Planetary Missions</pre>
 
-<div align="center">
-  <video src="https://ammos.nasa.gov/media/NASA-AMMOS-MMGIS.mp4" width="100%" controls>
-    <p>Your browser doesn't support HTML video. Here is a <a href="https://ammos.nasa.gov/media/NASA-AMMOS-MMGIS.mp4">link to the video</a> instead.</p>
-  </video>
-</div>
+https://ammos.nasa.gov/media/NASA-AMMOS-MMGIS.mp4
 
 <details>
 <summary><i>View screenshot</i></summary>
