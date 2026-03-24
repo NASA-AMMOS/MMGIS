@@ -5,7 +5,7 @@
   </h1>
 </div>
 
-<pre align="center">Spatial Data Infrastructure for Planetary Missions</pre>
+<pre align="center">A Web-based Mapping and Spatial Data Infrastructure for Earth, Lunar and Planetary Visualization, Research, Science, Planning and Operations.</pre>
 
 <div align="center">
   <a href="https://ammos.nasa.gov/media/NASA-AMMOS-MMGIS.mp4" target="_blank">
