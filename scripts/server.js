@@ -462,6 +462,33 @@ function ensureUser() {
   };
 }
 
+/**
+ * Middleware to protect adjacent server proxies based on AUTH mode
+ * - AUTH=off/none: Allow GETs, require admin for other methods (current behavior)
+ * - AUTH=local/csso: Require user authentication for all methods
+ */
+function ensureUserForAdjacentServers() {
+  return (req, res, next) => {
+    const authMode = process.env.AUTH;
+
+    // For 'off' and 'none', maintain current behavior:
+    // - Allow GET requests
+    // - Require admin for other methods
+    if (authMode === "off" || authMode === "none") {
+      if (req.method === "GET") {
+        next();
+        return;
+      }
+      // For non-GET methods, require admin
+      ensureAdmin()(req, res, next);
+      return;
+    }
+
+    // For 'local' and 'csso', require user authentication for all methods
+    ensureUser()(req, res, next);
+  };
+}
+
 var swaggerOptions = {
   customCssUrl: "/docs/swagger/swaggerCSS.css",
   customJs: "/docs/swagger/swaggerJS.js",
@@ -474,7 +501,12 @@ const useSwaggerSchema =
 
 ///
 adjacentServers();
-initAdjacentServersProxy(app, isDocker, ensureAdmin);
+initAdjacentServersProxy(
+  app,
+  isDocker,
+  ensureAdmin,
+  ensureUserForAdjacentServers,
+);
 //
 
 let s = {
@@ -486,6 +518,7 @@ let s = {
   ensureGroup,
   ensureAdmin,
   ensureUser,
+  ensureUserForAdjacentServers,
   swaggerUi,
   useSwaggerSchema,
   permissions,
