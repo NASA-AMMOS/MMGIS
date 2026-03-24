@@ -131,7 +131,6 @@ MMGIS powers mission-critical operations for NASA and international space agenci
 - **EMIT** (Earth Surface Mineral Dust Source Investigation) - Mineral mapping from the International Space Station
 - **MAIA** (Multi-Angle Imager for Aerosols) - Aerosol and air quality data visualization
 - **BioSCape** - Biodiversity surveys and ecosystem monitoring of the Cape
-- **NISAR** (NASA-ISRO SAR) - Synthetic aperture radar mission planning and data visualization
 - **FireSense** - On-flight fire detection and environmental monitoring
 
 ### 🌙 **Lunar Missions**
@@ -142,7 +141,6 @@ MMGIS powers mission-critical operations for NASA and international space agenci
 
 - **AMMOS** (Advanced Multi-Mission Operations System) - NASA's enterprise ground system for mission operations
 - **MGViz** - GNSS ground movement visualizer
-- **GEMx** - Map critical minerals in the Western US
 - **Shift** - Surface Biology and Geology (SBG) High Frequency Time Series
 - **FROZON** - Framework for Remote Observation of sea ice Zones and Ocean in Northern environments
 
