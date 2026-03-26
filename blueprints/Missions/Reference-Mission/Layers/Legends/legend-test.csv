@@ -1,0 +1,4 @@
+value,color,label,shape
+high,#ff0000,High Priority,circle
+medium,#ffaa00,Medium Priority,circle
+low,#00ff00,Low Priority,circle

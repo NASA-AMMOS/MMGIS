@@ -230,16 +230,16 @@ Comprehensive reference for all layer types (vector, tile, data, model, image, v
 📋 Plan: [specs/009-data-formats-and-layer-types/plan.md](specs/009-data-formats-and-layer-types/plan.md)
 **Status**: ✅ Implemented and deployed
 
-### 012-kitchen-sink-demo-mission
+### 012-reference-mission-demo
 
 Comprehensive demo mission showcasing all MMGIS features, layer types, data formats, tools, and configuration options for use as reference documentation, stakeholder demonstrations, and Playwright E2E testing.
-📄 Spec: [specs/012-kitchen-sink-demo-mission/spec.md](specs/012-kitchen-sink-demo-mission/spec.md)
-📋 Plan: [specs/012-kitchen-sink-demo-mission/plan.md](specs/012-kitchen-sink-demo-mission/plan.md)
-✅ Tasks: [specs/012-kitchen-sink-demo-mission/tasks.md](specs/012-kitchen-sink-demo-mission/tasks.md)
-📖 README: [Missions/Kitchen-Sink/README.md](Missions/Kitchen-Sink/README.md)
+📄 Spec: [specs/012-reference-mission-demo/spec.md](specs/012-reference-mission-demo/spec.md)
+📋 Plan: [specs/012-reference-mission-demo/plan.md](specs/012-reference-mission-demo/plan.md)
+✅ Tasks: [specs/012-reference-mission-demo/tasks.md](specs/012-reference-mission-demo/tasks.md)
+📖 README: [Missions/Reference-Mission/README.md](Missions/Reference-Mission/README.md)
 **Status**: ✅ Implemented (20 layers, 14 tools, comprehensive documentation)
 
-**Usage**: `FORCE_CONFIG_PATH=Missions/Kitchen-Sink/config.kitchen-sink.json npm start`
+**Usage**: `FORCE_CONFIG_PATH=Missions/Reference-Mission/config.reference-mission.json npm start`
 
 ## Architecture
 

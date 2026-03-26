@@ -1,0 +1,95 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.44, 37.79]
+      },
+      "properties": {
+        "id": "style-prop-1",
+        "name": "Red Large Point",
+        "description": "fillColor from property: red, radius: 16",
+        "fillColor": "#ff0000",
+        "strokeColor": "#990000",
+        "radius": 16,
+        "fillOpacity": 0.8,
+        "strokeOpacity": 1,
+        "strokeWeight": 3
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.42, 37.78]
+      },
+      "properties": {
+        "id": "style-prop-2",
+        "name": "Green Medium Point",
+        "description": "fillColor from property: green, radius: 12",
+        "fillColor": "#00ff00",
+        "strokeColor": "#009900",
+        "radius": 12,
+        "fillOpacity": 0.7,
+        "strokeOpacity": 1,
+        "strokeWeight": 2
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.40, 37.77]
+      },
+      "properties": {
+        "id": "style-prop-3",
+        "name": "Blue Small Point",
+        "description": "fillColor from property: blue, radius: 8",
+        "fillColor": "#0000ff",
+        "strokeColor": "#000099",
+        "radius": 8,
+        "fillOpacity": 0.6,
+        "strokeOpacity": 1,
+        "strokeWeight": 1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.38, 37.76]
+      },
+      "properties": {
+        "id": "style-prop-4",
+        "name": "Yellow Tiny Point",
+        "description": "fillColor from property: yellow, radius: 4",
+        "fillColor": "#ffff00",
+        "strokeColor": "#999900",
+        "radius": 4,
+        "fillOpacity": 0.9,
+        "strokeOpacity": 1,
+        "strokeWeight": 1
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.36, 37.78]
+      },
+      "properties": {
+        "id": "style-prop-5",
+        "name": "Purple Variable Point",
+        "description": "All style properties from feature properties",
+        "fillColor": "#ff00ff",
+        "strokeColor": "#990099",
+        "radius": 14,
+        "fillOpacity": 0.5,
+        "strokeOpacity": 0.8,
+        "strokeWeight": 4
+      }
+    }
+  ]
+}

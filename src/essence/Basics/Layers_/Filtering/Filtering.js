@@ -59,7 +59,8 @@ const Filtering = {
                     geojson: null,
                 }
 
-                Filtering.submit(layerName)
+                // Note: Initial filters will be applied when the layer is first turned on
+                // See L_.toggleLayer() for the application logic
             }
         })
     },

@@ -1,0 +1,70 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.45, 37.82]
+      },
+      "properties": {
+        "id": "legend-1",
+        "name": "High Priority Site",
+        "category": "high",
+        "description": "Priority: High"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.43, 37.81]
+      },
+      "properties": {
+        "id": "legend-2",
+        "name": "Medium Priority Site",
+        "category": "medium",
+        "description": "Priority: Medium"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.41, 37.80]
+      },
+      "properties": {
+        "id": "legend-3",
+        "name": "Low Priority Site",
+        "category": "low",
+        "description": "Priority: Low"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.39, 37.79]
+      },
+      "properties": {
+        "id": "legend-4",
+        "name": "Another High Priority",
+        "category": "high",
+        "description": "Priority: High"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.37, 37.78]
+      },
+      "properties": {
+        "id": "legend-5",
+        "name": "Another Medium Priority",
+        "category": "medium",
+        "description": "Priority: Medium"
+      }
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.44, 37.83]
+      },
+      "properties": {
+        "id": "hover-1",
+        "name": "Hover Point 1",
+        "elevation": "125m",
+        "temperature": "18.5°C",
+        "status": "operational",
+        "description": "Hover over this point to see feature labels showing name, elevation, temperature, and status."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.42, 37.82]
+      },
+      "properties": {
+        "id": "hover-2",
+        "name": "Hover Point 2",
+        "elevation": "98m",
+        "temperature": "19.2°C",
+        "status": "maintenance",
+        "description": "Hover feature labels configured in layer settings."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.40, 37.81]
+      },
+      "properties": {
+        "id": "hover-3",
+        "name": "Hover Point 3",
+        "elevation": "150m",
+        "temperature": "17.8°C",
+        "status": "operational",
+        "description": "Multiple properties can be shown on hover."
+      }
+    }
+  ]
+}

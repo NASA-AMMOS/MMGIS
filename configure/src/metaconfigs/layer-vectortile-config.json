@@ -1102,7 +1102,7 @@
             {
               "field": "variables.coordinateAttachments.marker.enabled",
               "name": "Enabled",
-              "description": "Place a marker at every coordinate of every feature.",
+              "description": "Place a marker at every coordinate of every feature. Requires features to use Enhanced GeoJSON format with 'coord_properties' defined (either globally or per-feature). coord_properties names the members of coordinate arrays beyond [lon, lat, elevation]. Example: \"coord_properties\": [\"longitude\", \"latitude\", \"elevation\", \"index\", \"timestamp\", \"heading\"].",
               "type": "switch",
               "width": 3,
               "defaultChecked": false

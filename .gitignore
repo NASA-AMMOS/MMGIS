@@ -9,9 +9,9 @@ nul
 /API/logs/*
 /Missions/*
 !/Missions/.gitkeep
-!/Missions/Kitchen-Sink/
 /private/api/spice/kernels/*
 /configure/public/toolConfigs.json
+configure/public/toolConfigs.json
 /configure/public/componentConfigs.json
 
 #Nested repos where private backend might reside

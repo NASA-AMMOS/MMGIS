@@ -1,0 +1,110 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.45, 37.80]
+      },
+      "properties": {
+        "id": "zoom-layer-pt-1",
+        "name": "Zoom Layer Point 1",
+        "description": "Point visible at zoom 10-14 (layer-level config)"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.43, 37.78]
+      },
+      "properties": {
+        "id": "zoom-layer-pt-2",
+        "name": "Zoom Layer Point 2",
+        "description": "Another point with layer-level zoom constraints"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.46, 37.81],
+          [-122.44, 37.79],
+          [-122.42, 37.77]
+        ]
+      },
+      "properties": {
+        "id": "zoom-layer-line-1",
+        "name": "Zoom Layer Line 1",
+        "description": "LineString visible at zoom 10-14 (layer-level config)"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.40, 37.82],
+          [-122.38, 37.80]
+        ]
+      },
+      "properties": {
+        "arrow": true,
+        "id": "zoom-layer-arrow-1",
+        "name": "Zoom Layer Arrow 1",
+        "description": "Arrow visible at zoom 10-14 (layer-level config)",
+        "style": {
+          "color": "rgb(255, 120, 0)",
+          "fillColor": "rgb(255, 160, 60)",
+          "width": 4,
+          "weight": 4,
+          "length": "Full",
+          "opacity": 1,
+          "fillOpacity": 0.8,
+          "radius": 18,
+          "lineCap": "round",
+          "lineJoin": "round"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.41, 37.81],
+            [-122.39, 37.81],
+            [-122.39, 37.79],
+            [-122.41, 37.79],
+            [-122.41, 37.81]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "zoom-layer-poly-1",
+        "name": "Zoom Layer Polygon 1",
+        "description": "Polygon visible at zoom 10-14 (layer-level config)"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.37, 37.78]
+      },
+      "properties": {
+        "id": "zoom-layer-label-1",
+        "name": "LAYER ZOOM 10-14",
+        "description": "Label showing layer-level zoom constraints",
+        "style": {
+          "radius": 0,
+          "fillOpacity": 0,
+          "opacity": 0
+        }
+      }
+    }
+  ]
+}

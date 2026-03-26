@@ -291,7 +291,7 @@ All code must pass these gates before merging to main:
 - [ ] Security checklist completed
 - [ ] All 7 constitutional principles reviewed for compliance
 - [ ] AGENTS.md updated if needed
-- [ ] **Kitchen Sink mission updated** (if new feature or changed feature)
+- [ ] **Reference Mission updated** (if new feature or changed feature)
 - [ ] CI pipeline green
 
 ### Test Coverage Requirements
@@ -322,16 +322,16 @@ All code must pass these gates before merging to main:
 
 **Measurement**: Use performance profiling tools and load testing.
 
-### Kitchen Sink Maintenance Requirements
+### Reference Mission Maintenance Requirements
 
-**Statement**: The Kitchen Sink demo mission (`Missions/Kitchen-Sink/config.kitchen-sink.json`) serves as living documentation of all MMGIS features and must be kept current.
+**Statement**: The Reference Mission demo (`Missions/Reference-Mission/config.reference-mission.json`) serves as living documentation of all MMGIS features and must be kept current.
 
 **Application**:
-- **New Features**: When adding a new feature (layer type, tool, configuration option), MUST add example to Kitchen Sink
-- **Changed Features**: When modifying existing features, MUST update Kitchen Sink configuration and examples
-- **Version Matching**: Kitchen Sink version MUST match MMGIS version (e.g., both at v4.1.18)
-- **Documentation**: Kitchen Sink examples MUST have clear naming conventions explaining what they demonstrate
-- **Testing**: Kitchen Sink serves as E2E test target; changes must not break existing tests
+- **New Features**: When adding a new feature (layer type, tool, configuration option), MUST add example to Reference Mission
+- **Changed Features**: When modifying existing features, MUST update Reference Mission configuration and examples
+- **Version Matching**: Reference Mission version MUST match MMGIS version (e.g., both at v4.1.18)
+- **Documentation**: Reference Mission examples MUST have clear naming conventions explaining what they demonstrate
+- **Testing**: Reference Mission serves as E2E test target; changes must not break existing tests
 
 **Rationale**:
 - Provides reference implementation for site admins
@@ -341,9 +341,9 @@ All code must pass these gates before merging to main:
 - Prevents feature decay or loss of documentation
 
 **Enforcement**:
-- Pre-merge checklist includes Kitchen Sink update verification
-- Code reviewers check for Kitchen Sink updates when reviewing feature PRs
-- CI/CD pipeline validates Kitchen Sink configuration loads without errors
+- Pre-merge checklist includes Reference Mission update verification
+- Code reviewers check for Reference Mission updates when reviewing feature PRs
+- CI/CD pipeline validates Reference Mission configuration loads without errors
 
 ---
 

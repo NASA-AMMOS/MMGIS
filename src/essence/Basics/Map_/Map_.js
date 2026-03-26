@@ -945,7 +945,10 @@ async function makeVectorLayer(
             data = F_.parseIntoGeoJSON(data)
 
             let invalidGeoJSONTrace = gjv.valid(data, true)
-            const allowableErrors = [`position must only contain numbers`]
+            const allowableErrors = [
+                `position must only contain numbers`,
+                `coord_properties`,
+            ]
 
             invalidGeoJSONTrace = invalidGeoJSONTrace.filter((t) => {
                 if (typeof t !== 'string') return false
@@ -963,7 +966,8 @@ async function makeVectorLayer(
                 if (data != null && data != 'off') {
                     data = null
                     console.warn(
-                        `ERROR: ${layerObj.display_name} has invalid GeoJSON!`
+                        `ERROR: ${layerObj.display_name} has invalid GeoJSON!`,
+                        invalidGeoJSONTrace
                     )
                 }
 

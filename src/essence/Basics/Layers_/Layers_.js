@@ -6,6 +6,7 @@ import Attributions from '../../Ancillary/Attributions'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import LayerGeologic from './LayerGeologic/LayerGeologic'
 import { transformStacUrl, parseExternalStacUrl } from './LayerUtils'
+import Filtering from './Filtering/Filtering'
 import $ from 'jquery'
 
 const L_ = {
@@ -344,6 +345,30 @@ const L_ = {
                 new Date(s.time.start).getTime(),
                 new Date(s.time.end).getTime()
             )
+        }
+
+        // Apply initial filters when layer is first turned on
+        if (
+            wasNeverOn &&
+            s.type === 'vector' &&
+            s.variables?.initialFilters &&
+            s.variables.initialFilters.length > 0 &&
+            Filtering.filters[s.name]
+        ) {
+            try {
+                // Populate geojson from the now-loaded layer
+                Filtering.filters[s.name].geojson =
+                    Filtering.filters[s.name].geojson ||
+                    L_.layers.layer[s.name].toGeoJSON(L_.GEOJSON_PRECISION)
+
+                // Apply the initial filters
+                Filtering.submit(s.name)
+            } catch (err) {
+                console.warn(
+                    `Filtering - Could not apply initial filters for layer: ${s.name}`,
+                    err
+                )
+            }
         }
     },
     toggleLayerHelper: async function (
@@ -1333,6 +1358,11 @@ const L_ = {
                                 minZoom,
                                 maxZoom
                             )
+                            // If this is a LayerGroup with a feature (like arrows),
+                            // don't process children separately - they're handled as a unit
+                            if (layer[i]._layers && Object.keys(layer[i]._layers).length > 0) {
+                                continue
+                            }
                         }
                         if (layer[i]._layers)
                             for (let layerId in layer[i]._layers) {
@@ -1342,6 +1372,42 @@ const L_ = {
                                     maxZoom
                                 )
                             }
+                    }
+                }
+
+                // Enforce zoom constraints on sublayer attachments (labels, pairings, etc.)
+                if (L_.layers.attachments[layerName]) {
+                    const currentZoom = L_.Map_.map.getZoom()
+                    for (let subName in L_.layers.attachments[layerName]) {
+                        const sublayer = L_.layers.attachments[layerName][subName]
+                        if (sublayer && sublayer.minZoom != null && sublayer.maxZoom != null) {
+                            const sublayerMinZoom = sublayer.minZoom
+                            const sublayerMaxZoom = sublayer.maxZoom
+                            const isInRange = F_.isInZoomRange(
+                                sublayerMinZoom,
+                                sublayerMaxZoom,
+                                currentZoom
+                            )
+
+                            // Store the actual zoom visibility state separately from user preference
+                            const wasZoomVisible = sublayer._zoomVisible !== false
+                            sublayer._zoomVisible = isInRange
+
+                            // Only show/hide if user has enabled this sublayer and zoom visibility changed
+                            if (sublayer.on === true) {
+                                if (isInRange && !wasZoomVisible) {
+                                    // Sublayer entered zoom range - show it
+                                    if (sublayer.layer && typeof sublayer.layer.on === 'function') {
+                                        sublayer.layer.on()
+                                    }
+                                } else if (!isInRange && wasZoomVisible) {
+                                    // Sublayer exited zoom range - hide it
+                                    if (sublayer.layer && typeof sublayer.layer.off === 'function') {
+                                        sublayer.layer.off()
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1357,20 +1423,101 @@ const L_ = {
         if (l.feature?.properties?.style?.maxZoom != null)
             featureMaxZoom = l.feature.properties.style.maxZoom
 
-        if (
-            F_.isInZoomRange(
-                featureMinZoom != null ? featureMinZoom : minZoom,
-                featureMaxZoom != null ? featureMaxZoom : maxZoom,
-                L_.Map_.map.getZoom()
-            )
-        ) {
-            if (l._path) l._path.style.display = 'inherit'
-            if (l._container) l._container.style.display = 'inherit'
-            if (l._icon) l._icon.style.display = 'inherit'
+        const isVisible = F_.isInZoomRange(
+            featureMinZoom != null ? featureMinZoom : minZoom,
+            featureMaxZoom != null ? featureMaxZoom : maxZoom,
+            L_.Map_.map.getZoom()
+        )
+
+        // For LayerGroups (like arrows), add/remove from map instead of setting display
+        if (l._layers && Object.keys(l._layers).length > 0) {
+            if (isVisible) {
+                if (L_.Map_.map && !L_.Map_.map.hasLayer(l)) {
+                    L_.Map_.map.addLayer(l)
+                }
+            } else {
+                if (L_.Map_.map && L_.Map_.map.hasLayer(l)) {
+                    L_.Map_.map.removeLayer(l)
+                }
+            }
+            // Still handle tooltips for LayerGroups
+            if (l._tooltip) {
+                if (isVisible) {
+                    if (l._tooltip._container) {
+                        l._tooltip._container.style.display = 'inherit'
+                    }
+                    if (l._tooltip.options.permanent && !l.isTooltipOpen()) {
+                        l.openTooltip()
+                    }
+                } else {
+                    if (l._tooltip._container) {
+                        l._tooltip._container.style.display = 'none'
+                    }
+                    if (l.isTooltipOpen && l.isTooltipOpen()) {
+                        l.closeTooltip()
+                    }
+                }
+            }
         } else {
-            if (l._path) l._path.style.display = 'none'
-            if (l._container) l._container.style.display = 'none'
-            if (l._icon) l._icon.style.display = 'none'
+            // For individual features, set display style
+            if (isVisible) {
+                if (l._path) l._path.style.display = 'inherit'
+                if (l._container) l._container.style.display = 'inherit'
+                if (l._icon) l._icon.style.display = 'inherit'
+                
+                // Show tooltip if it exists and was previously open
+                if (l._tooltip) {
+                    if (l._tooltip._container) {
+                        l._tooltip._container.style.display = 'inherit'
+                    }
+                    // Reopen tooltip if it was bound as permanent
+                    if (l._tooltip.options.permanent && !l.isTooltipOpen()) {
+                        l.openTooltip()
+                    }
+                }
+            } else {
+                if (l._path) l._path.style.display = 'none'
+                if (l._container) l._container.style.display = 'none'
+                if (l._icon) l._icon.style.display = 'none'
+                
+                // Hide tooltip if it exists
+                if (l._tooltip) {
+                    if (l._tooltip._container) {
+                        l._tooltip._container.style.display = 'none'
+                    }
+                    // Close tooltip if open
+                    if (l.isTooltipOpen && l.isTooltipOpen()) {
+                        l.closeTooltip()
+                    }
+                }
+            }
+        }
+    },
+    getFirstCoordinate: function (geometry) {
+        // Extract the first coordinate from a geometry to use as label anchor
+        if (!geometry || !geometry.coordinates) return null
+
+        let coords = geometry.coordinates
+        const type = geometry.type
+
+        switch (type) {
+            case 'Point':
+                // [lng, lat]
+                return L.latLng(coords[1], coords[0])
+            case 'LineString':
+                // [[lng, lat], ...]
+                return L.latLng(coords[0][1], coords[0][0])
+            case 'Polygon':
+                // [[[lng, lat], ...], ...]
+                return L.latLng(coords[0][0][1], coords[0][0][0])
+            case 'MultiLineString':
+                // [[[lng, lat], ...], ...]
+                return L.latLng(coords[0][0][1], coords[0][0][0])
+            case 'MultiPolygon':
+                // [[[[lng, lat], ...], ...], ...]
+                return L.latLng(coords[0][0][0][1], coords[0][0][0][0])
+            default:
+                return null
         }
     },
     addArrowToMap: function (
