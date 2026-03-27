@@ -1,6 +1,6 @@
 <hr>
 <div align="center">
-  <img src="/docs/assets/images/mmgis.png" alt="MMGIS" width="100%" />
+  <img src="/docs/assets/images/mmgis.png" alt="MMGIS" width="300px" />
   <h2>
       Multi-Mission Geographic Information System
   </h2>
