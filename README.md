@@ -30,7 +30,7 @@
 
 </br>
 
-<div align="center"><b>Empowering</b></div>
+<div align="center"><b>Growing Together</b></div>
 
 <div align="center">
   MSL Curiosity Rover &nbsp;·&nbsp; InSight &nbsp;·&nbsp; Mars 2020 Perseverance Rover &nbsp;·&nbsp; Mars Helicopter (Ingenuity) &nbsp;·&nbsp; EMIT &nbsp;·&nbsp; MAIA &nbsp;·&nbsp; BioSCape &nbsp;·&nbsp; FireSense &nbsp;·&nbsp; Lunar VIPER &nbsp;·&nbsp; MGViz &nbsp;·&nbsp; SHIFT &nbsp;·&nbsp; FROZON &nbsp;·&nbsp; Where is the Rover &nbsp;·&nbsp; and more!
