@@ -12,6 +12,7 @@
     <img src="/docs/assets/images/NASA-AMMOS-MMGIS-frame0.png" alt="MMGIS Demo Video" width="100%" />
   </a>
   <p><i>Click to watch the demo video.</i></p>
+</div>
 
 <div align="center">
 
