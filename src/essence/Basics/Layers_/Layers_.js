@@ -2241,11 +2241,12 @@ const L_ = {
             })
         }
         if (layerData?.variables?.useKeyAsName) {
-            dynamicProps = dynamicProps.concat(
+            const keyNames = (
                 typeof layerData.variables.useKeyAsName === 'string'
                     ? [layerData.variables.useKeyAsName]
                     : layerData.variables.useKeyAsName
-            )
+            ).filter((k) => k != null && k !== '')
+            dynamicProps = dynamicProps.concat(keyNames)
         }
         return dynamicProps
     },
@@ -3455,6 +3456,9 @@ const L_ = {
                 propertyNames = l.variables['useKeyAsName']
                 if (typeof propertyNames === 'string')
                     propertyNames = [propertyNames]
+                propertyNames = propertyNames.filter(
+                    (k) => k != null && k !== ''
+                )
                 propertyValues = Array(propertyNames.length).fill(null)
                 propertyNames.forEach((propertyName, idx) => {
                     if (
