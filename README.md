@@ -1,8 +1,11 @@
 <hr>
 <div align="center">
-  <h1 align="center">
-      MMGIS (Multi-Mission Geographic Information System)
-  </h1>
+  <div align="center" style="font-size: 28px; font-weight: bold;">
+      MMGIS
+  </div>
+  <div align="center" style="font-size: 20px; font-weight: bold;">
+      (Multi-Mission Geographic Information System)
+  </div>
 </div>
 
 <pre align="center">Web-based Mapping for Earth, Lunar and Planetary Visualization, Research, Science, Planning and Operations.</pre>
@@ -33,7 +36,7 @@
 <div align="center"><b>Empowering</b></div>
 
 <div align="center">
-  MSL Curiosity Rover &nbsp;·&nbsp; InSight &nbsp;·&nbsp; Mars 2020 Perseverance Rover &nbsp;·&nbsp; Mars Helicopter (Ingenuity) &nbsp;·&nbsp; EMIT &nbsp;·&nbsp; MAIA &nbsp;·&nbsp; BioSCape &nbsp;·&nbsp; FireSense &nbsp;·&nbsp; Lunar VIPER &nbsp;·&nbsp; MGViz &nbsp;·&nbsp; SHIFT &nbsp;·&nbsp; FROZON &nbsp;·&nbsp; Where is the Rover &nbsp;·&nbsp; and others!
+  MSL Curiosity Rover &nbsp;·&nbsp; InSight &nbsp;·&nbsp; Mars 2020 Perseverance Rover &nbsp;·&nbsp; Mars Helicopter (Ingenuity) &nbsp;·&nbsp; EMIT &nbsp;·&nbsp; MAIA &nbsp;·&nbsp; BioSCape &nbsp;·&nbsp; FireSense &nbsp;·&nbsp; Lunar VIPER &nbsp;·&nbsp; MGViz &nbsp;·&nbsp; SHIFT &nbsp;·&nbsp; FROZON &nbsp;·&nbsp; Where is the Rover &nbsp;·&nbsp; and more!
 </div>
 
 <div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
@@ -213,17 +216,9 @@ For detailed plugin development instructions, see the [Contributing Guide](https
 
 <div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
-## Contributing
+## License: Apache 2.0
 
-Check out our contributing guide [here.](CONTRIBUTING.md)
-
-## Code of Conduct
-
-Check out our code of conduct [here.](CODE_OF_CONDUCT.md)
-
-<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
-
-### License: Apache 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+https://www.apache.org/licenses/LICENSE-2.0
 
 Copyright (c) 2026, California Institute of Technology ("Caltech"). U.S. Government sponsorship acknowledged.
 
