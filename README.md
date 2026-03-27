@@ -1,9 +1,9 @@
-<hr>
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
+
 <div align="center">
-  <img src="/docs/assets/images/mmgis.png" alt="MMGIS" width="340px" />
-  <h2>
-      Multi-Mission Geographic Information System
-  </h2>
+  <h1>
+      MMGIS </br> <small>(Multi-Mission Geographic Information System)</small>
+  </h1>
 </div>
 
 <pre align="center">Web-based Mapping for Earth, Lunar and Planetary Visualization, Research, Science, Planning and Operations.</pre>
