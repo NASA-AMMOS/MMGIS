@@ -43,7 +43,7 @@
 - [Features](#features)
 - [Installation](#installation)
 - [Plugins](#plugins)
-- [License](#license-apache-20-httpsapacheorglicenseslicense-20)
+- [License](#license-apache-20)
 - [Contacts](#contacts)
 
 ## Features
