@@ -43,11 +43,8 @@
 - [Features](#features)
 - [Installation](#installation)
 - [Plugins](#plugins)
-- [Contributing](#contributing)
 - [License](#license-apache-20-httpsapacheorglicenseslicense-20)
 - [Contacts](#contacts)
-
-<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
 ## Features
 
