@@ -1,8 +1,7 @@
-<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
-
+<hr>
 <div align="center">
-  <h1>
-      MMGIS </br> <small>(Multi-Mission Geographic Information System)</small>
+  <h1 align="center">
+      MMGIS (Multi-Mission Geographic Information System)
   </h1>
 </div>
 
