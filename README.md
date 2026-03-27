@@ -12,7 +12,6 @@
     <img src="/docs/assets/images/NASA-AMMOS-MMGIS-frame0.png" alt="MMGIS Demo Video" width="100%" />
   </a>
   <p><i>Click to watch the demo video.</i></p>
-</div>
 
 <div align="center">
 
@@ -26,9 +25,9 @@
 
 </div>
 
-<div align="center">A free, open source and easily configurable solution for GIS on the web. Run MMGIS via a prebuilt docker image on your server and use the Configure page to setup a new mission map to get started. You completely own your data too but are responsible for any data processing (though provided are a variety of scripts and organization methods to help do so and jump off from)</div>
+<pre align="center">A free, open source and easily configurable solution for GIS on the web. Run MMGIS via a prebuilt docker image on your server and use the Configure page to setup a new mission map to get started. You completely own your data too but are responsible for any data processing (though provided are a variety of scripts and organization methods to help do so and jump off from)</pre>
 
-![-----------------------------------------------------](/docs/assets/images/divider.png)
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
 ## Table of Contents
 
@@ -44,7 +43,7 @@
 - [License](#license-apache-20-httpsapacheorglicenseslicense-20)
 - [Contacts](#contacts)
 
-![-----------------------------------------------------](/docs/assets/images/divider.png)
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
 ## Features
 
@@ -111,7 +110,7 @@
 - **Plugin architecture** - Extend functionality with custom tools and backends
 - **Webhook integration** - Connect MMGIS to external systems and workflows
 
-![-----------------------------------------------------](/docs/assets/images/divider.png)
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
 ## Used By
 
@@ -146,7 +145,7 @@ MMGIS powers mission-critical operations for NASA and international space agenci
 
 - **Where is the Rover** - Public-facing mission tracking allowing anyone to follow Mars rover locations and activities
 
-![-----------------------------------------------------](/docs/assets/images/divider.png)
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
 ## Documentation
 
@@ -154,7 +153,7 @@ MMGIS powers mission-critical operations for NASA and international space agenci
 
 Local documentation is served at `http://localhost:8888/docs` or found in [`docs/pages/markdowns`](/docs/pages/markdowns).
 
-![-----------------------------------------------------](/docs/assets/images/divider.png)
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
 ## Installation
 
@@ -333,7 +332,7 @@ Go to `http://localhost:8888` to see the `Test` mission
 
 _Note:_ The development environment (`npm start`) and only the development environment uses two port numbers `8888` and `8889` (by default) — the latter for the main site and the former for the ancillary pages (such as `/configure` and `/docs`)
 
-![-----------------------------------------------------](/docs/assets/images/divider.png)
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
 ## Scripts
 
@@ -356,7 +355,7 @@ _Note:_ The development environment (`npm start`) and only the development envir
 1. Run `npm run test`
    _Note:_ Test coverage is actively expanding. Contributions welcome.
 
-![-----------------------------------------------------](/docs/assets/images/divider.png)
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
 ## Plugins
 
@@ -372,7 +371,7 @@ Place custom backends in directories matching `/API/*Private-Backend*` or `/API/
 
 For detailed plugin development instructions, see the [Contributing Guide](https://nasa-ammos.github.io/MMGIS/contributing/).
 
-![-----------------------------------------------------](/docs/assets/images/divider.png)
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
 ## Contributing
 
@@ -382,7 +381,7 @@ Check out our contributing guide [here.](CONTRIBUTING.md)
 
 Check out our code of conduct [here.](CODE_OF_CONDUCT.md)
 
-![-----------------------------------------------------](/docs/assets/images/divider.png)
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
 ### License: Apache 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
 
@@ -398,7 +397,7 @@ Redistribution and use in source and binary forms, with or without modification,
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-![-----------------------------------------------------](/docs/assets/images/divider.png)
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
 ## Contacts
 
