@@ -1,11 +1,9 @@
 <hr>
 <div align="center">
-  <div align="center" style="font-size: 28px; font-weight: bold;">
-      MMGIS
-  </div>
-  <div align="center" style="font-size: 20px; font-weight: bold;">
-      (Multi-Mission Geographic Information System)
-  </div>
+  <img src="/docs/assets/images/mmgis.png" alt="MMGIS" width="100%" />
+  <h2>
+      Multi-Mission Geographic Information System
+  </h2>
 </div>
 
 <pre align="center">Web-based Mapping for Earth, Lunar and Planetary Visualization, Research, Science, Planning and Operations.</pre>
