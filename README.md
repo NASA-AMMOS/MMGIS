@@ -26,19 +26,22 @@
 
 </div>
 
-<pre align="center">A free, open source and easily configurable solution for GIS on the web. Run MMGIS via a prebuilt docker image on your server and use the Configure page to setup a new mission map to get started. You completely own your data too but are responsible for any data processing (though provided are a variety of scripts and organization methods to help do so and jump off from)</pre>
+<div align="center">A free, open source and easily configurable solution for GIS on the web. Run MMGIS via a prebuilt docker image on your server and use the Configure page to setup a new mission map to get started. You completely own your data too but are responsible for any data processing (though provided are a variety of scripts and organization methods to help do so and jump off from)</div>
+
+</br>
+
+<div align="center"><b>Empowering</b></div>
+
+<div align="center">
+  MSL Curiosity Rover &nbsp;·&nbsp; InSight &nbsp;·&nbsp; Mars 2020 Perseverance Rover &nbsp;·&nbsp; Mars Helicopter (Ingenuity) &nbsp;·&nbsp; EMIT &nbsp;·&nbsp; MAIA &nbsp;·&nbsp; BioSCape &nbsp;·&nbsp; FireSense &nbsp;·&nbsp; Lunar VIPER &nbsp;·&nbsp; MGViz &nbsp;·&nbsp; SHIFT &nbsp;·&nbsp; FROZON &nbsp;·&nbsp; Where is the Rover &nbsp;·&nbsp; and others!
+</div>
 
 <div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
 ## Table of Contents
 
 - [Features](#features)
-- [Used By](#used-by)
-- [Documentation](#documentation)
 - [Installation](#installation)
-  - [Installing with Docker](#installing-with-docker)
-  - [Installing Without Docker](#installing-without-docker)
-- [Scripts](#scripts)
 - [Plugins](#plugins)
 - [Contributing](#contributing)
 - [License](#license-apache-20-httpsapacheorglicenseslicense-20)
@@ -113,65 +116,23 @@
 
 <div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
-## Used By
-
-MMGIS powers mission-critical operations for NASA and international space agencies across planetary exploration, Earth science, and public engagement.
-
-### 🚀 **Mars Surface Missions**
-
-- **MSL Curiosity Rover** - Daily operations planning, traverse visualization, and science target selection
-- **InSight** - Workspace contextualization and instrument placement planning
-- **Mars 2020 Perseverance Rover** - Sample caching tracking, orbital imagery integration, and instrument data visualization
-- **Mars Helicopter (Ingenuity)** - Flight path planning and coordination with Perseverance
-
-### 🌍 **Earth Science Missions**
-
-- **EMIT** (Earth Surface Mineral Dust Source Investigation) - Mineral mapping from the International Space Station
-- **MAIA** (Multi-Angle Imager for Aerosols) - Aerosol and air quality data visualization
-- **BioSCape** - Biodiversity surveys and ecosystem monitoring of the Cape
-- **FireSense** - On-flight fire detection and environmental monitoring
-
-### 🌙 **Lunar Missions**
-
-- **Lunar VIPER** - Volatiles exploration and polar region operations planning
-
-### 🛰️ **Multi-Mission Ground Systems**
-
-- **AMMOS** (Advanced Multi-Mission Operations System) - NASA's enterprise ground system for mission operations
-- **MGViz** - GNSS ground movement visualizer
-- **Shift** - Surface Biology and Geology (SBG) High Frequency Time Series
-- **FROZON** - Framework for Remote Observation of sea ice Zones and Ocean in Northern environments
-
-### 👥 **Public Engagement**
-
-- **Where is the Rover** - Public-facing mission tracking allowing anyone to follow Mars rover locations and activities
-
-<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
-
-## Documentation
-
-[Full documentation](https://nasa-ammos.github.io/MMGIS/)
-
-Local documentation is served at `http://localhost:8888/docs` or found in [`docs/pages/markdowns`](/docs/pages/markdowns).
-
-<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
-
 ## Installation
 
-## Installing with Docker
+It is recommended to setup MMGIS via docker. However, if you would like to setup MMGIS without docker, please check out: https://nasa-ammos.github.io/MMGIS/setup/installation#installing-without-docker
 
-`/` will always refer to the repo's root directory
+`/` will always refer to the repo's root directory.
+
+### Building
+
+Point to a prebuilt image in your docker-compose.yml: https://github.com/NASA-AMMOS/MMGIS/pkgs/container/mmgis
+
+Or build it locally for a custom build:
 
 1. Clone the repo  
    `git clone https://github.com/NASA-AMMOS/MMGIS`
 
-1. From within `/`  
-   `npm install`
-
-### Building
-
-To build the Docker image, run:
-`docker build -t <image tag> .`
+1. Run:
+   `docker build -t <image tag> .`
 
 ### Preparing
 
@@ -205,156 +166,30 @@ This repo contains a `/docker-compose.sample.yml` file that defines a service fo
 - Copy this file to a `docker-compose.yml`.
 - In the `db` service in `docker-compose.yml`, set the `POSTGRES_PASSWORD` environment variable and use this for MMGIS's `DB_PASS` ENV value.
 - Fill out the other `environment` variables within the `docker-compose.yml` as well.
-- To run MMGIS in a container, you need to create a directory on the host machine and map this to a directory in the container.
-  - On the host machine, create a `Missions` directory and copy the contents of `./Missions` to your directory.
-  - Via the docker-compose.yml, map this directory to `/usr/src/app/Missions` in the container. For example, if the host directory is `./Missions`, the volume mapping would be `- ./Missions:/usr/src/app/Missions`
 - Note, the `/docker-compose.sample.yml` includes optional STAC and TiTiler services. If any of them are unwanted, they can be removed from the docker-compose-yml and their respective `.env` variable `WITH_{service}` can be set to false.
 
 ### Running
 
 Run: `docker-compose up -d`
 
+### Stopping
+
+Run: `docker-compose down`
+
 ### First Time UI Setup
 
 1. Setup the admin account:
-   - In your browser, navigate to `http://localhost:8888/configure`
+   - In your browser, navigate to `https://{your-mmgis-domain}/configure`
    - Sign up for an Administrator account (The Administrator account is always the first user in the database and you are only prompted to create an Administrator account if there are no other users)
 
 1. Now sign in with your Administrator credentials
 
 1. Click `NEW MISSION`  
-   Enter a new mission name and click `MAKE MISSION`  
-   Optional: (Use the mission name `"Test"` (case-sensitive) to make the sample mission)
+   Enter a new mission name and click `MAKE MISSION`
 
-Navigate to `http://localhost:8888`.
+Navigate to `https://{your-mmgis-domain}/`.
 
 See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configure/) for more information on how to use the configure page to customize and add data to MMGIS.
-
-## Installing Without Docker
-
-### System Requirements
-
-1. Install [Node.js v22+](https://nodejs.org/en/download/) (v22.20.0+ recommended).
-
-1. Install [PostgreSQL v16+](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads). Detailed [install instructions](https://www.postgresqltutorial.com/postgresql-getting-started/) for all platforms.
-1. Install [PostGIS 3+](https://postgis.net/install/). From the above install, you can use the 'Application Stack Builder' to install PostGIS or the default [PostGIS install instructions](https://postgis.net/install/) for all platforms.
-1. Make a new PostgreSQL database and remember the user, password and database name.
-   Use 'psql' or the 'SQL Shell' to log into Postgres. It will prompt you for the username and password made during the install.
-
-#### Python Environment
-
-1. Install [micromamba 2+](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html)
-
-   #### Windows:
-   1. In powershell run:
-      ```
-      Invoke-Expression ((Invoke-WebRequest -Uri https://micro.mamba.pm/install.ps1).Content)
-      ```
-   1. Initialize the shell with:
-      ```
-      micromamba shell init --shell cmd.exe --root-prefix=your\path\to\mamba
-      ```
-   1. In a command window in the MMGIS root directory run:
-
-      ```
-      micromamba env create -y --name mmgis --file=python-environment.yml
-      ```
-
-      - If you encounter an error like: `..\mamba\condabin\micromamba"' is not recognized as an internal or external command, operable program or batch file.`, then copy the `mamba.bat` file in that directory to `micromamba.bat`
-
-   1. Confirm the installation and initialization went well with:
-      ```
-      micromamba run -n mmgis gdalinfo --version
-      ```
-   1. Activate the environment before running `npm start`
-      ```
-      micromamba activate mmgis
-      ```
-
-   #### Legacy (without micromamba):
-   - GDAL [3.4+](https://gdal.org/download.html) with Python bindings (Windows users may find [these](https://github.com/cgohlke/geospatial-wheels/releases) helpful)
-   - Python [>=3.10 and <3.13](https://www.python.org/downloads/)
-   - From root MMGIS directory: `python -m pip install -r python-requirements.txt`
-   - Ensure your `PROJ_LIB` system ENV points to the proj.db install through python.
-   - Note: MMGIS expects and uses the command `python` only and not `python3` or variations.
-
-### Setup
-
-`/` will always refer to the repo's root directory
-
-1. Clone the repo  
-   `git clone https://github.com/NASA-AMMOS/MMGIS`
-
-1. From within `/`  
-   `npm install`
-
-1. Copy `/sample.env` to `.env`  
-   `cp sample.env .env`
-
-1. Open `.env` and update the following:
-
-   ```
-   DB_NAME=<name>
-   DB_USER=<user>
-   DB_PASS=<password>
-   ```
-
-   From the install example:
-
-   ```
-   DB_NAME=mmgis
-   DB_USER=postgres
-   DB_PASS=<password>
-   ```
-
-1. Run `npm run build` to bundle up the code (first time or if there are any changes)
-
-1. Go into /configure and run `npm install` followed by `npm run build` to build the configuration site.
-
-1. Go back to the root `/` directory
-
-1. Run `micromamba activate mmgis` or `python -m pip install -r python-requirements.txt` (if not using python environments)
-
-1. If using adjacent-servers (titiler, stac, ...) make `.env` files from the samples within the `/adjacent-servers/{servers}/` directory.
-
-1. Run `npm run start:prod`
-
-1. Setup the admin account:
-   - In your browser, navigate to `http://localhost:8888/configure`
-   - Sign up for an Administrator account (The Administrator account is always the first user in the database and you are only prompted to create an Administrator account if there are no other users)
-
-1. Now sign in with your Administrator credentials
-
-1. Click `NEW MISSION`  
-   Enter a new mission name and click `MAKE MISSION`  
-   (Use the mission name `"Test"` (case-sensitive) to make the sample mission)
-
-Go to `http://localhost:8888` to see the `Test` mission
-
-_Note:_ The development environment (`npm start`) and only the development environment uses two port numbers `8888` and `8889` (by default) — the latter for the main site and the former for the ancillary pages (such as `/configure` and `/docs`)
-
-<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
-
-## Scripts
-
-### Production
-
-1. Run `npm run build` to bundle up the code (first time or if there are any changes)
-
-1. Run `micromamba activate mmgis`(if applicable)
-
-1. Run `npm run start:prod`
-
-### Development
-
-1. Run `micromamba activate mmgis`(if applicable)
-
-1. Run `npm start`
-
-### Test
-
-1. Run `npm run test`
-   _Note:_ Test coverage is actively expanding. Contributions welcome.
 
 <div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
@@ -365,6 +200,10 @@ MMGIS supports a flexible plugin system for adding custom tools and backend func
 ### Tool Plugins
 
 Place custom tools in directories matching `/src/essence/*Private-Tools*` or `/src/essence/*Plugin-Tools*`. These directories are automatically gitignored and loaded when you run `npm run build`.
+
+### Component Plugins
+
+Place miscellaneous custom UI behaviors and components in directories matching `/src/essence/*Private-Components*` or `/src/essence/*Plugin-Components*`. These directories are automatically gitignored and loaded when you run `npm run build`.
 
 ### Backend Plugins
 
