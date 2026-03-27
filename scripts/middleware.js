@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
+const logger = require("../API/logger");
 
 const rootDir = `${__dirname}/..`;
 const rootDirMissions = `${rootDir}/Missions`;
@@ -138,17 +139,23 @@ async function sendImage(req, res, next, relUrlSplit) {
   }
 }
 
-function isPathInsideRoot(logicalRootDirName, targetPath) {
+function isPathInsideRoot(logicalRootDirName, targetPath, rootPath = "") {
   // Security: Validate path is inside the actual intended root directory
   // Previous implementation was vulnerable to attacks using fake "Missions" directories
 
   // Construct the actual allowed base directory
   const allowedBase = path.resolve(rootDir, logicalRootDirName);
 
+  // Strip ROOT_PATH prefix if present (for subpath deployments)
+  let processedPath = targetPath;
+  if (rootPath && targetPath.startsWith(rootPath)) {
+    processedPath = targetPath.substring(rootPath.length);
+  }
+
   // Strip leading slash to treat as relative path (URL paths start with /)
-  const relativePath = targetPath.startsWith("/")
-    ? targetPath.substring(1)
-    : targetPath;
+  const relativePath = processedPath.startsWith("/")
+    ? processedPath.substring(1)
+    : processedPath;
 
   // Resolve the target path relative to rootDir
   const resolvedTarget = path.resolve(rootDir, relativePath);
@@ -173,10 +180,20 @@ const middleware = {
 
       // Validate URL starts with /Missions to prevent path traversal
       if (!originalUrl.startsWith(`${ROOT_PATH}/Missions`)) {
+        logger(
+          "warn",
+          `Missions middleware blocked request: URL does not start with expected prefix (ROOT_PATH: "${ROOT_PATH}", URL: "${originalUrl}")`,
+          "middleware.missions",
+        );
         return res.sendStatus(404);
       }
       // Additional validation: ensure no path traversal sequences
-      if (!isPathInsideRoot("Missions", originalUrl)) {
+      if (!isPathInsideRoot("Missions", originalUrl, ROOT_PATH)) {
+        logger(
+          "warn",
+          `Missions middleware blocked request: Path traversal check failed (ROOT_PATH: "${ROOT_PATH}", URL: "${originalUrl}")`,
+          "middleware.missions",
+        );
         return res.sendStatus(404);
       }
 
