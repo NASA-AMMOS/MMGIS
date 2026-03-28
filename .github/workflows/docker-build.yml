@@ -1,8 +1,10 @@
 name: Docker build and push
 
-# limit concurrency
+# limit concurrency per ref; cancel in-progress runs for PRs
 # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#examples-using-concurrency-and-the-default-behavior
-concurrency: docker_mmgis_main
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 on:
   push:
@@ -30,23 +32,22 @@ env:
   IMAGE_SLUG: ${{ github.repository }}
 
 jobs:
-  # Generate shared tags for both architectures
+  # Generate shared tags for both architectures as a JSON array.
   # The image tag pattern is:
-  # for pull-requests: <PATCH_VERSION>-<DATE>-<PR_NUMBER>, eg: 1.35.2-20210125-25
+  # for pull-requests: <PATCH_VERSION>-<DATE>-<PR_NUMBER>, eg: 4.2.33-20210125-25
   # for tags: <TAG>
   # for `master` branch: latest,<PATCH_VERSION>-latest,<MINOR_VERSION>-latest,<MAJOR_VERSION>-latest,<PATCH_VERSION>-<DATE>-<SHA>
   # for `development` branch: development,<MAJOR_VERSION>-development,<PATCH_VERSION>-<DATE>-<SHA>
   # for releases: release,<PATCH_VERSION>-release,<MINOR_VERSION>-release,<MAJOR_VERSION>-release,<PATCH_VERSION>-<DATE>-<SHA>
-  # Version is parsed from package.json
+  # Version is parsed from package.json (date suffix stripped before use in tags)
   generate-tags:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'release'
     outputs:
-      registry-tags: ${{ steps.generate.outputs.REGISTRY_TAGS }}
+      tags: ${{ steps.generate.outputs.TAGS }}
       image-id: ${{ steps.generate.outputs.IMAGE_ID }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Generate tags
         id: generate
@@ -58,9 +59,11 @@ jobs:
           # Date
           BDATE=$(date +%Y%m%d)
 
-          # PATCH_VERSION from package.json is like "1.2.3"
-          # MINOR_VERSION like "1.2", MAJOR_VERSION like "1"
-          PATCH_VERSION=$(jq .version -r ./package.json)
+          # RAW_VERSION from package.json may be "4.2.33-20260327" (date-suffixed by bump-version workflow).
+          # Strip the date suffix before parsing semver components so it doesn't appear twice in image tags.
+          RAW_VERSION=$(jq .version -r ./package.json)
+          BASE_VERSION=$(echo $RAW_VERSION | sed 's/-[0-9]\{8\}$//')
+          PATCH_VERSION=$BASE_VERSION
           MINOR_VERSION=${PATCH_VERSION%.*}
           MAJOR_VERSION=${MINOR_VERSION%.*}
 
@@ -86,29 +89,39 @@ jobs:
           [ "$VERSION" == "development" ] && VERSION=development
           [ "${{ github.event_name }}" == "release" ] && VERSION=release
 
-          # Compose REGISTRY_TAGS variable for buildx (space-separated with --tag flags)
-          REGISTRY_TAGS="--tag $IMAGE_ID:$VERSION"
-
-          # For master branch also supply an extra tag: <PATCH_VERSION>-latest,<MINOR_VERSION>-latest,<MAJOR_VERSION>-latest,<PATCH_VERSION>-<DATE>-<SHA>
-          [ "$VERSION" == "latest" ] && REGISTRY_TAGS="$REGISTRY_TAGS --tag $IMAGE_ID:$PATCH_VERSION-latest --tag $IMAGE_ID:$MINOR_VERSION-latest --tag $IMAGE_ID:$MAJOR_VERSION-latest --tag $IMAGE_ID:$PATCH_VERSION-$BDATE-$(git rev-parse --short HEAD)"
-          [ "$VERSION" == "development" ] && REGISTRY_TAGS="$REGISTRY_TAGS --tag $IMAGE_ID:$MAJOR_VERSION-development --tag $IMAGE_ID:$PATCH_VERSION-$BDATE-$(git rev-parse --short HEAD)"
-          [ "$VERSION" == "release" ] && REGISTRY_TAGS="$REGISTRY_TAGS --tag $IMAGE_ID:$PATCH_VERSION-release --tag $IMAGE_ID:$MINOR_VERSION-release --tag $IMAGE_ID:$MAJOR_VERSION-release --tag $IMAGE_ID:$PATCH_VERSION-$BDATE-$(git rev-parse --short HEAD)"
-
-          echo IMAGE_ID=$IMAGE_ID
-          echo VERSION=$VERSION
-          echo REGISTRY_TAGS=$REGISTRY_TAGS
-          echo headref=${{ github.head_ref }}
-
-          SHA_SHORT=${{ github.sha }}
+          SHA_SHORT=$(git rev-parse --short HEAD)
           [ "${{ github.event_name }}" == "pull_request" ] && SHA_SHORT=$(echo ${{ github.event.pull_request.head.sha }} | cut -c1-8)
 
-          echo "Final image tags to be pushed:"
-          echo $REGISTRY_TAGS
-          echo "REGISTRY_TAGS=$REGISTRY_TAGS" >> $GITHUB_OUTPUT
+          # Build TAGS as a JSON array of tag names (no --tag flags, no image ID prefix).
+          # Arch-specific suffixes (-amd64, -arm64) and the combined manifest are applied by later jobs.
+          # Specific/versioned tags are listed first; floating tags (development, latest, release) are last
+          # so that GHCR features the floating tag as the most recently published version.
+          TAGS=$(jq -cn --arg v "$VERSION" '[$v]')
+          [ "$VERSION" == "latest" ] && TAGS=$(jq -cn \
+            --arg a "$PATCH_VERSION-$BDATE-$SHA_SHORT" \
+            --arg b "$MAJOR_VERSION-latest" \
+            --arg c "$MINOR_VERSION-latest" \
+            --arg d "$PATCH_VERSION-latest" \
+            --arg e "latest" \
+            '[$a,$b,$c,$d,$e]')
+          [ "$VERSION" == "development" ] && TAGS=$(jq -cn \
+            --arg a "$PATCH_VERSION-$BDATE-$SHA_SHORT" \
+            --arg b "$MAJOR_VERSION-development" \
+            --arg c "development" \
+            '[$a,$b,$c]')
+          [ "$VERSION" == "release" ] && TAGS=$(jq -cn \
+            --arg a "$PATCH_VERSION-$BDATE-$SHA_SHORT" \
+            --arg b "$MAJOR_VERSION-release" \
+            --arg c "$MINOR_VERSION-release" \
+            --arg d "$PATCH_VERSION-release" \
+            --arg e "release" \
+            '[$a,$b,$c,$d,$e]')
+
+          echo IMAGE_ID=$IMAGE_ID
+          echo TAGS=$TAGS
+
+          echo "TAGS=$TAGS" >> $GITHUB_OUTPUT
           echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_OUTPUT
-          echo "REGISTRY_TAGS_VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "REGISTRY_TAGS_PR_NUMBER=$PR_NUMBER" >> $GITHUB_OUTPUT
-          echo "SHA_SHORT=$SHA_SHORT" >> $GITHUB_OUTPUT
 
   # Build and push ARM64 image on ARM64 runner
   build-arm64:
@@ -116,17 +129,17 @@ jobs:
     runs-on: ubuntu-24.04-arm  # ARM64 runner for native ARM64 builds
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Login to GHCR
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           driver-opts: |
             image=moby/buildkit:latest
@@ -135,42 +148,43 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
         run: |
-          # Generate ARM64-specific tags by adding -arm64 suffix
-          ARM64_TAGS="${{ needs.generate-tags.outputs.registry-tags }}-arm64"
+          IMAGE_ID="${{ needs.generate-tags.outputs.image-id }}"
+
+          # Build --tag flags: add -arm64 suffix to every tag
+          TAG_FLAGS=$(echo '${{ needs.generate-tags.outputs.tags }}' | jq -r '.[]' | \
+            while read tag; do echo "--tag $IMAGE_ID:$tag-arm64"; done | tr '\n' ' ')
 
           # Only disable cache for releases
           CACHE_FLAG=""
-          if [ "${{ github.event_name }}" = "release" ]; then
-            CACHE_FLAG="--no-cache"
-          fi
+          [ "${{ github.event_name }}" = "release" ] && CACHE_FLAG="--no-cache"
 
           docker buildx build \
-            ${ARM64_TAGS} \
+            $TAG_FLAGS \
             --push \
             --platform linux/arm64 \
-            --cache-from type=registry,ref=${{ needs.generate-tags.outputs.image-id }}:buildcache-arm64 \
-            --cache-to type=registry,ref=${{ needs.generate-tags.outputs.image-id }}:buildcache-arm64,mode=max \
+            --cache-from type=registry,ref=$IMAGE_ID:buildcache-arm64 \
+            --cache-to type=registry,ref=$IMAGE_ID:buildcache-arm64,mode=max \
             --build-arg PUBLIC_URL_ARG=${{ secrets.PUBLIC_URL }} \
-            ${CACHE_FLAG} \
+            $CACHE_FLAG \
             .
 
   # Build and push AMD64 image on x64 runner
   build-amd64:
-    needs: [generate-tags, build-arm64] # Build amd64 last so that it shows as the latest
+    needs: generate-tags
     runs-on: ubuntu-latest  # x64 runner for native AMD64 builds
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Login to GHCR
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           driver-opts: |
             image=moby/buildkit:latest
@@ -179,21 +193,49 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
         run: |
-          # Generate AMD64-specific tags by adding -amd64 suffix
-          AMD64_TAGS="${{ needs.generate-tags.outputs.registry-tags }}-amd64"
+          IMAGE_ID="${{ needs.generate-tags.outputs.image-id }}"
+
+          # Build --tag flags: add -amd64 suffix to every tag
+          TAG_FLAGS=$(echo '${{ needs.generate-tags.outputs.tags }}' | jq -r '.[]' | \
+            while read tag; do echo "--tag $IMAGE_ID:$tag-amd64"; done | tr '\n' ' ')
 
           # Only disable cache for releases
           CACHE_FLAG=""
-          if [ "${{ github.event_name }}" = "release" ]; then
-            CACHE_FLAG="--no-cache"
-          fi
+          [ "${{ github.event_name }}" = "release" ] && CACHE_FLAG="--no-cache"
 
           docker buildx build \
-            ${AMD64_TAGS} \
+            $TAG_FLAGS \
             --push \
             --platform linux/amd64 \
-            --cache-from type=registry,ref=${{ needs.generate-tags.outputs.image-id }}:buildcache-amd64 \
-            --cache-to type=registry,ref=${{ needs.generate-tags.outputs.image-id }}:buildcache-amd64,mode=max \
+            --cache-from type=registry,ref=$IMAGE_ID:buildcache-amd64 \
+            --cache-to type=registry,ref=$IMAGE_ID:buildcache-amd64,mode=max \
             --build-arg PUBLIC_URL_ARG=${{ secrets.PUBLIC_URL }} \
-            ${CACHE_FLAG} \
+            $CACHE_FLAG \
             .
+
+  # Create multi-arch manifests combining the AMD64 and ARM64 images
+  create-manifests:
+    needs: [generate-tags, build-amd64, build-arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create multi-arch manifests
+        run: |
+          IMAGE_ID="${{ needs.generate-tags.outputs.image-id }}"
+
+          echo '${{ needs.generate-tags.outputs.tags }}' | jq -r '.[]' | while read tag; do
+            echo "Creating manifest for $IMAGE_ID:$tag"
+            docker buildx imagetools create \
+              -t $IMAGE_ID:$tag \
+              $IMAGE_ID:$tag-amd64 \
+              $IMAGE_ID:$tag-arm64
+          done
