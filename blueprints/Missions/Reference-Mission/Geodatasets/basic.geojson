@@ -1,0 +1,143 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "name": "Golden Gate Bridge",
+        "category": "Landmark",
+        "description": "Iconic suspension bridge spanning the Golden Gate strait",
+        "year_built": 1937
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4783, 37.8199] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2,
+        "name": "Alcatraz Island",
+        "category": "Historic Site",
+        "description": "Historic former federal prison on an island in San Francisco Bay",
+        "year_built": 1934
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4230, 37.8270] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3,
+        "name": "Transamerica Pyramid",
+        "category": "Building",
+        "description": "Distinctive skyscraper in the Financial District",
+        "year_built": 1972
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4025, 37.7949] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 4,
+        "name": "Twin Peaks",
+        "category": "Viewpoint",
+        "description": "Pair of peaks offering 360-degree views of San Francisco",
+        "year_built": null
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4475, 37.7544] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 5,
+        "name": "Palace of Fine Arts",
+        "category": "Historic Site",
+        "description": "Monumental structure originally built for the 1915 Panama-Pacific Exposition",
+        "year_built": 1915
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4488, 37.8029] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 6,
+        "name": "Embarcadero Waterfront Path",
+        "category": "Path",
+        "description": "Scenic promenade running along the eastern waterfront",
+        "year_built": 1990
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.3937, 37.7955],
+          [-122.3960, 37.8000],
+          [-122.4000, 37.8060],
+          [-122.4040, 37.8090],
+          [-122.4099, 37.8087]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 7,
+        "name": "Coastal Trail",
+        "category": "Path",
+        "description": "Trail connecting the Palace of Fine Arts to the Golden Gate Bridge viewpoint",
+        "year_built": 1982
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4488, 37.8029],
+          [-122.4550, 37.8060],
+          [-122.4640, 37.8100],
+          [-122.4720, 37.8150],
+          [-122.4783, 37.8199]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 8,
+        "name": "Crissy Field",
+        "category": "Park",
+        "description": "Restored tidal marsh and beach along the San Francisco Bay",
+        "year_built": 2001
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.4488, 37.8029],
+          [-122.4600, 37.8029],
+          [-122.4680, 37.8060],
+          [-122.4720, 37.8100],
+          [-122.4680, 37.8130],
+          [-122.4580, 37.8110],
+          [-122.4490, 37.8080],
+          [-122.4488, 37.8029]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 9,
+        "name": "Civic Center Plaza",
+        "category": "Public Space",
+        "description": "Central civic plaza surrounded by government buildings",
+        "year_built": 1915
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.4193, 37.7790],
+          [-122.4140, 37.7790],
+          [-122.4140, 37.7820],
+          [-122.4193, 37.7820],
+          [-122.4193, 37.7790]
+        ]]
+      }
+    }
+  ]
+}

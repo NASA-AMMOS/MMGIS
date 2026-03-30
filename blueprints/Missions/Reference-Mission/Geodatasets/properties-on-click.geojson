@@ -1,0 +1,242 @@
+{
+  "type": "FeatureCollection",
+  "featureIdProp": "feature_code",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_code": "POI-001",
+        "name": "Fisherman's Wharf",
+        "category": "Tourism",
+        "subcategory": "Waterfront",
+        "district": "Fisherman's Wharf",
+        "address": "Jefferson St, San Francisco, CA",
+        "elevation_m": 3,
+        "area_sqm": 12400,
+        "annual_visitors": 12000000,
+        "established": 1900,
+        "open_hours": "06:00-23:00",
+        "parking_available": true,
+        "accessibility": "Full",
+        "notes": "One of the most visited tourist attractions in SF"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4177, 37.8080] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_code": "POI-002",
+        "name": "Union Square",
+        "category": "Commercial",
+        "subcategory": "Shopping",
+        "district": "Union Square",
+        "address": "333 Post St, San Francisco, CA",
+        "elevation_m": 52,
+        "area_sqm": 9300,
+        "annual_visitors": 25000000,
+        "established": 1850,
+        "open_hours": "00:00-24:00",
+        "parking_available": true,
+        "accessibility": "Full",
+        "notes": "Central shopping and hotel district of SF"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4077, 37.7879] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_code": "POI-003",
+        "name": "Golden Gate Park",
+        "category": "Recreation",
+        "subcategory": "Park",
+        "district": "Richmond / Sunset",
+        "address": "501 Stanyan St, San Francisco, CA",
+        "elevation_m": 55,
+        "area_sqm": 4116200,
+        "annual_visitors": 13000000,
+        "established": 1871,
+        "open_hours": "05:00-22:00",
+        "parking_available": true,
+        "accessibility": "Partial",
+        "notes": "One of the most visited urban parks in the US"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4820, 37.7694] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_code": "POI-004",
+        "name": "Ferry Building",
+        "category": "Infrastructure",
+        "subcategory": "Transit Hub",
+        "district": "Embarcadero",
+        "address": "1 Ferry Building, San Francisco, CA",
+        "elevation_m": 5,
+        "area_sqm": 65000,
+        "annual_visitors": 8000000,
+        "established": 1898,
+        "open_hours": "07:00-20:00",
+        "parking_available": false,
+        "accessibility": "Full",
+        "notes": "Historic ferry terminal now serving as a marketplace"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.3937, 37.7955] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_code": "POI-005",
+        "name": "Lands End",
+        "category": "Recreation",
+        "subcategory": "Natural Area",
+        "district": "Richmond",
+        "address": "El Camino del Mar, San Francisco, CA",
+        "elevation_m": 90,
+        "area_sqm": 1200000,
+        "annual_visitors": 3000000,
+        "established": 1972,
+        "open_hours": "05:00-22:00",
+        "parking_available": true,
+        "accessibility": "Limited",
+        "notes": "Rugged coastal trails with views of the Golden Gate"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.5066, 37.7797] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_code": "POI-006",
+        "name": "Mission Dolores Park",
+        "category": "Recreation",
+        "subcategory": "Park",
+        "district": "Mission",
+        "address": "Dolores St & 19th St, San Francisco, CA",
+        "elevation_m": 75,
+        "area_sqm": 160000,
+        "annual_visitors": 5000000,
+        "established": 1905,
+        "open_hours": "06:00-22:00",
+        "parking_available": false,
+        "accessibility": "Partial",
+        "notes": "Popular neighborhood park with city skyline views"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4269, 37.7596] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_code": "ROUTE-001",
+        "name": "Northern Waterfront Tourist Route",
+        "category": "Route",
+        "subcategory": "Tourist Walk",
+        "district": "Waterfront",
+        "address": null,
+        "elevation_m": 5,
+        "area_sqm": null,
+        "annual_visitors": 4000000,
+        "established": 2010,
+        "open_hours": "00:00-24:00",
+        "parking_available": false,
+        "accessibility": "Full",
+        "notes": "Connects major waterfront attractions along the Embarcadero"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.3937, 37.7955],
+          [-122.4000, 37.8010],
+          [-122.4060, 37.8060],
+          [-122.4099, 37.8087],
+          [-122.4177, 37.8080]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_code": "ROUTE-002",
+        "name": "Inner City Cultural Route",
+        "category": "Route",
+        "subcategory": "Cultural Walk",
+        "district": "Downtown",
+        "address": null,
+        "elevation_m": 40,
+        "area_sqm": null,
+        "annual_visitors": 2000000,
+        "established": 2015,
+        "open_hours": "00:00-24:00",
+        "parking_available": false,
+        "accessibility": "Full",
+        "notes": "Connects key cultural and commercial landmarks downtown"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4077, 37.7879],
+          [-122.4050, 37.7910],
+          [-122.4025, 37.7949],
+          [-122.3980, 37.7955],
+          [-122.3937, 37.7955]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_code": "ZONE-001",
+        "name": "Fisherman's Wharf District",
+        "category": "District",
+        "subcategory": "Tourism Zone",
+        "district": "Fisherman's Wharf",
+        "address": null,
+        "elevation_m": 3,
+        "area_sqm": 800000,
+        "annual_visitors": 15000000,
+        "established": 1900,
+        "open_hours": "00:00-24:00",
+        "parking_available": true,
+        "accessibility": "Full",
+        "notes": "Major tourism district encompassing the northern waterfront"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.4250, 37.8040],
+          [-122.4050, 37.8040],
+          [-122.4050, 37.8140],
+          [-122.4250, 37.8140],
+          [-122.4250, 37.8040]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "feature_code": "ZONE-002",
+        "name": "Golden Gate Park Boundary",
+        "category": "District",
+        "subcategory": "Park Zone",
+        "district": "Richmond / Sunset",
+        "address": "501 Stanyan St, San Francisco, CA",
+        "elevation_m": 55,
+        "area_sqm": 4116200,
+        "annual_visitors": 13000000,
+        "established": 1871,
+        "open_hours": "05:00-22:00",
+        "parking_available": true,
+        "accessibility": "Partial",
+        "notes": "Approximate boundary of Golden Gate Park"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.5118, 37.7649],
+          [-122.4530, 37.7649],
+          [-122.4530, 37.7754],
+          [-122.5118, 37.7754],
+          [-122.5118, 37.7649]
+        ]]
+      }
+    }
+  ]
+}

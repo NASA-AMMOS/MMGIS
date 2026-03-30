@@ -588,55 +588,226 @@
               "uuid": "364f53c1-a715-45d4-aaa6-fcfab19d189f"
             },
             {
-              "name": "Data Sources",
+              "name": "Geodatasets",
               "type": "header",
               "sublayers": [
                 {
-                  "name": "TEST Geodataset Example",
+                  "name": "Geodatasets - Basic",
+                  "uuid": "d134df19-d737-4e8b-a927-77e3add95d1a",
+                  "sublayers": [],
                   "type": "vector",
-                  "url": "Layers/Vectors/TEST-geodataset-example.geojson",
-                  "initialOpacity": 1,
+                  "kind": "none",
                   "visibility": false,
-                  "style": {
-                    "className": "testgeodatasetexample",
-                    "strokeColor": "#ff8800",
-                    "strokeWeight": 2,
-                    "fillColor": "#ffbb44",
-                    "fillOpacity": 0.6,
-                    "radius": 8
-                  },
-                  "description": "",
-                  "demparser": "",
+                  "sourceType": "geodatasets",
+                  "url": "reference_mission_basic",
+                  "layer3dType": "clamped",
+                  "initialOpacity": 1,
                   "controlled": false,
-                  "togglesWithHeader": true,
-                  "uuid": "d302ed0c-2767-4033-bf98-818301e5cb5c"
+                  "style": {
+                    "color": "#FFFFFF",
+                    "opacity": 1,
+                    "fillColor": "#4488ff",
+                    "fillOpacity": 0.8,
+                    "weight": 2,
+                    "radius": 8,
+                    "animation": "none",
+                    "className": "geodatasets-basic"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "dynamicExtent": false,
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": false,
+                    "style": {
+                      "nointeraction": false
+                    }
+                  },
+                  "description": "Demonstrates the simplest geodataset layer: sourceType='geodatasets' routes to the PostGIS-backed geodatasets API instead of a static file.",
+                  "demparser": "",
+                  "togglesWithHeader": true
                 },
                 {
-                  "name": "TEST Draw File Example",
+                  "name": "Geodatasets - Dynamic Extent",
+                  "uuid": "f86e0eb5-6216-440f-97ce-16f9e652eda0",
+                  "sublayers": [],
                   "type": "vector",
-                  "url": "Layers/Vectors/TEST-draw-file-example.geojson",
-                  "initialOpacity": 1,
+                  "kind": "none",
                   "visibility": false,
-                  "style": {
-                    "className": "testdrawfileexample",
-                    "strokeColor": "#00cccc",
-                    "strokeWeight": 2,
-                    "fillColor": "#66dddd",
-                    "fillOpacity": 0.5,
-                    "radius": 8
-                  },
-                  "description": "",
-                  "demparser": "",
+                  "sourceType": "geodatasets",
+                  "url": "reference_mission_dynamic_extent",
+                  "layer3dType": "clamped",
+                  "initialOpacity": 1,
                   "controlled": false,
-                  "togglesWithHeader": true,
-                  "uuid": "a115fbdd-a101-44b3-9563-fe688ab4ef2f"
+                  "style": {
+                    "color": "#FFFFFF",
+                    "opacity": 1,
+                    "fillColor": "#44bb44",
+                    "fillOpacity": 0.8,
+                    "weight": 2,
+                    "radius": 8,
+                    "animation": "none",
+                    "className": "geodatasets-dynamicextent"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "dynamicExtent": true,
+                    "dynamicExtentMoveThreshold": "500/z",
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": false,
+                    "useKeyAsId": "id",
+                    "style": {
+                      "nointeraction": false
+                    }
+                  },
+                  "description": "Demonstrates dynamicExtent: only features within the current map viewport are queried from the database. Pan or zoom to trigger a re-query. dynamicExtentMoveThreshold='500/z' throttles re-queries to 500m of pan at zoom 0, scaled by zoom level.",
+                  "demparser": "",
+                  "togglesWithHeader": true
+                },
+                {
+                  "name": "Geodatasets - No Duplicates",
+                  "uuid": "d20bebbe-6b03-402d-bd06-75587115ea7d",
+                  "sublayers": [],
+                  "type": "vector",
+                  "kind": "none",
+                  "visibility": false,
+                  "sourceType": "geodatasets",
+                  "url": "reference_mission_no_duplicates",
+                  "layer3dType": "clamped",
+                  "initialOpacity": 1,
+                  "controlled": false,
+                  "style": {
+                    "color": "#FFFFFF",
+                    "opacity": 1,
+                    "fillColor": "#ff8833",
+                    "fillOpacity": 0.8,
+                    "weight": 2,
+                    "radius": 8,
+                    "animation": "none",
+                    "className": "geodatasets-noduplicates"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "dynamicExtent": false,
+                    "noDuplicates": true,
+                    "getFeaturePropertiesOnClick": false,
+                    "style": {
+                      "nointeraction": false
+                    }
+                  },
+                  "description": "Demonstrates noDuplicates: the geodataset has multiple records per location sharing a group_id (site_id). With noDuplicates=true, only one feature per group is rendered using DISTINCT ON (group_id). The dataset has 8 records at 4 locations — only 4 points appear on the map.",
+                  "demparser": "",
+                  "togglesWithHeader": true
+                },
+                {
+                  "name": "Geodatasets - Properties on Click",
+                  "uuid": "c1d69334-5908-40a8-a7ae-55c31948d269",
+                  "sublayers": [],
+                  "type": "vector",
+                  "kind": "none",
+                  "visibility": false,
+                  "sourceType": "geodatasets",
+                  "url": "reference_mission_properties_on_click",
+                  "layer3dType": "clamped",
+                  "initialOpacity": 1,
+                  "controlled": false,
+                  "style": {
+                    "color": "#FFFFFF",
+                    "opacity": 1,
+                    "fillColor": "#9944ff",
+                    "fillOpacity": 0.8,
+                    "weight": 2,
+                    "radius": 8,
+                    "animation": "none",
+                    "className": "geodatasets-propertiesonclick"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "dynamicExtent": false,
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": true,
+                    "useKeyAsId": "feature_code",
+                    "style": {
+                      "nointeraction": false
+                    }
+                  },
+                  "description": "Demonstrates getFeaturePropertiesOnClick: the initial map load fetches only geometry and feature IDs (feature_code). Full properties (address, area, visitor stats, etc.) are fetched from the database only when a feature is clicked, reducing initial load size.",
+                  "demparser": "",
+                  "togglesWithHeader": true
+                },
+                {
+                  "name": "Geodatasets - Time Series",
+                  "uuid": "15cf8c7d-857f-4036-9cd6-80168948b381",
+                  "sublayers": [],
+                  "type": "vector",
+                  "kind": "none",
+                  "visibility": false,
+                  "sourceType": "geodatasets",
+                  "url": "reference_mission_time_series",
+                  "layer3dType": "clamped",
+                  "initialOpacity": 1,
+                  "controlled": false,
+                  "style": {
+                    "color": "#FFFFFF",
+                    "opacity": 1,
+                    "fillColor": "#00bbcc",
+                    "fillOpacity": 0.8,
+                    "weight": 2,
+                    "radius": 8,
+                    "animation": "none",
+                    "className": "geodatasets-timeseries"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": true,
+                    "type": "requery",
+                    "format": "%Y-%m-%dT%H:%M:%SZ",
+                    "refreshIntervalEnabled": false,
+                    "dataStartTime": "2024-01-01T00:00:00Z",
+                    "dataEndTime": "2024-06-30T23:59:59Z"
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "dynamicExtent": false,
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": false,
+                    "style": {
+                      "nointeraction": false
+                    }
+                  },
+                  "description": "Demonstrates time.type='requery' for geodatasets: the time range is sent to PostGIS as a server-side SQL filter on the start_time/end_time BIGINT columns. Use the Time Control tool to filter events by date range (Jan–Jun 2024).",
+                  "demparser": "",
+                  "togglesWithHeader": true
                 }
               ],
-              "description": "",
+              "description": "PostGIS-backed vector layers showcasing geodataset features: dynamic viewport querying, deduplication, lazy property loading, and server-side time filtering.",
               "demparser": "",
               "controlled": false,
               "togglesWithHeader": true,
-              "uuid": "e10cf9cd-a94b-4bfa-a3df-da9e0297c40d"
+              "uuid": "cbaa8bbe-6b93-4bc8-9243-6f52cd0223d2"
             },
             {
               "name": "Viewer Panel",
@@ -2044,23 +2215,6 @@
               "uuid": "16a7ff69-811c-492a-9830-15613d1162d5"
             },
             {
-              "name": "ArcGIS World Imagery",
-              "type": "tile",
-              "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-              "initialOpacity": 1,
-              "visibility": true,
-              "attribution": "Esri, Maxar, Earthstar Geographics, and the GIS User Community",
-              "minZoom": 0,
-              "maxZoom": 18,
-              "maxNativeZoom": 18,
-              "tileformat": "xyz",
-              "description": "",
-              "demparser": "",
-              "controlled": false,
-              "togglesWithHeader": true,
-              "uuid": "9473bb45-f7da-4650-9036-f44d2a300c4b"
-            },
-            {
               "name": "ArcGIS World Topographic",
               "type": "tile",
               "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
@@ -2078,41 +2232,21 @@
               "uuid": "932839a4-0973-4d52-9403-3639ed285e82"
             },
             {
-              "name": "TODO - Basemap",
-              "uuid": "4cd12376-377a-44e3-8cad-6a1c6322a55b",
-              "sublayers": [],
+              "name": "ArcGIS World Imagery",
               "type": "tile",
-              "visibility": false,
-              "sourceType": "url",
-              "url": "Layers/Tiles/basemap/{z}/{x}/{y}.png",
-              "tileformat": "tms",
-              "controlled": false,
+              "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
               "initialOpacity": 1,
+              "visibility": true,
+              "attribution": "Esri, Maxar, Earthstar Geographics, and the GIS User Community",
               "minZoom": 0,
-              "maxNativeZoom": 18,
               "maxZoom": 18,
+              "maxNativeZoom": 18,
+              "tileformat": "xyz",
+              "description": "",
               "demparser": "",
-              "throughTileServer": false,
-              "cogResampling": "nearest",
-              "cogExpressionEditable": false,
-              "cogTransform": false,
-              "cogColormap": "Accent",
-              "style": {
-                "brightness": 1,
-                "contrast": 1,
-                "saturation": 1,
-                "blend": "none"
-              },
-              "time": {
-                "enabled": false,
-                "type": "requery",
-                "compositeTile": false,
-                "refreshIntervalEnabled": false
-              },
-              "variables": {
-                "legendOrientation": "vertical"
-              },
-              "description": ""
+              "controlled": false,
+              "togglesWithHeader": true,
+              "uuid": "9473bb45-f7da-4650-9036-f44d2a300c4b"
             }
           ],
           "description": "",

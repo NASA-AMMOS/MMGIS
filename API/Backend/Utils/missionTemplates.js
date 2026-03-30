@@ -2,6 +2,9 @@ const fs = require('fs').promises;
 const path = require('path');
 const logger = require('../../logger');
 const { v4: uuidv4 } = require('uuid');
+const { Geodatasets, makeNewGeodatasetTable } = require('../Geodatasets/models/geodatasets');
+const { sequelize } = require('../../connection');
+const Utils = require('../../utils.js');
 
 /**
  * Create a complete Reference Mission copy
@@ -36,6 +39,10 @@ async function createReferenceMission(missionName) {
 
         // 4. Customize config with mission name
         const customConfig = customizeReferenceMissionConfig(referenceMissionConfig, missionName);
+
+        // 5. Set up geodatasets from blueprint Geodatasets/ directory
+        const geodatasetResult = await setupReferenceGeodatasets(missionName);
+        logger('info', `Reference Mission geodatasets: ${geodatasetResult.created} created, ${geodatasetResult.errors} errors`, null, null);
 
         return {
             success: true,
@@ -112,6 +119,102 @@ function addRequiredLayerFields(layers) {
     }
 }
 
+
+/**
+ * Delete and recreate all geodatasets for a Reference Mission from blueprint GeoJSON files.
+ * Each .geojson file in blueprints/Missions/Reference-Mission/Geodatasets/ becomes a
+ * geodataset named "{missionSlug}-{filename_without_ext}".
+ * Only geodatasets for this specific mission (by slug) are deleted/recreated.
+ * @param {string} missionName - Mission name (e.g. "Reference-Mission", "Reference-Mission-Moon")
+ * @returns {Promise<{created: number, errors: number}>}
+ */
+async function setupReferenceGeodatasets(missionName) {
+    const geodatasetsDir = path.resolve('./blueprints/Missions/Reference-Mission/Geodatasets');
+    const missionSlug = missionName.toLowerCase();
+
+    try {
+        await fs.access(geodatasetsDir);
+    } catch {
+        logger('info', 'No Geodatasets directory in Reference-Mission blueprint, skipping geodataset setup', null, null);
+        return { created: 0, errors: 0 };
+    }
+
+    const allFiles = await fs.readdir(geodatasetsDir);
+    const files = allFiles.filter(f => f.endsWith('.geojson'));
+
+    // Lazily require populateGeodatasetTable to avoid circular dependency issues at module load
+    const { populateGeodatasetTable } = require('../Geodatasets/routes/geodatasets');
+
+    let created = 0, errors = 0;
+    for (const file of files) {
+        const baseName = path.basename(file, '.geojson');
+        // Use underscores: hyphens are stripped by makeNewGeodatasetTable's sanitizer but underscores are preserved
+        // e.g. mission "Reference-Mission" + "basic.geojson" -> "reference_mission_basic"
+        const geodatasetName = `${missionSlug.replace(/-/g, '_')}_${baseName.replace(/-/g, '_')}`;
+        const filePath = path.join(geodatasetsDir, file);
+
+        try {
+            // Delete existing geodataset for this mission if present
+            const existing = await Geodatasets.findOne({ where: { name: geodatasetName } });
+            if (existing) {
+                await sequelize.query(
+                    `DROP TABLE IF EXISTS ${Utils.forceAlphaNumUnder(existing.dataValues.table)};`,
+                    { replacements: {} }
+                );
+                await Geodatasets.destroy({ where: { name: geodatasetName } });
+                logger('info', `Deleted existing geodataset '${geodatasetName}'`, null, null);
+            }
+
+            // Parse GeoJSON
+            const raw = await fs.readFile(filePath, 'utf8');
+            const geojson = JSON.parse(raw);
+            const features = geojson.features || [];
+
+            // Optional time/group/feature property configs from GeoJSON root
+            const startProp = geojson.startProp || null;
+            const endProp = geojson.endProp || null;
+            const groupIdProp = geojson.groupIdProp || null;
+            const featureIdProp = geojson.featureIdProp || null;
+
+            // Create geodataset table (callback-based, wrapped in Promise)
+            const tableResult = await new Promise((resolve, reject) => {
+                makeNewGeodatasetTable(
+                    geodatasetName,
+                    file,
+                    features.length,
+                    startProp, endProp, groupIdProp, featureIdProp,
+                    null,
+                    resolve,
+                    reject
+                );
+            });
+
+            // Truncate then populate
+            await sequelize.query(
+                `TRUNCATE TABLE ${Utils.forceAlphaNumUnder(tableResult.table)} RESTART IDENTITY`,
+                { replacements: {} }
+            );
+            await new Promise((resolve, reject) => {
+                populateGeodatasetTable(
+                    tableResult.tableObj,
+                    features,
+                    startProp, endProp, groupIdProp, featureIdProp,
+                    (success) => success
+                        ? resolve()
+                        : reject(new Error('populateGeodatasetTable failed'))
+                );
+            });
+
+            logger('info', `Created geodataset '${geodatasetName}' with ${features.length} features`, null, null);
+            created++;
+        } catch (err) {
+            logger('error', `Failed to setup geodataset '${geodatasetName}': ${err.message}`, null, null);
+            errors++;
+        }
+    }
+
+    return { created, errors };
+}
 
 module.exports = {
     createReferenceMission,
