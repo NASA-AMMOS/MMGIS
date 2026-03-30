@@ -1,0 +1,31 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "MSL Sol 1051 Waypoint",
+        "description": "Rover position for Sol 1051. Click to open the 360° Navcam mosaic in the Viewer Panel. The Mosaic Targets layer shows where named rock targets appear on the panoramic sphere.",
+        "sol": 1051,
+        "images": [
+          {
+            "name": "MSL Sol 1051 Navcam Mosaic",
+            "url": "Data/Mosaics/N_L000_1051_ILT048CYL_S_2470_UNCORM1.jpg",
+            "isPanoramic": true,
+            "rows": 1800,
+            "columns": 7696,
+            "azmin": 0.0,
+            "azmax": 360.0,
+            "elmin": -66.5118,
+            "elmax": 17.7171,
+            "elzero": 379.759
+          }
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.463, 37.822]
+      }
+    }
+  ]
+}

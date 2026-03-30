@@ -742,6 +742,212 @@
                     "hideMainFeature": false
                   },
                   "description": ""
+                },
+                {
+                  "name": "Mosaic - Transmitter",
+                  "uuid": "e791f026-7a60-4c32-833a-83d9d8329dfe",
+                  "sublayers": [],
+                  "type": "vector",
+                  "kind": "viewer_open",
+                  "visibility": false,
+                  "sourceType": "url",
+                  "url": "Layers/Vectors/photosphere-waypoint.geojson",
+                  "layer3dType": "clamped",
+                  "initialOpacity": 1,
+                  "controlled": false,
+                  "style": {
+                    "color": "#FFFFFF",
+                    "opacity": 1,
+                    "fillColor": "#ff6600",
+                    "fillOpacity": 1,
+                    "weight": 2,
+                    "radius": 8,
+                    "animation": "none",
+                    "className": "mosaic-transmitter"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "dynamicExtent": false,
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": false,
+                    "style": {
+                      "nointeraction": false
+                    },
+                    "layerAttachments": {
+                      "labels": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "theme": "default",
+                        "size": "default"
+                      },
+                      "pairings": {
+                        "enabled": true,
+                        "initialVisibility": true,
+                        "layers": [
+                          "Mosaic Targets"
+                        ],
+                        "pairProp": "sol",
+                        "style": {
+                          "color": "#FFFF00"
+                        }
+                      }
+                    },
+                    "coordinateAttachments": {
+                      "marker": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "color": "#FFFFFF",
+                        "fillColor": "#FFFFFF"
+                      }
+                    },
+                    "markerAttachments": {
+                      "bearing": {
+                        "enabled": false,
+                        "angleUnit": "deg",
+                        "color": "#FFFFFF",
+                        "useCustomShape": false
+                      },
+                      "image": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "angleUnit": "deg",
+                        "show": "click"
+                      },
+                      "model": {
+                        "enabled": false,
+                        "yawUnit": "deg",
+                        "invertYaw": false,
+                        "pitchUnit": "deg",
+                        "invertPitch": false,
+                        "rollUnit": "deg",
+                        "invertRoll": false,
+                        "show": "click"
+                      },
+                      "uncertainty": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "strokeColor": "#FFFFFF",
+                        "color": "#FFFFFF",
+                        "axisUnit": "meters",
+                        "angleUnit": "deg"
+                      }
+                    },
+                    "pathAttachments": {
+                      "gradient": {
+                        "enabled": false,
+                        "connectAllPoints": false
+                      }
+                    },
+                    "hideMainFeature": false
+                  },
+                  "description": "Rover waypoint for Sol 1051. Click to open the 360° Navcam panoramic mosaic. The Mosaic Targets layer must be enabled to see target dots overlaid on the sphere."
+                },
+                {
+                  "name": "Mosaic - Receivers",
+                  "uuid": "7f08ac15-93d7-46f8-b14d-db951f6e9e07",
+                  "sublayers": [],
+                  "type": "vector",
+                  "kind": "info",
+                  "visibility": false,
+                  "sourceType": "url",
+                  "url": "Layers/Vectors/mosaic-targets.geojson",
+                  "layer3dType": "clamped",
+                  "initialOpacity": 1,
+                  "controlled": false,
+                  "style": {
+                    "color": "#FFFFFF",
+                    "opacity": 1,
+                    "fillColor": "#FFFF00",
+                    "fillOpacity": 0.8,
+                    "weight": 2,
+                    "radius": 6,
+                    "animation": "none",
+                    "className": "mosaic-receivers"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "dynamicExtent": false,
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": false,
+                    "style": {
+                      "nointeraction": false
+                    },
+                    "layerAttachments": {
+                      "labels": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "theme": "default",
+                        "size": "default"
+                      },
+                      "pairings": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "style": {
+                          "color": "#FFFFFF"
+                        }
+                      }
+                    },
+                    "coordinateAttachments": {
+                      "marker": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "color": "#FFFFFF",
+                        "fillColor": "#FFFFFF"
+                      }
+                    },
+                    "markerAttachments": {
+                      "bearing": {
+                        "enabled": false,
+                        "angleUnit": "deg",
+                        "color": "#FFFFFF",
+                        "useCustomShape": false
+                      },
+                      "image": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "angleUnit": "deg",
+                        "show": "click"
+                      },
+                      "model": {
+                        "enabled": false,
+                        "yawUnit": "deg",
+                        "invertYaw": false,
+                        "pitchUnit": "deg",
+                        "invertPitch": false,
+                        "rollUnit": "deg",
+                        "invertRoll": false,
+                        "show": "click"
+                      },
+                      "uncertainty": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "strokeColor": "#FFFFFF",
+                        "color": "#FFFFFF",
+                        "axisUnit": "meters",
+                        "angleUnit": "deg"
+                      }
+                    },
+                    "pathAttachments": {
+                      "gradient": {
+                        "enabled": false,
+                        "connectAllPoints": false
+                      }
+                    },
+                    "hideMainFeature": false
+                  },
+                  "description": "Named rock targets observed from Sol 1051. Enable this layer alongside Photosphere Waypoint to see target positions overlaid on the panoramic mosaic sphere."
                 }
               ],
               "description": "",
@@ -1872,20 +2078,41 @@
               "uuid": "932839a4-0973-4d52-9403-3639ed285e82"
             },
             {
-              "name": "Basemap - Optional",
+              "name": "TODO - Basemap",
+              "uuid": "4cd12376-377a-44e3-8cad-6a1c6322a55b",
+              "sublayers": [],
               "type": "tile",
-              "url": "Layers/Tiles/basemap/{z}/{x}/{y}.png",
-              "initialOpacity": 1,
               "visibility": false,
-              "minZoom": 0,
-              "maxZoom": 18,
-              "maxNativeZoom": 18,
+              "sourceType": "url",
+              "url": "Layers/Tiles/basemap/{z}/{x}/{y}.png",
               "tileformat": "tms",
-              "description": "",
-              "demparser": "",
               "controlled": false,
-              "togglesWithHeader": true,
-              "uuid": "4cd12376-377a-44e3-8cad-6a1c6322a55b"
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 18,
+              "maxZoom": 18,
+              "demparser": "",
+              "throughTileServer": false,
+              "cogResampling": "nearest",
+              "cogExpressionEditable": false,
+              "cogTransform": false,
+              "cogColormap": "Accent",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical"
+              },
+              "description": ""
             }
           ],
           "description": "",
@@ -1899,7 +2126,7 @@
           "type": "header",
           "sublayers": [
             {
-              "name": "Single Band - Optional",
+              "name": "TODO - Single Band",
               "uuid": "72d30afc-0059-4600-b08e-9d30305d9491",
               "sublayers": [],
               "type": "image",
@@ -1922,11 +2149,11 @@
               "legend": "Layers/Legends/raster-colormap.json",
               "description": "",
               "style": {
-                "className": "singleband-optional"
+                "className": "todo-singleband"
               }
             },
             {
-              "name": "Cloud Optimized - Optional",
+              "name": "TODO - Cloud Optimized",
               "uuid": "84066fc9-44af-42db-abe5-7653d6e79d52",
               "sublayers": [],
               "type": "image",
@@ -1948,7 +2175,7 @@
               "cogExpressionEditable": false,
               "description": "",
               "style": {
-                "className": "cloudoptimized-optional"
+                "className": "todo-cloudoptimized"
               }
             }
           ],
@@ -1974,207 +2201,6 @@
       "controlled": false,
       "togglesWithHeader": true,
       "uuid": "3acb87e4-2097-41c9-a186-4d4ca61bb143"
-    },
-    {
-      "name": "3D Assets",
-      "type": "header",
-      "sublayers": [
-        {
-          "name": "Ingenuity Mars Helicopter",
-          "uuid": "73b0188a-481f-43ba-b3a4-06a494688abe",
-          "sublayers": [],
-          "type": "model",
-          "visibility": false,
-          "url": "https://science.nasa.gov/3d-resources/models/ingenuity-mars-helicopter/",
-          "position": {
-            "longitude": -122.4783,
-            "latitude": 37.8199,
-            "elevation": 50
-          },
-          "rotation": {
-            "x": 0,
-            "y": 45,
-            "z": 0
-          },
-          "scale": 1,
-          "style": {
-            "color": "#FFFFFF",
-            "fillColor": "#FFFFFF"
-          },
-          "shape": "none",
-          "time": {
-            "enabled": false,
-            "type": "requery"
-          },
-          "variables": {
-            "legendOrientation": "vertical",
-            "layerAttachments": {
-              "labels": {
-                "enabled": false,
-                "initialVisibility": false,
-                "theme": "default",
-                "size": "default"
-              },
-              "pairings": {
-                "enabled": false,
-                "initialVisibility": false,
-                "style": {
-                  "color": "#FFFFFF"
-                }
-              }
-            },
-            "coordinateAttachments": {
-              "marker": {
-                "enabled": false,
-                "initialVisibility": false,
-                "color": "#FFFFFF",
-                "fillColor": "#FFFFFF"
-              }
-            },
-            "markerAttachments": {
-              "bearing": {
-                "enabled": false,
-                "angleUnit": "deg",
-                "color": "#FFFFFF",
-                "useCustomShape": false
-              },
-              "image": {
-                "enabled": false,
-                "initialVisibility": false,
-                "angleUnit": "deg",
-                "show": "click"
-              },
-              "model": {
-                "enabled": false,
-                "yawUnit": "deg",
-                "invertYaw": false,
-                "pitchUnit": "deg",
-                "invertPitch": false,
-                "rollUnit": "deg",
-                "invertRoll": false,
-                "show": "click"
-              },
-              "uncertainty": {
-                "enabled": false,
-                "initialVisibility": false,
-                "strokeColor": "#FFFFFF",
-                "color": "#FFFFFF",
-                "axisUnit": "meters",
-                "angleUnit": "deg"
-              }
-            },
-            "pathAttachments": {
-              "gradient": {
-                "enabled": false,
-                "connectAllPoints": false
-              }
-            },
-            "hideMainFeature": false
-          },
-          "description": "",
-          "initialOpacity": 1
-        },
-        {
-          "name": "James Webb Space Telescope",
-          "uuid": "695c8781-3b96-41c2-88a5-f871e88b07eb",
-          "sublayers": [],
-          "type": "model",
-          "visibility": false,
-          "url": "https://science.nasa.gov/3d-resources/models/james-webb-space-telescope/",
-          "position": {
-            "longitude": -122.423,
-            "latitude": 37.827,
-            "elevation": 100
-          },
-          "rotation": {
-            "x": 0,
-            "y": 0,
-            "z": 0
-          },
-          "scale": 1,
-          "style": {
-            "color": "#FFFFFF",
-            "fillColor": "#FFFFFF"
-          },
-          "shape": "none",
-          "time": {
-            "enabled": false,
-            "type": "requery"
-          },
-          "variables": {
-            "legendOrientation": "vertical",
-            "layerAttachments": {
-              "labels": {
-                "enabled": false,
-                "initialVisibility": false,
-                "theme": "default",
-                "size": "default"
-              },
-              "pairings": {
-                "enabled": false,
-                "initialVisibility": false,
-                "style": {
-                  "color": "#FFFFFF"
-                }
-              }
-            },
-            "coordinateAttachments": {
-              "marker": {
-                "enabled": false,
-                "initialVisibility": false,
-                "color": "#FFFFFF",
-                "fillColor": "#FFFFFF"
-              }
-            },
-            "markerAttachments": {
-              "bearing": {
-                "enabled": false,
-                "angleUnit": "deg",
-                "color": "#FFFFFF",
-                "useCustomShape": false
-              },
-              "image": {
-                "enabled": false,
-                "initialVisibility": false,
-                "angleUnit": "deg",
-                "show": "click"
-              },
-              "model": {
-                "enabled": false,
-                "yawUnit": "deg",
-                "invertYaw": false,
-                "pitchUnit": "deg",
-                "invertPitch": false,
-                "rollUnit": "deg",
-                "invertRoll": false,
-                "show": "click"
-              },
-              "uncertainty": {
-                "enabled": false,
-                "initialVisibility": false,
-                "strokeColor": "#FFFFFF",
-                "color": "#FFFFFF",
-                "axisUnit": "meters",
-                "angleUnit": "deg"
-              }
-            },
-            "pathAttachments": {
-              "gradient": {
-                "enabled": false,
-                "connectAllPoints": false
-              }
-            },
-            "hideMainFeature": false
-          },
-          "description": "",
-          "initialOpacity": 1
-        }
-      ],
-      "description": "",
-      "demparser": "",
-      "controlled": false,
-      "togglesWithHeader": true,
-      "uuid": "5d6e2919-c0a1-49e4-a0e6-da357d9893fb"
     }
   ],
   "tools": [
