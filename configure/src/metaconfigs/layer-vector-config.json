@@ -446,7 +446,7 @@
             {
               "field": "time.type",
               "name": "Time Type",
-              "description": "When the time changes, whether the layer should requery the source or filter the layer locally based on feature properties.",
+              "description": "How time filtering is performed:\n\t<strong>• local</strong> - Downloads the entire file first, then filters features client-side based on their time properties (e.g., a timestamp field in the GeoJSON). If a refresh interval is set, the file will be re-downloaded periodically and then filtered locally.\n\t<strong>• requery</strong> - Re-requests the URL with {starttime} and {endtime} injected as parameters, expecting the server to do the time filtering. Does not filter client-side.",
               "type": "dropdown",
               "width": 3,
               "options": ["requery", "local"]

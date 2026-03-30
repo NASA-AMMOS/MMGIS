@@ -637,6 +637,118 @@
               "controlled": false,
               "togglesWithHeader": true,
               "uuid": "e10cf9cd-a94b-4bfa-a3df-da9e0297c40d"
+            },
+            {
+              "name": "Viewer Panel",
+              "type": "header",
+              "sublayers": [
+                {
+                  "name": "Viewer Panel Example",
+                  "uuid": "f3a7b891-c234-4d56-b789-012ef3456789",
+                  "sublayers": [],
+                  "type": "vector",
+                  "kind": "viewer_open",
+                  "visibility": false,
+                  "sourceType": "url",
+                  "url": "Layers/Vectors/viewer-panel-example.geojson",
+                  "layer3dType": "clamped",
+                  "initialOpacity": 1,
+                  "controlled": false,
+                  "style": {
+                    "color": "#FFFFFF",
+                    "opacity": 1,
+                    "fillColor": "#75053b",
+                    "fillOpacity": 1,
+                    "weight": 2,
+                    "radius": 8,
+                    "animation": "none",
+                    "className": "viewerpanelexample"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "dynamicExtent": false,
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": false,
+                    "style": {
+                      "nointeraction": false
+                    },
+                    "layerAttachments": {
+                      "labels": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "theme": "default",
+                        "size": "default"
+                      },
+                      "pairings": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "style": {
+                          "color": "#FFFFFF"
+                        }
+                      }
+                    },
+                    "coordinateAttachments": {
+                      "marker": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "color": "#FFFFFF",
+                        "fillColor": "#FFFFFF"
+                      }
+                    },
+                    "markerAttachments": {
+                      "bearing": {
+                        "enabled": false,
+                        "angleUnit": "deg",
+                        "color": "#FFFFFF",
+                        "useCustomShape": false
+                      },
+                      "image": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "angleUnit": "deg",
+                        "show": "click"
+                      },
+                      "model": {
+                        "enabled": false,
+                        "yawUnit": "deg",
+                        "invertYaw": false,
+                        "pitchUnit": "deg",
+                        "invertPitch": false,
+                        "rollUnit": "deg",
+                        "invertRoll": false,
+                        "show": "click"
+                      },
+                      "uncertainty": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "strokeColor": "#FFFFFF",
+                        "color": "#FFFFFF",
+                        "axisUnit": "meters",
+                        "angleUnit": "deg"
+                      }
+                    },
+                    "pathAttachments": {
+                      "gradient": {
+                        "enabled": false,
+                        "connectAllPoints": false
+                      }
+                    },
+                    "hideMainFeature": false
+                  },
+                  "description": ""
+                }
+              ],
+              "description": "",
+              "demparser": "",
+              "controlled": false,
+              "togglesWithHeader": true,
+              "uuid": "12b7b891-c234-4d56-b789-94c018e215a9"
             }
           ],
           "description": "",

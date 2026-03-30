@@ -157,7 +157,95 @@ export function transformStacUrl(url, layerData, type = 'tile', location = null)
     }
 }
 
+/**
+ * Build TiTiler query parameters for COG and STAC collection layers
+ * Extracted from leaflet-tilelayer-middleware.js for reusability in both Leaflet and Cesium
+ *
+ * @param {Object} options - Configuration options
+ * @param {string} options.splitColonType - 'COG' or 'stac-collection'
+ * @param {string} options.starttime - Start time for datetime parameter
+ * @param {string} options.endtime - End time for datetime parameter
+ * @param {boolean} options.cogTransform - Enable rescaling and coloring
+ * @param {number} options.cogMin - Minimum value for rescaling
+ * @param {number} options.cogMax - Maximum value for rescaling
+ * @param {number} options.currentCogMin - Runtime minimum value (overrides cogMin)
+ * @param {number} options.currentCogMax - Runtime maximum value (overrides cogMax)
+ * @param {string} options.cogColormap - Colormap name (e.g., 'viridis', 'cividis')
+ * @param {string} options.cogExpression - Band math expression
+ * @param {string} options.currentCogExpression - Runtime expression (overrides cogExpression)
+ * @returns {string} Query parameters string (without leading ? or &)
+ *
+ * @example
+ * // Returns 'datetime=2026-02-18/2026-03-18&exitwhenfull=false&skipcovered=false&rescale=[0,300]&colormap_name=cividis'
+ * buildTiTilerQueryParams({
+ *   splitColonType: 'stac-collection',
+ *   starttime: '2026-02-18',
+ *   endtime: '2026-03-18',
+ *   cogTransform: true,
+ *   cogMin: 0,
+ *   cogMax: 300,
+ *   cogColormap: 'cividis'
+ * })
+ */
+export function buildTiTilerQueryParams(options) {
+    const params = []
+
+    // datetime parameter
+    if (options.endtime != null) {
+        const datetime = options.starttime != null
+            ? `${options.starttime}/${options.endtime}`
+            : `../${options.endtime}`
+        params.push(`datetime=${datetime}`)
+    }
+
+    // STAC-specific parameters
+    if (options.splitColonType === 'stac-collection') {
+        params.push('exitwhenfull=false&skipcovered=false')
+    }
+
+    // rescale parameter
+    if (
+        options.cogTransform === true &&
+        options.cogMin != null &&
+        options.cogMax != null
+    ) {
+        const min = options.currentCogMin != null ? options.currentCogMin : options.cogMin
+        const max = options.currentCogMax != null ? options.currentCogMax : options.cogMax
+        params.push(`rescale=[${min},${max}]`)
+
+        // colormap parameter (only with rescale)
+        if (options.cogColormap != null) {
+            params.push(`colormap_name=${options.cogColormap}`)
+        }
+    }
+
+    // expression parameter
+    const expressionToUse = options.currentCogExpression || options.cogExpression
+    if (expressionToUse && expressionToUse.trim() !== '') {
+        // Replace bX or BX (where X is a number) with asset_bX or asset_BX
+        // Only replace if not already prefixed with an asset name (word_bX pattern)
+        const processedExpression = expressionToUse.replace(/(?<!\w)([bB])(\d+)/g, 'asset_$1$2')
+        params.push(`expression=${encodeURIComponent(processedExpression)}`)
+    }
+
+    // STAC mosaic limits from global config
+    if (typeof mmgisglobal !== 'undefined' && mmgisglobal.options?.stac) {
+        if (mmgisglobal.options.stac.mosaicItemLimit != null) {
+            params.push(`items_limit=${mmgisglobal.options.stac.mosaicItemLimit}`)
+        }
+        if (mmgisglobal.options.stac.mosaicScanLimit != null) {
+            params.push(`scan_limit=${mmgisglobal.options.stac.mosaicScanLimit}`)
+        }
+        if (mmgisglobal.options.stac.mosaicTimeLimit != null) {
+            params.push(`time_limit=${mmgisglobal.options.stac.mosaicTimeLimit}`)
+        }
+    }
+
+    return params.join('&')
+}
+
 export default {
     parseExternalStacUrl,
-    transformStacUrl
+    transformStacUrl,
+    buildTiTilerQueryParams
 }

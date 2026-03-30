@@ -278,6 +278,20 @@ const LayerModal = (props) => {
             });
           });
 
+          // Filter empty strings from any indexed text array fields
+          const filterEmptyStrings = (obj) => {
+            Object.keys(obj).forEach((key) => {
+              const val = obj[key];
+              if (Array.isArray(val)) {
+                obj[key] = val.filter((v) => v != null && v !== "");
+                if (obj[key].length === 0) delete obj[key];
+              } else if (val != null && typeof val === "object") {
+                filterEmptyStrings(val);
+              }
+            });
+          };
+          filterEmptyStrings(completedLayer);
+
           // Clear and copy while maintaining reference
           Object.keys(l).forEach((key) => {
             delete l[key];

@@ -5,55 +5,131 @@
   </h1>
 </div>
 
-<pre align="center">Spatial Data Infrastructure for Planetary Missions</pre>
+<pre align="center">Web-based Mapping for Earth, Lunar and Planetary Visualization, Research, Science, Planning and Operations.</pre>
 
-<span style="display:block;text-align:center">![Example](/docs/assets/images/Full_Example.png)</span>
+<div align="center">
+  <a href="https://ammos.nasa.gov/media/NASA-AMMOS-MMGIS.mp4" target="_blank">
+    <img src="/docs/assets/images/NASA-AMMOS-MMGIS-frame0.png" alt="MMGIS Demo Video" width="100%" />
+  </a>
+  <p><i>Click to watch the demo video.</i></p>
+</div>
+
+<div align="center">
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15237385.svg)](https://doi.org/10.5281/zenodo.15237385)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](https://nodejs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%2B-336791.svg)](https://www.postgresql.org/)
+[![GitHub Issues](https://img.shields.io/github/issues/NASA-AMMOS/MMGIS)](https://github.com/NASA-AMMOS/MMGIS/issues)
+[![GitHub Last Commit](https://img.shields.io/github/last-commit/NASA-AMMOS/MMGIS)](https://github.com/NASA-AMMOS/MMGIS/commits/master)
+[![GitHub Stars](https://img.shields.io/github/stars/NASA-AMMOS/MMGIS?style=social)](https://github.com/NASA-AMMOS/MMGIS/stargazers)
 
----
+</div>
+
+<div align="center">A free, open source and easily configurable solution for GIS on the web. Run MMGIS via a prebuilt docker image on your server and use the Configure page to setup a new mission map to get started. You completely own your data too but are responsible for any data processing (though provided are a variety of scripts and organization methods to help do so and jump off from)</div>
+
+</br>
+
+<div align="center"><b>Mapping Together</b></div>
+
+<div align="center">
+  MSL Curiosity Rover &nbsp;·&nbsp; InSight &nbsp;·&nbsp; Mars 2020 Perseverance Rover &nbsp;·&nbsp; Mars Helicopter (Ingenuity) &nbsp;·&nbsp; EMIT &nbsp;·&nbsp; MAIA &nbsp;·&nbsp; BioSCape &nbsp;·&nbsp; FireSense &nbsp;·&nbsp; Lunar VIPER &nbsp;·&nbsp; MGViz &nbsp;·&nbsp; SHIFT &nbsp;·&nbsp; FROZON &nbsp;·&nbsp; Where is the Rover &nbsp;·&nbsp; and more!
+</div>
+
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
+
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Plugins](#plugins)
+- [License](#license-apache-20)
+- [Contacts](#contacts)
 
 ## Features
 
-- Web-based mapping interface
-- 2D slippy map
-- 3D globe with tiled height data
-- Image viewer capable of showing mosaics with targets
-- 5 fully customizable layer types
-- Easy to use CMS
-- Multi-user vector drawing
-- Elevation profiler
-- Custom projections
-- Tiling scripts
-- COGs
-- TiTiler
-- STAC
-- And so much more...
+### Map Visualization
 
----
+- **2D/3D rendering** - Leaflet-based 2D maps and Cesium/Lithosphere-powered 3D globes with synchronized views
+- **Immersive viewers** - High-resolution imagery viewer, photospheres, 3D models, PDFs, and videos
+- **Custom projections** - Support for planetary projections and custom coordinate systems
+- **Terrain visualization** - Tiled height data generation
 
-## [Full documentation](https://nasa-ammos.github.io/MMGIS/)
+### Data & Layers
 
----
+- **10 layer types** - Vector, Tile, Image, Model, Vectortile, Velocity, Video, Data, Header, and Query layers
+- **Rich data formats** - GeoJSON, Shapefiles, GeoTIFF, COG, OBJ, GLTF, and more
+- **Vector/raster tile serving** - MVT tile generation with PostGIS backend
+- **TiTiler integration** - Serve Cloud-Optimized GeoTIFFs (COGs) on-the-fly with dynamic styling and band combinations
+- **TiTiler STAC mosaicking** - Automatically mosaic multiple COGs from STAC catalogs into seamless, queryable layers
+- **STAC catalogs** - Spatiotemporal Asset Catalog integration for discovering geospatial data
+- **Dynamic styling** - Property-based styling with gradients, discrete values, and geologic patterns
+- **Hierarchical organization** - Nested layer groups with visibility and opacity controls
+
+### Interactive Tools
+
+- **Animation** - Create animated GIFs and MP4s from map sequences
+- **Chemistry** - Visualize chemical composition data from planetary samples
+- **Curtain** - Display ground-penetrating radar subsurface imagery
+- **Draw** - Multi-user collaborative vector drawing with real-time synchronization
+- **Identifier** - Query pixel values from rasters and point data
+- **Info** - Display feature properties and metadata
+- **Isochrone** - Terrain traversability analysis and reachability mapping
+- **Kinds** - Configure layer-specific click behaviors
+- **Layers** - Manage layer visibility, ordering, and properties
+- **Legend** - Auto-generated legends from layer styling and metadata
+- **Measure** - Distance measurements, elevation profiles and line-of-sight analysis
+- **Query** - Spatial and attribute queries across datasets
+- **Shade** - Solar/Orbiter/Body illumination and shadow visualization via NAIF's SPICE
+- **Sites** - Quick navigation bookmarks and saved viewpoints
+- **TimeControl** - Time-enabled data visualization with temporal queries
+- **Viewshed** - Line-of-sight visibility analysis
+
+### Collaboration & Sharing
+
+- **Real-time collaboration** - WebSocket-based synchronization across multiple users
+- **Live drawing sync** - See teammate edits as they happen
+- **Layer notifications** - Automatic updates when administrators modify layers
+- **Configuration coordination** - Conflict detection for multi-admin editing
+
+### Mission Management
+
+- **Easy-to-use CMS** - Graphical configuration interface for mission setup
+- **Flexible authentication** - Local accounts, OAuth2/SSO, or open access modes
+- **Role-based access** - SuperAdmin, Admin, and User permission levels
+- **Mission-specific access** - Control which users can view and edit each mission
+- **API token management** - Long-term tokens for programmatic access
+- **Multiple missions** - Host multiple independent mapping projects
+
+### Advanced Features
+
+- **Temporal data** - Time-based layer filtering and animation
+- **Elevation profiling** - Extract terrain profiles along paths
+- **Spatial queries** - PostGIS-powered geospatial analysis
+- **Geodataset management** - Upload, index, and serve large vector/raster datasets
+- **Custom tile generation** - Scripts for creating optimized tilesets
+- **Plugin architecture** - Extend functionality with custom tools and backends
+- **Webhook integration** - Connect MMGIS to external systems and workflows
+
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
 ## Installation
 
----
+It is recommended to setup MMGIS via docker. However, if you would like to setup MMGIS without docker, please check out: https://nasa-ammos.github.io/MMGIS/setup/installation#installing-without-docker
 
-## Installing with Docker
+`/` will always refer to the repo's root directory.
 
-`/` will always refer to the repo's root directory
+### Building
+
+Point to a prebuilt image in your docker-compose.yml: https://github.com/NASA-AMMOS/MMGIS/pkgs/container/mmgis
+
+Or build it locally for a custom build:
 
 1. Clone the repo  
    `git clone https://github.com/NASA-AMMOS/MMGIS`
 
-1. From within `/`  
-   `npm install`
-
-### Building
-
-To build the Docker image, run:
-`docker build -t <image tag> .`
+1. Run:
+   `docker build -t <image tag> .`
 
 ### Preparing
 
@@ -78,7 +154,7 @@ To build the Docker image, run:
   ```
 
 - Set all the ENV variables in `.env`. More information about the ENVs can be found [here.](https://nasa-ammos.github.io/MMGIS/setup/envs)
-  - If using the postgis/postgres image from within the docker-compose.yml, set the ENV `DB_NAME` to the name of the service (in this case `db`)
+  - If using the postgis/postgres image from within the docker-compose.yml, set the ENV `DB_HOST` to the name of the service (in this case `db`)
 
 #### docker-compose.yml
 
@@ -87,163 +163,32 @@ This repo contains a `/docker-compose.sample.yml` file that defines a service fo
 - Copy this file to a `docker-compose.yml`.
 - In the `db` service in `docker-compose.yml`, set the `POSTGRES_PASSWORD` environment variable and use this for MMGIS's `DB_PASS` ENV value.
 - Fill out the other `environment` variables within the `docker-compose.yml` as well.
-- To run MMGIS in a container, you need to create a directory on the host machine and map this to a directory in the container.
-  - On the host machine, create a `Missions` directory and copy the contents of `./Missions` to your directory.
-  - Via the docker-compose.yml, map this directory to `/usr/src/app/Missions` in the container. For example, if the host directory is `./Missions`, the volume mapping would be `- ./Missions:/usr/src/app/Missions`
 - Note, the `/docker-compose.sample.yml` includes optional STAC and TiTiler services. If any of them are unwanted, they can be removed from the docker-compose-yml and their respective `.env` variable `WITH_{service}` can be set to false.
 
 ### Running
 
 Run: `docker-compose up -d`
 
+### Stopping
+
+Run: `docker-compose down`
+
 ### First Time UI Setup
 
 1. Setup the admin account:
-
-   - In your browser, navigate to `http://localhost:8888/configure`
+   - In your browser, navigate to `https://{your-mmgis-domain}/configure`
    - Sign up for an Administrator account (The Administrator account is always the first user in the database and you are only prompted to create an Administrator account if there are no other users)
 
-1. Now sign in with you Administrator credentials
+1. Now sign in with your Administrator credentials
 
 1. Click `NEW MISSION`  
-   Enter a new mission name and click `MAKE MISSION`  
-   Optional: (Use the mission name `"Test"` (case-sensitive) to make the sample mission)
+   Enter a new mission name and click `MAKE MISSION`
 
-Navigate to `http://localhost:8888`.
+Navigate to `https://{your-mmgis-domain}/`.
 
 See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configure/) for more information on how to use the configure page to customize and add data to MMGIS.
 
-## Installing Without Docker
-
-### System Requirements
-
-1. Install the latest version of [Node.js v20.11.1+](https://nodejs.org/en/download/).
-
-1. Install [PostgreSQL v16+](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads). Detailed [install instructions](https://www.postgresqltutorial.com/postgresql-getting-started/) for all platforms.
-1. Install [PostGIS 3+](https://postgis.net/install/). From the above install, you can use the 'Application Stack Builder' to install PostGIS or the default [PostGIS install instructions](https://postgis.net/install/) for all platforms.
-1. Make a new PostgreSQL database and remember the user, password and database name.
-   Use 'psql' or the 'SQL Shell' to log into Postgres. It will prompt you for the username and password made during the install.
-
-#### Python Environment
-
-1. Install [micromamba 2+](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html)
-   #### Windows:
-   1. In powershell run:
-      ```
-      Invoke-Expression ((Invoke-WebRequest -Uri https://micro.mamba.pm/install.ps1).Content)
-      ```
-   1. Initialize the shell with:
-      ```
-      micromamba shell init --shell cmd.exe --root-prefix=your\path\to\mamba
-      ```
-   1. In a command window in the MMGIS root directory run:
-      ```
-      micromamba env create -y --name mmgis --file=python-environment.yml
-      ```
-      - If you encounter an error like: `..\mamba\condabin\micromamba"' is not recognized as an internal or external command, operable program or batch file.`, then copy the `mamba.bat` file in that directory to `micromamba.bat`
-   1. Confirm the installation and initialization went well with:
-      ```
-      micromamba run -n mmgis gdalinfo --version
-      ```
-   1. Activate the environment before running `npm start`
-      ```
-      micromamba activate mmgis
-      ```
-   #### Legacy (without micromamba):
-   - GDAL [3.4+](https://gdal.org/download.html) with Python bindings (Windows users may find [these](https://github.com/cgohlke/geospatial-wheels/releases) helpful)
-   - Python [>=3.10 and <3.13](https://www.python.org/downloads/)
-   - From root MMGIS directory: `python -m pip install -r python-requirements.txt`
-   - Ensure your `PROJ_LIB` system ENV points to the proj.db install through python.
-   - Note: MMGIS expects and uses the command `python` only and not `python3` or variations.
-
-### Setup
-
-`/` will always refer to the repo's root directory
-
-1. Clone the repo  
-   `git clone https://github.com/NASA-AMMOS/MMGIS`
-
-1. From within `/`  
-   `npm install`
-
-1. Copy `/sample.env` to `.env`  
-   `cp sample.env .env`
-
-1. Open `.env` and update the following:
-
-   ```
-   DB_NAME=<name>
-   DB_USER=<user>
-   DB_PASS=<password>
-   ```
-
-   From the install example:
-
-   ```
-   DB_NAME=mmgis
-   DB_USER=postgres
-   DB_PASS=<password>
-   ```
-
-1. Run `npm run build` to bundle up the code (first time or if there are any changes)
-
-1. Go into /configure and run `npm install` followed by `npm run build` to build the configuration site.
-
-1. Go back to the root `/` directory
-
-1. Run `micromamba activate mmgis` or `python -m pip install -r python-requirements.txt` (if not using python environments)
-
-1. If using adjacent-servers (titiler, stac, ...) make `.env` files from the samples within the `/adjacent-servers/{servers}/` directory.
-
-1. Run `npm run start:prod`
-
-1. Setup the admin account:
-
-   - In your browser, navigate to `http://localhost:8888/configure`
-   - Sign up for an Administrator account (The Administrator account is always the first user in the database and you are only prompted to create an Administrator account if there are no other users)
-
-1. Now sign in with you Administrator credentials
-
-1. Click `NEW MISSION`  
-   Enter a new mission name and click `MAKE MISSION`  
-   (Use the mission name `"Test"` (case-sensitive) to make the sample mission)
-
-Go to `http://localhost:8888` to see the `Test` mission
-
-_Note:_ The development environment (`npm start`) and only the development environment uses two port numbers `8888` and `8889` (by default) — the latter for the main site and the former for the ancillary pages (such as `/configure` and `/docs`)
-
----
-
-## Scripts
-
-### Production
-
-1. Run `npm run build` to bundle up the code (first time or if there are any changes)
-
-1. Run `micromamba activate mmgis`(if applicable)
-
-1. Run `npm run start:prod`
-
-### Development
-
-1. Run `micromamba activate mmgis`(if applicable)
-
-1. Run `npm start`
-
-### Test
-
-1. Run `npm run test`  
-   _Note:_ Jest has just been added in v2.0.0 and test suites are still very limited. There is strong interest to move to Playwright.
-
----
-
-## Documentation
-
-### [The latest online documentation can be found here.](https://nasa-ammos.github.io/MMGIS/)
-
-Additionally, documentation pages are served at `http://localhost:8888/docs` or immediately within the [`docs/pages/markdowns`](/docs/pages/markdowns) directory.
-
----
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
 ## Plugins
 
@@ -253,29 +198,23 @@ MMGIS supports a flexible plugin system for adding custom tools and backend func
 
 Place custom tools in directories matching `/src/essence/*Private-Tools*` or `/src/essence/*Plugin-Tools*`. These directories are automatically gitignored and loaded when you run `npm run build`.
 
+### Component Plugins
+
+Place miscellaneous custom UI behaviors and components in directories matching `/src/essence/*Private-Components*` or `/src/essence/*Plugin-Components*`. These directories are automatically gitignored and loaded when you run `npm run build`.
+
 ### Backend Plugins
 
 Place custom backends in directories matching `/API/*Private-Backend*` or `/API/*Plugin-Backend*`. These directories are automatically gitignored and loaded when you run `npm start`.
 
 For detailed plugin development instructions, see the [Contributing Guide](https://nasa-ammos.github.io/MMGIS/contributing/).
 
----
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
-## Contributing
+## License: Apache 2.0
 
-Check out our contributing guide [here.](CONTRIBUTING.md)
+https://www.apache.org/licenses/LICENSE-2.0
 
----
-
-## Code of Conduct
-
-Check out our code of conduct [here.](CODE_OF_CONDUCT.md)
-
----
-
-### License: Apache 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
-
-Copyright (c) 2024, California Institute of Technology ("Caltech"). U.S. Government sponsorship acknowledged.
+Copyright (c) 2026, California Institute of Technology ("Caltech"). U.S. Government sponsorship acknowledged.
 
 All rights reserved.
 
@@ -287,7 +226,7 @@ Redistribution and use in source and binary forms, with or without modification,
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
----
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 
 ## Contacts
 

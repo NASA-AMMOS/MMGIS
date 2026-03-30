@@ -523,6 +523,18 @@ const L_ = {
                     let demUrl = L_.getUrl(s.type, s.demtileurl, s)
                     if (s.demtileurl == undefined || s.demtileurl.length == 0)
                         demUrl = undefined
+
+                    // Detect splitColonType from original URL
+                    let splitColonType = undefined
+                    if (s.url && typeof s.url === 'string') {
+                        const lowerUrl = s.url.toLowerCase()
+                        if (lowerUrl.startsWith('stac-collection:')) {
+                            splitColonType = 'stac-collection'
+                        } else if (lowerUrl.startsWith('cog:')) {
+                            splitColonType = 'COG'
+                        }
+                    }
+
                     L_.Globe_.litho.addLayer('tile', {
                         name: s.name,
                         order: L_._layersOrdered,
@@ -542,6 +554,16 @@ const L_ = {
                         maxZoom: s.maxNativeZoom,
                         //boundingBox: s.boundingBox,
                         time: s.time,
+                        // COG parameters for TiTiler layers
+                        splitColonType: splitColonType,
+                        cogTransform: s.cogTransform,
+                        cogMin: s.cogMin,
+                        cogMax: s.cogMax,
+                        currentCogMin: s.currentCogMin,
+                        currentCogMax: s.currentCogMax,
+                        cogColormap: s.cogColormap,
+                        cogExpression: s.cogExpression,
+                        currentCogExpression: s.currentCogExpression,
                     })
                 } else if (s.type === 'data') {
                 } else if (s.type === 'model') {
@@ -958,9 +980,8 @@ const L_ = {
 
                 // Add Globe layers
                 const s = L_.layers.dataFlat[i]
-                let layerUrl = s.url
-                if (!F_.isUrlAbsolute(layerUrl))
-                    layerUrl = L_.missionPath + layerUrl
+                // Use getUrl to properly transform STAC URLs and handle COG prefix
+                let layerUrl = L_.getUrl('tile', s.url, s)
                 if (
                     s.type === 'tile' ||
                     s.type === 'data' ||
@@ -977,6 +998,18 @@ const L_ = {
                     if (!F_.isUrlAbsolute(demUrl))
                         demUrl = L_.missionPath + demUrl
                     if (s.demtileurl == undefined) demUrl = undefined
+
+                    // Detect splitColonType from original URL
+                    let splitColonType = undefined
+                    if (s.url && typeof s.url === 'string') {
+                        const lowerUrl = s.url.toLowerCase()
+                        if (lowerUrl.startsWith('stac-collection:')) {
+                            splitColonType = 'stac-collection'
+                        } else if (lowerUrl.startsWith('cog:')) {
+                            splitColonType = 'COG'
+                        }
+                    }
+
                     if (s.type === 'tile')
                         L_.Globe_.litho.addLayer('tile', {
                             name: s.name,
@@ -997,6 +1030,16 @@ const L_ = {
                             maxZoom: s.maxNativeZoom,
                             //boundingBox: s.boundingBox,
                             time: s.time,
+                            // COG parameters for TiTiler layers
+                            splitColonType: splitColonType,
+                            cogTransform: s.cogTransform,
+                            cogMin: s.cogMin,
+                            cogMax: s.cogMax,
+                            currentCogMin: s.currentCogMin,
+                            currentCogMax: s.currentCogMax,
+                            cogColormap: s.cogColormap,
+                            cogExpression: s.cogExpression,
+                            currentCogExpression: s.currentCogExpression,
                         })
                 } else if (s.type === 'model') {
                     L_.Globe_.litho.addLayer('model', {
@@ -2345,11 +2388,12 @@ const L_ = {
             })
         }
         if (layerData?.variables?.useKeyAsName) {
-            dynamicProps = dynamicProps.concat(
+            const keyNames = (
                 typeof layerData.variables.useKeyAsName === 'string'
                     ? [layerData.variables.useKeyAsName]
                     : layerData.variables.useKeyAsName
-            )
+            ).filter((k) => k != null && k !== '')
+            dynamicProps = dynamicProps.concat(keyNames)
         }
         return dynamicProps
     },
@@ -3559,6 +3603,9 @@ const L_ = {
                 propertyNames = l.variables['useKeyAsName']
                 if (typeof propertyNames === 'string')
                     propertyNames = [propertyNames]
+                propertyNames = propertyNames.filter(
+                    (k) => k != null && k !== ''
+                )
                 propertyValues = Array(propertyNames.length).fill(null)
                 propertyNames.forEach((propertyName, idx) => {
                     if (

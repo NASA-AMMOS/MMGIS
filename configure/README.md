@@ -79,7 +79,7 @@ The structure of these meta-configuration is as follows:
           "description": "",
           "type": "dropdown",
           "width": 2,
-          "options": ["ll", "en", "cproj", "sproj", "rxy", "site"]
+          "options": ["ll", "ll_r", "en", "cproj", "sproj", "rxy", "site"]
         },
 
         {

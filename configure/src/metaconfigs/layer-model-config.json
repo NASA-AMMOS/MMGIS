@@ -385,10 +385,10 @@
             {
               "field": "time.type",
               "name": "Time Type",
-              "description": "When the time changes, whether the layer should requery the source or filter the layer locally based on feature properties.",
+              "description": "URL-based time filtering for 3D model layers. Re-requests the model file with {starttime} and {endtime} injected into the URL if the model data varies by time.",
               "type": "dropdown",
               "width": 3,
-              "options": ["requery", "local"]
+              "options": ["requery"]
             }
           ]
         },

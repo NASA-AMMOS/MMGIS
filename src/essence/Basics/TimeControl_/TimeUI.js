@@ -287,10 +287,10 @@ const TimeUI = {
             const tools = $('<div>')
                 .attr('id', 'timeUI')
                 .css({
-                    'display': 'flex',
+                    display: 'flex',
                     'flex-flow': 'column',
-                    'overflow': 'hidden',
-                    'height': '100%'
+                    overflow: 'hidden',
+                    height: '100%',
                 })
                 .html(markup)
             toolsContainer.append(tools)
@@ -303,9 +303,7 @@ const TimeUI = {
 
             $('#timeUI').toggleClass('active')
         } else {
-            const timeUIDiv = $('<div>')
-                .attr('id', 'timeUI')
-                .html(markup)
+            const timeUIDiv = $('<div>').attr('id', 'timeUI').html(markup)
             $('#splitscreens').append(timeUIDiv)
 
             const playPopover = $('<div>')
@@ -320,6 +318,24 @@ const TimeUI = {
         }
 
         TimeUI.attachEvents()
+
+        // Unsubscribe first in case init() is called multiple times
+        L_.unsubscribeOnLayerToggle('TimeUI')
+
+        // Subscribe to layer toggle events to refresh histogram
+        L_.subscribeOnLayerToggle('TimeUI', (layerName, isNowOn) => {
+            // Only refresh if the toggled layer is relevant to the histogram
+            const layer = L_.layers.data[layerName]
+            if (
+                layer &&
+                layer.type === 'tile' &&
+                layer.time &&
+                layer.time.enabled === true
+            ) {
+                // Use shorter 1-second debounce for layer toggles
+                TimeUI._refreshHistogramDebounced(1000)
+            }
+        })
 
         return TimeUI
     },
@@ -469,11 +485,7 @@ const TimeUI = {
 
             TimeUI._drawTimeLine(nextStart, nextEnd)
 
-            clearTimeout(TimeUI._zoomHistoTimeout)
-            $('#mmgisTimeUITimelineHisto').empty()
-            TimeUI._zoomHistoTimeout = setTimeout(() => {
-                TimeUI._makeHistogram()
-            }, 3000)
+            TimeUI._refreshHistogramDebounced()
         })
 
         // Drag range extent middle handle to move entire range
@@ -1005,7 +1017,7 @@ const TimeUI = {
         )
         if (
             L_.configData.time.initialend != null &&
-            L_.configData.time.initialend != 'now'
+            dateAddSec.dateString != 'now'
         ) {
             const dateStaged = new Date(dateAddSec.dateString)
             if (dateStaged == 'Invalid Date') {
@@ -1019,21 +1031,26 @@ const TimeUI = {
             TimeUI._initialEnd.getSeconds() + dateAddSec.additionalSeconds
         )
 
-        if (
-            L_.configData.time.initialwindowend != null &&
-            L_.configData.time.initialwindowend != 'now'
-        ) {
+        if (L_.configData.time.initialwindowend != null) {
             // parse formats like "2024-03-04T14:05:00Z + 10000000" for relative times
             dateAddSec = TimeUI.getDateAdditionalSeconds(
                 L_.configData.time.initialwindowend
             )
-            const dateStaged = new Date(dateAddSec.dateString)
-            if (dateStaged == 'Invalid Date') {
-                TimeUI._timelineEndTimestamp = new Date()
-                console.warn(
-                    "Invalid 'Initial Window End Time' provided. Defaulting to 'now'."
-                )
+            if (dateAddSec.dateString != 'now') {
+                const dateStaged = new Date(dateAddSec.dateString)
+                if (dateStaged == 'Invalid Date') {
+                    TimeUI._timelineEndTimestamp = new Date()
+                    console.warn(
+                        "Invalid 'Initial Window End Time' provided. Defaulting to 'now'."
+                    )
+                } else {
+                    dateStaged.setSeconds(
+                        dateStaged.getSeconds() + dateAddSec.additionalSeconds
+                    )
+                    TimeUI._timelineEndTimestamp = dateStaged.getTime()
+                }
             } else {
+                const dateStaged = new Date()
                 dateStaged.setSeconds(
                     dateStaged.getSeconds() + dateAddSec.additionalSeconds
                 )
@@ -1058,15 +1075,30 @@ const TimeUI = {
                 L_.configData.time.initialstart
             )
 
-            const dateStaged = new Date(dateAddSec.dateString)
-            if (dateStaged == 'Invalid Date') {
-                TimeUI._initialStart.setUTCMonth(
-                    TimeUI._initialStart.getUTCMonth() - 1
-                )
-                console.warn(
-                    "Invalid 'Initial Start Time' provided. Defaulting to 1 month before the end time."
-                )
+            if (dateAddSec.dateString != 'now') {
+                const dateStaged = new Date(dateAddSec.dateString)
+                if (dateStaged == 'Invalid Date') {
+                    TimeUI._initialStart.setUTCMonth(
+                        TimeUI._initialStart.getUTCMonth() - 1
+                    )
+                    console.warn(
+                        "Invalid 'Initial Start Time' provided. Defaulting to 1 month before the end time."
+                    )
+                } else {
+                    dateStaged.setSeconds(
+                        dateStaged.getSeconds() + dateAddSec.additionalSeconds
+                    )
+                    if (dateStaged.getTime() > TimeUI._initialEnd.getTime()) {
+                        TimeUI._initialStart.setUTCMonth(
+                            TimeUI._initialStart.getUTCMonth() - 1
+                        )
+                        console.warn(
+                            "'Initial Start Time' cannot be later than the end time. Defaulting to 1 month before the end time."
+                        )
+                    } else TimeUI._initialStart = dateStaged
+                }
             } else {
+                const dateStaged = new Date()
                 dateStaged.setSeconds(
                     dateStaged.getSeconds() + dateAddSec.additionalSeconds
                 )
@@ -1088,10 +1120,27 @@ const TimeUI = {
                 L_.configData.time.initialwindowstart
             )
 
-            const dateStaged = new Date(dateAddSec.dateString)
-            if (dateStaged == 'Invalid Date') {
-                console.warn("Invalid 'Initial Window Start Time' provided.")
+            if (dateAddSec.dateString != 'now') {
+                const dateStaged = new Date(dateAddSec.dateString)
+                if (dateStaged == 'Invalid Date') {
+                    console.warn(
+                        "Invalid 'Initial Window Start Time' provided."
+                    )
+                } else {
+                    dateStaged.setSeconds(
+                        dateStaged.getSeconds() + dateAddSec.additionalSeconds
+                    )
+                    if (
+                        TimeUI._timelineEndTimestamp == null ||
+                        dateStaged.getTime() > TimeUI._timelineEndTimestamp
+                    ) {
+                        console.warn(
+                            "'Initial Window Start Time' cannot be later than the Initial Window End Time."
+                        )
+                    } else TimeUI._timelineStartTimestamp = dateStaged.getTime()
+                }
             } else {
+                const dateStaged = new Date()
                 dateStaged.setSeconds(
                     dateStaged.getSeconds() + dateAddSec.additionalSeconds
                 )
@@ -1242,8 +1291,8 @@ const TimeUI = {
 
         if (L_.UserInterface_?.isMobile === true) {
             $('#mmgisTimeUIExpandedContent').css({
-                'position': 'absolute',
-                'top': '80px'
+                position: 'absolute',
+                top: '80px',
             })
 
             // FIXME Improve time pickers for mobile mode?
@@ -1513,7 +1562,7 @@ const TimeUI = {
 
         // Notify subscribers that progress is restarting
         if (TimeUI._progressCallbacks) {
-            TimeUI._progressCallbacks.forEach(callback => {
+            TimeUI._progressCallbacks.forEach((callback) => {
                 try {
                     callback(dur)
                 } catch (err) {
@@ -1920,8 +1969,12 @@ const TimeUI = {
     },
     _calculateRangePositions(containerType) {
         // Convert UTC timestamps to local time using addOffset to match display
-        const startTime = moment.utc(moment(TimeUI.removeOffset(TimeUI._startTimestamp)))
-        const endTime = moment.utc(moment(TimeUI.removeOffset(TimeUI._endTimestamp)))
+        const startTime = moment.utc(
+            moment(TimeUI.removeOffset(TimeUI._startTimestamp))
+        )
+        const endTime = moment.utc(
+            moment(TimeUI.removeOffset(TimeUI._endTimestamp))
+        )
 
         const mode = TimeUI.modes[TimeUI.modeIndex]
 
@@ -1963,9 +2016,9 @@ const TimeUI = {
             endPeriod = moment(TimeUI._endTimestamp).year()
         } else if (containerType === 'months') {
             // Calculate fractional range for months row (12 months)
-            const selectedYear = moment.utc(moment(
-                TimeUI.removeOffset(TimeUI._endTimestamp)
-            )).year()
+            const selectedYear = moment
+                .utc(moment(TimeUI.removeOffset(TimeUI._endTimestamp)))
+                .year()
             const totalMonths = 12
 
             // Calculate start position
@@ -2022,15 +2075,15 @@ const TimeUI = {
             }
         } else if (containerType === 'days') {
             // Calculate fractional range for days row
-            const selectedYear = moment.utc(moment(
-                TimeUI.removeOffset(TimeUI._endTimestamp)
-            )).year()
-            const selectedMonth = moment.utc(moment(
-                TimeUI.removeOffset(TimeUI._endTimestamp)
-            )).month()
-            const daysInMonth = moment.utc(moment(
-                TimeUI.removeOffset(TimeUI._endTimestamp)
-            )).daysInMonth()
+            const selectedYear = moment
+                .utc(moment(TimeUI.removeOffset(TimeUI._endTimestamp)))
+                .year()
+            const selectedMonth = moment
+                .utc(moment(TimeUI.removeOffset(TimeUI._endTimestamp)))
+                .month()
+            const daysInMonth = moment
+                .utc(moment(TimeUI.removeOffset(TimeUI._endTimestamp)))
+                .daysInMonth()
 
             // Calculate start position
             if (
@@ -2270,8 +2323,12 @@ const TimeUI = {
             $(containerSelector)
                 .find('.mmgisTimeUIExpandedItem')
                 .each(function () {
-                    if ($(this).attr(`data-${containerType}`) >= rangeData.startPeriod &&
-                            $(this).attr(`data-${containerType}`) < rangeData.endPeriod) {
+                    if (
+                        $(this).attr(`data-${containerType}`) >=
+                            rangeData.startPeriod &&
+                        $(this).attr(`data-${containerType}`) <
+                            rangeData.endPeriod
+                    ) {
                         $(this).addClass('range')
                     }
                 })
@@ -2293,9 +2350,9 @@ const TimeUI = {
         const startYear = currentYear - 19
 
         // Determine which year is currently selected (use addOffset to get local time)
-        const selectedYear = moment.utc(moment(
-            TimeUI.removeOffset(TimeUI._endTimestamp)
-        )).year()
+        const selectedYear = moment
+            .utc(moment(TimeUI.removeOffset(TimeUI._endTimestamp)))
+            .year()
 
         for (let year = startYear; year <= currentYear; year++) {
             const yearButton = $('<div>')
@@ -2326,9 +2383,9 @@ const TimeUI = {
         const months = moment.months()
 
         // Determine which month is currently selected (use addOffset to get local time)
-        const selectedMonth = moment.utc(moment(
-            TimeUI.removeOffset(TimeUI._endTimestamp)
-        )).month()
+        const selectedMonth = moment
+            .utc(moment(TimeUI.removeOffset(TimeUI._endTimestamp)))
+            .month()
 
         for (let i = 0; i < months.length; i++) {
             const monthButton = $('<div>')
@@ -2395,9 +2452,10 @@ const TimeUI = {
     },
     _selectMonth(monthIndex) {
         // Select the entire month for the current year (use addOffset to get local time)
-        const selectedYear = moment.utc(moment(
-            TimeUI.removeOffset(TimeUI._endTimestamp)
-        )).utc().year()
+        const selectedYear = moment
+            .utc(moment(TimeUI.removeOffset(TimeUI._endTimestamp)))
+            .utc()
+            .year()
 
         const startOfMonth = moment([selectedYear, monthIndex, 1])
             .startOf('month')
@@ -2421,9 +2479,9 @@ const TimeUI = {
     },
     _selectDay(day) {
         // Select the entire day for the current month/year (use addOffset to get local time)
-        const selectedMoment = moment.utc(moment(
-            TimeUI.removeOffset(TimeUI._endTimestamp)
-        )).utc()
+        const selectedMoment = moment
+            .utc(moment(TimeUI.removeOffset(TimeUI._endTimestamp)))
+            .utc()
 
         const selectedYear = selectedMoment.year()
         const selectedMonth = selectedMoment.month()
@@ -2454,9 +2512,9 @@ const TimeUI = {
         container.append(rangeIndicator)
 
         // Get the selected hour
-        const selectedMoment = moment.utc(moment(
-            TimeUI.removeOffset(TimeUI._endTimestamp)
-        ))
+        const selectedMoment = moment.utc(
+            moment(TimeUI.removeOffset(TimeUI._endTimestamp))
+        )
 
         const selectedHour = selectedMoment.hour()
 
@@ -2833,6 +2891,13 @@ const TimeUI = {
             rightBtn.css('left', `${rightPos + 19}px`) // +20 to position at right edge of handle
         }
     },
+    _refreshHistogramDebounced(delay = 3000) {
+        clearTimeout(TimeUI._histogramRefreshTimeout)
+        $('#mmgisTimeUITimelineHisto').empty()
+        TimeUI._histogramRefreshTimeout = setTimeout(() => {
+            TimeUI._makeHistogram()
+        }, delay)
+    },
     _makeHistogram() {
         const startTimestamp = TimeUI.removeOffset(
             TimeUI._timelineStartTimestamp
@@ -2863,7 +2928,9 @@ const TimeUI = {
             ) {
                 let layerUrl = l.url
                 if (layerUrl.indexOf('stac-collection:') === 0) {
-                    const afterColon = layerUrl.substring(layerUrl.indexOf(':') + 1)
+                    const afterColon = layerUrl.substring(
+                        layerUrl.indexOf(':') + 1
+                    )
                     let collectionName = afterColon
                     let isExternal = false
                     let externalBaseUrl = null
@@ -2878,9 +2945,15 @@ const TimeUI = {
                             // Convert TiTiler URL to MMGIS base URL
                             // From: https://example.com/mmgis/titilerpgstac
                             // To:   https://example.com/mmgis
-                            externalBaseUrl = parsed.baseUrl.replace(/\/titilerpgstac$/, '')
+                            externalBaseUrl = parsed.baseUrl.replace(
+                                /\/titilerpgstac$/,
+                                ''
+                            )
                         } else {
-                            console.error('Failed to parse external STAC URL for histogram:', layerUrl)
+                            console.error(
+                                'Failed to parse external STAC URL for histogram:',
+                                layerUrl
+                            )
                             return
                         }
                     } else {
@@ -2892,7 +2965,7 @@ const TimeUI = {
                         name: name,
                         stacCollection: collectionName,
                         isExternal: isExternal,
-                        externalBaseUrl: externalBaseUrl
+                        externalBaseUrl: externalBaseUrl,
                     })
                 } else if (!F_.isUrlAbsolute(layerUrl)) {
                     layerUrl = L_.missionPath + layerUrl
@@ -2941,7 +3014,8 @@ const TimeUI = {
                 for (let bi = 1; bi < timeBins.length; bi++) {
                     while (
                         data.body.times[ti] &&
-                        new Date(data.body.times[ti].t).getTime() >= timeBins[bi - 1] &&
+                        new Date(data.body.times[ti].t).getTime() >=
+                            timeBins[bi - 1] &&
                         new Date(data.body.times[ti].t).getTime() < timeBins[bi]
                     ) {
                         bins[bi - 1] += parseInt(data.body.times[ti].total)
@@ -2959,9 +3033,7 @@ const TimeUI = {
                         F_.linearScale(
                             [startTimestamp, endTimestamp],
                             [0, NUM_BINS],
-                            TimeUI.removeOffset(
-                                new Date(time.t).getTime()
-                            )
+                            TimeUI.removeOffset(new Date(time.t).getTime())
                         )
                     )
                     if (binIndex >= 0 && binIndex < NUM_BINS) {
@@ -2980,9 +3052,7 @@ const TimeUI = {
             if (minmax.max > 0) {
                 bins.forEach((b) => {
                     histoElm.append(
-                        `<div style="width:${
-                            (1 / NUM_BINS) * 100
-                        }%; opacity:${
+                        `<div style="width:${(1 / NUM_BINS) * 100}%; opacity:${
                             (b > 0 ? 20 : 0) + (b / minmax.max) * 80
                         }%;"></div>`
                     )
@@ -3002,22 +3072,27 @@ const TimeUI = {
             // Check if this is an external STAC collection
             if (l.isExternal && l.externalBaseUrl) {
                 // Query external MMGIS instance
-                const externalUrl = `${l.externalBaseUrl}/api/utils/queryTilesetTimes?` +
+                const externalUrl =
+                    `${l.externalBaseUrl}/api/utils/queryTilesetTimes?` +
                     `stacCollection=${encodeURIComponent(l.stacCollection)}&` +
                     `starttime=${encodeURIComponent(starttimeISO)}&` +
                     `endtime=${encodeURIComponent(endtimeISO)}`
 
                 fetch(externalUrl)
-                    .then(response => {
-                        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+                    .then((response) => {
+                        if (!response.ok)
+                            throw new Error(`HTTP ${response.status}`)
                         return response.json()
                     })
-                    .then(data => {
+                    .then((data) => {
                         binStacData(data, bins)
                         onComplete()
                     })
-                    .catch(err => {
-                        console.error(`Failed to fetch external STAC times from ${l.externalBaseUrl}:`, err)
+                    .catch((err) => {
+                        console.error(
+                            `Failed to fetch external STAC times from ${l.externalBaseUrl}:`,
+                            err
+                        )
                         onComplete()
                     })
             } else {
@@ -3305,11 +3380,7 @@ const TimeUI = {
 
             TimeUI._drawTimeLine(nextStart, nextEnd)
 
-            clearTimeout(TimeUI._panHistoTimeout)
-            $('#mmgisTimeUITimelineHisto').empty()
-            TimeUI._panHistoTimeout = setTimeout(() => {
-                TimeUI._makeHistogram()
-            }, 3000)
+            TimeUI._refreshHistogramDebounced()
 
             TimeUI._lastDragPageX = nextPageX
         }
@@ -3475,13 +3546,13 @@ const TimeUI = {
         const timeUIHeight = defaultExpanded
             ? 177
             : $('#timeUI').hasClass('active')
-            ? 40
-            : 0
+              ? 40
+              : 0
         const newBottom = !active
             ? timeUIHeight
             : $('#timeUI').hasClass('active')
-            ? 40
-            : 0
+              ? 40
+              : 0
         const timeBottom = 0
 
         $('#CoordinatesDiv').css({
@@ -3529,6 +3600,12 @@ function interfaceWithMMWebGIS() {
     TimeUI.init(TimeUI.timeChange, true)
 
     function separateFromMMWebGIS() {
+        // Clean up layer toggle subscription
+        L_.unsubscribeOnLayerToggle('TimeUI')
+
+        // Clear any pending histogram refresh timeout
+        clearTimeout(TimeUI._histogramRefreshTimeout)
+
         const tools = $('#tools')
 
         //Clear it

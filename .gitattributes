@@ -1,0 +1,2 @@
+# Ensure shell scripts always use LF line endings
+_docker-entrypoint.sh text eol=lf

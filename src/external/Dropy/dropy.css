@@ -130,7 +130,7 @@ dd {
 }
 
 .dropy.open .dropy__content ul {
-    max-height: 20em;
+    max-height: 24em;
     overflow-y: auto;
     opacity: 1;
     padding-left: 0;

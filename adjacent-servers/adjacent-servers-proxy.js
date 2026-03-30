@@ -4,8 +4,9 @@ const {
 } = require("http-proxy-middleware");
 
 const logger = require("../API/logger");
+const createTitilerUrlValidator = require("./validateTitilerUrl");
 
-function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
+function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjacentServers) {
   ///////////////////////////
   // Proxies
   //// STAC
@@ -15,7 +16,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
     }`;
     app.use(
       `${process.env.ROOT_PATH || ""}/stac`,
-      ensureAdmin(false, false, true), // true to allow all GETs - others require admin auth
+      ensureUserForAdjacentServers(),
       createProxyMiddleware({
         target: stacTarget,
         changeOrigin: true,
@@ -37,7 +38,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
     }`;
     app.use(
       `${process.env.ROOT_PATH || ""}/tipg`,
-      ensureAdmin(false, false, true), // true to allow all GETs - others require admin auth
+      ensureUserForAdjacentServers(),
       createProxyMiddleware({
         target: tipgTarget,
         changeOrigin: true,
@@ -57,9 +58,25 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
     const titilerTarget = `http://${isDocker ? "titiler" : "localhost"}:${
       process.env.TITILER_PORT || 8883
     }`;
+
+    // Create URL validator instance (compiled at startup)
+    const validateTitilerUrl = createTitilerUrlValidator();
+
     app.use(
       `${process.env.ROOT_PATH || ""}/titiler`,
-      ensureAdmin(false, false, true, false, ["/cog/stac"]), // true to allow all GETs (except /cog/stac) - others require admin auth
+      (req, res, next) => {
+        const url = req.originalUrl.split('?')[0].toLowerCase();
+
+        // /cog/stac is always admin-only regardless of AUTH mode
+        if (url.includes('/titiler') && url.includes('/cog/stac')) {
+          ensureAdmin()(req, res, next);
+          return;
+        }
+
+        // All other TiTiler endpoints follow standard adjacent server auth
+        ensureUserForAdjacentServers()(req, res, next);
+      },
+      validateTitilerUrl, // URL validation middleware (SSRF prevention)
       createProxyMiddleware({
         target: titilerTarget,
         changeOrigin: true,
@@ -81,7 +98,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
     }:${process.env.TITILER_PGSTAC_PORT || 8884}`;
     app.use(
       `${process.env.ROOT_PATH || ""}/titilerpgstac`,
-      ensureAdmin(false, false, true), // true to allow all GETs - others require admin auth
+      ensureUserForAdjacentServers(),
       createProxyMiddleware({
         target: titilerpgstacTarget,
         changeOrigin: true,
@@ -105,7 +122,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
   if (process.env.WITH_VELOSERVER === "true") {
     app.use(
       `${process.env.ROOT_PATH || ""}/veloserver`,
-      ensureAdmin(false, false, true), // true to allow all GETs - others require admin auth
+      ensureUserForAdjacentServers(),
       createProxyMiddleware({
         target: `http://${isDocker ? "veloserver" : "localhost"}:${
           process.env.VELOSERVER_PORT || 8104
@@ -119,7 +136,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
   }
 
   // Custom Adjacent Servers
-  setupCustomAdjacentServers(app, isDocker, ensureAdmin);
+  setupCustomAdjacentServers(app, isDocker, ensureAdmin, ensureUserForAdjacentServers);
 }
 
 /**
@@ -127,7 +144,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin) {
  * Format: ADJACENT_SERVER_CUSTOM_X=["isEnabled", "routeName", "serviceName", "port"]
  * Example: ADJACENT_SERVER_CUSTOM_0=["true", "frozon_api", "frozon_api", "8104"]
  */
-function setupCustomAdjacentServers(app, isDocker, ensureAdmin) {
+function setupCustomAdjacentServers(app, isDocker, ensureAdmin, ensureUserForAdjacentServers) {
   const customServerPrefix = "ADJACENT_SERVER_CUSTOM_";
 
   // Find all custom server environment variables
@@ -171,7 +188,7 @@ function setupCustomAdjacentServers(app, isDocker, ensureAdmin) {
       }
 
       // Setup the custom adjacent server
-      setupCustomAdjacentServer(app, isDocker, ensureAdmin, {
+      setupCustomAdjacentServer(app, isDocker, ensureAdmin, ensureUserForAdjacentServers, {
         routeName: String(routeName),
         serviceName: String(serviceName),
         port: parseInt(port, 10),
@@ -194,7 +211,7 @@ function setupCustomAdjacentServers(app, isDocker, ensureAdmin) {
 /**
  * Sets up a single custom adjacent server
  */
-function setupCustomAdjacentServer(app, isDocker, ensureAdmin, config) {
+function setupCustomAdjacentServer(app, isDocker, ensureAdmin, ensureUserForAdjacentServers, config) {
   const { routeName, serviceName, port } = config;
 
   const target = `http://${isDocker ? serviceName : "localhost"}:${port}`;
@@ -202,7 +219,7 @@ function setupCustomAdjacentServer(app, isDocker, ensureAdmin, config) {
 
   app.use(
     routePath,
-    ensureAdmin(false, false, true, true), // true, true to allow all GETs and POSTs - others require admin auth
+    ensureUserForAdjacentServers(),
     createProxyMiddleware({
       target: target,
       changeOrigin: true,
