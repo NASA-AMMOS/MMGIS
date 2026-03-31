@@ -63,7 +63,9 @@
   },
   "coordinates": {
     "coordll": true,
-    "coorden": true
+    "coorden": true,
+    "coordelev": true,
+    "coordelevurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif"
   },
   "time": {
     "enabled": true,
@@ -84,7 +86,7 @@
     "globe": true
   },
   "panelSettings": {
-    "demFallbackPath": "",
+    "demFallbackPath": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
     "demFallbackFormat": null,
     "demFallbackType": null
   },
@@ -2194,68 +2196,6 @@
       "type": "header",
       "sublayers": [
         {
-          "name": "Tiles",
-          "type": "header",
-          "sublayers": [
-            {
-              "name": "OpenStreetMap",
-              "type": "tile",
-              "url": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-              "initialOpacity": 1,
-              "visibility": false,
-              "attribution": "© OpenStreetMap contributors",
-              "minZoom": 0,
-              "maxZoom": 19,
-              "maxNativeZoom": 19,
-              "tileformat": "xyz",
-              "description": "",
-              "demparser": "",
-              "controlled": false,
-              "togglesWithHeader": true,
-              "uuid": "16a7ff69-811c-492a-9830-15613d1162d5"
-            },
-            {
-              "name": "ArcGIS World Topographic",
-              "type": "tile",
-              "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-              "initialOpacity": 1,
-              "visibility": false,
-              "attribution": "Esri, HERE, Garmin, Intermap, increment P Corp., GEBCO, USGS, FAO, NPS, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), swisstopo, © OpenStreetMap contributors, and the GIS User Community",
-              "minZoom": 0,
-              "maxZoom": 18,
-              "maxNativeZoom": 18,
-              "tileformat": "xyz",
-              "description": "",
-              "demparser": "",
-              "controlled": false,
-              "togglesWithHeader": true,
-              "uuid": "932839a4-0973-4d52-9403-3639ed285e82"
-            },
-            {
-              "name": "ArcGIS World Imagery",
-              "type": "tile",
-              "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-              "initialOpacity": 1,
-              "visibility": true,
-              "attribution": "Esri, Maxar, Earthstar Geographics, and the GIS User Community",
-              "minZoom": 0,
-              "maxZoom": 18,
-              "maxNativeZoom": 18,
-              "tileformat": "xyz",
-              "description": "",
-              "demparser": "",
-              "controlled": false,
-              "togglesWithHeader": true,
-              "uuid": "9473bb45-f7da-4650-9036-f44d2a300c4b"
-            }
-          ],
-          "description": "",
-          "demparser": "",
-          "controlled": false,
-          "togglesWithHeader": true,
-          "uuid": "17678d59-c4b1-459e-9886-ef0cd4fd68cb"
-        },
-        {
           "name": "Images",
           "type": "header",
           "sublayers": [
@@ -2320,6 +2260,152 @@
           "uuid": "242eaa9f-a79e-4946-91ba-d35f644db12f"
         },
         {
+          "name": "TiTiler",
+          "type": "header",
+          "sublayers": [
+            {
+              "name": "EMIT L2B Methane Enhancement",
+              "uuid": "33a594a3-1f5a-4b65-9eab-7f6fc781e721",
+              "type": "tile",
+              "visibility": false,
+              "sourceType": "stac-collection",
+              "url": "reference_mission_EMIT_L2B_Methane_Enhancement_Data_60_m_V002",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 30,
+              "maxZoom": 30,
+              "demparser": "rgba",
+              "throughTileServer": true,
+              "cogResampling": "nearest",
+              "cogBands": [
+                1
+              ],
+              "cogExpressionEditable": false,
+              "cogTransform": true,
+              "cogMin": 0,
+              "cogMax": 5000,
+              "cogUnits": "ppm",
+              "cogColormap": "plasma",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical"
+              },
+              "description": "EMIT L2B Methane Enhancement Data 60 m V002 - STAC COG collection. Requires WITH_STAC=true and WITH_TITILER_PGSTAC=true."
+            },
+            {
+              "name": "USGS SF DEM — Elevation",
+              "uuid": "e57468ef-b6f9-473f-973a-59d9dacfe016",
+              "type": "tile",
+              "visibility": false,
+              "sourceType": "stac-collection",
+              "url": "reference_mission_USGS_SF_DEM",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 30,
+              "maxZoom": 30,
+              "demparser": "rgba",
+              "throughTileServer": true,
+              "cogResampling": "nearest",
+              "cogBands": [
+                1
+              ],
+              "cogExpressionEditable": false,
+              "cogTransform": true,
+              "cogMin": 0,
+              "cogMax": 800,
+              "cogUnits": "m",
+              "cogColormap": "terrain",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "tools": {
+                  "measure": {
+                    "layerDems": [
+                      {
+                        "layer": "USGS SF DEM — Elevation",
+                        "dem": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif"
+                      }
+                    ]
+                  }
+                }
+              },
+              "description": "USGS 1/3 arc-second DEM for San Francisco Bay area, terrain colormap. Requires WITH_STAC=true and WITH_TITILER_PGSTAC=true."
+            },
+            {
+              "name": "USGS SF DEM — Grayscale",
+              "uuid": "1d00b1f1-507a-4edb-aa5f-56b834a4058f",
+              "type": "tile",
+              "visibility": false,
+              "sourceType": "stac-collection",
+              "url": "reference_mission_USGS_SF_DEM",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 30,
+              "maxZoom": 30,
+              "demparser": "rgba",
+              "throughTileServer": true,
+              "cogResampling": "nearest",
+              "cogBands": [
+                1
+              ],
+              "cogExpressionEditable": true,
+              "cogTransform": true,
+              "cogMin": 0,
+              "cogMax": 800,
+              "cogUnits": "m",
+              "cogColormap": "gray",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical"
+              },
+              "description": "USGS SF DEM grayscale — cogExpressionEditable enabled for expression editing demo. Requires WITH_STAC=true and WITH_TITILER_PGSTAC=true."
+            }
+          ],
+          "description": "",
+          "controlled": false,
+          "togglesWithHeader": true,
+          "uuid": "2d5438f1-fb8c-4fb4-a96e-f0614222bae7"
+        },
+        {
           "name": "Data",
           "type": "header",
           "sublayers": [],
@@ -2328,6 +2414,126 @@
           "controlled": false,
           "togglesWithHeader": true,
           "uuid": "19122548-a9e3-4a0a-8b7a-cfef332339e1"
+        },
+        {
+          "name": "Basemaps",
+          "uuid": "17678d59-c4b1-459e-9886-ef0cd4fd68cb",
+          "sublayers": [
+            {
+              "name": "ArcGIS Light",
+              "uuid": "16a7ff69-811c-492a-9830-15613d1162d5",
+              "type": "tile",
+              "visibility": false,
+              "sourceType": "url",
+              "url": "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+              "tileformat": "wmts",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 19,
+              "maxZoom": 19,
+              "demparser": "",
+              "throughTileServer": false,
+              "cogResampling": "nearest",
+              "cogExpressionEditable": false,
+              "cogTransform": false,
+              "cogColormap": "Accent",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical"
+              },
+              "description": "",
+              "attribution": "Esri"
+            },
+            {
+              "name": "ArcGIS World Topographic",
+              "uuid": "932839a4-0973-4d52-9403-3639ed285e82",
+              "type": "tile",
+              "visibility": false,
+              "sourceType": "url",
+              "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+              "tileformat": "wmts",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 18,
+              "maxZoom": 18,
+              "demparser": "",
+              "throughTileServer": false,
+              "cogResampling": "nearest",
+              "cogExpressionEditable": false,
+              "cogTransform": false,
+              "cogColormap": "Accent",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical"
+              },
+              "description": "",
+              "attribution": "Esri, HERE, Garmin, Intermap, increment P Corp., GEBCO, USGS, FAO, NPS, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), swisstopo, © OpenStreetMap contributors, and the GIS User Community"
+            },
+            {
+              "name": "ArcGIS World Imagery",
+              "uuid": "9473bb45-f7da-4650-9036-f44d2a300c4b",
+              "type": "tile",
+              "visibility": true,
+              "sourceType": "url",
+              "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+              "tileformat": "wmts",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 18,
+              "maxZoom": 18,
+              "demparser": "",
+              "throughTileServer": false,
+              "cogResampling": "nearest",
+              "cogExpressionEditable": false,
+              "cogTransform": false,
+              "cogColormap": "Accent",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical"
+              },
+              "description": "",
+              "attribution": "Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+            }
+          ],
+          "type": "header",
+          "expanded": false,
+          "description": ""
         }
       ],
       "description": "",
@@ -2494,7 +2700,7 @@
       "icon": "tape-measure",
       "js": "MeasureTool",
       "variables": {
-        "dem": "Data/elevation.tif",
+        "dem": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
         "layerDems": [],
         "onlyShowDemIfLayerOn": false,
         "defaultMode": "continuous"
@@ -2507,7 +2713,7 @@
       "variables": {
         "data": [
           {
-            "name": "SF Bay DEM - Optional",
+            "name": "USGS SF DEM (tileset required)",
             "demtileurl": "Data/dem-tiles/{z}/{x}/{y}.png",
             "minZoom": 8,
             "maxNativeZoom": 18
@@ -2536,7 +2742,7 @@
         "data": {
           "DEM": [
             {
-              "name": "SF Bay Elevation - Optional",
+              "name": "USGS SF DEM (tileset required)",
               "tileurl": "Data/dem-tiles/{z}/{x}/{y}.png",
               "minZoom": 8,
               "maxNativeZoom": 18,
@@ -2559,10 +2765,10 @@
       "icon": "sun-angle-outline",
       "js": "ShadeTool",
       "variables": {
-        "dem": "Data/elevation.tif",
+        "dem": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
         "data": [
           {
-            "name": "SF Bay DEM - Optional",
+            "name": "USGS SF DEM (tileset required)",
             "demtileurl": "Data/dem-tiles/{z}/{x}/{y}.png",
             "minZoom": 8,
             "maxNativeZoom": 18

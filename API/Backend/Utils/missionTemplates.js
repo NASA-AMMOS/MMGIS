@@ -44,6 +44,12 @@ async function createReferenceMission(missionName) {
         const geodatasetResult = await setupReferenceGeodatasets(missionName);
         logger('info', `Reference Mission geodatasets: ${geodatasetResult.created} created, ${geodatasetResult.errors} errors`, null, null);
 
+        // 6. Set up STAC collections and items from blueprint STAC/ directory (if WITH_STAC=true)
+        const stacResult = await setupReferenceSTAC(missionName);
+        if (process.env.WITH_STAC === 'true') {
+            logger('info', `Reference Mission STAC: ${stacResult.created} items upserted, ${stacResult.errors} errors`, null, null);
+        }
+
         return {
             success: true,
             config: customConfig,
@@ -209,6 +215,172 @@ async function setupReferenceGeodatasets(missionName) {
             created++;
         } catch (err) {
             logger('error', `Failed to setup geodataset '${geodatasetName}': ${err.message}`, null, null);
+            errors++;
+        }
+    }
+
+    return { created, errors };
+}
+
+/**
+ * Create or upsert all STAC collections and items for a Reference Mission from blueprint COG files.
+ * Each subdirectory in blueprints/Missions/Reference-Mission/STAC/ becomes a STAC collection
+ * named "{missionSlug}_{dirName_with_underscores}". Only runs when WITH_STAC=true.
+ * @param {string} missionName - Mission name (e.g. "Reference-Mission")
+ * @returns {Promise<{created: number, errors: number}>}
+ */
+async function setupReferenceSTAC(missionName) {
+    if (process.env.WITH_STAC !== 'true') {
+        logger('info', 'WITH_STAC not enabled, skipping STAC setup for Reference Mission', null, null);
+        return { created: 0, errors: 0 };
+    }
+
+    const stacBlueprintDir = path.resolve('./blueprints/Missions/Reference-Mission/STAC');
+    const missionSlug = missionName.toLowerCase().replace(/-/g, '_');
+    const stacUrl = `http://${process.env.IS_DOCKER === 'true' ? 'stac-fastapi' : 'localhost'}:${process.env.STAC_PORT || 8881}`;
+
+    try {
+        await fs.access(stacBlueprintDir);
+    } catch {
+        logger('info', 'No STAC directory in Reference-Mission blueprint, skipping STAC setup', null, null);
+        return { created: 0, errors: 0 };
+    }
+
+    // Lazy-require to avoid loading these modules unless STAC is enabled
+    const fetch = require('node-fetch');
+    const GeoTIFF = require('geotiff');
+
+    const entries = await fs.readdir(stacBlueprintDir, { withFileTypes: true });
+    const collectionDirs = entries.filter(e => e.isDirectory());
+
+    let created = 0, errors = 0;
+
+    for (const dir of collectionDirs) {
+        const dirName = dir.name;
+        const collectionId = `${missionSlug}_${dirName.replace(/\s+/g, '_')}`;
+        const dirPath = path.join(stacBlueprintDir, dirName);
+
+        try {
+            // Create or update collection via stac-fastapi HTTP API
+            const collectionBody = {
+                id: collectionId,
+                type: 'Collection',
+                stac_version: '1.0.0',
+                description: dirName,
+                title: dirName,
+                links: [],
+                extent: {
+                    spatial: { bbox: [[-180, -90, 180, 90]] },
+                    temporal: { interval: [['1970-01-01T00:00:00Z', null]] },
+                },
+                license: 'proprietary',
+            };
+
+            const createResp = await fetch(`${stacUrl}/collections`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(collectionBody),
+            });
+
+            if (createResp.status === 409) {
+                // Collection already exists — update it via PUT
+                const putResp = await fetch(`${stacUrl}/collections/${collectionId}`, {
+                    method: 'PUT',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify(collectionBody),
+                });
+                if (!putResp.ok) {
+                    const text = await putResp.text();
+                    throw new Error(`Failed to update STAC collection: ${putResp.status} ${text}`);
+                }
+            } else if (!createResp.ok) {
+                const text = await createResp.text();
+                throw new Error(`Failed to create STAC collection: ${createResp.status} ${text}`);
+            }
+            logger('info', `Upserted STAC collection '${collectionId}'`, null, null);
+
+            // Build STAC items from .tif files
+            const files = (await fs.readdir(dirPath)).filter(f => f.toLowerCase().endsWith('.tif'));
+            const items = {};
+
+            for (const filename of files) {
+                try {
+                    const filePath = path.join(dirPath, filename);
+                    const itemId = path.basename(filename, path.extname(filename));
+
+                    // Read bbox from GeoTIFF (assumed EPSG:4326 for Reference Mission COGs)
+                    const tiff = await GeoTIFF.fromFile(filePath);
+                    const image = await tiff.getImage();
+                    const [west, south, east, north] = image.getBoundingBox();
+
+                    // Parse datetime from filename: try YYYYMMDDTHHmmss first, then YYYYMMDD
+                    let datetime = '1970-01-01T00:00:00Z';
+                    const dtMatch = filename.match(/(\d{8}T\d{6})/);
+                    const dateMatch = !dtMatch && filename.match(/(\d{8})/);
+                    if (dtMatch) {
+                        const raw = dtMatch[1];
+                        datetime = `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}T${raw.slice(9, 11)}:${raw.slice(11, 13)}:${raw.slice(13, 15)}Z`;
+                    } else if (dateMatch) {
+                        const raw = dateMatch[1];
+                        datetime = `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}T00:00:00Z`;
+                    }
+
+                    // Asset href as seen by TiTiler:
+                    // - In Docker: /Missions is mounted directly, so use absolute path
+                    // - Outside Docker: titiler-pgstac runs locally and needs ../../ to reach Missions/
+                    const assetHref = process.env.IS_DOCKER === 'true'
+                        ? `/Missions/${missionName}/STAC/${dirName}/${filename}`
+                        : `../../Missions/${missionName}/STAC/${dirName}/${filename}`;
+
+                    items[itemId] = {
+                        type: 'Feature',
+                        stac_version: '1.0.0',
+                        id: itemId,
+                        collection: collectionId,
+                        geometry: {
+                            type: 'Polygon',
+                            coordinates: [[
+                                [west, south],
+                                [east, south],
+                                [east, north],
+                                [west, north],
+                                [west, south],
+                            ]],
+                        },
+                        bbox: [west, south, east, north],
+                        properties: { datetime },
+                        assets: {
+                            asset: {
+                                href: assetHref,
+                                type: 'image/tiff; application=geotiff; profile=cloud-optimized',
+                                roles: ['data'],
+                            },
+                        },
+                        links: [],
+                    };
+                } catch (err) {
+                    logger('error', `Failed to create STAC item for '${filename}': ${err.message}`, null, null);
+                    errors++;
+                }
+            }
+
+            if (Object.keys(items).length > 0) {
+                const bulkResp = await fetch(`${stacUrl}/collections/${collectionId}/bulk_items`, {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({ items, method: 'upsert' }),
+                });
+
+                if (!bulkResp.ok) {
+                    const text = await bulkResp.text();
+                    throw new Error(`Bulk items upsert failed: ${bulkResp.status} ${text}`);
+                }
+
+                logger('info', `Upserted ${Object.keys(items).length} STAC items into collection '${collectionId}'`, null, null);
+                created += Object.keys(items).length;
+            }
+        } catch (err) {
+            logger('error', `Failed to setup STAC collection '${collectionId}': ${err.message}`, null, null);
             errors++;
         }
     }

@@ -51,6 +51,7 @@ const useStyles = makeStyles((theme) => ({
     height: "100%",
     width: "700px",
     maxWidth: "700px !important",
+    maxHeight: "90vh !important",
   },
   heading: {
     height: theme.headHeights[2],
@@ -391,6 +392,11 @@ const NewMissionModal = (props) => {
               <strong>Updates:</strong> Checking this will{" "}
               <strong>completely replace</strong> any existing Reference-Mission
               with its latest blueprint
+            </li>
+            <li>
+              <strong>STAC COGs:</strong> Some layers require{" "}
+              <code>WITH_STAC=true</code> and a running stac-fastapi service —
+              without it those layers will not display data
             </li>
           </ul>
         </div>

@@ -263,13 +263,21 @@ async function createReferenceMission(req, res, cb) {
     const result = await missionTemplates.createReferenceMission(missionName);
 
     if (existingMission) {
-      // Update existing mission
-      const updatedVersion = existingMission.version + 1;
+      // Delete all existing rows for this mission and create a fresh one.
+      // Config.update would stamp every historical version row with the same new
+      // version, causing the MAX(version) query to return all of them and inflate
+      // the "used by" occurrence count.
+      const maxVersion = await Config.max("version", {
+        where: { mission: missionName },
+      });
+      const updatedVersion = (maxVersion ?? 0) + 1;
 
-      await Config.update(
-        { config: result.config, version: updatedVersion },
-        { where: { mission: missionName } }
-      );
+      await Config.destroy({ where: { mission: missionName } });
+      await Config.create({
+        mission: missionName,
+        config: result.config,
+        version: updatedVersion,
+      });
 
       logger(
         "info",
