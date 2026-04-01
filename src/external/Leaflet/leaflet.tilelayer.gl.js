@@ -1,3 +1,8 @@
+import { fromArrayBuffer, Pool } from 'geotiff'
+
+// Shared pool for parallel GeoTIFF tile decompression (one pool per page lifetime)
+const _geotiffPool = new Pool()
+
 /*
  * @class GridLayer.GL
  * @inherits GridLayer
@@ -628,6 +633,200 @@
                         } else {
                             reject(tile)
                         }
+                    } else if (
+                        layer.getTileUrl(coords).split('?')[0].toLowerCase().endsWith('.npy')
+                    ) {
+                        // NumPy binary branch: decode float32 tiles from TiTiler .npy endpoint.
+                        // NPY is raw float32 + a tiny text header — no TIFF parsing overhead,
+                        // no compression, nearly zero-copy Float32Array read.
+                        const npyUrl = layer.getTileUrl(coords)
+                        fetch(npyUrl)
+                            .then((r) => {
+                                if (!r.ok) return reject(null)
+                                return r.arrayBuffer()
+                            })
+                            .then((buf) => {
+                                if (!buf) return
+                                // Parse NPY format (v1.0 and v2.0):
+                                //   bytes 0-5:  magic \x93NUMPY
+                                //   byte  6:    major version (1 or 2)
+                                //   bytes 8-9:  header_len uint16 LE  (v1.0)
+                                //   bytes 8-11: header_len uint32 LE  (v2.0)
+                                //   then header_len bytes of ASCII dict, then raw float32 LE data
+                                const meta = new DataView(buf)
+                                const major = meta.getUint8(6)
+                                const headerLen = major >= 2
+                                    ? meta.getUint32(8, true)
+                                    : meta.getUint16(8, true)
+                                const dataOffset = (major >= 2 ? 12 : 10) + headerLen
+                                const header = new TextDecoder().decode(
+                                    new Uint8Array(buf, major >= 2 ? 12 : 10, headerLen)
+                                )
+                                // Extract shape — e.g. (256, 256) or (1, 256, 256)
+                                const shapeMatch = header.match(/'shape':\s*\(([^)]+)\)/)
+                                const shapeParts = shapeMatch[1]
+                                    .split(',')
+                                    .map((s) => parseInt(s.trim()))
+                                    .filter((n) => !isNaN(n))
+                                const h = shapeParts[shapeParts.length - 2] || shapeParts[0]
+                                const w = shapeParts[shapeParts.length - 1]
+                                // Float32 data is always little-endian on the server (x86/NumPy default)
+                                const allFloats = new Float32Array(buf, dataOffset)
+                                // Always use the first h*w floats (first band / band index 0)
+                                const floatData = allFloats.subarray(0, h * w)
+                                const imgData = new Uint8Array(w * h * 4)
+                                // Reuse a single 4-byte shared buffer for byte-swapping.
+                                // Float32Array is LE on x86; we need big-endian RGBA for rgbaToFloat(…,false):
+                                //   R = byte[3] (MSB), G = byte[2], B = byte[1], A = byte[0] (LSB)
+                                const floatBuf = new ArrayBuffer(4)
+                                const floatView = new Float32Array(floatBuf)
+                                const byteView = new Uint8Array(floatBuf)
+                                for (let i = 0; i < floatData.length; i++) {
+                                    const f = floatData[i]
+                                    const o = i * 4
+                                    if (f === 0) {
+                                        imgData[o] = 128; imgData[o + 1] = 0
+                                        imgData[o + 2] = 0; imgData[o + 3] = 0
+                                    } else {
+                                        floatView[0] = f
+                                        imgData[o] = byteView[3]; imgData[o + 1] = byteView[2]
+                                        imgData[o + 2] = byteView[1]; imgData[o + 3] = byteView[0]
+                                    }
+                                }
+                                createImageBitmap(
+                                    new ImageData(new Uint8ClampedArray(imgData.buffer), w, h),
+                                    { premultiplyAlpha: 'none' }
+                                ).then((bitmap) => {
+                                    resolve({ tile: bitmap, pixelPerfect: { imgData } })
+                                })
+                            })
+                            .catch(() => reject(null))
+                    } else if (
+                        layer.getTileUrl(coords).toLowerCase().includes('algorithm=terrarium') ||
+                        layer.getTileUrl(coords).toLowerCase().includes('algorithm=terrainrgb')
+                    ) {
+                        // Terrain-encoded PNG branch: Mapzen Terrarium or Mapbox TerrainRGB.
+                        // TiTiler returns an RGBA PNG where elevation is encoded in R/G/B.
+                        // Terrarium:   elevation = R*256 + G + B/256 - 32768
+                        // TerrainRGB:  elevation = -10000 + (R*65536 + G*256 + B) * 0.1
+                        // TiTiler sets alpha=0 for masked/no-data pixels; check raw[o+3].
+                        // PNG tiles are much smaller than .npy (~10-50 KB vs ~256 KB).
+                        // We decode to float32 then re-encode as big-endian IEEE 754 RGBA so the
+                        // colorize shader and min/max tracking work unchanged.
+                        const terrainUrl = layer.getTileUrl(coords)
+                        const isTerrainRGB = terrainUrl.toLowerCase().includes('algorithm=terrainrgb')
+                        fetch(terrainUrl)
+                            .then((r) => { if (!r.ok) return reject(null); return r.blob() })
+                            .then((blob) => blob ? createImageBitmap(blob) : null)
+                            .then((bitmap) => {
+                                if (!bitmap) return
+                                const w = bitmap.width, h = bitmap.height
+                                const oc = new OffscreenCanvas(w, h)
+                                const ctx = oc.getContext('2d')
+                                ctx.drawImage(bitmap, 0, 0)
+                                const raw = ctx.getImageData(0, 0, w, h).data
+                                const imgData = new Uint8Array(w * h * 4)
+                                const floatBuf = new ArrayBuffer(4)
+                                const floatView = new Float32Array(floatBuf)
+                                const byteView = new Uint8Array(floatBuf)
+                                // Format-specific no-data sentinel value (matches auto-injected noDataValues)
+                                const noDataElev = isTerrainRGB ? -10000.0 : -32768.0
+                                for (let i = 0; i < w * h; i++) {
+                                    const o = i * 4
+                                    const r = raw[o], g = raw[o + 1], b = raw[o + 2]
+                                    const elev = isTerrainRGB
+                                        ? -10000.0 + (r * 65536.0 + g * 256.0 + b) * 0.1
+                                        : r * 256.0 + g + b / 256.0 - 32768.0
+                                    if (elev === 0) {
+                                        // Zero-sentinel: alpha=0 makes it transparent in WebGL
+                                        imgData[o] = 128; imgData[o + 1] = 0
+                                        imgData[o + 2] = 0; imgData[o + 3] = 0
+                                    } else if (raw[o + 3] === 0) {
+                                        // alpha=0: TiTiler masked pixel — encode format's no-data value
+                                        // so noDataValues filtering works in both JS and GLSL
+                                        floatView[0] = noDataElev
+                                        imgData[o] = byteView[3]; imgData[o + 1] = byteView[2]
+                                        imgData[o + 2] = byteView[1]; imgData[o + 3] = byteView[0]
+                                    } else {
+                                        floatView[0] = elev
+                                        imgData[o] = byteView[3]; imgData[o + 1] = byteView[2]
+                                        imgData[o + 2] = byteView[1]; imgData[o + 3] = byteView[0]
+                                    }
+                                }
+                                return createImageBitmap(
+                                    new ImageData(new Uint8ClampedArray(imgData.buffer), w, h),
+                                    { premultiplyAlpha: 'none' }
+                                ).then((outBitmap) => {
+                                    resolve({ tile: outBitmap, pixelPerfect: { imgData } })
+                                })
+                            })
+                            .catch(() => reject(null))
+                    } else if (
+                        layer.getTileUrl(coords).split('?')[0].toLowerCase().match(/\.tiff?$/)
+                    ) {
+                        // GeoTIFF branch: decode float32 tiles (e.g. from TiTiler),
+                        // encode as big-endian IEEE 754 RGBA so the colorize shader works unchanged.
+                        const tifUrl = layer.getTileUrl(coords)
+                        fetch(tifUrl)
+                            .then((r) => {
+                                if (!r.ok) return reject(null)
+                                return r.arrayBuffer()
+                            })
+                            .then(async (buf) => {
+                                if (!buf) return
+                                const tiff = await fromArrayBuffer(buf)
+                                const image = await tiff.getImage()
+                                const rasters = await image.readRasters({
+                                    pool: _geotiffPool,
+                                })
+                                const floatData = rasters[0]
+                                const w = image.getWidth()
+                                const h = image.getHeight()
+                                const imgData = new Uint8Array(w * h * 4)
+                                // Reuse a single 4-byte buffer to avoid DataView allocation per pixel.
+                                // Float32Array is always little-endian on x86; we need big-endian
+                                // RGBA for the rgbaToFloat(…, false) GLSL decoder:
+                                //   R = byte[3] (MSB), G = byte[2], B = byte[1], A = byte[0] (LSB)
+                                const floatBuf = new ArrayBuffer(4)
+                                const floatView = new Float32Array(floatBuf)
+                                const byteView = new Uint8Array(floatBuf)
+                                for (let i = 0; i < floatData.length; i++) {
+                                    const f = floatData[i]
+                                    const o = i * 4
+                                    if (f === 0) {
+                                        // zero sentinel: 0x80000000 → RGBA (128,0,0,0)
+                                        imgData[o] = 128
+                                        imgData[o + 1] = 0
+                                        imgData[o + 2] = 0
+                                        imgData[o + 3] = 0
+                                    } else {
+                                        floatView[0] = f
+                                        imgData[o] = byteView[3]
+                                        imgData[o + 1] = byteView[2]
+                                        imgData[o + 2] = byteView[1]
+                                        imgData[o + 3] = byteView[0]
+                                    }
+                                }
+                                // Use createImageBitmap with premultiplyAlpha:'none' so
+                                // WebGL receives the raw RGBA bytes without premult corruption.
+                                // A canvas 2D context internally stores premultiplied alpha,
+                                // which would corrupt our float-encoded bytes (e.g. 50.0m has
+                                // A=0x00 → all RGB zeroed; 51.4m has A=0x66 → RGB scaled down).
+                                createImageBitmap(
+                                    new ImageData(
+                                        new Uint8ClampedArray(imgData.buffer),
+                                        w,
+                                        h
+                                    ),
+                                    { premultiplyAlpha: 'none' }
+                                ).then((bitmap) => {
+                                    resolve({
+                                        tile: bitmap,
+                                        pixelPerfect: { imgData },
+                                    })
+                                })
+                            })
+                            .catch(() => reject(null))
                     } else if (this.options.pixelPerfect) {
                         PNG.load(
                             layer.getTileUrl(coords),

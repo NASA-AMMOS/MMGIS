@@ -143,6 +143,18 @@ export function transformStacUrl(url, layerData, type = 'tile', location = null)
         return `${baseUrl}/collections/${collectionName}/tiles/${
             (layerData && layerData.tileMatrixSet) || 'WebMercatorQuad'
         }/{z}/{x}/{y}?assets=asset${bandsParam}${resamplingParam}`
+    } else if (type === 'data') {
+        const tmsId = (layerData && layerData.tileMatrixSet) || 'WebMercatorQuad'
+        const parser = layerData && layerData.demparser
+        const tileBase = `${baseUrl}/collections/${collectionName}/tiles/${tmsId}`
+        if (parser === 'terrarium') {
+            return `${tileBase}/{z}/{x}/{y}.png?algorithm=terrarium&assets=asset${bandsParam}${resamplingParam}`
+        } else if (parser === 'terrainrgb') {
+            return `${tileBase}/{z}/{x}/{y}.png?algorithm=terrainrgb&assets=asset${bandsParam}${resamplingParam}`
+        } else {
+            // Default: npy — raw float32, no compression, fastest server-side processing
+            return `${tileBase}/{z}/{x}/{y}.npy?assets=asset${bandsParam}${resamplingParam}`
+        }
     } else {
         // For images, we use preview endpoint
         // Note: STAC collections are typically designed for tile serving

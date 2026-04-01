@@ -99,7 +99,7 @@
       "sublayers": [
         {
           "name": "📄 GeoJSON Data Features",
-          "type": "header",
+          "uuid": "29dd6328-4333-40d4-be4c-94c018e512c8",
           "sublayers": [
             {
               "name": "Geometry Types",
@@ -122,7 +122,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "a13bd914-d6d2-4150-8964-568accb1849e"
                 },
                 {
@@ -140,7 +139,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "e26202d3-dd15-4344-a620-8c3d8e1e24b6"
                 },
                 {
@@ -159,7 +157,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "255ac3cf-6208-459b-a3a1-3b006be26f29"
                 },
                 {
@@ -186,14 +183,12 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "77d6ca9d-32c9-4bbb-922f-deb4cc10d741"
                 }
               ],
               "description": "",
               "demparser": "",
               "controlled": false,
-              "togglesWithHeader": true,
               "uuid": "01216291-6b46-42e5-8f3b-e5522ef79cbf"
             },
             {
@@ -213,7 +208,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "5742104a-de09-4be1-8610-cf248e0633c9"
                 },
                 {
@@ -228,7 +222,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "f54a1e5e-479d-4996-8b47-e6a08e1cf6a0"
                 },
                 {
@@ -244,7 +237,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "fd27ee79-1a9e-4cc2-a3c7-3e20f45e13a5"
                 },
                 {
@@ -265,14 +257,12 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "7bae36ec-30a8-42eb-ade9-370a136bd14a"
                 }
               ],
               "description": "",
               "demparser": "",
               "controlled": false,
-              "togglesWithHeader": true,
               "uuid": "816c1ef2-3862-471e-bf3a-09df83ef93cb"
             },
             {
@@ -298,7 +288,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "75042da4-d2da-47af-9a41-122cd1855c39"
                 },
                 {
@@ -319,7 +308,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "9b697f26-9947-4c8a-93d2-60942e85b852"
                 },
                 {
@@ -339,7 +327,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "07a598a6-bf46-4601-99de-50be924aad2b"
                 },
                 {
@@ -354,7 +341,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "fc1bf5f4-94cc-4617-8181-713326820c46"
                 },
                 {
@@ -378,7 +364,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "1e50c952-99c4-4fdf-88ff-21d44841765e"
                 },
                 {
@@ -415,7 +400,6 @@
                   "description": "Traverse from Golden Gate Bridge to Oakland with gradient visualization. Use the layer dropdown in the Layers Tool to switch between elevation (m), speed (m/s), and roll (degrees) gradient visualization.",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "ce662d44-a96e-4e19-8e7b-e89ea2727dd1"
                 },
                 {
@@ -451,7 +435,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "d784a3ab-b123-4694-8ada-2600e602f6f5"
                 },
                 {
@@ -579,562 +562,550 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "6ae26542-1ba9-4af0-a023-f2387da891ee"
                 }
               ],
               "description": "",
               "demparser": "",
               "controlled": false,
-              "togglesWithHeader": true,
               "uuid": "364f53c1-a715-45d4-aaa6-fcfab19d189f"
+            }
+          ],
+          "type": "header",
+          "expanded": false,
+          "description": ""
+        },
+        {
+          "name": "Geodatasets",
+          "uuid": "cbaa8bbe-6b93-4bc8-9243-6f52cd0223d2",
+          "sublayers": [
+            {
+              "name": "Geodatasets - Basic",
+              "uuid": "d134df19-d737-4e8b-a927-77e3add95d1a",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "none",
+              "visibility": false,
+              "sourceType": "geodatasets",
+              "url": "reference_mission_basic",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#4488ff",
+                "fillOpacity": 0.8,
+                "weight": 2,
+                "radius": 8,
+                "animation": "none",
+                "className": "geodatasets-basic"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": false,
+                "noDuplicates": false,
+                "getFeaturePropertiesOnClick": false,
+                "style": {
+                  "nointeraction": false
+                }
+              },
+              "description": "Demonstrates the simplest geodataset layer: sourceType='geodatasets' routes to the PostGIS-backed geodatasets API instead of a static file.",
+              "demparser": ""
             },
             {
-              "name": "Geodatasets",
-              "type": "header",
-              "sublayers": [
-                {
-                  "name": "Geodatasets - Basic",
-                  "uuid": "d134df19-d737-4e8b-a927-77e3add95d1a",
-                  "sublayers": [],
-                  "type": "vector",
-                  "kind": "none",
-                  "visibility": false,
-                  "sourceType": "geodatasets",
-                  "url": "reference_mission_basic",
-                  "layer3dType": "clamped",
-                  "initialOpacity": 1,
-                  "controlled": false,
-                  "style": {
-                    "color": "#FFFFFF",
-                    "opacity": 1,
-                    "fillColor": "#4488ff",
-                    "fillOpacity": 0.8,
-                    "weight": 2,
-                    "radius": 8,
-                    "animation": "none",
-                    "className": "geodatasets-basic"
-                  },
-                  "shape": "none",
-                  "time": {
-                    "enabled": false,
-                    "type": "requery",
-                    "refreshIntervalEnabled": false
-                  },
-                  "variables": {
-                    "legendOrientation": "vertical",
-                    "dynamicExtent": false,
-                    "noDuplicates": false,
-                    "getFeaturePropertiesOnClick": false,
-                    "style": {
-                      "nointeraction": false
-                    }
-                  },
-                  "description": "Demonstrates the simplest geodataset layer: sourceType='geodatasets' routes to the PostGIS-backed geodatasets API instead of a static file.",
-                  "demparser": "",
-                  "togglesWithHeader": true
+              "name": "Geodatasets - Dynamic Extent",
+              "uuid": "f86e0eb5-6216-440f-97ce-16f9e652eda0",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "none",
+              "visibility": false,
+              "sourceType": "geodatasets",
+              "url": "reference_mission_dynamic_extent",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#44bb44",
+                "fillOpacity": 0.8,
+                "weight": 2,
+                "radius": 8,
+                "animation": "none",
+                "className": "geodatasets-dynamicextent"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": true,
+                "dynamicExtentMoveThreshold": "500/z",
+                "noDuplicates": false,
+                "getFeaturePropertiesOnClick": false,
+                "useKeyAsId": "id",
+                "style": {
+                  "nointeraction": false
+                }
+              },
+              "description": "Demonstrates dynamicExtent: only features within the current map viewport are queried from the database. Pan or zoom to trigger a re-query. dynamicExtentMoveThreshold='500/z' throttles re-queries to 500m of pan at zoom 0, scaled by zoom level.",
+              "demparser": ""
+            },
+            {
+              "name": "Geodatasets - No Duplicates",
+              "uuid": "d20bebbe-6b03-402d-bd06-75587115ea7d",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "none",
+              "visibility": false,
+              "sourceType": "geodatasets",
+              "url": "reference_mission_no_duplicates",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#ff8833",
+                "fillOpacity": 0.8,
+                "weight": 2,
+                "radius": 8,
+                "animation": "none",
+                "className": "geodatasets-noduplicates"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": false,
+                "noDuplicates": true,
+                "getFeaturePropertiesOnClick": false,
+                "style": {
+                  "nointeraction": false
+                }
+              },
+              "description": "Demonstrates noDuplicates: the geodataset has multiple records per location sharing a group_id (site_id). With noDuplicates=true, only one feature per group is rendered using DISTINCT ON (group_id). The dataset has 8 records at 4 locations — only 4 points appear on the map.",
+              "demparser": ""
+            },
+            {
+              "name": "Geodatasets - Properties on Click",
+              "uuid": "c1d69334-5908-40a8-a7ae-55c31948d269",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "none",
+              "visibility": false,
+              "sourceType": "geodatasets",
+              "url": "reference_mission_properties_on_click",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#9944ff",
+                "fillOpacity": 0.8,
+                "weight": 2,
+                "radius": 8,
+                "animation": "none",
+                "className": "geodatasets-propertiesonclick"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": false,
+                "noDuplicates": false,
+                "getFeaturePropertiesOnClick": true,
+                "useKeyAsId": "feature_code",
+                "style": {
+                  "nointeraction": false
+                }
+              },
+              "description": "Demonstrates getFeaturePropertiesOnClick: the initial map load fetches only geometry and feature IDs (feature_code). Full properties (address, area, visitor stats, etc.) are fetched from the database only when a feature is clicked, reducing initial load size.",
+              "demparser": ""
+            },
+            {
+              "name": "Geodatasets - Time Series",
+              "uuid": "15cf8c7d-857f-4036-9cd6-80168948b381",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "none",
+              "visibility": false,
+              "sourceType": "geodatasets",
+              "url": "reference_mission_time_series",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#00bbcc",
+                "fillOpacity": 0.8,
+                "weight": 2,
+                "radius": 8,
+                "animation": "none",
+                "className": "geodatasets-timeseries"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": true,
+                "type": "requery",
+                "format": "%Y-%m-%dT%H:%M:%SZ",
+                "refreshIntervalEnabled": false,
+                "dataStartTime": "2024-01-01T00:00:00Z",
+                "dataEndTime": "2024-06-30T23:59:59Z"
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": false,
+                "noDuplicates": false,
+                "getFeaturePropertiesOnClick": false,
+                "style": {
+                  "nointeraction": false
+                }
+              },
+              "description": "Demonstrates time.type='requery' for geodatasets: the time range is sent to PostGIS as a server-side SQL filter on the start_time/end_time BIGINT columns. Use the Time Control tool to filter events by date range (Jan–Jun 2024).",
+              "demparser": ""
+            }
+          ],
+          "type": "header",
+          "expanded": false,
+          "description": "PostGIS-backed vector layers showcasing geodataset features: dynamic viewport querying, deduplication, lazy property loading, and server-side time filtering."
+        },
+        {
+          "name": "Viewer Panel",
+          "type": "header",
+          "sublayers": [
+            {
+              "name": "Viewer Panel Example",
+              "uuid": "f3a7b891-c234-4d56-b789-012ef3456789",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "viewer_open",
+              "visibility": false,
+              "sourceType": "url",
+              "url": "Layers/Vectors/viewer-panel-example.geojson",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#75053b",
+                "fillOpacity": 1,
+                "weight": 2,
+                "radius": 8,
+                "animation": "none",
+                "className": "viewerpanelexample"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": false,
+                "noDuplicates": false,
+                "getFeaturePropertiesOnClick": false,
+                "style": {
+                  "nointeraction": false
                 },
-                {
-                  "name": "Geodatasets - Dynamic Extent",
-                  "uuid": "f86e0eb5-6216-440f-97ce-16f9e652eda0",
-                  "sublayers": [],
-                  "type": "vector",
-                  "kind": "none",
-                  "visibility": false,
-                  "sourceType": "geodatasets",
-                  "url": "reference_mission_dynamic_extent",
-                  "layer3dType": "clamped",
-                  "initialOpacity": 1,
-                  "controlled": false,
-                  "style": {
-                    "color": "#FFFFFF",
-                    "opacity": 1,
-                    "fillColor": "#44bb44",
-                    "fillOpacity": 0.8,
-                    "weight": 2,
-                    "radius": 8,
-                    "animation": "none",
-                    "className": "geodatasets-dynamicextent"
-                  },
-                  "shape": "none",
-                  "time": {
+                "layerAttachments": {
+                  "labels": {
                     "enabled": false,
-                    "type": "requery",
-                    "refreshIntervalEnabled": false
+                    "initialVisibility": false,
+                    "theme": "default",
+                    "size": "default"
                   },
-                  "variables": {
-                    "legendOrientation": "vertical",
-                    "dynamicExtent": true,
-                    "dynamicExtentMoveThreshold": "500/z",
-                    "noDuplicates": false,
-                    "getFeaturePropertiesOnClick": false,
-                    "useKeyAsId": "id",
-                    "style": {
-                      "nointeraction": false
-                    }
-                  },
-                  "description": "Demonstrates dynamicExtent: only features within the current map viewport are queried from the database. Pan or zoom to trigger a re-query. dynamicExtentMoveThreshold='500/z' throttles re-queries to 500m of pan at zoom 0, scaled by zoom level.",
-                  "demparser": "",
-                  "togglesWithHeader": true
-                },
-                {
-                  "name": "Geodatasets - No Duplicates",
-                  "uuid": "d20bebbe-6b03-402d-bd06-75587115ea7d",
-                  "sublayers": [],
-                  "type": "vector",
-                  "kind": "none",
-                  "visibility": false,
-                  "sourceType": "geodatasets",
-                  "url": "reference_mission_no_duplicates",
-                  "layer3dType": "clamped",
-                  "initialOpacity": 1,
-                  "controlled": false,
-                  "style": {
-                    "color": "#FFFFFF",
-                    "opacity": 1,
-                    "fillColor": "#ff8833",
-                    "fillOpacity": 0.8,
-                    "weight": 2,
-                    "radius": 8,
-                    "animation": "none",
-                    "className": "geodatasets-noduplicates"
-                  },
-                  "shape": "none",
-                  "time": {
+                  "pairings": {
                     "enabled": false,
-                    "type": "requery",
-                    "refreshIntervalEnabled": false
-                  },
-                  "variables": {
-                    "legendOrientation": "vertical",
-                    "dynamicExtent": false,
-                    "noDuplicates": true,
-                    "getFeaturePropertiesOnClick": false,
+                    "initialVisibility": false,
                     "style": {
-                      "nointeraction": false
+                      "color": "#FFFFFF"
                     }
-                  },
-                  "description": "Demonstrates noDuplicates: the geodataset has multiple records per location sharing a group_id (site_id). With noDuplicates=true, only one feature per group is rendered using DISTINCT ON (group_id). The dataset has 8 records at 4 locations — only 4 points appear on the map.",
-                  "demparser": "",
-                  "togglesWithHeader": true
+                  }
                 },
-                {
-                  "name": "Geodatasets - Properties on Click",
-                  "uuid": "c1d69334-5908-40a8-a7ae-55c31948d269",
-                  "sublayers": [],
-                  "type": "vector",
-                  "kind": "none",
-                  "visibility": false,
-                  "sourceType": "geodatasets",
-                  "url": "reference_mission_properties_on_click",
-                  "layer3dType": "clamped",
-                  "initialOpacity": 1,
-                  "controlled": false,
-                  "style": {
-                    "color": "#FFFFFF",
-                    "opacity": 1,
-                    "fillColor": "#9944ff",
-                    "fillOpacity": 0.8,
-                    "weight": 2,
-                    "radius": 8,
-                    "animation": "none",
-                    "className": "geodatasets-propertiesonclick"
-                  },
-                  "shape": "none",
-                  "time": {
+                "coordinateAttachments": {
+                  "marker": {
                     "enabled": false,
-                    "type": "requery",
-                    "refreshIntervalEnabled": false
-                  },
-                  "variables": {
-                    "legendOrientation": "vertical",
-                    "dynamicExtent": false,
-                    "noDuplicates": false,
-                    "getFeaturePropertiesOnClick": true,
-                    "useKeyAsId": "feature_code",
-                    "style": {
-                      "nointeraction": false
-                    }
-                  },
-                  "description": "Demonstrates getFeaturePropertiesOnClick: the initial map load fetches only geometry and feature IDs (feature_code). Full properties (address, area, visitor stats, etc.) are fetched from the database only when a feature is clicked, reducing initial load size.",
-                  "demparser": "",
-                  "togglesWithHeader": true
-                },
-                {
-                  "name": "Geodatasets - Time Series",
-                  "uuid": "15cf8c7d-857f-4036-9cd6-80168948b381",
-                  "sublayers": [],
-                  "type": "vector",
-                  "kind": "none",
-                  "visibility": false,
-                  "sourceType": "geodatasets",
-                  "url": "reference_mission_time_series",
-                  "layer3dType": "clamped",
-                  "initialOpacity": 1,
-                  "controlled": false,
-                  "style": {
+                    "initialVisibility": false,
                     "color": "#FFFFFF",
-                    "opacity": 1,
-                    "fillColor": "#00bbcc",
-                    "fillOpacity": 0.8,
-                    "weight": 2,
-                    "radius": 8,
-                    "animation": "none",
-                    "className": "geodatasets-timeseries"
+                    "fillColor": "#FFFFFF"
+                  }
+                },
+                "markerAttachments": {
+                  "bearing": {
+                    "enabled": false,
+                    "angleUnit": "deg",
+                    "color": "#FFFFFF",
+                    "useCustomShape": false
                   },
-                  "shape": "none",
-                  "time": {
+                  "image": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "angleUnit": "deg",
+                    "show": "click"
+                  },
+                  "model": {
+                    "enabled": false,
+                    "yawUnit": "deg",
+                    "invertYaw": false,
+                    "pitchUnit": "deg",
+                    "invertPitch": false,
+                    "rollUnit": "deg",
+                    "invertRoll": false,
+                    "show": "click"
+                  },
+                  "uncertainty": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "strokeColor": "#FFFFFF",
+                    "color": "#FFFFFF",
+                    "axisUnit": "meters",
+                    "angleUnit": "deg"
+                  }
+                },
+                "pathAttachments": {
+                  "gradient": {
+                    "enabled": false,
+                    "connectAllPoints": false
+                  }
+                },
+                "hideMainFeature": false
+              },
+              "description": ""
+            },
+            {
+              "name": "Mosaic - Transmitter",
+              "uuid": "e791f026-7a60-4c32-833a-83d9d8329dfe",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "viewer_open",
+              "visibility": false,
+              "sourceType": "url",
+              "url": "Layers/Vectors/photosphere-waypoint.geojson",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#ff6600",
+                "fillOpacity": 1,
+                "weight": 2,
+                "radius": 8,
+                "animation": "none",
+                "className": "mosaic-transmitter"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": false,
+                "noDuplicates": false,
+                "getFeaturePropertiesOnClick": false,
+                "style": {
+                  "nointeraction": false
+                },
+                "layerAttachments": {
+                  "labels": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "theme": "default",
+                    "size": "default"
+                  },
+                  "pairings": {
                     "enabled": true,
-                    "type": "requery",
-                    "format": "%Y-%m-%dT%H:%M:%SZ",
-                    "refreshIntervalEnabled": false,
-                    "dataStartTime": "2024-01-01T00:00:00Z",
-                    "dataEndTime": "2024-06-30T23:59:59Z"
-                  },
-                  "variables": {
-                    "legendOrientation": "vertical",
-                    "dynamicExtent": false,
-                    "noDuplicates": false,
-                    "getFeaturePropertiesOnClick": false,
+                    "initialVisibility": true,
+                    "layers": [
+                      "Mosaic Targets"
+                    ],
+                    "pairProp": "sol",
                     "style": {
-                      "nointeraction": false
+                      "color": "#FFFF00"
                     }
+                  }
+                },
+                "coordinateAttachments": {
+                  "marker": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "color": "#FFFFFF",
+                    "fillColor": "#FFFFFF"
+                  }
+                },
+                "markerAttachments": {
+                  "bearing": {
+                    "enabled": false,
+                    "angleUnit": "deg",
+                    "color": "#FFFFFF",
+                    "useCustomShape": false
                   },
-                  "description": "Demonstrates time.type='requery' for geodatasets: the time range is sent to PostGIS as a server-side SQL filter on the start_time/end_time BIGINT columns. Use the Time Control tool to filter events by date range (Jan–Jun 2024).",
-                  "demparser": "",
-                  "togglesWithHeader": true
-                }
-              ],
-              "description": "PostGIS-backed vector layers showcasing geodataset features: dynamic viewport querying, deduplication, lazy property loading, and server-side time filtering.",
-              "demparser": "",
-              "controlled": false,
-              "togglesWithHeader": true,
-              "uuid": "cbaa8bbe-6b93-4bc8-9243-6f52cd0223d2"
+                  "image": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "angleUnit": "deg",
+                    "show": "click"
+                  },
+                  "model": {
+                    "enabled": false,
+                    "yawUnit": "deg",
+                    "invertYaw": false,
+                    "pitchUnit": "deg",
+                    "invertPitch": false,
+                    "rollUnit": "deg",
+                    "invertRoll": false,
+                    "show": "click"
+                  },
+                  "uncertainty": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "strokeColor": "#FFFFFF",
+                    "color": "#FFFFFF",
+                    "axisUnit": "meters",
+                    "angleUnit": "deg"
+                  }
+                },
+                "pathAttachments": {
+                  "gradient": {
+                    "enabled": false,
+                    "connectAllPoints": false
+                  }
+                },
+                "hideMainFeature": false
+              },
+              "description": "Rover waypoint for Sol 1051. Click to open the 360° Navcam panoramic mosaic. The Mosaic Targets layer must be enabled to see target dots overlaid on the sphere."
             },
             {
-              "name": "Viewer Panel",
-              "type": "header",
-              "sublayers": [
-                {
-                  "name": "Viewer Panel Example",
-                  "uuid": "f3a7b891-c234-4d56-b789-012ef3456789",
-                  "sublayers": [],
-                  "type": "vector",
-                  "kind": "viewer_open",
-                  "visibility": false,
-                  "sourceType": "url",
-                  "url": "Layers/Vectors/viewer-panel-example.geojson",
-                  "layer3dType": "clamped",
-                  "initialOpacity": 1,
-                  "controlled": false,
-                  "style": {
-                    "color": "#FFFFFF",
-                    "opacity": 1,
-                    "fillColor": "#75053b",
-                    "fillOpacity": 1,
-                    "weight": 2,
-                    "radius": 8,
-                    "animation": "none",
-                    "className": "viewerpanelexample"
-                  },
-                  "shape": "none",
-                  "time": {
-                    "enabled": false,
-                    "type": "requery",
-                    "refreshIntervalEnabled": false
-                  },
-                  "variables": {
-                    "legendOrientation": "vertical",
-                    "dynamicExtent": false,
-                    "noDuplicates": false,
-                    "getFeaturePropertiesOnClick": false,
-                    "style": {
-                      "nointeraction": false
-                    },
-                    "layerAttachments": {
-                      "labels": {
-                        "enabled": false,
-                        "initialVisibility": false,
-                        "theme": "default",
-                        "size": "default"
-                      },
-                      "pairings": {
-                        "enabled": false,
-                        "initialVisibility": false,
-                        "style": {
-                          "color": "#FFFFFF"
-                        }
-                      }
-                    },
-                    "coordinateAttachments": {
-                      "marker": {
-                        "enabled": false,
-                        "initialVisibility": false,
-                        "color": "#FFFFFF",
-                        "fillColor": "#FFFFFF"
-                      }
-                    },
-                    "markerAttachments": {
-                      "bearing": {
-                        "enabled": false,
-                        "angleUnit": "deg",
-                        "color": "#FFFFFF",
-                        "useCustomShape": false
-                      },
-                      "image": {
-                        "enabled": false,
-                        "initialVisibility": false,
-                        "angleUnit": "deg",
-                        "show": "click"
-                      },
-                      "model": {
-                        "enabled": false,
-                        "yawUnit": "deg",
-                        "invertYaw": false,
-                        "pitchUnit": "deg",
-                        "invertPitch": false,
-                        "rollUnit": "deg",
-                        "invertRoll": false,
-                        "show": "click"
-                      },
-                      "uncertainty": {
-                        "enabled": false,
-                        "initialVisibility": false,
-                        "strokeColor": "#FFFFFF",
-                        "color": "#FFFFFF",
-                        "axisUnit": "meters",
-                        "angleUnit": "deg"
-                      }
-                    },
-                    "pathAttachments": {
-                      "gradient": {
-                        "enabled": false,
-                        "connectAllPoints": false
-                      }
-                    },
-                    "hideMainFeature": false
-                  },
-                  "description": ""
-                },
-                {
-                  "name": "Mosaic - Transmitter",
-                  "uuid": "e791f026-7a60-4c32-833a-83d9d8329dfe",
-                  "sublayers": [],
-                  "type": "vector",
-                  "kind": "viewer_open",
-                  "visibility": false,
-                  "sourceType": "url",
-                  "url": "Layers/Vectors/photosphere-waypoint.geojson",
-                  "layer3dType": "clamped",
-                  "initialOpacity": 1,
-                  "controlled": false,
-                  "style": {
-                    "color": "#FFFFFF",
-                    "opacity": 1,
-                    "fillColor": "#ff6600",
-                    "fillOpacity": 1,
-                    "weight": 2,
-                    "radius": 8,
-                    "animation": "none",
-                    "className": "mosaic-transmitter"
-                  },
-                  "shape": "none",
-                  "time": {
-                    "enabled": false,
-                    "type": "requery",
-                    "refreshIntervalEnabled": false
-                  },
-                  "variables": {
-                    "legendOrientation": "vertical",
-                    "dynamicExtent": false,
-                    "noDuplicates": false,
-                    "getFeaturePropertiesOnClick": false,
-                    "style": {
-                      "nointeraction": false
-                    },
-                    "layerAttachments": {
-                      "labels": {
-                        "enabled": false,
-                        "initialVisibility": false,
-                        "theme": "default",
-                        "size": "default"
-                      },
-                      "pairings": {
-                        "enabled": true,
-                        "initialVisibility": true,
-                        "layers": [
-                          "Mosaic Targets"
-                        ],
-                        "pairProp": "sol",
-                        "style": {
-                          "color": "#FFFF00"
-                        }
-                      }
-                    },
-                    "coordinateAttachments": {
-                      "marker": {
-                        "enabled": false,
-                        "initialVisibility": false,
-                        "color": "#FFFFFF",
-                        "fillColor": "#FFFFFF"
-                      }
-                    },
-                    "markerAttachments": {
-                      "bearing": {
-                        "enabled": false,
-                        "angleUnit": "deg",
-                        "color": "#FFFFFF",
-                        "useCustomShape": false
-                      },
-                      "image": {
-                        "enabled": false,
-                        "initialVisibility": false,
-                        "angleUnit": "deg",
-                        "show": "click"
-                      },
-                      "model": {
-                        "enabled": false,
-                        "yawUnit": "deg",
-                        "invertYaw": false,
-                        "pitchUnit": "deg",
-                        "invertPitch": false,
-                        "rollUnit": "deg",
-                        "invertRoll": false,
-                        "show": "click"
-                      },
-                      "uncertainty": {
-                        "enabled": false,
-                        "initialVisibility": false,
-                        "strokeColor": "#FFFFFF",
-                        "color": "#FFFFFF",
-                        "axisUnit": "meters",
-                        "angleUnit": "deg"
-                      }
-                    },
-                    "pathAttachments": {
-                      "gradient": {
-                        "enabled": false,
-                        "connectAllPoints": false
-                      }
-                    },
-                    "hideMainFeature": false
-                  },
-                  "description": "Rover waypoint for Sol 1051. Click to open the 360° Navcam panoramic mosaic. The Mosaic Targets layer must be enabled to see target dots overlaid on the sphere."
-                },
-                {
-                  "name": "Mosaic - Receivers",
-                  "uuid": "7f08ac15-93d7-46f8-b14d-db951f6e9e07",
-                  "sublayers": [],
-                  "type": "vector",
-                  "kind": "info",
-                  "visibility": false,
-                  "sourceType": "url",
-                  "url": "Layers/Vectors/mosaic-targets.geojson",
-                  "layer3dType": "clamped",
-                  "initialOpacity": 1,
-                  "controlled": false,
-                  "style": {
-                    "color": "#FFFFFF",
-                    "opacity": 1,
-                    "fillColor": "#FFFF00",
-                    "fillOpacity": 0.8,
-                    "weight": 2,
-                    "radius": 6,
-                    "animation": "none",
-                    "className": "mosaic-receivers"
-                  },
-                  "shape": "none",
-                  "time": {
-                    "enabled": false,
-                    "type": "requery",
-                    "refreshIntervalEnabled": false
-                  },
-                  "variables": {
-                    "legendOrientation": "vertical",
-                    "dynamicExtent": false,
-                    "noDuplicates": false,
-                    "getFeaturePropertiesOnClick": false,
-                    "style": {
-                      "nointeraction": false
-                    },
-                    "layerAttachments": {
-                      "labels": {
-                        "enabled": false,
-                        "initialVisibility": false,
-                        "theme": "default",
-                        "size": "default"
-                      },
-                      "pairings": {
-                        "enabled": false,
-                        "initialVisibility": false,
-                        "style": {
-                          "color": "#FFFFFF"
-                        }
-                      }
-                    },
-                    "coordinateAttachments": {
-                      "marker": {
-                        "enabled": false,
-                        "initialVisibility": false,
-                        "color": "#FFFFFF",
-                        "fillColor": "#FFFFFF"
-                      }
-                    },
-                    "markerAttachments": {
-                      "bearing": {
-                        "enabled": false,
-                        "angleUnit": "deg",
-                        "color": "#FFFFFF",
-                        "useCustomShape": false
-                      },
-                      "image": {
-                        "enabled": false,
-                        "initialVisibility": false,
-                        "angleUnit": "deg",
-                        "show": "click"
-                      },
-                      "model": {
-                        "enabled": false,
-                        "yawUnit": "deg",
-                        "invertYaw": false,
-                        "pitchUnit": "deg",
-                        "invertPitch": false,
-                        "rollUnit": "deg",
-                        "invertRoll": false,
-                        "show": "click"
-                      },
-                      "uncertainty": {
-                        "enabled": false,
-                        "initialVisibility": false,
-                        "strokeColor": "#FFFFFF",
-                        "color": "#FFFFFF",
-                        "axisUnit": "meters",
-                        "angleUnit": "deg"
-                      }
-                    },
-                    "pathAttachments": {
-                      "gradient": {
-                        "enabled": false,
-                        "connectAllPoints": false
-                      }
-                    },
-                    "hideMainFeature": false
-                  },
-                  "description": "Named rock targets observed from Sol 1051. Enable this layer alongside Photosphere Waypoint to see target positions overlaid on the panoramic mosaic sphere."
-                }
-              ],
-              "description": "",
-              "demparser": "",
+              "name": "Mosaic - Receivers",
+              "uuid": "7f08ac15-93d7-46f8-b14d-db951f6e9e07",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "info",
+              "visibility": false,
+              "sourceType": "url",
+              "url": "Layers/Vectors/mosaic-targets.geojson",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
               "controlled": false,
-              "togglesWithHeader": true,
-              "uuid": "12b7b891-c234-4d56-b789-94c018e215a9"
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#FFFF00",
+                "fillOpacity": 0.8,
+                "weight": 2,
+                "radius": 6,
+                "animation": "none",
+                "className": "mosaic-receivers"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": false,
+                "noDuplicates": false,
+                "getFeaturePropertiesOnClick": false,
+                "style": {
+                  "nointeraction": false
+                },
+                "layerAttachments": {
+                  "labels": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "theme": "default",
+                    "size": "default"
+                  },
+                  "pairings": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "style": {
+                      "color": "#FFFFFF"
+                    }
+                  }
+                },
+                "coordinateAttachments": {
+                  "marker": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "color": "#FFFFFF",
+                    "fillColor": "#FFFFFF"
+                  }
+                },
+                "markerAttachments": {
+                  "bearing": {
+                    "enabled": false,
+                    "angleUnit": "deg",
+                    "color": "#FFFFFF",
+                    "useCustomShape": false
+                  },
+                  "image": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "angleUnit": "deg",
+                    "show": "click"
+                  },
+                  "model": {
+                    "enabled": false,
+                    "yawUnit": "deg",
+                    "invertYaw": false,
+                    "pitchUnit": "deg",
+                    "invertPitch": false,
+                    "rollUnit": "deg",
+                    "invertRoll": false,
+                    "show": "click"
+                  },
+                  "uncertainty": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "strokeColor": "#FFFFFF",
+                    "color": "#FFFFFF",
+                    "axisUnit": "meters",
+                    "angleUnit": "deg"
+                  }
+                },
+                "pathAttachments": {
+                  "gradient": {
+                    "enabled": false,
+                    "connectAllPoints": false
+                  }
+                },
+                "hideMainFeature": false
+              },
+              "description": "Named rock targets observed from Sol 1051. Enable this layer alongside Photosphere Waypoint to see target positions overlaid on the panoramic mosaic sphere."
             }
           ],
           "description": "",
           "demparser": "",
           "controlled": false,
-          "togglesWithHeader": true,
-          "uuid": "29dd6328-4333-40d4-be4c-94c018e512c8"
+          "uuid": "12b7b891-c234-4d56-b789-94c018e215a9"
         },
         {
           "name": "⚙️ Layer Configuration (Configure Page)",
@@ -1463,7 +1434,6 @@
               "description": "",
               "demparser": "",
               "controlled": false,
-              "togglesWithHeader": true,
               "uuid": "2726cc70-e9a3-49d5-a9f3-d6f07e1de3de"
             },
             {
@@ -1485,7 +1455,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "e2a53945-2df6-46df-8357-58cb65b0d9be"
                 },
                 {
@@ -1506,14 +1475,12 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "f325417f-6307-412e-9cfe-7730fc407efc"
                 }
               ],
               "description": "",
               "demparser": "",
               "controlled": false,
-              "togglesWithHeader": true,
               "uuid": "2ae3b152-d2be-4c37-87dc-67ebd3278469"
             },
             {
@@ -1546,14 +1513,12 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "36a3db08-f2fb-41fb-9f07-80bfaf1f09fc"
                 }
               ],
               "description": "",
               "demparser": "",
               "controlled": false,
-              "togglesWithHeader": true,
               "uuid": "94e8cd46-4b4b-40e9-b770-be8b9505d325"
             },
             {
@@ -1573,14 +1538,12 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "f408bdf4-f190-4c5c-bb0c-e0c20850d496"
                 }
               ],
               "description": "",
               "demparser": "",
               "controlled": false,
-              "togglesWithHeader": true,
               "uuid": "ac2d12d2-d9f7-448d-82a1-520b0127cdd6"
             },
             {
@@ -1613,14 +1576,12 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "489e0924-0963-4a8f-a8cf-a1412f2f08f4"
                 }
               ],
               "description": "",
               "demparser": "",
               "controlled": false,
-              "togglesWithHeader": true,
               "uuid": "37d8f95b-dc8b-4052-9a4d-741092a65732"
             },
             {
@@ -1652,7 +1613,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "2b98c213-ee53-4270-b724-2858180e4cc7"
                 },
                 {
@@ -1696,7 +1656,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "e74823a5-5b3f-4ee7-816f-5c17bba1b0ed"
                 },
                 {
@@ -1728,7 +1687,6 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "e64a607a-da5b-414e-807b-13efac13b14b"
                 },
                 {
@@ -1753,14 +1711,12 @@
                   },
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "6567d924-a2ec-4f07-bd23-db621f1625d9"
                 }
               ],
               "description": "",
               "demparser": "",
               "controlled": false,
-              "togglesWithHeader": true,
               "uuid": "dc0d3d91-010a-4a4e-a06b-1356213465ae"
             },
             {
@@ -1793,14 +1749,12 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "459b3b00-d112-435d-8a83-8e907e94cf4c"
                 }
               ],
               "description": "",
               "demparser": "",
               "controlled": false,
-              "togglesWithHeader": true,
               "uuid": "832d45fa-467b-41ff-afcf-def7e778097f"
             },
             {
@@ -1916,7 +1870,6 @@
               "description": "",
               "demparser": "",
               "controlled": false,
-              "togglesWithHeader": true,
               "uuid": "de5f8f12-bc48-4a16-aecf-d10597390375"
             },
             {
@@ -2140,7 +2093,6 @@
               "description": "",
               "demparser": "",
               "controlled": false,
-              "togglesWithHeader": true,
               "uuid": "639d6b8d-03e1-4bb3-98b2-0fe0810dab93"
             },
             {
@@ -2167,28 +2119,24 @@
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "togglesWithHeader": true,
                   "uuid": "b8be1370-df0a-4414-a282-3eeb29cb2537"
                 }
               ],
               "description": "",
               "demparser": "",
               "controlled": false,
-              "togglesWithHeader": true,
               "uuid": "e71ad874-430b-4e6d-9952-83708e606ec6"
             }
           ],
           "description": "",
           "demparser": "",
           "controlled": false,
-          "togglesWithHeader": true,
           "uuid": "e393485c-eb42-483f-b9b7-75f3dabceb52"
         }
       ],
       "description": "",
       "demparser": "",
       "controlled": false,
-      "togglesWithHeader": true,
       "uuid": "8a5ae197-78bd-41d2-84e2-1d8adfe2c637"
     },
     {
@@ -2196,8 +2144,8 @@
       "type": "header",
       "sublayers": [
         {
-          "name": "Images",
-          "type": "header",
+          "name": "Image Layers",
+          "uuid": "242eaa9f-a79e-4946-91ba-d35f644db12f",
           "sublayers": [
             {
               "name": "TODO - Single Band",
@@ -2253,18 +2201,590 @@
               }
             }
           ],
-          "description": "",
-          "demparser": "",
-          "controlled": false,
-          "togglesWithHeader": true,
-          "uuid": "242eaa9f-a79e-4946-91ba-d35f644db12f"
+          "type": "header",
+          "expanded": false,
+          "description": ""
         },
         {
-          "name": "TiTiler",
-          "type": "header",
+          "name": "Data Layers",
+          "uuid": "19122548-a9e3-4a0a-8b7a-cfef332339e1",
           "sublayers": [
             {
-              "name": "EMIT L2B Methane Enhancement",
+              "name": "Elevation - RdYlBu (COG/NPY)",
+              "uuid": "5db65cd8-f184-4af5-8fac-7b9f832032e1",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "COG",
+              "demtileurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+              "demparser": "npy",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "m",
+                  "sigfigs": 1,
+                  "noDataValues": [
+                    -999999
+                  ],
+                  "ramps": [
+                    [
+                      "#313695",
+                      "#4575b4",
+                      "#74add1",
+                      "#abd9e9",
+                      "#e0f3f8",
+                      "#ffffbf",
+                      "#fee090",
+                      "#fdae61",
+                      "#f46d43",
+                      "#d73027",
+                      "#a50026"
+                    ],
+                    [
+                      "#006400",
+                      "#228b22",
+                      "#8db600",
+                      "#cdc673",
+                      "#d2b48c",
+                      "#a0522d",
+                      "#808080",
+                      "#ffffff"
+                    ]
+                  ]
+                },
+                "shortcutSuffix": "1"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:COG",
+                "parser:npy",
+                "type:elevation",
+                "ramps:2"
+              ],
+              "description": "USGS 1/3 arc-second DEM for the San Francisco Bay area via TiTiler (.npy — raw float32). **Alt+1** to toggle.\n\n**Ramp 0:** RdYlBu diverging — cold blues low, warm reds high.\n**Ramp 1:** Earth tones terrain palette.",
+              "style": {
+                "className": "elevation-rdylbu(cog/npy)"
+              }
+            },
+            {
+              "name": "Elevation - Terrarium (COG)",
+              "uuid": "e24d9bb8-dc93-45e1-a36a-70fdd65ade73",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "COG",
+              "demtileurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+              "demparser": "terrarium",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "m",
+                  "sigfigs": 0,
+                  "noDataValues": [
+                    -32768
+                  ],
+                  "ramps": [
+                    [
+                      "#0d0887",
+                      "#5c01a6",
+                      "#9c179e",
+                      "#cc4778",
+                      "#ed7953",
+                      "#fdb42f",
+                      "#f0f921"
+                    ],
+                    [
+                      "#440154",
+                      "#414487",
+                      "#2a788e",
+                      "#22a884",
+                      "#7ad151",
+                      "#fde725"
+                    ]
+                  ]
+                },
+                "shortcutSuffix": ""
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:COG",
+                "parser:terrarium",
+                "type:elevation"
+              ],
+              "description": "Mapzen **Terrarium**-encoded PNG tiles — ~10–50 KB/tile vs ~256 KB for .npy; much faster network transfer with ~1 cm precision. No-data (−32768) renders transparent.\n\n**Ramp 0:** Plasma · **Ramp 1:** Viridis",
+              "style": {
+                "className": "elevation-terrarium(cog)"
+              }
+            },
+            {
+              "name": "Elevation - TerrainRGB (COG)",
+              "uuid": "d2bc15e2-0d2d-4331-a74b-6288932aa012",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "COG",
+              "demtileurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+              "demparser": "terrainrgb",
+              "tileformat": "tms",
+              "controlled": true,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "m",
+                  "sigfigs": 2,
+                  "noDataValues": [
+                    -10000
+                  ],
+                  "ramps": [
+                    [
+                      "#000004",
+                      "#51127c",
+                      "#b73779",
+                      "#fc8961",
+                      "#fcfdbf"
+                    ]
+                  ]
+                }
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:COG",
+                "parser:terrainrgb",
+                "type:elevation"
+              ],
+              "description": "Mapbox **TerrainRGB**-encoded PNG tiles — ~0.1 m elevation precision. This layer is **controlled** (programmatic visibility) and starts at **80% opacity** for basemap blending.\n\n**Ramp:** Magma — black to pale yellow.",
+              "style": {
+                "className": "elevation-terrainrgb(cog)"
+              }
+            },
+            {
+              "name": "Elevation - TerrainRGB (COG) Image",
+              "uuid": "9e798368-dadf-4eff-abc5-247208955897",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "COG",
+              "demtileurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+              "demparser": "terrainrgb",
+              "tileformat": "tms",
+              "controlled": true,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "image",
+                  "units": "m",
+                  "sigfigs": 2,
+                  "noDataValues": [
+                    -10000
+                  ],
+                  "ramps": [
+                    [
+                      "#000004",
+                      "#51127c",
+                      "#b73779",
+                      "#fc8961",
+                      "#fcfdbf"
+                    ]
+                  ]
+                }
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:COG",
+                "parser:terrainrgb",
+                "type:elevation"
+              ],
+              "description": "Mapbox **TerrainRGB**-encoded PNG tiles — ~0.1 m elevation precision. This layer is **controlled** (programmatic visibility) and starts at **80% opacity** for basemap blending.\n\n**Ramp:** Magma — black to pale yellow.",
+              "style": {
+                "className": "elevation-terrainrgb(cog)image"
+              }
+            },
+            {
+              "name": "Elevation - Grayscale (COG/NPY)",
+              "uuid": "fe884e6c-fd39-463e-92bb-39b4a8f684cf",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "COG",
+              "demtileurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+              "demparser": "npy",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "m",
+                  "sigfigs": 1,
+                  "noDataValues": [
+                    -999999
+                  ],
+                  "ramps": [
+                    [
+                      "#000000",
+                      "#ffffff"
+                    ],
+                    [
+                      "#ffffff",
+                      "#000000"
+                    ]
+                  ]
+                }
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:COG",
+                "parser:npy",
+                "shader:grayscale"
+              ],
+              "description": "Grayscale elevation overlay at **70% opacity** — useful for compositing over imagery. **Ramp 0:** black = low, white = high. **Ramp 1:** inverted (white = low, black = high) for relief-shading composites.",
+              "style": {
+                "className": "elevation-grayscale(cog/npy)"
+              }
+            },
+            {
+              "name": "Elevation - Transparent Overlay",
+              "uuid": "9a149316-a162-4c78-befe-cf0db09f2b6e",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "COG",
+              "demtileurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+              "demparser": "terrainrgb",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 0.75,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "m",
+                  "sigfigs": 1,
+                  "noDataValues": [
+                    -999999
+                  ],
+                  "ramps": [
+                    [
+                      "transparent",
+                      "transparent",
+                      "#ffffb2",
+                      "#fecc5c",
+                      "#fd8d3c",
+                      "#e31a1c"
+                    ]
+                  ]
+                }
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:COG",
+                "parser:npy",
+                "shader:overlay",
+                "type:elevation"
+              ],
+              "description": "Demonstrates **transparent ramp stops**: the two lowest stops are transparent, so only mid-to-high elevations are colored (yellow → orange → red). The basemap shows through at low altitudes. Initial opacity 50% for blending.",
+              "style": {
+                "className": "elevation-transparentoverlay"
+              }
+            },
+            {
+              "name": "Elevation - 13-Stop Rainbow",
+              "uuid": "b781b5ab-5a08-4a63-b37a-a7173aeae3af",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "COG",
+              "demtileurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+              "demparser": "terrainrgb",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "meters ASL",
+                  "sigfigs": 2,
+                  "noDataValues": [
+                    -999999
+                  ],
+                  "ramps": [
+                    [
+                      "#ff0000",
+                      "#ff6600",
+                      "#ffcc00",
+                      "#ccff00",
+                      "#66ff00",
+                      "#00ff00",
+                      "#00ff66",
+                      "#00ffcc",
+                      "#00ccff",
+                      "#0066ff",
+                      "#0000ff",
+                      "#6600ff",
+                      "#cc00ff"
+                    ]
+                  ]
+                },
+                "downloadURL": "/Missions/Reference-Mission/Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:COG",
+                "parser:npy",
+                "shader:rainbow",
+                "type:elevation"
+              ],
+              "description": "Showcases the **maximum 13-stop** color ramp with a full spectral rainbow. Uses `sigfigs: 2` for high-precision legend labels and provides a **Download URL** so users can retrieve the source GeoTIFF from the Layers tool menu.",
+              "style": {
+                "className": "elevation-13-stoprainbow"
+              }
+            },
+            {
+              "name": "Elevation - STAC Multi-Ramp (STAC/RGB)",
+              "uuid": "bacaab22-ffdb-4a3a-a6d7-ac2c3dea87c5",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "stac-collection",
+              "demtileurl": "reference_mission_USGS_SF_DEM",
+              "demparser": "terrainrgb",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "m",
+                  "sigfigs": 1,
+                  "noDataValues": [
+                    -999999
+                  ],
+                  "ramps": [
+                    [
+                      "#9e0142",
+                      "#d53e4f",
+                      "#f46d43",
+                      "#fdae61",
+                      "#fee08b",
+                      "#ffffbf",
+                      "#e6f598",
+                      "#abdda4",
+                      "#66c2a5",
+                      "#3288bd",
+                      "#5e4fa2"
+                    ],
+                    [
+                      "#000004",
+                      "#420a68",
+                      "#932667",
+                      "#dd513a",
+                      "#fca50a",
+                      "#fcffa4"
+                    ],
+                    [
+                      "#006400",
+                      "#228b22",
+                      "#8db600",
+                      "#cdc673",
+                      "#d2b48c",
+                      "#a0522d",
+                      "#808080",
+                      "#c0c0c0",
+                      "#ffffff"
+                    ],
+                    [
+                      "#f7f4f9",
+                      "#e7e1ef",
+                      "#d4b9da",
+                      "#c994c7",
+                      "#df65b0",
+                      "#e7298a",
+                      "#980043"
+                    ]
+                  ]
+                },
+                "shortcutSuffix": "3"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:STAC",
+                "parser:npy",
+                "type:elevation",
+                "ramps:4"
+              ],
+              "description": "**STAC collection** source (`reference_mission_USGS_SF_DEM`) via titiler-pgstac. Showcases 4 selectable ramps in the Layers tool. **Alt+3** to toggle.\n\n**Ramp 0:** Spectral (11-stop diverging)\n**Ramp 1:** Inferno (6-stop)\n**Ramp 2:** Earth Tones (9-stop)\n**Ramp 3:** RdPu (7-stop purple)",
+              "style": {
+                "className": "elevation-stacmulti-ramp(stac/rgb)"
+              }
+            },
+            {
+              "name": "Elevation - STAC Terrarium (STAC)",
+              "uuid": "7a8ed456-f909-4306-860c-acb909de9b2c",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "stac-collection",
+              "demtileurl": "reference_mission_USGS_SF_DEM",
+              "demparser": "terrarium",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "m",
+                  "sigfigs": 1,
+                  "noDataValues": [
+                    -32768
+                  ],
+                  "ramps": [
+                    [
+                      "#440154",
+                      "#414487",
+                      "#2a788e",
+                      "#22a884",
+                      "#7ad151",
+                      "#fde725"
+                    ]
+                  ]
+                }
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:STAC",
+                "parser:terrarium",
+                "type:elevation"
+              ],
+              "description": "**STAC + Terrarium** combination: COG mosaic from titiler-pgstac served as compact Terrarium PNG tiles. Combines STAC multi-item mosaic benefits with bandwidth savings (~10–50 KB/tile). No-data (−32768) renders transparent. **Ramp:** Viridis.",
+              "style": {
+                "className": "elevation-stacterrarium(stac)"
+              }
+            }
+          ],
+          "type": "header",
+          "expanded": false,
+          "description": ""
+        },
+        {
+          "name": "TiTiler Tile Layers",
+          "uuid": "2d5438f1-fb8c-4fb4-a96e-f0614222bae7",
+          "sublayers": [
+            {
+              "name": "EMIT Methane Mosaicked",
               "uuid": "33a594a3-1f5a-4b65-9eab-7f6fc781e721",
               "type": "tile",
               "visibility": false,
@@ -2400,20 +2920,9 @@
               "description": "USGS SF DEM grayscale — cogExpressionEditable enabled for expression editing demo. Requires WITH_STAC=true and WITH_TITILER_PGSTAC=true."
             }
           ],
-          "description": "",
-          "controlled": false,
-          "togglesWithHeader": true,
-          "uuid": "2d5438f1-fb8c-4fb4-a96e-f0614222bae7"
-        },
-        {
-          "name": "Data",
           "type": "header",
-          "sublayers": [],
-          "description": "",
-          "demparser": "",
-          "controlled": false,
-          "togglesWithHeader": true,
-          "uuid": "19122548-a9e3-4a0a-8b7a-cfef332339e1"
+          "expanded": false,
+          "description": ""
         },
         {
           "name": "Basemaps",
@@ -2529,6 +3038,50 @@
               },
               "description": "",
               "attribution": "Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+            },
+            {
+              "name": "GIBS MODIS with Time",
+              "uuid": "9976a4bd-2228-4859-9c77-5acf552c0ea2",
+              "type": "tile",
+              "visibility": false,
+              "sourceType": "url",
+              "url": "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/{time}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg",
+              "tileformat": "wmts",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 9,
+              "maxZoom": 9,
+              "demtileurl": "",
+              "demparser": "rgba",
+              "boundingBox": [
+                "-180",
+                "-85.051129",
+                "180",
+                "85.051129"
+              ],
+              "throughTileServer": false,
+              "cogResampling": "nearest",
+              "cogExpressionEditable": false,
+              "cogTransform": false,
+              "cogColormap": "Accent",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": true,
+                "type": "requery",
+                "format": "%Y-%m-%d",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false,
+                "dataStartTime": ""
+              },
+              "variables": {
+                "legendOrientation": "vertical"
+              }
             }
           ],
           "type": "header",
@@ -2539,7 +3092,6 @@
       "description": "",
       "demparser": "",
       "controlled": false,
-      "togglesWithHeader": true,
       "uuid": "3acb87e4-2097-41c9-a186-4d4ca61bb143"
     }
   ],
