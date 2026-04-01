@@ -2146,61 +2146,7 @@
         {
           "name": "Image Layers",
           "uuid": "242eaa9f-a79e-4946-91ba-d35f644db12f",
-          "sublayers": [
-            {
-              "name": "TODO - Single Band",
-              "uuid": "72d30afc-0059-4600-b08e-9d30305d9491",
-              "sublayers": [],
-              "type": "image",
-              "visibility": false,
-              "url": "Layers/Images/single-band.tif",
-              "initialOpacity": 1,
-              "minZoom": 0,
-              "maxNativeZoom": 30,
-              "maxZoom": 30,
-              "variables": {
-                "image": {
-                  "fillMinMax": false
-                },
-                "hideNoDataValue": false,
-                "legendOrientation": "vertical"
-              },
-              "cogTransform": false,
-              "cogColormap": "Accent",
-              "cogExpressionEditable": false,
-              "legend": "Layers/Legends/raster-colormap.json",
-              "description": "",
-              "style": {
-                "className": "todo-singleband"
-              }
-            },
-            {
-              "name": "TODO - Cloud Optimized",
-              "uuid": "84066fc9-44af-42db-abe5-7653d6e79d52",
-              "sublayers": [],
-              "type": "image",
-              "visibility": false,
-              "url": "Layers/Images/cloud-optimized.tif",
-              "initialOpacity": 1,
-              "minZoom": 0,
-              "maxNativeZoom": 30,
-              "maxZoom": 30,
-              "variables": {
-                "image": {
-                  "fillMinMax": false
-                },
-                "hideNoDataValue": false,
-                "legendOrientation": "vertical"
-              },
-              "cogTransform": false,
-              "cogColormap": "Accent",
-              "cogExpressionEditable": false,
-              "description": "",
-              "style": {
-                "className": "todo-cloudoptimized"
-              }
-            }
-          ],
+          "sublayers": [],
           "type": "header",
           "expanded": false,
           "description": ""
@@ -2455,13 +2401,13 @@
               }
             },
             {
-              "name": "Elevation - Grayscale (COG/NPY)",
+              "name": "Elevation - Grayscale (COG)",
               "uuid": "fe884e6c-fd39-463e-92bb-39b4a8f684cf",
               "type": "data",
               "visibility": false,
               "demSourceType": "COG",
               "demtileurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
-              "demparser": "npy",
+              "demparser": "terrainrgb",
               "tileformat": "tms",
               "controlled": false,
               "initialOpacity": 1,
@@ -2506,7 +2452,7 @@
               ],
               "description": "Grayscale elevation overlay at **70% opacity** — useful for compositing over imagery. **Ramp 0:** black = low, white = high. **Ramp 1:** inverted (white = low, black = high) for relief-shading composites.",
               "style": {
-                "className": "elevation-grayscale(cog/npy)"
+                "className": "elevation-grayscale(cog)"
               }
             },
             {
