@@ -141,7 +141,7 @@ COPY --from=builder /usr/src/app/spice ./spice
 COPY --from=builder /usr/src/app/adjacent-servers ./adjacent-servers
 COPY --from=builder /usr/src/app/examples ./examples
 COPY --from=builder /usr/src/app/private ./private
-COPY --from=builder /usr/src/app/prepare ./prepare
+COPY --from=builder /usr/src/app/blueprints ./blueprints
 
 RUN chmod 755 _docker-entrypoint.sh
 
