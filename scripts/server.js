@@ -561,10 +561,10 @@ let helmetConfig = {
       mediaSrc: ["*", "data:", "blob:"],
       frameAncestors: process.env.FRAME_ANCESTORS
         ? JSON.parse(process.env.FRAME_ANCESTORS)
-        : "none",
+        : "'none'",
       frameSrc: process.env.FRAME_SRC
         ? JSON.parse(process.env.FRAME_SRC)
-        : "none",
+        : "'none'",
     },
   },
   crossOriginEmbedderPolicy: false,
