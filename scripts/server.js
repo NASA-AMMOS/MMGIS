@@ -199,8 +199,8 @@ function checkHeadersCodeInjection(req, res, next) {
     res.send({
       Warning:
         "You are not allowed to inject bad code to the application. Your action will be reported!",
-      "Your IP": req.headers["x-forwarded-for"] || req.connection.remoteAddress,
-      "Requested URL": fullUrl,
+      "Your IP":       req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+            "Requested URL": fullUrl,
     });
     res.end();
   } else {
@@ -291,7 +291,7 @@ function ensureAdmin(
   return (req, res, next) => {
     let url = req.originalUrl.split("?")[0].toLowerCase();
     const remoteAddress =
-      req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+      req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
     if (
       url.endsWith("/api/configure/get") ||
@@ -429,7 +429,7 @@ function ensureUser() {
     } else {
       if (req.headers.authorization) {
         const remoteAddress =
-          req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+          req.headers["x-forwarded-for"] || req.socket.remoteAddress;
         validateLongTermToken(
           req.headers.authorization,
           (tokenData) => {
@@ -793,7 +793,7 @@ setups.getBackendSetups(function (setups) {
     setups.started(s);
 
     // error handler
-    app.all("*", (req, res, next) => {
+    app.all("/{*splat}", (req, res, next) => {
       // render the error page
       res.status(404).render("error");
     });
