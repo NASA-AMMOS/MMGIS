@@ -112,6 +112,7 @@ function getClientEnvironment(publicUrl) {
         SKIP_CLIENT_INITIAL_LOGIN: process.env.SKIP_CLIENT_INITIAL_LOGIN || "",
         IS_DOCKER: process.env.IS_DOCKER,
         WITH_TITILER: process.env.WITH_TITILER,
+        FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH || "",
       }
     );
   // Stringify all values so we can feed into webpack DefinePlugin

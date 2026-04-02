@@ -186,6 +186,10 @@ const c = {
     type: "GET",
     url: "titiler/colorMaps",
   },
+  reference_mission_save_to_base: {
+    type: "POST",
+    url: "api/configure/reference-mission/save-to-base",
+  },
 };
 
 function api(call, data, success, error) {

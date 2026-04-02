@@ -1,0 +1,17 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4, 37.8]
+      },
+      "properties": {
+        "id": "visible-1",
+        "name": "Initially Visible Point",
+        "description": "This layer is set to be visible by default (visibility: true). Most other layers start hidden."
+      }
+    }
+  ]
+}

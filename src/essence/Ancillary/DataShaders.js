@@ -187,7 +187,7 @@ let DataShaders = {
 
                 let min = Infinity
                 let max = -Infinity
-                const noDataValues = shaderObj.noDataValues || []
+                const noDataValues = (shaderObj.noDataValues || []).map(Number)
                 const histo = {}
                 activeTiles.forEach((c) => {
                     if (

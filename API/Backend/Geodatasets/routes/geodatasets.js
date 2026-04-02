@@ -1516,3 +1516,4 @@ function tile2Lat(y, z) {
 }
 
 module.exports = router;
+module.exports.populateGeodatasetTable = populateGeodatasetTable;

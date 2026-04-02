@@ -1,0 +1,84 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "annotation": true,
+        "name": "Golden Gate Bridge",
+        "style": {
+          "fillColor": "#ff0000",
+          "color": "#000000",
+          "weight": 2,
+          "strokeOpacity": 0.8,
+          "fontSize": "14px"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4783, 37.8199]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "annotation": true,
+        "name": "Alcatraz Island",
+        "style": {
+          "fillColor": "#0088ff",
+          "color": "#ffffff",
+          "weight": 2,
+          "strokeOpacity": 1.0,
+          "fontSize": "16px"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4230, 37.8267]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "annotation": true,
+        "name": "Note: Historic District",
+        "style": {
+          "fillColor": "#ffaa00",
+          "color": "#000000",
+          "weight": 1,
+          "strokeOpacity": 0.6,
+          "fontSize": "12px",
+          "rotation": 15
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4100, 37.8050]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "annotation": true,
+        "name": "Treasure Island",
+        "style": {
+          "fillColor": "#00ff00",
+          "color": "#000000",
+          "weight": 2,
+          "strokeOpacity": 0.7,
+          "fontSize": "14px"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.3711, 37.8267]
+      }
+    }
+  ]
+}

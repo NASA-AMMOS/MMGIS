@@ -46,6 +46,8 @@ services:
       - POSTGRES_PORT=5432
       - DB_MIN_CONN_SIZE=1
       - DB_MAX_CONN_SIZE=1
+      # Enable write endpoints (POST/PUT/DELETE on /collections and /items)
+      - ENABLE_TRANSACTIONS_EXTENSIONS=true
     depends_on:
       mmgis:
         condition: service_healthy

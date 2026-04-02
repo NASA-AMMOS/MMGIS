@@ -356,7 +356,7 @@ var Kinds = {
 
                 // Only expand the Viewer Panel if it isn't already visible
                 var pp = L_.UserInterface_.getPanelPercents()
-                if (pp.map == 100 && L_.hasViewer) {
+                if (pp.viewer == 0 && L_.hasViewer) {
                     L_.UserInterface_.openViewerPanel()
                 }
 
@@ -373,26 +373,45 @@ var Kinds = {
                 if (feature.geometry.type.toLowerCase() === 'point') {
                     // Center and zoom the view to the selected feature
                     // Zoom to 'Zoom Level of Map Scale' if set in UI config, otherwise use current zoom
-                    bounds = [feature.geometry.coordinates[1], feature.geometry.coordinates[0]]
+                    bounds = [
+                        feature.geometry.coordinates[1],
+                        feature.geometry.coordinates[0],
+                    ]
                     zoom = L_.configData.msv.mapscale || L_.Map_.map.getZoom()
-                } else if (geoJSONFeatures.includes(feature.geometry.type.toLowerCase())) {
+                } else if (
+                    geoJSONFeatures.includes(
+                        feature.geometry.type.toLowerCase()
+                    )
+                ) {
                     if ('getBounds' in layer) {
                         // Use the pixel bounds because longitude/latitude conversions for bounds
                         // may be odd in the case of polar projections
                         bounds = layer._pxBounds
 
-                        let center = L.bounds([bounds.min.x, bounds.min.y], [bounds.max.x, bounds.max.y]).getCenter()
-                        let min = Map_.map.layerPointToLatLng([bounds.min.x, bounds.min.y])
-                        let max = Map_.map.layerPointToLatLng([bounds.max.x, bounds.max.y])
+                        let center = L.bounds(
+                            [bounds.min.x, bounds.min.y],
+                            [bounds.max.x, bounds.max.y]
+                        ).getCenter()
+                        let min = Map_.map.layerPointToLatLng([
+                            bounds.min.x,
+                            bounds.min.y,
+                        ])
+                        let max = Map_.map.layerPointToLatLng([
+                            bounds.max.x,
+                            bounds.max.y,
+                        ])
                         bounds = [
                             [min.lat, min.lng],
                             [max.lat, max.lng],
                         ]
 
                         // Add some padding to avoid zooming to the edges of the feature
-                        const padding = [100, 100];
+                        const padding = [100, 100]
                         zoom = Map_.map.getBoundsZoom(bounds, false, padding)
-                        bounds = Map_.map.layerPointToLatLng([center.x, center.y])
+                        bounds = Map_.map.layerPointToLatLng([
+                            center.x,
+                            center.y,
+                        ])
                     } else {
                         console.warn('Feature is missing getBounds', feature)
                         break

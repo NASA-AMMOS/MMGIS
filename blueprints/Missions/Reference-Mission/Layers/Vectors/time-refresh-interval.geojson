@@ -1,0 +1,57 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.43, 37.81]
+      },
+      "properties": {
+        "id": "refresh-1",
+        "name": "Refreshing Point 1",
+        "startTime": "2024-01-01T00:00:00Z",
+        "description": "This layer tests refresh interval. In production, would reload data every N seconds."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.41, 37.80]
+      },
+      "properties": {
+        "id": "refresh-2",
+        "name": "Refreshing Point 2",
+        "startTime": "2024-01-02T00:00:00Z",
+        "description": "Simulates real-time data that updates periodically."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.39, 37.79]
+      },
+      "properties": {
+        "id": "refresh-3",
+        "name": "Refreshing Point 3",
+        "startTime": "2024-01-03T00:00:00Z",
+        "description": "Refresh interval can be set in seconds."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.37, 37.78]
+      },
+      "properties": {
+        "id": "refresh-4",
+        "name": "Refreshing Point 4",
+        "startTime": "2024-01-04T00:00:00Z",
+        "description": "Time-enabled with refresh demonstrates live data tracking."
+      }
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.43, 37.76],
+          [-122.41, 37.76],
+          [-122.41, 37.77],
+          [-122.43, 37.77],
+          [-122.43, 37.76]
+        ]]
+      },
+      "properties": {
+        "id": "zoom-poly-1",
+        "name": "Zoom 8-11",
+        "description": "Polygon visible only at zoom levels 8-11",
+        "style": {
+          "fillColor": "#ffaa00",
+          "color": "#996600",
+          "fillOpacity": 0.6,
+          "weight": 2,
+          "minZoom": 8,
+          "maxZoom": 11
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.39, 37.83],
+          [-122.37, 37.83],
+          [-122.37, 37.84],
+          [-122.39, 37.84],
+          [-122.39, 37.83]
+        ]]
+      },
+      "properties": {
+        "id": "zoom-poly-2",
+        "name": "Zoom 11-14",
+        "description": "Polygon visible only at zoom levels 11-14",
+        "style": {
+          "fillColor": "#00ffaa",
+          "color": "#009966",
+          "fillOpacity": 0.6,
+          "weight": 2,
+          "minZoom": 11,
+          "maxZoom": 14
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.36, 37.78],
+          [-122.34, 37.78],
+          [-122.34, 37.79],
+          [-122.36, 37.79],
+          [-122.36, 37.78]
+        ]]
+      },
+      "properties": {
+        "id": "zoom-poly-3",
+        "name": "Zoom 14-17",
+        "description": "Polygon visible only at zoom levels 14-17",
+        "style": {
+          "fillColor": "#aa00aa",
+          "color": "#660066",
+          "fillOpacity": 0.6,
+          "weight": 2,
+          "minZoom": 14,
+          "maxZoom": 17
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.38, 37.785]
+      },
+      "properties": {
+        "annotation": true,
+        "id": "zoom-poly-annot-1",
+        "name": "Polygons with feature-level zoom constraints (8-11, 11-14, 14-17)",
+        "description": "Annotation describing zoom-constrained polygons",
+        "style": {
+          "fillColor": "rgba(255,255,255,0.9)",
+          "color": "#333333",
+          "weight": 2,
+          "fillOpacity": 0.9
+        }
+      }
+    }
+  ]
+}

@@ -116,34 +116,44 @@ function parseRgb(color) {
     }
 }
 
+// Cache for parseCSSColor — avoids repeated DOM mutations for the same color string
+const _parseCSSColorCache = new Map()
+
 // Helper function to parse CSS color strings to RGB using browser's built-in capability
 function parseCSSColor(color) {
     if (!color || typeof color !== 'string') return null
 
+    if (_parseCSSColorCache.has(color)) return _parseCSSColorCache.get(color)
+
     // Use a temporary element to parse the color
     const tempElem = document.createElement('div')
     tempElem.style.color = color
+
+    // If the browser rejected the value it leaves style.color empty — bail early
+    if (!tempElem.style.color) {
+        _parseCSSColorCache.set(color, null)
+        return null
+    }
 
     // Append to body temporarily to get computed style
     document.body.appendChild(tempElem)
     const computedColor = window.getComputedStyle(tempElem).color
     document.body.removeChild(tempElem)
 
-    // If the browser couldn't parse it, computed color will be empty
-    if (!computedColor || computedColor === '') return null
-
     // Try to parse rgb() or rgba() format
     const rgbMatch = computedColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
-    if (rgbMatch) {
-        return {
-            r: parseInt(rgbMatch[1]),
-            g: parseInt(rgbMatch[2]),
-            b: parseInt(rgbMatch[3]),
-        }
-    }
+    const result = rgbMatch
+        ? {
+              r: parseInt(rgbMatch[1]),
+              g: parseInt(rgbMatch[2]),
+              b: parseInt(rgbMatch[3]),
+          }
+        : null
 
-    return null
+    _parseCSSColorCache.set(color, result)
+    return result
 }
+
 
 const tooltipProto = L.Tooltip.prototype
 const tooltipProto_setPosition = tooltipProto._setPosition
@@ -200,8 +210,14 @@ export const constructVectorLayer = (
     if (layerObj.style.radiusProp != null && layerObj.style.radiusProp !== '')
         rad = `prop:${layerObj.style.radiusProp}`
 
+    // Snapshot the original style so it can be restored on every feature call
+    const _originalStyle = layerObj.style
+
     let leafletLayerObject = {
         style: function (feature, preferredStyle) {
+            // Restore to original before applying per-feature overrides so
+            // mutations from a previous feature don't bleed into this one
+            layerObj.style = Object.assign({}, _originalStyle)
             if (preferredStyle) {
                 col = preferredStyle.color != null ? preferredStyle.color : col
                 opa =
@@ -519,6 +535,9 @@ export const constructVectorLayer = (
                         : 'none',
                     Map_.map
                 )
+            } else {
+                // Clear fillPattern if feature doesn't have a geologic pattern
+                layerObj.style.fillPattern = null
             }
             return layerObj.style
         },
@@ -1019,8 +1038,8 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
             }
             leafletLayer.eachLayer((l) => {
                 if (
-                    !l.feature.properties.arrow === true &&
-                    !l.feature.properties.annotation === true
+                    l.feature.properties.arrow !== true &&
+                    l.feature.properties.annotation !== true
                 ) {
                     dropdownProps.dropdown = Object.keys(l.feature.properties)
                     dropdownProps.dropdownValue =
@@ -1036,6 +1055,19 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
                             (layerObj.style?.weight || 0) * 2
 
                     customOptions.pointOffset[0] = xOffset
+
+                    // For lines and polygons, anchor tooltip to first coordinate
+                    if (l.feature?.geometry?.type === 'LineString' ||
+                        l.feature?.geometry?.type === 'Polygon' ||
+                        l.feature?.geometry?.type === 'MultiLineString' ||
+                        l.feature?.geometry?.type === 'MultiPolygon') {
+                        // Override getCenter to return first coordinate
+                        l._labelAnchorLatLng = L_.getFirstCoordinate(l.feature.geometry)
+                        l.getCenter = function() {
+                            return this._labelAnchorLatLng
+                        }
+                    }
+
                     if (labelsVar.initialVisibility === true)
                         l.bindTooltip(
                             `<div class='mmgisFeatureLabelContent'>${value}</div>`,
@@ -1080,8 +1112,8 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
             const tooltipLayersOn = (leafletLayer, subname) => {
                 leafletLayer.eachLayer((l) => {
                     if (
-                        !l.feature.properties.arrow === true &&
-                        !l.feature.properties.annotation === true
+                        l.feature.properties.arrow !== true &&
+                        l.feature.properties.annotation !== true
                     ) {
                         const value = l.feature.properties[layer.dropdownValue]
                         const content = `<div class='mmgisFeatureLabelContent'>${value}</div>`
@@ -1094,6 +1126,19 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
                                     (layerObj.style?.weight || 0) * 2
 
                             customOptions.pointOffset[0] = xOffset
+
+                            // For lines and polygons, anchor tooltip to first coordinate
+                            if (l.feature?.geometry?.type === 'LineString' ||
+                                l.feature?.geometry?.type === 'Polygon' ||
+                                l.feature?.geometry?.type === 'MultiLineString' ||
+                                l.feature?.geometry?.type === 'MultiPolygon') {
+                                // Override getCenter to return first coordinate
+                                l._labelAnchorLatLng = L_.getFirstCoordinate(l.feature.geometry)
+                                l.getCenter = function() {
+                                    return this._labelAnchorLatLng
+                                }
+                            }
+
                             l.bindTooltip(content, customOptions)
                         }
                         l.openTooltip()
@@ -1103,8 +1148,8 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
                     const globeLabels = []
                     leafletLayer.eachLayer((l) => {
                         if (
-                            !l.feature.properties.arrow === true &&
-                            !l.feature.properties.annotation === true &&
+                            l.feature.properties.arrow !== true &&
+                            l.feature.properties.annotation !== true &&
                             l._tooltip?._latlng?.lng != null
                         ) {
                             const value =
@@ -1173,7 +1218,15 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
                 )
         }
 
-        if (labelsVar.initialVisibility === true) layer.on(true)
+        // Only show labels initially if they're within zoom range
+        if (labelsVar.initialVisibility === true) {
+            const labelMinZoom = layerObj.minZoom != null ? layerObj.minZoom : 0
+            const labelMaxZoom = layerObj.maxZoom != null ? layerObj.maxZoom : 100
+            const currentZoom = L_.Map_.map ? L_.Map_.map.getZoom() : 0
+            if (F_.isInZoomRange(labelMinZoom, labelMaxZoom, currentZoom)) {
+                layer.on(true)
+            }
+        }
 
         layer.addDataEnhanced = function (geojson, layerName, subName) {
             this.addData(geojson)
@@ -1190,8 +1243,8 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
             geojson: geojson,
             layer: layer,
             title: 'Feature Labels',
-            minZoom: 0,
-            maxZoom: 100,
+            minZoom: layerObj.minZoom != null ? layerObj.minZoom : 0,
+            maxZoom: layerObj.maxZoom != null ? layerObj.maxZoom : 100,
         }
     } else return false
 }
@@ -1369,8 +1422,8 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
             geojson: geojson,
             layer: layer,
             title: 'Feature Pairings',
-            minZoom: 0,
-            maxZoom: 100,
+            minZoom: layerObj.minZoom != null ? layerObj.minZoom : 0,
+            maxZoom: layerObj.maxZoom != null ? layerObj.maxZoom : 100,
         }
     } else {
         return false
@@ -1477,8 +1530,8 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
             on: isOn,
             order: -9999,
             opacity: existingOpacity,
-            minZoom: 0,
-            maxZoom: 100,
+            minZoom: layerObj.minZoom != null ? layerObj.minZoom : 0,
+            maxZoom: layerObj.maxZoom != null ? layerObj.maxZoom : 100,
             geojson: {
                 type: 'FeatureCollection',
                 features: uncertaintyEllipseFeatures,
@@ -1593,16 +1646,35 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
                         'variables.markerAttachments.image.path',
                         'public/images/rovers/PerseveranceTopDown.png'
                     )
-                    let imageSettings = {
-                        image: F_.getIn(
+                    const pathProp = F_.getIn(
+                        layerObj,
+                        'variables.markerAttachments.image.pathProp',
+                        null
+                    )
+
+                    // Figure out image path (same logic as model attachments)
+                    let imagePath = null
+                    if (!path && pathProp) {
+                        imagePath = F_.getIn(
                             feature.properties,
-                            F_.getIn(
-                                layerObj,
-                                'variables.markerAttachments.image.pathProp',
-                                path
-                            ),
-                            path
-                        ),
+                            pathProp,
+                            null
+                        )
+                    } else {
+                        imagePath = pathProp
+                            ? F_.getIn(feature.properties, pathProp, path)
+                            : path
+                    }
+                    // Prepend mission path for relative URLs (matches model attachment behavior)
+                    if (
+                        imagePath &&
+                        !F_.isUrlAbsolute(imagePath) &&
+                        !imagePath.startsWith('public')
+                    )
+                        imagePath = L_.missionPath + imagePath
+
+                    let imageSettings = {
+                        image: imagePath,
                         widthMeters: F_.getIn(
                             layerObj,
                             'variables.markerAttachments.image.widthMeters',

@@ -34,7 +34,9 @@ const useStyles = makeStyles((theme) => ({
   contents: {
     background: theme.palette.primary.main,
     height: "100%",
-    width: "500px",
+    width: "700px",
+    maxWidth: "700px !important",
+    maxHeight: "90vh !important",
   },
   heading: {
     height: theme.headHeights[2],
@@ -154,7 +156,7 @@ const LayersUsedByModal = (props) => {
                   {`${n.path}.`.replaceAll(".", " ➔ ")}
                 </div>
                 <div className={c.name}>{n.name}</div>
-              </div>
+              </div>,
             );
           });
           return items;

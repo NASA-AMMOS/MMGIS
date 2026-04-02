@@ -1,0 +1,48 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.43, 37.84]
+      },
+      "properties": {
+        "id": "link-1",
+        "name": "Feature with External Link",
+        "url": "https://nasa-ammos.github.io/MMGIS/",
+        "documentation": "https://nasa-ammos.github.io/MMGIS/configure/layers",
+        "description": "This feature has external links configured. Click to see links in info panel."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.41, 37.83]
+      },
+      "properties": {
+        "id": "link-2",
+        "name": "GitHub Link Example",
+        "url": "https://github.com/NASA-AMMOS/MMGIS",
+        "issues": "https://github.com/NASA-AMMOS/MMGIS/issues",
+        "description": "External links can point to documentation, data sources, or related resources."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.39, 37.82]
+      },
+      "properties": {
+        "id": "link-3",
+        "name": "Multiple Links",
+        "url": "https://science.nasa.gov/",
+        "data_source": "https://www.earthdata.nasa.gov/",
+        "contact": "https://www.nasa.gov/",
+        "description": "Features can have multiple external link properties."
+      }
+    }
+  ]
+}

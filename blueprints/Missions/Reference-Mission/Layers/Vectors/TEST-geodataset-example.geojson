@@ -1,0 +1,209 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1001,
+        "name": "Seismic Station Alpha",
+        "dataset": "seismic_network",
+        "status": "active",
+        "last_reading": "2024-03-01T14:30:00Z",
+        "magnitude": null,
+        "sensor_type": "broadband",
+        "elevation": 45.2,
+        "installed_date": "2018-06-15",
+        "operator": "USGS",
+        "data_quality": "excellent",
+        "notes": "Primary monitoring station for Bay Area seismic activity"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4194, 37.7749]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1002,
+        "name": "Weather Station Beta",
+        "dataset": "weather_monitoring",
+        "status": "active",
+        "last_reading": "2024-03-01T15:00:00Z",
+        "temperature": 18.5,
+        "humidity": 65,
+        "wind_speed": 12.3,
+        "elevation": 120.5,
+        "installed_date": "2019-03-20",
+        "operator": "NOAA",
+        "data_quality": "good",
+        "notes": "Coastal weather monitoring station"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4783, 37.8199]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1003,
+        "name": "Water Quality Site Gamma",
+        "dataset": "water_quality",
+        "status": "maintenance",
+        "last_reading": "2024-02-28T09:15:00Z",
+        "ph_level": 7.2,
+        "turbidity": 3.5,
+        "dissolved_oxygen": 8.1,
+        "elevation": 2.0,
+        "installed_date": "2020-01-10",
+        "operator": "EPA",
+        "data_quality": "fair",
+        "notes": "Scheduled maintenance - sensor recalibration"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.3892, 37.8270]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2001,
+        "name": "Survey Transect A-B",
+        "dataset": "field_surveys",
+        "survey_date": "2024-02-15",
+        "survey_type": "geological",
+        "team_lead": "Dr. Sarah Chen",
+        "sample_count": 24,
+        "length_km": 3.2,
+        "elevation_gain": 85.0,
+        "status": "completed",
+        "data_quality": "excellent",
+        "notes": "Fault line characterization survey - samples collected every 150m"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4500, 37.7500],
+          [-122.4400, 37.7550],
+          [-122.4300, 37.7600],
+          [-122.4200, 37.7650]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2002,
+        "name": "Aerial Survey Flight Path 2024-045",
+        "dataset": "aerial_imagery",
+        "survey_date": "2024-02-20",
+        "survey_type": "multispectral",
+        "altitude_m": 500,
+        "resolution_cm": 15,
+        "length_km": 5.8,
+        "status": "processed",
+        "data_quality": "excellent",
+        "image_count": 1247,
+        "notes": "Urban vegetation health assessment - NDVI analysis complete"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4700, 37.7600],
+          [-122.4600, 37.7650],
+          [-122.4500, 37.7700],
+          [-122.4400, 37.7750],
+          [-122.4300, 37.7800]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3001,
+        "name": "Protected Habitat Zone Delta",
+        "dataset": "conservation_areas",
+        "designation": "critical_habitat",
+        "species": "California Clapper Rail",
+        "area_hectares": 45.8,
+        "established_date": "2015-08-01",
+        "managing_agency": "California Department of Fish and Wildlife",
+        "access_restrictions": "permit_required",
+        "status": "active",
+        "monitoring_frequency": "quarterly",
+        "last_survey": "2024-01-15",
+        "notes": "Wetland restoration area - nesting season restrictions Mar-Aug"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.5000, 37.8000],
+          [-122.5000, 37.8100],
+          [-122.4900, 37.8100],
+          [-122.4900, 37.8000],
+          [-122.5000, 37.8000]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3002,
+        "name": "Contamination Zone Epsilon",
+        "dataset": "environmental_hazards",
+        "hazard_type": "soil_contamination",
+        "contaminants": "petroleum_hydrocarbons",
+        "concentration_ppm": 850,
+        "area_hectares": 12.3,
+        "discovered_date": "2022-05-10",
+        "remediation_status": "in_progress",
+        "responsible_party": "Industrial Site Remediation LLC",
+        "risk_level": "medium",
+        "monitoring_frequency": "monthly",
+        "last_sample": "2024-02-25",
+        "notes": "Former industrial site - bioremediation ongoing - 30% reduction achieved"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.4200, 37.7500],
+          [-122.4200, 37.7550],
+          [-122.4100, 37.7550],
+          [-122.4100, 37.7500],
+          [-122.4200, 37.7500]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3003,
+        "name": "Archaeological Site Zeta",
+        "dataset": "cultural_resources",
+        "site_type": "shell_midden",
+        "time_period": "Late Holocene",
+        "estimated_age_years": 2500,
+        "area_hectares": 3.2,
+        "recorded_date": "2021-07-12",
+        "significance": "high",
+        "protection_status": "registered",
+        "access_restrictions": "prohibited",
+        "managing_agency": "California Office of Historic Preservation",
+        "last_inspection": "2023-11-20",
+        "notes": "Ohlone archaeological site - ongoing consultation with tribal representatives"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.4600, 37.7700],
+          [-122.4600, 37.7750],
+          [-122.4550, 37.7750],
+          [-122.4550, 37.7700],
+          [-122.4600, 37.7700]
+        ]]
+      }
+    }
+  ]
+}

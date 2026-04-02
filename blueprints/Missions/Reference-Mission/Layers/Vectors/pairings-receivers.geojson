@@ -1,0 +1,41 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Receiver A",
+        "station_id": "STA-001",
+        "type": "receiver"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4350, 37.7850]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Receiver B",
+        "station_id": "STA-002",
+        "type": "receiver"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4050, 37.7750]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Receiver C",
+        "station_id": "STA-003",
+        "type": "receiver"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.3850, 37.7600]
+      }
+    }
+  ]
+}

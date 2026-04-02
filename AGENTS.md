@@ -1,13 +1,14 @@
 # MMGIS - AI Agent Context
 
 **Project**: MMGIS (Multi-Mission Geographic Information System)
-**Version**: 4.1.18
-**Last Updated**: 2025-12-18
+**Version**: 4.2.34
+**Last Updated**: 2026-04-01
 
 ## Important Instructions
 
-Use MCP tools when possible for code analysis, symbol navigation, and code modifications.
-Local development uses hot-reloading and therefore there is little reason to run `npm run build` for the user.
+- Use MCP tools, such as serena and playwright, when possible for code analysis, symbol navigation, and code modifications.
+- Local development uses hot-reloading and therefore there is little reason to run `npm run build` for the user.
+- New development work that depends on a specific configuration and/or data should often be included in the /blueprints/Missions/Reference-Mission. This Reference-Mission serves a basis as a demo, development and testing mission. Site Admins, in the Configure Page, can create a working Reference-Mission in the /Missions directory based off of it and developers can do the same and also update the blueprint itself.
 
 ## Project Overview
 
@@ -229,6 +230,17 @@ Comprehensive reference for all layer types (vector, tile, data, model, image, v
 📄 Spec: [specs/009-data-formats-and-layer-types/spec.md](specs/009-data-formats-and-layer-types/spec.md)
 📋 Plan: [specs/009-data-formats-and-layer-types/plan.md](specs/009-data-formats-and-layer-types/plan.md)
 **Status**: ✅ Implemented and deployed
+
+### 012-reference-mission-demo
+
+Comprehensive demo mission showcasing all MMGIS features, layer types, data formats, tools, and configuration options for use as reference documentation, stakeholder demonstrations, and Playwright E2E testing.
+📄 Spec: [specs/012-reference-mission-demo/spec.md](specs/012-reference-mission-demo/spec.md)
+📋 Plan: [specs/012-reference-mission-demo/plan.md](specs/012-reference-mission-demo/plan.md)
+✅ Tasks: [specs/012-reference-mission-demo/tasks.md](specs/012-reference-mission-demo/tasks.md)
+📖 README: [Missions/Reference-Mission/README.md](Missions/Reference-Mission/README.md)
+**Status**: ✅ Implemented (20 layers, 14 tools, comprehensive documentation)
+
+**Usage**: `FORCE_CONFIG_PATH=Missions/Reference-Mission/config.reference-mission.json npm start`
 
 ## Architecture
 

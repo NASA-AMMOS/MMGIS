@@ -1,0 +1,109 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "name": "Golden Gate Bridge",
+        "description": "Iconic suspension bridge spanning the Golden Gate strait",
+        "category": "Landmark"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4783, 37.8199]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2,
+        "name": "Alcatraz Island",
+        "description": "Historic former federal prison on an island",
+        "category": "Historic Site"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4230, 37.8270]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3,
+        "name": "Transamerica Pyramid",
+        "description": "Distinctive skyscraper in San Francisco's Financial District",
+        "category": "Building"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4025, 37.7949]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 4,
+        "name": "Pier 39",
+        "description": "Popular waterfront tourist attraction with shops and restaurants",
+        "category": "Landmark"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4099, 37.8087]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 5,
+        "name": "Coit Tower",
+        "description": "Art Deco tower on Telegraph Hill offering panoramic views",
+        "category": "Landmark"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4058, 37.8024]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 6,
+        "name": "Oracle Park",
+        "description": "Home of the San Francisco Giants baseball team",
+        "category": "Stadium"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.3892, 37.7786]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 7,
+        "name": "Palace of Fine Arts",
+        "description": "Monumental structure originally built for the 1915 Panama-Pacific Exposition",
+        "category": "Historic Site"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4488, 37.8029]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 8,
+        "name": "Twin Peaks",
+        "description": "Pair of peaks offering 360-degree views of San Francisco",
+        "category": "Viewpoint"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4475, 37.7544]
+      }
+    }
+  ]
+}

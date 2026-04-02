@@ -1,0 +1,106 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ship heading NE",
+        "heading": 45,
+        "speed": 12,
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.9,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.45, 37.8]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ship heading E",
+        "heading": 90,
+        "speed": 8,
+        "style": {
+          "fillColor": "#ff8800",
+          "fillOpacity": 0.9,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.43, 37.79]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ship heading SE",
+        "heading": 135,
+        "speed": 15,
+        "style": {
+          "fillColor": "#ffff00",
+          "fillOpacity": 0.9,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.41, 37.78]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ship heading S",
+        "heading": 180,
+        "speed": 10,
+        "style": {
+          "fillColor": "#00ff00",
+          "fillOpacity": 0.9,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.39, 37.77]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ship heading NW",
+        "heading": 315,
+        "speed": 11,
+        "style": {
+          "fillColor": "#0000ff",
+          "fillOpacity": 0.9,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 8
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.47, 37.79]
+      }
+    }
+  ]
+}

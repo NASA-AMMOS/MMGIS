@@ -1,0 +1,44 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Buckskin",
+        "sol": 1051,
+        "az": 92.35268459,
+        "el": -31.32619611
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.460, 37.820]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sorrel_Springs",
+        "sol": 1051,
+        "az": 95.61854439,
+        "el": -26.8109422
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.458, 37.819]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hewolf",
+        "sol": 1051,
+        "az": 110.8188636,
+        "el": -38.59535735
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.455, 37.816]
+      }
+    }
+  ]
+}

@@ -1,0 +1,3312 @@
+{
+  "msv": {
+    "mission": "Reference-Mission",
+    "missionFolderName": "Reference-Mission",
+    "site": "Demo",
+    "masterdb": false,
+    "view": [
+      37.8,
+      -122.4,
+      12
+    ],
+    "radius": {
+      "major": "6378137",
+      "minor": "6356752"
+    },
+    "mapscale": "12"
+  },
+  "projection": {
+    "custom": false,
+    "epsg": "EPSG:3857",
+    "proj": "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs",
+    "globeproj": "webmercator",
+    "xmlpath": "",
+    "bounds": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "origin": [
+      "",
+      ""
+    ],
+    "reszoomlevel": "",
+    "resunitsperpixel": ""
+  },
+  "look": {
+    "pagename": "MMGIS Reference Mission",
+    "missionname": "Reference Mission",
+    "missionsubtitle": "Reference Mission Demo",
+    "minimalist": false,
+    "topbar": true,
+    "toolbar": true,
+    "scalebar": true,
+    "noscalebar": false,
+    "coordinates": true,
+    "zoomcontrol": false,
+    "graticule": true,
+    "miscellaneous": true,
+    "timestamp": false,
+    "radiusdivs": false,
+    "bodycolor": "",
+    "topbarcolor": "",
+    "toolbarcolor": "",
+    "mapcolor": "",
+    "swap": true,
+    "copylink": true,
+    "screenshot": true,
+    "fullscreen": true,
+    "help": true,
+    "logourl": "",
+    "helpurl": "https://nasa-ammos.github.io/MMGIS/"
+  },
+  "coordinates": {
+    "coordll": true,
+    "coorden": true,
+    "coordelev": true,
+    "coordelevurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif"
+  },
+  "time": {
+    "enabled": true,
+    "visible": true,
+    "initiallyOpen": true,
+    "startInPointMode": false,
+    "format": "%Y-%m-%dT%H:%M:%SZ",
+    "initialstart": "2024-01-01T00:00:00Z",
+    "initialend": "2024-01-20T00:00:00Z",
+    "loop": false,
+    "loopDelay": 0,
+    "step": 86400,
+    "relativeto": null
+  },
+  "panels": {
+    "viewer": true,
+    "map": true,
+    "globe": true
+  },
+  "panelSettings": {
+    "demFallbackPath": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+    "demFallbackFormat": null,
+    "demFallbackType": null
+  },
+  "variables": {},
+  "components": [],
+  "layers": [
+    {
+      "name": "Vector Layers",
+      "type": "header",
+      "sublayers": [
+        {
+          "name": "📄 GeoJSON Data Features",
+          "uuid": "29dd6328-4333-40d4-be4c-94c018e512c8",
+          "sublayers": [
+            {
+              "name": "Geometry Types",
+              "type": "header",
+              "sublayers": [
+                {
+                  "name": "Points Basic",
+                  "type": "vector",
+                  "url": "Layers/Vectors/points-basic.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "pointsbasic",
+                    "strokeColor": "#0000ff",
+                    "strokeWeight": 2,
+                    "fillColor": "#0088ff",
+                    "fillOpacity": 0.7,
+                    "radius": 8
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "a13bd914-d6d2-4150-8964-568accb1849e"
+                },
+                {
+                  "name": "Lines Basic",
+                  "type": "vector",
+                  "url": "Layers/Vectors/lines-basic.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "linesbasic",
+                    "strokeColor": "#ff6600",
+                    "strokeWeight": 3,
+                    "strokeOpacity": 0.9
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "e26202d3-dd15-4344-a620-8c3d8e1e24b6"
+                },
+                {
+                  "name": "Polygons Basic",
+                  "type": "vector",
+                  "url": "Layers/Vectors/polygons-basic.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "polygonsbasic",
+                    "strokeColor": "#006600",
+                    "strokeWeight": 2,
+                    "fillColor": "#00aa00",
+                    "fillOpacity": 0.4
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "255ac3cf-6208-459b-a3a1-3b006be26f29"
+                },
+                {
+                  "name": "Time-Enabled",
+                  "type": "vector",
+                  "url": "Layers/Vectors/time-enabled.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "time": {
+                    "enabled": true,
+                    "type": "local",
+                    "startProp": "startTime",
+                    "endProp": "startTime",
+                    "format": "%Y-%m-%dT%H:%M:%SZ"
+                  },
+                  "style": {
+                    "className": "time-enabled",
+                    "strokeColor": "#9900ff",
+                    "strokeWeight": 2,
+                    "fillColor": "#cc66ff",
+                    "fillOpacity": 0.5,
+                    "radius": 8
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "77d6ca9d-32c9-4bbb-922f-deb4cc10d741"
+                }
+              ],
+              "description": "",
+              "demparser": "",
+              "controlled": false,
+              "uuid": "01216291-6b46-42e5-8f3b-e5522ef79cbf"
+            },
+            {
+              "name": "Feature Property Styling",
+              "type": "header",
+              "sublayers": [
+                {
+                  "name": "Points Styled",
+                  "type": "vector",
+                  "url": "Layers/Vectors/points-styled.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "legend": "Layers/Legends/vector-points.csv",
+                  "style": {
+                    "className": "pointsstyled"
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "5742104a-de09-4be1-8610-cf248e0633c9"
+                },
+                {
+                  "name": "Lines Styled",
+                  "type": "vector",
+                  "url": "Layers/Vectors/lines-styled.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "linesstyled"
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "f54a1e5e-479d-4996-8b47-e6a08e1cf6a0"
+                },
+                {
+                  "name": "Polygons Styled",
+                  "type": "vector",
+                  "url": "Layers/Vectors/polygons-styled.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "legend": "Layers/Legends/vector-polygons.csv",
+                  "style": {
+                    "className": "polygonsstyled"
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "fd27ee79-1a9e-4cc2-a3c7-3e20f45e13a5"
+                },
+                {
+                  "name": "Style From Property",
+                  "type": "vector",
+                  "url": "Layers/Vectors/style-from-property.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "stylefromproperty",
+                    "fillColorProp": "fillColor",
+                    "colorProp": "strokeColor",
+                    "radiusProp": "radius",
+                    "fillOpacityProp": "fillOpacity",
+                    "opacityProp": "strokeOpacity",
+                    "weightProp": "strokeWeight"
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "7bae36ec-30a8-42eb-ade9-370a136bd14a"
+                }
+              ],
+              "description": "",
+              "demparser": "",
+              "controlled": false,
+              "uuid": "816c1ef2-3862-471e-bf3a-09df83ef93cb"
+            },
+            {
+              "name": "Feature Property Behavior",
+              "type": "header",
+              "sublayers": [
+                {
+                  "name": "Points Symbols",
+                  "type": "vector",
+                  "url": "Layers/Vectors/points-symbols.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "legend": "Layers/Legends/vector-points.csv",
+                  "style": {
+                    "className": "pointssymbols",
+                    "shapeProp": "shape",
+                    "fillColor": "#ff8800",
+                    "fillOpacity": 0.9,
+                    "radius": 8,
+                    "strokeColor": "#ffffff",
+                    "strokeWeight": 1
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "75042da4-d2da-47af-9a41-122cd1855c39"
+                },
+                {
+                  "name": "Shape From MDI Icons",
+                  "type": "vector",
+                  "url": "Layers/Vectors/mdi-icons-example.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "shapefrommdiicons",
+                    "shapeProp": "icon",
+                    "fillColor": "#0088ff",
+                    "fillOpacity": 0.9,
+                    "radius": 16,
+                    "strokeColor": "#ffffff",
+                    "strokeWeight": 1
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "9b697f26-9947-4c8a-93d2-60942e85b852"
+                },
+                {
+                  "name": "Arrows",
+                  "type": "vector",
+                  "url": "Layers/Vectors/arrows-example.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "arrows",
+                    "strokeColor": "#ff0000",
+                    "strokeWeight": 3,
+                    "strokeOpacity": 0.9,
+                    "fillColor": "#ff0000",
+                    "fillOpacity": 0.8
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "07a598a6-bf46-4601-99de-50be924aad2b"
+                },
+                {
+                  "name": "Annotations",
+                  "type": "vector",
+                  "url": "Layers/Vectors/annotations-example.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "annotations"
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "fc1bf5f4-94cc-4617-8181-713326820c46"
+                },
+                {
+                  "name": "Bearings Directional",
+                  "type": "vector",
+                  "url": "Layers/Vectors/bearings-example.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "bearingsdirectional"
+                  },
+                  "variables": {
+                    "markerAttachments": {
+                      "bearing": {
+                        "enabled": true,
+                        "angleProp": "heading",
+                        "color": "#ffffff"
+                      }
+                    }
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "1e50c952-99c4-4fdf-88ff-21d44841765e"
+                },
+                {
+                  "name": "Hotline Gradient Path",
+                  "type": "vector",
+                  "url": "Layers/Vectors/hotline-gradient.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "hotlinegradientpath"
+                  },
+                  "variables": {
+                    "hideMainFeature": true,
+                    "pathAttachments": {
+                      "gradient": {
+                        "enabled": true,
+                        "colorWithProp": "elevation",
+                        "dropdownColorWithProp": [
+                          "elevation",
+                          "speed",
+                          "roll"
+                        ],
+                        "colorRamp": [
+                          "#0000ff",
+                          "#00ffff",
+                          "#00ff00",
+                          "#ffff00",
+                          "#ff0000"
+                        ],
+                        "weight": 5
+                      }
+                    }
+                  },
+                  "description": "Traverse from Golden Gate Bridge to Oakland with gradient visualization. Use the layer dropdown in the Layers Tool to switch between elevation (m), speed (m/s), and roll (degrees) gradient visualization.",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "ce662d44-a96e-4e19-8e7b-e89ea2727dd1"
+                },
+                {
+                  "name": "Uncertainty Ellipses",
+                  "type": "vector",
+                  "url": "Layers/Vectors/uncertainty-example.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "uncertaintyellipses",
+                    "fillColor": "#ffaa00",
+                    "fillOpacity": 0.6,
+                    "radius": 8
+                  },
+                  "variables": {
+                    "markerAttachments": {
+                      "uncertainty": {
+                        "enabled": true,
+                        "initialVisibility": true,
+                        "strokeColor": "#ff6600",
+                        "opacity": 0.8,
+                        "color": "#ffaa00",
+                        "fillOpacity": 0.3,
+                        "weight": 2,
+                        "xAxisProp": "xAxis",
+                        "yAxisProp": "yAxis",
+                        "axisUnit": "m",
+                        "angleProp": "angle",
+                        "angleUnit": "deg"
+                      }
+                    }
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "d784a3ab-b123-4694-8ada-2600e602f6f5"
+                },
+                {
+                  "name": "Pairings Transmitters",
+                  "uuid": "a7f50fd8-e5de-436c-b570-2980a6f8ac92",
+                  "sublayers": [],
+                  "type": "vector",
+                  "kind": "none",
+                  "visibility": false,
+                  "sourceType": "url",
+                  "url": "Layers/Vectors/pairings-example.geojson",
+                  "layer3dType": "clamped",
+                  "initialOpacity": 1,
+                  "controlled": false,
+                  "style": {
+                    "color": "#FFFFFF",
+                    "opacity": 1,
+                    "fillColor": "#00ffaa",
+                    "fillOpacity": 0.7,
+                    "weight": 2,
+                    "radius": 10,
+                    "animation": "none",
+                    "className": "pairingstransmitters"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "dynamicExtent": false,
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": false,
+                    "style": {
+                      "nointeraction": false
+                    },
+                    "layerAttachments": {
+                      "labels": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "theme": "default",
+                        "size": "default"
+                      },
+                      "pairings": {
+                        "enabled": true,
+                        "initialVisibility": true,
+                        "layers": [
+                          "Pairings Receivers"
+                        ],
+                        "pairProp": "station_id",
+                        "layerAzProp": "azimuth",
+                        "layerElProp": "elevation",
+                        "style": {
+                          "color": "#00ff88",
+                          "weight": 5
+                        }
+                      }
+                    },
+                    "coordinateAttachments": {
+                      "marker": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "color": "#FFFFFF",
+                        "fillColor": "#FFFFFF"
+                      }
+                    },
+                    "markerAttachments": {
+                      "bearing": {
+                        "enabled": false,
+                        "angleUnit": "deg",
+                        "color": "#FFFFFF",
+                        "useCustomShape": false
+                      },
+                      "image": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "angleUnit": "deg",
+                        "show": "click"
+                      },
+                      "model": {
+                        "enabled": false,
+                        "yawUnit": "deg",
+                        "invertYaw": false,
+                        "pitchUnit": "deg",
+                        "invertPitch": false,
+                        "rollUnit": "deg",
+                        "invertRoll": false,
+                        "show": "click"
+                      },
+                      "uncertainty": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "strokeColor": "#FFFFFF",
+                        "color": "#FFFFFF",
+                        "axisUnit": "meters",
+                        "angleUnit": "deg"
+                      }
+                    },
+                    "pathAttachments": {
+                      "gradient": {
+                        "enabled": false,
+                        "connectAllPoints": false
+                      }
+                    },
+                    "hideMainFeature": false
+                  },
+                  "description": ""
+                },
+                {
+                  "name": "Pairings Receivers",
+                  "type": "vector",
+                  "url": "Layers/Vectors/pairings-receivers.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "pairingsreceivers",
+                    "fillColor": "#ff00aa",
+                    "fillOpacity": 0.7,
+                    "radius": 10,
+                    "strokeColor": "#880055",
+                    "strokeWeight": 2
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "6ae26542-1ba9-4af0-a023-f2387da891ee"
+                }
+              ],
+              "description": "",
+              "demparser": "",
+              "controlled": false,
+              "uuid": "364f53c1-a715-45d4-aaa6-fcfab19d189f"
+            }
+          ],
+          "type": "header",
+          "expanded": false,
+          "description": ""
+        },
+        {
+          "name": "Geodatasets",
+          "uuid": "cbaa8bbe-6b93-4bc8-9243-6f52cd0223d2",
+          "sublayers": [
+            {
+              "name": "Geodatasets - Basic",
+              "uuid": "d134df19-d737-4e8b-a927-77e3add95d1a",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "none",
+              "visibility": false,
+              "sourceType": "geodatasets",
+              "url": "reference_mission_basic",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#4488ff",
+                "fillOpacity": 0.8,
+                "weight": 2,
+                "radius": 8,
+                "animation": "none",
+                "className": "geodatasets-basic"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": false,
+                "noDuplicates": false,
+                "getFeaturePropertiesOnClick": false,
+                "style": {
+                  "nointeraction": false
+                }
+              },
+              "description": "Demonstrates the simplest geodataset layer: sourceType='geodatasets' routes to the PostGIS-backed geodatasets API instead of a static file.",
+              "demparser": ""
+            },
+            {
+              "name": "Geodatasets - Dynamic Extent",
+              "uuid": "f86e0eb5-6216-440f-97ce-16f9e652eda0",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "none",
+              "visibility": false,
+              "sourceType": "geodatasets",
+              "url": "reference_mission_dynamic_extent",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#44bb44",
+                "fillOpacity": 0.8,
+                "weight": 2,
+                "radius": 8,
+                "animation": "none",
+                "className": "geodatasets-dynamicextent"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": true,
+                "dynamicExtentMoveThreshold": "500/z",
+                "noDuplicates": false,
+                "getFeaturePropertiesOnClick": false,
+                "useKeyAsId": "id",
+                "style": {
+                  "nointeraction": false
+                }
+              },
+              "description": "Demonstrates dynamicExtent: only features within the current map viewport are queried from the database. Pan or zoom to trigger a re-query. dynamicExtentMoveThreshold='500/z' throttles re-queries to 500m of pan at zoom 0, scaled by zoom level.",
+              "demparser": ""
+            },
+            {
+              "name": "Geodatasets - No Duplicates",
+              "uuid": "d20bebbe-6b03-402d-bd06-75587115ea7d",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "none",
+              "visibility": false,
+              "sourceType": "geodatasets",
+              "url": "reference_mission_no_duplicates",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#ff8833",
+                "fillOpacity": 0.8,
+                "weight": 2,
+                "radius": 8,
+                "animation": "none",
+                "className": "geodatasets-noduplicates"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": false,
+                "noDuplicates": true,
+                "getFeaturePropertiesOnClick": false,
+                "style": {
+                  "nointeraction": false
+                }
+              },
+              "description": "Demonstrates noDuplicates: the geodataset has multiple records per location sharing a group_id (site_id). With noDuplicates=true, only one feature per group is rendered using DISTINCT ON (group_id). The dataset has 8 records at 4 locations — only 4 points appear on the map.",
+              "demparser": ""
+            },
+            {
+              "name": "Geodatasets - Properties on Click",
+              "uuid": "c1d69334-5908-40a8-a7ae-55c31948d269",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "none",
+              "visibility": false,
+              "sourceType": "geodatasets",
+              "url": "reference_mission_properties_on_click",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#9944ff",
+                "fillOpacity": 0.8,
+                "weight": 2,
+                "radius": 8,
+                "animation": "none",
+                "className": "geodatasets-propertiesonclick"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": false,
+                "noDuplicates": false,
+                "getFeaturePropertiesOnClick": true,
+                "useKeyAsId": "feature_code",
+                "style": {
+                  "nointeraction": false
+                }
+              },
+              "description": "Demonstrates getFeaturePropertiesOnClick: the initial map load fetches only geometry and feature IDs (feature_code). Full properties (address, area, visitor stats, etc.) are fetched from the database only when a feature is clicked, reducing initial load size.",
+              "demparser": ""
+            },
+            {
+              "name": "Geodatasets - Time Series",
+              "uuid": "15cf8c7d-857f-4036-9cd6-80168948b381",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "none",
+              "visibility": false,
+              "sourceType": "geodatasets",
+              "url": "reference_mission_time_series",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#00bbcc",
+                "fillOpacity": 0.8,
+                "weight": 2,
+                "radius": 8,
+                "animation": "none",
+                "className": "geodatasets-timeseries"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": true,
+                "type": "requery",
+                "format": "%Y-%m-%dT%H:%M:%SZ",
+                "refreshIntervalEnabled": false,
+                "dataStartTime": "2024-01-01T00:00:00Z",
+                "dataEndTime": "2024-06-30T23:59:59Z"
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": false,
+                "noDuplicates": false,
+                "getFeaturePropertiesOnClick": false,
+                "style": {
+                  "nointeraction": false
+                }
+              },
+              "description": "Demonstrates time.type='requery' for geodatasets: the time range is sent to PostGIS as a server-side SQL filter on the start_time/end_time BIGINT columns. Use the Time Control tool to filter events by date range (Jan–Jun 2024).",
+              "demparser": ""
+            }
+          ],
+          "type": "header",
+          "expanded": false,
+          "description": "PostGIS-backed vector layers showcasing geodataset features: dynamic viewport querying, deduplication, lazy property loading, and server-side time filtering."
+        },
+        {
+          "name": "Viewer Panel",
+          "type": "header",
+          "sublayers": [
+            {
+              "name": "Viewer Panel Example",
+              "uuid": "f3a7b891-c234-4d56-b789-012ef3456789",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "viewer_open",
+              "visibility": false,
+              "sourceType": "url",
+              "url": "Layers/Vectors/viewer-panel-example.geojson",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#75053b",
+                "fillOpacity": 1,
+                "weight": 2,
+                "radius": 8,
+                "animation": "none",
+                "className": "viewerpanelexample"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": false,
+                "noDuplicates": false,
+                "getFeaturePropertiesOnClick": false,
+                "style": {
+                  "nointeraction": false
+                },
+                "layerAttachments": {
+                  "labels": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "theme": "default",
+                    "size": "default"
+                  },
+                  "pairings": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "style": {
+                      "color": "#FFFFFF"
+                    }
+                  }
+                },
+                "coordinateAttachments": {
+                  "marker": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "color": "#FFFFFF",
+                    "fillColor": "#FFFFFF"
+                  }
+                },
+                "markerAttachments": {
+                  "bearing": {
+                    "enabled": false,
+                    "angleUnit": "deg",
+                    "color": "#FFFFFF",
+                    "useCustomShape": false
+                  },
+                  "image": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "angleUnit": "deg",
+                    "show": "click"
+                  },
+                  "model": {
+                    "enabled": false,
+                    "yawUnit": "deg",
+                    "invertYaw": false,
+                    "pitchUnit": "deg",
+                    "invertPitch": false,
+                    "rollUnit": "deg",
+                    "invertRoll": false,
+                    "show": "click"
+                  },
+                  "uncertainty": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "strokeColor": "#FFFFFF",
+                    "color": "#FFFFFF",
+                    "axisUnit": "meters",
+                    "angleUnit": "deg"
+                  }
+                },
+                "pathAttachments": {
+                  "gradient": {
+                    "enabled": false,
+                    "connectAllPoints": false
+                  }
+                },
+                "hideMainFeature": false
+              },
+              "description": ""
+            },
+            {
+              "name": "Mosaic - Transmitter",
+              "uuid": "e791f026-7a60-4c32-833a-83d9d8329dfe",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "viewer_open",
+              "visibility": false,
+              "sourceType": "url",
+              "url": "Layers/Vectors/photosphere-waypoint.geojson",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#ff6600",
+                "fillOpacity": 1,
+                "weight": 2,
+                "radius": 8,
+                "animation": "none",
+                "className": "mosaic-transmitter"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": false,
+                "noDuplicates": false,
+                "getFeaturePropertiesOnClick": false,
+                "style": {
+                  "nointeraction": false
+                },
+                "layerAttachments": {
+                  "labels": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "theme": "default",
+                    "size": "default"
+                  },
+                  "pairings": {
+                    "enabled": true,
+                    "initialVisibility": true,
+                    "layers": [
+                      "Mosaic Targets"
+                    ],
+                    "pairProp": "sol",
+                    "style": {
+                      "color": "#FFFF00"
+                    }
+                  }
+                },
+                "coordinateAttachments": {
+                  "marker": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "color": "#FFFFFF",
+                    "fillColor": "#FFFFFF"
+                  }
+                },
+                "markerAttachments": {
+                  "bearing": {
+                    "enabled": false,
+                    "angleUnit": "deg",
+                    "color": "#FFFFFF",
+                    "useCustomShape": false
+                  },
+                  "image": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "angleUnit": "deg",
+                    "show": "click"
+                  },
+                  "model": {
+                    "enabled": false,
+                    "yawUnit": "deg",
+                    "invertYaw": false,
+                    "pitchUnit": "deg",
+                    "invertPitch": false,
+                    "rollUnit": "deg",
+                    "invertRoll": false,
+                    "show": "click"
+                  },
+                  "uncertainty": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "strokeColor": "#FFFFFF",
+                    "color": "#FFFFFF",
+                    "axisUnit": "meters",
+                    "angleUnit": "deg"
+                  }
+                },
+                "pathAttachments": {
+                  "gradient": {
+                    "enabled": false,
+                    "connectAllPoints": false
+                  }
+                },
+                "hideMainFeature": false
+              },
+              "description": "Rover waypoint for Sol 1051. Click to open the 360° Navcam panoramic mosaic. The Mosaic Targets layer must be enabled to see target dots overlaid on the sphere."
+            },
+            {
+              "name": "Mosaic - Receivers",
+              "uuid": "7f08ac15-93d7-46f8-b14d-db951f6e9e07",
+              "sublayers": [],
+              "type": "vector",
+              "kind": "info",
+              "visibility": false,
+              "sourceType": "url",
+              "url": "Layers/Vectors/mosaic-targets.geojson",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#FFFF00",
+                "fillOpacity": 0.8,
+                "weight": 2,
+                "radius": 6,
+                "animation": "none",
+                "className": "mosaic-receivers"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "dynamicExtent": false,
+                "noDuplicates": false,
+                "getFeaturePropertiesOnClick": false,
+                "style": {
+                  "nointeraction": false
+                },
+                "layerAttachments": {
+                  "labels": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "theme": "default",
+                    "size": "default"
+                  },
+                  "pairings": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "style": {
+                      "color": "#FFFFFF"
+                    }
+                  }
+                },
+                "coordinateAttachments": {
+                  "marker": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "color": "#FFFFFF",
+                    "fillColor": "#FFFFFF"
+                  }
+                },
+                "markerAttachments": {
+                  "bearing": {
+                    "enabled": false,
+                    "angleUnit": "deg",
+                    "color": "#FFFFFF",
+                    "useCustomShape": false
+                  },
+                  "image": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "angleUnit": "deg",
+                    "show": "click"
+                  },
+                  "model": {
+                    "enabled": false,
+                    "yawUnit": "deg",
+                    "invertYaw": false,
+                    "pitchUnit": "deg",
+                    "invertPitch": false,
+                    "rollUnit": "deg",
+                    "invertRoll": false,
+                    "show": "click"
+                  },
+                  "uncertainty": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "strokeColor": "#FFFFFF",
+                    "color": "#FFFFFF",
+                    "axisUnit": "meters",
+                    "angleUnit": "deg"
+                  }
+                },
+                "pathAttachments": {
+                  "gradient": {
+                    "enabled": false,
+                    "connectAllPoints": false
+                  }
+                },
+                "hideMainFeature": false
+              },
+              "description": "Named rock targets observed from Sol 1051. Enable this layer alongside Photosphere Waypoint to see target positions overlaid on the panoramic mosaic sphere."
+            }
+          ],
+          "description": "",
+          "demparser": "",
+          "controlled": false,
+          "uuid": "12b7b891-c234-4d56-b789-94c018e215a9"
+        },
+        {
+          "name": "⚙️ Layer Configuration (Configure Page)",
+          "type": "header",
+          "sublayers": [
+            {
+              "name": "Core Settings Tab",
+              "type": "header",
+              "sublayers": [
+                {
+                  "name": "Initially Visible",
+                  "uuid": "afb6f804-76e5-4296-9bb3-d8a686e26df7",
+                  "sublayers": [],
+                  "type": "vector",
+                  "kind": "none",
+                  "visibility": true,
+                  "sourceType": "url",
+                  "url": "Layers/Vectors/initially-visible.geojson",
+                  "layer3dType": "clamped",
+                  "initialOpacity": 1,
+                  "controlled": false,
+                  "style": {
+                    "color": "#FFFFFF",
+                    "opacity": 1,
+                    "fillColor": "#006aff",
+                    "fillOpacity": 0.8,
+                    "weight": 2,
+                    "radius": 4,
+                    "animation": "none",
+                    "className": "initiallyvisible"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "dynamicExtent": false,
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": false,
+                    "style": {
+                      "nointeraction": false
+                    },
+                    "layerAttachments": {
+                      "labels": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "theme": "default",
+                        "size": "default"
+                      },
+                      "pairings": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "style": {
+                          "color": "#FFFFFF"
+                        }
+                      }
+                    },
+                    "coordinateAttachments": {
+                      "marker": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "color": "#FFFFFF",
+                        "fillColor": "#FFFFFF"
+                      }
+                    },
+                    "markerAttachments": {
+                      "bearing": {
+                        "enabled": false,
+                        "angleUnit": "deg",
+                        "color": "#FFFFFF",
+                        "useCustomShape": false
+                      },
+                      "image": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "angleUnit": "deg",
+                        "show": "click"
+                      },
+                      "model": {
+                        "enabled": false,
+                        "yawUnit": "deg",
+                        "invertYaw": false,
+                        "pitchUnit": "deg",
+                        "invertPitch": false,
+                        "rollUnit": "deg",
+                        "invertRoll": false,
+                        "show": "click"
+                      },
+                      "uncertainty": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "strokeColor": "#FFFFFF",
+                        "color": "#FFFFFF",
+                        "axisUnit": "meters",
+                        "angleUnit": "deg"
+                      }
+                    },
+                    "pathAttachments": {
+                      "gradient": {
+                        "enabled": false,
+                        "connectAllPoints": false
+                      }
+                    },
+                    "hideMainFeature": false
+                  },
+                  "description": ""
+                },
+                {
+                  "name": "Zoom - Layer Config (10-14)",
+                  "uuid": "476fb89d-5e4b-4a1a-b0f9-7aa52ad266a9",
+                  "sublayers": [],
+                  "type": "vector",
+                  "kind": "none",
+                  "visibility": false,
+                  "sourceType": "url",
+                  "url": "Layers/Vectors/zoom-layer-config.geojson",
+                  "minZoom": 10,
+                  "maxZoom": 14,
+                  "layer3dType": "clamped",
+                  "initialOpacity": 1,
+                  "controlled": false,
+                  "style": {
+                    "color": "#0088ff",
+                    "opacity": 1,
+                    "fillColor": "#0088ff",
+                    "fillOpacity": 0.7,
+                    "weight": 4,
+                    "radius": 12,
+                    "animation": "none",
+                    "className": "zoom-layerconfig(10-14)"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "useKeyAsName": [
+                      "name"
+                    ],
+                    "dynamicExtent": false,
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": false,
+                    "style": {
+                      "nointeraction": false
+                    },
+                    "layerAttachments": {
+                      "labels": {
+                        "enabled": true,
+                        "initialVisibility": true,
+                        "theme": "solid",
+                        "size": "default"
+                      },
+                      "pairings": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "style": {
+                          "color": "#FFFFFF"
+                        }
+                      }
+                    },
+                    "coordinateAttachments": {
+                      "marker": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "color": "#FFFFFF",
+                        "fillColor": "#FFFFFF"
+                      }
+                    },
+                    "markerAttachments": {
+                      "bearing": {
+                        "enabled": false,
+                        "angleUnit": "deg",
+                        "color": "#FFFFFF",
+                        "useCustomShape": false
+                      },
+                      "image": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "angleUnit": "deg",
+                        "show": "click"
+                      },
+                      "model": {
+                        "enabled": false,
+                        "yawUnit": "deg",
+                        "invertYaw": false,
+                        "pitchUnit": "deg",
+                        "invertPitch": false,
+                        "rollUnit": "deg",
+                        "invertRoll": false,
+                        "show": "click"
+                      },
+                      "uncertainty": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "strokeColor": "#FFFFFF",
+                        "color": "#FFFFFF",
+                        "axisUnit": "meters",
+                        "angleUnit": "deg"
+                      }
+                    },
+                    "pathAttachments": {
+                      "gradient": {
+                        "enabled": false,
+                        "connectAllPoints": false
+                      }
+                    },
+                    "hideMainFeature": false
+                  },
+                  "description": "Mixed geometry types (points, lines, polygons, arrows, labels) with zoom controlled by layer-level minZoom/maxZoom config. Visible at zoom 10-14."
+                },
+                {
+                  "name": "Zoom - Feature Properties",
+                  "uuid": "e57d942e-62b9-40b7-a7e1-276091da178d",
+                  "sublayers": [],
+                  "type": "vector",
+                  "kind": "none",
+                  "visibility": false,
+                  "sourceType": "url",
+                  "url": "Layers/Vectors/zoom-feature-props.geojson",
+                  "layer3dType": "clamped",
+                  "initialOpacity": 1,
+                  "controlled": false,
+                  "style": {
+                    "color": "#FFFFFF",
+                    "colorProp": "style.color",
+                    "opacity": 1,
+                    "fillColor": "#FFFFFF",
+                    "fillColorProp": "style.fillColor",
+                    "fillOpacity": 0.8,
+                    "fillOpacityProp": "style.fillOpacity",
+                    "weight": 2,
+                    "weightProp": "style.weight",
+                    "radius": 6,
+                    "animation": "none",
+                    "className": "zoom-featureproperties"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "useKeyAsName": [
+                      "name"
+                    ],
+                    "dynamicExtent": false,
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": false,
+                    "style": {
+                      "nointeraction": false
+                    },
+                    "layerAttachments": {
+                      "labels": {
+                        "enabled": true,
+                        "initialVisibility": true,
+                        "theme": "solid",
+                        "size": "default"
+                      },
+                      "pairings": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "style": {
+                          "color": "#FFFFFF"
+                        }
+                      }
+                    },
+                    "coordinateAttachments": {
+                      "marker": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "color": "#FFFFFF",
+                        "fillColor": "#FFFFFF"
+                      }
+                    },
+                    "markerAttachments": {
+                      "bearing": {
+                        "enabled": false,
+                        "angleUnit": "deg",
+                        "color": "#FFFFFF",
+                        "useCustomShape": false
+                      },
+                      "image": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "angleUnit": "deg",
+                        "show": "click"
+                      },
+                      "model": {
+                        "enabled": false,
+                        "yawUnit": "deg",
+                        "invertYaw": false,
+                        "pitchUnit": "deg",
+                        "invertPitch": false,
+                        "rollUnit": "deg",
+                        "invertRoll": false,
+                        "show": "click"
+                      },
+                      "uncertainty": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "strokeColor": "#FFFFFF",
+                        "color": "#FFFFFF",
+                        "axisUnit": "meters",
+                        "angleUnit": "deg"
+                      }
+                    },
+                    "pathAttachments": {
+                      "gradient": {
+                        "enabled": false,
+                        "connectAllPoints": false
+                      }
+                    },
+                    "hideMainFeature": false
+                  },
+                  "description": "Mixed geometry types with per-feature zoom control via properties.style.minZoom and properties.style.maxZoom. Different features appear at different zoom levels (8-20). Zoom in/out to see features appear/disappear individually."
+                }
+              ],
+              "description": "",
+              "demparser": "",
+              "controlled": false,
+              "uuid": "2726cc70-e9a3-49d5-a9f3-d6f07e1de3de"
+            },
+            {
+              "name": "Style Tab",
+              "type": "header",
+              "sublayers": [
+                {
+                  "name": "Animated Pulse",
+                  "type": "vector",
+                  "url": "Layers/Vectors/animated-example.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "animatedpulse",
+                    "fillColor": "#ff00ff",
+                    "fillOpacity": 0.7,
+                    "radius": 12
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "e2a53945-2df6-46df-8357-58cb65b0d9be"
+                },
+                {
+                  "name": "Clustered",
+                  "type": "vector",
+                  "url": "Layers/Vectors/clustered.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "clustering": true,
+                  "style": {
+                    "className": "clustered",
+                    "strokeColor": "#ff0066",
+                    "strokeWeight": 2,
+                    "fillColor": "#ff66aa",
+                    "fillOpacity": 0.7,
+                    "radius": 6
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "f325417f-6307-412e-9cfe-7730fc407efc"
+                }
+              ],
+              "description": "",
+              "demparser": "",
+              "controlled": false,
+              "uuid": "2ae3b152-d2be-4c37-87dc-67ebd3278469"
+            },
+            {
+              "name": "Time Tab",
+              "type": "header",
+              "sublayers": [
+                {
+                  "name": "Time - Refresh Interval",
+                  "type": "vector",
+                  "url": "Layers/Vectors/time-refresh-interval.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "time": {
+                    "enabled": true,
+                    "type": "local",
+                    "startProp": "startTime",
+                    "endProp": "startTime",
+                    "format": "%Y-%m-%dT%H:%M:%SZ",
+                    "refreshIntervalEnabled": true,
+                    "refreshIntervalAmount": 30
+                  },
+                  "style": {
+                    "className": "time-refreshinterval",
+                    "fillColor": "#00ffff",
+                    "fillOpacity": 0.8,
+                    "radius": 10,
+                    "strokeColor": "#0099aa",
+                    "strokeWeight": 2
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "36a3db08-f2fb-41fb-9f07-80bfaf1f09fc"
+                }
+              ],
+              "description": "",
+              "demparser": "",
+              "controlled": false,
+              "uuid": "94e8cd46-4b4b-40e9-b770-be8b9505d325"
+            },
+            {
+              "name": "Legend Tab",
+              "type": "header",
+              "sublayers": [
+                {
+                  "name": "Legend Test",
+                  "type": "vector",
+                  "url": "Layers/Vectors/legend-test.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "legend": "Layers/Legends/legend-test.csv",
+                  "style": {
+                    "className": "legendtest"
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "f408bdf4-f190-4c5c-bb0c-e0c20850d496"
+                }
+              ],
+              "description": "",
+              "demparser": "",
+              "controlled": false,
+              "uuid": "ac2d12d2-d9f7-448d-82a1-520b0127cdd6"
+            },
+            {
+              "name": "Filter Tab",
+              "type": "header",
+              "sublayers": [
+                {
+                  "name": "Initial Filters",
+                  "type": "vector",
+                  "url": "Layers/Vectors/initial-filters.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "initialfilters",
+                    "fillColor": "#ffaa00",
+                    "fillOpacity": 0.8,
+                    "radius": 10,
+                    "strokeColor": "#ff6600",
+                    "strokeWeight": 2
+                  },
+                  "variables": {
+                    "initialFilters": [
+                      {
+                        "key": "status",
+                        "op": "=",
+                        "value": "active"
+                      }
+                    ]
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "489e0924-0963-4a8f-a8cf-a1412f2f08f4"
+                }
+              ],
+              "description": "",
+              "demparser": "",
+              "controlled": false,
+              "uuid": "37d8f95b-dc8b-4052-9a4d-741092a65732"
+            },
+            {
+              "name": "Interface Tab",
+              "type": "header",
+              "sublayers": [
+                {
+                  "name": "Hover Feature Labels",
+                  "type": "vector",
+                  "url": "Layers/Vectors/hover-labels.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "hoverfeaturelabels",
+                    "fillColor": "#aa00ff",
+                    "fillOpacity": 0.8,
+                    "radius": 10,
+                    "strokeColor": "#6600aa",
+                    "strokeWeight": 2
+                  },
+                  "variables": {
+                    "useKeyAsName": [
+                      "name",
+                      "elevation",
+                      "temperature",
+                      "status"
+                    ]
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "2b98c213-ee53-4270-b724-2858180e4cc7"
+                },
+                {
+                  "name": "External Links",
+                  "type": "vector",
+                  "url": "Layers/Vectors/external-links.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "externallinks",
+                    "fillColor": "#00aaff",
+                    "fillOpacity": 0.8,
+                    "radius": 10,
+                    "strokeColor": "#0066aa",
+                    "strokeWeight": 2
+                  },
+                  "variables": {
+                    "links": [
+                      {
+                        "name": "Website",
+                        "link": "{url}"
+                      },
+                      {
+                        "name": "Documentation",
+                        "link": "{documentation}"
+                      },
+                      {
+                        "name": "Issues",
+                        "link": "{issues}"
+                      },
+                      {
+                        "name": "Data Source",
+                        "link": "{data_source}"
+                      },
+                      {
+                        "name": "Contact",
+                        "link": "{contact}"
+                      }
+                    ]
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "e74823a5-5b3f-4ee7-816f-5c17bba1b0ed"
+                },
+                {
+                  "name": "TopBar Information",
+                  "type": "vector",
+                  "url": "Layers/Vectors/topbar-info.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "topbarinformation",
+                    "fillColor": "#ffff00",
+                    "fillOpacity": 0.8,
+                    "radius": 10,
+                    "strokeColor": "#aaaa00",
+                    "strokeWeight": 2
+                  },
+                  "variables": {
+                    "info": [
+                      {
+                        "value": "Mission Time: {mission_time}",
+                        "which": "last"
+                      },
+                      {
+                        "value": "Temperature: {temperature}",
+                        "which": "last"
+                      }
+                    ]
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "e64a607a-da5b-414e-807b-13efac13b14b"
+                },
+                {
+                  "name": "Tags and Description",
+                  "type": "vector",
+                  "url": "Layers/Vectors/tags-description.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "description": "This layer demonstrates the layer description and tags features. Tags help organize and filter layers.",
+                  "tags": [
+                    "demo",
+                    "testing",
+                    "configuration"
+                  ],
+                  "style": {
+                    "className": "tagsanddescription",
+                    "fillColor": "#ff0088",
+                    "fillOpacity": 0.8,
+                    "radius": 10,
+                    "strokeColor": "#aa0055",
+                    "strokeWeight": 2
+                  },
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "6567d924-a2ec-4f07-bd23-db621f1625d9"
+                }
+              ],
+              "description": "",
+              "demparser": "",
+              "controlled": false,
+              "uuid": "dc0d3d91-010a-4a4e-a06b-1356213465ae"
+            },
+            {
+              "name": "Attachment - Labels Tab",
+              "type": "header",
+              "sublayers": [
+                {
+                  "name": "Labels",
+                  "type": "vector",
+                  "url": "Layers/Vectors/labels-example.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "labels",
+                    "fillColor": "#ff6600",
+                    "fillOpacity": 0.8,
+                    "radius": 10
+                  },
+                  "variables": {
+                    "layerAttachments": {
+                      "labels": {
+                        "enabled": true,
+                        "initialVisibility": true,
+                        "theme": "default",
+                        "size": "default",
+                        "text": "{name}"
+                      }
+                    }
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "459b3b00-d112-435d-8a83-8e907e94cf4c"
+                }
+              ],
+              "description": "",
+              "demparser": "",
+              "controlled": false,
+              "uuid": "832d45fa-467b-41ff-afcf-def7e778097f"
+            },
+            {
+              "name": "Attachment - Coordinates Tab",
+              "type": "header",
+              "sublayers": [
+                {
+                  "name": "Attachment - Coordinates",
+                  "uuid": "8ec7cbd4-d2f3-43e6-9b71-e55edec7443f",
+                  "sublayers": [],
+                  "type": "vector",
+                  "kind": "none",
+                  "visibility": false,
+                  "sourceType": "url",
+                  "url": "Layers/Vectors/coordinates-marker.geojson",
+                  "layer3dType": "clamped",
+                  "initialOpacity": 1,
+                  "controlled": false,
+                  "style": {
+                    "color": "#FFFFFF",
+                    "opacity": 1,
+                    "fillColor": "#88ff00",
+                    "fillOpacity": 0.8,
+                    "weight": 2,
+                    "radius": 10,
+                    "animation": "none",
+                    "className": "attachment-coordinates"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "dynamicExtent": false,
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": false,
+                    "style": {
+                      "nointeraction": false
+                    },
+                    "layerAttachments": {
+                      "labels": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "theme": "default",
+                        "size": "default"
+                      },
+                      "pairings": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "style": {
+                          "color": "#FFFFFF"
+                        }
+                      }
+                    },
+                    "coordinateAttachments": {
+                      "marker": {
+                        "enabled": true,
+                        "initialVisibility": true,
+                        "color": "#000000",
+                        "opacity": 1,
+                        "fillColor": "#fceb04",
+                        "fillOpacity": 1,
+                        "weight": 2,
+                        "radius": 6
+                      }
+                    },
+                    "markerAttachments": {
+                      "bearing": {
+                        "enabled": false,
+                        "angleUnit": "deg",
+                        "color": "#FFFFFF",
+                        "useCustomShape": false
+                      },
+                      "image": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "angleUnit": "deg",
+                        "show": "click"
+                      },
+                      "model": {
+                        "enabled": false,
+                        "yawUnit": "deg",
+                        "invertYaw": false,
+                        "pitchUnit": "deg",
+                        "invertPitch": false,
+                        "rollUnit": "deg",
+                        "invertRoll": false,
+                        "show": "click"
+                      },
+                      "uncertainty": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "strokeColor": "#FFFFFF",
+                        "color": "#FFFFFF",
+                        "axisUnit": "meters",
+                        "angleUnit": "deg"
+                      }
+                    },
+                    "pathAttachments": {
+                      "gradient": {
+                        "enabled": false,
+                        "connectAllPoints": false
+                      }
+                    },
+                    "hideMainFeature": true
+                  },
+                  "description": ""
+                }
+              ],
+              "description": "",
+              "demparser": "",
+              "controlled": false,
+              "uuid": "de5f8f12-bc48-4a16-aecf-d10597390375"
+            },
+            {
+              "name": "Attachment - Markers Tab",
+              "type": "header",
+              "sublayers": [
+                {
+                  "name": "Attachment - Image (Per-Feature)",
+                  "uuid": "eb1c5335-5c80-4ff9-9e5f-3080bc45af04",
+                  "sublayers": [],
+                  "type": "vector",
+                  "kind": "none",
+                  "visibility": false,
+                  "sourceType": "url",
+                  "url": "Layers/Vectors/image-marker.geojson",
+                  "layer3dType": "clamped",
+                  "initialOpacity": 1,
+                  "controlled": false,
+                  "style": {
+                    "color": "#FFFFFF",
+                    "opacity": 1,
+                    "fillColor": "#00ff88",
+                    "fillOpacity": 0.8,
+                    "weight": 2,
+                    "radius": 10,
+                    "animation": "none",
+                    "className": "attachment-image(per-feature)"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "dynamicExtent": false,
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": false,
+                    "style": {
+                      "nointeraction": false
+                    },
+                    "layerAttachments": {
+                      "labels": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "theme": "default",
+                        "size": "default"
+                      },
+                      "pairings": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "style": {
+                          "color": "#FFFFFF"
+                        }
+                      }
+                    },
+                    "coordinateAttachments": {
+                      "marker": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "color": "#FFFFFF",
+                        "fillColor": "#FFFFFF"
+                      }
+                    },
+                    "markerAttachments": {
+                      "bearing": {
+                        "enabled": false,
+                        "angleUnit": "deg",
+                        "color": "#FFFFFF",
+                        "useCustomShape": false
+                      },
+                      "image": {
+                        "enabled": true,
+                        "pathProp": "image_url",
+                        "initialVisibility": true,
+                        "initialOpacity": 1,
+                        "widthMeters": 1000,
+                        "widthPixels": 420,
+                        "heightPixels": 600,
+                        "angleUnit": "deg",
+                        "show": "always"
+                      },
+                      "model": {
+                        "enabled": false,
+                        "yawUnit": "deg",
+                        "invertYaw": false,
+                        "pitchUnit": "deg",
+                        "invertPitch": false,
+                        "rollUnit": "deg",
+                        "invertRoll": false,
+                        "show": "click"
+                      },
+                      "uncertainty": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "strokeColor": "#FFFFFF",
+                        "color": "#FFFFFF",
+                        "axisUnit": "meters",
+                        "angleUnit": "deg"
+                      }
+                    },
+                    "pathAttachments": {
+                      "gradient": {
+                        "enabled": false,
+                        "connectAllPoints": false
+                      }
+                    },
+                    "hideMainFeature": false
+                  },
+                  "description": "Demonstrates per-feature image URLs using pathProp. Each marker has its own image (Perseverance and Curiosity rovers). Images always visible, no rotation."
+                },
+                {
+                  "name": "Attachment - Image (Shared + Rotation)",
+                  "uuid": "9f3e8d24-7a1c-4b2e-8d5f-2c9a6b4e1f3d",
+                  "sublayers": [],
+                  "type": "vector",
+                  "kind": "waypoint",
+                  "visibility": false,
+                  "sourceType": "url",
+                  "url": "Layers/Vectors/image-shared.geojson",
+                  "layer3dType": "clamped",
+                  "initialOpacity": 1,
+                  "controlled": false,
+                  "style": {
+                    "color": "#FFFFFF",
+                    "opacity": 1,
+                    "fillColor": "#ff8800",
+                    "fillOpacity": 0.9,
+                    "weight": 2,
+                    "radius": 8,
+                    "animation": "none",
+                    "className": "attachment-image(shared+rotation)"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "dynamicExtent": false,
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": false,
+                    "style": {
+                      "nointeraction": false
+                    },
+                    "layerAttachments": {
+                      "labels": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "theme": "default",
+                        "size": "default"
+                      },
+                      "pairings": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "style": {
+                          "color": "#FFFFFF"
+                        }
+                      }
+                    },
+                    "coordinateAttachments": {
+                      "marker": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "color": "#FFFFFF",
+                        "fillColor": "#FFFFFF"
+                      }
+                    },
+                    "markerAttachments": {
+                      "bearing": {
+                        "enabled": false,
+                        "angleUnit": "deg",
+                        "color": "#FFFFFF",
+                        "useCustomShape": false
+                      },
+                      "image": {
+                        "enabled": true,
+                        "path": "Data/images/CuriosityTopDownOrthoSmall.png",
+                        "initialVisibility": true,
+                        "initialOpacity": 1,
+                        "widthMeters": 1000,
+                        "widthPixels": 540,
+                        "heightPixels": 600,
+                        "angleProp": "heading",
+                        "angleUnit": "deg",
+                        "show": "click"
+                      },
+                      "model": {
+                        "enabled": false,
+                        "yawUnit": "deg",
+                        "invertYaw": false,
+                        "pitchUnit": "deg",
+                        "invertPitch": false,
+                        "rollUnit": "deg",
+                        "invertRoll": false,
+                        "show": "click"
+                      },
+                      "uncertainty": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "strokeColor": "#FFFFFF",
+                        "color": "#FFFFFF",
+                        "axisUnit": "meters",
+                        "angleUnit": "deg"
+                      }
+                    },
+                    "pathAttachments": {
+                      "gradient": {
+                        "enabled": false,
+                        "connectAllPoints": false
+                      }
+                    },
+                    "hideMainFeature": false
+                  },
+                  "description": "Demonstrates shared base path image URL. All markers use the same image but with different rotations via angleProp (heading). Click markers to view images."
+                }
+              ],
+              "description": "",
+              "demparser": "",
+              "controlled": false,
+              "uuid": "639d6b8d-03e1-4bb3-98b2-0fe0810dab93"
+            },
+            {
+              "name": "Special",
+              "type": "header",
+              "sublayers": [
+                {
+                  "name": "Keyboard Shortcut Demo - Alt+K",
+                  "type": "vector",
+                  "url": "Layers/Vectors/keyboard-shortcut-demo.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "keyboardshortcutdemo-alt+k",
+                    "fillColor": "#ffff00",
+                    "fillOpacity": 0.9,
+                    "radius": 16,
+                    "color": "#000000",
+                    "weight": 2
+                  },
+                  "variables": {
+                    "shortcutSuffix": "k"
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "b8be1370-df0a-4414-a282-3eeb29cb2537"
+                }
+              ],
+              "description": "",
+              "demparser": "",
+              "controlled": false,
+              "uuid": "e71ad874-430b-4e6d-9952-83708e606ec6"
+            }
+          ],
+          "description": "",
+          "demparser": "",
+          "controlled": false,
+          "uuid": "e393485c-eb42-483f-b9b7-75f3dabceb52"
+        }
+      ],
+      "description": "",
+      "demparser": "",
+      "controlled": false,
+      "uuid": "8a5ae197-78bd-41d2-84e2-1d8adfe2c637"
+    },
+    {
+      "name": "Raster Layers",
+      "type": "header",
+      "sublayers": [
+        {
+          "name": "Image Layers",
+          "uuid": "242eaa9f-a79e-4946-91ba-d35f644db12f",
+          "sublayers": [],
+          "type": "header",
+          "expanded": false,
+          "description": ""
+        },
+        {
+          "name": "Data Layers",
+          "uuid": "19122548-a9e3-4a0a-8b7a-cfef332339e1",
+          "sublayers": [
+            {
+              "name": "Elevation - RdYlBu (COG/NPY)",
+              "uuid": "5db65cd8-f184-4af5-8fac-7b9f832032e1",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "COG",
+              "demtileurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+              "demparser": "npy",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "m",
+                  "sigfigs": 1,
+                  "noDataValues": [
+                    -999999
+                  ],
+                  "ramps": [
+                    [
+                      "#313695",
+                      "#4575b4",
+                      "#74add1",
+                      "#abd9e9",
+                      "#e0f3f8",
+                      "#ffffbf",
+                      "#fee090",
+                      "#fdae61",
+                      "#f46d43",
+                      "#d73027",
+                      "#a50026"
+                    ],
+                    [
+                      "#006400",
+                      "#228b22",
+                      "#8db600",
+                      "#cdc673",
+                      "#d2b48c",
+                      "#a0522d",
+                      "#808080",
+                      "#ffffff"
+                    ]
+                  ]
+                },
+                "shortcutSuffix": "1"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:COG",
+                "parser:npy",
+                "type:elevation",
+                "ramps:2"
+              ],
+              "description": "USGS 1/3 arc-second DEM for the San Francisco Bay area via TiTiler (.npy — raw float32). **Alt+1** to toggle.\n\n**Ramp 0:** RdYlBu diverging — cold blues low, warm reds high.\n**Ramp 1:** Earth tones terrain palette.",
+              "style": {
+                "className": "elevation-rdylbu(cog/npy)"
+              }
+            },
+            {
+              "name": "Elevation - Terrarium (COG)",
+              "uuid": "e24d9bb8-dc93-45e1-a36a-70fdd65ade73",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "COG",
+              "demtileurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+              "demparser": "terrarium",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "m",
+                  "sigfigs": 0,
+                  "noDataValues": [
+                    -32768
+                  ],
+                  "ramps": [
+                    [
+                      "#0d0887",
+                      "#5c01a6",
+                      "#9c179e",
+                      "#cc4778",
+                      "#ed7953",
+                      "#fdb42f",
+                      "#f0f921"
+                    ],
+                    [
+                      "#440154",
+                      "#414487",
+                      "#2a788e",
+                      "#22a884",
+                      "#7ad151",
+                      "#fde725"
+                    ]
+                  ]
+                },
+                "shortcutSuffix": ""
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:COG",
+                "parser:terrarium",
+                "type:elevation"
+              ],
+              "description": "Mapzen **Terrarium**-encoded PNG tiles — ~10–50 KB/tile vs ~256 KB for .npy; much faster network transfer with ~1 cm precision. No-data (−32768) renders transparent.\n\n**Ramp 0:** Plasma · **Ramp 1:** Viridis",
+              "style": {
+                "className": "elevation-terrarium(cog)"
+              }
+            },
+            {
+              "name": "Elevation - TerrainRGB (COG)",
+              "uuid": "d2bc15e2-0d2d-4331-a74b-6288932aa012",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "COG",
+              "demtileurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+              "demparser": "terrainrgb",
+              "tileformat": "tms",
+              "controlled": true,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "m",
+                  "sigfigs": 2,
+                  "noDataValues": [
+                    -10000
+                  ],
+                  "ramps": [
+                    [
+                      "#000004",
+                      "#51127c",
+                      "#b73779",
+                      "#fc8961",
+                      "#fcfdbf"
+                    ]
+                  ]
+                }
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:COG",
+                "parser:terrainrgb",
+                "type:elevation"
+              ],
+              "description": "Mapbox **TerrainRGB**-encoded PNG tiles — ~0.1 m elevation precision. This layer is **controlled** (programmatic visibility) and starts at **80% opacity** for basemap blending.\n\n**Ramp:** Magma — black to pale yellow.",
+              "style": {
+                "className": "elevation-terrainrgb(cog)"
+              }
+            },
+            {
+              "name": "Elevation - TerrainRGB (COG) Image",
+              "uuid": "9e798368-dadf-4eff-abc5-247208955897",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "COG",
+              "demtileurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+              "demparser": "terrainrgb",
+              "tileformat": "tms",
+              "controlled": true,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "image",
+                  "units": "m",
+                  "sigfigs": 2,
+                  "noDataValues": [
+                    -10000
+                  ],
+                  "ramps": [
+                    [
+                      "#000004",
+                      "#51127c",
+                      "#b73779",
+                      "#fc8961",
+                      "#fcfdbf"
+                    ]
+                  ]
+                }
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:COG",
+                "parser:terrainrgb",
+                "type:elevation"
+              ],
+              "description": "Mapbox **TerrainRGB**-encoded PNG tiles — ~0.1 m elevation precision. This layer is **controlled** (programmatic visibility) and starts at **80% opacity** for basemap blending.\n\n**Ramp:** Magma — black to pale yellow.",
+              "style": {
+                "className": "elevation-terrainrgb(cog)image"
+              }
+            },
+            {
+              "name": "Elevation - Grayscale (COG)",
+              "uuid": "fe884e6c-fd39-463e-92bb-39b4a8f684cf",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "COG",
+              "demtileurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+              "demparser": "terrainrgb",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "m",
+                  "sigfigs": 1,
+                  "noDataValues": [
+                    -999999
+                  ],
+                  "ramps": [
+                    [
+                      "#000000",
+                      "#ffffff"
+                    ],
+                    [
+                      "#ffffff",
+                      "#000000"
+                    ]
+                  ]
+                }
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:COG",
+                "parser:npy",
+                "shader:grayscale"
+              ],
+              "description": "Grayscale elevation overlay at **70% opacity** — useful for compositing over imagery. **Ramp 0:** black = low, white = high. **Ramp 1:** inverted (white = low, black = high) for relief-shading composites.",
+              "style": {
+                "className": "elevation-grayscale(cog)"
+              }
+            },
+            {
+              "name": "Elevation - Transparent Overlay",
+              "uuid": "9a149316-a162-4c78-befe-cf0db09f2b6e",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "COG",
+              "demtileurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+              "demparser": "terrainrgb",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 0.75,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "m",
+                  "sigfigs": 1,
+                  "noDataValues": [
+                    -999999
+                  ],
+                  "ramps": [
+                    [
+                      "transparent",
+                      "transparent",
+                      "#ffffb2",
+                      "#fecc5c",
+                      "#fd8d3c",
+                      "#e31a1c"
+                    ]
+                  ]
+                }
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:COG",
+                "parser:npy",
+                "shader:overlay",
+                "type:elevation"
+              ],
+              "description": "Demonstrates **transparent ramp stops**: the two lowest stops are transparent, so only mid-to-high elevations are colored (yellow → orange → red). The basemap shows through at low altitudes. Initial opacity 50% for blending.",
+              "style": {
+                "className": "elevation-transparentoverlay"
+              }
+            },
+            {
+              "name": "Elevation - 13-Stop Rainbow",
+              "uuid": "b781b5ab-5a08-4a63-b37a-a7173aeae3af",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "COG",
+              "demtileurl": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+              "demparser": "terrainrgb",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "meters ASL",
+                  "sigfigs": 2,
+                  "noDataValues": [
+                    -999999
+                  ],
+                  "ramps": [
+                    [
+                      "#ff0000",
+                      "#ff6600",
+                      "#ffcc00",
+                      "#ccff00",
+                      "#66ff00",
+                      "#00ff00",
+                      "#00ff66",
+                      "#00ffcc",
+                      "#00ccff",
+                      "#0066ff",
+                      "#0000ff",
+                      "#6600ff",
+                      "#cc00ff"
+                    ]
+                  ]
+                },
+                "downloadURL": "/Missions/Reference-Mission/Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:COG",
+                "parser:npy",
+                "shader:rainbow",
+                "type:elevation"
+              ],
+              "description": "Showcases the **maximum 13-stop** color ramp with a full spectral rainbow. Uses `sigfigs: 2` for high-precision legend labels and provides a **Download URL** so users can retrieve the source GeoTIFF from the Layers tool menu.",
+              "style": {
+                "className": "elevation-13-stoprainbow"
+              }
+            },
+            {
+              "name": "Elevation - STAC Multi-Ramp (STAC/RGB)",
+              "uuid": "bacaab22-ffdb-4a3a-a6d7-ac2c3dea87c5",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "stac-collection",
+              "demtileurl": "reference_mission_USGS_SF_DEM",
+              "demparser": "terrainrgb",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "m",
+                  "sigfigs": 1,
+                  "noDataValues": [
+                    -999999
+                  ],
+                  "ramps": [
+                    [
+                      "#9e0142",
+                      "#d53e4f",
+                      "#f46d43",
+                      "#fdae61",
+                      "#fee08b",
+                      "#ffffbf",
+                      "#e6f598",
+                      "#abdda4",
+                      "#66c2a5",
+                      "#3288bd",
+                      "#5e4fa2"
+                    ],
+                    [
+                      "#000004",
+                      "#420a68",
+                      "#932667",
+                      "#dd513a",
+                      "#fca50a",
+                      "#fcffa4"
+                    ],
+                    [
+                      "#006400",
+                      "#228b22",
+                      "#8db600",
+                      "#cdc673",
+                      "#d2b48c",
+                      "#a0522d",
+                      "#808080",
+                      "#c0c0c0",
+                      "#ffffff"
+                    ],
+                    [
+                      "#f7f4f9",
+                      "#e7e1ef",
+                      "#d4b9da",
+                      "#c994c7",
+                      "#df65b0",
+                      "#e7298a",
+                      "#980043"
+                    ]
+                  ]
+                },
+                "shortcutSuffix": "3"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:STAC",
+                "parser:npy",
+                "type:elevation",
+                "ramps:4"
+              ],
+              "description": "**STAC collection** source (`reference_mission_USGS_SF_DEM`) via titiler-pgstac. Showcases 4 selectable ramps in the Layers tool. **Alt+3** to toggle.\n\n**Ramp 0:** Spectral (11-stop diverging)\n**Ramp 1:** Inferno (6-stop)\n**Ramp 2:** Earth Tones (9-stop)\n**Ramp 3:** RdPu (7-stop purple)",
+              "style": {
+                "className": "elevation-stacmulti-ramp(stac/rgb)"
+              }
+            },
+            {
+              "name": "Elevation - STAC Terrarium (STAC)",
+              "uuid": "7a8ed456-f909-4306-860c-acb909de9b2c",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "stac-collection",
+              "demtileurl": "reference_mission_USGS_SF_DEM",
+              "demparser": "terrarium",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 9,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.5072,
+                37.7098,
+                -122.4143,
+                37.7811
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "m",
+                  "sigfigs": 1,
+                  "noDataValues": [
+                    -32768
+                  ],
+                  "ramps": [
+                    [
+                      "#440154",
+                      "#414487",
+                      "#2a788e",
+                      "#22a884",
+                      "#7ad151",
+                      "#fde725"
+                    ]
+                  ]
+                }
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:STAC",
+                "parser:terrarium",
+                "type:elevation"
+              ],
+              "description": "**STAC + Terrarium** combination: COG mosaic from titiler-pgstac served as compact Terrarium PNG tiles. Combines STAC multi-item mosaic benefits with bandwidth savings (~10–50 KB/tile). No-data (−32768) renders transparent. **Ramp:** Viridis.",
+              "style": {
+                "className": "elevation-stacterrarium(stac)"
+              }
+            }
+          ],
+          "type": "header",
+          "expanded": false,
+          "description": ""
+        },
+        {
+          "name": "TiTiler Tile Layers",
+          "uuid": "2d5438f1-fb8c-4fb4-a96e-f0614222bae7",
+          "sublayers": [
+            {
+              "name": "EMIT Methane Mosaicked",
+              "uuid": "33a594a3-1f5a-4b65-9eab-7f6fc781e721",
+              "type": "tile",
+              "visibility": false,
+              "sourceType": "stac-collection",
+              "url": "reference_mission_EMIT_L2B_Methane_Enhancement_Data_60_m_V002",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 30,
+              "maxZoom": 30,
+              "demparser": "rgba",
+              "throughTileServer": true,
+              "cogResampling": "nearest",
+              "cogBands": [
+                1
+              ],
+              "cogExpressionEditable": false,
+              "cogTransform": true,
+              "cogMin": 0,
+              "cogMax": 5000,
+              "cogUnits": "ppm",
+              "cogColormap": "plasma",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical"
+              },
+              "description": "EMIT L2B Methane Enhancement Data 60 m V002 - STAC COG collection. Requires WITH_STAC=true and WITH_TITILER_PGSTAC=true."
+            },
+            {
+              "name": "USGS SF DEM — Elevation",
+              "uuid": "e57468ef-b6f9-473f-973a-59d9dacfe016",
+              "type": "tile",
+              "visibility": false,
+              "sourceType": "stac-collection",
+              "url": "reference_mission_USGS_SF_DEM",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 30,
+              "maxZoom": 30,
+              "demparser": "rgba",
+              "throughTileServer": true,
+              "cogResampling": "nearest",
+              "cogBands": [
+                1
+              ],
+              "cogExpressionEditable": false,
+              "cogTransform": true,
+              "cogMin": 0,
+              "cogMax": 800,
+              "cogUnits": "m",
+              "cogColormap": "terrain",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "tools": {
+                  "measure": {
+                    "layerDems": [
+                      {
+                        "layer": "USGS SF DEM — Elevation",
+                        "dem": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif"
+                      }
+                    ]
+                  }
+                }
+              },
+              "description": "USGS 1/3 arc-second DEM for San Francisco Bay area, terrain colormap. Requires WITH_STAC=true and WITH_TITILER_PGSTAC=true."
+            },
+            {
+              "name": "USGS SF DEM — Grayscale",
+              "uuid": "1d00b1f1-507a-4edb-aa5f-56b834a4058f",
+              "type": "tile",
+              "visibility": false,
+              "sourceType": "stac-collection",
+              "url": "reference_mission_USGS_SF_DEM",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 30,
+              "maxZoom": 30,
+              "demparser": "rgba",
+              "throughTileServer": true,
+              "cogResampling": "nearest",
+              "cogBands": [
+                1
+              ],
+              "cogExpressionEditable": true,
+              "cogTransform": true,
+              "cogMin": 0,
+              "cogMax": 800,
+              "cogUnits": "m",
+              "cogColormap": "gray",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical"
+              },
+              "description": "USGS SF DEM grayscale — cogExpressionEditable enabled for expression editing demo. Requires WITH_STAC=true and WITH_TITILER_PGSTAC=true."
+            }
+          ],
+          "type": "header",
+          "expanded": false,
+          "description": ""
+        },
+        {
+          "name": "Basemaps",
+          "uuid": "17678d59-c4b1-459e-9886-ef0cd4fd68cb",
+          "sublayers": [
+            {
+              "name": "ArcGIS Light",
+              "uuid": "16a7ff69-811c-492a-9830-15613d1162d5",
+              "type": "tile",
+              "visibility": false,
+              "sourceType": "url",
+              "url": "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+              "tileformat": "wmts",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 19,
+              "maxZoom": 19,
+              "demparser": "",
+              "throughTileServer": false,
+              "cogResampling": "nearest",
+              "cogExpressionEditable": false,
+              "cogTransform": false,
+              "cogColormap": "Accent",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical"
+              },
+              "description": "",
+              "attribution": "Esri"
+            },
+            {
+              "name": "ArcGIS World Topographic",
+              "uuid": "932839a4-0973-4d52-9403-3639ed285e82",
+              "type": "tile",
+              "visibility": false,
+              "sourceType": "url",
+              "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+              "tileformat": "wmts",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 18,
+              "maxZoom": 18,
+              "demparser": "",
+              "throughTileServer": false,
+              "cogResampling": "nearest",
+              "cogExpressionEditable": false,
+              "cogTransform": false,
+              "cogColormap": "Accent",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical"
+              },
+              "description": "",
+              "attribution": "Esri, HERE, Garmin, Intermap, increment P Corp., GEBCO, USGS, FAO, NPS, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), swisstopo, © OpenStreetMap contributors, and the GIS User Community"
+            },
+            {
+              "name": "ArcGIS World Imagery",
+              "uuid": "9473bb45-f7da-4650-9036-f44d2a300c4b",
+              "type": "tile",
+              "visibility": true,
+              "sourceType": "url",
+              "url": "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+              "tileformat": "wmts",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 18,
+              "maxZoom": 18,
+              "demparser": "",
+              "throughTileServer": false,
+              "cogResampling": "nearest",
+              "cogExpressionEditable": false,
+              "cogTransform": false,
+              "cogColormap": "Accent",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical"
+              },
+              "description": "",
+              "attribution": "Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+            },
+            {
+              "name": "GIBS MODIS with Time",
+              "uuid": "9976a4bd-2228-4859-9c77-5acf552c0ea2",
+              "type": "tile",
+              "visibility": false,
+              "sourceType": "url",
+              "url": "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/{time}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg",
+              "tileformat": "wmts",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 9,
+              "maxZoom": 9,
+              "demtileurl": "",
+              "demparser": "rgba",
+              "boundingBox": [
+                "-180",
+                "-85.051129",
+                "180",
+                "85.051129"
+              ],
+              "throughTileServer": false,
+              "cogResampling": "nearest",
+              "cogExpressionEditable": false,
+              "cogTransform": false,
+              "cogColormap": "Accent",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": true,
+                "type": "requery",
+                "format": "%Y-%m-%d",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false,
+                "dataStartTime": ""
+              },
+              "variables": {
+                "legendOrientation": "vertical"
+              }
+            }
+          ],
+          "type": "header",
+          "expanded": false,
+          "description": ""
+        }
+      ],
+      "description": "",
+      "demparser": "",
+      "controlled": false,
+      "uuid": "3acb87e4-2097-41c9-a186-4d4ca61bb143"
+    }
+  ],
+  "tools": [
+    {
+      "name": "Identifier",
+      "icon": "map-marker",
+      "js": "IdentifierTool",
+      "separatedTool": true,
+      "variables": {
+        "justification": "left",
+        "layers": []
+      }
+    },
+    {
+      "name": "Layers",
+      "icon": "layers",
+      "js": "LayersTool",
+      "variables": {
+        "expanded": true
+      }
+    },
+    {
+      "name": "Legend",
+      "icon": "map-legend",
+      "js": "LegendTool",
+      "separatedTool": true,
+      "variables": {
+        "displayOnStart": false,
+        "justification": "right",
+        "showHeadersInLegend": false
+      }
+    },
+    {
+      "name": "Info",
+      "icon": "information-variant",
+      "js": "InfoTool",
+      "variables": {
+        "sortAlphabetically": true
+      }
+    },
+    {
+      "name": "Sites",
+      "icon": "pin",
+      "js": "SitesTool",
+      "variables": {
+        "sites": [
+          {
+            "name": "San Francisco",
+            "code": "SF",
+            "lat": 37.8,
+            "lng": -122.4,
+            "zoom": 12
+          },
+          {
+            "name": "Golden Gate Bridge",
+            "code": "GGB",
+            "lat": 37.8199,
+            "lng": -122.4783,
+            "zoom": 15
+          },
+          {
+            "name": "Downtown San Francisco",
+            "code": "DTSF",
+            "lat": 37.7749,
+            "lng": -122.4194,
+            "zoom": 13
+          },
+          {
+            "name": "San Francisco Bay Overview",
+            "code": "SFBAY",
+            "lat": 37.8,
+            "lng": -122.4,
+            "zoom": 11
+          },
+          {
+            "name": "Alcatraz Island",
+            "code": "ALCA",
+            "lat": 37.827,
+            "lng": -122.423,
+            "zoom": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "Draw",
+      "icon": "pencil",
+      "js": "DrawTool",
+      "variables": {
+        "intents": [
+          "ROI",
+          "Campaign",
+          "Traverse",
+          "Waypoint",
+          "Annotation",
+          "All Features"
+        ],
+        "defaultDrawClipping": "off",
+        "defaultPublicFilter": false,
+        "defaultYoursOnlyFilter": true,
+        "defaultOnFilter": false,
+        "leadsCanEditFileInfo": false,
+        "hoverLengthOnLines": true,
+        "dynamicExtent": {
+          "enabled": true,
+          "moveThreshold": "1000/z",
+          "timeProp": "time"
+        },
+        "templates": [
+          {
+            "name": "Priority Level",
+            "field": "priority",
+            "type": "dropdown",
+            "required": true,
+            "items": [
+              "High",
+              "Medium",
+              "Low"
+            ],
+            "default": "Medium"
+          },
+          {
+            "name": "Confidence Score",
+            "field": "confidence",
+            "type": "slider",
+            "min": 0,
+            "max": 100,
+            "step": 5,
+            "default": 50
+          },
+          {
+            "name": "Notes",
+            "field": "notes",
+            "type": "textarea",
+            "maxLength": 500,
+            "required": false,
+            "default": ""
+          },
+          {
+            "name": "Reviewed",
+            "field": "reviewed",
+            "type": "checkbox",
+            "default": false
+          },
+          {
+            "name": "Observation Date",
+            "field": "obs_date",
+            "type": "date",
+            "format": "YYYY-MM-DD HH:mm:ss",
+            "default": "now"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Measure",
+      "icon": "tape-measure",
+      "js": "MeasureTool",
+      "variables": {
+        "dem": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+        "layerDems": [],
+        "onlyShowDemIfLayerOn": false,
+        "defaultMode": "continuous"
+      }
+    },
+    {
+      "name": "Viewshed",
+      "icon": "wifi-strength-2",
+      "js": "ViewshedTool",
+      "variables": {
+        "data": [
+          {
+            "name": "USGS SF DEM (tileset required)",
+            "demtileurl": "Data/dem-tiles/{z}/{x}/{y}.png",
+            "minZoom": 8,
+            "maxNativeZoom": 18
+          }
+        ],
+        "cameraPresets": [
+          {
+            "name": "Default Camera",
+            "height": 2,
+            "azCenter": 0,
+            "azFOV": 70,
+            "elCenter": -10,
+            "elFOV": 30
+          }
+        ],
+        "curvature": true,
+        "defaultObserverHeight": 2,
+        "defaultTargetHeight": 0
+      }
+    },
+    {
+      "name": "Isochrone",
+      "icon": "circle-double",
+      "js": "IsochroneTool",
+      "variables": {
+        "data": {
+          "DEM": [
+            {
+              "name": "USGS SF DEM (tileset required)",
+              "tileurl": "Data/dem-tiles/{z}/{x}/{y}.png",
+              "minZoom": 8,
+              "maxNativeZoom": 18,
+              "resolution": 256,
+              "interpolateSeams": false
+            }
+          ],
+          "slope": [],
+          "cost": []
+        },
+        "interpolateSeams": false,
+        "models": [
+          "Traverse Time",
+          "Isodistance"
+        ]
+      }
+    },
+    {
+      "name": "Shade",
+      "icon": "sun-angle-outline",
+      "js": "ShadeTool",
+      "variables": {
+        "dem": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+        "data": [
+          {
+            "name": "USGS SF DEM (tileset required)",
+            "demtileurl": "Data/dem-tiles/{z}/{x}/{y}.png",
+            "minZoom": 8,
+            "maxNativeZoom": 18
+          }
+        ],
+        "sources": [
+          {
+            "name": "Sun",
+            "value": "SUN"
+          }
+        ],
+        "observers": [],
+        "defaultHeight": 0,
+        "observerTimePlaceholder": "YYYY-MM-DD HH:MM:SS",
+        "utcTimeFormat": "%Y-%m-%d %H:%M:%S"
+      }
+    },
+    {
+      "name": "Chemistry",
+      "icon": "flask",
+      "js": "ChemistryTool",
+      "variables": {}
+    },
+    {
+      "name": "Curtain",
+      "icon": "waves",
+      "js": "CurtainTool",
+      "variables": {
+        "withCredentials": false
+      }
+    },
+    {
+      "name": "Animation",
+      "icon": "video",
+      "js": "AnimationTool",
+      "variables": {
+        "animationGIF": true,
+        "animationMP4": true,
+        "animationPNG": false
+      }
+    }
+  ]
+}

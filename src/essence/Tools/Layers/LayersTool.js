@@ -290,17 +290,19 @@ var LayersTool = {
         layer = L_.layers.data[layer]
         if (L_.layers.layer[layer.name] === null) return
 
+        // data layers use demtileurl; other layers use url
+        const layerUrl = layer.url || layer.demtileurl || ''
         if (
-            !layer.url.startsWith('stac-collection:') &&
-            !layer.url.startsWith('COG:') &&
+            !layerUrl.startsWith('stac-collection:') &&
+            !layerUrl.startsWith('COG:') &&
             layer.type !== 'image' &&
             layer.type !== 'velocity'
         )
             return
         if (
             layer.cogTransform !== true &&
-            (layer.url.startsWith('stac-collection:') ||
-                layer.url.startsWith('COG:') ||
+            (layerUrl.startsWith('stac-collection:') ||
+                layerUrl.startsWith('COG:') ||
                 layer.type === 'image')
         )
             return
@@ -991,7 +993,7 @@ function interfaceWithMMGIS(fromInit) {
                     additionalSettings = ''
                     const shader = F_.getIn(node[i], 'variables.shader')
 
-                    if (shader && DataShaders[shader.type]) {
+                    if (shader && DataShaders[shader.type] && typeof DataShaders[shader.type].getHTML === 'function') {
                         // prettier-ignore
                         additionalSettings = [
                             DataShaders[shader.type].getHTML(node[i].name, shader)
@@ -1486,6 +1488,8 @@ function interfaceWithMMGIS(fromInit) {
                 L_.layers.layer[layerName] == null
             )
                 li.addClass('layernotfound')
+
+            if (!checkbox.hasClass('on')) li.removeClass('gears_on')
 
             if (checkbox.hasClass('on')) {
                 if (

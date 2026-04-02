@@ -144,7 +144,6 @@ def create_configs(output_dirs, json_config, prefix):
         sublayer['tileformat'] = 'tms'
         sublayer['visibility'] = False
         sublayer['initialOpacity'] = 1
-        sublayer['togglesWithHeader'] = False
         sublayer['minZoom'] = int(minZoom)
         sublayer['maxNativeZoom'] = int(maxNativeZoom)
         sublayer['maxZoom'] = 16

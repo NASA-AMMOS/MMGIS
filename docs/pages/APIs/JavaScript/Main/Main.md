@@ -104,7 +104,6 @@ window.mmgisAPI
       legend: "Layers/Waypoints/legend.csv",
       visibility: true,
       initialOpacity: 1,
-      togglesWithHeader: true,
       style: {
         className: "waypoints",
         color: "#FFF",
@@ -148,7 +147,7 @@ window.mmgisAPI
       },
       uuid: "7f6396c3-eef1-401a-9e99-790ed102efff",
     },
-    { path: "Features", index: 0 }
+    { path: "Features", index: 0 },
   )
   .then(() => {
     console.log("loaded");
@@ -219,7 +218,7 @@ window.mmgisAPI.updateVectorLayer(
       coordinates: [137.38361, -4.658036, -4461.908691],
     },
   },
-  5
+  5,
 );
 ```
 
@@ -239,7 +238,7 @@ The following is an example of how to call the `trimVectorLayerKeepBeforeTime` f
 window.mmgisAPI.trimVectorLayerKeepBeforeTime(
   "Waypoints",
   "2021-12-01T15:10:00.000Z",
-  "time"
+  "time",
 );
 ```
 
@@ -259,7 +258,7 @@ The following is an example of how to call the `trimVectorLayerKeepAfterTime` fu
 window.mmgisAPI.trimVectorLayerKeepAfterTime(
   "Waypoints",
   "2021-12-01T15:10:00.000Z",
-  "time"
+  "time",
 );
 ```
 
@@ -316,7 +315,7 @@ window.mmgisAPI.trimLineString(
   "2021-12-01T15:03:00.000Z",
   "start_time",
   7,
-  "start"
+  "start",
 );
 ```
 
@@ -326,7 +325,7 @@ window.mmgisAPI.trimLineString(
   "2021-12-01T15:13:00.000Z",
   "end_time",
   7,
-  "end"
+  "end",
 );
 ```
 
@@ -366,7 +365,7 @@ window.mmgisAPI.appendLineString(
       ],
     },
   },
-  "end_time"
+  "end_time",
 );
 ```
 
@@ -451,7 +450,7 @@ window.mmgisAPI.setTime(
   "2021-05-13T07:00:00Z",
   false,
   null,
-  "2021-05-13T06:00:00Z"
+  "2021-05-13T06:00:00Z",
 );
 
 window.mmgisAPI.setTime("02:00:00", "00:00:00", true, "01:00:00");
@@ -479,7 +478,7 @@ The following is an example of how to call the `setLayerTime` function:
 window.mmgisAPI.setLayerTime(
   "Earthquakes",
   "2021-05-01T00:00:00Z",
-  "2021-05-13T23:59:59Z"
+  "2021-05-13T23:59:59Z",
 );
 ```
 
