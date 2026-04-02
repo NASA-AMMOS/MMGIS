@@ -16,7 +16,7 @@ var swaggerDocumentMain = require("../docs/mmgis-openapi.json");
 const createError = require("http-errors");
 const cors = require("cors");
 const logger = require("../API/logger");
-const rateLimit = require("express-rate-limit");
+const { rateLimit } = require("express-rate-limit");
 const compression = require("compression");
 
 const session = require("express-session");
@@ -490,8 +490,8 @@ function ensureUserForAdjacentServers() {
 }
 
 var swaggerOptions = {
-  customCssUrl: "/docs/swagger/swaggerCSS.css",
-  customJs: "/docs/swagger/swaggerJS.js",
+  customCssUrl: ["/docs/swagger/swaggerCSS.css"],
+  customJs: ["/docs/swagger/swaggerJS.js"],
 };
 
 const useSwaggerSchema =
@@ -567,6 +567,8 @@ let helmetConfig = {
         : "none",
     },
   },
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
 };
 
 app.use(helmet(helmetConfig));
