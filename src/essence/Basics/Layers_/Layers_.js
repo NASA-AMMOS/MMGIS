@@ -113,7 +113,7 @@ const L_ = {
         L_.layers = {
             data: {},
             dataFlat: [],
-            leafletLayer: {},
+            layer: {},
             attachments: {},
             toggled: {},
             opacity: {},
@@ -336,6 +336,7 @@ const L_ = {
         if (
             wasNeverOn &&
             s.type === 'vector' &&
+            s.time != null &&
             s.time.type === 'local' &&
             s.time.endProp != null &&
             s.controlled !== true

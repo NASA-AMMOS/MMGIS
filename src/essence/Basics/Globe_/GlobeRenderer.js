@@ -268,18 +268,15 @@ class GlobeRenderer {
 
                     try {
                         // Build URL from demConfig.demPath template
+                        // Resolve Y before replacing so the TMS flip isn't a no-op
+                        const tileY = demConfig.format === 'tms'
+                            ? Math.pow(2, level) - 1 - y
+                            : y
                         let url = demConfig.demPath
                             .replace('{z}', level)
                             .replace('{x}', x)
-                            .replace('{y}', y)
+                            .replace('{y}', tileY)
                             .replace('{level}', level)
-
-                        // Handle TMS format (flip Y coordinate)
-                        if (demConfig.format === 'tms') {
-                            const maxY = Math.pow(2, level) - 1
-                            const tmsY = maxY - y
-                            url = url.replace('{y}', tmsY)
-                        }
 
                         const response = await fetch(url)
 

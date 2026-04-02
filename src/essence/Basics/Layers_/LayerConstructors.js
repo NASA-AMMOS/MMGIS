@@ -116,34 +116,44 @@ function parseRgb(color) {
     }
 }
 
+// Cache for parseCSSColor — avoids repeated DOM mutations for the same color string
+const _parseCSSColorCache = new Map()
+
 // Helper function to parse CSS color strings to RGB using browser's built-in capability
 function parseCSSColor(color) {
     if (!color || typeof color !== 'string') return null
 
+    if (_parseCSSColorCache.has(color)) return _parseCSSColorCache.get(color)
+
     // Use a temporary element to parse the color
     const tempElem = document.createElement('div')
     tempElem.style.color = color
+
+    // If the browser rejected the value it leaves style.color empty — bail early
+    if (!tempElem.style.color) {
+        _parseCSSColorCache.set(color, null)
+        return null
+    }
 
     // Append to body temporarily to get computed style
     document.body.appendChild(tempElem)
     const computedColor = window.getComputedStyle(tempElem).color
     document.body.removeChild(tempElem)
 
-    // If the browser couldn't parse it, computed color will be empty
-    if (!computedColor || computedColor === '') return null
-
     // Try to parse rgb() or rgba() format
     const rgbMatch = computedColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
-    if (rgbMatch) {
-        return {
-            r: parseInt(rgbMatch[1]),
-            g: parseInt(rgbMatch[2]),
-            b: parseInt(rgbMatch[3]),
-        }
-    }
+    const result = rgbMatch
+        ? {
+              r: parseInt(rgbMatch[1]),
+              g: parseInt(rgbMatch[2]),
+              b: parseInt(rgbMatch[3]),
+          }
+        : null
 
-    return null
+    _parseCSSColorCache.set(color, result)
+    return result
 }
+
 
 const tooltipProto = L.Tooltip.prototype
 const tooltipProto_setPosition = tooltipProto._setPosition
@@ -200,8 +210,14 @@ export const constructVectorLayer = (
     if (layerObj.style.radiusProp != null && layerObj.style.radiusProp !== '')
         rad = `prop:${layerObj.style.radiusProp}`
 
+    // Snapshot the original style so it can be restored on every feature call
+    const _originalStyle = layerObj.style
+
     let leafletLayerObject = {
         style: function (feature, preferredStyle) {
+            // Restore to original before applying per-feature overrides so
+            // mutations from a previous feature don't bleed into this one
+            layerObj.style = Object.assign({}, _originalStyle)
             if (preferredStyle) {
                 col = preferredStyle.color != null ? preferredStyle.color : col
                 opa =

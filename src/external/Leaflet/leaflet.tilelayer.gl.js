@@ -664,6 +664,7 @@ const _geotiffPool = new Pool()
                                 )
                                 // Extract shape — e.g. (256, 256) or (1, 256, 256)
                                 const shapeMatch = header.match(/'shape':\s*\(([^)]+)\)/)
+                                if (!shapeMatch) throw new Error('NPY tile missing shape header')
                                 const shapeParts = shapeMatch[1]
                                     .split(',')
                                     .map((s) => parseInt(s.trim()))

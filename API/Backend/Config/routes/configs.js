@@ -479,7 +479,10 @@ function add(req, res, next, cb) {
 
 if (fullAccess)
   router.post("/add", function (req, res, next) {
-    if (req.session.permission !== "111") {
+    const userPermission = req.isLongTermToken
+      ? req.tokenUserPermission
+      : req.session.permission;
+    if (userPermission !== "111") {
       res.send({
         status: "failure",
         message: "Only SuperAdmins can add new missions.",
@@ -703,7 +706,7 @@ router.get("/missions", function (req, res, next) {
   if (req.query.full === "true") {
     sequelize
       .query(
-        "SELECT DISTINCT ON (mission) mission, version, config FROM configs ORDER BY mission ASC"
+        "SELECT DISTINCT ON (mission) mission, version, config FROM configs ORDER BY mission ASC, version DESC"
       )
       .then(([results]) => {
         res.send({ status: "success", missions: results });
