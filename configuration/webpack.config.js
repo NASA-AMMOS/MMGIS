@@ -18,8 +18,6 @@ const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
 const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 
-const appPackageJson = require(paths.appPackageJson);
-
 // This is a hack so that node v18+ can run.
 // "md4" hashes are no longer supported so before everything runs, we override them to be "sha256"
 const crypto = require("crypto");
