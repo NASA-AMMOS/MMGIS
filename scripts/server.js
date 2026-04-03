@@ -199,8 +199,8 @@ function checkHeadersCodeInjection(req, res, next) {
     res.send({
       Warning:
         "You are not allowed to inject bad code to the application. Your action will be reported!",
-      "Your IP":       req.headers["x-forwarded-for"] || req.socket.remoteAddress,
-            "Requested URL": fullUrl,
+      "Your IP": req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+      "Requested URL": fullUrl,
     });
     res.end();
   } else {
