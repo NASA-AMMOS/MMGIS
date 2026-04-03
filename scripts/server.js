@@ -16,7 +16,7 @@ var swaggerDocumentMain = require("../docs/mmgis-openapi.json");
 const createError = require("http-errors");
 const cors = require("cors");
 const logger = require("../API/logger");
-const rateLimit = require("express-rate-limit");
+const { rateLimit } = require("express-rate-limit");
 const compression = require("compression");
 
 const session = require("express-session");
@@ -199,7 +199,7 @@ function checkHeadersCodeInjection(req, res, next) {
     res.send({
       Warning:
         "You are not allowed to inject bad code to the application. Your action will be reported!",
-      "Your IP": req.headers["x-forwarded-for"] || req.connection.remoteAddress,
+      "Your IP": req.headers["x-forwarded-for"] || req.socket.remoteAddress,
       "Requested URL": fullUrl,
     });
     res.end();
@@ -291,7 +291,7 @@ function ensureAdmin(
   return (req, res, next) => {
     let url = req.originalUrl.split("?")[0].toLowerCase();
     const remoteAddress =
-      req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+      req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
     if (
       url.endsWith("/api/configure/get") ||
@@ -429,7 +429,7 @@ function ensureUser() {
     } else {
       if (req.headers.authorization) {
         const remoteAddress =
-          req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+          req.headers["x-forwarded-for"] || req.socket.remoteAddress;
         validateLongTermToken(
           req.headers.authorization,
           (tokenData) => {
@@ -490,8 +490,8 @@ function ensureUserForAdjacentServers() {
 }
 
 var swaggerOptions = {
-  customCssUrl: "/docs/swagger/swaggerCSS.css",
-  customJs: "/docs/swagger/swaggerJS.js",
+  customCssUrl: ["/docs/swagger/swaggerCSS.css"],
+  customJs: ["/docs/swagger/swaggerJS.js"],
 };
 
 const useSwaggerSchema =
@@ -554,6 +554,8 @@ let helmetConfig = {
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'", "blob:", "'unsafe-inline'", "'unsafe-eval'"],
+      scriptSrc: ["'self'", "blob:", "'unsafe-inline'", "'unsafe-eval'"],
+      scriptSrcAttr: null,
       imgSrc: ["*", "data:", "blob:", "'unsafe-inline'"],
       styleSrc: ["*", "data:", "blob:", "'unsafe-inline'"],
       fontSrc: ["*", "data:", "blob:", "'unsafe-inline'"],
@@ -561,12 +563,15 @@ let helmetConfig = {
       mediaSrc: ["*", "data:", "blob:"],
       frameAncestors: process.env.FRAME_ANCESTORS
         ? JSON.parse(process.env.FRAME_ANCESTORS)
-        : "none",
+        : "'none'",
       frameSrc: process.env.FRAME_SRC
         ? JSON.parse(process.env.FRAME_SRC)
-        : "none",
+        : "'none'",
     },
   },
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
+  crossOriginResourcePolicy: false,
 };
 
 app.use(helmet(helmetConfig));
@@ -592,6 +597,15 @@ app.use(cssoHandler);
 
 app.use(bodyParser.json({ limit: "500mb" })); // support json encoded bodies
 app.use(bodyParser.urlencoded({ limit: "500mb", extended: true })); // support encoded bodies
+
+// Express 5 no longer initializes req.body to {} — it is undefined when no
+// body-parser middleware has matched the Content-Type.  Many route handlers
+// (files, draw, datasets, etc.) access req.body.* without null-checking, so
+// we restore Express 4 behaviour here to avoid 500s on empty-body POSTs.
+app.use((req, res, next) => {
+  if (req.body === undefined) req.body = {};
+  next();
+});
 
 app.use(cookieParser());
 
@@ -791,7 +805,7 @@ setups.getBackendSetups(function (setups) {
     setups.started(s);
 
     // error handler
-    app.all("*", (req, res, next) => {
+    app.all("/{*splat}", (req, res, next) => {
       // render the error page
       res.status(404).render("error");
     });
