@@ -571,6 +571,7 @@ let helmetConfig = {
   },
   crossOriginEmbedderPolicy: false,
   crossOriginOpenerPolicy: false,
+  crossOriginResourcePolicy: false,
 };
 
 app.use(helmet(helmetConfig));
