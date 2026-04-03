@@ -597,6 +597,15 @@ app.use(cssoHandler);
 app.use(bodyParser.json({ limit: "500mb" })); // support json encoded bodies
 app.use(bodyParser.urlencoded({ limit: "500mb", extended: true })); // support encoded bodies
 
+// Express 5 no longer initializes req.body to {} — it is undefined when no
+// body-parser middleware has matched the Content-Type.  Many route handlers
+// (files, draw, datasets, etc.) access req.body.* without null-checking, so
+// we restore Express 4 behaviour here to avoid 500s on empty-body POSTs.
+app.use((req, res, next) => {
+  if (req.body === undefined) req.body = {};
+  next();
+});
+
 app.use(cookieParser());
 
 app.use(cors());
