@@ -554,7 +554,7 @@ let helmetConfig = {
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'", "blob:", "'unsafe-inline'", "'unsafe-eval'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      scriptSrc: ["'self'", "blob:", "'unsafe-inline'", "'unsafe-eval'"],
       scriptSrcAttr: null,
       imgSrc: ["*", "data:", "blob:", "'unsafe-inline'"],
       styleSrc: ["*", "data:", "blob:", "'unsafe-inline'"],
