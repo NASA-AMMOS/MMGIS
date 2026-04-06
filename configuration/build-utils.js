@@ -24,7 +24,7 @@ function getPublicUrlOrPath(isEnvDevelopment, homepage, envPublicUrl) {
       : envPublicUrl + "/";
 
     // validate if `envPublicUrl` is a URL or path like
-    // `stubDomain` is ignored if `googPublicUrl` contains a domain
+    // `stubDomain` is ignored if `publicUrl` contains a domain
     const validPublicUrl = new URL(publicUrl, stubDomain);
 
     return isEnvDevelopment
