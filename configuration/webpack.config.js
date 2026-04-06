@@ -92,7 +92,15 @@ module.exports = function (webpackEnv) {
         },
       {
         loader: require.resolve("css-loader"),
-        options: cssOptions,
+        options: {
+          ...cssOptions,
+          // css-loader v4+ resolves url() through webpack's module system.
+          // URLs starting with /public/ should be left as-is — they are served
+          // by the Express server at runtime, not bundled by webpack.
+          url: {
+            filter: (url) => !url.startsWith("/public/"),
+          },
+        },
       },
       {
         // Options for PostCSS as we reference these options twice
