@@ -1317,7 +1317,7 @@ const getComponent = (
     case "defaulttooldropdown":
       let tools =  configuration?.tools || null
       tools = tools.filter(tool => {
-        return tool?.separatedTool !== true
+        return tool?.separatedTool !== true && tool?.on !== false
       }).map(tool => tool.name)
 
       inner = (
