@@ -858,12 +858,34 @@ function setupDevServer() {
       console.log(messages.warnings.join("\n\n"));
     }
   });
-  // Load proxy config
+  // Load proxy config — forward all non-webpack requests to the Express server.
+  // The original prepareProxy from react-dev-utils acted as a catch-all proxy.
   const proxySetting = `http://localhost:${port}`;
   const proxyConfig = [
     {
-      context: ["/api", "/API", "/Missions"],
+      context: (pathname, req) => {
+        // Don't proxy webpack-dev-server internal paths or HMR websocket
+        if (
+          pathname.startsWith("/ws") ||
+          pathname.startsWith("/sockjs-node")
+        ) {
+          return false;
+        }
+        // Don't proxy requests for webpack-compiled assets (served by dev server)
+        if (
+          pathname.startsWith("/static/") ||
+          pathname.endsWith(".hot-update.json") ||
+          pathname.endsWith(".hot-update.js")
+        ) {
+          return false;
+        }
+        // Proxy everything else to the Express server
+        return true;
+      },
       target: proxySetting,
+      changeOrigin: true,
+      ws: false,
+      xfwd: true,
     },
   ];
 
