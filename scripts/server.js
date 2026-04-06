@@ -891,7 +891,6 @@ function setupDevServer() {
         // Proxy everything else to the Express server
         return true;
       },
-      },
       target: proxySetting,
       changeOrigin: true,
       ws: false,
