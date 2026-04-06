@@ -879,8 +879,18 @@ function setupDevServer() {
         ) {
           return false;
         }
+        // Don't proxy browser page loads (Accept: text/html) — let
+        // historyApiFallback handle them so the React SPA index.html is served.
+        if (
+          req.method === "GET" &&
+          req.headers.accept &&
+          req.headers.accept.indexOf("text/html") !== -1
+        ) {
+          return false;
+        }
         // Proxy everything else to the Express server
         return true;
+      },
       },
       target: proxySetting,
       changeOrigin: true,
