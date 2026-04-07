@@ -128,9 +128,9 @@ var Formulae_ = {
                     Date.UTC(Math.floor(startDate.getFullYear() / 10) * 10)
                 )
                 while (currentDate < endDate) {
-                    currentDate = new Date(currentDate.setUTCFullYear(
+                    currentDate.setUTCFullYear(
                         Math.floor(currentDate.getUTCFullYear() / 10) * 10 + 10
-                    ))
+                    )
                     timeStarts.push({
                         ts: Date.parse(currentDate),
                         label:
@@ -143,7 +143,7 @@ var Formulae_ = {
             case 'year':
                 currentDate = new Date(Date.UTC(startDate.getFullYear()))
                 while (currentDate < endDate) {
-                    currentDate = new Date(currentDate.setUTCFullYear(currentDate.getUTCFullYear() + 1))
+                    currentDate.setUTCFullYear(currentDate.getUTCFullYear() + 1)
                     timeStarts.push({
                         ts: Date.parse(currentDate),
                         label: currentDate.getUTCFullYear(),
@@ -156,7 +156,7 @@ var Formulae_ = {
                     Date.UTC(startDate.getFullYear(), startDate.getMonth())
                 )
                 while (currentDate < endDate) {
-                    currentDate = new Date(currentDate.setUTCMonth(currentDate.getUTCMonth() + 1))
+                    currentDate.setUTCMonth(currentDate.getUTCMonth() + 1)
                     timeStarts.push({
                         ts: Date.parse(currentDate),
                         label: Formulae_.monthNumberToName(
@@ -190,7 +190,7 @@ var Formulae_ = {
                 }
 
                 while (currentDate < endDate) {
-                    currentDate = new Date(currentDate.setUTCDate(currentDate.getUTCDate() + 1))
+                    currentDate.setUTCDate(currentDate.getUTCDate() + 1)
                     const dayNum = currentDate.getUTCDate()
                     timeStarts.push({
                         ts: Date.parse(currentDate),
@@ -208,7 +208,7 @@ var Formulae_ = {
                     )
                 )
                 while (currentDate < endDate) {
-                    currentDate = new Date(currentDate.setUTCHours(currentDate.getUTCHours() + 1))
+                    currentDate.setUTCHours(currentDate.getUTCHours() + 1)
                     timeStarts.push({
                         ts: Date.parse(currentDate),
                         label: currentDate.getUTCHours() + 'h',
@@ -226,7 +226,7 @@ var Formulae_ = {
                     )
                 )
                 while (currentDate < endDate) {
-                    currentDate = new Date(currentDate.setUTCMinutes(currentDate.getUTCMinutes() + 1))
+                    currentDate.setUTCMinutes(currentDate.getUTCMinutes() + 1)
                     timeStarts.push({
                         ts: Date.parse(currentDate),
                         label: currentDate.getUTCMinutes() + 'm',
@@ -245,7 +245,7 @@ var Formulae_ = {
                     )
                 )
                 while (currentDate < endDate) {
-                    currentDate = new Date(currentDate.setUTCSeconds(currentDate.getUTCSeconds() + 1))
+                    currentDate.setUTCSeconds(currentDate.getUTCSeconds() + 1)
                     timeStarts.push({
                         ts: Date.parse(currentDate),
                         label: currentDate.getUTCSeconds() + 's',
