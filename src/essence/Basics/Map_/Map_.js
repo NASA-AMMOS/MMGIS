@@ -1329,6 +1329,7 @@ async function makeTileLayer(layerObj, mapContext = null) {
                     layerObj.tileMatrixSet || 'WebMercatorQuad'
                 }/{z}/{x}/{y}.webp?url=${layerUrl}${bandsParam}${resamplingParam}`
 
+                break
             default:
                 break
         }
