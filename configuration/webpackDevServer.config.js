@@ -1,11 +1,7 @@
 "use strict";
 
 const fs = require("fs");
-const errorOverlayMiddleware = require("react-dev-utils/errorOverlayMiddleware");
-const evalSourceMapMiddleware = require("react-dev-utils/evalSourceMapMiddleware");
-const noopServiceWorkerMiddleware = require("react-dev-utils/noopServiceWorkerMiddleware");
-const ignoredFiles = require("react-dev-utils/ignoredFiles");
-const redirectServedPath = require("react-dev-utils/redirectServedPathMiddleware");
+const { noopServiceWorkerMiddleware, redirectServedPathMiddleware } = require("./build-utils");
 const paths = require("./paths");
 const getHttpsConfig = require("./getHttpsConfig");
 const chalk = require("chalk");
@@ -69,8 +65,7 @@ module.exports = function (proxy, allowedHost, options) {
         require(paths.proxySetup)(devServer.app);
       }
       middlewares.push(
-        evalSourceMapMiddleware(devServer),
-        redirectServedPath(paths.publicUrlOrPath),
+        redirectServedPathMiddleware(paths.publicUrlOrPath),
         noopServiceWorkerMiddleware(paths.publicUrlOrPath)
       );
 
