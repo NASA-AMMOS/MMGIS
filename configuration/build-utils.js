@@ -38,7 +38,7 @@ function getPublicUrlOrPath(isEnvDevelopment, homepage, envPublicUrl) {
 
   if (homepage) {
     // strip last slash if exists
-    homepage = homepage.endsWith("/") ? homepage : homepage + "/";
+    homepage = homepage.endsWith("/") ? homepage.slice(0, -1) : homepage;
 
     // validate if `homepage` is a URL or path like and use just pathname
     const validHomepagePathname = new URL(homepage, stubDomain).pathname;
