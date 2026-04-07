@@ -36,7 +36,7 @@ test.describe('Reference Mission Demo Mission - Smoke Tests', () => {
     });
 
     // Navigate to Reference Mission mission
-    await page.goto('/');
+    await page.goto('/?mission=Reference-Mission');
   });
 
   test('mission loads without crashes', async ({ page }) => {
@@ -73,7 +73,7 @@ test.describe('Reference Mission Demo Mission - Smoke Tests', () => {
 
   test('page loads in under 5 seconds', async ({ page }) => {
     const startTime = Date.now();
-    await page.goto('/');
+    await page.goto('/?mission=Reference-Mission');
     await page.waitForLoadState('networkidle', { timeout: 30000 });
     const loadTime = Date.now() - startTime;
 
@@ -278,7 +278,7 @@ test.describe('Reference Mission Demo Mission - Smoke Tests', () => {
       }
     });
 
-    await page.goto('/');
+    await page.goto('/?mission=Reference-Mission');
     await page.waitForLoadState('networkidle', { timeout: 30000 });
 
     // Verify no unexpected critical errors

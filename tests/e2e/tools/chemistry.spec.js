@@ -17,7 +17,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Chemistry Tool', () => {
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?mission=Reference-Mission');
     await page.waitForLoadState('networkidle', { timeout: 30000 });
   });
 
