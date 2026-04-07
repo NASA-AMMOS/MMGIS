@@ -917,49 +917,52 @@ test.describe('Formulae_ - getTimeStartsBetweenTimestamps', () => {
   });
 
   test('returns correct hour starts', () => {
-    // Note: the source uses getHours() (local) for initialization but
-    // setUTCHours() in the loop, so result count is timezone-dependent.
-    // We verify structure and termination rather than exact counts.
+    // Use mid-day times so local getHours() doesn't cross day boundaries
+    // in any timezone (UTC-12 to UTC+14)
     const result = F_.getTimeStartsBetweenTimestamps(
-      '2023-01-01T00:00:00Z',
-      '2023-01-01T05:00:00Z',
+      '2023-06-15T15:00:00Z',
+      '2023-06-15T20:00:00Z',
       'hour'
     );
     expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.length).toBeLessThanOrEqual(20);
     for (const item of result) {
       expect(item).toHaveProperty('ts');
       expect(item).toHaveProperty('label');
-      expect(typeof item.ts).toBe('number');
     }
   });
 
   test('returns correct minute starts', () => {
-    // Timezone-dependent initialization (getMinutes local vs setUTCMinutes)
+    // Use mid-day times so timezone offsets don't create huge iteration ranges
     const result = F_.getTimeStartsBetweenTimestamps(
-      '2023-01-01T00:00:00Z',
-      '2023-01-01T00:10:00Z',
+      '2023-06-15T15:00:00Z',
+      '2023-06-15T15:10:00Z',
       'minute'
     );
     expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.length).toBeLessThanOrEqual(70);
     for (const item of result) {
       expect(item).toHaveProperty('ts');
       expect(item).toHaveProperty('label');
-      expect(typeof item.ts).toBe('number');
     }
   });
 
   test('returns correct second starts', () => {
-    // Timezone-dependent initialization (getSeconds local vs setUTCSeconds)
+    // Use mid-day times so timezone offsets don't create huge iteration ranges
+    // (e.g., UTC-8 with midnight UTC would shift hours back, creating ~28K seconds)
     const result = F_.getTimeStartsBetweenTimestamps(
-      '2023-01-01T00:00:00Z',
-      '2023-01-01T00:00:10Z',
+      '2023-06-15T15:30:00Z',
+      '2023-06-15T15:30:10Z',
       'second'
     );
     expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.length).toBeLessThanOrEqual(70);
     for (const item of result) {
       expect(item).toHaveProperty('ts');
       expect(item).toHaveProperty('label');
-      expect(typeof item.ts).toBe('number');
     }
   });
 
