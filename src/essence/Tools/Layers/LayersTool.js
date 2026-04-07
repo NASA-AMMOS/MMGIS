@@ -296,8 +296,8 @@ var LayersTool = {
 
         // data layers use demtileurl; other layers use url
         const layerUrl = layer.url || layer.demtileurl || ''
+        if (typeof layerUrl !== 'string') return
         if (
-            typeof layerUrl === 'string' &&
             !layerUrl.startsWith('stac-collection:') &&
             !layerUrl.startsWith('COG:') &&
             layer.type !== 'image' &&
