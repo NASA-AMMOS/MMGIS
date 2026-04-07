@@ -23,7 +23,7 @@ test.describe('Users API', () => {
       const response = await request.post('/api/users/login', {
         data: {
           username: 'nonexistent_user_xyz',
-          password: 'wrong_password',
+          password: 'wrong_password',  // pragma: allowlist secret
         },
       });
       expect(response.status()).toBeLessThan(500);
@@ -35,7 +35,7 @@ test.describe('Users API', () => {
     test('returns failure with missing username', async ({ request }) => {
       const response = await request.post('/api/users/login', {
         data: {
-          password: 'some_password',
+          password: 'some_password',  // pragma: allowlist secret
         },
       });
       expect(response.status()).toBeLessThan(500);
