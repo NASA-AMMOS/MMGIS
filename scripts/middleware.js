@@ -43,7 +43,7 @@ async function onlyExistingFilepaths(paths) {
       new Promise(async (resolve, reject) => {
         try {
           const fullPath = path.resolve(`${rootDirMissions}${filePath}`);
-          if (!fullPath.replace(/\\/g, '/').startsWith(path.resolve(rootDirMissions).replace(/\\/g, '/'))) {
+          if (!fullPath.replace(/\\/g, '/').startsWith(path.resolve(rootDirMissions).replace(/\\/g, '/') + '/')) {
             resolve(false);
             return;
           }
