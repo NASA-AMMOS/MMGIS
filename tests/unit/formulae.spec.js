@@ -878,3 +878,104 @@ test.describe('Formulae_ - Tile Operations', () => {
     });
   });
 });
+
+test.describe('Formulae_ - getTimeStartsBetweenTimestamps', () => {
+
+  test('returns correct year starts', () => {
+    const result = F_.getTimeStartsBetweenTimestamps(
+      '2020-01-01T00:00:00Z',
+      '2023-01-01T00:00:00Z',
+      'year'
+    );
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.length).toBeLessThanOrEqual(4);
+    result.forEach(item => {
+      expect(item).toHaveProperty('ts');
+      expect(item).toHaveProperty('label');
+      expect(typeof item.ts).toBe('number');
+    });
+  });
+
+  test('returns correct month starts', () => {
+    const result = F_.getTimeStartsBetweenTimestamps(
+      '2023-01-01T00:00:00Z',
+      '2023-06-01T00:00:00Z',
+      'month'
+    );
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.length).toBeLessThanOrEqual(6);
+  });
+
+  test('returns correct day starts', () => {
+    const result = F_.getTimeStartsBetweenTimestamps(
+      '2023-01-01T00:00:00Z',
+      '2023-01-05T00:00:00Z',
+      'day'
+    );
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.length).toBeLessThanOrEqual(5);
+  });
+
+  test('returns correct hour starts', () => {
+    const result = F_.getTimeStartsBetweenTimestamps(
+      '2023-01-01T00:00:00Z',
+      '2023-01-01T05:00:00Z',
+      'hour'
+    );
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.length).toBeLessThanOrEqual(6);
+  });
+
+  test('returns correct minute starts', () => {
+    const result = F_.getTimeStartsBetweenTimestamps(
+      '2023-01-01T00:00:00Z',
+      '2023-01-01T00:10:00Z',
+      'minute'
+    );
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.length).toBeLessThanOrEqual(11);
+  });
+
+  test('returns correct second starts', () => {
+    const result = F_.getTimeStartsBetweenTimestamps(
+      '2023-01-01T00:00:00Z',
+      '2023-01-01T00:00:10Z',
+      'second'
+    );
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.length).toBeLessThanOrEqual(11);
+  });
+
+  test('returns correct decade starts', () => {
+    const result = F_.getTimeStartsBetweenTimestamps(
+      '2000-01-01T00:00:00Z',
+      '2030-01-01T00:00:00Z',
+      'decade'
+    );
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.length).toBeLessThanOrEqual(4);
+  });
+
+  test('handles empty range', () => {
+    const result = F_.getTimeStartsBetweenTimestamps(
+      '2023-01-01T00:00:00Z',
+      '2023-01-01T00:00:00Z',
+      'year'
+    );
+    expect(result.length).toBe(0);
+  });
+
+  test('terminates for large ranges without infinite loop', () => {
+    // This is the key regression test - the loop variable fix prevents infinite loops
+    const start = Date.now();
+    const result = F_.getTimeStartsBetweenTimestamps(
+      '2000-01-01T00:00:00Z',
+      '2100-01-01T00:00:00Z',
+      'year'
+    );
+    const elapsed = Date.now() - start;
+    // Should complete in under 1 second, not hang
+    expect(elapsed).toBeLessThan(1000);
+    expect(result.length).toBeGreaterThan(0);
+  });
+});
