@@ -3,12 +3,13 @@
  * Tests Utils.forceAlphaNumUnder() sanitization function.
  */
 
+import { test, expect } from '@playwright/test';
 const Utils = require('../../API/utils.js');
 
-describe('SQL Injection Prevention', () => {
+test.describe('SQL Injection Prevention', () => {
   const forceAlphaNumUnder = Utils.forceAlphaNumUnder;
 
-  describe('forceAlphaNumUnder', () => {
+  test.describe('forceAlphaNumUnder', () => {
     test('allows simple alphanumeric strings', () => {
       expect(forceAlphaNumUnder('sol')).toBe('sol');
       expect(forceAlphaNumUnder('time')).toBe('time');

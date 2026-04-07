@@ -3,9 +3,10 @@
  * Tests isPathInsideRoot() from scripts/middleware.js
  */
 
+import { test, expect } from '@playwright/test';
 const path = require('path');
 
-describe('Path Traversal Prevention', () => {
+test.describe('Path Traversal Prevention', () => {
   // isPathInsideRoot is defined in scripts/middleware.js but not exported directly.
   // We replicate the logic here for unit testing since it's a pure function.
   const rootDir = path.resolve(__dirname, '../..');
@@ -32,7 +33,7 @@ describe('Path Traversal Prevention', () => {
     );
   }
 
-  describe('isPathInsideRoot', () => {
+  test.describe('isPathInsideRoot', () => {
     test('allows valid mission paths', () => {
       expect(isPathInsideRoot('Missions', '/Missions/MyMission/layer.json')).toBe(true);
     });
