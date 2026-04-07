@@ -38,12 +38,17 @@ async function compositeImageUrls(urls) {
 
 async function onlyExistingFilepaths(paths) {
   const filePromises = [];
-  paths.forEach((path) => {
+  paths.forEach((filePath) => {
     filePromises.push(
       new Promise(async (resolve, reject) => {
         try {
-          await fs.promises.access(`${rootDirMissions}${path}`);
-          resolve(path);
+          const fullPath = path.resolve(`${rootDirMissions}${filePath}`);
+          if (!fullPath.replace(/\\/g, '/').startsWith(path.resolve(rootDirMissions).replace(/\\/g, '/'))) {
+            resolve(false);
+            return;
+          }
+          await fs.promises.access(fullPath);
+          resolve(filePath);
         } catch (err) {
           resolve(false);
         }
