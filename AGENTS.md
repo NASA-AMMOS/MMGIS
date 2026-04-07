@@ -248,7 +248,7 @@ Comprehensive demo mission showcasing all MMGIS features, layer types, data form
 
 **Backend**:
 
-- **Framework**: Express 4.18 (Node.js 20+)
+- **Framework**: Express 5.2 (Node.js 20+)
 - **Database**: PostgreSQL with PostGIS (geospatial extension) and PgStac
 - **ORM**: Sequelize 6.33
 - **Authentication**: Local, SSO, or none.
