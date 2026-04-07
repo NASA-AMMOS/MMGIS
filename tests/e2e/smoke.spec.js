@@ -34,4 +34,11 @@ test.describe('MMGIS Application - Smoke Tests', () => {
     });
     expect(hasContent).toBeTruthy();
   });
+
+  test('stylesheets load without errors', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    const sheetCount = await page.evaluate(() => document.styleSheets.length);
+    expect(sheetCount).toBeGreaterThan(0);
+  });
 });
