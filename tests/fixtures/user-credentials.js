@@ -28,6 +28,6 @@ export const TEST_USER = {
 /** Lead user — elevated permissions (e.g. can manage draw files). */
 export const TEST_LEAD = {
   username: process.env.TEST_LEAD_USER || 'test_lead',
-  password: process.env.TEST_LEAD_PASS || ['test', 'lead', '123'].join(''),
+  password: process.env.TEST_LEAD_PASS || ['Test', 'Lead', '1!'].join(''),
   email: process.env.TEST_LEAD_EMAIL || 'lead@test.com',
 };
