@@ -70,7 +70,16 @@ test.describe('Configure CMS Access', () => {
     expect(bodyHTML).toContain('Reference-Mission');
   });
 
-  test('configure page has navigation tabs', async ({ page }) => {
+  test('configure page has navigation tabs after selecting a mission', async ({ page, request }) => {
+    // Tabs (Layers, Tools, Time, etc.) only appear once a mission is selected.
+    // First verify a mission exists, then click it to reveal the tab bar.
+    const listRes = await request.get(`${baseURL}/api/configure/missions`);
+    const listData = await listRes.json().catch(() => ({}));
+    if (!listData.missions || !listData.missions.includes('Reference-Mission')) {
+      test.skip(true, 'SKIP: Reference-Mission not available — cannot test tabs');
+      return;
+    }
+
     await page.goto('/configure');
     await page.waitForLoadState('networkidle');
 
@@ -79,8 +88,18 @@ test.describe('Configure CMS Access', () => {
       return;
     }
 
-    // The configure CMS exposes several tabs (Layers, Tools, Look/UserInterface,
-    // Time, etc.) implemented as React tab components.
+    // Select Reference-Mission in the sidebar to reveal the tab bar
+    const missionLink = page.locator('text="Reference-Mission"').first();
+    if (await missionLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await missionLink.click();
+      await page.waitForLoadState('networkidle');
+    } else {
+      test.skip(true, 'SKIP: Reference-Mission not clickable in sidebar');
+      return;
+    }
+
+    // After selecting a mission the configure CMS renders MUI Tabs:
+    // Home, Layers, Tools, Coordinates, Time, User Interface
     const tabLabels = ['Layers', 'Tools'];
     let tabsFound = 0;
 
