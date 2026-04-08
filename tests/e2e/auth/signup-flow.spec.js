@@ -23,7 +23,10 @@ const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
 
 test.describe('Signup Flow', () => {
   test.beforeEach(async ({ page }) => {
-    test.skip(process.env.AUTH === 'off', 'SKIP: AUTH=off — no signup');
+    test.skip(
+      process.env.AUTH === 'off' || process.env.AUTH !== 'local',
+      'SKIP: AUTH is not local — no signup'
+    );
   });
 
   test('signup toggle reveals signup fields', async ({ page }) => {

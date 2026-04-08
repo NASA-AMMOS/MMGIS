@@ -23,7 +23,7 @@ test.describe('Info Tool', () => {
 
   test('toggle layer with kind=info and click feature to open Info panel', async ({ page }) => {
     // Open the Layers tool panel
-    const layersBtn = page.locator('[title*="Layers"]').first();
+    const layersBtn = page.locator('#toolButtonLayers').first();
     await layersBtn.click();
     await page.waitForTimeout(500);
 

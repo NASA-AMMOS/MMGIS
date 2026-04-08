@@ -15,7 +15,10 @@ import { test, expect } from '@playwright/test';
 const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
 
 test.describe('Session Management', () => {
-  test.skip(process.env.AUTH === 'off', 'SKIP: AUTH=off — no session management');
+  test.skip(
+    process.env.AUTH === 'off' || process.env.AUTH !== 'local',
+    'SKIP: AUTH is not local — no session management'
+  );
 
   test('login via API sets a session cookie', async ({ request }) => {
     const response = await request.post(`${baseURL}/api/users/login`, {

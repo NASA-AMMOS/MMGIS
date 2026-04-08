@@ -179,17 +179,25 @@ test.describe('Configure CMS — Layer Management', () => {
       return;
     }
 
-    // The config should contain a layers array
+    // The config should contain a layers array (hierarchical with sublayers)
     const layers = body.config?.layers;
     expect(Array.isArray(layers)).toBeTruthy();
     expect(layers.length).toBeGreaterThan(0);
 
-    // Check that at least some known layer names are present
-    const layerNames = layers.map((l) => l.name);
+    // Collect all layer names recursively (layers are nested via sublayers)
+    function collectNames(arr) {
+      const names = [];
+      for (const l of arr) {
+        if (l.name) names.push(l.name);
+        if (Array.isArray(l.sublayers)) names.push(...collectNames(l.sublayers));
+      }
+      return names;
+    }
+    const allNames = collectNames(layers);
     const expectedNames = ['Points Basic', 'Lines Basic', 'Polygons Basic'];
     let matched = 0;
     for (const name of expectedNames) {
-      if (layerNames.includes(name)) matched++;
+      if (allNames.includes(name)) matched++;
     }
     expect(matched).toBeGreaterThan(0);
   });
@@ -215,8 +223,18 @@ test.describe('Configure CMS — Layer Management', () => {
     }
 
     const layers = body.config?.layers || [];
-    // Collect unique layer types
-    const types = new Set(layers.map((l) => l.type).filter(Boolean));
+    // Collect unique layer types recursively (layers are nested via sublayers)
+    function collectTypes(arr) {
+      const t = new Set();
+      for (const l of arr) {
+        if (l.type) t.add(l.type);
+        if (Array.isArray(l.sublayers)) {
+          for (const st of collectTypes(l.sublayers)) t.add(st);
+        }
+      }
+      return t;
+    }
+    const types = collectTypes(layers);
 
     // Reference Mission should have a mix of vector and tile layers
     expect(types.size).toBeGreaterThan(0);

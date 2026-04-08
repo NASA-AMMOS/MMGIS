@@ -47,17 +47,21 @@ test.describe('Layer Kind Interactions', () => {
   });
 
   test('toggle "Points Basic" vector layer on and verify it renders', async ({ page }) => {
-    // Use mmgisAPI to turn on the layer
-    const layerToggled = await page.evaluate(() => {
-      if (window.mmgisAPI && typeof window.mmgisAPI.toggleLayer === 'function') {
-        window.mmgisAPI.toggleLayer('Points Basic');
-        return true;
+    // mmgisAPI.toggleLayer() expects UUID keys, not display names.
+    // Use L_.toggleLayer() directly with the layer data object.
+    const layerToggled = await page.evaluate(async () => {
+      if (!window.L_ || !window.L_.layers || !window.L_.layers.data) return false;
+      for (const [key, val] of Object.entries(window.L_.layers.data)) {
+        if (val.display_name === 'Points Basic' || val.name === 'Points Basic') {
+          await window.L_.toggleLayer(val);
+          return true;
+        }
       }
       return false;
     });
 
     if (!layerToggled) {
-      test.skip(true, 'SKIP: mmgisAPI.toggleLayer not available');
+      test.skip(true, 'SKIP: L_.toggleLayer not available or layer not found');
       return;
     }
 
@@ -65,13 +69,12 @@ test.describe('Layer Kind Interactions', () => {
 
     // Check that the layer is now on
     const isOn = await page.evaluate(() => {
-      if (window.mmgisAPI && typeof window.mmgisAPI.getVisibleLayers === 'function') {
-        const visible = window.mmgisAPI.getVisibleLayers();
-        return visible.some((l) => (l.name || l) === 'Points Basic');
-      }
-      // Fallback: check L_.layers.on
-      if (window.L_ && window.L_.layers && window.L_.layers.on) {
-        return !!window.L_.layers.on['Points Basic'];
+      if (window.L_ && window.L_.layers && window.L_.layers.data && window.L_.layers.on) {
+        for (const [key, val] of Object.entries(window.L_.layers.data)) {
+          if (val.display_name === 'Points Basic' || val.name === 'Points Basic') {
+            return !!window.L_.layers.on[key];
+          }
+        }
       }
       return null;
     });
@@ -81,11 +84,14 @@ test.describe('Layer Kind Interactions', () => {
   });
 
   test('clicking a "Points Basic" feature triggers info/kind behavior', async ({ page }) => {
-    // Toggle Points Basic layer on
-    const layerToggled = await page.evaluate(() => {
-      if (window.mmgisAPI && typeof window.mmgisAPI.toggleLayer === 'function') {
-        window.mmgisAPI.toggleLayer('Points Basic');
-        return true;
+    // Toggle Points Basic layer on using L_.toggleLayer with layer data object
+    const layerToggled = await page.evaluate(async () => {
+      if (!window.L_ || !window.L_.layers || !window.L_.layers.data) return false;
+      for (const [key, val] of Object.entries(window.L_.layers.data)) {
+        if (val.display_name === 'Points Basic' || val.name === 'Points Basic') {
+          await window.L_.toggleLayer(val);
+          return true;
+        }
       }
       return false;
     });
@@ -126,17 +132,20 @@ test.describe('Layer Kind Interactions', () => {
   });
 
   test('toggle "Mosaic - Receivers" (kind: info) and verify it renders', async ({ page }) => {
-    // Toggle Mosaic - Receivers layer on
-    const layerToggled = await page.evaluate(() => {
-      if (window.mmgisAPI && typeof window.mmgisAPI.toggleLayer === 'function') {
-        window.mmgisAPI.toggleLayer('Mosaic - Receivers');
-        return true;
+    // Use L_.toggleLayer() directly with the layer data object
+    const layerToggled = await page.evaluate(async () => {
+      if (!window.L_ || !window.L_.layers || !window.L_.layers.data) return false;
+      for (const [key, val] of Object.entries(window.L_.layers.data)) {
+        if (val.display_name === 'Mosaic - Receivers' || val.name === 'Mosaic - Receivers') {
+          await window.L_.toggleLayer(val);
+          return true;
+        }
       }
       return false;
     });
 
     if (!layerToggled) {
-      test.skip(true, 'SKIP: mmgisAPI.toggleLayer not available');
+      test.skip(true, 'SKIP: L_.toggleLayer not available or layer not found');
       return;
     }
 
@@ -144,12 +153,12 @@ test.describe('Layer Kind Interactions', () => {
 
     // Verify the layer is on
     const isOn = await page.evaluate(() => {
-      if (window.mmgisAPI && typeof window.mmgisAPI.getVisibleLayers === 'function') {
-        const visible = window.mmgisAPI.getVisibleLayers();
-        return visible.some((l) => (l.name || l) === 'Mosaic - Receivers');
-      }
-      if (window.L_ && window.L_.layers && window.L_.layers.on) {
-        return !!window.L_.layers.on['Mosaic - Receivers'];
+      if (window.L_ && window.L_.layers && window.L_.layers.data && window.L_.layers.on) {
+        for (const [key, val] of Object.entries(window.L_.layers.data)) {
+          if (val.display_name === 'Mosaic - Receivers' || val.name === 'Mosaic - Receivers') {
+            return !!window.L_.layers.on[key];
+          }
+        }
       }
       return null;
     });

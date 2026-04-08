@@ -103,21 +103,40 @@ export class MissionPage {
   /**
    * Open a tool by clicking its toolbar button.
    *
-   * @param {string} name - Tool name (matched via `[title*="${name}"]`).
+   * The MMGIS toolbar uses `id="toolButton{Name}"` for button containers
+   * and `id="{Name}Tool"` for the icon elements — there are no `title`
+   * attributes on these buttons.
+   *
+   * @param {string} name - Tool name, e.g. 'Layers', 'Draw', 'Measure'.
    */
   async openTool(name) {
-    const toolBtn = this.page.locator(`[title*="${name}"]`).first();
-    await toolBtn.click();
+    // Primary: click the button container div
+    const toolBtn = this.page.locator(`#toolButton${name}`).first();
+    const exists = await toolBtn.count();
+    if (exists > 0) {
+      await toolBtn.click();
+      return;
+    }
+    // Fallback: try the separated tool button
+    const sepBtn = this.page.locator(`#toolButtonSeparated_${name}`).first();
+    const sepExists = await sepBtn.count();
+    if (sepExists > 0) {
+      await sepBtn.click();
+      return;
+    }
+    // Last resort: try by id containing the name
+    const fallback = this.page.locator(`[id*="toolButton"][id*="${name}"]`).first();
+    await fallback.click();
   }
 
   /**
    * Check whether a tool button is present in the DOM.
    *
-   * @param {string} name - Tool name.
+   * @param {string} name - Tool name, e.g. 'Layers', 'Draw'.
    * @returns {Promise<boolean>}
    */
   async isToolVisible(name) {
-    const count = await this.page.locator(`[title*="${name}"]`).count();
+    const count = await this.page.locator(`#toolButton${name}, #toolButtonSeparated_${name}`).count();
     return count > 0;
   }
 

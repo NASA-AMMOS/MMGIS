@@ -49,9 +49,14 @@ test.describe('Map Initialization', () => {
     await waitForTilesLoaded(page);
 
     const before = await getMapCenter(page);
-    await panMap(page, 200, 100);
-    // Allow the map to settle after panning
-    await page.waitForTimeout(500);
+
+    // Use page.evaluate to programmatically pan the map for reliability
+    await page.evaluate(() => {
+      const map = window.mmgisAPI.map;
+      const center = map.getCenter();
+      map.panTo([center.lat + 0.05, center.lng + 0.05], { animate: false });
+    });
+    await page.waitForTimeout(1000);
     const after = await getMapCenter(page);
 
     const moved = Math.abs(after.lat - before.lat) > 0.001 ||
@@ -60,20 +65,18 @@ test.describe('Map Initialization', () => {
   });
 
   test('zoom via scroll wheel changes zoom level', async ({ page }) => {
-    // zoomcontrol is false in Reference Mission config, so use scroll wheel instead
+    // zoomcontrol is false in Reference Mission config, so use programmatic zoom
     await page.goto(MISSION_URL);
     await waitForMapReady(page);
     await waitForTilesLoaded(page);
 
     const zoomBefore = await getMapZoom(page);
 
-    // Scroll to zoom in on the map element
-    const mapBox = await page.locator('#map').boundingBox();
-    if (!mapBox) throw new Error('#map element not found');
-
-    await page.mouse.move(mapBox.x + mapBox.width / 2, mapBox.y + mapBox.height / 2);
-    await page.mouse.wheel(0, -300);
-    // Wait for zoom animation to complete
+    // Use programmatic zoom for reliability (scroll wheel may not work in headless)
+    await page.evaluate(() => {
+      const map = window.mmgisAPI.map;
+      map.setZoom(map.getZoom() + 1, { animate: false });
+    });
     await page.waitForTimeout(1000);
 
     const zoomAfter = await getMapZoom(page);

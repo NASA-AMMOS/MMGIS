@@ -45,7 +45,7 @@ test.describe('Keyboard Shortcuts / Hotkeys', () => {
 
   test('Escape key closes an open tool panel', async ({ page }) => {
     // Open the Info tool first
-    const infoBtn = page.locator('[title*="Info"]').first();
+    const infoBtn = page.locator('#toolButtonInfo').first();
     const btnVisible = await infoBtn.isVisible({ timeout: 5000 }).catch(() => false);
 
     if (!btnVisible) {
@@ -58,7 +58,7 @@ test.describe('Keyboard Shortcuts / Hotkeys', () => {
 
     // Verify a tool panel is open
     const panelBefore = await page.locator(
-      '[class*="InfoTool"], [class*="infotool"], .active[title*="Info"]'
+      '[class*="InfoTool"], [class*="infotool"], #toolButtonInfo.active, #toolButtonInfo.toolButtonActive'
     ).first().isVisible({ timeout: 3000 }).catch(() => false);
 
     // Press Escape

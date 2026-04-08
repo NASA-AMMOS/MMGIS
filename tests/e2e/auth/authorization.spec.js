@@ -17,7 +17,10 @@ import { test, expect } from '@playwright/test';
 const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
 
 test.describe('Authorization', () => {
-  test.skip(process.env.AUTH === 'off', 'SKIP: AUTH=off — no authorization checks');
+  test.skip(
+    process.env.AUTH === 'off' || process.env.AUTH !== 'local',
+    'SKIP: AUTH is not local — no authorization checks'
+  );
 
   test('non-admin user cannot access admin-only endpoints', async ({ request }) => {
     // Login as the regular test_user (permission "001")

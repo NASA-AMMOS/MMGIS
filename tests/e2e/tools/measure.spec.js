@@ -29,7 +29,7 @@ test.describe('Measure Tool', () => {
   test('Measure tool panel opens', async ({ page }) => {
     // Click Measure tool button in toolbar
     const measureButton = page.locator(
-      '#toolbar [title*="Measure"], [class*="Toolbar"] [title*="Measure"]'
+      '#toolButtonMeasure'
     ).first();
 
     const isVisible = await measureButton.isVisible({ timeout: 5000 }).catch(() => false);
@@ -51,7 +51,7 @@ test.describe('Measure Tool', () => {
   test('Click two points on map shows measurement line and distance', async ({ page }) => {
     // Open Measure tool
     const measureButton = page.locator(
-      '#toolbar [title*="Measure"], [class*="Toolbar"] [title*="Measure"]'
+      '#toolButtonMeasure'
     ).first();
 
     const isVisible = await measureButton.isVisible({ timeout: 5000 }).catch(() => false);
@@ -126,7 +126,7 @@ test.describe('Measure Tool', () => {
   test('Clear measurement removes readout', async ({ page }) => {
     // Open Measure tool
     const measureButton = page.locator(
-      '#toolbar [title*="Measure"], [class*="Toolbar"] [title*="Measure"]'
+      '#toolButtonMeasure'
     ).first();
 
     const isVisible = await measureButton.isVisible({ timeout: 5000 }).catch(() => false);
@@ -202,7 +202,7 @@ test.describe('Measure Tool', () => {
 
     // Open Measure tool
     const measureButton = page.locator(
-      '#toolbar [title*="Measure"], [class*="Toolbar"] [title*="Measure"]'
+      '#toolButtonMeasure'
     ).first();
 
     const isVisible = await measureButton.isVisible({ timeout: 5000 }).catch(() => false);

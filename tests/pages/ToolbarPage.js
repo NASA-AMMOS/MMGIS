@@ -26,8 +26,9 @@ export class ToolbarPage {
    * @param {string} name - Tool name (matched via title or text content).
    */
   async openTool(name) {
+    // MMGIS toolbar buttons use id="toolButton{Name}" — no title attributes
     const btn = this.page.locator(
-      `#toolbar [title*="${name}"], [class*="Toolbar"] [title*="${name}"]`,
+      `#toolButton${name}, #toolButtonSeparated_${name}`,
     ).first();
     await btn.click();
 
@@ -54,7 +55,7 @@ export class ToolbarPage {
     } else {
       // Toggle the toolbar button again
       const btn = this.page.locator(
-        `#toolbar [title*="${name}"], [class*="Toolbar"] [title*="${name}"]`,
+        `#toolButton${name}, #toolButtonSeparated_${name}`,
       ).first();
       await btn.click();
     }
@@ -72,13 +73,13 @@ export class ToolbarPage {
     // A tool is considered "open" when its toolbar button has an active class
     // or when the corresponding panel/container is visible in the DOM.
     const isActive = await this.page.evaluate((toolName) => {
-      const btns = document.querySelectorAll(
-        `#toolbar [title*="${toolName}"], [class*="Toolbar"] [title*="${toolName}"]`,
-      );
-      for (const btn of btns) {
+      // MMGIS uses #toolButton{Name} for toolbar button containers
+      const btn = document.querySelector(`#toolButton${toolName}`) ||
+                  document.querySelector(`#toolButtonSeparated_${toolName}`);
+      if (btn) {
         if (
           btn.classList.contains('active') ||
-          btn.closest('.active') ||
+          btn.classList.contains('toolButtonActive') ||
           btn.getAttribute('aria-pressed') === 'true'
         ) {
           return true;
