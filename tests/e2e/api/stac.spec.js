@@ -24,8 +24,11 @@ test.describe('STAC API', () => {
     }
 
     const response = await request.get(`${baseURL}/stac`);
-    // When proxy is disabled, expect non-200 (could be 404 or 504 gateway timeout)
-    expect(response.ok()).toBeFalsy();
+    // When proxy is disabled, expect the proxy itself to not be reachable.
+    // In AUTH=local the server may return the login page (200 HTML) — that is NOT the proxy.
+    const ct = response.headers()['content-type'] || '';
+    const isRealProxy = response.ok() && !ct.includes('text/html');
+    expect(isRealProxy).toBeFalsy();
   });
 
   test('/api/stac/collections does not return 500', async ({ request }) => {
