@@ -113,16 +113,13 @@ test.describe('Keyboard Navigation', () => {
 
     if (hasListbox > 0) {
       await listbox.focus();
-      const before = await page.evaluate(() => document.activeElement?.textContent?.trim());
 
       await page.keyboard.press('ArrowDown');
       await page.waitForTimeout(200);
 
-      const after = await page.evaluate(() => document.activeElement?.textContent?.trim());
-
       // Arrow key should have had some effect (or at least not crashed)
-      // We can't guarantee content changes in all cases
-      expect(typeof after).toBe('string');
+      const focusedText = await page.evaluate(() => document.activeElement?.textContent?.trim());
+      expect(typeof focusedText).toBe('string');
     } else {
       // No listbox found — just verify arrow keys don't crash
       await page.keyboard.press('ArrowDown');

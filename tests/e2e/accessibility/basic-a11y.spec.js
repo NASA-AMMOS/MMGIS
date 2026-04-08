@@ -107,7 +107,6 @@ test.describe('Basic Accessibility', () => {
     expect(colors.color).not.toEqual(colors.backgroundColor);
   });
 
-  // eslint-disable-next-line playwright/no-skipped-test
   test('detailed axe-core accessibility audit', async () => {
     test.skip(true, 'SKIP: Detailed accessibility testing requires @axe-core/playwright');
   });
