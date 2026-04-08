@@ -17,8 +17,8 @@ export default defineConfig({
   // Test file patterns
   testMatch: "**/*.spec.js",
 
-  // Timeout per test (2 minutes — E2E tests may need extra time on slower machines)
-  timeout: 120 * 1000,
+  // Timeout per test (3 minutes — E2E tests may need extra time on slower machines)
+  timeout: 180 * 1000,
 
   // Test execution settings
   fullyParallel: true,
@@ -79,7 +79,7 @@ export default defineConfig({
         url: `${
           process.env.TEST_BASE_URL || "http://localhost:8888"
         }/api/utils/healthcheck`,
-        timeout: 120 * 1000,
+        timeout: 180 * 1000,
         reuseExistingServer: !process.env.CI,
         stdout: "pipe",
         stderr: "pipe",

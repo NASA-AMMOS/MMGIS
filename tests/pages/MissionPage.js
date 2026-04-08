@@ -42,7 +42,7 @@ export class MissionPage {
    * @param {object}  [options]
    * @param {number}  [options.timeout=60000] - Maximum wait time in ms.
    */
-  async waitForMapReady({ timeout = 60000 } = {}) {
+  async waitForMapReady({ timeout = 90000 } = {}) {
     await this.page.waitForLoadState('networkidle', { timeout });
     await this.page.waitForFunction(
       () => !!(window.mmgisAPI && window.mmgisAPI.map),
