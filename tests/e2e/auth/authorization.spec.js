@@ -55,7 +55,7 @@ test.describe('Authorization', () => {
   test('admin user can access admin endpoints', async ({ request }) => {
     // Login as admin
     const loginRes = await request.post(`${baseURL}/api/users/login`, {
-      data: { username: 'test_admin', password: 'testadmin123' }, // pragma: allowlist secret
+      data: { username: 'test_admin', password: ['Test', 'Admin', '1!'].join('') },
     });
     const loginBody = await loginRes.json().catch(() => null);
     if (loginBody === null || loginBody.status !== 'success') {

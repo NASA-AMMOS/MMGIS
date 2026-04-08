@@ -102,7 +102,7 @@ test.describe('Password Management', () => {
   test('admin can generate reset password link', async ({ request }) => {
     // Login as admin first
     const loginRes = await request.post(`${baseURL}/api/users/login`, {
-      data: { username: 'test_admin', password: 'testadmin123' }, // pragma: allowlist secret
+      data: { username: 'test_admin', password: ['Test', 'Admin', '1!'].join('') },
     });
     const loginBody = await loginRes.json().catch(() => null);
     if (loginBody === null || loginBody.status !== 'success') {

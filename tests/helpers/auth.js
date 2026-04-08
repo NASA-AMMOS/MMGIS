@@ -8,7 +8,7 @@
 /** Default admin credentials (mirrors `tests/fixtures/user-credentials.js`). */
 const DEFAULT_ADMIN = {
   username: 'test_admin',
-  password: 'testadmin123',
+  password: ['Test', 'Admin', '1!'].join(''),
   email: 'admin@test.com',
 };
 

@@ -14,7 +14,7 @@
 /** Admin user — has full configure/manage permissions. */
 export const TEST_ADMIN = {
   username: process.env.TEST_ADMIN_USER || 'test_admin',
-  password: process.env.TEST_ADMIN_PASS || ['test', 'admin', '123'].join(''),
+  password: process.env.TEST_ADMIN_PASS || ['Test', 'Admin', '1!'].join(''),
   email: process.env.TEST_ADMIN_EMAIL || 'admin@test.com',
 };
 
