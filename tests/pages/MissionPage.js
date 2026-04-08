@@ -1,5 +1,3 @@
-import { expect } from '@playwright/test';
-
 /**
  * Page Object Model for the main MMGIS map view.
  *
