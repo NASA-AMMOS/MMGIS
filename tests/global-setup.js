@@ -12,14 +12,12 @@
  * may not be managed by the test runner).
  */
 
-import dotenv from 'dotenv';
-import dotenvExpand from 'dotenv-expand';
+import { config } from 'dotenv';
 import { resolve } from 'path';
 
 export default async function globalSetup() {
   // Load .env from the project root so DB_NAME is available
-  const env = dotenv.config({ path: resolve(process.cwd(), '.env') });
-  dotenvExpand.expand(env);
+  config({ path: resolve(process.cwd(), '.env') });
 
   const dbName = process.env.DB_NAME;
 
