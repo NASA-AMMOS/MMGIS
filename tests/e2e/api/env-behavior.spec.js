@@ -42,8 +42,11 @@ test.describe('ENV Variable Behavior', () => {
     const res = await request.get(`${BASE}/api/utils/healthcheck`, { timeout: 10000 });
     expect(res.status()).toBe(200);
 
-    const body = await safeJson(res);
-    expect(body).not.toBeNull();
+    // The healthcheck endpoint returns plain text ("Alive and Well!"), not JSON.
+    // Use response.text() and verify it contains a success indicator.
+    const text = await res.text();
+    expect(text.length).toBeGreaterThan(0);
+    expect(text.toLowerCase()).toMatch(/alive|ok|success|healthy|well/);
   });
 
   test('AUTH=off: no login page is shown', async ({ page, request }) => {
