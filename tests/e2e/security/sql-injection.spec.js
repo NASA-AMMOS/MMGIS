@@ -48,7 +48,7 @@ test.describe('SQL Injection Protection', () => {
   }
 
   test('rejects SQL injection in config get mission parameter', async ({ request }) => {
-    const response = await request.get(`${baseURL}/api/config/get`, {
+    const response = await request.get(`${baseURL}/api/configure/get`, {
       params: { mission: "'; DROP TABLE configs; --" },
     });
     expect(response.status()).not.toBe(500);

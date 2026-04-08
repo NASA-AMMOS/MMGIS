@@ -32,7 +32,7 @@ test.describe('Datasets API — entries', () => {
   });
 });
 
-test.describe('Datasets API — recreate and query lifecycle', () => {
+test.describe.serial('Datasets API — recreate and query lifecycle', () => {
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
   const testDatasetName = `test_dataset_${Date.now()}`;
 

@@ -15,7 +15,7 @@ import { test, expect } from '@playwright/test';
  *   - POST /api/geodatasets/intersect — spatial intersection query
  */
 
-test.describe('Geodatasets API — CRUD lifecycle', () => {
+test.describe.serial('Geodatasets API — CRUD lifecycle', () => {
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
   const testName = `test_geodataset_${Date.now()}`;
 

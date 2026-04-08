@@ -6,15 +6,15 @@ import { test, expect } from '@playwright/test';
  * GeneralOptions model: API/Backend/GeneralOptions/models/generaloptions.js
  *
  * Endpoints (via Config routes):
- *   - GET  /api/config/getGeneralOptions
- *   - POST /api/config/updateGeneralOptions  { options } (requires admin)
+ *   - GET  /api/configure/getGeneralOptions
+ *   - POST /api/configure/updateGeneralOptions  { options } (requires admin)
  */
 
 test.describe('General Options API', () => {
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
 
-  test('GET /api/config/getGeneralOptions returns options or appropriate error', async ({ request }) => {
-    const response = await request.get(`${baseURL}/api/config/getGeneralOptions`);
+  test('GET /api/configure/getGeneralOptions returns options or appropriate error', async ({ request }) => {
+    const response = await request.get(`${baseURL}/api/configure/getGeneralOptions`);
     // Should not return 500
     expect(response.status()).not.toBe(500);
 
@@ -23,13 +23,13 @@ test.describe('General Options API', () => {
       // Response should have a status field
       expect(body).toHaveProperty('status');
       if (body.status === 'success') {
-        expect(body).toHaveProperty('body');
+        expect(body).toHaveProperty('options');
       }
     }
   });
 
-  test('POST /api/config/updateGeneralOptions requires valid options payload', async ({ request }) => {
-    const response = await request.post(`${baseURL}/api/config/updateGeneralOptions`, {
+  test('POST /api/configure/updateGeneralOptions requires valid options payload', async ({ request }) => {
+    const response = await request.post(`${baseURL}/api/configure/updateGeneralOptions`, {
       data: { options: { testKey: `testValue_${Date.now()}` } },
     });
     // Should not return 500
@@ -42,8 +42,8 @@ test.describe('General Options API', () => {
     }
   });
 
-  test('POST /api/config/updateGeneralOptions with empty body does not crash', async ({ request }) => {
-    const response = await request.post(`${baseURL}/api/config/updateGeneralOptions`, {
+  test('POST /api/configure/updateGeneralOptions with empty body does not crash', async ({ request }) => {
+    const response = await request.post(`${baseURL}/api/configure/updateGeneralOptions`, {
       data: {},
     });
     // Should not return 500 even with empty body
@@ -55,7 +55,7 @@ test.describe('General Options API', () => {
     const testOptions = { e2eTestMarker: testTimestamp };
 
     // Update general options
-    const updateResponse = await request.post(`${baseURL}/api/config/updateGeneralOptions`, {
+    const updateResponse = await request.post(`${baseURL}/api/configure/updateGeneralOptions`, {
       data: { options: testOptions },
     });
     expect(updateResponse.status()).not.toBe(500);
@@ -69,14 +69,14 @@ test.describe('General Options API', () => {
     }
 
     // Read back and verify
-    const getResponse = await request.get(`${baseURL}/api/config/getGeneralOptions`);
+    const getResponse = await request.get(`${baseURL}/api/configure/getGeneralOptions`);
     expect(getResponse.status()).not.toBe(500);
 
     const getBody = await getResponse.json();
-    if (getBody.status === 'success' && getBody.body) {
+    if (getBody.status === 'success' && getBody.options) {
       // The options we set should be present
-      expect(getBody.body.options).toBeDefined();
-      expect(getBody.body.options.e2eTestMarker).toBe(testTimestamp);
+      expect(getBody.options).toBeDefined();
+      expect(getBody.options.e2eTestMarker).toBe(testTimestamp);
     }
   });
 });

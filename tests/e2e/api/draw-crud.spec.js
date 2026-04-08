@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test';
  * publish, and related endpoints.
  */
 
-test.describe('Draw/Files API — CRUD lifecycle', () => {
+test.describe.serial('Draw/Files API — CRUD lifecycle', () => {
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
   const mission = 'Reference-Mission';
 

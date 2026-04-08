@@ -14,8 +14,8 @@ test.describe('Auth Bypass Protection', () => {
   test('admin endpoints reject unauthenticated requests', async ({ request }) => {
     // Try admin-only endpoints without auth
     const endpoints = [
-      { method: 'POST', path: '/api/config/add', data: { mission: 'test_bypass_attempt' } },
-      { method: 'POST', path: '/api/config/destroy', data: { mission: 'test_bypass_attempt' } },
+            { method: 'POST', path: '/api/configure/add', data: { mission: 'test_bypass_attempt' } },
+            { method: 'POST', path: '/api/configure/destroy', data: { mission: 'test_bypass_attempt' } },
     ];
 
     for (const ep of endpoints) {
