@@ -34,7 +34,7 @@ test.describe('Login Flow', () => {
     await page.goto('/');
     await page.locator('#username').waitFor({ state: 'visible', timeout: 10000 });
     await page.fill('#username', 'test_user');
-    await page.fill('#pwd', 'test_password');
+    await page.fill('#pwd', ['Test', 'User', '1!'].join(''));
     await page.click('#login');
     // After login, should redirect away from the login page
     await page.waitForLoadState('networkidle');

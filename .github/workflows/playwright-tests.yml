@@ -68,7 +68,7 @@ jobs:
           TEST_ADMIN_USER: test_admin
           TEST_ADMIN_PASS: TestAdmin1!
           TEST_USER_USER: test_user
-          TEST_USER_PASS: test_password
+          TEST_USER_PASS: TestUser1!
           TEST_USER_EMAIL: test_user@test.com
         run: |
           node scripts/server.js &
@@ -80,16 +80,16 @@ jobs:
               -H "Content-Type: application/json" \
               -d "{\"username\":\"${TEST_ADMIN_USER}\",\"password\":\"${TEST_ADMIN_PASS}\"}" || true
 
-            # Create a regular (non-admin) test_user account via signup
-            curl -s -X POST http://localhost:8888/api/users/signup \
-              -H "Content-Type: application/json" \
-              -d "{\"username\":\"${TEST_USER_USER}\",\"password\":\"${TEST_USER_PASS}\",\"email\":\"${TEST_USER_EMAIL}\"}" || true
-
             # Login as the admin to get a session cookie
             COOKIE_JAR=$(mktemp)
             curl -s -c "$COOKIE_JAR" -X POST http://localhost:8888/api/users/login \
               -H "Content-Type: application/json" \
               -d "{\"username\":\"${TEST_ADMIN_USER}\",\"password\":\"${TEST_ADMIN_PASS}\"}" || true
+
+            # Create a regular (non-admin) test_user account via signup (requires admin session)
+            curl -s -b "$COOKIE_JAR" -X POST http://localhost:8888/api/users/signup \
+              -H "Content-Type: application/json" \
+              -d "{\"username\":\"${TEST_USER_USER}\",\"password\":\"${TEST_USER_PASS}\",\"email\":\"${TEST_USER_EMAIL}\",\"skipLogin\":true}" || true
 
             # Use authenticated session to create Reference Mission
             curl -s -b "$COOKIE_JAR" -X POST http://localhost:8888/api/configure/add \

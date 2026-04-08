@@ -21,7 +21,7 @@ export const TEST_ADMIN = {
 /** Regular user — standard viewer/contributor. */
 export const TEST_USER = {
   username: process.env.TEST_USER_USER || 'test_user',
-  password: process.env.TEST_USER_PASS || ['test', 'user', '123'].join(''),
+  password: process.env.TEST_USER_PASS || ['Test', 'User', '1!'].join(''),
   email: process.env.TEST_USER_EMAIL || 'user@test.com',
 };
 

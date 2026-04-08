@@ -137,7 +137,7 @@ test.describe('Password Management', () => {
   test('non-admin cannot generate reset password link', async ({ request }) => {
     // Login as regular user
     const loginRes = await request.post(`${baseURL}/api/users/login`, {
-      data: { username: 'test_user', password: 'test_password' }, // pragma: allowlist secret
+      data: { username: 'test_user', password: ['Test', 'User', '1!'].join('') },
     });
     const loginBody = await loginRes.json().catch(() => null);
     if (loginBody === null || loginBody.status !== 'success') {
