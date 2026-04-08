@@ -1,8 +1,8 @@
 # MMGIS - AI Agent Context
 
 **Project**: MMGIS (Multi-Mission Geographic Information System)
-**Version**: 4.2.34
-**Last Updated**: 2026-04-01
+**Version**: 4.3.0
+**Last Updated**: 2026-04-07
 
 ## Important Instructions
 

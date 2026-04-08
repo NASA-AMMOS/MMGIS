@@ -4,24 +4,82 @@
 
 _TBD_
 
+## 4.2.34
+
+_April 2, 2026_
+
+#### Summary
+
+This release introduces beta CesiumJS integration as an alternative 3D globe renderer, a new Plugin Components system for extensible UI behaviors, and a Playwright-based end-to-end testing framework. The DrawTool gains DynamicExtent for viewport-based feature loading and a new Point template type. AnimationTool receives multiple improvements and STAC URL fixes. TimeControl is promoted to core infrastructure under Basics. New API callbacks and events expand extensibility (newActiveFeature, layersToolHeaderStateChange, madeLegendTool, viewer_open). Mobile mode sees significant improvements including configurable initial zoom, layout fixes, and a responsive login page. Security hardening includes adjacent servers placed behind authentication, npm audit fixes, and multiple vulnerability patches. The codebase is cleaned up with D3 largely removed, legacy scripts and files pruned, and an improved Dockerfile. Two new open-source components are released: AnalysisTool and OperationsClock.
+
+#### Added
+
+- Beta CesiumJS integration as an alternative 3D globe renderer (#810)
+- Plugin Components system for lightweight, extensible UI behaviors (#849)
+- AnalysisTool and OperationsClock released as open-source components (#904)
+- Playwright end-to-end testing framework (#216)
+- DrawTool DynamicExtent for viewport-based feature loading (#852)
+- DrawTool Template for Point type (#843)
+- DrawTool endpoint support via long-term tokens (#841)
+- TiTiler layer support in Cesium Globe (#898)
+- External MMGIS STAC catalog linking (#863)
+- viewer_open as a new layer Kind (#855)
+- Configurable initial zoom for mobile mode (#866)
+- Latitude/Longitude option in coordinates display (#905)
+- Callback for layersToolHeaderStateChange (#846)
+- Callback for madeLegendTool (#858)
+- Additional newActiveFeature events (#845)
+- Font types as webpack assets (#874)
+- AGENTS.md and spec-kit for AI development (#828)
+- .gitattributes file (#901)
+
 #### Changed
 
-- Moved TimeControl from `Ancillary/` to `Basics/TimeControl_/` to reflect its role as core infrastructure (#835)
-  - TimeControl and TimeUI now located in `src/essence/Basics/TimeControl_/`
-  - Updated import paths across 19 files
-  - **Breaking change for external plugins**: Import path changed from `'Ancillary/TimeControl'` to `'Basics/TimeControl_/TimeControl'`
-- Moved admin login assets from `config/login/` to `public/` directory
-  - `adminlogin.js` and `adminlogin.css` now served from `/public`
+- Moved TimeControl from Ancillary/ to Basics/TimeControl\_/ to reflect its role as core infrastructure (#835)
+- Breaking change for external plugins: Import path changed from 'Ancillary/TimeControl' to 'Basics/TimeControl\_/TimeControl'
+- Removed D3 dependency (mostly) (#826)
+- Improved Dockerfile with multi-stage build and reduced image size (#868)
+- Upgraded all adjacent servers and sample ENVs (#897)
+- Updated time and timetype metaconfigurations (#891)
+- Removed redundant urlencoded middleware (#888)
+- AnimationTool improvements including playback and UI enhancements (#856)
+- Updated GitHub workflow: docker-build.yml (#917)
+- Updated README.md (#913)
+
+#### Fixed
+
+- LegendTool overflow (#848)
+- Viewer and globe splitter icons (#850)
+- Time and Refresh Interval enabled layers incorrectly set to layernotfound (#853)
+- AnimationTool STAC URLs (#860, #861, #867)
+- Return value for layersToolHeaderStateChange event (#862)
+- Bug in viewer_open kind (#865, #882)
+- titiler-pgstac performance issue (#870)
+- DynamicExtent + Threshold layers not properly updating (#871)
+- Multiple mobile mode layout and interaction issues (#875, #878)
+- Login page layout on smaller screens (#883)
+- Initial Start and End Time configuration parameters (#886)
+- Time Type = Local and Refresh Interval not working together (#889)
+- queryTilesetTimes not updating on layer toggles (#892)
+- DrawTool bugs: template field naming, not-null advanced filters (#895)
+- DrawTool Templated Point origin point getting stuck (#909)
+- updateClampedRasterForLayer is not a function error (#907)
+- Image loading in OpenSeadragon (#899)
+- Missions middleware (#914)
+- Hover Feature Label and Layer Tags wrongly assigned (#915)
+- Critical security vulnerabilities (#880, #884)
 
 #### Removed
 
-- Legacy jQuery/Materialize configure page and `/configure-legacy` route (#830)
-  - Removed entire `config/` directory (css, js, fonts, pre, login subdirectories)
-  - Removed `views/configure.pug` template
-  - Use `/configure` for React-based configure interface
-- `database/` directory - Old Docker Postgres migration/upgrade scripts
-- `src/essence/Tools/_OLD/` directory (Distance, FileManager, Query, Search, Sketch tools)
-- `Dockerfile.legacy` (superseded by main Dockerfile)
+- Legacy jQuery/Materialize configure page and /configure-legacy route (#830)
+- database/ directory containing old Docker Postgres migration scripts (#830)
+- src/essence/Tools/\_OLD/ directory (#830)
+- Dockerfile.legacy (#830)
+
+#### Security
+
+- npm audit fix (unforced) (#832)
+- Adjacent servers placed behind authentication (#911)
 
 ## 4.1.0
 
