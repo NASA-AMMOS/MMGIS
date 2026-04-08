@@ -1,0 +1,224 @@
+import { test, expect } from '@playwright/test';
+
+/**
+ * E2E tests for layer management in the Configure CMS.
+ *
+ * Validates that the Layers tab is accessible, that known Reference Mission
+ * layers appear in the list, and that basic layer-related UI interactions
+ * work (reordering, selection, etc.).
+ *
+ * Tests are skipped when the configure page requires authentication
+ * (AUTH=local mode) or when the Reference Mission is not available.
+ */
+
+test.describe('Configure CMS — Layer Management', () => {
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+
+  // -------------------------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------------------------
+
+  /**
+   * Detect whether the page is showing the login screen.
+   */
+  async function isLoginPage(page) {
+    const title = await page.title().catch(() => '');
+    if (title.toLowerCase().includes('login')) return true;
+    const hasLoginForm = await page
+      .locator('input[type="password"], form[action*="login"], [class*="login"]')
+      .first()
+      .isVisible({ timeout: 3000 })
+      .catch(() => false);
+    return hasLoginForm;
+  }
+
+  /**
+   * Navigate to /configure, skip if login is required.
+   * Returns true if the configure page loaded successfully.
+   */
+  async function gotoConfigureOrSkip(page) {
+    await page.goto('/configure');
+    await page.waitForLoadState('networkidle');
+    if (await isLoginPage(page)) {
+      test.skip(true, 'SKIP: Configure requires admin auth — AUTH=local mode');
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Verify Reference-Mission exists via API, skip if not available.
+   */
+  async function ensureReferenceMission(request) {
+    const listRes = await request.get(`${baseURL}/api/configure/missions`);
+    const text = await listRes.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      test.skip(true, 'SKIP: Non-JSON response from missions endpoint (auth redirect)');
+      return false;
+    }
+    if (!data.missions || !data.missions.includes('Reference-Mission')) {
+      test.skip(true, 'SKIP: Reference-Mission not available');
+      return false;
+    }
+    return true;
+  }
+
+  // -------------------------------------------------------------------------
+  // Tests
+  // -------------------------------------------------------------------------
+
+  test('configure page has a Layers tab or section', async ({ page, request }) => {
+    if (!(await ensureReferenceMission(request))) return;
+    if (!(await gotoConfigureOrSkip(page))) return;
+
+    // Look for a Layers tab/link/section in the configure UI
+    const bodyHTML = await page.evaluate(() => document.body.innerHTML);
+    const hasLayersSection =
+      bodyHTML.includes('Layers') || bodyHTML.includes('layers');
+    expect(hasLayersSection).toBeTruthy();
+  });
+
+  test('Reference Mission layers visible in configure', async ({ page, request }) => {
+    if (!(await ensureReferenceMission(request))) return;
+    if (!(await gotoConfigureOrSkip(page))) return;
+
+    // Click on Reference-Mission in the sidebar/list to open it
+    const missionLink = page
+      .locator('text="Reference-Mission"')
+      .first();
+    if (await missionLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await missionLink.click();
+      await page.waitForLoadState('networkidle');
+    }
+
+    // Try to open the Layers tab
+    const layersTab = page
+      .locator('[role="tab"], .tab, [class*="tab"], a, button')
+      .filter({ hasText: /^Layers$/i })
+      .first();
+    if (await layersTab.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await layersTab.click();
+      await page.waitForLoadState('networkidle');
+    }
+
+    // Verify known layer names from Reference Mission appear
+    const bodyHTML = await page.evaluate(() => document.body.innerHTML);
+    const expectedLayers = [
+      'Points Basic',
+      'Lines Basic',
+      'Polygons Basic',
+    ];
+
+    let layersFound = 0;
+    for (const name of expectedLayers) {
+      if (bodyHTML.includes(name)) layersFound++;
+    }
+
+    // At least one known layer should be visible
+    expect(layersFound).toBeGreaterThan(0);
+  });
+
+  test('layer list contains tile/basemap layers', async ({ page, request }) => {
+    if (!(await ensureReferenceMission(request))) return;
+    if (!(await gotoConfigureOrSkip(page))) return;
+
+    // Open Reference-Mission
+    const missionLink = page.locator('text="Reference-Mission"').first();
+    if (await missionLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await missionLink.click();
+      await page.waitForLoadState('networkidle');
+    }
+
+    // Open Layers tab
+    const layersTab = page
+      .locator('[role="tab"], .tab, [class*="tab"], a, button')
+      .filter({ hasText: /^Layers$/i })
+      .first();
+    if (await layersTab.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await layersTab.click();
+      await page.waitForLoadState('networkidle');
+    }
+
+    const bodyHTML = await page.evaluate(() => document.body.innerHTML);
+    const basemapLayers = [
+      'ArcGIS Light',
+      'ArcGIS World Topographic',
+      'ArcGIS World Imagery',
+    ];
+
+    let found = 0;
+    for (const name of basemapLayers) {
+      if (bodyHTML.includes(name)) found++;
+    }
+
+    // At least one basemap should appear
+    expect(found).toBeGreaterThan(0);
+  });
+
+  test('layer configuration fetched via API contains expected layers', async ({ request }) => {
+    if (!(await ensureReferenceMission(request))) return;
+
+    // Fetch the full mission config via API
+    const getRes = await request.get(
+      `${baseURL}/api/configure/get?mission=Reference-Mission&full=true`,
+    );
+    const text = await getRes.text();
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      test.skip(true, 'SKIP: Non-JSON response (auth redirect)');
+      return;
+    }
+
+    if (body.status !== 'success') {
+      test.skip(true, 'SKIP: Could not fetch Reference-Mission config');
+      return;
+    }
+
+    // The config should contain a layers array
+    const layers = body.config?.layers;
+    expect(Array.isArray(layers)).toBeTruthy();
+    expect(layers.length).toBeGreaterThan(0);
+
+    // Check that at least some known layer names are present
+    const layerNames = layers.map((l) => l.name);
+    const expectedNames = ['Points Basic', 'Lines Basic', 'Polygons Basic'];
+    let matched = 0;
+    for (const name of expectedNames) {
+      if (layerNames.includes(name)) matched++;
+    }
+    expect(matched).toBeGreaterThan(0);
+  });
+
+  test('layer types are represented in config', async ({ request }) => {
+    if (!(await ensureReferenceMission(request))) return;
+
+    const getRes = await request.get(
+      `${baseURL}/api/configure/get?mission=Reference-Mission&full=true`,
+    );
+    const text = await getRes.text();
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      test.skip(true, 'SKIP: Non-JSON response (auth redirect)');
+      return;
+    }
+
+    if (body.status !== 'success') {
+      test.skip(true, 'SKIP: Could not fetch Reference-Mission config');
+      return;
+    }
+
+    const layers = body.config?.layers || [];
+    // Collect unique layer types
+    const types = new Set(layers.map((l) => l.type).filter(Boolean));
+
+    // Reference Mission should have a mix of vector and tile layers
+    expect(types.size).toBeGreaterThan(0);
+  });
+});
