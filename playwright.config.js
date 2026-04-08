@@ -6,7 +6,10 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   // Global setup — safety guard against running tests on production DB
-  globalSetup: "./tests/global-setup.js",
+  // Skipped for unit-only runs (unit tests don't touch the database)
+  globalSetup: process.env.PLAYWRIGHT_TEST_UNIT_ONLY
+    ? undefined
+    : "./tests/global-setup.js",
 
   // Test directory
   testDir: "./tests",
