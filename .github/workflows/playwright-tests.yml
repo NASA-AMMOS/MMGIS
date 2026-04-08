@@ -10,6 +10,9 @@ jobs:
   test:
     timeout-minutes: 20
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        auth_mode: [off, local]
 
     services:
       postgres:
@@ -47,7 +50,7 @@ jobs:
           cp sample.env .env || touch .env
           echo "NODE_ENV=test" >> .env
           echo "PORT=8888" >> .env
-          echo "AUTH=off" >> .env
+          echo "AUTH=${{ matrix.auth_mode }}" >> .env
           echo "DB_HOST=localhost" >> .env
           echo "DB_PORT=5432" >> .env
           echo "DB_NAME=mmgis_test" >> .env
@@ -60,18 +63,26 @@ jobs:
       - name: Initialize Database
         run: node scripts/init-db.js
 
+      - name: Setup Reference Mission
+        run: |
+          node scripts/server.js &
+          sleep 10
+          curl -s -X POST http://localhost:8888/api/config/add \
+            -H "Content-Type: application/json" \
+            -d '{"setupReferenceMission": true}' || true
+          kill %1 || true
+
       - name: Run Unit Tests
         run: npx playwright test tests/unit --project=chromium
 
       - name: Run E2E Tests
         run: npx playwright test tests/e2e --project=chromium
-        continue-on-error: true
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.auth_mode }}
           path: playwright-report/
           retention-days: 30
 
@@ -79,6 +90,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ matrix.auth_mode }}
           path: test-results/
           retention-days: 7
