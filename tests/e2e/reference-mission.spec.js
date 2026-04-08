@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
  *
  * These tests validate the Reference Mission demo mission loads correctly and
  * all core features are present. They run against a server with the
- * Reference-Mission created (via POST /api/config/add { setupReferenceMission: true }).
+ * Reference-Mission created (via POST /api/configure/add { setupReferenceMission: true }).
  *
  * When FORCE_CONFIG_PATH is empty, navigate to /?mission=Reference-Mission
  * so the app loads the correct mission from the database.

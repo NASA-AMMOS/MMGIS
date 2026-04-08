@@ -68,7 +68,7 @@ export class ApiClient {
    * @returns {Promise<import('@playwright/test').APIResponse>}
    */
   async createMission(name, config = {}) {
-    return this.request.post('/api/config/add', {
+    return this.request.post('/api/configure/add', {
       headers: this._headers(),
       data: { mission: name, config },
     });
@@ -81,7 +81,7 @@ export class ApiClient {
    * @returns {Promise<import('@playwright/test').APIResponse>}
    */
   async deleteMission(name) {
-    return this.request.post('/api/config/delete', {
+    return this.request.post('/api/configure/destroy', {
       headers: this._headers(),
       data: { mission: name },
     });

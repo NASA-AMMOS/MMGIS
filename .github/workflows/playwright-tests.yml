@@ -67,7 +67,7 @@ jobs:
         run: |
           node scripts/server.js &
           sleep 10
-          curl -s -X POST http://localhost:8888/api/config/add \
+          curl -s -X POST http://localhost:8888/api/configure/add \
             -H "Content-Type: application/json" \
             -d '{"setupReferenceMission": true}' || true
           kill %1 || true
