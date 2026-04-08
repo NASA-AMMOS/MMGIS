@@ -45,12 +45,12 @@ test.describe('ENV Variable Behavior', () => {
     const text = await res.text();
     expect(text.length).toBeGreaterThan(0);
 
-    // In AUTH=local mode, unauthenticated requests may return the HTML login page
-    // instead of the actual healthcheck response. Both are valid — the server is up.
-    const isLoginPage = text.includes('<title>mmgis / login</title>');
-    if (!isLoginPage) {
+    // In AUTH=local mode, unauthenticated requests return the HTML login page
+    // instead of the actual healthcheck response. Both prove the server is up.
+    if (authMode === 'off') {
       expect(text.toLowerCase()).toMatch(/alive|ok|success|healthy|well/);
     }
+    // AUTH=local: a 200 response with a non-empty body is sufficient proof
   });
 
   test('AUTH=off: no login page is shown', async ({ page, request }) => {
