@@ -67,9 +67,32 @@ jobs:
         run: |
           node scripts/server.js &
           sleep 10
-          curl -s -X POST http://localhost:8888/api/configure/add \
-            -H "Content-Type: application/json" \
-            -d '{"setupReferenceMission": true}' || true
+
+          if [ "${{ matrix.auth_mode }}" = "local" ]; then
+            # Seed an admin user via first_signup (first user gets admin permission "111")
+            curl -s -X POST http://localhost:8888/api/users/first_signup \
+              -H "Content-Type: application/json" \
+              -d '{"username":"test_admin","password":"TestAdmin1!"}' || true
+
+            # Login as the admin to get a session cookie
+            COOKIE_JAR=$(mktemp)
+            curl -s -c "$COOKIE_JAR" -X POST http://localhost:8888/api/users/login \
+              -H "Content-Type: application/json" \
+              -d '{"username":"test_admin","password":"TestAdmin1!"}' || true
+
+            # Use authenticated session to create Reference Mission
+            curl -s -b "$COOKIE_JAR" -X POST http://localhost:8888/api/configure/add \
+              -H "Content-Type: application/json" \
+              -d '{"setupReferenceMission": true}' || true
+
+            rm -f "$COOKIE_JAR"
+          else
+            # AUTH=off — no authentication needed
+            curl -s -X POST http://localhost:8888/api/configure/add \
+              -H "Content-Type: application/json" \
+              -d '{"setupReferenceMission": true}' || true
+          fi
+
           kill %1 || true
 
       - name: Run Unit Tests
