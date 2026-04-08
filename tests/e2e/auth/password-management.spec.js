@@ -63,7 +63,7 @@ test.describe('Password Management', () => {
     const response = await request.post(`${baseURL}/api/users/resetPassword`, {
       data: {
         username: 'test_user',
-        password: 'NewPass1!',
+        password: 'NewPass1!', // pragma: allowlist secret
       },
     });
     expect(response.status()).toBeLessThan(500);
@@ -82,7 +82,7 @@ test.describe('Password Management', () => {
     const response = await request.post(`${baseURL}/api/users/resetPassword`, {
       data: {
         username: 'test_user',
-        password: 'NewPass1!',
+        password: 'NewPass1!', // pragma: allowlist secret
         resetToken: 'invalid_token_that_does_not_exist',
       },
     });
