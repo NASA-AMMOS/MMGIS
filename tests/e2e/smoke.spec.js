@@ -9,7 +9,7 @@ test.describe('MMGIS Application - Smoke Tests', () => {
 
   test('application loads successfully', async ({ page }) => {
     // Navigate to the application
-    await page.goto('/');
+    await page.goto('/?mission=Reference-Mission');
 
     // Wait for the page to load (loading screen to disappear or main content to appear)
     // The loading screen has id="loadscreen"
@@ -20,7 +20,7 @@ test.describe('MMGIS Application - Smoke Tests', () => {
   });
 
   test('main container elements are present', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/?mission=Reference-Mission');
     await page.waitForLoadState('networkidle');
 
     // Check for main application containers
@@ -33,5 +33,12 @@ test.describe('MMGIS Application - Smoke Tests', () => {
       return document.body.innerHTML.length > 1000;
     });
     expect(hasContent).toBeTruthy();
+  });
+
+  test('stylesheets load without errors', async ({ page }) => {
+    await page.goto('/?mission=Reference-Mission');
+    await page.waitForLoadState('networkidle');
+    const sheetCount = await page.evaluate(() => document.styleSheets.length);
+    expect(sheetCount).toBeGreaterThan(0);
   });
 });

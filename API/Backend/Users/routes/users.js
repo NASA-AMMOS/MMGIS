@@ -298,19 +298,19 @@ router.post("/login", function (req, res) {
                           : "",
                     });
                   });
-                  return null;
+                  return;
                 })
                 .catch((err) => {
                   res.send({ status: "failure", message: "Login failed." });
-                  return null;
+                  return;
                 });
-              return null;
+              return;
             } else {
               res.send({
                 status: "failure",
                 message: "Invalid username or password.",
               });
-              return null;
+              return;
             }
           }
 

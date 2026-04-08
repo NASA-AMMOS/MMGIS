@@ -2,14 +2,8 @@
  * JavaScript syntax format: ES5/ES6 - ECMAScript 2015
  * Loading all required dependencies, libraries and packages
  **********************************************************/
-const promise = require('bluebird');
 
-let options = {
-  //   Initialization Options
-    promiseLib: promise
-  };
-
-const pgp = require('pg-promise')(options);
+const pgp = require('pg-promise')();
 
 const cn = {
   host: process.env.DB_HOST,

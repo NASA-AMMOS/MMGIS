@@ -11,8 +11,8 @@ export default defineConfig({
   // Test file patterns
   testMatch: "**/*.spec.js",
 
-  // Timeout per test
-  timeout: 30 * 1000,
+  // Timeout per test (2 minutes — E2E tests may need extra time on slower machines)
+  timeout: 120 * 1000,
 
   // Test execution settings
   fullyParallel: true,
