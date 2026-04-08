@@ -19,7 +19,7 @@ test.describe('Session Management', () => {
 
   test('login via API sets a session cookie', async ({ request }) => {
     const response = await request.post(`${baseURL}/api/users/login`, {
-      data: { username: 'test_user', password: 'test_password' },
+      data: { username: 'test_user', password: 'test_password' }, // pragma: allowlist secret
     });
     expect(response.status()).toBeLessThan(500);
 
@@ -46,7 +46,7 @@ test.describe('Session Management', () => {
   test('authenticated request to protected endpoint returns JSON', async ({ request }) => {
     // Login first to establish a session
     const loginRes = await request.post(`${baseURL}/api/users/login`, {
-      data: { username: 'test_user', password: 'test_password' },
+      data: { username: 'test_user', password: 'test_password' }, // pragma: allowlist secret
     });
     const loginBody = await loginRes.json().catch(() => null);
     if (loginBody === null || loginBody.status !== 'success') {
@@ -95,7 +95,7 @@ test.describe('Session Management', () => {
   test('logout invalidates the session', async ({ request }) => {
     // Login to get a session
     const loginRes = await request.post(`${baseURL}/api/users/login`, {
-      data: { username: 'test_user', password: 'test_password' },
+      data: { username: 'test_user', password: 'test_password' }, // pragma: allowlist secret
     });
     const loginBody = await loginRes.json().catch(() => null);
     if (loginBody === null || loginBody.status !== 'success') {

@@ -37,7 +37,7 @@ test.describe('Signup Flow', () => {
 
   test('signup with new user credentials', async ({ page, request }) => {
     const uniqueUser = `signup_test_${Date.now()}`;
-    const strongPassword = 'SignupTest1!';
+    const strongPassword = 'SignupTest1!'; // pragma: allowlist secret
 
     await page.goto('/');
     await page.locator('#toggle').waitFor({ state: 'visible', timeout: 10000 });
@@ -77,7 +77,7 @@ test.describe('Signup Flow', () => {
     const response = await request.post(`${baseURL}/api/users/signup`, {
       data: {
         username: 'test_user',
-        password: 'TestPass1!',
+        password: 'TestPass1!', // pragma: allowlist secret
         email: 'duplicate@test.com',
       },
     });
@@ -99,7 +99,7 @@ test.describe('Signup Flow', () => {
     const response = await request.post(`${baseURL}/api/users/signup`, {
       data: {
         username: `weakpw_${Date.now()}`,
-        password: 'short',
+        password: 'short', // pragma: allowlist secret
         email: 'weak@test.com',
       },
     });

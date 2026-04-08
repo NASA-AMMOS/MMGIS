@@ -22,7 +22,7 @@ test.describe('Authorization', () => {
   test('non-admin user cannot access admin-only endpoints', async ({ request }) => {
     // Login as the regular test_user (permission "001")
     const loginRes = await request.post(`${baseURL}/api/users/login`, {
-      data: { username: 'test_user', password: 'test_password' },
+      data: { username: 'test_user', password: 'test_password' }, // pragma: allowlist secret
     });
     const loginBody = await loginRes.json().catch(() => null);
     if (loginBody === null || loginBody.status !== 'success') {
@@ -52,7 +52,7 @@ test.describe('Authorization', () => {
   test('admin user can access admin endpoints', async ({ request }) => {
     // Login as admin
     const loginRes = await request.post(`${baseURL}/api/users/login`, {
-      data: { username: 'test_admin', password: 'testadmin123' },
+      data: { username: 'test_admin', password: 'testadmin123' }, // pragma: allowlist secret
     });
     const loginBody = await loginRes.json().catch(() => null);
     if (loginBody === null || loginBody.status !== 'success') {

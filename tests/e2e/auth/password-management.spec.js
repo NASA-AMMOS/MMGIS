@@ -23,7 +23,7 @@ test.describe('Password Management', () => {
   test('resetPassword rejects missing username', async ({ request }) => {
     const response = await request.post(`${baseURL}/api/users/resetPassword`, {
       data: {
-        password: 'NewPass1!',
+        password: 'NewPass1!', // pragma: allowlist secret
         resetToken: 'faketoken123',
       },
     });
@@ -102,7 +102,7 @@ test.describe('Password Management', () => {
   test('admin can generate reset password link', async ({ request }) => {
     // Login as admin first
     const loginRes = await request.post(`${baseURL}/api/users/login`, {
-      data: { username: 'test_admin', password: 'testadmin123' },
+      data: { username: 'test_admin', password: 'testadmin123' }, // pragma: allowlist secret
     });
     const loginBody = await loginRes.json().catch(() => null);
     if (loginBody === null || loginBody.status !== 'success') {
@@ -137,7 +137,7 @@ test.describe('Password Management', () => {
   test('non-admin cannot generate reset password link', async ({ request }) => {
     // Login as regular user
     const loginRes = await request.post(`${baseURL}/api/users/login`, {
-      data: { username: 'test_user', password: 'test_password' },
+      data: { username: 'test_user', password: 'test_password' }, // pragma: allowlist secret
     });
     const loginBody = await loginRes.json().catch(() => null);
     if (loginBody === null || loginBody.status !== 'success') {
