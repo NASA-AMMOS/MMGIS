@@ -58,7 +58,7 @@ jobs:
           echo "DB_PASS=test_password" >> .env
           echo "ENABLE_MMGIS_WEBSOCKETS=false" >> .env
           echo "ENABLE_CONFIG_WEBSOCKETS=false" >> .env
-          echo "HIDE_CONFIG=true" >> .env
+          echo "HIDE_CONFIG=false" >> .env
 
       - name: Initialize Database
         run: node scripts/init-db.js
@@ -74,9 +74,13 @@ jobs:
 
       - name: Run Unit Tests
         run: npx playwright test tests/unit --project=chromium
+        env:
+          AUTH: ${{ matrix.auth_mode }}
 
       - name: Run E2E Tests
         run: npx playwright test tests/e2e --project=chromium
+        env:
+          AUTH: ${{ matrix.auth_mode }}
 
       - name: Upload test results
         if: always()
