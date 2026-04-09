@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Header Injection Protection', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('rejects script tags in headers', async ({ request }) => {
     const response = await request.get(`${baseURL}/api/utils/healthcheck`, {

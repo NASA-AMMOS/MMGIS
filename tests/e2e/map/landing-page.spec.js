@@ -15,7 +15,7 @@ test.describe('Landing Page — Mission Selection', () => {
   // --------------------------------------------------------------------------
 
   test('navigating to / shows the landing page with Reference-Mission listed', async ({ page, request }) => {
-    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
     const listRes = await request.get(`${baseURL}/api/configure/missions`);
     const listData = await listRes.json().catch(() => ({}));
     if (!listData.missions || !listData.missions.includes('Reference-Mission')) {
@@ -50,7 +50,7 @@ test.describe('Landing Page — Mission Selection', () => {
   // --------------------------------------------------------------------------
 
   test('clicking a mission on the landing page loads the map', async ({ page, request }) => {
-    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
     const listRes = await request.get(`${baseURL}/api/configure/missions`);
     const listData = await listRes.json().catch(() => ({}));
     if (!listData.missions || !listData.missions.includes('Reference-Mission')) {
@@ -140,7 +140,7 @@ test.describe('Landing Page — Mission Selection', () => {
   // --------------------------------------------------------------------------
 
   test('forcelanding=true shows the landing page even when MAIN_MISSION is set', async ({ page, request }) => {
-    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
     const listRes = await request.get(`${baseURL}/api/configure/missions`);
     const listData = await listRes.json().catch(() => ({}));
     if (!listData.missions || !listData.missions.includes('Reference-Mission')) {

@@ -4,38 +4,52 @@ import { test, expect } from '@playwright/test';
  * E2E tests for Configure CMS page access.
  *
  * The /configure page is the admin CMS for managing missions, layers, and tools.
- * In AUTH=local mode it requires authentication and redirects to a login page.
- * In AUTH=off mode it should be accessible without auth.
+ * Tests authenticate as admin before accessing the CMS.
  */
 
 test.describe('Configure CMS Access', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   /**
-   * Helper: detect whether the current page is showing the login screen
-   * (AUTH=local mode) rather than the configure UI.
+   * Helper: log in as admin via the API.
+   * When called with the test-level `request` fixture, authenticates that context.
    */
-  async function isLoginPage(page) {
-    const title = await page.title().catch(() => '');
-    if (title.toLowerCase().includes('login')) return true;
-
-    // Some builds render a login form without changing the title
-    const hasLoginForm = await page
-      .locator('input[type="password"], form[action*="login"], [class*="login"]')
-      .first()
-      .isVisible({ timeout: 3000 })
-      .catch(() => false);
-    return hasLoginForm;
+  async function loginAsAdmin(request) {
+    try {
+      const res = await request.post(`${baseURL}/api/users/login`, {
+        data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
+      });
+      const body = await res.json().catch(() => null);
+      if (body && body.status === 'success') return body;
+    } catch { /* ignore */ }
+    return null;
   }
 
-  test('configure page loads at /configure', async ({ page }) => {
+  /**
+   * Helper: log in as admin via the page's own request context (shares cookies
+   * with the browser), then navigate to /configure.
+   *
+   * The configure page has its own "Admin Dashboard" login gate served by
+   * adminlogin.pug.  Rather than fighting the AJAX-based UI login, we POST
+   * to the same endpoint the UI uses (`api/users/login`) through
+   * `page.request` so the session cookie lands in the browser jar, then
+   * simply navigate to /configure which will now see the authenticated session.
+   */
+  async function gotoConfigureAsAdmin(page) {
+    // Authenticate via the page's own request context so cookies are shared.
+    try {
+      await page.request.post(`${baseURL}/api/users/login`, {
+        data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
+      });
+    } catch { /* best effort */ }
+
     await page.goto('/configure');
     await page.waitForLoadState('networkidle');
+  }
 
-    if (await isLoginPage(page)) {
-      test.skip(true, 'SKIP: Configure requires auth — AUTH=local mode');
-      return;
-    }
+  test('configure page loads at /configure', async ({ page, request }) => {
+    await loginAsAdmin(request);
+    await gotoConfigureAsAdmin(page);
 
     // Verify the configure UI has loaded — the body should be visible and
     // contain meaningful content (not just a blank page).
@@ -45,24 +59,20 @@ test.describe('Configure CMS Access', () => {
   });
 
   test('configure page shows mission list', async ({ page, request }) => {
+    await loginAsAdmin(request);
+
     // Pre-check: make sure at least one mission exists so the list is populated
     const listRes = await request.get(`${baseURL}/api/configure/missions`);
     const listData = await listRes.json().catch(() => ({}));
     const hasMissions =
       listData.missions && Array.isArray(listData.missions) && listData.missions.length > 0;
 
-    await page.goto('/configure');
-    await page.waitForLoadState('networkidle');
-
-    if (await isLoginPage(page)) {
-      test.skip(true, 'SKIP: Configure requires auth — AUTH=local mode');
-      return;
-    }
-
     if (!hasMissions) {
       test.skip(true, 'SKIP: No missions found — cannot verify mission list');
       return;
     }
+
+    await gotoConfigureAsAdmin(page);
 
     // The configure page should mention "Reference-Mission" somewhere in its
     // sidebar, mission list, or main panel.
@@ -71,6 +81,8 @@ test.describe('Configure CMS Access', () => {
   });
 
   test('configure page has navigation tabs after selecting a mission', async ({ page, request }) => {
+    await loginAsAdmin(request);
+
     // Tabs (Layers, Tools, Time, etc.) only appear once a mission is selected.
     // First verify a mission exists, then click it to reveal the tab bar.
     const listRes = await request.get(`${baseURL}/api/configure/missions`);
@@ -80,13 +92,7 @@ test.describe('Configure CMS Access', () => {
       return;
     }
 
-    await page.goto('/configure');
-    await page.waitForLoadState('networkidle');
-
-    if (await isLoginPage(page)) {
-      test.skip(true, 'SKIP: Configure requires admin auth');
-      return;
-    }
+    await gotoConfigureAsAdmin(page);
 
     // Select Reference-Mission in the sidebar to reveal the tab bar
     const missionLink = page.locator('text="Reference-Mission"').first();
@@ -123,7 +129,8 @@ test.describe('Configure CMS Access', () => {
     expect(contentType).toMatch(/text\/html/i);
   });
 
-  test('configure page does not crash on load', async ({ page }) => {
+  test('configure page does not crash on load', async ({ page, request }) => {
+    await loginAsAdmin(request);
     const criticalErrors = [];
 
     page.on('console', (msg) => {
@@ -145,13 +152,7 @@ test.describe('Configure CMS Access', () => {
       }
     });
 
-    await page.goto('/configure');
-    await page.waitForLoadState('networkidle');
-
-    if (await isLoginPage(page)) {
-      test.skip(true, 'SKIP: Configure requires auth — AUTH=local mode');
-      return;
-    }
+    await gotoConfigureAsAdmin(page);
 
     // No unexpected console errors should have fired
     expect(criticalErrors.length).toBe(0);

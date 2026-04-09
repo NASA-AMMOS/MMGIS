@@ -13,31 +13,31 @@ import { MISSION_TOOLS } from '../../fixtures/mission-config.js';
  */
 
 test.describe('Configure CMS — Tool Configuration', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   // -------------------------------------------------------------------------
   // Helpers
   // -------------------------------------------------------------------------
 
-  async function isLoginPage(page) {
-    const title = await page.title().catch(() => '');
-    if (title.toLowerCase().includes('login')) return true;
-    const hasLoginForm = await page
-      .locator('input[type="password"], form[action*="login"], [class*="login"]')
-      .first()
-      .isVisible({ timeout: 3000 })
-      .catch(() => false);
-    return hasLoginForm;
+  async function loginAsAdmin(request) {
+    try {
+      const res = await request.post(`${baseURL}/api/users/login`, {
+        data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
+      });
+      const body = await res.json().catch(() => null);
+      return body && body.status === 'success';
+    } catch { return false; }
   }
 
-  async function gotoConfigureOrSkip(page) {
+  async function gotoConfigureAsAdmin(page) {
+    try {
+      await page.request.post(`${baseURL}/api/users/login`, {
+        data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
+      });
+    } catch { /* best effort */ }
+
     await page.goto('/configure');
     await page.waitForLoadState('networkidle');
-    if (await isLoginPage(page)) {
-      test.skip(true, 'SKIP: Configure requires admin auth — AUTH=local mode');
-      return false;
-    }
-    return true;
   }
 
   async function ensureReferenceMission(request) {
@@ -62,8 +62,18 @@ test.describe('Configure CMS — Tool Configuration', () => {
   // -------------------------------------------------------------------------
 
   test('configure page has a Tools tab or section', async ({ page, request }) => {
+    await loginAsAdmin(request);
     if (!(await ensureReferenceMission(request))) return;
-    if (!(await gotoConfigureOrSkip(page))) return;
+    await gotoConfigureAsAdmin(page);
+
+    // Tabs only appear after selecting a mission — click Reference-Mission first
+    const missionLink = page.locator('text="Reference-Mission"').first();
+    if (!(await missionLink.isVisible({ timeout: 5000 }).catch(() => false))) {
+      test.skip(true, 'SKIP: Reference-Mission not visible in sidebar');
+      return;
+    }
+    await missionLink.click();
+    await page.waitForLoadState('networkidle');
 
     const bodyHTML = await page.evaluate(() => document.body.innerHTML);
     const hasToolsSection =
@@ -72,8 +82,9 @@ test.describe('Configure CMS — Tool Configuration', () => {
   });
 
   test('known tools listed in configure UI', async ({ page, request }) => {
+    await loginAsAdmin(request);
     if (!(await ensureReferenceMission(request))) return;
-    if (!(await gotoConfigureOrSkip(page))) return;
+    await gotoConfigureAsAdmin(page);
 
     // Open Reference-Mission
     const missionLink = page.locator('text="Reference-Mission"').first();
@@ -106,6 +117,7 @@ test.describe('Configure CMS — Tool Configuration', () => {
   });
 
   test('tool configuration fetched via API contains expected tools', async ({ request }) => {
+    await loginAsAdmin(request);
     if (!(await ensureReferenceMission(request))) return;
 
     const getRes = await request.get(
@@ -140,6 +152,7 @@ test.describe('Configure CMS — Tool Configuration', () => {
   });
 
   test('each tool has a name property', async ({ request }) => {
+    await loginAsAdmin(request);
     if (!(await ensureReferenceMission(request))) return;
 
     const getRes = await request.get(
@@ -168,6 +181,7 @@ test.describe('Configure CMS — Tool Configuration', () => {
   });
 
   test('tool enable/disable state is retrievable', async ({ request }) => {
+    await loginAsAdmin(request);
     if (!(await ensureReferenceMission(request))) return;
 
     const getRes = await request.get(
@@ -194,6 +208,7 @@ test.describe('Configure CMS — Tool Configuration', () => {
   });
 
   test('tool toggle via API — add and remove tool from config', async ({ request }) => {
+    await loginAsAdmin(request);
     // Create a temporary mission to test tool toggling without affecting Reference-Mission
     const testMission = `ToolToggle-${Date.now()}`;
     const addRes = await request.post(`${baseURL}/api/configure/add`, {

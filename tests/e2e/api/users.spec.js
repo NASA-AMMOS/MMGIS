@@ -14,7 +14,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Users API', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   // ---------- POST /api/users/signup ----------
   test.describe('POST /api/users/signup', () => {

@@ -14,7 +14,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('STAC API', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('STAC API routes return 404 when WITH_STAC is not enabled', async ({ request }) => {
     // When WITH_STAC is not set (default CI), the /stac proxy route should return 404

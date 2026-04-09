@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Rate Limiting', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('API responses include rate limit headers', async ({ request }) => {
     const response = await request.get(`${baseURL}/api/utils/healthcheck`);

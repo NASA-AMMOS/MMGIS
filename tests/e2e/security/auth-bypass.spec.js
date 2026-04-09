@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Auth Bypass Protection', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test.skip(process.env.AUTH === 'off', 'SKIP: Requires AUTH != off to test auth bypass');
 

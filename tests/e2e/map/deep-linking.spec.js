@@ -13,7 +13,7 @@ test.describe('Deep Linking — URL Parameters', () => {
 
   /** Helper: check that the Reference-Mission is available before each test. */
   test.beforeEach(async ({ request }) => {
-    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
     const listRes = await request.get(`${baseURL}/api/configure/missions`);
     const listData = await listRes.json().catch(() => ({}));
     if (!listData.missions || !listData.missions.includes('Reference-Mission')) {

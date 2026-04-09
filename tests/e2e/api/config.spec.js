@@ -14,7 +14,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Config API', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   // Track missions created during this suite for best-effort cleanup
   const testMissionsCreated = [];

@@ -11,7 +11,7 @@ import { waitForMapReady } from '../../helpers/map-helpers.js';
 const MISSION_URL = '/?mission=Reference-Mission';
 
 async function ensureMissionAvailable(request, testCtx) {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
   const res = await request.get(`${baseURL}/api/configure/missions`);
   const data = await res.json().catch(() => ({}));
   if (!data.missions || !data.missions.includes('Reference-Mission')) {

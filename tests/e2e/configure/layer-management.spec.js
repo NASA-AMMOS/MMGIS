@@ -12,38 +12,38 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Configure CMS — Layer Management', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   // -------------------------------------------------------------------------
   // Helpers
   // -------------------------------------------------------------------------
 
   /**
-   * Detect whether the page is showing the login screen.
+   * Log in as admin via the API.
    */
-  async function isLoginPage(page) {
-    const title = await page.title().catch(() => '');
-    if (title.toLowerCase().includes('login')) return true;
-    const hasLoginForm = await page
-      .locator('input[type="password"], form[action*="login"], [class*="login"]')
-      .first()
-      .isVisible({ timeout: 3000 })
-      .catch(() => false);
-    return hasLoginForm;
+  async function loginAsAdmin(request) {
+    try {
+      const res = await request.post(`${baseURL}/api/users/login`, {
+        data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
+      });
+      const body = await res.json().catch(() => null);
+      return body && body.status === 'success';
+    } catch { return false; }
   }
 
   /**
-   * Navigate to /configure, skip if login is required.
-   * Returns true if the configure page loaded successfully.
+   * Log in as admin via the page's own request context (shares cookies with
+   * the browser), then navigate to /configure.
    */
-  async function gotoConfigureOrSkip(page) {
+  async function gotoConfigureAsAdmin(page) {
+    try {
+      await page.request.post(`${baseURL}/api/users/login`, {
+        data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
+      });
+    } catch { /* best effort */ }
+
     await page.goto('/configure');
     await page.waitForLoadState('networkidle');
-    if (await isLoginPage(page)) {
-      test.skip(true, 'SKIP: Configure requires admin auth — AUTH=local mode');
-      return false;
-    }
-    return true;
   }
 
   /**
@@ -71,8 +71,18 @@ test.describe('Configure CMS — Layer Management', () => {
   // -------------------------------------------------------------------------
 
   test('configure page has a Layers tab or section', async ({ page, request }) => {
+    await loginAsAdmin(request);
     if (!(await ensureReferenceMission(request))) return;
-    if (!(await gotoConfigureOrSkip(page))) return;
+    await gotoConfigureAsAdmin(page);
+
+    // Tabs only appear after selecting a mission — click Reference-Mission first
+    const missionLink = page.locator('text="Reference-Mission"').first();
+    if (!(await missionLink.isVisible({ timeout: 5000 }).catch(() => false))) {
+      test.skip(true, 'SKIP: Reference-Mission not visible in sidebar');
+      return;
+    }
+    await missionLink.click();
+    await page.waitForLoadState('networkidle');
 
     // Look for a Layers tab/link/section in the configure UI
     const bodyHTML = await page.evaluate(() => document.body.innerHTML);
@@ -82,8 +92,9 @@ test.describe('Configure CMS — Layer Management', () => {
   });
 
   test('Reference Mission layers visible in configure', async ({ page, request }) => {
+    await loginAsAdmin(request);
     if (!(await ensureReferenceMission(request))) return;
-    if (!(await gotoConfigureOrSkip(page))) return;
+    await gotoConfigureAsAdmin(page);
 
     // Click on Reference-Mission in the sidebar/list to open it
     const missionLink = page
@@ -122,8 +133,9 @@ test.describe('Configure CMS — Layer Management', () => {
   });
 
   test('layer list contains tile/basemap layers', async ({ page, request }) => {
+    await loginAsAdmin(request);
     if (!(await ensureReferenceMission(request))) return;
-    if (!(await gotoConfigureOrSkip(page))) return;
+    await gotoConfigureAsAdmin(page);
 
     // Open Reference-Mission
     const missionLink = page.locator('text="Reference-Mission"').first();
@@ -159,6 +171,7 @@ test.describe('Configure CMS — Layer Management', () => {
   });
 
   test('layer configuration fetched via API contains expected layers', async ({ request }) => {
+    await loginAsAdmin(request);
     if (!(await ensureReferenceMission(request))) return;
 
     // Fetch the full mission config via API
@@ -203,6 +216,7 @@ test.describe('Configure CMS — Layer Management', () => {
   });
 
   test('layer types are represented in config', async ({ request }) => {
+    await loginAsAdmin(request);
     if (!(await ensureReferenceMission(request))) return;
 
     const getRes = await request.get(

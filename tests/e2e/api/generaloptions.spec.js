@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('General Options API', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('GET /api/configure/getGeneralOptions returns options or appropriate error', async ({ request }) => {
     const response = await request.get(`${baseURL}/api/configure/getGeneralOptions`);

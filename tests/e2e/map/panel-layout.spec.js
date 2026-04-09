@@ -14,7 +14,7 @@ test.describe('Panel Layout', () => {
 
   /** Shared setup: ensure Reference-Mission is available. */
   test.beforeEach(async ({ request }) => {
-    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
     const listRes = await request.get(`${baseURL}/api/configure/missions`);
     const listData = await listRes.json().catch(() => ({}));
     if (!listData.missions || !listData.missions.includes('Reference-Mission')) {

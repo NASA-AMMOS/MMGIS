@@ -14,7 +14,7 @@ import { test, expect } from '@playwright/test';
  * All tests are skipped when AUTH=off (no authorization checks).
  */
 
-const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
 test.describe('Authorization', () => {
   test.skip(

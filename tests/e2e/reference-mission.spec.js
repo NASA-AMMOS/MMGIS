@@ -18,7 +18,7 @@ test.describe('Reference Mission Demo Mission - Smoke Tests', () => {
 
   test.beforeEach(async ({ page, request }) => {
     // Check if Reference-Mission exists before navigating
-    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
     const listRes = await request.get(`${baseURL}/api/configure/missions`);
     const listData = await listRes.json().catch(() => ({}));
     if (!listData.missions || !listData.missions.includes('Reference-Mission')) {
@@ -180,7 +180,7 @@ test.describe('Reference Mission Demo Mission - Smoke Tests', () => {
   });
 
   test('no critical console errors', async ({ page, request }) => {
-    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
     const listRes = await request.get(`${baseURL}/api/configure/missions`);
     const listData = await listRes.json().catch(() => ({}));
     if (!listData.missions || !listData.missions.includes('Reference-Mission')) {

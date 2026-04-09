@@ -16,7 +16,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Datasets API — entries', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('POST /api/datasets/entries — lists all datasets', async ({ request }) => {
     const response = await request.post(`${baseURL}/api/datasets/entries`, {
@@ -33,7 +33,7 @@ test.describe('Datasets API — entries', () => {
 });
 
 test.describe.serial('Datasets API — recreate and query lifecycle', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
   const testDatasetName = `test_dataset_${Date.now()}`;
 
   test('POST /api/datasets/recreate — creates a dataset from CSV data', async ({ request }) => {
@@ -132,7 +132,7 @@ test.describe.serial('Datasets API — recreate and query lifecycle', () => {
 });
 
 test.describe('Datasets API — upload', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('POST /api/datasets/upload — multipart CSV upload', async ({ request }) => {
     // Upload requires isLongTermToken (API key auth), which the test user may not have.
@@ -142,7 +142,7 @@ test.describe('Datasets API — upload', () => {
 });
 
 test.describe('Datasets API — error handling', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('POST /api/datasets/search — nonexistent dataset returns failure', async ({ request }) => {
     const response = await request.post(`${baseURL}/api/datasets/search`, {

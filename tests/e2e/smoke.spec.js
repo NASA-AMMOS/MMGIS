@@ -9,7 +9,7 @@ test.describe('MMGIS Application - Smoke Tests', () => {
 
   test('application loads successfully', async ({ page, request }) => {
     // First verify the server is up
-    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
     const healthRes = await request.get(`${baseURL}/api/utils/healthcheck`);
     expect(healthRes.status()).toBe(200);
 
@@ -33,7 +33,7 @@ test.describe('MMGIS Application - Smoke Tests', () => {
   });
 
   test('main container elements are present', async ({ page, request }) => {
-    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
     const listRes = await request.get(`${baseURL}/api/configure/missions`);
     const listData = await listRes.json().catch(() => ({}));
     if (!listData.missions || !listData.missions.includes('Reference-Mission')) {
@@ -56,7 +56,7 @@ test.describe('MMGIS Application - Smoke Tests', () => {
   });
 
   test('stylesheets load without errors', async ({ page, request }) => {
-    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
     const listRes = await request.get(`${baseURL}/api/configure/missions`);
     const listData = await listRes.json().catch(() => ({}));
     if (!listData.missions || !listData.missions.includes('Reference-Mission')) {

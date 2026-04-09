@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Docs API', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('GET /api/docs returns 200', async ({ request }) => {
     const response = await request.get(`${baseURL}/api/docs`);

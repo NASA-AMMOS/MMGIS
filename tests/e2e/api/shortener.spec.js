@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Shortener API', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('shorten URL and expand round-trip', async ({ request }) => {
     test.skip(process.env.DISABLE_LINK_SHORTENER === 'true', 'SKIP: Link shortener is disabled');

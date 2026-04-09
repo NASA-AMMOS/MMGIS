@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test';
  * All tests are skipped when AUTH=off (no session management).
  */
 
-const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
 test.describe('Session Management', () => {
   test.skip(

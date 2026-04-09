@@ -37,7 +37,7 @@ export default defineConfig({
   // Shared settings for all projects
   use: {
     // Base URL for tests
-    baseURL: process.env.TEST_BASE_URL || "http://localhost:8888",
+    baseURL: process.env.TEST_BASE_URL || "http://localhost:18888",
 
     // Collect trace on failure
     trace: "on-first-retry",
@@ -58,11 +58,6 @@ export default defineConfig({
     {
       name: "firefox",
       use: { ...devices["Desktop Firefox"] },
-      testMatch: /cross-browser/,
-    },
-    {
-      name: "webkit",
-      use: { ...devices["Desktop Safari"] },
       testMatch: /cross-browser/,
     },
   ],

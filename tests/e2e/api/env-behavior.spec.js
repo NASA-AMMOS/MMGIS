@@ -10,7 +10,7 @@ import { test, expect } from '@playwright/test';
  * accordingly.
  */
 
-const BASE = process.env.TEST_BASE_URL || 'http://localhost:8888';
+const BASE = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
 /** Safely parse JSON; returns null on failure (e.g. HTML login page). */
 async function safeJson(response) {

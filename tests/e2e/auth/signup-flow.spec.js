@@ -19,7 +19,7 @@ import { test, expect } from '@playwright/test';
  * In AUTH=off mode there is no login/signup page — all tests are skipped.
  */
 
-const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
 test.describe('Signup Flow', () => {
   test.beforeEach(async ({ page }) => {

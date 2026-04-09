@@ -27,7 +27,7 @@ function isProxyAccessible(response) {
 }
 
 test.describe('Adjacent Servers API', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('STAC proxy is not accessible when disabled', async ({ request }) => {
     if (process.env.WITH_STAC === 'true') {

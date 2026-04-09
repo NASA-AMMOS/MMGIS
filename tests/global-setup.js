@@ -13,7 +13,7 @@
  *    (connects to `postgres` maintenance DB which always exists).
  * 4. Sets up PostGIS / btree_gist extensions and session table.
  * 5. Runs schema migrations (ADD COLUMN IF NOT EXISTS).
- * 6. Starts the MMGIS server on port 8888 (or TEST_PORT).
+ * 6. Starts the MMGIS server on port 18888 (or TEST_PORT).
  * 7. Creates admin user + Reference Mission via the API if needed.
  * 8. Returns a teardown function that kills the server when tests end.
  *
@@ -31,7 +31,7 @@ import pgPromise from 'pg-promise';
 const TEST_DB_NAME = 'mmgis-test';
 
 /** Port the test server listens on. */
-const TEST_PORT = Number(process.env.TEST_PORT || 8888);
+const TEST_PORT = Number(process.env.TEST_PORT || 18888);
 
 /**
  * Read a value from the `.env` file by key. Returns `undefined` when
@@ -291,6 +291,27 @@ export default async function globalSetup() {
         console.log(`[global-setup] Reference Mission created.`);
       } else {
         console.warn('[global-setup] Could not create Reference Mission — UI tests may 404.');
+      }
+
+      // Create test_user (non-admin, permission "001") if it doesn't exist.
+      // The signup endpoint requires admin session or AUTH_LOCAL_ALLOW_SIGNUP=true.
+      if (cookieHeader) {
+        const signupResult = await fetchJSON(`${baseUrl}/api/users/signup`, {
+          method: 'POST',
+          body: {
+            username: 'test_user',
+            password: 'TestUser1!', // pragma: allowlist secret
+            email: 'user@test.com',
+          },
+          cookies: cookieHeader,
+        }).catch(() => null);
+
+        if (signupResult && typeof signupResult === 'object' && signupResult.status === 'success') {
+          console.log('[global-setup] test_user created.');
+        } else {
+          // May already exist — that's fine
+          console.log('[global-setup] test_user already exists or signup not available.');
+        }
       }
     } catch (err) {
       console.error('[global-setup] Reference Mission setup error:', err.message);

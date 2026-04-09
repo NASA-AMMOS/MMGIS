@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Security Headers', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('X-Powered-By header is absent', async ({ request }) => {
     const response = await request.get(`${baseURL}/api/utils/healthcheck`);

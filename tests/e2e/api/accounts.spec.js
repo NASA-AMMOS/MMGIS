@@ -13,7 +13,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Accounts API', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test.skip(process.env.AUTH === 'off', 'SKIP: Requires AUTH != off for account management');
 

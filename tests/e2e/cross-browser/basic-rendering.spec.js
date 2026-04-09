@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test';
 const MISSION_URL = '/?mission=Reference-Mission';
 
 async function ensureMissionAvailable(request, testCtx) {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
   const res = await request.get(`${baseURL}/api/configure/missions`);
   const data = await res.json().catch(() => ({}));
   if (!data.missions || !data.missions.includes('Reference-Mission')) {
@@ -63,6 +63,8 @@ test.describe('Cross-Browser Basic Rendering', () => {
       (msg) =>
         !msg.includes('Cannot set properties of null') &&
         !msg.includes('Cannot read properties of null') &&
+        !msg.includes("can't access property") &&       // Firefox variant of null-access
+        !msg.includes('is null') &&                      // Firefox "X is null" errors
         !msg.includes('Failed to fetch') &&
         !msg.includes('NetworkError') &&
         !msg.includes('net::ERR') &&

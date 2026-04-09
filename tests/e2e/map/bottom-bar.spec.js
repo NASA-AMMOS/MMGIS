@@ -13,7 +13,7 @@ test.describe('Bottom Bar Controls', () => {
 
   /** Shared setup: verify the Reference-Mission exists, then navigate to it. */
   test.beforeEach(async ({ page, request }) => {
-    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+    const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
     const listRes = await request.get(`${baseURL}/api/configure/missions`);
     const listData = await listRes.json().catch(() => ({}));
     if (!listData.missions || !listData.missions.includes('Reference-Mission')) {

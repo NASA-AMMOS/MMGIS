@@ -15,7 +15,7 @@ import { test, expect } from '@playwright/test';
  * All tests are skipped when AUTH=off.
  */
 
-const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
 test.describe('Password Management', () => {
   test.skip(process.env.AUTH !== 'local', 'SKIP: AUTH is not local — no password management');

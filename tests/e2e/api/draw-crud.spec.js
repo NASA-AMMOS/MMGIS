@@ -26,7 +26,7 @@ async function safeJson(response) {
 }
 
 test.describe.serial('Draw/Files API — CRUD lifecycle', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
   const mission = 'Reference-Mission';
 
   // Shared state across tests inside a serial describe
@@ -215,7 +215,7 @@ test.describe.serial('Draw/Files API — CRUD lifecycle', () => {
 });
 
 test.describe('Draw/Files API — Line and Polygon features', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   let lineFileId = null;
 
@@ -334,7 +334,7 @@ test.describe('Draw/Files API — Line and Polygon features', () => {
 });
 
 test.describe('Draw/Files API — merge, split, undo, publish', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('merge features', async ({ request }) => {
     test.skip(true, 'SKIP: Merge requires multiple polygon features in a file owned by the user — complex setup needed');
@@ -425,7 +425,7 @@ test.describe('Draw/Files API — merge, split, undo, publish', () => {
 });
 
 test.describe('Draw/Files API — error handling', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('rejects adding feature with invalid geometry', async ({ request }) => {
     // First create a file

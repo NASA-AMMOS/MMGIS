@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Webhooks API', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('CRUD lifecycle: save webhook config and list entries', async ({ request }) => {
     const uniqueId = `test_webhook_${Date.now()}`;

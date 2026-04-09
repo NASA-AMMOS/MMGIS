@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Configure CMS — Mission CRUD', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   /** Missions created during this suite — cleaned up in afterAll. */
   const testMissionsCreated = [];
@@ -20,6 +20,20 @@ test.describe('Configure CMS — Mission CRUD', () => {
   // -------------------------------------------------------------------------
   // Helpers
   // -------------------------------------------------------------------------
+
+  /**
+   * Log in as admin so that subsequent requests in the same context are
+   * authenticated (Playwright's request context shares cookies).
+   */
+  async function loginAsAdmin(request) {
+    try {
+      const res = await request.post(`${baseURL}/api/users/login`, {
+        data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
+      });
+      const body = await res.json().catch(() => null);
+      return body && body.status === 'success';
+    } catch { return false; }
+  }
 
   /**
    * Attempt to create a mission via the API.
@@ -74,6 +88,7 @@ test.describe('Configure CMS — Mission CRUD', () => {
   // -------------------------------------------------------------------------
 
   test('create a test mission via API', async ({ request }) => {
+    await loginAsAdmin(request);
     const missionName = `CrudTest-Create-${Date.now()}`;
     const { ok, body } = await apiCreateMission(request, missionName);
 
@@ -87,6 +102,7 @@ test.describe('Configure CMS — Mission CRUD', () => {
   });
 
   test('created mission appears in mission list', async ({ request }) => {
+    await loginAsAdmin(request);
     const missionName = `CrudTest-List-${Date.now()}`;
     const { ok } = await apiCreateMission(request, missionName);
 
@@ -101,6 +117,7 @@ test.describe('Configure CMS — Mission CRUD', () => {
   });
 
   test('update mission config via upsert', async ({ request }) => {
+    await loginAsAdmin(request);
     const missionName = `CrudTest-Upsert-${Date.now()}`;
     const { ok } = await apiCreateMission(request, missionName);
 
@@ -138,6 +155,7 @@ test.describe('Configure CMS — Mission CRUD', () => {
   });
 
   test('delete a test mission via API', async ({ request }) => {
+    await loginAsAdmin(request);
     const missionName = `CrudTest-Delete-${Date.now()}`;
     const { ok } = await apiCreateMission(request, missionName);
 
@@ -165,6 +183,7 @@ test.describe('Configure CMS — Mission CRUD', () => {
   });
 
   test('created mission visible in configure UI', async ({ page, request }) => {
+    await loginAsAdmin(request);
     const missionName = `CrudTest-UI-${Date.now()}`;
     const { ok } = await apiCreateMission(request, missionName);
 
@@ -173,15 +192,15 @@ test.describe('Configure CMS — Mission CRUD', () => {
       return;
     }
 
+    // Authenticate via the page's own request context so cookies are shared.
+    try {
+      await page.request.post(`${baseURL}/api/users/login`, {
+        data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
+      });
+    } catch { /* best effort */ }
+
     await page.goto('/configure');
     await page.waitForLoadState('networkidle');
-
-    // Detect login redirect
-    const title = await page.title().catch(() => '');
-    if (title.toLowerCase().includes('login')) {
-      test.skip(true, 'SKIP: Configure UI requires auth — AUTH=local mode');
-      return;
-    }
 
     // The newly created mission should be listed somewhere in the configure page
     const bodyHTML = await page.evaluate(() => document.body.innerHTML);
@@ -189,6 +208,7 @@ test.describe('Configure CMS — Mission CRUD', () => {
   });
 
   test('duplicate mission name is rejected', async ({ request }) => {
+    await loginAsAdmin(request);
     const missionName = `CrudTest-Dup-${Date.now()}`;
     const { ok } = await apiCreateMission(request, missionName);
 

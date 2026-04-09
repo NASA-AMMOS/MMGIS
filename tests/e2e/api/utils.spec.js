@@ -18,7 +18,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Utils API', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('GET /api/utils/healthcheck returns 200', async ({ request }) => {
     const response = await request.get(`${baseURL}/api/utils/healthcheck`);

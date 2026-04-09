@@ -16,7 +16,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe.serial('Geodatasets API — CRUD lifecycle', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
   const testName = `test_geodataset_${Date.now()}`;
 
   test('POST /api/geodatasets/entries — lists all geodatasets', async ({ request }) => {
@@ -162,7 +162,7 @@ test.describe.serial('Geodatasets API — CRUD lifecycle', () => {
 });
 
 test.describe('Geodatasets API — Reference Mission geodatasets', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   const geodatasets = [
     'reference_mission_basic',
@@ -211,7 +211,7 @@ test.describe('Geodatasets API — Reference Mission geodatasets', () => {
 });
 
 test.describe('Geodatasets API — intersect', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('POST /api/geodatasets/intersect — spatial query on reference_mission_basic', async ({ request }) => {
     const response = await request.post(`${baseURL}/api/geodatasets/intersect`, {
@@ -253,7 +253,7 @@ test.describe('Geodatasets API — intersect', () => {
 });
 
 test.describe('Geodatasets API — append', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
   const appendName = `test_append_geodataset_${Date.now()}`;
 
   test('POST /api/geodatasets/recreate then append', async ({ request }) => {
@@ -303,7 +303,7 @@ test.describe('Geodatasets API — append', () => {
 });
 
 test.describe('Geodatasets API — error handling', () => {
-  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
+  const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   test('POST /api/geodatasets/search — nonexistent layer returns failure', async ({ request }) => {
     const response = await request.post(`${baseURL}/api/geodatasets/search`, {
