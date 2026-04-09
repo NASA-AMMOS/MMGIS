@@ -30,7 +30,7 @@ test.describe('Chemistry Tool', () => {
       });
 
       // Open the Chemistry tool
-      const chemButton = page.locator('[title*="Chemistry"], button:has-text("Chemistry")').first();
+      const chemButton = page.locator('#toolButtonChemistry').first();
       if (await chemButton.isVisible({ timeout: 5000 })) {
         await chemButton.click();
         await page.waitForTimeout(1500);
