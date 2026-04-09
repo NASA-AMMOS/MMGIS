@@ -18,7 +18,7 @@ import { test, expect } from '@playwright/test';
 const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
 
 test.describe('Password Management', () => {
-  test.skip(process.env.AUTH === 'off', 'SKIP: AUTH=off — no password management');
+  test.skip(process.env.AUTH !== 'local', 'SKIP: AUTH is not local — no password management');
 
   test('resetPassword rejects missing username', async ({ request }) => {
     const response = await request.post(`${baseURL}/api/users/resetPassword`, {

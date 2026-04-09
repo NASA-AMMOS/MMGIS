@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { TEST_ADMIN } from '../../fixtures/user-credentials.js';
 
 /**
  * E2E tests for the Login UI flow.
@@ -17,7 +18,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Login Flow', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(
-      process.env.AUTH === 'off' || process.env.AUTH !== 'local',
+      process.env.AUTH !== 'local',
       'SKIP: AUTH is not local — no login page'
     );
   });
@@ -33,8 +34,8 @@ test.describe('Login Flow', () => {
   test('login with valid credentials succeeds', async ({ page }) => {
     await page.goto('/');
     await page.locator('#username').waitFor({ state: 'visible', timeout: 10000 });
-    await page.fill('#username', 'test_user');
-    await page.fill('#pwd', ['Test', 'User', '1!'].join(''));
+    await page.fill('#username', TEST_ADMIN.username);
+    await page.fill('#pwd', TEST_ADMIN.password);
     await page.click('#login');
     // After login, should redirect away from the login page
     await page.waitForLoadState('networkidle');

@@ -47,7 +47,7 @@
     "test:unit": "cross-env PLAYWRIGHT_TEST_UNIT_ONLY=true playwright test tests/unit",
     "test:e2e": "cross-env DB_NAME=mmgis-test playwright test tests/e2e",
     "test:e2e:api": "cross-env DB_NAME=mmgis-test playwright test tests/e2e/api",
-    "test:e2e:auth-off": "cross-env DB_NAME=mmgis-test AUTH=local playwright test tests/e2e/auth",
+    "test:e2e:auth-off": "cross-env DB_NAME=mmgis-test AUTH=off playwright test tests/e2e/auth",
     "test:e2e:auth-local": "cross-env DB_NAME=mmgis-test AUTH=local playwright test tests/e2e/auth",
     "test:e2e:map": "cross-env DB_NAME=mmgis-test playwright test tests/e2e/map",
     "test:e2e:tools": "cross-env DB_NAME=mmgis-test playwright test tests/e2e/tools",

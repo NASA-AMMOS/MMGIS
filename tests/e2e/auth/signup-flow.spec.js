@@ -24,15 +24,22 @@ const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
 test.describe('Signup Flow', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(
-      process.env.AUTH === 'off' || process.env.AUTH !== 'local',
+      process.env.AUTH !== 'local',
       'SKIP: AUTH is not local — no signup'
     );
   });
 
   test('signup toggle reveals signup fields', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#toggle').waitFor({ state: 'visible', timeout: 10000 });
-    await page.click('#toggle');
+    // The toggle is only visible when AUTH_LOCAL_ALLOW_SIGNUP=true
+    const toggle = page.locator('#toggleWrapper');
+    const isVisible = await toggle.isVisible().catch(() => false);
+    if (!isVisible) {
+      // toggleWrapper hidden by CSS → signup is admin-only
+      test.skip(true, 'SKIP: AUTH_LOCAL_ALLOW_SIGNUP is not true — signup toggle hidden');
+      return;
+    }
+    await page.locator('#toggle').click();
     // After toggling, email and retype-password fields should become visible
     await expect(page.locator('#email')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#pwd_retype')).toBeVisible({ timeout: 5000 });
@@ -43,8 +50,14 @@ test.describe('Signup Flow', () => {
     const strongPassword = 'SignupTest1!'; // pragma: allowlist secret
 
     await page.goto('/');
-    await page.locator('#toggle').waitFor({ state: 'visible', timeout: 10000 });
-    await page.click('#toggle');
+    // The toggle is only visible when AUTH_LOCAL_ALLOW_SIGNUP=true
+    const toggle = page.locator('#toggleWrapper');
+    const isVisible = await toggle.isVisible().catch(() => false);
+    if (!isVisible) {
+      test.skip(true, 'SKIP: AUTH_LOCAL_ALLOW_SIGNUP is not true — signup toggle hidden');
+      return;
+    }
+    await page.locator('#toggle').click();
 
     await page.fill('#username', uniqueUser);
     await page.fill('#email', `${uniqueUser}@test.com`);

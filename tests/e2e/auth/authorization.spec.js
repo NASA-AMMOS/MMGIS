@@ -18,7 +18,7 @@ const baseURL = process.env.TEST_BASE_URL || 'http://localhost:8888';
 
 test.describe('Authorization', () => {
   test.skip(
-    process.env.AUTH === 'off' || process.env.AUTH !== 'local',
+    process.env.AUTH !== 'local',
     'SKIP: AUTH is not local — no authorization checks'
   );
 
