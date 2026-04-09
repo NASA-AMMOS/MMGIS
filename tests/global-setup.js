@@ -236,8 +236,23 @@ export default async function globalSetup() {
   const baseUrl = `http://localhost:${TEST_PORT}`;
   const healthUrl = `${baseUrl}/api/utils/healthcheck`;
 
+  // Helper to kill the server process (used in both teardown and error paths)
+  const killServer = async () => {
+    console.log('[global-teardown] Stopping test server...');
+    server.kill('SIGTERM');
+    await sleep(2000);
+    try { server.kill('SIGKILL'); } catch { /* already dead */ }
+    console.log('[global-teardown] Server stopped.');
+  };
+
   console.log(`[global-setup] Starting MMGIS server on port ${TEST_PORT}...`);
-  await waitForServer(healthUrl, 120_000);
+  try {
+    await waitForServer(healthUrl, 120_000);
+  } catch (err) {
+    // Server failed to start — kill the orphaned process before re-throwing
+    await killServer();
+    throw err;
+  }
   console.log(`[global-setup] Server is ready.`);
 
   // ── 6. Create Reference Mission if needed ───────────────────────
@@ -257,8 +272,9 @@ export default async function globalSetup() {
         body: JSON.stringify({ username: 'test_admin', password: 'TestAdmin1!' }),  // pragma: allowlist secret
         redirect: 'manual',
       });
-      const cookies = loginRes.headers.getSetCookie?.() || [];
-      const cookieHeader = cookies.join('; ');
+      const rawCookies = loginRes.headers.getSetCookie?.() || [];
+      // Strip Set-Cookie attributes (Path, HttpOnly, etc.) — Cookie header expects only name=value pairs
+      const cookieHeader = rawCookies.map(c => c.split(';')[0].trim()).join('; ');
 
       // Create Reference Mission — try with auth cookie
       let result = await fetchJSON(`${baseUrl}/api/configure/add`, {
@@ -289,13 +305,7 @@ export default async function globalSetup() {
   console.log(`[global-setup] Done — "${TEST_DB_NAME}" is ready, server running on port ${TEST_PORT}.`);
 
   // Return teardown function — Playwright calls this after all tests.
-  return async () => {
-    console.log('[global-teardown] Stopping test server...');
-    server.kill('SIGTERM');
-    await sleep(2000);
-    try { server.kill('SIGKILL'); } catch { /* already dead */ }
-    console.log('[global-teardown] Server stopped.');
-  };
+  return killServer;
 }
 
 // ─── Utilities ─────────────────────────────────────────────────────
