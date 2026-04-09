@@ -7,25 +7,29 @@
  *    This guarantees tests never touch a production database.
  * 3. Creates the `mmgis-test` database if it doesn't already exist
  *    (connects to the `postgres` maintenance DB which always exists).
- * 4. Delegates to `scripts/init-db.js` (the app's own DB initialiser)
- *    with DB_NAME=mmgis-test to set up extensions, session table,
- *    spatial indexes, etc. — keeping init-db.js as the single source
- *    of truth for DB bootstrapping.
- * 5. Runs schema migrations (ALTER TABLE … ADD COLUMN IF NOT EXISTS)
+ * 4. Sets up PostGIS / btree_gist extensions and the session table
+ *    directly on the test database.
+ * 5. Runs schema migrations (ALTER TABLE ... ADD COLUMN IF NOT EXISTS)
  *    to handle columns that were added after initial table creation,
  *    preventing race conditions in the server's startup hooks.
- * 6. Sets `process.env.DB_NAME = 'mmgis-test'` so the MMGIS server
+ * 6. Starts a temporary MMGIS server and creates the Reference Mission
+ *    if it doesn't already exist — so every test suite can navigate to
+ *    /?mission=Reference-Mission without hitting a 404.
+ * 7. Sets `process.env.DB_NAME = 'mmgis-test'` so the MMGIS server
  *    (started by Playwright's `webServer` option) uses the test DB.
  */
 
 import { config } from 'dotenv';
 import { resolve } from 'path';
-import { readFileSync } from 'fs';
-import { execSync } from 'child_process';
+import { readFileSync, existsSync, unlinkSync } from 'fs';
+import { execSync, spawn } from 'child_process';
 import pgPromise from 'pg-promise';
 
 /** Hardcoded test database name — never changes. */
 const TEST_DB_NAME = 'mmgis-test';
+
+/** Port used by the temporary setup server (avoids conflicts with 8888). */
+const SETUP_PORT = 18888;
 
 /**
  * Read a value from the `.env` file by key. Returns `undefined` when
@@ -88,53 +92,10 @@ export default async function globalSetup() {
     pgp.end();
   }
 
-  // ── Delegate to init-db.js for full DB initialisation ─────────
-  // init-db.js is the app's own DB bootstrapper — it creates
-  // extensions (PostGIS, btree_gist), the session table, spatial
-  // indexes, etc. We call it with DB_NAME=mmgis-test so it targets
-  // the test database.
-  try {
-    const initDbPath = resolve(process.cwd(), 'scripts/init-db.js');
-    const env = {
-      ...process.env,
-      DB_NAME: TEST_DB_NAME,
-      DB_HOST: dbHost,
-      DB_PORT: dbPort,
-      DB_USER: dbUser,
-      DB_PASS: dbPass,
-    };
-    execSync(`node "${initDbPath}"`, {
-      env,
-      cwd: process.cwd(),
-      stdio: 'pipe',
-      timeout: 30000,
-    });
-    console.log(`[global-setup] init-db.js completed for "${TEST_DB_NAME}".`);
-  } catch (err) {
-    // init-db.js may log errors for pre-existing objects but still
-    // exit 0. Only fail if the exit code is non-zero.
-    if (err.status && err.status !== 0) {
-      console.error(
-        `[global-setup] init-db.js failed (exit ${err.status}):`,
-        err.stderr?.toString() || err.message,
-      );
-      throw err;
-    }
-    // Exit code 0 or null — treat as success
-    console.log(`[global-setup] init-db.js completed for "${TEST_DB_NAME}" (with warnings).`);
-  }
-
-  // ── Run schema migrations ─────────────────────────────────────
-  // The MMGIS server uses sequelize.sync() (without alter) so new
-  // columns added to models after initial table creation are NOT
-  // applied automatically. The app has its own up() migration
-  // functions that run ALTER TABLE … ADD COLUMN IF NOT EXISTS, but
-  // some of them are async-but-not-awaited, creating a race with
-  // queries that reference the new columns (e.g. publicity_type).
-  //
-  // To keep the test DB schema in sync we run the same ALTER TABLE
-  // statements here — they are safe no-ops when the columns already
-  // exist.
+  // ── 2. Set up extensions and session table directly ─────────────
+  // We set these up directly rather than calling init-db.js because
+  // init-db.js uses Sequelize(null, ...) which defaults to a DB
+  // named after the user — that DB may not exist on a fresh system.
   const pgp2 = pgPromise();
   const testDb = pgp2({
     host: dbHost,
@@ -145,6 +106,27 @@ export default async function globalSetup() {
   });
 
   try {
+    // Extensions (same as init-db.js)
+    await testDb.none('CREATE EXTENSION IF NOT EXISTS postgis');
+    await testDb.none('CREATE EXTENSION IF NOT EXISTS btree_gist');
+    console.log(`[global-setup] Extensions ready.`);
+
+    // Session table (same as init-db.js)
+    await testDb.none(`
+      CREATE TABLE IF NOT EXISTS "session" (
+        "sid" varchar NOT NULL COLLATE "default",
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+      )
+    `);
+    await testDb.none(
+      'CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire")',
+    );
+    console.log(`[global-setup] Session table ready.`);
+
+    // ── 3. Schema migrations ────────────────────────────────────────
+    // Safe no-ops when columns already exist.
     const migrations = [
       // user_files (Draw/models/userfiles.js)
       'ALTER TABLE IF EXISTS user_files ADD COLUMN IF NOT EXISTS template json NULL',
@@ -174,11 +156,177 @@ export default async function globalSetup() {
       await testDb.none(sql);
     }
 
-    console.log(`[global-setup] Schema migrations applied — "${TEST_DB_NAME}" is ready.`);
+    console.log(`[global-setup] Schema migrations applied.`);
   } catch (err) {
-    console.error(`[global-setup] Failed to run schema migrations:`, err.message);
+    console.error(`[global-setup] DB setup failed:`, err.message);
     throw err;
   } finally {
     pgp2.end();
   }
+
+  // ── 4. Ensure Reference Mission exists ──────────────────────────
+  await ensureReferenceMission(dbHost, dbPort, dbUser, dbPass);
+
+  console.log(`[global-setup] Done — "${TEST_DB_NAME}" is ready.`);
+}
+
+// ─── Reference Mission helper ──────────────────────────────────────
+
+async function ensureReferenceMission(dbHost, dbPort, dbUser, dbPass) {
+  // Quick check: if the configs table has a Reference-Mission row,
+  // we can skip the expensive server start entirely.
+  const pgp = pgPromise();
+  const db = pgp({
+    host: dbHost,
+    port: Number(dbPort),
+    user: dbUser,
+    password: dbPass,
+    database: TEST_DB_NAME,
+  });
+
+  try {
+    const hasTable = await db.oneOrNone(
+      "SELECT 1 FROM information_schema.tables WHERE table_name = 'configs'",
+    );
+    if (hasTable) {
+      const hasMission = await db.oneOrNone(
+        "SELECT 1 FROM configs WHERE mission = 'Reference-Mission' LIMIT 1",
+      );
+      if (hasMission) {
+        console.log('[global-setup] Reference Mission already exists — skipping.');
+        return;
+      }
+    }
+  } catch {
+    // Table doesn't exist yet — we'll create the mission below.
+  } finally {
+    pgp.end();
+  }
+
+  // Start a temporary MMGIS server on SETUP_PORT to create the
+  // Reference Mission via the API.  Sequelize.sync() inside the
+  // server will also create all application tables for us.
+  console.log(
+    `[global-setup] Starting temp server on port ${SETUP_PORT} to create Reference Mission...`,
+  );
+
+  const serverEnv = {
+    ...process.env,
+    DB_NAME: TEST_DB_NAME,
+    DB_HOST: dbHost,
+    DB_PORT: dbPort,
+    DB_USER: dbUser,
+    DB_PASS: dbPass,
+    NODE_ENV: 'test',
+    PORT: String(SETUP_PORT),
+    HIDE_CONFIG: 'false',
+  };
+
+  const server = spawn('node', [resolve(process.cwd(), 'scripts/server.js')], {
+    env: serverEnv,
+    cwd: process.cwd(),
+    stdio: 'pipe',
+  });
+
+  // Capture output for debugging
+  let serverLog = '';
+  server.stdout.on('data', (d) => { serverLog += d.toString(); });
+  server.stderr.on('data', (d) => { serverLog += d.toString(); });
+
+  try {
+    // Wait for healthcheck
+    await waitForServer(
+      `http://localhost:${SETUP_PORT}/api/utils/healthcheck`,
+      90_000,
+    );
+    console.log(`[global-setup] Temp server ready.`);
+
+    const url = `http://localhost:${SETUP_PORT}`;
+    const cookieJar = '/tmp/mmgis-test-setup-cookies.txt';
+    try { if (existsSync(cookieJar)) unlinkSync(cookieJar); } catch { /* ignore */ }
+
+    // Create admin user via first_signup (safe to fail if user exists)
+    execSafe(
+      `curl -sf -X POST ${url}/api/users/first_signup`
+      + ` -H "Content-Type: application/json"`
+      + ` -d '{"username":"test_admin","password":"TestAdmin1!"}'`,
+    );
+
+    // Login as admin to get a session cookie
+    execSafe(
+      `curl -sf -c "${cookieJar}" -X POST ${url}/api/users/login`
+      + ` -H "Content-Type: application/json"`
+      + ` -d '{"username":"test_admin","password":"TestAdmin1!"}'`,
+    );
+
+    // Create Reference Mission — try with auth cookie first
+    let result = execSafe(
+      `curl -sf -b "${cookieJar}" -X POST ${url}/api/configure/add`
+      + ` -H "Content-Type: application/json"`
+      + ` -d '{"setupReferenceMission":true}'`,
+    );
+
+    // Fallback: try without auth (AUTH=off may not need cookies)
+    if (!result) {
+      result = execSafe(
+        `curl -sf -X POST ${url}/api/configure/add`
+        + ` -H "Content-Type: application/json"`
+        + ` -d '{"setupReferenceMission":true}'`,
+      );
+    }
+
+    if (result) {
+      console.log(`[global-setup] Reference Mission created: ${result.slice(0, 200)}`);
+    } else {
+      console.warn(
+        '[global-setup] Could not create Reference Mission — some UI tests may 404.',
+      );
+    }
+
+    // Clean up
+    try { if (existsSync(cookieJar)) unlinkSync(cookieJar); } catch { /* ignore */ }
+  } catch (err) {
+    console.error('[global-setup] Reference Mission setup error:', err.message);
+    if (serverLog) {
+      console.error('[global-setup] Server log (tail):', serverLog.slice(-1000));
+    }
+    // Don't throw — the tests will fail individually with clear errors
+  } finally {
+    // Kill the temp server and wait for the port to be released
+    server.kill('SIGTERM');
+    await sleep(2000);
+    try { server.kill('SIGKILL'); } catch { /* already dead */ }
+    await sleep(500);
+  }
+}
+
+// ─── Utilities ─────────────────────────────────────────────────────
+
+/** Poll a URL until it returns HTTP 200.  Throws on timeout. */
+async function waitForServer(url, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const code = execSync(
+        `curl -sf -o /dev/null -w "%{http_code}" "${url}"`,
+        { timeout: 5000, stdio: 'pipe' },
+      ).toString().trim();
+      if (code === '200') return;
+    } catch { /* not ready yet */ }
+    await sleep(1000);
+  }
+  throw new Error(`Server at ${url} did not become ready within ${timeoutMs}ms`);
+}
+
+/** execSync wrapper that returns stdout on success, null on failure. */
+function execSafe(cmd) {
+  try {
+    return execSync(cmd, { timeout: 30_000, stdio: 'pipe' }).toString().trim();
+  } catch {
+    return null;
+  }
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
 }
