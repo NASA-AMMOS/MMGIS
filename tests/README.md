@@ -35,8 +35,7 @@ tests/
 ├── pages/                      # Page Object Models
 │   ├── LayersPanelPage.js
 │   └── MissionPage.js
-├── global-setup.js             # Global setup (DB creation, server start, Reference Mission)
-├── global-teardown.js          # Global teardown (server shutdown)
+├── global-setup.js             # Global setup & teardown (DB creation, server start, Reference Mission)
 └── test-db-clean.js            # Database cleanup utility (npm run test:clean)
 ```
 
