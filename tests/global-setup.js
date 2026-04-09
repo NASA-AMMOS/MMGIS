@@ -60,11 +60,14 @@ export default async function globalSetup() {
   // Force DB_NAME to the hardcoded test database
   process.env.DB_NAME = TEST_DB_NAME;
 
+  // Single pg-promise instance — the library requires exactly one
+  // initialization per process.
+  const pgp = pgPromise();
+
   // ── Create the test database if it doesn't exist ──────────────
   // We connect to the `postgres` maintenance DB (which always exists)
   // rather than the user's default DB (which may not exist after a
   // test:clean run).
-  const pgp = pgPromise();
   const adminDb = pgp({
     host: dbHost,
     port: Number(dbPort),
@@ -89,15 +92,14 @@ export default async function globalSetup() {
     console.error(`[global-setup] Failed to create database "${TEST_DB_NAME}":`, err.message);
     throw err;
   } finally {
-    pgp.end();
+    await adminDb.$pool.end();
   }
 
   // ── 2. Set up extensions and session table directly ─────────────
   // We set these up directly rather than calling init-db.js because
   // init-db.js uses Sequelize(null, ...) which defaults to a DB
   // named after the user — that DB may not exist on a fresh system.
-  const pgp2 = pgPromise();
-  const testDb = pgp2({
+  const testDb = pgp({
     host: dbHost,
     port: Number(dbPort),
     user: dbUser,
@@ -161,21 +163,23 @@ export default async function globalSetup() {
     console.error(`[global-setup] DB setup failed:`, err.message);
     throw err;
   } finally {
-    pgp2.end();
+    await testDb.$pool.end();
   }
 
   // ── 4. Ensure Reference Mission exists ──────────────────────────
-  await ensureReferenceMission(dbHost, dbPort, dbUser, dbPass);
+  await ensureReferenceMission(pgp, dbHost, dbPort, dbUser, dbPass);
+
+  // Terminate all pg-promise connections
+  pgp.end();
 
   console.log(`[global-setup] Done — "${TEST_DB_NAME}" is ready.`);
 }
 
 // ─── Reference Mission helper ──────────────────────────────────────
 
-async function ensureReferenceMission(dbHost, dbPort, dbUser, dbPass) {
+async function ensureReferenceMission(pgp, dbHost, dbPort, dbUser, dbPass) {
   // Quick check: if the configs table has a Reference-Mission row,
   // we can skip the expensive server start entirely.
-  const pgp = pgPromise();
   const db = pgp({
     host: dbHost,
     port: Number(dbPort),
@@ -200,7 +204,7 @@ async function ensureReferenceMission(dbHost, dbPort, dbUser, dbPass) {
   } catch {
     // Table doesn't exist yet — we'll create the mission below.
   } finally {
-    pgp.end();
+    await db.$pool.end();
   }
 
   // Start a temporary MMGIS server on SETUP_PORT to create the
