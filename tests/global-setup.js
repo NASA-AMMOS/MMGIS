@@ -14,7 +14,7 @@
  * 5. Runs schema migrations (ALTER TABLE … ADD COLUMN IF NOT EXISTS)
  *    to handle columns that were added after initial table creation,
  *    preventing race conditions in the server's startup hooks.
- * 6. Sets `process.env.DB_NAME = 'mmgis_test'` so the MMGIS server
+ * 6. Sets `process.env.DB_NAME = 'mmgis-test'` so the MMGIS server
  *    (started by Playwright's `webServer` option) uses the test DB.
  */
 
@@ -91,7 +91,7 @@ export default async function globalSetup() {
   // ── Delegate to init-db.js for full DB initialisation ─────────
   // init-db.js is the app's own DB bootstrapper — it creates
   // extensions (PostGIS, btree_gist), the session table, spatial
-  // indexes, etc. We call it with DB_NAME=mmgis_test so it targets
+  // indexes, etc. We call it with DB_NAME=mmgis-test so it targets
   // the test database.
   try {
     const initDbPath = resolve(process.cwd(), 'scripts/init-db.js');
