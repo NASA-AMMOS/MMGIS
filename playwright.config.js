@@ -69,20 +69,9 @@ export default defineConfig({
     },
   ],
 
-  // Web server configuration - start MMGIS before E2E tests
-  // Note: Unit tests don't need the server running
-  // Only start server if running E2E tests
-  webServer: process.env.PLAYWRIGHT_TEST_UNIT_ONLY
-    ? undefined
-    : {
-        command: "npm run start:test",
-        url: `${
-          process.env.TEST_BASE_URL || "http://localhost:8888"
-        }/api/utils/healthcheck`,
-        timeout: 180 * 1000,
-        reuseExistingServer: !process.env.CI,
-        stdout: "pipe",
-        stderr: "pipe",
-        ignoreHTTPSErrors: true,
-      },
+  // Server lifecycle is managed by globalSetup (tests/global-setup.js).
+  // Playwright runs webServer plugins BEFORE globalSetup, which means the
+  // DB wouldn't exist yet when the server tries to connect.  By starting
+  // the server inside globalSetup we guarantee: create DB → start server
+  // → create Reference Mission → run tests → teardown kills server.
 });

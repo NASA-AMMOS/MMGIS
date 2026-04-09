@@ -60,56 +60,15 @@ jobs:
           echo "ENABLE_CONFIG_WEBSOCKETS=false" >> .env
           echo "HIDE_CONFIG=false" >> .env
 
-      - name: Initialize Database
-        run: node scripts/init-db.js
-
-      - name: Setup Reference Mission
-        env:
-          TEST_ADMIN_USER: test_admin
-          TEST_ADMIN_PASS: TestAdmin1!
-          TEST_USER_USER: test_user
-          TEST_USER_PASS: TestUser1!
-          TEST_USER_EMAIL: test_user@test.com
-        run: |
-          node scripts/server.js &
-          sleep 10
-
-          if [ "${{ matrix.auth_mode }}" = "local" ]; then
-            # Seed an admin user via first_signup (first user gets admin permission "111")
-            curl -s -X POST http://localhost:8888/api/users/first_signup \
-              -H "Content-Type: application/json" \
-              -d "{\"username\":\"${TEST_ADMIN_USER}\",\"password\":\"${TEST_ADMIN_PASS}\"}" || true
-
-            # Login as the admin to get a session cookie
-            COOKIE_JAR=$(mktemp)
-            curl -s -c "$COOKIE_JAR" -X POST http://localhost:8888/api/users/login \
-              -H "Content-Type: application/json" \
-              -d "{\"username\":\"${TEST_ADMIN_USER}\",\"password\":\"${TEST_ADMIN_PASS}\"}" || true
-
-            # Create a regular (non-admin) test_user account via signup (requires admin session)
-            curl -s -b "$COOKIE_JAR" -X POST http://localhost:8888/api/users/signup \
-              -H "Content-Type: application/json" \
-              -d "{\"username\":\"${TEST_USER_USER}\",\"password\":\"${TEST_USER_PASS}\",\"email\":\"${TEST_USER_EMAIL}\",\"skipLogin\":true}" || true
-
-            # Use authenticated session to create Reference Mission
-            curl -s -b "$COOKIE_JAR" -X POST http://localhost:8888/api/configure/add \
-              -H "Content-Type: application/json" \
-              -d '{"setupReferenceMission": true}' || true
-
-            rm -f "$COOKIE_JAR"
-          else
-            # AUTH=off — no authentication needed
-            curl -s -X POST http://localhost:8888/api/configure/add \
-              -H "Content-Type: application/json" \
-              -d '{"setupReferenceMission": true}' || true
-          fi
-
-          kill %1 || true
+      # DB creation, Reference Mission setup, and server lifecycle are all
+      # handled by tests/global-setup.js (runs before any test suite).
+      # No manual init-db / server start / curl steps needed.
 
       - name: Run Unit Tests
         run: npx playwright test tests/unit --project=chromium
         env:
           AUTH: ${{ matrix.auth_mode }}
+          PLAYWRIGHT_TEST_UNIT_ONLY: "true"
 
       - name: Run E2E API Tests
         run: npx playwright test tests/e2e/api tests/e2e/security tests/e2e/startup --project=chromium

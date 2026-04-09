@@ -1,35 +1,37 @@
 /**
  * Playwright global setup — runs once before all test suites.
  *
- * 1. Loads DB connection settings (DB_HOST, DB_PORT, DB_USER, DB_PASS)
- *    from the project `.env` file.
- * 2. **Forces DB_NAME to `mmgis-test`** — regardless of what `.env` says.
- *    This guarantees tests never touch a production database.
- * 3. Creates the `mmgis-test` database if it doesn't already exist
- *    (connects to the `postgres` maintenance DB which always exists).
- * 4. Sets up PostGIS / btree_gist extensions and the session table
- *    directly on the test database.
- * 5. Runs schema migrations (ALTER TABLE ... ADD COLUMN IF NOT EXISTS)
- *    to handle columns that were added after initial table creation,
- *    preventing race conditions in the server's startup hooks.
- * 6. Starts a temporary MMGIS server and creates the Reference Mission
- *    if it doesn't already exist — so every test suite can navigate to
- *    /?mission=Reference-Mission without hitting a 404.
- * 7. Sets `process.env.DB_NAME = 'mmgis-test'` so the MMGIS server
- *    (started by Playwright's `webServer` option) uses the test DB.
+ * IMPORTANT: Playwright runs webServer plugins BEFORE globalSetup.
+ * Therefore we manage the MMGIS server ourselves here (not via the
+ * webServer config option) so we can guarantee the database exists
+ * before the server starts.
+ *
+ * Order of operations:
+ * 1. Loads DB connection settings from `.env` (DB_HOST, DB_PORT, etc.)
+ * 2. Forces DB_NAME to `mmgis-test` — tests never touch production.
+ * 3. Creates the `mmgis-test` database if it doesn't exist
+ *    (connects to `postgres` maintenance DB which always exists).
+ * 4. Sets up PostGIS / btree_gist extensions and session table.
+ * 5. Runs schema migrations (ADD COLUMN IF NOT EXISTS).
+ * 6. Starts the MMGIS server on port 8888 (or TEST_PORT).
+ * 7. Creates admin user + Reference Mission via the API if needed.
+ * 8. Returns a teardown function that kills the server when tests end.
+ *
+ * All HTTP calls use Node's native fetch() for cross-platform support
+ * (works on Windows, Linux, macOS without requiring curl).
  */
 
 import { config } from 'dotenv';
 import { resolve } from 'path';
-import { readFileSync, existsSync, unlinkSync } from 'fs';
-import { execSync, spawn } from 'child_process';
+import { readFileSync } from 'fs';
+import { spawn } from 'child_process';
 import pgPromise from 'pg-promise';
 
 /** Hardcoded test database name — never changes. */
 const TEST_DB_NAME = 'mmgis-test';
 
-/** Port used by the temporary setup server (avoids conflicts with 8888). */
-const SETUP_PORT = 18888;
+/** Port the test server listens on. */
+const TEST_PORT = Number(process.env.TEST_PORT || 8888);
 
 /**
  * Read a value from the `.env` file by key. Returns `undefined` when
@@ -166,54 +168,41 @@ export default async function globalSetup() {
     await testDb.$pool.end();
   }
 
-  // ── 4. Ensure Reference Mission exists ──────────────────────────
-  await ensureReferenceMission(pgp, dbHost, dbPort, dbUser, dbPass);
-
-  // Terminate all pg-promise connections
-  pgp.end();
-
-  console.log(`[global-setup] Done — "${TEST_DB_NAME}" is ready.`);
-}
-
-// ─── Reference Mission helper ──────────────────────────────────────
-
-async function ensureReferenceMission(pgp, dbHost, dbPort, dbUser, dbPass) {
-  // Quick check: if the configs table has a Reference-Mission row,
-  // we can skip the expensive server start entirely.
-  const db = pgp({
+  // ── 4. Check if Reference Mission already exists ────────────────
+  let needsMission = true;
+  const checkDb = pgp({
     host: dbHost,
     port: Number(dbPort),
     user: dbUser,
     password: dbPass,
     database: TEST_DB_NAME,
   });
-
   try {
-    const hasTable = await db.oneOrNone(
+    const hasTable = await checkDb.oneOrNone(
       "SELECT 1 FROM information_schema.tables WHERE table_name = 'configs'",
     );
     if (hasTable) {
-      const hasMission = await db.oneOrNone(
+      const hasMission = await checkDb.oneOrNone(
         "SELECT 1 FROM configs WHERE mission = 'Reference-Mission' LIMIT 1",
       );
       if (hasMission) {
-        console.log('[global-setup] Reference Mission already exists — skipping.');
-        return;
+        console.log('[global-setup] Reference Mission already exists.');
+        needsMission = false;
       }
     }
   } catch {
-    // Table doesn't exist yet — we'll create the mission below.
+    // Table doesn't exist yet — will create mission below.
   } finally {
-    await db.$pool.end();
+    await checkDb.$pool.end();
   }
 
-  // Start a temporary MMGIS server on SETUP_PORT to create the
-  // Reference Mission via the API.  Sequelize.sync() inside the
-  // server will also create all application tables for us.
-  console.log(
-    `[global-setup] Starting temp server on port ${SETUP_PORT} to create Reference Mission...`,
-  );
+  // Done with pg-promise
+  pgp.end();
 
+  // ── 5. Start the MMGIS test server ──────────────────────────────
+  // We start it here (not via playwright.config.js webServer) because
+  // Playwright runs webServer plugins BEFORE globalSetup — so the DB
+  // wouldn't exist yet when the server tries to connect.
   const serverEnv = {
     ...process.env,
     DB_NAME: TEST_DB_NAME,
@@ -222,7 +211,7 @@ async function ensureReferenceMission(pgp, dbHost, dbPort, dbUser, dbPass) {
     DB_USER: dbUser,
     DB_PASS: dbPass,
     NODE_ENV: 'test',
-    PORT: String(SETUP_PORT),
+    PORT: String(TEST_PORT),
     HIDE_CONFIG: 'false',
   };
 
@@ -232,103 +221,109 @@ async function ensureReferenceMission(pgp, dbHost, dbPort, dbUser, dbPass) {
     stdio: 'pipe',
   });
 
-  // Capture output for debugging
   let serverLog = '';
-  server.stdout.on('data', (d) => { serverLog += d.toString(); });
-  server.stderr.on('data', (d) => { serverLog += d.toString(); });
+  server.stdout.on('data', (d) => {
+    const msg = d.toString();
+    serverLog += msg;
+    process.stdout.write(`[WebServer] ${msg}`);
+  });
+  server.stderr.on('data', (d) => {
+    const msg = d.toString();
+    serverLog += msg;
+    process.stderr.write(`[WebServer] ${msg}`);
+  });
 
-  try {
-    // Wait for healthcheck
-    await waitForServer(
-      `http://localhost:${SETUP_PORT}/api/utils/healthcheck`,
-      90_000,
-    );
-    console.log(`[global-setup] Temp server ready.`);
+  const baseUrl = `http://localhost:${TEST_PORT}`;
+  const healthUrl = `${baseUrl}/api/utils/healthcheck`;
 
-    const url = `http://localhost:${SETUP_PORT}`;
-    const cookieJar = '/tmp/mmgis-test-setup-cookies.txt';
-    try { if (existsSync(cookieJar)) unlinkSync(cookieJar); } catch { /* ignore */ }
+  console.log(`[global-setup] Starting MMGIS server on port ${TEST_PORT}...`);
+  await waitForServer(healthUrl, 120_000);
+  console.log(`[global-setup] Server is ready.`);
 
-    // Create admin user via first_signup (safe to fail if user exists)
-    execSafe(
-      `curl -sf -X POST ${url}/api/users/first_signup`
-      + ` -H "Content-Type: application/json"`
-      + ` -d '{"username":"test_admin","password":"TestAdmin1!"}'`,
-    );
+  // ── 6. Create Reference Mission if needed ───────────────────────
+  if (needsMission) {
+    console.log('[global-setup] Creating Reference Mission...');
+    try {
+      // Create admin user (safe to fail if already exists)
+      await fetchJSON(`${baseUrl}/api/users/first_signup`, {
+        method: 'POST',
+        body: { username: 'test_admin', password: 'TestAdmin1!' },  // pragma: allowlist secret
+      }).catch(() => {});
 
-    // Login as admin to get a session cookie
-    execSafe(
-      `curl -sf -c "${cookieJar}" -X POST ${url}/api/users/login`
-      + ` -H "Content-Type: application/json"`
-      + ` -d '{"username":"test_admin","password":"TestAdmin1!"}'`,
-    );
+      // Login to get session cookie
+      const loginRes = await fetch(`${baseUrl}/api/users/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'test_admin', password: 'TestAdmin1!' }),  // pragma: allowlist secret
+        redirect: 'manual',
+      });
+      const cookies = loginRes.headers.getSetCookie?.() || [];
+      const cookieHeader = cookies.join('; ');
 
-    // Create Reference Mission — try with auth cookie first
-    let result = execSafe(
-      `curl -sf -b "${cookieJar}" -X POST ${url}/api/configure/add`
-      + ` -H "Content-Type: application/json"`
-      + ` -d '{"setupReferenceMission":true}'`,
-    );
+      // Create Reference Mission — try with auth cookie
+      let result = await fetchJSON(`${baseUrl}/api/configure/add`, {
+        method: 'POST',
+        body: { setupReferenceMission: true },
+        cookies: cookieHeader,
+      }).catch(() => null);
 
-    // Fallback: try without auth (AUTH=off may not need cookies)
-    if (!result) {
-      result = execSafe(
-        `curl -sf -X POST ${url}/api/configure/add`
-        + ` -H "Content-Type: application/json"`
-        + ` -d '{"setupReferenceMission":true}'`,
-      );
+      // Fallback: try without auth (AUTH=off may not need cookies)
+      if (!result) {
+        result = await fetchJSON(`${baseUrl}/api/configure/add`, {
+          method: 'POST',
+          body: { setupReferenceMission: true },
+        }).catch(() => null);
+      }
+
+      if (result) {
+        console.log(`[global-setup] Reference Mission created.`);
+      } else {
+        console.warn('[global-setup] Could not create Reference Mission — UI tests may 404.');
+      }
+    } catch (err) {
+      console.error('[global-setup] Reference Mission setup error:', err.message);
     }
+  }
 
-    if (result) {
-      console.log(`[global-setup] Reference Mission created: ${result.slice(0, 200)}`);
-    } else {
-      console.warn(
-        '[global-setup] Could not create Reference Mission — some UI tests may 404.',
-      );
-    }
+  console.log(`[global-setup] Done — "${TEST_DB_NAME}" is ready, server running on port ${TEST_PORT}.`);
 
-    // Clean up
-    try { if (existsSync(cookieJar)) unlinkSync(cookieJar); } catch { /* ignore */ }
-  } catch (err) {
-    console.error('[global-setup] Reference Mission setup error:', err.message);
-    if (serverLog) {
-      console.error('[global-setup] Server log (tail):', serverLog.slice(-1000));
-    }
-    // Don't throw — the tests will fail individually with clear errors
-  } finally {
-    // Kill the temp server and wait for the port to be released
+  // Return teardown function — Playwright calls this after all tests.
+  return async () => {
+    console.log('[global-teardown] Stopping test server...');
     server.kill('SIGTERM');
     await sleep(2000);
     try { server.kill('SIGKILL'); } catch { /* already dead */ }
-    await sleep(500);
-  }
+    console.log('[global-teardown] Server stopped.');
+  };
 }
 
 // ─── Utilities ─────────────────────────────────────────────────────
 
-/** Poll a URL until it returns HTTP 200.  Throws on timeout. */
+/** Poll a URL until it returns HTTP 200. Uses native fetch(). */
 async function waitForServer(url, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try {
-      const code = execSync(
-        `curl -sf -o /dev/null -w "%{http_code}" "${url}"`,
-        { timeout: 5000, stdio: 'pipe' },
-      ).toString().trim();
-      if (code === '200') return;
+      const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      if (res.ok) return;
     } catch { /* not ready yet */ }
     await sleep(1000);
   }
   throw new Error(`Server at ${url} did not become ready within ${timeoutMs}ms`);
 }
 
-/** execSync wrapper that returns stdout on success, null on failure. */
-function execSafe(cmd) {
-  try {
-    return execSync(cmd, { timeout: 30_000, stdio: 'pipe' }).toString().trim();
-  } catch {
-    return null;
-  }
+/** POST JSON and return parsed response. Uses native fetch(). */
+async function fetchJSON(url, { method = 'GET', body, cookies } = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (cookies) headers['Cookie'] = cookies;
+  const res = await fetch(url, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(30_000),
+  });
+  const text = await res.text();
+  try { return JSON.parse(text); } catch { return text; }
 }
 
 function sleep(ms) {
