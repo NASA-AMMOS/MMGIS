@@ -268,14 +268,15 @@ export default async function globalSetup() {
       }).catch(() => null);
 
       // Fallback: try without auth (AUTH=off may not need cookies)
-      if (!result) {
+      // Check for a proper JSON success response — HTML login pages are truthy strings.
+      if (!result || typeof result !== 'object' || result.status !== 'success') {
         result = await fetchJSON(`${baseUrl}/api/configure/add`, {
           method: 'POST',
           body: { setupReferenceMission: true },
         }).catch(() => null);
       }
 
-      if (result) {
+      if (result && typeof result === 'object' && result.status === 'success') {
         console.log(`[global-setup] Reference Mission created.`);
       } else {
         console.warn('[global-setup] Could not create Reference Mission — UI tests may 404.');
