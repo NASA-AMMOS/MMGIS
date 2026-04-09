@@ -105,7 +105,48 @@ export default async function globalSetup() {
     await testDb.none(
       'CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire")',
     );
-    console.log(`[global-setup] Database "${TEST_DB_NAME}" is ready.`);
+
+    // ── Run schema migrations ─────────────────────────────────────
+    // The MMGIS server uses sequelize.sync() (without alter) so new
+    // columns added to models after initial table creation are NOT
+    // applied automatically. The app has its own up() migration
+    // functions that run ALTER TABLE … ADD COLUMN IF NOT EXISTS, but
+    // some of them are async-but-not-awaited, creating a race with
+    // queries that reference the new columns (e.g. publicity_type).
+    //
+    // To keep the test DB schema in sync we run the same ALTER TABLE
+    // statements here — they are safe no-ops when the columns already
+    // exist.
+    const migrations = [
+      // user_files (Draw/models/userfiles.js)
+      'ALTER TABLE IF EXISTS user_files ADD COLUMN IF NOT EXISTS template json NULL',
+      'ALTER TABLE IF EXISTS user_files ADD COLUMN IF NOT EXISTS publicity_type varchar(255) NULL',
+      'ALTER TABLE IF EXISTS user_files ADD COLUMN IF NOT EXISTS public_editors text[] NULL',
+      // Same columns on the test variant table
+      'ALTER TABLE IF EXISTS user_files_tests ADD COLUMN IF NOT EXISTS template json NULL',
+      'ALTER TABLE IF EXISTS user_files_tests ADD COLUMN IF NOT EXISTS publicity_type varchar(255) NULL',
+      'ALTER TABLE IF EXISTS user_files_tests ADD COLUMN IF NOT EXISTS public_editors text[] NULL',
+      // file_histories (Draw/models/filehistories.js)
+      'ALTER TABLE IF EXISTS file_histories ADD COLUMN IF NOT EXISTS author varchar(255) NULL',
+      // users (Users/models/user.js)
+      'ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS missions_managing TEXT[] NULL',
+      'ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS reset_token varchar(2048) NULL',
+      'ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS reset_token_expiration BIGINT NULL',
+      // geodatasets (Geodatasets/models/geodatasets.js)
+      'ALTER TABLE IF EXISTS geodatasets ADD COLUMN IF NOT EXISTS filename varchar(255) NULL',
+      'ALTER TABLE IF EXISTS geodatasets ADD COLUMN IF NOT EXISTS num_features INTEGER NULL',
+      'ALTER TABLE IF EXISTS geodatasets ADD COLUMN IF NOT EXISTS start_time_field varchar(255) NULL',
+      'ALTER TABLE IF EXISTS geodatasets ADD COLUMN IF NOT EXISTS end_time_field varchar(255) NULL',
+      'ALTER TABLE IF EXISTS geodatasets ADD COLUMN IF NOT EXISTS group_id_field varchar(255) NULL',
+      'ALTER TABLE IF EXISTS geodatasets ADD COLUMN IF NOT EXISTS feature_id_field varchar(255) NULL',
+      // long_term_tokens (LongTermToken/models/longtermtokens.js)
+      'ALTER TABLE IF EXISTS long_term_tokens ADD COLUMN IF NOT EXISTS created_by_user_id INTEGER NULL',
+    ];
+    for (const sql of migrations) {
+      await testDb.none(sql);
+    }
+
+    console.log(`[global-setup] Database "${TEST_DB_NAME}" is ready (schema up to date).`);
   } catch (err) {
     console.error(`[global-setup] Failed to initialise "${TEST_DB_NAME}":`, err.message);
     throw err;
