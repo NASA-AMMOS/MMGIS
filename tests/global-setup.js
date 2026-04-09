@@ -3,12 +3,12 @@
  *
  * 1. Loads DB connection settings (DB_HOST, DB_PORT, DB_USER, DB_PASS)
  *    from the project `.env` file.
- * 2. **Forces DB_NAME to `mmgis_test`** — regardless of what `.env` says.
+ * 2. **Forces DB_NAME to `mmgis-test`** — regardless of what `.env` says.
  *    This guarantees tests never touch a production database.
- * 3. Creates the `mmgis_test` database if it doesn't already exist
+ * 3. Creates the `mmgis-test` database if it doesn't already exist
  *    (connects to the `postgres` maintenance DB which always exists).
  * 4. Delegates to `scripts/init-db.js` (the app's own DB initialiser)
- *    with DB_NAME=mmgis_test to set up extensions, session table,
+ *    with DB_NAME=mmgis-test to set up extensions, session table,
  *    spatial indexes, etc. — keeping init-db.js as the single source
  *    of truth for DB bootstrapping.
  * 5. Runs schema migrations (ALTER TABLE … ADD COLUMN IF NOT EXISTS)
@@ -25,7 +25,7 @@ import { execSync } from 'child_process';
 import pgPromise from 'pg-promise';
 
 /** Hardcoded test database name — never changes. */
-const TEST_DB_NAME = 'mmgis_test';
+const TEST_DB_NAME = 'mmgis-test';
 
 /**
  * Read a value from the `.env` file by key. Returns `undefined` when

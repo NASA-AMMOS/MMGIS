@@ -18,7 +18,7 @@ jobs:
       postgres:
         image: postgis/postgis:13-3.1
         env:
-          POSTGRES_DB: mmgis_test
+          POSTGRES_DB: mmgis-test
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
         ports:
@@ -53,7 +53,7 @@ jobs:
           echo "AUTH=${{ matrix.auth_mode }}" >> .env
           echo "DB_HOST=localhost" >> .env
           echo "DB_PORT=5432" >> .env
-          echo "DB_NAME=mmgis_test" >> .env
+          echo "DB_NAME=mmgis-test" >> .env
           echo "DB_USER=test_user" >> .env
           echo "DB_PASS=test_password" >> .env
           echo "ENABLE_MMGIS_WEBSOCKETS=false" >> .env

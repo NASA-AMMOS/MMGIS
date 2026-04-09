@@ -1,11 +1,11 @@
 /**
- * Drop the `mmgis_test` database.
+ * Drop the `mmgis-test` database.
  *
  * Usage:  npm run test:clean
  *
  * Reads DB_HOST / DB_PORT / DB_USER / DB_PASS from the project `.env`
  * (or falls back to sensible defaults) and drops the hardcoded
- * `mmgis_test` database. Safe to run at any time — only ever touches
+ * `mmgis-test` database. Safe to run at any time — only ever touches
  * the test database.
  */
 
@@ -14,7 +14,7 @@ import { resolve } from 'path';
 import { readFileSync } from 'fs';
 import pgPromise from 'pg-promise';
 
-const TEST_DB_NAME = 'mmgis_test';
+const TEST_DB_NAME = 'mmgis-test';
 
 function readDotenvValue(key) {
   try {
