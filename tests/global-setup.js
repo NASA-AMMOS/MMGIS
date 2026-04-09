@@ -221,16 +221,11 @@ export default async function globalSetup() {
     stdio: 'pipe',
   });
 
-  let serverLog = '';
   server.stdout.on('data', (d) => {
-    const msg = d.toString();
-    serverLog += msg;
-    process.stdout.write(`[WebServer] ${msg}`);
+    process.stdout.write(`[WebServer] ${d.toString()}`);
   });
   server.stderr.on('data', (d) => {
-    const msg = d.toString();
-    serverLog += msg;
-    process.stderr.write(`[WebServer] ${msg}`);
+    process.stderr.write(`[WebServer] ${d.toString()}`);
   });
 
   const baseUrl = `http://localhost:${TEST_PORT}`;
