@@ -257,4 +257,76 @@ test.describe('Draw API', () => {
       expect(['success', 'failure']).toContain(body.status);
     }
   });
+
+  test.describe('Filter injection tests', () => {
+
+    test('handles SQL injection in filter field name', async ({ request }) => {
+      const response = await request.post('/api/files/getfile', {
+        data: {
+          id: 1,
+          test: 'false',
+          filters: "'; DROP TABLE user_features; --+=+string+test",
+        },
+      });
+      // Should return 400 (invalid field name) or non-500
+      expect(response.status()).toBeLessThan(500);
+    });
+
+    test('handles SQL injection in filter value', async ({ request }) => {
+      const response = await request.post('/api/files/getfile', {
+        data: {
+          id: 1,
+          test: 'false',
+          filters: "name+=+string+'; DROP TABLE user_features; --",
+        },
+      });
+      expect(response.status()).toBeLessThan(500);
+    });
+
+    test('handles SQL injection in geometry.type filter value', async ({ request }) => {
+      const response = await request.post('/api/files/getfile', {
+        data: {
+          id: 1,
+          test: 'false',
+          filters: "geometry.type+=+string+Point'; DROP TABLE user_features; --",
+        },
+      });
+      expect(response.status()).toBeLessThan(500);
+    });
+
+    test('handles SQL injection in sortBy parameter', async ({ request }) => {
+      const response = await request.post('/api/files/getfile', {
+        data: {
+          id: 1,
+          test: 'false',
+          sortBy: "'; DROP TABLE user_features; --",
+          sortOrder: 'asc',
+        },
+      });
+      expect(response.status()).toBeLessThan(500);
+    });
+
+    test('handles malformed filter string gracefully', async ({ request }) => {
+      const response = await request.post('/api/files/getfile', {
+        data: {
+          id: 1,
+          test: 'false',
+          filters: "not_a_valid_filter",
+        },
+      });
+      expect(response.status()).toBeLessThan(500);
+    });
+
+    test('handles UNION SELECT injection in filter value', async ({ request }) => {
+      const response = await request.post('/api/files/getfile', {
+        data: {
+          id: 1,
+          test: 'false',
+          filters: "name+=+string+' UNION SELECT * FROM pg_tables--",
+        },
+      });
+      expect(response.status()).toBeLessThan(500);
+    });
+
+  });
 });
