@@ -156,4 +156,51 @@ test.describe('SQL Injection Protection — Draw/Files filters', () => {
     });
     expect(response.status()).not.toBe(500);
   });
+
+  // Reuse the same SQL payloads from the main describe block for draw getfile tests
+  const sqlPayloads = [
+    "'; DROP TABLE users; --",
+    "1 OR 1=1",
+    "1' UNION SELECT * FROM users--",
+    "admin'--",
+  ];
+
+  for (const payload of sqlPayloads) {
+    test(`rejects SQL injection in draw getfile filter field: ${payload.substring(0, 25)}...`, async ({ request }) => {
+      const response = await request.post(`${baseURL}/api/files/getfile`, {
+        data: {
+          id: 1,
+          test: 'false',
+          filters: `${payload}+=+string+testvalue`,
+        },
+      });
+      expect(response.status()).not.toBe(500);
+    });
+  }
+
+  for (const payload of sqlPayloads) {
+    test(`rejects SQL injection in draw getfile filter value: ${payload.substring(0, 25)}...`, async ({ request }) => {
+      const response = await request.post(`${baseURL}/api/files/getfile`, {
+        data: {
+          id: 1,
+          test: 'false',
+          filters: `name+=+string+${payload}`,
+        },
+      });
+      expect(response.status()).not.toBe(500);
+    });
+  }
+
+  for (const payload of sqlPayloads) {
+    test(`rejects SQL injection in draw getfile geometry.type filter: ${payload.substring(0, 25)}...`, async ({ request }) => {
+      const response = await request.post(`${baseURL}/api/files/getfile`, {
+        data: {
+          id: 1,
+          test: 'false',
+          filters: `geometry.type+=+string+${payload}`,
+        },
+      });
+      expect(response.status()).not.toBe(500);
+    });
+  }
 });
