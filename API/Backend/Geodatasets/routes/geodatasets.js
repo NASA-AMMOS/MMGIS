@@ -107,7 +107,7 @@ function get(reqtype, req, res, next) {
 
   //First Find the table name
   Geodatasets.findOne({ where: { name: layer } })
-    .then((result) => {
+    .then(async (result) => {
       if (result) {
         let table = result.dataValues.table;
         if (type === "geojson") {
@@ -201,6 +201,19 @@ function get(reqtype, req, res, next) {
               req.query.startProp || startProp
             );
             endProp = Utils.forceAlphaNumUnder(req.query.endProp || endProp);
+
+            // Validate against dynamically queried column names
+            try {
+              const tableColumns = await sequelize.getQueryInterface().describeTable(Utils.forceAlphaNumUnder(table));
+              const allowedColumns = Object.keys(tableColumns);
+              if (!allowedColumns.includes(startProp)) startProp = 'start_time';
+              if (!allowedColumns.includes(endProp)) endProp = 'end_time';
+            } catch (_e) {
+              // If describeTable fails, fall back to defaults
+              startProp = 'start_time';
+              endProp = 'end_time';
+            }
+
             // prettier-ignore
             t += [
               `((`,
@@ -229,9 +242,7 @@ function get(reqtype, req, res, next) {
           }
 
           const replacements = {
-            startProp: startProp,
             start_time: start_time,
-            endProp: endProp,
             end_time: end_time,
             get_group_id: get_group_id,
             get_id: get_id,
