@@ -601,7 +601,7 @@ router.post("/intersect", function (req, res, next) {
 
   //First Find the table name
   Geodatasets.findOne({ where: { name: layer } })
-    .then((result) => {
+    .then(async (result) => {
       if (result) {
         let table = result.dataValues.table;
 
@@ -649,6 +649,18 @@ router.post("/intersect", function (req, res, next) {
 
           startProp = Utils.forceAlphaNumUnder(req.body.startProp || startProp);
           endProp = Utils.forceAlphaNumUnder(req.body.endProp || endProp);
+
+          // Validate against dynamically queried column names
+          try {
+            const tableColumns = await sequelize.getQueryInterface().describeTable(Utils.forceAlphaNumUnder(table));
+            const allowedColumns = Object.keys(tableColumns);
+            if (!allowedColumns.includes(startProp)) startProp = 'start_time';
+            if (!allowedColumns.includes(endProp)) endProp = 'end_time';
+          } catch (_e) {
+            // If describeTable fails, fall back to defaults
+            startProp = 'start_time';
+            endProp = 'end_time';
+          }
           // prettier-ignore
           t += [
               `((`,
@@ -671,9 +683,7 @@ router.post("/intersect", function (req, res, next) {
             typeof req.body.intersect === "string"
               ? req.body.intersect
               : JSON.stringify(req.body.intersect),
-          startProp: startProp,
           start_time: start_time,
-          endProp: endProp,
           end_time: end_time,
         };
 
@@ -744,7 +754,7 @@ req.query.endtime
 router.get("/aggregations", function (req, res, next) {
   //First Find the table name
   Geodatasets.findOne({ where: { name: req.query.layer } })
-    .then((result) => {
+    .then(async (result) => {
       if (result) {
         let table = result.dataValues.table;
         let q = `SELECT properties FROM ${Utils.forceAlphaNumUnder(table)}`;
@@ -798,6 +808,18 @@ router.get("/aggregations", function (req, res, next) {
             req.query.startProp || startProp
           );
           endProp = Utils.forceAlphaNumUnder(req.query.endProp || endProp);
+
+          // Validate against dynamically queried column names
+          try {
+            const tableColumns = await sequelize.getQueryInterface().describeTable(Utils.forceAlphaNumUnder(table));
+            const allowedColumns = Object.keys(tableColumns);
+            if (!allowedColumns.includes(startProp)) startProp = 'start_time';
+            if (!allowedColumns.includes(endProp)) endProp = 'end_time';
+          } catch (_e) {
+            // If describeTable fails, fall back to defaults
+            startProp = 'start_time';
+            endProp = 'end_time';
+          }
           // prettier-ignore
           t += [
             `((`,
@@ -821,9 +843,7 @@ router.get("/aggregations", function (req, res, next) {
           .query(q, {
             replacements: {
               limit: req.query.limit != null ? parseInt(req.query.limit) : 500,
-              startProp: startProp,
               start_time: start_time,
-              endProp: endProp,
               end_time: end_time,
             },
           })
