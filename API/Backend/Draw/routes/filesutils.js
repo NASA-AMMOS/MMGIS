@@ -355,23 +355,26 @@ function getfile(req, res, next) {
 
                     // Special handling for geometry.type (derived field, not a property)
                     if (propKey === 'geometry.type') {
-                      // PostGIS returns geometry types prefixed with 'ST_' (e.g., 'ST_Point')
-                      const geomTypeValue = `ST_${value}`;
-
                       if (sqlOp === '=') {
-                        condition = `ST_GeometryType(geom) = '${geomTypeValue}'`;
+                        const placeholderKey = `filter_geomtype_${idx}`;
+                        replacements[placeholderKey] = `ST_${value}`;
+                        condition = `ST_GeometryType(geom) = :${placeholderKey}`;
                       } else if (sqlOp === '!=') {
-                        condition = `ST_GeometryType(geom) != '${geomTypeValue}'`;
+                        const placeholderKey = `filter_geomtype_${idx}`;
+                        replacements[placeholderKey] = `ST_${value}`;
+                        condition = `ST_GeometryType(geom) != :${placeholderKey}`;
                       } else if (sqlOp === 'IN') {
-                        const values = sqlValue.map(v => `'ST_${v.trim()}'`).join(',');
-                        condition = `ST_GeometryType(geom) IN (${values})`;
+                        const placeholderKey = `filter_geomtype_${idx}`;
+                        replacements[placeholderKey] = sqlValue.map(v => `ST_${v.trim()}`);
+                        condition = `ST_GeometryType(geom) IN (:${placeholderKey})`;
                       }
                     } else {
                       // Regular property access
                       // NOTE: properties is double-encoded JSON (stored as JSON string, not JSON object)
-                      // Escape single quotes to prevent SQL injection
-                      const escapedPropKey = propKey.replace(/'/g, "''");
-                      const propAccess = `((properties#>>'{}')::json->>'${escapedPropKey}')`;
+                      // Use Sequelize replacement parameter to prevent SQL injection
+                      const keyPlaceholder = `filter_key_${idx}`;
+                      replacements[keyPlaceholder] = propKey;
+                      const propAccess = `((properties#>>'{}')::json->>:${keyPlaceholder})`;
 
                       // Cast to appropriate type if needed
                       const castPropAccess = filter.type === 'number'
@@ -460,7 +463,8 @@ function getfile(req, res, next) {
 
                 if (!isNaN(start) && !isNaN(end)) {
                   // Filter features that have time property in range OR no time property
-                  whereClause += " AND ((properties->>'" + timeProp + "') IS NULL OR (properties->>'" + timeProp + "')::bigint BETWEEN :startTime AND :endTime)";
+                  replacements.timeProp = timeProp;
+                  whereClause += " AND ((properties->>:timeProp) IS NULL OR (properties->>:timeProp)::bigint BETWEEN :startTime AND :endTime)";
                   replacements.startTime = start;
                   replacements.endTime = end;
                   hasTemporalFilter = true;
