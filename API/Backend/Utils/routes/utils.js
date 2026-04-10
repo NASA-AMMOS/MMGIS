@@ -115,7 +115,7 @@ function queryTilesetTimesDir(req, res) {
   }
 
   if (decodedUrl.indexOf("_time_") > -1) {
-    const urlSplit = decodedUrl.split("_time_");
+    const resolvedSplit = resolvedPath.split("_time_");
     const relUrlSplit = relUrl.split("_time_");
 
     if (dirStore[relUrlSplit[0]] == null) {
@@ -126,7 +126,7 @@ function queryTilesetTimesDir(req, res) {
     }
     if (Date.now() - dirStore[relUrlSplit[0]].lastUpdated > DIR_STORE_MAX_AGE) {
       fs.readdir(
-        path.join(rootDir, urlSplit[0]),
+        resolvedSplit[0],
         { withFileTypes: true },
         (error, files) => {
           if (!error) {
