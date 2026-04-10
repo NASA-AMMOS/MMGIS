@@ -15,24 +15,24 @@ process.on("unhandledRejection", (err) => {
 require("../configuration/env");
 
 const path = require("path");
-const chalk = require("react-dev-utils/chalk");
+const chalk = require("chalk");
 const fs = require("fs-extra");
 const webpack = require("webpack");
 const html2pug = require("html2pug");
 const configFactory = require("../configuration/webpack.config");
 const paths = require("../configuration/paths");
-const checkRequiredFiles = require("react-dev-utils/checkRequiredFiles");
-const formatWebpackMessages = require("react-dev-utils/formatWebpackMessages");
-const printHostingInstructions = require("react-dev-utils/printHostingInstructions");
-const FileSizeReporter = require("react-dev-utils/FileSizeReporter");
-const printBuildError = require("react-dev-utils/printBuildError");
+const {
+  formatWebpackMessages,
+  printBuildError,
+  FileSizeReporter,
+  checkBrowsers,
+} = require("../configuration/build-utils");
 
 const { updateTools, updateComponents } = require("../API/updateTools");
 
 const measureFileSizesBeforeBuild =
   FileSizeReporter.measureFileSizesBeforeBuild;
 const printFileSizesAfterBuild = FileSizeReporter.printFileSizesAfterBuild;
-const useYarn = fs.existsSync(paths.yarnLockFile);
 
 // These sizes are pretty large. We'll warn for bundles exceeding them.
 const WARN_AFTER_BUNDLE_GZIP_SIZE = 512 * 1024;
@@ -41,7 +41,10 @@ const WARN_AFTER_CHUNK_GZIP_SIZE = 1024 * 1024;
 const isInteractive = process.stdout.isTTY;
 
 // Warn and crash if required files are missing
-if (!checkRequiredFiles([paths.appHtml, paths.appIndexJs])) {
+if (!fs.existsSync(paths.appHtml) || !fs.existsSync(paths.appIndexJs)) {
+  console.log(chalk.red("Could not find one of the required files:"));
+  console.log(chalk.red("  " + paths.appHtml));
+  console.log(chalk.red("  " + paths.appIndexJs));
   process.exit(1);
 }
 
@@ -50,7 +53,6 @@ const config = configFactory("production");
 
 // We require that you explicitly set browsers and do not fall back to
 // browserslist defaults.
-const { checkBrowsers } = require("react-dev-utils/browsersHelper");
 
 // Attach any tool plugins to the application
 console.log(chalk.cyan("Updating Tools...\n"));
@@ -103,9 +105,6 @@ checkBrowsers(paths.appPath, isInteractive)
         WARN_AFTER_CHUNK_GZIP_SIZE
       );
 
-      const appPackage = require(paths.appPackageJson);
-      const publicUrl = paths.publicUrlOrPath;
-      const publicPath = config.output.publicPath;
       const buildFolder = path.relative(process.cwd(), paths.appBuild);
 
       // Make a pug copy of index.html too
@@ -121,13 +120,7 @@ checkBrowsers(paths.appPath, isInteractive)
         )
       );
 
-      printHostingInstructions(
-        appPackage,
-        publicUrl,
-        publicPath,
-        buildFolder,
-        useYarn
-      );
+      console.log(chalk.green(`Build output is in ${buildFolder}\n`));
     },
     (err) => {
       const tscCompileOnError = process.env.TSC_COMPILE_ON_ERROR === "true";

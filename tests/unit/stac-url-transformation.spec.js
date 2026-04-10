@@ -18,7 +18,7 @@ import { transformStacUrl, parseExternalStacUrl } from '../../src/essence/Basics
 test.describe('STAC URL Transformation Logic', () => {
     // Mock location object for tests
     const mockLocation = {
-        origin: 'http://localhost:8888',
+        origin: 'http://localhost:18888',
         pathname: '/MMGIS'
     };
 
@@ -34,7 +34,7 @@ test.describe('STAC URL Transformation Logic', () => {
         const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         expect(result).toContain(
-            'http://localhost:8888/MMGIS/titilerpgstac/collections/swot_freeboard_monthly_10km'
+            'http://localhost:18888/MMGIS/titilerpgstac/collections/swot_freeboard_monthly_10km'
         );
         expect(result).toContain('/tiles/WebMercatorQuad/{z}/{x}/{y}');
         expect(result).toContain('?assets=asset');
@@ -53,7 +53,7 @@ test.describe('STAC URL Transformation Logic', () => {
         const result = transformStacUrl(url, layerData, 'tile', mockLocation);
 
         expect(result).toContain(
-            'http://localhost:8888/MMGIS/titilerpgstac/collections/swot_freeboard_monthly_10km'
+            'http://localhost:18888/MMGIS/titilerpgstac/collections/swot_freeboard_monthly_10km'
         );
         expect(result).toContain('/tiles/WebMercatorQuad/{z}/{x}/{y}');
         // Note: datetime parameter is typically handled by TimeControl, not in URL transformation
@@ -130,7 +130,7 @@ test.describe('STAC URL Transformation Logic', () => {
         const result = transformStacUrl(url, layerData, 'image', mockLocation);
 
         expect(result).toContain(
-            'http://localhost:8888/MMGIS/titilerpgstac/collections/test_collection'
+            'http://localhost:18888/MMGIS/titilerpgstac/collections/test_collection'
         );
         expect(result).toContain('/preview?assets=asset');
     });
@@ -158,7 +158,7 @@ test.describe('STAC URL Transformation Logic', () => {
         const result = transformStacUrl(url, null, 'tile', mockLocation);
 
         expect(result).toContain(
-            'http://localhost:8888/MMGIS/titilerpgstac/collections/test_collection'
+            'http://localhost:18888/MMGIS/titilerpgstac/collections/test_collection'
         );
         expect(result).toContain('/tiles/WebMercatorQuad/{z}/{x}/{y}');
     });

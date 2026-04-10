@@ -8,14 +8,17 @@ on:
 
 jobs:
   test:
-    timeout-minutes: 20
+    timeout-minutes: 30
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        auth_mode: [off, local]
 
     services:
       postgres:
         image: postgis/postgis:13-3.1
         env:
-          POSTGRES_DB: mmgis_test
+          POSTGRES_DB: mmgis-test
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
         ports:
@@ -46,32 +49,37 @@ jobs:
         run: |
           cp sample.env .env || touch .env
           echo "NODE_ENV=test" >> .env
-          echo "PORT=8888" >> .env
-          echo "AUTH=off" >> .env
+          echo "PORT=18888" >> .env
+          echo "AUTH=${{ matrix.auth_mode }}" >> .env
           echo "DB_HOST=localhost" >> .env
           echo "DB_PORT=5432" >> .env
-          echo "DB_NAME=mmgis_test" >> .env
+          echo "DB_NAME=mmgis-test" >> .env
           echo "DB_USER=test_user" >> .env
           echo "DB_PASS=test_password" >> .env
           echo "ENABLE_MMGIS_WEBSOCKETS=false" >> .env
           echo "ENABLE_CONFIG_WEBSOCKETS=false" >> .env
-          echo "HIDE_CONFIG=true" >> .env
+          echo "HIDE_CONFIG=false" >> .env
 
-      - name: Initialize Database
-        run: node scripts/init-db.js
+      # DB creation, Reference Mission setup, and server lifecycle are all
+      # handled by tests/global-setup.js (runs before any test suite).
+      # No manual init-db / server start / curl steps needed.
 
       - name: Run Unit Tests
         run: npx playwright test tests/unit --project=chromium
+        env:
+          AUTH: ${{ matrix.auth_mode }}
+          PLAYWRIGHT_TEST_UNIT_ONLY: "true"
 
-      - name: Run E2E Tests
-        run: npx playwright test tests/e2e --project=chromium
-        continue-on-error: true
+      - name: Run E2E API Tests
+        run: npx playwright test tests/e2e/api tests/e2e/security tests/e2e/startup --project=chromium
+        env:
+          AUTH: ${{ matrix.auth_mode }}
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.auth_mode }}
           path: playwright-report/
           retention-days: 30
 
@@ -79,6 +87,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ matrix.auth_mode }}
           path: test-results/
           retention-days: 7

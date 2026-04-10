@@ -205,14 +205,14 @@ function get(reqtype, req, res, next) {
             t += [
               `((`,
                 `${startProp} IS NOT NULL AND ${endProp} IS NOT NULL AND`, 
-                  ` ${startProp} >= ${start_time}`,
-                  ` AND ${endProp} <= ${end_time}`,
+                  ` ${startProp} >= :start_time`,
+                  ` AND ${endProp} <= :end_time`,
               `)`,
               ` OR `,
               `(`,
                 `${startProp} IS NULL AND ${endProp} IS NOT NULL AND`,
-                  ` ${endProp} >= ${start_time}`,
-                  ` AND ${endProp} <= ${end_time}`,
+                  ` ${endProp} >= :start_time`,
+                  ` AND ${endProp} <= :end_time`,
               `))`
           ].join('')
             q += t;
@@ -653,14 +653,14 @@ router.post("/intersect", function (req, res, next) {
           t += [
               `((`,
                 `${startProp} IS NOT NULL AND ${endProp} IS NOT NULL AND`, 
-                  ` ${startProp} >= ${start_time}`,
-                  ` AND ${endProp} <= ${end_time}`,
+                  ` ${startProp} >= :start_time`,
+                  ` AND ${endProp} <= :end_time`,
               `)`,
               ` OR `,
               `(`,
                 `${startProp} IS NULL AND ${endProp} IS NOT NULL AND`,
-                  ` ${endProp} >= ${start_time}`,
-                  ` AND ${endProp} <= ${end_time}`,
+                  ` ${endProp} >= :start_time`,
+                  ` AND ${endProp} <= :end_time`,
               `))`
           ].join('')
           q += t;
@@ -800,17 +800,17 @@ router.get("/aggregations", function (req, res, next) {
           endProp = Utils.forceAlphaNumUnder(req.query.endProp || endProp);
           // prettier-ignore
           t += [
-            `(`,
+            `((`,
               `${startProp} IS NOT NULL AND ${endProp} IS NOT NULL AND`, 
-                ` ${startProp} >= ${start_time}`,
-                ` AND ${endProp} <= ${end_time}`,
+                ` ${startProp} >= :start_time`,
+                ` AND ${endProp} <= :end_time`,
             `)`,
             ` OR `,
             `(`,
               `${startProp} IS NULL AND ${endProp} IS NOT NULL AND`,
-                ` ${endProp} >= ${start_time}`,
-                ` AND ${endProp} <= ${end_time}`,
-            `)`
+                ` ${endProp} >= :start_time`,
+                ` AND ${endProp} <= :end_time`,
+            `))`
         ].join('')
           q += t;
         }
