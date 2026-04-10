@@ -70,6 +70,44 @@ test.describe('Geodatasets API', () => {
 
   });
 
+  test.describe('POST /api/geodatasets/intersect - SQL injection', () => {
+
+    test('handles malicious startProp/endProp in intersect without server error', async ({ request }) => {
+      const response = await request.post('/api/geodatasets/intersect', {
+        data: {
+          layer: 'test_geodataset',
+          intersect: JSON.stringify({
+            type: 'Polygon',
+            coordinates: [[[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]],
+          }),
+          starttime: '2024-01-01T00:00:00Z',
+          endtime: '2024-12-31T23:59:59Z',
+          startProp: "'; DROP TABLE geodatasets; --",
+          endProp: "end_time OR 1=1; --",
+        },
+      });
+      expect(response.status()).toBeLessThan(500);
+    });
+
+  });
+
+  test.describe('GET /api/geodatasets/aggregations - SQL injection', () => {
+
+    test('handles malicious startProp/endProp in aggregations without server error', async ({ request }) => {
+      const response = await request.get('/api/geodatasets/aggregations', {
+        params: {
+          layer: 'test_geodataset',
+          starttime: '2024-01-01T00:00:00Z',
+          endtime: '2024-12-31T23:59:59Z',
+          startProp: "'; DROP TABLE geodatasets; --",
+          endProp: "end_time OR 1=1; --",
+        },
+      });
+      expect(response.status()).toBeLessThan(500);
+    });
+
+  });
+
   test.describe('GET /api/geodatasets/get', () => {
 
     test('returns a valid response with time filter parameters', async ({ request }) => {
@@ -84,6 +122,23 @@ test.describe('Geodatasets API', () => {
       expect(response.status()).toBeLessThan(500);
       const body = await response.json();
       expect(body).toHaveProperty('status');
+    });
+
+  });
+
+  test.describe('GET /api/geodatasets/get - SQL injection', () => {
+
+    test('handles malicious startProp/endProp in get without server error', async ({ request }) => {
+      const response = await request.get('/api/geodatasets/get', {
+        params: {
+          layer: 'test_geodataset',
+          starttime: '2024-01-01T00:00:00Z',
+          endtime: '2024-12-31T23:59:59Z',
+          startProp: "'; DROP TABLE geodatasets; --",
+          endProp: "end_time OR 1=1; --",
+        },
+      });
+      expect(response.status()).toBeLessThan(500);
     });
 
   });

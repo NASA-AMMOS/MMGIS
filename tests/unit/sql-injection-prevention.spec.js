@@ -77,6 +77,55 @@ test.describe('SQL Injection Prevention', () => {
         expect(item).not.toContain("-");
       });
     });
+
+    test('strips SQL keywords embedded in special characters', () => {
+      // forceAlphaNumUnder strips special chars but preserves alphanumeric
+      const result = forceAlphaNumUnder("DROP;TABLE--users");
+      expect(result).not.toContain(";");
+      expect(result).not.toContain("-");
+      // The alphanumeric parts remain concatenated
+      expect(result).toBe('DROPTABLEusers');
+    });
+
+    test('sanitizes strings like "start_time OR 1=1" by stripping spaces and equals', () => {
+      const result = forceAlphaNumUnder('start_time OR 1=1');
+      // Spaces and = are stripped, leaving alphanumeric + underscore
+      expect(result).toBe('start_timeOR11');
+      expect(result).not.toContain(' ');
+      expect(result).not.toContain('=');
+    });
+
+    test('strips backticks used in SQL injection', () => {
+      const result = forceAlphaNumUnder('`col`; DROP TABLE--');
+      expect(result).not.toContain('`');
+      expect(result).not.toContain(';');
+      expect(result).not.toContain('-');
+    });
+
+    test('strips curly braces and brackets', () => {
+      const result = forceAlphaNumUnder('col{0}[1]');
+      expect(result).not.toContain('{');
+      expect(result).not.toContain('}');
+      expect(result).not.toContain('[');
+      expect(result).not.toContain(']');
+    });
+
+    test('handles complex injection payloads', () => {
+      const payload = "1' OR '1'='1' UNION SELECT * FROM information_schema.tables--";
+      const result = forceAlphaNumUnder(payload);
+      expect(result).not.toContain("'");
+      expect(result).not.toContain('=');
+      expect(result).not.toContain('-');
+      expect(result).not.toContain('*');
+      expect(result).not.toContain(' ');
+    });
+
+    test('preserves underscores in column-like names after sanitization', () => {
+      expect(forceAlphaNumUnder('start_time')).toBe('start_time');
+      expect(forceAlphaNumUnder('end_time')).toBe('end_time');
+      expect(forceAlphaNumUnder('created_at')).toBe('created_at');
+      expect(forceAlphaNumUnder('my_col_123')).toBe('my_col_123');
+    });
   });
 
   test.describe('Filter field name validation regex', () => {
