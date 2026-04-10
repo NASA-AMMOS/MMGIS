@@ -226,6 +226,10 @@ function get(reqtype, req, res, next) {
                 `${startProp} IS NULL AND ${endProp} IS NOT NULL AND`,
                   ` ${endProp} >= :start_time`,
                   ` AND ${endProp} <= :end_time`,
+              `)`,
+              ` OR `,
+              `(`,
+                `${startProp} IS NULL AND ${endProp} IS NULL`,
               `))`
           ].join('')
             q += t;
@@ -684,6 +688,10 @@ router.post("/intersect", function (req, res, next) {
                 `${startProp} IS NULL AND ${endProp} IS NOT NULL AND`,
                   ` ${endProp} >= :start_time`,
                   ` AND ${endProp} <= :end_time`,
+              `)`,
+              ` OR `,
+              `(`,
+                `${startProp} IS NULL AND ${endProp} IS NULL`,
               `))`
           ].join('')
           q += t;
@@ -843,6 +851,10 @@ router.get("/aggregations", function (req, res, next) {
               `${startProp} IS NULL AND ${endProp} IS NOT NULL AND`,
                 ` ${endProp} >= :start_time`,
                 ` AND ${endProp} <= :end_time`,
+            `)`,
+            ` OR `,
+            `(`,
+              `${startProp} IS NULL AND ${endProp} IS NULL`,
             `))`
         ].join('')
           q += t;
