@@ -78,4 +78,28 @@ test.describe('SQL Injection Prevention', () => {
       });
     });
   });
+
+  test.describe('Filter field name validation regex', () => {
+    const fieldNameRegex = /^[a-zA-Z0-9 _\-\.]+$/;
+
+    test('accepts valid field names', () => {
+      expect(fieldNameRegex.test('name')).toBe(true);
+      expect(fieldNameRegex.test('geometry.type')).toBe(true);
+      expect(fieldNameRegex.test('my_field')).toBe(true);
+      expect(fieldNameRegex.test('field-name')).toBe(true);
+      expect(fieldNameRegex.test('field 1')).toBe(true);
+    });
+
+    test('rejects SQL injection in field names', () => {
+      expect(fieldNameRegex.test("'; DROP TABLE users; --")).toBe(false);
+      expect(fieldNameRegex.test("name' OR '1'='1")).toBe(false);
+      expect(fieldNameRegex.test("col; DELETE FROM")).toBe(false);
+      expect(fieldNameRegex.test("a=b")).toBe(false);
+      expect(fieldNameRegex.test("a(b)")).toBe(false);
+    });
+
+    test('rejects empty string', () => {
+      expect(fieldNameRegex.test('')).toBe(false);
+    });
+  });
 });

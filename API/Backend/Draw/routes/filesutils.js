@@ -243,7 +243,7 @@ function getfile(req, res, next) {
                           key: fieldName.trim(),  // Preserve spaces, just trim whitespace
                           op: fSplit[1] === 'in' ? ',' : fSplit[1],
                           type: fSplit[2],
-                          value: fSplit[3].replaceAll('$', ',').replaceAll("'", "''")
+                          value: fSplit[3].replaceAll('$', ',')
                         });
                       }
                     }
@@ -355,26 +355,24 @@ function getfile(req, res, next) {
 
                     // Special handling for geometry.type (derived field, not a property)
                     if (propKey === 'geometry.type') {
+                      const geomTypePlaceholder = `geom_type_${idx}`;
                       if (sqlOp === '=') {
-                        const placeholderKey = `filter_geomtype_${idx}`;
-                        replacements[placeholderKey] = `ST_${value}`;
-                        condition = `ST_GeometryType(geom) = :${placeholderKey}`;
+                        replacements[geomTypePlaceholder] = `ST_${value}`;
+                        condition = `ST_GeometryType(geom) = :${geomTypePlaceholder}`;
                       } else if (sqlOp === '!=') {
-                        const placeholderKey = `filter_geomtype_${idx}`;
-                        replacements[placeholderKey] = `ST_${value}`;
-                        condition = `ST_GeometryType(geom) != :${placeholderKey}`;
+                        replacements[geomTypePlaceholder] = `ST_${value}`;
+                        condition = `ST_GeometryType(geom) != :${geomTypePlaceholder}`;
                       } else if (sqlOp === 'IN') {
-                        const placeholderKey = `filter_geomtype_${idx}`;
-                        replacements[placeholderKey] = sqlValue.map(v => `ST_${v.trim()}`);
-                        condition = `ST_GeometryType(geom) IN (:${placeholderKey})`;
+                        replacements[geomTypePlaceholder] = sqlValue.map(v => `ST_${v.trim()}`);
+                        condition = `ST_GeometryType(geom) IN (:${geomTypePlaceholder})`;
                       }
                     } else {
                       // Regular property access
                       // NOTE: properties is double-encoded JSON (stored as JSON string, not JSON object)
                       // Use Sequelize replacement parameter to prevent SQL injection
-                      const keyPlaceholder = `filter_key_${idx}`;
-                      replacements[keyPlaceholder] = propKey;
-                      const propAccess = `((properties#>>'{}')::json->>:${keyPlaceholder})`;
+                      const propKeyPlaceholder = `filter_key_${idx}`;
+                      replacements[propKeyPlaceholder] = propKey;
+                      const propAccess = `((properties#>>'{}')::json->>:${propKeyPlaceholder})`;
 
                       // Cast to appropriate type if needed
                       const castPropAccess = filter.type === 'number'
