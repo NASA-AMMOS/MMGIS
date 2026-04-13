@@ -1314,6 +1314,67 @@ const getComponent = (
           )}
         </div>
       );
+    case "defaulttooldropdown":
+      let tools =  configuration?.tools || null
+      tools = tools.filter(tool => {
+        return tool?.separatedTool !== true && tool?.on !== false
+      }).map(tool => tool.name)
+
+      tools.unshift("None")
+
+      inner = (
+        <FormControl className={c.dropdown} variant="filled" size="small">
+          <InputLabel>{com.name}</InputLabel>
+          <Select
+            disabled={disabled || isDisabled}
+            value={value || getIn(directConf, com.field, tools[0])}
+            onChange={(e) => {
+              if (!isDisabled) {
+                updateConfiguration(
+                  forceField || com.field,
+                  e.target.value,
+                  layer
+                );
+              }
+            }}
+          >
+            {tools.map((o) => {
+              return (
+                <MenuItem value={o}>
+                  {typeof o === "string" ? o.toUpperCase() : o}
+                </MenuItem>
+              );
+            })}
+          </Select>
+        </FormControl>
+      );
+      return (
+        <div style={isDisabled ? { opacity: 0.5 } : {}}>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <div
+                className={c.subtitle2}
+                dangerouslySetInnerHTML={{ __html: isDisabled
+                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
+                  : com.description || "" }}
+              ></div>
+            </>
+          ) : (
+            <Tooltip
+              title={
+                isDisabled
+                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
+                  : com.description || ""
+              }
+              placement="top"
+              arrow
+            >
+              {inner}
+            </Tooltip>
+          )}
+        </div>
+      );
     case "objectarray":
       const section = [];
       let items;
