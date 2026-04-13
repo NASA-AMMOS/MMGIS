@@ -1320,6 +1320,8 @@ const getComponent = (
         return tool?.separatedTool !== true && tool?.on !== false
       }).map(tool => tool.name)
 
+      tools.unshift("None")
+
       inner = (
         <FormControl className={c.dropdown} variant="filled" size="small">
           <InputLabel>{com.name}</InputLabel>

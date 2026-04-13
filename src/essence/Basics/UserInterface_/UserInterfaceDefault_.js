@@ -1249,9 +1249,11 @@ var UserInterface = {
         UserInterface.show()
 
         if (l_.configData.look && l_.configData.look.defaultToolEnabled) {
-            let defaultTool = $(`#toolButton${l_.configData.look.defaultTool}`)
-            if (defaultTool.length > 0) {
-                $(defaultTool).trigger('click')
+            if (l_.configData.look.defaultTool && l_.configData.look.defaultTool !== 'None') {
+                let defaultTool = $(`#toolButton${l_.configData.look.defaultTool}`)
+                if (defaultTool.length > 0) {
+                    $(defaultTool).trigger('click')
+                }
             }
         }
     },
