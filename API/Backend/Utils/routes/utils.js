@@ -115,7 +115,10 @@ function queryTilesetTimesDir(req, res) {
   }
 
   if (decodedUrl.indexOf("_time_") > -1) {
-    const urlSplit = decodedUrl.split("_time_");
+    // Find _time_ marker only after the allowedBase prefix, so any
+    // _time_ substring inside the installation directory is ignored.
+    const timeMarkerIndex = resolvedPath.indexOf("_time_", allowedBase.length);
+    const resolvedDir = resolvedPath.substring(0, timeMarkerIndex);
     const relUrlSplit = relUrl.split("_time_");
 
     if (dirStore[relUrlSplit[0]] == null) {
@@ -126,7 +129,7 @@ function queryTilesetTimesDir(req, res) {
     }
     if (Date.now() - dirStore[relUrlSplit[0]].lastUpdated > DIR_STORE_MAX_AGE) {
       fs.readdir(
-        path.join(rootDir, urlSplit[0]),
+        resolvedDir,
         { withFileTypes: true },
         (error, files) => {
           if (!error) {

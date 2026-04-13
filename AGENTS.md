@@ -1,8 +1,8 @@
 # MMGIS - AI Agent Context
 
 **Project**: MMGIS (Multi-Mission Geographic Information System)
-**Version**: 4.2.34
-**Last Updated**: 2026-04-01
+**Version**: 4.3.0
+**Last Updated**: 2026-04-07
 
 ## Important Instructions
 
@@ -248,7 +248,7 @@ Comprehensive demo mission showcasing all MMGIS features, layer types, data form
 
 **Backend**:
 
-- **Framework**: Express 4.18 (Node.js 20+)
+- **Framework**: Express 5.2 (Node.js 20+)
 - **Database**: PostgreSQL with PostGIS (geospatial extension) and PgStac
 - **ORM**: Sequelize 6.33
 - **Authentication**: Local, SSO, or none.

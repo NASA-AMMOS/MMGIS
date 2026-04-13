@@ -3,37 +3,20 @@
 const fs = require("fs");
 const path = require("path");
 const webpack = require("webpack");
-const resolve = require("resolve");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CaseSensitivePathsPlugin = require("case-sensitive-paths-webpack-plugin");
-const InlineChunkHtmlPlugin = require("react-dev-utils/InlineChunkHtmlPlugin");
+const HtmlInlineScriptPlugin = require("html-inline-script-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const { WebpackManifestPlugin } = require("webpack-manifest-plugin");
-const InterpolateHtmlPlugin = require("react-dev-utils/InterpolateHtmlPlugin");
-const ModuleScopePlugin = require("react-dev-utils/ModuleScopePlugin");
-const getCSSModuleLocalIdent = require("react-dev-utils/getCSSModuleLocalIdent");
+const InterpolateHtmlPlugin = require("interpolate-html-plugin");
 const paths = require("./paths");
 const modules = require("./modules");
 const getClientEnvironment = require("./env");
-const ModuleNotFoundPlugin = require("react-dev-utils/ModuleNotFoundPlugin");
-const ForkTsCheckerWebpackPlugin = require("react-dev-utils/ForkTsCheckerWebpackPlugin");
+const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
 const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
-
-const postcssNormalize = require("postcss-normalize");
-
-const appPackageJson = require(paths.appPackageJson);
-
-const babelRuntimeEntry = require.resolve("babel-preset-react-app");
-const babelRuntimeEntryHelpers = require.resolve(
-  "@babel/runtime/helpers/esm/assertThisInitialized",
-  { paths: [babelRuntimeEntry] }
-);
-const babelRuntimeRegenerator = require.resolve("@babel/runtime/regenerator", {
-  paths: [babelRuntimeEntry],
-});
 
 // This is a hack so that node v18+ can run.
 // "md4" hashes are no longer supported so before everything runs, we override them to be "sha256"
@@ -109,7 +92,15 @@ module.exports = function (webpackEnv) {
         },
       {
         loader: require.resolve("css-loader"),
-        options: cssOptions,
+        options: {
+          ...cssOptions,
+          // css-loader v4+ resolves url() through webpack's module system.
+          // URLs starting with /public/ should be left as-is — they are served
+          // by the Express server at runtime, not bundled by webpack.
+          url: {
+            filter: (url) => !url.startsWith("/public/"),
+          },
+        },
       },
       {
         // Options for PostCSS as we reference these options twice
@@ -117,22 +108,21 @@ module.exports = function (webpackEnv) {
         // package.json
         loader: require.resolve("postcss-loader"),
         options: {
-          // Necessary for external CSS imports to work
-          // https://github.com/facebook/create-react-app/issues/2677
-          ident: "postcss",
-          plugins: () => [
-            require("postcss-flexbugs-fixes"),
-            require("postcss-preset-env")({
-              autoprefixer: {
-                flexbox: "no-2009",
-              },
-              stage: 3,
-            }),
-            // Adds PostCSS Normalize as the reset css with default options,
-            // so that it honors browserslist config in package.json
-            // which in turn let's users customize the target behavior as per their needs.
-            postcssNormalize(),
-          ],
+          postcssOptions: {
+            plugins: [
+              "postcss-flexbugs-fixes",
+              [
+                "postcss-preset-env",
+                {
+                  autoprefixer: {
+                    flexbox: "no-2009",
+                  },
+                  stage: 3,
+                },
+              ],
+              "postcss-normalize",
+            ],
+          },
           sourceMap: isEnvProduction && shouldUseSourceMap,
         },
       },
@@ -211,7 +201,7 @@ module.exports = function (webpackEnv) {
             parse: {
               // We want terser to parse ecma 8 code. However, we don't want it
               // to apply any minification steps that turns valid ecma 5 code
-              // into invalid ecma 5 code. This is why the 'compress' and 'output'
+              // into invalid ecma 5 code. This is why the 'compress' and 'format'
               // sections only apply transformations that are ecma 5 safe
               // https://github.com/facebook/create-react-app/pull/4234
               ecma: 8,
@@ -236,7 +226,7 @@ module.exports = function (webpackEnv) {
             // Added for profiling in devtools
             keep_classnames: isEnvProductionProfile,
             keep_fnames: isEnvProductionProfile,
-            output: {
+            format: {
               ecma: 5,
               comments: false,
               // Turned on because emoji and regex is not minified properly using default
@@ -291,21 +281,7 @@ module.exports = function (webpackEnv) {
         ...(modules.webpackAliases || {}),
         markjs: "mark.js/dist/jquery.mark.js",
       },
-      plugins: [
-        // Prevents users from importing files from outside of src/ (or node_modules/).
-        // This often causes confusion because we only process files within src/ with babel.
-        // To fix this, we prevent you from importing files out of src/ -- if you'd like to,
-        // please link the files into your node_modules/ and let module-resolution kick in.
-        // Make sure your source files are compiled, as they will not be processed in any way.
-        new ModuleScopePlugin(paths.appSrc, [
-          paths.appPackageJson,
-          babelRuntimeEntry,
-          babelRuntimeEntryHelpers,
-          babelRuntimeRegenerator,
-          // Allow Cesium imports (needed for CSS and source files)
-          path.resolve(paths.appNodeModules, "cesium"),
-        ]),
-      ],
+      plugins: [],
       fallback: {
         fs: false,
         // Cesium requires these Node.js core modules
@@ -322,26 +298,6 @@ module.exports = function (webpackEnv) {
     module: {
       strictExportPresence: true,
       rules: [
-        // First, run the linter.
-        // It's important to do this before Babel processes the JS.
-        /*
-        {
-          test: /\.(js|mjs|jsx|ts|tsx)$/,
-          enforce: "pre",
-          use: [
-            {
-              options: {
-                cache: true,
-                formatter: require.resolve("react-dev-utils/eslintFormatter"),
-                eslintPath: require.resolve("eslint"),
-                resolvePluginsRelativeTo: __dirname,
-              },
-              loader: require.resolve("eslint-loader"),
-            },
-          ],
-          include: paths.appSrc,
-        },
-        */
         {
           // "oneOf" will traverse all following loaders until one will
           // match the requirements. When no loader matches it will fall
@@ -408,10 +364,10 @@ module.exports = function (webpackEnv) {
                   ],
                 ],
                 plugins: [
-                  [require.resolve("@babel/plugin-proposal-optional-chaining")],
+                  [require.resolve("@babel/plugin-transform-optional-chaining")],
                   [
                     require.resolve(
-                      "@babel/plugin-proposal-nullish-coalescing-operator"
+                      "@babel/plugin-transform-nullish-coalescing-operator"
                     ),
                   ],
                 ],
@@ -457,7 +413,7 @@ module.exports = function (webpackEnv) {
                 importLoaders: 1,
                 sourceMap: isEnvProduction && shouldUseSourceMap,
                 modules: {
-                  getLocalIdent: getCSSModuleLocalIdent,
+                  localIdentName: "[path][name]__[local]--[hash:base64:5]",
                 },
               }),
             },
@@ -489,7 +445,7 @@ module.exports = function (webpackEnv) {
                   importLoaders: 3,
                   sourceMap: isEnvProduction && shouldUseSourceMap,
                   modules: {
-                    getLocalIdent: getCSSModuleLocalIdent,
+                    localIdentName: "[path][name]__[local]--[hash:base64:5]",
                   },
                 },
                 "sass-loader"
@@ -553,16 +509,13 @@ module.exports = function (webpackEnv) {
       // https://github.com/facebook/create-react-app/issues/5358
       isEnvProduction &&
         shouldInlineRuntimeChunk &&
-        new InlineChunkHtmlPlugin(HtmlWebpackPlugin, [/runtime-.+[.]js/]),
+        new HtmlInlineScriptPlugin({ scriptMatchPattern: [/runtime-.+[.]js/] }),
       // Makes some environment variables available in index.html.
       // The public URL is available as %PUBLIC_URL% in index.html, e.g.:
       // <link rel="icon" href="%PUBLIC_URL%/favicon.ico">
       // It will be an empty string unless you specify "homepage"
       // in `package.json`, in which case it will be the pathname of that URL.
-      new InterpolateHtmlPlugin(HtmlWebpackPlugin, env.raw),
-      // This gives some necessary context to module not found errors, such as
-      // the requesting resource.
-      new ModuleNotFoundPlugin(paths.appPath),
+      new InterpolateHtmlPlugin(env.raw),
       // Makes some environment variables available to the JS code, for example:
       // if (process.env.NODE_ENV === 'production') { ... }. See `./env.js`.
       // It is absolutely essential that NODE_ENV is set to production
@@ -643,27 +596,11 @@ module.exports = function (webpackEnv) {
       // TypeScript type checking
       useTypeScript &&
         new ForkTsCheckerWebpackPlugin({
-          typescript: resolve.sync("typescript", {
-            basedir: paths.appNodeModules,
-          }),
           async: isEnvDevelopment,
-          useTypescriptIncrementalApi: true,
-          checkSyntacticErrors: true,
-          resolveModuleNameModule: process.versions.pnp
-            ? `${__dirname}/pnpTs.js`
-            : undefined,
-          resolveTypeReferenceDirectiveModule: process.versions.pnp
-            ? `${__dirname}/pnpTs.js`
-            : undefined,
-          tsconfig: paths.appTsConfig,
-          reportFiles: [
-            "**",
-            "!**/__tests__/**",
-            "!**/?(*.)(spec|test).*",
-            "!**/src/setupProxy.*",
-            "!**/src/setupTests.*",
-          ],
-          silent: true,
+          typescript: {
+            configFile: paths.appTsConfig,
+          },
+          logger: { infrastructure: "silent", issues: "silent" },
         }),
       isEnvDevAnalyze && new BundleAnalyzerPlugin(),
     ].filter(Boolean),

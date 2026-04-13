@@ -5,14 +5,20 @@ import { defineConfig, devices } from "@playwright/test";
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
+  // Global setup — safety guard against running tests on production DB
+  // Skipped for unit-only runs (unit tests don't touch the database)
+  globalSetup: process.env.PLAYWRIGHT_TEST_UNIT_ONLY
+    ? undefined
+    : "./tests/global-setup.js",
+
   // Test directory
   testDir: "./tests",
 
   // Test file patterns
   testMatch: "**/*.spec.js",
 
-  // Timeout per test
-  timeout: 30 * 1000,
+  // Timeout per test (3 minutes — E2E tests may need extra time on slower machines)
+  timeout: 180 * 1000,
 
   // Test execution settings
   fullyParallel: true,
@@ -31,7 +37,7 @@ export default defineConfig({
   // Shared settings for all projects
   use: {
     // Base URL for tests
-    baseURL: process.env.TEST_BASE_URL || "http://localhost:8888",
+    baseURL: process.env.TEST_BASE_URL || "http://localhost:18888",
 
     // Collect trace on failure
     trace: "on-first-retry",
@@ -49,31 +55,16 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
-    // Uncomment to enable Firefox and WebKit testing
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
+    {
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
+      testMatch: /cross-browser/,
+    },
   ],
 
-  // Web server configuration - start MMGIS before E2E tests
-  // Note: Unit tests don't need the server running
-  // Only start server if running E2E tests
-  webServer: process.env.PLAYWRIGHT_TEST_UNIT_ONLY
-    ? undefined
-    : {
-        command: "npm run start:test",
-        url: `${
-          process.env.TEST_BASE_URL || "http://localhost:8888"
-        }/api/utils/healthcheck`,
-        timeout: 120 * 1000,
-        reuseExistingServer: !process.env.CI,
-        stdout: "pipe",
-        stderr: "pipe",
-        ignoreHTTPSErrors: true,
-      },
+  // Server lifecycle is managed by globalSetup (tests/global-setup.js).
+  // Playwright runs webServer plugins BEFORE globalSetup, which means the
+  // DB wouldn't exist yet when the server tries to connect.  By starting
+  // the server inside globalSetup we guarantee: create DB → start server
+  // → create Reference Mission → run tests → teardown kills server.
 });
