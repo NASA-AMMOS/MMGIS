@@ -485,8 +485,7 @@
           "description": "The tool that is opened by default when MMGIS loads.",
           "type": "defaulttooldropdown",
           "disableSwitch": "look.defaultToolEnabled",
-          "width": 4,
-          "options": ["lithosphere", "cesium"]
+          "width": 4
         }
       ]
     }
