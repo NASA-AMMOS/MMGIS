@@ -38,7 +38,7 @@ function TopBar({ userInterface }) {
     }, [])
 
     return (
-        <div id="topBar" style={isMobile ? { background: 'var(--color-a)' } : undefined}>
+        <div id="topBar" style={isMobile ? { background: 'var(--color-a)', paddingLeft: '80px' } : undefined}>
             {isMobile && (
                 <div
                     id="topBarMenu"
