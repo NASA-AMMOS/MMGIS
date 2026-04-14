@@ -240,16 +240,49 @@ const UserInterfaceBridge = {
             // (matches jQuery UserInterfaceMobile_.js:908-916)
             const coordsDiv = document.getElementById('CoordinatesDiv')
             if (coordsDiv) {
+                coordsDiv.style.transition = 'bottom 0.4s ease-out'
                 coordsDiv.style.bottom = pxIsTools + 'px'
             }
             const timeUIEl = document.getElementById('timeUI')
             if (timeUIEl) {
+                timeUIEl.style.transition = 'bottom 0.4s ease-out'
                 timeUIEl.style.bottom = pxIsTools + 'px'
             }
             const toolbar = document.getElementById('toolbar')
             if (toolbar) {
                 toolbar.style.bottom = pxIsTools + 'px'
             }
+
+            // Resize the map to fit the remaining screen space
+            // (matches jQuery UserInterfaceMobile_.js:967-978)
+            const mainHeight = useUIStore.getState().mainHeight
+            const mapScreen = document.getElementById('mapScreen')
+            if (mapScreen) {
+                mapScreen.style.transition = 'height 0.4s ease-out'
+                mapScreen.style.height = (mainHeight - pxIsTools) + 'px'
+            }
+            const mapSplit = document.getElementById('mapSplit')
+            if (mapSplit) {
+                mapSplit.style.transition = 'height 0.4s ease-out'
+                mapSplit.style.height = (mainHeight - pxIsTools) + 'px'
+            }
+            // Invalidate map size so Leaflet recalculates its viewport
+            // (important for pan-to-feature centering)
+            // Call immediately for responsiveness, then again after the
+            // 400ms CSS transition completes for final accuracy
+            const invalidateSizes = () => {
+                if (Map_ != null && Map_.map) {
+                    Map_.map.invalidateSize()
+                }
+                if (Viewer_ != null && Viewer_.invalidateSize) {
+                    Viewer_.invalidateSize()
+                }
+                if (Globe_ != null && Globe_.litho) {
+                    Globe_.litho.invalidateSize()
+                }
+            }
+            invalidateSizes()
+            setTimeout(invalidateSizes, 420)
         } else {
             // Desktop: reposition non-React DOM elements that sit above the tools area
             // (matches jQuery UserInterfaceDefault_.js:876-933)

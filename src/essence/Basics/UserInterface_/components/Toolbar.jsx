@@ -20,6 +20,7 @@ function Toolbar() {
                     bottom: (pxIsTools || 0) + 'px',
                     width: '100%',
                     zIndex: 1004,
+                    transition: 'bottom 0.4s ease-out',
                 } : {
                     width: '40px',
                     paddingTop: '40px',
