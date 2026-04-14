@@ -17,8 +17,11 @@ import UserInterfaceLayout from './essence/Basics/UserInterface_/components/User
     if (window.mmgisglobal.useReactUI == null) {
         window.mmgisglobal.useReactUI = false
     }
-    // Environment variable override (set at build time via webpack DefinePlugin)
+    // Environment variable override (set at build time via webpack DefinePlugin).
+    // Only apply if index.html didn't already handle it (e.g., via URL param).
+    // This avoids overriding ?reactui=false when REACT_UI=true is set.
     if (
+        window.mmgisglobal._reactUISetByHTML == null &&
         typeof process !== 'undefined' &&
         process.env &&
         process.env.REACT_UI === 'true'
