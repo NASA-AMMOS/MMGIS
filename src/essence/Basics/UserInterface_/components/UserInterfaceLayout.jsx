@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import useUIStore from '../store/uiStore'
 import TopBar from './TopBar'
 import Toolbar from './Toolbar'
@@ -11,12 +11,12 @@ import '../BottomBar.css'
 
 function UserInterfaceLayout() {
     const containerRef = useRef(null)
-    const bridgeRef = useRef(null)
+    const [bridge, setBridge] = useState(null)
 
     useEffect(() => {
         // Import bridge lazily to avoid circular deps
         import('../UserInterfaceBridge').then((mod) => {
-            bridgeRef.current = mod.default
+            setBridge(mod.default)
         })
     }, [])
 
@@ -63,7 +63,7 @@ function UserInterfaceLayout() {
             <Toolbar />
             <ToolPanel />
             <SplitScreens />
-            <BottomBarReact userInterface={bridgeRef.current} />
+            <BottomBarReact userInterface={bridge} />
             <div
                 id="uiRightPanel"
                 style={{

@@ -384,6 +384,14 @@
       }
       window.mmgisglobal = mmgisglobal;
 
+      // React UI feature flag — must run before any bundled JS so that
+      // UserInterface_.js (evaluated during ES module resolution) sees the flag.
+      mmgisglobal.useReactUI = false;
+      var _rup = new URLSearchParams(window.location.search);
+      if (_rup.get('reactui') === 'true') {
+          mmgisglobal.useReactUI = true;
+      }
+
       // prettier-ignore
       console.info(
             '███╗   ███╗███╗   ███╗ ██████╗ ██╗███████╗' + ' Multi-Mission\n' +

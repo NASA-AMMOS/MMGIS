@@ -8,15 +8,14 @@ import calls from './pre/calls'
 
 import UserInterfaceLayout from './essence/Basics/UserInterface_/components/UserInterfaceLayout'
 
-// Feature flag: toggle React UI via ?reactui=true, env var, or config
+// Feature flag: The primary initialization of window.mmgisglobal.useReactUI
+// happens in public/index.html (before any bundled JS runs) so that
+// UserInterface_.js sees the correct value during ES module evaluation.
+// This secondary check enables the build-time REACT_UI env var (via DefinePlugin).
 ;(function initReactUIFlag() {
     if (typeof window.mmgisglobal === 'undefined') window.mmgisglobal = {}
-    // Default to false
-    window.mmgisglobal.useReactUI = false
-    // URL parameter override
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('reactui') === 'true') {
-        window.mmgisglobal.useReactUI = true
+    if (window.mmgisglobal.useReactUI == null) {
+        window.mmgisglobal.useReactUI = false
     }
     // Environment variable override (set at build time via webpack DefinePlugin)
     if (
