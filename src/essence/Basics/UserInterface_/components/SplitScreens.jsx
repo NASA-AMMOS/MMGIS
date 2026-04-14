@@ -43,17 +43,25 @@ function SplitScreens() {
     }, [])
 
     // Re-capture dimensions when topSize or toolPanelWidth change
-    // (e.g. fina() sets topSize from 40 to 0, changing container height)
+    // (e.g. fina() sets topSize from 40 to 0, changing container height;
+    //  or ToolPanel drag resize changes toolPanelWidth)
+    // Also recalculates panel percents so viewer/map/globe fit the new width.
     useEffect(() => {
         const el = splitscreensRef.current
         if (el && initializedRef.current) {
             // Use rAF to read dimensions after the layout reflow
             requestAnimationFrame(() => {
                 if (splitscreensRef.current) {
+                    const newWidth = splitscreensRef.current.offsetWidth
+                    const newHeight = splitscreensRef.current.offsetHeight
                     useUIStore.setState({
-                        mainWidth: splitscreensRef.current.offsetWidth,
-                        mainHeight: splitscreensRef.current.offsetHeight,
+                        mainWidth: newWidth,
+                        mainHeight: newHeight,
                     })
+                    // Recompute panel pixel sizes from current percents
+                    // so viewer/map/globe fit the new container width
+                    const pp = useUIStore.getState().getPanelPercents()
+                    useUIStore.getState().setPanelPercents(pp.viewer, pp.map, pp.globe)
                 }
             })
         }

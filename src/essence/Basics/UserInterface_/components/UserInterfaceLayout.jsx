@@ -12,6 +12,7 @@ import '../BottomBar.css'
 function UserInterfaceLayout() {
     const containerRef = useRef(null)
     const [bridge, setBridge] = useState(null)
+    const visible = useUIStore((s) => s.visible)
 
     useEffect(() => {
         // Import bridge lazily to avoid circular deps
@@ -52,7 +53,8 @@ function UserInterfaceLayout() {
             id="main-container"
             ref={containerRef}
             style={{
-                opacity: 0,
+                opacity: visible ? 1 : 0,
+                transition: visible ? 'opacity 1s' : 'none',
                 width: '100%',
                 height: '100%',
                 overflow: 'hidden',

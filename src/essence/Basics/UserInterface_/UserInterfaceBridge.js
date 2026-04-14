@@ -118,16 +118,11 @@ const UserInterfaceBridge = {
     },
 
     hide: function () {
-        const el = document.getElementById('main-container')
-        if (el) el.style.opacity = '0'
+        useUIStore.getState().setVisible(false)
     },
 
     show: function () {
-        const el = document.getElementById('main-container')
-        if (el) {
-            el.style.transition = 'opacity 1s'
-            el.style.opacity = '1'
-        }
+        useUIStore.getState().setVisible(true)
     },
 
     resize: function () {

@@ -45,6 +45,9 @@ const useUIStore = create((set, get) => ({
     // Layout ready flag for essence.js integration
     layoutReady: false,
 
+    // Visibility of main container (toggled by show/hide)
+    visible: false,
+
     // Visibility settings (for BottomBar changeUIVisibility)
     visibility: {
         topbar: true,
@@ -63,6 +66,7 @@ const useUIStore = create((set, get) => ({
 
     // Actions
     setLayoutReady: (ready) => set({ layoutReady: ready }),
+    setVisible: (val) => set({ visible: val }),
 
     setRefs: (L_, Viewer_, Map_, Globe_) =>
         set({ _L: L_, _Viewer: Viewer_, _Map: Map_, _Globe: Globe_ }),
