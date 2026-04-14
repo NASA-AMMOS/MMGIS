@@ -409,9 +409,14 @@
   </body>
   <div id="main-container" style="display:none"></div>
   <script>
-    // Show the static main-container only in jQuery mode
+    // In jQuery mode, show the static main-container.
+    // In React mode, remove it from the DOM entirely to avoid duplicate IDs
+    // (React renders its own #main-container inside #root).
     if (!window.mmgisglobal || !window.mmgisglobal.useReactUI) {
       document.getElementById('main-container').style.display = '';
+    } else {
+      var mc = document.getElementById('main-container');
+      if (mc) mc.parentNode.removeChild(mc);
     }
   </script>
   <footer></footer>
