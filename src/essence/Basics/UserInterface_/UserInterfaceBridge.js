@@ -279,6 +279,8 @@ const UserInterfaceBridge = {
     minimalist: function (is) {
         if (is) {
             useUIStore.setState({ topSize: 0 })
+            const logo = document.getElementById('mmgislogo')
+            if (logo) logo.style.display = 'inherit'
         }
     },
 

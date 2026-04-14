@@ -99,7 +99,6 @@ function SplitScreens() {
 // Inline ToolsWrapper to avoid circular dependency
 function ToolsWrapper() {
     const pxIsTools = useUIStore((s) => s.pxIsTools)
-    const splitterSize = useUIStore((s) => s.splitterSize)
     const toolsWrapperCSSWidth = useUIStore((s) => s.toolsWrapperCSSWidth)
 
     return (
@@ -126,17 +125,7 @@ function ToolsWrapper() {
                     width: '100%',
                 }}
             ></div>
-            <div
-                className="splitterH"
-                id="toolsSplit"
-                style={{
-                    height: splitterSize / 2 + 'px',
-                    left: '0px',
-                    bottom:
-                        pxIsTools - splitterSize / 2 + 'px',
-                    zIndex: 3,
-                }}
-            ></div>
+            <Splitter type="tools" orientation="horizontal" />
         </div>
     )
 }
