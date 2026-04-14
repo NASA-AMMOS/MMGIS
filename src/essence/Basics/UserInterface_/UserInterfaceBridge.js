@@ -207,7 +207,7 @@ const UserInterfaceBridge = {
         // Reset TopBar to full width (matches jQuery closeToolPanel behavior)
         const topBar = document.getElementById('topBar')
         if (topBar) {
-            topBar.style.paddingLeft = '40px'
+            topBar.style.paddingLeft = useUIStore.getState().isMobile ? '80px' : '40px'
             topBar.style.marginLeft = '0px'
             topBar.style.width = '100%'
         }
