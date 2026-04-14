@@ -1,6 +1,6 @@
 import LithoSphere from 'lithosphere'
 import * as Cesium from 'cesium'
-import * as d3 from 'd3'
+import { utcFormat } from 'd3-time-format'
 import 'cesium/Source/Widgets/widgets.css'
 import LayerUtils from '../Layers_/LayerUtils'
 import {
@@ -31,6 +31,20 @@ class GlobeRenderer {
             this._initCesium()
         } else {
             this._initLithoSphere()
+        }
+    }
+
+    /**
+     * Request a scene render (needed when requestRenderMode is true).
+     * Call after any state change (layer add/remove/toggle, style update, etc.).
+     */
+    _requestRender() {
+        if (
+            this.rendererType === 'cesium' &&
+            this.renderer &&
+            this.renderer.scene
+        ) {
+            this.renderer.scene.requestRender()
         }
     }
 
@@ -102,8 +116,8 @@ class GlobeRenderer {
             infoBox: false, // Disable Cesium's info box (using MMGIS InfoTool instead)
             selectionIndicator: false,
 
-            // Performance
-            requestRenderMode: false,
+            // Performance — only render when something changes
+            requestRenderMode: true,
             maximumRenderTimeChange: Infinity,
         })
 
@@ -152,6 +166,14 @@ class GlobeRenderer {
         this._ = {}
         this.options = {}
         this.mouse = { lng: 0, lat: 0 }
+
+        // Disable expensive scene subsystems not needed for planetary science
+        const scene = this.renderer.scene
+        scene.fog.enabled = false
+        scene.globe.showGroundAtmosphere = false
+        scene.skyAtmosphere.show = false
+        scene.sun.show = false
+        scene.moon.show = false
 
         // Create control container AFTER Cesium viewer is initialized
         this._createCesiumControlContainer()
@@ -521,6 +543,7 @@ class GlobeRenderer {
                 },
                 originalUrl: layerConfig.path, // Store template URL for rebuilding
             }
+            this._requestRender()
         } else if (type === 'vector' || type === 'clamped') {
             // Check if this layer is already being loaded (prevent duplicate async loads)
             if (this._loadingLayers[name]) {
@@ -716,6 +739,7 @@ class GlobeRenderer {
                     onClick: layerConfig.onClick, // Store callback for global handler
                     featureMap: featureMap, // Store id→original feature mapping
                 }
+                this._requestRender()
             })
         } else if (type === 'gradient_polyline') {
             return this._addCesiumGradientPolyline(layerConfig)
@@ -1000,6 +1024,7 @@ class GlobeRenderer {
             visible: true,
         }
 
+        this._requestRender()
         return layerName
     }
 
@@ -1012,6 +1037,7 @@ class GlobeRenderer {
         if (layerInfo && layerInfo.type === 'gradient_polyline') {
             this.renderer.dataSources.remove(layerInfo.dataSource)
             delete this._layers[layerName]
+            this._requestRender()
         }
     }
 
@@ -1134,8 +1160,8 @@ class GlobeRenderer {
         // Default to ISO format if no format specified
         const timeFormat =
             timeConfig.format == null || timeConfig.format == ''
-                ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
-                : d3.utcFormat(timeConfig.format)
+                ? utcFormat('%Y-%m-%dT%H:%M:%SZ')
+                : utcFormat(timeConfig.format)
 
         let processedUrl = url
 
@@ -1434,6 +1460,7 @@ class GlobeRenderer {
                     delete layerInfo.featureMap
                 }
                 delete this._layers[name]
+                this._requestRender()
             }
         }
     }
@@ -1488,6 +1515,7 @@ class GlobeRenderer {
             layerInfo.dataSource.show = visible
             layerInfo.visible = visible
         }
+        this._requestRender()
     }
 
     /**
@@ -1559,6 +1587,7 @@ class GlobeRenderer {
             const layerInfo = this._layers[name]
             if (layerInfo && layerInfo.type === 'tile') {
                 layerInfo.layer.alpha = opacity
+                this._requestRender()
             }
         }
     }
@@ -1618,6 +1647,7 @@ class GlobeRenderer {
             // Update reference
             if (newLayer) layerInfo.layer = newLayer
         }
+        this._requestRender()
     }
 
     /**
@@ -1989,27 +2019,32 @@ class GlobeRenderer {
         // Track mouse movement over the globe
         const handler = new Cesium.ScreenSpaceEventHandler(canvas)
 
+        let mouseMoveRafPending = false
         handler.setInputAction((movement) => {
             if (!linkControl._isLinked) return
+            if (mouseMoveRafPending) return
+            mouseMoveRafPending = true
+            requestAnimationFrame(() => {
+                mouseMoveRafPending = false
+                const cartesian = viewer.camera.pickEllipsoid(
+                    movement.endPosition,
+                    scene.globe.ellipsoid
+                )
+                if (cartesian) {
+                    const cartographic =
+                        Cesium.Cartographic.fromCartesian(cartesian)
+                    const lng = Cesium.Math.toDegrees(cartographic.longitude)
+                    const lat = Cesium.Math.toDegrees(cartographic.latitude)
 
-            const cartesian = viewer.camera.pickEllipsoid(
-                movement.endPosition,
-                scene.globe.ellipsoid
-            )
-            if (cartesian) {
-                const cartographic =
-                    Cesium.Cartographic.fromCartesian(cartesian)
-                const lng = Cesium.Math.toDegrees(cartographic.longitude)
-                const lat = Cesium.Math.toDegrees(cartographic.latitude)
+                    // Update mouse position
+                    this.mouse.lng = lng
+                    this.mouse.lat = lat
 
-                // Update mouse position
-                this.mouse.lng = lng
-                this.mouse.lat = lat
-
-                if (options.onMouseMove) {
-                    options.onMouseMove(lng, lat)
+                    if (options.onMouseMove) {
+                        options.onMouseMove(lng, lat)
+                    }
                 }
-            }
+            })
         }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
 
         linkControl._mouseMoveListener = handler
