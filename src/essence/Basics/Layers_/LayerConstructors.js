@@ -7,152 +7,17 @@ import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import LayerGeologic from './LayerGeologic/LayerGeologic'
 import { parseExtendedGeoJSON, getCoordProperties } from './ExtendedGeoJSON'
+import {
+    interpolateColor,
+    interpolateMultipleColors,
+    hexToRgb,
+    parseRgb,
+    parseCSSColor,
+} from './gradientUtils'
 
 import { centroid } from '@turf/turf'
 
 let L = window.L
-
-// Helper function to interpolate between two colors using RGB
-function interpolateColor(color1, color2, factor) {
-    if (!color1 || !color2) return color1 || color2
-
-    // Ensure factor is between 0 and 1
-    factor = Math.max(0, Math.min(1, factor))
-
-    // Convert colors to RGB if they're hex
-    const rgb1 = hexToRgb(color1) || parseRgb(color1) || parseCSSColor(color1)
-    const rgb2 = hexToRgb(color2) || parseRgb(color2) || parseCSSColor(color2)
-
-    if (!rgb1 || !rgb2) return color1 // Fallback if color parsing fails
-
-    // Interpolate each RGB component
-    const r = Math.round(rgb1.r + (rgb2.r - rgb1.r) * factor)
-    const g = Math.round(rgb1.g + (rgb2.g - rgb1.g) * factor)
-    const b = Math.round(rgb1.b + (rgb2.b - rgb1.b) * factor)
-
-    return `rgb(${r}, ${g}, ${b})`
-}
-
-// Enhanced function to interpolate between multiple colors using color stops
-function interpolateMultipleColors(colorStops, value, minValue, maxValue) {
-    if (!colorStops || colorStops.length === 0) return null
-    if (colorStops.length === 1) return colorStops[0].color
-
-    // Normalize the value to 0-1 range
-    const normalizedValue =
-        maxValue === minValue ? 0 : (value - minValue) / (maxValue - minValue)
-
-    // Clamp the normalized value
-    const clampedValue = Math.max(0, Math.min(1, normalizedValue))
-
-    // If we're at the extremes, return the boundary colors
-    if (clampedValue === 0) return colorStops[0].color
-    if (clampedValue === 1) return colorStops[colorStops.length - 1].color
-
-    // Find the two color stops that bracket our value
-    for (let i = 0; i < colorStops.length - 1; i++) {
-        const currentStop = colorStops[i]
-        const nextStop = colorStops[i + 1]
-
-        if (
-            clampedValue >= currentStop.position &&
-            clampedValue <= nextStop.position
-        ) {
-            // Calculate the local factor between these two stops
-            const stopRange = nextStop.position - currentStop.position
-            const localFactor =
-                stopRange === 0
-                    ? 0
-                    : (clampedValue - currentStop.position) / stopRange
-
-            // Interpolate between the two colors
-            return interpolateColor(
-                currentStop.color,
-                nextStop.color,
-                localFactor
-            )
-        }
-    }
-
-    // Fallback (shouldn't reach here)
-    return colorStops[colorStops.length - 1].color
-}
-
-// Helper function to convert hex color to RGB
-function hexToRgb(hex) {
-    if (!hex || typeof hex !== 'string') return null
-
-    // Remove # if present
-    hex = hex.replace('#', '')
-
-    // Handle 3-character hex
-    if (hex.length === 3) {
-        hex = hex
-            .split('')
-            .map((char) => char + char)
-            .join('')
-    }
-
-    if (hex.length !== 6) return null
-
-    const r = parseInt(hex.substr(0, 2), 16)
-    const g = parseInt(hex.substr(2, 2), 16)
-    const b = parseInt(hex.substr(4, 2), 16)
-
-    return isNaN(r) || isNaN(g) || isNaN(b) ? null : { r, g, b }
-}
-
-// Helper function to parse rgb() color strings
-function parseRgb(color) {
-    if (!color || typeof color !== 'string') return null
-
-    const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)
-    if (!match) return null
-
-    return {
-        r: parseInt(match[1]),
-        g: parseInt(match[2]),
-        b: parseInt(match[3]),
-    }
-}
-
-// Cache for parseCSSColor — avoids repeated DOM mutations for the same color string
-const _parseCSSColorCache = new Map()
-
-// Helper function to parse CSS color strings to RGB using browser's built-in capability
-function parseCSSColor(color) {
-    if (!color || typeof color !== 'string') return null
-
-    if (_parseCSSColorCache.has(color)) return _parseCSSColorCache.get(color)
-
-    // Use a temporary element to parse the color
-    const tempElem = document.createElement('div')
-    tempElem.style.color = color
-
-    // If the browser rejected the value it leaves style.color empty — bail early
-    if (!tempElem.style.color) {
-        _parseCSSColorCache.set(color, null)
-        return null
-    }
-
-    // Append to body temporarily to get computed style
-    document.body.appendChild(tempElem)
-    const computedColor = window.getComputedStyle(tempElem).color
-    document.body.removeChild(tempElem)
-
-    // Try to parse rgb() or rgba() format
-    const rgbMatch = computedColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
-    const result = rgbMatch
-        ? {
-              r: parseInt(rgbMatch[1]),
-              g: parseInt(rgbMatch[2]),
-              b: parseInt(rgbMatch[3]),
-          }
-        : null
-
-    _parseCSSColorCache.set(color, result)
-    return result
-}
 
 
 const tooltipProto = L.Tooltip.prototype
@@ -2203,6 +2068,22 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                     Map_,
                     prop
                 )
+                // Rebuild 3D gradient with new property
+                if (l.cesiumLayerId && L_.Globe_ && L_.Globe_.litho) {
+                    L_.Globe_.litho.removeLayer(l.cesiumLayerId)
+                    const updatedOptions = {
+                        ...l.cesiumGradientOptions,
+                        gradientSettings: {
+                            ...l.cesiumGradientOptions.gradientSettings,
+                            colorWithProp: prop,
+                        },
+                    }
+                    l.cesiumGradientOptions = updatedOptions
+                    l.cesiumLayerId = L_.Globe_.litho.addLayer(
+                        'gradient_polyline',
+                        updatedOptions
+                    )
+                }
             }
             layer.layerObj = layerObj
 
@@ -2217,6 +2098,30 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
             'variables.pathAttachments.gradient'
         )
 
+        const pathGradientSettings = {
+            colorWithProp: F_.getIn(
+                pathGradientVar,
+                'colorWithProp',
+                null
+            ),
+            dropdownColorWithProp: F_.getIn(
+                pathGradientVar,
+                'dropdownColorWithProp',
+                []
+            ),
+            colorRamp: F_.getIn(pathGradientVar, 'colorRamp', [
+                'lime',
+                'yellow',
+                'red',
+            ]),
+            weight: F_.getIn(pathGradientVar, 'weight', 4),
+            connectAllPoints: F_.getIn(
+                pathGradientVar,
+                'connectAllPoints',
+                false
+            ),
+        }
+
         return {
             on:
                 pathGradientVar.initialVisibility != null
@@ -2225,6 +2130,12 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
             type: 'path_gradient',
             geojson: geojson,
             layer: layer,
+            cesiumGradientOptions: {
+                name: layerObj.name,
+                geojson: geojson,
+                gradientSettings: pathGradientSettings,
+                layerObj: layerObj,
+            },
             title: 'A colorful visualization of values along a path.\nPoint values from the specified feature property are min-max fit to a color ramp.',
         }
     } else return false

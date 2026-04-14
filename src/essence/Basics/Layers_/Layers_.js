@@ -414,6 +414,20 @@ const L_ = {
                                         L_.layers.attachments[s.name][sub].layer
                                     )
                                     break
+                                case 'path_gradient':
+                                    L_.Map_.rmNotNull(
+                                        L_.layers.attachments[s.name][sub].layer
+                                    )
+                                    if (
+                                        L_.layers.attachments[s.name][sub]
+                                            .cesiumLayerId
+                                    ) {
+                                        L_.Globe_.litho.removeLayer(
+                                            L_.layers.attachments[s.name][sub]
+                                                .cesiumLayerId
+                                        )
+                                    }
+                                    break
                                 case 'labels':
                                 case 'pairings':
                                     L_.layers.attachments[s.name][
@@ -475,6 +489,36 @@ const L_ = {
                                                     s.name
                                                 )
                                         )
+                                        break
+                                    case 'path_gradient':
+                                        L_.Map_.map.addLayer(
+                                            L_.layers.attachments[s.name][sub]
+                                                .layer
+                                        )
+                                        L_.layers.attachments[s.name][
+                                            sub
+                                        ].layer.setZIndex(
+                                            L_._layersOrdered.length +
+                                                1 -
+                                                L_._layersOrdered.indexOf(
+                                                    s.name
+                                                )
+                                        )
+                                        if (
+                                            L_.layers.attachments[s.name][sub]
+                                                .cesiumGradientOptions
+                                        ) {
+                                            L_.layers.attachments[s.name][
+                                                sub
+                                            ].cesiumLayerId =
+                                                L_.Globe_.litho.addLayer(
+                                                    'gradient_polyline',
+                                                    L_.layers.attachments[
+                                                        s.name
+                                                    ][sub]
+                                                        .cesiumGradientOptions
+                                                )
+                                        }
                                         break
                                     case 'labels':
                                     case 'pairings':
@@ -799,6 +843,14 @@ const L_ = {
                         L_.Globe_.litho.removeLayer(sublayer.clampedLayerId)
                         L_.Map_.rmNotNull(sublayer.layer)
                         break
+                    case 'path_gradient':
+                        L_.Map_.rmNotNull(sublayer.layer)
+                        if (sublayer.cesiumLayerId) {
+                            L_.Globe_.litho.removeLayer(
+                                sublayer.cesiumLayerId
+                            )
+                        }
+                        break
                     case 'labels':
                     case 'pairings':
                         sublayer.layer.off()
@@ -828,6 +880,21 @@ const L_ = {
                                 1 -
                                 L_._layersOrdered.indexOf(layerName)
                         )
+                        break
+                    case 'path_gradient':
+                        L_.Map_.map.addLayer(sublayer.layer)
+                        sublayer.layer.setZIndex(
+                            L_._layersOrdered.length +
+                                1 -
+                                L_._layersOrdered.indexOf(layerName)
+                        )
+                        if (sublayer.cesiumGradientOptions) {
+                            sublayer.cesiumLayerId =
+                                L_.Globe_.litho.addLayer(
+                                    'gradient_polyline',
+                                    sublayer.cesiumGradientOptions
+                                )
+                        }
                         break
                     case 'labels':
                     case 'pairings':
@@ -928,6 +995,18 @@ const L_ = {
                                                 sublayer.clampedOptions
                                             )
                                             map.addLayer(sublayer.layer)
+                                            break
+                                        case 'path_gradient':
+                                            map.addLayer(sublayer.layer)
+                                            if (
+                                                sublayer.cesiumGradientOptions
+                                            ) {
+                                                sublayer.cesiumLayerId =
+                                                    L_.Globe_.litho.addLayer(
+                                                        'gradient_polyline',
+                                                        sublayer.cesiumGradientOptions
+                                                    )
+                                            }
                                             break
                                         case 'labels':
                                         case 'pairings':

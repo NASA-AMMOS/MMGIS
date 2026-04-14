@@ -3,6 +3,13 @@ import * as Cesium from 'cesium'
 import * as d3 from 'd3'
 import 'cesium/Source/Widgets/widgets.css'
 import LayerUtils from '../Layers_/LayerUtils'
+import {
+    interpolateMultipleColors,
+    buildColorStops,
+    rgbToHex,
+} from '../Layers_/gradientUtils'
+import { getCoordProperties } from '../Layers_/ExtendedGeoJSON'
+import F_ from '../Formulae_/Formulae_'
 
 /**
  * GlobeRenderer - Abstraction wrapper for 3D globe rendering engines
@@ -703,12 +710,204 @@ class GlobeRenderer {
                     featureMap: featureMap, // Store id→original feature mapping
                 }
             })
+        } else if (type === 'gradient_polyline') {
+            return this._addCesiumGradientPolyline(layerConfig)
         } else if (type === 'model') {
             // Model layers not implemented for core features
             console.warn('Model layers not yet supported for Cesium renderer')
         } else if (type === 'curtain') {
             // Curtain layers not implemented for core features
             console.warn('Curtain layers not yet supported for Cesium renderer')
+        }
+    }
+
+    /**
+     * Add a gradient polyline layer to Cesium.
+     * Decomposes each LineString into per-segment colored polyline entities
+     * using elevation from the 3rd coordinate and color from the chosen property
+     * interpolated against the configured color ramp.
+     * @param {object} layerConfig - { name, geojson, gradientSettings, layerObj }
+     * @returns {string} Layer name used as ID for removal
+     */
+    _addCesiumGradientPolyline(layerConfig) {
+        const { name, geojson, gradientSettings } = layerConfig
+        const layerName = `${name}_gradient`
+
+        // Remove existing gradient layer if present
+        if (this._layers[layerName]) {
+            this._removeCesiumGradientPolyline(layerName)
+        }
+
+        const colorWithProp = gradientSettings.colorWithProp
+        const colorStops = buildColorStops(gradientSettings.colorRamp)
+        const weight = gradientSettings.weight || 4
+
+        // Collect all coordinate data with property values
+        const segments = []
+        let min = Infinity
+        let max = -Infinity
+
+        if (gradientSettings.connectAllPoints) {
+            // Point features mode: collect [lng, lat, elevation, value] from each Point
+            const points = []
+            geojson.features.forEach((feature) => {
+                if (
+                    feature.geometry.type.toLowerCase() === 'point'
+                ) {
+                    const coords = feature.geometry.coordinates
+                    const value = F_.getIn(
+                        feature.properties,
+                        colorWithProp,
+                        0
+                    )
+                    if (min > value) min = value
+                    if (max < value) max = value
+                    points.push({
+                        lng: coords[0],
+                        lat: coords[1],
+                        elev: coords[2] || 0,
+                        value: value,
+                    })
+                }
+            })
+            // Build segments from consecutive points
+            for (let i = 0; i < points.length - 1; i++) {
+                segments.push({
+                    lng1: points[i].lng,
+                    lat1: points[i].lat,
+                    elev1: points[i].elev,
+                    value1: points[i].value,
+                    lng2: points[i + 1].lng,
+                    lat2: points[i + 1].lat,
+                    elev2: points[i + 1].elev,
+                    value2: points[i + 1].value,
+                })
+            }
+        } else {
+            // LineString/MultiLineString mode
+            geojson.features.forEach((feature) => {
+                const paths = []
+                let path = []
+                let prevParentIndex = null
+
+                F_.coordinateDepthTraversal(
+                    feature.geometry.coordinates,
+                    (array, _path) => {
+                        const splitPath = _path.split('.')
+                        let parentIndex = null
+                        if (splitPath.length >= 2) {
+                            parentIndex =
+                                splitPath[splitPath.length - 2]
+                            if (
+                                prevParentIndex != null &&
+                                parentIndex != prevParentIndex
+                            ) {
+                                paths.push(path)
+                                path = []
+                            }
+                        }
+                        const props = getCoordProperties(
+                            geojson,
+                            feature,
+                            array
+                        )
+                        const value = F_.getIn(
+                            props,
+                            colorWithProp,
+                            0
+                        )
+                        if (min > value) min = value
+                        if (max < value) max = value
+
+                        path.push({
+                            lng: array[0],
+                            lat: array[1],
+                            elev: array[2] || 0,
+                            value: value,
+                        })
+
+                        prevParentIndex = parentIndex
+                    }
+                )
+                if (path.length > 0) paths.push(path)
+
+                // Build segments from each path
+                paths.forEach((p) => {
+                    for (let i = 0; i < p.length - 1; i++) {
+                        segments.push({
+                            lng1: p[i].lng,
+                            lat1: p[i].lat,
+                            elev1: p[i].elev,
+                            value1: p[i].value,
+                            lng2: p[i + 1].lng,
+                            lat2: p[i + 1].lat,
+                            elev2: p[i + 1].elev,
+                            value2: p[i + 1].value,
+                        })
+                    }
+                })
+            })
+        }
+
+        if (min === 0 && max === 0) max = 1
+
+        // Create a CustomDataSource for all gradient segments
+        const dataSource = new Cesium.CustomDataSource(layerName)
+
+        segments.forEach((seg) => {
+            const avgValue = (seg.value1 + seg.value2) / 2
+            let colorStr = interpolateMultipleColors(
+                colorStops,
+                avgValue,
+                min,
+                max
+            )
+            // Convert rgb() to hex for Cesium
+            if (colorStr && colorStr.startsWith('rgb')) {
+                colorStr = rgbToHex(colorStr)
+            }
+            const cesiumColor = colorStr
+                ? Cesium.Color.fromCssColorString(colorStr)
+                : Cesium.Color.WHITE
+
+            dataSource.entities.add({
+                polyline: {
+                    positions:
+                        Cesium.Cartesian3.fromDegreesArrayHeights([
+                            seg.lng1,
+                            seg.lat1,
+                            seg.elev1,
+                            seg.lng2,
+                            seg.lat2,
+                            seg.elev2,
+                        ]),
+                    material:
+                        new Cesium.ColorMaterialProperty(cesiumColor),
+                    width: weight,
+                },
+            })
+        })
+
+        this.renderer.dataSources.add(dataSource)
+
+        this._layers[layerName] = {
+            type: 'gradient_polyline',
+            dataSource: dataSource,
+            visible: true,
+        }
+
+        return layerName
+    }
+
+    /**
+     * Remove a gradient polyline layer from Cesium
+     * @param {string} layerName - Layer name (with _gradient suffix)
+     */
+    _removeCesiumGradientPolyline(layerName) {
+        const layerInfo = this._layers[layerName]
+        if (layerInfo && layerInfo.type === 'gradient_polyline') {
+            this.renderer.dataSources.remove(layerInfo.dataSource)
+            delete this._layers[layerName]
         }
     }
 
@@ -1116,6 +1315,9 @@ class GlobeRenderer {
             if (layerInfo) {
                 if (layerInfo.type === 'tile') {
                     this.renderer.imageryLayers.remove(layerInfo.layer)
+                } else if (layerInfo.type === 'gradient_polyline') {
+                    this._removeCesiumGradientPolyline(name)
+                    return
                 } else if (layerInfo.type === 'vector') {
                     const removed = this.renderer.dataSources.remove(
                         layerInfo.dataSource
@@ -1172,8 +1374,11 @@ class GlobeRenderer {
             }
 
             layerInfo.visible = visible
-        } else if (layerInfo.type === 'vector') {
-            // Vector layers use simple visibility toggle
+        } else if (
+            layerInfo.type === 'vector' ||
+            layerInfo.type === 'gradient_polyline'
+        ) {
+            // Vector and gradient polyline layers use simple visibility toggle
             layerInfo.dataSource.show = visible
             layerInfo.visible = visible
         }

@@ -1,0 +1,53 @@
+{
+  "type": "FeatureCollection",
+  "properties": {
+    "coord_properties": ["elevation", "speed", "roll"]
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "3D Hotline Route Alpha",
+        "coord_properties": ["elevation", "speed", "roll"],
+        "traverse_type": "ascent_route",
+        "total_distance_km": 12.3
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4783, 37.8199, 50, 0.3, 1.0],
+          [-122.4770, 37.8185, 150, 0.6, -1.5],
+          [-122.4755, 37.8170, 300, 1.0, 2.8],
+          [-122.4740, 37.8155, 500, 1.4, -0.5],
+          [-122.4725, 37.8140, 750, 1.8, 3.2],
+          [-122.4710, 37.8125, 1000, 2.2, -2.1],
+          [-122.4695, 37.8110, 1200, 2.5, 4.0],
+          [-122.4680, 37.8095, 1500, 2.8, -1.8],
+          [-122.4665, 37.8080, 1800, 3.0, 0.5],
+          [-122.4650, 37.8065, 2000, 3.2, -3.0]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "3D Hotline Route Beta",
+        "coord_properties": ["elevation", "speed", "roll"],
+        "traverse_type": "descent_route",
+        "total_distance_km": 8.7
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4650, 37.8065, 2000, 3.5, 1.2],
+          [-122.4640, 37.8050, 1700, 3.0, -2.0],
+          [-122.4630, 37.8035, 1400, 2.5, 3.5],
+          [-122.4620, 37.8020, 1100, 2.0, -1.0],
+          [-122.4610, 37.8005, 800, 1.5, 2.0],
+          [-122.4600, 37.7990, 500, 1.0, -0.5],
+          [-122.4590, 37.7975, 200, 0.5, 1.5]
+        ]
+      }
+    }
+  ]
+}
