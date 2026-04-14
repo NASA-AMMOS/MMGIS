@@ -42,16 +42,17 @@ export function computePanelPixelsFromPercents(state, viewerPercent, mapPercent,
  */
 export function computeToolHeight(state, pxHeight) {
     let newPxIsTools
+    const reserve = state.toolHeightReserve != null ? state.toolHeightReserve : state.topSize
 
     if (pxHeight === 'full') {
-        newPxIsTools = state.mainHeight - state.splitterSize - state.topSize
+        newPxIsTools = state.mainHeight - state.splitterSize - reserve
     } else if (pxHeight === 'threefourths') {
         newPxIsTools = parseInt(
-            0.75 * (state.mainHeight - state.splitterSize - state.topSize)
+            0.75 * (state.mainHeight - state.splitterSize - reserve)
         )
     } else if (pxHeight === 'half') {
         newPxIsTools = parseInt(
-            0.5 * (state.mainHeight - state.splitterSize - state.topSize)
+            0.5 * (state.mainHeight - state.splitterSize - reserve)
         )
     } else {
         newPxIsTools = pxHeight
@@ -140,16 +141,17 @@ export function computeGlobeSplitMoveResult(state, clientX) {
  */
 export function computeToolsSplitMoveResult(state, clientY) {
     let pxIsTools = state.mainHeight - clientY + state.splitterSize / 4
+    const reserve = state.toolHeightReserve != null ? state.toolHeightReserve : state.topSize
 
     if (pxIsTools < state.splitterSize / 4) {
         pxIsTools = state.splitterSize / 4
     }
     if (
         pxIsTools >
-        state.mainHeight - (state.splitterSize + state.topSize)
+        state.mainHeight - (state.splitterSize + reserve)
     ) {
         pxIsTools =
-            state.mainHeight - (state.splitterSize + state.topSize)
+            state.mainHeight - (state.splitterSize + reserve)
     }
 
     return pxIsTools

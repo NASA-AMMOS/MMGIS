@@ -21,6 +21,7 @@ function makeState(overrides = {}) {
         splitterSize: 0,
         splitterSizeHidden: 17,
         topSize: 40,
+        toolHeightReserve: 40,
         fullSizeViews: false,
         pxIsViewer: 0,
         pxIsMap: 0,
@@ -157,6 +158,12 @@ test.describe('computeToolHeight', () => {
     test('0 returns 0', () => {
         const state = makeState({ mainHeight: 800, splitterSize: 10, topSize: 40 })
         expect(computeToolHeight(state, 0)).toBe(0)
+    })
+
+    test('"full" uses toolHeightReserve even when topSize is 0 (minimalist mode)', () => {
+        const state = makeState({ mainHeight: 800, splitterSize: 10, topSize: 0, toolHeightReserve: 40 })
+        // Should reserve 40px even though topSize is 0
+        expect(computeToolHeight(state, 'full')).toBe(800 - 10 - 40)
     })
 })
 

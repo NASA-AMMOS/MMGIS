@@ -14,6 +14,7 @@ const useUIStore = create((set, get) => ({
     splitterSize: 0,
     splitterSizeHidden: 17,
     topSize: 40,
+    toolHeightReserve: 40,
     fullSizeViews: false,
 
     // Panel pixel sizes
@@ -199,9 +200,10 @@ const useUIStore = create((set, get) => ({
 
         // Don't let tools exceed max
         const current = get()
+        const reserve = current.toolHeightReserve != null ? current.toolHeightReserve : current.topSize
         if (
             current.pxIsTools >
-            newHeight - current.splitterSize - current.topSize
+            newHeight - current.splitterSize - reserve
         ) {
             current.setToolHeight('full', true)
         }

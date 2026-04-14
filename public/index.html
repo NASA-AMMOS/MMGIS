@@ -391,10 +391,10 @@
       if ("%REACT_UI%" === "true") {
           mmgisglobal.useReactUI = true;
       }
-      // URL parameter override
+      // URL parameter override (can both enable and disable)
       var _rup = new URLSearchParams(window.location.search);
-      if (_rup.get('reactui') === 'true') {
-          mmgisglobal.useReactUI = true;
+      if (_rup.has('reactui')) {
+          mmgisglobal.useReactUI = _rup.get('reactui') === 'true';
       }
 
       // prettier-ignore
