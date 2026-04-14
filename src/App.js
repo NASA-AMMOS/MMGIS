@@ -11,7 +11,13 @@ import UserInterfaceLayout from './essence/Basics/UserInterface_/components/User
 // Feature flag: The primary initialization of window.mmgisglobal.useReactUI
 // happens in public/index.html (before any bundled JS runs) so that
 // UserInterface_.js sees the correct value during ES module evaluation.
-// This secondary check enables the build-time REACT_UI env var (via DefinePlugin).
+//
+// NOTE: This IIFE runs AFTER ES module imports have resolved, so it cannot
+// affect UserInterface_.js module selection (which happens at import time).
+// It only ensures the flag is set for runtime checks (e.g., App() render,
+// $(document).ready guard in UserInterfaceDefault_.js). In normal operation,
+// index.html always sets the flag first; this is a defensive fallback for
+// non-standard bootstrap scenarios where index.html's inline script didn't run.
 ;(function initReactUIFlag() {
     if (typeof window.mmgisglobal === 'undefined') window.mmgisglobal = {}
     if (window.mmgisglobal.useReactUI == null) {
