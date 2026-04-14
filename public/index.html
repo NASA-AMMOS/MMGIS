@@ -387,6 +387,11 @@
       // React UI feature flag — must run before any bundled JS so that
       // UserInterface_.js (evaluated during ES module resolution) sees the flag.
       mmgisglobal.useReactUI = false;
+      // Build-time env var (injected by InterpolateHtmlPlugin)
+      if ("%REACT_UI%" === "true") {
+          mmgisglobal.useReactUI = true;
+      }
+      // URL parameter override
       var _rup = new URLSearchParams(window.location.search);
       if (_rup.get('reactui') === 'true') {
           mmgisglobal.useReactUI = true;

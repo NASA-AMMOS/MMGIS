@@ -11,7 +11,7 @@ function ToolPanel() {
 
     const handleDragMouseDown = useCallback((e) => {
         const startX = e.pageX
-        const startLeft = toolPanelWidth + 10
+        const startLeft = toolPanelWidth + TOOLBAR_WIDTH + 10
 
         const handleMouseMove = (ev) => {
             const newLeft = startLeft + (ev.pageX - startX)
