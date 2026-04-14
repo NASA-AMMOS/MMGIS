@@ -24,20 +24,40 @@ function SplitScreens() {
         return () => window.removeEventListener('resize', handleResize)
     }, [])
 
-    // Initialize dimensions once mounted
+    // Initialize pxIsMap once on first mount only
+    const initializedRef = useRef(false)
     useEffect(() => {
-        const el = splitscreensRef.current
-        if (el) {
-            const state = useUIStore.getState()
-            const width = el.offsetWidth
-            const height = el.offsetHeight
-            useUIStore.setState({
-                mainWidth: width,
-                mainHeight: height,
-                pxIsMap: width,
-            })
+        if (!initializedRef.current) {
+            const el = splitscreensRef.current
+            if (el) {
+                initializedRef.current = true
+                const width = el.offsetWidth
+                const height = el.offsetHeight
+                useUIStore.setState({
+                    mainWidth: width,
+                    mainHeight: height,
+                    pxIsMap: width,
+                })
+            }
         }
     }, [])
+
+    // Re-capture dimensions when topSize or toolPanelWidth change
+    // (e.g. fina() sets topSize from 40 to 0, changing container height)
+    useEffect(() => {
+        const el = splitscreensRef.current
+        if (el && initializedRef.current) {
+            // Use rAF to read dimensions after the layout reflow
+            requestAnimationFrame(() => {
+                if (splitscreensRef.current) {
+                    useUIStore.setState({
+                        mainWidth: splitscreensRef.current.offsetWidth,
+                        mainHeight: splitscreensRef.current.offsetHeight,
+                    })
+                }
+            })
+        }
+    }, [topSize, toolPanelWidth])
 
     const topOffset = fullSizeViews ? 0 : topSize
 
