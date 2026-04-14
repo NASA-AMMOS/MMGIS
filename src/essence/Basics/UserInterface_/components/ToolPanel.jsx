@@ -43,6 +43,15 @@ function ToolPanel() {
                         300
                     )
                     useUIStore.getState().openToolPanel(clampedWidth)
+
+                    // Update TopBar margin/width to match new tool panel width
+                    // (bridge.openToolPanel does this, but drag bypasses the bridge)
+                    const topBar = document.getElementById('topBar')
+                    if (topBar) {
+                        topBar.style.paddingLeft = '0px'
+                        topBar.style.marginLeft = (clampedWidth + panelLeftOffset) + 'px'
+                        topBar.style.width = `calc(100% - ${clampedWidth + panelLeftOffset}px)`
+                    }
                 }
                 dragRef.current.style.height = '28px'
                 dragRef.current.style.borderRight =

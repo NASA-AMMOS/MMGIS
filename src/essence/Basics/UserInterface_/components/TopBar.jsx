@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useCallback } from 'react'
 import useUIStore from '../store/uiStore'
+import BottomBar from '../BottomBar'
 
-function TopBar() {
+function TopBar({ userInterface }) {
     const topBarLeftRef = useRef(null)
     const isMobile = useUIStore((s) => s.isMobile)
+    const mobileBottomBarInitialized = useRef(false)
 
     useEffect(() => {
         const el = topBarLeftRef.current
@@ -16,6 +18,14 @@ function TopBar() {
             return () => el.removeEventListener('wheel', handleWheel)
         }
     }, [])
+
+    // Initialize BottomBar inside topBarMenu's barBottom for mobile
+    useEffect(() => {
+        if (isMobile && userInterface && !mobileBottomBarInitialized.current) {
+            BottomBar.init('barBottom', userInterface)
+            mobileBottomBarInitialized.current = true
+        }
+    }, [isMobile, userInterface])
 
     const handleMenuClick = useCallback(() => {
         const barBottom = document.getElementById('barBottom')

@@ -73,11 +73,11 @@ function UserInterfaceLayout() {
                 position: 'relative',
             }}
         >
-            <TopBar />
+            <TopBar userInterface={bridge} />
             <Toolbar />
             <ToolPanel />
             <SplitScreens />
-            <BottomBarReact userInterface={bridge} />
+            {!isMobile && <BottomBarReact userInterface={bridge} />}
         </div>
         {ReactDOM.createPortal(
             <div
