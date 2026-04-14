@@ -36,7 +36,7 @@ function ToolPanel() {
             document.body.style.userSelect = ''
             if (dragRef.current && dragRef.current._dragged) {
                 const newWidth =
-                    parseInt(dragRef.current.style.left) - panelLeftOffset + 24
+                    parseInt(dragRef.current.style.left) - panelLeftOffset - 10
                 if (newWidth > 0) {
                     const clampedWidth = Math.max(
                         Math.min(newWidth, window.innerWidth / 2),
