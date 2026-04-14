@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import ReactDOM from 'react-dom'
 import useUIStore from '../store/uiStore'
 import TopBar from './TopBar'
 import Toolbar from './Toolbar'
@@ -49,7 +50,7 @@ function UserInterfaceLayout() {
         }
     }, [])
 
-    return (
+    return (<>
         <div
             id="main-container"
             ref={containerRef}
@@ -67,6 +68,8 @@ function UserInterfaceLayout() {
             <ToolPanel />
             <SplitScreens />
             <BottomBarReact userInterface={bridge} />
+        </div>
+        {ReactDOM.createPortal(
             <div
                 id="uiRightPanel"
                 style={{
@@ -74,13 +77,15 @@ function UserInterfaceLayout() {
                     position: 'absolute',
                     right: '0px',
                     top: '0px',
-                    height: '100%',
+                    height: '100vh',
                     width: '0px',
+                    background: '#000',
                     zIndex: 2000,
                 }}
-            ></div>
-        </div>
-    )
+            ></div>,
+            document.body
+        )}
+    </>)
 }
 
 export default UserInterfaceLayout

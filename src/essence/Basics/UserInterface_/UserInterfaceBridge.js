@@ -231,6 +231,7 @@ const UserInterfaceBridge = {
     },
 
     openRightPanel: function (width) {
+        if (UserInterfaceBridge.rightPanelOpen != null) return
         const coordsDiv = document.getElementById('CoordinatesDiv')
         if (coordsDiv) coordsDiv.style.right = width + 'px'
         // Update store so React manages main-container width
