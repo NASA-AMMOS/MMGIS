@@ -1,14 +1,6 @@
 {
   "type": "FeatureCollection",
-  "properties": {
-    "coord_properties": [
-      null,
-      null,
-      "elevation",
-      "speed",
-      "roll"
-    ]
-  },
+  "coord_properties": [null, null, "elevation", "speed", "roll"],
   "features": [
     {
       "type": "Feature",

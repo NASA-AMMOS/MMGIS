@@ -2532,6 +2532,8 @@ class GlobeRenderer {
             // Apply red tint
             entity.billboard.color = Cesium.Color.RED
         }
+
+        this._requestRender()
     }
 
     /**
@@ -2609,6 +2611,8 @@ class GlobeRenderer {
         // Clear references
         this._highlightedEntity = null
         this._originalEntityStyle = null
+
+        this._requestRender()
     }
 }
 
