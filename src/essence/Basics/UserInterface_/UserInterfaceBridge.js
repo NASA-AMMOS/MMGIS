@@ -168,6 +168,13 @@ const UserInterfaceBridge = {
 
     closeToolPanel: function () {
         useUIStore.getState().closeToolPanel()
+        // Reset TopBar to full width (matches jQuery closeToolPanel behavior)
+        const topBar = document.getElementById('topBar')
+        if (topBar) {
+            topBar.style.paddingLeft = '40px'
+            topBar.style.marginLeft = '0px'
+            topBar.style.width = '100%'
+        }
         setTimeout(() => {
             const el = document.getElementById('splitscreens')
             if (el) {

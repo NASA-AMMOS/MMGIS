@@ -17,6 +17,7 @@ function ToolPanel() {
             const newLeft = startLeft + (ev.pageX - startX)
             document.body.style.userSelect = 'none'
             if (dragRef.current) {
+                dragRef.current._dragged = true
                 dragRef.current.style.left = newLeft + 'px'
                 dragRef.current.style.height = '100%'
                 dragRef.current.style.borderRight =
@@ -28,7 +29,7 @@ function ToolPanel() {
             document.removeEventListener('mousemove', handleMouseMove)
             document.removeEventListener('mouseup', handleMouseUp)
             document.body.style.userSelect = ''
-            if (dragRef.current) {
+            if (dragRef.current && dragRef.current._dragged) {
                 const newWidth =
                     parseInt(dragRef.current.style.left) - TOOLBAR_WIDTH + 24
                 if (newWidth > 0) {
@@ -42,6 +43,7 @@ function ToolPanel() {
                 dragRef.current.style.borderRight =
                     '1px solid transparent'
             }
+            if (dragRef.current) dragRef.current._dragged = false
         }
 
         document.addEventListener('mousemove', handleMouseMove)
