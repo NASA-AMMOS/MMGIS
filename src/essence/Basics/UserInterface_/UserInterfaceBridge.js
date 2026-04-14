@@ -233,15 +233,17 @@ const UserInterfaceBridge = {
     openRightPanel: function (width) {
         const coordsDiv = document.getElementById('CoordinatesDiv')
         if (coordsDiv) coordsDiv.style.right = width + 'px'
-        const mainContainer = document.getElementById('main-container')
-        if (mainContainer) mainContainer.style.width = `calc(100% - ${width}px)`
+        // Update store so React manages main-container width
+        useUIStore.getState().setRightPanelWidth(width)
 
-        const el = document.getElementById('splitscreens')
-        if (el) {
-            useUIStore.setState({ mainWidth: el.offsetWidth })
-            const pp = useUIStore.getState().getPanelPercents()
-            useUIStore.getState().setPanelPercents(pp.viewer, pp.map, pp.globe)
-        }
+        setTimeout(() => {
+            const el = document.getElementById('splitscreens')
+            if (el) {
+                useUIStore.setState({ mainWidth: el.offsetWidth })
+                const pp = useUIStore.getState().getPanelPercents()
+                useUIStore.getState().setPanelPercents(pp.viewer, pp.map, pp.globe)
+            }
+        }, 0)
         const rightPanel = document.getElementById('uiRightPanel')
         if (rightPanel) {
             rightPanel.style.display = 'inherit'
@@ -254,15 +256,17 @@ const UserInterfaceBridge = {
         if (UserInterfaceBridge.rightPanelOpen == null) return
         const coordsDiv = document.getElementById('CoordinatesDiv')
         if (coordsDiv) coordsDiv.style.right = '0px'
-        const mainContainer = document.getElementById('main-container')
-        if (mainContainer) mainContainer.style.width = '100%'
+        // Update store so React manages main-container width
+        useUIStore.getState().setRightPanelWidth(0)
 
-        const el = document.getElementById('splitscreens')
-        if (el) {
-            useUIStore.setState({ mainWidth: el.offsetWidth })
-            const pp = useUIStore.getState().getPanelPercents()
-            useUIStore.getState().setPanelPercents(pp.viewer, pp.map, pp.globe)
-        }
+        setTimeout(() => {
+            const el = document.getElementById('splitscreens')
+            if (el) {
+                useUIStore.setState({ mainWidth: el.offsetWidth })
+                const pp = useUIStore.getState().getPanelPercents()
+                useUIStore.getState().setPanelPercents(pp.viewer, pp.map, pp.globe)
+            }
+        }, 0)
         const rightPanel = document.getElementById('uiRightPanel')
         if (rightPanel) {
             rightPanel.style.display = 'none'

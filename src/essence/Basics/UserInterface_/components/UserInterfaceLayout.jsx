@@ -13,6 +13,7 @@ function UserInterfaceLayout() {
     const containerRef = useRef(null)
     const [bridge, setBridge] = useState(null)
     const visible = useUIStore((s) => s.visible)
+    const rightPanelWidth = useUIStore((s) => s.rightPanelWidth)
 
     useEffect(() => {
         // Import bridge lazily to avoid circular deps
@@ -55,7 +56,7 @@ function UserInterfaceLayout() {
             style={{
                 opacity: visible ? 1 : 0,
                 transition: visible ? 'opacity 1s' : 'none',
-                width: '100%',
+                width: rightPanelWidth > 0 ? `calc(100% - ${rightPanelWidth}px)` : '100%',
                 height: '100%',
                 overflow: 'hidden',
                 position: 'relative',
