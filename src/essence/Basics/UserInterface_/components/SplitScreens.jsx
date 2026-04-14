@@ -79,9 +79,9 @@ function SplitScreens() {
             style={{
                 position: 'absolute',
                 top: topOffset + 'px',
-                width: isMobile ? '100%' : `calc(100% - ${toolPanelWidth + 40}px)`,
+                width: isMobile ? `calc(100% - ${toolPanelWidth}px)` : `calc(100% - ${toolPanelWidth + 40}px)`,
                 height: `calc(100% - ${topOffset}px)`,
-                left: isMobile ? '0px' : (toolPanelWidth + 40 + 'px'),
+                left: isMobile ? (toolPanelWidth + 'px') : (toolPanelWidth + 40 + 'px'),
             }}
         >
             <div id="vmgScreen">

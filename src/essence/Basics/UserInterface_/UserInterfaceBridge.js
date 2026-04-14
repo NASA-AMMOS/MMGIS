@@ -47,6 +47,7 @@ const UserInterfaceBridge = {
     toolbarLogo: null,
     dataLoadingSpinner: null,
     rightPanel: null,
+    rightPanelOpen: null,
     layerUpdatedControl: null,
 
     get splitterSize() {
@@ -553,7 +554,7 @@ const UserInterfaceBridge = {
             if (el) el.style.display = look.settings ? 'inherit' : 'none'
         }
 
-        if (look.info != null && look.infourl !== '') {
+        if (look.info != null && look.infourl != null && look.infourl !== '') {
             const el = document.getElementById('topBarInfo')
             if (el) el.style.display = look.info ? 'inherit' : 'none'
         } else {
@@ -561,7 +562,7 @@ const UserInterfaceBridge = {
             if (el) el.style.display = 'none'
         }
 
-        if (look.help != null && look.helpurl !== '') {
+        if (look.help != null && look.helpurl != null && look.helpurl !== '') {
             const el = document.getElementById('topBarHelp')
             if (el) el.style.display = look.help ? 'inherit' : 'none'
         } else {
