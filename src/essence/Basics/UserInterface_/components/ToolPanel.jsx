@@ -7,11 +7,16 @@ const TOOLBAR_WIDTH = 40
 function ToolPanel() {
     const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
     const topSize = useUIStore((s) => s.topSize)
+    const isMobile = useUIStore((s) => s.isMobile)
+    const mobileTopSize = useUIStore((s) => s.mobileTopSize)
     const dragRef = useRef(null)
+
+    // Mobile: tool panel left offset is topSize (50px); Desktop: TOOLBAR_WIDTH (40px)
+    const panelLeftOffset = isMobile ? mobileTopSize : TOOLBAR_WIDTH
 
     const handleDragMouseDown = useCallback((e) => {
         const startX = e.pageX
-        const startLeft = toolPanelWidth + TOOLBAR_WIDTH + 10
+        const startLeft = toolPanelWidth + panelLeftOffset + 10
 
         const handleMouseMove = (ev) => {
             const newLeft = startLeft + (ev.pageX - startX)
@@ -31,7 +36,7 @@ function ToolPanel() {
             document.body.style.userSelect = ''
             if (dragRef.current && dragRef.current._dragged) {
                 const newWidth =
-                    parseInt(dragRef.current.style.left) - TOOLBAR_WIDTH + 24
+                    parseInt(dragRef.current.style.left) - panelLeftOffset + 24
                 if (newWidth > 0) {
                     const clampedWidth = Math.max(
                         Math.min(newWidth, window.innerWidth / 2),
@@ -48,7 +53,7 @@ function ToolPanel() {
 
         document.addEventListener('mousemove', handleMouseMove)
         document.addEventListener('mouseup', handleMouseUp)
-    }, [toolPanelWidth, topSize])
+    }, [toolPanelWidth, topSize, panelLeftOffset])
 
     return (
         <>
@@ -60,7 +65,7 @@ function ToolPanel() {
                     width: toolPanelWidth + 'px',
                     top: topSize + 'px',
                     height: `calc(100% - ${topSize}px)`,
-                    left: TOOLBAR_WIDTH + 'px',
+                    left: panelLeftOffset + 'px',
                     background: 'var(--color-k)',
                     transition: 'width 0.2s ease-out',
                     overflow: 'hidden',
@@ -85,7 +90,7 @@ function ToolPanel() {
                     display: toolPanelWidth > 0 ? 'block' : 'none',
                     zIndex: 1400,
                     borderRight: '1px solid transparent',
-                    left: toolPanelWidth + TOOLBAR_WIDTH + 10 + 'px',
+                    left: toolPanelWidth + panelLeftOffset + 10 + 'px',
                 }}
                 onMouseDown={handleDragMouseDown}
             >

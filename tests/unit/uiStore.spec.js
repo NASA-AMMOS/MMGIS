@@ -212,6 +212,37 @@ test.describe('computeMapSplitMoveResult', () => {
         const result = computeMapSplitMoveResult(state, 540)
         expect(result.pxIsViewer).toBeGreaterThanOrEqual(0)
     })
+
+    test('mobile mode: no 40px toolbar offset', () => {
+        const state = makeState({
+            mainWidth: 1000,
+            splitterSize: 10,
+            toolPanelWidth: 0,
+            pxIsViewer: 300,
+            pxIsMap: 500,
+            pxIsGlobe: 200,
+            isMobile: true,
+        })
+        // With isMobile=true, toolbar left offset is 0 instead of 40
+        // clientX=540: x = 540 - 10 - 0 - 0 = 530
+        const result = computeMapSplitMoveResult(state, 540)
+        expect(result.pxIsViewer).toBeGreaterThanOrEqual(0)
+        expect(result.pxIsMap).toBeGreaterThanOrEqual(0)
+
+        // Compare with desktop (isMobile=false): desktop subtracts 40 more
+        const desktopState = makeState({
+            mainWidth: 1000,
+            splitterSize: 10,
+            toolPanelWidth: 0,
+            pxIsViewer: 300,
+            pxIsMap: 500,
+            pxIsGlobe: 200,
+            isMobile: false,
+        })
+        const desktopResult = computeMapSplitMoveResult(desktopState, 540)
+        // Mobile viewer should be 40px wider than desktop for same clientX
+        expect(result.pxIsViewer).toBe(desktopResult.pxIsViewer + 40)
+    })
 })
 
 test.describe('computeGlobeSplitMoveResult', () => {
@@ -261,6 +292,37 @@ test.describe('computeGlobeSplitMoveResult', () => {
 
         const result = computeGlobeSplitMoveResult(state, 750)
         expect(result.pxIsGlobe).toBeGreaterThanOrEqual(0)
+    })
+
+    test('mobile mode: no 40px toolbar offset', () => {
+        const state = makeState({
+            mainWidth: 1000,
+            splitterSize: 10,
+            toolPanelWidth: 0,
+            hasViewer: true,
+            pxIsViewer: 200,
+            pxIsMap: 500,
+            pxIsGlobe: 300,
+            isMobile: true,
+        })
+        // With isMobile=true, toolbar left offset is 0 instead of 40
+        const result = computeGlobeSplitMoveResult(state, 750)
+        expect(result.pxIsGlobe).toBeGreaterThanOrEqual(0)
+
+        // Compare with desktop: globe should be 40px smaller for same clientX
+        const desktopState = makeState({
+            mainWidth: 1000,
+            splitterSize: 10,
+            toolPanelWidth: 0,
+            hasViewer: true,
+            pxIsViewer: 200,
+            pxIsMap: 500,
+            pxIsGlobe: 300,
+            isMobile: false,
+        })
+        const desktopResult = computeGlobeSplitMoveResult(desktopState, 750)
+        // Mobile globe should be 40px smaller (because x is 40 larger)
+        expect(result.pxIsGlobe).toBe(desktopResult.pxIsGlobe - 40)
     })
 })
 

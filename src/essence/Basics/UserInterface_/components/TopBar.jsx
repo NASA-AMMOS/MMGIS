@@ -1,7 +1,9 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useCallback } from 'react'
+import useUIStore from '../store/uiStore'
 
 function TopBar() {
     const topBarLeftRef = useRef(null)
+    const isMobile = useUIStore((s) => s.isMobile)
 
     useEffect(() => {
         const el = topBarLeftRef.current
@@ -15,8 +17,36 @@ function TopBar() {
         }
     }, [])
 
+    const handleMenuClick = useCallback(() => {
+        const barBottom = document.getElementById('barBottom')
+        if (barBottom) {
+            barBottom.style.display =
+                barBottom.style.display === 'none' || !barBottom.style.display
+                    ? 'flex'
+                    : 'none'
+        }
+    }, [])
+
     return (
-        <div id="topBar">
+        <div id="topBar" style={isMobile ? { background: 'var(--color-a)' } : undefined}>
+            {isMobile && (
+                <div
+                    id="topBarMenu"
+                    onClick={handleMenuClick}
+                >
+                    <i className="mdi mdi-menu mdi-24px"></i>
+                    <div
+                        id="barBottom"
+                        style={{
+                            position: 'absolute',
+                            width: '40px',
+                            display: 'none',
+                            flexFlow: 'column',
+                            zIndex: 1005,
+                        }}
+                    ></div>
+                </div>
+            )}
             <div id="topBarLeft" className="hideScrollbar" ref={topBarLeftRef}>
                 <div id="topBarMain">
                     <div id="topBarTitle">

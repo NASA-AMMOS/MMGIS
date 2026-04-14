@@ -7,7 +7,18 @@ var Map_ = null
 var Globe_ = null
 
 const UserInterfaceBridge = {
-    isMobile: false,
+    _isMobile: false,
+    get isMobile() {
+        return this._isMobile
+    },
+    set isMobile(val) {
+        this._isMobile = val
+        useUIStore.getState().setIsMobile(!!val)
+        // Mobile uses topSize 50 (desktop uses 40)
+        if (val) {
+            useUIStore.setState({ topSize: 50, mobileTopSize: 50, toolHeightReserve: 50 })
+        }
+    },
 
     // jQuery element references (null in React mode - components manage their own DOM)
     topBar: null,
@@ -136,7 +147,20 @@ const UserInterfaceBridge = {
     },
 
     openToolPanel: function (width) {
+        const isMobile = useUIStore.getState().isMobile
+        const panelEl = document.getElementById('toolPanel')
+        if (panelEl) panelEl.innerHTML = ''
         useUIStore.getState().openToolPanel(width)
+
+        // Update TopBar offset (mobile uses topSize for left offset, desktop uses 40)
+        const leftOffset = isMobile ? useUIStore.getState().mobileTopSize : 40
+        const topBar = document.getElementById('topBar')
+        if (topBar) {
+            topBar.style.paddingLeft = '0px'
+            topBar.style.marginLeft = (width + leftOffset) + 'px'
+            topBar.style.width = `calc(100% - ${width + leftOffset}px)`
+        }
+
         // Also update splitscreens dimensions after tool panel opens
         setTimeout(() => {
             const el = document.getElementById('splitscreens')
@@ -152,7 +176,17 @@ const UserInterfaceBridge = {
     },
 
     resizeToolPanel: function (width) {
+        const isMobile = useUIStore.getState().isMobile
+        const leftOffset = isMobile ? useUIStore.getState().mobileTopSize : 40
         useUIStore.getState().openToolPanel(width)
+
+        const topBar = document.getElementById('topBar')
+        if (topBar) {
+            topBar.style.paddingLeft = '0px'
+            topBar.style.marginLeft = (width + leftOffset) + 'px'
+            topBar.style.width = `calc(100% - ${width + leftOffset}px)`
+        }
+
         setTimeout(() => {
             const el = document.getElementById('splitscreens')
             if (el) {
@@ -167,6 +201,8 @@ const UserInterfaceBridge = {
     },
 
     closeToolPanel: function () {
+        const panelEl = document.getElementById('toolPanel')
+        if (panelEl) panelEl.innerHTML = ''
         useUIStore.getState().closeToolPanel()
         // Reset TopBar to full width (matches jQuery closeToolPanel behavior)
         const topBar = document.getElementById('topBar')
@@ -174,6 +210,11 @@ const UserInterfaceBridge = {
             topBar.style.paddingLeft = '40px'
             topBar.style.marginLeft = '0px'
             topBar.style.width = '100%'
+        }
+        // In mobile, reset toolbar box-shadow
+        if (useUIStore.getState().isMobile) {
+            const toolbar = document.getElementById('toolbar')
+            if (toolbar) toolbar.style.boxShadow = 'none'
         }
         setTimeout(() => {
             const el = document.getElementById('splitscreens')
@@ -193,18 +234,34 @@ const UserInterfaceBridge = {
     },
 
     setToolWidth: function (newWidth, alignment) {
-        const TOOLBAR_WIDTH = 40
+        const isMobile = useUIStore.getState().isMobile
         useUIStore.getState().setToolWidth(newWidth)
 
-        // Also update TopBar margin/width to match jQuery behavior
-        let newTopWidth = TOOLBAR_WIDTH
-        if (newWidth !== 'full') {
-            newTopWidth = TOOLBAR_WIDTH + newWidth
-        }
-        const topBar = document.getElementById('topBar')
-        if (topBar) {
-            topBar.style.marginLeft = newTopWidth + 'px'
-            topBar.style.width = `calc(100% - ${newTopWidth}px)`
+        if (isMobile) {
+            // Mobile: toolbar is at bottom, use its width for offset
+            const toolbarEl = document.getElementById('toolbar')
+            const toolbarWidth = toolbarEl ? toolbarEl.offsetWidth : 0
+            let newTopWidth = toolbarWidth
+            if (newWidth !== 'full') {
+                newTopWidth = toolbarWidth + newWidth
+            }
+            const topBar = document.getElementById('topBar')
+            if (topBar) {
+                topBar.style.marginLeft = newTopWidth + 'px'
+                topBar.style.width = `calc(100% - ${newTopWidth}px)`
+            }
+        } else {
+            // Desktop: fixed 40px toolbar
+            const TOOLBAR_WIDTH = 40
+            let newTopWidth = TOOLBAR_WIDTH
+            if (newWidth !== 'full') {
+                newTopWidth = TOOLBAR_WIDTH + newWidth
+            }
+            const topBar = document.getElementById('topBar')
+            if (topBar) {
+                topBar.style.marginLeft = newTopWidth + 'px'
+                topBar.style.width = `calc(100% - ${newTopWidth}px)`
+            }
         }
     },
 
@@ -288,6 +345,16 @@ const UserInterfaceBridge = {
             useUIStore.setState({ topSize: 0 })
             const logo = document.getElementById('mmgislogo')
             if (logo) logo.style.display = 'inherit'
+
+            // Mobile-specific minimalist adjustments
+            if (useUIStore.getState().isMobile) {
+                const toolbar = document.getElementById('toolbar')
+                if (toolbar) {
+                    toolbar.style.bottom = '0px'
+                    toolbar.style.height = useUIStore.getState().mobileTopSize + 'px'
+                    toolbar.style.paddingTop = '0px'
+                }
+            }
         }
     },
 
@@ -410,6 +477,49 @@ const UserInterfaceBridge = {
             BottomBar.changeUIVisibility('coordinates', false)
         if (look.miscellaneous === false)
             BottomBar.changeUIVisibility('miscellaneous', false)
+
+        // Mobile-specific fina behavior
+        if (this.isMobile) {
+            const mobileTools = ['Layers', 'Legend', 'Info']
+
+            // Position mapToolBar at top under topbar (contains scalebar)
+            const mapToolBar = document.getElementById('mapToolBar')
+            if (mapToolBar) {
+                mapToolBar.style.top = '48px'
+                mapToolBar.style.bottom = 'auto'
+            }
+            // Position compass at bottom
+            const compass = document.getElementById('mmgis-map-compass')
+            if (compass) compass.style.bottom = '60px'
+
+            // Remove the cursor info
+            const cursorInfo = document.getElementById('cursorInfo')
+            if (cursorInfo) cursorInfo.remove()
+
+            // Remove toolbar buttons that aren't mobile features
+            if (ToolController_.tools) {
+                ToolController_.tools
+                    .map((i) => i.name)
+                    .forEach((tool) => {
+                        if (!mobileTools.includes(tool)) {
+                            const btn = document.getElementById('toolButton' + tool)
+                            if (btn) btn.remove()
+                        }
+                    })
+            }
+
+            // Remove the coordinates div and timeUI (redrawn as tools on mobile)
+            const coordsDiv = document.getElementById('CoordinatesDiv')
+            if (coordsDiv) coordsDiv.remove()
+            const timeUI = document.getElementById('timeUI')
+            if (timeUI) timeUI.remove()
+
+            // Zoom in if needed
+            if (l_.configData.msv && 'mapZoomMobileInit' in l_.configData.msv) {
+                const zoom = l_.configData.msv.mapZoomMobileInit || map_.map.getZoom()
+                map_.map.setZoom(zoom)
+            }
+        }
 
         BottomBar.fina()
         this.show()

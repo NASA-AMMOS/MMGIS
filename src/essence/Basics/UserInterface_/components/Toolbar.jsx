@@ -1,12 +1,25 @@
 import React from 'react'
+import useUIStore from '../store/uiStore'
 import F_ from '../../Formulae_/Formulae_'
 
 function Toolbar() {
+    const isMobile = useUIStore((s) => s.isMobile)
+    const topSize = useUIStore((s) => s.topSize)
+
     return (
         <>
             <div
                 id="toolbar"
-                style={{
+                style={isMobile ? {
+                    boxShadow: '0px -3px 3px 0px rgba(0, 0, 0, 0.3)',
+                    height: topSize + 'px',
+                    paddingTop: '0px',
+                    background: 'var(--color-a)',
+                    borderBottom: '2px solid black',
+                    bottom: '0px',
+                    width: '100%',
+                    zIndex: 1004,
+                } : {
                     width: '40px',
                     paddingTop: '40px',
                     background: 'var(--color-a)',

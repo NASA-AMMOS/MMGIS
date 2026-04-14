@@ -42,6 +42,7 @@ const useUIStore = create((set, get) => ({
     // UI state
     helpOn: true,
     isMobile: false,
+    mobileTopSize: 50,
 
     // Layout ready flag for essence.js integration
     layoutReady: false,
@@ -90,6 +91,8 @@ const useUIStore = create((set, get) => ({
         set((state) => ({
             visibility: { ...state.visibility, [key]: value },
         })),
+
+    setIsMobile: (val) => set({ isMobile: val }),
 
     setTopSize: (val) => set({ topSize: val }),
 
@@ -143,7 +146,9 @@ const useUIStore = create((set, get) => ({
     },
 
     setToolWidth: (newWidth) => {
-        const TOOLBAR_WIDTH = 40
+        const isMobile = get().isMobile
+        // Mobile: toolbar is at bottom, no left sidebar offset; Desktop: 40px
+        const TOOLBAR_WIDTH = isMobile ? 0 : 40
         let cssWidth
         if (newWidth === 'full') {
             cssWidth = `calc(100vw - ${TOOLBAR_WIDTH}px)`

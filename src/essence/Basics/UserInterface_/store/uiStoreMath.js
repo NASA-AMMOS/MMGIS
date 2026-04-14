@@ -78,7 +78,9 @@ export function computeMapSplitMoveResult(state, clientX) {
     // Guard: if viewer is disabled, don't allow dragging the map splitter
     if (!state.hasViewer) return { pxIsViewer: state.pxIsViewer, pxIsMap: state.pxIsMap, pxIsGlobe: state.pxIsGlobe }
 
-    let x = clientX - state.splitterSize - 40 - state.toolPanelWidth
+    // Mobile: toolbar is at bottom, no left offset; Desktop: 40px left toolbar
+    const toolbarLeftOffset = state.isMobile ? 0 : 40
+    let x = clientX - state.splitterSize - toolbarLeftOffset - state.toolPanelWidth
 
     if (x >= state.mainWidth - 5) x = state.mainWidth
     else if (x <= 5) x = 0
@@ -112,7 +114,9 @@ export function computeGlobeSplitMoveResult(state, clientX) {
     // Guard: if globe is disabled, don't allow dragging the globe splitter
     if (!state.hasGlobe) return { pxIsViewer: state.pxIsViewer, pxIsMap: state.pxIsMap, pxIsGlobe: state.pxIsGlobe }
 
-    let x = clientX - 40 - state.toolPanelWidth
+    // Mobile: toolbar is at bottom, no left offset; Desktop: 40px left toolbar
+    const toolbarLeftOffset = state.isMobile ? 0 : 40
+    let x = clientX - toolbarLeftOffset - state.toolPanelWidth
 
     if (state.hasViewer !== false) {
         x -= state.splitterSize

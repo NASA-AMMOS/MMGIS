@@ -7,7 +7,6 @@ import SplitScreens from './SplitScreens'
 import ToolPanel from './ToolPanel'
 import BottomBarReact from './BottomBarReact'
 
-import '../UserInterfaceDefault_.css'
 import '../BottomBar.css'
 
 function UserInterfaceLayout() {
@@ -15,6 +14,7 @@ function UserInterfaceLayout() {
     const [bridge, setBridge] = useState(null)
     const visible = useUIStore((s) => s.visible)
     const rightPanelWidth = useUIStore((s) => s.rightPanelWidth)
+    const isMobile = useUIStore((s) => s.isMobile)
 
     useEffect(() => {
         // Import bridge lazily to avoid circular deps
@@ -22,6 +22,15 @@ function UserInterfaceLayout() {
             setBridge(mod.default)
         })
     }, [])
+
+    // Dynamically import the correct CSS based on mobile/desktop mode
+    useEffect(() => {
+        if (isMobile) {
+            import('../UserInterfaceMobile_.css')
+        } else {
+            import('../UserInterfaceDefault_.css')
+        }
+    }, [isMobile])
 
     useEffect(() => {
         // Mark layout as ready for essence.js
