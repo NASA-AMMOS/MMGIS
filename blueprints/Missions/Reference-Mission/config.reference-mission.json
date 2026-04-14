@@ -83,7 +83,12 @@
   "panels": {
     "viewer": true,
     "map": true,
-    "globe": true
+    "globe": true,
+    "defaultWidths": {
+      "viewer": 0,
+      "map": 30,
+      "globe": 70
+    }
   },
   "panelSettings": {
     "demFallbackPath": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",

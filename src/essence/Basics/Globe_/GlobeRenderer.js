@@ -770,18 +770,36 @@ class GlobeRenderer {
                     })
                 }
             })
-            // Build segments from consecutive points
-            for (let i = 0; i < points.length - 1; i++) {
-                segments.push({
-                    lng1: points[i].lng,
-                    lat1: points[i].lat,
-                    elev1: points[i].elev,
-                    value1: points[i].value,
-                    lng2: points[i + 1].lng,
-                    lat2: points[i + 1].lat,
-                    elev2: points[i + 1].elev,
-                    value2: points[i + 1].value,
-                })
+            // Build midpoint-to-midpoint segments from consecutive points
+            if (points.length >= 2) {
+                for (let i = 0; i < points.length; i++) {
+                    const start =
+                        i === 0
+                            ? points[i]
+                            : {
+                                  lng: (points[i - 1].lng + points[i].lng) / 2,
+                                  lat: (points[i - 1].lat + points[i].lat) / 2,
+                                  elev: (points[i - 1].elev + points[i].elev) / 2,
+                              }
+                    const end =
+                        i === points.length - 1
+                            ? points[i]
+                            : {
+                                  lng: (points[i].lng + points[i + 1].lng) / 2,
+                                  lat: (points[i].lat + points[i + 1].lat) / 2,
+                                  elev: (points[i].elev + points[i + 1].elev) / 2,
+                              }
+                    if (start.lng === end.lng && start.lat === end.lat && start.elev === end.elev) continue
+                    segments.push({
+                        lng1: start.lng,
+                        lat1: start.lat,
+                        elev1: start.elev,
+                        value: points[i].value,
+                        lng2: end.lng,
+                        lat2: end.lat,
+                        elev2: end.elev,
+                    })
+                }
             }
         } else {
             // LineString/MultiLineString mode
@@ -831,18 +849,41 @@ class GlobeRenderer {
                 )
                 if (path.length > 0) paths.push(path)
 
-                // Build segments from each path
+                // Build midpoint-to-midpoint segments so each vertex
+                // P[i] owns the region from mid(P[i-1],P[i]) to mid(P[i],P[i+1]),
+                // colored with P[i]'s value. This avoids misrepresenting data
+                // by shifting color boundaries to midpoints between vertices.
                 paths.forEach((p) => {
-                    for (let i = 0; i < p.length - 1; i++) {
+                    if (p.length < 2) return
+                    for (let i = 0; i < p.length; i++) {
+                        // Start point: midpoint with previous, or the vertex itself for first point
+                        const start =
+                            i === 0
+                                ? p[i]
+                                : {
+                                      lng: (p[i - 1].lng + p[i].lng) / 2,
+                                      lat: (p[i - 1].lat + p[i].lat) / 2,
+                                      elev: (p[i - 1].elev + p[i].elev) / 2,
+                                  }
+                        // End point: midpoint with next, or the vertex itself for last point
+                        const end =
+                            i === p.length - 1
+                                ? p[i]
+                                : {
+                                      lng: (p[i].lng + p[i + 1].lng) / 2,
+                                      lat: (p[i].lat + p[i + 1].lat) / 2,
+                                      elev: (p[i].elev + p[i + 1].elev) / 2,
+                                  }
+                        // Skip degenerate segments (first==last for single-point edges)
+                        if (start.lng === end.lng && start.lat === end.lat && start.elev === end.elev) continue
                         segments.push({
-                            lng1: p[i].lng,
-                            lat1: p[i].lat,
-                            elev1: p[i].elev,
-                            value1: p[i].value,
-                            lng2: p[i + 1].lng,
-                            lat2: p[i + 1].lat,
-                            elev2: p[i + 1].elev,
-                            value2: p[i + 1].value,
+                            lng1: start.lng,
+                            lat1: start.lat,
+                            elev1: start.elev,
+                            value: p[i].value,
+                            lng2: end.lng,
+                            lat2: end.lat,
+                            elev2: end.elev,
                         })
                     }
                 })
@@ -855,10 +896,9 @@ class GlobeRenderer {
         const dataSource = new Cesium.CustomDataSource(layerName)
 
         segments.forEach((seg) => {
-            const avgValue = (seg.value1 + seg.value2) / 2
             let colorStr = interpolateMultipleColors(
                 colorStops,
-                avgValue,
+                seg.value,
                 min,
                 max
             )
@@ -887,6 +927,63 @@ class GlobeRenderer {
                 },
             })
         })
+
+        // Add hoverable point entities at each vertex for value inspection
+        const dropdownProps = gradientSettings.dropdownColorWithProp || []
+        const allProps = dropdownProps.length > 0 ? dropdownProps : [colorWithProp]
+        const addVertexPoints = (vertexList) => {
+            vertexList.forEach((v) => {
+                let descHtml = '<table style="font-size:13px">'
+                allProps.forEach((prop) => {
+                    const val = v.props ? F_.getIn(v.props, prop, '—') : v.value
+                    descHtml += `<tr><td><b>${prop}</b></td><td>${val}</td></tr>`
+                })
+                descHtml += '</table>'
+                let colorStr2 = interpolateMultipleColors(colorStops, v.value, min, max)
+                if (colorStr2 && colorStr2.startsWith('rgb')) colorStr2 = rgbToHex(colorStr2)
+                const ptColor = colorStr2 ? Cesium.Color.fromCssColorString(colorStr2) : Cesium.Color.WHITE
+                dataSource.entities.add({
+                    position: Cesium.Cartesian3.fromDegrees(v.lng, v.lat, v.elev),
+                    point: {
+                        pixelSize: Math.max(weight + 2, 6),
+                        color: ptColor,
+                        outlineColor: Cesium.Color.BLACK,
+                        outlineWidth: 1,
+                    },
+                    description: descHtml,
+                })
+            })
+        }
+
+        if (gradientSettings.connectAllPoints) {
+            // vertices were collected in points array above scope — re-derive
+            const vtx = []
+            geojson.features.forEach((feature) => {
+                if (feature.geometry.type.toLowerCase() === 'point') {
+                    const coords = feature.geometry.coordinates
+                    vtx.push({
+                        lng: coords[0], lat: coords[1], elev: coords[2] || 0,
+                        value: F_.getIn(feature.properties, colorWithProp, 0),
+                        props: feature.properties,
+                    })
+                }
+            })
+            addVertexPoints(vtx)
+        } else {
+            geojson.features.forEach((feature) => {
+                F_.coordinateDepthTraversal(
+                    feature.geometry.coordinates,
+                    (array) => {
+                        const props = getCoordProperties(geojson, feature, array)
+                        addVertexPoints([{
+                            lng: array[0], lat: array[1], elev: array[2] || 0,
+                            value: F_.getIn(props, colorWithProp, 0),
+                            props: props,
+                        }])
+                    }
+                )
+            })
+        }
 
         this.renderer.dataSources.add(dataSource)
 

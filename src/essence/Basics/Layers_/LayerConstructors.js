@@ -2039,7 +2039,73 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                 })
             }
 
-            const layer = L.layerGroup(hotlines)
+            // Add invisible hover markers at each vertex for tooltip display
+            const hoverMarkers = []
+            const coordProps = pathGradientSettings.dropdownColorWithProp.length > 0
+                ? pathGradientSettings.dropdownColorWithProp
+                : [pathGradientSettings.colorWithProp]
+            paths.forEach((path) => {
+                if (!Array.isArray(path) || path.length === 0) return
+                // connectAllPoints paths are flat [lat, lng, value]
+                const points = pathGradientSettings.connectAllPoints
+                    ? [path]
+                    : path
+                points.forEach((pt) => {
+                    if (!Array.isArray(pt) || pt.length < 3) return
+                    const lat = pt[0]
+                    const lng = pt[1]
+                    // Build tooltip content from all coord_properties at this vertex
+                    let tooltipHtml = '<div class="mmgisGradientTooltip">'
+                    // Find the matching coordinate in the geojson to get all properties
+                    let foundProps = null
+                    geojson.features.some((feature) => {
+                        if (pathGradientSettings.connectAllPoints &&
+                            feature.geometry.type.toLowerCase() === 'point') {
+                            const c = feature.geometry.coordinates
+                            if (Math.abs(c[1] - lat) < 1e-8 && Math.abs(c[0] - lng) < 1e-8) {
+                                foundProps = feature.properties
+                                return true
+                            }
+                        } else {
+                            let found = false
+                            F_.coordinateDepthTraversal(
+                                feature.geometry.coordinates,
+                                (array) => {
+                                    if (!found && Math.abs(array[1] - lat) < 1e-8 && Math.abs(array[0] - lng) < 1e-8) {
+                                        foundProps = getCoordProperties(geojson, feature, array)
+                                        found = true
+                                    }
+                                }
+                            )
+                            return found
+                        }
+                        return false
+                    })
+                    if (foundProps) {
+                        coordProps.forEach((prop) => {
+                            const val = F_.getIn(foundProps, prop, '—')
+                            tooltipHtml += `<b>${prop}:</b> ${val}<br/>`
+                        })
+                    } else {
+                        tooltipHtml += `<b>${pathGradientSettings.colorWithProp}:</b> ${pt[2]}`
+                    }
+                    tooltipHtml += '</div>'
+                    const marker = L.circleMarker([lat, lng], {
+                        radius: pathGradientSettings.weight || 4,
+                        fillOpacity: 0,
+                        opacity: 0,
+                        interactive: true,
+                    })
+                    marker.bindTooltip(tooltipHtml, {
+                        sticky: false,
+                        direction: 'top',
+                        offset: [0, -8],
+                    })
+                    hoverMarkers.push(marker)
+                })
+            })
+
+            const layer = L.layerGroup([...hotlines, ...hoverMarkers])
             layer.addDataEnhanced = function (
                 geojson,
                 layerName,

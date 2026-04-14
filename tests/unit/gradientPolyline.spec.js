@@ -388,26 +388,46 @@ test.describe('Gradient Polyline - connectAllPoints Mode', () => {
             }
         })
 
+        // Midpoint-to-midpoint segment building
         const segments = []
-        for (let i = 0; i < points.length - 1; i++) {
+        for (let i = 0; i < points.length; i++) {
+            const start =
+                i === 0
+                    ? points[i]
+                    : {
+                          lng: (points[i - 1].lng + points[i].lng) / 2,
+                          lat: (points[i - 1].lat + points[i].lat) / 2,
+                          elev: (points[i - 1].elev + points[i].elev) / 2,
+                      }
+            const end =
+                i === points.length - 1
+                    ? points[i]
+                    : {
+                          lng: (points[i].lng + points[i + 1].lng) / 2,
+                          lat: (points[i].lat + points[i + 1].lat) / 2,
+                          elev: (points[i].elev + points[i + 1].elev) / 2,
+                      }
+            if (start.lng === end.lng && start.lat === end.lat && start.elev === end.elev) continue
             segments.push({
-                lng1: points[i].lng,
-                lat1: points[i].lat,
-                elev1: points[i].elev,
-                value1: points[i].value,
-                lng2: points[i + 1].lng,
-                lat2: points[i + 1].lat,
-                elev2: points[i + 1].elev,
-                value2: points[i + 1].value,
+                lng1: start.lng,
+                lat1: start.lat,
+                elev1: start.elev,
+                value: points[i].value,
+                lng2: end.lng,
+                lat2: end.lat,
+                elev2: end.elev,
             })
         }
 
         expect(points.length).toBe(3)
-        expect(segments.length).toBe(2)
-        expect(segments[0].value1).toBe(100)
-        expect(segments[0].value2).toBe(200)
-        expect(segments[1].value1).toBe(200)
-        expect(segments[1].value2).toBe(300)
+        // Midpoint strategy: 3 vertices -> 3 segments (each vertex owns a region)
+        expect(segments.length).toBe(3)
+        expect(segments[0].value).toBe(100)
+        expect(segments[1].value).toBe(200)
+        expect(segments[2].value).toBe(300)
+        // First segment starts at P0, ends at midpoint(P0,P1)
+        expect(segments[0].lng1).toBe(-122.47)
+        expect(segments[0].lng2).toBe((-122.47 + -122.48) / 2)
     })
 })
 
@@ -464,7 +484,7 @@ test.describe('Gradient Polyline - Color Ramp End-to-End', () => {
         expect(rgb.b).toBe(255)
     })
 
-    test('full segment coloring pipeline', () => {
+    test('full segment coloring pipeline with midpoint strategy', () => {
         const ramp = ['#0000ff', '#00ff00', '#ff0000']
         const stops = buildColorStops(ramp)
         const coords = [
@@ -488,20 +508,25 @@ test.describe('Gradient Polyline - Color Ramp End-to-End', () => {
         expect(min).toBe(0)
         expect(max).toBe(2000)
 
+        // Midpoint-to-midpoint: each vertex colored with its own value
         const segmentColors = []
-        for (let i = 0; i < coords.length - 1; i++) {
-            const val1 = propIdx >= 0 ? coords[i][2 + propIdx] : 0
-            const val2 = propIdx >= 0 ? coords[i + 1][2 + propIdx] : 0
-            const avgVal = (val1 + val2) / 2
+        for (let i = 0; i < coords.length; i++) {
+            const val = propIdx >= 0 ? coords[i][2 + propIdx] : 0
             segmentColors.push(
-                interpolateMultipleColors(stops, avgVal, min, max)
+                interpolateMultipleColors(stops, val, min, max)
             )
         }
 
-        expect(segmentColors.length).toBe(4)
-        const rgb0 = parseRgb(segmentColors[0])
-        const rgb3 = parseRgb(segmentColors[3])
-        expect(rgb0.b).toBeGreaterThan(rgb3.b)
-        expect(rgb3.r).toBeGreaterThan(rgb0.r)
+        // 5 vertices -> 5 per-vertex colors
+        expect(segmentColors.length).toBe(5)
+        // First vertex (value 0) should be blue
+        expect(segmentColors[0]).toBe('#0000ff')
+        // Last vertex (value 2000) should be red
+        expect(segmentColors[4]).toBe('#ff0000')
+        // Colors should progress from blue to red
+        const rgb0 = parseRgb(segmentColors[0]) || hexToRgb(segmentColors[0])
+        const rgb4 = parseRgb(segmentColors[4]) || hexToRgb(segmentColors[4])
+        expect(rgb0.b).toBeGreaterThan(rgb4.b)
+        expect(rgb4.r).toBeGreaterThan(rgb0.r)
     })
 })
