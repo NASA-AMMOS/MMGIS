@@ -2,6 +2,8 @@
   "type": "FeatureCollection",
   "properties": {
     "coord_properties": [
+      null,
+      null,
       "elevation",
       "speed",
       "roll"
@@ -13,6 +15,8 @@
       "properties": {
         "name": "3D Spiral Ascent",
         "coord_properties": [
+          null,
+          null,
           "elevation",
           "speed",
           "roll"

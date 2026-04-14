@@ -393,6 +393,13 @@ class GlobeRenderer {
      * @param {object} layerConfig - Layer configuration
      */
     addLayer(type, layerConfig) {
+        if (type === 'gradient_polyline') {
+            // Gradient polylines are only supported by the Cesium renderer
+            if (this.rendererType !== 'lithosphere') {
+                return this._addCesiumGradientPolyline(layerConfig)
+            }
+            return null
+        }
         if (this.rendererType === 'lithosphere') {
             return this.renderer.addLayer(type, layerConfig)
         } else {
@@ -1406,6 +1413,8 @@ class GlobeRenderer {
      */
     removeLayer(name) {
         if (this.rendererType === 'lithosphere') {
+            // Gradient polylines are Cesium-only; skip for LithoSphere
+            if (this._layers && this._layers[name]?.type === 'gradient_polyline') return
             return this.renderer.removeLayer(name)
         } else {
             const layerInfo = this._layers[name]
