@@ -1,6 +1,9 @@
 import React, { useRef, useCallback } from 'react'
 import useUIStore from '../store/uiStore'
 
+// The toolbar is always 40px wide regardless of topSize
+const TOOLBAR_WIDTH = 40
+
 function ToolPanel() {
     const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
     const topSize = useUIStore((s) => s.topSize)
@@ -27,7 +30,7 @@ function ToolPanel() {
             document.body.style.userSelect = ''
             if (dragRef.current) {
                 const newWidth =
-                    parseInt(dragRef.current.style.left) - topSize + 24
+                    parseInt(dragRef.current.style.left) - TOOLBAR_WIDTH + 24
                 if (newWidth > 0) {
                     const clampedWidth = Math.max(
                         Math.min(newWidth, window.innerWidth / 2),
@@ -55,7 +58,7 @@ function ToolPanel() {
                     width: toolPanelWidth + 'px',
                     top: topSize + 'px',
                     height: `calc(100% - ${topSize}px)`,
-                    left: topSize + 'px',
+                    left: TOOLBAR_WIDTH + 'px',
                     background: 'var(--color-k)',
                     transition: 'width 0.2s ease-out',
                     overflow: 'hidden',
@@ -80,7 +83,7 @@ function ToolPanel() {
                     display: toolPanelWidth > 0 ? 'block' : 'none',
                     zIndex: 1400,
                     borderRight: '1px solid transparent',
-                    left: toolPanelWidth + 10 + 'px',
+                    left: toolPanelWidth + TOOLBAR_WIDTH + 10 + 'px',
                 }}
                 onMouseDown={handleDragMouseDown}
             >
