@@ -11,6 +11,8 @@ function Splitter({ type, orientation }) {
     const pxIsTools = useUIStore((s) => s.pxIsTools)
     const mainHeight = useUIStore((s) => s.mainHeight)
     const topSize = useUIStore((s) => s.topSize)
+    const hasViewer = useUIStore((s) => s.hasViewer)
+    const hasGlobe = useUIStore((s) => s.hasGlobe)
 
     const dragCount = useRef(0)
     const mouseIsDown = useRef(false)
@@ -91,6 +93,8 @@ function Splitter({ type, orientation }) {
     }
 
     if (type === 'map') {
+        // Hide map splitter when viewer is disabled (matches clearUnwantedPanels)
+        if (!hasViewer) return null
         return (
             <div
                 className="splitterV"
@@ -201,6 +205,8 @@ function Splitter({ type, orientation }) {
     }
 
     if (type === 'globe') {
+        // Hide globe splitter when globe is disabled (matches clearUnwantedPanels)
+        if (!hasGlobe) return null
         return (
             <div
                 className="splitterV"

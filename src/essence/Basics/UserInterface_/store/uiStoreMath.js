@@ -75,6 +75,9 @@ export function computeToolHeight(state, pxHeight) {
  * Compute map splitter move. Returns new panel pixel sizes.
  */
 export function computeMapSplitMoveResult(state, clientX) {
+    // Guard: if viewer is disabled, don't allow dragging the map splitter
+    if (!state.hasViewer) return { pxIsViewer: state.pxIsViewer, pxIsMap: state.pxIsMap, pxIsGlobe: state.pxIsGlobe }
+
     let x = clientX - state.splitterSize - 40 - state.toolPanelWidth
 
     if (x >= state.mainWidth - 5) x = state.mainWidth
@@ -106,6 +109,9 @@ export function computeMapSplitMoveResult(state, clientX) {
  * Compute globe splitter move. Returns new panel pixel sizes.
  */
 export function computeGlobeSplitMoveResult(state, clientX) {
+    // Guard: if globe is disabled, don't allow dragging the globe splitter
+    if (!state.hasGlobe) return { pxIsViewer: state.pxIsViewer, pxIsMap: state.pxIsMap, pxIsGlobe: state.pxIsGlobe }
+
     let x = clientX - 40 - state.toolPanelWidth
 
     if (state.hasViewer !== false) {
