@@ -183,101 +183,136 @@ class GlobeRenderer {
     }
 
     /**
-     * Set up terrain provider for Cesium
-     * Uses Mapzen Terrarium tiles as default, can be overridden with demFallback config
+     * Set up terrain provider for Cesium.
+     * Uses Mapzen Terrarium tiles as default, can be overridden with demFallback config.
+     *
+     * Performance architecture:
+     *  - Worker pool (4 workers) handles fetch + decode + parse entirely off main thread
+     *  - LRU tile cache avoids re-fetching previously seen tiles
+     *  - In-flight deduplication prevents duplicate requests for the same tile
+     *  - Zoom cap at level 10 limits exponential tile growth
+     *  - Float32Array halves memory vs Float64Array (terrain doesn't need 64-bit)
+     *  - Concurrency limiter (max 6 in-flight fetches) prevents network saturation
      */
     async _setupTerrainProvider() {
         if (this.rendererType !== 'cesium') return
 
         // ── Shared terrain infrastructure ──
         this._terrainTileSize = 256
-        this._terrainEmptyHeights = new Float64Array(
+        this._terrainEmptyHeights = new Float32Array(
             this._terrainTileSize * this._terrainTileSize
         )
 
-        // LRU tile cache — avoids re-fetching tiles the camera has already seen
-        this._terrainCache = new Map() // key → Float64Array
-        this._terrainCacheMax = 512 // ~57 MB worst-case (512 * 256*256 * 8)
+        // LRU tile cache (key -> Float32Array)
+        this._terrainCache = new Map()
+        this._terrainCacheMax = 512 // ~29 MB worst-case (512 * 256*256 * 4)
 
-        // In-flight request deduplication — prevents duplicate fetches for the
-        // same tile when Cesium's LOD system requests it multiple times
-        this._terrainInflight = new Map() // key → Promise<Float64Array>
+        // In-flight request deduplication (key -> Promise<Float32Array>)
+        this._terrainInflight = new Map()
 
-        // Reusable OffscreenCanvas (avoids allocation per tile)
-        this._terrainCanvas = new OffscreenCanvas(
-            this._terrainTileSize,
-            this._terrainTileSize
-        )
-        this._terrainCtx = this._terrainCanvas.getContext('2d')
-        this._terrainCtx.imageSmoothingEnabled = false
+        // Maximum zoom level -- higher zooms reuse this level's data.
+        // Level 10 gives ~150m/pixel terrain resolution, plenty for most views
+        // and avoids the exponential tile explosion at higher levels.
+        this._terrainMaxLevel = 10
 
-        // Maximum zoom level to request — higher levels reuse this level's data.
-        // Terrain detail beyond zoom ~12 adds negligible visual value but
-        // multiplies tile requests exponentially.
-        this._terrainMaxLevel = 12
-
-        // Web Worker for off-main-thread pixel parsing
-        this._terrainWorker = new Worker(
-            new URL('./terrainWorker.js', import.meta.url)
-        )
-        this._terrainWorkerCallbacks = new Map() // id → { resolve }
+        // ── Worker pool (4 workers for parallel fetch+decode+parse) ──
+        this._terrainWorkerPool = []
+        this._terrainWorkerCallbacks = new Map()
         this._terrainWorkerNextId = 0
-        this._terrainWorker.onmessage = (e) => {
-            const { id, heightMap } = e.data
-            const cb = this._terrainWorkerCallbacks.get(id)
-            if (cb) {
-                this._terrainWorkerCallbacks.delete(id)
-                cb.resolve(heightMap)
+        this._terrainWorkerRoundRobin = 0
+
+        const POOL_SIZE = 4
+        for (let i = 0; i < POOL_SIZE; i++) {
+            const worker = new Worker(
+                new URL('./terrainWorker.js', import.meta.url)
+            )
+            worker.onmessage = (e) => {
+                const { id, heightMap, empty } = e.data
+                const cb = this._terrainWorkerCallbacks.get(id)
+                if (cb) {
+                    this._terrainWorkerCallbacks.delete(id)
+                    // Release a concurrency slot
+                    this._terrainActiveCount--
+                    this._drainTerrainQueue()
+                    cb.resolve(empty ? this._terrainEmptyHeights : heightMap)
+                }
             }
+            this._terrainWorkerPool.push(worker)
         }
+
+        // ── Concurrency limiter (max 6 in-flight worker tasks) ──
+        this._terrainMaxConcurrent = 6
+        this._terrainActiveCount = 0
+        this._terrainQueue = [] // { id, msg, resolve }
 
         // Check for demFallback configuration
         const demFallback = this.config.demFallback
 
         if (demFallback && demFallback.demPath) {
-            // Use configured fallback DEM
             await this._setTerrainFromConfig(demFallback)
         } else {
-            // Use Mapzen Terrarium as default free terrain
             await this._setMapzenTerrariumTerrain()
         }
     }
 
     /**
-     * Parse pixel data into a heightmap using the Web Worker.
-     * Returns a Promise<Float64Array> that resolves when the worker is done.
+     * Dispatch a tile to the next available worker in the pool.
+     * Respects the concurrency limit -- excess requests are queued.
      */
-    _parseHeightmapInWorker(imageData, width, height, parserType) {
+    _dispatchToWorkerPool(url, parserType, cropBuffer, tileSize) {
         return new Promise((resolve) => {
             const id = this._terrainWorkerNextId++
+            const msg = { id, url, parserType, cropBuffer, tileSize }
             this._terrainWorkerCallbacks.set(id, { resolve })
-            this._terrainWorker.postMessage(
-                { id, imageData, width, height, parserType },
-                [imageData.buffer] // transfer (zero-copy)
-            )
+
+            if (this._terrainActiveCount < this._terrainMaxConcurrent) {
+                this._terrainActiveCount++
+                const workerIdx =
+                    this._terrainWorkerRoundRobin++ %
+                    this._terrainWorkerPool.length
+                this._terrainWorkerPool[workerIdx].postMessage(msg)
+            } else {
+                // Queue for later dispatch
+                this._terrainQueue.push({ id, msg })
+            }
         })
     }
 
     /**
-     * LRU cache get — moves the accessed key to the end (most-recently-used).
+     * Drain queued terrain requests when concurrency slots free up.
+     */
+    _drainTerrainQueue() {
+        while (
+            this._terrainQueue.length > 0 &&
+            this._terrainActiveCount < this._terrainMaxConcurrent
+        ) {
+            const { msg } = this._terrainQueue.shift()
+            this._terrainActiveCount++
+            const workerIdx =
+                this._terrainWorkerRoundRobin++ %
+                this._terrainWorkerPool.length
+            this._terrainWorkerPool[workerIdx].postMessage(msg)
+        }
+    }
+
+    /**
+     * LRU cache get -- moves the accessed key to the end (most-recently-used).
      */
     _terrainCacheGet(key) {
         if (!this._terrainCache.has(key)) return undefined
         const value = this._terrainCache.get(key)
-        // Move to end so it is treated as most-recently-used
         this._terrainCache.delete(key)
         this._terrainCache.set(key, value)
         return value
     }
 
     /**
-     * LRU cache set — evicts the oldest entry when the cache is full.
+     * LRU cache set -- evicts the oldest entry when the cache is full.
      */
     _terrainCacheSet(key, value) {
         if (this._terrainCache.has(key)) {
             this._terrainCache.delete(key)
         } else if (this._terrainCache.size >= this._terrainCacheMax) {
-            // Evict the least-recently-used (first) entry
             const oldest = this._terrainCache.keys().next().value
             this._terrainCache.delete(oldest)
         }
@@ -285,85 +320,34 @@ class GlobeRenderer {
     }
 
     /**
-     * Shared tile-fetching pipeline used by both terrain providers.
-     * Handles: cache lookup → dedup → fetch → canvas decode → worker parse → cache store.
-     *
-     * @param {string} url      - Tile URL to fetch
-     * @param {string} cacheKey - Unique cache key for this tile
-     * @param {string} parserType - 'terrarium' | 'mapbox' | 'rgba'
-     * @param {boolean} cropBuffer - If true, crop 1px border (TerrainRGB/mapbox)
-     * @returns {Promise<Float64Array>}
+     * Shared tile pipeline: cache -> dedup -> worker pool (fetch+decode+parse) -> cache.
+     * The entire fetch+decode+parse happens inside the worker -- zero main-thread work.
      */
-    async _fetchAndParseTile(url, cacheKey, parserType, cropBuffer) {
+    _fetchAndParseTile(url, cacheKey, parserType, cropBuffer) {
         const tileSize = this._terrainTileSize
 
-        // 1. Cache hit — return immediately
+        // 1. Cache hit
         const cached = this._terrainCacheGet(cacheKey)
         if (cached) return cached
 
-        // 2. Deduplication — if the same tile is already being fetched, wait
+        // 2. Deduplication
         if (this._terrainInflight.has(cacheKey)) {
             return this._terrainInflight.get(cacheKey)
         }
 
-        // 3. Create the fetch+parse promise and register it for dedup
-        const promise = (async () => {
-            try {
-                const response = await fetch(url)
-                if (!response.ok) return this._terrainEmptyHeights
-
-                const blob = await response.blob()
-                const imageBitmap = await createImageBitmap(blob)
-
-                // Draw into reusable canvas
-                if (cropBuffer) {
-                    this._terrainCtx.drawImage(
-                        imageBitmap,
-                        1,
-                        1,
-                        imageBitmap.width - 2,
-                        imageBitmap.height - 2,
-                        0,
-                        0,
-                        tileSize,
-                        tileSize
-                    )
-                } else {
-                    this._terrainCtx.drawImage(
-                        imageBitmap,
-                        0,
-                        0,
-                        tileSize,
-                        tileSize
-                    )
-                }
-                imageBitmap.close() // free GPU memory
-
-                // Extract pixel data (copy — we'll transfer the copy to the worker)
-                const imageData = this._terrainCtx.getImageData(
-                    0,
-                    0,
-                    tileSize,
-                    tileSize
-                ).data
-
-                // Parse in Web Worker (off main thread)
-                const heightMap = await this._parseHeightmapInWorker(
-                    imageData,
-                    tileSize,
-                    tileSize,
-                    parserType
-                )
-
-                // Store in LRU cache
+        // 3. Dispatch to worker pool
+        const promise = this._dispatchToWorkerPool(
+            url,
+            parserType,
+            cropBuffer,
+            tileSize
+        ).then((heightMap) => {
+            this._terrainInflight.delete(cacheKey)
+            if (heightMap !== this._terrainEmptyHeights) {
                 this._terrainCacheSet(cacheKey, heightMap)
-                return heightMap
-            } catch (_err) {
-                return this._terrainEmptyHeights
-            } finally {
-                this._terrainInflight.delete(cacheKey)
             }
-        })()
+            return heightMap
+        })
 
         this._terrainInflight.set(cacheKey, promise)
         return promise
