@@ -5,6 +5,7 @@ import F_ from '../../Formulae_/Formulae_'
 function Toolbar() {
     const isMobile = useUIStore((s) => s.isMobile)
     const topSize = useUIStore((s) => s.topSize)
+    const pxIsTools = useUIStore((s) => s.pxIsTools)
 
     return (
         <>
@@ -16,7 +17,7 @@ function Toolbar() {
                     paddingTop: '0px',
                     background: 'var(--color-a)',
                     borderBottom: '2px solid black',
-                    bottom: '0px',
+                    bottom: (pxIsTools || 0) + 'px',
                     width: '100%',
                     zIndex: 1004,
                 } : {

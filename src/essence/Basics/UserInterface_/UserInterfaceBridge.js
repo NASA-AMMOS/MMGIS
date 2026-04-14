@@ -231,6 +231,75 @@ const UserInterfaceBridge = {
 
     setToolHeight: function (pxHeight, shouldntAnimate) {
         useUIStore.getState().setToolHeight(pxHeight, shouldntAnimate)
+
+        const pxIsTools = useUIStore.getState().pxIsTools
+        const isMobile = useUIStore.getState().isMobile
+
+        if (isMobile) {
+            // Mobile: reposition toolbar, coordinates, timeUI above tools
+            // (matches jQuery UserInterfaceMobile_.js:908-916)
+            const coordsDiv = document.getElementById('CoordinatesDiv')
+            if (coordsDiv) {
+                coordsDiv.style.bottom = pxIsTools + 'px'
+            }
+            const timeUIEl = document.getElementById('timeUI')
+            if (timeUIEl) {
+                timeUIEl.style.bottom = pxIsTools + 'px'
+            }
+            const toolbar = document.getElementById('toolbar')
+            if (toolbar) {
+                toolbar.style.bottom = pxIsTools + 'px'
+            }
+        } else {
+            // Desktop: reposition non-React DOM elements that sit above the tools area
+            // (matches jQuery UserInterfaceDefault_.js:876-933)
+            let timeUIActive = false
+            let timeUIExpanded = false
+            const timeUIEl = document.getElementById('timeUI')
+            if (timeUIEl) {
+                timeUIActive = timeUIEl.classList.contains('active')
+                timeUIExpanded = timeUIEl.classList.contains('expanded')
+            }
+            const timeUIHeight = timeUIActive ? (timeUIExpanded ? 145 : 40) : 0
+
+            const mapToolBar = document.getElementById('mapToolBar')
+            if (mapToolBar) {
+                mapToolBar.style.bottom = (pxIsTools + timeUIHeight) + 'px'
+            }
+
+            const scaleFactor = document.querySelector('.leaflet-control-scalefactor')
+            if (scaleFactor) {
+                scaleFactor.style.bottom = (pxIsTools + 28 + (timeUIActive ? timeUIHeight - 40 : 0)) + 'px'
+            }
+
+            const attributions = document.getElementById('mmgis-attributions')
+            if (attributions) {
+                attributions.style.bottom = (pxIsTools + (timeUIActive ? timeUIHeight - 40 : 0)) + 'px'
+            }
+
+            const compass = document.getElementById('mmgis-map-compass')
+            if (compass) {
+                if (!attributions || attributions.textContent.trim().length === 0) {
+                    compass.style.bottom = (pxIsTools + 38 + (timeUIActive ? timeUIHeight - 40 : 0)) + 'px'
+                } else {
+                    compass.style.bottom = (pxIsTools + 58 + (timeUIActive ? timeUIHeight - 40 : 0)) + 'px'
+                }
+            }
+
+            const leafletBottomRight = document.querySelector('.leaflet-bottom.leaflet-right')
+            if (leafletBottomRight) {
+                leafletBottomRight.style.bottom = (pxIsTools + timeUIHeight) + 'px'
+            }
+
+            const coordsDiv = document.getElementById('CoordinatesDiv')
+            if (coordsDiv) {
+                coordsDiv.style.bottom = (pxIsTools + timeUIHeight) + 'px'
+            }
+
+            if (timeUIEl) {
+                timeUIEl.style.bottom = (pxIsTools + (timeUIActive ? 0 : timeUIExpanded ? -148 : -40)) + 'px'
+            }
+        }
     },
 
     setToolWidth: function (newWidth, alignment) {
