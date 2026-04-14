@@ -1788,7 +1788,9 @@ function clearUnwantedPanels(hasViewer, hasMap, hasGlobe) {
 }
 
 $(document).ready(function () {
-    UserInterface.init()
+    if (!window.mmgisglobal.useReactUI) {
+        UserInterface.init()
+    }
 })
 
 export default UserInterface

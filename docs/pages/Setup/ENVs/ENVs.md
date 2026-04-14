@@ -197,6 +197,10 @@ If true, MMGIS will not auto-login returning users. This can be useful when logi
 
 If true at build-time, JavaScript source maps will also be built | boolean | default `false`
 
+#### `REACT_UI=`
+
+If true at build-time, enables the new React-based UserInterface layout engine. When enabled, the `?reactui=true` URL parameter activates the React UI for side-by-side comparison with the existing jQuery UI. When disabled (default), the classic jQuery-based UI is used exclusively. | boolean | default `false`
+
 #### `SPICE_SCHEDULED_KERNEL_DOWNLOAD=`
 
 If true, then at every other midnight, MMGIS will read /Missions/spice-kernels-conf.json and re/download all the specified kernels. See /Missions/spice-kernels-conf.example.json | boolean | default `false`

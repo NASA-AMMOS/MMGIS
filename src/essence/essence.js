@@ -135,6 +135,26 @@ var essence = {
     initialWebSocketRetryInterval: 60000, // 1 minute
     webSocketRetryInterval: 60000, // Start with this time and double if disconnected
     webSocketPingInterval: null,
+    // Wait for the React layout to mount and set layoutReady in the store
+    waitForLayoutReady: function () {
+        return new Promise((resolve) => {
+            // Dynamic import to avoid circular deps when useReactUI is false
+            import('./Basics/UserInterface_/store/uiStore').then((mod) => {
+                const useUIStore = mod.default
+                const state = useUIStore.getState()
+                if (state.layoutReady) {
+                    resolve()
+                    return
+                }
+                const unsub = useUIStore.subscribe((s) => {
+                    if (s.layoutReady) {
+                        unsub()
+                        resolve()
+                    }
+                })
+            })
+        })
+    },
     connectWebSocket: function (path, initial) {
         // https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
         if (
@@ -365,6 +385,12 @@ var essence = {
         F_.setRadius('minor', L_.radius.minor)
         //Initialize CursorInfo
         if (!swapping) CursorInfo.init()
+
+        // When React UI is active, wait for the layout to be mounted before
+        // initializing imperative map/globe/viewer modules that need container divs.
+        if (window.mmgisglobal.useReactUI && !swapping) {
+            await essence.waitForLayoutReady()
+        }
 
         //Make the globe
         if (!swapping) Globe_.init()

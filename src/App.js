@@ -6,6 +6,28 @@ import F_ from './essence/Basics/Formulae_/Formulae_'
 
 import calls from './pre/calls'
 
+import UserInterfaceLayout from './essence/Basics/UserInterface_/components/UserInterfaceLayout'
+
+// Feature flag: toggle React UI via ?reactui=true, env var, or config
+;(function initReactUIFlag() {
+    if (typeof window.mmgisglobal === 'undefined') window.mmgisglobal = {}
+    // Default to false
+    window.mmgisglobal.useReactUI = false
+    // URL parameter override
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('reactui') === 'true') {
+        window.mmgisglobal.useReactUI = true
+    }
+    // Environment variable override (set at build time via webpack DefinePlugin)
+    if (
+        typeof process !== 'undefined' &&
+        process.env &&
+        process.env.REACT_UI === 'true'
+    ) {
+        window.mmgisglobal.useReactUI = true
+    }
+})()
+
 //Start MMGIS
 $(document).ready(function () {
     const browser = F_.getBrowser()
@@ -104,6 +126,13 @@ function initApp() {
 }
 
 function App() {
+    if (window.mmgisglobal.useReactUI) {
+        return (
+            <div className='App'>
+                <UserInterfaceLayout />
+            </div>
+        )
+    }
     return <div className='App'></div>
 }
 
