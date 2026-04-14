@@ -6,6 +6,135 @@ var Viewer_ = null
 var Map_ = null
 var Globe_ = null
 
+// Centralized function that repositions all non-React bottom elements
+// based on pxIsTools and TimeUI state. Called by a store subscription
+// whenever any of these values change, ensuring consistent positioning
+// regardless of what triggered the change (tool open, TimeUI toggle,
+// TimeUI expand, etc.).
+// Uses the _updateBottomUIHeight math (177px for expanded) as the
+// authoritative source, rather than the jQuery setToolHeight (145px).
+function _repositionBottomElements() {
+    const state = useUIStore.getState()
+    const { pxIsTools, isMobile, timeUIActive, timeUIExpanded } = state
+
+    if (isMobile) {
+        // Mobile: reposition toolbar, coordinates, timeUI above tools
+        // (matches jQuery UserInterfaceMobile_.js:908-916)
+        const coordsDiv = document.getElementById('CoordinatesDiv')
+        if (coordsDiv) {
+            coordsDiv.style.transition = 'bottom 0.4s ease-out'
+            coordsDiv.style.bottom = pxIsTools + 'px'
+        }
+        const timeUIEl = document.getElementById('timeUI')
+        if (timeUIEl) {
+            timeUIEl.style.transition = 'bottom 0.4s ease-out'
+            timeUIEl.style.bottom = pxIsTools + 'px'
+        }
+        const toolbar = document.getElementById('toolbar')
+        if (toolbar) {
+            toolbar.style.bottom = pxIsTools + 'px'
+        }
+
+        // Resize the map to fit the remaining screen space
+        // (matches jQuery UserInterfaceMobile_.js:967-978)
+        const mainHeight = state.mainHeight
+        const mapScreen = document.getElementById('mapScreen')
+        if (mapScreen) {
+            mapScreen.style.transition = 'height 0.4s ease-out'
+            mapScreen.style.height = (mainHeight - pxIsTools) + 'px'
+        }
+        const mapSplit = document.getElementById('mapSplit')
+        if (mapSplit) {
+            mapSplit.style.transition = 'height 0.4s ease-out'
+            mapSplit.style.height = (mainHeight - pxIsTools) + 'px'
+        }
+        // Invalidate map size so Leaflet recalculates its viewport
+        const invalidateSizes = () => {
+            if (Map_ != null && Map_.map) Map_.map.invalidateSize()
+            if (Viewer_ != null && Viewer_.invalidateSize) Viewer_.invalidateSize()
+            if (Globe_ != null && Globe_.litho) Globe_.litho.invalidateSize()
+        }
+        invalidateSizes()
+        setTimeout(invalidateSizes, 420)
+    } else {
+        // Desktop: use _updateBottomUIHeight math (177px for expanded)
+        // as the single authoritative positioning source.
+        // timeUIHeight: full height of TimeUI when active
+        //   - expanded (via chevron or defaultExpanded): 177px
+        //   - not expanded: 40px
+        //   - inactive: 0px
+        const timeUIHeight = timeUIActive
+            ? (timeUIExpanded ? 177 : 40)
+            : 0
+        // newBottom: what bottom-positioned elements should use
+        // When TimeUI is active, this is timeUIHeight.
+        // When inactive, elements sit at 0 (above tools area only).
+        const newBottom = timeUIActive ? timeUIHeight : 0
+
+        const mapToolBar = document.getElementById('mapToolBar')
+        if (mapToolBar) {
+            mapToolBar.style.bottom = (pxIsTools + newBottom) + 'px'
+        }
+
+        // Scalebar and attributions sit just above the tools area,
+        // not above the full TimeUI (matches _updateBottomUIHeight
+        // which sets attributions bottom to just pxIsTools)
+        const attributions = document.getElementById('mmgis-attributions')
+        if (attributions) {
+            attributions.style.bottom = pxIsTools + 'px'
+        }
+
+        const scaleFactor = document.querySelector('.leaflet-control-scalefactor')
+        if (scaleFactor) {
+            scaleFactor.style.bottom = (pxIsTools + 28) + 'px'
+        }
+
+        const compass = document.getElementById('mmgis-map-compass')
+        if (compass) {
+            if (!attributions || attributions.textContent.trim().length === 0) {
+                compass.style.bottom = (pxIsTools + 38) + 'px'
+            } else {
+                compass.style.bottom = (pxIsTools + 58) + 'px'
+            }
+        }
+
+        const leafletBottomRight = document.querySelector('.leaflet-bottom.leaflet-right')
+        if (leafletBottomRight) {
+            leafletBottomRight.style.bottom = (pxIsTools + newBottom) + 'px'
+        }
+
+        const coordsDiv = document.getElementById('CoordinatesDiv')
+        if (coordsDiv) {
+            coordsDiv.style.bottom = (pxIsTools + newBottom) + 'px'
+        }
+
+        const timeUIEl = document.getElementById('timeUI')
+        if (timeUIEl) {
+            timeUIEl.style.bottom = pxIsTools + 'px'
+        }
+    }
+}
+
+// Subscribe to store changes: reposition whenever pxIsTools or TimeUI state changes
+let _prevPxIsTools = 0
+let _prevTimeUIActive = false
+let _prevTimeUIExpanded = false
+let _prevIsMobile = false
+useUIStore.subscribe((state) => {
+    if (
+        state.pxIsTools !== _prevPxIsTools ||
+        state.timeUIActive !== _prevTimeUIActive ||
+        state.timeUIExpanded !== _prevTimeUIExpanded ||
+        state.isMobile !== _prevIsMobile
+    ) {
+        _prevPxIsTools = state.pxIsTools
+        _prevTimeUIActive = state.timeUIActive
+        _prevTimeUIExpanded = state.timeUIExpanded
+        _prevIsMobile = state.isMobile
+        _repositionBottomElements()
+    }
+})
+
 const UserInterfaceBridge = {
     _isMobile: false,
     get isMobile() {
@@ -231,109 +360,9 @@ const UserInterfaceBridge = {
     },
 
     setToolHeight: function (pxHeight, shouldntAnimate) {
+        // Just update the store — the store subscription in _repositionBottomElements
+        // handles all DOM repositioning automatically when pxIsTools changes.
         useUIStore.getState().setToolHeight(pxHeight, shouldntAnimate)
-
-        const pxIsTools = useUIStore.getState().pxIsTools
-        const isMobile = useUIStore.getState().isMobile
-
-        if (isMobile) {
-            // Mobile: reposition toolbar, coordinates, timeUI above tools
-            // (matches jQuery UserInterfaceMobile_.js:908-916)
-            const coordsDiv = document.getElementById('CoordinatesDiv')
-            if (coordsDiv) {
-                coordsDiv.style.transition = 'bottom 0.4s ease-out'
-                coordsDiv.style.bottom = pxIsTools + 'px'
-            }
-            const timeUIEl = document.getElementById('timeUI')
-            if (timeUIEl) {
-                timeUIEl.style.transition = 'bottom 0.4s ease-out'
-                timeUIEl.style.bottom = pxIsTools + 'px'
-            }
-            const toolbar = document.getElementById('toolbar')
-            if (toolbar) {
-                toolbar.style.bottom = pxIsTools + 'px'
-            }
-
-            // Resize the map to fit the remaining screen space
-            // (matches jQuery UserInterfaceMobile_.js:967-978)
-            const mainHeight = useUIStore.getState().mainHeight
-            const mapScreen = document.getElementById('mapScreen')
-            if (mapScreen) {
-                mapScreen.style.transition = 'height 0.4s ease-out'
-                mapScreen.style.height = (mainHeight - pxIsTools) + 'px'
-            }
-            const mapSplit = document.getElementById('mapSplit')
-            if (mapSplit) {
-                mapSplit.style.transition = 'height 0.4s ease-out'
-                mapSplit.style.height = (mainHeight - pxIsTools) + 'px'
-            }
-            // Invalidate map size so Leaflet recalculates its viewport
-            // (important for pan-to-feature centering)
-            // Call immediately for responsiveness, then again after the
-            // 400ms CSS transition completes for final accuracy
-            const invalidateSizes = () => {
-                if (Map_ != null && Map_.map) {
-                    Map_.map.invalidateSize()
-                }
-                if (Viewer_ != null && Viewer_.invalidateSize) {
-                    Viewer_.invalidateSize()
-                }
-                if (Globe_ != null && Globe_.litho) {
-                    Globe_.litho.invalidateSize()
-                }
-            }
-            invalidateSizes()
-            setTimeout(invalidateSizes, 420)
-        } else {
-            // Desktop: reposition non-React DOM elements that sit above the tools area
-            // (matches jQuery UserInterfaceDefault_.js:876-933)
-            let timeUIActive = false
-            let timeUIExpanded = false
-            const timeUIEl = document.getElementById('timeUI')
-            if (timeUIEl) {
-                timeUIActive = timeUIEl.classList.contains('active')
-                timeUIExpanded = timeUIEl.classList.contains('expanded')
-            }
-            const timeUIHeight = timeUIActive ? (timeUIExpanded ? 145 : 40) : 0
-
-            const mapToolBar = document.getElementById('mapToolBar')
-            if (mapToolBar) {
-                mapToolBar.style.bottom = (pxIsTools + timeUIHeight) + 'px'
-            }
-
-            const scaleFactor = document.querySelector('.leaflet-control-scalefactor')
-            if (scaleFactor) {
-                scaleFactor.style.bottom = (pxIsTools + 28 + (timeUIActive ? timeUIHeight - 40 : 0)) + 'px'
-            }
-
-            const attributions = document.getElementById('mmgis-attributions')
-            if (attributions) {
-                attributions.style.bottom = (pxIsTools + (timeUIActive ? timeUIHeight - 40 : 0)) + 'px'
-            }
-
-            const compass = document.getElementById('mmgis-map-compass')
-            if (compass) {
-                if (!attributions || attributions.textContent.trim().length === 0) {
-                    compass.style.bottom = (pxIsTools + 38 + (timeUIActive ? timeUIHeight - 40 : 0)) + 'px'
-                } else {
-                    compass.style.bottom = (pxIsTools + 58 + (timeUIActive ? timeUIHeight - 40 : 0)) + 'px'
-                }
-            }
-
-            const leafletBottomRight = document.querySelector('.leaflet-bottom.leaflet-right')
-            if (leafletBottomRight) {
-                leafletBottomRight.style.bottom = (pxIsTools + timeUIHeight) + 'px'
-            }
-
-            const coordsDiv = document.getElementById('CoordinatesDiv')
-            if (coordsDiv) {
-                coordsDiv.style.bottom = (pxIsTools + timeUIHeight) + 'px'
-            }
-
-            if (timeUIEl) {
-                timeUIEl.style.bottom = (pxIsTools + (timeUIActive ? 0 : timeUIExpanded ? -148 : -40)) + 'px'
-            }
-        }
     },
 
     setToolWidth: function (newWidth, alignment) {

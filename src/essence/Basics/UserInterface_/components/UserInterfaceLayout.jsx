@@ -41,6 +41,40 @@ function UserInterfaceLayout() {
         }
     }, [])
 
+    // MutationObserver: sync #timeUI class changes (active, expanded) to the store.
+    // This is the single source of truth for TimeUI state in React mode —
+    // no matter what jQuery code toggles these classes, the store stays in sync
+    // and _repositionBottomElements() is called automatically via the subscription.
+    useEffect(() => {
+        let observer = null
+        // Use a short poll to wait for #timeUI to appear in the DOM
+        // (it's created by TimeUI.init() which runs after layout is ready)
+        const intervalId = setInterval(() => {
+            const timeUIEl = document.getElementById('timeUI')
+            if (timeUIEl) {
+                clearInterval(intervalId)
+                // Sync initial state
+                useUIStore.getState().setTimeUIActive(timeUIEl.classList.contains('active'))
+                useUIStore.getState().setTimeUIExpanded(
+                    timeUIEl.classList.contains('expanded') || timeUIEl.classList.contains('defaultExpanded')
+                )
+                // Watch for class attribute changes
+                observer = new MutationObserver(() => {
+                    useUIStore.getState().setTimeUIActive(timeUIEl.classList.contains('active'))
+                    useUIStore.getState().setTimeUIExpanded(
+                        timeUIEl.classList.contains('expanded') || timeUIEl.classList.contains('defaultExpanded')
+                    )
+                })
+                observer.observe(timeUIEl, { attributes: true, attributeFilter: ['class'] })
+            }
+        }, 500)
+
+        return () => {
+            clearInterval(intervalId)
+            if (observer) observer.disconnect()
+        }
+    }, [])
+
     // Keyboard tracking (Ctrl/Shift state for tools)
     useEffect(() => {
         const handleKeyDown = (e) => {

@@ -44,6 +44,10 @@ const useUIStore = create((set, get) => ({
     isMobile: false,
     mobileTopSize: 50,
 
+    // TimeUI state (synced from DOM via MutationObserver)
+    timeUIActive: false,
+    timeUIExpanded: false,
+
     // Layout ready flag for essence.js integration
     layoutReady: false,
 
@@ -93,6 +97,9 @@ const useUIStore = create((set, get) => ({
         })),
 
     setIsMobile: (val) => set({ isMobile: val }),
+
+    setTimeUIActive: (val) => set({ timeUIActive: val }),
+    setTimeUIExpanded: (val) => set({ timeUIExpanded: val }),
 
     setTopSize: (val) => set({ topSize: val }),
 
