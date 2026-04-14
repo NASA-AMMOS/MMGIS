@@ -191,8 +191,19 @@ const UserInterfaceBridge = {
     },
 
     setToolWidth: function (newWidth, alignment) {
-        // In React mode, tool width is managed via store
-        // The ToolsWrapper component will read pxIsTools from the store
+        const TOOLBAR_WIDTH = 40
+        useUIStore.getState().setToolWidth(newWidth)
+
+        // Also update TopBar margin/width to match jQuery behavior
+        let newTopWidth = TOOLBAR_WIDTH
+        if (newWidth !== 'full') {
+            newTopWidth = TOOLBAR_WIDTH + newWidth
+        }
+        const topBar = document.getElementById('topBar')
+        if (topBar) {
+            topBar.style.marginLeft = newTopWidth + 'px'
+            topBar.style.width = `calc(100% - ${newTopWidth}px)`
+        }
     },
 
     getPanelPercents: function () {

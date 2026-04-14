@@ -35,6 +35,9 @@ const useUIStore = create((set, get) => ({
     // Tool panel
     toolPanelWidth: 0,
 
+    // Tool width (bottom tools area width, set by ToolController/tools)
+    toolsWrapperCSSWidth: '0%',
+
     // UI state
     helpOn: true,
     isMobile: false,
@@ -128,6 +131,17 @@ const useUIStore = create((set, get) => ({
 
     closeToolPanel: () => {
         set({ toolPanelWidth: 0 })
+    },
+
+    setToolWidth: (newWidth) => {
+        const TOOLBAR_WIDTH = 40
+        let cssWidth
+        if (newWidth === 'full') {
+            cssWidth = `calc(100vw - ${TOOLBAR_WIDTH}px)`
+        } else {
+            cssWidth = newWidth + 'px'
+        }
+        set({ toolsWrapperCSSWidth: cssWidth })
     },
 
     // Splitter drag math: map splitter

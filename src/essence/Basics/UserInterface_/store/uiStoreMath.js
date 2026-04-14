@@ -26,7 +26,7 @@ export function computePanelPixelsFromPercents(state, viewerPercent, mapPercent,
 
     if (!state.hasViewer && viewerPercent !== 0) return null
     if (!state.hasGlobe && globePercent !== 0) return null
-    if (viewerPercent + mapPercent + globePercent !== 100) return null
+    if (Math.abs(viewerPercent + mapPercent + globePercent - 100) > 0.001) return null
 
     const pxIsViewer =
         state.mainWidth * (viewerPercent / 100) - state.splitterSize / 2

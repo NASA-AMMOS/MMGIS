@@ -72,13 +72,14 @@ function SplitScreens() {
 function ToolsWrapper() {
     const pxIsTools = useUIStore((s) => s.pxIsTools)
     const splitterSize = useUIStore((s) => s.splitterSize)
+    const toolsWrapperCSSWidth = useUIStore((s) => s.toolsWrapperCSSWidth)
 
     return (
         <div
             id="toolsWrapper"
             style={{
                 height: pxIsTools + 'px',
-                width: '0%',
+                width: toolsWrapperCSSWidth,
                 margin: '0',
                 background: 'var(--color-a)',
                 left: '0px',
