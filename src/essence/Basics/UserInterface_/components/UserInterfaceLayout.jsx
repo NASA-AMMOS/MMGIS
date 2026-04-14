@@ -56,9 +56,10 @@ function UserInterfaceLayout() {
             ref={containerRef}
             style={{
                 opacity: visible ? 1 : 0,
-                transition: visible ? 'opacity 1s' : 'none',
+                filter: visible ? 'none' : 'blur(5px)',
+                transition: visible ? 'opacity 1s, filter 0.3s ease-in-out' : 'none',
                 width: rightPanelWidth > 0 ? `calc(100% - ${rightPanelWidth}px)` : '100%',
-                height: '100%',
+                height: '100vh',
                 overflow: 'hidden',
                 position: 'relative',
             }}
