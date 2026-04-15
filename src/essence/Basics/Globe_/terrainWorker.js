@@ -327,8 +327,9 @@ self.onmessage = async function (e) {
             quantizedVertices[i] = Math.round(
                 (gx / (gridSize - 1)) * 32767
             )
+            // Flip gy: PNG row 0 is north, but Cesium v=0 is south
             quantizedVertices[numVerts + i] = Math.round(
-                (gy / (gridSize - 1)) * 32767
+                ((gridSize - 1 - gy) / (gridSize - 1)) * 32767
             )
             quantizedVertices[2 * numVerts + i] = Math.round(
                 ((h - minimumHeight) / heightRange) * 32767
@@ -345,8 +346,8 @@ self.onmessage = async function (e) {
             const v = quantizedVertices[numVerts + i]
             if (u === 0) westIndices.push(i)
             if (u === 32767) eastIndices.push(i)
-            if (v === 0) northIndices.push(i)
-            if (v === 32767) southIndices.push(i)
+            if (v === 0) southIndices.push(i)
+            if (v === 32767) northIndices.push(i)
         }
 
         // Transfer all typed arrays (zero-copy)

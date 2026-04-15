@@ -116,6 +116,10 @@ class GlobeRenderer {
             infoBox: false, // Disable Cesium's info box (using MMGIS InfoTool instead)
             selectionIndicator: false,
 
+            // Prevent default Cesium ion imagery/terrain requests
+            baseLayer: false,
+            terrain: undefined,
+
             // Performance — only render when something changes
             requestRenderMode: true,
             maximumRenderTimeChange: Infinity,
