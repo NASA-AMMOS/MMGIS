@@ -320,6 +320,62 @@ class GlobeRenderer {
     }
 
     /**
+     * Extract the sub-region of a parent heightmap that corresponds to a child tile,
+     * then bilinearly upsample it to tileSize×tileSize.
+     * This is used when zoom > maxLevel to avoid returning the full parent tile.
+     */
+    _extractSubTile(parentHeightMap, x, y, level, effectiveLevel) {
+        const tileSize = this._terrainTileSize
+        const levelDiff = level - effectiveLevel
+        if (levelDiff <= 0) return parentHeightMap
+
+        const subdivisions = Math.pow(2, levelDiff)
+        const scale = Math.pow(2, levelDiff)
+
+        // Which sub-region of the parent does this child occupy?
+        const effectiveX = Math.floor(x / scale)
+        const effectiveY = Math.floor(y / scale)
+        const subX = x - effectiveX * scale
+        const subY = y - effectiveY * scale
+
+        // Pixel range in parent tile that maps to this child
+        const srcX0 = (subX / subdivisions) * tileSize
+        const srcY0 = (subY / subdivisions) * tileSize
+        const srcW = tileSize / subdivisions
+        const srcH = tileSize / subdivisions
+
+        // Bilinear upsample from srcW×srcH region to tileSize×tileSize
+        const result = new Float32Array(tileSize * tileSize)
+        for (let dy = 0; dy < tileSize; dy++) {
+            for (let dx = 0; dx < tileSize; dx++) {
+                // Map destination pixel to source coordinate
+                const sx = srcX0 + (dx / tileSize) * srcW
+                const sy = srcY0 + (dy / tileSize) * srcH
+
+                // Bilinear interpolation
+                const x0 = Math.floor(sx)
+                const y0 = Math.floor(sy)
+                const x1 = Math.min(x0 + 1, tileSize - 1)
+                const y1 = Math.min(y0 + 1, tileSize - 1)
+                const fx = sx - x0
+                const fy = sy - y0
+
+                const v00 = parentHeightMap[y0 * tileSize + x0]
+                const v10 = parentHeightMap[y0 * tileSize + x1]
+                const v01 = parentHeightMap[y1 * tileSize + x0]
+                const v11 = parentHeightMap[y1 * tileSize + x1]
+
+                result[dy * tileSize + dx] =
+                    v00 * (1 - fx) * (1 - fy) +
+                    v10 * fx * (1 - fy) +
+                    v01 * (1 - fx) * fy +
+                    v11 * fx * fy
+            }
+        }
+        return result
+    }
+
+    /**
      * Shared tile pipeline: cache -> dedup -> worker pool (fetch+decode+parse) -> cache.
      * The entire fetch+decode+parse happens inside the worker -- zero main-thread work.
      */
@@ -381,12 +437,24 @@ class GlobeRenderer {
                     const cacheKey = `terrarium/${effectiveLevel}/${effectiveX}/${effectiveY}`
                     const url = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${effectiveLevel}/${effectiveX}/${effectiveY}.png`
 
-                    return this._fetchAndParseTile(
+                    const parentHeightMap = await this._fetchAndParseTile(
                         url,
                         cacheKey,
                         'terrarium',
                         false
                     )
+
+                    // Extract correct sub-region when zoomed past maxLevel
+                    if (level > effectiveLevel) {
+                        return this._extractSubTile(
+                            parentHeightMap,
+                            x,
+                            y,
+                            level,
+                            effectiveLevel
+                        )
+                    }
+                    return parentHeightMap
                 },
             })
 
@@ -441,12 +509,24 @@ class GlobeRenderer {
 
                     const cacheKey = `custom/${effectiveLevel}/${effectiveX}/${effectiveY}`
 
-                    return this._fetchAndParseTile(
+                    const parentHeightMap = await this._fetchAndParseTile(
                         url,
                         cacheKey,
                         parserType,
                         cropBuffer
                     )
+
+                    // Extract correct sub-region when zoomed past maxLevel
+                    if (level > effectiveLevel) {
+                        return this._extractSubTile(
+                            parentHeightMap,
+                            x,
+                            y,
+                            level,
+                            effectiveLevel
+                        )
+                    }
+                    return parentHeightMap
                 },
             })
 
