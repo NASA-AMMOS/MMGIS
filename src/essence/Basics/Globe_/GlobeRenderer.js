@@ -392,6 +392,10 @@ class GlobeRenderer {
             new Cesium.Cartographic(center.longitude, center.latitude, maximumHeight)
         )
 
+        // Skirt height hides seams between tiles at different LODs.
+        // Use the tile's height range (min 5m) so skirts cover any gaps.
+        const skirtHeight = Math.max(5.0, maximumHeight - minimumHeight)
+
         return new Cesium.QuantizedMeshTerrainData({
             quantizedVertices,
             indices,
@@ -403,6 +407,10 @@ class GlobeRenderer {
             southIndices: new Uint16Array(result.southIndices),
             eastIndices: new Uint16Array(result.eastIndices),
             northIndices: new Uint16Array(result.northIndices),
+            westSkirtHeight: skirtHeight,
+            southSkirtHeight: skirtHeight,
+            eastSkirtHeight: skirtHeight,
+            northSkirtHeight: skirtHeight,
         })
     }
 
