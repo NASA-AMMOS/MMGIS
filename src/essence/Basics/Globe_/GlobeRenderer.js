@@ -529,6 +529,22 @@ class GlobeRenderer {
             return
         }
 
+        // If the demPath is a raw file (no {z}/{x}/{y} tile placeholders),
+        // it can't be used as a tile endpoint — fall back to Terrarium.
+        const hasTilePlaceholders =
+            demConfig.demPath.includes('{z}') ||
+            demConfig.demPath.includes('{x}') ||
+            demConfig.demPath.includes('{y}') ||
+            demConfig.demPath.includes('{level}')
+        if (!hasTilePlaceholders) {
+            console.warn(
+                `[GlobeRenderer] demFallbackPath "${demConfig.demPath}" has no tile ` +
+                `placeholders ({z}/{x}/{y}) — falling back to Mapzen Terrarium terrain.`
+            )
+            await this._setMapzenTerrariumTerrain()
+            return
+        }
+
         const parserType = demConfig.parserType || 'rgba'
         const cropBuffer = parserType === 'mapbox' || parserType === 'rgba'
 
