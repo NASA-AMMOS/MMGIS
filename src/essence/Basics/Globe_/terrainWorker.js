@@ -232,7 +232,11 @@ self.onmessage = async function (e) {
         }
 
         const blob = await response.blob()
-        const imageBitmap = await createImageBitmap(blob)
+        // Disable color space conversion — even a 1-unit shift in R
+        // causes a 256m height jump in Terrarium encoding (R*256+G+B/256-32768)
+        const imageBitmap = await createImageBitmap(blob, {
+            colorSpaceConversion: 'none',
+        })
         const drawCtx = ensureCanvas(tileSize)
 
         if (cropBuffer) {

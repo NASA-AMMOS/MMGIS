@@ -240,6 +240,16 @@ class GlobeRenderer {
                     cb.resolve(empty ? null : e.data)
                 }
             }
+            worker.onerror = () => {
+                // Resolve all pending callbacks as empty to free concurrency
+                // slots and avoid permanent stalls if a worker crashes
+                for (const [cbId, cb] of this._terrainWorkerCallbacks) {
+                    cb.resolve(null)
+                    this._terrainWorkerCallbacks.delete(cbId)
+                    this._terrainActiveCount--
+                }
+                this._drainTerrainQueue()
+            }
             this._terrainWorkerPool.push(worker)
         }
 
