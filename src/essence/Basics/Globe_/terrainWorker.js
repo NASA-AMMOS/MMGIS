@@ -217,11 +217,12 @@ function ensureCanvas(size) {
         ctx = canvas.getContext('2d')
         ctx.imageSmoothingEnabled = false
     }
+    ctx.clearRect(0, 0, size, size)
     return ctx
 }
 
 self.onmessage = async function (e) {
-    const { id, url, parserType, cropBuffer, tileSize, maxMeshError } = e.data
+    const { id, url, parserType, cropBuffer, tileSize, maxMeshError, returnMode } = e.data
 
     try {
         const response = await fetch(url, { cache: 'force-cache' })
@@ -303,6 +304,15 @@ self.onmessage = async function (e) {
         for (let i = 0; i < terrain.length; i++) {
             if (terrain[i] < minimumHeight) minimumHeight = terrain[i]
             if (terrain[i] > maximumHeight) maximumHeight = terrain[i]
+        }
+
+        // ── Heightmap mode: return raw heights for HeightmapTerrainData ──
+        if (returnMode === 'heightmap') {
+            self.postMessage(
+                { id, heightmap: terrain, minimumHeight, maximumHeight, gridSize },
+                [terrain.buffer]
+            )
+            return
         }
 
         // Generate TIN mesh using RTIN (martini)

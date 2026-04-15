@@ -260,12 +260,12 @@ class GlobeRenderer {
 
     /**
      * Dispatch a tile to the next available worker in the pool.
-     * Workers handle the full pipeline: fetch -> decode -> parse -> TIN mesh generation.
+     * Workers handle fetch -> decode -> parse (and optionally TIN mesh generation).
      */
-    _dispatchToWorkerPool(url, parserType, cropBuffer, tileSize, maxMeshError) {
+    _dispatchToWorkerPool(url, parserType, cropBuffer, tileSize, maxMeshError, returnMode) {
         return new Promise((resolve) => {
             const id = this._terrainWorkerNextId++
-            const msg = { id, url, parserType, cropBuffer, tileSize, maxMeshError }
+            const msg = { id, url, parserType, cropBuffer, tileSize, maxMeshError, returnMode }
             this._terrainWorkerCallbacks.set(id, { resolve })
 
             if (this._terrainActiveCount < this._terrainMaxConcurrent) {
@@ -322,33 +322,43 @@ class GlobeRenderer {
     }
 
     /**
-     * Fetch a tile via the worker pool (fetch + decode + parse + TIN).
-     * Returns a Promise resolving to the worker result (or null on failure).
-     * Handles cache, dedup, and zoom capping.
+     * Fetch a heightmap tile via the worker pool (fetch + decode + parse).
+     * Returns a Promise resolving to a Float32Array of heights (or null on failure).
+     * Handles cache and dedup.
      */
-    _fetchTinTile(url, cacheKey, parserType, cropBuffer) {
-        // 1. Cache hit
+    _fetchHeightmapTile(url, cacheKey, parserType, cropBuffer) {
+        // 1. Cache hit — return a COPY so Cesium can own the buffer
         const cached = this._terrainCacheGet(cacheKey)
-        if (cached) return Promise.resolve(cached)
+        if (cached) return Promise.resolve(new Float32Array(cached))
 
         // 2. Deduplication
         if (this._terrainInflight.has(cacheKey)) {
-            return this._terrainInflight.get(cacheKey)
+            return this._terrainInflight.get(cacheKey).then((c) =>
+                c ? new Float32Array(c) : null
+            )
         }
 
-        // 3. Dispatch to worker pool
+        // 3. Dispatch to worker pool (heightmap mode — skip TIN generation)
         const promise = this._dispatchToWorkerPool(
             url,
             parserType,
             cropBuffer,
             this._terrainTileSize,
-            this._terrainMaxMeshError
+            this._terrainMaxMeshError,
+            'heightmap'
         ).then((result) => {
             this._terrainInflight.delete(cacheKey)
-            if (result) {
-                this._terrainCacheSet(cacheKey, result)
+            if (result && result.heightmap) {
+                // Cache the raw heightmap (Float32Array)
+                const hm =
+                    result.heightmap instanceof Float32Array
+                        ? result.heightmap
+                        : new Float32Array(result.heightmap)
+                this._terrainCacheSet(cacheKey, hm)
+                // Return a copy so the caller owns the buffer
+                return new Float32Array(hm)
             }
-            return result
+            return null
         })
 
         this._terrainInflight.set(cacheKey, promise)
@@ -356,270 +366,19 @@ class GlobeRenderer {
     }
 
     /**
-     * Convert worker TIN result to Cesium QuantizedMeshTerrainData.
-     * This is the only terrain work done on the main thread -- it's lightweight
-     * because the heavy lifting (fetch, decode, parse, mesh generation) happened in the worker.
+     * Create a CustomHeightmapTerrainProvider that uses the worker pool
+     * for off-main-thread fetch + decode + parse.
+     * Returns HeightmapTerrainData (Cesium's native format, handles tile
+     * stitching, fill meshes, and skirts automatically).
      */
-    _workerResultToTerrainData(result, x, y, level) {
-        const rectangle = this._terrainTilingScheme.tileXYToRectangle(x, y, level)
-        const { minimumHeight, maximumHeight } = result
-
-        // Re-wrap transferred arrays (they arrive as plain ArrayBuffers after transfer)
-        const quantizedVertices =
-            result.quantizedVertices instanceof Uint16Array
-                ? result.quantizedVertices
-                : new Uint16Array(result.quantizedVertices)
-        const triangleIndices =
-            result.triangles instanceof Uint32Array
-                ? result.triangles
-                : new Uint32Array(result.triangles)
-
-        // Use Uint16Array indices if possible (vertex count <= 65535)
-        const numVerts = quantizedVertices.length / 3
-        const indices =
-            numVerts <= 65535
-                ? new Uint16Array(triangleIndices)
-                : triangleIndices
-
-        // Compute bounding sphere and horizon occlusion point
-        const boundingSphere = Cesium.BoundingSphere.fromRectangle3D(
-            rectangle,
-            Cesium.Ellipsoid.WGS84,
-            maximumHeight
-        )
-        const center = Cesium.Rectangle.center(rectangle)
-        const centerCartesian = Cesium.Cartographic.toCartesian(
-            new Cesium.Cartographic(center.longitude, center.latitude, maximumHeight)
-        )
-
-        // Skirt height hides seams between tiles at different LODs.
-        // Use the tile's height range (min 5m) so skirts cover any gaps.
-        const skirtHeight = Math.max(5.0, maximumHeight - minimumHeight)
-
-        return new Cesium.QuantizedMeshTerrainData({
-            quantizedVertices,
-            indices,
-            minimumHeight,
-            maximumHeight,
-            boundingSphere,
-            horizonOcclusionPoint: centerCartesian,
-            westIndices: new Uint16Array(result.westIndices),
-            southIndices: new Uint16Array(result.southIndices),
-            eastIndices: new Uint16Array(result.eastIndices),
-            northIndices: new Uint16Array(result.northIndices),
-            westSkirtHeight: skirtHeight,
-            southSkirtHeight: skirtHeight,
-            eastSkirtHeight: skirtHeight,
-            northSkirtHeight: skirtHeight,
-        })
-    }
-
-    /**
-     * Extract the sub-region of a parent TIN tile that corresponds to a child tile.
-     * When zoom exceeds maxLevel, the parent tile covers a larger geographic area
-     * than the child tile. This method clips vertices/triangles to the child's
-     * portion of the parent's u/v space and re-quantizes them to fill [0, 32767].
-     *
-     * @param {Object} result - Worker result with quantizedVertices, triangles, edge indices, heights
-     * @param {number} x - Child tile X coordinate
-     * @param {number} y - Child tile Y coordinate
-     * @param {number} level - Child tile zoom level
-     * @param {number} effectiveX - Parent tile X coordinate
-     * @param {number} effectiveY - Parent tile Y coordinate
-     * @param {number} effectiveLevel - Parent tile zoom level (capped)
-     * @returns {Object} New result object with vertices/triangles clipped to child region
-     */
-    _extractSubTile(result, x, y, level, effectiveX, effectiveY, effectiveLevel) {
-        const scale = Math.pow(2, level - effectiveLevel)
-
-        // Compute the child's position within the parent tile in [0, 1] space
-        const childOffsetX = (x - effectiveX * scale) / scale
-        const childOffsetY = (y - effectiveY * scale) / scale
-        const childSize = 1.0 / scale
-
-        // Map to quantized [0, 32767] range within the parent tile
-        const uMin = Math.floor(childOffsetX * 32767)
-        const uMax = Math.ceil((childOffsetX + childSize) * 32767)
-        const vMin = Math.floor(childOffsetY * 32767)
-        const vMax = Math.ceil((childOffsetY + childSize) * 32767)
-
-        // Re-wrap arrays if needed (they may be plain ArrayBuffers from transfer)
-        const parentVerts =
-            result.quantizedVertices instanceof Uint16Array
-                ? result.quantizedVertices
-                : new Uint16Array(result.quantizedVertices)
-        const parentTris =
-            result.triangles instanceof Uint32Array
-                ? result.triangles
-                : new Uint32Array(result.triangles)
-
-        const parentNumVerts = parentVerts.length / 3
-
-        // Find vertices within the child's sub-region (with small tolerance for edges)
-        const tolerance = 1 // 1 quantized unit
-        const keptIndices = [] // parent index -> kept
-        const indexMap = new Map() // parent vertex index -> new vertex index
-
-        for (let i = 0; i < parentNumVerts; i++) {
-            const u = parentVerts[i]
-            const v = parentVerts[parentNumVerts + i]
-            if (
-                u >= uMin - tolerance &&
-                u <= uMax + tolerance &&
-                v >= vMin - tolerance &&
-                v <= vMax + tolerance
-            ) {
-                indexMap.set(i, keptIndices.length)
-                keptIndices.push(i)
-            }
-        }
-
-        // If no vertices in the sub-region, return null (will fall back to flat tile)
-        if (keptIndices.length === 0) return null
-
-        // Filter triangles: keep only those with all 3 vertices in the sub-region
-        const newTriangles = []
-        for (let i = 0; i < parentTris.length; i += 3) {
-            const a = parentTris[i]
-            const b = parentTris[i + 1]
-            const c = parentTris[i + 2]
-            if (indexMap.has(a) && indexMap.has(b) && indexMap.has(c)) {
-                newTriangles.push(indexMap.get(a), indexMap.get(b), indexMap.get(c))
-            }
-        }
-
-        // If no complete triangles survived, return null
-        if (newTriangles.length === 0) return null
-
-        // Build new quantized vertices, re-mapping u/v to fill [0, 32767] for the child
-        const numNewVerts = keptIndices.length
-        const newQuantized = new Uint16Array(numNewVerts * 3)
-        let newMinHeight = Infinity
-        let newMaxHeight = -Infinity
-
-        const uRange = uMax - uMin || 1
-        const vRange = vMax - vMin || 1
-        const { minimumHeight, maximumHeight } = result
-        const heightRange = maximumHeight - minimumHeight || 1
-
-        for (let j = 0; j < numNewVerts; j++) {
-            const pi = keptIndices[j]
-            const u = parentVerts[pi]
-            const v = parentVerts[parentNumVerts + pi]
-            const hQ = parentVerts[2 * parentNumVerts + pi]
-
-            // Re-quantize u, v to fill [0, 32767] in child tile space
-            newQuantized[j] = Math.max(
-                0,
-                Math.min(32767, Math.round(((u - uMin) / uRange) * 32767))
-            )
-            newQuantized[numNewVerts + j] = Math.max(
-                0,
-                Math.min(32767, Math.round(((v - vMin) / vRange) * 32767))
-            )
-
-            // Height stays the same quantized value for now; recompute actual height for min/max
-            const actualHeight =
-                minimumHeight + (hQ / 32767) * heightRange
-            newMinHeight = Math.min(newMinHeight, actualHeight)
-            newMaxHeight = Math.max(newMaxHeight, actualHeight)
-        }
-
-        // Re-quantize heights relative to the new min/max
-        const newHeightRange = newMaxHeight - newMinHeight || 1
-        for (let j = 0; j < numNewVerts; j++) {
-            const pi = keptIndices[j]
-            const hQ = parentVerts[2 * parentNumVerts + pi]
-            const actualHeight =
-                minimumHeight + (hQ / 32767) * heightRange
-            newQuantized[2 * numNewVerts + j] = Math.round(
-                ((actualHeight - newMinHeight) / newHeightRange) * 32767
-            )
-        }
-
-        // Recompute edge indices for the child tile
-        const westIndices = []
-        const southIndices = []
-        const eastIndices = []
-        const northIndices = []
-        for (let j = 0; j < numNewVerts; j++) {
-            const u = newQuantized[j]
-            const v = newQuantized[numNewVerts + j]
-            if (u === 0) westIndices.push(j)
-            if (u === 32767) eastIndices.push(j)
-            if (v === 0) southIndices.push(j)
-            if (v === 32767) northIndices.push(j)
-        }
-
-        return {
-            quantizedVertices: newQuantized,
-            triangles: new Uint32Array(newTriangles),
-            minimumHeight: newMinHeight,
-            maximumHeight: newMaxHeight,
-            westIndices,
-            southIndices,
-            eastIndices,
-            northIndices,
-        }
-    }
-
-    /**
-     * Create a custom TerrainProvider that generates TIN meshes via the worker pool.
-     * Returns QuantizedMeshTerrainData (~2-3K vertices) instead of heightmap grids (65K).
-     */
-    _createTinTerrainProvider(urlBuilder, parserType, cropBuffer) {
+    _createHeightmapTerrainProvider(urlBuilder, parserType, cropBuffer) {
         const self = this
-        const tilingScheme = this._terrainTilingScheme
+        const tileSize = this._terrainTileSize
+        const gridSize = tileSize + 1 // 257 (worker pads 256→257)
         const maxLevel = this._terrainMaxLevel
 
-        // Cesium's TerrainProvider interface -- implemented as a plain object
-        // that Cesium duck-types (same pattern as CustomHeightmapTerrainProvider).
-        const provider = {
-            _tilingScheme: tilingScheme,
-            _ready: true,
-            _readyPromise: Promise.resolve(true),
-            _errorEvent: new Cesium.Event(),
-
-            get tilingScheme() { return this._tilingScheme },
-            get ready() { return this._ready },
-            get readyPromise() { return this._readyPromise },
-            get errorEvent() { return this._errorEvent },
-            get credit() { return undefined },
-            get hasWaterMask() { return false },
-            get hasVertexNormals() { return false },
-            get availability() { return undefined },
-
-            getLevelMaximumGeometricError(level) {
-                // Approximate: Cesium's default formula
-                const levelZeroMaximumGeometricError =
-                    Cesium.TerrainProvider.getEstimatedLevelZeroGeometricErrorForAHeightmap(
-                        tilingScheme.ellipsoid,
-                        65, // effective vertex grid
-                        tilingScheme.getNumberOfXTilesAtLevel(0)
-                    )
-                return levelZeroMaximumGeometricError / (1 << level)
-            },
-
-            getTileDataAvailable(_x, _y, _level) {
-                return undefined // unknown -- let Cesium try
-            },
-
-            loadTileDataAvailability(_x, _y, _level) {
-                return undefined
-            },
-
-            requestTileGeometry(x, y, level, _request) {
-                if (level < 4) {
-                    // Return a flat tile at low zoom levels
-                    return Promise.resolve(
-                        new Cesium.HeightmapTerrainData({
-                            buffer: new Float32Array(16 * 16),
-                            width: 16,
-                            height: 16,
-                        })
-                    )
-                }
-
+        return new Cesium.CustomHeightmapTerrainProvider({
+            callback: function (x, y, level) {
                 // Zoom cap -- reuse parent tile at higher zooms
                 const effectiveLevel = Math.min(level, maxLevel)
                 const scale = Math.pow(2, level - effectiveLevel)
@@ -633,56 +392,23 @@ class GlobeRenderer {
                 )
 
                 return self
-                    ._fetchTinTile(url, cacheKey, parserType, cropBuffer)
-                    .then((result) => {
-                        if (!result) {
-                            // Failed tile -- return flat
-                            return new Cesium.HeightmapTerrainData({
-                                buffer: new Float32Array(16 * 16),
-                                width: 16,
-                                height: 16,
-                            })
+                    ._fetchHeightmapTile(url, cacheKey, parserType, cropBuffer)
+                    .then((heightmap) => {
+                        if (!heightmap) {
+                            return new Float32Array(gridSize * gridSize)
                         }
-
-                        // When zoom exceeds maxLevel, extract the child's
-                        // sub-region from the parent tile's TIN mesh so the
-                        // vertices map correctly to the child's rectangle.
-                        let tileResult = result
-                        if (level > effectiveLevel) {
-                            tileResult = self._extractSubTile(
-                                result,
-                                x,
-                                y,
-                                level,
-                                effectiveX,
-                                effectiveY,
-                                effectiveLevel
-                            )
-                            if (!tileResult) {
-                                return new Cesium.HeightmapTerrainData({
-                                    buffer: new Float32Array(16 * 16),
-                                    width: 16,
-                                    height: 16,
-                                })
-                            }
-                        }
-
-                        return self._workerResultToTerrainData(
-                            tileResult,
-                            x,
-                            y,
-                            level
-                        )
+                        return heightmap
                     })
             },
-        }
-
-        return provider
+            width: gridSize,
+            height: gridSize,
+            tilingScheme: this._terrainTilingScheme,
+        })
     }
 
     /**
      * Set terrain provider for Cesium using Mapzen Terrarium tiles.
-     * Generates adaptive TIN meshes via RTIN (martini) in web workers.
+     * Fetch + decode + parse runs in web workers; Cesium handles mesh generation natively.
      */
     async _setMapzenTerrariumTerrain() {
         if (this.rendererType !== 'cesium') return
@@ -692,7 +418,7 @@ class GlobeRenderer {
             cacheKey: `terrarium/${level}/${x}/${y}`,
         })
 
-        this.renderer.terrainProvider = this._createTinTerrainProvider(
+        this.renderer.terrainProvider = this._createHeightmapTerrainProvider(
             urlBuilder,
             'terrarium',
             false
@@ -704,7 +430,7 @@ class GlobeRenderer {
     /**
      * Set terrain from demFallback configuration.
      * Supports multiple parser types: terrarium, mapbox, rgba (TerrainRGB).
-     * Generates adaptive TIN meshes via RTIN (martini) in web workers.
+     * Fetch + decode + parse runs in web workers; Cesium handles mesh generation natively.
      */
     async _setTerrainFromConfig(demConfig) {
         if (this.rendererType !== 'cesium') return
@@ -748,7 +474,7 @@ class GlobeRenderer {
             }
         }
 
-        this.renderer.terrainProvider = this._createTinTerrainProvider(
+        this.renderer.terrainProvider = this._createHeightmapTerrainProvider(
             urlBuilder,
             parserType,
             cropBuffer
