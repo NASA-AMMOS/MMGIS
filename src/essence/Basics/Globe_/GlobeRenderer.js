@@ -187,260 +187,95 @@ class GlobeRenderer {
     }
 
     /**
-     * Set up terrain provider for Cesium.
-     * Uses Mapzen Terrarium tiles as default, can be overridden with demFallback config.
-     *
-     * Performance architecture:
-     *  - Worker pool (4 workers) handles fetch + decode + parse + TIN generation off main thread
-     *  - RTIN (martini) generates adaptive meshes (~2-3K vertices vs 65K regular grid)
-     *  - QuantizedMeshTerrainData feeds TIN directly to Cesium (no main-thread mesh generation)
-     *  - LRU tile cache avoids re-processing tiles the camera has already seen
-     *  - In-flight deduplication prevents duplicate requests for the same tile
-     *  - Zoom cap at level 10 limits exponential tile growth
-     *  - Concurrency limiter (max 6 in-flight fetches) prevents network saturation
+     * Set up terrain provider for Cesium
+     * Uses Mapzen Terrarium tiles as default, can be overridden with demFallback config
      */
     async _setupTerrainProvider() {
         if (this.rendererType !== 'cesium') return
-
-        // ── Shared terrain infrastructure ──
-        this._terrainTileSize = 256
-        this._terrainMaxMeshError = 5.0 // meters -- controls TIN quality vs vertex count
-
-        // LRU tile cache (key -> worker result object)
-        this._terrainCache = new Map()
-        this._terrainCacheMax = 512
-
-        // In-flight request deduplication (key -> Promise)
-        this._terrainInflight = new Map()
-
-        // Maximum zoom level -- higher zooms reuse this level's data.
-        this._terrainMaxLevel = 10
-
-        // Tiling scheme (shared across all terrain methods)
-        this._terrainTilingScheme = new Cesium.WebMercatorTilingScheme()
-
-        // ── Worker pool (4 workers for parallel fetch+decode+parse+TIN) ──
-        this._terrainWorkerPool = []
-        this._terrainWorkerCallbacks = new Map()
-        this._terrainWorkerNextId = 0
-        this._terrainWorkerRoundRobin = 0
-
-        const POOL_SIZE = 4
-        for (let i = 0; i < POOL_SIZE; i++) {
-            const worker = new Worker(
-                new URL('./terrainWorker.js', import.meta.url)
-            )
-            worker.onmessage = (e) => {
-                const { id, empty } = e.data
-                const cb = this._terrainWorkerCallbacks.get(id)
-                if (cb) {
-                    this._terrainWorkerCallbacks.delete(id)
-                    this._terrainActiveCount--
-                    this._drainTerrainQueue()
-                    cb.resolve(empty ? null : e.data)
-                }
-            }
-            worker.onerror = () => {
-                // Resolve all pending callbacks as empty to free concurrency
-                // slots and avoid permanent stalls if a worker crashes
-                for (const [cbId, cb] of this._terrainWorkerCallbacks) {
-                    cb.resolve(null)
-                    this._terrainWorkerCallbacks.delete(cbId)
-                    this._terrainActiveCount--
-                }
-                this._drainTerrainQueue()
-            }
-            this._terrainWorkerPool.push(worker)
-        }
-
-        // ── Concurrency limiter (max 6 in-flight worker tasks) ──
-        this._terrainMaxConcurrent = 6
-        this._terrainActiveCount = 0
-        this._terrainQueue = []
 
         // Check for demFallback configuration
         const demFallback = this.config.demFallback
 
         if (demFallback && demFallback.demPath) {
+            // Use configured fallback DEM
             await this._setTerrainFromConfig(demFallback)
         } else {
+            // Use Mapzen Terrarium as default free terrain
             await this._setMapzenTerrariumTerrain()
         }
     }
 
     /**
-     * Dispatch a tile to the next available worker in the pool.
-     * Workers handle fetch -> decode -> parse (and optionally TIN mesh generation).
-     */
-    _dispatchToWorkerPool(url, parserType, cropBuffer, tileSize, maxMeshError, returnMode) {
-        return new Promise((resolve) => {
-            const id = this._terrainWorkerNextId++
-            const msg = { id, url, parserType, cropBuffer, tileSize, maxMeshError, returnMode }
-            this._terrainWorkerCallbacks.set(id, { resolve })
-
-            if (this._terrainActiveCount < this._terrainMaxConcurrent) {
-                this._terrainActiveCount++
-                const workerIdx =
-                    this._terrainWorkerRoundRobin++ %
-                    this._terrainWorkerPool.length
-                this._terrainWorkerPool[workerIdx].postMessage(msg)
-            } else {
-                this._terrainQueue.push({ id, msg })
-            }
-        })
-    }
-
-    /**
-     * Drain queued terrain requests when concurrency slots free up.
-     */
-    _drainTerrainQueue() {
-        while (
-            this._terrainQueue.length > 0 &&
-            this._terrainActiveCount < this._terrainMaxConcurrent
-        ) {
-            const { msg } = this._terrainQueue.shift()
-            this._terrainActiveCount++
-            const workerIdx =
-                this._terrainWorkerRoundRobin++ %
-                this._terrainWorkerPool.length
-            this._terrainWorkerPool[workerIdx].postMessage(msg)
-        }
-    }
-
-    /**
-     * LRU cache get -- moves the accessed key to the end (most-recently-used).
-     */
-    _terrainCacheGet(key) {
-        if (!this._terrainCache.has(key)) return undefined
-        const value = this._terrainCache.get(key)
-        this._terrainCache.delete(key)
-        this._terrainCache.set(key, value)
-        return value
-    }
-
-    /**
-     * LRU cache set -- evicts the oldest entry when the cache is full.
-     */
-    _terrainCacheSet(key, value) {
-        if (this._terrainCache.has(key)) {
-            this._terrainCache.delete(key)
-        } else if (this._terrainCache.size >= this._terrainCacheMax) {
-            const oldest = this._terrainCache.keys().next().value
-            this._terrainCache.delete(oldest)
-        }
-        this._terrainCache.set(key, value)
-    }
-
-    /**
-     * Fetch a heightmap tile via the worker pool (fetch + decode + parse).
-     * Returns a Promise resolving to a Float32Array of heights (or null on failure).
-     * Handles cache and dedup.
-     */
-    _fetchHeightmapTile(url, cacheKey, parserType, cropBuffer) {
-        // 1. Cache hit — return a COPY so Cesium can own the buffer
-        const cached = this._terrainCacheGet(cacheKey)
-        if (cached) return Promise.resolve(new Float32Array(cached))
-
-        // 2. Deduplication
-        if (this._terrainInflight.has(cacheKey)) {
-            return this._terrainInflight.get(cacheKey).then((c) =>
-                c ? new Float32Array(c) : null
-            )
-        }
-
-        // 3. Dispatch to worker pool (heightmap mode — skip TIN generation)
-        const promise = this._dispatchToWorkerPool(
-            url,
-            parserType,
-            cropBuffer,
-            this._terrainTileSize,
-            this._terrainMaxMeshError,
-            'heightmap'
-        ).then((result) => {
-            this._terrainInflight.delete(cacheKey)
-            if (result && result.heightmap) {
-                // Cache the raw heightmap (Float32Array)
-                const hm =
-                    result.heightmap instanceof Float32Array
-                        ? result.heightmap
-                        : new Float32Array(result.heightmap)
-                this._terrainCacheSet(cacheKey, hm)
-                // Return a copy so the caller owns the buffer
-                return new Float32Array(hm)
-            }
-            return null
-        })
-
-        this._terrainInflight.set(cacheKey, promise)
-        return promise
-    }
-
-    /**
-     * Create a CustomHeightmapTerrainProvider that uses the worker pool
-     * for off-main-thread fetch + decode + parse.
-     * Returns HeightmapTerrainData (Cesium's native format, handles tile
-     * stitching, fill meshes, and skirts automatically).
-     */
-    _createHeightmapTerrainProvider(urlBuilder, parserType, cropBuffer) {
-        const self = this
-        const tileSize = this._terrainTileSize
-        const gridSize = tileSize + 1 // 257 (worker pads 256→257)
-        const maxLevel = this._terrainMaxLevel
-
-        return new Cesium.CustomHeightmapTerrainProvider({
-            callback: function (x, y, level) {
-                // Zoom cap -- reuse parent tile at higher zooms
-                const effectiveLevel = Math.min(level, maxLevel)
-                const scale = Math.pow(2, level - effectiveLevel)
-                const effectiveX = Math.floor(x / scale)
-                const effectiveY = Math.floor(y / scale)
-
-                const { url, cacheKey } = urlBuilder(
-                    effectiveX,
-                    effectiveY,
-                    effectiveLevel
-                )
-
-                return self
-                    ._fetchHeightmapTile(url, cacheKey, parserType, cropBuffer)
-                    .then((heightmap) => {
-                        if (!heightmap) {
-                            return new Float32Array(gridSize * gridSize)
-                        }
-                        return heightmap
-                    })
-            },
-            width: gridSize,
-            height: gridSize,
-            tilingScheme: this._terrainTilingScheme,
-        })
-    }
-
-    /**
-     * Set terrain provider for Cesium using Mapzen Terrarium tiles.
-     * Fetch + decode + parse runs in web workers; Cesium handles mesh generation natively.
+     * Set terrain provider for Cesium using Mapzen Terrarium tiles
+     * Uses CustomHeightmapTerrainProvider with async tile loading
      */
     async _setMapzenTerrariumTerrain() {
         if (this.rendererType !== 'cesium') return
 
-        const urlBuilder = (x, y, level) => ({
-            url: `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${level}/${x}/${y}.png`,
-            cacheKey: `terrarium/${level}/${x}/${y}`,
-        })
+        const tileSize = 256
+        const EMPTY_HEIGHTS = new Float64Array(tileSize * tileSize)
 
-        this.renderer.terrainProvider = this._createHeightmapTerrainProvider(
-            urlBuilder,
-            'terrarium',
-            false
-        )
+        this.renderer.terrainProvider =
+            new Cesium.CustomHeightmapTerrainProvider({
+                width: tileSize,
+                height: tileSize,
+                tilingScheme: new Cesium.WebMercatorTilingScheme(),
+                callback: async (x, y, level) => {
+                    // Skip very low zoom levels where tiles may not exist
+                    if (level < 4) return EMPTY_HEIGHTS
+
+                    try {
+                        const url = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${level}/${x}/${y}.png`
+                        const response = await fetch(url)
+
+                        if (response.ok && response.status === 200) {
+                            const blob = await response.blob()
+                            // Disable color space conversion — even a 1-unit shift in R
+                            // causes a 256m height jump in Terrarium encoding (R*256+G+B/256-32768)
+                            const imageBitmap = await createImageBitmap(blob, {
+                                colorSpaceConversion: 'none',
+                            })
+                            const canvas = new OffscreenCanvas(
+                                tileSize,
+                                tileSize
+                            )
+                            const ctx = canvas.getContext('2d')
+                            ctx.imageSmoothingEnabled = false
+
+                            ctx.drawImage(imageBitmap, 0, 0, tileSize, tileSize)
+
+                            const terrainRGB = ctx.getImageData(
+                                0,
+                                0,
+                                tileSize,
+                                tileSize
+                            ).data
+
+                            const heightMap = new Float64Array(
+                                tileSize * tileSize
+                            )
+                            for (let i = 0; i < heightMap.length; i++) {
+                                const R = terrainRGB[i * 4 + 0]
+                                const G = terrainRGB[i * 4 + 1]
+                                const B = terrainRGB[i * 4 + 2]
+                                // Terrarium format: (R * 256 + G + B / 256) - 32768
+                                heightMap[i] = R * 256 + G + B / 256 - 32768
+                            }
+                            return heightMap
+                        }
+                    } catch (error) {
+                        // Silently fail and return empty heights for missing/invalid tiles
+                    }
+                    return EMPTY_HEIGHTS
+                },
+            })
 
         this._currentTerrainProvider = 'terrarium'
     }
 
     /**
-     * Set terrain from demFallback configuration.
-     * Supports multiple parser types: terrarium, mapbox, rgba (TerrainRGB).
-     * Fetch + decode + parse runs in web workers; Cesium handles mesh generation natively.
+     * Set terrain from demFallback configuration
+     * Supports multiple parser types: terrarium, mapbox, rgba (TerrainRGB)
      */
     async _setTerrainFromConfig(demConfig) {
         if (this.rendererType !== 'cesium') return
@@ -466,29 +301,118 @@ class GlobeRenderer {
             return
         }
 
+        const tileSize = 256
+        const EMPTY_HEIGHTS = new Float64Array(tileSize * tileSize)
         const parserType = demConfig.parserType || 'rgba'
-        const cropBuffer = parserType === 'mapbox' || parserType === 'rgba'
 
-        const urlBuilder = (x, y, level) => {
-            const tileY =
-                demConfig.format === 'tms'
-                    ? Math.pow(2, level) - 1 - y
-                    : y
-            return {
-                url: demConfig.demPath
-                    .replace('{z}', level)
-                    .replace('{x}', x)
-                    .replace('{y}', tileY)
-                    .replace('{level}', level),
-                cacheKey: `custom/${level}/${x}/${y}`,
-            }
-        }
+        this.renderer.terrainProvider =
+            new Cesium.CustomHeightmapTerrainProvider({
+                width: tileSize,
+                height: tileSize,
+                tilingScheme: new Cesium.WebMercatorTilingScheme(),
+                callback: async (x, y, level) => {
+                    if (level < 4) return EMPTY_HEIGHTS
 
-        this.renderer.terrainProvider = this._createHeightmapTerrainProvider(
-            urlBuilder,
-            parserType,
-            cropBuffer
-        )
+                    try {
+                        const tileY = demConfig.format === 'tms'
+                            ? Math.pow(2, level) - 1 - y
+                            : y
+                        let url = demConfig.demPath
+                            .replace('{z}', level)
+                            .replace('{x}', x)
+                            .replace('{y}', tileY)
+                            .replace('{level}', level)
+
+                        const response = await fetch(url)
+
+                        if (response.ok && response.status === 200) {
+                            const blob = await response.blob()
+                            const imageBitmap = await createImageBitmap(blob, {
+                                colorSpaceConversion: 'none',
+                            })
+                            const canvas = new OffscreenCanvas(
+                                tileSize,
+                                tileSize
+                            )
+                            const ctx = canvas.getContext('2d')
+                            ctx.imageSmoothingEnabled = false
+
+                            if (
+                                parserType === 'mapbox' ||
+                                parserType === 'rgba'
+                            ) {
+                                ctx.drawImage(
+                                    imageBitmap,
+                                    1,
+                                    1,
+                                    imageBitmap.width - 2,
+                                    imageBitmap.height - 2,
+                                    0,
+                                    0,
+                                    tileSize,
+                                    tileSize
+                                )
+                            } else {
+                                ctx.drawImage(
+                                    imageBitmap,
+                                    0,
+                                    0,
+                                    tileSize,
+                                    tileSize
+                                )
+                            }
+
+                            const terrainRGB = ctx.getImageData(
+                                0,
+                                0,
+                                tileSize,
+                                tileSize
+                            ).data
+
+                            const heightMap = new Float64Array(
+                                tileSize * tileSize
+                            )
+
+                            if (parserType === 'terrarium') {
+                                for (let i = 0; i < heightMap.length; i++) {
+                                    const R = terrainRGB[i * 4 + 0]
+                                    const G = terrainRGB[i * 4 + 1]
+                                    const B = terrainRGB[i * 4 + 2]
+                                    heightMap[i] = R * 256 + G + B / 256 - 32768
+                                }
+                            } else if (
+                                parserType === 'mapbox' ||
+                                parserType === 'rgba'
+                            ) {
+                                for (let i = 0; i < heightMap.length; i++) {
+                                    const R = terrainRGB[i * 4 + 0]
+                                    const G = terrainRGB[i * 4 + 1]
+                                    const B = terrainRGB[i * 4 + 2]
+                                    const A = terrainRGB[i * 4 + 3]
+                                    heightMap[i] =
+                                        A === 0
+                                            ? 0
+                                            : -10000 +
+                                              (R * 256 * 256 + G * 256 + B) *
+                                                  0.1
+                                }
+                            } else {
+                                for (let i = 0; i < heightMap.length; i++) {
+                                    const R = terrainRGB[i * 4 + 0]
+                                    const G = terrainRGB[i * 4 + 1]
+                                    const B = terrainRGB[i * 4 + 2]
+                                    heightMap[i] = R * 256 + G + B / 256 - 32768
+                                }
+                            }
+
+                            return heightMap
+                        }
+                    } catch (error) {
+                        // Silently fail and return empty heights for missing/invalid tiles
+                    }
+                    return EMPTY_HEIGHTS
+                },
+            })
 
         this._currentTerrainProvider = 'custom'
     }
