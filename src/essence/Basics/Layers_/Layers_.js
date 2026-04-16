@@ -720,9 +720,9 @@ const L_ = {
                             let hasGradientAttachment = false
                             if (L_.layers.attachments[s.name]) {
                                 for (const sub in L_.layers.attachments[s.name]) {
-                                                    if (L_.layers.attachments[s.name][sub].type === 'path_gradient' && L_.layers.attachments[s.name][sub].cesiumLayerId) {
-                                                        hasGradientAttachment = true
-                                                        break
+                                    if (L_.layers.attachments[s.name][sub].type === 'path_gradient') {
+                                        hasGradientAttachment = true
+                                        break
                                     }
                                 }
                             }
@@ -780,8 +780,8 @@ const L_ = {
                             } else if (hadToMake && L_.layers.attachments[s.name]) {
                                 // On first-time toggle the attachment-processing block
                                 // (lines ~450-568) was skipped because the layer didn't
-                                // exist yet. Add the Cesium gradient polyline now so it
-                                // renders immediately without requiring a second toggle.
+                                // exist yet. Defer the heavy Cesium geometry build so the
+                                // UI isn't blocked on initial toggle.
                                 for (const sub in L_.layers.attachments[s.name]) {
                                     const att = L_.layers.attachments[s.name][sub]
                                     if (
@@ -789,18 +789,20 @@ const L_ = {
                                         att.on &&
                                         att.cesiumGradientOptions
                                     ) {
-                                        try {
-                                            att.cesiumLayerId =
-                                                L_.Globe_.litho.addLayer(
-                                                    'gradient_polyline',
-                                                    att.cesiumGradientOptions
+                                        setTimeout(() => {
+                                            try {
+                                                att.cesiumLayerId =
+                                                    L_.Globe_.litho.addLayer(
+                                                        'gradient_polyline',
+                                                        att.cesiumGradientOptions
+                                                    )
+                                            } catch (e) {
+                                                console.warn(
+                                                    'Failed to add 3D gradient polyline:',
+                                                    e
                                                 )
-                                        } catch (e) {
-                                            console.warn(
-                                                'Failed to add 3D gradient polyline:',
-                                                e
-                                            )
-                                        }
+                                            }
+                                        }, 0)
                                     }
                                 }
                             }
@@ -1202,7 +1204,7 @@ const L_ = {
                     let hasGradientAttachment2 = false
                     if (s.type === 'vector' && L_.layers.attachments[s.name]) {
                         for (const sub in L_.layers.attachments[s.name]) {
-                            if (L_.layers.attachments[s.name][sub].type === 'path_gradient' && L_.layers.attachments[s.name][sub].cesiumLayerId) {
+                            if (L_.layers.attachments[s.name][sub].type === 'path_gradient') {
                                 hasGradientAttachment2 = true
                                 break
                             }

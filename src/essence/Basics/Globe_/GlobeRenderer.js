@@ -6,8 +6,6 @@ import LayerUtils from '../Layers_/LayerUtils'
 import {
     interpolateMultipleColors,
     buildColorStops,
-    rgbToHex,
-    escapeHtml,
     closestPointOnSegment,
 } from '../Layers_/gradientUtils'
 import { getCoordProperties } from '../Layers_/ExtendedGeoJSON'
@@ -810,21 +808,83 @@ class GlobeRenderer {
             this._removeCesiumGradientPolyline(layerName)
         }
 
-        const colorWithProp = gradientSettings.colorWithProp
         const colorStops = buildColorStops(gradientSettings.colorRamp)
         const weight = gradientSettings.weight || 4
 
+        // Register the layer entry immediately so the caller gets the ID back
+        // synchronously.  All heavy work (vertex collection + geometry build)
+        // runs inside _buildCesiumGradientAsync with a per-frame time budget so
+        // the UI is never blocked.
+        const gridRes = 0.01
+        const buildId = Symbol()
+        this._layers[layerName] = {
+            type: 'gradient_polyline',
+            primitive: null,
+            visible: true,
+            hoverSegments: [],
+            segmentGrid: {},
+            gridRes,
+            _buildId: buildId,
+        }
+
+        this._buildCesiumGradientAsync(
+            layerName, buildId, geojson, gradientSettings, colorStops, weight, gridRes
+        )
+
+        return layerName
+    }
+
+    /**
+     * Async builder for gradient polyline geometry.
+     * Both Phase 1 (vertex collection) and Phase 2 (Cesium geometry build)
+     * run here so the main thread is never blocked.  A per-frame time budget
+     * (FRAME_BUDGET_MS) is used instead of fixed chunk sizes: we check
+     * performance.now() every CHECK_INTERVAL iterations and yield via
+     * requestAnimationFrame whenever we've used the budget.  This adapts to
+     * the machine's speed and guarantees ≤FRAME_BUDGET_MS of blocking per
+     * frame regardless of dataset size.
+     *
+     * buildId is a Symbol stamped on the layer entry at creation time —
+     * if it no longer matches when we resume after a yield, the layer was
+     * removed or replaced and this build should abort.
+     */
+    async _buildCesiumGradientAsync(
+        layerName, buildId, geojson, gradientSettings, colorStops, weight, gridRes
+    ) {
+        const isStale = () =>
+            this._layers[layerName]?._buildId !== buildId
+
+        // Time-budget yielding: yield to the browser via rAF whenever we've
+        // spent FRAME_BUDGET_MS in the current frame.  CHECK_INTERVAL controls
+        // how often we check the clock (every N iterations); smaller = lower
+        // peak blocking but slightly more overhead.
+        const FRAME_BUDGET_MS = 10
+        const CHECK_INTERVAL = 100
+        let frameDeadline = performance.now() + FRAME_BUDGET_MS
+        const yieldIfNeeded = () => {
+            if (performance.now() < frameDeadline) return Promise.resolve()
+            return new Promise((resolve) => {
+                requestAnimationFrame(() => {
+                    frameDeadline = performance.now() + FRAME_BUDGET_MS
+                    resolve()
+                })
+            })
+        }
+
         // ── Phase 1: Collect all vertices with property values ──
-        const allPaths = []   // array of vertex arrays
+        const colorWithProp = gradientSettings.colorWithProp
+        const allPaths = []
         let min = Infinity
         let max = -Infinity
 
-        const dropdownProps = gradientSettings.dropdownColorWithProp || []
-        const allProps = dropdownProps.length > 0 ? dropdownProps : [colorWithProp]
-
         if (gradientSettings.connectAllPoints) {
             const points = []
-            geojson.features.forEach((feature) => {
+            for (let fi = 0; fi < geojson.features.length; fi++) {
+                if (fi % CHECK_INTERVAL === 0) {
+                    await yieldIfNeeded()
+                    if (isStale()) return
+                }
+                const feature = geojson.features[fi]
                 if (feature.geometry.type.toLowerCase() === 'point') {
                     const coords = feature.geometry.coordinates
                     const value = F_.getIn(feature.properties, colorWithProp, 0)
@@ -836,10 +896,15 @@ class GlobeRenderer {
                         props: feature.properties,
                     })
                 }
-            })
+            }
             if (points.length >= 2) allPaths.push(points)
         } else {
-            geojson.features.forEach((feature) => {
+            for (let fi = 0; fi < geojson.features.length; fi++) {
+                if (fi % CHECK_INTERVAL === 0) {
+                    await yieldIfNeeded()
+                    if (isStale()) return
+                }
+                const feature = geojson.features[fi]
                 const paths = []
                 let path = []
                 let prevParentIndex = null
@@ -869,30 +934,46 @@ class GlobeRenderer {
                 )
                 if (path.length > 0) paths.push(path)
                 paths.forEach((p) => { if (p.length >= 2) allPaths.push(p) })
-            })
+            }
         }
 
         if (min === 0 && max === 0) max = 1
+        if (isStale()) return
 
-        // ── Phase 2: Build ONE PolylineGeometry per path ──
-        // Each path becomes a single continuous polyline with per-vertex
-        // colors.  Cesium interpolates between adjacent vertex colors,
-        // giving smooth gradient transitions.  With densely-sampled
-        // paths (24K+ points) the transitions are imperceptible.
-
+        // ── Phase 2: Build Cesium geometry + hover data ──
+        // Memoize color by exact value — gradient data often has many repeated
+        // readings (quantized sensor values, integer speeds, etc.).
+        // Parse rgb(r,g,b) directly into a Cesium.Color to skip the
+        // rgbToHex → fromCssColorString string round-trip.
+        const colorCache = new Map()
         const colorForValue = (v) => {
-            let c = interpolateMultipleColors(colorStops, v, min, max)
-            if (c && c.startsWith('rgb')) c = rgbToHex(c)
-            return c ? Cesium.Color.fromCssColorString(c) : Cesium.Color.WHITE
+            if (colorCache.has(v)) return colorCache.get(v)
+            const c = interpolateMultipleColors(colorStops, v, min, max)
+            let color
+            if (c) {
+                const m = c.match(/(\d+),\s*(\d+),\s*(\d+)/)
+                color = m
+                    ? new Cesium.Color(+m[1] / 255, +m[2] / 255, +m[3] / 255, 1.0)
+                    : (Cesium.Color.fromCssColorString(c) ?? Cesium.Color.WHITE)
+            } else {
+                color = Cesium.Color.WHITE
+            }
+            colorCache.set(v, color)
+            return color
         }
 
         const geometryInstances = []
+        const hoverSegments = []
 
-        allPaths.forEach((pts) => {
+        for (const pts of allPaths) {
             const positions = []
             const colors = []
 
             for (let i = 0; i < pts.length; i++) {
+                if (i % CHECK_INTERVAL === 0) {
+                    await yieldIfNeeded()
+                    if (isStale()) return
+                }
                 const p = pts[i]
                 positions.push(Cesium.Cartesian3.fromDegrees(p.lng, p.lat, p.elev))
                 colors.push(colorForValue(p.value))
@@ -910,41 +991,56 @@ class GlobeRenderer {
                     })
                 )
             }
-        })
 
-        // ── Phase 2b: Build hover segments ──
-        // Each segment stores the start-vertex tooltip HTML plus the
-        // coordinates of both endpoints.  The hover handler projects the
-        // cursor onto the nearest segment so the tooltip fires anywhere
-        // along the line, not only at recorded vertices.
-        const hoverSegments = [] // { lng1, lat1, elev1, lng2, lat2, elev2, html }
-        allPaths.forEach((pts) => {
             for (let i = 0; i < pts.length - 1; i++) {
-                const p1 = pts[i]
-                const p2 = pts[i + 1]
-                let html = '<table style="font-size:13px">'
-                allProps.forEach((prop) => {
-                    const val = p1.props ? F_.getIn(p1.props, prop, '—') : p1.value
-                    html += `<tr><td><b>${escapeHtml(prop)}</b></td><td>${escapeHtml(val)}</td></tr>`
-                })
-                html += '</table>'
+                if (i % CHECK_INTERVAL === 0) {
+                    await yieldIfNeeded()
+                    if (isStale()) return
+                }
+                const p1 = pts[i], p2 = pts[i + 1]
                 hoverSegments.push({
                     lng1: p1.lng, lat1: p1.lat, elev1: p1.elev || 0,
                     lng2: p2.lng, lat2: p2.lat, elev2: p2.elev || 0,
-                    cart1: Cesium.Cartesian3.fromDegrees(p1.lng, p1.lat, p1.elev || 0),
-                    cart2: Cesium.Cartesian3.fromDegrees(p2.lng, p2.lat, p2.elev || 0),
-                    html,
                 })
             }
-        })
+        }
 
-        // ── Phase 3: Create Primitive ──
-        // Uses asynchronous:true so geometry compiles in a Web Worker
-        // without freezing the UI.  Under requestRenderMode:true Cesium
-        // only processes pending primitives during a render pass, so
-        // pollReady requests a render on *every* frame while waiting —
-        // this drives the compilation pipeline until the primitive is
-        // ready, then stops.
+        if (isStale()) return
+
+        // ── Build spatial grid ──
+        // Register each segment at evenly-spaced sample points (every 2 cells).
+        // The caller (setGradientHoverPoint) checks a 3×3 neighbourhood, so any
+        // query point within 1 cell of a sample finds the segment.  Steps are
+        // capped at 12 per segment so worst-case cost is O(12N), not O(N × span²).
+        const segmentGrid = {}
+        for (let idx = 0; idx < hoverSegments.length; idx++) {
+            if (idx % CHECK_INTERVAL === 0) {
+                await yieldIfNeeded()
+                if (isStale()) return
+            }
+            const seg = hoverSegments[idx]
+            const gx1 = Math.floor(seg.lng1 / gridRes)
+            const gy1 = Math.floor(seg.lat1 / gridRes)
+            const gx2 = Math.floor(seg.lng2 / gridRes)
+            const gy2 = Math.floor(seg.lat2 / gridRes)
+            const span = Math.max(Math.abs(gx2 - gx1), Math.abs(gy2 - gy1))
+            const steps = Math.min(12, Math.max(1, Math.ceil(span / 2)))
+            const seenCells = new Set()
+            for (let s = 0; s <= steps; s++) {
+                const t = s / steps
+                const gx = Math.floor((seg.lng1 + t * (seg.lng2 - seg.lng1)) / gridRes)
+                const gy = Math.floor((seg.lat1 + t * (seg.lat2 - seg.lat1)) / gridRes)
+                const key = `${gx},${gy}`
+                if (seenCells.has(key)) continue
+                seenCells.add(key)
+                if (!segmentGrid[key]) segmentGrid[key] = []
+                segmentGrid[key].push(idx)
+            }
+        }
+
+        // ── Create Primitive ──
+        // asynchronous:true compiles geometry in a Web Worker.
+        // pollReady drives the compilation under requestRenderMode:true.
         let primitive = null
         if (geometryInstances.length > 0) {
             primitive = new Cesium.Primitive({
@@ -954,54 +1050,23 @@ class GlobeRenderer {
             })
             this.renderer.scene.primitives.add(primitive)
 
-            // Request a render every frame so Cesium's update loop can
-            // progress the async compilation.  Once ready, one final
-            // render displays the primitive and polling stops.
             const pollReady = () => {
-                if (primitive.isDestroyed()) {
-                    return // layer was removed before compilation finished
-                }
-                // Always request a render — this is needed to drive
-                // primitive.update() which advances the Web Worker
-                // compilation pipeline under requestRenderMode:true.
+                if (primitive.isDestroyed()) return
                 this._requestRender()
-                if (!primitive.ready) {
-                    requestAnimationFrame(pollReady)
-                }
+                if (!primitive.ready) requestAnimationFrame(pollReady)
             }
             requestAnimationFrame(pollReady)
         }
 
-        // ── Phase 4: Build spatial grid for hover tooltip ──
-        // Grid cells are ~0.01° (roughly 1km).  Each segment is registered
-        // in every cell its bounding box covers so the hover handler can do
-        // point-to-segment projection rather than nearest-vertex lookup.
-        const gridRes = 0.01
-        const segmentGrid = {}
-        hoverSegments.forEach((seg, idx) => {
-            const gx1 = Math.floor(seg.lng1 / gridRes)
-            const gy1 = Math.floor(seg.lat1 / gridRes)
-            const gx2 = Math.floor(seg.lng2 / gridRes)
-            const gy2 = Math.floor(seg.lat2 / gridRes)
-            for (let gx = Math.min(gx1, gx2); gx <= Math.max(gx1, gx2); gx++) {
-                for (let gy = Math.min(gy1, gy2); gy <= Math.max(gy1, gy2); gy++) {
-                    const key = `${gx},${gy}`
-                    if (!segmentGrid[key]) segmentGrid[key] = []
-                    segmentGrid[key].push(idx)
-                }
-            }
-        })
-
-        this._layers[layerName] = {
-            type: 'gradient_polyline',
-            primitive,
-            visible: true,
-            hoverSegments,
-            segmentGrid,
-            gridRes,
+        // Fill in the layer entry that was registered synchronously
+        if (isStale()) {
+            // A newer build superseded this one — discard our primitive
+            if (primitive) this.renderer.scene.primitives.remove(primitive)
+            return
         }
-
-        return layerName
+        this._layers[layerName].primitive = primitive
+        this._layers[layerName].hoverSegments = hoverSegments
+        this._layers[layerName].segmentGrid = segmentGrid
     }
 
     /**
@@ -1674,19 +1739,34 @@ class GlobeRenderer {
         for (const lName in this._layers) {
             const li = this._layers[lName]
             if (li.type !== 'gradient_polyline' || !li.visible) continue
-            const { hoverSegments } = li
-            if (!hoverSegments) continue
-            for (const seg of hoverSegments) {
-                const { t, dist } = closestPointOnSegment(
-                    lng, lat, seg.lng1, seg.lat1, seg.lng2, seg.lat2
-                )
-                if (dist < bestDist) {
-                    bestDist = dist
-                    bestLng = seg.lng1 + t * (seg.lng2 - seg.lng1)
-                    bestLat = seg.lat1 + t * (seg.lat2 - seg.lat1)
-                    bestElev =
-                        (seg.elev1 || 0) +
-                        t * ((seg.elev2 || 0) - (seg.elev1 || 0))
+            const { hoverSegments, segmentGrid, gridRes } = li
+            if (!hoverSegments || !segmentGrid) continue
+
+            const gx = Math.floor(lng / gridRes)
+            const gy = Math.floor(lat / gridRes)
+            const seen = new Set()
+
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    const bucket = segmentGrid[`${gx + dx},${gy + dy}`]
+                    if (!bucket) continue
+                    for (let k = 0; k < bucket.length; k++) {
+                        const idx = bucket[k]
+                        if (seen.has(idx)) continue
+                        seen.add(idx)
+                        const seg = hoverSegments[idx]
+                        const { t, dist } = closestPointOnSegment(
+                            lng, lat, seg.lng1, seg.lat1, seg.lng2, seg.lat2
+                        )
+                        if (dist < bestDist) {
+                            bestDist = dist
+                            bestLng = seg.lng1 + t * (seg.lng2 - seg.lng1)
+                            bestLat = seg.lat1 + t * (seg.lat2 - seg.lat1)
+                            bestElev =
+                                (seg.elev1 || 0) +
+                                t * ((seg.elev2 || 0) - (seg.elev1 || 0))
+                        }
+                    }
                 }
             }
         }
@@ -1906,9 +1986,62 @@ class GlobeRenderer {
             if (id === 'mmgisLithoLink') {
                 return this._setupCesiumLinkControl(options)
             }
+            if (id === 'mmgisLithoCoords') {
+                return this._setupCesiumCoordsControl(options)
+            }
             // Return a mock control object for other controls
             return {}
         }
+    }
+
+    /**
+     * Wire up the Cesium mouse-move handler that drives the coordinate display.
+     * Calls options.onChange(lng, lat, elev) on every mouse-move over the globe,
+     * and onChange(null, null, null) when the pointer leaves the canvas.
+     */
+    _setupCesiumCoordsControl(options) {
+        if (!options || !options.onChange) return {}
+
+        const viewer = this.renderer
+        const scene = viewer.scene
+        const canvas = scene.canvas
+
+        const handler = new Cesium.ScreenSpaceEventHandler(canvas)
+
+        let rafPending = false
+        handler.setInputAction((movement) => {
+            if (rafPending) return
+            rafPending = true
+            requestAnimationFrame(() => {
+                rafPending = false
+                const cartesian = viewer.camera.pickEllipsoid(
+                    movement.endPosition,
+                    scene.globe.ellipsoid
+                )
+                if (cartesian) {
+                    const carto = Cesium.Cartographic.fromCartesian(cartesian)
+                    const lng = Cesium.Math.toDegrees(carto.longitude)
+                    const lat = Cesium.Math.toDegrees(carto.latitude)
+                    // Try to get the terrain elevation at this position.
+                    // scene.sampleHeight samples the currently-rendered tiles
+                    // synchronously; it returns undefined if tiles aren't loaded yet.
+                    let elev = null
+                    try {
+                        const h = scene.sampleHeight(carto)
+                        if (h != null && isFinite(h)) elev = h
+                    } catch (_) { /* terrain not available */ }
+                    options.onChange(lng, lat, elev)
+                } else {
+                    options.onChange(null, null, null)
+                }
+            })
+        }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
+
+        canvas.addEventListener('mouseout', () => {
+            options.onChange(null, null, null)
+        })
+
+        return { _handler: handler }
     }
 
     /**

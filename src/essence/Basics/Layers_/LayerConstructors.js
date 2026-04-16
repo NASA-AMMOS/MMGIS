@@ -2083,16 +2083,29 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
             function _addHoverSegment(seg) {
                 const segIdx = hoverSegments.length
                 hoverSegments.push(seg)
+                // Register the segment at evenly-spaced sample points along its length,
+                // one sample every 2 grid cells.  The mousemove handler checks a 3×3
+                // neighbourhood, so any mouse position within 1 cell of a sample will
+                // find this segment — giving full coverage for segments up to ~2× the
+                // cap length.  This avoids the O(N × span²) cost of bounding-box
+                // registration while still covering hover anywhere on the line.
                 const gx1 = Math.floor(seg.lng1 / hoverGridRes)
                 const gy1 = Math.floor(seg.lat1 / hoverGridRes)
                 const gx2 = Math.floor(seg.lng2 / hoverGridRes)
                 const gy2 = Math.floor(seg.lat2 / hoverGridRes)
-                for (let gx = Math.min(gx1, gx2); gx <= Math.max(gx1, gx2); gx++) {
-                    for (let gy = Math.min(gy1, gy2); gy <= Math.max(gy1, gy2); gy++) {
-                        const key = `${gx},${gy}`
-                        if (!hoverGrid[key]) hoverGrid[key] = []
-                        hoverGrid[key].push(segIdx)
-                    }
+                const span = Math.max(Math.abs(gx2 - gx1), Math.abs(gy2 - gy1))
+                // steps = number of intervals; sample every 2 cells, cap at 12
+                const steps = Math.min(12, Math.max(1, Math.ceil(span / 2)))
+                const seenCells = new Set()
+                for (let s = 0; s <= steps; s++) {
+                    const t = s / steps
+                    const gx = Math.floor((seg.lng1 + t * (seg.lng2 - seg.lng1)) / hoverGridRes)
+                    const gy = Math.floor((seg.lat1 + t * (seg.lat2 - seg.lat1)) / hoverGridRes)
+                    const key = `${gx},${gy}`
+                    if (seenCells.has(key)) continue
+                    seenCells.add(key)
+                    if (!hoverGrid[key]) hoverGrid[key] = []
+                    hoverGrid[key].push(segIdx)
                 }
             }
 
@@ -2321,9 +2334,12 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                     Map_,
                     prop
                 )
-                // Rebuild 3D gradient with new property
+                // Rebuild 3D gradient with new property.
+                // removeLayer is cheap (scene.primitives.remove); defer the
+                // heavy addLayer geometry build to avoid blocking the UI thread.
                 if (l.cesiumLayerId && L_.Globe_ && L_.Globe_.litho) {
                     L_.Globe_.litho.removeLayer(l.cesiumLayerId)
+                    l.cesiumLayerId = null
                     const updatedOptions = {
                         ...l.cesiumGradientOptions,
                         gradientSettings: {
@@ -2332,10 +2348,13 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                         },
                     }
                     l.cesiumGradientOptions = updatedOptions
-                    l.cesiumLayerId = L_.Globe_.litho.addLayer(
-                        'gradient_polyline',
-                        updatedOptions
-                    )
+                    clearTimeout(l._cesiumRebuildTimer)
+                    l._cesiumRebuildTimer = setTimeout(() => {
+                        l.cesiumLayerId = L_.Globe_.litho.addLayer(
+                            'gradient_polyline',
+                            updatedOptions
+                        )
+                    }, 0)
                 }
             }
             layer.layerObj = layerObj
