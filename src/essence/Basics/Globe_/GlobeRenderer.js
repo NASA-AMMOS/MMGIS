@@ -301,8 +301,8 @@ class GlobeRenderer {
      * TERRAIN_GRID_SIZE (default 32) before parsing. This reduces
      * per-tile pixel work from 65K to ~1K and produces far less GPU
      * geometry while Cesium bilinearly interpolates between samples.
-     * A single OffscreenCanvas is reused across all tiles to avoid
-     * GC pressure.
+     * Each tile gets its own small OffscreenCanvas (32×32 ≈ 4 KB) so
+     * fetches decode in parallel without contention.
      */
     async _setMapzenTerrariumTerrain() {
         if (this.rendererType !== 'cesium') return
