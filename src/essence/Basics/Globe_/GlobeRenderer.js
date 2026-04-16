@@ -187,82 +187,146 @@ class GlobeRenderer {
     }
 
     /**
-     * Set up terrain provider for Cesium
-     * Uses Mapzen Terrarium tiles as default, can be overridden with demFallback config
+     * Set up terrain provider for Cesium.
+     * Uses Mapzen Terrarium tiles as default, can be overridden with demFallback config.
+     *
+     * Performance: tiles are downscaled from 256×256 to _terrainGridSize (default 32)
+     * before parsing — 64× fewer pixels, far less GPU geometry, and a single reusable
+     * OffscreenCanvas avoids per-tile GC allocation.
      */
     async _setupTerrainProvider() {
         if (this.rendererType !== 'cesium') return
+
+        // ── Shared terrain infrastructure ──
+        // Grid size for the heightmap Cesium receives (downscaled from 256 source).
+        // 32 gives ~1K samples per tile — enough detail for terrain shape at
+        // planetary-science zoom levels while keeping parse + GPU cost very low.
+        this._terrainGridSize = 32
+
+        // Reusable OffscreenCanvas — avoids allocating a new canvas per tile.
+        // Sized to gridSize; the browser's drawImage handles the 256→32
+        // downscale in one GPU-accelerated step.
+        this._terrainSmallCanvas = new OffscreenCanvas(
+            this._terrainGridSize,
+            this._terrainGridSize
+        )
+        this._terrainSmallCtx = this._terrainSmallCanvas.getContext('2d')
+        this._terrainSmallCtx.imageSmoothingEnabled = false
 
         // Check for demFallback configuration
         const demFallback = this.config.demFallback
 
         if (demFallback && demFallback.demPath) {
-            // Use configured fallback DEM
             await this._setTerrainFromConfig(demFallback)
         } else {
-            // Use Mapzen Terrarium as default free terrain
             await this._setMapzenTerrariumTerrain()
         }
     }
 
     /**
-     * Set terrain provider for Cesium using Mapzen Terrarium tiles
-     * Uses CustomHeightmapTerrainProvider with async tile loading
+     * Fetch a terrain PNG tile, downscale it, and parse RGB→heights.
+     * Shared by both Terrarium and custom DEM providers.
+     *
+     * @param {string} url - Tile URL
+     * @param {string} parserType - 'terrarium' | 'mapbox' | 'rgba'
+     * @param {boolean} cropBuffer - Whether to crop 1px buffer ring (TerrainRGB/mapbox)
+     * @param {Float64Array} emptyHeights - Pre-allocated empty array for failures
+     * @returns {Float64Array} Parsed height grid (gridSize × gridSize)
+     */
+    async _fetchAndParseTerrainTile(url, parserType, cropBuffer, emptyHeights) {
+        const response = await fetch(url)
+        if (!response.ok || response.status !== 200) return emptyHeights
+
+        const blob = await response.blob()
+        // Disable color space conversion — even a 1-unit shift in R
+        // causes a 256m height jump in Terrarium encoding (R*256+G+B/256-32768)
+        const imageBitmap = await createImageBitmap(blob, {
+            colorSpaceConversion: 'none',
+        })
+
+        const gridSize = this._terrainGridSize
+        const smallCtx = this._terrainSmallCtx
+
+        // Draw source tile directly at the target grid size — the browser's
+        // built-in image scaler handles the 256→32 downscale in one GPU-
+        // accelerated step.  For formats with a 1px buffer ring (TerrainRGB),
+        // crop it during the draw.
+        if (cropBuffer) {
+            smallCtx.drawImage(
+                imageBitmap,
+                1, 1,
+                imageBitmap.width - 2, imageBitmap.height - 2,
+                0, 0,
+                gridSize, gridSize
+            )
+        } else {
+            smallCtx.drawImage(imageBitmap, 0, 0, gridSize, gridSize)
+        }
+
+        const terrainRGB = smallCtx.getImageData(0, 0, gridSize, gridSize).data
+        const heightMap = new Float64Array(gridSize * gridSize)
+
+        if (parserType === 'terrarium') {
+            for (let i = 0; i < heightMap.length; i++) {
+                const R = terrainRGB[i * 4]
+                const G = terrainRGB[i * 4 + 1]
+                const B = terrainRGB[i * 4 + 2]
+                heightMap[i] = R * 256 + G + B / 256 - 32768
+            }
+        } else if (parserType === 'mapbox' || parserType === 'rgba') {
+            for (let i = 0; i < heightMap.length; i++) {
+                const R = terrainRGB[i * 4]
+                const G = terrainRGB[i * 4 + 1]
+                const B = terrainRGB[i * 4 + 2]
+                const A = terrainRGB[i * 4 + 3]
+                heightMap[i] =
+                    A === 0
+                        ? 0
+                        : -10000 + (R * 256 * 256 + G * 256 + B) * 0.1
+            }
+        } else {
+            // Unknown parser type — default to Terrarium
+            for (let i = 0; i < heightMap.length; i++) {
+                const R = terrainRGB[i * 4]
+                const G = terrainRGB[i * 4 + 1]
+                const B = terrainRGB[i * 4 + 2]
+                heightMap[i] = R * 256 + G + B / 256 - 32768
+            }
+        }
+
+        return heightMap
+    }
+
+    /**
+     * Set terrain provider for Cesium using Mapzen Terrarium tiles.
+     * Uses CustomHeightmapTerrainProvider with async tile loading.
+     *
+     * Performance: Source tiles are 256×256 PNG but we downscale to
+     * TERRAIN_GRID_SIZE (default 32) before parsing. This reduces
+     * per-tile pixel work from 65K to ~1K and produces far less GPU
+     * geometry while Cesium bilinearly interpolates between samples.
+     * A single OffscreenCanvas is reused across all tiles to avoid
+     * GC pressure.
      */
     async _setMapzenTerrariumTerrain() {
         if (this.rendererType !== 'cesium') return
 
-        const tileSize = 256
-        const EMPTY_HEIGHTS = new Float64Array(tileSize * tileSize)
+        const gridSize = this._terrainGridSize
+        const EMPTY_HEIGHTS = new Float64Array(gridSize * gridSize)
 
         this.renderer.terrainProvider =
             new Cesium.CustomHeightmapTerrainProvider({
-                width: tileSize,
-                height: tileSize,
+                width: gridSize,
+                height: gridSize,
                 tilingScheme: new Cesium.WebMercatorTilingScheme(),
                 callback: async (x, y, level) => {
-                    // Skip very low zoom levels where tiles may not exist
                     if (level < 4) return EMPTY_HEIGHTS
 
                     try {
                         const url = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${level}/${x}/${y}.png`
-                        const response = await fetch(url)
-
-                        if (response.ok && response.status === 200) {
-                            const blob = await response.blob()
-                            // Disable color space conversion — even a 1-unit shift in R
-                            // causes a 256m height jump in Terrarium encoding (R*256+G+B/256-32768)
-                            const imageBitmap = await createImageBitmap(blob, {
-                                colorSpaceConversion: 'none',
-                            })
-                            const canvas = new OffscreenCanvas(
-                                tileSize,
-                                tileSize
-                            )
-                            const ctx = canvas.getContext('2d')
-                            ctx.imageSmoothingEnabled = false
-
-                            ctx.drawImage(imageBitmap, 0, 0, tileSize, tileSize)
-
-                            const terrainRGB = ctx.getImageData(
-                                0,
-                                0,
-                                tileSize,
-                                tileSize
-                            ).data
-
-                            const heightMap = new Float64Array(
-                                tileSize * tileSize
-                            )
-                            for (let i = 0; i < heightMap.length; i++) {
-                                const R = terrainRGB[i * 4 + 0]
-                                const G = terrainRGB[i * 4 + 1]
-                                const B = terrainRGB[i * 4 + 2]
-                                // Terrarium format: (R * 256 + G + B / 256) - 32768
-                                heightMap[i] = R * 256 + G + B / 256 - 32768
-                            }
-                            return heightMap
-                        }
+                        return await this._fetchAndParseTerrainTile(
+                            url, 'terrarium', false, EMPTY_HEIGHTS
+                        )
                     } catch (error) {
                         // Silently fail and return empty heights for missing/invalid tiles
                     }
@@ -274,8 +338,9 @@ class GlobeRenderer {
     }
 
     /**
-     * Set terrain from demFallback configuration
-     * Supports multiple parser types: terrarium, mapbox, rgba (TerrainRGB)
+     * Set terrain from demFallback configuration.
+     * Supports multiple parser types: terrarium, mapbox, rgba (TerrainRGB).
+     * Uses the same downscale + shared canvas pipeline as _setMapzenTerrariumTerrain.
      */
     async _setTerrainFromConfig(demConfig) {
         if (this.rendererType !== 'cesium') return
@@ -301,14 +366,15 @@ class GlobeRenderer {
             return
         }
 
-        const tileSize = 256
-        const EMPTY_HEIGHTS = new Float64Array(tileSize * tileSize)
+        const gridSize = this._terrainGridSize
+        const EMPTY_HEIGHTS = new Float64Array(gridSize * gridSize)
         const parserType = demConfig.parserType || 'rgba'
+        const cropBuffer = parserType === 'mapbox' || parserType === 'rgba'
 
         this.renderer.terrainProvider =
             new Cesium.CustomHeightmapTerrainProvider({
-                width: tileSize,
-                height: tileSize,
+                width: gridSize,
+                height: gridSize,
                 tilingScheme: new Cesium.WebMercatorTilingScheme(),
                 callback: async (x, y, level) => {
                     if (level < 4) return EMPTY_HEIGHTS
@@ -317,96 +383,15 @@ class GlobeRenderer {
                         const tileY = demConfig.format === 'tms'
                             ? Math.pow(2, level) - 1 - y
                             : y
-                        let url = demConfig.demPath
+                        const url = demConfig.demPath
                             .replace('{z}', level)
                             .replace('{x}', x)
                             .replace('{y}', tileY)
                             .replace('{level}', level)
 
-                        const response = await fetch(url)
-
-                        if (response.ok && response.status === 200) {
-                            const blob = await response.blob()
-                            const imageBitmap = await createImageBitmap(blob, {
-                                colorSpaceConversion: 'none',
-                            })
-                            const canvas = new OffscreenCanvas(
-                                tileSize,
-                                tileSize
-                            )
-                            const ctx = canvas.getContext('2d')
-                            ctx.imageSmoothingEnabled = false
-
-                            if (
-                                parserType === 'mapbox' ||
-                                parserType === 'rgba'
-                            ) {
-                                ctx.drawImage(
-                                    imageBitmap,
-                                    1,
-                                    1,
-                                    imageBitmap.width - 2,
-                                    imageBitmap.height - 2,
-                                    0,
-                                    0,
-                                    tileSize,
-                                    tileSize
-                                )
-                            } else {
-                                ctx.drawImage(
-                                    imageBitmap,
-                                    0,
-                                    0,
-                                    tileSize,
-                                    tileSize
-                                )
-                            }
-
-                            const terrainRGB = ctx.getImageData(
-                                0,
-                                0,
-                                tileSize,
-                                tileSize
-                            ).data
-
-                            const heightMap = new Float64Array(
-                                tileSize * tileSize
-                            )
-
-                            if (parserType === 'terrarium') {
-                                for (let i = 0; i < heightMap.length; i++) {
-                                    const R = terrainRGB[i * 4 + 0]
-                                    const G = terrainRGB[i * 4 + 1]
-                                    const B = terrainRGB[i * 4 + 2]
-                                    heightMap[i] = R * 256 + G + B / 256 - 32768
-                                }
-                            } else if (
-                                parserType === 'mapbox' ||
-                                parserType === 'rgba'
-                            ) {
-                                for (let i = 0; i < heightMap.length; i++) {
-                                    const R = terrainRGB[i * 4 + 0]
-                                    const G = terrainRGB[i * 4 + 1]
-                                    const B = terrainRGB[i * 4 + 2]
-                                    const A = terrainRGB[i * 4 + 3]
-                                    heightMap[i] =
-                                        A === 0
-                                            ? 0
-                                            : -10000 +
-                                              (R * 256 * 256 + G * 256 + B) *
-                                                  0.1
-                                }
-                            } else {
-                                for (let i = 0; i < heightMap.length; i++) {
-                                    const R = terrainRGB[i * 4 + 0]
-                                    const G = terrainRGB[i * 4 + 1]
-                                    const B = terrainRGB[i * 4 + 2]
-                                    heightMap[i] = R * 256 + G + B / 256 - 32768
-                                }
-                            }
-
-                            return heightMap
-                        }
+                        return await this._fetchAndParseTerrainTile(
+                            url, parserType, cropBuffer, EMPTY_HEIGHTS
+                        )
                     } catch (error) {
                         // Silently fail and return empty heights for missing/invalid tiles
                     }
