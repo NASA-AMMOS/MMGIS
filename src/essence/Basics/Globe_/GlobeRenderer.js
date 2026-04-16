@@ -788,19 +788,13 @@ class GlobeRenderer {
     /**
      * Add a gradient polyline layer to Cesium using the Primitive API.
      *
-     * Uses a single Cesium.Primitive with PolylineColorAppearance and
-     * per-vertex colors instead of thousands of Entity objects.  This
-     * reduces draw calls from O(N) to 1 and handles 24K+ vertices
-     * smoothly.
-     *
-     * Each data point P[i] owns two sub-segments:
-     *   mid(P[i-1],P[i]) → P[i]  and  P[i] → mid(P[i],P[i+1])
-     * both colored with P[i]'s value.  Midpoints serve as
-     * color-transition boundaries while actual data points remain
-     * on the rendered line.
+     * Builds ONE PolylineGeometry per continuous path with per-vertex
+     * colors.  For a 24K-point dataset this produces a single draw
+     * call instead of tens of thousands of Entity objects or
+     * GeometryInstances.
      *
      * Hover tooltips use a spatial grid index for O(1) nearest-vertex
-     * lookup instead of per-vertex point entities.
+     * lookup — no point entities are created.
      *
      * @param {object} layerConfig - { name, geojson, gradientSettings, layerObj }
      * @returns {string} Layer name used as ID for removal
@@ -819,9 +813,6 @@ class GlobeRenderer {
         const weight = gradientSettings.weight || 4
 
         // ── Phase 1: Collect all vertices with property values ──
-        // Each vertex stores {lng, lat, elev, value, props}.
-        // We collect them into per-path arrays so we can build the
-        // two-sub-segment positions/colors in a second pass.
         const allPaths = []   // array of vertex arrays
         let min = Infinity
         let max = -Infinity
@@ -881,13 +872,11 @@ class GlobeRenderer {
 
         if (min === 0 && max === 0) max = 1
 
-        // ── Phase 2: Build positions + per-vertex colors for the Primitive ──
-        // Two-sub-segment strategy: for each vertex P[i] we emit
-        //   mid(P[i-1],P[i]) → P[i]  and  P[i] → mid(P[i],P[i+1])
-        // each colored with P[i]'s value.  We also collect raw vertices
-        // for the spatial hover index.
-        const allPositions = []
-        const allColors = []
+        // ── Phase 2: Build ONE PolylineGeometry per path ──
+        // Each path becomes a single continuous polyline with per-vertex
+        // colors.  Cesium interpolates between adjacent vertex colors,
+        // giving smooth gradient transitions.  With densely-sampled
+        // paths (24K+ points) the transitions are imperceptible.
         const hoverVertices = []  // flat array of {lng, lat, elev, html}
 
         const colorForValue = (v) => {
@@ -896,10 +885,16 @@ class GlobeRenderer {
             return c ? Cesium.Color.fromCssColorString(c) : Cesium.Color.WHITE
         }
 
+        const geometryInstances = []
+
         allPaths.forEach((pts) => {
+            const positions = []
+            const colors = []
+
             for (let i = 0; i < pts.length; i++) {
-                const color = colorForValue(pts[i].value)
                 const p = pts[i]
+                positions.push(Cesium.Cartesian3.fromDegrees(p.lng, p.lat, p.elev))
+                colors.push(colorForValue(p.value))
 
                 // Build tooltip HTML for this vertex
                 let html = '<table style="font-size:13px">'
@@ -909,52 +904,27 @@ class GlobeRenderer {
                 })
                 html += '</table>'
                 hoverVertices.push({ lng: p.lng, lat: p.lat, elev: p.elev, html })
-
-                // Sub-segment 1: midBefore → P[i]  (skipped for first point)
-                if (i > 0) {
-                    const prev = pts[i - 1]
-                    const midLng = (prev.lng + p.lng) / 2
-                    const midLat = (prev.lat + p.lat) / 2
-                    const midElev = (prev.elev + p.elev) / 2
-                    allPositions.push(
-                        Cesium.Cartesian3.fromDegrees(midLng, midLat, midElev),
-                        Cesium.Cartesian3.fromDegrees(p.lng, p.lat, p.elev)
-                    )
-                    allColors.push(color, color)
-                }
-                // Sub-segment 2: P[i] → midAfter  (skipped for last point)
-                if (i < pts.length - 1) {
-                    const next = pts[i + 1]
-                    const midLng = (p.lng + next.lng) / 2
-                    const midLat = (p.lat + next.lat) / 2
-                    const midElev = (p.elev + next.elev) / 2
-                    allPositions.push(
-                        Cesium.Cartesian3.fromDegrees(p.lng, p.lat, p.elev),
-                        Cesium.Cartesian3.fromDegrees(midLng, midLat, midElev)
-                    )
-                    allColors.push(color, color)
-                }
             }
-        })
 
-        // ── Phase 3: Create Primitive with PolylineColorAppearance ──
-        let primitive = null
-        if (allPositions.length >= 2) {
-            const geometryInstances = []
-            // Each sub-segment is 2 positions; create one GeometryInstance
-            // per segment so per-vertex colors apply correctly.
-            for (let i = 0; i < allPositions.length; i += 2) {
+            if (positions.length >= 2) {
                 geometryInstances.push(
                     new Cesium.GeometryInstance({
                         geometry: new Cesium.PolylineGeometry({
-                            positions: [allPositions[i], allPositions[i + 1]],
-                            colors: [allColors[i], allColors[i + 1]],
+                            positions,
+                            colors,
                             colorsPerVertex: true,
                             width: weight,
                         }),
                     })
                 )
             }
+        })
+
+        // ── Phase 3: Create Primitive ──
+        // One Primitive for all paths (typically 1 GeometryInstance for
+        // connectAllPoints, or one per LineString feature).
+        let primitive = null
+        if (geometryInstances.length > 0) {
             primitive = new Cesium.Primitive({
                 geometryInstances,
                 appearance: new Cesium.PolylineColorAppearance(),
