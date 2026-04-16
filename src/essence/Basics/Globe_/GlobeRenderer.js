@@ -184,6 +184,9 @@ class GlobeRenderer {
 
         // Create single global click handler for all layers
         this._setupGlobalClickHandler()
+
+        // Set up gradient-point hover tooltip
+        this._setupGradientHoverHandler()
     }
 
     /**
@@ -202,6 +205,12 @@ class GlobeRenderer {
         // 32 gives ~1K samples per tile — enough detail for terrain shape at
         // planetary-science zoom levels while keeping parse + GPU cost very low.
         this._terrainGridSize = 32
+
+        // Max native zoom for Terrarium tiles (AWS elevation-tiles-prod).
+        // Beyond this level the server returns 404, so we fetch the tile
+        // at this level that covers the same area instead of returning
+        // empty heights (which makes the terrain go flat).
+        this._terrainMaxNativeZoom = 15
 
         // Check for demFallback configuration
         const demFallback = this.config.demFallback
@@ -318,8 +327,21 @@ class GlobeRenderer {
                 callback: async (x, y, level) => {
                     if (level < 4) return EMPTY_HEIGHTS
 
+                    // Clamp to max native zoom — fetch the
+                    // corresponding lower-zoom tile instead of
+                    // returning empty heights (which go flat).
+                    let fetchLevel = level
+                    let fetchX = x
+                    let fetchY = y
+                    if (level > this._terrainMaxNativeZoom) {
+                        const shift = level - this._terrainMaxNativeZoom
+                        fetchLevel = this._terrainMaxNativeZoom
+                        fetchX = x >> shift
+                        fetchY = y >> shift
+                    }
+
                     try {
-                        const url = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${level}/${x}/${y}.png`
+                        const url = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${fetchLevel}/${fetchX}/${fetchY}.png`
                         return await this._fetchAndParseTerrainTile(
                             url, 'terrarium', false, EMPTY_HEIGHTS
                         )
@@ -977,7 +999,7 @@ class GlobeRenderer {
                 let colorStr2 = interpolateMultipleColors(colorStops, v.value, min, max)
                 if (colorStr2 && colorStr2.startsWith('rgb')) colorStr2 = rgbToHex(colorStr2)
                 const ptColor = colorStr2 ? Cesium.Color.fromCssColorString(colorStr2) : Cesium.Color.WHITE
-                dataSource.entities.add({
+                const entity = dataSource.entities.add({
                     position: Cesium.Cartesian3.fromDegrees(v.lng, v.lat, v.elev),
                     point: {
                         pixelSize: Math.max(weight + 2, 6),
@@ -987,6 +1009,8 @@ class GlobeRenderer {
                     },
                     description: descHtml,
                 })
+                // Attach tooltip HTML for hover handler
+                entity._gradientTooltipHtml = descHtml
             })
         }
 
@@ -1652,6 +1676,59 @@ class GlobeRenderer {
             if (newLayer) layerInfo.layer = newLayer
         }
         this._requestRender()
+    }
+
+    /**
+     * Setup hover tooltip for gradient polyline vertex points.
+     * Shows a floating div with coord_properties on mouse-over;
+     * hides it when the cursor leaves.
+     */
+    _setupGradientHoverHandler() {
+        if (this.rendererType !== 'cesium') return
+
+        // Create a tooltip div attached to the Cesium widget
+        const cesiumWidget = document.querySelector('.cesium-widget')
+        if (!cesiumWidget) return
+
+        const tip = document.createElement('div')
+        tip.style.cssText =
+            'position:absolute;pointer-events:none;display:none;' +
+            'background:rgba(0,0,0,0.82);color:#fff;padding:6px 10px;' +
+            'border-radius:4px;font-size:12px;font-family:monospace;' +
+            'white-space:nowrap;z-index:10000;line-height:1.5;'
+        cesiumWidget.appendChild(tip)
+        this._gradientTooltip = tip
+
+        const viewer = this.renderer
+        const scene = viewer.scene
+        const handler = new Cesium.ScreenSpaceEventHandler(scene.canvas)
+
+        let hoverRafPending = false
+        handler.setInputAction((movement) => {
+            if (hoverRafPending) return
+            hoverRafPending = true
+            requestAnimationFrame(() => {
+                hoverRafPending = false
+                const picked = scene.pick(movement.endPosition)
+                if (
+                    Cesium.defined(picked) &&
+                    picked.id &&
+                    picked.id._gradientTooltipHtml
+                ) {
+                    tip.innerHTML = picked.id._gradientTooltipHtml
+                    tip.style.display = 'block'
+                    tip.style.left = movement.endPosition.x + 14 + 'px'
+                    tip.style.top = movement.endPosition.y + 14 + 'px'
+                    this._requestRender()
+                } else {
+                    if (tip.style.display !== 'none') {
+                        tip.style.display = 'none'
+                    }
+                }
+            })
+        }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
+
+        this._gradientHoverHandler = handler
     }
 
     /**
