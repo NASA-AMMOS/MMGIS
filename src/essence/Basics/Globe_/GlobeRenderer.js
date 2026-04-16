@@ -7,6 +7,7 @@ import {
     interpolateMultipleColors,
     buildColorStops,
     rgbToHex,
+    escapeHtml,
 } from '../Layers_/gradientUtils'
 import { getCoordProperties } from '../Layers_/ExtendedGeoJSON'
 import F_ from '../Formulae_/Formulae_'
@@ -900,7 +901,7 @@ class GlobeRenderer {
                 let html = '<table style="font-size:13px">'
                 allProps.forEach((prop) => {
                     const val = p.props ? F_.getIn(p.props, prop, '—') : p.value
-                    html += `<tr><td><b>${prop}</b></td><td>${val}</td></tr>`
+                    html += `<tr><td><b>${escapeHtml(prop)}</b></td><td>${escapeHtml(val)}</td></tr>`
                 })
                 html += '</table>'
                 hoverVertices.push({ lng: p.lng, lat: p.lat, elev: p.elev, html })

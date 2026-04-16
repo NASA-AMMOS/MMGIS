@@ -13,6 +13,7 @@ import {
     hexToRgb,
     parseRgb,
     parseCSSColor,
+    escapeHtml,
 } from './gradientUtils'
 
 import { centroid } from '@turf/turf'
@@ -2148,7 +2149,7 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                             const val = pt.props
                                 ? F_.getIn(pt.props, prop, '—')
                                 : pt.value
-                            html += `<b>${prop}:</b> ${val}<br/>`
+                            html += `<b>${escapeHtml(prop)}:</b> ${escapeHtml(val)}<br/>`
                         })
                         html += '</div>'
                         tooltip

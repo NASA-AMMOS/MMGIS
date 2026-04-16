@@ -165,6 +165,19 @@ export function buildColorStops(colorRamp) {
 }
 
 /**
+ * Escape a string for safe inclusion in HTML (prevents XSS from GeoJSON values).
+ */
+export function escapeHtml(str) {
+    if (str == null) return ''
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+}
+
+/**
  * Convert an RGB string like "rgb(r, g, b)" to a hex string like "#rrggbb".
  */
 export function rgbToHex(rgbString) {
