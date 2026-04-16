@@ -708,56 +708,72 @@ const L_ = {
                         }
 
                         if (s.type === 'vector') {
-                            L_.Globe_.litho.addLayer(
-                                s.layer3dType || 'clamped',
-                                {
-                                    name: s.name,
-                                    order: L_._layersOrdered, // Since higher order in litho is on top
-                                    on: L_.layers.opacity[s.name]
-                                        ? true
-                                        : false,
-                                    geojson: L_.layers.layer[s.name].toGeoJSON(
-                                        L_.GEOJSON_PRECISION
-                                    ),
-                                    onClick: (feature, lnglat, layer) => {
-                                        this.selectFeature(layer.name, feature)
-                                    },
-                                    useKeyAsHoverName: s.useKeyAsName,
-                                    style: {
-                                        // Prefer feature[f].properties.style values
-                                        letPropertiesStyleOverride: true, // default false
-                                        default: {
-                                            fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
-                                            fillOpacity: parseFloat(
-                                                s.style.fillOpacity
-                                            ),
-                                            color: s.style.color,
-                                            weight: s.style.weight,
-                                            radius: s.radius,
-                                        },
-                                        bearing:
-                                            (s.variables?.markerAttachments
-                                                ?.bearing &&
-                                                s.variables?.markerAttachments
-                                                    ?.bearing.enabled ==
-                                                    null) ||
-                                            s.variables?.markerAttachments
-                                                ?.bearing?.enabled === true
-                                                ? s.variables.markerAttachments
-                                                      .bearing
-                                                : null,
-                                    },
-                                    opacity: L_.layers.opacity[s.name],
-                                    minZoom:
-                                        s.visibilitycutoff > 0
-                                            ? s.visibilitycutoff
-                                            : 0,
-                                    maxZoom:
-                                        s.visibilitycutoff < 0
-                                            ? s.visibilitycutoff
-                                            : 100,
+                            // Skip adding the parent vector layer to the 3D
+                            // globe when it has a path_gradient attachment —
+                            // the gradient polyline already renders the data
+                            // and the default billboards would show as white
+                            // artifacts.
+                            let hasGradientAttachment = false
+                            if (L_.layers.attachments[s.name]) {
+                                for (const sub in L_.layers.attachments[s.name]) {
+                                    if (L_.layers.attachments[s.name][sub].type === 'path_gradient') {
+                                        hasGradientAttachment = true
+                                        break
+                                    }
                                 }
-                            )
+                            }
+                            if (!hasGradientAttachment) {
+                                L_.Globe_.litho.addLayer(
+                                    s.layer3dType || 'clamped',
+                                    {
+                                        name: s.name,
+                                        order: L_._layersOrdered, // Since higher order in litho is on top
+                                        on: L_.layers.opacity[s.name]
+                                            ? true
+                                            : false,
+                                        geojson: L_.layers.layer[s.name].toGeoJSON(
+                                            L_.GEOJSON_PRECISION
+                                        ),
+                                        onClick: (feature, lnglat, layer) => {
+                                            this.selectFeature(layer.name, feature)
+                                        },
+                                        useKeyAsHoverName: s.useKeyAsName,
+                                        style: {
+                                            // Prefer feature[f].properties.style values
+                                            letPropertiesStyleOverride: true, // default false
+                                            default: {
+                                                fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
+                                                fillOpacity: parseFloat(
+                                                    s.style.fillOpacity
+                                                ),
+                                                color: s.style.color,
+                                                weight: s.style.weight,
+                                                radius: s.radius,
+                                            },
+                                            bearing:
+                                                (s.variables?.markerAttachments
+                                                    ?.bearing &&
+                                                    s.variables?.markerAttachments
+                                                        ?.bearing.enabled ==
+                                                        null) ||
+                                                s.variables?.markerAttachments
+                                                    ?.bearing?.enabled === true
+                                                    ? s.variables.markerAttachments
+                                                          .bearing
+                                                    : null,
+                                        },
+                                        opacity: L_.layers.opacity[s.name],
+                                        minZoom:
+                                            s.visibilitycutoff > 0
+                                                ? s.visibilitycutoff
+                                                : 0,
+                                        maxZoom:
+                                            s.visibilitycutoff < 0
+                                                ? s.visibilitycutoff
+                                                : 100,
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -1142,7 +1158,19 @@ const L_ = {
                         },
                     })
                 } else if (s.type != 'header') {
-                    if (typeof L_.layers.layer[s.name].toGeoJSON === 'function')
+                    // Skip parent vector layer in 3D when a path_gradient
+                    // attachment handles the rendering (avoids duplicate
+                    // white billboard artifacts).
+                    let hasGradientAttachment2 = false
+                    if (s.type === 'vector' && L_.layers.attachments[s.name]) {
+                        for (const sub in L_.layers.attachments[s.name]) {
+                            if (L_.layers.attachments[s.name][sub].type === 'path_gradient') {
+                                hasGradientAttachment2 = true
+                                break
+                            }
+                        }
+                    }
+                    if (!hasGradientAttachment2 && typeof L_.layers.layer[s.name].toGeoJSON === 'function')
                         L_.Globe_.litho.addLayer(
                             s.type == 'vector'
                                 ? s.layer3dType || 'clamped'
