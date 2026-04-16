@@ -1262,6 +1262,7 @@ class GlobeRenderer {
 
         // Update reference
         layerInfo.layer = newLayer
+        this._requestRender()
     }
 
     /**
@@ -1359,6 +1360,7 @@ class GlobeRenderer {
 
         // Update reference
         layerInfo.layer = newLayer
+        this._requestRender()
     }
 
     /**

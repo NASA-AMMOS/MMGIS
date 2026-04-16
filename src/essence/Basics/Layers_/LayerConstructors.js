@@ -2039,73 +2039,145 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                 })
             }
 
-            // Add invisible hover markers at each vertex for tooltip display
-            const hoverMarkers = []
+            // ── Build spatial grid for 2D hover tooltip ──
+            // Uses O(N) construction with a coordinate→properties Map
+            // instead of the previous O(N²) per-vertex feature search that
+            // froze the browser with large (24K+) datasets.  A single
+            // mousemove handler replaces N individual circleMarkers.
             const coordProps = pathGradientSettings.dropdownColorWithProp.length > 0
                 ? pathGradientSettings.dropdownColorWithProp
                 : [pathGradientSettings.colorWithProp]
-            paths.forEach((path) => {
-                if (!Array.isArray(path) || path.length === 0) return
-                // connectAllPoints paths are flat [lat, lng, value]
-                const points = pathGradientSettings.connectAllPoints
-                    ? [path]
-                    : path
-                points.forEach((pt) => {
-                    if (!Array.isArray(pt) || pt.length < 3) return
-                    const lat = pt[0]
-                    const lng = pt[1]
-                    // Build tooltip content from all coord_properties at this vertex
-                    let tooltipHtml = '<div class="mmgisGradientTooltip">'
-                    // Find the matching coordinate in the geojson to get all properties
-                    let foundProps = null
-                    geojson.features.some((feature) => {
-                        if (pathGradientSettings.connectAllPoints &&
-                            feature.geometry.type.toLowerCase() === 'point') {
-                            const c = feature.geometry.coordinates
-                            if (Math.abs(c[1] - lat) < 1e-8 && Math.abs(c[0] - lng) < 1e-8) {
-                                foundProps = feature.properties
-                                return true
-                            }
-                        } else {
-                            let found = false
-                            F_.coordinateDepthTraversal(
-                                feature.geometry.coordinates,
-                                (array) => {
-                                    if (!found && Math.abs(array[1] - lat) < 1e-8 && Math.abs(array[0] - lng) < 1e-8) {
-                                        foundProps = getCoordProperties(geojson, feature, array)
-                                        found = true
-                                    }
-                                }
+
+            // Pre-build coordinate→properties Map for O(1) lookup
+            const featurePropsByCoord = new Map()
+            geojson.features.forEach((feature) => {
+                if (pathGradientSettings.connectAllPoints &&
+                    feature.geometry.type.toLowerCase() === 'point') {
+                    const c = feature.geometry.coordinates
+                    featurePropsByCoord.set(`${c[1]},${c[0]}`, feature.properties)
+                } else if (!pathGradientSettings.connectAllPoints) {
+                    F_.coordinateDepthTraversal(
+                        feature.geometry.coordinates,
+                        (array) => {
+                            featurePropsByCoord.set(
+                                `${array[1]},${array[0]}`,
+                                getCoordProperties(geojson, feature, array)
                             )
-                            return found
                         }
-                        return false
-                    })
-                    if (foundProps) {
-                        coordProps.forEach((prop) => {
-                            const val = F_.getIn(foundProps, prop, '—')
-                            tooltipHtml += `<b>${prop}:</b> ${val}<br/>`
-                        })
-                    } else {
-                        tooltipHtml += `<b>${pathGradientSettings.colorWithProp}:</b> ${pt[2]}`
-                    }
-                    tooltipHtml += '</div>'
-                    const marker = L.circleMarker([lat, lng], {
-                        radius: pathGradientSettings.weight || 4,
-                        fillOpacity: 0,
-                        opacity: 0,
-                        interactive: true,
-                    })
-                    marker.bindTooltip(tooltipHtml, {
-                        sticky: false,
-                        direction: 'top',
-                        offset: [0, -8],
-                    })
-                    hoverMarkers.push(marker)
-                })
+                    )
+                }
             })
 
-            const layer = L.layerGroup([...hotlines, ...hoverMarkers])
+            // Build spatial grid + hover points array (O(N))
+            const hoverGridRes = 0.001 // ~100m cells
+            const hoverGrid = {}
+            const hoverPoints = []
+            paths.forEach((path) => {
+                if (pathGradientSettings.connectAllPoints) {
+                    // connectAllPoints: each path entry is [lat, lng, value]
+                    if (!Array.isArray(path) || path.length < 3) return
+                    const lat = path[0], lng = path[1]
+                    const props = featurePropsByCoord.get(`${lat},${lng}`)
+                    const idx = hoverPoints.length
+                    hoverPoints.push({ lat, lng, props, value: path[2] })
+                    const key = `${Math.floor(lng / hoverGridRes)},${Math.floor(lat / hoverGridRes)}`
+                    if (!hoverGrid[key]) hoverGrid[key] = []
+                    hoverGrid[key].push(idx)
+                } else {
+                    if (!Array.isArray(path)) return
+                    path.forEach((pt) => {
+                        if (!Array.isArray(pt) || pt.length < 3) return
+                        const lat = pt[0], lng = pt[1]
+                        const props = featurePropsByCoord.get(`${lat},${lng}`)
+                        const idx = hoverPoints.length
+                        hoverPoints.push({ lat, lng, props, value: pt[2] })
+                        const key = `${Math.floor(lng / hoverGridRes)},${Math.floor(lat / hoverGridRes)}`
+                        if (!hoverGrid[key]) hoverGrid[key] = []
+                        hoverGrid[key].push(idx)
+                    })
+                }
+            })
+
+            const layer = L.layerGroup(hotlines)
+
+            // Attach spatial-grid hover via onAdd/onRemove instead of
+            // creating N individual circleMarkers (avoids DOM bloat and
+            // rendering freeze with large datasets).
+            const _origOnAdd = L.LayerGroup.prototype.onAdd
+            const _origOnRemove = L.LayerGroup.prototype.onRemove
+
+            layer.onAdd = function (map) {
+                _origOnAdd.call(this, map)
+                const tooltip = L.tooltip({
+                    direction: 'top',
+                    offset: [0, -8],
+                })
+                this._gradientTooltip = tooltip
+
+                this._gradientHandleMove = (e) => {
+                    const { lat, lng } = e.latlng
+                    const gx = Math.floor(lng / hoverGridRes)
+                    const gy = Math.floor(lat / hoverGridRes)
+                    let best = Infinity
+                    let bestIdx = -1
+                    for (let dx = -1; dx <= 1; dx++) {
+                        for (let dy = -1; dy <= 1; dy++) {
+                            const cell = hoverGrid[`${gx + dx},${gy + dy}`]
+                            if (!cell) continue
+                            for (let i = 0; i < cell.length; i++) {
+                                const pt = hoverPoints[cell[i]]
+                                const d =
+                                    Math.abs(lat - pt.lat) +
+                                    Math.abs(lng - pt.lng)
+                                if (d < best) {
+                                    best = d
+                                    bestIdx = cell[i]
+                                }
+                            }
+                        }
+                    }
+                    // Zoom-adaptive pick radius: ~15 pixels in degrees
+                    const bounds = map.getBounds()
+                    const mapH = map.getSize().y || 1
+                    const pickRadius =
+                        ((bounds.getNorth() - bounds.getSouth()) / mapH) * 15
+                    if (bestIdx >= 0 && best < pickRadius) {
+                        const pt = hoverPoints[bestIdx]
+                        let html = '<div class="mmgisGradientTooltip">'
+                        coordProps.forEach((prop) => {
+                            const val = pt.props
+                                ? F_.getIn(pt.props, prop, '—')
+                                : pt.value
+                            html += `<b>${prop}:</b> ${val}<br/>`
+                        })
+                        html += '</div>'
+                        tooltip
+                            .setLatLng([pt.lat, pt.lng])
+                            .setContent(html)
+                        if (!tooltip._map) tooltip.addTo(map)
+                    } else {
+                        if (tooltip._map) map.removeLayer(tooltip)
+                    }
+                }
+
+                this._gradientHandleOut = () => {
+                    if (tooltip._map) map.removeLayer(tooltip)
+                }
+
+                map.on('mousemove', this._gradientHandleMove)
+                map.on('mouseout', this._gradientHandleOut)
+            }
+
+            layer.onRemove = function (map) {
+                if (this._gradientHandleMove)
+                    map.off('mousemove', this._gradientHandleMove)
+                if (this._gradientHandleOut)
+                    map.off('mouseout', this._gradientHandleOut)
+                if (this._gradientTooltip && this._gradientTooltip._map) {
+                    map.removeLayer(this._gradientTooltip)
+                }
+                _origOnRemove.call(this, map)
+            }
             layer.addDataEnhanced = function (
                 geojson,
                 layerName,
