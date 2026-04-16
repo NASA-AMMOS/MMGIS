@@ -786,11 +786,22 @@ class GlobeRenderer {
     }
 
     /**
-     * Add a gradient polyline layer to Cesium.
-     * Each data point P[i] owns two sub-segments that pass through it:
+     * Add a gradient polyline layer to Cesium using the Primitive API.
+     *
+     * Uses a single Cesium.Primitive with PolylineColorAppearance and
+     * per-vertex colors instead of thousands of Entity objects.  This
+     * reduces draw calls from O(N) to 1 and handles 24K+ vertices
+     * smoothly.
+     *
+     * Each data point P[i] owns two sub-segments:
      *   mid(P[i-1],P[i]) → P[i]  and  P[i] → mid(P[i],P[i+1])
-     * both colored with P[i]'s value.  This keeps actual data points on
-     * the rendered line while using midpoints as color-transition boundaries.
+     * both colored with P[i]'s value.  Midpoints serve as
+     * color-transition boundaries while actual data points remain
+     * on the rendered line.
+     *
+     * Hover tooltips use a spatial grid index for O(1) nearest-vertex
+     * lookup instead of per-vertex point entities.
+     *
      * @param {object} layerConfig - { name, geojson, gradientSettings, layerObj }
      * @returns {string} Layer name used as ID for removal
      */
@@ -807,78 +818,34 @@ class GlobeRenderer {
         const colorStops = buildColorStops(gradientSettings.colorRamp)
         const weight = gradientSettings.weight || 4
 
-        // Collect all coordinate data with property values
-        const segments = []
+        // ── Phase 1: Collect all vertices with property values ──
+        // Each vertex stores {lng, lat, elev, value, props}.
+        // We collect them into per-path arrays so we can build the
+        // two-sub-segment positions/colors in a second pass.
+        const allPaths = []   // array of vertex arrays
         let min = Infinity
         let max = -Infinity
 
+        const dropdownProps = gradientSettings.dropdownColorWithProp || []
+        const allProps = dropdownProps.length > 0 ? dropdownProps : [colorWithProp]
+
         if (gradientSettings.connectAllPoints) {
-            // Point features mode: collect [lng, lat, elevation, value] from each Point
             const points = []
             geojson.features.forEach((feature) => {
-                if (
-                    feature.geometry.type.toLowerCase() === 'point'
-                ) {
+                if (feature.geometry.type.toLowerCase() === 'point') {
                     const coords = feature.geometry.coordinates
-                    const value = F_.getIn(
-                        feature.properties,
-                        colorWithProp,
-                        0
-                    )
+                    const value = F_.getIn(feature.properties, colorWithProp, 0)
                     if (min > value) min = value
                     if (max < value) max = value
                     points.push({
-                        lng: coords[0],
-                        lat: coords[1],
-                        elev: coords[2] || 0,
-                        value: value,
+                        lng: coords[0], lat: coords[1],
+                        elev: coords[2] || 0, value,
+                        props: feature.properties,
                     })
                 }
             })
-            // Build segments that pass through actual data points.
-            // Each vertex P[i] owns two sub-segments:
-            //   mid(P[i-1],P[i]) → P[i]  and  P[i] → mid(P[i],P[i+1])
-            // both colored with P[i]'s value.  The first/last points
-            // extend to the path endpoints instead of a midpoint.
-            if (points.length >= 2) {
-                for (let i = 0; i < points.length; i++) {
-                    const midBefore =
-                        i === 0
-                            ? null
-                            : {
-                                  lng: (points[i - 1].lng + points[i].lng) / 2,
-                                  lat: (points[i - 1].lat + points[i].lat) / 2,
-                                  elev: (points[i - 1].elev + points[i].elev) / 2,
-                              }
-                    const midAfter =
-                        i === points.length - 1
-                            ? null
-                            : {
-                                  lng: (points[i].lng + points[i + 1].lng) / 2,
-                                  lat: (points[i].lat + points[i + 1].lat) / 2,
-                                  elev: (points[i].elev + points[i + 1].elev) / 2,
-                              }
-
-                    // Sub-segment 1: midBefore → P[i]  (skipped for first point)
-                    if (midBefore) {
-                        segments.push({
-                            lng1: midBefore.lng, lat1: midBefore.lat, elev1: midBefore.elev,
-                            value: points[i].value,
-                            lng2: points[i].lng, lat2: points[i].lat, elev2: points[i].elev,
-                        })
-                    }
-                    // Sub-segment 2: P[i] → midAfter  (skipped for last point)
-                    if (midAfter) {
-                        segments.push({
-                            lng1: points[i].lng, lat1: points[i].lat, elev1: points[i].elev,
-                            value: points[i].value,
-                            lng2: midAfter.lng, lat2: midAfter.lat, elev2: midAfter.elev,
-                        })
-                    }
-                }
-            }
+            if (points.length >= 2) allPaths.push(points)
         } else {
-            // LineString/MultiLineString mode
             geojson.features.forEach((feature) => {
                 const paths = []
                 let path = []
@@ -890,190 +857,130 @@ class GlobeRenderer {
                         const splitPath = _path.split('.')
                         let parentIndex = null
                         if (splitPath.length >= 2) {
-                            parentIndex =
-                                splitPath[splitPath.length - 2]
-                            if (
-                                prevParentIndex != null &&
-                                parentIndex != prevParentIndex
-                            ) {
+                            parentIndex = splitPath[splitPath.length - 2]
+                            if (prevParentIndex != null && parentIndex != prevParentIndex) {
                                 paths.push(path)
                                 path = []
                             }
                         }
-                        const props = getCoordProperties(
-                            geojson,
-                            feature,
-                            array
-                        )
-                        const value = F_.getIn(
-                            props,
-                            colorWithProp,
-                            0
-                        )
+                        const props = getCoordProperties(geojson, feature, array)
+                        const value = F_.getIn(props, colorWithProp, 0)
                         if (min > value) min = value
                         if (max < value) max = value
-
                         path.push({
-                            lng: array[0],
-                            lat: array[1],
-                            elev: array[2] || 0,
-                            value: value,
+                            lng: array[0], lat: array[1],
+                            elev: array[2] || 0, value, props,
                         })
-
                         prevParentIndex = parentIndex
                     }
                 )
                 if (path.length > 0) paths.push(path)
-
-                // Build segments that pass through actual data points.
-                // Each vertex P[i] owns two sub-segments:
-                //   mid(P[i-1],P[i]) → P[i]  and  P[i] → mid(P[i],P[i+1])
-                // both colored with P[i]'s value.  First/last points
-                // extend to the path endpoints instead of a midpoint.
-                paths.forEach((p) => {
-                    if (p.length < 2) return
-                    for (let i = 0; i < p.length; i++) {
-                        const midBefore =
-                            i === 0
-                                ? null
-                                : {
-                                      lng: (p[i - 1].lng + p[i].lng) / 2,
-                                      lat: (p[i - 1].lat + p[i].lat) / 2,
-                                      elev: (p[i - 1].elev + p[i].elev) / 2,
-                                  }
-                        const midAfter =
-                            i === p.length - 1
-                                ? null
-                                : {
-                                      lng: (p[i].lng + p[i + 1].lng) / 2,
-                                      lat: (p[i].lat + p[i + 1].lat) / 2,
-                                      elev: (p[i].elev + p[i + 1].elev) / 2,
-                                  }
-
-                        // Sub-segment 1: midBefore → P[i]  (skipped for first point)
-                        if (midBefore) {
-                            segments.push({
-                                lng1: midBefore.lng, lat1: midBefore.lat, elev1: midBefore.elev,
-                                value: p[i].value,
-                                lng2: p[i].lng, lat2: p[i].lat, elev2: p[i].elev,
-                            })
-                        }
-                        // Sub-segment 2: P[i] → midAfter  (skipped for last point)
-                        if (midAfter) {
-                            segments.push({
-                                lng1: p[i].lng, lat1: p[i].lat, elev1: p[i].elev,
-                                value: p[i].value,
-                                lng2: midAfter.lng, lat2: midAfter.lat, elev2: midAfter.elev,
-                            })
-                        }
-                    }
-                })
+                paths.forEach((p) => { if (p.length >= 2) allPaths.push(p) })
             })
         }
 
         if (min === 0 && max === 0) max = 1
 
-        // Create a CustomDataSource for all gradient segments
-        const dataSource = new Cesium.CustomDataSource(layerName)
+        // ── Phase 2: Build positions + per-vertex colors for the Primitive ──
+        // Two-sub-segment strategy: for each vertex P[i] we emit
+        //   mid(P[i-1],P[i]) → P[i]  and  P[i] → mid(P[i],P[i+1])
+        // each colored with P[i]'s value.  We also collect raw vertices
+        // for the spatial hover index.
+        const allPositions = []
+        const allColors = []
+        const hoverVertices = []  // flat array of {lng, lat, elev, html}
 
-        segments.forEach((seg) => {
-            let colorStr = interpolateMultipleColors(
-                colorStops,
-                seg.value,
-                min,
-                max
-            )
-            // Convert rgb() to hex for Cesium
-            if (colorStr && colorStr.startsWith('rgb')) {
-                colorStr = rgbToHex(colorStr)
+        const colorForValue = (v) => {
+            let c = interpolateMultipleColors(colorStops, v, min, max)
+            if (c && c.startsWith('rgb')) c = rgbToHex(c)
+            return c ? Cesium.Color.fromCssColorString(c) : Cesium.Color.WHITE
+        }
+
+        allPaths.forEach((pts) => {
+            for (let i = 0; i < pts.length; i++) {
+                const color = colorForValue(pts[i].value)
+                const p = pts[i]
+
+                // Build tooltip HTML for this vertex
+                let html = '<table style="font-size:13px">'
+                allProps.forEach((prop) => {
+                    const val = p.props ? F_.getIn(p.props, prop, '—') : p.value
+                    html += `<tr><td><b>${prop}</b></td><td>${val}</td></tr>`
+                })
+                html += '</table>'
+                hoverVertices.push({ lng: p.lng, lat: p.lat, elev: p.elev, html })
+
+                // Sub-segment 1: midBefore → P[i]  (skipped for first point)
+                if (i > 0) {
+                    const prev = pts[i - 1]
+                    const midLng = (prev.lng + p.lng) / 2
+                    const midLat = (prev.lat + p.lat) / 2
+                    const midElev = (prev.elev + p.elev) / 2
+                    allPositions.push(
+                        Cesium.Cartesian3.fromDegrees(midLng, midLat, midElev),
+                        Cesium.Cartesian3.fromDegrees(p.lng, p.lat, p.elev)
+                    )
+                    allColors.push(color, color)
+                }
+                // Sub-segment 2: P[i] → midAfter  (skipped for last point)
+                if (i < pts.length - 1) {
+                    const next = pts[i + 1]
+                    const midLng = (p.lng + next.lng) / 2
+                    const midLat = (p.lat + next.lat) / 2
+                    const midElev = (p.elev + next.elev) / 2
+                    allPositions.push(
+                        Cesium.Cartesian3.fromDegrees(p.lng, p.lat, p.elev),
+                        Cesium.Cartesian3.fromDegrees(midLng, midLat, midElev)
+                    )
+                    allColors.push(color, color)
+                }
             }
-            const cesiumColor = colorStr
-                ? Cesium.Color.fromCssColorString(colorStr)
-                : Cesium.Color.WHITE
-
-            dataSource.entities.add({
-                polyline: {
-                    positions:
-                        Cesium.Cartesian3.fromDegreesArrayHeights([
-                            seg.lng1,
-                            seg.lat1,
-                            seg.elev1,
-                            seg.lng2,
-                            seg.lat2,
-                            seg.elev2,
-                        ]),
-                    material:
-                        new Cesium.ColorMaterialProperty(cesiumColor),
-                    width: weight,
-                },
-            })
         })
 
-        // Add hoverable point entities at each vertex for value inspection
-        const dropdownProps = gradientSettings.dropdownColorWithProp || []
-        const allProps = dropdownProps.length > 0 ? dropdownProps : [colorWithProp]
-        const addVertexPoints = (vertexList) => {
-            vertexList.forEach((v) => {
-                let descHtml = '<table style="font-size:13px">'
-                allProps.forEach((prop) => {
-                    const val = v.props ? F_.getIn(v.props, prop, '—') : v.value
-                    descHtml += `<tr><td><b>${prop}</b></td><td>${val}</td></tr>`
-                })
-                descHtml += '</table>'
-                let colorStr2 = interpolateMultipleColors(colorStops, v.value, min, max)
-                if (colorStr2 && colorStr2.startsWith('rgb')) colorStr2 = rgbToHex(colorStr2)
-                const ptColor = colorStr2 ? Cesium.Color.fromCssColorString(colorStr2) : Cesium.Color.WHITE
-                const entity = dataSource.entities.add({
-                    position: Cesium.Cartesian3.fromDegrees(v.lng, v.lat, v.elev),
-                    point: {
-                        pixelSize: Math.max(weight + 2, 6),
-                        color: ptColor,
-                        outlineColor: Cesium.Color.BLACK,
-                        outlineWidth: 1,
-                    },
-                    description: descHtml,
-                })
-                // Attach tooltip HTML for hover handler
-                entity._gradientTooltipHtml = descHtml
-            })
-        }
-
-        if (gradientSettings.connectAllPoints) {
-            // vertices were collected in points array above scope — re-derive
-            const vtx = []
-            geojson.features.forEach((feature) => {
-                if (feature.geometry.type.toLowerCase() === 'point') {
-                    const coords = feature.geometry.coordinates
-                    vtx.push({
-                        lng: coords[0], lat: coords[1], elev: coords[2] || 0,
-                        value: F_.getIn(feature.properties, colorWithProp, 0),
-                        props: feature.properties,
+        // ── Phase 3: Create Primitive with PolylineColorAppearance ──
+        let primitive = null
+        if (allPositions.length >= 2) {
+            const geometryInstances = []
+            // Each sub-segment is 2 positions; create one GeometryInstance
+            // per segment so per-vertex colors apply correctly.
+            for (let i = 0; i < allPositions.length; i += 2) {
+                geometryInstances.push(
+                    new Cesium.GeometryInstance({
+                        geometry: new Cesium.PolylineGeometry({
+                            positions: [allPositions[i], allPositions[i + 1]],
+                            colors: [allColors[i], allColors[i + 1]],
+                            colorsPerVertex: true,
+                            width: weight,
+                        }),
                     })
-                }
-            })
-            addVertexPoints(vtx)
-        } else {
-            geojson.features.forEach((feature) => {
-                F_.coordinateDepthTraversal(
-                    feature.geometry.coordinates,
-                    (array) => {
-                        const props = getCoordProperties(geojson, feature, array)
-                        addVertexPoints([{
-                            lng: array[0], lat: array[1], elev: array[2] || 0,
-                            value: F_.getIn(props, colorWithProp, 0),
-                            props: props,
-                        }])
-                    }
                 )
+            }
+            primitive = new Cesium.Primitive({
+                geometryInstances,
+                appearance: new Cesium.PolylineColorAppearance(),
+                asynchronous: true,
             })
+            this.renderer.scene.primitives.add(primitive)
         }
 
-        this.renderer.dataSources.add(dataSource)
+        // ── Phase 4: Build spatial grid for hover tooltip ──
+        // Grid cells are ~0.01° (roughly 1km).  Each cell stores
+        // references to all vertices within it for O(1) lookup.
+        const gridRes = 0.01
+        const spatialGrid = {}
+        hoverVertices.forEach((v, idx) => {
+            const key = `${Math.floor(v.lng / gridRes)},${Math.floor(v.lat / gridRes)}`
+            if (!spatialGrid[key]) spatialGrid[key] = []
+            spatialGrid[key].push(idx)
+        })
 
         this._layers[layerName] = {
             type: 'gradient_polyline',
-            dataSource: dataSource,
+            primitive,
             visible: true,
+            hoverVertices,
+            spatialGrid,
+            gridRes,
         }
 
         this._requestRender()
@@ -1087,7 +994,9 @@ class GlobeRenderer {
     _removeCesiumGradientPolyline(layerName) {
         const layerInfo = this._layers[layerName]
         if (layerInfo && layerInfo.type === 'gradient_polyline') {
-            this.renderer.dataSources.remove(layerInfo.dataSource)
+            if (layerInfo.primitive) {
+                this.renderer.scene.primitives.remove(layerInfo.primitive)
+            }
             delete this._layers[layerName]
             this._requestRender()
         }
@@ -1559,11 +1468,12 @@ class GlobeRenderer {
             }
 
             layerInfo.visible = visible
-        } else if (
-            layerInfo.type === 'vector' ||
-            layerInfo.type === 'gradient_polyline'
-        ) {
-            // Vector and gradient polyline layers use simple visibility toggle
+        } else if (layerInfo.type === 'gradient_polyline') {
+            if (layerInfo.primitive) {
+                layerInfo.primitive.show = visible
+            }
+            layerInfo.visible = visible
+        } else if (layerInfo.type === 'vector') {
             layerInfo.dataSource.show = visible
             layerInfo.visible = visible
         }
@@ -1704,13 +1614,12 @@ class GlobeRenderer {
 
     /**
      * Setup hover tooltip for gradient polyline vertex points.
-     * Shows a floating div with coord_properties on mouse-over;
-     * hides it when the cursor leaves.
+     * Uses spatial-grid lookup against the vertex array stored on each
+     * gradient_polyline layer — no point entities needed.
      */
     _setupGradientHoverHandler() {
         if (this.rendererType !== 'cesium') return
 
-        // Create a tooltip div attached to the Cesium widget
         const cesiumWidget = document.querySelector('.cesium-widget')
         if (!cesiumWidget) return
 
@@ -1727,27 +1636,67 @@ class GlobeRenderer {
         const scene = viewer.scene
         const handler = new Cesium.ScreenSpaceEventHandler(scene.canvas)
 
+        // Pixel-distance threshold for considering a vertex "hovered".
+        // At typical screen DPI this corresponds to ~6px radius.
+        const PICK_RADIUS_DEG = 0.0005 // ~55m at equator
+
         let hoverRafPending = false
         handler.setInputAction((movement) => {
             if (hoverRafPending) return
             hoverRafPending = true
             requestAnimationFrame(() => {
                 hoverRafPending = false
-                const picked = scene.pick(movement.endPosition)
-                if (
-                    Cesium.defined(picked) &&
-                    picked.id &&
-                    picked.id._gradientTooltipHtml
-                ) {
-                    tip.innerHTML = picked.id._gradientTooltipHtml
+
+                // Project mouse position to globe lat/lng
+                const cartesian = viewer.camera.pickEllipsoid(
+                    movement.endPosition, scene.globe.ellipsoid
+                )
+                if (!cartesian) {
+                    if (tip.style.display !== 'none') tip.style.display = 'none'
+                    return
+                }
+                const carto = Cesium.Cartographic.fromCartesian(cartesian)
+                const lng = Cesium.Math.toDegrees(carto.longitude)
+                const lat = Cesium.Math.toDegrees(carto.latitude)
+
+                // Search gradient layers' spatial grids for nearest vertex
+                let bestDist = Infinity
+                let bestHtml = null
+                for (const lName in this._layers) {
+                    const li = this._layers[lName]
+                    if (li.type !== 'gradient_polyline' || !li.visible) continue
+                    const { hoverVertices, spatialGrid, gridRes } = li
+                    if (!spatialGrid) continue
+
+                    const gx = Math.floor(lng / gridRes)
+                    const gy = Math.floor(lat / gridRes)
+                    // Check the cell and its 8 neighbours
+                    for (let dx = -1; dx <= 1; dx++) {
+                        for (let dy = -1; dy <= 1; dy++) {
+                            const key = `${gx + dx},${gy + dy}`
+                            const bucket = spatialGrid[key]
+                            if (!bucket) continue
+                            for (let k = 0; k < bucket.length; k++) {
+                                const v = hoverVertices[bucket[k]]
+                                const dlng = v.lng - lng
+                                const dlat = v.lat - lat
+                                const d = dlng * dlng + dlat * dlat
+                                if (d < bestDist) {
+                                    bestDist = d
+                                    bestHtml = v.html
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (bestHtml && bestDist < PICK_RADIUS_DEG * PICK_RADIUS_DEG) {
+                    tip.innerHTML = bestHtml
                     tip.style.display = 'block'
                     tip.style.left = movement.endPosition.x + 14 + 'px'
                     tip.style.top = movement.endPosition.y + 14 + 'px'
-                    this._requestRender()
                 } else {
-                    if (tip.style.display !== 'none') {
-                        tip.style.display = 'none'
-                    }
+                    if (tip.style.display !== 'none') tip.style.display = 'none'
                 }
             })
         }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
