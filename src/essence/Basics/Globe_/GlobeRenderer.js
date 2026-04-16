@@ -730,8 +730,6 @@ class GlobeRenderer {
                 }
                 this._requestRender()
             })
-        } else if (type === 'gradient_polyline') {
-            return this._addCesiumGradientPolyline(layerConfig)
         } else if (type === 'model') {
             // Model layers not implemented for core features
             console.warn('Model layers not yet supported for Cesium renderer')
