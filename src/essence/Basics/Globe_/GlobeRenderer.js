@@ -928,7 +928,7 @@ class GlobeRenderer {
             primitive = new Cesium.Primitive({
                 geometryInstances,
                 appearance: new Cesium.PolylineColorAppearance(),
-                asynchronous: true,
+                asynchronous: false,
             })
             this.renderer.scene.primitives.add(primitive)
         }
