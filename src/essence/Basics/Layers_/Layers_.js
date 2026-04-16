@@ -720,9 +720,9 @@ const L_ = {
                             let hasGradientAttachment = false
                             if (L_.layers.attachments[s.name]) {
                                 for (const sub in L_.layers.attachments[s.name]) {
-                                    if (L_.layers.attachments[s.name][sub].type === 'path_gradient') {
-                                        hasGradientAttachment = true
-                                        break
+                                                    if (L_.layers.attachments[s.name][sub].type === 'path_gradient' && L_.layers.attachments[s.name][sub].cesiumLayerId) {
+                                                        hasGradientAttachment = true
+                                                        break
                                     }
                                 }
                             }
@@ -1202,7 +1202,7 @@ const L_ = {
                     let hasGradientAttachment2 = false
                     if (s.type === 'vector' && L_.layers.attachments[s.name]) {
                         for (const sub in L_.layers.attachments[s.name]) {
-                            if (L_.layers.attachments[s.name][sub].type === 'path_gradient') {
+                            if (L_.layers.attachments[s.name][sub].type === 'path_gradient' && L_.layers.attachments[s.name][sub].cesiumLayerId) {
                                 hasGradientAttachment2 = true
                                 break
                             }
