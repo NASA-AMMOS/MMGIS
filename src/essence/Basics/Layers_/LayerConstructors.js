@@ -2187,6 +2187,16 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                 false
             ),
         }
+        // Normalize: ensure colorWithProp is in the dropdown list (matches 2D behavior)
+        if (
+            pathGradientSettings.colorWithProp &&
+            !pathGradientSettings.dropdownColorWithProp.includes(
+                pathGradientSettings.colorWithProp
+            )
+        )
+            pathGradientSettings.dropdownColorWithProp.unshift(
+                pathGradientSettings.colorWithProp
+            )
 
         return {
             on:
