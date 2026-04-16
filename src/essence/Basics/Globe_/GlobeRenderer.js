@@ -452,7 +452,7 @@ class GlobeRenderer {
     addLayer(type, layerConfig) {
         if (type === 'gradient_polyline') {
             // Gradient polylines are only supported by the Cesium renderer
-            if (this.rendererType !== 'lithosphere') {
+            if (this.rendererType === 'cesium') {
                 return this._addCesiumGradientPolyline(layerConfig)
             }
             return null
