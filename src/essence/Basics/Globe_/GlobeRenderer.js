@@ -191,8 +191,8 @@ class GlobeRenderer {
      * Uses Mapzen Terrarium tiles as default, can be overridden with demFallback config.
      *
      * Performance: tiles are downscaled from 256×256 to _terrainGridSize (default 32)
-     * before parsing — 64× fewer pixels, far less GPU geometry, and a single reusable
-     * OffscreenCanvas avoids per-tile GC allocation.
+     * before parsing — 64× fewer pixels and far less GPU geometry.  Each tile gets
+     * its own small OffscreenCanvas (32×32 ≈ 4KB) so fetches decode in parallel.
      */
     async _setupTerrainProvider() {
         if (this.rendererType !== 'cesium') return
@@ -202,18 +202,6 @@ class GlobeRenderer {
         // 32 gives ~1K samples per tile — enough detail for terrain shape at
         // planetary-science zoom levels while keeping parse + GPU cost very low.
         this._terrainGridSize = 32
-
-        // Reusable OffscreenCanvas — avoids allocating a new canvas per tile.
-        // Sized to gridSize; the browser's drawImage handles the 256→32
-        // downscale in one GPU-accelerated step.
-        this._terrainSmallCanvas = new OffscreenCanvas(
-            this._terrainGridSize,
-            this._terrainGridSize
-        )
-        this._terrainSmallCtx = this._terrainSmallCanvas.getContext('2d', {
-            willReadFrequently: true,
-        })
-        this._terrainSmallCtx.imageSmoothingEnabled = false
 
         // Check for demFallback configuration
         const demFallback = this.config.demFallback
@@ -247,14 +235,20 @@ class GlobeRenderer {
         })
 
         const gridSize = this._terrainGridSize
-        const smallCtx = this._terrainSmallCtx
+
+        // Per-tile canvas so multiple tiles can decode in parallel.
+        // At 32×32 each canvas is ~4KB — negligible compared to the
+        // PNG fetch that preceded it.
+        const canvas = new OffscreenCanvas(gridSize, gridSize)
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })
+        ctx.imageSmoothingEnabled = false
 
         // Draw source tile directly at the target grid size — the browser's
         // built-in image scaler handles the 256→32 downscale in one GPU-
         // accelerated step.  For formats with a 1px buffer ring (TerrainRGB),
         // crop it during the draw.
         if (cropBuffer) {
-            smallCtx.drawImage(
+            ctx.drawImage(
                 imageBitmap,
                 1, 1,
                 imageBitmap.width - 2, imageBitmap.height - 2,
@@ -262,10 +256,10 @@ class GlobeRenderer {
                 gridSize, gridSize
             )
         } else {
-            smallCtx.drawImage(imageBitmap, 0, 0, gridSize, gridSize)
+            ctx.drawImage(imageBitmap, 0, 0, gridSize, gridSize)
         }
 
-        const terrainRGB = smallCtx.getImageData(0, 0, gridSize, gridSize).data
+        const terrainRGB = ctx.getImageData(0, 0, gridSize, gridSize).data
         const heightMap = new Float64Array(gridSize * gridSize)
 
         if (parserType === 'terrarium') {
