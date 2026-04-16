@@ -210,7 +210,9 @@ class GlobeRenderer {
             this._terrainGridSize,
             this._terrainGridSize
         )
-        this._terrainSmallCtx = this._terrainSmallCanvas.getContext('2d')
+        this._terrainSmallCtx = this._terrainSmallCanvas.getContext('2d', {
+            willReadFrequently: true,
+        })
         this._terrainSmallCtx.imageSmoothingEnabled = false
 
         // Check for demFallback configuration
