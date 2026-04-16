@@ -230,9 +230,12 @@ class GlobeRenderer {
      * @param {string} parserType - 'terrarium' | 'mapbox' | 'rgba'
      * @param {boolean} cropBuffer - Whether to crop 1px buffer ring (TerrainRGB/mapbox)
      * @param {Float64Array} emptyHeights - Pre-allocated empty array for failures
+     * @param {object} [srcRegion] - Optional sub-region of the source image to use
+     *   {sx, sy, sw, sh} in source-pixel coordinates.  Used when over-zooming
+     *   to extract only the quadrant that matches the requested tile.
      * @returns {Float64Array} Parsed height grid (gridSize × gridSize)
      */
-    async _fetchAndParseTerrainTile(url, parserType, cropBuffer, emptyHeights) {
+    async _fetchAndParseTerrainTile(url, parserType, cropBuffer, emptyHeights, srcRegion) {
         const response = await fetch(url)
         if (!response.ok || response.status !== 200) return emptyHeights
 
@@ -252,11 +255,19 @@ class GlobeRenderer {
         const ctx = canvas.getContext('2d', { willReadFrequently: true })
         ctx.imageSmoothingEnabled = false
 
-        // Draw source tile directly at the target grid size — the browser's
-        // built-in image scaler handles the 256→32 downscale in one GPU-
-        // accelerated step.  For formats with a 1px buffer ring (TerrainRGB),
-        // crop it during the draw.
-        if (cropBuffer) {
+        // Draw the relevant portion of the source tile into the grid canvas.
+        // srcRegion is set when over-zooming beyond the tileset's max native
+        // zoom — it selects the quadrant of the lower-zoom tile that covers
+        // the requested area.  cropBuffer trims a 1px buffer ring for
+        // TerrainRGB/Mapbox tiles.  Otherwise the full image is used.
+        if (srcRegion) {
+            ctx.drawImage(
+                imageBitmap,
+                srcRegion.sx, srcRegion.sy, srcRegion.sw, srcRegion.sh,
+                0, 0,
+                gridSize, gridSize
+            )
+        } else if (cropBuffer) {
             ctx.drawImage(
                 imageBitmap,
                 1, 1,
@@ -328,22 +339,35 @@ class GlobeRenderer {
                     if (level < 4) return EMPTY_HEIGHTS
 
                     // Clamp to max native zoom — fetch the
-                    // corresponding lower-zoom tile instead of
-                    // returning empty heights (which go flat).
+                    // lower-zoom tile and extract only the sub-region
+                    // that corresponds to the requested tile.
                     let fetchLevel = level
                     let fetchX = x
                     let fetchY = y
+                    let srcRegion = null
                     if (level > this._terrainMaxNativeZoom) {
                         const shift = level - this._terrainMaxNativeZoom
                         fetchLevel = this._terrainMaxNativeZoom
                         fetchX = x >> shift
                         fetchY = y >> shift
+                        // Identify which sub-tile within the source tile
+                        const subTiles = 1 << shift
+                        const subX = x - (fetchX << shift)
+                        const subY = y - (fetchY << shift)
+                        const srcTileSize = 256 // source PNG is 256×256
+                        const regionSize = srcTileSize / subTiles
+                        srcRegion = {
+                            sx: subX * regionSize,
+                            sy: subY * regionSize,
+                            sw: regionSize,
+                            sh: regionSize,
+                        }
                     }
 
                     try {
                         const url = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${fetchLevel}/${fetchX}/${fetchY}.png`
                         return await this._fetchAndParseTerrainTile(
-                            url, 'terrarium', false, EMPTY_HEIGHTS
+                            url, 'terrarium', false, EMPTY_HEIGHTS, srcRegion
                         )
                     } catch (error) {
                         // Silently fail and return empty heights for missing/invalid tiles
