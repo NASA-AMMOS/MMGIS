@@ -923,14 +923,30 @@ class GlobeRenderer {
         // ── Phase 3: Create Primitive ──
         // One Primitive for all paths (typically 1 GeometryInstance for
         // connectAllPoints, or one per LineString feature).
+        // Uses asynchronous:true so geometry compiles in a Web Worker
+        // without freezing the UI.  We poll primitive.ready and
+        // request a render once compilation finishes, which is
+        // necessary under requestRenderMode:true where Cesium won't
+        // automatically repaint.
         let primitive = null
         if (geometryInstances.length > 0) {
             primitive = new Cesium.Primitive({
                 geometryInstances,
                 appearance: new Cesium.PolylineColorAppearance(),
-                asynchronous: false,
+                asynchronous: true,
             })
             this.renderer.scene.primitives.add(primitive)
+
+            // Poll until the primitive is compiled and ready, then
+            // trigger a render.  Typically resolves within 1-3 frames.
+            const pollReady = () => {
+                if (primitive.ready) {
+                    this._requestRender()
+                } else {
+                    requestAnimationFrame(pollReady)
+                }
+            }
+            requestAnimationFrame(pollReady)
         }
 
         // ── Phase 4: Build spatial grid for hover tooltip ──
