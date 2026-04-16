@@ -777,6 +777,32 @@ const L_ = {
                                                 : 100,
                                     }
                                 )
+                            } else if (hadToMake && L_.layers.attachments[s.name]) {
+                                // On first-time toggle the attachment-processing block
+                                // (lines ~450-568) was skipped because the layer didn't
+                                // exist yet. Add the Cesium gradient polyline now so it
+                                // renders immediately without requiring a second toggle.
+                                for (const sub in L_.layers.attachments[s.name]) {
+                                    const att = L_.layers.attachments[s.name][sub]
+                                    if (
+                                        att.type === 'path_gradient' &&
+                                        att.on &&
+                                        att.cesiumGradientOptions
+                                    ) {
+                                        try {
+                                            att.cesiumLayerId =
+                                                L_.Globe_.litho.addLayer(
+                                                    'gradient_polyline',
+                                                    att.cesiumGradientOptions
+                                                )
+                                        } catch (e) {
+                                            console.warn(
+                                                'Failed to add 3D gradient polyline:',
+                                                e
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

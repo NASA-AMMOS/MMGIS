@@ -8,6 +8,7 @@ import {
     buildColorStops,
     rgbToHex,
     escapeHtml,
+    closestPointOnSegment,
 } from '../Layers_/gradientUtils'
 import { getCoordProperties } from '../Layers_/ExtendedGeoJSON'
 import F_ from '../Formulae_/Formulae_'
@@ -878,7 +879,6 @@ class GlobeRenderer {
         // colors.  Cesium interpolates between adjacent vertex colors,
         // giving smooth gradient transitions.  With densely-sampled
         // paths (24K+ points) the transitions are imperceptible.
-        const hoverVertices = []  // flat array of {lng, lat, elev, html}
 
         const colorForValue = (v) => {
             let c = interpolateMultipleColors(colorStops, v, min, max)
@@ -896,15 +896,6 @@ class GlobeRenderer {
                 const p = pts[i]
                 positions.push(Cesium.Cartesian3.fromDegrees(p.lng, p.lat, p.elev))
                 colors.push(colorForValue(p.value))
-
-                // Build tooltip HTML for this vertex
-                let html = '<table style="font-size:13px">'
-                allProps.forEach((prop) => {
-                    const val = p.props ? F_.getIn(p.props, prop, '—') : p.value
-                    html += `<tr><td><b>${escapeHtml(prop)}</b></td><td>${escapeHtml(val)}</td></tr>`
-                })
-                html += '</table>'
-                hoverVertices.push({ lng: p.lng, lat: p.lat, elev: p.elev, html })
             }
 
             if (positions.length >= 2) {
@@ -918,6 +909,32 @@ class GlobeRenderer {
                         }),
                     })
                 )
+            }
+        })
+
+        // ── Phase 2b: Build hover segments ──
+        // Each segment stores the start-vertex tooltip HTML plus the
+        // coordinates of both endpoints.  The hover handler projects the
+        // cursor onto the nearest segment so the tooltip fires anywhere
+        // along the line, not only at recorded vertices.
+        const hoverSegments = [] // { lng1, lat1, elev1, lng2, lat2, elev2, html }
+        allPaths.forEach((pts) => {
+            for (let i = 0; i < pts.length - 1; i++) {
+                const p1 = pts[i]
+                const p2 = pts[i + 1]
+                let html = '<table style="font-size:13px">'
+                allProps.forEach((prop) => {
+                    const val = p1.props ? F_.getIn(p1.props, prop, '—') : p1.value
+                    html += `<tr><td><b>${escapeHtml(prop)}</b></td><td>${escapeHtml(val)}</td></tr>`
+                })
+                html += '</table>'
+                hoverSegments.push({
+                    lng1: p1.lng, lat1: p1.lat, elev1: p1.elev || 0,
+                    lng2: p2.lng, lat2: p2.lat, elev2: p2.elev || 0,
+                    cart1: Cesium.Cartesian3.fromDegrees(p1.lng, p1.lat, p1.elev || 0),
+                    cart2: Cesium.Cartesian3.fromDegrees(p2.lng, p2.lat, p2.elev || 0),
+                    html,
+                })
             }
         })
 
@@ -956,22 +973,31 @@ class GlobeRenderer {
         }
 
         // ── Phase 4: Build spatial grid for hover tooltip ──
-        // Grid cells are ~0.01° (roughly 1km).  Each cell stores
-        // references to all vertices within it for O(1) lookup.
+        // Grid cells are ~0.01° (roughly 1km).  Each segment is registered
+        // in every cell its bounding box covers so the hover handler can do
+        // point-to-segment projection rather than nearest-vertex lookup.
         const gridRes = 0.01
-        const spatialGrid = {}
-        hoverVertices.forEach((v, idx) => {
-            const key = `${Math.floor(v.lng / gridRes)},${Math.floor(v.lat / gridRes)}`
-            if (!spatialGrid[key]) spatialGrid[key] = []
-            spatialGrid[key].push(idx)
+        const segmentGrid = {}
+        hoverSegments.forEach((seg, idx) => {
+            const gx1 = Math.floor(seg.lng1 / gridRes)
+            const gy1 = Math.floor(seg.lat1 / gridRes)
+            const gx2 = Math.floor(seg.lng2 / gridRes)
+            const gy2 = Math.floor(seg.lat2 / gridRes)
+            for (let gx = Math.min(gx1, gx2); gx <= Math.max(gx1, gx2); gx++) {
+                for (let gy = Math.min(gy1, gy2); gy <= Math.max(gy1, gy2); gy++) {
+                    const key = `${gx},${gy}`
+                    if (!segmentGrid[key]) segmentGrid[key] = []
+                    segmentGrid[key].push(idx)
+                }
+            }
         })
 
         this._layers[layerName] = {
             type: 'gradient_polyline',
             primitive,
             visible: true,
-            hoverVertices,
-            spatialGrid,
+            hoverSegments,
+            segmentGrid,
             gridRes,
         }
 
@@ -1606,95 +1632,81 @@ class GlobeRenderer {
     }
 
     /**
-     * Setup hover tooltip for gradient polyline vertex points.
-     * Uses spatial-grid lookup against the vertex array stored on each
-     * gradient_polyline layer — no point entities needed.
+     * Create the gradient-polyline hover dot primitive.
+     * Hover detection is driven by the 2D map; call setGradientHoverPoint /
+     * clearGradientHoverPoint to show/hide the dot from outside.
      */
     _setupGradientHoverHandler() {
         if (this.rendererType !== 'cesium') return
 
-        const cesiumWidget = document.querySelector('.cesium-widget')
-        if (!cesiumWidget) return
+        const scene = this.renderer.scene
+        const hoverDotCollection = new Cesium.PointPrimitiveCollection()
+        const hoverDot = hoverDotCollection.add({
+            show: false,
+            pixelSize: 10,
+            color: Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 2,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            position: Cesium.Cartesian3.ZERO,
+        })
+        scene.primitives.add(hoverDotCollection)
+        this._gradientHoverDotCollection = hoverDotCollection
+        this._gradientHoverDot = hoverDot
+    }
 
-        const tip = document.createElement('div')
-        tip.style.cssText =
-            'position:absolute;pointer-events:none;display:none;' +
-            'background:rgba(0,0,0,0.82);color:#fff;padding:6px 10px;' +
-            'border-radius:4px;font-size:12px;font-family:monospace;' +
-            'white-space:nowrap;z-index:10000;line-height:1.5;'
-        cesiumWidget.appendChild(tip)
-        this._gradientTooltip = tip
+    /**
+     * Position the 3D gradient hover dot at the closest point on any visible
+     * gradient_polyline layer to the given lat/lng.  The correct elevation is
+     * resolved from the 3D segment data so the dot lands on the spiral.
+     * Called from the 2D (Leaflet) mousemove handler.
+     */
+    setGradientHoverPoint(lng, lat) {
+        if (this.rendererType !== 'cesium' || !this._gradientHoverDot) return
 
-        const viewer = this.renderer
-        const scene = viewer.scene
-        const handler = new Cesium.ScreenSpaceEventHandler(scene.canvas)
+        // Find the 3D segment whose projection onto (lng, lat) is closest,
+        // so we can read the correct interpolated elevation for the dot.
+        let bestDist = Infinity
+        let bestLng = lng
+        let bestLat = lat
+        let bestElev = 0
 
-        // Pixel-distance threshold for considering a vertex "hovered".
-        // At typical screen DPI this corresponds to ~6px radius.
-        const PICK_RADIUS_DEG = 0.0005 // ~55m at equator
-
-        let hoverRafPending = false
-        handler.setInputAction((movement) => {
-            if (hoverRafPending) return
-            hoverRafPending = true
-            requestAnimationFrame(() => {
-                hoverRafPending = false
-
-                // Project mouse position to globe lat/lng
-                const cartesian = viewer.camera.pickEllipsoid(
-                    movement.endPosition, scene.globe.ellipsoid
+        for (const lName in this._layers) {
+            const li = this._layers[lName]
+            if (li.type !== 'gradient_polyline' || !li.visible) continue
+            const { hoverSegments } = li
+            if (!hoverSegments) continue
+            for (const seg of hoverSegments) {
+                const { t, dist } = closestPointOnSegment(
+                    lng, lat, seg.lng1, seg.lat1, seg.lng2, seg.lat2
                 )
-                if (!cartesian) {
-                    if (tip.style.display !== 'none') tip.style.display = 'none'
-                    return
+                if (dist < bestDist) {
+                    bestDist = dist
+                    bestLng = seg.lng1 + t * (seg.lng2 - seg.lng1)
+                    bestLat = seg.lat1 + t * (seg.lat2 - seg.lat1)
+                    bestElev =
+                        (seg.elev1 || 0) +
+                        t * ((seg.elev2 || 0) - (seg.elev1 || 0))
                 }
-                const carto = Cesium.Cartographic.fromCartesian(cartesian)
-                const lng = Cesium.Math.toDegrees(carto.longitude)
-                const lat = Cesium.Math.toDegrees(carto.latitude)
+            }
+        }
 
-                // Search gradient layers' spatial grids for nearest vertex
-                let bestDist = Infinity
-                let bestHtml = null
-                for (const lName in this._layers) {
-                    const li = this._layers[lName]
-                    if (li.type !== 'gradient_polyline' || !li.visible) continue
-                    const { hoverVertices, spatialGrid, gridRes } = li
-                    if (!spatialGrid) continue
+        this._gradientHoverDot.position = Cesium.Cartesian3.fromDegrees(
+            bestLng, bestLat, bestElev
+        )
+        this._gradientHoverDot.show = true
+        this._requestRender()
+    }
 
-                    const gx = Math.floor(lng / gridRes)
-                    const gy = Math.floor(lat / gridRes)
-                    // Check the cell and its 8 neighbours
-                    for (let dx = -1; dx <= 1; dx++) {
-                        for (let dy = -1; dy <= 1; dy++) {
-                            const key = `${gx + dx},${gy + dy}`
-                            const bucket = spatialGrid[key]
-                            if (!bucket) continue
-                            for (let k = 0; k < bucket.length; k++) {
-                                const v = hoverVertices[bucket[k]]
-                                const dlng = v.lng - lng
-                                const dlat = v.lat - lat
-                                const d = dlng * dlng + dlat * dlat
-                                if (d < bestDist) {
-                                    bestDist = d
-                                    bestHtml = v.html
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (bestHtml && bestDist < PICK_RADIUS_DEG * PICK_RADIUS_DEG) {
-                    tip.innerHTML = bestHtml
-                    tip.style.display = 'block'
-                    tip.style.left = movement.endPosition.x + 14 + 'px'
-                    tip.style.top = movement.endPosition.y + 14 + 'px'
-                } else {
-                    if (tip.style.display !== 'none') tip.style.display = 'none'
-                }
-            })
-        }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
-
-        this._gradientHoverHandler = handler
+    /**
+     * Hide the 3D gradient hover dot.
+     * Called from the 2D (Leaflet) mousemove / mouseout handler.
+     */
+    clearGradientHoverPoint() {
+        if (this.rendererType !== 'cesium' || !this._gradientHoverDot) return
+        if (!this._gradientHoverDot.show) return
+        this._gradientHoverDot.show = false
+        this._requestRender()
     }
 
     /**

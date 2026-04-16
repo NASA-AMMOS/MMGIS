@@ -178,6 +178,31 @@ export function escapeHtml(str) {
 }
 
 /**
+ * Find the closest point on line segment [a→b] to point p.
+ * Coordinates are treated as flat (lng/lat in degrees) — accurate enough for hover.
+ *
+ * @param {number} px,py  - query point (lng, lat)
+ * @param {number} ax,ay  - segment start
+ * @param {number} bx,by  - segment end
+ * @returns {{ t: number, dist: number }}
+ *   t    ∈ [0,1]  parametric position along the segment (0 = a, 1 = b)
+ *   dist          Euclidean distance in degrees from p to the closest point
+ */
+export function closestPointOnSegment(px, py, ax, ay, bx, by) {
+    const dx = bx - ax
+    const dy = by - ay
+    const lenSq = dx * dx + dy * dy
+    if (lenSq === 0) {
+        return { t: 0, dist: Math.sqrt((px - ax) ** 2 + (py - ay) ** 2) }
+    }
+    let t = ((px - ax) * dx + (py - ay) * dy) / lenSq
+    t = Math.max(0, Math.min(1, t))
+    const cx = ax + t * dx
+    const cy = ay + t * dy
+    return { t, dist: Math.sqrt((px - cx) ** 2 + (py - cy) ** 2) }
+}
+
+/**
  * Convert an RGB string like "rgb(r, g, b)" to a hex string like "#rrggbb".
  */
 export function rgbToHex(rgbString) {

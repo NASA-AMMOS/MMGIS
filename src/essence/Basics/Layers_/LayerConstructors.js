@@ -14,6 +14,7 @@ import {
     parseRgb,
     parseCSSColor,
     escapeHtml,
+    closestPointOnSegment,
 } from './gradientUtils'
 
 import { centroid } from '@turf/turf'
@@ -2069,35 +2070,65 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                 }
             })
 
-            // Build spatial grid + hover points array (O(N))
+            // Build spatial grid + hover segments array (O(N))
+            // Each entry is a line segment between two consecutive path vertices.
+            // Segments are registered in every grid cell their bounding box covers,
+            // so the mousemove handler can do point-to-segment projection rather
+            // than just nearest-vertex lookup — this makes the tooltip appear
+            // anywhere along the line, not only at recorded vertices.
             const hoverGridRes = 0.001 // ~100m cells
             const hoverGrid = {}
-            const hoverPoints = []
-            paths.forEach((path) => {
-                if (pathGradientSettings.connectAllPoints) {
-                    // connectAllPoints: each path entry is [lat, lng, value]
-                    if (!Array.isArray(path) || path.length < 3) return
-                    const lat = path[0], lng = path[1]
-                    const props = featurePropsByCoord.get(`${lat},${lng}`)
-                    const idx = hoverPoints.length
-                    hoverPoints.push({ lat, lng, props, value: path[2] })
-                    const key = `${Math.floor(lng / hoverGridRes)},${Math.floor(lat / hoverGridRes)}`
-                    if (!hoverGrid[key]) hoverGrid[key] = []
-                    hoverGrid[key].push(idx)
-                } else {
-                    if (!Array.isArray(path)) return
-                    path.forEach((pt) => {
-                        if (!Array.isArray(pt) || pt.length < 3) return
-                        const lat = pt[0], lng = pt[1]
-                        const props = featurePropsByCoord.get(`${lat},${lng}`)
-                        const idx = hoverPoints.length
-                        hoverPoints.push({ lat, lng, props, value: pt[2] })
-                        const key = `${Math.floor(lng / hoverGridRes)},${Math.floor(lat / hoverGridRes)}`
+            const hoverSegments = [] // { lng1, lat1, lng2, lat2, props, val1, val2 }
+
+            function _addHoverSegment(seg) {
+                const segIdx = hoverSegments.length
+                hoverSegments.push(seg)
+                const gx1 = Math.floor(seg.lng1 / hoverGridRes)
+                const gy1 = Math.floor(seg.lat1 / hoverGridRes)
+                const gx2 = Math.floor(seg.lng2 / hoverGridRes)
+                const gy2 = Math.floor(seg.lat2 / hoverGridRes)
+                for (let gx = Math.min(gx1, gx2); gx <= Math.max(gx1, gx2); gx++) {
+                    for (let gy = Math.min(gy1, gy2); gy <= Math.max(gy1, gy2); gy++) {
+                        const key = `${gx},${gy}`
                         if (!hoverGrid[key]) hoverGrid[key] = []
-                        hoverGrid[key].push(idx)
+                        hoverGrid[key].push(segIdx)
+                    }
+                }
+            }
+
+            if (pathGradientSettings.connectAllPoints) {
+                // connectAllPoints: paths is a flat array of [lat, lng, value] vertices
+                // connected in sequence — build segments between consecutive entries.
+                for (let i = 0; i < paths.length - 1; i++) {
+                    const p1 = paths[i], p2 = paths[i + 1]
+                    if (!Array.isArray(p1) || p1.length < 3) continue
+                    if (!Array.isArray(p2) || p2.length < 3) continue
+                    const [lat1, lng1, val1] = p1
+                    const [lat2, lng2, val2] = p2
+                    _addHoverSegment({
+                        lng1, lat1, lng2, lat2,
+                        props: featurePropsByCoord.get(`${lat1},${lng1}`),
+                        val1, val2,
                     })
                 }
-            })
+            } else {
+                // Each path is an independent array of [lat, lng, value] vertices.
+                paths.forEach((path) => {
+                    if (!Array.isArray(path)) return
+                    for (let i = 0; i < path.length - 1; i++) {
+                        const p1 = path[i], p2 = path[i + 1]
+                        if (!Array.isArray(p1) || p1.length < 3) continue
+                        if (!Array.isArray(p2) || p2.length < 3) continue
+                        const [lat1, lng1, val1] = p1
+                        const [lat2, lng2, val2] = p2
+                        _addHoverSegment({
+                            lng1, lat1, lng2, lat2,
+                            props: featurePropsByCoord.get(`${lat1},${lng1}`),
+                            val1, val2,
+                        })
+                    }
+                })
+            }
 
             const layer = L.layerGroup(hotlines)
 
@@ -2109,60 +2140,140 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
 
             layer.onAdd = function (map) {
                 _origOnAdd.call(this, map)
+
+                // Inject dark-theme tooltip styles once
+                if (!document.getElementById('mmgisGradientTooltipStyles')) {
+                    const s = document.createElement('style')
+                    s.id = 'mmgisGradientTooltipStyles'
+                    s.textContent = `
+                        .mmgisGTip.leaflet-tooltip {
+                            background: var(--color-a);
+                            border: 1px solid var(--color-a1);
+                            border-radius: 4px;
+                            padding: 6px 10px;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+                            color: var(--color-a6);
+                        }
+                        .mmgisGTip.leaflet-tooltip-top::before {
+                            border-top-color: var(--color-a1);
+                        }
+                        .mmgisGTip table {
+                            border-collapse: collapse;
+                            font-size: 12px;
+                            font-family: monospace;
+                        }
+                        .mmgisGTip td { padding: 1px 0; white-space: nowrap; }
+                        .mmgisGTip td.gk {
+                            color: var(--color-c);
+                            text-align: left;
+                            padding-right: 16px;
+                            font-weight: bold;
+                        }
+                        .mmgisGTip td.gv {
+                            color: var(--color-a6);
+                            text-align: right;
+                        }
+                    `
+                    document.head.appendChild(s)
+                }
+
                 const tooltip = L.tooltip({
                     direction: 'top',
                     offset: [0, -8],
+                    className: 'mmgisGTip',
                 })
                 this._gradientTooltip = tooltip
+
+                // Highlight dot — shows the closest point on the segment
+                const highlightDot = L.circleMarker([0, 0], {
+                    radius: 6,
+                    color: '#000',
+                    weight: 2,
+                    fillColor: '#fff',
+                    fillOpacity: 1,
+                    interactive: false,
+                    pane: 'markerPane',
+                })
+                this._gradientHighlightDot = highlightDot
 
                 this._gradientHandleMove = (e) => {
                     const { lat, lng } = e.latlng
                     const gx = Math.floor(lng / hoverGridRes)
                     const gy = Math.floor(lat / hoverGridRes)
-                    let best = Infinity
-                    let bestIdx = -1
+
+                    // Zoom-adaptive pick radius: ~15 screen pixels in degrees
+                    const bounds = map.getBounds()
+                    const mapH = map.getSize().y || 1
+                    const pickRadius =
+                        ((bounds.getNorth() - bounds.getSouth()) / mapH) * 15
+
+                    let bestDist = Infinity
+                    let bestSeg = null
+                    let bestT = 0
+                    const seen = new Set()
+
                     for (let dx = -1; dx <= 1; dx++) {
                         for (let dy = -1; dy <= 1; dy++) {
                             const cell = hoverGrid[`${gx + dx},${gy + dy}`]
                             if (!cell) continue
                             for (let i = 0; i < cell.length; i++) {
-                                const pt = hoverPoints[cell[i]]
-                                const d =
-                                    Math.abs(lat - pt.lat) +
-                                    Math.abs(lng - pt.lng)
-                                if (d < best) {
-                                    best = d
-                                    bestIdx = cell[i]
+                                const segIdx = cell[i]
+                                if (seen.has(segIdx)) continue
+                                seen.add(segIdx)
+                                const seg = hoverSegments[segIdx]
+                                const { t, dist } = closestPointOnSegment(
+                                    lng, lat,
+                                    seg.lng1, seg.lat1,
+                                    seg.lng2, seg.lat2
+                                )
+                                if (dist < bestDist) {
+                                    bestDist = dist
+                                    bestSeg = seg
+                                    bestT = t
                                 }
                             }
                         }
                     }
-                    // Zoom-adaptive pick radius: ~15 pixels in degrees
-                    const bounds = map.getBounds()
-                    const mapH = map.getSize().y || 1
-                    const pickRadius =
-                        ((bounds.getNorth() - bounds.getSouth()) / mapH) * 15
-                    if (bestIdx >= 0 && best < pickRadius) {
-                        const pt = hoverPoints[bestIdx]
-                        let html = '<div class="mmgisGradientTooltip">'
+
+                    if (bestSeg && bestDist < pickRadius) {
+                        const props = bestSeg.props
+                        let html = '<table>'
                         coordProps.forEach((prop) => {
-                            const val = pt.props
-                                ? F_.getIn(pt.props, prop, '—')
-                                : pt.value
-                            html += `<b>${escapeHtml(prop)}:</b> ${escapeHtml(val)}<br/>`
+                            const val = props
+                                ? F_.getIn(props, prop, '—')
+                                : bestSeg.val1
+                            const label = escapeHtml(
+                                prop.replace(/_/g, ' ')
+                                    .replace(/\b\w/g, (c) => c.toUpperCase())
+                            )
+                            html += `<tr><td class="gk">${label}</td><td class="gv">${escapeHtml(val)}</td></tr>`
                         })
-                        html += '</div>'
+                        html += '</table>'
                         tooltip
-                            .setLatLng([pt.lat, pt.lng])
+                            .setLatLng(e.latlng)
                             .setContent(html)
                         if (!tooltip._map) tooltip.addTo(map)
+
+                        // Move 2D highlight dot to closest point on the segment
+                        const closestLat =
+                            bestSeg.lat1 + bestT * (bestSeg.lat2 - bestSeg.lat1)
+                        const closestLng =
+                            bestSeg.lng1 + bestT * (bestSeg.lng2 - bestSeg.lng1)
+                        highlightDot.setLatLng([closestLat, closestLng])
+                        if (!highlightDot._map) highlightDot.addTo(map)
+                        // Mirror the hover dot in 3D
+                        L_.Globe_?.litho?.setGradientHoverPoint(closestLng, closestLat)
                     } else {
                         if (tooltip._map) map.removeLayer(tooltip)
+                        if (highlightDot._map) map.removeLayer(highlightDot)
+                        L_.Globe_?.litho?.clearGradientHoverPoint()
                     }
                 }
 
                 this._gradientHandleOut = () => {
                     if (tooltip._map) map.removeLayer(tooltip)
+                    if (highlightDot._map) map.removeLayer(highlightDot)
+                    L_.Globe_?.litho?.clearGradientHoverPoint()
                 }
 
                 map.on('mousemove', this._gradientHandleMove)
@@ -2176,6 +2287,9 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                     map.off('mouseout', this._gradientHandleOut)
                 if (this._gradientTooltip && this._gradientTooltip._map) {
                     map.removeLayer(this._gradientTooltip)
+                }
+                if (this._gradientHighlightDot && this._gradientHighlightDot._map) {
+                    map.removeLayer(this._gradientHighlightDot)
                 }
                 _origOnRemove.call(this, map)
             }
