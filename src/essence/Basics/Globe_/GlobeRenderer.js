@@ -808,168 +808,190 @@ class GlobeRenderer {
             this._removeCesiumGradientPolyline(layerName)
         }
 
-        const colorWithProp = gradientSettings.colorWithProp
-        const colorStops = buildColorStops(gradientSettings.colorRamp)
-        const weight = gradientSettings.weight || 4
+        // Register a placeholder immediately so that toggle / remove
+        // calls arriving before the deferred work finishes can still
+        // find (and cancel) this layer entry.
+        const layerEntry = {
+            type: 'gradient_polyline',
+            primitive: null,
+            visible: true,
+            hoverVertices: [],
+            spatialGrid: {},
+            gridRes: 0.01,
+        }
+        this._layers[layerName] = layerEntry
 
-        // ── Phase 1: Collect all vertices with property values ──
-        const allPaths = []   // array of vertex arrays
-        let min = Infinity
-        let max = -Infinity
+        // Defer all heavy geometry work to the next event-loop tick so
+        // the UI thread can repaint the toggle state immediately
+        // instead of freezing for 1-2 s while building 24K+ vertices.
+        setTimeout(() => {
+            // If the layer was removed/toggled-off while we waited,
+            // bail out — no work needed.
+            if (!this._layers[layerName]) return
 
-        const dropdownProps = gradientSettings.dropdownColorWithProp || []
-        const allProps = dropdownProps.length > 0 ? dropdownProps : [colorWithProp]
+            const colorWithProp = gradientSettings.colorWithProp
+            const colorStops = buildColorStops(gradientSettings.colorRamp)
+            const weight = gradientSettings.weight || 4
 
-        if (gradientSettings.connectAllPoints) {
-            const points = []
-            geojson.features.forEach((feature) => {
-                if (feature.geometry.type.toLowerCase() === 'point') {
-                    const coords = feature.geometry.coordinates
-                    const value = F_.getIn(feature.properties, colorWithProp, 0)
-                    if (min > value) min = value
-                    if (max < value) max = value
-                    points.push({
-                        lng: coords[0], lat: coords[1],
-                        elev: coords[2] || 0, value,
-                        props: feature.properties,
-                    })
-                }
-            })
-            if (points.length >= 2) allPaths.push(points)
-        } else {
-            geojson.features.forEach((feature) => {
-                const paths = []
-                let path = []
-                let prevParentIndex = null
+            // ── Phase 1: Collect all vertices with property values ──
+            const allPaths = []   // array of vertex arrays
+            let min = Infinity
+            let max = -Infinity
 
-                F_.coordinateDepthTraversal(
-                    feature.geometry.coordinates,
-                    (array, _path) => {
-                        const splitPath = _path.split('.')
-                        let parentIndex = null
-                        if (splitPath.length >= 2) {
-                            parentIndex = splitPath[splitPath.length - 2]
-                            if (prevParentIndex != null && parentIndex != prevParentIndex) {
-                                paths.push(path)
-                                path = []
-                            }
-                        }
-                        const props = getCoordProperties(geojson, feature, array)
-                        const value = F_.getIn(props, colorWithProp, 0)
+            const dropdownProps = gradientSettings.dropdownColorWithProp || []
+            const allProps = dropdownProps.length > 0 ? dropdownProps : [colorWithProp]
+
+            if (gradientSettings.connectAllPoints) {
+                const points = []
+                geojson.features.forEach((feature) => {
+                    if (feature.geometry.type.toLowerCase() === 'point') {
+                        const coords = feature.geometry.coordinates
+                        const value = F_.getIn(feature.properties, colorWithProp, 0)
                         if (min > value) min = value
                         if (max < value) max = value
-                        path.push({
-                            lng: array[0], lat: array[1],
-                            elev: array[2] || 0, value, props,
+                        points.push({
+                            lng: coords[0], lat: coords[1],
+                            elev: coords[2] || 0, value,
+                            props: feature.properties,
                         })
-                        prevParentIndex = parentIndex
                     }
-                )
-                if (path.length > 0) paths.push(path)
-                paths.forEach((p) => { if (p.length >= 2) allPaths.push(p) })
-            })
-        }
-
-        if (min === 0 && max === 0) max = 1
-
-        // ── Phase 2: Build ONE PolylineGeometry per path ──
-        // Each path becomes a single continuous polyline with per-vertex
-        // colors.  Cesium interpolates between adjacent vertex colors,
-        // giving smooth gradient transitions.  With densely-sampled
-        // paths (24K+ points) the transitions are imperceptible.
-        const hoverVertices = []  // flat array of {lng, lat, elev, html}
-
-        const colorForValue = (v) => {
-            let c = interpolateMultipleColors(colorStops, v, min, max)
-            if (c && c.startsWith('rgb')) c = rgbToHex(c)
-            return c ? Cesium.Color.fromCssColorString(c) : Cesium.Color.WHITE
-        }
-
-        const geometryInstances = []
-
-        allPaths.forEach((pts) => {
-            const positions = []
-            const colors = []
-
-            for (let i = 0; i < pts.length; i++) {
-                const p = pts[i]
-                positions.push(Cesium.Cartesian3.fromDegrees(p.lng, p.lat, p.elev))
-                colors.push(colorForValue(p.value))
-
-                // Build tooltip HTML for this vertex
-                let html = '<table style="font-size:13px">'
-                allProps.forEach((prop) => {
-                    const val = p.props ? F_.getIn(p.props, prop, '—') : p.value
-                    html += `<tr><td><b>${prop}</b></td><td>${val}</td></tr>`
                 })
-                html += '</table>'
-                hoverVertices.push({ lng: p.lng, lat: p.lat, elev: p.elev, html })
+                if (points.length >= 2) allPaths.push(points)
+            } else {
+                geojson.features.forEach((feature) => {
+                    const paths = []
+                    let path = []
+                    let prevParentIndex = null
+
+                    F_.coordinateDepthTraversal(
+                        feature.geometry.coordinates,
+                        (array, _path) => {
+                            const splitPath = _path.split('.')
+                            let parentIndex = null
+                            if (splitPath.length >= 2) {
+                                parentIndex = splitPath[splitPath.length - 2]
+                                if (prevParentIndex != null && parentIndex != prevParentIndex) {
+                                    paths.push(path)
+                                    path = []
+                                }
+                            }
+                            const props = getCoordProperties(geojson, feature, array)
+                            const value = F_.getIn(props, colorWithProp, 0)
+                            if (min > value) min = value
+                            if (max < value) max = value
+                            path.push({
+                                lng: array[0], lat: array[1],
+                                elev: array[2] || 0, value, props,
+                            })
+                            prevParentIndex = parentIndex
+                        }
+                    )
+                    if (path.length > 0) paths.push(path)
+                    paths.forEach((p) => { if (p.length >= 2) allPaths.push(p) })
+                })
             }
 
-            if (positions.length >= 2) {
-                geometryInstances.push(
-                    new Cesium.GeometryInstance({
-                        geometry: new Cesium.PolylineGeometry({
-                            positions,
-                            colors,
-                            colorsPerVertex: true,
-                            width: weight,
-                        }),
+            if (min === 0 && max === 0) max = 1
+
+            // ── Phase 2: Build ONE PolylineGeometry per path ──
+            // Each path becomes a single continuous polyline with per-vertex
+            // colors.  Cesium interpolates between adjacent vertex colors,
+            // giving smooth gradient transitions.  With densely-sampled
+            // paths (24K+ points) the transitions are imperceptible.
+            const hoverVertices = []  // flat array of {lng, lat, elev, html}
+
+            const colorForValue = (v) => {
+                let c = interpolateMultipleColors(colorStops, v, min, max)
+                if (c && c.startsWith('rgb')) c = rgbToHex(c)
+                return c ? Cesium.Color.fromCssColorString(c) : Cesium.Color.WHITE
+            }
+
+            const geometryInstances = []
+
+            allPaths.forEach((pts) => {
+                const positions = []
+                const colors = []
+
+                for (let i = 0; i < pts.length; i++) {
+                    const p = pts[i]
+                    positions.push(Cesium.Cartesian3.fromDegrees(p.lng, p.lat, p.elev))
+                    colors.push(colorForValue(p.value))
+
+                    // Build tooltip HTML for this vertex
+                    let html = '<table style="font-size:13px">'
+                    allProps.forEach((prop) => {
+                        const val = p.props ? F_.getIn(p.props, prop, '—') : p.value
+                        html += `<tr><td><b>${prop}</b></td><td>${val}</td></tr>`
                     })
-                )
-            }
-        })
-
-        // ── Phase 3: Create Primitive ──
-        // One Primitive for all paths (typically 1 GeometryInstance for
-        // connectAllPoints, or one per LineString feature).
-        // Uses asynchronous:true so geometry compiles in a Web Worker
-        // without freezing the UI.  We poll primitive.ready and
-        // request a render once compilation finishes, which is
-        // necessary under requestRenderMode:true where Cesium won't
-        // automatically repaint.
-        let primitive = null
-        if (geometryInstances.length > 0) {
-            primitive = new Cesium.Primitive({
-                geometryInstances,
-                appearance: new Cesium.PolylineColorAppearance(),
-                asynchronous: true,
-            })
-            this.renderer.scene.primitives.add(primitive)
-
-            // Poll until the primitive is compiled and ready, then
-            // trigger a render.  Typically resolves within 1-3 frames.
-            const pollReady = () => {
-                if (primitive.ready) {
-                    this._requestRender()
-                } else {
-                    requestAnimationFrame(pollReady)
+                    html += '</table>'
+                    hoverVertices.push({ lng: p.lng, lat: p.lat, elev: p.elev, html })
                 }
+
+                if (positions.length >= 2) {
+                    geometryInstances.push(
+                        new Cesium.GeometryInstance({
+                            geometry: new Cesium.PolylineGeometry({
+                                positions,
+                                colors,
+                                colorsPerVertex: true,
+                                width: weight,
+                            }),
+                        })
+                    )
+                }
+            })
+
+            // Bail out if the layer was removed during processing
+            if (!this._layers[layerName]) return
+
+            // ── Phase 3: Create Primitive ──
+            // Uses asynchronous:true so geometry compiles in a Web Worker
+            // without freezing the UI.  We poll primitive.ready and
+            // request a render once compilation finishes, which is
+            // necessary under requestRenderMode:true where Cesium won't
+            // automatically repaint.
+            let primitive = null
+            if (geometryInstances.length > 0) {
+                primitive = new Cesium.Primitive({
+                    geometryInstances,
+                    appearance: new Cesium.PolylineColorAppearance(),
+                    asynchronous: true,
+                })
+                this.renderer.scene.primitives.add(primitive)
+
+                // Poll until the primitive is compiled and ready, then
+                // trigger a render.  Typically resolves within 1-3 frames.
+                const pollReady = () => {
+                    if (primitive.isDestroyed()) {
+                        return // layer was removed before compilation finished
+                    }
+                    if (primitive.ready) {
+                        this._requestRender()
+                    } else {
+                        requestAnimationFrame(pollReady)
+                    }
+                }
+                requestAnimationFrame(pollReady)
             }
-            requestAnimationFrame(pollReady)
-        }
 
-        // ── Phase 4: Build spatial grid for hover tooltip ──
-        // Grid cells are ~0.01° (roughly 1km).  Each cell stores
-        // references to all vertices within it for O(1) lookup.
-        const gridRes = 0.01
-        const spatialGrid = {}
-        hoverVertices.forEach((v, idx) => {
-            const key = `${Math.floor(v.lng / gridRes)},${Math.floor(v.lat / gridRes)}`
-            if (!spatialGrid[key]) spatialGrid[key] = []
-            spatialGrid[key].push(idx)
-        })
+            // ── Phase 4: Build spatial grid for hover tooltip ──
+            // Grid cells are ~0.01° (roughly 1km).  Each cell stores
+            // references to all vertices within it for O(1) lookup.
+            const gridRes = 0.01
+            const spatialGrid = {}
+            hoverVertices.forEach((v, idx) => {
+                const key = `${Math.floor(v.lng / gridRes)},${Math.floor(v.lat / gridRes)}`
+                if (!spatialGrid[key]) spatialGrid[key] = []
+                spatialGrid[key].push(idx)
+            })
 
-        this._layers[layerName] = {
-            type: 'gradient_polyline',
-            primitive,
-            visible: true,
-            hoverVertices,
-            spatialGrid,
-            gridRes,
-        }
+            // Update the placeholder entry with real data
+            layerEntry.primitive = primitive
+            layerEntry.hoverVertices = hoverVertices
+            layerEntry.spatialGrid = spatialGrid
+            layerEntry.gridRes = gridRes
+        }, 0)
 
-        this._requestRender()
         return layerName
     }
 
