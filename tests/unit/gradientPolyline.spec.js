@@ -388,46 +388,56 @@ test.describe('Gradient Polyline - connectAllPoints Mode', () => {
             }
         })
 
-        // Midpoint-to-midpoint segment building
+        // Two-sub-segment building: each vertex P[i] owns
+        //   mid(P[i-1],P[i]) → P[i]  and  P[i] → mid(P[i],P[i+1])
         const segments = []
         for (let i = 0; i < points.length; i++) {
-            const start =
+            const midBefore =
                 i === 0
-                    ? points[i]
+                    ? null
                     : {
                           lng: (points[i - 1].lng + points[i].lng) / 2,
                           lat: (points[i - 1].lat + points[i].lat) / 2,
                           elev: (points[i - 1].elev + points[i].elev) / 2,
                       }
-            const end =
+            const midAfter =
                 i === points.length - 1
-                    ? points[i]
+                    ? null
                     : {
                           lng: (points[i].lng + points[i + 1].lng) / 2,
                           lat: (points[i].lat + points[i + 1].lat) / 2,
                           elev: (points[i].elev + points[i + 1].elev) / 2,
                       }
-            if (start.lng === end.lng && start.lat === end.lat && start.elev === end.elev) continue
-            segments.push({
-                lng1: start.lng,
-                lat1: start.lat,
-                elev1: start.elev,
-                value: points[i].value,
-                lng2: end.lng,
-                lat2: end.lat,
-                elev2: end.elev,
-            })
+            if (midBefore) {
+                segments.push({
+                    lng1: midBefore.lng, lat1: midBefore.lat, elev1: midBefore.elev,
+                    value: points[i].value,
+                    lng2: points[i].lng, lat2: points[i].lat, elev2: points[i].elev,
+                })
+            }
+            if (midAfter) {
+                segments.push({
+                    lng1: points[i].lng, lat1: points[i].lat, elev1: points[i].elev,
+                    value: points[i].value,
+                    lng2: midAfter.lng, lat2: midAfter.lat, elev2: midAfter.elev,
+                })
+            }
         }
 
         expect(points.length).toBe(3)
-        // Midpoint strategy: 3 vertices -> 3 segments (each vertex owns a region)
-        expect(segments.length).toBe(3)
-        expect(segments[0].value).toBe(100)
-        expect(segments[1].value).toBe(200)
-        expect(segments[2].value).toBe(300)
+        // Two-sub-segment strategy: 3 vertices -> 4 segments
+        // P0→mid01 (P0's color), mid01→P1 (P1's color), P1→mid12 (P1's color), mid12→P2 (P2's color)
+        expect(segments.length).toBe(4)
+        expect(segments[0].value).toBe(100) // P0→mid01
+        expect(segments[1].value).toBe(200) // mid01→P1
+        expect(segments[2].value).toBe(200) // P1→mid12
+        expect(segments[3].value).toBe(300) // mid12→P2
         // First segment starts at P0, ends at midpoint(P0,P1)
         expect(segments[0].lng1).toBe(-122.47)
         expect(segments[0].lng2).toBe((-122.47 + -122.48) / 2)
+        // Second segment starts at midpoint(P0,P1), ends at P1
+        expect(segments[1].lng1).toBe((-122.47 + -122.48) / 2)
+        expect(segments[1].lng2).toBe(-122.48)
     })
 })
 

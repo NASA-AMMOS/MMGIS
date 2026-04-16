@@ -741,9 +741,10 @@ class GlobeRenderer {
 
     /**
      * Add a gradient polyline layer to Cesium.
-     * Decomposes each LineString into per-segment colored polyline entities
-     * using elevation from the 3rd coordinate and color from the chosen property
-     * interpolated against the configured color ramp.
+     * Each data point P[i] owns two sub-segments that pass through it:
+     *   mid(P[i-1],P[i]) → P[i]  and  P[i] → mid(P[i],P[i+1])
+     * both colored with P[i]'s value.  This keeps actual data points on
+     * the rendered line while using midpoints as color-transition boundaries.
      * @param {object} layerConfig - { name, geojson, gradientSettings, layerObj }
      * @returns {string} Layer name used as ID for removal
      */
@@ -788,35 +789,46 @@ class GlobeRenderer {
                     })
                 }
             })
-            // Build midpoint-to-midpoint segments from consecutive points
+            // Build segments that pass through actual data points.
+            // Each vertex P[i] owns two sub-segments:
+            //   mid(P[i-1],P[i]) → P[i]  and  P[i] → mid(P[i],P[i+1])
+            // both colored with P[i]'s value.  The first/last points
+            // extend to the path endpoints instead of a midpoint.
             if (points.length >= 2) {
                 for (let i = 0; i < points.length; i++) {
-                    const start =
+                    const midBefore =
                         i === 0
-                            ? points[i]
+                            ? null
                             : {
                                   lng: (points[i - 1].lng + points[i].lng) / 2,
                                   lat: (points[i - 1].lat + points[i].lat) / 2,
                                   elev: (points[i - 1].elev + points[i].elev) / 2,
                               }
-                    const end =
+                    const midAfter =
                         i === points.length - 1
-                            ? points[i]
+                            ? null
                             : {
                                   lng: (points[i].lng + points[i + 1].lng) / 2,
                                   lat: (points[i].lat + points[i + 1].lat) / 2,
                                   elev: (points[i].elev + points[i + 1].elev) / 2,
                               }
-                    if (start.lng === end.lng && start.lat === end.lat && start.elev === end.elev) continue
-                    segments.push({
-                        lng1: start.lng,
-                        lat1: start.lat,
-                        elev1: start.elev,
-                        value: points[i].value,
-                        lng2: end.lng,
-                        lat2: end.lat,
-                        elev2: end.elev,
-                    })
+
+                    // Sub-segment 1: midBefore → P[i]  (skipped for first point)
+                    if (midBefore) {
+                        segments.push({
+                            lng1: midBefore.lng, lat1: midBefore.lat, elev1: midBefore.elev,
+                            value: points[i].value,
+                            lng2: points[i].lng, lat2: points[i].lat, elev2: points[i].elev,
+                        })
+                    }
+                    // Sub-segment 2: P[i] → midAfter  (skipped for last point)
+                    if (midAfter) {
+                        segments.push({
+                            lng1: points[i].lng, lat1: points[i].lat, elev1: points[i].elev,
+                            value: points[i].value,
+                            lng2: midAfter.lng, lat2: midAfter.lat, elev2: midAfter.elev,
+                        })
+                    }
                 }
             }
         } else {
@@ -867,42 +879,47 @@ class GlobeRenderer {
                 )
                 if (path.length > 0) paths.push(path)
 
-                // Build midpoint-to-midpoint segments so each vertex
-                // P[i] owns the region from mid(P[i-1],P[i]) to mid(P[i],P[i+1]),
-                // colored with P[i]'s value. This avoids misrepresenting data
-                // by shifting color boundaries to midpoints between vertices.
+                // Build segments that pass through actual data points.
+                // Each vertex P[i] owns two sub-segments:
+                //   mid(P[i-1],P[i]) → P[i]  and  P[i] → mid(P[i],P[i+1])
+                // both colored with P[i]'s value.  First/last points
+                // extend to the path endpoints instead of a midpoint.
                 paths.forEach((p) => {
                     if (p.length < 2) return
                     for (let i = 0; i < p.length; i++) {
-                        // Start point: midpoint with previous, or the vertex itself for first point
-                        const start =
+                        const midBefore =
                             i === 0
-                                ? p[i]
+                                ? null
                                 : {
                                       lng: (p[i - 1].lng + p[i].lng) / 2,
                                       lat: (p[i - 1].lat + p[i].lat) / 2,
                                       elev: (p[i - 1].elev + p[i].elev) / 2,
                                   }
-                        // End point: midpoint with next, or the vertex itself for last point
-                        const end =
+                        const midAfter =
                             i === p.length - 1
-                                ? p[i]
+                                ? null
                                 : {
                                       lng: (p[i].lng + p[i + 1].lng) / 2,
                                       lat: (p[i].lat + p[i + 1].lat) / 2,
                                       elev: (p[i].elev + p[i + 1].elev) / 2,
                                   }
-                        // Skip degenerate segments (first==last for single-point edges)
-                        if (start.lng === end.lng && start.lat === end.lat && start.elev === end.elev) continue
-                        segments.push({
-                            lng1: start.lng,
-                            lat1: start.lat,
-                            elev1: start.elev,
-                            value: p[i].value,
-                            lng2: end.lng,
-                            lat2: end.lat,
-                            elev2: end.elev,
-                        })
+
+                        // Sub-segment 1: midBefore → P[i]  (skipped for first point)
+                        if (midBefore) {
+                            segments.push({
+                                lng1: midBefore.lng, lat1: midBefore.lat, elev1: midBefore.elev,
+                                value: p[i].value,
+                                lng2: p[i].lng, lat2: p[i].lat, elev2: p[i].elev,
+                            })
+                        }
+                        // Sub-segment 2: P[i] → midAfter  (skipped for last point)
+                        if (midAfter) {
+                            segments.push({
+                                lng1: p[i].lng, lat1: p[i].lat, elev1: p[i].elev,
+                                value: p[i].value,
+                                lng2: midAfter.lng, lat2: midAfter.lat, elev2: midAfter.elev,
+                            })
+                        }
                     }
                 })
             })
