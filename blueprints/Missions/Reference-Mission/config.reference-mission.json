@@ -91,9 +91,10 @@
     }
   },
   "panelSettings": {
-    "demFallbackPath": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+    "demFallbackPath": "",
     "demFallbackFormat": null,
-    "demFallbackType": null
+    "demFallbackType": null,
+    "globeRenderer": "cesium"
   },
   "variables": {},
   "components": [],
@@ -420,7 +421,8 @@
                     "color": "#ffffff",
                     "weight": 2,
                     "opacity": 1,
-                    "fillOpacity": 0.5
+                    "fillOpacity": 0.5,
+                    "className": "hotlinegradient3d"
                   },
                   "variables": {
                     "hideMainFeature": true,
