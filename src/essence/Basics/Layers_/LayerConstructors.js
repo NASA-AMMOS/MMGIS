@@ -2121,6 +2121,7 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                     _addHoverSegment({
                         lng1, lat1, lng2, lat2,
                         props: featurePropsByCoord.get(`${lat1},${lng1}`),
+                        props2: featurePropsByCoord.get(`${lat2},${lng2}`),
                         val1, val2,
                     })
                 }
@@ -2137,6 +2138,7 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                         _addHoverSegment({
                             lng1, lat1, lng2, lat2,
                             props: featurePropsByCoord.get(`${lat1},${lng1}`),
+                            props2: featurePropsByCoord.get(`${lat2},${lng2}`),
                             val1, val2,
                         })
                     }
@@ -2249,12 +2251,22 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                     }
 
                     if (bestSeg && bestDist < pickRadius) {
-                        const props = bestSeg.props
+                        // Use bestT to decide which vertex's properties
+                        // to show: near the start (t < 0.5) use start-
+                        // vertex props, near the end (t >= 0.5) use
+                        // end-vertex props.  This ensures hovering near
+                        // the last vertex of a path shows correct values.
+                        const props = bestT >= 0.5
+                            ? (bestSeg.props2 || bestSeg.props)
+                            : bestSeg.props
+                        const fallbackVal = bestT >= 0.5
+                            ? bestSeg.val2
+                            : bestSeg.val1
                         let html = '<table>'
                         coordProps.forEach((prop) => {
                             const val = props
                                 ? F_.getIn(props, prop, '—')
-                                : bestSeg.val1
+                                : fallbackVal
                             const label = escapeHtml(
                                 prop.replace(/_/g, ' ')
                                     .replace(/\b\w/g, (c) => c.toUpperCase())
