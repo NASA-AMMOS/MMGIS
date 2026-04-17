@@ -83,12 +83,18 @@
   "panels": {
     "viewer": true,
     "map": true,
-    "globe": true
+    "globe": true,
+    "defaultWidths": {
+      "viewer": 0,
+      "map": 30,
+      "globe": 70
+    }
   },
   "panelSettings": {
-    "demFallbackPath": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+    "demFallbackPath": "",
     "demFallbackFormat": null,
-    "demFallbackType": null
+    "demFallbackType": null,
+    "globeRenderer": "cesium"
   },
   "variables": {},
   "components": [],
@@ -401,6 +407,49 @@
                   "demparser": "",
                   "controlled": false,
                   "uuid": "ce662d44-a96e-4e19-8e7b-e89ea2727dd1"
+                },
+                {
+                  "name": "Hotline Gradient 3D",
+                  "kind": "vector",
+                  "type": "vector",
+                  "url": "Layers/Vectors/hotline-gradient-3d.geojson",
+                  "demtileurl": "",
+                  "on": true,
+                  "visibility": true,
+                  "initialOpacity": 1,
+                  "style": {
+                    "color": "#ffffff",
+                    "weight": 2,
+                    "opacity": 1,
+                    "fillOpacity": 0.5,
+                    "className": "hotlinegradient3d"
+                  },
+                  "variables": {
+                    "hideMainFeature": true,
+                    "pathAttachments": {
+                      "gradient": {
+                        "enabled": true,
+                        "colorWithProp": "elevation",
+                        "dropdownColorWithProp": [
+                          "elevation",
+                          "speed",
+                          "roll"
+                        ],
+                        "colorRamp": [
+                          "#0000ff",
+                          "#00ffff",
+                          "#00ff00",
+                          "#ffff00",
+                          "#ff0000"
+                        ],
+                        "weight": 5
+                      }
+                    }
+                  },
+                  "description": "3D gradient polyline demonstration with elevation-based positioning in the Cesium globe. Routes with varied elevation values (50-2000m) colored by elevation, speed, or roll.",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "d7a3f1b2-5c8e-4d12-a9f0-3b6e8c2d1f4a"
                 },
                 {
                   "name": "Uncertainty Ellipses",
