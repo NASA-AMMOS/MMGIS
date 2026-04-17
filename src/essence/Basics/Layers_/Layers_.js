@@ -414,6 +414,20 @@ const L_ = {
                                         L_.layers.attachments[s.name][sub].layer
                                     )
                                     break
+                                case 'path_gradient':
+                                    L_.Map_.rmNotNull(
+                                        L_.layers.attachments[s.name][sub].layer
+                                    )
+                                    if (
+                                        L_.layers.attachments[s.name][sub]
+                                            .cesiumLayerId
+                                    ) {
+                                        L_.Globe_.litho.removeLayer(
+                                            L_.layers.attachments[s.name][sub]
+                                                .cesiumLayerId
+                                        )
+                                    }
+                                    break
                                 case 'labels':
                                 case 'pairings':
                                     L_.layers.attachments[s.name][
@@ -475,6 +489,40 @@ const L_ = {
                                                     s.name
                                                 )
                                         )
+                                        break
+                                    case 'path_gradient':
+                                        L_.Map_.map.addLayer(
+                                            L_.layers.attachments[s.name][sub]
+                                                .layer
+                                        )
+                                        L_.layers.attachments[s.name][
+                                            sub
+                                        ].layer.setZIndex(
+                                            L_._layersOrdered.length +
+                                                1 -
+                                                L_._layersOrdered.indexOf(
+                                                    s.name
+                                                )
+                                        )
+                                        if (
+                                            L_.layers.attachments[s.name][sub]
+                                                .cesiumGradientOptions
+                                        ) {
+                                            try {
+                                                L_.layers.attachments[s.name][
+                                                    sub
+                                                ].cesiumLayerId =
+                                                    L_.Globe_.litho.addLayer(
+                                                        'gradient_polyline',
+                                                        L_.layers.attachments[
+                                                            s.name
+                                                        ][sub]
+                                                            .cesiumGradientOptions
+                                                    )
+                                            } catch (e) {
+                                                console.warn('Failed to add 3D gradient polyline:', e)
+                                            }
+                                        }
                                         break
                                     case 'labels':
                                     case 'pairings':
@@ -664,56 +712,100 @@ const L_ = {
                         }
 
                         if (s.type === 'vector') {
-                            L_.Globe_.litho.addLayer(
-                                s.layer3dType || 'clamped',
-                                {
-                                    name: s.name,
-                                    order: L_._layersOrdered, // Since higher order in litho is on top
-                                    on: L_.layers.opacity[s.name]
-                                        ? true
-                                        : false,
-                                    geojson: L_.layers.layer[s.name].toGeoJSON(
-                                        L_.GEOJSON_PRECISION
-                                    ),
-                                    onClick: (feature, lnglat, layer) => {
-                                        this.selectFeature(layer.name, feature)
-                                    },
-                                    useKeyAsHoverName: s.useKeyAsName,
-                                    style: {
-                                        // Prefer feature[f].properties.style values
-                                        letPropertiesStyleOverride: true, // default false
-                                        default: {
-                                            fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
-                                            fillOpacity: parseFloat(
-                                                s.style.fillOpacity
-                                            ),
-                                            color: s.style.color,
-                                            weight: s.style.weight,
-                                            radius: s.radius,
-                                        },
-                                        bearing:
-                                            (s.variables?.markerAttachments
-                                                ?.bearing &&
-                                                s.variables?.markerAttachments
-                                                    ?.bearing.enabled ==
-                                                    null) ||
-                                            s.variables?.markerAttachments
-                                                ?.bearing?.enabled === true
-                                                ? s.variables.markerAttachments
-                                                      .bearing
-                                                : null,
-                                    },
-                                    opacity: L_.layers.opacity[s.name],
-                                    minZoom:
-                                        s.visibilitycutoff > 0
-                                            ? s.visibilitycutoff
-                                            : 0,
-                                    maxZoom:
-                                        s.visibilitycutoff < 0
-                                            ? s.visibilitycutoff
-                                            : 100,
+                            // Skip adding the parent vector layer to the 3D
+                            // globe when it has a path_gradient attachment —
+                            // the gradient polyline already renders the data
+                            // and the default billboards would show as white
+                            // artifacts.
+                            let hasGradientAttachment = false
+                            if (L_.layers.attachments[s.name]) {
+                                for (const sub in L_.layers.attachments[s.name]) {
+                                    if (L_.layers.attachments[s.name][sub].type === 'path_gradient') {
+                                        hasGradientAttachment = true
+                                        break
+                                    }
                                 }
-                            )
+                            }
+                            if (!hasGradientAttachment) {
+                                L_.Globe_.litho.addLayer(
+                                    s.layer3dType || 'clamped',
+                                    {
+                                        name: s.name,
+                                        order: L_._layersOrdered, // Since higher order in litho is on top
+                                        on: L_.layers.opacity[s.name]
+                                            ? true
+                                            : false,
+                                        geojson: L_.layers.layer[s.name].toGeoJSON(
+                                            L_.GEOJSON_PRECISION
+                                        ),
+                                        onClick: (feature, lnglat, layer) => {
+                                            this.selectFeature(layer.name, feature)
+                                        },
+                                        useKeyAsHoverName: s.useKeyAsName,
+                                        style: {
+                                            // Prefer feature[f].properties.style values
+                                            letPropertiesStyleOverride: true, // default false
+                                            default: {
+                                                fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
+                                                fillOpacity: parseFloat(
+                                                    s.style.fillOpacity
+                                                ),
+                                                color: s.style.color,
+                                                weight: s.style.weight,
+                                                radius: s.radius,
+                                            },
+                                            bearing:
+                                                (s.variables?.markerAttachments
+                                                    ?.bearing &&
+                                                    s.variables?.markerAttachments
+                                                        ?.bearing.enabled ==
+                                                        null) ||
+                                                s.variables?.markerAttachments
+                                                    ?.bearing?.enabled === true
+                                                    ? s.variables.markerAttachments
+                                                          .bearing
+                                                    : null,
+                                        },
+                                        opacity: L_.layers.opacity[s.name],
+                                        minZoom:
+                                            s.visibilitycutoff > 0
+                                                ? s.visibilitycutoff
+                                                : 0,
+                                        maxZoom:
+                                            s.visibilitycutoff < 0
+                                                ? s.visibilitycutoff
+                                                : 100,
+                                    }
+                                )
+                            } else if (hadToMake && L_.layers.attachments[s.name]) {
+                                // On first-time toggle the attachment-processing block
+                                // (lines ~450-568) was skipped because the layer didn't
+                                // exist yet. Defer the heavy Cesium geometry build so the
+                                // UI isn't blocked on initial toggle.
+                                for (const sub in L_.layers.attachments[s.name]) {
+                                    const att = L_.layers.attachments[s.name][sub]
+                                    if (
+                                        att.type === 'path_gradient' &&
+                                        att.on &&
+                                        att.cesiumGradientOptions
+                                    ) {
+                                        setTimeout(() => {
+                                            try {
+                                                att.cesiumLayerId =
+                                                    L_.Globe_.litho.addLayer(
+                                                        'gradient_polyline',
+                                                        att.cesiumGradientOptions
+                                                    )
+                                            } catch (e) {
+                                                console.warn(
+                                                    'Failed to add 3D gradient polyline:',
+                                                    e
+                                                )
+                                            }
+                                        }, 0)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -799,6 +891,14 @@ const L_ = {
                         L_.Globe_.litho.removeLayer(sublayer.clampedLayerId)
                         L_.Map_.rmNotNull(sublayer.layer)
                         break
+                    case 'path_gradient':
+                        L_.Map_.rmNotNull(sublayer.layer)
+                        if (sublayer.cesiumLayerId) {
+                            L_.Globe_.litho.removeLayer(
+                                sublayer.cesiumLayerId
+                            )
+                        }
+                        break
                     case 'labels':
                     case 'pairings':
                         sublayer.layer.off()
@@ -828,6 +928,25 @@ const L_ = {
                                 1 -
                                 L_._layersOrdered.indexOf(layerName)
                         )
+                        break
+                    case 'path_gradient':
+                        L_.Map_.map.addLayer(sublayer.layer)
+                        sublayer.layer.setZIndex(
+                            L_._layersOrdered.length +
+                                1 -
+                                L_._layersOrdered.indexOf(layerName)
+                        )
+                        if (sublayer.cesiumGradientOptions) {
+                            try {
+                                sublayer.cesiumLayerId =
+                                    L_.Globe_.litho.addLayer(
+                                        'gradient_polyline',
+                                        sublayer.cesiumGradientOptions
+                                    )
+                            } catch (e) {
+                                console.warn('Failed to add 3D gradient polyline:', e)
+                            }
+                        }
                         break
                     case 'labels':
                     case 'pairings':
@@ -928,6 +1047,22 @@ const L_ = {
                                                 sublayer.clampedOptions
                                             )
                                             map.addLayer(sublayer.layer)
+                                            break
+                                        case 'path_gradient':
+                                            map.addLayer(sublayer.layer)
+                                            if (
+                                                sublayer.cesiumGradientOptions
+                                            ) {
+                                                try {
+                                                    sublayer.cesiumLayerId =
+                                                        L_.Globe_.litho.addLayer(
+                                                            'gradient_polyline',
+                                                            sublayer.cesiumGradientOptions
+                                                        )
+                                                } catch (e) {
+                                                    console.warn('Failed to add 3D gradient polyline:', e)
+                                                }
+                                            }
                                             break
                                         case 'labels':
                                         case 'pairings':
@@ -1063,7 +1198,19 @@ const L_ = {
                         },
                     })
                 } else if (s.type != 'header') {
-                    if (typeof L_.layers.layer[s.name].toGeoJSON === 'function')
+                    // Skip parent vector layer in 3D when a path_gradient
+                    // attachment handles the rendering (avoids duplicate
+                    // white billboard artifacts).
+                    let hasGradientAttachment2 = false
+                    if (s.type === 'vector' && L_.layers.attachments[s.name]) {
+                        for (const sub in L_.layers.attachments[s.name]) {
+                            if (L_.layers.attachments[s.name][sub].type === 'path_gradient') {
+                                hasGradientAttachment2 = true
+                                break
+                            }
+                        }
+                    }
+                    if (!hasGradientAttachment2 && typeof L_.layers.layer[s.name].toGeoJSON === 'function')
                         L_.Globe_.litho.addLayer(
                             s.type == 'vector'
                                 ? s.layer3dType || 'clamped'
