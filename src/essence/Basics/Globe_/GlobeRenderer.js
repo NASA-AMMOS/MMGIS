@@ -451,11 +451,11 @@ class GlobeRenderer {
      */
     addLayer(type, layerConfig) {
         if (type === 'gradient_polyline') {
-            // Gradient polylines are only supported by the Cesium renderer
             if (this.rendererType === 'cesium') {
                 return this._addCesiumGradientPolyline(layerConfig)
             }
-            return null
+            // LithoSphere 1.6.0+: map to 'gradient' layer type
+            return this._addLithoSphereGradient(layerConfig)
         }
         if (this.rendererType === 'lithosphere') {
             return this.renderer.addLayer(type, layerConfig)
@@ -799,6 +799,25 @@ class GlobeRenderer {
      * @param {object} layerConfig - { name, geojson, gradientSettings, layerObj }
      * @returns {string} Layer name used as ID for removal
      */
+    _addLithoSphereGradient(layerConfig) {
+        const layerName = `${layerConfig.name}_gradient`
+
+        // Remove existing gradient layer with that name if present
+        this.renderer.removeLayer(layerName)
+
+        const lithoConfig = {
+            name: layerName,
+            on: true,
+            opacity: 1,
+            geojson: layerConfig.geojson,
+            gradientSettings: layerConfig.gradientSettings,
+        }
+
+        this.renderer.addLayer('gradient', lithoConfig)
+
+        return layerName
+    }
+
     _addCesiumGradientPolyline(layerConfig) {
         const { name, geojson, gradientSettings } = layerConfig
         const layerName = `${name}_gradient`
@@ -1484,8 +1503,6 @@ class GlobeRenderer {
      */
     removeLayer(name) {
         if (this.rendererType === 'lithosphere') {
-            // Gradient polylines are Cesium-only; skip for LithoSphere
-            if (this._layers && this._layers[name]?.type === 'gradient_polyline') return
             return this.renderer.removeLayer(name)
         } else {
             const layerInfo = this._layers[name]
