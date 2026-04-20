@@ -4,7 +4,7 @@ Thanks for taking the time to consider contributing! We very much appreciate you
 
 ## Introduction
 
-MMGIS (Multi-Mission Geographical Information System) is a highly-configurable, cross-mission web-based and open-source mapping application. It's been used on MSL, InSight, Mars 2020, EMIT, MAIA, Lunar VIPER, ... to name a few. And we would much appreciate your help! Here are the basics on contributing:
+MMGIS (Multi-Mission Geographic Information System) is a highly-configurable, cross-mission web-based and open-source mapping application. It's been used on MSL, InSight, Mars 2020, EMIT, MAIA, Lunar VIPER, ... to name a few. And we would much appreciate your help! Here are the basics on contributing:
 
 - Anyone can contribute!
 - You can contribute at any time
