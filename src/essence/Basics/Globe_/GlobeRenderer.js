@@ -1887,7 +1887,11 @@ class GlobeRenderer {
         const result = this._findNearestGradientSegment(
             lng, lat, this._layers, 'gradient_polyline'
         )
-        if (!result) return
+        if (!result) {
+            this._gradientHoverDot.show = false
+            this._requestRender()
+            return
+        }
 
         this._gradientHoverDot.position = Cesium.Cartesian3.fromDegrees(
             result.lng, result.lat, result.elev
