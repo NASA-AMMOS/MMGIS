@@ -1788,6 +1788,12 @@ class GlobeRenderer {
             }
         }
 
+        if (bestDist === Infinity) {
+            this._gradientHoverDot.show = false
+            this._requestRender()
+            return
+        }
+
         this._gradientHoverDot.position = Cesium.Cartesian3.fromDegrees(
             bestLng, bestLat, bestElev
         )
