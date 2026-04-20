@@ -127,7 +127,7 @@
     "http-proxy-middleware": "3.0.5",
     "isomorphic-ws": "5.0.0",
     "jquery": "^3.5.1",
-    "lithosphere": "^1.5.5",
+    "lithosphere": "^1.6.0",
     "mark.js": "^8.11.1",
     "materialize-css": "^1.0.0",
     "memorystore": "^1.6.2",
