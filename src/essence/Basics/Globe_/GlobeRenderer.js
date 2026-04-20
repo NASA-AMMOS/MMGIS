@@ -1,5 +1,6 @@
 import LithoSphere from 'lithosphere'
 import * as Cesium from 'cesium'
+import { SphereGeometry, MeshBasicMaterial, Mesh } from 'three'
 import { utcFormat } from 'd3-time-format'
 import 'cesium/Source/Widgets/widgets.css'
 import LayerUtils from '../Layers_/LayerUtils'
@@ -82,6 +83,11 @@ class GlobeRenderer {
 
         // Track active feature for LithoSphere highlighting
         this._lithoActiveFeature = null
+
+        // Gradient hover data for LithoSphere (mirrors Cesium's _layers hover data)
+        this._lithoGradientLayers = {}
+
+        this._setupGradientHoverHandler()
     }
 
     /**
@@ -804,6 +810,7 @@ class GlobeRenderer {
 
         // Remove existing gradient layer with that name if present
         this.renderer.removeLayer(layerName)
+        delete this._lithoGradientLayers[layerName]
 
         const lithoConfig = {
             name: layerName,
@@ -815,7 +822,104 @@ class GlobeRenderer {
 
         this.renderer.addLayer('gradient', lithoConfig)
 
+        // Build hover segment data so setGradientHoverPoint can find
+        // the nearest point on the gradient line.
+        this._buildLithoGradientHoverData(
+            layerName, layerConfig.geojson, layerConfig.gradientSettings
+        )
+
         return layerName
+    }
+
+    _buildLithoGradientHoverData(layerName, geojson, gradientSettings) {
+        if (!geojson || !geojson.features) return
+
+        const allPaths = []
+
+        if (gradientSettings.connectAllPoints) {
+            const points = []
+            for (let fi = 0; fi < geojson.features.length; fi++) {
+                const feature = geojson.features[fi]
+                if (feature.geometry.type.toLowerCase() === 'point') {
+                    const coords = feature.geometry.coordinates
+                    points.push({
+                        lng: coords[0], lat: coords[1],
+                        elev: coords[2] || 0,
+                    })
+                }
+            }
+            if (points.length >= 2) allPaths.push(points)
+        } else {
+            for (let fi = 0; fi < geojson.features.length; fi++) {
+                const feature = geojson.features[fi]
+                const paths = []
+                let path = []
+                let prevParentIndex = null
+
+                F_.coordinateDepthTraversal(
+                    feature.geometry.coordinates,
+                    (array, _path) => {
+                        const splitPath = _path.split('.')
+                        let parentIndex = null
+                        if (splitPath.length >= 2) {
+                            parentIndex = splitPath[splitPath.length - 2]
+                            if (prevParentIndex != null && parentIndex != prevParentIndex) {
+                                paths.push(path)
+                                path = []
+                            }
+                        }
+                        path.push({
+                            lng: array[0], lat: array[1],
+                            elev: array[2] || 0,
+                        })
+                        prevParentIndex = parentIndex
+                    }
+                )
+                if (path.length > 0) paths.push(path)
+                paths.forEach((p) => { if (p.length >= 2) allPaths.push(p) })
+            }
+        }
+
+        const hoverSegments = []
+        for (const pts of allPaths) {
+            for (let i = 0; i < pts.length - 1; i++) {
+                const p1 = pts[i], p2 = pts[i + 1]
+                hoverSegments.push({
+                    lng1: p1.lng, lat1: p1.lat, elev1: p1.elev,
+                    lng2: p2.lng, lat2: p2.lat, elev2: p2.elev,
+                })
+            }
+        }
+
+        const gridRes = 0.01
+        const segmentGrid = {}
+        for (let idx = 0; idx < hoverSegments.length; idx++) {
+            const seg = hoverSegments[idx]
+            const gx1 = Math.floor(seg.lng1 / gridRes)
+            const gy1 = Math.floor(seg.lat1 / gridRes)
+            const gx2 = Math.floor(seg.lng2 / gridRes)
+            const gy2 = Math.floor(seg.lat2 / gridRes)
+            const span = Math.max(Math.abs(gx2 - gx1), Math.abs(gy2 - gy1))
+            const steps = Math.min(12, Math.max(1, Math.ceil(span / 2)))
+            const seenCells = new Set()
+            for (let s = 0; s <= steps; s++) {
+                const t = s / steps
+                const gx = Math.floor((seg.lng1 + t * (seg.lng2 - seg.lng1)) / gridRes)
+                const gy = Math.floor((seg.lat1 + t * (seg.lat2 - seg.lat1)) / gridRes)
+                const key = `${gx},${gy}`
+                if (seenCells.has(key)) continue
+                seenCells.add(key)
+                if (!segmentGrid[key]) segmentGrid[key] = []
+                segmentGrid[key].push(idx)
+            }
+        }
+
+        this._lithoGradientLayers[layerName] = {
+            visible: true,
+            hoverSegments,
+            segmentGrid,
+            gridRes,
+        }
     }
 
     _addCesiumGradientPolyline(layerConfig) {
@@ -1503,6 +1607,7 @@ class GlobeRenderer {
      */
     removeLayer(name) {
         if (this.rendererType === 'lithosphere') {
+            delete this._lithoGradientLayers[name]
             return this.renderer.removeLayer(name)
         } else {
             const layerInfo = this._layers[name]
@@ -1534,6 +1639,9 @@ class GlobeRenderer {
      */
     toggleLayer(name, visible) {
         if (this.rendererType === 'lithosphere') {
+            if (this._lithoGradientLayers[name]) {
+                this._lithoGradientLayers[name].visible = visible
+            }
             return this.renderer.toggleLayer(name, visible)
         }
 
@@ -1719,22 +1827,34 @@ class GlobeRenderer {
      * clearGradientHoverPoint to show/hide the dot from outside.
      */
     _setupGradientHoverHandler() {
-        if (this.rendererType !== 'cesium') return
-
-        const scene = this.renderer.scene
-        const hoverDotCollection = new Cesium.PointPrimitiveCollection()
-        const hoverDot = hoverDotCollection.add({
-            show: false,
-            pixelSize: 10,
-            color: Cesium.Color.WHITE,
-            outlineColor: Cesium.Color.BLACK,
-            outlineWidth: 2,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
-            position: Cesium.Cartesian3.ZERO,
-        })
-        scene.primitives.add(hoverDotCollection)
-        this._gradientHoverDotCollection = hoverDotCollection
-        this._gradientHoverDot = hoverDot
+        if (this.rendererType === 'cesium') {
+            const scene = this.renderer.scene
+            const hoverDotCollection = new Cesium.PointPrimitiveCollection()
+            const hoverDot = hoverDotCollection.add({
+                show: false,
+                pixelSize: 10,
+                color: Cesium.Color.WHITE,
+                outlineColor: Cesium.Color.BLACK,
+                outlineWidth: 2,
+                disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                position: Cesium.Cartesian3.ZERO,
+            })
+            scene.primitives.add(hoverDotCollection)
+            this._gradientHoverDotCollection = hoverDotCollection
+            this._gradientHoverDot = hoverDot
+        } else if (this.rendererType === 'lithosphere') {
+            const geo = new SphereGeometry(3, 16, 12)
+            const mat = new MeshBasicMaterial({
+                color: 0xffffff,
+                depthTest: false,
+            })
+            const dot = new Mesh(geo, mat)
+            dot.visible = false
+            dot.renderOrder = 9999
+            dot.frustumCulled = false
+            this.renderer.planet.add(dot)
+            this._lithoHoverDot = dot
+        }
     }
 
     /**
@@ -1744,18 +1864,48 @@ class GlobeRenderer {
      * Called from the 2D (Leaflet) mousemove handler.
      */
     setGradientHoverPoint(lng, lat) {
+        if (this.rendererType === 'lithosphere') {
+            if (!this._lithoHoverDot) return
+            const result = this._findNearestGradientSegment(
+                lng, lat, this._lithoGradientLayers
+            )
+            if (!result) {
+                this._lithoHoverDot.visible = false
+                return
+            }
+            const v = this.renderer.projection.lonLatToVector3(
+                result.lng, result.lat,
+                result.elev * (this.renderer.options.exaggeration || 1)
+            )
+            this._lithoHoverDot.position.set(v.x, v.y, v.z)
+            this._lithoHoverDot.visible = true
+            return
+        }
+
         if (this.rendererType !== 'cesium' || !this._gradientHoverDot) return
 
-        // Find the 3D segment whose projection onto (lng, lat) is closest,
-        // so we can read the correct interpolated elevation for the dot.
+        const result = this._findNearestGradientSegment(
+            lng, lat, this._layers, 'gradient_polyline'
+        )
+        if (!result) return
+
+        this._gradientHoverDot.position = Cesium.Cartesian3.fromDegrees(
+            result.lng, result.lat, result.elev
+        )
+        this._gradientHoverDot.show = true
+        this._requestRender()
+    }
+
+    _findNearestGradientSegment(lng, lat, layerMap, typeFilter) {
         let bestDist = Infinity
         let bestLng = lng
         let bestLat = lat
         let bestElev = 0
 
-        for (const lName in this._layers) {
-            const li = this._layers[lName]
-            if (li.type !== 'gradient_polyline' || !li.visible) continue
+        for (const lName in layerMap) {
+            const li = layerMap[lName]
+            if (typeFilter && li.type !== typeFilter) continue
+            if (li.visible === false) continue
             const { hoverSegments, segmentGrid, gridRes } = li
             if (!hoverSegments || !segmentGrid) continue
 
@@ -1788,11 +1938,8 @@ class GlobeRenderer {
             }
         }
 
-        this._gradientHoverDot.position = Cesium.Cartesian3.fromDegrees(
-            bestLng, bestLat, bestElev
-        )
-        this._gradientHoverDot.show = true
-        this._requestRender()
+        if (bestDist === Infinity) return null
+        return { lng: bestLng, lat: bestLat, elev: bestElev }
     }
 
     /**
@@ -1800,6 +1947,12 @@ class GlobeRenderer {
      * Called from the 2D (Leaflet) mousemove / mouseout handler.
      */
     clearGradientHoverPoint() {
+        if (this.rendererType === 'lithosphere') {
+            if (this._lithoHoverDot && this._lithoHoverDot.visible) {
+                this._lithoHoverDot.visible = false
+            }
+            return
+        }
         if (this.rendererType !== 'cesium' || !this._gradientHoverDot) return
         if (!this._gradientHoverDot.show) return
         this._gradientHoverDot.show = false
