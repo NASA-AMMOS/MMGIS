@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect } from 'react'
 import BottomBar from '../BottomBar'
 
 /**
@@ -11,12 +11,11 @@ import BottomBar from '../BottomBar'
  * while allowing the React layout to manage the container positioning.
  */
 function BottomBarReact({ userInterface }) {
-    const initialized = useRef(false)
-
     useEffect(() => {
-        if (!initialized.current && userInterface) {
+        // Guard: BottomBar.init() may already have been called by
+        // UserInterfaceBridge.fina() to fix the init→fina race condition.
+        if (!BottomBar.UI_ && userInterface) {
             BottomBar.init('barBottom', userInterface)
-            initialized.current = true
         }
     }, [userInterface])
 

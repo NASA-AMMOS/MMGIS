@@ -564,6 +564,14 @@ const UserInterfaceBridge = {
             }
         }
 
+        // Ensure BottomBar is initialized before calling changeUIVisibility.
+        // Due to React effect timing, the async bridge import in UserInterfaceLayout
+        // may not have resolved yet, so BottomBarReact's useEffect hasn't called
+        // BottomBar.init(). We call it here imperatively to guarantee init→fina order.
+        if (!BottomBar.UI_) {
+            BottomBar.init('barBottom', this)
+        }
+
         // Visibility toggles from config
         const look = l_.configData.look || {}
         if (look.copylink != null) {
