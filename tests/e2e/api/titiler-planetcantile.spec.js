@@ -9,33 +9,21 @@ import { test, expect } from '@playwright/test';
  * Europa, and other planetary bodies via the /titiler proxy.
  */
 
-/**
- * Returns true when the response looks like a real proxy response
- * (i.e. NOT the login page HTML served by AUTH=local).
- */
-function isProxyAccessible(response) {
-  const ct = response.headers()['content-type'] || '';
-  if (ct.includes('text/html') && response.ok()) return false;
-  return response.ok();
-}
-
 test.describe('TiTiler Planetcantile Integration', () => {
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
-  test.beforeEach(async () => {
+  test('TiTiler proxy is accessible when enabled', async ({ request }) => {
     if (process.env.WITH_TITILER !== 'true') {
       test.skip(true, 'SKIP: WITH_TITILER is not enabled');
     }
-  });
-
-  test('TiTiler proxy is accessible when enabled', async ({ request }) => {
     const response = await request.get(`${baseURL}/titiler`);
-    // TiTiler root returns its Swagger/docs HTML page — a 200 HTML response
-    // means the proxy is alive (isProxyAccessible rejects HTML, so check status directly)
     expect(response.status()).toBe(200);
   });
 
   test('tileMatrixSets endpoint returns a list', async ({ request }) => {
+    if (process.env.WITH_TITILER !== 'true') {
+      test.skip(true, 'SKIP: WITH_TITILER is not enabled');
+    }
     const response = await request.get(`${baseURL}/titiler/tileMatrixSets`);
     expect(response.ok()).toBeTruthy();
     expect(response.headers()['content-type']).toContain('json');
@@ -46,6 +34,9 @@ test.describe('TiTiler Planetcantile Integration', () => {
   });
 
   test('Planetcantile TMS definitions are loaded', async ({ request }) => {
+    if (process.env.WITH_TITILER !== 'true') {
+      test.skip(true, 'SKIP: WITH_TITILER is not enabled');
+    }
     const response = await request.get(`${baseURL}/titiler/tileMatrixSets`);
     expect(response.ok()).toBeTruthy();
 
@@ -61,6 +52,9 @@ test.describe('TiTiler Planetcantile Integration', () => {
   test('Specific planetary TileMatrixSet details are retrievable', async ({
     request,
   }) => {
+    if (process.env.WITH_TITILER !== 'true') {
+      test.skip(true, 'SKIP: WITH_TITILER is not enabled');
+    }
     const response = await request.get(
       `${baseURL}/titiler/tileMatrixSets/MarsWebMercatorSphere`
     );
@@ -79,6 +73,9 @@ test.describe('TiTiler Planetcantile Integration', () => {
   test('Planetary TMS has correct tile matrix structure', async ({
     request,
   }) => {
+    if (process.env.WITH_TITILER !== 'true') {
+      test.skip(true, 'SKIP: WITH_TITILER is not enabled');
+    }
     const response = await request.get(
       `${baseURL}/titiler/tileMatrixSets/MarsWebMercatorSphere`
     );
@@ -100,6 +97,9 @@ test.describe('TiTiler Planetcantile Integration', () => {
   });
 
   test('Non-Earth TMS has non-Earth CRS', async ({ request }) => {
+    if (process.env.WITH_TITILER !== 'true') {
+      test.skip(true, 'SKIP: WITH_TITILER is not enabled');
+    }
     const response = await request.get(
       `${baseURL}/titiler/tileMatrixSets/MarsWebMercatorSphere`
     );
@@ -110,6 +110,9 @@ test.describe('TiTiler Planetcantile Integration', () => {
   });
 
   test('colorMaps endpoint is accessible', async ({ request }) => {
+    if (process.env.WITH_TITILER !== 'true') {
+      test.skip(true, 'SKIP: WITH_TITILER is not enabled');
+    }
     const response = await request.get(`${baseURL}/titiler/cog/colorMaps`);
     expect(response.ok()).toBeTruthy();
     expect(response.headers()['content-type']).toContain('json');
