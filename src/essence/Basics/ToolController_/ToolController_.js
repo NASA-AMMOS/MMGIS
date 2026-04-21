@@ -144,8 +144,18 @@ let ToolController_ = {
 
         if (this.activeTool != null) {
             this.activeTool.destroy()
+            // For horizontal tools (prevHeight > 0), delay clearing #tools
+            // until the height transition (0.4s ease-out) completes so the
+            // content doesn't vanish before the wrapper animates to 0.
+            // For vertical tools (side panel), clear immediately.
             var toolsEl = document.getElementById('tools')
-            if (toolsEl) toolsEl.innerHTML = ''
+            if (this.prevHeight != 0 && toolsEl) {
+                setTimeout(function () {
+                    toolsEl.innerHTML = ''
+                }, 420)
+            } else if (toolsEl) {
+                toolsEl.innerHTML = ''
+            }
             this.UserInterface.closeToolPanel()
         }
         this.activeTool = null

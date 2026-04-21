@@ -84,6 +84,7 @@ function SplitScreens() {
                 width: `calc(100% - ${leftOffset}px)`,
                 height: `calc(100% - ${topOffset}px)`,
                 left: leftOffset + 'px',
+                transition: 'left 0.2s ease-out, width 0.2s ease-out',
             }}
         >
             <div id="vmgScreen">

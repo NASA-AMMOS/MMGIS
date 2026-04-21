@@ -36,7 +36,9 @@ function TopBar({ userInterface }) {
     // When no tool panel is open, TopBar uses paddingLeft for the toolbar/logo.
     const TOOLBAR_WIDTH = 40
     const leftOffset = isMobile ? mobileTopSize : TOOLBAR_WIDTH
-    const topBarStyle = {}
+    const topBarStyle = {
+        transition: 'margin-left 0.2s ease-out, width 0.2s ease-out, padding-left 0.2s ease-out',
+    }
     if (isMobile) {
         topBarStyle.background = 'var(--color-a)'
     }
@@ -45,17 +47,14 @@ function TopBar({ userInterface }) {
         topBarStyle.paddingLeft = '0px'
         topBarStyle.marginLeft = (toolPanelWidth + leftOffset) + 'px'
         topBarStyle.width = `calc(100% - ${toolPanelWidth + leftOffset}px)`
-    } else if (toolsWrapperRawWidth && toolsWrapperRawWidth !== 0) {
-        // Bottom tools area has custom width (setToolWidth): adjust TopBar
-        // to match jQuery UserInterfaceDefault_.js:984-1003
-        if (toolsWrapperRawWidth === 'full') {
-            topBarStyle.marginLeft = leftOffset + 'px'
-            topBarStyle.width = `calc(100% - ${leftOffset}px)`
-        } else {
-            const newTopWidth = leftOffset + toolsWrapperRawWidth
-            topBarStyle.marginLeft = newTopWidth + 'px'
-            topBarStyle.width = `calc(100% - ${newTopWidth}px)`
-        }
+    } else if (toolsWrapperRawWidth && toolsWrapperRawWidth !== 0 && toolsWrapperRawWidth !== 'full') {
+        // Bottom tools area has partial custom width (setToolWidth with px):
+        // shift TopBar right past the tools area.
+        // When toolsWrapperRawWidth === 'full', the horizontal tool spans
+        // the full width below the map — TopBar stays in default position.
+        const newTopWidth = leftOffset + toolsWrapperRawWidth
+        topBarStyle.marginLeft = newTopWidth + 'px'
+        topBarStyle.width = `calc(100% - ${newTopWidth}px)`
     } else {
         // No tool panel: use paddingLeft for toolbar offset
         topBarStyle.paddingLeft = isMobile ? '80px' : '40px'

@@ -103,6 +103,7 @@ function ToolPanel() {
                     zIndex: 1400,
                     borderRight: '1px solid transparent',
                     left: toolPanelWidth + 10 + 'px',
+                    transition: 'left 0.2s ease-out',
                 }}
                 onMouseDown={handleDragMouseDown}
             >
