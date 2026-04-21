@@ -1247,6 +1247,15 @@ var UserInterface = {
 
         BottomBar.fina()
         UserInterface.show()
+
+        if (l_.configData.look && l_.configData.look.defaultToolEnabled) {
+            if (l_.configData.look.defaultTool && l_.configData.look.defaultTool !== 'None') {
+                let defaultTool = $(`#toolButton${l_.configData.look.defaultTool}`)
+                if (defaultTool.length > 0) {
+                    $(defaultTool).trigger('click')
+                }
+            }
+        }
     },
     updateLayerUpdateButton: function (type) {
         if (UserInterface.layerUpdatedControl) {

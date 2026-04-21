@@ -1,8 +1,15 @@
 import LithoSphere from 'lithosphere'
 import * as Cesium from 'cesium'
-import * as d3 from 'd3'
+import { utcFormat } from 'd3-time-format'
 import 'cesium/Source/Widgets/widgets.css'
 import LayerUtils from '../Layers_/LayerUtils'
+import {
+    interpolateMultipleColors,
+    buildColorStops,
+    closestPointOnSegment,
+} from '../Layers_/gradientUtils'
+import { getCoordProperties } from '../Layers_/ExtendedGeoJSON'
+import F_ from '../Formulae_/Formulae_'
 
 /**
  * GlobeRenderer - Abstraction wrapper for 3D globe rendering engines
@@ -24,6 +31,20 @@ class GlobeRenderer {
             this._initCesium()
         } else {
             this._initLithoSphere()
+        }
+    }
+
+    /**
+     * Request a scene render (needed when requestRenderMode is true).
+     * Call after any state change (layer add/remove/toggle, style update, etc.).
+     */
+    _requestRender() {
+        if (
+            this.rendererType === 'cesium' &&
+            this.renderer &&
+            this.renderer.scene
+        ) {
+            this.renderer.scene.requestRender()
         }
     }
 
@@ -95,8 +116,12 @@ class GlobeRenderer {
             infoBox: false, // Disable Cesium's info box (using MMGIS InfoTool instead)
             selectionIndicator: false,
 
-            // Performance
-            requestRenderMode: false,
+            // Prevent default Cesium ion imagery/terrain requests
+            baseLayer: false,
+            terrain: undefined,
+
+            // Performance — only render when something changes
+            requestRenderMode: true,
             maximumRenderTimeChange: Infinity,
         })
 
@@ -146,90 +171,204 @@ class GlobeRenderer {
         this.options = {}
         this.mouse = { lng: 0, lat: 0 }
 
+        // Disable expensive scene subsystems not needed for planetary science
+        const scene = this.renderer.scene
+        scene.fog.enabled = false
+        scene.globe.showGroundAtmosphere = false
+        scene.skyAtmosphere.show = false
+        scene.sun.show = false
+        scene.moon.show = false
+
         // Create control container AFTER Cesium viewer is initialized
         this._createCesiumControlContainer()
 
         // Create single global click handler for all layers
         this._setupGlobalClickHandler()
+
+        // Set up gradient-point hover tooltip
+        this._setupGradientHoverHandler()
     }
 
     /**
-     * Set up terrain provider for Cesium
-     * Uses Mapzen Terrarium tiles as default, can be overridden with demFallback config
+     * Set up terrain provider for Cesium.
+     * Uses Mapzen Terrarium tiles as default, can be overridden with demFallback config.
+     *
+     * Performance: tiles are downscaled from 256×256 to _terrainGridSize (default 32)
+     * before parsing — 64× fewer pixels and far less GPU geometry.  Each tile gets
+     * its own small OffscreenCanvas (32×32 ≈ 4KB) so fetches decode in parallel.
      */
     async _setupTerrainProvider() {
         if (this.rendererType !== 'cesium') return
+
+        // ── Shared terrain infrastructure ──
+        // Grid size for the heightmap Cesium receives (downscaled from 256 source).
+        // 32 gives ~1K samples per tile — enough detail for terrain shape at
+        // planetary-science zoom levels while keeping parse + GPU cost very low.
+        this._terrainGridSize = 32
+
+        // Max native zoom for Terrarium tiles (AWS elevation-tiles-prod).
+        // Beyond this level the server returns 404, so we fetch the tile
+        // at this level that covers the same area instead of returning
+        // empty heights (which makes the terrain go flat).
+        this._terrainMaxNativeZoom = 15
 
         // Check for demFallback configuration
         const demFallback = this.config.demFallback
 
         if (demFallback && demFallback.demPath) {
-            // Use configured fallback DEM
             await this._setTerrainFromConfig(demFallback)
         } else {
-            // Use Mapzen Terrarium as default free terrain
             await this._setMapzenTerrariumTerrain()
         }
     }
 
     /**
-     * Set terrain provider for Cesium using Mapzen Terrarium tiles
-     * Uses CustomHeightmapTerrainProvider with async tile loading
+     * Fetch a terrain PNG tile, downscale it, and parse RGB→heights.
+     * Shared by both Terrarium and custom DEM providers.
+     *
+     * @param {string} url - Tile URL
+     * @param {string} parserType - 'terrarium' | 'mapbox' | 'rgba'
+     * @param {boolean} cropBuffer - Whether to crop 1px buffer ring (TerrainRGB/mapbox)
+     * @param {Float64Array} emptyHeights - Pre-allocated empty array for failures
+     * @param {object} [srcRegion] - Optional sub-region of the source image to use
+     *   {sx, sy, sw, sh} in source-pixel coordinates.  Used when over-zooming
+     *   to extract only the quadrant that matches the requested tile.
+     * @returns {Float64Array} Parsed height grid (gridSize × gridSize)
+     */
+    async _fetchAndParseTerrainTile(url, parserType, cropBuffer, emptyHeights, srcRegion) {
+        const response = await fetch(url)
+        if (!response.ok || response.status !== 200) return emptyHeights
+
+        const blob = await response.blob()
+        // Disable color space conversion — even a 1-unit shift in R
+        // causes a 256m height jump in Terrarium encoding (R*256+G+B/256-32768)
+        const imageBitmap = await createImageBitmap(blob, {
+            colorSpaceConversion: 'none',
+        })
+
+        const gridSize = this._terrainGridSize
+
+        // Per-tile canvas so multiple tiles can decode in parallel.
+        // At 32×32 each canvas is ~4KB — negligible compared to the
+        // PNG fetch that preceded it.
+        const canvas = new OffscreenCanvas(gridSize, gridSize)
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })
+        ctx.imageSmoothingEnabled = false
+
+        // Draw the relevant portion of the source tile into the grid canvas.
+        // srcRegion is set when over-zooming beyond the tileset's max native
+        // zoom — it selects the quadrant of the lower-zoom tile that covers
+        // the requested area.  cropBuffer trims a 1px buffer ring for
+        // TerrainRGB/Mapbox tiles.  Otherwise the full image is used.
+        if (srcRegion) {
+            ctx.drawImage(
+                imageBitmap,
+                srcRegion.sx, srcRegion.sy, srcRegion.sw, srcRegion.sh,
+                0, 0,
+                gridSize, gridSize
+            )
+        } else if (cropBuffer) {
+            ctx.drawImage(
+                imageBitmap,
+                1, 1,
+                imageBitmap.width - 2, imageBitmap.height - 2,
+                0, 0,
+                gridSize, gridSize
+            )
+        } else {
+            ctx.drawImage(imageBitmap, 0, 0, gridSize, gridSize)
+        }
+
+        const terrainRGB = ctx.getImageData(0, 0, gridSize, gridSize).data
+        const heightMap = new Float64Array(gridSize * gridSize)
+
+        if (parserType === 'terrarium') {
+            for (let i = 0; i < heightMap.length; i++) {
+                const R = terrainRGB[i * 4]
+                const G = terrainRGB[i * 4 + 1]
+                const B = terrainRGB[i * 4 + 2]
+                heightMap[i] = R * 256 + G + B / 256 - 32768
+            }
+        } else if (parserType === 'mapbox' || parserType === 'rgba') {
+            for (let i = 0; i < heightMap.length; i++) {
+                const R = terrainRGB[i * 4]
+                const G = terrainRGB[i * 4 + 1]
+                const B = terrainRGB[i * 4 + 2]
+                const A = terrainRGB[i * 4 + 3]
+                heightMap[i] =
+                    A === 0
+                        ? 0
+                        : -10000 + (R * 256 * 256 + G * 256 + B) * 0.1
+            }
+        } else {
+            // Unknown parser type — default to Terrarium
+            for (let i = 0; i < heightMap.length; i++) {
+                const R = terrainRGB[i * 4]
+                const G = terrainRGB[i * 4 + 1]
+                const B = terrainRGB[i * 4 + 2]
+                heightMap[i] = R * 256 + G + B / 256 - 32768
+            }
+        }
+
+        return heightMap
+    }
+
+    /**
+     * Set terrain provider for Cesium using Mapzen Terrarium tiles.
+     * Uses CustomHeightmapTerrainProvider with async tile loading.
+     *
+     * Performance: Source tiles are 256×256 PNG but we downscale to
+     * TERRAIN_GRID_SIZE (default 32) before parsing. This reduces
+     * per-tile pixel work from 65K to ~1K and produces far less GPU
+     * geometry while Cesium bilinearly interpolates between samples.
+     * Each tile gets its own small OffscreenCanvas (32×32 ≈ 4 KB) so
+     * fetches decode in parallel without contention.
      */
     async _setMapzenTerrariumTerrain() {
         if (this.rendererType !== 'cesium') return
 
-        const tileSize = 256
-        const EMPTY_HEIGHTS = new Float64Array(tileSize * tileSize)
+        const gridSize = this._terrainGridSize
+        const EMPTY_HEIGHTS = new Float64Array(gridSize * gridSize)
 
         this.renderer.terrainProvider =
             new Cesium.CustomHeightmapTerrainProvider({
-                width: tileSize,
-                height: tileSize,
+                width: gridSize,
+                height: gridSize,
                 tilingScheme: new Cesium.WebMercatorTilingScheme(),
                 callback: async (x, y, level) => {
-                    // Skip very low zoom levels where tiles may not exist
                     if (level < 4) return EMPTY_HEIGHTS
 
-                    try {
-                        const url = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${level}/${x}/${y}.png`
-                        const response = await fetch(url)
-
-                        if (response.ok && response.status === 200) {
-                            // Extract the image and render it into an offscreen canvas
-                            const blob = await response.blob()
-                            const imageBitmap = await createImageBitmap(blob)
-                            const canvas = new OffscreenCanvas(
-                                tileSize,
-                                tileSize
-                            )
-                            const ctx = canvas.getContext('2d')
-                            ctx.imageSmoothingEnabled = false // No interpolation when downsizing
-
-                            // Draw full image (Terrarium has no buffer ring, unlike TerrainRGB)
-                            ctx.drawImage(imageBitmap, 0, 0, tileSize, tileSize)
-
-                            // Get pixel data
-                            const terrainRGB = ctx.getImageData(
-                                0,
-                                0,
-                                tileSize,
-                                tileSize
-                            ).data
-
-                            // Parse Terrarium pixels into Float64Array height-map
-                            const heightMap = new Float64Array(
-                                tileSize * tileSize
-                            )
-                            for (let i = 0; i < heightMap.length; i++) {
-                                const R = terrainRGB[i * 4 + 0]
-                                const G = terrainRGB[i * 4 + 1]
-                                const B = terrainRGB[i * 4 + 2]
-                                // Terrarium format: (R * 256 + G + B / 256) - 32768
-                                heightMap[i] = R * 256 + G + B / 256 - 32768
-                            }
-                            return heightMap
+                    // Clamp to max native zoom — fetch the
+                    // lower-zoom tile and extract only the sub-region
+                    // that corresponds to the requested tile.
+                    let fetchLevel = level
+                    let fetchX = x
+                    let fetchY = y
+                    let srcRegion = null
+                    if (level > this._terrainMaxNativeZoom) {
+                        const shift = level - this._terrainMaxNativeZoom
+                        fetchLevel = this._terrainMaxNativeZoom
+                        fetchX = x >> shift
+                        fetchY = y >> shift
+                        // Identify which sub-tile within the source tile
+                        const subTiles = 1 << shift
+                        const subX = x - (fetchX << shift)
+                        const subY = y - (fetchY << shift)
+                        const srcTileSize = 256 // source PNG is 256×256
+                        const regionSize = srcTileSize / subTiles
+                        srcRegion = {
+                            sx: subX * regionSize,
+                            sy: subY * regionSize,
+                            sw: regionSize,
+                            sh: regionSize,
                         }
+                    }
+
+                    try {
+                        const url = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${fetchLevel}/${fetchX}/${fetchY}.png`
+                        return await this._fetchAndParseTerrainTile(
+                            url, 'terrarium', false, EMPTY_HEIGHTS, srcRegion
+                        )
                     } catch (error) {
                         // Silently fail and return empty heights for missing/invalid tiles
                     }
@@ -241,135 +380,60 @@ class GlobeRenderer {
     }
 
     /**
-     * Set terrain from demFallback configuration
-     * Supports multiple parser types: terrarium, mapbox, rgba (TerrainRGB)
+     * Set terrain from demFallback configuration.
+     * Supports multiple parser types: terrarium, mapbox, rgba (TerrainRGB).
+     * Uses the same downscale + shared canvas pipeline as _setMapzenTerrariumTerrain.
      */
     async _setTerrainFromConfig(demConfig) {
         if (this.rendererType !== 'cesium') return
 
-        // Check if we should use custom DEM or fall back to Terrarium
         if (!demConfig.demPath || demConfig.demPath === 'default') {
             await this._setMapzenTerrariumTerrain()
             return
         }
 
-        const tileSize = 256
-        const EMPTY_HEIGHTS = new Float64Array(tileSize * tileSize)
+        // If the demPath is a raw file (no {z}/{x}/{y} tile placeholders),
+        // it can't be used as a tile endpoint — fall back to Terrarium.
+        const hasTilePlaceholders =
+            demConfig.demPath.includes('{z}') ||
+            demConfig.demPath.includes('{x}') ||
+            demConfig.demPath.includes('{y}') ||
+            demConfig.demPath.includes('{level}')
+        if (!hasTilePlaceholders) {
+            console.warn(
+                `[GlobeRenderer] demFallbackPath "${demConfig.demPath}" has no tile ` +
+                `placeholders ({z}/{x}/{y}) — falling back to Mapzen Terrarium terrain.`
+            )
+            await this._setMapzenTerrariumTerrain()
+            return
+        }
+
+        const gridSize = this._terrainGridSize
+        const EMPTY_HEIGHTS = new Float64Array(gridSize * gridSize)
         const parserType = demConfig.parserType || 'rgba'
+        const cropBuffer = parserType === 'mapbox' || parserType === 'rgba'
 
         this.renderer.terrainProvider =
             new Cesium.CustomHeightmapTerrainProvider({
-                width: tileSize,
-                height: tileSize,
+                width: gridSize,
+                height: gridSize,
                 tilingScheme: new Cesium.WebMercatorTilingScheme(),
                 callback: async (x, y, level) => {
-                    // Skip very low zoom levels where tiles may not exist
                     if (level < 4) return EMPTY_HEIGHTS
 
                     try {
-                        // Build URL from demConfig.demPath template
-                        // Resolve Y before replacing so the TMS flip isn't a no-op
                         const tileY = demConfig.format === 'tms'
                             ? Math.pow(2, level) - 1 - y
                             : y
-                        let url = demConfig.demPath
+                        const url = demConfig.demPath
                             .replace('{z}', level)
                             .replace('{x}', x)
                             .replace('{y}', tileY)
                             .replace('{level}', level)
 
-                        const response = await fetch(url)
-
-                        if (response.ok && response.status === 200) {
-                            // Extract the image and render it into an offscreen canvas
-                            const blob = await response.blob()
-                            const imageBitmap = await createImageBitmap(blob)
-                            const canvas = new OffscreenCanvas(
-                                tileSize,
-                                tileSize
-                            )
-                            const ctx = canvas.getContext('2d')
-                            ctx.imageSmoothingEnabled = false
-
-                            // Crop 1-pixel buffer for TerrainRGB/mapbox formats (not for terrarium)
-                            if (
-                                parserType === 'mapbox' ||
-                                parserType === 'rgba'
-                            ) {
-                                // TerrainRGB has a 1-pixel buffer ring, crop it off
-                                ctx.drawImage(
-                                    imageBitmap,
-                                    1,
-                                    1,
-                                    imageBitmap.width - 2,
-                                    imageBitmap.height - 2,
-                                    0,
-                                    0,
-                                    tileSize,
-                                    tileSize
-                                )
-                            } else {
-                                // Terrarium has no buffer, use full image
-                                ctx.drawImage(
-                                    imageBitmap,
-                                    0,
-                                    0,
-                                    tileSize,
-                                    tileSize
-                                )
-                            }
-
-                            // Get pixel data
-                            const terrainRGB = ctx.getImageData(
-                                0,
-                                0,
-                                tileSize,
-                                tileSize
-                            ).data
-
-                            // Parse pixels into Float64Array height-map based on parser type
-                            const heightMap = new Float64Array(
-                                tileSize * tileSize
-                            )
-
-                            if (parserType === 'terrarium') {
-                                // Terrarium format: (R * 256 + G + B / 256) - 32768
-                                for (let i = 0; i < heightMap.length; i++) {
-                                    const R = terrainRGB[i * 4 + 0]
-                                    const G = terrainRGB[i * 4 + 1]
-                                    const B = terrainRGB[i * 4 + 2]
-                                    heightMap[i] = R * 256 + G + B / 256 - 32768
-                                }
-                            } else if (
-                                parserType === 'mapbox' ||
-                                parserType === 'rgba'
-                            ) {
-                                // TerrainRGB/Mapbox format: -10000 + ((R * 256 * 256 + G * 256 + B) * 0.1)
-                                for (let i = 0; i < heightMap.length; i++) {
-                                    const R = terrainRGB[i * 4 + 0]
-                                    const G = terrainRGB[i * 4 + 1]
-                                    const B = terrainRGB[i * 4 + 2]
-                                    const A = terrainRGB[i * 4 + 3]
-                                    // A === 0 means the data is garbage
-                                    heightMap[i] =
-                                        A === 0
-                                            ? 0
-                                            : -10000 +
-                                              (R * 256 * 256 + G * 256 + B) *
-                                                  0.1
-                                }
-                            } else {
-                                // Unknown parser type, default to terrarium
-                                for (let i = 0; i < heightMap.length; i++) {
-                                    const R = terrainRGB[i * 4 + 0]
-                                    const G = terrainRGB[i * 4 + 1]
-                                    const B = terrainRGB[i * 4 + 2]
-                                    heightMap[i] = R * 256 + G + B / 256 - 32768
-                                }
-                            }
-
-                            return heightMap
-                        }
+                        return await this._fetchAndParseTerrainTile(
+                            url, parserType, cropBuffer, EMPTY_HEIGHTS
+                        )
                     } catch (error) {
                         // Silently fail and return empty heights for missing/invalid tiles
                     }
@@ -386,6 +450,13 @@ class GlobeRenderer {
      * @param {object} layerConfig - Layer configuration
      */
     addLayer(type, layerConfig) {
+        if (type === 'gradient_polyline') {
+            if (this.rendererType === 'cesium') {
+                return this._addCesiumGradientPolyline(layerConfig)
+            }
+            // LithoSphere 1.6.0+: map to 'gradient' layer type
+            return this._addLithoSphereGradient(layerConfig)
+        }
         if (this.rendererType === 'lithosphere') {
             return this.renderer.addLayer(type, layerConfig)
         } else {
@@ -507,6 +578,7 @@ class GlobeRenderer {
                 },
                 originalUrl: layerConfig.path, // Store template URL for rebuilding
             }
+            this._requestRender()
         } else if (type === 'vector' || type === 'clamped') {
             // Check if this layer is already being loaded (prevent duplicate async loads)
             if (this._loadingLayers[name]) {
@@ -702,6 +774,7 @@ class GlobeRenderer {
                     onClick: layerConfig.onClick, // Store callback for global handler
                     featureMap: featureMap, // Store id→original feature mapping
                 }
+                this._requestRender()
             })
         } else if (type === 'model') {
             // Model layers not implemented for core features
@@ -709,6 +782,324 @@ class GlobeRenderer {
         } else if (type === 'curtain') {
             // Curtain layers not implemented for core features
             console.warn('Curtain layers not yet supported for Cesium renderer')
+        }
+    }
+
+    /**
+     * Add a gradient polyline layer to Cesium using the Primitive API.
+     *
+     * Builds ONE PolylineGeometry per continuous path with per-vertex
+     * colors.  For a 24K-point dataset this produces a single draw
+     * call instead of tens of thousands of Entity objects or
+     * GeometryInstances.
+     *
+     * Hover tooltips use a spatial grid index for O(1) nearest-vertex
+     * lookup — no point entities are created.
+     *
+     * @param {object} layerConfig - { name, geojson, gradientSettings, layerObj }
+     * @returns {string} Layer name used as ID for removal
+     */
+    _addLithoSphereGradient(layerConfig) {
+        const layerName = `${layerConfig.name}_gradient`
+
+        // Remove existing gradient layer with that name if present
+        this.renderer.removeLayer(layerName)
+
+        const lithoConfig = {
+            name: layerName,
+            on: true,
+            opacity: 1,
+            geojson: layerConfig.geojson,
+            gradientSettings: layerConfig.gradientSettings,
+        }
+
+        this.renderer.addLayer('gradient', lithoConfig)
+
+        return layerName
+    }
+
+    _addCesiumGradientPolyline(layerConfig) {
+        const { name, geojson, gradientSettings } = layerConfig
+        const layerName = `${name}_gradient`
+
+        // Remove existing gradient layer if present
+        if (this._layers[layerName]) {
+            this._removeCesiumGradientPolyline(layerName)
+        }
+
+        const colorStops = buildColorStops(gradientSettings.colorRamp)
+        const weight = gradientSettings.weight || 4
+
+        // Register the layer entry immediately so the caller gets the ID back
+        // synchronously.  All heavy work (vertex collection + geometry build)
+        // runs inside _buildCesiumGradientAsync with a per-frame time budget so
+        // the UI is never blocked.
+        const gridRes = 0.01
+        const buildId = Symbol()
+        this._layers[layerName] = {
+            type: 'gradient_polyline',
+            primitive: null,
+            visible: true,
+            hoverSegments: [],
+            segmentGrid: {},
+            gridRes,
+            _buildId: buildId,
+        }
+
+        this._buildCesiumGradientAsync(
+            layerName, buildId, geojson, gradientSettings, colorStops, weight, gridRes
+        )
+
+        return layerName
+    }
+
+    /**
+     * Async builder for gradient polyline geometry.
+     * Both Phase 1 (vertex collection) and Phase 2 (Cesium geometry build)
+     * run here so the main thread is never blocked.  A per-frame time budget
+     * (FRAME_BUDGET_MS) is used instead of fixed chunk sizes: we check
+     * performance.now() every CHECK_INTERVAL iterations and yield via
+     * requestAnimationFrame whenever we've used the budget.  This adapts to
+     * the machine's speed and guarantees ≤FRAME_BUDGET_MS of blocking per
+     * frame regardless of dataset size.
+     *
+     * buildId is a Symbol stamped on the layer entry at creation time —
+     * if it no longer matches when we resume after a yield, the layer was
+     * removed or replaced and this build should abort.
+     */
+    async _buildCesiumGradientAsync(
+        layerName, buildId, geojson, gradientSettings, colorStops, weight, gridRes
+    ) {
+        const isStale = () =>
+            this._layers[layerName]?._buildId !== buildId
+
+        // Time-budget yielding: yield to the browser via rAF whenever we've
+        // spent FRAME_BUDGET_MS in the current frame.  CHECK_INTERVAL controls
+        // how often we check the clock (every N iterations); smaller = lower
+        // peak blocking but slightly more overhead.
+        const FRAME_BUDGET_MS = 10
+        const CHECK_INTERVAL = 100
+        let frameDeadline = performance.now() + FRAME_BUDGET_MS
+        const yieldIfNeeded = () => {
+            if (performance.now() < frameDeadline) return Promise.resolve()
+            return new Promise((resolve) => {
+                requestAnimationFrame(() => {
+                    frameDeadline = performance.now() + FRAME_BUDGET_MS
+                    resolve()
+                })
+            })
+        }
+
+        // ── Phase 1: Collect all vertices with property values ──
+        const colorWithProp = gradientSettings.colorWithProp
+        const allPaths = []
+        let min = Infinity
+        let max = -Infinity
+
+        if (gradientSettings.connectAllPoints) {
+            const points = []
+            for (let fi = 0; fi < geojson.features.length; fi++) {
+                if (fi % CHECK_INTERVAL === 0) {
+                    await yieldIfNeeded()
+                    if (isStale()) return
+                }
+                const feature = geojson.features[fi]
+                if (feature.geometry.type.toLowerCase() === 'point') {
+                    const coords = feature.geometry.coordinates
+                    const value = F_.getIn(feature.properties, colorWithProp, 0)
+                    if (min > value) min = value
+                    if (max < value) max = value
+                    points.push({
+                        lng: coords[0], lat: coords[1],
+                        elev: coords[2] || 0, value,
+                        props: feature.properties,
+                    })
+                }
+            }
+            if (points.length >= 2) allPaths.push(points)
+        } else {
+            for (let fi = 0; fi < geojson.features.length; fi++) {
+                if (fi % CHECK_INTERVAL === 0) {
+                    await yieldIfNeeded()
+                    if (isStale()) return
+                }
+                const feature = geojson.features[fi]
+                const paths = []
+                let path = []
+                let prevParentIndex = null
+
+                F_.coordinateDepthTraversal(
+                    feature.geometry.coordinates,
+                    (array, _path) => {
+                        const splitPath = _path.split('.')
+                        let parentIndex = null
+                        if (splitPath.length >= 2) {
+                            parentIndex = splitPath[splitPath.length - 2]
+                            if (prevParentIndex != null && parentIndex != prevParentIndex) {
+                                paths.push(path)
+                                path = []
+                            }
+                        }
+                        const props = getCoordProperties(geojson, feature, array)
+                        const value = F_.getIn(props, colorWithProp, 0)
+                        if (min > value) min = value
+                        if (max < value) max = value
+                        path.push({
+                            lng: array[0], lat: array[1],
+                            elev: array[2] || 0, value, props,
+                        })
+                        prevParentIndex = parentIndex
+                    }
+                )
+                if (path.length > 0) paths.push(path)
+                paths.forEach((p) => { if (p.length >= 2) allPaths.push(p) })
+            }
+        }
+
+        if (min === 0 && max === 0) max = 1
+        if (isStale()) return
+
+        // ── Phase 2: Build Cesium geometry + hover data ──
+        // Memoize color by exact value — gradient data often has many repeated
+        // readings (quantized sensor values, integer speeds, etc.).
+        // Parse rgb(r,g,b) directly into a Cesium.Color to skip the
+        // rgbToHex → fromCssColorString string round-trip.
+        const colorCache = new Map()
+        const colorForValue = (v) => {
+            if (colorCache.has(v)) return colorCache.get(v)
+            const c = interpolateMultipleColors(colorStops, v, min, max)
+            let color
+            if (c) {
+                const m = c.match(/(\d+),\s*(\d+),\s*(\d+)/)
+                color = m
+                    ? new Cesium.Color(+m[1] / 255, +m[2] / 255, +m[3] / 255, 1.0)
+                    : (Cesium.Color.fromCssColorString(c) ?? Cesium.Color.WHITE)
+            } else {
+                color = Cesium.Color.WHITE
+            }
+            colorCache.set(v, color)
+            return color
+        }
+
+        const geometryInstances = []
+        const hoverSegments = []
+
+        for (const pts of allPaths) {
+            const positions = []
+            const colors = []
+
+            for (let i = 0; i < pts.length; i++) {
+                if (i % CHECK_INTERVAL === 0) {
+                    await yieldIfNeeded()
+                    if (isStale()) return
+                }
+                const p = pts[i]
+                positions.push(Cesium.Cartesian3.fromDegrees(p.lng, p.lat, p.elev))
+                colors.push(colorForValue(p.value))
+            }
+
+            if (positions.length >= 2) {
+                geometryInstances.push(
+                    new Cesium.GeometryInstance({
+                        geometry: new Cesium.PolylineGeometry({
+                            positions,
+                            colors,
+                            colorsPerVertex: true,
+                            width: weight,
+                        }),
+                    })
+                )
+            }
+
+            for (let i = 0; i < pts.length - 1; i++) {
+                if (i % CHECK_INTERVAL === 0) {
+                    await yieldIfNeeded()
+                    if (isStale()) return
+                }
+                const p1 = pts[i], p2 = pts[i + 1]
+                hoverSegments.push({
+                    lng1: p1.lng, lat1: p1.lat, elev1: p1.elev || 0,
+                    lng2: p2.lng, lat2: p2.lat, elev2: p2.elev || 0,
+                })
+            }
+        }
+
+        if (isStale()) return
+
+        // ── Build spatial grid ──
+        // Register each segment at evenly-spaced sample points (every 2 cells).
+        // The caller (setGradientHoverPoint) checks a 3×3 neighbourhood, so any
+        // query point within 1 cell of a sample finds the segment.  Steps are
+        // capped at 12 per segment so worst-case cost is O(12N), not O(N × span²).
+        const segmentGrid = {}
+        for (let idx = 0; idx < hoverSegments.length; idx++) {
+            if (idx % CHECK_INTERVAL === 0) {
+                await yieldIfNeeded()
+                if (isStale()) return
+            }
+            const seg = hoverSegments[idx]
+            const gx1 = Math.floor(seg.lng1 / gridRes)
+            const gy1 = Math.floor(seg.lat1 / gridRes)
+            const gx2 = Math.floor(seg.lng2 / gridRes)
+            const gy2 = Math.floor(seg.lat2 / gridRes)
+            const span = Math.max(Math.abs(gx2 - gx1), Math.abs(gy2 - gy1))
+            const steps = Math.min(12, Math.max(1, Math.ceil(span / 2)))
+            const seenCells = new Set()
+            for (let s = 0; s <= steps; s++) {
+                const t = s / steps
+                const gx = Math.floor((seg.lng1 + t * (seg.lng2 - seg.lng1)) / gridRes)
+                const gy = Math.floor((seg.lat1 + t * (seg.lat2 - seg.lat1)) / gridRes)
+                const key = `${gx},${gy}`
+                if (seenCells.has(key)) continue
+                seenCells.add(key)
+                if (!segmentGrid[key]) segmentGrid[key] = []
+                segmentGrid[key].push(idx)
+            }
+        }
+
+        // ── Create Primitive ──
+        // asynchronous:true compiles geometry in a Web Worker.
+        // pollReady drives the compilation under requestRenderMode:true.
+        let primitive = null
+        if (geometryInstances.length > 0) {
+            primitive = new Cesium.Primitive({
+                geometryInstances,
+                appearance: new Cesium.PolylineColorAppearance(),
+                asynchronous: true,
+            })
+            this.renderer.scene.primitives.add(primitive)
+
+            const pollReady = () => {
+                if (primitive.isDestroyed()) return
+                this._requestRender()
+                if (!primitive.ready) requestAnimationFrame(pollReady)
+            }
+            requestAnimationFrame(pollReady)
+        }
+
+        // Fill in the layer entry that was registered synchronously
+        if (isStale()) {
+            // A newer build superseded this one — discard our primitive
+            if (primitive) this.renderer.scene.primitives.remove(primitive)
+            return
+        }
+        this._layers[layerName].primitive = primitive
+        this._layers[layerName].hoverSegments = hoverSegments
+        this._layers[layerName].segmentGrid = segmentGrid
+    }
+
+    /**
+     * Remove a gradient polyline layer from Cesium
+     * @param {string} layerName - Layer name (with _gradient suffix)
+     */
+    _removeCesiumGradientPolyline(layerName) {
+        const layerInfo = this._layers[layerName]
+        if (layerInfo && layerInfo.type === 'gradient_polyline') {
+            if (layerInfo.primitive) {
+                this.renderer.scene.primitives.remove(layerInfo.primitive)
+            }
+            delete this._layers[layerName]
+            this._requestRender()
         }
     }
 
@@ -831,8 +1222,8 @@ class GlobeRenderer {
         // Default to ISO format if no format specified
         const timeFormat =
             timeConfig.format == null || timeConfig.format == ''
-                ? d3.utcFormat('%Y-%m-%dT%H:%M:%SZ')
-                : d3.utcFormat(timeConfig.format)
+                ? utcFormat('%Y-%m-%dT%H:%M:%SZ')
+                : utcFormat(timeConfig.format)
 
         let processedUrl = url
 
@@ -982,6 +1373,7 @@ class GlobeRenderer {
 
         // Update reference
         layerInfo.layer = newLayer
+        this._requestRender()
     }
 
     /**
@@ -1079,6 +1471,7 @@ class GlobeRenderer {
 
         // Update reference
         layerInfo.layer = newLayer
+        this._requestRender()
     }
 
     /**
@@ -1116,6 +1509,9 @@ class GlobeRenderer {
             if (layerInfo) {
                 if (layerInfo.type === 'tile') {
                     this.renderer.imageryLayers.remove(layerInfo.layer)
+                } else if (layerInfo.type === 'gradient_polyline') {
+                    this._removeCesiumGradientPolyline(name)
+                    return
                 } else if (layerInfo.type === 'vector') {
                     const removed = this.renderer.dataSources.remove(
                         layerInfo.dataSource
@@ -1126,6 +1522,7 @@ class GlobeRenderer {
                     delete layerInfo.featureMap
                 }
                 delete this._layers[name]
+                this._requestRender()
             }
         }
     }
@@ -1172,11 +1569,16 @@ class GlobeRenderer {
             }
 
             layerInfo.visible = visible
+        } else if (layerInfo.type === 'gradient_polyline') {
+            if (layerInfo.primitive) {
+                layerInfo.primitive.show = visible
+            }
+            layerInfo.visible = visible
         } else if (layerInfo.type === 'vector') {
-            // Vector layers use simple visibility toggle
             layerInfo.dataSource.show = visible
             layerInfo.visible = visible
         }
+        this._requestRender()
     }
 
     /**
@@ -1248,6 +1650,7 @@ class GlobeRenderer {
             const layerInfo = this._layers[name]
             if (layerInfo && layerInfo.type === 'tile') {
                 layerInfo.layer.alpha = opacity
+                this._requestRender()
             }
         }
     }
@@ -1307,6 +1710,106 @@ class GlobeRenderer {
             // Update reference
             if (newLayer) layerInfo.layer = newLayer
         }
+        this._requestRender()
+    }
+
+    /**
+     * Create the gradient-polyline hover dot primitive.
+     * Hover detection is driven by the 2D map; call setGradientHoverPoint /
+     * clearGradientHoverPoint to show/hide the dot from outside.
+     */
+    _setupGradientHoverHandler() {
+        if (this.rendererType !== 'cesium') return
+
+        const scene = this.renderer.scene
+        const hoverDotCollection = new Cesium.PointPrimitiveCollection()
+        const hoverDot = hoverDotCollection.add({
+            show: false,
+            pixelSize: 10,
+            color: Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 2,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            position: Cesium.Cartesian3.ZERO,
+        })
+        scene.primitives.add(hoverDotCollection)
+        this._gradientHoverDotCollection = hoverDotCollection
+        this._gradientHoverDot = hoverDot
+    }
+
+    /**
+     * Position the 3D gradient hover dot at the closest point on any visible
+     * gradient_polyline layer to the given lat/lng.  The correct elevation is
+     * resolved from the 3D segment data so the dot lands on the spiral.
+     * Called from the 2D (Leaflet) mousemove handler.
+     */
+    setGradientHoverPoint(lng, lat) {
+        if (this.rendererType !== 'cesium' || !this._gradientHoverDot) return
+
+        // Find the 3D segment whose projection onto (lng, lat) is closest,
+        // so we can read the correct interpolated elevation for the dot.
+        let bestDist = Infinity
+        let bestLng = lng
+        let bestLat = lat
+        let bestElev = 0
+
+        for (const lName in this._layers) {
+            const li = this._layers[lName]
+            if (li.type !== 'gradient_polyline' || !li.visible) continue
+            const { hoverSegments, segmentGrid, gridRes } = li
+            if (!hoverSegments || !segmentGrid) continue
+
+            const gx = Math.floor(lng / gridRes)
+            const gy = Math.floor(lat / gridRes)
+            const seen = new Set()
+
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    const bucket = segmentGrid[`${gx + dx},${gy + dy}`]
+                    if (!bucket) continue
+                    for (let k = 0; k < bucket.length; k++) {
+                        const idx = bucket[k]
+                        if (seen.has(idx)) continue
+                        seen.add(idx)
+                        const seg = hoverSegments[idx]
+                        const { t, dist } = closestPointOnSegment(
+                            lng, lat, seg.lng1, seg.lat1, seg.lng2, seg.lat2
+                        )
+                        if (dist < bestDist) {
+                            bestDist = dist
+                            bestLng = seg.lng1 + t * (seg.lng2 - seg.lng1)
+                            bestLat = seg.lat1 + t * (seg.lat2 - seg.lat1)
+                            bestElev =
+                                (seg.elev1 || 0) +
+                                t * ((seg.elev2 || 0) - (seg.elev1 || 0))
+                        }
+                    }
+                }
+            }
+        }
+
+        if (bestDist === Infinity) {
+            this._gradientHoverDot.show = false
+            this._requestRender()
+            return
+        }
+
+        this._gradientHoverDot.position = Cesium.Cartesian3.fromDegrees(
+            bestLng, bestLat, bestElev
+        )
+        this._gradientHoverDot.show = true
+        this._requestRender()
+    }
+
+    /**
+     * Hide the 3D gradient hover dot.
+     * Called from the 2D (Leaflet) mousemove / mouseout handler.
+     */
+    clearGradientHoverPoint() {
+        if (this.rendererType !== 'cesium' || !this._gradientHoverDot) return
+        if (!this._gradientHoverDot.show) return
+        this._gradientHoverDot.show = false
+        this._requestRender()
     }
 
     /**
@@ -1506,9 +2009,62 @@ class GlobeRenderer {
             if (id === 'mmgisLithoLink') {
                 return this._setupCesiumLinkControl(options)
             }
+            if (id === 'mmgisLithoCoords') {
+                return this._setupCesiumCoordsControl(options)
+            }
             // Return a mock control object for other controls
             return {}
         }
+    }
+
+    /**
+     * Wire up the Cesium mouse-move handler that drives the coordinate display.
+     * Calls options.onChange(lng, lat, elev) on every mouse-move over the globe,
+     * and onChange(null, null, null) when the pointer leaves the canvas.
+     */
+    _setupCesiumCoordsControl(options) {
+        if (!options || !options.onChange) return {}
+
+        const viewer = this.renderer
+        const scene = viewer.scene
+        const canvas = scene.canvas
+
+        const handler = new Cesium.ScreenSpaceEventHandler(canvas)
+
+        let rafPending = false
+        handler.setInputAction((movement) => {
+            if (rafPending) return
+            rafPending = true
+            requestAnimationFrame(() => {
+                rafPending = false
+                const cartesian = viewer.camera.pickEllipsoid(
+                    movement.endPosition,
+                    scene.globe.ellipsoid
+                )
+                if (cartesian) {
+                    const carto = Cesium.Cartographic.fromCartesian(cartesian)
+                    const lng = Cesium.Math.toDegrees(carto.longitude)
+                    const lat = Cesium.Math.toDegrees(carto.latitude)
+                    // Try to get the terrain elevation at this position.
+                    // scene.sampleHeight samples the currently-rendered tiles
+                    // synchronously; it returns undefined if tiles aren't loaded yet.
+                    let elev = null
+                    try {
+                        const h = scene.sampleHeight(carto)
+                        if (h != null && isFinite(h)) elev = h
+                    } catch (_) { /* terrain not available */ }
+                    options.onChange(lng, lat, elev)
+                } else {
+                    options.onChange(null, null, null)
+                }
+            })
+        }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
+
+        canvas.addEventListener('mouseout', () => {
+            options.onChange(null, null, null)
+        })
+
+        return { _handler: handler }
     }
 
     /**
@@ -1678,27 +2234,32 @@ class GlobeRenderer {
         // Track mouse movement over the globe
         const handler = new Cesium.ScreenSpaceEventHandler(canvas)
 
+        let mouseMoveRafPending = false
         handler.setInputAction((movement) => {
             if (!linkControl._isLinked) return
+            if (mouseMoveRafPending) return
+            mouseMoveRafPending = true
+            requestAnimationFrame(() => {
+                mouseMoveRafPending = false
+                const cartesian = viewer.camera.pickEllipsoid(
+                    movement.endPosition,
+                    scene.globe.ellipsoid
+                )
+                if (cartesian) {
+                    const cartographic =
+                        Cesium.Cartographic.fromCartesian(cartesian)
+                    const lng = Cesium.Math.toDegrees(cartographic.longitude)
+                    const lat = Cesium.Math.toDegrees(cartographic.latitude)
 
-            const cartesian = viewer.camera.pickEllipsoid(
-                movement.endPosition,
-                scene.globe.ellipsoid
-            )
-            if (cartesian) {
-                const cartographic =
-                    Cesium.Cartographic.fromCartesian(cartesian)
-                const lng = Cesium.Math.toDegrees(cartographic.longitude)
-                const lat = Cesium.Math.toDegrees(cartographic.latitude)
+                    // Update mouse position
+                    this.mouse.lng = lng
+                    this.mouse.lat = lat
 
-                // Update mouse position
-                this.mouse.lng = lng
-                this.mouse.lat = lat
-
-                if (options.onMouseMove) {
-                    options.onMouseMove(lng, lat)
+                    if (options.onMouseMove) {
+                        options.onMouseMove(lng, lat)
+                    }
                 }
-            }
+            })
         }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
 
         linkControl._mouseMoveListener = handler
@@ -2186,6 +2747,8 @@ class GlobeRenderer {
             // Apply red tint
             entity.billboard.color = Cesium.Color.RED
         }
+
+        this._requestRender()
     }
 
     /**
@@ -2263,6 +2826,8 @@ class GlobeRenderer {
         // Clear references
         this._highlightedEntity = null
         this._originalEntityStyle = null
+
+        this._requestRender()
     }
 }
 
