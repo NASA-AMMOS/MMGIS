@@ -32,6 +32,7 @@ function _repositionBottomElements() {
         }
         const toolbar = document.getElementById('toolbar')
         if (toolbar) {
+            toolbar.style.transition = 'bottom 0.4s ease-out'
             toolbar.style.bottom = pxIsTools + 'px'
         }
 
@@ -53,8 +54,12 @@ function _repositionBottomElements() {
         // When inactive, elements sit at 0 (above tools area only).
         const newBottom = timeUIActive ? timeUIHeight : 0
 
+        // Smooth transition matching the horizontal tools ease-out
+        const ease = 'bottom 0.4s ease-out'
+
         const mapToolBar = document.getElementById('mapToolBar')
         if (mapToolBar) {
+            mapToolBar.style.transition = ease
             mapToolBar.style.bottom = (pxIsTools + newBottom) + 'px'
         }
 
@@ -63,16 +68,19 @@ function _repositionBottomElements() {
         // which sets attributions bottom to just pxIsTools)
         const attributions = document.getElementById('mmgis-attributions')
         if (attributions) {
+            attributions.style.transition = ease
             attributions.style.bottom = pxIsTools + 'px'
         }
 
         const scaleFactor = document.querySelector('.leaflet-control-scalefactor')
         if (scaleFactor) {
+            scaleFactor.style.transition = ease
             scaleFactor.style.bottom = (pxIsTools + 28) + 'px'
         }
 
         const compass = document.getElementById('mmgis-map-compass')
         if (compass) {
+            compass.style.transition = ease
             if (!attributions || attributions.textContent.trim().length === 0) {
                 compass.style.bottom = (pxIsTools + 38) + 'px'
             } else {
@@ -82,16 +90,19 @@ function _repositionBottomElements() {
 
         const leafletBottomRight = document.querySelector('.leaflet-bottom.leaflet-right')
         if (leafletBottomRight) {
+            leafletBottomRight.style.transition = ease
             leafletBottomRight.style.bottom = (pxIsTools + newBottom) + 'px'
         }
 
         const coordsDiv = document.getElementById('CoordinatesDiv')
         if (coordsDiv) {
+            coordsDiv.style.transition = ease
             coordsDiv.style.bottom = (pxIsTools + newBottom) + 'px'
         }
 
         const timeUIEl = document.getElementById('timeUI')
         if (timeUIEl) {
+            timeUIEl.style.transition = ease
             timeUIEl.style.bottom = pxIsTools + 'px'
         }
     }
