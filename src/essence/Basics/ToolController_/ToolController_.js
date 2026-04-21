@@ -49,8 +49,8 @@ let ToolController_ = {
     },
 
     clear() {
-        const toolbarTools = document.getElementById('toolbarTools')
-        if (toolbarTools) toolbarTools.remove()
+        // Don't remove #toolbarTools — it's React-managed.
+        // Setting toolsLoaded: false (below) causes Toolbar.jsx to unmount it.
         this.tools = null
         this.toolModuleNames = []
         this.toolModules = toolModules

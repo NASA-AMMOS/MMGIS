@@ -301,7 +301,7 @@ let BottomBar = {
                 toolbars: L_.configData.look.toolbar != false,
                 scalebar: L_.configData.look.scalebar != false,
                 coordinates: L_.configData.look.coorindates != false,
-                graticule: this.UI_.Map_.graticule != null,
+                graticule: this.UI_ && this.UI_.Map_ ? this.UI_.Map_.graticule != null : false,
                 miscellaneous: L_.configData.look.miscellaneous != false,
             }
             // prettier-ignore
