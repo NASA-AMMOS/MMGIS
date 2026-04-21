@@ -39,9 +39,17 @@ function ToolPanel() {
                 const newWidth =
                     parseInt(dragRef.current.style.left) - 10
                 if (newWidth > 0) {
+                    // Use active tool's configured width as minimum,
+                    // matching UserInterfaceBridge.resizeToolPanel()
+                    const ToolController_ =
+                        require('../../ToolController_/ToolController_').default
+                    const activeTool = ToolController_.getTool(
+                        ToolController_.activeToolName
+                    )
+                    const minWidth = (activeTool && activeTool.width) || 300
                     const clampedWidth = Math.max(
                         Math.min(newWidth, window.innerWidth / 2),
-                        300
+                        minWidth
                     )
                     useUIStore.getState().openToolPanel(clampedWidth)
 
