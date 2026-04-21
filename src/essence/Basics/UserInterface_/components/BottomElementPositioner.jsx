@@ -89,7 +89,7 @@ function BottomElementPositioner() {
             const scaleFactor = document.querySelector('.leaflet-control-scalefactor')
             if (scaleFactor) {
                 scaleFactor.style.transition = ease
-                scaleFactor.style.bottom = (pxIsTools + 28) + 'px'
+                scaleFactor.style.bottom = (pxIsTools + 48) + 'px'
             }
 
             // Compass is also a child of .leaflet-bottom.leaflet-left.
