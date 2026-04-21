@@ -53,7 +53,7 @@ let ToolController_ = {
         if (toolbarTools) toolbarTools.remove()
         this.tools = null
         this.toolModuleNames = []
-        this.toolModules = []
+        this.toolModules = {}
         useUIStore.getState().setToolsList([])
         useUIStore.getState().setToolsLoaded(false)
     },
