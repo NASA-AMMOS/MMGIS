@@ -114,14 +114,20 @@ const pool = new Pool({
 });
 const sessionSecret = process.env.SECRET;
 if (!sessionSecret) {
-  throw new Error(
+  logger(
+    "infrastructure_error",
     "FATAL: The SECRET environment variable is not set. Please set it to a strong random string for session security.",
+    "server",
   );
+  process.exit(1);
 }
 if (sessionSecret.length < 24) {
-  throw new Error(
+  logger(
+    "infrastructure_error",
     "FATAL: The SECRET environment variable is too short (minimum 24 characters). Please set it to a strong random string for session security.",
+    "server",
   );
+  process.exit(1);
 }
 app.use(
   session({

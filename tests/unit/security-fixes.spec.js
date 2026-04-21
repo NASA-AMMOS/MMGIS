@@ -189,15 +189,14 @@ test.describe('Fix 6: Default Session Secret', () => {
 
     try {
       const sessionSecret = process.env.SECRET;
+      const errors = [];
       if (!sessionSecret) {
-        throw new Error(
+        errors.push(
           'FATAL: The SECRET environment variable is not set. Please set it to a strong random string for session security.'
         );
       }
-      // Should not reach here
-      expect(true).toBe(false);
-    } catch (err) {
-      expect(err.message).toContain('SECRET environment variable is not set');
+      expect(errors.length).toBe(1);
+      expect(errors[0]).toContain('SECRET environment variable is not set');
     } finally {
       if (originalSecret !== undefined) {
         process.env.SECRET = originalSecret;
@@ -211,11 +210,11 @@ test.describe('Fix 6: Default Session Secret', () => {
 
     try {
       const sessionSecret = process.env.SECRET;
+      const errors = [];
       if (!sessionSecret) {
-        throw new Error(
-          'FATAL: The SECRET environment variable is not set.'
-        );
+        errors.push('FATAL: The SECRET environment variable is not set.');
       }
+      expect(errors.length).toBe(0);
       expect(sessionSecret).toBe('a-valid-strong-secret-key-for-testing-purposes');
     } finally {
       if (originalSecret !== undefined) {
@@ -232,17 +231,16 @@ test.describe('Fix 6: Default Session Secret', () => {
 
     try {
       const sessionSecret = process.env.SECRET;
+      const errors = [];
       if (!sessionSecret) {
-        throw new Error('FATAL: The SECRET environment variable is not set.');
-      }
-      if (sessionSecret.length < 24) {
-        throw new Error(
+        errors.push('FATAL: The SECRET environment variable is not set.');
+      } else if (sessionSecret.length < 24) {
+        errors.push(
           'FATAL: The SECRET environment variable is too short (minimum 24 characters).'
         );
       }
-      expect(true).toBe(false);
-    } catch (err) {
-      expect(err.message).toContain('too short');
+      expect(errors.length).toBe(1);
+      expect(errors[0]).toContain('too short');
     } finally {
       if (originalSecret !== undefined) {
         process.env.SECRET = originalSecret;
@@ -258,12 +256,13 @@ test.describe('Fix 6: Default Session Secret', () => {
 
     try {
       const sessionSecret = process.env.SECRET;
+      const errors = [];
       if (!sessionSecret) {
-        throw new Error('FATAL: The SECRET environment variable is not set.');
+        errors.push('FATAL: The SECRET environment variable is not set.');
+      } else if (sessionSecret.length < 24) {
+        errors.push('FATAL: The SECRET environment variable is too short.');
       }
-      if (sessionSecret.length < 24) {
-        throw new Error('FATAL: The SECRET environment variable is too short.');
-      }
+      expect(errors.length).toBe(0);
       expect(sessionSecret.length).toBe(24);
     } finally {
       if (originalSecret !== undefined) {
