@@ -9,7 +9,7 @@ import useUIStore from '../store/uiStore'
  * lived in UserInterfaceBridge.js.
  *
  * Positioned elements (created by jQuery modules, not React):
- *   Desktop: #mapToolBar, #mmgis-attributions, .leaflet-control-scalefactor,
+ *   Desktop: #mapToolBar, #mmgis-attributions, .leaflet-bottom.leaflet-left,
  *            #mmgis-map-compass, .leaflet-bottom.leaflet-right,
  *            #CoordinatesDiv, #timeUI
  *   Mobile:  #CoordinatesDiv, #timeUI, #toolbar
@@ -80,10 +80,16 @@ function BottomElementPositioner() {
                 attributions.style.bottom = pxIsTools + 'px'
             }
 
-            const scaleFactor = document.querySelector('.leaflet-control-scalefactor')
-            if (scaleFactor) {
-                scaleFactor.style.transition = ease
-                scaleFactor.style.bottom = (pxIsTools + 28) + 'px'
+            // .leaflet-bottom.leaflet-left is the parent container for the
+            // scalefactor control. The scalefactor itself has CSS
+            // `position: absolute; bottom: 28px` relative to this parent,
+            // so moving the parent automatically repositions it correctly.
+            // (Matches jQuery _updateBottomUIHeight which positions this
+            // parent, not the scalefactor element directly.)
+            const leafletBottomLeft = document.querySelector('.leaflet-bottom.leaflet-left')
+            if (leafletBottomLeft) {
+                leafletBottomLeft.style.transition = ease
+                leafletBottomLeft.style.bottom = (pxIsTools + newBottom) + 'px'
             }
 
             const compass = document.getElementById('mmgis-map-compass')
