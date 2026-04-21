@@ -429,7 +429,11 @@ const L_ = {
                         }
                     }
                 }
-                if (s.type === 'model') {
+                if (
+                    s.type === 'model' ||
+                    s.type === '3dtiles' ||
+                    (s.type === 'vectortile' && s.extrudeEnabled)
+                ) {
                     L_.Globe_.litho.toggleLayer(s.name, false)
                 } else L_.Globe_.litho.removeLayer(s.name)
             } else {
@@ -566,6 +570,32 @@ const L_ = {
                         cogExpression: s.cogExpression,
                         currentCogExpression: s.currentCogExpression,
                     })
+                } else if (s.type === 'vectortile' && s.extrudeEnabled) {
+                    if (L_.Globe_.litho.hasLayer(s.name)) {
+                        L_.Globe_.litho.toggleLayer(s.name, true)
+                    } else {
+                        let vtUrl = L_.getUrl(s.type, s.url, s)
+                        L_.Globe_.litho.addLayer('vectortile', {
+                            name: s.name,
+                            path: vtUrl,
+                            opacity: L_.layers.opacity[s.name],
+                            vtLayer:
+                                s.extrudeVtLayer ||
+                                (s.style?.vtLayer
+                                    ? Object.keys(s.style.vtLayer)[0]
+                                    : 'building'),
+                            extrudeHeightProperty:
+                                s.extrudeHeightProperty || 'render_height',
+                            extrudeDefaultHeight: s.extrudeDefaultHeight ?? 0,
+                            extrudeBaseProperty: s.extrudeBaseProperty || null,
+                            extrudeColor: s.extrudeColor || '#cccccc',
+                            extrudeOverrideFeatureColor:
+                                s.extrudeOverrideFeatureColor || false,
+                            extrudeOpacity: s.extrudeOpacity ?? 0.9,
+                            minZoom: s.minZoom,
+                            maxZoom: s.maxNativeZoom,
+                        })
+                    }
                 } else if (s.type === 'data') {
                 } else if (s.type === 'model') {
                     if (L_.Globe_.litho.hasLayer(s.name)) {
@@ -897,6 +927,7 @@ const L_ = {
                     onlyTheseLayers.includes(L_.layers.dataFlat[i].name)) &&
                 L_.layers.on[L_.layers.dataFlat[i].name] === true &&
                 (L_.layers.dataFlat[i].type === 'model' ||
+                    L_.layers.dataFlat[i].type === '3dtiles' ||
                     L_.layers.layer[L_.layers.dataFlat[i].name] != null)
             ) {
                 // Add Map layers
@@ -1042,6 +1073,30 @@ const L_ = {
                             cogExpression: s.cogExpression,
                             currentCogExpression: s.currentCogExpression,
                         })
+                    else if (s.type === 'vectortile' && s.extrudeEnabled)
+                        L_.Globe_.litho.addLayer('vectortile', {
+                            name: s.name,
+                            path: layerUrl,
+                            opacity: L_.layers.opacity[s.name],
+                            vtLayer: s.extrudeVtLayer
+                                || (s.style?.vtLayer
+                                    ? Object.keys(s.style.vtLayer)[0]
+                                    : 'building'),
+                            extrudeHeightProperty:
+                                s.extrudeHeightProperty || 'render_height',
+                            extrudeDefaultHeight:
+                                s.extrudeDefaultHeight ?? 0,
+                            extrudeBaseProperty:
+                                s.extrudeBaseProperty || null,
+                            extrudeColor:
+                                s.extrudeColor || '#cccccc',
+                            extrudeOverrideFeatureColor:
+                                s.extrudeOverrideFeatureColor || false,
+                            extrudeOpacity:
+                                s.extrudeOpacity ?? 0.9,
+                            minZoom: s.minZoom,
+                            maxZoom: s.maxNativeZoom,
+                        })
                 } else if (s.type === 'model') {
                     L_.Globe_.litho.addLayer('model', {
                         name: s.name,
@@ -1061,6 +1116,17 @@ const L_ = {
                             y: s.rotation?.y || 0,
                             z: s.rotation?.z || 0,
                         },
+                    })
+                } else if (s.type === '3dtiles') {
+                    L_.Globe_.litho.addLayer('3dtiles', {
+                        name: s.name,
+                        path: layerUrl,
+                        opacity: L_.layers.opacity[s.name],
+                        maximumScreenSpaceError:
+                            s.maximumScreenSpaceError ?? 16,
+                        maximumMemoryUsage: s.maximumMemoryUsage ?? 512,
+                        heightOffset: s.heightOffset || 0,
+                        style: s.tileStyle || null,
                     })
                 } else if (s.type != 'header') {
                     if (typeof L_.layers.layer[s.name].toGeoJSON === 'function')
@@ -4092,8 +4158,12 @@ async function parseConfig(configData, urlOnLayers) {
                 //Create parsed layers ordered
                 L_._layersOrdered.push(d[i].name)
                 //Create parsed layers loaded
-                if (d[i].type != 'data' && d[i].type != 'model')
-                    //No load checking for model since it's globe only
+                if (
+                    d[i].type != 'data' &&
+                    d[i].type != 'model' &&
+                    d[i].type != '3dtiles'
+                )
+                    //No load checking for model/3dtiles since they are globe only
                     L_._layersLoaded.push(false)
                 else L_._layersLoaded.push(true)
 

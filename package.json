@@ -62,6 +62,7 @@
     "@ffmpeg/ffmpeg": "^0.12.10",
     "@ffmpeg/util": "^0.12.1",
     "@mapbox/shp-write": "^0.4.3",
+    "@mapbox/vector-tile": "^2.0.4",
     "@maphubs/tokml": "^0.6.1",
     "@popperjs/core": "^2.11.6",
     "@terraformer/wkt": "^2.2.0",
@@ -120,6 +121,7 @@
     "nipplejs": "^0.8.5",
     "node-fetch": "^2.6.1",
     "node-schedule": "^2.1.1",
+    "pbf": "^4.0.1",
     "pg-promise": "12.6.2",
     "pixel-utils": "^0.7.0",
     "png-js": "^1.0.0",
@@ -149,8 +151,8 @@
     "util": "^0.12.3",
     "utm-utils": "^0.1.0",
     "uuid": "^9.0.0",
-    "ws": "8.18.3",
     "winston": "3.19.0",
+    "ws": "8.18.3",
     "xml2js": "^0.6.2"
   },
   "eslintConfig": {

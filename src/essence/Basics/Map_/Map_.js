@@ -1522,10 +1522,21 @@ function makeVectorTileLayer(layerObj, mapContext = null) {
         )
     }
 
+    // Hide sublayers not explicitly listed in vtLayer styles.
+    // Without this, L.vectorGrid renders all sublayers with default blue styling.
+    const vtLayerStyles = layerObj.style.vtLayer || {}
+    const resolvedVtLayerStyles = new Proxy(vtLayerStyles, {
+        get(target, prop) {
+            if (prop in target) return target[prop]
+            return { fill: false, stroke: false, weight: 0, fillOpacity: 0, opacity: 0 }
+        },
+        has() { return true },
+    })
+
     var vectorTileOptions = {
         layerName: layerObj.name,
         rendererFactory: L.svg.tile,
-        vectorTileLayerStyles: layerObj.style.vtLayer || {},
+        vectorTileLayerStyles: resolvedVtLayerStyles,
         interactive: true,
         minZoom: layerObj.minZoom,
         maxZoom: layerObj.maxZoom,
