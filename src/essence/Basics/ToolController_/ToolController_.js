@@ -53,6 +53,7 @@ let ToolController_ = {
         // Setting toolsLoaded: false (below) causes Toolbar.jsx to unmount it.
         this.tools = null
         this.toolModuleNames = []
+        this.activeSeparatedTools = []
         this.toolModules = toolModules
         useUIStore.getState().setToolsList([])
         useUIStore.getState().setToolsLoaded(false)

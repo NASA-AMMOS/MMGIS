@@ -325,12 +325,23 @@ const UserInterfaceBridge = {
 
     minimalist: function (is) {
         if (is) {
-            useUIStore.setState({ topSize: 0 })
+            // In the old jQuery code, minimalist() set splitscreens CSS
+            // to top:0/height:100% while keeping topSize=40. The splitscreens
+            // container rendered behind the TopBar (which has higher z-index).
+            // In React, topSize drives both TopBar layout and SplitScreens
+            // offset, so we set topSize=0 and also toolHeightReserve=0 for
+            // desktop so computeToolHeight('full') uses the full container
+            // height (the TopBar overlaps via z-index, not via reserved space).
+            const isMobile = useUIStore.getState().isMobile
+            useUIStore.setState({
+                topSize: 0,
+                toolHeightReserve: isMobile ? useUIStore.getState().mobileTopSize : 0,
+            })
             const logo = document.getElementById('mmgislogo')
             if (logo) logo.style.display = 'inherit'
 
             // Mobile-specific minimalist adjustments
-            if (useUIStore.getState().isMobile) {
+            if (isMobile) {
                 const toolbar = document.getElementById('toolbar')
                 if (toolbar) {
                     toolbar.style.bottom = '0px'
