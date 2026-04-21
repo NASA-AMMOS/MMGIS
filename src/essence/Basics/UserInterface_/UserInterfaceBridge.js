@@ -27,7 +27,9 @@ function _repositionBottomElements() {
         }
         const timeUIEl = document.getElementById('timeUI')
         if (timeUIEl) {
-            timeUIEl.style.transition = 'bottom 0.4s ease-out'
+            // Preserve the CSS opacity/pointer-events transition (all 0.2s ease-in)
+            // while adding the bottom transition for tool open/close animation.
+            timeUIEl.style.transition = 'all 0.2s ease-in, bottom 0.4s ease-out'
             timeUIEl.style.bottom = pxIsTools + 'px'
         }
         const toolbar = document.getElementById('toolbar')
@@ -102,7 +104,9 @@ function _repositionBottomElements() {
 
         const timeUIEl = document.getElementById('timeUI')
         if (timeUIEl) {
-            timeUIEl.style.transition = ease
+            // Preserve the CSS opacity/pointer-events transition (all 0.2s ease-in)
+            // while adding the bottom transition for tool open/close animation.
+            timeUIEl.style.transition = 'all 0.2s ease-in, bottom 0.4s ease-out'
             timeUIEl.style.bottom = pxIsTools + 'px'
         }
     }
