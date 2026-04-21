@@ -87,19 +87,19 @@ NODE_ENV=development npm start
 
 ## Layer Catalog
 
-The Reference Mission mission includes **44 layers** organized into two main categories: **GeoJSON Data Features** (what you put in your data files) and **Layer Configuration** (what you set in the Configure page).
+The Reference Mission mission includes **45 layers** organized into two main categories: **GeoJSON Data Features** (what you put in your data files) and **Layer Configuration** (what you set in the Configure page).
 
-### Vector Layers (36 layers)
+### Vector Layers (37 layers)
 
-All vector layers are **flat file GeoJSON** stored in `Layers/Vectors/`. They use SF Bay Area coordinates (~37.8°N, -122.4°W).
+All vector layers are **flat file GeoJSON** (or KML converted to GeoJSON at runtime) stored in `Layers/Vectors/`. They use SF Bay Area coordinates (~37.8°N, -122.4°W).
 
 The layers are organized into:
-- **📄 GeoJSON Data Features** (19 layers) - Features driven by geometry types and feature properties
+- **📄 GeoJSON Data Features** (20 layers) - Features driven by geometry types and feature properties
 - **⚙️ Layer Configuration** (17 layers) - Features driven by layer config settings
 
 ---
 
-### 📄 GeoJSON Data Features (19 layers)
+### 📄 GeoJSON Data Features (20 layers)
 
 Features driven by **geometry types** and **feature properties** in your GeoJSON files.
 
