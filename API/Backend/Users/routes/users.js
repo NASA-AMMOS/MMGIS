@@ -39,6 +39,15 @@ router.post("/has", function (req, res, next) {
 });
 
 router.post("/first_signup", function (req, res, next) {
+  if (!req.body.password || !isStrongPassword(req.body.password)) {
+    res.send({
+      status: "failure",
+      message:
+        "Password is not strong enough. Must be at least 8 characters long and contain at least: 1 uppercase letter, 1 lowercase letter, 1 number and 1 symbol.",
+    });
+    return;
+  }
+
   User.count()
     .then((count) => {
       if (count === 0) {
@@ -423,6 +432,12 @@ router.post("/resetPassword", function (req, res) {
     res.send({ status: "failure", message: "Missing password." });
   } else if (resetToken == null || resetToken == "") {
     res.send({ status: "failure", message: "Missing resetToken." });
+  } else if (!isStrongPassword(password)) {
+    res.send({
+      status: "failure",
+      message:
+        "Password is not strong enough. Must be at least 8 characters long and contain at least: 1 uppercase letter, 1 lowercase letter, 1 number and 1 symbol.",
+    });
   } else {
     User.findOne({
       where: {

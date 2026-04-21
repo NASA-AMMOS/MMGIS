@@ -59,6 +59,7 @@ jobs:
           echo "ENABLE_MMGIS_WEBSOCKETS=false" >> .env
           echo "ENABLE_CONFIG_WEBSOCKETS=false" >> .env
           echo "HIDE_CONFIG=false" >> .env
+          echo "SECRET=ci-test-session-secret-not-for-production" >> .env
 
       # DB creation, Reference Mission setup, and server lifecycle are all
       # handled by tests/global-setup.js (runs before any test suite).

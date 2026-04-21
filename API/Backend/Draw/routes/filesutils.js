@@ -23,6 +23,7 @@ function getfile(req, res, next) {
       message: "Permission denied.",
       body: {},
     });
+    return;
   }
 
   let published = false;

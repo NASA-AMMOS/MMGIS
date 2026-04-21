@@ -47,6 +47,7 @@ const websocket = require("../../../websocket.js");
 const WebSocket = require("isomorphic-ws");
 
 const fs = require("fs");
+const path = require("path");
 const deepmerge = require("deepmerge");
 
 let fullAccess = false;
@@ -880,21 +881,35 @@ if (fullAccess)
 if (fullAccess) router.post("/rename", function (req, res, next) {});
 
 if (fullAccess)
-  router.post("/destroy", function (req, res, next) {
+  router.post("/destroy", checkMissionPermission, function (req, res, next) {
+    const missionName = req.body.mission;
+    if (!missionName || !/^[A-Za-z0-9_ -]+$/.test(missionName)) {
+      logger("error", "Invalid mission name in destroy request.", req.originalUrl, req);
+      res.send({ status: "failure", message: "Invalid mission name." });
+      return;
+    }
+    const missionsBase = path.resolve("./Missions");
+    const resolvedDir = path.resolve("./Missions/" + missionName);
+    if (!resolvedDir.startsWith(missionsBase + path.sep) && resolvedDir !== missionsBase) {
+      logger("error", "Path traversal attempt in destroy request.", req.originalUrl, req);
+      res.send({ status: "failure", message: "Invalid mission name." });
+      return;
+    }
+
     Config.destroy({
       where: {
-        mission: req.body.mission,
+        mission: missionName,
       },
     })
       .then((mission) => {
         logger(
           "info",
-          "Deleted Mission: " + req.body.mission,
+          "Deleted Mission: " + missionName,
           req.originalUrl,
           req
         );
 
-        const dir = "./Missions/" + req.body.mission;
+        const dir = "./Missions/" + missionName;
         if (fs.existsSync(dir)) {
           fs.rename(dir, dir + "_deleted_", (err) => {
             if (err)
@@ -902,33 +917,33 @@ if (fullAccess)
                 status: "success",
                 message:
                   "Successfully Deleted Mission: " +
-                  req.body.mission +
+                  missionName +
                   " but couldn't rename its Missions directory.",
               });
             else
               res.send({
                 status: "success",
-                message: "Successfully Deleted Mission: " + req.body.mission,
+                message: "Successfully Deleted Mission: " + missionName,
               });
           });
         } else {
           res.send({
             status: "success",
-            message: "Successfully Deleted Mission: " + req.body.mission,
+            message: "Successfully Deleted Mission: " + missionName,
           });
         }
       })
       .catch((err) => {
         logger(
           "error",
-          "Failed to delete mission: " + req.body.mission,
+          "Failed to delete mission: " + missionName,
           req.originalUrl,
           req,
           err
         );
         res.send({
           status: "failure",
-          message: "Failed to delete mission " + req.body.mission + ".",
+          message: "Failed to delete mission " + missionName + ".",
         });
         return null;
       });
