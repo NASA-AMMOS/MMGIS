@@ -73,48 +73,36 @@ let ToolController_ = {
                     typeof tool.make === 'function' &&
                     typeof tool.destroy === 'function'
                 ) {
-                        if (this.activeTool != null) {
-                            try {
-                                this.activeTool.destroy()
-                            } catch (e) {
-                                console.warn('Tool destroy() failed:', e)
-                            }
-                        }
-                        // If a horizontal tool is still pending close (deferred
-                        // destroy via setTimeout), destroy it now before opening
-                        // the new tool — otherwise its destroy() is never called.
-                        if (this._pendingCloseTool) {
-                            try {
-                                this._pendingCloseTool.destroy()
-                            } catch (e) {
-                                console.warn('Pending tool destroy() failed:', e)
-                            }
-                            this._pendingCloseTool = null
-                        }
-                        // Cancel any pending horizontal-tool close cleanup
-                        ++this._closeSeq
+                    // Destroy the currently active tool before switching
+                    if (this.activeTool != null) {
+                        this.activeTool.destroy()
+                        this.activeTool = null
+                    }
+                    // If a horizontal tool is still pending close (deferred
+                    // destroy via setTimeout), destroy it now before opening
+                    // the new tool — otherwise its destroy() is never called.
+                    if (this._pendingCloseTool) {
+                        this._pendingCloseTool.destroy()
+                        this._pendingCloseTool = null
+                    }
+                    // Cancel any pending horizontal-tool close cleanup
+                    ++this._closeSeq
 
-                    this.activeTool = tool
-                    this.setToolHeight(this.activeTool.height)
-                    this.setToolWidth(this.activeTool.width)
-                    if (this.activeTool.height == 0) {
-                        this.UserInterface.openToolPanel(this.activeTool.width)
+                    this.setToolHeight(tool.height)
+                    this.setToolWidth(tool.width)
+                    if (tool.height == 0) {
+                        this.UserInterface.openToolPanel(tool.width)
                     } else {
                         this.UserInterface.closeToolPanel()
                     }
-                    /*
-                    if( this.prevHeight != this.activeTool.height && this.UserInterface != null ) {
-                        this.UserInterface.setToolHeight( this.activeTool.height );
-                    }
-                    this.prevHeight = this.activeTool.height;
-                    */
                     // Toggle drag handle via store (React is single source of truth)
                     useUIStore.getState().setToolPanelDragVisible(
                         toolConfigs[ToolController_.tools[idx].name]
                             ?.expandable === true
                     )
 
-                    this.activeTool.make(this)
+                    tool.make(this)
+                    this.activeTool = tool
                 } else {
                     console.warn(
                         'WARNING: ' +

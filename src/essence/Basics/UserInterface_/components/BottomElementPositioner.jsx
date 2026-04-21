@@ -70,34 +70,29 @@ function BottomElementPositioner() {
                 mapToolBar.style.bottom = (pxIsTools + newBottom) + 'px'
             }
 
-            // Scalebar, attributions, and compass need an extra offset
-            // when TimeUI is active — they sit above the TimeUI bar (40px)
-            // but below the expanded content area. The offset is
-            // (timeUIHeight - 40) when active, matching the deleted
-            // UserInterfaceDefault_.js setToolHeight() math.
-            const timeUIContentOffset = timeUIActive
-                ? (timeUIHeight - 40)
-                : 0
-
+            // Attributions, scalebar, and compass sit at their fixed
+            // positions above the tools area. They do NOT shift with
+            // TimeUI height — the TimeUI panel overlays them when
+            // expanded, which matches the pre-React jQuery behavior.
             const attributions = document.getElementById('mmgis-attributions')
             if (attributions) {
                 attributions.style.transition = ease
-                attributions.style.bottom = (pxIsTools + timeUIContentOffset) + 'px'
+                attributions.style.bottom = pxIsTools + 'px'
             }
 
             const scaleFactor = document.querySelector('.leaflet-control-scalefactor')
             if (scaleFactor) {
                 scaleFactor.style.transition = ease
-                scaleFactor.style.bottom = (pxIsTools + 28 + timeUIContentOffset) + 'px'
+                scaleFactor.style.bottom = (pxIsTools + 28) + 'px'
             }
 
             const compass = document.getElementById('mmgis-map-compass')
             if (compass) {
                 compass.style.transition = ease
                 if (!attributions || attributions.textContent.trim().length === 0) {
-                    compass.style.bottom = (pxIsTools + 38 + timeUIContentOffset) + 'px'
+                    compass.style.bottom = (pxIsTools + 38) + 'px'
                 } else {
-                    compass.style.bottom = (pxIsTools + 58 + timeUIContentOffset) + 'px'
+                    compass.style.bottom = (pxIsTools + 58) + 'px'
                 }
             }
 
