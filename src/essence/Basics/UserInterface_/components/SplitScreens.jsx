@@ -13,19 +13,6 @@ function SplitScreens() {
     const toolbarVisible = useUIStore((s) => s.toolbarVisible)
     const splitscreensRef = useRef(null)
 
-    useEffect(() => {
-        const handleResize = () => {
-            const el = splitscreensRef.current
-            if (el) {
-                useUIStore
-                    .getState()
-                    .handleWindowResize(el.offsetWidth, el.offsetHeight)
-            }
-        }
-        window.addEventListener('resize', handleResize)
-        return () => window.removeEventListener('resize', handleResize)
-    }, [])
-
     // Initialize pxIsMap once on first mount only
     const initializedRef = useRef(false)
     useEffect(() => {
@@ -44,30 +31,40 @@ function SplitScreens() {
         }
     }, [])
 
-    // Re-capture dimensions when topSize or toolPanelWidth change
-    // (e.g. fina() sets topSize from 40 to 0, changing container height;
-    //  or ToolPanel drag resize changes toolPanelWidth)
-    // Also recalculates panel percents so viewer/map/globe fit the new width.
+    // ResizeObserver: automatically recapture dimensions and recompute panel
+    // percents whenever the splitscreens container resizes. This replaces:
+    //  - window 'resize' event listener
+    //  - useEffect on [topSize, toolPanelWidth, toolbarVisible] with rAF
+    //  - setTimeout(250) hacks in bridge openToolPanel/closeToolPanel
+    // The observer fires after layout reflow, so dimensions are always correct.
     useEffect(() => {
         const el = splitscreensRef.current
-        if (el && initializedRef.current) {
-            // Use rAF to read dimensions after the layout reflow
-            requestAnimationFrame(() => {
-                if (splitscreensRef.current) {
-                    const newWidth = splitscreensRef.current.offsetWidth
-                    const newHeight = splitscreensRef.current.offsetHeight
-                    useUIStore.setState({
-                        mainWidth: newWidth,
-                        mainHeight: newHeight,
-                    })
-                    // Recompute panel pixel sizes from current percents
-                    // so viewer/map/globe fit the new container width
+        if (!el) return
+
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const { width, height } = entry.contentRect
+                const newWidth = Math.round(width)
+                const newHeight = Math.round(height)
+
+                const state = useUIStore.getState()
+                if (newWidth === state.mainWidth && newHeight === state.mainHeight) return
+
+                useUIStore.setState({
+                    mainWidth: newWidth,
+                    mainHeight: newHeight,
+                })
+
+                // Only recompute panel percents after initial setup
+                if (initializedRef.current) {
                     const pp = useUIStore.getState().getPanelPercents()
                     useUIStore.getState().setPanelPercents(pp.viewer, pp.map, pp.globe)
                 }
-            })
-        }
-    }, [topSize, toolPanelWidth, toolbarVisible])
+            }
+        })
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [])
 
     const topOffset = fullSizeViews ? 0 : topSize
     // Desktop toolbar is 40px wide; hidden when toolbarVisible is false

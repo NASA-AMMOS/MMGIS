@@ -5,6 +5,9 @@ import BottomBar from '../BottomBar'
 function TopBar({ userInterface }) {
     const topBarLeftRef = useRef(null)
     const isMobile = useUIStore((s) => s.isMobile)
+    const mobileTopSize = useUIStore((s) => s.mobileTopSize)
+    const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
+    const toolsWrapperCSSWidth = useUIStore((s) => s.toolsWrapperCSSWidth)
     const mobileBottomBarInitialized = useRef(false)
 
     useEffect(() => {
@@ -37,8 +40,31 @@ function TopBar({ userInterface }) {
         }
     }, [])
 
+    // Compute TopBar styles reactively from store state instead of
+    // the bridge imperatively setting marginLeft/width/paddingLeft via DOM.
+    // When a tool panel is open, TopBar shifts right to make room.
+    // When no tool panel is open, TopBar uses paddingLeft for the toolbar/logo.
+    const TOOLBAR_WIDTH = 40
+    const leftOffset = isMobile ? mobileTopSize : TOOLBAR_WIDTH
+    const topBarStyle = {}
+    if (isMobile) {
+        topBarStyle.background = 'var(--color-a)'
+    }
+    if (toolPanelWidth > 0) {
+        // Tool panel is open: shift TopBar right past toolbar + tool panel
+        topBarStyle.paddingLeft = '0px'
+        topBarStyle.marginLeft = (toolPanelWidth + leftOffset) + 'px'
+        topBarStyle.width = `calc(100% - ${toolPanelWidth + leftOffset}px)`
+    } else if (toolsWrapperCSSWidth && toolsWrapperCSSWidth !== '0%') {
+        // Bottom tools area has custom width (setToolWidth): adjust TopBar
+        // This handles the case where ToolController sets a non-default tools width
+    } else {
+        // No tool panel: use paddingLeft for toolbar offset
+        topBarStyle.paddingLeft = isMobile ? '80px' : '40px'
+    }
+
     return (
-        <div id="topBar" style={isMobile ? { background: 'var(--color-a)', paddingLeft: '80px' } : undefined}>
+        <div id="topBar" style={topBarStyle}>
             {isMobile && (
                 <div
                     id="topBarMenu"

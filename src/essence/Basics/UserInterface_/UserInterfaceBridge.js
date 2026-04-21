@@ -149,33 +149,7 @@ const UserInterfaceBridge = {
         }
     },
 
-    // jQuery element references (null in React mode - components manage their own DOM)
-    topBar: null,
-    topBarRight: null,
-    splitscreens: null,
-    vmgScreen: null,
-    viewerScreen: null,
-    viewerToolBar: null,
-    viewerSplit: null,
-    mapScreen: null,
-    mapToolBar: null,
-    mapTopBar: null,
-    mapSplit: null,
-    mapSplitInner: null,
-    globeScreen: null,
-    globeToolBar: null,
-    globeSplit: null,
-    globeSplitInner: null,
-    tScreen: null,
-    toolsScreen: null,
-    toolsSplit: null,
-    toolbar: null,
-    toolPanel: null,
-    toolPanelDrag: null,
-    barBottom: null,
-    toolbarLogo: null,
-    dataLoadingSpinner: null,
-    rightPanel: null,
+    // Remaining imperative references (used by external consumers)
     rightPanelOpen: null,
     layerUpdatedControl: null,
 
@@ -267,96 +241,29 @@ const UserInterfaceBridge = {
     },
 
     resize: function () {
-        const el = document.getElementById('splitscreens')
-        if (el) {
-            useUIStore.getState().handleWindowResize(
-                el.offsetWidth,
-                el.offsetHeight
-            )
-        }
+        // No-op: ResizeObserver in SplitScreens.jsx handles dimension recapture
     },
 
     openToolPanel: function (width) {
-        const isMobile = useUIStore.getState().isMobile
         const panelEl = document.getElementById('toolPanel')
         if (panelEl) panelEl.innerHTML = ''
         useUIStore.getState().openToolPanel(width)
-
-        // Update TopBar offset (mobile uses topSize for left offset, desktop uses 40)
-        const leftOffset = isMobile ? useUIStore.getState().mobileTopSize : 40
-        const topBar = document.getElementById('topBar')
-        if (topBar) {
-            topBar.style.paddingLeft = '0px'
-            topBar.style.marginLeft = (width + leftOffset) + 'px'
-            topBar.style.width = `calc(100% - ${width + leftOffset}px)`
-        }
-
-        // Also update splitscreens dimensions after tool panel opens
-        setTimeout(() => {
-            const el = document.getElementById('splitscreens')
-            if (el) {
-                useUIStore.setState({
-                    mainWidth: el.offsetWidth,
-                    mainHeight: el.offsetHeight,
-                })
-                const pp = useUIStore.getState().getPanelPercents()
-                useUIStore.getState().setPanelPercents(pp.viewer, pp.map, pp.globe)
-            }
-        }, 250)
+        // TopBar styles are now computed reactively by TopBar.jsx
+        // Splitscreens dimensions are recaptured by ResizeObserver in SplitScreens.jsx
     },
 
     resizeToolPanel: function (width) {
-        const isMobile = useUIStore.getState().isMobile
-        const leftOffset = isMobile ? useUIStore.getState().mobileTopSize : 40
         useUIStore.getState().openToolPanel(width)
-
-        const topBar = document.getElementById('topBar')
-        if (topBar) {
-            topBar.style.paddingLeft = '0px'
-            topBar.style.marginLeft = (width + leftOffset) + 'px'
-            topBar.style.width = `calc(100% - ${width + leftOffset}px)`
-        }
-
-        setTimeout(() => {
-            const el = document.getElementById('splitscreens')
-            if (el) {
-                useUIStore.setState({
-                    mainWidth: el.offsetWidth,
-                    mainHeight: el.offsetHeight,
-                })
-                const pp = useUIStore.getState().getPanelPercents()
-                useUIStore.getState().setPanelPercents(pp.viewer, pp.map, pp.globe)
-            }
-        }, 250)
+        // TopBar styles are now computed reactively by TopBar.jsx
+        // Splitscreens dimensions are recaptured by ResizeObserver in SplitScreens.jsx
     },
 
     closeToolPanel: function () {
         const panelEl = document.getElementById('toolPanel')
         if (panelEl) panelEl.innerHTML = ''
         useUIStore.getState().closeToolPanel()
-        // Reset TopBar to full width (matches jQuery closeToolPanel behavior)
-        const topBar = document.getElementById('topBar')
-        if (topBar) {
-            topBar.style.paddingLeft = useUIStore.getState().isMobile ? '80px' : '40px'
-            topBar.style.marginLeft = '0px'
-            topBar.style.width = '100%'
-        }
-        // In mobile, reset toolbar box-shadow
-        if (useUIStore.getState().isMobile) {
-            const toolbar = document.getElementById('toolbar')
-            if (toolbar) toolbar.style.boxShadow = 'none'
-        }
-        setTimeout(() => {
-            const el = document.getElementById('splitscreens')
-            if (el) {
-                useUIStore.setState({
-                    mainWidth: el.offsetWidth,
-                    mainHeight: el.offsetHeight,
-                })
-                const pp = useUIStore.getState().getPanelPercents()
-                useUIStore.getState().setPanelPercents(pp.viewer, pp.map, pp.globe)
-            }
-        }, 250)
+        // TopBar styles are now computed reactively by TopBar.jsx
+        // Splitscreens dimensions are recaptured by ResizeObserver in SplitScreens.jsx
     },
 
     setToolHeight: function (pxHeight, shouldntAnimate) {
@@ -366,35 +273,8 @@ const UserInterfaceBridge = {
     },
 
     setToolWidth: function (newWidth, alignment) {
-        const isMobile = useUIStore.getState().isMobile
         useUIStore.getState().setToolWidth(newWidth)
-
-        if (isMobile) {
-            // Mobile: toolbar is at bottom, use its width for offset
-            const toolbarEl = document.getElementById('toolbar')
-            const toolbarWidth = toolbarEl ? toolbarEl.offsetWidth : 0
-            let newTopWidth = toolbarWidth
-            if (newWidth !== 'full') {
-                newTopWidth = toolbarWidth + newWidth
-            }
-            const topBar = document.getElementById('topBar')
-            if (topBar) {
-                topBar.style.marginLeft = newTopWidth + 'px'
-                topBar.style.width = `calc(100% - ${newTopWidth}px)`
-            }
-        } else {
-            // Desktop: fixed 40px toolbar
-            const TOOLBAR_WIDTH = 40
-            let newTopWidth = TOOLBAR_WIDTH
-            if (newWidth !== 'full') {
-                newTopWidth = TOOLBAR_WIDTH + newWidth
-            }
-            const topBar = document.getElementById('topBar')
-            if (topBar) {
-                topBar.style.marginLeft = newTopWidth + 'px'
-                topBar.style.width = `calc(100% - ${newTopWidth}px)`
-            }
-        }
+        // TopBar styles are now computed reactively by TopBar.jsx
     },
 
     getPanelPercents: function () {
@@ -430,17 +310,8 @@ const UserInterfaceBridge = {
         if (UserInterfaceBridge.rightPanelOpen != null) return
         const coordsDiv = document.getElementById('CoordinatesDiv')
         if (coordsDiv) coordsDiv.style.right = width + 'px'
-        // Update store so React manages main-container width
         useUIStore.getState().setRightPanelWidth(width)
-
-        setTimeout(() => {
-            const el = document.getElementById('splitscreens')
-            if (el) {
-                useUIStore.setState({ mainWidth: el.offsetWidth })
-                const pp = useUIStore.getState().getPanelPercents()
-                useUIStore.getState().setPanelPercents(pp.viewer, pp.map, pp.globe)
-            }
-        }, 0)
+        // Splitscreens dimensions are recaptured by ResizeObserver
         const rightPanel = document.getElementById('uiRightPanel')
         if (rightPanel) {
             rightPanel.style.display = 'inherit'
@@ -453,17 +324,8 @@ const UserInterfaceBridge = {
         if (UserInterfaceBridge.rightPanelOpen == null) return
         const coordsDiv = document.getElementById('CoordinatesDiv')
         if (coordsDiv) coordsDiv.style.right = '0px'
-        // Update store so React manages main-container width
         useUIStore.getState().setRightPanelWidth(0)
-
-        setTimeout(() => {
-            const el = document.getElementById('splitscreens')
-            if (el) {
-                useUIStore.setState({ mainWidth: el.offsetWidth })
-                const pp = useUIStore.getState().getPanelPercents()
-                useUIStore.getState().setPanelPercents(pp.viewer, pp.map, pp.globe)
-            }
-        }, 0)
+        // Splitscreens dimensions are recaptured by ResizeObserver
         const rightPanel = document.getElementById('uiRightPanel')
         if (rightPanel) {
             rightPanel.style.display = 'none'
