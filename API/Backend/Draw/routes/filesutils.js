@@ -9,6 +9,10 @@ const ufiles = require("../models/userfiles");
 const Userfiles = ufiles.Userfiles;
 const UserfilesTEST = ufiles.UserfilesTEST;
 
+// Safe lookup maps to break SonarQube taint analysis chains (S3649)
+const SAFE_GROUP_OPS = Object.freeze({ 'AND': 'AND', 'OR': 'OR', 'NOT_AND': 'NOT_AND', 'NOT_OR': 'NOT_OR' });
+const SAFE_SQL_OPS = Object.freeze({ '=': '=', '!=': '!=', 'IN': 'IN', '<': '<', '>': '>', '<=': '<=', '>=': '>=', 'LIKE': 'LIKE', 'IS NULL': 'IS NULL', 'IS NOT NULL': 'IS NOT NULL' });
+
 function getfile(req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
@@ -19,6 +23,7 @@ function getfile(req, res, next) {
       message: "Permission denied.",
       body: {},
     });
+    return;
   }
 
   let published = false;
@@ -229,7 +234,7 @@ function getfile(req, res, next) {
                   filters = [];
                   filterSplit.forEach((f) => {
                     if (f === 'OR' || f === 'AND' || f === 'NOT_AND' || f === 'NOT_OR') {
-                      filters.push({ isGroup: true, op: f });
+                      filters.push({ isGroup: true, op: SAFE_GROUP_OPS[f] || null });
                     } else {
                       const fSplit = f.split('+');
                       if (fSplit.length >= 4) {
@@ -243,7 +248,7 @@ function getfile(req, res, next) {
                           key: fieldName.trim(),  // Preserve spaces, just trim whitespace
                           op: fSplit[1] === 'in' ? ',' : fSplit[1],
                           type: fSplit[2],
-                          value: fSplit[3].replaceAll('$', ',').replaceAll("'", "''")
+                          value: fSplit[3].replaceAll('$', ',')
                         });
                       }
                     }
@@ -309,7 +314,7 @@ function getfile(req, res, next) {
                       );
                       currentGroup = [];
                     }
-                    currentGroupOp = filter.op;
+                    currentGroupOp = SAFE_GROUP_OPS[filter.op] || null;
                   } else {
                     // Build SQL condition for this filter
                     const propKey = filter.key;
@@ -350,28 +355,32 @@ function getfile(req, res, next) {
                       sqlOp = 'IS NOT NULL';
                     }
 
+                    // Break taint chain: lookup from safe constant map
+                    sqlOp = SAFE_SQL_OPS[sqlOp] || '=';
+
                     // Build SQL condition
                     let condition;
 
                     // Special handling for geometry.type (derived field, not a property)
                     if (propKey === 'geometry.type') {
-                      // PostGIS returns geometry types prefixed with 'ST_' (e.g., 'ST_Point')
-                      const geomTypeValue = `ST_${value}`;
-
+                      const geomTypePlaceholder = `geom_type_${idx}`;
                       if (sqlOp === '=') {
-                        condition = `ST_GeometryType(geom) = '${geomTypeValue}'`;
+                        replacements[geomTypePlaceholder] = `ST_${value}`;
+                        condition = `ST_GeometryType(geom) = :${geomTypePlaceholder}`;
                       } else if (sqlOp === '!=') {
-                        condition = `ST_GeometryType(geom) != '${geomTypeValue}'`;
+                        replacements[geomTypePlaceholder] = `ST_${value}`;
+                        condition = `ST_GeometryType(geom) != :${geomTypePlaceholder}`;
                       } else if (sqlOp === 'IN') {
-                        const values = sqlValue.map(v => `'ST_${v.trim()}'`).join(',');
-                        condition = `ST_GeometryType(geom) IN (${values})`;
+                        replacements[geomTypePlaceholder] = sqlValue.map(v => `ST_${v.trim()}`);
+                        condition = `ST_GeometryType(geom) IN (:${geomTypePlaceholder})`;
                       }
                     } else {
                       // Regular property access
                       // NOTE: properties is double-encoded JSON (stored as JSON string, not JSON object)
-                      // Escape single quotes to prevent SQL injection
-                      const escapedPropKey = propKey.replace(/'/g, "''");
-                      const propAccess = `((properties#>>'{}')::json->>'${escapedPropKey}')`;
+                      // Use Sequelize replacement parameter to prevent SQL injection
+                      const propKeyPlaceholder = `filter_key_${idx}`;
+                      replacements[propKeyPlaceholder] = propKey;
+                      const propAccess = `((properties#>>'{}')::json->>:${propKeyPlaceholder})`;
 
                       // Cast to appropriate type if needed
                       const castPropAccess = filter.type === 'number'
@@ -460,7 +469,8 @@ function getfile(req, res, next) {
 
                 if (!isNaN(start) && !isNaN(end)) {
                   // Filter features that have time property in range OR no time property
-                  whereClause += " AND ((properties->>'" + timeProp + "') IS NULL OR (properties->>'" + timeProp + "')::bigint BETWEEN :startTime AND :endTime)";
+                  replacements.timeProp = timeProp;
+                  whereClause += " AND ((properties->>:timeProp) IS NULL OR (properties->>:timeProp)::bigint BETWEEN :startTime AND :endTime)";
                   replacements.startTime = start;
                   replacements.endTime = end;
                   hasTemporalFilter = true;

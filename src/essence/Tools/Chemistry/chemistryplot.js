@@ -5,6 +5,10 @@ import L_ from '../../Basics/Layers_/Layers_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 
 var clearFunction
+var chemsArray = []
+var chemsNames = []
+var apxsArray = []
+var apxsNames = []
 
 function makeChemistryPlot(chems, names, id) {
     var svg

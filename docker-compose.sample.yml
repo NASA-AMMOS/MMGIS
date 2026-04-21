@@ -228,7 +228,7 @@ services:
     restart: on-failure
 
   db:
-    image: postgis/postgis:16-3.4-alpine
+    image: postgis/postgis:18-3.6-alpine
     env_file: .env
     environment:
       - POSTGRES_USER=${DB_USER}

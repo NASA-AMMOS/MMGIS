@@ -143,9 +143,11 @@ var LayersTool = {
         }
 
         if (L_.UserInterface_.isMobile === true) {
-            const mapRect = document.getElementById('map').getBoundingClientRect()
+            const mapRect = document
+                .getElementById('map')
+                .getBoundingClientRect()
             this.width = 'full'
-            this.height = Math.round(mapRect.height * 0.70)
+            this.height = Math.round(mapRect.height * 0.7)
         }
     },
     finalize: function () {
@@ -286,12 +288,15 @@ var LayersTool = {
     },
     populateCogScale: function (layerName) {
         let layer = L_.asLayerUUID(layerName)
+        if (layer == null) return
         let units = ''
         layer = L_.layers.data[layer]
+        if (layer == null) return
         if (L_.layers.layer[layer.name] === null) return
 
         // data layers use demtileurl; other layers use url
         const layerUrl = layer.url || layer.demtileurl || ''
+        if (typeof layerUrl !== 'string') return
         if (
             !layerUrl.startsWith('stac-collection:') &&
             !layerUrl.startsWith('COG:') &&
@@ -500,20 +505,18 @@ function interfaceWithMMGIS(fromInit) {
         separateFromMMGIS()
     }
 
-    const divID = L_.UserInterface_.isMobile === true ?  '#tools' : '#toolPanel'
+    const divID = L_.UserInterface_.isMobile === true ? '#tools' : '#toolPanel'
 
     const toolsContainer = $(divID)
     //Clear it
     toolsContainer.empty()
     //Add a semantic container
-    const tools = $('<div>')
-        .attr('id', 'layersTool')
-        .css({
-            'display': 'flex',
-            'flex-flow': 'column',
-            'overflow': 'hidden',
-            'height': '100%'
-        })
+    const tools = $('<div>').attr('id', 'layersTool').css({
+        display: 'flex',
+        'flex-flow': 'column',
+        overflow: 'hidden',
+        height: '100%',
+    })
     toolsContainer.append(tools)
 
     if (fromInit) tools.css('display', 'none')
@@ -993,7 +996,11 @@ function interfaceWithMMGIS(fromInit) {
                     additionalSettings = ''
                     const shader = F_.getIn(node[i], 'variables.shader')
 
-                    if (shader && DataShaders[shader.type] && typeof DataShaders[shader.type].getHTML === 'function') {
+                    if (
+                        shader &&
+                        DataShaders[shader.type] &&
+                        typeof DataShaders[shader.type].getHTML === 'function'
+                    ) {
                         // prettier-ignore
                         additionalSettings = [
                             DataShaders[shader.type].getHTML(node[i].name, shader)
@@ -2714,7 +2721,11 @@ function interfaceWithMMGIS(fromInit) {
         $('#searchLayers > #collapse').click()
 
         // Expand individual headers based on its configuration settings
-        LayersTool.traverseHeaderLayersExpandedState(L_.configData.layers, {}, 0)
+        LayersTool.traverseHeaderLayersExpandedState(
+            L_.configData.layers,
+            {},
+            0
+        )
     })
 
     $('#filterLayers .right > div').on('click', function () {
@@ -2960,7 +2971,11 @@ function interfaceWithMMGIS(fromInit) {
     if (LayersTool.vars.expanded !== true) {
         $('#searchLayers > #collapse').click()
         // Expand individual headers based on its configuration settings
-        LayersTool.traverseHeaderLayersExpandedState(L_.configData.layers, {}, 0)
+        LayersTool.traverseHeaderLayersExpandedState(
+            L_.configData.layers,
+            {},
+            0
+        )
     }
 
     // Sublayer things
@@ -3166,12 +3181,18 @@ function interfaceWithMMGIS(fromInit) {
         }
     }
 
-    document.addEventListener('layerRefreshStatusChanged', handleRefreshStatusChange)
+    document.addEventListener(
+        'layerRefreshStatusChanged',
+        handleRefreshStatusChange
+    )
 
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
     function separateFromMMGIS() {
-        document.removeEventListener('layerRefreshStatusChanged', handleRefreshStatusChange)
+        document.removeEventListener(
+            'layerRefreshStatusChanged',
+            handleRefreshStatusChange
+        )
     }
 }
 
