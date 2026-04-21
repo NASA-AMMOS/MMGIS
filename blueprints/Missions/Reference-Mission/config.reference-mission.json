@@ -190,6 +190,25 @@
                   "demparser": "",
                   "controlled": false,
                   "uuid": "77d6ca9d-32c9-4bbb-922f-deb4cc10d741"
+                },
+                {
+                  "name": "KML Sample",
+                  "type": "vector",
+                  "url": "Layers/Vectors/sample-kml.kml",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "kmlsample",
+                    "strokeColor": "#cc3300",
+                    "strokeWeight": 2,
+                    "fillColor": "#ff6644",
+                    "fillOpacity": 0.5,
+                    "radius": 8
+                  },
+                  "description": "Demonstrates KML file support. This vector layer loads data from a .kml file instead of GeoJSON.",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "b1c2d3e4-f5a6-7890-abcd-ef1234567890"
                 }
               ],
               "description": "",

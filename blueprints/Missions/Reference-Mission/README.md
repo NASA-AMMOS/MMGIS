@@ -103,7 +103,7 @@ The layers are organized into:
 
 Features driven by **geometry types** and **feature properties** in your GeoJSON files.
 
-#### Geometry Types (4 layers)
+#### Geometry Types (5 layers)
 
 Basic examples of each geometry type.
 
@@ -113,6 +113,7 @@ Basic examples of each geometry type.
 | Lines Basic | `lines-basic.geojson` | 4 | Simple solid stroke paths/routes |
 | Polygons Basic | `polygons-basic.geojson` | 5 | Simple shapes with default fill/stroke (parks, districts, regions) |
 | Time-Enabled | `time-enabled.geojson` | 11 | Mixed geometry with temporal data (5 time steps). Features have `startTime` property. **Requires TimeControl tool** |
+| KML Sample | `sample-kml.kml` | 5 | KML file support - Points, LineString, and Polygon loaded from a .kml file instead of GeoJSON |
 
 #### Feature Property Styling (4 layers)
 

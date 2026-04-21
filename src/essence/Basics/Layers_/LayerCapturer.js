@@ -1,9 +1,47 @@
 import $ from 'jquery'
 import { utcFormat } from 'd3-time-format'
+import { kml as kmlToGeoJSON } from '@tmcw/togeojson'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import calls from '../../../pre/calls'
 import TimeControl from '../TimeControl_/TimeControl'
+
+function isKmlUrl(url) {
+    try {
+        const pathname = new URL(url, window.location.origin).pathname
+        return pathname.toLowerCase().endsWith('.kml')
+    } catch (e) {
+        return url.toLowerCase().endsWith('.kml')
+    }
+}
+
+function fetchKmlAsGeoJSON(url, successCb, failCb) {
+    $.ajax({
+        url: url,
+        dataType: 'xml',
+        success: function (xmlDoc) {
+            try {
+                const geojson = kmlToGeoJSON(xmlDoc)
+                if (geojson.hasOwnProperty('Features')) {
+                    geojson.features = geojson.Features
+                    delete geojson.Features
+                }
+                successCb(geojson)
+            } catch (e) {
+                console.warn(
+                    'ERROR! Failed to parse KML from ' +
+                        url +
+                        ' /// ' +
+                        e.message
+                )
+                failCb(null, 'parseerror', e.message)
+            }
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            failCb(jqXHR, textStatus, errorThrown)
+        },
+    })
+}
 
 // This is so that an eariler and slower dynamic geodataset request
 // does not override an earlier shorter one
@@ -322,7 +360,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                         if (!F_.isUrlAbsolute(dynamicLayerUrl))
                             dynamicLayerUrl = L_.missionPath + dynamicLayerUrl
 
-                        $.getJSON(dynamicLayerUrl, function (data) {
+                        const _dynamicDefaultSuccess = function (data) {
                             if (data.hasOwnProperty('Features')) {
                                 data.features = data.Features
                                 delete data.Features
@@ -381,8 +419,12 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                         ]()
                                     })
                             }
-                        }).fail(function (jqXHR, textStatus, errorThrown) {
-                            //Tell the console council about what happened
+                        }
+                        const _dynamicDefaultFail = function (
+                            jqXHR,
+                            textStatus,
+                            errorThrown
+                        ) {
                             console.warn(
                                 'ERROR! ' +
                                     textStatus +
@@ -391,7 +433,19 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                     ' /// ' +
                                     errorThrown
                             )
-                        })
+                        }
+                        if (isKmlUrl(dynamicLayerUrl)) {
+                            fetchKmlAsGeoJSON(
+                                dynamicLayerUrl,
+                                _dynamicDefaultSuccess,
+                                _dynamicDefaultFail
+                            )
+                        } else {
+                            $.getJSON(
+                                dynamicLayerUrl,
+                                _dynamicDefaultSuccess
+                            ).fail(_dynamicDefaultFail)
+                        }
                     } else {
                         // Just delete existing
                         L_.clearVectorLayer(layerObj.name)
@@ -578,23 +632,44 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
     }
 
     if (!done) {
-        $.getJSON(layerUrl, (data) => {
-            if (data.hasOwnProperty('Features')) {
-                data.features = data.Features
-                delete data.Features
-            }
-            cb(data)
-        }).fail((jqXHR, textStatus, errorThrown) => {
-            //Tell the console council about what happened
-            console.warn(
-                'ERROR! ' +
-                    textStatus +
-                    ' in ' +
-                    layerUrl +
-                    ' /// ' +
-                    errorThrown
+        if (isKmlUrl(layerUrl)) {
+            fetchKmlAsGeoJSON(
+                layerUrl,
+                (data) => {
+                    cb(data)
+                },
+                (jqXHR, textStatus, errorThrown) => {
+                    console.warn(
+                        'ERROR! ' +
+                            textStatus +
+                            ' in ' +
+                            layerUrl +
+                            ' /// ' +
+                            errorThrown
+                    )
+                    cb(null)
+                }
             )
-            cb(null)
-        })
+        } else {
+            $.getJSON(layerUrl, (data) => {
+                if (data.hasOwnProperty('Features')) {
+                    data.features = data.Features
+                    delete data.Features
+                }
+                cb(data)
+            }).fail((jqXHR, textStatus, errorThrown) => {
+                console.warn(
+                    'ERROR! ' +
+                        textStatus +
+                        ' in ' +
+                        layerUrl +
+                        ' /// ' +
+                        errorThrown
+                )
+                cb(null)
+            })
+        }
     }
 }
+
+export { isKmlUrl }
