@@ -75,6 +75,8 @@ let ToolController_ = {
                     if (this.activeTool != null) {
                         this.activeTool.destroy()
                     }
+                    // Cancel any pending horizontal-tool close cleanup
+                    ++this._closeSeq
 
                     this.activeTool = tool
                     this.setToolHeight(this.activeTool.height)
@@ -130,6 +132,7 @@ let ToolController_ = {
                 this.activeTool.notify(type, payload)
         }
     },
+    _closeSeq: 0,
     closeActiveTool: function () {
         // Deselect active button styling (vanilla DOM, no jQuery)
         var prevActive = document.querySelectorAll(
@@ -142,31 +145,48 @@ let ToolController_ = {
             if (el.parentElement) el.parentElement.style.background = 'none'
         })
 
+        var wasHorizontal = this.prevHeight != 0
+
         if (this.activeTool != null) {
-            this.activeTool.destroy()
-            // For horizontal tools (prevHeight > 0), delay clearing #tools
-            // until the height transition (0.4s ease-out) completes so the
-            // content doesn't vanish before the wrapper animates to 0.
-            // For vertical tools (side panel), clear immediately.
-            var toolsEl = document.getElementById('tools')
-            if (this.prevHeight != 0 && toolsEl) {
+            if (wasHorizontal) {
+                // Horizontal tools: animate the wrapper height to 0 first,
+                // then destroy the tool and clean up after the CSS transition
+                // (0.4s ease-out) completes. This keeps the tool content
+                // visible while the wrapper slides downward.
+                var closingTool = this.activeTool
+                var closeId = ++this._closeSeq
+                this.UserInterface.setToolHeight(0)
                 setTimeout(function () {
-                    toolsEl.innerHTML = ''
+                    // Guard: if another tool was opened during the transition,
+                    // _closeSeq will have incremented — skip stale cleanup.
+                    if (ToolController_._closeSeq !== closeId) return
+                    closingTool.destroy()
+                    var toolsEl = document.getElementById('tools')
+                    if (toolsEl) toolsEl.innerHTML = ''
+                    useUIStore.setState({
+                        toolsWrapperRawWidth: 0,
+                        toolsWrapperCSSWidth: '0%',
+                    })
                 }, 420)
-            } else if (toolsEl) {
-                toolsEl.innerHTML = ''
+            } else {
+                // Vertical/side-panel tools: destroy immediately
+                this.activeTool.destroy()
+                var toolsEl = document.getElementById('tools')
+                if (toolsEl) toolsEl.innerHTML = ''
+                this.UserInterface.closeToolPanel()
+                useUIStore.setState({
+                    toolsWrapperRawWidth: 0,
+                    toolsWrapperCSSWidth: '0%',
+                })
+                if (this.UserInterface != null) {
+                    this.UserInterface.setToolHeight(0)
+                }
             }
-            this.UserInterface.closeToolPanel()
         }
         this.activeTool = null
         this.activeToolName = null
         // Sync to store so React re-renders button states
         useUIStore.getState().setActiveToolName(null)
-        // Reset tools wrapper width so TopBar returns to default layout
-        useUIStore.setState({ toolsWrapperRawWidth: 0, toolsWrapperCSSWidth: '0%' })
-        if (this.prevHeight != 0 && this.UserInterface != null) {
-            this.UserInterface.setToolHeight(0)
-        }
         this.prevHeight = 0
     },
     getToolsUrl: function () {

@@ -112,6 +112,7 @@ function ToolsWrapper() {
         <div
             id="toolsWrapper"
             style={{
+                position: 'relative',
                 height: pxIsTools + 'px',
                 width: toolsWrapperCSSWidth,
                 margin: '0',
@@ -119,6 +120,7 @@ function ToolsWrapper() {
                 left: '0px',
                 bottom: '0px',
                 zIndex: 1003,
+                overflow: 'hidden',
                 transition: 'height 0.4s ease-out',
             }}
         >
