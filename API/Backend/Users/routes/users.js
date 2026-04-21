@@ -39,7 +39,7 @@ router.post("/has", function (req, res, next) {
 });
 
 router.post("/first_signup", function (req, res, next) {
-  if (!isStrongPassword(req.body.password)) {
+  if (!req.body.password || !isStrongPassword(req.body.password)) {
     res.send({
       status: "failure",
       message:

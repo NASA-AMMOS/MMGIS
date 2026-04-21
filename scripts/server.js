@@ -118,6 +118,11 @@ if (!sessionSecret) {
     "FATAL: The SECRET environment variable is not set. Please set it to a strong random string for session security.",
   );
 }
+if (sessionSecret.length < 24) {
+  throw new Error(
+    "FATAL: The SECRET environment variable is too short (minimum 24 characters). Please set it to a strong random string for session security.",
+  );
+}
 app.use(
   session({
     secret: sessionSecret,

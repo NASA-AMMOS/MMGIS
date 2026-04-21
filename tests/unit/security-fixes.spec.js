@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test';
 const path = require('path');
 
 test.describe('Fix 1: Path Traversal in /destroy route', () => {
-  const missionNameRegex = /^[A-Za-z0-9_-]+$/;
+  const missionNameRegex = /^[A-Za-z0-9_ -]+$/;
 
   test('rejects mission name with path traversal (../../etc)', () => {
     expect(missionNameRegex.test('../../etc')).toBe(false);
@@ -47,6 +47,10 @@ test.describe('Fix 1: Path Traversal in /destroy route', () => {
 
   test('allows mission name with hyphens', () => {
     expect(missionNameRegex.test('Test-Mission')).toBe(true);
+  });
+
+  test('allows mission name with spaces', () => {
+    expect(missionNameRegex.test('Mars Rover')).toBe(true);
   });
 
   test('resolved path stays within Missions directory for valid names', () => {
@@ -221,6 +225,54 @@ test.describe('Fix 6: Default Session Secret', () => {
       }
     }
   });
+
+  test('server rejects SECRET shorter than 24 characters', () => {
+    const originalSecret = process.env.SECRET;
+    process.env.SECRET = 'tooshort';
+
+    try {
+      const sessionSecret = process.env.SECRET;
+      if (!sessionSecret) {
+        throw new Error('FATAL: The SECRET environment variable is not set.');
+      }
+      if (sessionSecret.length < 24) {
+        throw new Error(
+          'FATAL: The SECRET environment variable is too short (minimum 24 characters).'
+        );
+      }
+      expect(true).toBe(false);
+    } catch (err) {
+      expect(err.message).toContain('too short');
+    } finally {
+      if (originalSecret !== undefined) {
+        process.env.SECRET = originalSecret;
+      } else {
+        delete process.env.SECRET;
+      }
+    }
+  });
+
+  test('server accepts SECRET with exactly 24 characters', () => {
+    const originalSecret = process.env.SECRET;
+    process.env.SECRET = 'abcdefghijklmnopqrstuvwx';
+
+    try {
+      const sessionSecret = process.env.SECRET;
+      if (!sessionSecret) {
+        throw new Error('FATAL: The SECRET environment variable is not set.');
+      }
+      if (sessionSecret.length < 24) {
+        throw new Error('FATAL: The SECRET environment variable is too short.');
+      }
+      expect(sessionSecret.length).toBe(24);
+    } finally {
+      if (originalSecret !== undefined) {
+        process.env.SECRET = originalSecret;
+      } else {
+        delete process.env.SECRET;
+      }
+    }
+  });
 });
 
 test.describe('Fix 9: Password Strength on /resetPassword', () => {
@@ -251,6 +303,10 @@ test.describe('Fix 9: Password Strength on /resetPassword', () => {
 
   test('rejects null password on reset', () => {
     expect(isStrongPassword(null)).toBe(false);
+  });
+
+  test('rejects undefined password on reset', () => {
+    expect(isStrongPassword(undefined)).toBe(false);
   });
 
   test('accepts strong password on reset', () => {
