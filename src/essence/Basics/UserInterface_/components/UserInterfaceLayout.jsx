@@ -6,6 +6,7 @@ import Toolbar from './Toolbar'
 import SplitScreens from './SplitScreens'
 import ToolPanel from './ToolPanel'
 import BottomBarReact from './BottomBarReact'
+import BottomElementPositioner from './BottomElementPositioner'
 
 import '../BottomBar.css'
 
@@ -122,6 +123,7 @@ function UserInterfaceLayout() {
             <ToolPanel />
             <SplitScreens />
             {!isMobile && <BottomBarReact userInterface={bridge} />}
+            <BottomElementPositioner />
         </div>
         {ReactDOM.createPortal(
             <div

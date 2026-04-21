@@ -17,16 +17,8 @@ function MobileTimeButton() {
             require('../../ToolController_/ToolController_').default
         const TimeUI = require('../../TimeControl_/TimeUI').default
 
-        // Deselect all active buttons
-        const prevActive = document.querySelectorAll(
-            '#toolcontroller_incdiv .active'
-        )
-        prevActive.forEach((el) => {
-            el.classList.remove('active')
-            el.style.color = defaultColor
-            el.style.background = 'none'
-            if (el.parentElement) el.parentElement.style.background = 'none'
-        })
+        // Button active/inactive styling is driven by React state (isActive)
+        // and activeToolName in the store — no imperative DOM toggling needed.
 
         if (!isActive) {
             TimeUI.initialize()
@@ -96,16 +88,8 @@ function MobileCoordButton() {
             require('../../ToolController_/ToolController_').default
         const L_ = require('../../Layers_/Layers_').default
 
-        // Deselect all active buttons
-        const prevActive = document.querySelectorAll(
-            '#toolcontroller_incdiv .active'
-        )
-        prevActive.forEach((el) => {
-            el.classList.remove('active')
-            el.style.color = defaultColor
-            el.style.background = 'none'
-            if (el.parentElement) el.parentElement.style.background = 'none'
-        })
+        // Button active/inactive styling is driven by React state (isActive)
+        // and activeToolName in the store — no imperative DOM toggling needed.
 
         if (!isActive) {
             L_.Coordinates.initialize()
@@ -280,33 +264,10 @@ function Toolbar() {
             require('../../ToolController_/ToolController_').default
         const toolModuleName = ToolController_.toolModuleNames[index]
 
-        // Deselect previous active button styling (jQuery compat: some tools
-        // query '#toolcontroller_incdiv .active')
-        const prevActive = document.querySelectorAll(
-            '#toolcontroller_incdiv .active'
-        )
-        prevActive.forEach((el) => {
-            el.classList.remove('active')
-            el.style.color = 'var(--color-f)'
-            el.style.background = 'none'
-            if (el.parentElement) el.parentElement.style.background = 'none'
-        })
-
-        // If clicking the already-active tool, it's a toggle-off
-        const wasActive = ToolController_.activeToolName === toolModuleName
-
-        if (!wasActive) {
-            // Activate button styling (jQuery compat)
-            const newActiveIcon = document.getElementById(tool.name + 'Tool')
-            if (newActiveIcon) {
-                newActiveIcon.classList.add('active')
-                newActiveIcon.style.color = 'var(--color-mmgis)'
-                if (newActiveIcon.parentElement) {
-                    newActiveIcon.parentElement.style.background =
-                        'var(--color-i)'
-                }
-            }
-        }
+        // Button active/inactive styling is driven entirely by the store's
+        // activeToolName field. ToolButton reads isActive from the store
+        // and applies color/background reactively — no imperative DOM
+        // class toggling needed.
 
         ToolController_.makeTool(toolModuleName, index)
 

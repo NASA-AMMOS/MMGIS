@@ -107,22 +107,30 @@ let BottomBar = {
                     lat + '_' + lng,
                 function () {
                     canvas.remove()
-                    // Restore UI controls AFTER the canvas has been captured and downloaded
-                    // (previously this ran synchronously outside .then(), racing with HTML2Canvas)
-                    $('#mapScreen #map .leaflet-tile-pane')
-                        .children()
-                        .each(function (i, elm) {
-                            $(elm).css('z-index', zIndices[i])
-                        })
-                    $('.leaflet-control-scalefactor').css('display', 'flex')
-                    $('#mmgis-map-compass').css('display', 'block')
-                    $('.leaflet-control-zoom').css('display', 'block')
-                    $('#scaleBar').css('margin-top', '5px')
-                    $('#mapToolBar').css('bottom', savedMapToolBarBottom)
+                    restoreUI()
                     if (callback) callback()
                 }
             )
+        }).catch(function (err) {
+            console.warn('HTML2Canvas screenshot failed:', err)
+            restoreUI()
+            if (callback) callback()
         })
+
+        // Shared restore function — called on both success and failure so
+        // map controls are never left permanently hidden.
+        function restoreUI() {
+            $('#mapScreen #map .leaflet-tile-pane')
+                .children()
+                .each(function (i, elm) {
+                    $(elm).css('z-index', zIndices[i])
+                })
+            $('.leaflet-control-scalefactor').css('display', 'flex')
+            $('#mmgis-map-compass').css('display', 'block')
+            $('.leaflet-control-zoom').css('display', 'block')
+            $('#scaleBar').css('margin-top', '5px')
+            $('#mapToolBar').css('bottom', savedMapToolBarBottom)
+        }
     },
     toggleHotkeys: function (on) {
         if (on) {

@@ -134,16 +134,11 @@ let ToolController_ = {
     },
     _closeSeq: 0,
     closeActiveTool: function () {
-        // Deselect active button styling (vanilla DOM, no jQuery)
-        var prevActive = document.querySelectorAll(
-            '#toolcontroller_incdiv .active'
-        )
-        prevActive.forEach(function (el) {
-            el.classList.remove('active')
-            el.style.color = ToolController_.defaultColor
-            el.style.background = 'none'
-            if (el.parentElement) el.parentElement.style.background = 'none'
-        })
+        // Button active/inactive styling is now driven by the Zustand store's
+        // activeToolName field. Toolbar.jsx reads it and passes isActive to
+        // each ToolButton, so no imperative DOM class toggling is needed here.
+        // Setting activeToolName to null (below) triggers React to re-render
+        // all buttons with isActive=false.
 
         var wasHorizontal = this.prevHeight != 0
 
