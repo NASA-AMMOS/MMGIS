@@ -9,7 +9,7 @@ import useUIStore from '../store/uiStore'
  * lived in UserInterfaceBridge.js.
  *
  * Positioned elements (created by jQuery modules, not React):
- *   Desktop: #mapToolBar, #mmgis-attributions, .leaflet-bottom.leaflet-left,
+ *   Desktop: #mapToolBar, #mmgis-attributions, .leaflet-control-scalefactor,
  *            #mmgis-map-compass, .leaflet-bottom.leaflet-right,
  *            #CoordinatesDiv, #timeUI
  *   Mobile:  #CoordinatesDiv, #timeUI, #toolbar
@@ -70,28 +70,30 @@ function BottomElementPositioner() {
                 mapToolBar.style.bottom = (pxIsTools + newBottom) + 'px'
             }
 
-            // Attributions, scalebar, and compass sit at their fixed
-            // positions above the tools area. They do NOT shift with
-            // TimeUI height — the TimeUI panel overlays them when
-            // expanded, which matches the pre-React jQuery behavior.
+            // Attributions sit just above the tools area (not shifted
+            // by TimeUI height). They are a child of
+            // .leaflet-bottom.leaflet-left, so we position them directly
+            // rather than moving the parent (which would double-offset).
             const attributions = document.getElementById('mmgis-attributions')
             if (attributions) {
                 attributions.style.transition = ease
                 attributions.style.bottom = pxIsTools + 'px'
             }
 
-            // .leaflet-bottom.leaflet-left is the parent container for the
-            // scalefactor control. The scalefactor itself has CSS
-            // `position: absolute; bottom: 28px` relative to this parent,
-            // so moving the parent automatically repositions it correctly.
-            // (Matches jQuery _updateBottomUIHeight which positions this
-            // parent, not the scalefactor element directly.)
-            const leafletBottomLeft = document.querySelector('.leaflet-bottom.leaflet-left')
-            if (leafletBottomLeft) {
-                leafletBottomLeft.style.transition = ease
-                leafletBottomLeft.style.bottom = (pxIsTools + newBottom) + 'px'
+            // Position the scalefactor control directly (child of
+            // .leaflet-bottom.leaflet-left). We do NOT move the parent
+            // container because #mmgis-attributions and #mmgis-map-compass
+            // are also children of that parent — moving the parent would
+            // double-offset them. The jQuery toggleTimeUI in Coordinates.js
+            // handles the parent's TimeUI-based positioning.
+            const scaleFactor = document.querySelector('.leaflet-control-scalefactor')
+            if (scaleFactor) {
+                scaleFactor.style.transition = ease
+                scaleFactor.style.bottom = (pxIsTools + 28) + 'px'
             }
 
+            // Compass is also a child of .leaflet-bottom.leaflet-left.
+            // Position it directly above attributions.
             const compass = document.getElementById('mmgis-map-compass')
             if (compass) {
                 compass.style.transition = ease

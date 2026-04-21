@@ -101,8 +101,8 @@ let ToolController_ = {
                             ?.expandable === true
                     )
 
-                    tool.make(this)
                     this.activeTool = tool
+                    tool.make(this)
                 } else {
                     console.warn(
                         'WARNING: ' +
@@ -156,6 +156,13 @@ let ToolController_ = {
                 this._pendingCloseTool = closingTool
                 var closeId = ++this._closeSeq
                 this.UserInterface.setToolHeight(0)
+                // Reset wrapper width immediately so TopBar snaps to
+                // the correct position at the start of the close animation
+                // (the height animation provides the visual close effect).
+                useUIStore.setState({
+                    toolsWrapperRawWidth: 0,
+                    toolsWrapperCSSWidth: '0%',
+                })
                 setTimeout(function () {
                     // Guard: if another tool was opened during the transition,
                     // _closeSeq will have incremented — skip stale cleanup.
@@ -168,10 +175,6 @@ let ToolController_ = {
                     ToolController_._pendingCloseTool = null
                     var toolsEl = document.getElementById('tools')
                     if (toolsEl) toolsEl.innerHTML = ''
-                    useUIStore.setState({
-                        toolsWrapperRawWidth: 0,
-                        toolsWrapperCSSWidth: '0%',
-                    })
                 }, 420)
             } else {
                 // Vertical/side-panel tools: destroy immediately
