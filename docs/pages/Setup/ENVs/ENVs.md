@@ -37,7 +37,11 @@ Instance type | string enum | default `production`
 
 #### `SECRET=`
 
-Some random string | string | default `null`
+**Required.** A cryptographically random string used to sign session cookies. This secret ensures that session IDs cannot be forged by attackers.
+
+**Type**: string | **Default**: None (application will fail to start if not set)
+
+**Important**: This value must be kept confidential. Use a long, random string (e.g., 64+ characters generated with `openssl rand -hex 64` or `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`). Do not use the sample value from `sample.env` in production. If this variable is not set, the server will refuse to start.
 
 #### `DB_HOST=`
 

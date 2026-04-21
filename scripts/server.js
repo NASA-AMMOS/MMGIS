@@ -112,9 +112,15 @@ const pool = new Pool({
         }
       : false,
 });
+const sessionSecret = process.env.SECRET;
+if (!sessionSecret) {
+  throw new Error(
+    "FATAL: The SECRET environment variable is not set. Please set it to a strong random string for session security.",
+  );
+}
 app.use(
   session({
-    secret: process.env.SECRET || "Shhhh, it is a secret!",
+    secret: sessionSecret,
     name: "MMGISSession",
     proxy: true,
     resave: false,
