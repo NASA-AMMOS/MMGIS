@@ -10,6 +10,7 @@ import HTML2Canvas from 'html2canvas'
 import tippy from 'tippy.js'
 
 import './BottomBar.css'
+import useUIStore from './store/uiStore'
 
 let BottomBar = {
     UI_: null,
@@ -646,10 +647,7 @@ let BottomBar = {
                     $('#viewerToolBar').css('display', 'none')
                     $('#_lithosphere_controls').css('display', 'none')
                     // Update Zustand store so React SplitScreens removes 40px offset
-                    import('./store/uiStore').then((mod) => {
-                        mod.default.getState().setToolbarVisible(false)
-                    })
-                    BottomBar.UI_.topSize = 0
+                    useUIStore.getState().setToolbarVisible(false)
                     window.dispatchEvent(new Event('resize'))
                     break
                 case 'scalebar':
@@ -684,10 +682,7 @@ let BottomBar = {
                     $('#viewerToolBar').css('display', 'inherit')
                     $('#_lithosphere_controls').css('display', 'inherit')
                     // Update Zustand store so React SplitScreens restores 40px offset
-                    import('./store/uiStore').then((mod) => {
-                        mod.default.getState().setToolbarVisible(true)
-                    })
-                    BottomBar.UI_.topSize = 40
+                    useUIStore.getState().setToolbarVisible(true)
                     window.dispatchEvent(new Event('resize'))
                     break
                 case 'scalebar':
