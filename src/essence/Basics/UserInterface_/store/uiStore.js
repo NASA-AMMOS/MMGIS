@@ -122,24 +122,31 @@ const useUIStore = create((set, get) => ({
 
         set({ pxIsViewer: result.pxIsViewer, pxIsMap: result.pxIsMap, pxIsGlobe: result.pxIsGlobe })
 
-        // Trigger resize for imperative map/globe/viewer
-        const current = get()
-        if (current._Viewer) current._Viewer.invalidateSize()
-        if (current._Map && current._Map.map) current._Map.map.invalidateSize()
-        if (current._Globe && current._Globe.litho)
-            current._Globe.litho.invalidateSize()
+        // Defer invalidateSize until after React has committed the DOM changes.
+        // Calling invalidateSize synchronously after set() runs before React
+        // re-renders the panel divs with their new widths, so Leaflet reads
+        // the old container sizes. For drag events this is masked by rapid
+        // successive calls, but for button clicks (single large jump) the map
+        // won't recenter/resize without this deferral.
+        setTimeout(() => {
+            const current = get()
+            if (current._Viewer) current._Viewer.invalidateSize()
+            if (current._Map && current._Map.map) current._Map.map.invalidateSize()
+            if (current._Globe && current._Globe.litho)
+                current._Globe.litho.invalidateSize()
 
-        // Sync Globe to Map on first open
-        if (wasGlobeClosed && isGlobeOpening && current._Globe) {
-            if (!current._Globe.hasBeenOpened) {
-                current._Globe.hasBeenOpened = true
-                if (current._L && current._L.FUTURES.globeView == null) {
-                    setTimeout(() => {
-                        current._Globe.syncToMapCenter()
-                    }, 100)
+            // Sync Globe to Map on first open
+            if (wasGlobeClosed && isGlobeOpening && current._Globe) {
+                if (!current._Globe.hasBeenOpened) {
+                    current._Globe.hasBeenOpened = true
+                    if (current._L && current._L.FUTURES.globeView == null) {
+                        setTimeout(() => {
+                            current._Globe.syncToMapCenter()
+                        }, 100)
+                    }
                 }
             }
-        }
+        }, 0)
     },
 
     setToolHeight: (pxHeight, shouldntAnimate) => {
