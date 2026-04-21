@@ -645,14 +645,10 @@ let BottomBar = {
                     })
                     $('#viewerToolBar').css('display', 'none')
                     $('#_lithosphere_controls').css('display', 'none')
-                    $('#splitscreens').css({
-                        left: '0px',
-                        width: '100%',
+                    // Update Zustand store so React SplitScreens removes 40px offset
+                    import('./store/uiStore').then((mod) => {
+                        mod.default.getState().setToolbarVisible(false)
                     })
-                    $('#mapScreen').css(
-                        'width',
-                        $('#mapScreen').width() + 40 + 'px'
-                    )
                     BottomBar.UI_.topSize = 0
                     window.dispatchEvent(new Event('resize'))
                     break
@@ -687,14 +683,10 @@ let BottomBar = {
                     })
                     $('#viewerToolBar').css('display', 'inherit')
                     $('#_lithosphere_controls').css('display', 'inherit')
-                    $('#splitscreens').css({
-                        left: '40px',
-                        width: 'calc(100% - 40px)',
+                    // Update Zustand store so React SplitScreens restores 40px offset
+                    import('./store/uiStore').then((mod) => {
+                        mod.default.getState().setToolbarVisible(true)
                     })
-                    $('#mapScreen').css(
-                        'width',
-                        $('#mapScreen').width() - 40 + 'px'
-                    )
                     BottomBar.UI_.topSize = 40
                     window.dispatchEvent(new Event('resize'))
                     break

@@ -41,6 +41,7 @@ const useUIStore = create((set, get) => ({
 
     // UI state
     helpOn: true,
+    toolbarVisible: true,
     isMobile: false,
     mobileTopSize: 50,
 
@@ -97,6 +98,7 @@ const useUIStore = create((set, get) => ({
         })),
 
     setIsMobile: (val) => set({ isMobile: val }),
+    setToolbarVisible: (val) => set({ toolbarVisible: val }),
 
     setTimeUIActive: (val) => set({ timeUIActive: val }),
     setTimeUIExpanded: (val) => set({ timeUIExpanded: val }),

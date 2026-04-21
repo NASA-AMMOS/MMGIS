@@ -10,6 +10,7 @@ function SplitScreens() {
     const fullSizeViews = useUIStore((s) => s.fullSizeViews)
     const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
     const isMobile = useUIStore((s) => s.isMobile)
+    const toolbarVisible = useUIStore((s) => s.toolbarVisible)
     const splitscreensRef = useRef(null)
 
     useEffect(() => {
@@ -66,11 +67,12 @@ function SplitScreens() {
                 }
             })
         }
-    }, [topSize, toolPanelWidth])
+    }, [topSize, toolPanelWidth, toolbarVisible])
 
     const topOffset = fullSizeViews ? 0 : topSize
-    // Mobile: no left toolbar sidebar, full width; Desktop: offset by toolbar (40px)
-    const leftOffset = isMobile ? toolPanelWidth : toolPanelWidth + 40
+    // Desktop toolbar is 40px wide; hidden when toolbarVisible is false
+    const toolbarWidth = isMobile ? 0 : (toolbarVisible ? 40 : 0)
+    const leftOffset = toolPanelWidth + toolbarWidth
 
     return (
         <div
@@ -79,9 +81,9 @@ function SplitScreens() {
             style={{
                 position: 'absolute',
                 top: topOffset + 'px',
-                width: isMobile ? `calc(100% - ${toolPanelWidth}px)` : `calc(100% - ${toolPanelWidth + 40}px)`,
+                width: `calc(100% - ${leftOffset}px)`,
                 height: `calc(100% - ${topOffset}px)`,
-                left: isMobile ? (toolPanelWidth + 'px') : (toolPanelWidth + 40 + 'px'),
+                left: leftOffset + 'px',
             }}
         >
             <div id="vmgScreen">

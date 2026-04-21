@@ -6,6 +6,7 @@ function Toolbar() {
     const isMobile = useUIStore((s) => s.isMobile)
     const topSize = useUIStore((s) => s.topSize)
     const pxIsTools = useUIStore((s) => s.pxIsTools)
+    const toolbarVisible = useUIStore((s) => s.toolbarVisible)
 
     return (
         <>
@@ -21,14 +22,16 @@ function Toolbar() {
                     width: '100%',
                     zIndex: 1004,
                     transition: 'bottom 0.4s ease-out',
+                    display: toolbarVisible ? 'inherit' : 'none',
                 } : {
-                    width: '40px',
-                    paddingTop: '40px',
+                    width: toolbarVisible ? '40px' : '0px',
+                    paddingTop: toolbarVisible ? '40px' : '0px',
                     background: 'var(--color-a)',
-                    borderRight: '1px solid var(--color-a-5)',
+                    borderRight: toolbarVisible ? '1px solid var(--color-a-5)' : 'none',
                     top: '0px',
                     height: '100%',
                     zIndex: 1004,
+                    display: toolbarVisible ? 'inherit' : 'none',
                 }}
             ></div>
             <div

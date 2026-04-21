@@ -655,6 +655,17 @@ const UserInterfaceBridge = {
 
         BottomBar.fina()
         this.show()
+
+        // Auto-open default tool if configured
+        // (matches UserInterfaceDefault_.js:1251-1258)
+        if (l_.configData.look && l_.configData.look.defaultToolEnabled) {
+            if (l_.configData.look.defaultTool && l_.configData.look.defaultTool !== 'None') {
+                const defaultToolBtn = document.getElementById(`toolButton${l_.configData.look.defaultTool}`)
+                if (defaultToolBtn) {
+                    defaultToolBtn.click()
+                }
+            }
+        }
     },
 
     updateLayerUpdateButton: function (type) {
