@@ -70,27 +70,34 @@ function BottomElementPositioner() {
                 mapToolBar.style.bottom = (pxIsTools + newBottom) + 'px'
             }
 
-            // Scalebar and attributions sit just above the tools area,
-            // not above the full TimeUI
+            // Scalebar, attributions, and compass need an extra offset
+            // when TimeUI is active — they sit above the TimeUI bar (40px)
+            // but below the expanded content area. The offset is
+            // (timeUIHeight - 40) when active, matching the deleted
+            // UserInterfaceDefault_.js setToolHeight() math.
+            const timeUIContentOffset = timeUIActive
+                ? (timeUIHeight - 40)
+                : 0
+
             const attributions = document.getElementById('mmgis-attributions')
             if (attributions) {
                 attributions.style.transition = ease
-                attributions.style.bottom = pxIsTools + 'px'
+                attributions.style.bottom = (pxIsTools + timeUIContentOffset) + 'px'
             }
 
             const scaleFactor = document.querySelector('.leaflet-control-scalefactor')
             if (scaleFactor) {
                 scaleFactor.style.transition = ease
-                scaleFactor.style.bottom = (pxIsTools + 28) + 'px'
+                scaleFactor.style.bottom = (pxIsTools + 28 + timeUIContentOffset) + 'px'
             }
 
             const compass = document.getElementById('mmgis-map-compass')
             if (compass) {
                 compass.style.transition = ease
                 if (!attributions || attributions.textContent.trim().length === 0) {
-                    compass.style.bottom = (pxIsTools + 38) + 'px'
+                    compass.style.bottom = (pxIsTools + 38 + timeUIContentOffset) + 'px'
                 } else {
-                    compass.style.bottom = (pxIsTools + 58) + 'px'
+                    compass.style.bottom = (pxIsTools + 58 + timeUIContentOffset) + 'px'
                 }
             }
 

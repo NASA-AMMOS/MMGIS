@@ -9,6 +9,7 @@ let ToolController_ = {
     toolModules: toolModules,
     activeTool: null,
     activeToolName: null,
+    _pendingCloseTool: null,
     prevHeight: 0,
     defaultColor: 'var(--color-f)',
     hoverColor: 'var(--color-mmgis)',
@@ -72,11 +73,26 @@ let ToolController_ = {
                     typeof tool.make === 'function' &&
                     typeof tool.destroy === 'function'
                 ) {
-                    if (this.activeTool != null) {
-                        this.activeTool.destroy()
-                    }
-                    // Cancel any pending horizontal-tool close cleanup
-                    ++this._closeSeq
+                        if (this.activeTool != null) {
+                            try {
+                                this.activeTool.destroy()
+                            } catch (e) {
+                                console.warn('Tool destroy() failed:', e)
+                            }
+                        }
+                        // If a horizontal tool is still pending close (deferred
+                        // destroy via setTimeout), destroy it now before opening
+                        // the new tool — otherwise its destroy() is never called.
+                        if (this._pendingCloseTool) {
+                            try {
+                                this._pendingCloseTool.destroy()
+                            } catch (e) {
+                                console.warn('Pending tool destroy() failed:', e)
+                            }
+                            this._pendingCloseTool = null
+                        }
+                        // Cancel any pending horizontal-tool close cleanup
+                        ++this._closeSeq
 
                     this.activeTool = tool
                     this.setToolHeight(this.activeTool.height)
@@ -149,13 +165,19 @@ let ToolController_ = {
                 // (0.4s ease-out) completes. This keeps the tool content
                 // visible while the wrapper slides downward.
                 var closingTool = this.activeTool
+                this._pendingCloseTool = closingTool
                 var closeId = ++this._closeSeq
                 this.UserInterface.setToolHeight(0)
                 setTimeout(function () {
                     // Guard: if another tool was opened during the transition,
                     // _closeSeq will have incremented — skip stale cleanup.
                     if (ToolController_._closeSeq !== closeId) return
-                    closingTool.destroy()
+                    try {
+                        closingTool.destroy()
+                    } catch (e) {
+                        console.warn('Deferred tool destroy() failed:', e)
+                    }
+                    ToolController_._pendingCloseTool = null
                     var toolsEl = document.getElementById('tools')
                     if (toolsEl) toolsEl.innerHTML = ''
                     useUIStore.setState({
