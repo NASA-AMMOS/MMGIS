@@ -138,7 +138,7 @@ var essence = {
     // Wait for the React layout to mount and set layoutReady in the store
     waitForLayoutReady: function () {
         return new Promise((resolve) => {
-            // Dynamic import to avoid circular deps when useReactUI is false
+            // Dynamic import to avoid circular deps
             import('./Basics/UserInterface_/store/uiStore').then((mod) => {
                 const useUIStore = mod.default
                 const state = useUIStore.getState()

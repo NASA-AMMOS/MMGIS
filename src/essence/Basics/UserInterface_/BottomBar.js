@@ -7,7 +7,6 @@ import L_ from '../Layers_/Layers_'
 import QueryURL from '../../Ancillary/QueryURL'
 import Modal from '../../Ancillary/Modal'
 import HTML2Canvas from 'html2canvas'
-import './BottomBar.css'
 import useUIStore from './store/uiStore'
 
 let BottomBar = {
@@ -480,8 +479,6 @@ let BottomBar = {
             }
         }
     },
-    toggleInfo: function () {},
-    toggleHelp: function () {},
     fullscreen: function () {
         var isInFullScreen =
             (document.fullscreenElement &&
