@@ -16,7 +16,7 @@ function ToolPanel() {
 
     const handleDragMouseDown = useCallback((e) => {
         const startX = e.pageX
-        const startLeft = toolPanelWidth + panelLeftOffset + 10
+        const startLeft = toolPanelWidth + 10
 
         const handleMouseMove = (ev) => {
             const newLeft = startLeft + (ev.pageX - startX)
@@ -36,7 +36,7 @@ function ToolPanel() {
             document.body.style.userSelect = ''
             if (dragRef.current && dragRef.current._dragged) {
                 const newWidth =
-                    parseInt(dragRef.current.style.left) - panelLeftOffset - 10
+                    parseInt(dragRef.current.style.left) - 10
                 if (newWidth > 0) {
                     const clampedWidth = Math.max(
                         Math.min(newWidth, window.innerWidth / 2),
@@ -99,7 +99,7 @@ function ToolPanel() {
                     display: toolPanelWidth > 0 ? 'block' : 'none',
                     zIndex: 1400,
                     borderRight: '1px solid transparent',
-                    left: toolPanelWidth + panelLeftOffset + 10 + 'px',
+                    left: toolPanelWidth + 10 + 'px',
                 }}
                 onMouseDown={handleDragMouseDown}
             >
