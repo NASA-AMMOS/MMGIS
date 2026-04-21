@@ -151,6 +151,8 @@ let ToolController_ = {
         this.activeToolName = null
         // Sync to store so React re-renders button states
         useUIStore.getState().setActiveToolName(null)
+        // Reset tools wrapper width so TopBar returns to default layout
+        useUIStore.setState({ toolsWrapperRawWidth: 0, toolsWrapperCSSWidth: '0%' })
         if (this.prevHeight != 0 && this.UserInterface != null) {
             this.UserInterface.setToolHeight(0)
         }

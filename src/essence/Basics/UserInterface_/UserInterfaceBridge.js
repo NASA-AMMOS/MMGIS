@@ -251,8 +251,6 @@ const UserInterfaceBridge = {
         const panelEl = document.getElementById('toolPanel')
         if (panelEl) panelEl.innerHTML = ''
         useUIStore.getState().closeToolPanel()
-        // Reset tools wrapper width so TopBar returns to default layout
-        useUIStore.setState({ toolsWrapperRawWidth: 0, toolsWrapperCSSWidth: '0%' })
         // TopBar styles are now computed reactively by TopBar.jsx
         // Splitscreens dimensions are recaptured by ResizeObserver in SplitScreens.jsx
     },
