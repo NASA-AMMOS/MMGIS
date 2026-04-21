@@ -7,353 +7,120 @@ import L_ from '../Layers_/Layers_'
 import QueryURL from '../../Ancillary/QueryURL'
 import Modal from '../../Ancillary/Modal'
 import HTML2Canvas from 'html2canvas'
-import tippy from 'tippy.js'
-
 import './BottomBar.css'
 import useUIStore from './store/uiStore'
 
 let BottomBar = {
     UI_: null,
     settings: {},
-    init: function (containerId, UI) {
+
+    // Set the UI reference (called by bridge fina or React component)
+    setUI: function (UI) {
         this.UI_ = UI
-        const bottomBar = $(`#${containerId}`)
+    },
 
-        // Copy Link
-        const topBarLink = $('<i>')
-            .attr('id', 'topBarLink')
-            .attr('tabindex', 100)
-            .attr('class', 'mmgisHoverBlue mdi mdi-open-in-new mdi-18px')
-            .css({
-                'padding': '5px 10px',
-                'width': '40px',
-                'height': '36px',
-                'line-height': '26px',
-                'cursor': 'pointer'
-            })
-            .on('click', function () {
-                const linkButton = $(this)
-                QueryURL.writeCoordinateURL(true, function () {
-                    F_.copyToClipboard(L_.url)
-
-                    linkButton.removeClass('mdi-open-in-new')
-                    linkButton.addClass('mdi-check-bold')
-                    linkButton.css('color', 'var(--color-green)')
-                    setTimeout(() => {
-                        linkButton.removeClass('mdi-check-bold')
-                        linkButton.css('color', '')
-                        linkButton.addClass('mdi-open-in-new')
-                    }, 3000)
-                })
-            })
-        bottomBar.append(topBarLink)
-
-        tippy(`#topBarLink`, {
-            content: `Copy Link`,
-            placement: 'right',
-            theme: 'blue',
+    // Copy the current URL to clipboard (extracted from init's click handler)
+    copyLink: function (callback) {
+        QueryURL.writeCoordinateURL(true, function () {
+            F_.copyToClipboard(L_.url)
+            if (callback) callback()
         })
+    },
 
-        // Screenshot
-        const topBarScreenshot = $('<i>')
-            .attr('id', 'topBarScreenshot')
-            .attr('title', 'Screenshot')
-            .attr('tabindex', 101)
-            .attr('class', 'mmgisHoverBlue mdi mdi-camera mdi-18px')
-            .css({
-                'padding': '5px 10px',
-                'width': '40px',
-                'height': '36px',
-                'line-height': '26px',
-                'cursor': 'pointer',
-                'opacity': '0.8'
+    // Take a screenshot of the map (extracted from init's click handler)
+    takeScreenshot: function (callback) {
+        // We need to manually order leaflet z-indices for this to work
+        let zIndices = []
+        $('#mapScreen #map .leaflet-tile-pane')
+            .children()
+            .each(function (i, elm) {
+                zIndices.push($(elm).css('z-index'))
+                $(elm).css('z-index', i + 1)
             })
-            .on('click', function () {
-                //We need to manually order leaflet z-indices for this to work
-                let zIndices = []
-                $('#mapScreen #map .leaflet-tile-pane')
-                    .children()
-                    .each(function (i, elm) {
-                        zIndices.push($(elm).css('z-index'))
-                        $(elm).css('z-index', i + 1)
-                    })
-                $('.leaflet-control-scalefactor').css('display', 'none')
-                $('#mmgis-map-compass').css('display', 'none')
-                $('.leaflet-control-zoom').css('display', 'none')
-                $('#topBarScreenshotLoading').css('display', 'block')
-                $('#scaleBar').css('margin-top', '0px')
-                const savedMapToolBarBottom =
-                    $('#mapToolBar').css('bottom') || '0px'
-                $('#mapToolBar').css('bottom', '0px')
-                $(`#toggleTimeUI.active`).trigger('click')
+        $('.leaflet-control-scalefactor').css('display', 'none')
+        $('#mmgis-map-compass').css('display', 'none')
+        $('.leaflet-control-zoom').css('display', 'none')
+        $('#scaleBar').css('margin-top', '0px')
+        const savedMapToolBarBottom =
+            $('#mapToolBar').css('bottom') || '0px'
+        $('#mapToolBar').css('bottom', '0px')
+        $('#toggleTimeUI.active').trigger('click')
 
-                const documentElm = document.getElementById('mapScreen')
-                HTML2Canvas(documentElm, {
-                    allowTaint: true,
-                    useCORS: true,
-                    logging: false,
-                    scrollX: -window.scrollX,
-                    scrollY: -window.scrollY,
-                    windowWidth: documentElm.offsetWidth,
-                    windowHeight: documentElm.offsetHeight,
-                    onclone: function (e) {
-                        // Fix svg layer shift
-                        const originalSVG = document.body.querySelectorAll(
-                            'svg.leaflet-zoom-animated'
-                        )
-                        const copySVG = e.body.querySelectorAll(
-                            'svg.leaflet-zoom-animated'
-                        )
-                        copySVG.forEach((copyEle, i) => {
-                            const attribute = originalSVG
-                                .item(i)
-                                .getAttribute('style')
-                            const parentElement = copyEle.parentElement
-                            parentElement.removeChild(copyEle)
-                            const temp = document.createElement('div')
-                            temp.appendChild(copyEle)
-                            parentElement.appendChild(temp)
-                            temp.setAttribute('style', attribute)
-                            copyEle.removeAttribute('style')
-                        })
-
-                        // Fix tile layer z-indices
-                        const originalZ = document.body.querySelectorAll(
-                            '.leaflet-tile-pane > div.leaflet-layer'
-                        )
-                        const copyZ = e.body.querySelectorAll(
-                            '.leaflet-tile-pane > div.leaflet-layer'
-                        )
-                        copyZ.forEach((copyEle, i) => {
-                            const attribute = originalZ
-                                .item(i)
-                                .getAttribute('style')
-                            copyEle.setAttribute('style', attribute)
-                        })
-                    },
-                }).then(function (canvas) {
-                    canvas.id = 'mmgisScreenshot'
-                    document.body.appendChild(canvas)
-
-                    const mission = L_.configData?.msv?.mission
-                    const time = L_.TimeControl_?.currentTime
-                    const mapCenter = L_.Map_.map.getCenter()
-                    const lng = mapCenter.lng.toFixed(4)
-                    const lat = mapCenter.lat.toFixed(4)
-
-                    F_.downloadCanvas(
-                        canvas.id,
-                        `mmgis-${mission}_${
-                            time ? `${time.replaceAll(':', '-')}_` : ''
-                        }${lat}_${lng}`,
-                        function () {
-                            canvas.remove()
-                            setTimeout(function () {
-                                $('#topBarScreenshotLoading').css(
-                                    'display',
-                                    'none'
-                                )
-                            }, 2000)
-                        }
-                    )
-                })
-                $('#mapScreen #map .leaflet-tile-pane')
-                    .children()
-                    .each(function (i, elm) {
-                        $(elm).css('z-index', zIndices[i])
-                    })
-                $('.leaflet-control-scalefactor').css('display', 'flex')
-                $('#mmgis-map-compass').css('display', 'block')
-                $('.leaflet-control-zoom').css('display', 'block')
-                $('#scaleBar').css('margin-top', '5px')
-                $('#mapToolBar').css('bottom', 'savedMapToolBarBottom')
-            })
-        bottomBar.append(topBarScreenshot)
-
-        tippy(`#topBarScreenshot`, {
-            content: `Take Screenshot`,
-            placement: 'right',
-            theme: 'blue',
-        })
-
-        // Screenshot loading
-        const topBarScreenshotLoading = $('<i>')
-            .attr('id', 'topBarScreenshotLoading')
-            .attr(
-                'title',
-                'Taking Screenshot...\nYou may need to permit multiple downloads in your browser.'
-            )
-            .attr('tabindex', 102)
-            .css({
-                'display': 'none',
-                'border-radius': '50%',
-                'border': '8px solid #ffe100',
-                'border-right-color': 'transparent',
-                'border-left-color': 'transparent',
-                'position': 'relative',
-                'top': '3px',
-                'left': '-17px',
-                'width': '20px',
-                'height': '20px',
-                'line-height': '26px',
-                'color': '#d2b800',
-                'cursor': 'pointer',
-                'animation-name': 'rotate-forever',
-                'animation-duration': '2s',
-                'animation-iteration-count': 'infinite',
-                'animation-timing': 'linear'
-            })
-        $('#topBarScreenshot').append(topBarScreenshotLoading)
-
-        // Fullscreen
-        const topBarFullscreen = $('<i>')
-            .attr('id', 'topBarFullscreen')
-            .attr('tabindex', 103)
-            .attr('class', 'mmgisHoverBlue mdi mdi-fullscreen mdi-18px')
-            .css({
-                'padding': '5px 10px',
-                'width': '40px',
-                'height': '36px',
-                'line-height': '26px',
-                'cursor': 'pointer'
-            })
-            .on('click', function () {
-                BottomBar.fullscreen()
-                if (
-                    $(this).attr('class') ==
-                    'mmgisHoverBlue mdi mdi-fullscreen mdi-18px'
+        const documentElm = document.getElementById('mapScreen')
+        HTML2Canvas(documentElm, {
+            allowTaint: true,
+            useCORS: true,
+            logging: false,
+            scrollX: -window.scrollX,
+            scrollY: -window.scrollY,
+            windowWidth: documentElm.offsetWidth,
+            windowHeight: documentElm.offsetHeight,
+            onclone: function (e) {
+                // Fix svg layer shift
+                const originalSVG = document.body.querySelectorAll(
+                    'svg.leaflet-zoom-animated'
                 )
-                    $(this)
-                        .attr(
-                            'class',
-                            'mmgisHoverBlue mdi mdi-fullscreen-exit mdi-18px'
-                        )
-                        .attr('title', 'Exit Fullscreen')
-                else
-                    $(this)
-                        .attr(
-                            'class',
-                            'mmgisHoverBlue mdi mdi-fullscreen mdi-18px'
-                        )
-                        .attr('title', 'Fullscreen')
-            })
-        bottomBar.append(topBarFullscreen)
+                const copySVG = e.body.querySelectorAll(
+                    'svg.leaflet-zoom-animated'
+                )
+                copySVG.forEach((copyEle, i) => {
+                    const attribute = originalSVG
+                        .item(i)
+                        .getAttribute('style')
+                    const parentElement = copyEle.parentElement
+                    parentElement.removeChild(copyEle)
+                    const temp = document.createElement('div')
+                    temp.appendChild(copyEle)
+                    parentElement.appendChild(temp)
+                    temp.setAttribute('style', attribute)
+                    copyEle.removeAttribute('style')
+                })
 
-        tippy(`#topBarFullscreen`, {
-            content: `Fullscreen`,
-            placement: 'right',
-            theme: 'blue',
-        })
+                // Fix tile layer z-indices
+                const originalZ = document.body.querySelectorAll(
+                    '.leaflet-tile-pane > div.leaflet-layer'
+                )
+                const copyZ = e.body.querySelectorAll(
+                    '.leaflet-tile-pane > div.leaflet-layer'
+                )
+                copyZ.forEach((copyEle, i) => {
+                    const attribute = originalZ
+                        .item(i)
+                        .getAttribute('style')
+                    copyEle.setAttribute('style', attribute)
+                })
+            },
+        }).then(function (canvas) {
+            canvas.id = 'mmgisScreenshot'
+            document.body.appendChild(canvas)
 
-        // Hotkeys
-        const bottomBarHotkeys = $('<i>')
-            .attr('id', 'bottomBarHotkeys')
-            .attr('tabindex', 104)
-            .attr('class', 'mmgisHoverBlue mdi mdi-keyboard mdi-18px')
-            .css({
-                'padding': '5px 10px',
-                'width': '40px',
-                'height': '36px',
-                'line-height': '26px',
-                'cursor': 'pointer'
-            })
-            .on('click', function () {
-                const that = $('#bottomBarHotkeys')
-                const wasOn = that.hasClass('active')
-                BottomBar.toggleHotkeys(!wasOn)
-            })
-        bottomBar.append(bottomBarHotkeys)
-        tippy(`#bottomBarHotkeys`, {
-            content: `Hotkeys`,
-            placement: 'right',
-            theme: 'blue',
-        })
+            const mission = L_.configData?.msv?.mission
+            const time = L_.TimeControl_?.currentTime
+            const mapCenter = L_.Map_.map.getCenter()
+            const lng = mapCenter.lng.toFixed(4)
+            const lat = mapCenter.lat.toFixed(4)
 
-        // Settings
-        const bottomBarSettings = $('<i>')
-            .attr('id', 'bottomBarSettings')
-            .attr('tabindex', 104)
-            .attr('class', 'mmgisHoverBlue mdi mdi-cog mdi-18px')
-            .css({
-                'padding': '5px 10px',
-                'width': '40px',
-                'height': '36px',
-                'line-height': '26px',
-                'cursor': 'pointer'
-            })
-            .on('click', function () {
-                const that = $('#bottomBarSettings')
-                const wasOn = that.hasClass('active')
-                BottomBar.toggleSettings(!wasOn)
-            })
-        bottomBar.append(bottomBarSettings)
-
-        tippy(`#bottomBarSettings`, {
-            content: `Settings`,
-            placement: 'right',
-            theme: 'blue',
-        })
-
-        // Info
-        const topBarInfo = $('<i>')
-            .attr('id', 'topBarInfo')
-            .attr('title', 'Info')
-            .attr('tabindex', 105)
-            .attr(
-                'class',
-                'mmgisHoverBlue mdi mdi-information-outline mdi-18px'
+            F_.downloadCanvas(
+                canvas.id,
+                'mmgis-' + mission + '_' +
+                    (time ? time.replaceAll(':', '-') + '_' : '') +
+                    lat + '_' + lng,
+                function () {
+                    canvas.remove()
+                    if (callback) callback()
+                }
             )
-            .css({
-                'padding': '5px 10px',
-                'width': '40px',
-                'height': '36px',
-                'line-height': '26px',
-                'cursor': 'pointer'
-            })
-            .on('click', function () {
-                this.infoOn = !this.infoOn
-                if (this.infoOn) {
-                    $('#viewer_Info').css('display', 'inherit')
-                } else {
-                    $('#viewer_Info').css('display', 'none')
-                }
-            })
-        bottomBar.append(topBarInfo)
-
-        tippy(`#topBarInfo`, {
-            content: `Info`,
-            placement: 'right',
-            theme: 'blue',
         })
-
-        // Help
-        const topBarHelp = $('<i>')
-            .attr('id', 'topBarHelp')
-            .attr('title', 'Help')
-            .attr('tabindex', 106)
-            .attr('class', 'mmgisHoverBlue mdi mdi-help mdi-18px')
-            .css({
-                'padding': '5px 10px',
-                'width': '40px',
-                'height': '36px',
-                'line-height': '26px',
-                'cursor': 'pointer'
+        $('#mapScreen #map .leaflet-tile-pane')
+            .children()
+            .each(function (i, elm) {
+                $(elm).css('z-index', zIndices[i])
             })
-            .on('click', function () {
-                this.helpOn = !this.helpOn
-                if (this.helpOn) {
-                    //$('#viewer_Help').css('display', 'inherit')
-                } else {
-                    $('#viewer_Help').css('display', 'none')
-                }
-            })
-        bottomBar.append(topBarHelp)
-
-        tippy(`#topBarHelp`, {
-            content: `Help`,
-            placement: 'right',
-            theme: 'blue',
-        })
+        $('.leaflet-control-scalefactor').css('display', 'flex')
+        $('#mmgis-map-compass').css('display', 'block')
+        $('.leaflet-control-zoom').css('display', 'block')
+        $('#scaleBar').css('margin-top', '5px')
+        $('#mapToolBar').css('bottom', savedMapToolBarBottom)
     },
     toggleHotkeys: function (on) {
         if (on) {

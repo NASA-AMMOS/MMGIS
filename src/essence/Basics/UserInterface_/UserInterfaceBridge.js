@@ -235,6 +235,13 @@ const UserInterfaceBridge = {
     },
 
     resizeToolPanel: function (width) {
+        // Clamp width to [minToolWidth, half viewport] matching deleted
+        // UserInterfaceDefault_.js:760-765 bounds checking
+        const ToolController_ =
+            require('../ToolController_/ToolController_').default
+        const activeTool = ToolController_.getTool(ToolController_.activeToolName)
+        const minWidth = (activeTool && activeTool.width) || 300
+        width = Math.max(Math.min(width, window.innerWidth / 2), minWidth)
         useUIStore.getState().openToolPanel(width)
         // TopBar styles are now computed reactively by TopBar.jsx
         // Splitscreens dimensions are recaptured by ResizeObserver in SplitScreens.jsx
@@ -244,6 +251,8 @@ const UserInterfaceBridge = {
         const panelEl = document.getElementById('toolPanel')
         if (panelEl) panelEl.innerHTML = ''
         useUIStore.getState().closeToolPanel()
+        // Reset tools wrapper width so TopBar returns to default layout
+        useUIStore.setState({ toolsWrapperRawWidth: 0, toolsWrapperCSSWidth: '0%' })
         // TopBar styles are now computed reactively by TopBar.jsx
         // Splitscreens dimensions are recaptured by ResizeObserver in SplitScreens.jsx
     },
@@ -408,12 +417,10 @@ const UserInterfaceBridge = {
             }
         }
 
-        // Ensure BottomBar is initialized before calling changeUIVisibility.
-        // Due to React effect timing, the async bridge import in UserInterfaceLayout
-        // may not have resolved yet, so BottomBarReact's useEffect hasn't called
-        // BottomBar.init(). We call it here imperatively to guarantee init→fina order.
+        // Set UI reference so BottomBar utility methods can access it.
+        // DOM construction is now handled by BottomBarReact.jsx.
         if (!BottomBar.UI_) {
-            BottomBar.init('barBottom', this)
+            BottomBar.setUI(this)
         }
 
         // Visibility toggles from config
@@ -480,17 +487,10 @@ const UserInterfaceBridge = {
             const cursorInfo = document.getElementById('cursorInfo')
             if (cursorInfo) cursorInfo.remove()
 
-            // Remove toolbar buttons that aren't mobile features
-            if (ToolController_.tools) {
-                ToolController_.tools
-                    .map((i) => i.name)
-                    .forEach((tool) => {
-                        if (!mobileTools.includes(tool)) {
-                            const btn = document.getElementById('toolButton' + tool)
-                            if (btn) btn.remove()
-                        }
-                    })
-            }
+            // Mobile tool filtering is now handled by Toolbar.jsx which
+            // reads isMobile from the store and only renders mobileTools.
+            // Store the mobile tools list so Toolbar can filter.
+            useUIStore.setState({ mobileTools: mobileTools })
 
             // Remove the coordinates div and timeUI (redrawn as tools on mobile)
             const coordsDiv = document.getElementById('CoordinatesDiv')

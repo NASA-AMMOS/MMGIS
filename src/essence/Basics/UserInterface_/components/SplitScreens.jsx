@@ -4,6 +4,7 @@ import ViewerPanel from './ViewerPanel'
 import MapPanel from './MapPanel'
 import GlobePanel from './GlobePanel'
 import Splitter from './Splitter'
+import SeparatedTools from './SeparatedTools'
 
 function SplitScreens() {
     const topSize = useUIStore((s) => s.topSize)
@@ -93,6 +94,7 @@ function SplitScreens() {
                 <GlobePanel />
                 <Splitter type="globe" />
             </div>
+            {!isMobile && <SeparatedTools />}
             <div id="tScreen">
                 <ToolsWrapper />
             </div>

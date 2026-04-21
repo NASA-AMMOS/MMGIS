@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useCallback } from 'react'
 import useUIStore from '../store/uiStore'
-import BottomBar from '../BottomBar'
+import BottomBarReact from './BottomBarReact'
 
 function TopBar({ userInterface }) {
     const topBarLeftRef = useRef(null)
@@ -8,8 +8,6 @@ function TopBar({ userInterface }) {
     const mobileTopSize = useUIStore((s) => s.mobileTopSize)
     const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
     const toolsWrapperRawWidth = useUIStore((s) => s.toolsWrapperRawWidth)
-    const mobileBottomBarInitialized = useRef(false)
-
     useEffect(() => {
         const el = topBarLeftRef.current
         if (el) {
@@ -21,14 +19,6 @@ function TopBar({ userInterface }) {
             return () => el.removeEventListener('wheel', handleWheel)
         }
     }, [])
-
-    // Initialize BottomBar inside topBarMenu's barBottom for mobile
-    useEffect(() => {
-        if (isMobile && userInterface && !mobileBottomBarInitialized.current) {
-            BottomBar.init('barBottom', userInterface)
-            mobileBottomBarInitialized.current = true
-        }
-    }, [isMobile, userInterface])
 
     const handleMenuClick = useCallback(() => {
         const barBottom = document.getElementById('barBottom')
@@ -79,16 +69,7 @@ function TopBar({ userInterface }) {
                     onClick={handleMenuClick}
                 >
                     <i className="mdi mdi-menu mdi-24px"></i>
-                    <div
-                        id="barBottom"
-                        style={{
-                            position: 'absolute',
-                            width: '40px',
-                            display: 'none',
-                            flexFlow: 'column',
-                            zIndex: 1005,
-                        }}
-                    ></div>
+                    <BottomBarReact userInterface={userInterface} />
                 </div>
             )}
             <div id="topBarLeft" className="hideScrollbar" ref={topBarLeftRef}>

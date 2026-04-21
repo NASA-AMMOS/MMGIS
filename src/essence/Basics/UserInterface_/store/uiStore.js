@@ -70,6 +70,12 @@ const useUIStore = create((set, get) => ({
         miscellaneous: true,
     },
 
+    // ToolController toolbar state (synced from ToolController_.init)
+    toolsList: [],          // Array of tool config objects { name, icon, js, separatedTool, variables, ... }
+    activeToolName: null,   // Name of the currently active toolbar tool (e.g. 'LayersTool')
+    toolsLoaded: false,     // True after ToolController_ has initialized all tool modules
+    mobileTools: [],        // Array of tool names shown on mobile (e.g. ['Layers', 'Legend', 'Info'])
+
     // References to imperative modules (set during fina)
     _Viewer: null,
     _Map: null,
@@ -105,6 +111,10 @@ const useUIStore = create((set, get) => ({
 
     setTimeUIActive: (val) => set({ timeUIActive: val }),
     setTimeUIExpanded: (val) => set({ timeUIExpanded: val }),
+
+    setToolsList: (tools) => set({ toolsList: tools }),
+    setActiveToolName: (name) => set({ activeToolName: name }),
+    setToolsLoaded: (val) => set({ toolsLoaded: val }),
 
     setTopSize: (val) => set({ topSize: val }),
 

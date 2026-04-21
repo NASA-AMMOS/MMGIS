@@ -1,12 +1,340 @@
-import React from 'react'
+import React, { useEffect, useRef, useCallback, useState } from 'react'
 import useUIStore from '../store/uiStore'
 import F_ from '../../Formulae_/Formulae_'
+import tippy from 'tippy.js'
+
+/**
+ * MobileTimeButton — renders a time toggle button in the mobile toolbar.
+ * Replaces the jQuery-constructed timeSelect div from ToolController_.init().
+ */
+function MobileTimeButton() {
+    const [isActive, setIsActive] = useState(false)
+    const defaultColor = 'var(--color-f)'
+    const activeColor = 'var(--color-mmgis)'
+
+    const handleClick = useCallback(() => {
+        const ToolController_ =
+            require('../../ToolController_/ToolController_').default
+        const TimeUI = require('../../TimeControl_/TimeUI').default
+
+        // Deselect all active buttons
+        const prevActive = document.querySelectorAll(
+            '#toolcontroller_incdiv .active'
+        )
+        prevActive.forEach((el) => {
+            el.classList.remove('active')
+            el.style.color = defaultColor
+            el.style.background = 'none'
+            if (el.parentElement) el.parentElement.style.background = 'none'
+        })
+
+        if (!isActive) {
+            TimeUI.initialize()
+            ToolController_.setToolHeight(TimeUI.height)
+            ToolController_.setToolWidth()
+            ToolController_.activeToolName = 'TimeUI'
+            useUIStore.getState().setActiveToolName('TimeUI')
+            TimeUI.make()
+            TimeUI.toggleExpanded()
+            TimeUI.fina()
+            setIsActive(true)
+        } else {
+            ToolController_.setToolHeight(0)
+            ToolController_.setToolWidth()
+            TimeUI.destroy()
+            ToolController_.closeActiveTool()
+            ToolController_.activeToolName = null
+            useUIStore.getState().setActiveToolName(null)
+            setIsActive(false)
+        }
+
+        const topBar = document.getElementById('topBar')
+        if (topBar) {
+            topBar.style.paddingLeft = '80px'
+            topBar.style.marginLeft = '0px'
+            topBar.style.width = '100%'
+        }
+    }, [isActive])
+
+    return (
+        <div
+            id="toggleTimeUI"
+            className={'toolButton' + (isActive ? ' active' : '')}
+            style={{
+                position: 'relative',
+                width: '45px',
+                height: '45px',
+                display: 'inline-block',
+                textAlign: 'center',
+                lineHeight: '45px',
+                verticalAlign: 'middle',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in',
+                color: isActive ? activeColor : defaultColor,
+            }}
+            onClick={handleClick}
+        >
+            <i
+                className="mdi mdi-clock mdi-18px"
+                style={{ cursor: 'pointer' }}
+            />
+        </div>
+    )
+}
+
+/**
+ * MobileCoordButton — renders a coordinate toggle button in the mobile toolbar.
+ * Replaces the jQuery-constructed coordSelect div from ToolController_.init().
+ */
+function MobileCoordButton() {
+    const [isActive, setIsActive] = useState(false)
+    const defaultColor = 'var(--color-f)'
+    const activeColor = 'var(--color-mmgis)'
+
+    const handleClick = useCallback(() => {
+        const ToolController_ =
+            require('../../ToolController_/ToolController_').default
+        const L_ = require('../../Layers_/Layers_').default
+
+        // Deselect all active buttons
+        const prevActive = document.querySelectorAll(
+            '#toolcontroller_incdiv .active'
+        )
+        prevActive.forEach((el) => {
+            el.classList.remove('active')
+            el.style.color = defaultColor
+            el.style.background = 'none'
+            if (el.parentElement) el.parentElement.style.background = 'none'
+        })
+
+        if (!isActive) {
+            L_.Coordinates.initialize()
+            L_.Coordinates.init()
+            ToolController_.setToolHeight(L_.Coordinates.height)
+            ToolController_.setToolWidth()
+            ToolController_.activeToolName = 'CoordinatesTool'
+            useUIStore.getState().setActiveToolName('CoordinatesTool')
+            L_.Coordinates.make()
+            setIsActive(true)
+        } else {
+            ToolController_.setToolHeight(0)
+            ToolController_.setToolWidth()
+            L_.Coordinates.destroy()
+            ToolController_.closeActiveTool()
+            ToolController_.activeToolName = null
+            useUIStore.getState().setActiveToolName(null)
+            setIsActive(false)
+        }
+
+        const topBar = document.getElementById('topBar')
+        if (topBar) {
+            topBar.style.paddingLeft = '80px'
+            topBar.style.marginLeft = '0px'
+            topBar.style.width = '100%'
+        }
+    }, [isActive])
+
+    return (
+        <div
+            id="coordinatesDiv"
+            className={'toolButton' + (isActive ? ' active' : '')}
+            style={{
+                position: 'relative',
+                width: '45px',
+                height: '45px',
+                display: 'inline-block',
+                textAlign: 'center',
+                lineHeight: '45px',
+                verticalAlign: 'middle',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in',
+                color: isActive ? activeColor : defaultColor,
+            }}
+            onClick={handleClick}
+        >
+            <i
+                className="mdi mdi-target mdi-18px"
+                style={{ cursor: 'pointer' }}
+            />
+        </div>
+    )
+}
+
+/**
+ * MobileExtraButtons — conditionally renders time and coordinate toggle
+ * buttons in the mobile toolbar (matches jQuery ToolController_.init() lines 317-470).
+ */
+function MobileExtraButtons() {
+    const [configChecked, setConfigChecked] = useState(false)
+    const [showTime, setShowTime] = useState(false)
+    const [showCoords, setShowCoords] = useState(false)
+
+    useEffect(() => {
+        try {
+            const L_ = require('../../Layers_/Layers_').default
+            if (L_.configData.time && L_.configData.time.enabled === true) {
+                setShowTime(true)
+            }
+            if (
+                L_.configData.coordinates &&
+                (L_.configData.coordinates.coordll === true ||
+                    L_.configData.coordinates.coorden === true)
+            ) {
+                setShowCoords(true)
+            }
+        } catch (e) {
+            // L_ not available yet
+        }
+        setConfigChecked(true)
+    }, [])
+
+    if (!configChecked) return null
+
+    return (
+        <>
+            {showTime && <MobileTimeButton />}
+            {showCoords && <MobileCoordButton />}
+        </>
+    )
+}
+
+/**
+ * ToolButton — a single toolbar button rendered in React.
+ * Replaces the jQuery-constructed toolButton divs from ToolController_.init().
+ */
+function ToolButton({ tool, index, isMobile, isActive, onToolClick }) {
+    const buttonRef = useRef(null)
+
+    // Initialize tippy tooltip (desktop only)
+    useEffect(() => {
+        if (isMobile || !buttonRef.current) return
+        const instance = tippy(buttonRef.current, {
+            content: tool.name,
+            placement: 'right',
+            theme: 'blue',
+        })
+        return () => {
+            if (instance && instance.destroy) instance.destroy()
+        }
+    }, [isMobile, tool.name])
+
+    const defaultColor = 'var(--color-f)'
+    const activeColor = 'var(--color-mmgis)'
+    const activeBG = 'var(--color-i)'
+
+    return (
+        <div
+            ref={buttonRef}
+            id={'toolButton' + tool.name}
+            className={'toolButton' + (isActive ? ' active' : '')}
+            tabIndex={index + 1}
+            style={{
+                width: isMobile ? '45px' : '100%',
+                height: isMobile ? '100%' : '36px',
+                display: 'inline-block',
+                textAlign: 'center',
+                lineHeight: '36px',
+                borderTop: index === 0 ? '1px solid var(--color-a-5)' : 'none',
+                borderBottom: '1px solid var(--color-a-5)',
+                verticalAlign: 'middle',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in',
+                color: isActive ? activeColor : defaultColor,
+                background: isActive ? activeBG : 'none',
+            }}
+            onClick={() => onToolClick(tool, index)}
+            onMouseOver={(e) => {
+                if (!isActive) {
+                    e.currentTarget.style.color = 'var(--color-mmgis)'
+                }
+            }}
+            onMouseLeave={(e) => {
+                if (!isActive) {
+                    e.currentTarget.style.color = defaultColor
+                }
+            }}
+        >
+            <i
+                id={tool.name + 'Tool'}
+                className={'mdi mdi-' + tool.icon + ' mdi-18px'}
+                style={{ cursor: 'pointer' }}
+            />
+        </div>
+    )
+}
 
 function Toolbar() {
     const isMobile = useUIStore((s) => s.isMobile)
     const topSize = useUIStore((s) => s.topSize)
     const pxIsTools = useUIStore((s) => s.pxIsTools)
     const toolbarVisible = useUIStore((s) => s.toolbarVisible)
+    const toolsList = useUIStore((s) => s.toolsList)
+    const activeToolName = useUIStore((s) => s.activeToolName)
+    const toolsLoaded = useUIStore((s) => s.toolsLoaded)
+    const mobileTools = useUIStore((s) => s.mobileTools)
+
+    const handleToolClick = useCallback((tool, index) => {
+        // Delegate to ToolController_ which manages tool lifecycle.
+        // Use require to avoid circular dependency.
+        const ToolController_ =
+            require('../../ToolController_/ToolController_').default
+        const toolModuleName = ToolController_.toolModuleNames[index]
+
+        // Deselect previous active button styling (jQuery compat: some tools
+        // query '#toolcontroller_incdiv .active')
+        const prevActive = document.querySelectorAll(
+            '#toolcontroller_incdiv .active'
+        )
+        prevActive.forEach((el) => {
+            el.classList.remove('active')
+            el.style.color = 'var(--color-f)'
+            el.style.background = 'none'
+            if (el.parentElement) el.parentElement.style.background = 'none'
+        })
+
+        // If clicking the already-active tool, it's a toggle-off
+        const wasActive = ToolController_.activeToolName === toolModuleName
+
+        if (!wasActive) {
+            // Activate button styling (jQuery compat)
+            const newActiveIcon = document.getElementById(tool.name + 'Tool')
+            if (newActiveIcon) {
+                newActiveIcon.classList.add('active')
+                newActiveIcon.style.color = 'var(--color-mmgis)'
+                if (newActiveIcon.parentElement) {
+                    newActiveIcon.parentElement.style.background =
+                        'var(--color-i)'
+                }
+            }
+        }
+
+        ToolController_.makeTool(toolModuleName, index)
+
+        // Sync active state to store for React re-render
+        useUIStore.getState().setActiveToolName(
+            ToolController_.activeToolName
+        )
+
+        // Dispatch `toolChange` event (matches jQuery behavior)
+        document.dispatchEvent(
+            new CustomEvent('toolChange', {
+                detail: {
+                    activeTool: ToolController_.activeTool,
+                    activeToolName: ToolController_.activeToolName,
+                },
+            })
+        )
+    }, [])
+
+    // Filter tools for display:
+    // - Desktop: exclude separated tools (they render in SeparatedTools.jsx)
+    // - Mobile: only show tools in the mobileTools list
+    const toolbarTools = toolsList.filter((t) => {
+        if (isMobile) {
+            return mobileTools.length === 0 || mobileTools.includes(t.name)
+        }
+        return !t.separatedTool
+    })
 
     return (
         <>
@@ -33,7 +361,42 @@ function Toolbar() {
                     zIndex: 1004,
                     display: toolbarVisible ? 'inherit' : 'none',
                 }}
-            ></div>
+            >
+                {toolsLoaded && (
+                    <div
+                        id="toolbarTools"
+                        style={{ height: '100%' }}
+                    >
+                        <div
+                            id="toolcontroller_incdiv"
+                            className="sixteen wide column"
+                            style={{
+                                transition: 'all 0.25s ease-in',
+                                pointerEvents: 'auto',
+                                opacity: 1,
+                                paddingBottom: '8px',
+                            }}
+                        >
+                            {toolbarTools.map((tool) => {
+                                // Find the real index in the full toolsList
+                                // for ToolController_.toolModuleNames lookup
+                                const realIndex = toolsList.indexOf(tool)
+                                return (
+                                    <ToolButton
+                                        key={tool.name}
+                                        tool={tool}
+                                        index={realIndex}
+                                        isMobile={isMobile}
+                                        isActive={activeToolName === tool.js}
+                                        onToolClick={handleToolClick}
+                                    />
+                                )
+                            })}
+                            {isMobile && <MobileExtraButtons />}
+                        </div>
+                    </div>
+                )}
+            </div>
             <div
                 id="mmgislogo"
                 style={{
