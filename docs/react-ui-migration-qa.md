@@ -1,6 +1,6 @@
 # UserInterface React Migration QA Checklist
 
-For each item, test with both `?reactui=false` (jQuery) and `?reactui=true` (React) and confirm identical behavior.
+Verify each item works correctly with the React UI.
 
 ## Layout
 - [ ] Top bar displays mission name correctly
@@ -98,5 +98,3 @@ For each item, test with both `?reactui=false` (jQuery) and `?reactui=true` (Rea
 - [ ] All panels at minimum width simultaneously
 - [ ] Rapid splitter dragging doesn't cause layout glitches
 - [ ] Opening/closing tool panel rapidly doesn't break layout
-- [ ] Feature flag toggle via URL parameter works
-- [ ] Feature flag toggle via environment variable works

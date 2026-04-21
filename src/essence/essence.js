@@ -386,9 +386,9 @@ var essence = {
         //Initialize CursorInfo
         if (!swapping) CursorInfo.init()
 
-        // When React UI is active, wait for the layout to be mounted before
+        // Wait for the React layout to be mounted before
         // initializing imperative map/globe/viewer modules that need container divs.
-        if (window.mmgisglobal.useReactUI && !swapping) {
+        if (!swapping) {
             await essence.waitForLayoutReady()
         }
 

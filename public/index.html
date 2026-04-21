@@ -384,20 +384,8 @@
       }
       window.mmgisglobal = mmgisglobal;
 
-      // React UI feature flag — must run before any bundled JS so that
-      // UserInterface_.js (evaluated during ES module resolution) sees the flag.
-      mmgisglobal.useReactUI = false;
-      // Build-time env var (injected by InterpolateHtmlPlugin)
-      if ("%REACT_UI%" === "true") {
-          mmgisglobal.useReactUI = true;
-      }
-      // URL parameter override (can both enable and disable)
-      var _rup = new URLSearchParams(window.location.search);
-      if (_rup.has('reactui')) {
-          mmgisglobal.useReactUI = _rup.get('reactui') === 'true';
-      }
-      // Sentinel so App.js IIFE knows index.html already processed the flag
-      mmgisglobal._reactUISetByHTML = true;
+      // React UI is always enabled
+      mmgisglobal.useReactUI = true;
 
       // prettier-ignore
       console.info(
@@ -409,17 +397,5 @@
             '╚═╝     ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝╚══════╝' + ' https://github.com/NASA-AMMOS/MMGIS');
     </script>
   </body>
-  <div id="main-container" style="display:none"></div>
-  <script>
-    // In jQuery mode, show the static main-container.
-    // In React mode, remove it from the DOM entirely to avoid duplicate IDs
-    // (React renders its own #main-container inside #root).
-    if (!window.mmgisglobal || !window.mmgisglobal.useReactUI) {
-      document.getElementById('main-container').style.display = '';
-    } else {
-      var mc = document.getElementById('main-container');
-      if (mc) mc.parentNode.removeChild(mc);
-    }
-  </script>
   <footer></footer>
 </html>

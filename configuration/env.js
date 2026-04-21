@@ -113,7 +113,6 @@ function getClientEnvironment(publicUrl) {
         IS_DOCKER: process.env.IS_DOCKER,
         WITH_TITILER: process.env.WITH_TITILER,
         FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH || "",
-        REACT_UI: process.env.REACT_UI || "false",
       }
     );
   // Stringify all values so we can feed into webpack DefinePlugin

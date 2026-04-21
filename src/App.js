@@ -8,32 +8,10 @@ import calls from './pre/calls'
 
 import UserInterfaceLayout from './essence/Basics/UserInterface_/components/UserInterfaceLayout'
 
-// Feature flag: The primary initialization of window.mmgisglobal.useReactUI
-// happens in public/index.html (before any bundled JS runs) so that
-// UserInterface_.js sees the correct value during ES module evaluation.
-//
-// NOTE: This IIFE runs AFTER ES module imports have resolved, so it cannot
-// affect UserInterface_.js module selection (which happens at import time).
-// It only ensures the flag is set for runtime checks (e.g., App() render,
-// $(document).ready guard in UserInterfaceDefault_.js). In normal operation,
-// index.html always sets the flag first; this is a defensive fallback for
-// non-standard bootstrap scenarios where index.html's inline script didn't run.
-;(function initReactUIFlag() {
+// Ensure useReactUI is always set (defensive fallback for non-standard bootstrap)
+;(function () {
     if (typeof window.mmgisglobal === 'undefined') window.mmgisglobal = {}
-    if (window.mmgisglobal.useReactUI == null) {
-        window.mmgisglobal.useReactUI = false
-    }
-    // Environment variable override (set at build time via webpack DefinePlugin).
-    // Only apply if index.html didn't already handle it (e.g., via URL param).
-    // This avoids overriding ?reactui=false when REACT_UI=true is set.
-    if (
-        window.mmgisglobal._reactUISetByHTML == null &&
-        typeof process !== 'undefined' &&
-        process.env &&
-        process.env.REACT_UI === 'true'
-    ) {
-        window.mmgisglobal.useReactUI = true
-    }
+    window.mmgisglobal.useReactUI = true
 })()
 
 //Start MMGIS
@@ -134,14 +112,11 @@ function initApp() {
 }
 
 function App() {
-    if (window.mmgisglobal.useReactUI) {
-        return (
-            <div className='App'>
-                <UserInterfaceLayout />
-            </div>
-        )
-    }
-    return <div className='App'></div>
+    return (
+        <div className='App'>
+            <UserInterfaceLayout />
+        </div>
+    )
 }
 
 export default App

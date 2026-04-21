@@ -1796,10 +1796,7 @@ function clearUnwantedPanels(hasViewer, hasMap, hasGlobe) {
     Map_.map.invalidateSize()
 }
 
-$(document).ready(function () {
-    if (!window.mmgisglobal.useReactUI) {
-        UserInterface.init()
-    }
-})
+// jQuery UI init is no longer called — React UI is always used.
+// This file is retained for reference and potential fallback.
 
 export default UserInterface
