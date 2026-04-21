@@ -123,22 +123,16 @@ const useUIStore = create((set, get) => ({
 
         set({ pxIsViewer: result.pxIsViewer, pxIsMap: result.pxIsMap, pxIsGlobe: result.pxIsGlobe })
 
-        // Defer invalidateSize until after React has committed the DOM changes.
-        // Calling invalidateSize synchronously after set() runs before React
-        // re-renders the panel divs with their new widths, so Leaflet reads
-        // the old container sizes. For drag events this is masked by rapid
-        // successive calls, but for button clicks (single large jump) the map
-        // won't recenter/resize without this deferral.
-        setTimeout(() => {
-            const current = get()
-            if (current._Viewer) current._Viewer.invalidateSize()
-            if (current._Map && current._Map.map) current._Map.map.invalidateSize()
-            if (current._Globe && current._Globe.litho)
-                current._Globe.litho.invalidateSize()
+        // invalidateSize is handled automatically by ResizeObservers on each
+        // panel component (MapPanel, ViewerPanel, GlobePanel). The observers
+        // fire after layout but before paint, eliminating the visible "jerk"
+        // that the previous setTimeout(0) approach caused.
 
-            // Sync Globe to Map on first open
-            if (wasGlobeClosed && isGlobeOpening && current._Globe) {
-                if (!current._Globe.hasBeenOpened) {
+        // Sync Globe to Map on first open
+        if (wasGlobeClosed && isGlobeOpening) {
+            setTimeout(() => {
+                const current = get()
+                if (current._Globe && !current._Globe.hasBeenOpened) {
                     current._Globe.hasBeenOpened = true
                     if (current._L && current._L.FUTURES.globeView == null) {
                         setTimeout(() => {
@@ -146,8 +140,8 @@ const useUIStore = create((set, get) => ({
                         }, 100)
                     }
                 }
-            }
-        }, 0)
+            }, 0)
+        }
     },
 
     setToolHeight: (pxHeight, shouldntAnimate) => {
@@ -179,41 +173,23 @@ const useUIStore = create((set, get) => ({
     },
 
     // Splitter drag math: map splitter
+    // invalidateSize handled by ResizeObservers on panel components
     computeMapSplitMove: (clientX) => {
-        const result = computeMapSplitMoveResult(get(), clientX)
-        set(result)
-
-        const current = get()
-        if (current._Viewer) current._Viewer.invalidateSize()
-        if (current._Map && current._Map.map) current._Map.map.invalidateSize()
-        if (current._Globe && current._Globe.litho)
-            current._Globe.litho.invalidateSize()
+        set(computeMapSplitMoveResult(get(), clientX))
     },
 
     // Splitter drag math: globe splitter
     computeGlobeSplitMove: (clientX) => {
-        const result = computeGlobeSplitMoveResult(get(), clientX)
-        set(result)
-
-        const current = get()
-        if (current._Viewer) current._Viewer.invalidateSize()
-        if (current._Map && current._Map.map) current._Map.map.invalidateSize()
-        if (current._Globe && current._Globe.litho)
-            current._Globe.litho.invalidateSize()
+        set(computeGlobeSplitMoveResult(get(), clientX))
     },
 
     // Splitter drag math: tools splitter
     computeToolsSplitMove: (clientY) => {
         set({ pxIsTools: computeToolsSplitMoveResult(get(), clientY) })
-
-        const current = get()
-        if (current._Viewer) current._Viewer.invalidateSize()
-        if (current._Map && current._Map.map) current._Map.map.invalidateSize()
-        if (current._Globe && current._Globe.litho)
-            current._Globe.litho.invalidateSize()
     },
 
     // Window resize handler
+    // invalidateSize handled by ResizeObservers on panel components
     handleWindowResize: (newWidth, newHeight) => {
         const panels = computeWindowResize(get(), newWidth, newHeight)
 
@@ -232,11 +208,6 @@ const useUIStore = create((set, get) => ({
         ) {
             current.setToolHeight('full', true)
         }
-
-        if (current._Viewer) current._Viewer.invalidateSize()
-        if (current._Map && current._Map.map) current._Map.map.invalidateSize()
-        if (current._Globe && current._Globe.litho)
-            current._Globe.litho.invalidateSize()
     },
 }))
 

@@ -1,9 +1,22 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import useUIStore from '../store/uiStore'
 
 function ViewerPanel() {
     const pxIsViewer = useUIStore((s) => s.pxIsViewer)
     const mainHeight = useUIStore((s) => s.mainHeight)
+    const viewerRef = useRef(null)
+
+    // ResizeObserver calls invalidateSize before paint — no visible jerk
+    useEffect(() => {
+        const el = viewerRef.current
+        if (!el) return
+        const observer = new ResizeObserver(() => {
+            const v = useUIStore.getState()._Viewer
+            if (v && v.invalidateSize) v.invalidateSize({ animate: false })
+        })
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [])
 
     return (
         <div
@@ -19,6 +32,7 @@ function ViewerPanel() {
         >
             <div
                 id="viewer"
+                ref={viewerRef}
                 style={{
                     position: 'absolute',
                     backgroundColor: 'var(--color-a-5)',

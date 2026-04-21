@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import useUIStore from '../store/uiStore'
 
 function MapPanel() {
@@ -7,6 +7,20 @@ function MapPanel() {
     const splitterSize = useUIStore((s) => s.splitterSize)
     const mainHeight = useUIStore((s) => s.mainHeight)
     const topSize = useUIStore((s) => s.topSize)
+    const mapRef = useRef(null)
+
+    // ResizeObserver on #map calls invalidateSize before the browser paints,
+    // eliminating the visible "jerk" that setTimeout(0) caused.
+    useEffect(() => {
+        const el = mapRef.current
+        if (!el) return
+        const observer = new ResizeObserver(() => {
+            const mapObj = useUIStore.getState()._Map
+            if (mapObj && mapObj.map) mapObj.map.invalidateSize({ animate: false })
+        })
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [])
 
     return (
         <div
@@ -21,6 +35,7 @@ function MapPanel() {
         >
             <div
                 id="map"
+                ref={mapRef}
                 style={{
                     position: 'absolute',
                     backgroundColor: 'var(--color-a-5)',

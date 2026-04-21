@@ -48,14 +48,9 @@ function _repositionBottomElements() {
             mapSplit.style.transition = 'height 0.4s ease-out'
             mapSplit.style.height = (mainHeight - pxIsTools) + 'px'
         }
-        // Invalidate map size so Leaflet recalculates its viewport
-        const invalidateSizes = () => {
-            if (Map_ != null && Map_.map) Map_.map.invalidateSize()
-            if (Viewer_ != null && Viewer_.invalidateSize) Viewer_.invalidateSize()
-            if (Globe_ != null && Globe_.litho) Globe_.litho.invalidateSize()
-        }
-        invalidateSizes()
-        setTimeout(invalidateSizes, 420)
+        // invalidateSize is handled automatically by ResizeObservers on each
+        // panel component — they fire during the CSS transition as the map
+        // container height animates, keeping Leaflet in sync without jerking.
     } else {
         // Desktop: use _updateBottomUIHeight math (177px for expanded)
         // as the single authoritative positioning source.

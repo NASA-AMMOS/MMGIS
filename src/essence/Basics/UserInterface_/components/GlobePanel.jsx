@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import useUIStore from '../store/uiStore'
 
 function GlobePanel() {
@@ -6,6 +6,19 @@ function GlobePanel() {
     const pxIsViewer = useUIStore((s) => s.pxIsViewer)
     const pxIsMap = useUIStore((s) => s.pxIsMap)
     const mainHeight = useUIStore((s) => s.mainHeight)
+    const globeRef = useRef(null)
+
+    // ResizeObserver calls invalidateSize before paint — no visible jerk
+    useEffect(() => {
+        const el = globeRef.current
+        if (!el) return
+        const observer = new ResizeObserver(() => {
+            const g = useUIStore.getState()._Globe
+            if (g && g.litho) g.litho.invalidateSize({ animate: false })
+        })
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [])
 
     return (
         <div
@@ -22,6 +35,7 @@ function GlobePanel() {
         >
             <div
                 id="globe"
+                ref={globeRef}
                 style={{
                     position: 'absolute',
                     backgroundColor: 'var(--color-a1)',
