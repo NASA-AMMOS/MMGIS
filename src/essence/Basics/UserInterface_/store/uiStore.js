@@ -38,6 +38,7 @@ const useUIStore = create((set, get) => ({
 
     // Tool width (bottom tools area width, set by ToolController/tools)
     toolsWrapperCSSWidth: '0%',
+    toolsWrapperRawWidth: 0, // numeric px width for TopBar offset calculation
 
     // UI state
     helpOn: true,
@@ -166,12 +167,15 @@ const useUIStore = create((set, get) => ({
         // Mobile: toolbar is at bottom, no left sidebar offset; Desktop: 40px
         const TOOLBAR_WIDTH = isMobile ? 0 : 40
         let cssWidth
+        let rawWidth
         if (newWidth === 'full') {
             cssWidth = `calc(100vw - ${TOOLBAR_WIDTH}px)`
+            rawWidth = 'full'
         } else {
             cssWidth = newWidth + 'px'
+            rawWidth = newWidth
         }
-        set({ toolsWrapperCSSWidth: cssWidth })
+        set({ toolsWrapperCSSWidth: cssWidth, toolsWrapperRawWidth: rawWidth })
     },
 
     // Splitter drag math: map splitter

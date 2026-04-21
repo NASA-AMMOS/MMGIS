@@ -7,7 +7,7 @@ function TopBar({ userInterface }) {
     const isMobile = useUIStore((s) => s.isMobile)
     const mobileTopSize = useUIStore((s) => s.mobileTopSize)
     const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
-    const toolsWrapperCSSWidth = useUIStore((s) => s.toolsWrapperCSSWidth)
+    const toolsWrapperRawWidth = useUIStore((s) => s.toolsWrapperRawWidth)
     const mobileBottomBarInitialized = useRef(false)
 
     useEffect(() => {
@@ -55,9 +55,17 @@ function TopBar({ userInterface }) {
         topBarStyle.paddingLeft = '0px'
         topBarStyle.marginLeft = (toolPanelWidth + leftOffset) + 'px'
         topBarStyle.width = `calc(100% - ${toolPanelWidth + leftOffset}px)`
-    } else if (toolsWrapperCSSWidth && toolsWrapperCSSWidth !== '0%') {
+    } else if (toolsWrapperRawWidth && toolsWrapperRawWidth !== 0) {
         // Bottom tools area has custom width (setToolWidth): adjust TopBar
-        // This handles the case where ToolController sets a non-default tools width
+        // to match jQuery UserInterfaceDefault_.js:984-1003
+        if (toolsWrapperRawWidth === 'full') {
+            topBarStyle.marginLeft = leftOffset + 'px'
+            topBarStyle.width = `calc(100% - ${leftOffset}px)`
+        } else {
+            const newTopWidth = leftOffset + toolsWrapperRawWidth
+            topBarStyle.marginLeft = newTopWidth + 'px'
+            topBarStyle.width = `calc(100% - ${newTopWidth}px)`
+        }
     } else {
         // No tool panel: use paddingLeft for toolbar offset
         topBarStyle.paddingLeft = isMobile ? '80px' : '40px'

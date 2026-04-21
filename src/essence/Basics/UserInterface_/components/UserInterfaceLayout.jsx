@@ -33,6 +33,16 @@ function UserInterfaceLayout() {
     }, [isMobile])
 
     useEffect(() => {
+        // Initialize Login UI (creates login/logout button in #topBarRight).
+        // Must run after layout mounts so #topBarRight exists in the DOM.
+        // In the jQuery version this was called from UserInterfaceDefault_.init().
+        import('../../Ancillary/Login/Login').then((mod) => {
+            const Login = mod.default || mod
+            if (Login && typeof Login.init === 'function') {
+                Login.init()
+            }
+        })
+
         // Mark layout as ready for essence.js
         useUIStore.getState().setLayoutReady(true)
 
