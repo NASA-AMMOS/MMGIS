@@ -881,7 +881,7 @@ if (fullAccess)
 if (fullAccess) router.post("/rename", function (req, res, next) {});
 
 if (fullAccess)
-  router.post("/destroy", function (req, res, next) {
+  router.post("/destroy", checkMissionPermission, function (req, res, next) {
     const missionName = req.body.mission;
     if (!missionName || !/^[A-Za-z0-9_ -]+$/.test(missionName)) {
       logger("error", "Invalid mission name in destroy request.", req.originalUrl, req);
