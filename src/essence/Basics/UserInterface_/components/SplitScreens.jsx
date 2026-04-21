@@ -50,15 +50,17 @@ function SplitScreens() {
                 const state = useUIStore.getState()
                 if (newWidth === state.mainWidth && newHeight === state.mainHeight) return
 
-                useUIStore.setState({
-                    mainWidth: newWidth,
-                    mainHeight: newHeight,
-                })
-
-                // Only recompute panel percents after initial setup
+                // Use handleWindowResize for correct proportional scaling.
+                // It computes new pixel values from the OLD mainWidth before
+                // updating, avoiding the stale-percent bug where getPanelPercents
+                // would divide old pixels by new mainWidth.
                 if (initializedRef.current) {
-                    const pp = useUIStore.getState().getPanelPercents()
-                    useUIStore.getState().setPanelPercents(pp.viewer, pp.map, pp.globe)
+                    useUIStore.getState().handleWindowResize(newWidth, newHeight)
+                } else {
+                    useUIStore.setState({
+                        mainWidth: newWidth,
+                        mainHeight: newHeight,
+                    })
                 }
             }
         })

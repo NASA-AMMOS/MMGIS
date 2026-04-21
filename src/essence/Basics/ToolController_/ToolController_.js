@@ -2,6 +2,7 @@ import $ from 'jquery'
 import L_ from '../Layers_/Layers_'
 import TimeUI from '../TimeControl_/TimeUI'
 import { toolModules, toolConfigs } from '../../../pre/tools'
+import useUIStore from '../UserInterface_/store/uiStore'
 
 import tippy from 'tippy.js'
 
@@ -525,13 +526,10 @@ let ToolController_ = {
                     }
                     this.prevHeight = this.activeTool.height;
                     */
-                    // Toggle drag handle
-                    $('#toolPanelDrag').css(
-                        'display',
+                    // Toggle drag handle via store (React is single source of truth)
+                    useUIStore.getState().setToolPanelDragVisible(
                         toolConfigs[ToolController_.tools[idx].name]
                             ?.expandable === true
-                            ? 'block'
-                            : 'none'
                     )
 
                     this.activeTool.make(this)
@@ -545,8 +543,8 @@ let ToolController_ = {
                 }
                 this.activeToolName = name
             } else {
-                // Toggle drag handle
-                $('#toolPanelDrag').css('display', 'none')
+                // Toggle drag handle via store (React is single source of truth)
+                useUIStore.getState().setToolPanelDragVisible(false)
                 //close tool
                 this.closeActiveTool()
             }

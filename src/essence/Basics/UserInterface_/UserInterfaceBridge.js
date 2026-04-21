@@ -35,22 +35,9 @@ function _repositionBottomElements() {
             toolbar.style.bottom = pxIsTools + 'px'
         }
 
-        // Resize the map to fit the remaining screen space
-        // (matches jQuery UserInterfaceMobile_.js:967-978)
-        const mainHeight = state.mainHeight
-        const mapScreen = document.getElementById('mapScreen')
-        if (mapScreen) {
-            mapScreen.style.transition = 'height 0.4s ease-out'
-            mapScreen.style.height = (mainHeight - pxIsTools) + 'px'
-        }
-        const mapSplit = document.getElementById('mapSplit')
-        if (mapSplit) {
-            mapSplit.style.transition = 'height 0.4s ease-out'
-            mapSplit.style.height = (mainHeight - pxIsTools) + 'px'
-        }
-        // invalidateSize is handled automatically by ResizeObservers on each
-        // panel component — they fire during the CSS transition as the map
-        // container height animates, keeping Leaflet in sync without jerking.
+        // Mobile map height is now managed reactively by MapPanel.jsx
+        // (subscribes to isMobile + pxIsTools), so no imperative override needed.
+        // invalidateSize is handled by ResizeObservers on panel components.
     } else {
         // Desktop: use _updateBottomUIHeight math (177px for expanded)
         // as the single authoritative positioning source.

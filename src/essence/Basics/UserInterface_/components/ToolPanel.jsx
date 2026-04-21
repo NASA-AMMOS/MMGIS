@@ -6,6 +6,7 @@ const TOOLBAR_WIDTH = 40
 
 function ToolPanel() {
     const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
+    const toolPanelDragVisible = useUIStore((s) => s.toolPanelDragVisible)
     const topSize = useUIStore((s) => s.topSize)
     const isMobile = useUIStore((s) => s.isMobile)
     const mobileTopSize = useUIStore((s) => s.mobileTopSize)
@@ -96,7 +97,7 @@ function ToolPanel() {
                     color: 'var(--color-a3)',
                     overflow: 'hidden',
                     cursor: 'col-resize',
-                    display: toolPanelWidth > 0 ? 'block' : 'none',
+                    display: toolPanelDragVisible ? 'block' : 'none',
                     zIndex: 1400,
                     borderRight: '1px solid transparent',
                     left: toolPanelWidth + 10 + 'px',

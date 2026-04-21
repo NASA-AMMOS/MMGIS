@@ -35,6 +35,7 @@ const useUIStore = create((set, get) => ({
 
     // Tool panel
     toolPanelWidth: 0,
+    toolPanelDragVisible: false,
 
     // Tool width (bottom tools area width, set by ToolController/tools)
     toolsWrapperCSSWidth: '0%',
@@ -92,6 +93,7 @@ const useUIStore = create((set, get) => ({
     setPxIsTools: (val) => set({ pxIsTools: val }),
 
     setToolPanelWidth: (width) => set({ toolPanelWidth: width }),
+    setToolPanelDragVisible: (val) => set({ toolPanelDragVisible: val }),
 
     setVisibility: (key, value) =>
         set((state) => ({

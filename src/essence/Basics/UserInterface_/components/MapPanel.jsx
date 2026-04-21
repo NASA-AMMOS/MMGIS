@@ -7,6 +7,8 @@ function MapPanel() {
     const splitterSize = useUIStore((s) => s.splitterSize)
     const mainHeight = useUIStore((s) => s.mainHeight)
     const topSize = useUIStore((s) => s.topSize)
+    const isMobile = useUIStore((s) => s.isMobile)
+    const pxIsTools = useUIStore((s) => s.pxIsTools)
     const mapRef = useRef(null)
 
     // ResizeObserver on #map calls invalidateSize before the browser paints,
@@ -28,7 +30,8 @@ function MapPanel() {
             style={{
                 position: 'absolute',
                 width: pxIsMap - splitterSize * 2 + 'px',
-                height: mainHeight + 'px',
+                height: (isMobile ? mainHeight - pxIsTools : mainHeight) + 'px',
+                transition: isMobile ? 'height 0.4s ease-out' : undefined,
                 top: '0px',
                 left: pxIsViewer + splitterSize + 'px',
             }}
