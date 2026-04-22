@@ -24,7 +24,7 @@
 import { config } from 'dotenv';
 import { resolve } from 'path';
 import { readFileSync, existsSync, writeFileSync } from 'fs';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import pgPromise from 'pg-promise';
 
 /** Hardcoded test database name — never changes. */
@@ -199,6 +199,11 @@ export default async function globalSetup() {
   // Done with pg-promise
   pgp.end();
 
+  // ── 4b. Kill any leftover server on the test port ─────────────
+  // If a previous run was interrupted (Ctrl+C), the detached server
+  // process group may still be listening. Kill it before starting.
+  killProcessOnPort(TEST_PORT);
+
   // ── 5. Prepare adjacent server .env files ────────────────────────
   // The MMGIS server spawns adjacent servers (TiTiler, STAC, etc.) via
   // shell scripts that read a local .env file. Repos only ship
@@ -251,6 +256,12 @@ export default async function globalSetup() {
     try { process.kill(-server.pid, 'SIGKILL'); } catch { /* already dead */ }
     console.log('[global-teardown] Server stopped.');
   };
+
+  // Ensure Ctrl+C / SIGTERM during tests still kills the detached group.
+  const onExit = () => { try { process.kill(-server.pid, 'SIGKILL'); } catch {} };
+  process.on('SIGINT', onExit);
+  process.on('SIGTERM', onExit);
+  process.on('exit', onExit);
 
   console.log(`[global-setup] Starting MMGIS server on port ${TEST_PORT}...`);
   try {
@@ -461,4 +472,37 @@ async function fetchJSON(url, { method = 'GET', body, cookies } = {}) {
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Kill any process listening on the given port.
+ * Works cross-platform (lsof on macOS/Linux, netstat on Windows).
+ */
+function killProcessOnPort(port) {
+  try {
+    const isWin = process.platform === 'win32';
+    if (isWin) {
+      const out = execSync(
+        `netstat -ano | findstr :${port} | findstr LISTENING`,
+        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+      ).trim();
+      const pids = [...new Set(out.split('\n').map(l => l.trim().split(/\s+/).pop()).filter(Boolean))];
+      for (const pid of pids) {
+        try { execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' }); } catch {}
+      }
+    } else {
+      const out = execSync(
+        `lsof -ti tcp:${port}`,
+        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+      ).trim();
+      if (out) {
+        for (const pid of out.split('\n')) {
+          try { process.kill(Number(pid), 'SIGKILL'); } catch {}
+        }
+      }
+    }
+    console.log(`[global-setup] Killed leftover process(es) on port ${port}.`);
+  } catch {
+    // Nothing listening — that's fine.
+  }
 }
