@@ -654,7 +654,7 @@ let DataShaders = {
                 }
 
                 const layersTool = ToolController_.getTool('LayersTool')
-                if (layersTool) layersTool.populateCogScale(name)
+                if (layersTool && typeof layersTool.populateCogScale === 'function') layersTool.populateCogScale(name)
             }
         },
         // prettier-ignore
