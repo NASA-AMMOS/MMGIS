@@ -350,6 +350,7 @@ function ensureAdmin(
       res.render("adminlogin", {
         user: req.user,
         VERSION: configurePackageJson.version,
+        ROOT_PATH: isDevEnv ? "" : process.env.ROOT_PATH || "",
       });
       return;
     }
@@ -472,6 +473,7 @@ function ensureUser() {
           CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",
           CONTACT_INFO: process.env.CONTACT_INFO || "None Provided",
           AUTH_LOCAL_ALLOW_SIGNUP: process.env.AUTH_LOCAL_ALLOW_SIGNUP || false,
+          ROOT_PATH: isDevEnv ? "" : process.env.ROOT_PATH || "",
         });
       }
     }
@@ -771,6 +773,12 @@ setups.getBackendSetups(function (setups) {
       // Each calls the ensureGroup middleware,
       // passing to it an array of LDAP group names (which were loaded
       // from the permissions.json file at the top of the file).
+
+      if (ROOT_PATH) {
+        app.get(ROOT_PATH, (req, res) => {
+          res.redirect(301, `${ROOT_PATH}/`);
+        });
+      }
 
       app.get(
         `${ROOT_PATH}/`,

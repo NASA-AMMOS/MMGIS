@@ -24,6 +24,7 @@ import {
     data as colormapData,
 } from '../../../external/js-colormaps/js-colormaps.js'
 
+import { isKmlUrl, fetchKmlAsGeoJSON } from '../../Basics/Layers_/LayerCapturer'
 import './LayersTool.css'
 
 const helpKey = 'LayersTool'
@@ -2006,24 +2007,42 @@ function interfaceWithMMGIS(fromInit) {
                     layerData.url,
                     layerData
                 )
-                $.getJSON(layerUrl, function (data) {
-                    if (data.hasOwnProperty('Features')) {
-                        data.features = data.Features
-                        delete data.Features
-                    }
-
-                    download(data)
-                }).fail(function (jqXHR, textStatus, errorThrown) {
-                    //Tell the console council about what happened
-                    console.warn(
-                        'ERROR! ' +
-                            textStatus +
-                            ' in ' +
-                            layerUrl +
-                            ' /// ' +
-                            errorThrown
+                if (isKmlUrl(layerUrl)) {
+                    fetchKmlAsGeoJSON(
+                        layerUrl,
+                        (data) => {
+                            download(data)
+                        },
+                        (jqXHR, textStatus, errorThrown) => {
+                            console.warn(
+                                'ERROR! ' +
+                                    textStatus +
+                                    ' in ' +
+                                    layerUrl +
+                                    ' /// ' +
+                                    errorThrown
+                            )
+                        }
                     )
-                })
+                } else {
+                    $.getJSON(layerUrl, function (data) {
+                        if (data.hasOwnProperty('Features')) {
+                            data.features = data.Features
+                            delete data.Features
+                        }
+
+                        download(data)
+                    }).fail(function (jqXHR, textStatus, errorThrown) {
+                        console.warn(
+                            'ERROR! ' +
+                                textStatus +
+                                ' in ' +
+                                layerUrl +
+                                ' /// ' +
+                                errorThrown
+                        )
+                    })
+                }
             }
         } else if (extent == 'raw-extent') {
             const body = JSON.parse(
