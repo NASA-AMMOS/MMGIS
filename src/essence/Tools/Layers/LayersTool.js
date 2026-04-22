@@ -388,16 +388,20 @@ var LayersTool = {
                     L_.layers.layer[layer.name]?.rampIdx || 0
                 ] || layer.variables.shader.ramps[0]
                 const t = i / 8
-                const rampIdx = t * (ramp.length - 1)
-                const lo = Math.floor(rampIdx)
+                const rampPos = t * (ramp.length - 1)
+                const lo = Math.floor(rampPos)
                 const hi = Math.min(lo + 1, ramp.length - 1)
-                const frac = rampIdx - lo
+                const frac = rampPos - lo
                 const cLo = F_.hexToRGB(ramp[lo])
                 const cHi = F_.hexToRGB(ramp[hi])
-                const r = Math.round(cLo.r + (cHi.r - cLo.r) * frac)
-                const g = Math.round(cLo.g + (cHi.g - cLo.g) * frac)
-                const b = Math.round(cLo.b + (cHi.b - cLo.b) * frac)
-                color = `rgb(${r}, ${g}, ${b})`
+                if (cLo && cHi) {
+                    const r = Math.round(cLo.r + (cHi.r - cLo.r) * frac)
+                    const g = Math.round(cLo.g + (cHi.g - cLo.g) * frac)
+                    const b = Math.round(cLo.b + (cHi.b - cLo.b) * frac)
+                    color = `rgb(${r}, ${g}, ${b})`
+                } else {
+                    color = 'transparent'
+                }
             } else if (
                 imgElement &&
                 imgElement.complete &&
