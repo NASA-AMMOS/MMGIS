@@ -79,6 +79,7 @@
     "@maphubs/tokml": "^0.6.1",
     "@popperjs/core": "^2.11.6",
     "@terraformer/wkt": "^2.2.0",
+    "@tmcw/togeojson": "^7.1.2",
     "@turf/turf": "^6.5.0",
     "bcryptjs": "^2.4.3",
     "busboy": "1.6",

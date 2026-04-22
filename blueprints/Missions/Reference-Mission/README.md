@@ -91,19 +91,19 @@ The Reference Mission mission includes **44 layers** organized into two main cat
 
 ### Vector Layers (36 layers)
 
-All vector layers are **flat file GeoJSON** stored in `Layers/Vectors/`. They use SF Bay Area coordinates (~37.8°N, -122.4°W).
+All vector layers are **flat file GeoJSON** (or KML converted to GeoJSON at runtime) stored in `Layers/Vectors/`. They use SF Bay Area coordinates (~37.8°N, -122.4°W).
 
 The layers are organized into:
-- **📄 GeoJSON Data Features** (19 layers) - Features driven by geometry types and feature properties
-- **⚙️ Layer Configuration** (17 layers) - Features driven by layer config settings
+- **📄 GeoJSON Data Features** (18 layers) - Features driven by geometry types and feature properties
+- **⚙️ Layer Configuration** (18 layers) - Features driven by layer config settings
 
 ---
 
-### 📄 GeoJSON Data Features (19 layers)
+### 📄 GeoJSON Data Features (18 layers)
 
 Features driven by **geometry types** and **feature properties** in your GeoJSON files.
 
-#### Geometry Types (4 layers)
+#### Geometry Types (5 layers)
 
 Basic examples of each geometry type.
 
@@ -112,7 +112,8 @@ Basic examples of each geometry type.
 | Points Basic | `points-basic.geojson` | 8 | Simple circular markers with basic properties (id, name, description, category) |
 | Lines Basic | `lines-basic.geojson` | 4 | Simple solid stroke paths/routes |
 | Polygons Basic | `polygons-basic.geojson` | 5 | Simple shapes with default fill/stroke (parks, districts, regions) |
-| Time-Enabled | `time-enabled.geojson` | 11 | Mixed geometry with temporal data (5 time steps). Features have `startTime` property. **Requires TimeControl tool** |
+| Arrows | `arrows-example.geojson` | 4 | LineStrings with `arrow: true` property - displays as directional arrows |
+| Annotations | `annotations-example.geojson` | 4 | Points with `annotation: true` property - styled text labels with custom colors, rotation |
 
 #### Feature Property Styling (4 layers)
 
@@ -125,47 +126,42 @@ Per-feature styling via `properties.style` objects or specific style properties.
 | Polygons Styled | `polygons-styled.geojson` | 5 | Different fill colors, opacities, stroke styles, including dashed borders |
 | Style From Property | `style-from-property.geojson` | 5 | Features with `fillColor`, `strokeColor`, `radius`, etc. properties used by `style.fillColorProp` config |
 
-#### Feature Property Behavior (9 layers)
+#### Feature Property Behavior (8 layers)
 
 Feature behaviors driven by specific properties in the GeoJSON.
 
 | Layer Name | File | Features | Purpose |
 |------------|------|----------|---------|
 | Points Symbols | `points-symbols.geojson` | 10 | Features with `shape` property (circle, square, triangle, diamond, star) |
-| Shape From MDI Icons | `mdi-icons-example.geojson` | 4 | Features with `icon` property using Material Design Icons |
-| Arrows | `arrows-example.geojson` | 4 | LineStrings with `arrow: true` property - displays as directional arrows |
-| Annotations | `annotations-example.geojson` | 4 | Points with `annotation: true` property - styled text labels with custom colors, rotation |
 | Bearings Directional | `bearings-example.geojson` | 5 | Features with `heading` property showing direction of travel |
+| Shape From MDI Icons | `mdi-icons-example.geojson` | 4 | Features with `icon` property using Material Design Icons |
 | Hotline Gradient Path | `hotline-gradient.geojson` | 1 | Path with `elevation` property values for color gradient visualization |
+| Hotline Gradient 3D | `hotline-gradient-3d.geojson` | — | 3D gradient polyline with elevation-based positioning in the Cesium globe |
 | Uncertainty Ellipses | `uncertainty-example.geojson` | 4 | Features with `xAxis`, `yAxis`, `angle` properties for position uncertainty |
-| Pairings Receivers | `pairings-receivers.geojson` | 3 | Features with `station_id` property (receiving end) |
 | Pairings Transmitters | `pairings-example.geojson` | 3 | Features with `station_id` property (transmitting end) - pairs with Receivers via matching IDs |
+| Pairings Receivers | `pairings-receivers.geojson` | 3 | Features with `station_id` property (receiving end) |
 
-#### Data Sources (2 layers)
-
-Examples of different data source types.
+#### Miscellaneous (1 layer)
 
 | Layer Name | File | Features | Purpose |
 |------------|------|----------|---------|
-| TEST Geodataset Example | `TEST-geodataset-example.geojson` | 8 | Simulates database-sourced geodataset features with rich metadata |
-| TEST Draw File Example | `TEST-draw-file-example.geojson` | 8 | Simulates DrawTool user annotations with typical metadata (uuid, file_id, intent) |
+| KML | `sample-kml.kml` | 5 | KML file support - Points, LineString, and Polygon loaded from a .kml file instead of GeoJSON |
 
 ---
 
-### ⚙️ Layer Configuration (17 layers)
+### ⚙️ Layer Configuration (18 layers)
 
 Features driven by **layer configuration** in the Configure page (config.json settings).
 
-#### Core Settings Tab (4 layers)
+#### Core Settings Tab (3 layers)
 
 Basic layer visibility and zoom constraints.
 
 | Layer Name | File | Features | Purpose |
 |------------|------|----------|---------|
 | Initially Visible | `initially-visible.geojson` | 1 | Tests `visibility: true` - Only layer visible by default |
-| Zoom Constrained - Points | `zoom-constrained-points.geojson` | 3 | Tests `minZoom: 10, maxZoom: 14` - Only visible at specific zoom levels |
-| Zoom Constrained - Lines | `zoom-constrained-lines.geojson` | 2 | Tests zoom constraints on LineString geometry |
-| Zoom Constrained - Polygons | `zoom-constrained-polygons.geojson` | 2 | Tests zoom constraints on Polygon geometry |
+| Zoom - Layer Config (10-14) | `zoom-layer-config.geojson` | — | Tests `minZoom: 10, maxZoom: 14` - Only visible at specific zoom levels |
+| Zoom - Feature Properties | `zoom-feature-props.geojson` | — | Tests zoom constraints via feature properties |
 
 #### Style Tab (2 layers)
 
@@ -176,12 +172,13 @@ Style-related configuration options.
 | Animated Pulse | `animated-example.geojson` | 4 | Tests `style.animation: "pulse"` - Animated markers with pulse effect |
 | Clustered | `clustered.geojson` | 35 | Tests `clustering: true` - Point clustering at various zoom levels |
 
-#### Time Tab (1 layer)
+#### Time Tab (2 layers)
 
 Temporal configuration options.
 
 | Layer Name | File | Features | Purpose |
 |------------|------|----------|---------|
+| Time-Enabled | `time-enabled.geojson` | 11 | Mixed geometry with temporal data (5 time steps). Features have `startTime` property. **Requires TimeControl tool** |
 | Time - Refresh Interval | `time-refresh-interval.geojson` | 4 | Tests `time.refreshIntervalEnabled: true` and `time.refreshIntervalAmount: 30` - Auto-refreshes every 30 seconds |
 
 #### Legend Tab (1 layer)
@@ -227,13 +224,14 @@ Coordinate display attachment.
 |------------|------|----------|---------|
 | Attachment - Coordinates | `coordinates-marker.geojson` | 3 | Tests `variables.coordinateAttachments.marker` - Displays coordinates at each marker |
 
-#### Attachment - Markers Tab (1 layer)
+#### Attachment - Markers Tab (2 layers)
 
 Marker image attachment.
 
 | Layer Name | File | Features | Purpose |
 |------------|------|----------|---------|
-| Attachment - Image | `image-marker.geojson` | 3 | Tests `variables.markerAttachments.image` - Displays scaled/oriented images under markers |
+| Attachment - Image (Per-Feature) | `image-marker.geojson` | 3 | Tests `variables.markerAttachments.image` - Displays scaled/oriented images under markers |
+| Attachment - Image (Shared + Rotation) | `image-shared.geojson` | — | Tests shared image attachments with rotation configuration |
 
 #### Special (1 layer)
 
