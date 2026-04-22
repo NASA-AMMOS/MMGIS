@@ -22,9 +22,9 @@
  */
 
 import { config } from 'dotenv';
-import { resolve } from 'path';
-import { readFileSync } from 'fs';
-import { spawn } from 'child_process';
+import { resolve, dirname } from 'path';
+import { readFileSync, existsSync, copyFileSync, writeFileSync } from 'fs';
+import { spawn, execSync } from 'child_process';
 import pgPromise from 'pg-promise';
 
 /** Hardcoded test database name — never changes. */
@@ -199,7 +199,14 @@ export default async function globalSetup() {
   // Done with pg-promise
   pgp.end();
 
-  // ── 5. Start the MMGIS test server ──────────────────────────────
+  // ── 5. Prepare adjacent server .env files ────────────────────────
+  // The MMGIS server spawns adjacent servers (TiTiler, STAC, etc.) via
+  // shell scripts that read a local .env file. Repos only ship
+  // .env.example, so we copy it into place when missing and fix up
+  // relative paths so they resolve from the working directory.
+  prepareAdjacentServerEnvFiles(process.cwd());
+
+  // ── 6. Start the MMGIS test server ──────────────────────────────
   // We start it here (not via playwright.config.js webServer) because
   // Playwright runs webServer plugins BEFORE globalSetup — so the DB
   // wouldn't exist yet when the server tries to connect.
@@ -250,7 +257,12 @@ export default async function globalSetup() {
   }
   console.log(`[global-setup] Server is ready.`);
 
-  // ── 6. Create Reference Mission if needed ───────────────────────
+  // ── 6b. Probe adjacent servers ────────────────────────────────────
+  // The MMGIS server's adjacentServers() already spawned the start
+  // scripts. Give them a few seconds then report which ones are live.
+  await probeAdjacentServers(15_000);
+
+  // ── 7. Create Reference Mission if needed ───────────────────────
   if (needsMission) {
     console.log('[global-setup] Creating Reference Mission...');
     try {
@@ -322,6 +334,95 @@ export default async function globalSetup() {
 
   // Return teardown function — Playwright calls this after all tests.
   return killServer;
+}
+
+// ─── Adjacent server helpers ────────────────────────────────────────
+
+/**
+ * Adjacent server definitions — mirrors adjacent-servers/adjacent-servers.js.
+ * Each entry maps an env-var gate to the directory, port, and a health URL.
+ */
+const ADJACENT_SERVERS = [
+  { env: 'WITH_STAC',           dir: 'adjacent-servers/stac',           portEnv: 'STAC_PORT',           defaultPort: 8881, healthPath: '/api.html' },
+  { env: 'WITH_TIPG',           dir: 'adjacent-servers/tipg',           portEnv: 'TIPG_PORT',           defaultPort: 8882, healthPath: '/api.html' },
+  { env: 'WITH_TITILER',        dir: 'adjacent-servers/titiler',        portEnv: 'TITILER_PORT',        defaultPort: 8883, healthPath: '/api.html' },
+  { env: 'WITH_TITILER_PGSTAC', dir: 'adjacent-servers/titiler-pgstac', portEnv: 'TITILER_PGSTAC_PORT', defaultPort: 8884, healthPath: '/api.html' },
+];
+
+/**
+ * For each enabled adjacent server, copy .env.example → .env if the
+ * .env file doesn't already exist. Rewrite relative paths in
+ * TILEMATRIXSET_DIRECTORY so they resolve from the repo root.
+ */
+function prepareAdjacentServerEnvFiles(repoRoot) {
+  for (const srv of ADJACENT_SERVERS) {
+    if (process.env[srv.env] !== 'true') continue;
+
+    const srvDir  = resolve(repoRoot, srv.dir);
+    const envFile = resolve(srvDir, '.env');
+    const example = resolve(srvDir, '.env.example');
+
+    if (existsSync(envFile)) {
+      console.log(`[global-setup] ${srv.dir}/.env already exists.`);
+      continue;
+    }
+    if (!existsSync(example)) {
+      console.log(`[global-setup] ${srv.dir}/.env.example not found — skipping.`);
+      continue;
+    }
+
+    // Read the example, fix relative TILEMATRIXSET_DIRECTORY paths
+    let contents = readFileSync(example, 'utf8');
+    contents = contents.replace(
+      /^(TILEMATRIXSET_DIRECTORY\s*=\s*)("?\.\..*)$/m,
+      (_match, prefix, relPath) => {
+        const cleaned = relPath.replace(/^["']|["']$/g, '');
+        const abs = resolve(srvDir, cleaned);
+        return `${prefix}"${abs}"`;
+      },
+    );
+
+    writeFileSync(envFile, contents, 'utf8');
+    console.log(`[global-setup] Created ${srv.dir}/.env from .env.example.`);
+  }
+}
+
+/**
+ * Poll each enabled adjacent server's direct port until it responds or
+ * the timeout elapses. Logs which servers came up and which didn't.
+ */
+async function probeAdjacentServers(timeoutMs) {
+  const enabled = ADJACENT_SERVERS.filter(s => process.env[s.env] === 'true');
+  if (enabled.length === 0) {
+    console.log('[global-setup] No adjacent servers enabled — nothing to probe.');
+    return;
+  }
+
+  console.log(`[global-setup] Probing ${enabled.length} adjacent server(s)...`);
+
+  const deadline = Date.now() + timeoutMs;
+  const results = await Promise.all(
+    enabled.map(async (srv) => {
+      const port = Number(process.env[srv.portEnv] || srv.defaultPort);
+      const url = `http://localhost:${port}${srv.healthPath}`;
+      while (Date.now() < deadline) {
+        try {
+          const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+          if (res.ok) return { name: srv.env, port, ok: true };
+        } catch { /* not ready yet */ }
+        await sleep(1000);
+      }
+      return { name: srv.env, port, ok: false };
+    }),
+  );
+
+  for (const r of results) {
+    if (r.ok) {
+      console.log(`[global-setup] ✓ ${r.name} is ready on port ${r.port}.`);
+    } else {
+      console.warn(`[global-setup] ✗ ${r.name} did not start on port ${r.port} (timeout ${timeoutMs}ms).`);
+    }
+  }
 }
 
 // ─── Utilities ─────────────────────────────────────────────────────

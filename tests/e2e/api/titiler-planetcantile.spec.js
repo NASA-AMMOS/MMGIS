@@ -133,11 +133,12 @@ test.describe('TiTiler Planetcantile Integration', () => {
     if (!isTitilerAccessible(probe)) {
       test.skip(true, 'SKIP: TiTiler proxy is not reachable');
     }
-    const response = await request.get(`${baseURL}/titiler/cog/colorMaps`);
+    const response = await request.get(`${baseURL}/titiler/colorMaps`);
     expect(response.ok()).toBeTruthy();
     expect(response.headers()['content-type']).toContain('json');
 
     const body = await response.json();
-    expect(Array.isArray(body.colorMaps) || (typeof body.colorMaps === 'object' && body.colorMaps !== null)).toBe(true);
+    expect(Array.isArray(body.colorMaps || body.colormaps)).toBe(true);
+    expect((body.colorMaps || body.colormaps).length).toBeGreaterThan(0);
   });
 });
