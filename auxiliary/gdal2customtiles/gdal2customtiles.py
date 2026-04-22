@@ -955,11 +955,15 @@ def scale_query_to_tile(dsquery, dstile, options, tilefilename=""):
 
     if options.resampling == "average":
 
+        # MMGIS - DEM tiles encode float32 values as RGBA bytes; averaging
+        # those bytes produces garbage floats, so use nearest-neighbor instead.
+        resample_alg = "near" if getattr(options, "isDEMtile", False) else "average"
+
         # Function: gdal.RegenerateOverview()
         for i in range(1, tilebands + 1):
             # Black border around NODATA
             res = gdal.RegenerateOverview(
-                dsquery.GetRasterBand(i), dstile.GetRasterBand(i), "average"
+                dsquery.GetRasterBand(i), dstile.GetRasterBand(i), resample_alg
             )
             if res != 0:
                 exit_with_error(
