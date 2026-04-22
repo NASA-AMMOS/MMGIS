@@ -17,7 +17,7 @@
  * @param {number}  [options.timeout=60000] - Maximum wait in ms.
  */
 export async function waitForMapReady(page, { timeout = 90000 } = {}) {
-  await page.waitForLoadState('networkidle', { timeout });
+  await page.waitForLoadState('load', { timeout });
   await page.waitForFunction(
     () => !!(window.mmgisAPI && window.mmgisAPI.map),
     { timeout },

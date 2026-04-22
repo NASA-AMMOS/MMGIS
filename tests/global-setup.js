@@ -220,6 +220,8 @@ export default async function globalSetup() {
     NODE_ENV: 'test',
     PORT: String(TEST_PORT),
     HIDE_CONFIG: 'false',
+    ENABLE_MMGIS_WEBSOCKETS: '',
+    ENABLE_CONFIG_WEBSOCKETS: '',
   };
 
   const server = spawn('node', [resolve(process.cwd(), 'scripts/server.js')], {
