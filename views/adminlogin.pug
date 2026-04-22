@@ -7,13 +7,13 @@ head
   script(type='text/javascript' src=ROOT_PATH + '/public/jquery.min.js')
   script(type='text/javascript' src=ROOT_PATH + '/public/adminlogin.js')
   style.
-    body { background-image: url(#{ROOT_PATH}/configure/build/contours.png) !important; }
+    body { background-image: url(#{ROOT_PATH}/public/images/contours.png) !important; }
 body.mmgisScrollbar
   #backIcon.mdi.mdi-keyboard-backspace.mdi-18px
   #setup
     | SETUP
   .container
-    img(src='public/images/logos/mmgis.png' alt='MMGIS' onClick='back()')
+    img(src=ROOT_PATH + '/public/images/logos/mmgis.png' alt='MMGIS' onClick='back()')
     span#msg.error
     form.box(name='form1')
       h4
