@@ -1,6 +1,6 @@
 @font-face {
   font-family: "Source Sans Pro";
-  src: url(/public/fonts/sourcesanspro/SourceSansPro-Regular.ttf);
+  /* src is set via inline style in login.pug to support ROOT_PATH */
 }
 
 html {
@@ -9,7 +9,7 @@ html {
 }
 
 body {
-  background-image: url(/public/images/contours.png);
+  /* background-image is set via inline style in login.pug to support ROOT_PATH */
   font-family: "Source Sans Pro", sans-serif;
   background-color: #1a1a1a;
   padding: 0;

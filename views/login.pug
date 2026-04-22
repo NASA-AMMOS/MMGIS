@@ -3,17 +3,20 @@ html(lang='en')
   head
     title MMGIS / Login
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    link(rel='shortcut icon' href='public/images/logos/logo.png')
-    link(type='text/css' rel='stylesheet' href='public/login.css')
+    link(rel='shortcut icon' href=ROOT_PATH + '/public/images/logos/logo.png')
+    link(type='text/css' rel='stylesheet' href=ROOT_PATH + '/public/login.css')
     script.
       allowSignup = #{AUTH_LOCAL_ALLOW_SIGNUP}
-    script(type='text/javascript' src='public/jquery.min.js')
-    script(type='text/javascript' src='public/login.js')
+    script(type='text/javascript' src=ROOT_PATH + '/public/jquery.min.js')
+    script(type='text/javascript' src=ROOT_PATH + '/public/login.js')
+    style.
+      @font-face { font-family: "Source Sans Pro"; src: url(#{ROOT_PATH}/public/fonts/sourcesanspro/SourceSansPro-Regular.ttf); }
+      body { background-image: url(#{ROOT_PATH}/public/images/contours.png) !important; }
   body.mmgisScrollbar
     .header
-      img(src='public/images/logos/local_login_brand.png' alt='Branding' style='left: 44px; transform: unset; height: 60px; opacity: 0.5;')
+      img(src=ROOT_PATH + '/public/images/logos/local_login_brand.png' alt='Branding' style='left: 44px; transform: unset; height: 60px; opacity: 0.5;')
     #container(style='z-index: 1;')
-      img(src='public/images/logos/mmgis.png' alt='MMGIS')
+      img(src=ROOT_PATH + '/public/images/logos/mmgis.png' alt='MMGIS')
       span#msg.error
       form.box(name='form1')
         h4
