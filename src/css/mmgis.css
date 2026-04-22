@@ -767,7 +767,7 @@ body {
 
 .leaflet-control-scalefactor {
     position: absolute;
-    bottom: 28px;
+    bottom: 48px;
     left: 44px;
     display: flex;
     margin-left: 2px !important;

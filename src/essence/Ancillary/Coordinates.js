@@ -864,8 +864,8 @@ function toggleTimeUI() {
     $('#toggleTimeUI').toggleClass('active')
     $('#timeUI').toggleClass('active')
 
-    const defaultExpanded = $('#timeUI').hasClass('defaultExpanded')
-    const timeUIHeight = defaultExpanded
+    const isExpanded = $('#timeUI').hasClass('expanded') || $('#timeUI').hasClass('defaultExpanded')
+    const timeUIHeight = isExpanded
         ? 177
         : $('#timeUI').hasClass('active')
         ? 40

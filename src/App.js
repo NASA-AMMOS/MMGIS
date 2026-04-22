@@ -6,6 +6,14 @@ import F_ from './essence/Basics/Formulae_/Formulae_'
 
 import calls from './pre/calls'
 
+import UserInterfaceLayout from './essence/Basics/UserInterface_/components/UserInterfaceLayout'
+
+// Ensure useReactUI is always set (defensive fallback for non-standard bootstrap)
+;(function () {
+    if (typeof window.mmgisglobal === 'undefined') window.mmgisglobal = {}
+    window.mmgisglobal.useReactUI = true
+})()
+
 //Start MMGIS
 $(document).ready(function () {
     const browser = F_.getBrowser()
@@ -104,7 +112,11 @@ function initApp() {
 }
 
 function App() {
-    return <div className='App'></div>
+    return (
+        <div className='App'>
+            <UserInterfaceLayout />
+        </div>
+    )
 }
 
 export default App

@@ -4,15 +4,12 @@ let UserInterface = null
 let isMobile = window.navigator.userAgent.match(
     /Mobi|iP(hone|od|ad)|Android|BlackBerry/
 )
-if (isMobile) {
-    UserInterface = () =>
-        import('./UserInterfaceMobile_').then((module) => {
-            module.default.isMobile = true
-            return module.default
-        })
-} else {
-    UserInterface = () =>
-        import('./UserInterfaceDefault_').then((module) => module.default)
-}
+
+// Always use the React bridge that delegates to the Zustand store
+UserInterface = () =>
+    import('./UserInterfaceBridge').then((module) => {
+        module.default.isMobile = !!isMobile
+        return module.default
+    })
 
 export default await UserInterface
