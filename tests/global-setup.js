@@ -226,6 +226,7 @@ export default async function globalSetup() {
     env: serverEnv,
     cwd: process.cwd(),
     stdio: 'pipe',
+    detached: true,
   });
 
   server.stdout.on('data', (d) => {
@@ -238,12 +239,14 @@ export default async function globalSetup() {
   const baseUrl = `http://localhost:${TEST_PORT}`;
   const healthUrl = `${baseUrl}/api/utils/healthcheck`;
 
-  // Helper to kill the server process (used in both teardown and error paths)
+  // Helper to kill the server and all its children (adjacent servers, etc.).
+  // The server is started with detached:true so it leads its own process group.
+  // Sending the signal to -pid kills the entire group.
   const killServer = async () => {
-    console.log('[global-teardown] Stopping test server...');
-    server.kill('SIGTERM');
+    console.log('[global-teardown] Stopping test server and adjacent servers...');
+    try { process.kill(-server.pid, 'SIGTERM'); } catch { /* already dead */ }
     await sleep(2000);
-    try { server.kill('SIGKILL'); } catch { /* already dead */ }
+    try { process.kill(-server.pid, 'SIGKILL'); } catch { /* already dead */ }
     console.log('[global-teardown] Server stopped.');
   };
 
