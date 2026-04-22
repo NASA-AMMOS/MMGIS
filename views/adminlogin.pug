@@ -1,11 +1,13 @@
 doctype html
 head
   title MMGIS / Configure
-  link(rel='shortcut icon' href='public/images/logos/logo.png')
-  link(type='text/css' rel='stylesheet' href='public/adminlogin.css')
-  link(type='text/css' rel='stylesheet' href='public/fonts/materialdesignicons/css/materialdesignicons.min.css')
-  script(type='text/javascript' src='public/jquery.min.js')
-  script(type='text/javascript' src='public/adminlogin.js')
+  link(rel='shortcut icon' href=ROOT_PATH + '/public/images/logos/logo.png')
+  link(type='text/css' rel='stylesheet' href=ROOT_PATH + '/public/adminlogin.css')
+  link(type='text/css' rel='stylesheet' href=ROOT_PATH + '/public/fonts/materialdesignicons/css/materialdesignicons.min.css')
+  script(type='text/javascript' src=ROOT_PATH + '/public/jquery.min.js')
+  script(type='text/javascript' src=ROOT_PATH + '/public/adminlogin.js')
+  style.
+    body { background-image: url(#{ROOT_PATH}/configure/build/contours.png) !important; }
 body.mmgisScrollbar
   #backIcon.mdi.mdi-keyboard-backspace.mdi-18px
   #setup
