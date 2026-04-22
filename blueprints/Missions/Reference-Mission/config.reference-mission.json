@@ -2958,7 +2958,7 @@
               "controlled": false,
               "initialOpacity": 1,
               "minZoom": 10,
-              "maxNativeZoom": 12,
+              "maxNativeZoom": 13,
               "maxZoom": 18,
               "boundingBox": [
                 -122.5072,
