@@ -22,9 +22,9 @@
  */
 
 import { config } from 'dotenv';
-import { resolve, dirname } from 'path';
-import { readFileSync, existsSync, copyFileSync, writeFileSync } from 'fs';
-import { spawn, execSync } from 'child_process';
+import { resolve } from 'path';
+import { readFileSync, existsSync, writeFileSync } from 'fs';
+import { spawn } from 'child_process';
 import pgPromise from 'pg-promise';
 
 /** Hardcoded test database name — never changes. */
