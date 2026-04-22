@@ -774,6 +774,12 @@ setups.getBackendSetups(function (setups) {
       // passing to it an array of LDAP group names (which were loaded
       // from the permissions.json file at the top of the file).
 
+      if (ROOT_PATH) {
+        app.get(ROOT_PATH, (req, res) => {
+          res.redirect(301, `${ROOT_PATH}/`);
+        });
+      }
+
       app.get(
         `${ROOT_PATH}/`,
         ensureUser(),
