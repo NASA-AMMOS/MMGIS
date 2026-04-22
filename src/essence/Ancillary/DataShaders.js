@@ -3,6 +3,7 @@ import Dropy from '../../external/Dropy/dropy'
 import L_ from '../Basics/Layers_/Layers_'
 import Map_ from '../Basics/Map_/Map_'
 import F_ from '../Basics/Formulae_/Formulae_'
+import ToolController_ from '../Basics/ToolController_/ToolController_'
 
 // Because 0 is a valid value in many datasets yet still special in images being fully transparent,
 // we're going to encode zero's as 2^31  (2147483648) (79, 0, 0, 0) and have the reader parse it back to 0
@@ -651,6 +652,9 @@ let DataShaders = {
                         `.dataShader_${cname}_colorize_maxValue input[parameter=max]`
                     ).val(max.toFixed(sigfigs))
                 }
+
+                const layersTool = ToolController_.getTool('LayersTool')
+                if (layersTool && typeof layersTool.populateCogScale === 'function') layersTool.populateCogScale(name)
             }
         },
         // prettier-ignore
