@@ -3,9 +3,15 @@
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
-import G_ from '../../Basics/Globe_/Globe_'
-
 import ViewshedTool_Algorithm from './ViewshedTool_Algorithm'
+
+function tileXYZ2LatLng(x, y, z) {
+    const n = Math.pow(2, z)
+    const lng = (x / n) * 360 - 180
+    const latRad = Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n)))
+    const lat = (latRad * 180) / Math.PI
+    return { lat, lng }
+}
 
 let ViewshedTool_Manager = {
     //Never query more than maxNumOfDataTiles for a single viewshed
@@ -106,9 +112,12 @@ let ViewshedTool_Manager = {
         let max = maxPx.divideBy(256).floor()
 
         // Clamp to bounding box if the data source defines one
-        const bbox = this.data[viewshedId].dataLayer.boundingBox
+        const rawBbox = this.data[viewshedId].dataLayer.boundingBox
+        const bbox = Array.isArray(rawBbox)
+            ? rawBbox.map(Number)
+            : null
         let bboxTileBounds = null
-        if (bbox && bbox.length === 4) {
+        if (bbox && bbox.length === 4 && bbox.every((v) => !isNaN(v))) {
             const bboxMinPx = Map_.map.project(L.latLng(bbox[1], bbox[0]), zoom)
             const bboxMaxPx = Map_.map.project(L.latLng(bbox[3], bbox[2]), zoom)
             bboxTileBounds = {
@@ -262,7 +271,7 @@ let ViewshedTool_Manager = {
         }
 
         this.data[viewshedId].bottomLeftLatLng =
-            G_.litho.projection.tileXYZ2LatLng(
+            tileXYZ2LatLng(
                 this.data[viewshedId].topLeftTile.x,
                 this.data[viewshedId].topLeftTile.y +
                     this.data[viewshedId].topLeftTile.h,
@@ -270,7 +279,7 @@ let ViewshedTool_Manager = {
             )
 
         this.data[viewshedId].cellSize =
-            G_.litho.projection.tileXYZ2LatLng(
+            tileXYZ2LatLng(
                 this.data[viewshedId].topLeftTile.x +
                     1 / this.data[viewshedId].tileResolution,
                 this.data[viewshedId].topLeftTile.y +
@@ -297,6 +306,10 @@ let ViewshedTool_Manager = {
         )
 
         let totalTiles = this.data[viewshedId].desiredTiles.length
+        if (totalTiles === 0) {
+            cb(ViewshedTool_Manager.data[viewshedId])
+            return
+        }
         let tilesLoaded = 0
         let tilesQueried = 0
         let tilesPerStep = 8
