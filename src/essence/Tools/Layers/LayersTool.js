@@ -303,7 +303,7 @@ var LayersTool = {
             !layerUrl.startsWith('COG:') &&
             layer.type !== 'image' &&
             layer.type !== 'velocity' &&
-            layer.type !== 'data'
+            !(layer.type === 'data' && layer.variables?.shader?.ramps)
         )
             return
         if (
