@@ -16,8 +16,20 @@ function isKmlUrl(url) {
 }
 
 function fetchKmlAsGeoJSON(url, successCb, failCb) {
+    // Route absolute URLs through the server-side proxy to avoid CORS issues
+    let fetchUrl = url
+    if (F_.isUrlAbsolute(url)) {
+        const rootPath = window.mmgisglobal.ROOT_PATH
+            ? window.mmgisglobal.ROOT_PATH + '/'
+            : ''
+        fetchUrl =
+            rootPath +
+            'api/utils/fetchProxy?url=' +
+            encodeURIComponent(url)
+    }
+
     $.ajax({
-        url: url,
+        url: fetchUrl,
         dataType: 'xml',
         success: function (xmlDoc) {
             try {
