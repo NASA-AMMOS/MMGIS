@@ -672,4 +672,4 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
     }
 }
 
-export { isKmlUrl }
+export { isKmlUrl, fetchKmlAsGeoJSON }

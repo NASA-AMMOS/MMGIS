@@ -23,26 +23,26 @@ test.describe('KML Layer Support', () => {
     await page.waitForTimeout(500);
   });
 
-  test('KML Sample layer appears in the Layers panel', async ({ page }) => {
-    await layersPanel.expandGroup('Geometry Types');
+  test('KML layer appears in the Layers panel', async ({ page }) => {
+    await layersPanel.expandGroup('Miscellaneous');
     await page.waitForTimeout(300);
 
     const kmlLayerExists = await page.evaluate(() => {
-      return document.body.innerHTML.includes('KML Sample');
+      return document.body.innerHTML.includes('KML');
     });
     expect(kmlLayerExists).toBeTruthy();
   });
 
-  test('KML Sample layer can be toggled on and features appear on the map', async ({ page }) => {
-    await layersPanel.expandGroup('Geometry Types');
+  test('KML layer can be toggled on and features appear on the map', async ({ page }) => {
+    await layersPanel.expandGroup('Miscellaneous');
     await page.waitForTimeout(300);
 
-    // Toggle on "KML Sample"
-    await layersPanel.toggleLayer('KML Sample');
+    // Toggle on "KML"
+    await layersPanel.toggleLayer('KML');
     await page.waitForTimeout(2000);
 
     // Verify the layer is on
-    const isOn = await layersPanel.isLayerOn('KML Sample');
+    const isOn = await layersPanel.isLayerOn('KML');
     expect(isOn).toBeTruthy();
 
     // Verify vector elements appear on the map (SVG paths, circles, or markers)
@@ -53,11 +53,11 @@ test.describe('KML Layer Support', () => {
     expect(count).toBeGreaterThan(0);
   });
 
-  test('KML Sample layer loads correct number of features', async ({ page }) => {
-    await layersPanel.expandGroup('Geometry Types');
+  test('KML layer loads correct number of features', async ({ page }) => {
+    await layersPanel.expandGroup('Miscellaneous');
     await page.waitForTimeout(300);
 
-    await layersPanel.toggleLayer('KML Sample');
+    await layersPanel.toggleLayer('KML');
     await page.waitForTimeout(2000);
 
     // Check that the layer data contains the expected features via L_.layers.data
@@ -65,7 +65,7 @@ test.describe('KML Layer Support', () => {
       const data = window.L_?.layers?.data;
       if (!data) return 0;
       for (const key of Object.keys(data)) {
-        if (data[key]?.name === 'KML Sample' || data[key]?.display_name === 'KML Sample') {
+        if (data[key]?.name === 'KML' || data[key]?.display_name === 'KML') {
           const layerData = window.L_?.layers?.layer?.[key];
           if (layerData && typeof layerData.getLayers === 'function') {
             return layerData.getLayers().length;
@@ -85,19 +85,19 @@ test.describe('KML Layer Support', () => {
     expect(featureCount).toBeGreaterThan(0);
   });
 
-  test('KML Sample layer can be toggled off', async ({ page }) => {
-    await layersPanel.expandGroup('Geometry Types');
+  test('KML layer can be toggled off', async ({ page }) => {
+    await layersPanel.expandGroup('Miscellaneous');
     await page.waitForTimeout(300);
 
     // Toggle on
-    await layersPanel.toggleLayer('KML Sample');
+    await layersPanel.toggleLayer('KML');
     await page.waitForTimeout(1500);
 
     // Toggle off
-    await layersPanel.toggleLayer('KML Sample');
+    await layersPanel.toggleLayer('KML');
     await page.waitForTimeout(1000);
 
-    const isOn = await layersPanel.isLayerOn('KML Sample');
+    const isOn = await layersPanel.isLayerOn('KML');
     expect(isOn).toBeFalsy();
   });
 
@@ -121,10 +121,10 @@ test.describe('KML Layer Support', () => {
       }
     });
 
-    await layersPanel.expandGroup('Geometry Types');
+    await layersPanel.expandGroup('Miscellaneous');
     await page.waitForTimeout(300);
 
-    await layersPanel.toggleLayer('KML Sample');
+    await layersPanel.toggleLayer('KML');
     await page.waitForTimeout(2000);
 
     // Verify the KML file was requested
@@ -161,10 +161,10 @@ test.describe('KML Layer Support', () => {
       }
     });
 
-    await layersPanel.expandGroup('Geometry Types');
+    await layersPanel.expandGroup('Miscellaneous');
     await page.waitForTimeout(300);
 
-    await layersPanel.toggleLayer('KML Sample');
+    await layersPanel.toggleLayer('KML');
     await page.waitForTimeout(2000);
 
     // No unexpected errors should have occurred
