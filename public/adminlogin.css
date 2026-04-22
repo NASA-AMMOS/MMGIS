@@ -1,8 +1,6 @@
 body,
 html {
   font-family: sans-serif;
-  background-color: #1a1a1a;
-  /* background-image is set via inline style in adminlogin.pug to support ROOT_PATH */
   padding: 0;
   margin: 0;
 }
