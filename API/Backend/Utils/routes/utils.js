@@ -6,8 +6,6 @@ const express = require("express");
 const router = express.Router();
 const fs = require("fs");
 const path = require("path");
-const http = require("http");
-const https = require("https");
 const exec = require("child_process").exec;
 const execFile = require("child_process").execFile;
 
@@ -440,55 +438,6 @@ router.get("/proj42wkt", function (req, res) {
       res.send(stdout);
     }
   );
-});
-
-// Server-side proxy for fetching external resources (avoids browser CORS restrictions)
-router.get("/fetchProxy", function (req, res) {
-  const targetUrl = req.query.url;
-
-  if (!targetUrl) {
-    res.status(400).json({
-      status: "failure",
-      message: "Missing required 'url' query parameter.",
-    });
-    return;
-  }
-
-  let parsed;
-  try {
-    parsed = new URL(targetUrl);
-  } catch (e) {
-    res.status(400).json({
-      status: "failure",
-      message: "Invalid URL.",
-    });
-    return;
-  }
-
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    res.status(400).json({
-      status: "failure",
-      message: "Only http and https URLs are supported.",
-    });
-    return;
-  }
-
-  const client = parsed.protocol === "https:" ? https : http;
-
-  client
-    .get(targetUrl, { timeout: 30000 }, function (upstream) {
-      // Forward content-type from upstream
-      const ct = upstream.headers["content-type"];
-      if (ct) res.setHeader("Content-Type", ct);
-      upstream.pipe(res);
-    })
-    .on("error", function (err) {
-      logger("warn", "fetchProxy error:", "server", null, err);
-      res.status(502).json({
-        status: "failure",
-        message: "Failed to fetch remote resource: " + err.message,
-      });
-    });
 });
 
 module.exports = router;

@@ -163,10 +163,6 @@ const c = {
         type: 'GET',
         url: 'api/utils/queryTilesetTimes',
     },
-    fetch_proxy: {
-        type: 'GET',
-        url: 'api/utils/fetchProxy',
-    },
 }
 
 function api(call, data, success, error) {
