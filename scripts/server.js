@@ -775,8 +775,12 @@ setups.getBackendSetups(function (setups) {
       // from the permissions.json file at the top of the file).
 
       if (ROOT_PATH) {
-        app.get(ROOT_PATH, (req, res) => {
-          res.redirect(301, `${ROOT_PATH}/`);
+        app.get(ROOT_PATH, (req, res, next) => {
+          if (!req.path.endsWith('/')) {
+            res.redirect(301, `${ROOT_PATH}/`);
+          } else {
+            next();
+          }
         });
       }
 
