@@ -2952,7 +2952,7 @@
               "type": "data",
               "visibility": false,
               "demSourceType": "url",
-              "demtileurl": "Layers/Data/dem_rgba_tiles/{z}/{x}/{y}.png",
+              "demtileurl": "Data/dem_rgba_tiles/{z}/{x}/{y}.png",
               "demparser": "rgba",
               "tileformat": "tms",
               "controlled": false,
@@ -3522,10 +3522,11 @@
       "variables": {
         "data": [
           {
-            "name": "USGS SF DEM (tileset required)",
-            "demtileurl": "Data/dem-tiles/{z}/{x}/{y}.png",
-            "minZoom": 8,
-            "maxNativeZoom": 18
+            "name": "USGS SF DEM",
+            "demtileurl": "Data/dem_rgba_tiles/{z}/{x}/{y}.png",
+            "minZoom": 10,
+            "maxNativeZoom": 14,
+            "boundingBox": [-122.50722222192965, 37.70980728349467, -122.41428489305366, 37.78111111121456]
           }
         ],
         "cameraPresets": [

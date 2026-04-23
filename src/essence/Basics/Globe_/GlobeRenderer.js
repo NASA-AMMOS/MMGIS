@@ -1,4 +1,5 @@
 import LithoSphere from 'lithosphere'
+import Projection_ from './Projection_'
 import * as Cesium from 'cesium'
 import { utcFormat } from 'd3-time-format'
 import 'cesium/Source/Widgets/widgets.css'
@@ -165,8 +166,8 @@ class GlobeRenderer {
             link: {},
         }
 
-        // Mock properties for compatibility
-        this.projection = {}
+        // Build a real projection so tools (Viewshed, Shade) work with any CRS
+        this.projection = Projection_.buildFromConfig(this.config)
         this._ = {}
         this.options = {}
         this.mouse = { lng: 0, lat: 0 }
