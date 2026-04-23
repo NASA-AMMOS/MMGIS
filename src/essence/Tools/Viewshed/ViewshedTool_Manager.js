@@ -286,10 +286,18 @@ let ViewshedTool_Manager = {
 
         let topLeftTile = new L.Point(dv.topLeftTile.x, dv.topLeftTile.y)
         let sourcePoint = Map_.map.project(dv.source, dv.zoom).divideBy(256)
-        this.data[viewshedId].dataSource = sourcePoint
+        let ds = sourcePoint
             .subtract(topLeftTile)
             .multiplyBy(dv.tileResolution)
             .floor()
+
+        // Clamp to valid grid bounds (algorithm accesses 8 neighbors)
+        const maxX = dv.data[0] ? dv.data[0].length - 2 : 1
+        const maxY = dv.data.length - 2
+        ds.x = Math.max(1, Math.min(ds.x, maxX))
+        ds.y = Math.max(1, Math.min(ds.y, maxY))
+
+        this.data[viewshedId].dataSource = ds
     },
     queryDesiredTiles: function (viewshedId, progcb, cb) {
         let url = L_.getUrl(
