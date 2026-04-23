@@ -266,7 +266,7 @@ class CesiumMVTLayer {
                 // Log available layers once for debugging
                 if (!this._loggedLayers && Object.keys(tile.layers).length > 0) {
                     console.warn(
-                        `CesiumMVTLayer "${this.name}": sublayer "${this.vtLayer}" not found. Available:`,
+                        `[MVT] "${this.name}": sublayer "${this.vtLayer}" not found. Available:`,
                         Object.keys(tile.layers)
                     )
                     this._loggedLayers = true
@@ -274,11 +274,13 @@ class CesiumMVTLayer {
                 return
             }
 
-            // Calculate tile bounds for coordinate conversion
-            const tileBounds = this._tileBounds(z, x, y)
-
-            // Create geometry instances for batched rendering
-            const geometryInstances = []
+            // First pass: collect building info + per-building centroids.
+            // Sampling terrain only at the MVT tile center caused floating
+            // buildings in cities with rapid elevation change within a single
+            // tile (e.g. SF), so we sample per building. The cost is kept low
+            // by deduplicating to the underlying terrain tiles and prefetching
+            // them all in parallel before doing pixel lookups.
+            const pendingBuildings = []
 
             for (let i = 0; i < layer.length; i++) {
                 const feature = layer.feature(i)
@@ -286,7 +288,6 @@ class CesiumMVTLayer {
                 // Only process polygons
                 if (feature.type !== 3) continue
 
-                const geojson = feature.toGeoJSON(x, y, z)
                 const props = feature.properties
 
                 // Get height from properties
@@ -312,47 +313,82 @@ class CesiumMVTLayer {
                     if (!isNaN(b)) baseHeight = b
                 }
 
-                // Convert GeoJSON polygon coordinates to Cesium positions
+                const geojson = feature.toGeoJSON(x, y, z)
                 const coordinates = geojson.geometry.coordinates
                 if (!coordinates || coordinates.length === 0) continue
 
-                // Handle MultiPolygon and Polygon
                 const polygons =
                     geojson.geometry.type === 'MultiPolygon'
                         ? coordinates
                         : [coordinates]
 
+                const color = this._getFeatureColor(props)
+
                 for (const polygon of polygons) {
-                    // Use the outer ring (first ring)
                     const ring = polygon[0]
                     if (!ring || ring.length < 4) continue
 
-                    const positions = []
-                    for (const coord of ring) {
-                        positions.push(coord[0], coord[1])
-                    }
+                    // Polygon centroid (lng/lat) for terrain sampling
+                    let cx = 0, cy = 0
+                    for (const c of ring) { cx += c[0]; cy += c[1] }
+                    cx /= ring.length
+                    cy /= ring.length
 
-                    try {
-                        const instance = new Cesium.GeometryInstance({
-                            geometry: new Cesium.PolygonGeometry({
-                                polygonHierarchy: new Cesium.PolygonHierarchy(
-                                    Cesium.Cartesian3.fromDegreesArray(
-                                        positions
-                                    )
-                                ),
-                                extrudedHeight: baseHeight + extrudeHeight,
-                                height: baseHeight,
-                            }),
-                            attributes: {
-                                color: Cesium.ColorGeometryInstanceAttribute.fromColor(
-                                    this._getFeatureColor(props)
-                                ),
-                            },
-                        })
-                        geometryInstances.push(instance)
-                    } catch (e) {
-                        // Skip invalid geometry
-                    }
+                    pendingBuildings.push({
+                        ring,
+                        baseHeight,
+                        extrudeHeight,
+                        color,
+                        centroidLng: cx,
+                        centroidLat: cy,
+                    })
+                }
+            }
+
+            if (pendingBuildings.length === 0) return
+
+            // Sample terrain heights for all buildings via cached Mapzen
+            // terrarium pixel lookups. Underlying terrain tiles are fetched
+            // at most once per MVT tile load (typically 1–4 unique tiles).
+            const terrainHeights = await this._sampleBuildingTerrainHeights(
+                pendingBuildings
+            )
+
+            // Abort if the layer was destroyed while we were waiting
+            if (!this._primitiveCollection) return
+
+            // Second pass: build geometry instances using per-building heights
+            const geometryInstances = []
+            for (let bi = 0; bi < pendingBuildings.length; bi++) {
+                const b = pendingBuildings[bi]
+                const terrainHeight = terrainHeights[bi]
+
+                const positions = []
+                for (const coord of b.ring) {
+                    positions.push(coord[0], coord[1])
+                }
+
+                try {
+                    const instance = new Cesium.GeometryInstance({
+                        geometry: new Cesium.PolygonGeometry({
+                            polygonHierarchy: new Cesium.PolygonHierarchy(
+                                Cesium.Cartesian3.fromDegreesArray(positions)
+                            ),
+                            height: terrainHeight + b.baseHeight,
+                            extrudedHeight:
+                                terrainHeight +
+                                b.baseHeight +
+                                b.extrudeHeight,
+                        }),
+                        attributes: {
+                            color: Cesium.ColorGeometryInstanceAttribute.fromColor(
+                                b.color
+                            ),
+                        },
+                    })
+                    geometryInstances.push(instance)
+                } catch (e) {
+                    // Skip invalid geometry
                 }
             }
 
@@ -378,9 +414,127 @@ class CesiumMVTLayer {
         } catch (err) {
             delete this._pendingFetches[key]
             if (err.name !== 'AbortError') {
-                console.warn(`CesiumMVTLayer: failed to load tile ${key}:`, err)
+                console.warn(`[MVT] failed to load tile ${key}:`, err)
             }
         }
+    }
+
+    /**
+     * Sample terrain heights for an array of buildings. Each entry must have
+     * `.centroidLng` and `.centroidLat`. Returns a Float32Array of heights
+     * (one per building, same order).
+     *
+     * Strategy: directly read heights from cached Mapzen Terrarium tile pixels.
+     * Per-building cost is integer math + a single array index — no calls into
+     * Cesium's terrain quadtree (which is too slow for thousands of buildings
+     * per MVT tile). Async cost is one HTTP fetch per unique terrain tile,
+     * cached across MVT loads. A z14 MVT tile typically overlaps 1–4 z15
+     * terrain tiles regardless of building count.
+     */
+    async _sampleBuildingTerrainHeights(buildings) {
+        const heights = new Float32Array(buildings.length)
+        const TERRAIN_ZOOM = 15
+        const TILE_SIZE = 256
+        const n = Math.pow(2, TERRAIN_ZOOM)
+
+        // Compute terrain tile + pixel coords for each building
+        const buildingPixels = new Array(buildings.length)
+        const uniqueTileKeys = new Set()
+
+        for (let i = 0; i < buildings.length; i++) {
+            const b = buildings[i]
+            const xFloat = ((b.centroidLng + 180) / 360) * n
+            const latRad = (b.centroidLat * Math.PI) / 180
+            const yFloat =
+                ((1 -
+                    Math.log(
+                        Math.tan(latRad) + 1 / Math.cos(latRad)
+                    ) /
+                        Math.PI) /
+                    2) *
+                n
+            const tx = Math.floor(xFloat)
+            const ty = Math.floor(yFloat)
+            const px = Math.min(
+                TILE_SIZE - 1,
+                Math.max(0, Math.floor((xFloat - tx) * TILE_SIZE))
+            )
+            const py = Math.min(
+                TILE_SIZE - 1,
+                Math.max(0, Math.floor((yFloat - ty) * TILE_SIZE))
+            )
+            const tileKey = `${TERRAIN_ZOOM}/${tx}/${ty}`
+            buildingPixels[i] = { tileKey, px, py }
+            uniqueTileKeys.add(tileKey)
+        }
+
+        // Fetch all unique terrain tiles in parallel (cached after first fetch)
+        const tilePixelArrays = {}
+        await Promise.all(
+            [...uniqueTileKeys].map(async (key) => {
+                const [, txStr, tyStr] = key.split('/')
+                tilePixelArrays[key] = await this._fetchTerrarumPixels(
+                    TERRAIN_ZOOM,
+                    Number(txStr),
+                    Number(tyStr)
+                )
+            })
+        )
+
+        // Synchronously look up each building's height
+        for (let i = 0; i < buildings.length; i++) {
+            const bp = buildingPixels[i]
+            const pixels = tilePixelArrays[bp.tileKey]
+            if (!pixels) continue // heights[i] stays 0
+            const idx = (bp.py * TILE_SIZE + bp.px) * 4
+            const r = pixels[idx]
+            const g = pixels[idx + 1]
+            const b = pixels[idx + 2]
+            // Terrarium encoding: h = R*256 + G + B/256 - 32768
+            heights[i] = r * 256 + g + b / 256 - 32768
+        }
+
+        return heights
+    }
+
+    /**
+     * Fetch + decode a Terrarium terrain tile, returning its pixel buffer.
+     * Cached per tile so concurrent callers share a single fetch.
+     */
+    _fetchTerrarumPixels(z, x, y) {
+        const tileKey = `${z}/${x}/${y}`
+        if (!this._terrainCache) this._terrainCache = {}
+        if (this._terrainCache[tileKey]) return this._terrainCache[tileKey]
+
+        const TILE_SIZE = 256
+        const url = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`
+        const promise = (async () => {
+            try {
+                const response = await fetch(url)
+                if (!response.ok) {
+                    console.warn(
+                        `[MVT] "${this.name}" terrain fetch HTTP ${response.status}: ${url}`
+                    )
+                    return null
+                }
+                const blob = await response.blob()
+                const bitmap = await createImageBitmap(blob, {
+                    colorSpaceConversion: 'none',
+                })
+                const canvas = new OffscreenCanvas(TILE_SIZE, TILE_SIZE)
+                const ctx = canvas.getContext('2d')
+                ctx.drawImage(bitmap, 0, 0)
+                return ctx.getImageData(0, 0, TILE_SIZE, TILE_SIZE).data
+            } catch (e) {
+                console.warn(
+                    `[MVT] "${this.name}" terrain fetch error: ${url}`,
+                    e
+                )
+                return null
+            }
+        })()
+        this._terrainCache[tileKey] = promise
+        return promise
     }
 
     /**
@@ -477,6 +631,7 @@ class CesiumMVTLayer {
         if (this._updateTimeout) clearTimeout(this._updateTimeout)
         this._evictAllTiles()
         this.viewer.scene.primitives.remove(this._primitiveCollection)
+        this._primitiveCollection = null
     }
 }
 
