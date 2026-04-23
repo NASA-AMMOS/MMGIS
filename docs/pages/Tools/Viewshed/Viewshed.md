@@ -22,7 +22,8 @@ The Viewshed tool renders dynamic tilesets based on line-of-sight visibilities f
             "name": "Unique Name 1",
             "demtileurl": "Layers/Example/demtileset/{z}/{x}/{y}.png",
             "minZoom": 8,
-            "maxNativeZoom": 18
+            "maxNativeZoom": 18,
+            "boundingBox": [-122.50722222192965, 37.70980728349467, -122.41428489305366, 37.78111111121456]
         },
         { "...": "..." }
     ],
@@ -42,6 +43,8 @@ The Viewshed tool renders dynamic tilesets based on line-of-sight visibilities f
 ```
 
 _**data**_ - At minimum, the Viewshed tool requires at least one "data" source. A data source describes a DEM tileset (see /auxiliary/1bto4b) and allows users to select it by name to generate viewsheds over.
+
+_**data[].boundingBox**_ - An optional `[west, south, east, north]` array in EPSG:4326 coordinates that defines the spatial extent of the DEM tileset. When set, tile requests are clamped to this extent so that tiles outside the DEM coverage area are not fetched. This prevents unnecessary 404 requests and avoids running the viewshed algorithm on missing-data regions when the viewport extends beyond the tileset.
 
 _**curvature**_ - Optionally setting this to false disables the account of drop-off based on planetary curvature when calculating viewsheds. If unset or set to true, the configured Major Radius will be used during generations.
 
