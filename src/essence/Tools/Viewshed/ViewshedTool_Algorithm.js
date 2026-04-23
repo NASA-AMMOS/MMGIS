@@ -2,14 +2,7 @@
 import $ from 'jquery'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
-
-function tileXYZ2LatLng(x, y, z) {
-    const n = Math.pow(2, z)
-    const lng = (x / n) * 360 - 180
-    const latRad = Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n)))
-    const lat = (latRad * 180) / Math.PI
-    return { lat, lng }
-}
+import G_ from '../../Basics/Globe_/Globe_'
 
 let ViewshedTool_Algorithm = {
     // Returns a viewshed grid where
@@ -440,12 +433,12 @@ let ViewshedTool_Algorithm = {
     },
     isInElevationFOV(d, i, j, sourceHeight, height) {
         if (d.options.FOVElevation < 180) {
-            const srcLatLng = tileXYZ2LatLng(
+            const srcLatLng = G_.litho.projection.tileXYZ2LatLng(
                 d.topLeftTile.x + d.dataSource.x / d.tileResolution,
                 d.topLeftTile.y + d.dataSource.y / d.tileResolution,
                 d.topLeftTile.z
             )
-            const latLng = tileXYZ2LatLng(
+            const latLng = G_.litho.projection.tileXYZ2LatLng(
                 d.topLeftTile.x + i / d.tileResolution,
                 d.topLeftTile.y + j / d.tileResolution,
                 d.topLeftTile.z
@@ -533,7 +526,7 @@ let ViewshedTool_Algorithm = {
         }
     },
     curve: function (i, j, height, d) {
-        const ll = tileXYZ2LatLng(
+        const ll = G_.litho.projection.tileXYZ2LatLng(
             d.topLeftTile.x + i / d.tileResolution,
             d.topLeftTile.y + j / d.tileResolution,
             d.topLeftTile.z

@@ -3,15 +3,8 @@
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
+import G_ from '../../Basics/Globe_/Globe_'
 import ViewshedTool_Algorithm from './ViewshedTool_Algorithm'
-
-function tileXYZ2LatLng(x, y, z) {
-    const n = Math.pow(2, z)
-    const lng = (x / n) * 360 - 180
-    const latRad = Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n)))
-    const lat = (latRad * 180) / Math.PI
-    return { lat, lng }
-}
 
 let ViewshedTool_Manager = {
     //Never query more than maxNumOfDataTiles for a single viewshed
@@ -271,7 +264,7 @@ let ViewshedTool_Manager = {
         }
 
         this.data[viewshedId].bottomLeftLatLng =
-            tileXYZ2LatLng(
+            G_.litho.projection.tileXYZ2LatLng(
                 this.data[viewshedId].topLeftTile.x,
                 this.data[viewshedId].topLeftTile.y +
                     this.data[viewshedId].topLeftTile.h,
@@ -279,7 +272,7 @@ let ViewshedTool_Manager = {
             )
 
         this.data[viewshedId].cellSize =
-            tileXYZ2LatLng(
+            G_.litho.projection.tileXYZ2LatLng(
                 this.data[viewshedId].topLeftTile.x +
                     1 / this.data[viewshedId].tileResolution,
                 this.data[viewshedId].topLeftTile.y +
