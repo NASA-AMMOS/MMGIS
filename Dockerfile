@@ -94,7 +94,7 @@ FROM oraclelinux:8.9 AS runtime
 
 # Runtime dependencies only (smaller, more secure)
 RUN dnf -y update && \
-    dnf -y install ca-certificates && \
+    dnf -y install ca-certificates curl && \
     update-ca-trust enable && \
     update-ca-trust extract && \
     dnf module install -y nodejs:20 && \
