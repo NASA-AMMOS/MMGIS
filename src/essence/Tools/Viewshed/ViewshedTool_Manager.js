@@ -4,7 +4,6 @@ import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import G_ from '../../Basics/Globe_/Globe_'
-
 import ViewshedTool_Algorithm from './ViewshedTool_Algorithm'
 
 let ViewshedTool_Manager = {
@@ -105,6 +104,27 @@ let ViewshedTool_Manager = {
         let min = minPx.divideBy(256).floor()
         let max = maxPx.divideBy(256).floor()
 
+        // Clamp to bounding box if the data source defines one
+        const rawBbox = this.data[viewshedId].dataLayer.boundingBox
+        const bbox = Array.isArray(rawBbox)
+            ? rawBbox.map(Number)
+            : null
+        let bboxTileBounds = null
+        if (bbox && bbox.length === 4 && bbox.every((v) => !isNaN(v))) {
+            const bboxMinPx = Map_.map.project(L.latLng(bbox[1], bbox[0]), zoom)
+            const bboxMaxPx = Map_.map.project(L.latLng(bbox[3], bbox[2]), zoom)
+            bboxTileBounds = {
+                minX: Math.floor(bboxMinPx.x / 256),
+                minY: Math.floor(bboxMaxPx.y / 256),
+                maxX: Math.ceil(bboxMaxPx.x / 256) - 1,
+                maxY: Math.ceil(bboxMinPx.y / 256) - 1,
+            }
+            min.x = Math.max(min.x, bboxTileBounds.minX)
+            min.y = Math.max(min.y, bboxTileBounds.minY)
+            max.x = Math.min(max.x, bboxTileBounds.maxX)
+            max.y = Math.min(max.y, bboxTileBounds.maxY)
+        }
+
         let viewportDesiredTiles = []
         for (let i = min.x; i <= max.x; i++) {
             for (let j = min.y; j <= max.y; j++) {
@@ -122,6 +142,13 @@ let ViewshedTool_Manager = {
             .divideBy(256)
             .floor()
         let sourceMax = sourceCenter.add(halfViewport).divideBy(256).floor()
+
+        if (bboxTileBounds) {
+            sourceMin.x = Math.max(sourceMin.x, bboxTileBounds.minX)
+            sourceMin.y = Math.max(sourceMin.y, bboxTileBounds.minY)
+            sourceMax.x = Math.min(sourceMax.x, bboxTileBounds.maxX)
+            sourceMax.y = Math.min(sourceMax.y, bboxTileBounds.maxY)
+        }
 
         let sourceDesiredTiles = []
         for (let i = sourceMin.x; i <= sourceMax.x; i++) {
@@ -163,6 +190,16 @@ let ViewshedTool_Manager = {
         let tileTags = []
         let uniqueDesiredTiles = []
         for (let i = 0; i < fullDesiredTiles.length; i++) {
+            // Skip tiles outside the bounding box
+            if (bboxTileBounds) {
+                if (
+                    fullDesiredTiles[i].x < bboxTileBounds.minX ||
+                    fullDesiredTiles[i].x > bboxTileBounds.maxX ||
+                    fullDesiredTiles[i].y < bboxTileBounds.minY ||
+                    fullDesiredTiles[i].y > bboxTileBounds.maxY
+                )
+                    continue
+            }
             const t =
                 fullDesiredTiles[i].z +
                 '-' +
@@ -173,6 +210,26 @@ let ViewshedTool_Manager = {
                 uniqueDesiredTiles.push(fullDesiredTiles[i])
                 tileTags.push(t)
             }
+        }
+
+        // Enforce tile limit — prioritize tiles nearest the source point
+        if (uniqueDesiredTiles.length > this.maxNumOfDataTiles) {
+            const srcTile = Map_.map
+                .project(this.data[viewshedId].source, zoom)
+                .divideBy(256)
+            uniqueDesiredTiles.sort((a, b) => {
+                const da =
+                    Math.pow(a.x - srcTile.x, 2) +
+                    Math.pow(a.y - srcTile.y, 2)
+                const db =
+                    Math.pow(b.x - srcTile.x, 2) +
+                    Math.pow(b.y - srcTile.y, 2)
+                return da - db
+            })
+            uniqueDesiredTiles = uniqueDesiredTiles.slice(
+                0,
+                this.maxNumOfDataTiles
+            )
         }
 
         this.data[viewshedId].desiredTiles = uniqueDesiredTiles
@@ -193,7 +250,9 @@ let ViewshedTool_Manager = {
             this.data[viewshedId].tileResolution
 
         for (let i = 0; i < h; i++) {
-            this.data[viewshedId].data.push(new Array(w).fill(0))
+            this.data[viewshedId].data.push(
+                new Array(w).fill(this.internalNoDataValue)
+            )
         }
 
         this.data[viewshedId].topLeftTile = {
@@ -227,10 +286,18 @@ let ViewshedTool_Manager = {
 
         let topLeftTile = new L.Point(dv.topLeftTile.x, dv.topLeftTile.y)
         let sourcePoint = Map_.map.project(dv.source, dv.zoom).divideBy(256)
-        this.data[viewshedId].dataSource = sourcePoint
+        let ds = sourcePoint
             .subtract(topLeftTile)
             .multiplyBy(dv.tileResolution)
             .floor()
+
+        // Clamp to valid grid bounds (algorithm accesses 8 neighbors)
+        const maxX = dv.data[0] ? dv.data[0].length - 2 : 1
+        const maxY = dv.data.length - 2
+        ds.x = Math.max(1, Math.min(ds.x, maxX))
+        ds.y = Math.max(1, Math.min(ds.y, maxY))
+
+        this.data[viewshedId].dataSource = ds
     },
     queryDesiredTiles: function (viewshedId, progcb, cb) {
         let url = L_.getUrl(
@@ -240,6 +307,10 @@ let ViewshedTool_Manager = {
         )
 
         let totalTiles = this.data[viewshedId].desiredTiles.length
+        if (totalTiles === 0) {
+            cb(ViewshedTool_Manager.data[viewshedId])
+            return
+        }
         let tilesLoaded = 0
         let tilesQueried = 0
         let tilesPerStep = 8

@@ -23,8 +23,8 @@
 
 import { config } from 'dotenv';
 import { resolve } from 'path';
-import { readFileSync } from 'fs';
-import { spawn } from 'child_process';
+import { readFileSync, existsSync, writeFileSync } from 'fs';
+import { spawn, execSync } from 'child_process';
 import pgPromise from 'pg-promise';
 
 /** Hardcoded test database name — never changes. */
@@ -199,7 +199,19 @@ export default async function globalSetup() {
   // Done with pg-promise
   pgp.end();
 
-  // ── 5. Start the MMGIS test server ──────────────────────────────
+  // ── 4b. Kill any leftover server on the test port ─────────────
+  // If a previous run was interrupted (Ctrl+C), the detached server
+  // process group may still be listening. Kill it before starting.
+  killProcessOnPort(TEST_PORT);
+
+  // ── 5. Prepare adjacent server .env files ────────────────────────
+  // The MMGIS server spawns adjacent servers (TiTiler, STAC, etc.) via
+  // shell scripts that read a local .env file. Repos only ship
+  // .env.example, so we copy it into place when missing and fix up
+  // relative paths so they resolve from the working directory.
+  prepareAdjacentServerEnvFiles(process.cwd());
+
+  // ── 6. Start the MMGIS test server ──────────────────────────────
   // We start it here (not via playwright.config.js webServer) because
   // Playwright runs webServer plugins BEFORE globalSetup — so the DB
   // wouldn't exist yet when the server tries to connect.
@@ -213,12 +225,15 @@ export default async function globalSetup() {
     NODE_ENV: 'test',
     PORT: String(TEST_PORT),
     HIDE_CONFIG: 'false',
+    ENABLE_MMGIS_WEBSOCKETS: '',
+    ENABLE_CONFIG_WEBSOCKETS: '',
   };
 
   const server = spawn('node', [resolve(process.cwd(), 'scripts/server.js')], {
     env: serverEnv,
     cwd: process.cwd(),
     stdio: 'pipe',
+    detached: true,
   });
 
   server.stdout.on('data', (d) => {
@@ -231,14 +246,22 @@ export default async function globalSetup() {
   const baseUrl = `http://localhost:${TEST_PORT}`;
   const healthUrl = `${baseUrl}/api/utils/healthcheck`;
 
-  // Helper to kill the server process (used in both teardown and error paths)
+  // Helper to kill the server and all its children (adjacent servers, etc.).
+  // The server is started with detached:true so it leads its own process group.
+  // Sending the signal to -pid kills the entire group.
   const killServer = async () => {
-    console.log('[global-teardown] Stopping test server...');
-    server.kill('SIGTERM');
+    console.log('[global-teardown] Stopping test server and adjacent servers...');
+    try { process.kill(-server.pid, 'SIGTERM'); } catch { /* already dead */ }
     await sleep(2000);
-    try { server.kill('SIGKILL'); } catch { /* already dead */ }
+    try { process.kill(-server.pid, 'SIGKILL'); } catch { /* already dead */ }
     console.log('[global-teardown] Server stopped.');
   };
+
+  // Ensure Ctrl+C / SIGTERM during tests still kills the detached group.
+  const onExit = () => { try { process.kill(-server.pid, 'SIGKILL'); } catch {} };
+  process.on('SIGINT', onExit);
+  process.on('SIGTERM', onExit);
+  process.on('exit', onExit);
 
   console.log(`[global-setup] Starting MMGIS server on port ${TEST_PORT}...`);
   try {
@@ -250,7 +273,12 @@ export default async function globalSetup() {
   }
   console.log(`[global-setup] Server is ready.`);
 
-  // ── 6. Create Reference Mission if needed ───────────────────────
+  // ── 6b. Probe adjacent servers ────────────────────────────────────
+  // The MMGIS server's adjacentServers() already spawned the start
+  // scripts. Give them a few seconds then report which ones are live.
+  await probeAdjacentServers(15_000);
+
+  // ── 7. Create Reference Mission if needed ───────────────────────
   if (needsMission) {
     console.log('[global-setup] Creating Reference Mission...');
     try {
@@ -324,6 +352,95 @@ export default async function globalSetup() {
   return killServer;
 }
 
+// ─── Adjacent server helpers ────────────────────────────────────────
+
+/**
+ * Adjacent server definitions — mirrors adjacent-servers/adjacent-servers.js.
+ * Each entry maps an env-var gate to the directory, port, and a health URL.
+ */
+const ADJACENT_SERVERS = [
+  { env: 'WITH_STAC',           dir: 'adjacent-servers/stac',           portEnv: 'STAC_PORT',           defaultPort: 8881, healthPath: '/api.html' },
+  { env: 'WITH_TIPG',           dir: 'adjacent-servers/tipg',           portEnv: 'TIPG_PORT',           defaultPort: 8882, healthPath: '/api.html' },
+  { env: 'WITH_TITILER',        dir: 'adjacent-servers/titiler',        portEnv: 'TITILER_PORT',        defaultPort: 8883, healthPath: '/api.html' },
+  { env: 'WITH_TITILER_PGSTAC', dir: 'adjacent-servers/titiler-pgstac', portEnv: 'TITILER_PGSTAC_PORT', defaultPort: 8884, healthPath: '/api.html' },
+];
+
+/**
+ * For each enabled adjacent server, copy .env.example → .env if the
+ * .env file doesn't already exist. Rewrite relative paths in
+ * TILEMATRIXSET_DIRECTORY so they resolve from the repo root.
+ */
+function prepareAdjacentServerEnvFiles(repoRoot) {
+  for (const srv of ADJACENT_SERVERS) {
+    if (process.env[srv.env] !== 'true') continue;
+
+    const srvDir  = resolve(repoRoot, srv.dir);
+    const envFile = resolve(srvDir, '.env');
+    const example = resolve(srvDir, '.env.example');
+
+    if (existsSync(envFile)) {
+      console.log(`[global-setup] ${srv.dir}/.env already exists.`);
+      continue;
+    }
+    if (!existsSync(example)) {
+      console.log(`[global-setup] ${srv.dir}/.env.example not found — skipping.`);
+      continue;
+    }
+
+    // Read the example, fix relative TILEMATRIXSET_DIRECTORY paths
+    let contents = readFileSync(example, 'utf8');
+    contents = contents.replace(
+      /^(TILEMATRIXSET_DIRECTORY\s*=\s*)("?\.\..*)$/m,
+      (_match, prefix, relPath) => {
+        const cleaned = relPath.replace(/^["']|["']$/g, '');
+        const abs = resolve(srvDir, cleaned);
+        return `${prefix}"${abs}"`;
+      },
+    );
+
+    writeFileSync(envFile, contents, 'utf8');
+    console.log(`[global-setup] Created ${srv.dir}/.env from .env.example.`);
+  }
+}
+
+/**
+ * Poll each enabled adjacent server's direct port until it responds or
+ * the timeout elapses. Logs which servers came up and which didn't.
+ */
+async function probeAdjacentServers(timeoutMs) {
+  const enabled = ADJACENT_SERVERS.filter(s => process.env[s.env] === 'true');
+  if (enabled.length === 0) {
+    console.log('[global-setup] No adjacent servers enabled — nothing to probe.');
+    return;
+  }
+
+  console.log(`[global-setup] Probing ${enabled.length} adjacent server(s)...`);
+
+  const deadline = Date.now() + timeoutMs;
+  const results = await Promise.all(
+    enabled.map(async (srv) => {
+      const port = Number(process.env[srv.portEnv] || srv.defaultPort);
+      const url = `http://localhost:${port}${srv.healthPath}`;
+      while (Date.now() < deadline) {
+        try {
+          const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+          if (res.ok) return { name: srv.env, port, ok: true };
+        } catch { /* not ready yet */ }
+        await sleep(1000);
+      }
+      return { name: srv.env, port, ok: false };
+    }),
+  );
+
+  for (const r of results) {
+    if (r.ok) {
+      console.log(`[global-setup] ✓ ${r.name} is ready on port ${r.port}.`);
+    } else {
+      console.warn(`[global-setup] ✗ ${r.name} did not start on port ${r.port} (timeout ${timeoutMs}ms).`);
+    }
+  }
+}
+
 // ─── Utilities ─────────────────────────────────────────────────────
 
 /** Poll a URL until it returns HTTP 200. Uses native fetch(). */
@@ -355,4 +472,37 @@ async function fetchJSON(url, { method = 'GET', body, cookies } = {}) {
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Kill any process listening on the given port.
+ * Works cross-platform (lsof on macOS/Linux, netstat on Windows).
+ */
+function killProcessOnPort(port) {
+  try {
+    const isWin = process.platform === 'win32';
+    if (isWin) {
+      const out = execSync(
+        `netstat -ano | findstr :${port} | findstr LISTENING`,
+        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+      ).trim();
+      const pids = [...new Set(out.split('\n').map(l => l.trim().split(/\s+/).pop()).filter(Boolean))];
+      for (const pid of pids) {
+        try { execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' }); } catch {}
+      }
+    } else {
+      const out = execSync(
+        `lsof -ti tcp:${port}`,
+        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+      ).trim();
+      if (out) {
+        for (const pid of out.split('\n')) {
+          try { process.kill(Number(pid), 'SIGKILL'); } catch {}
+        }
+      }
+    }
+    console.log(`[global-setup] Killed leftover process(es) on port ${port}.`);
+  } catch {
+    // Nothing listening — that's fine.
+  }
 }

@@ -24,6 +24,7 @@ import {
     data as colormapData,
 } from '../../../external/js-colormaps/js-colormaps.js'
 
+import { isKmlUrl, fetchKmlAsGeoJSON } from '../../Basics/Layers_/LayerCapturer'
 import './LayersTool.css'
 
 const helpKey = 'LayersTool'
@@ -301,10 +302,12 @@ var LayersTool = {
             !layerUrl.startsWith('stac-collection:') &&
             !layerUrl.startsWith('COG:') &&
             layer.type !== 'image' &&
-            layer.type !== 'velocity'
+            layer.type !== 'velocity' &&
+            !(layer.type === 'data' && layer.variables?.shader?.ramps)
         )
             return
         if (
+            layer.type !== 'data' &&
             layer.cogTransform !== true &&
             (layerUrl.startsWith('stac-collection:') ||
                 layerUrl.startsWith('COG:') ||
@@ -324,6 +327,8 @@ var LayersTool = {
             } else {
                 units = layer.variables?.streamlines?.units ?? ''
             }
+        } else if (layer.type === 'data') {
+            units = layer.variables?.shader?.units ?? ''
         } else {
             units = layer.cogUnits
         }
@@ -347,18 +352,24 @@ var LayersTool = {
             context.drawImage(imgElement, 0, 0, 256, 1, 0, 0, 256, 1)
         }
 
-        const min =
-            layer.currentCogMin == null
-                ? layer.cogMin == null
-                    ? layer.variables?.streamlines?.minVelocity
-                    : layer.cogMin
-                : layer.currentCogMin
-        const max =
-            layer.currentCogMax == null
-                ? layer.cogMax == null
-                    ? layer.variables?.streamlines?.maxVelocity
-                    : layer.cogMax
-                : layer.currentCogMax
+        let min, max
+        if (layer.type === 'data' && L_.layers.layer[layer.name]) {
+            min = L_.layers.layer[layer.name].minValue
+            max = L_.layers.layer[layer.name].maxValue
+        } else {
+            min =
+                layer.currentCogMin == null
+                    ? layer.cogMin == null
+                        ? layer.variables?.streamlines?.minVelocity
+                        : layer.cogMin
+                    : layer.currentCogMin
+            max =
+                layer.currentCogMax == null
+                    ? layer.cogMax == null
+                        ? layer.variables?.streamlines?.maxVelocity
+                        : layer.cogMax
+                    : layer.currentCogMax
+        }
 
         for (let i = 0; i < 9; i++) {
             let value =
@@ -372,7 +383,26 @@ var LayersTool = {
             }
 
             let color
-            if (
+            if (layer.type === 'data' && layer.variables?.shader?.ramps) {
+                const ramp = layer.variables.shader.ramps[
+                    L_.layers.layer[layer.name]?.rampIdx || 0
+                ] || layer.variables.shader.ramps[0]
+                const t = i / 8
+                const rampPos = t * (ramp.length - 1)
+                const lo = Math.floor(rampPos)
+                const hi = Math.min(lo + 1, ramp.length - 1)
+                const frac = rampPos - lo
+                const cLo = F_.hexToRGB(ramp[lo])
+                const cHi = F_.hexToRGB(ramp[hi])
+                if (cLo && cHi) {
+                    const r = Math.round(cLo.r + (cHi.r - cLo.r) * frac)
+                    const g = Math.round(cLo.g + (cHi.g - cLo.g) * frac)
+                    const b = Math.round(cLo.b + (cHi.b - cLo.b) * frac)
+                    color = `rgb(${r}, ${g}, ${b})`
+                } else {
+                    color = 'transparent'
+                }
+            } else if (
                 imgElement &&
                 imgElement.complete &&
                 imgElement.naturalHeight !== 0 &&
@@ -1430,11 +1460,13 @@ function interfaceWithMMGIS(fromInit) {
                             )
                     }
 
-                    // Populate the legends for tile (COG), image, and velocity layers
+                    // Populate the legends for tile (COG), image, velocity, and data layers
                     if (
                         (['image', 'tile'].includes(node[i].type) &&
                             node[i].cogTransform) ||
-                        node[i].type === 'velocity'
+                        node[i].type === 'velocity' ||
+                        (node[i].type === 'data' &&
+                            F_.getIn(node[i], 'variables.shader.type') === 'colorize')
                     ) {
                         LayersTool.populateCogScale(node[i].name)
                     }
@@ -2006,24 +2038,42 @@ function interfaceWithMMGIS(fromInit) {
                     layerData.url,
                     layerData
                 )
-                $.getJSON(layerUrl, function (data) {
-                    if (data.hasOwnProperty('Features')) {
-                        data.features = data.Features
-                        delete data.Features
-                    }
-
-                    download(data)
-                }).fail(function (jqXHR, textStatus, errorThrown) {
-                    //Tell the console council about what happened
-                    console.warn(
-                        'ERROR! ' +
-                            textStatus +
-                            ' in ' +
-                            layerUrl +
-                            ' /// ' +
-                            errorThrown
+                if (isKmlUrl(layerUrl)) {
+                    fetchKmlAsGeoJSON(
+                        layerUrl,
+                        (data) => {
+                            download(data)
+                        },
+                        (jqXHR, textStatus, errorThrown) => {
+                            console.warn(
+                                'ERROR! ' +
+                                    textStatus +
+                                    ' in ' +
+                                    layerUrl +
+                                    ' /// ' +
+                                    errorThrown
+                            )
+                        }
                     )
-                })
+                } else {
+                    $.getJSON(layerUrl, function (data) {
+                        if (data.hasOwnProperty('Features')) {
+                            data.features = data.Features
+                            delete data.Features
+                        }
+
+                        download(data)
+                    }).fail(function (jqXHR, textStatus, errorThrown) {
+                        console.warn(
+                            'ERROR! ' +
+                                textStatus +
+                                ' in ' +
+                                layerUrl +
+                                ' /// ' +
+                                errorThrown
+                        )
+                    })
+                }
             }
         } else if (extent == 'raw-extent') {
             const body = JSON.parse(

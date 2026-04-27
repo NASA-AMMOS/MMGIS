@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { existsSync } from 'fs';
+import { resolve } from 'path';
 import { waitForMapReady } from '../../helpers/map-helpers.js';
 
 /**
@@ -6,11 +8,22 @@ import { waitForMapReady } from '../../helpers/map-helpers.js';
  *
  * Navigates to the Reference-Mission, waits for the Leaflet map to
  * initialise, then exercises the public mmgisAPI surface.
+ *
+ * These tests require `npm run build` to have been run first — the
+ * server renders build/index.pug which is gitignored and only exists
+ * after a production build.
  */
 
 const MISSION_URL = '/?mission=Reference-Mission';
 
-async function ensureMissionAvailable(request, testCtx) {
+async function ensurePrerequisites(request, testCtx) {
+  // The server renders build/index.pug — skip if it hasn't been built.
+  const pugPath = resolve(process.cwd(), 'build', 'index.pug');
+  if (!existsSync(pugPath)) {
+    testCtx.skip(true, 'SKIP: build/index.pug not found — run npm run build first');
+    return;
+  }
+
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
   const res = await request.get(`${baseURL}/api/configure/missions`);
   const data = await res.json().catch(() => ({}));
@@ -21,7 +34,7 @@ async function ensureMissionAvailable(request, testCtx) {
 
 test.describe('mmgisAPI Client-Side API', () => {
   test('window.mmgisAPI exists after map load', async ({ page, request }) => {
-    await ensureMissionAvailable(request, test);
+    await ensurePrerequisites(request, test);
 
     await page.goto(MISSION_URL);
     await waitForMapReady(page, { timeout: 60000 });
@@ -31,7 +44,7 @@ test.describe('mmgisAPI Client-Side API', () => {
   });
 
   test('mmgisAPI.map is a valid Leaflet map', async ({ page, request }) => {
-    await ensureMissionAvailable(request, test);
+    await ensurePrerequisites(request, test);
 
     await page.goto(MISSION_URL);
     await waitForMapReady(page, { timeout: 60000 });
@@ -51,7 +64,7 @@ test.describe('mmgisAPI Client-Side API', () => {
   });
 
   test('mmgisAPI.map.getCenter() returns valid coordinates', async ({ page, request }) => {
-    await ensureMissionAvailable(request, test);
+    await ensurePrerequisites(request, test);
 
     await page.goto(MISSION_URL);
     await waitForMapReady(page, { timeout: 60000 });
@@ -68,7 +81,7 @@ test.describe('mmgisAPI Client-Side API', () => {
   });
 
   test('mmgisAPI.map.getZoom() returns valid zoom level', async ({ page, request }) => {
-    await ensureMissionAvailable(request, test);
+    await ensurePrerequisites(request, test);
 
     await page.goto(MISSION_URL);
     await waitForMapReady(page, { timeout: 60000 });
@@ -81,7 +94,7 @@ test.describe('mmgisAPI Client-Side API', () => {
   });
 
   test('mmgisAPI.map.setView() changes the map view', async ({ page, request }) => {
-    await ensureMissionAvailable(request, test);
+    await ensurePrerequisites(request, test);
 
     await page.goto(MISSION_URL);
     await waitForMapReady(page, { timeout: 60000 });
@@ -115,7 +128,7 @@ test.describe('mmgisAPI Client-Side API', () => {
   });
 
   test('mmgisAPI exposes expected documented methods', async ({ page, request }) => {
-    await ensureMissionAvailable(request, test);
+    await ensurePrerequisites(request, test);
 
     await page.goto(MISSION_URL);
     await waitForMapReady(page, { timeout: 60000 });

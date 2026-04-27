@@ -45,6 +45,14 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Setup Python for adjacent servers
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install adjacent server Python packages
+        run: pip install "titiler.application" "python-dotenv[cli]" uvicorn
+
       - name: Setup test environment
         run: |
           cp sample.env .env || touch .env

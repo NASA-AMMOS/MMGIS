@@ -1781,6 +1781,7 @@ function makeDataLayer(layerObj, mapContext = null) {
         // stay within the TMS spec. cogTileSize only controls TiTiler's output
         // pixel dimensions (width/height params) — the smaller raster is
         // upscaled to 256px by the WebGL texture sampler.
+        bounds: bb,
         options: {
             tms: !isTiTilerSource,
             bounds: bb,

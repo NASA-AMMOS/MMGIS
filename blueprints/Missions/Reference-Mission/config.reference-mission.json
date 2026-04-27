@@ -86,8 +86,8 @@
     "globe": true,
     "defaultWidths": {
       "viewer": 0,
-      "map": 30,
-      "globe": 70
+      "map": 100,
+      "globe": 0
     }
   },
   "panelSettings": {
@@ -283,30 +283,37 @@
                   "uuid": "255ac3cf-6208-459b-a3a1-3b006be26f29"
                 },
                 {
-                  "name": "Time-Enabled",
+                  "name": "Arrows",
                   "type": "vector",
-                  "url": "Layers/Vectors/time-enabled.geojson",
+                  "url": "Layers/Vectors/arrows-example.geojson",
                   "initialOpacity": 1,
                   "visibility": false,
-                  "time": {
-                    "enabled": true,
-                    "type": "local",
-                    "startProp": "startTime",
-                    "endProp": "startTime",
-                    "format": "%Y-%m-%dT%H:%M:%SZ"
-                  },
                   "style": {
-                    "className": "time-enabled",
-                    "strokeColor": "#9900ff",
-                    "strokeWeight": 2,
-                    "fillColor": "#cc66ff",
-                    "fillOpacity": 0.5,
-                    "radius": 8
+                    "className": "arrows",
+                    "strokeColor": "#ff0000",
+                    "strokeWeight": 3,
+                    "strokeOpacity": 0.9,
+                    "fillColor": "#ff0000",
+                    "fillOpacity": 0.8
                   },
                   "description": "",
                   "demparser": "",
                   "controlled": false,
-                  "uuid": "77d6ca9d-32c9-4bbb-922f-deb4cc10d741"
+                  "uuid": "07a598a6-bf46-4601-99de-50be924aad2b"
+                },
+                {
+                  "name": "Annotations",
+                  "type": "vector",
+                  "url": "Layers/Vectors/annotations-example.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "annotations"
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "fc1bf5f4-94cc-4617-8181-713326820c46"
                 }
               ],
               "description": "",
@@ -414,59 +421,6 @@
                   "uuid": "75042da4-d2da-47af-9a41-122cd1855c39"
                 },
                 {
-                  "name": "Shape From MDI Icons",
-                  "type": "vector",
-                  "url": "Layers/Vectors/mdi-icons-example.geojson",
-                  "initialOpacity": 1,
-                  "visibility": false,
-                  "style": {
-                    "className": "shapefrommdiicons",
-                    "shapeProp": "icon",
-                    "fillColor": "#0088ff",
-                    "fillOpacity": 0.9,
-                    "radius": 16,
-                    "strokeColor": "#ffffff",
-                    "strokeWeight": 1
-                  },
-                  "description": "",
-                  "demparser": "",
-                  "controlled": false,
-                  "uuid": "9b697f26-9947-4c8a-93d2-60942e85b852"
-                },
-                {
-                  "name": "Arrows",
-                  "type": "vector",
-                  "url": "Layers/Vectors/arrows-example.geojson",
-                  "initialOpacity": 1,
-                  "visibility": false,
-                  "style": {
-                    "className": "arrows",
-                    "strokeColor": "#ff0000",
-                    "strokeWeight": 3,
-                    "strokeOpacity": 0.9,
-                    "fillColor": "#ff0000",
-                    "fillOpacity": 0.8
-                  },
-                  "description": "",
-                  "demparser": "",
-                  "controlled": false,
-                  "uuid": "07a598a6-bf46-4601-99de-50be924aad2b"
-                },
-                {
-                  "name": "Annotations",
-                  "type": "vector",
-                  "url": "Layers/Vectors/annotations-example.geojson",
-                  "initialOpacity": 1,
-                  "visibility": false,
-                  "style": {
-                    "className": "annotations"
-                  },
-                  "description": "",
-                  "demparser": "",
-                  "controlled": false,
-                  "uuid": "fc1bf5f4-94cc-4617-8181-713326820c46"
-                },
-                {
                   "name": "Bearings Directional",
                   "type": "vector",
                   "url": "Layers/Vectors/bearings-example.geojson",
@@ -488,6 +442,26 @@
                   "demparser": "",
                   "controlled": false,
                   "uuid": "1e50c952-99c4-4fdf-88ff-21d44841765e"
+                },
+                {
+                  "name": "Shape From MDI Icons",
+                  "type": "vector",
+                  "url": "Layers/Vectors/mdi-icons-example.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "shapefrommdiicons",
+                    "shapeProp": "icon",
+                    "fillColor": "#0088ff",
+                    "fillOpacity": 0.9,
+                    "radius": 16,
+                    "strokeColor": "#ffffff",
+                    "strokeWeight": 1
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "9b697f26-9947-4c8a-93d2-60942e85b852"
                 },
                 {
                   "name": "Hotline Gradient Path",
@@ -527,22 +501,94 @@
                 },
                 {
                   "name": "Hotline Gradient 3D",
-                  "kind": "vector",
+                  "uuid": "d7a3f1b2-5c8e-4d12-a9f0-3b6e8c2d1f4a",
                   "type": "vector",
+                  "kind": "vector",
+                  "visibility": false,
+                  "sourceType": "url",
                   "url": "Layers/Vectors/hotline-gradient-3d.geojson",
-                  "demtileurl": "",
-                  "on": true,
-                  "visibility": true,
+                  "layer3dType": "clamped",
                   "initialOpacity": 1,
+                  "controlled": false,
                   "style": {
                     "color": "#ffffff",
-                    "weight": 2,
                     "opacity": 1,
+                    "fillColor": "#FFFFFF",
                     "fillOpacity": 0.5,
+                    "weight": 2,
+                    "radius": 6,
+                    "animation": "none",
                     "className": "hotlinegradient3d"
                   },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
                   "variables": {
-                    "hideMainFeature": true,
+                    "legendOrientation": "vertical",
+                    "dynamicExtent": false,
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": false,
+                    "style": {
+                      "nointeraction": false
+                    },
+                    "layerAttachments": {
+                      "labels": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "theme": "default",
+                        "size": "default"
+                      },
+                      "pairings": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "style": {
+                          "color": "#FFFFFF"
+                        }
+                      }
+                    },
+                    "coordinateAttachments": {
+                      "marker": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "color": "#FFFFFF",
+                        "fillColor": "#FFFFFF"
+                      }
+                    },
+                    "markerAttachments": {
+                      "bearing": {
+                        "enabled": false,
+                        "angleUnit": "deg",
+                        "color": "#FFFFFF",
+                        "useCustomShape": false
+                      },
+                      "image": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "angleUnit": "deg",
+                        "show": "click"
+                      },
+                      "model": {
+                        "enabled": false,
+                        "yawUnit": "deg",
+                        "invertYaw": false,
+                        "pitchUnit": "deg",
+                        "invertPitch": false,
+                        "rollUnit": "deg",
+                        "invertRoll": false,
+                        "show": "click"
+                      },
+                      "uncertainty": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "strokeColor": "#FFFFFF",
+                        "color": "#FFFFFF",
+                        "axisUnit": "meters",
+                        "angleUnit": "deg"
+                      }
+                    },
                     "pathAttachments": {
                       "gradient": {
                         "enabled": true,
@@ -559,14 +605,13 @@
                           "#ffff00",
                           "#ff0000"
                         ],
-                        "weight": 5
+                        "weight": 5,
+                        "connectAllPoints": false
                       }
-                    }
+                    },
+                    "hideMainFeature": true
                   },
-                  "description": "3D gradient polyline demonstration with elevation-based positioning in the Cesium globe. Routes with varied elevation values (50-2000m) colored by elevation, speed, or roll.",
-                  "demparser": "",
-                  "controlled": false,
-                  "uuid": "d7a3f1b2-5c8e-4d12-a9f0-3b6e8c2d1f4a"
+                  "description": "3D gradient polyline demonstration with elevation-based positioning in the Cesium globe. Routes with varied elevation values (50-2000m) colored by elevation, speed, or roll."
                 },
                 {
                   "name": "Uncertainty Ellipses",
@@ -735,6 +780,112 @@
               "demparser": "",
               "controlled": false,
               "uuid": "364f53c1-a715-45d4-aaa6-fcfab19d189f"
+            },
+            {
+              "name": "Miscellaneous",
+              "uuid": "e7305287-2505-4e3c-97c1-280593d6cd7f",
+              "type": "header",
+              "sublayers": [
+                {
+                  "name": "KML",
+                  "uuid": "890e9204-6a84-4526-b12f-589ea871fb11",
+                  "type": "vector",
+                  "kind": "none",
+                  "visibility": false,
+                  "sourceType": "url",
+                  "url": "Layers/Vectors/sample-kml.kml",
+                  "layer3dType": "clamped",
+                  "controlled": false,
+                  "style": {
+                    "color": "#cea407",
+                    "opacity": 1,
+                    "fillColor": "#FFFFFF",
+                    "fillOpacity": 0.8,
+                    "weight": 2,
+                    "radius": 6,
+                    "animation": "none",
+                    "className": "kml"
+                  },
+                  "shape": "none",
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "vertical",
+                    "dynamicExtent": false,
+                    "noDuplicates": false,
+                    "getFeaturePropertiesOnClick": false,
+                    "style": {
+                      "nointeraction": false
+                    },
+                    "layerAttachments": {
+                      "labels": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "theme": "default",
+                        "size": "default"
+                      },
+                      "pairings": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "style": {
+                          "color": "#FFFFFF"
+                        }
+                      }
+                    },
+                    "coordinateAttachments": {
+                      "marker": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "color": "#FFFFFF",
+                        "fillColor": "#FFFFFF"
+                      }
+                    },
+                    "markerAttachments": {
+                      "bearing": {
+                        "enabled": false,
+                        "angleUnit": "deg",
+                        "color": "#FFFFFF",
+                        "useCustomShape": false
+                      },
+                      "image": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "angleUnit": "deg",
+                        "show": "click"
+                      },
+                      "model": {
+                        "enabled": false,
+                        "yawUnit": "deg",
+                        "invertYaw": false,
+                        "pitchUnit": "deg",
+                        "invertPitch": false,
+                        "rollUnit": "deg",
+                        "invertRoll": false,
+                        "show": "click"
+                      },
+                      "uncertainty": {
+                        "enabled": false,
+                        "initialVisibility": false,
+                        "strokeColor": "#FFFFFF",
+                        "color": "#FFFFFF",
+                        "axisUnit": "meters",
+                        "angleUnit": "deg"
+                      }
+                    },
+                    "pathAttachments": {
+                      "gradient": {
+                        "enabled": false,
+                        "connectAllPoints": false
+                      }
+                    },
+                    "hideMainFeature": false
+                  },
+                  "initialOpacity": 1
+                }
+              ]
             }
           ],
           "type": "header",
@@ -1653,6 +1804,32 @@
               "name": "Time Tab",
               "type": "header",
               "sublayers": [
+                {
+                  "name": "Time-Enabled",
+                  "type": "vector",
+                  "url": "Layers/Vectors/time-enabled.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "time": {
+                    "enabled": true,
+                    "type": "local",
+                    "startProp": "startTime",
+                    "endProp": "startTime",
+                    "format": "%Y-%m-%dT%H:%M:%SZ"
+                  },
+                  "style": {
+                    "className": "time-enabled",
+                    "strokeColor": "#9900ff",
+                    "strokeWeight": 2,
+                    "fillColor": "#cc66ff",
+                    "fillOpacity": 0.5,
+                    "radius": 8
+                  },
+                  "description": "",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "77d6ca9d-32c9-4bbb-922f-deb4cc10d741"
+                },
                 {
                   "name": "Time - Refresh Interval",
                   "type": "vector",
@@ -2885,6 +3062,91 @@
               "style": {
                 "className": "elevation-stacterrarium(stac)"
               }
+            },
+            {
+              "name": "Elevation - RGBA Tiles (URL)",
+              "uuid": "7b9ea89a-03b3-4abb-b13e-0d46089f8ec7",
+              "type": "data",
+              "visibility": false,
+              "demSourceType": "url",
+              "demtileurl": "Data/dem_rgba_tiles/{z}/{x}/{y}.png",
+              "demparser": "rgba",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 10,
+              "maxNativeZoom": 14,
+              "maxZoom": 18,
+              "boundingBox": [
+                -122.50722222192965,
+                37.70980728349467,
+                -122.41428489305366,
+                37.78111111121456
+              ],
+              "variables": {
+                "shader": {
+                  "type": "colorize",
+                  "units": "m",
+                  "sigfigs": 1,
+                      "noDataValues": [
+                        -999999,
+                        0
+                      ],
+                      "ramps": [
+                        [
+                          "#313695",
+                          "#4575b4",
+                          "#74add1",
+                          "#abd9e9",
+                          "#e0f3f8",
+                          "#ffffbf",
+                          "#fee090",
+                          "#fdae61",
+                          "#f46d43",
+                          "#d73027",
+                          "#a50026"
+                        ],
+                        [
+                          "#440154",
+                          "#482878",
+                          "#3e4989",
+                          "#31688e",
+                          "#26828e",
+                          "#1f9e89",
+                          "#35b779",
+                          "#6ece58",
+                          "#b5de2b",
+                          "#fde725"
+                        ],
+                        [
+                          "#000004",
+                          "#1b0c41",
+                          "#4a0c6b",
+                          "#781c6d",
+                          "#a52c60",
+                          "#cf4446",
+                          "#ed6925",
+                          "#fb9b06",
+                          "#f7d13d",
+                          "#fcffa4"
+                        ]
+                      ]
+                }
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false
+              },
+              "tags": [
+                "source:url",
+                "parser:rgba",
+                "type:elevation"
+              ],
+              "description": "RGBA-encoded float32 PNG tiles generated by gdal2customtiles.py --dem. Tests the plain URL source type for Data Layers.",
+              "style": {
+                "className": "elevation-rgba(url)"
+              }
             }
           ],
           "type": "header",
@@ -3377,10 +3639,11 @@
       "variables": {
         "data": [
           {
-            "name": "USGS SF DEM (tileset required)",
-            "demtileurl": "Data/dem-tiles/{z}/{x}/{y}.png",
-            "minZoom": 8,
-            "maxNativeZoom": 18
+            "name": "USGS SF DEM",
+            "demtileurl": "Data/dem_rgba_tiles/{z}/{x}/{y}.png",
+            "minZoom": 10,
+            "maxNativeZoom": 14,
+            "boundingBox": [-122.50722222192965, 37.70980728349467, -122.41428489305366, 37.78111111121456]
           }
         ],
         "cameraPresets": [
