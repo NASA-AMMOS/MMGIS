@@ -296,6 +296,7 @@ export default async function globalSetup() {
     cwd: process.cwd(),
     stdio: 'pipe',
     detached: true,
+    windowsHide: true,
   });
 
   server.stdout.on('data', (d) => {
@@ -552,16 +553,16 @@ function killProcessOnPort(port) {
     if (isWin) {
       const out = execSync(
         `netstat -ano | findstr :${port} | findstr LISTENING`,
-        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true },
       ).trim();
       const pids = [...new Set(out.split('\n').map(l => l.trim().split(/\s+/).pop()).filter(Boolean))];
       for (const pid of pids) {
-        try { execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' }); } catch {}
+        try { execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore', windowsHide: true }); } catch {}
       }
     } else {
       const out = execSync(
         `lsof -ti tcp:${port}`,
-        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true },
       ).trim();
       if (out) {
         for (const pid of out.split('\n')) {
