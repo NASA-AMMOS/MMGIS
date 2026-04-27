@@ -717,6 +717,18 @@ ws.on("message", function (message) {
 - Review `webpack.config.js` for misconfigurations
 - Check Node.js version (requires 20+)
 
+## Database Safety Rules for AI Agents
+
+When writing or modifying code that interacts with the database, AI agents MUST follow these rules:
+
+1. **NEVER use `DROP DATABASE` in application code.** The only place `DROP DATABASE` is permitted is in `tests/test-db-clean.js`, and only against the hardcoded `mmgis-test` database.
+2. **NEVER use `DROP TABLE` or `TRUNCATE TABLE` without proper authorization checks** and input sanitization via `Utils.forceAlphaNumUnder()`.
+3. **NEVER hardcode production database names, hosts, or credentials** in test files or scripts.
+4. **ALWAYS use the dedicated test database** (`mmgis-test`) for any test-related database operations. Never modify the test database name constant.
+5. **ALWAYS use `DB_USER_TEST` / `DB_PASS_TEST`** environment variables for test database credentials when available, to maintain least-privilege separation.
+6. **NEVER remove or weaken** the `NODE_ENV === 'production'` safety checks in test setup files (`tests/global-setup.js`, `tests/test-db-clean.js`).
+7. When writing database-related tests, **never use destructive commands** like `DROP` or `TRUNCATE` on the main schema. Always target the `mmgis-test` database and implement environment safety checks.
+
 ## References
 
 - **Official Documentation**: https://nasa-ammos.github.io/MMGIS/
