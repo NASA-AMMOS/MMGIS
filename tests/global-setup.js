@@ -30,6 +30,9 @@ import pgPromise from 'pg-promise';
 /** Hardcoded test database name — never changes. */
 const TEST_DB_NAME = 'mmgis-test';
 
+/** Hardcoded test STAC database name — used when STAC services are enabled. */
+const TEST_STAC_DB_NAME = 'mmgis-stac-test';
+
 /** Port the test server listens on. */
 const TEST_PORT = Number(process.env.TEST_PORT || 18888);
 
@@ -53,11 +56,33 @@ export default async function globalSetup() {
   // Load .env so we can read DB_HOST / DB_PORT / DB_USER / DB_PASS
   config({ path: resolve(process.cwd(), '.env') });
 
+  // ── Production environment fail-safe ──────────────────────────
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      '\u26A0\uFE0F DANGER: Refusing to run test operations because NODE_ENV is set to "production". ' +
+      'Tests must never be executed against a production environment.'
+    );
+  }
+
   // Read connection settings (with sensible defaults)
   const dbHost = process.env.DB_HOST || readDotenvValue('DB_HOST') || 'localhost';
   const dbPort = process.env.DB_PORT || readDotenvValue('DB_PORT') || '5432';
-  const dbUser = process.env.DB_USER || readDotenvValue('DB_USER') || 'mmgis';
-  const dbPass = process.env.DB_PASS || readDotenvValue('DB_PASS') || 'mmgis';
+
+  // Use dedicated test DB credentials (DB_USER_TEST / DB_PASS_TEST) to enforce
+  // least-privilege separation between CI/test and production database roles.
+  // No fallback — tests must use explicit test credentials.
+  const dbUser = process.env.DB_USER_TEST || readDotenvValue('DB_USER_TEST');
+  const dbPass = process.env.DB_PASS_TEST || readDotenvValue('DB_PASS_TEST');
+
+  if (!dbUser || !dbPass) {
+    throw new Error(
+      'DB_USER_TEST and DB_PASS_TEST must be set for test setup. ' +
+      'Set them in your environment or .env file.'
+    );
+  }
+
+  process.env.DB_USER = dbUser;
+  process.env.DB_PASS = dbPass;
 
   // Force DB_NAME to the hardcoded test database
   process.env.DB_NAME = TEST_DB_NAME;
@@ -168,6 +193,43 @@ export default async function globalSetup() {
     await testDb.$pool.end();
   }
 
+  // ── 3b. Create the STAC test database if STAC services are enabled ──
+  const stacEnabled =
+    process.env.WITH_STAC === 'true' ||
+    process.env.WITH_TIPG === 'true' ||
+    process.env.WITH_TITILER_PGSTAC === 'true';
+
+  if (stacEnabled) {
+    const stacAdminDb = pgp({
+      host: dbHost,
+      port: Number(dbPort),
+      user: dbUser,
+      password: dbPass,
+      database: 'postgres',
+    });
+
+    try {
+      const stacExists = await stacAdminDb.oneOrNone(
+        'SELECT 1 FROM pg_database WHERE datname = $1',
+        [TEST_STAC_DB_NAME],
+      );
+
+      if (!stacExists) {
+        await stacAdminDb.none('CREATE DATABASE $1:name', [TEST_STAC_DB_NAME]);
+        console.log(`[global-setup] Created database "${TEST_STAC_DB_NAME}".`);
+      } else {
+        console.log(`[global-setup] Database "${TEST_STAC_DB_NAME}" already exists.`);
+      }
+    } catch (err) {
+      console.error(`[global-setup] Failed to create database "${TEST_STAC_DB_NAME}":`, err.message);
+      throw err;
+    } finally {
+      await stacAdminDb.$pool.end();
+    }
+
+
+  }
+
   // ── 4. Check if Reference Mission already exists ────────────────
   let needsMission = true;
   const checkDb = pgp({
@@ -234,6 +296,7 @@ export default async function globalSetup() {
     cwd: process.cwd(),
     stdio: 'pipe',
     detached: true,
+    windowsHide: true,
   });
 
   server.stdout.on('data', (d) => {
@@ -398,8 +461,14 @@ function prepareAdjacentServerEnvFiles(repoRoot) {
       },
     );
 
+    // Point adjacent servers at the test STAC database
+    contents = contents.replace(
+      /^(POSTGRES_DBNAME\s*=\s*).*$/m,
+      `$1${TEST_STAC_DB_NAME}`,
+    );
+
     writeFileSync(envFile, contents, 'utf8');
-    console.log(`[global-setup] Created ${srv.dir}/.env from .env.example.`);
+    console.log(`[global-setup] Created ${srv.dir}/.env from .env.example (POSTGRES_DBNAME=${TEST_STAC_DB_NAME}).`);
   }
 }
 
@@ -484,16 +553,16 @@ function killProcessOnPort(port) {
     if (isWin) {
       const out = execSync(
         `netstat -ano | findstr :${port} | findstr LISTENING`,
-        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true },
       ).trim();
       const pids = [...new Set(out.split('\n').map(l => l.trim().split(/\s+/).pop()).filter(Boolean))];
       for (const pid of pids) {
-        try { execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' }); } catch {}
+        try { execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore', windowsHide: true }); } catch {}
       }
     } else {
       const out = execSync(
         `lsof -ti tcp:${port}`,
-        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true },
       ).trim();
       if (out) {
         for (const pid of out.split('\n')) {

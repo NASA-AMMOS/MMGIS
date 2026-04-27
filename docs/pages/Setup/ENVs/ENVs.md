@@ -105,6 +105,14 @@ If `DB_SSL=true` and if needed, the path to a certificate for ssl | string | def
 
 Alternatively, if `DB_SSL=true` and if needed, a base64 encoded certificate for ssl. `DB_SSL_CERT_BASE64` will take priority over `DB_SSL_CERT` | string | default `null`
 
+#### `DB_USER_TEST=`
+
+Test-specific database user. Required by test infrastructure (`tests/global-setup.js`, `tests/test-db-clean.js`) for least-privilege separation. No fallback — tests will not run without this | string | default `null`
+
+#### `DB_PASS_TEST=`
+
+Test-specific database password. Required by test infrastructure for least-privilege separation. No fallback — tests will not run without this | string | default `null`
+
 #### `AUTH_LOCAL_ALLOW_SIGNUP=`
 
 If AUTH=local and set to true, this allows all guests to the site to create user accounts otherwise, they just see a login page with no signup section | boolean | default `false`
