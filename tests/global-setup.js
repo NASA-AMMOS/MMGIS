@@ -68,11 +68,18 @@ export default async function globalSetup() {
   const dbHost = process.env.DB_HOST || readDotenvValue('DB_HOST') || 'localhost';
   const dbPort = process.env.DB_PORT || readDotenvValue('DB_PORT') || '5432';
 
-  // Prefer test-specific DB credentials (DB_USER_TEST / DB_PASS_TEST) to enforce
+  // Use dedicated test DB credentials (DB_USER_TEST / DB_PASS_TEST) to enforce
   // least-privilege separation between CI/test and production database roles.
-  // Falls back to DB_USER / DB_PASS for backward compatibility.
-  const dbUser = process.env.DB_USER_TEST || readDotenvValue('DB_USER_TEST') || process.env.DB_USER || readDotenvValue('DB_USER') || 'mmgis';
-  const dbPass = process.env.DB_PASS_TEST || readDotenvValue('DB_PASS_TEST') || process.env.DB_PASS || readDotenvValue('DB_PASS') || 'mmgis';
+  // No fallback — tests must use explicit test credentials.
+  const dbUser = process.env.DB_USER_TEST || readDotenvValue('DB_USER_TEST');
+  const dbPass = process.env.DB_PASS_TEST || readDotenvValue('DB_PASS_TEST');
+
+  if (!dbUser || !dbPass) {
+    throw new Error(
+      'DB_USER_TEST and DB_PASS_TEST must be set for test setup. ' +
+      'Set them in your environment or .env file.'
+    );
+  }
 
   process.env.DB_USER = dbUser;
   process.env.DB_PASS = dbPass;
