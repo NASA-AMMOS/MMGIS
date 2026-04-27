@@ -65,31 +65,30 @@ async function clean() {
   });
 
   try {
+    // Drop mmgis-test
     const exists = await db.oneOrNone(
       'SELECT 1 FROM pg_database WHERE datname = $1',
       [TEST_DB_NAME],
     );
 
-    if (!exists) {
-      console.log(`Database "${TEST_DB_NAME}" does not exist. Nothing to clean.`);
-      return;
+    if (exists) {
+      await db.none(
+        `SELECT pg_terminate_backend(pid) FROM pg_stat_activity
+         WHERE datname = $1 AND pid <> pg_backend_pid()`,
+        [TEST_DB_NAME],
+      );
+      await db.none('DROP DATABASE $1:name', [TEST_DB_NAME]);
+      console.log(`Dropped database "${TEST_DB_NAME}".`);
+    } else {
+      console.log(`Database "${TEST_DB_NAME}" does not exist — skipping.`);
     }
 
-    // Terminate active connections before dropping
-    await db.none(
-      `SELECT pg_terminate_backend(pid) FROM pg_stat_activity
-       WHERE datname = $1 AND pid <> pg_backend_pid()`,
-      [TEST_DB_NAME],
-    );
-
-    await db.none('DROP DATABASE $1:name', [TEST_DB_NAME]);
-    console.log(`Dropped database "${TEST_DB_NAME}".`);
-
-    // Also drop the STAC test database if it exists
+    // Drop mmgis-stac-test (independent of main test DB)
     const stacExists = await db.oneOrNone(
       'SELECT 1 FROM pg_database WHERE datname = $1',
       [TEST_STAC_DB_NAME],
     );
+
     if (stacExists) {
       await db.none(
         `SELECT pg_terminate_backend(pid) FROM pg_stat_activity
@@ -98,6 +97,8 @@ async function clean() {
       );
       await db.none('DROP DATABASE $1:name', [TEST_STAC_DB_NAME]);
       console.log(`Dropped database "${TEST_STAC_DB_NAME}".`);
+    } else {
+      console.log(`Database "${TEST_STAC_DB_NAME}" does not exist — skipping.`);
     }
   } catch (err) {
     console.error(`Failed to drop test databases:`, err.message);
