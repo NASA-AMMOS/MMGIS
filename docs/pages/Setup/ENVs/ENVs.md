@@ -113,10 +113,6 @@ Test-specific database user. Required by test infrastructure (`tests/global-setu
 
 Test-specific database password. Required by test infrastructure for least-privilege separation. No fallback — tests will not run without this | string | default `null`
 
-#### `STAC_DB_NAME=`
-
-Override the STAC database name. Test infrastructure sets this to `mmgis-stac-test` | string | default `mmgis-stac`
-
 #### `AUTH_LOCAL_ALLOW_SIGNUP=`
 
 If AUTH=local and set to true, this allows all guests to the site to create user accounts otherwise, they just see a login page with no signup section | boolean | default `false`

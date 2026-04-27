@@ -227,8 +227,7 @@ export default async function globalSetup() {
       await stacAdminDb.$pool.end();
     }
 
-    // Set STAC_DB_NAME so init-db.js and API/connection.js use the test STAC DB
-    process.env.STAC_DB_NAME = TEST_STAC_DB_NAME;
+
   }
 
   // ── 4. Check if Reference Mission already exists ────────────────
@@ -290,7 +289,6 @@ export default async function globalSetup() {
     HIDE_CONFIG: 'false',
     ENABLE_MMGIS_WEBSOCKETS: '',
     ENABLE_CONFIG_WEBSOCKETS: '',
-    ...(stacEnabled ? { STAC_DB_NAME: TEST_STAC_DB_NAME } : {}),
   };
 
   const server = spawn('node', [resolve(process.cwd(), 'scripts/server.js')], {

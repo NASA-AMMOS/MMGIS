@@ -127,11 +127,10 @@ async function initializeDatabase() {
       process.env.WITH_TITILER_PGSTAC === "true"
     ) {
       // mmgis-stac
-      const stacDbName = process.env.STAC_DB_NAME || 'mmgis-stac';
       await baseSequelize
-        .query(`CREATE DATABASE "${stacDbName}";`)
+        .query(`CREATE DATABASE "mmgis-stac";`)
         .then(() => {
-          logger("info", `Created ${stacDbName} database.`, "connection");
+          logger("info", `Created mmgis-stac database.`, "connection");
 
           keepGoingSTAC();
           return null;
@@ -143,7 +142,7 @@ async function initializeDatabase() {
             // Expected error - database already exists
             logger(
               "info",
-              `Database ${stacDbName} already exists. Nothing to do...`,
+              `Database mmgis-stac already exists. Nothing to do...`,
               "connection"
             );
             keepGoingSTAC();
@@ -153,7 +152,7 @@ async function initializeDatabase() {
               errorInfo.type === "connection_error"
                 ? "infrastructure_error"
                 : "error",
-              `Failed to create ${stacDbName} database: ${errorInfo.message} (code: ${errorInfo.code})`,
+              `Failed to create mmgis-stac database: ${errorInfo.message} (code: ${errorInfo.code})`,
               "connection",
               null,
               err
@@ -176,21 +175,21 @@ async function initializeDatabase() {
                 PGHOST: process.env.DB_HOST,
                 PGPORT: process.env.DB_PORT,
                 PGUSER: process.env.DB_USER,
-                PGDATABASE: stacDbName,
+                PGDATABASE: "mmgis-stac",
                 PGPASSWORD: process.env.DB_PASS,
               },
             }
           );
           logger(
             "info",
-            `Conformed the ${stacDbName} database to pgstac.`,
+            `Conformed the mmgis-stac database to pgstac.`,
             "connection",
             output
           );
         } catch (err) {
           logger(
             "warning",
-            `Failed to conform the ${stacDbName} database to pgstac.`,
+            `Failed to conform the mmgis-stac database to pgstac.`,
             "connection",
             err
           );
