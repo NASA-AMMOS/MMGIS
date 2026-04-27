@@ -94,4 +94,7 @@ async function clean() {
   }
 }
 
-clean();
+clean().catch((err) => {
+  console.error(err.message);
+  process.exit(1);
+});
