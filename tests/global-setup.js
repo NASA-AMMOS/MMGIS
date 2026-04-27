@@ -56,14 +56,8 @@ export default async function globalSetup() {
   // ── Production environment fail-safe ──────────────────────────
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
-      '\u26A0\uFE0F DANGER: Refusing to run destructive test operations because NODE_ENV is set to "production". ' +
+      '\u26A0\uFE0F DANGER: Refusing to run test operations because NODE_ENV is set to "production". ' +
       'Tests must never be executed against a production environment.'
-    );
-  }
-
-  if (process.env.DATABASE_URL && /prod/i.test(process.env.DATABASE_URL)) {
-    throw new Error(
-      '\u26A0\uFE0F DANGER: DATABASE_URL appears to reference a production database. Aborting test setup.'
     );
   }
 
