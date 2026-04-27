@@ -63,6 +63,18 @@ User of Postgres database | string | default `null`
 
 Password of Postgres database | string | default `null`
 
+#### `DB_USER_TEST=`
+
+Optional test-specific database user. Used by test infrastructure (`tests/global-setup.js`, `tests/test-db-clean.js`) for least-privilege separation. Falls back to `DB_USER` in `global-setup.js`; required (no fallback) in `test-db-clean.js` | string | default `null`
+
+#### `DB_PASS_TEST=`
+
+Optional test-specific database password. Used by test infrastructure for least-privilege separation. Falls back to `DB_PASS` in `global-setup.js`; required (no fallback) in `test-db-clean.js` | string | default `null`
+
+#### `STAC_DB_NAME=`
+
+Override the STAC database name. Test infrastructure sets this to `mmgis-stac-test` | string | default `mmgis-stac`
+
 ## Optional Variables
 
 #### `PORT=`

@@ -1,12 +1,11 @@
 /**
- * Drop the `mmgis-test` database.
+ * Drop the `mmgis-test` and `mmgis-stac-test` databases.
  *
  * Usage:  npm run test:clean
  *
- * Reads DB_HOST / DB_PORT / DB_USER / DB_PASS from the project `.env`
- * (or falls back to sensible defaults) and drops the hardcoded
- * `mmgis-test` database. Safe to run at any time — only ever touches
- * the test database.
+ * Reads DB_HOST / DB_PORT / DB_USER_TEST / DB_PASS_TEST from the project
+ * `.env` and drops the hardcoded test databases. Safe to run at any time
+ * — only ever touches test databases.
  */
 
 import { config } from 'dotenv';
@@ -15,6 +14,7 @@ import { readFileSync } from 'fs';
 import pgPromise from 'pg-promise';
 
 const TEST_DB_NAME = 'mmgis-test';
+const TEST_STAC_DB_NAME = 'mmgis-stac-test';
 
 function readDotenvValue(key) {
   try {
@@ -84,8 +84,23 @@ async function clean() {
 
     await db.none('DROP DATABASE $1:name', [TEST_DB_NAME]);
     console.log(`Dropped database "${TEST_DB_NAME}".`);
+
+    // Also drop the STAC test database if it exists
+    const stacExists = await db.oneOrNone(
+      'SELECT 1 FROM pg_database WHERE datname = $1',
+      [TEST_STAC_DB_NAME],
+    );
+    if (stacExists) {
+      await db.none(
+        `SELECT pg_terminate_backend(pid) FROM pg_stat_activity
+         WHERE datname = $1 AND pid <> pg_backend_pid()`,
+        [TEST_STAC_DB_NAME],
+      );
+      await db.none('DROP DATABASE $1:name', [TEST_STAC_DB_NAME]);
+      console.log(`Dropped database "${TEST_STAC_DB_NAME}".`);
+    }
   } catch (err) {
-    console.error(`Failed to drop "${TEST_DB_NAME}":`, err.message);
+    console.error(`Failed to drop test databases:`, err.message);
     process.exit(1);
   } finally {
     pgp.end();

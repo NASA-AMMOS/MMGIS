@@ -30,6 +30,9 @@ import pgPromise from 'pg-promise';
 /** Hardcoded test database name — never changes. */
 const TEST_DB_NAME = 'mmgis-test';
 
+/** Hardcoded test STAC database name — used when STAC services are enabled. */
+const TEST_STAC_DB_NAME = 'mmgis-stac-test';
+
 /** Port the test server listens on. */
 const TEST_PORT = Number(process.env.TEST_PORT || 18888);
 
@@ -183,6 +186,44 @@ export default async function globalSetup() {
     await testDb.$pool.end();
   }
 
+  // ── 3b. Create the STAC test database if STAC services are enabled ──
+  const stacEnabled =
+    process.env.WITH_STAC === 'true' ||
+    process.env.WITH_TIPG === 'true' ||
+    process.env.WITH_TITILER_PGSTAC === 'true';
+
+  if (stacEnabled) {
+    const stacAdminDb = pgp({
+      host: dbHost,
+      port: Number(dbPort),
+      user: dbUser,
+      password: dbPass,
+      database: 'postgres',
+    });
+
+    try {
+      const stacExists = await stacAdminDb.oneOrNone(
+        'SELECT 1 FROM pg_database WHERE datname = $1',
+        [TEST_STAC_DB_NAME],
+      );
+
+      if (!stacExists) {
+        await stacAdminDb.none('CREATE DATABASE $1:name', [TEST_STAC_DB_NAME]);
+        console.log(`[global-setup] Created database "${TEST_STAC_DB_NAME}".`);
+      } else {
+        console.log(`[global-setup] Database "${TEST_STAC_DB_NAME}" already exists.`);
+      }
+    } catch (err) {
+      console.error(`[global-setup] Failed to create database "${TEST_STAC_DB_NAME}":`, err.message);
+      throw err;
+    } finally {
+      await stacAdminDb.$pool.end();
+    }
+
+    // Set STAC_DB_NAME so init-db.js and API/connection.js use the test STAC DB
+    process.env.STAC_DB_NAME = TEST_STAC_DB_NAME;
+  }
+
   // ── 4. Check if Reference Mission already exists ────────────────
   let needsMission = true;
   const checkDb = pgp({
@@ -242,6 +283,7 @@ export default async function globalSetup() {
     HIDE_CONFIG: 'false',
     ENABLE_MMGIS_WEBSOCKETS: '',
     ENABLE_CONFIG_WEBSOCKETS: '',
+    ...(stacEnabled ? { STAC_DB_NAME: TEST_STAC_DB_NAME } : {}),
   };
 
   const server = spawn('node', [resolve(process.cwd(), 'scripts/server.js')], {
@@ -413,8 +455,14 @@ function prepareAdjacentServerEnvFiles(repoRoot) {
       },
     );
 
+    // Point adjacent servers at the test STAC database
+    contents = contents.replace(
+      /^(POSTGRES_DBNAME\s*=\s*).*$/m,
+      `$1${TEST_STAC_DB_NAME}`,
+    );
+
     writeFileSync(envFile, contents, 'utf8');
-    console.log(`[global-setup] Created ${srv.dir}/.env from .env.example.`);
+    console.log(`[global-setup] Created ${srv.dir}/.env from .env.example (POSTGRES_DBNAME=${TEST_STAC_DB_NAME}).`);
   }
 }
 

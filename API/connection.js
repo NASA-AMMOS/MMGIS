@@ -54,7 +54,7 @@ const sequelize = new Sequelize(
 // create a sequelize instance with our local postgres database information.
 const sequelizeSTAC =
   process.env.WITH_STAC === "true"
-    ? new Sequelize("mmgis-stac", process.env.DB_USER, process.env.DB_PASS, {
+    ? new Sequelize(process.env.STAC_DB_NAME || "mmgis-stac", process.env.DB_USER, process.env.DB_PASS, {
         host: process.env.DB_HOST,
         port: process.env.DB_PORT || "5432",
         dialect: "postgres",
