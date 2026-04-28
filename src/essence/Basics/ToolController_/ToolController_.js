@@ -1,9 +1,11 @@
+import $ from 'jquery'
 import L_ from '../Layers_/Layers_'
 import { toolModules, toolConfigs } from '../../../pre/tools'
 import useUIStore from '../UserInterface_/store/uiStore'
 
 let ToolController_ = {
     tools: null,
+    separatedContentDiv: null,
     activeSeparatedTools: [],
     toolModuleNames: [],
     toolModules: toolModules,
@@ -18,10 +20,9 @@ let ToolController_ = {
     loaded: false,
 
     // init: Build the tool module name list and initialize all tool modules.
-    // DOM construction is now handled by React components:
-    //   - Toolbar.jsx renders sidebar tool buttons
-    //   - SeparatedTools.jsx renders floating map-overlay tool buttons
-    // The tools list is published to the Zustand store so React can render.
+    // DOM construction for toolbar buttons is handled by Toolbar.jsx.
+    // Separated tools (Legend, Identifier) are constructed here via jQuery
+    // with floating glassmorphism panels over the map (matches PR #47).
     init: function (tools) {
         this.tools = tools
 
@@ -39,6 +40,43 @@ let ToolController_ = {
                 ToolController_.toolModules[t].initialize()
         })
 
+        // --- Separated tools: jQuery DOM construction ---
+        // Container for separated tool content (floats over the map)
+        this.separatedContentDiv = $('<div>')
+            .attr('id', 'toolcontroller_sep_content')
+            .css({
+                'position': 'absolute',
+                'top': '12px',
+                'left': '12px',
+                'z-index': '1002',
+                'display': 'flex',
+                'gap': '12px',
+                'pointer-events': 'none',
+            })
+        $('#splitscreens').append(this.separatedContentDiv)
+
+        // Separator + container for separated tool buttons in toolbar
+        this.sepToolbarDiv = $('<div>')
+            .attr('id', 'toolcontroller_sepdiv')
+        const mainDiv = $('#toolbarTools')
+        if (mainDiv.length) mainDiv.append(this.sepToolbarDiv)
+
+        const sepDivider = $('<div>')
+            .attr('class', 'toolSepDivider')
+            .css({
+                'width': '26px',
+                'height': '1px',
+                'margin': '4px auto',
+            })
+        this.sepToolbarDiv.append(sepDivider)
+
+        // Create each separated tool
+        for (let i = 0; i < tools.length; i++) {
+            if (tools[i].separatedTool === true) {
+                this._createSeparatedTool(tools, i)
+            }
+        }
+
         // Publish tools list to Zustand store for React rendering
         useUIStore.getState().setToolsList(tools)
         useUIStore.getState().setToolsLoaded(true)
@@ -49,6 +87,170 @@ let ToolController_ = {
         L_.fullyLoaded()
     },
 
+    _createSeparatedTool: function (tools, i) {
+        const isIdentifier = tools[i].name === 'Identifier'
+        const toolWidth = this.toolModules[tools[i].name + 'Tool']
+            ? this.toolModules[tools[i].name + 'Tool'].width || 200
+            : 200
+
+        // Outer floating panel wrapper (glassy styling)
+        const toolPanel = $('<div>')
+            .attr('id', `toolPanelSeparated_${tools[i].name}`)
+            .attr('class', 'sep-tool-panel')
+            .css({
+                'width': isIdentifier ? '0px' : toolWidth + 'px',
+                'max-height': isIdentifier ? '0px' : 'calc(100vh - 120px)',
+                'border-radius': '10px',
+                'background': isIdentifier ? 'transparent' : 'rgba(26,26,27,0.88)',
+                'border': isIdentifier ? 'none' : '1px solid var(--color-a1)',
+                'backdrop-filter': isIdentifier ? 'none' : 'blur(20px)',
+                '-webkit-backdrop-filter': isIdentifier ? 'none' : 'blur(20px)',
+                'box-shadow': isIdentifier ? 'none' : '0 8px 32px rgba(0,0,0,0.4)',
+                'display': 'none',
+                'flex-direction': 'column',
+                'overflow': 'hidden',
+                'pointer-events': isIdentifier ? 'none' : 'auto',
+            })
+        this.separatedContentDiv.append(toolPanel)
+
+        // Header with title and close button
+        if (!isIdentifier) {
+            const toolHeader = $('<div>')
+                .attr('class', 'sep-tool-header')
+                .css({
+                    'display': 'flex',
+                    'align-items': 'center',
+                    'justify-content': 'space-between',
+                    'padding': '10px 12px',
+                    'border-bottom': '1px solid var(--color-a1)',
+                    'flex-shrink': '0',
+                })
+            const headerTitle = $('<span>')
+                .css({
+                    'font-size': '13px',
+                    'font-weight': '600',
+                    'color': 'var(--color-f)',
+                    'text-transform': 'uppercase',
+                    'letter-spacing': '0.05em',
+                })
+                .text(tools[i].name)
+            const headerClose = $('<div>')
+                .attr('title', 'Close')
+                .css({
+                    'cursor': 'pointer',
+                    'color': 'var(--color-a3)',
+                    'width': '20px',
+                    'height': '20px',
+                    'display': 'flex',
+                    'align-items': 'center',
+                    'justify-content': 'center',
+                    'border-radius': '4px',
+                    'transition': 'all 0.15s',
+                })
+                .html('<i class="mdi mdi-close" style="font-size:14px"></i>')
+                .on('mouseenter', function () {
+                    $(this).css({ 'color': 'var(--color-f)', 'background': 'rgba(255,255,255,0.1)' })
+                })
+                .on('mouseleave', function () {
+                    $(this).css({ 'color': 'var(--color-a3)', 'background': 'none' })
+                })
+                .on('click', (function (idx) {
+                    return function () {
+                        $(`#toolButtonSeparated_${tools[idx].name}`).click()
+                    }
+                })(i))
+            toolHeader.append(headerTitle).append(headerClose)
+            toolPanel.append(toolHeader)
+        }
+
+        // Inner content area (this is what the tool targets for rendering)
+        const toolContent = $('<div>')
+            .attr('id', `toolContentSeparated_${tools[i].name}`)
+            .css({
+                'flex': '1',
+                'overflow': 'auto',
+                'min-height': '0',
+            })
+        toolPanel.append(toolContent)
+
+        // Tool button in the toolbar (dedicated section)
+        const toolButton = $('<div>')
+            .attr('id', `toolButtonSeparated_${tools[i].name}`)
+            .attr('class', 'toolButton toolSep')
+            .attr('tabindex', i + 1)
+            .css({
+                'width': '100%',
+                'height': '36px',
+                'display': 'inline-block',
+                'text-align': 'center',
+                'line-height': '36px',
+                'vertical-align': 'middle',
+                'cursor': 'pointer',
+                'transition': 'all 0.15s',
+                'color': 'var(--color-mmgis)',
+            })
+            .on('click', (function (idx) {
+                return function () {
+                    const tM = ToolController_.toolModules[
+                        `${ToolController_.tools[idx].name}Tool`
+                    ]
+                    if (tM) {
+                        const isIdent = ToolController_.tools[idx].name === 'Identifier'
+                        if (tM.made === false) {
+                            tM.make(
+                                `toolContentSeparated_${ToolController_.tools[idx].name}`
+                            )
+                            if (!isIdent) {
+                                $(`#toolPanelSeparated_${ToolController_.tools[idx].name}`).css('display', 'flex')
+                            }
+                            ToolController_.activeSeparatedTools.push(
+                                ToolController_.tools[idx].name + 'Tool'
+                            )
+                            $(
+                                `#toolButtonSeparated_${tools[idx].name}`
+                            ).addClass('active')
+                        } else {
+                            tM.destroy()
+                            if (!isIdent) {
+                                $(`#toolPanelSeparated_${ToolController_.tools[idx].name}`).css('display', 'none')
+                            }
+                            ToolController_.activeSeparatedTools =
+                                ToolController_.activeSeparatedTools.filter(
+                                    (a) =>
+                                        a !==
+                                        ToolController_.tools[idx].name + 'Tool'
+                                )
+                            $(
+                                `#toolButtonSeparated_${tools[idx].name}`
+                            ).removeClass('active')
+                        }
+                        document.dispatchEvent(
+                            new CustomEvent('toggleSeparatedTool', {
+                                detail: {
+                                    toggledToolName: tools[idx].js,
+                                    visible: tM.made,
+                                },
+                            })
+                        )
+                    }
+                }
+            })(i))
+        toolButton.append(
+            $('<i>')
+                .attr('id', tools[i].name + 'Tool')
+                .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
+                .css('cursor', 'pointer')
+        )
+        this.sepToolbarDiv.append(toolButton)
+
+        // Auto-open on start if configured
+        if (tools[i].on !== false) {
+            setTimeout(() => {
+                $(`#toolButtonSeparated_${tools[i].name}`).click()
+            }, 0)
+        }
+    },
+
     clear() {
         // Don't remove #toolbarTools — it's React-managed.
         // Setting toolsLoaded: false (below) causes Toolbar.jsx to unmount it.
@@ -56,6 +258,15 @@ let ToolController_ = {
         this.toolModuleNames = []
         this.activeSeparatedTools = []
         this.toolModules = toolModules
+        // Remove separated tool DOM
+        if (this.separatedContentDiv) {
+            this.separatedContentDiv.remove()
+            this.separatedContentDiv = null
+        }
+        if (this.sepToolbarDiv) {
+            this.sepToolbarDiv.remove()
+            this.sepToolbarDiv = null
+        }
         useUIStore.getState().setToolsList([])
         useUIStore.getState().setToolsLoaded(false)
     },

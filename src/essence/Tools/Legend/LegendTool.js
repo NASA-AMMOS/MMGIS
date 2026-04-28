@@ -2,6 +2,9 @@ import $ from 'jquery'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
+import Help from '../../Ancillary/Help'
+
+const helpKey = 'LegendTool'
 
 //Add the tool markup if you want to do it this way
 var markup = [].join('\n')
@@ -243,23 +246,21 @@ function drawLegendHeader() {
     //Clear it
     tools.empty()
     
-    const legendHeader = $('<div>')
+    const legendHeader = $('<div>').attr('class', 'mmgisToolHeader')
         .css({
-            'height': '30px',
-            'line-height': '30px',
-            'font-size': '13px',
-            'padding-right': LegendTool.justification === 'right' ? '30px' : '8px',
-            'padding-left': LegendTool.justification === 'right' ? '10px' : '30px',
-            'color': 'var(--color-l)',
-            'background': 'var(--color-i)',
-            'font-family': 'lato-light',
-            'text-transform': 'uppercase',
             'border-top-left-radius': '3px',
             'border-top-right-radius': '3px',
-            'border-bottom': '1px solid var(--color-i)'
         })
-        .html('Legend')
+        .html([
+            "<div>",
+                "<div>",
+                    "<div class='mmgisToolTitle'>Legend</div>",
+                    Help.getComponent(helpKey),
+                "</div>",
+            "</div>",
+        ].join(''))
     tools.append(legendHeader)
+    Help.finalize(helpKey)
 
     //Add a semantic container
     const legendContainer = $('<div>')

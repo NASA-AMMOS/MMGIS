@@ -336,7 +336,7 @@
       ]
     },
     {
-      "name": "Colors",
+      "name": "Advanced Color Overrides",
       "components": [
         {
           "field": "look.primarycolor",
@@ -482,31 +482,6 @@
           "description": "Markdown content displayed in the About modal. Supports full GitHub-flavored Markdown.",
           "type": "markdown",
           "width": 12
-        }
-      ]
-    },
-    {
-      "name": "Default Tool",
-      "components": [
-        {
-          "field": "look.defaultToolEnabled",
-          "name": "Enabled",
-          "description": "",
-          "type": "switch",
-          "width": 4,
-          "defaultChecked": false
-        }
-      ]
-    },
-    {
-      "components": [
-        {
-          "field": "look.defaultTool",
-          "name": "Default Tool",
-          "description": "The tool that is opened by default when MMGIS loads.",
-          "type": "defaulttooldropdown",
-          "disableSwitch": "look.defaultToolEnabled",
-          "width": 4
         }
       ]
     }
