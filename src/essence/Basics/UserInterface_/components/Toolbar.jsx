@@ -351,7 +351,7 @@ function Toolbar({ userInterface }) {
             <div
                 id="mmgislogo"
                 style={{
-                    display: 'none',
+                    display: 'inherit',
                     padding: '9px 6px',
                     cursor: 'pointer',
                     width: '40px',
