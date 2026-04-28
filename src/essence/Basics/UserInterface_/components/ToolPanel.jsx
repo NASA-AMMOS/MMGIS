@@ -1,5 +1,6 @@
 import React, { useRef, useCallback } from 'react'
 import useUIStore from '../store/uiStore'
+import './ToolPanel.css'
 
 // The toolbar is always 40px wide regardless of topSize
 const TOOLBAR_WIDTH = 40
@@ -78,7 +79,8 @@ function ToolPanel() {
                     top: topSize + 'px',
                     height: `calc(100% - ${topSize}px)`,
                     left: panelLeftOffset + 'px',
-                    background: 'var(--color-k)',
+                    background: 'rgba(29, 31, 32, 0.88)',
+                    backdropFilter: 'blur(8px)',
                     transition: 'width 0.2s ease-out',
                     overflow: 'hidden',
                     zIndex: 1400,

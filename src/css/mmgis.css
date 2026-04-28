@@ -201,6 +201,7 @@ body {
     display: flex;
     align-items: center;
     z-index: 500;
+    background: transparent;
     transition: background 0.2s ease-out;
 }
 .splitterV:hover {
@@ -211,14 +212,9 @@ body {
     position: absolute;
     left: -50%;
     height: 100vh;
-    background: linear-gradient(
-        to right,
-        rgba(0, 0, 0, 0),
-        rgba(0, 0, 0, 0.2),
-        rgba(0, 0, 0, 0)
-    );
+    background: none;
     text-align: center;
-    display: inline-flex;
+    display: none;
     justify-content: space-evenly;
     align-items: center;
 }
@@ -227,15 +223,10 @@ body {
 }
 
 .splitterVInner i {
-    width: 48px;
-    height: 30px;
-    line-height: 30px;
-    cursor: col-resize;
-    color: #fff;
+    display: none;
 }
 .splitterVInner i:hover {
-    color: var(--color-mmgis);
-    cursor: pointer;
+    display: none;
 }
 
 #mapTopBar {

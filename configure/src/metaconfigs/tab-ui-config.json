@@ -322,6 +322,20 @@
     },
 
     {
+      "name": "Theme",
+      "components": [
+        {
+          "field": "look.theme",
+          "name": "Theme",
+          "description": "Select a predefined color theme for the MMGIS interface. Choose from various light and dark themes. Individual color overrides below will be applied on top of the selected theme.",
+          "type": "dropdown",
+          "width": 6,
+          "options": ["Dark Default", "Dark Blue", "Dark Warm", "Light Default", "Light Cool", "Light Slate"],
+          "default": "Dark Default"
+        }
+      ]
+    },
+    {
       "name": "Colors",
       "components": [
         {

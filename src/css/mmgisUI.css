@@ -1,11 +1,11 @@
-/*Button*/
+/* Legacy: use <Button variant="primary"> instead */
 .mmgisButton {
     -webkit-transition: all 0.15s ease-in;
     transition: all 0.15s ease-in;
-    color: #999;
-    background-color: #111;
+    color: var(--color-a4);
+    background-color: var(--color-a-5);
     border-radius: 2px;
-    border: 1px solid #666;
+    border: 1px solid var(--color-a2);
     width: auto;
     display: inline-block;
     padding-left: 14px;
@@ -19,19 +19,19 @@
     vertical-align: middle;
 }
 .mmgisButton:hover {
-    color: rgba(255, 255, 255, 0.87);
+    color: var(--color-f);
 }
 .mmgisButton.active {
     color: rgba(0, 0, 0, 0.85);
-    background-color: #d1d1d1;
+    background-color: var(--color-a5);
     font-weight: bold;
 }
 
-/*Button2*/
+/* Legacy: use <Button variant="secondary"> instead */
 .mmgisButton2 {
     -webkit-transition: all 0.15s ease-in;
     transition: all 0.15s ease-in;
-    color: #999;
+    color: var(--color-a4);
     width: auto;
     display: inline-block;
     height: 28px;
@@ -44,19 +44,19 @@
     vertical-align: middle;
 }
 .mmgisButton2:hover {
-    color: rgba(255, 255, 255, 0.87);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.87);
+    color: var(--color-f);
+    border-bottom: 1px solid var(--color-f);
 }
 .mmgisButton2.active {
-    color: rgba(255, 255, 255, 0.87);
-    background-color: #124254;
+    color: var(--color-f);
+    background-color: var(--color-o);
 }
 
-/*Button3*/
+/* Legacy: use <Button variant="ghost"> instead */
 .mmgisButton3 {
     -webkit-transition: all 0.15s ease-in;
     transition: all 0.15s ease-in;
-    color: #bbb;
+    color: var(--color-a5);
     background-color: var(--color-a);
     width: auto;
     display: inline-block;
@@ -72,21 +72,21 @@
     vertical-align: middle;
 }
 .mmgisButton3:hover {
-    color: rgba(255, 255, 255, 0.87);
+    color: var(--color-f);
 }
 .mmgisButton3.active {
-    color: rgba(255, 255, 255, 0.87);
-    background-color: #124254;
+    color: var(--color-f);
+    background-color: var(--color-o);
 }
 
-/*Button4*/
+/* Legacy: use <Button variant="subtle"> instead */
 .mmgisButton4 {
     -webkit-transition: all 0.15s ease-in;
     transition: all 0.15s ease-in;
-    color: #999;
-    background-color: #111;
+    color: var(--color-a4);
+    background-color: var(--color-a-5);
     border-radius: 2px;
-    border: 1px solid #666;
+    border: 1px solid var(--color-a2);
     width: auto;
     display: inline-block;
     padding-left: 14px;
@@ -100,12 +100,12 @@
     vertical-align: middle;
 }
 .mmgisButton4:hover {
-    color: #fffdf5;
+    color: var(--color-f);
 }
 .mmgisButton4.active {
     color: black;
     font-weight: bold;
-    background-color: #fffdf5;
+    background-color: var(--color-a6);
 }
 
 /*Button5*/
@@ -124,7 +124,7 @@
     background: var(--color-k);
 }
 
-/*RadioBar*/
+/* Legacy: use <ToggleGroup variant="bordered"> instead */
 .mmgisRadioBar {
     display: inline-block;
     margin-left: 8px;
@@ -134,10 +134,10 @@
 .mmgisRadioBar div {
     -webkit-transition: all 0.15s ease-in;
     transition: all 0.15s ease-in;
-    color: #999;
-    border: 1px solid #666;
+    color: var(--color-a4);
+    border: 1px solid var(--color-a2);
     border-right: none;
-    background-color: #111;
+    background-color: var(--color-a-5);
     width: auto;
     height: 28px;
     line-height: 28px;
@@ -155,32 +155,32 @@
 .mmgisRadioBar div:last-child {
     border-top-right-radius: 2px;
     border-bottom-right-radius: 2px;
-    border-right: 1px solid #666;
+    border-right: 1px solid var(--color-a2);
 }
 .mmgisRadioBar div:hover {
-    color: rgba(255, 255, 255, 0.87);
+    color: var(--color-f);
 }
 .mmgisRadioBar div.active {
-    color: rgba(255, 255, 255, 0.87);
-    background-color: #124254;
+    color: var(--color-f);
+    background-color: var(--color-o);
 }
 .mmgisRadioBar div.active:hover {
-    background-color: #0d303d;
+    background-color: var(--color-o);
 }
 .mmgisRadioBar.disabled {
     pointer-events: none;
 }
 .mmgisRadioBar.disabled div:not(.active) {
-    color: #222;
-    background-color: #111;
+    color: var(--color-a-5);
+    background-color: var(--color-a-5);
 }
 .mmgisRadioBar.off div {
     pointer-events: none;
-    color: #222;
-    background-color: #111;
+    color: var(--color-a-5);
+    background-color: var(--color-a-5);
 }
 
-/*RadioBar2*/
+/* Legacy: use <ToggleGroup variant="tabs"> instead */
 .mmgisRadioBar2 {
     height: 28px;
     display: inline-block;
@@ -229,11 +229,11 @@
     pointer-events: none;
 }
 .mmgisRadioBar2.disabled div:not(.active) {
-    color: #222;
+    color: var(--color-a-5);
 }
 .mmgisRadioBar2.off div {
     pointer-events: none;
-    color: #222;
+    color: var(--color-a-5);
 }
 
 /*RadioBar3*/
@@ -246,7 +246,7 @@
 .mmgisRadioBar3 div {
     -webkit-transition: all 0.15s ease-in;
     transition: all 0.15s ease-in;
-    color: #999;
+    color: var(--color-a4);
     border-right: none;
     background-color: rgba(0, 0, 0, 0.44);
     width: auto;
@@ -268,10 +268,10 @@
     border-bottom-right-radius: 2px;
 }
 .mmgisRadioBar3 div:hover {
-    color: #eee;
+    color: var(--color-f);
 }
 .mmgisRadioBar3 div.active {
-    color: #eee;
+    color: var(--color-f);
     background-color: #000000b0;
 }
 .mmgisRadioBar3 div.active:hover {
@@ -281,12 +281,12 @@
     pointer-events: none;
 }
 .mmgisRadioBar3.disabled div:not(.active) {
-    color: #666;
+    color: var(--color-a2);
     background-color: rgba(0, 0, 0, 0.29);
 }
 .mmgisRadioBar3.off div {
     pointer-events: none;
-    color: #666;
+    color: var(--color-a2);
     background-color: rgba(0, 0, 0, 0.29);
 }
 
@@ -297,7 +297,7 @@
 .mmgisRadioBar4 div {
     -webkit-transition: all 0.15s ease-in;
     transition: all 0.15s ease-in;
-    color: #999;
+    color: var(--color-a4);
     border-right: none;
     background-color: rgba(0, 0, 0, 0.44);
     width: auto;
@@ -317,10 +317,10 @@
     border-bottom-right-radius: 2px;
 }
 .mmgisRadioBar4 div:hover {
-    color: #eee;
+    color: var(--color-f);
 }
 .mmgisRadioBar4 div.active {
-    color: #eee;
+    color: var(--color-f);
     background-color: green;
 }
 .mmgisRadioBar4 div.active:hover {
@@ -330,12 +330,12 @@
     pointer-events: none;
 }
 .mmgisRadioBar4.disabled div:not(.active) {
-    color: #666;
+    color: var(--color-a2);
     background-color: rgba(0, 0, 0, 0.29);
 }
 .mmgisRadioBar4.off div {
     pointer-events: none;
-    color: #666;
+    color: var(--color-a2);
     background-color: rgba(0, 0, 0, 0.29);
 }
 
@@ -346,7 +346,7 @@
 .mmgisRadioBarVertical div {
     -webkit-transition: all 0.15s ease-in;
     transition: all 0.15s ease-in;
-    color: #777;
+    color: var(--color-a3);
     width: auto;
     height: 28px;
     line-height: 28px;
@@ -363,10 +363,10 @@
     border-bottom-right-radius: 2px;
 }
 .mmgisRadioBarVertical div:hover {
-    color: #aaa;
+    color: var(--color-a4);
 }
 .mmgisRadioBarVertical div.active {
-    color: #eee;
+    color: var(--color-f);
 }
 .mmgisRadioBarVertical div.active:hover {
     background-color: none;
@@ -375,11 +375,11 @@
     pointer-events: none;
 }
 .mmgisRadioBarVertical.disabled div:not(.active) {
-    color: #222;
+    color: var(--color-a-5);
 }
 .mmgisRadioBarVertical.off div {
     pointer-events: none;
-    color: #222;
+    color: var(--color-a-5);
 }
 
 /*short semantic dropdown*/
@@ -520,12 +520,12 @@
     max-width: 122px;
     background: var(--color-a);
     margin-bottom: 2px;
-    color: #e1e1e1;
+    color: var(--color-f);
     border-radius: 0 !important;
     border-bottom: 1px solid rgba(0, 0, 0, 0.3);
 }
 .ui.dropdown.selection.dropdown_2 .text {
-    color: #e1e1e1 !important;
+    color: var(--color-f) !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
     width: calc(100% - 12px) !important;
@@ -562,9 +562,9 @@
     padding-bottom: 10px;
     -webkit-transition: padding-left 0.2s ease-in, padding-right 0.2s ease-in;
     transition: padding-left 0.2s ease-in, padding-right 0.2s ease-in;
-    background-color: #161616;
-    border: 1px solid black;
-    color: #dcdcdc;
+    background-color: var(--color-a-5);
+    border: 1px solid var(--color-a);
+    color: var(--color-a5);
     padding-left: 10px;
     padding-right: 10px;
     margin: 0px 0px;
@@ -590,8 +590,8 @@
     padding-bottom: 2px;
     -webkit-transition: padding-left 0.2s ease-in, padding-right 0.2s ease-in;
     transition: padding-left 0.2s ease-in, padding-right 0.2s ease-in;
-    background-color: #dcdcdc;
-    color: #161616;
+    background-color: var(--color-a5);
+    color: var(--color-a-5);
     padding-left: 20px;
     padding-right: 20px;
     width: auto;
@@ -605,8 +605,8 @@
     padding-bottom: 2px;
     -webkit-transition: padding-left 0.2s ease-in, padding-right 0.2s ease-in;
     transition: padding-left 0.2s ease-in, padding-right 0.2s ease-in;
-    background-color: #dcdcdc;
-    color: #161616;
+    background-color: var(--color-a5);
+    color: var(--color-a-5);
     padding-left: 20px;
     padding-right: 20px;
 }
@@ -1131,13 +1131,14 @@ blink {
     opacity: 1;
 }
 
+/* Legacy: use <Slider> instead */
 .slider2::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 17px;
     height: 17px;
     border-radius: 50%;
-    background: #eee;
+    background: var(--color-f);
     cursor: pointer;
 }
 
@@ -1146,7 +1147,7 @@ blink {
     width: 17px;
     height: 17px;
     border-radius: 50%;
-    background: #eee;
+    background: var(--color-f);
     cursor: pointer;
 }
 
@@ -1174,7 +1175,7 @@ blink {
     width: 17px;
     height: 17px;
     border-radius: 50%;
-    background: #111;
+    background: var(--color-a-5);
     cursor: pointer;
 }
 
@@ -1183,7 +1184,7 @@ blink {
     width: 17px;
     height: 17px;
     border-radius: 50%;
-    background: #111;
+    background: var(--color-a-5);
     cursor: pointer;
 }
 
@@ -1596,11 +1597,12 @@ input::-webkit-inner-spin-button {
     opacity: 1;
 }
 
+/* Legacy: use <Checkbox> instead */
 .mmgisCheckbox {
     margin: 5px;
     width: 20px;
     height: 20px;
-    border: 2px solid #777;
+    border: 2px solid var(--color-a3);
     border-radius: 3px;
     cursor: pointer;
     transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
@@ -1608,8 +1610,8 @@ input::-webkit-inner-spin-button {
         border-radius 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
 .mmgisCheckbox.on {
-    background: white;
-    border: 0px solid #777;
+    background: var(--color-f);
+    border: 0px solid var(--color-a3);
 }
 .mmgisCheckbox:not(.on):hover {
     background: rgba(255, 255, 255, 0.1);

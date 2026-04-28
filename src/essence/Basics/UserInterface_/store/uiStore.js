@@ -8,8 +8,16 @@ import {
     computeToolsSplitMoveResult,
     computeWindowResize,
 } from './uiStoreMath'
+import { applyTheme } from '../../../../design-system/applyTheme'
 
 const useUIStore = create((set, get) => ({
+    // Theme
+    themeName: 'Dark Default',
+    setTheme: (name) => {
+        set({ themeName: name })
+        applyTheme(name)
+    },
+
     // Layout dimensions
     splitterSize: 0,
     splitterSizeHidden: 17,

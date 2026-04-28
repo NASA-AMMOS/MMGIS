@@ -205,11 +205,8 @@ function TopBar({ userInterface }) {
     if (isMobile) {
         topBarStyle.background = 'var(--color-a)'
     }
-    if (toolPanelWidth > 0) {
-        topBarStyle.paddingLeft = '0px'
-        topBarStyle.marginLeft = (toolPanelWidth + leftOffset) + 'px'
-        topBarStyle.width = `calc(100% - ${toolPanelWidth + leftOffset}px)`
-    } else if (toolsWrapperRawWidth && toolsWrapperRawWidth !== 0 && toolsWrapperRawWidth !== 'full') {
+    // Tool panel floats over content — TopBar doesn't shift for it
+    if (toolsWrapperRawWidth && toolsWrapperRawWidth !== 0 && toolsWrapperRawWidth !== 'full') {
         const newTopWidth = leftOffset + toolsWrapperRawWidth
         topBarStyle.marginLeft = newTopWidth + 'px'
         topBarStyle.width = `calc(100% - ${newTopWidth}px)`

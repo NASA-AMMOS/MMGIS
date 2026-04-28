@@ -1,6 +1,8 @@
 import useUIStore from './store/uiStore'
 import BottomBar from './BottomBar'
 import LayerUpdatedControl from './LayerUpdatedControl'
+import { applyTheme } from '../../../design-system/applyTheme'
+import { initThemeApplier, refreshThemeDOM } from '../../../design-system/themeApplier'
 
 var Viewer_ = null
 var Map_ = null
@@ -104,8 +106,10 @@ const UserInterfaceBridge = {
     },
 
     init: function () {
-        // In React mode, layout is rendered by React components.
-        // This is a no-op - React handles mounting via UserInterfaceLayout.
+        // Apply default theme on init
+        applyTheme(useUIStore.getState().themeName)
+        // Start the imperative theme applier for jQuery-managed elements
+        initThemeApplier()
     },
 
     hide: function () {
@@ -317,6 +321,11 @@ const UserInterfaceBridge = {
                 if (topBarTitleName)
                     topBarTitleName.textContent = l_.configData.look.pagename
             }
+        }
+
+        // Apply theme from mission config if set
+        if (l_.configData && l_.configData.look && l_.configData.look.theme) {
+            useUIStore.getState().setTheme(l_.configData.look.theme)
         }
 
         // Set UI reference so BottomBar utility methods can access it.

@@ -72,7 +72,8 @@ function SplitScreens() {
     const topOffset = fullSizeViews ? 0 : topSize
     // Desktop toolbar is 40px wide; hidden when toolbarVisible is false
     const toolbarWidth = isMobile ? 0 : (toolbarVisible ? 40 : 0)
-    const leftOffset = toolPanelWidth + toolbarWidth
+    // Tool panel floats over map content — don't push splitscreens
+    const leftOffset = toolbarWidth
 
     return (
         <div

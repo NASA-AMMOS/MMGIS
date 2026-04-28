@@ -4,12 +4,19 @@
 import $ from 'jquery'
 import L_ from '../Basics/Layers_/Layers_'
 import F_ from '../Basics/Formulae_/Formulae_'
+import uiStore from '../Basics/UserInterface_/store/uiStore'
 
 export function stylize() {
     if (L_.configData.look) {
         if (L_.configData.look.pagename && L_.configData.look.pagename != '')
             document.title = L_.configData.look.pagename + ' - ' + L_.mission
 
+        // Apply theme preset first if set in mission config
+        if (L_.configData.look.theme && L_.configData.look.theme !== '') {
+            uiStore.getState().setTheme(L_.configData.look.theme)
+        }
+
+        // Then apply individual color overrides on top (backward compat)
         const r = document.querySelector(':root')
 
         if (
