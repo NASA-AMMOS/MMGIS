@@ -201,10 +201,10 @@ body {
     display: flex;
     align-items: center;
     z-index: 500;
-    transition: opacity 0.3s;
+    transition: background 0.2s ease-out;
 }
 .splitterV:hover {
-    opacity: 0.9;
+    background: var(--color-mmgis-a, rgba(0, 183, 255, 0.15));
 }
 
 .splitterVInner {
@@ -345,8 +345,17 @@ body {
     border-top: 1px solid var(--color-a-5);
 }
 
+.toolButton {
+    color: var(--color-f);
+}
 .toolButton:hover {
     background: var(--color-a1-5) !important;
+    color: var(--color-c) !important;
+}
+.toolButton.toolButtonActive,
+.toolButton.toolButtonActive:hover {
+    color: var(--color-mmgis) !important;
+    background: var(--color-i) !important;
 }
 
 .toolButtonSep.active {
@@ -373,14 +382,20 @@ body {
     position: absolute;
     box-shadow: 0px -2px 3px 0px rgba(0, 0, 0, 0.2);
 }
+#bottomFloatingBar #toolsWrapper {
+    position: relative;
+    bottom: auto;
+    border: none;
+}
 
 #toolbar {
     width: auto;
     background: var(--color-a);
-    height: 30px;
     position: absolute;
     left: 0px;
     bottom: 0px;
+    display: flex;
+    flex-direction: column;
 }
 
 #logoGoBack {
@@ -542,7 +557,7 @@ body {
 
 .leaflet-control-zoom {
     border: none !important;
-    margin-top: 40px !important;
+    margin-top: 10px !important;
     margin-right: 5px !important;
     user-select: none;
 }
@@ -688,7 +703,7 @@ body {
     background: var(--color-a);
     border: 1px solid var(--color-a-5);
     box-shadow: 0px 0px 3px 0px rgb(0 0 0);
-    transition: bottom 0.2s ease-out;
+    transition: bottom 0.2s ease-out, left 0.2s ease-out;
 }
 #mmgis-map-compass .spin {
     width: 100%;
@@ -1300,4 +1315,41 @@ mark {
 
 .cesium-widget-credits {
     display: none !important;
+}
+
+/* Standardized tool header pattern */
+.mmgisToolHeader {
+    width: 100%;
+}
+.mmgisToolHeader > div:first-child {
+    display: flex;
+    height: 40px;
+    line-height: 18px;
+    color: #ccc;
+    background: var(--color-a);
+    justify-content: space-between;
+}
+.mmgisToolHeader > div:first-child > div:first-child {
+    display: flex;
+    padding-left: 0px;
+}
+.mmgisToolTitle {
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    padding-left: 6px;
+    font-family: 'lato-light';
+    text-transform: uppercase;
+    color: var(--color-l);
+}
+.mmgisToolHelpBtn {
+    width: 40px;
+    height: 40px;
+    text-align: center;
+    line-height: 40px;
+    cursor: pointer;
+    color: var(--color-a3);
+}
+.mmgisToolHelpBtn:hover {
+    color: var(--color-c);
 }

@@ -378,7 +378,7 @@ const TimeUI = {
                 position: 'fixed',
                 left: bcr.left,
                 right: bcr.right,
-                bottom: timeUIHeight,
+                bottom: (window.innerHeight - bcr.top) + 'px',
             })
 
             bcr = $(`#mmgisTimeUIPlayTrigger`).get(0).getBoundingClientRect()
@@ -386,7 +386,7 @@ const TimeUI = {
                 position: 'fixed',
                 left: bcr.left,
                 right: bcr.right,
-                bottom: timeUIHeight,
+                bottom: (window.innerHeight - bcr.top) + 'px',
             })
 
             // Update timeline handles when layout changes

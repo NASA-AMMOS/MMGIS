@@ -201,6 +201,27 @@ let Map_ = {
 
         if (this.map.zoomControl) this.map.zoomControl.setPosition('topright')
 
+        // Home button on zoom controls (resets to configured initial view)
+        var HomeControl = L.Control.extend({
+            options: { position: 'topright' },
+            onAdd: function () {
+                var container = L.DomUtil.create('div', 'leaflet-control-zoom leaflet-bar leaflet-control')
+                var btn = L.DomUtil.create('a', 'leaflet-control-zoom-home', container)
+                btn.innerHTML = '<i class="mdi mdi-home-variant-outline" style="font-size:16px;line-height:30px;"></i>'
+                btn.href = '#'
+                btn.title = 'Reset View'
+                btn.setAttribute('role', 'button')
+                btn.setAttribute('aria-label', 'Reset View')
+                L.DomEvent.disableClickPropagation(btn)
+                L.DomEvent.on(btn, 'click', function (e) {
+                    L.DomEvent.preventDefault(e)
+                    Map_.resetView(L_.view)
+                })
+                return container
+            },
+        })
+        this.map.addControl(new HomeControl())
+
         if (Map_.mapScaleZoom) {
             L.control
                 .scalefactor({

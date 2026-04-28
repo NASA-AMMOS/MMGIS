@@ -8,12 +8,13 @@
     z-index: 20;
     display: flex;
     transition: bottom 0.2s ease-in;
+    background: var(--color-a);
+    border-radius: 3px;
 }
 
 #CoordinatesDiv .mouseLngLat {
     line-height: 30px;
     padding: 0px 8px;
-    background: var(--color-a);
     border-radius: 3px;
     display: flex;
 }
@@ -136,7 +137,6 @@
 }
 
 #CoordinatesDiv #pickLngLat {
-    background: var(--color-a);
     color: var(--color-f);
     text-align: center;
     cursor: pointer;
@@ -145,6 +145,8 @@
     height: 24px;
     line-height: 24px;
     margin: 3px 0px 3px 5px;
+    border-left: 1px solid var(--color-a1);
+    padding-left: 5px;
     pointer-events: all;
     transition: all 0.2s ease-in;
 }
@@ -155,35 +157,4 @@
     color: var(--color-mmgis);
 }
 
-#CoordinatesDiv #toggleTimeUI {
-    width: 36px;
-    height: 32px;
-    margin-bottom: 0;
-    position: absolute;
-    right: -36px;
-    background: var(--color-a);
-    color: var(--color-f);
-    text-align: center;
-    cursor: pointer;
-    line-height: 24px;
-    margin: 3px 0px 3px 5px;
-    pointer-events: all;
-    border-top-right-radius: 3px;
-    border-top-left-radius: 3px;
-    transition: all 0.2s ease-in;
-}
-#CoordinatesDiv #toggleTimeUI > i:before {
-    transition: all 0.2s ease-in;
-}
-#CoordinatesDiv #toggleTimeUI.active > i:before {
-    font-size: 26px;
-    padding-top: 8px;
-}
-#CoordinatesDiv #toggleTimeUI:hover,
-#CoordinatesDiv #toggleTimeUI.active {
-    transform: translateY(-10px);
-    color: var(--color-mmgis);
-    border-top-right-radius: 3px;
-    border-top-left-radius: 3px;
-    height: 42px;
-}
+/* toggleTimeUI button removed — TimeUI toggle is now in Settings modal */

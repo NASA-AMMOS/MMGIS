@@ -17,10 +17,10 @@ const NODATA = 0
 // prettier-ignore
 var markup = [
     "<div id='analysisTool'>",
-        "<div id='analysisToolHeader'>",
+        "<div id='analysisToolHeader' class='mmgisToolHeader'>",
             "<div id='filterAnalysis'>",
                 "<div class='left'>",
-                    '<div id="title">Analysis</div>',
+                    '<div class="mmgisToolTitle">Analysis</div>',
                     Help.getComponent(helpKey),
                 "</div>",
                 "<div class='right'>",

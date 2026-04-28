@@ -5,6 +5,7 @@ import CursorInfo from '../../Ancillary/CursorInfo'
 
 import IsochroneManager from './IsochroneTool_Manager'
 import models from './models'
+import Help from '../../Ancillary/Help'
 
 import './IsochroneTool.css'
 const L = window.L
@@ -15,9 +16,11 @@ Individual isochrones, from data gathering to modeling to analysis,
 are handled in IsochroneTool_Manager and its imports.
 */
 
+const helpKey = 'IsochroneTool'
 const markup = `<div id="isochroneTool">
-    <div id="isochroneToolHeader">
-        <span id="isochroneToolTitle">Isochrone</span>
+    <div id="isochroneToolHeader" class="mmgisToolHeader">
+        <span class="mmgisToolTitle">Isochrone</span>
+        ${Help.getComponent(helpKey)}
         <span id="iscNew">
             New
             <i class="mdi mdi-plus mdi-18px"></i>

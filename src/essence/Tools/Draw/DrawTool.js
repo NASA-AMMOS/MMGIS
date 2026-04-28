@@ -26,6 +26,7 @@ import './DrawTool.css'
 
 import tippy from 'tippy.js'
 import hotkeys from 'hotkeys-js'
+import Help from '../../Ancillary/Help'
 
 // Plugins
 import DrawTool_Geologic from './Plugins/Geologic/DrawTool_Geologic'
@@ -38,8 +39,17 @@ const DrawTool_ScienceIntent = null
 
 //Add the tool markup if you want to do it this way
 // prettier-ignore
+var helpKey = 'DrawTool'
 var markup = [
     "<div id='drawTool' style='width: 100%;'>",
+      "<div id='drawToolHeader' class='mmgisToolHeader'>",
+        "<div>",
+          "<div>",
+            '<div class="mmgisToolTitle">Draw</div>',
+            Help.getComponent(helpKey),
+          "</div>",
+        "</div>",
+      "</div>",
       "<div id='drawToolNotLoggedIn'>",
         "<div>Please log in before drawing</div>",
       "</div>",

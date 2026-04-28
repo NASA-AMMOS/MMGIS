@@ -126,6 +126,84 @@
     cursor: help;
 }
 
+#mainInfoModal {
+    background: var(--color-k);
+    width: 440px;
+    max-width: 90vw;
+    margin: 40px;
+    border-radius: 3px;
+}
+#mainInfoModalTitle {
+    padding: 0px 0px 0px 10px;
+    height: 40px;
+    line-height: 39px;
+    font-size: 18px;
+    background: var(--color-i);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    display: flex;
+    justify-content: space-between;
+}
+#mainInfoModalTitle > div:first-child {
+    display: flex;
+}
+#mainInfoModalTitle > div:first-child > div {
+    margin-left: 6px;
+    line-height: 40px;
+}
+#mainInfoModalClose {
+    width: 40px;
+    height: 40px;
+    text-align: center;
+    cursor: pointer;
+}
+#mainInfoModalContent {
+    padding: 20px 24px;
+}
+.mainInfoModalLogos {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+.mainInfoModalMmgisLogo {
+    flex-shrink: 0;
+}
+.mainInfoModalMapLogo {
+    max-height: 48px;
+    max-width: 120px;
+    object-fit: contain;
+}
+.mainInfoModalDetails {
+    margin-bottom: 12px;
+}
+.mainInfoModalRow {
+    display: flex;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 13px;
+    line-height: 20px;
+}
+.mainInfoModalLabel {
+    color: var(--color-f);
+    min-width: 60px;
+    font-weight: 600;
+}
+.mainInfoModalDescription {
+    color: var(--color-f);
+    font-size: 12px;
+    font-style: italic;
+    padding-top: 8px;
+    border-top: 1px solid var(--color-a-5);
+}
+.mainInfoModalCustom {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-a-5);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
 #hotkeyIndicator {
     position: absolute;
     top: 48px;

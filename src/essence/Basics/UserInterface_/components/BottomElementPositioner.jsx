@@ -9,29 +9,28 @@ import useUIStore from '../store/uiStore'
  * lived in UserInterfaceBridge.js.
  *
  * Positioned elements (created by jQuery modules, not React):
- *   Desktop: #mapToolBar, #mmgis-attributions, .leaflet-control-scalefactor,
+ *   Desktop: #mapToolBar, .leaflet-control-scalefactor,
  *            #mmgis-map-compass, .leaflet-bottom.leaflet-right,
  *            #CoordinatesDiv, #timeUI
  *   Mobile:  #CoordinatesDiv, #timeUI, #toolbar
- *
- * By living inside the React component tree, this logic:
- *   - Participates in React's lifecycle (mount/unmount)
- *   - Is discoverable in the components directory
- *   - Uses useEffect for clean subscription management
  */
 function BottomElementPositioner() {
     const pxIsTools = useUIStore((s) => s.pxIsTools)
     const isMobile = useUIStore((s) => s.isMobile)
     const timeUIActive = useUIStore((s) => s.timeUIActive)
     const timeUIExpanded = useUIStore((s) => s.timeUIExpanded)
+    const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
 
     useEffect(() => {
         // Smooth transition matching the horizontal tools ease-out
-        const ease = 'bottom 0.4s ease-out'
+        const ease = 'bottom 0.2s ease-out, left 0.2s ease-out'
         // For #timeUI, preserve the CSS opacity/pointer-events transition
         // (all 0.2s ease-in from TimeUI.css) while adding the bottom
         // transition for tool open/close animation.
         const timeUIEase = 'all 0.2s ease-in, bottom 0.4s ease-out'
+
+        // Base left offset: 12px permanent push + tool panel width
+        const leftOffset = 12 + toolPanelWidth
 
         if (isMobile) {
             // Mobile: reposition toolbar, coordinates, timeUI above tools
@@ -68,40 +67,23 @@ function BottomElementPositioner() {
             if (mapToolBar) {
                 mapToolBar.style.transition = ease
                 mapToolBar.style.bottom = (pxIsTools + newBottom) + 'px'
+                mapToolBar.style.left = (leftOffset + 12) + 'px'
             }
 
-            // Attributions sit just above the tools area (not shifted
-            // by TimeUI height). They are a child of
-            // .leaflet-bottom.leaflet-left, so we position them directly
-            // rather than moving the parent (which would double-offset).
-            const attributions = document.getElementById('mmgis-attributions')
-            if (attributions) {
-                attributions.style.transition = ease
-                attributions.style.bottom = pxIsTools + 'px'
-            }
-
-            // Position the scalefactor control directly (child of
-            // .leaflet-bottom.leaflet-left). We do NOT move the parent
-            // container because #mmgis-attributions and #mmgis-map-compass
-            // are also children of that parent — moving the parent would
-            // double-offset them. The jQuery toggleTimeUI in Coordinates.js
-            // handles the parent's TimeUI-based positioning.
+            // Position the scalefactor control directly
             const scaleFactor = document.querySelector('.leaflet-control-scalefactor')
             if (scaleFactor) {
                 scaleFactor.style.transition = ease
                 scaleFactor.style.bottom = (pxIsTools + 48) + 'px'
+                scaleFactor.style.left = leftOffset + 'px'
             }
 
-            // Compass is also a child of .leaflet-bottom.leaflet-left.
-            // Position it directly above attributions.
+            // Compass positioned above scalefactor
             const compass = document.getElementById('mmgis-map-compass')
             if (compass) {
                 compass.style.transition = ease
-                if (!attributions || attributions.textContent.trim().length === 0) {
-                    compass.style.bottom = (pxIsTools + 38) + 'px'
-                } else {
-                    compass.style.bottom = (pxIsTools + 58) + 'px'
-                }
+                compass.style.bottom = (pxIsTools + 38) + 'px'
+                compass.style.left = leftOffset + 'px'
             }
 
             const leafletBottomRight = document.querySelector('.leaflet-bottom.leaflet-right')
@@ -122,7 +104,7 @@ function BottomElementPositioner() {
                 timeUIEl.style.bottom = pxIsTools + 'px'
             }
         }
-    }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded])
+    }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded, toolPanelWidth])
 
     // Renders nothing — this is a side-effect-only component
     return null

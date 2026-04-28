@@ -1,0 +1,187 @@
+/* TopBar — layout and structure */
+
+.topbar-react-overlay {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 100%;
+    padding-right: 2px;
+    pointer-events: auto;
+    order: 3;
+}
+
+/* Reorder TopBar flex children */
+#topBar > #topBarLeft { order: 1; }
+#topBar > #topBarRight { order: 2; flex: 0; margin-left: auto; }
+
+.topbar-panel-toggles {
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    overflow: hidden;
+    height: 26px;
+    background: var(--color-a-5);
+    border: 1px solid var(--color-a1);
+}
+
+.topbar-toggle-btn {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    padding: 0 10px;
+    height: 100%;
+    border: none;
+    border-right: 1px solid var(--color-a1);
+    background: transparent;
+    color: var(--color-a3);
+    cursor: pointer;
+    transition: all 0.15s;
+    line-height: 26px;
+}
+
+.topbar-toggle-btn:last-child {
+    border-right: none;
+}
+
+.topbar-toggle-btn.active {
+    color: var(--color-mmgis);
+    font-weight: 600;
+    background: var(--color-i);
+}
+
+/* --- User account area --- */
+.topbar-user-area {
+    display: flex;
+    align-items: center;
+    margin-left: 4px;
+}
+
+.topbar-user-wrapper {
+    position: relative;
+}
+
+.topbar-user-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--color-i);
+    color: var(--color-c);
+    border: 1px solid var(--color-a1);
+    transition: background 0.15s, box-shadow 0.15s;
+    user-select: none;
+}
+
+.topbar-user-card {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 160px;
+    border-radius: 6px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 2100;
+    overflow: hidden;
+    pointer-events: auto;
+    background: var(--color-a);
+    border: 1px solid var(--color-a1);
+}
+
+.topbar-user-card-name {
+    padding: 10px 14px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--color-a5);
+}
+
+.topbar-user-card-divider {
+    height: 1px;
+    margin: 0 8px;
+    background: var(--color-a1);
+}
+
+.topbar-user-card-action {
+    padding: 8px 14px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    color: var(--color-a3);
+    transition: background 0.1s, color 0.1s;
+}
+.topbar-user-card-action:hover {
+    background: rgba(255,255,255,0.06);
+}
+
+.topbar-signin-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--color-a3);
+    border: 1px solid var(--color-a1);
+    transition: color 0.15s, background 0.15s;
+}
+.topbar-signin-btn:hover {
+    color: var(--color-c);
+}
+
+/* Menu dropdown (kebab) */
+.topbar-menu-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.topbar-menu-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--color-a3);
+    transition: background 0.15s;
+}
+.topbar-menu-btn:hover {
+    background: rgba(255,255,255,0.08);
+}
+.topbar-menu-dropdown {
+    position: absolute;
+    top: 34px;
+    right: 0;
+    min-width: 180px;
+    border-radius: 6px;
+    padding: 4px 0;
+    z-index: 9999;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: var(--color-a);
+    border: 1px solid var(--color-a1);
+}
+.topbar-menu-item {
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    color: var(--color-a3);
+    transition: background 0.12s;
+}
+.topbar-menu-item:hover {
+    background: rgba(255,255,255,0.08);
+}

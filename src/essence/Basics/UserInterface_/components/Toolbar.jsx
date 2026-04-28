@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react'
 import useUIStore from '../store/uiStore'
 import F_ from '../../Formulae_/Formulae_'
+import BottomBarReact from './BottomBarReact'
 import tippy from 'tippy.js'
 
 /**
@@ -202,15 +203,11 @@ function ToolButton({ tool, index, isMobile, isActive, onToolClick }) {
         }
     }, [isMobile, tool.name])
 
-    const defaultColor = 'var(--color-f)'
-    const activeColor = 'var(--color-mmgis)'
-    const activeBG = 'var(--color-i)'
-
     return (
         <div
             ref={buttonRef}
             id={'toolButton' + tool.name}
-            className={'toolButton' + (isActive ? ' active' : '')}
+            className={'toolButton' + (isActive ? ' toolButtonActive' : '')}
             tabIndex={index + 1}
             style={{
                 width: isMobile ? '45px' : '100%',
@@ -223,20 +220,8 @@ function ToolButton({ tool, index, isMobile, isActive, onToolClick }) {
                 verticalAlign: 'middle',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease-in',
-                color: isActive ? activeColor : defaultColor,
-                background: isActive ? activeBG : 'none',
             }}
             onClick={() => onToolClick(tool, index)}
-            onMouseOver={(e) => {
-                if (!isActive) {
-                    e.currentTarget.style.color = 'var(--color-mmgis)'
-                }
-            }}
-            onMouseLeave={(e) => {
-                if (!isActive) {
-                    e.currentTarget.style.color = defaultColor
-                }
-            }}
         >
             <i
                 id={tool.name + 'Tool'}
@@ -247,7 +232,7 @@ function ToolButton({ tool, index, isMobile, isActive, onToolClick }) {
     )
 }
 
-function Toolbar() {
+function Toolbar({ userInterface }) {
     const isMobile = useUIStore((s) => s.isMobile)
     const topSize = useUIStore((s) => s.topSize)
     const pxIsTools = useUIStore((s) => s.pxIsTools)
@@ -320,7 +305,8 @@ function Toolbar() {
                     top: '0px',
                     height: '100%',
                     zIndex: 1004,
-                    display: toolbarVisible ? 'inherit' : 'none',
+                    display: toolbarVisible ? 'flex' : 'none',
+                    flexDirection: 'column',
                 }}
             >
                 {toolsLoaded && (
@@ -357,6 +343,7 @@ function Toolbar() {
                         </div>
                     </div>
                 )}
+                {!isMobile && <BottomBarReact userInterface={userInterface} />}
             </div>
             <div
                 id="mmgislogo"
@@ -371,6 +358,7 @@ function Toolbar() {
                     left: '0px',
                     zIndex: 2005,
                     imageRendering: 'pixelated',
+                    borderRight: '1px solid var(--color-a-5)',
                 }}
                 onClick={F_.toHostForceLanding}
                 dangerouslySetInnerHTML={{

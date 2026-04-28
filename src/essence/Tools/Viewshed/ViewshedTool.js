@@ -27,10 +27,10 @@ const helpKey = 'ViewshedTool'
 // prettier-ignore
 let markup = [
     "<div id='viewshedTool'>",
-        "<div id='vstHeader'>",
+        "<div id='vstHeader' class='mmgisToolHeader'>",
             "<div>",
                 "<div style='display: flex;'>",
-                    "<div id='vstTitle'>Viewshed</div>",
+                    "<div class='mmgisToolTitle'>Viewshed</div>",
                     Help.getComponent(helpKey),
                 "</div>",
                 "<div id='vstNew'>",

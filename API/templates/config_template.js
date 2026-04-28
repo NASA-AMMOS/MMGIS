@@ -43,6 +43,7 @@ module.exports = {
     help: true,
     logourl: "",
     helpurl: "",
+    aboutModalContent: "",
   },
   panelSettings: {},
   panels: { viewer: true, map: true, globe: true },

@@ -36,12 +36,17 @@ const markup = [
             "<i class='mdi mdi-target mdi-18px'></i>",
         "</div>",
     "</div>",
-    "<div id='toggleTimeUI'>",
-        "<i class='mdi mdi-clock mdi-18px'></i>",
-    "</div>"
 ].join('\n');
 
 const Coordinates = {
+    toggleTimeUI: function (forceState) {
+        const timeUI = document.getElementById('timeUI')
+        if (!timeUI) return
+        const isActive = timeUI.classList.contains('active')
+        if (forceState === true && isActive) return
+        if (forceState === false && !isActive) return
+        toggleTimeUI()
+    },
     //[ lng, lat ]
     mouseLngLat: [0, 0],
     state: 0,

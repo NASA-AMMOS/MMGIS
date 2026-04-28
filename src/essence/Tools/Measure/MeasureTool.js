@@ -6,6 +6,8 @@ import Viewer_ from '../../Basics/Viewer_/Viewer_'
 import Map_ from '../../Basics/Map_/Map_'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import CursorInfo from '../../Ancillary/CursorInfo'
+import Help from '../../Ancillary/Help'
+import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import calls from '../../../pre/calls'
 
 import metricsGraphics from '../../../external/MetricsGraphics/metricsgraphics.min'
@@ -129,8 +131,11 @@ const Measure = () => {
             }}
         >
             <div id='measureLeft'>
-                <div id='measureTop'>
-                    <div id='measureTitle'>Measure</div>
+                <div className='mmgisToolHeader'>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className='mmgisToolTitle'>Measure</div>
+                        <div dangerouslySetInnerHTML={{ __html: Help.getComponent('MeasureTool') }} />
+                    </div>
                     <div id='measureIcons'>
                         <div
                             id='measureUndo'
@@ -663,7 +668,15 @@ const Measure = () => {
             </div>
             <div id='measureToolBar'>
                 <div
-                    id='measureReset'
+                    id='measureClose'
+                    title='Close'
+                    onClick={() => { ToolController_.closeActiveTool() }}
+                >
+                    <i className='mdi mdi-close mdi-18px'></i>
+                </div>
+                <div style={{ flex: 1 }} />
+                <div
+                    id='measureResetGraph'
                     title='Reset Graph'
                     onClick={() => {
                         // Zooming not working nicely, see register above

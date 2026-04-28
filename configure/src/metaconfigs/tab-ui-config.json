@@ -461,6 +461,13 @@
           "description": "Required in order to enable button.",
           "type": "text",
           "width": 10
+        },
+        {
+          "field": "look.aboutModalContent",
+          "name": "About Modal Content",
+          "description": "Markdown content displayed in the About modal. Supports full GitHub-flavored Markdown.",
+          "type": "markdown",
+          "width": 12
         }
       ]
     },

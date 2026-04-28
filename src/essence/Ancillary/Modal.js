@@ -34,6 +34,12 @@ const Modal = {
                 Modal.remove(false, modalId)
         })
 
+        // Close button handler
+        $(`${elmId} #mmgisModalClose`).on('click', function (e) {
+            e.stopPropagation()
+            Modal.remove(false, modalId)
+        })
+
         $('#main-container').css({
             filter: `blur(${3 * Object.keys(Modal._activeModalIds).length}px)`,
         })

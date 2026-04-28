@@ -85,10 +85,10 @@ function generateMarkup() {
     // prettier-ignore
     return [
         "<div id='layersTool'>",
-            "<div id='layersToolHeader'>",
+            "<div id='layersToolHeader' class='mmgisToolHeader'>",
                 "<div id='filterLayers'>",
                     "<div class='left'>",
-                        '<div id="title">Layers</div>',
+                        '<div class="mmgisToolTitle">Layers</div>',
                         Help.getComponent(helpKey),
                     "</div>",
                     "<div class='right'>",
