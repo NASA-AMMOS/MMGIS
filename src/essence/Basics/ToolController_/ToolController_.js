@@ -1,4 +1,5 @@
 import $ from 'jquery'
+import tippy from 'tippy.js'
 import L_ from '../Layers_/Layers_'
 import { toolModules, toolConfigs } from '../../../pre/tools'
 import useUIStore from '../UserInterface_/store/uiStore'
@@ -67,14 +68,23 @@ let ToolController_ = {
                 'width': '26px',
                 'height': '1px',
                 'margin': '4px auto',
+                'background': 'var(--color-a1)',
             })
         this.sepToolbarDiv.append(sepDivider)
 
-        // Create each separated tool
+        // Create each separated tool (Legend last, matching PR #47 ordering)
+        let legendToolIndex = -1
         for (let i = 0; i < tools.length; i++) {
-            if (tools[i].separatedTool === true) {
+            if (tools[i].separatedTool === true && L_.UserInterface_.isMobile !== true) {
+                if (tools[i].name === 'Legend') {
+                    legendToolIndex = i
+                    continue
+                }
                 this._createSeparatedTool(tools, i)
             }
+        }
+        if (legendToolIndex >= 0) {
+            this._createSeparatedTool(tools, legendToolIndex)
         }
 
         // Publish tools list to Zustand store for React rendering
@@ -243,6 +253,15 @@ let ToolController_ = {
         )
         this.sepToolbarDiv.append(toolButton)
 
+        // Add tooltip (desktop only)
+        if (!L_.UserInterface_.isMobile) {
+            tippy(`#toolButtonSeparated_${tools[i].name}`, {
+                content: tools[i].name,
+                placement: 'right',
+                theme: 'blue',
+            })
+        }
+
         // Auto-open on start if configured
         if (tools[i].on !== false) {
             setTimeout(() => {
@@ -314,6 +333,9 @@ let ToolController_ = {
 
                     this.activeTool = tool
                     tool.make(this)
+
+                    // Inject close X button into the tool's content area
+                    ToolController_.injectCloseButton()
                 } else {
                     console.warn(
                         'WARNING: ' +
@@ -407,6 +429,55 @@ let ToolController_ = {
         // Sync to store so React re-renders button states
         useUIStore.getState().setActiveToolName(null)
         this.prevHeight = 0
+    },
+    injectCloseButton: function () {
+        // Determine which container the tool rendered into
+        const isHorizontal = this.activeTool && this.activeTool.height > 0
+        const container = isHorizontal ? $('#tools') : $('#toolPanel')
+        if (!container.length) return
+
+        // Remove any existing injected close button
+        container.find('.tool-close-btn').remove()
+
+        const closeBtn = $('<div>')
+            .addClass('tool-close-btn')
+            .attr('title', 'Close Tool')
+            .css({
+                position: 'absolute',
+                top: '6px',
+                right: '6px',
+                width: '26px',
+                height: '26px',
+                display: 'flex',
+                'align-items': 'center',
+                'justify-content': 'center',
+                cursor: 'pointer',
+                'border-radius': '4px',
+                'z-index': '10',
+                color: '#9ca3af',
+                'font-size': '18px',
+                transition: 'background 0.15s, color 0.15s',
+            })
+            .html("<i class='mdi mdi-close mdi-18px'></i>")
+            .on('mouseenter', function () {
+                $(this).css({ background: 'rgba(255,255,255,0.1)', color: '#fff' })
+            })
+            .on('mouseleave', function () {
+                $(this).css({ background: 'transparent', color: '#9ca3af' })
+            })
+            .on('click', function () {
+                ToolController_.closeActiveTool()
+            })
+
+        // Ensure the container has position:relative for absolute positioning
+        const firstChild = container.children().first()
+        if (firstChild.length) {
+            firstChild.css('position', 'relative')
+            firstChild.append(closeBtn)
+        } else {
+            container.css('position', 'relative')
+            container.append(closeBtn)
+        }
     },
     getToolsUrl: function () {
         var toolsUrl = ''
