@@ -18,7 +18,7 @@ function ToolPanel() {
 
     const handleDragMouseDown = useCallback((e) => {
         const startX = e.pageX
-        const startLeft = toolPanelWidth + 10
+        const startLeft = toolPanelWidth + panelLeftOffset
 
         const handleMouseMove = (ev) => {
             const newLeft = startLeft + (ev.pageX - startX)
@@ -38,7 +38,7 @@ function ToolPanel() {
             document.body.style.userSelect = ''
             if (dragRef.current && dragRef.current._dragged) {
                 const newWidth =
-                    parseInt(dragRef.current.style.left) - 10
+                    parseInt(dragRef.current.style.left) - panelLeftOffset
                 if (newWidth > 0) {
                     // Use active tool's configured width as minimum,
                     // matching UserInterfaceBridge.resizeToolPanel()
