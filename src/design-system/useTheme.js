@@ -1,4 +1,4 @@
-import { useSyncExternalStore, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import uiStore from '../essence/Basics/UserInterface_/store/uiStore'
 import { getTheme } from './themes'
 
@@ -17,12 +17,18 @@ export function hexToRgba(hex, alpha) {
 /**
  * React hook that returns the current theme object.
  * Re-renders the component when the theme changes.
+ * Compatible with React 16+ (uses useState + useEffect instead of useSyncExternalStore).
  */
 export function useTheme() {
-    const subscribe = useCallback((cb) => uiStore.subscribe(cb), [])
-    const getSnapshot = useCallback(() => uiStore.getState().themeName, [])
+    const [themeName, setThemeName] = useState(uiStore.getState().themeName)
 
-    const themeName = useSyncExternalStore(subscribe, getSnapshot)
+    useEffect(() => {
+        const unsub = uiStore.subscribe((state) => {
+            setThemeName(state.themeName)
+        })
+        return unsub
+    }, [])
+
     const themeObj = getTheme(themeName)
 
     const result = { ...themeObj }
