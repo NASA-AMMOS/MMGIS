@@ -104,6 +104,123 @@
       "type": "header",
       "sublayers": [
         {
+          "name": "Vector Tile Layers",
+          "uuid": "f4087afe-8b01-4e0b-b623-04a67a18e7de",
+          "type": "header",
+          "expanded": false,
+          "sublayers": [
+            {
+              "name": "OSM Buildings",
+              "uuid": "0f8a6dca-a99c-436e-aa90-297ed178c73e",
+              "type": "vectortile",
+              "kind": "none",
+              "visibility": false,
+              "url": "https://tiles.openfreemap.org/planet/20260408_001001_pt/{z}/{x}/{y}.pbf",
+              "minZoom": 13,
+              "maxNativeZoom": 14,
+              "maxZoom": 22,
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "extrudeEnabled": true,
+              "extrudeHeightProperty": "render_height",
+              "extrudeDefaultHeight": 0,
+              "extrudeBaseProperty": "render_min_height",
+              "extrudeVtLayer": "building",
+              "extrudeColor": "#ff0000",
+              "extrudeOverrideFeatureColor": true,
+              "extrudeOpacity": 1,
+              "style": {
+                "color": "#FFFFFF",
+                "fillColor": "#FFFFFF",
+                "vtId": "id",
+                "vtLayer": {
+                  "building": {
+                    "fill": true,
+                    "fillColor": "#ff0000",
+                    "fillOpacity": 0.6,
+                    "weight": 0.5,
+                    "color": "#999999"
+                  }
+                },
+                "className": "osmbuildings"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery"
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "style": {
+                  "nointeraction": false
+                },
+                "layerAttachments": {
+                  "labels": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "theme": "default",
+                    "size": "default"
+                  },
+                  "pairings": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "style": {
+                      "color": "#FFFFFF"
+                    }
+                  }
+                },
+                "coordinateAttachments": {
+                  "marker": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "color": "#FFFFFF",
+                    "fillColor": "#FFFFFF"
+                  }
+                },
+                "markerAttachments": {
+                  "bearing": {
+                    "enabled": false,
+                    "angleUnit": "deg",
+                    "color": "#FFFFFF",
+                    "useCustomShape": false
+                  },
+                  "image": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "angleUnit": "deg",
+                    "show": "click"
+                  },
+                  "model": {
+                    "enabled": false,
+                    "yawUnit": "deg",
+                    "invertYaw": false,
+                    "pitchUnit": "deg",
+                    "invertPitch": false,
+                    "rollUnit": "deg",
+                    "invertRoll": false,
+                    "show": "click"
+                  },
+                  "uncertainty": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "strokeColor": "#FFFFFF",
+                    "color": "#FFFFFF",
+                    "axisUnit": "meters",
+                    "angleUnit": "deg"
+                  }
+                },
+                "pathAttachments": {
+                  "gradient": {
+                    "enabled": false,
+                    "connectAllPoints": false
+                  }
+                },
+                "hideMainFeature": false
+              }
+            }
+          ]
+        },
+        {
           "name": "📄 GeoJSON Data Features",
           "uuid": "29dd6328-4333-40d4-be4c-94c018e512c8",
           "sublayers": [

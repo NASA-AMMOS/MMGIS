@@ -4,6 +4,7 @@ import * as Cesium from 'cesium'
 import { utcFormat } from 'd3-time-format'
 import 'cesium/Source/Widgets/widgets.css'
 import LayerUtils from '../Layers_/LayerUtils'
+import CesiumMVTLayer from './CesiumMVTLayer'
 import {
     interpolateMultipleColors,
     buildColorStops,
@@ -153,6 +154,17 @@ class GlobeRenderer {
 
         // Set up terrain provider
         this._setupTerrainProvider()
+
+        // Enable sun-based directional lighting for 3D shading on buildings
+        this.renderer.scene.globe.enableLighting = true
+
+        // Pin sun to a fixed angle for consistent, aesthetically good shadows.
+        // Summer solstice at 10am EDT (14:00 UTC) — high sun from the southeast
+        // gives clear wall differentiation without harsh top-down flattening.
+        this.renderer.clock.currentTime = Cesium.JulianDate.fromDate(
+            new Date('2026-06-21T14:00:00Z')
+        )
+        this.renderer.clock.shouldAnimate = false
 
         // Mock controls object for compatibility
         this.controls = {
@@ -777,12 +789,117 @@ class GlobeRenderer {
                 }
                 this._requestRender()
             })
+        } else if (type === 'vectortile') {
+            // MVT vector tile layer with optional 3D extrusion
+            const mvtLayer = new CesiumMVTLayer(this.renderer, {
+                name: layerConfig.name,
+                url: layerConfig.path,
+                vtLayer: layerConfig.vtLayer,
+                extrudeHeightProperty: layerConfig.extrudeHeightProperty,
+                extrudeDefaultHeight: layerConfig.extrudeDefaultHeight,
+                extrudeBaseProperty: layerConfig.extrudeBaseProperty,
+                extrudeColor: layerConfig.extrudeColor,
+                extrudeOpacity: layerConfig.extrudeOpacity,
+                minZoom: layerConfig.minZoom,
+                maxZoom: layerConfig.maxZoom,
+                opacity: layerConfig.opacity,
+            })
+
+            this._layers[layerConfig.name] = {
+                type: 'vectortile',
+                mvtLayer: mvtLayer,
+                visible: true,
+            }
+        } else if (type === '3dtiles') {
+            // 3D Tiles layer (e.g., OSM Buildings, photogrammetry, point clouds)
+            this._add3DTilesLayer(layerConfig)
         } else if (type === 'model') {
             // Model layers not implemented for core features
             console.warn('Model layers not yet supported for Cesium renderer')
         } else if (type === 'curtain') {
             // Curtain layers not implemented for core features
             console.warn('Curtain layers not yet supported for Cesium renderer')
+        }
+    }
+
+    /**
+     * Add a Cesium 3D Tiles layer
+     * @param {object} layerConfig - Layer configuration
+     * @param {string} layerConfig.name - Layer name
+     * @param {string} layerConfig.path - URL to tileset.json
+     * @param {number} [layerConfig.opacity] - Opacity (0-1)
+     * @param {number} [layerConfig.maximumScreenSpaceError] - LOD quality (lower = higher quality, default 16)
+     * @param {object} [layerConfig.style] - Cesium3DTileStyle definition
+     * @param {number} [layerConfig.heightOffset] - Vertical offset in meters
+     */
+    async _add3DTilesLayer(layerConfig) {
+        const { name } = layerConfig
+
+        // Prevent duplicate loads
+        if (this._loadingLayers[name]) return
+        this._loadingLayers[name] = true
+
+        try {
+            const tileset = await Cesium.Cesium3DTileset.fromUrl(
+                layerConfig.path,
+                {
+                    maximumScreenSpaceError:
+                        layerConfig.maximumScreenSpaceError ?? 16,
+                    maximumMemoryUsage: layerConfig.maximumMemoryUsage ?? 512,
+                }
+            )
+
+            delete this._loadingLayers[name]
+
+            this.renderer.scene.primitives.add(tileset)
+
+            // Apply height offset if specified
+            if (layerConfig.heightOffset) {
+                const offset = new Cesium.Cartesian3(
+                    0,
+                    0,
+                    layerConfig.heightOffset
+                )
+                const modelMatrix =
+                    Cesium.Matrix4.fromTranslationQuaternionRotationScale(
+                        offset,
+                        Cesium.Quaternion.IDENTITY,
+                        new Cesium.Cartesian3(1, 1, 1)
+                    )
+                // Apply relative to the tileset's root transform
+                tileset.modelMatrix = Cesium.Matrix4.multiply(
+                    tileset.modelMatrix,
+                    modelMatrix,
+                    new Cesium.Matrix4()
+                )
+            }
+
+            // Apply 3D Tiles styling if specified
+            if (layerConfig.style) {
+                tileset.style = new Cesium.Cesium3DTileStyle(layerConfig.style)
+            }
+
+            // Apply opacity
+            if (
+                layerConfig.opacity !== undefined &&
+                layerConfig.opacity < 1.0
+            ) {
+                tileset.style = new Cesium.Cesium3DTileStyle({
+                    ...(layerConfig.style || {}),
+                    color: `color("white", ${layerConfig.opacity})`,
+                })
+            }
+
+            this._layers[name] = {
+                type: '3dtiles',
+                tileset: tileset,
+                visible: true,
+                opacity: layerConfig.opacity ?? 1.0,
+                styleConfig: layerConfig.style || null,
+            }
+        } catch (err) {
+            delete this._loadingLayers[name]
+            console.error(`Failed to load 3D Tiles layer "${name}":`, err)
         }
     }
 
@@ -1517,6 +1634,10 @@ class GlobeRenderer {
                     const removed = this.renderer.dataSources.remove(
                         layerInfo.dataSource
                     )
+                } else if (layerInfo.type === 'vectortile') {
+                    layerInfo.mvtLayer.destroy()
+                } else if (layerInfo.type === '3dtiles') {
+                    this.renderer.scene.primitives.remove(layerInfo.tileset)
                 }
                 // Clean up feature mapping
                 if (layerInfo.featureMap) {
@@ -1577,6 +1698,12 @@ class GlobeRenderer {
             layerInfo.visible = visible
         } else if (layerInfo.type === 'vector') {
             layerInfo.dataSource.show = visible
+            layerInfo.visible = visible
+        } else if (layerInfo.type === 'vectortile') {
+            layerInfo.mvtLayer.setVisible(visible)
+            layerInfo.visible = visible
+        } else if (layerInfo.type === '3dtiles') {
+            layerInfo.tileset.show = visible
             layerInfo.visible = visible
         }
         this._requestRender()
@@ -1651,6 +1778,22 @@ class GlobeRenderer {
             const layerInfo = this._layers[name]
             if (layerInfo && layerInfo.type === 'tile') {
                 layerInfo.layer.alpha = opacity
+                this._requestRender()
+            } else if (layerInfo && layerInfo.type === 'vectortile') {
+                layerInfo.mvtLayer.setOpacity(opacity)
+                this._requestRender()
+            } else if (layerInfo && layerInfo.type === '3dtiles') {
+                layerInfo.opacity = opacity
+                // Apply opacity via style color alpha
+                const styleObj = layerInfo.styleConfig
+                    ? { ...layerInfo.styleConfig }
+                    : {}
+                if (opacity < 1.0) {
+                    styleObj.color = `color("white", ${opacity})`
+                }
+                layerInfo.tileset.style = new Cesium.Cesium3DTileStyle(
+                    styleObj
+                )
                 this._requestRender()
             }
         }
