@@ -3,6 +3,8 @@ import useUIStore from '../store/uiStore'
 import BottomBar from '../BottomBar'
 import tippy from 'tippy.js'
 
+import './BottomBarReact.css'
+
 /**
  * BottomBarReact — bottom toolbar buttons (About + Copy Link).
  * All other actions (Screenshot, Fullscreen, Hotkeys, Settings) are in TopBar kebab menu.

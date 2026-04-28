@@ -68,6 +68,7 @@ function SeparatedToolButton({ tool, index, onToggle, isActive }) {
 function SeparatedTools() {
     const toolsList = useUIStore((s) => s.toolsList)
     const toolsLoaded = useUIStore((s) => s.toolsLoaded)
+    const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
     const [activeSepTools, setActiveSepTools] = useState({})
 
     const handleToggle = useCallback((tool, index) => {
@@ -146,10 +147,13 @@ function SeparatedTools() {
         // L_ not available yet
     }
 
+    // Offset = toolPanel width + gap (24px for drag handle + margin)
+    const sepOffset = toolPanelWidth > 0 ? (toolPanelWidth + 24) : 0
     const containerBase = {
         position: 'absolute',
         top: '40px',
         zIndex: 1004,
+        transition: 'left 0.2s ease-out',
     }
 
     // Set viewerToolBar padding if any separated tools exist
@@ -163,7 +167,7 @@ function SeparatedTools() {
             {leftTools.length > 0 && (
                 <div
                     id="toolcontroller_sepdiv_left"
-                    style={{ ...containerBase, left: '5px' }}
+                    style={{ ...containerBase, left: (12 + sepOffset) + 'px' }}
                 >
                     {leftTools.map((tool) => {
                         const realIndex = toolsList.indexOf(tool)
@@ -182,7 +186,7 @@ function SeparatedTools() {
             {centerTools.length > 0 && (
                 <div
                     id="toolcontroller_sepdiv"
-                    style={{ ...containerBase, left: '5px' }}
+                    style={{ ...containerBase, left: (12 + sepOffset) + 'px' }}
                 >
                     {centerTools.map((tool) => {
                         const realIndex = toolsList.indexOf(tool)

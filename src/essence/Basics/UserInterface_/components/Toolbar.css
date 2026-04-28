@@ -1,0 +1,74 @@
+/* Toolbar — layout and structure only. Colors come from themeApplier.js */
+
+#toolbar {
+    box-shadow: 4px 8px 12px rgba(0, 0, 0, 0.3) !important;
+    z-index: 101 !important;
+    padding: 6px 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+
+#toolbarTools {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+
+#toolcontroller_incdiv {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    padding: 0 !important;
+}
+
+#toolcontroller_sepdiv {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+
+#toolbar .toolButton {
+    width: 34px !important;
+    height: 34px !important;
+    margin: 1px 0 !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.15s !important;
+    position: relative;
+    border: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+}
+
+#toolbar .toolButton .mdi {
+    font-size: 18px !important;
+}
+
+#toolbar .toolSep {
+    width: 34px !important;
+    height: 34px !important;
+    margin: 1px 0 !important;
+}
+
+.toolSepDivider {
+    width: 26px;
+    height: 1px;
+    margin: 4px auto;
+}
+
+/* Hide the Legend tool's own header since the panel wrapper provides one */
+#toolContentSeparated_Legend > div:first-child {
+    display: none !important;
+}
+
+/* Fix Legend content area height inside our wrapper */
+#toolContentSeparated_Legend #LegendTool {
+    height: auto !important;
+    max-height: calc(100vh - 200px) !important;
+}

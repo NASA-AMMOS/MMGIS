@@ -1,0 +1,26 @@
+/* Panel layout styling per mockup */
+#splitscreens {
+    background: #0d1520 !important;
+}
+
+#viewerScreen {
+    background-color: var(--color-a-5) !important;
+}
+
+#mapScreen {
+    background-color: var(--color-a-5) !important;
+}
+
+#globeScreen {
+    background-color: var(--color-a1) !important;
+}
+
+/* Splitter styling - thin divider only, no arrow buttons */
+.splitterV {
+    z-index: 402 !important;
+}
+
+/* Hide splitter arrow buttons — panel toggles in TopBar replace them */
+.splitterVInner {
+    display: none !important;
+}

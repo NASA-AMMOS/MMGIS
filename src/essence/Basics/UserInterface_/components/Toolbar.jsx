@@ -4,6 +4,8 @@ import F_ from '../../Formulae_/Formulae_'
 import BottomBarReact from './BottomBarReact'
 import tippy from 'tippy.js'
 
+import './Toolbar.css'
+
 /**
  * MobileTimeButton — renders a time toggle button in the mobile toolbar.
  * Replaces the jQuery-constructed timeSelect div from ToolController_.init().
@@ -210,16 +212,18 @@ function ToolButton({ tool, index, isMobile, isActive, onToolClick }) {
             className={'toolButton' + (isActive ? ' toolButtonActive' : '')}
             tabIndex={index + 1}
             style={{
-                width: isMobile ? '45px' : '100%',
-                height: isMobile ? '100%' : '36px',
-                display: 'inline-block',
+                width: isMobile ? '45px' : '34px',
+                height: isMobile ? '100%' : '34px',
+                display: isMobile ? 'inline-block' : 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 textAlign: 'center',
-                lineHeight: '36px',
-                borderTop: index === 0 ? '1px solid var(--color-a-5)' : 'none',
-                borderBottom: '1px solid var(--color-a-5)',
+                lineHeight: isMobile ? '45px' : '34px',
+                margin: isMobile ? undefined : '1px 0',
+                borderRadius: isMobile ? undefined : '8px',
                 verticalAlign: 'middle',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease-in',
+                transition: 'all 0.15s',
             }}
             onClick={() => onToolClick(tool, index)}
         >
@@ -299,11 +303,10 @@ function Toolbar({ userInterface }) {
                     display: toolbarVisible ? 'inherit' : 'none',
                 } : {
                     width: toolbarVisible ? '40px' : '0px',
-                    paddingTop: toolbarVisible ? '40px' : '0px',
                     background: 'var(--color-a)',
-                    borderRight: toolbarVisible ? '1px solid var(--color-a-5)' : 'none',
-                    top: '0px',
-                    height: '100%',
+                    borderRight: toolbarVisible ? '1px solid var(--color-a1)' : 'none',
+                    top: topSize + 'px',
+                    height: `calc(100% - ${topSize}px)`,
                     zIndex: 1004,
                     display: toolbarVisible ? 'flex' : 'none',
                     flexDirection: 'column',

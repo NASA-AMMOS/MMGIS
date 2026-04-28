@@ -1,0 +1,26 @@
+/* BottomBar styling overrides for mockup alignment */
+#barBottom {
+    align-items: center !important;
+    padding-bottom: 6px !important;
+}
+
+#barBottom > i,
+#barBottom > div:not(#barBottomContent) {
+    width: 28px !important;
+    height: 28px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 6px !important;
+    margin: 1px 0 !important;
+    cursor: pointer !important;
+    transition: all 0.15s !important;
+    color: var(--color-a3) !important;
+    font-size: 16px !important;
+}
+
+#barBottom > i:hover,
+#barBottom > div:not(#barBottomContent):hover {
+    background: var(--color-a1) !important;
+    color: var(--color-a5) !important;
+}

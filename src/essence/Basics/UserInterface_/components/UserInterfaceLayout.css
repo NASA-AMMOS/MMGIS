@@ -1,0 +1,26 @@
+/* React overlay layout styles — layout only, colors from useTheme()/themeApplier */
+
+/* TopBar shadow */
+#main-container > #topBar {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Title styling */
+#main-container > #topBar #topBarTitleName {
+    font-size: 11px !important;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+/* TopBar icons layout */
+#main-container > #topBar #topBarRight > i {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 16px;
+}

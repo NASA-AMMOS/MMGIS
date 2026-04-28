@@ -8,6 +8,8 @@ import ToolPanel from './ToolPanel'
 import BottomElementPositioner from './BottomElementPositioner'
 
 import '../BottomBar.css'
+import './FloatingElements.css'
+import './UserInterfaceLayout.css'
 
 function UserInterfaceLayout() {
     const containerRef = useRef(null)

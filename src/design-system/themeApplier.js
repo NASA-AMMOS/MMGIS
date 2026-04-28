@@ -42,7 +42,14 @@ function applyThemeToDOM(themeName) {
         el.style.background = t['--color-a2']
     })
 
-    // --- Tool panel ---
+    // --- Floating bottom bar ---
+    const bottomBar = document.getElementById('bottomFloatingBar')
+    if (bottomBar) {
+        bottomBar.style.border = `1px solid ${t['--color-a1']}`
+        bottomBar.style.background = a('--color-a', 0.92)
+    }
+
+    // --- Tool panel (floating, glassy) ---
     const toolPanel = document.getElementById('toolPanel')
     if (toolPanel) {
         toolPanel.style.background = a('--color-a', 0.88)
@@ -105,6 +112,13 @@ function applyThemeToDOM(themeName) {
     const toolsWrapper = document.getElementById('toolsWrapper')
     if (toolsWrapper) {
         toolsWrapper.style.borderBottom = 'none'
+    }
+
+    // --- TopBar (solid background, full width) ---
+    const topBar = document.getElementById('topBar')
+    if (topBar) {
+        topBar.style.background = t['--color-a']
+        topBar.style.borderBottom = `1px solid ${t['--color-a1']}`
     }
 
     // --- TopBar title ---

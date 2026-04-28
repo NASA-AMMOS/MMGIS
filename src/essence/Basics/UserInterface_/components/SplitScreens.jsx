@@ -6,6 +6,8 @@ import GlobePanel from './GlobePanel'
 import Splitter from './Splitter'
 import SeparatedTools from './SeparatedTools'
 
+import './SplitScreens.css'
+
 function SplitScreens() {
     const topSize = useUIStore((s) => s.topSize)
     const fullSizeViews = useUIStore((s) => s.fullSizeViews)
@@ -33,11 +35,7 @@ function SplitScreens() {
     }, [])
 
     // ResizeObserver: automatically recapture dimensions and recompute panel
-    // percents whenever the splitscreens container resizes. This replaces:
-    //  - window 'resize' event listener
-    //  - useEffect on [topSize, toolPanelWidth, toolbarVisible] with rAF
-    //  - setTimeout(250) hacks in bridge openToolPanel/closeToolPanel
-    // The observer fires after layout reflow, so dimensions are always correct.
+    // percents whenever the splitscreens container resizes.
     useEffect(() => {
         const el = splitscreensRef.current
         if (!el) return
@@ -51,10 +49,6 @@ function SplitScreens() {
                 const state = useUIStore.getState()
                 if (newWidth === state.mainWidth && newHeight === state.mainHeight) return
 
-                // Use handleWindowResize for correct proportional scaling.
-                // It computes new pixel values from the OLD mainWidth before
-                // updating, avoiding the stale-percent bug where getPanelPercents
-                // would divide old pixels by new mainWidth.
                 if (initializedRef.current) {
                     useUIStore.getState().handleWindowResize(newWidth, newHeight)
                 } else {
@@ -97,45 +91,116 @@ function SplitScreens() {
                 <Splitter type="globe" />
             </div>
             {!isMobile && <SeparatedTools />}
-            <div id="tScreen">
-                <ToolsWrapper />
-            </div>
+            <BottomFloatingBar />
         </div>
     )
 }
 
-// Inline ToolsWrapper to avoid circular dependency
-function ToolsWrapper() {
+/**
+ * BottomFloatingBar — wraps horizontal tool content + TimeUI dock.
+ * Matches PR #47's bottomFloatingBar: floats inside #splitscreens with
+ * 12px margins, backdrop blur, border-radius.
+ * Visible when TimeUI is active or horizontal tool is open.
+ */
+function BottomFloatingBar() {
     const pxIsTools = useUIStore((s) => s.pxIsTools)
     const toolsWrapperCSSWidth = useUIStore((s) => s.toolsWrapperCSSWidth)
+    const timeUIActive = useUIStore((s) => s.timeUIActive)
+    const timeUIExpanded = useUIStore((s) => s.timeUIExpanded)
+    const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
+    const timeUIDockRef = useRef(null)
+
+    const hasToolContent = pxIsTools > 0
+    const isVisible = timeUIActive || hasToolContent
+
+    // Reparent #timeUI into our timeUIDock when it appears in the DOM
+    useEffect(() => {
+        const dock = timeUIDockRef.current
+        if (!dock) return
+
+        const reparent = () => {
+            const timeUI = document.getElementById('timeUI')
+            if (timeUI && timeUI.parentElement !== dock) {
+                dock.appendChild(timeUI)
+                timeUI.style.position = 'relative'
+                timeUI.style.bottom = 'auto'
+                timeUI.style.left = 'auto'
+                timeUI.style.width = '100%'
+            }
+        }
+
+        // Try immediately
+        reparent()
+
+        // Also observe for #timeUI appearing later
+        const observer = new MutationObserver(() => {
+            reparent()
+        })
+        // Observe the whole splitscreens area for added nodes
+        const splitscreens = document.getElementById('splitscreens')
+        if (splitscreens) {
+            observer.observe(splitscreens, { childList: true, subtree: true })
+        }
+
+        return () => observer.disconnect()
+    }, [])
 
     return (
         <div
-            id="toolsWrapper"
+            id="bottomFloatingBar"
             style={{
-                position: 'relative',
-                height: pxIsTools + 'px',
-                width: toolsWrapperCSSWidth,
-                margin: '0',
-                background: 'var(--color-a)',
-                left: '0px',
-                bottom: '0px',
-                zIndex: 1003,
-                overflow: 'hidden',
-                transition: 'height 0.4s ease-out',
+                position: 'absolute',
+                bottom: '12px',
+                left: '12px',
+                right: '12px',
+                zIndex: 1401,
+                borderRadius: '10px',
+                border: '1px solid var(--color-a1)',
+                background: 'rgba(29, 31, 32, 0.92)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                overflow: 'visible',
+                pointerEvents: 'auto',
+                maxHeight: 'calc(100% - 24px)',
+                boxShadow: '0 -4px 20px rgba(0,0,0,0.3)',
+                display: isVisible ? 'flex' : 'none',
+                flexDirection: 'column',
             }}
         >
+            {/* Horizontal tool content — expands upward */}
             <div
-                id="tools"
+                id="toolsWrapper"
                 style={{
-                    position: 'absolute',
-                    top: '0px',
-                    height: '100%',
-                    paddingBottom: '0px',
+                    height: pxIsTools + 'px',
+                    width: toolsWrapperCSSWidth || '100%',
+                    margin: '0',
+                    background: 'rgba(29, 31, 32, 0.95)',
+                    overflow: 'hidden',
+                    transition: 'height 0.3s ease-out',
+                    flexShrink: 0,
+                }}
+            >
+                <div
+                    id="tools"
+                    style={{
+                        position: 'relative',
+                        height: '100%',
+                        paddingBottom: '0px',
+                        width: '100%',
+                    }}
+                ></div>
+                <Splitter type="tools" orientation="horizontal" />
+            </div>
+            {/* TimeUI dock — #timeUI will be reparented here */}
+            <div
+                id="timeUIDock"
+                ref={timeUIDockRef}
+                style={{
                     width: '100%',
+                    minHeight: '0px',
+                    flexShrink: 0,
                 }}
             ></div>
-            <Splitter type="tools" orientation="horizontal" />
         </div>
     )
 }

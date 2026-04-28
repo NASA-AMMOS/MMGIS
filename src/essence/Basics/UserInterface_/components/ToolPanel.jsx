@@ -13,8 +13,8 @@ function ToolPanel() {
     const mobileTopSize = useUIStore((s) => s.mobileTopSize)
     const dragRef = useRef(null)
 
-    // Mobile: tool panel left offset is topSize (50px); Desktop: TOOLBAR_WIDTH (40px)
-    const panelLeftOffset = isMobile ? mobileTopSize : TOOLBAR_WIDTH
+    // Mobile: tool panel left offset is topSize (50px); Desktop: TOOLBAR_WIDTH + 12px margin
+    const panelLeftOffset = isMobile ? mobileTopSize : (TOOLBAR_WIDTH + 12)
 
     const handleDragMouseDown = useCallback((e) => {
         const startX = e.pageX
@@ -76,14 +76,19 @@ function ToolPanel() {
                 style={{
                     position: 'absolute',
                     width: toolPanelWidth + 'px',
-                    top: topSize + 'px',
-                    height: `calc(100% - ${topSize}px)`,
+                    top: (topSize + 12) + 'px',
+                    height: `calc(100% - ${topSize + 24}px)`,
                     left: panelLeftOffset + 'px',
                     background: 'rgba(29, 31, 32, 0.88)',
-                    backdropFilter: 'blur(8px)',
-                    transition: 'width 0.2s ease-out',
+                    border: toolPanelWidth > 0 ? '1px solid var(--color-a1)' : '1px solid transparent',
+                    borderRadius: '10px',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    transition: 'width 0.2s ease-out, opacity 0.2s ease-out, border-color 0.2s ease-out',
                     overflow: 'hidden',
                     zIndex: 1400,
+                    boxShadow: toolPanelWidth > 0 ? '0 8px 32px rgba(0,0,0,0.4)' : 'none',
+                    opacity: toolPanelWidth > 0 ? 1 : 0,
                 }}
             ></div>
             {/* Drag handle */}
@@ -104,7 +109,7 @@ function ToolPanel() {
                     display: toolPanelDragVisible ? 'block' : 'none',
                     zIndex: 1400,
                     borderRight: '1px solid transparent',
-                    left: toolPanelWidth + 10 + 'px',
+                    left: (toolPanelWidth + panelLeftOffset) + 'px',
                     transition: 'left 0.2s ease-out',
                 }}
                 onMouseDown={handleDragMouseDown}
