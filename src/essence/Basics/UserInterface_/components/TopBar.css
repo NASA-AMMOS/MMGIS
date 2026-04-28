@@ -2,7 +2,6 @@
 
 #topBar {
     box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
-    z-index: 100 !important;
 }
 
 .topbar-react-overlay {
@@ -25,6 +24,8 @@
     border-radius: 8px;
     overflow: hidden;
     height: 28px;
+    background: var(--color-a-5);
+    border: 1px solid var(--color-a1);
 }
 
 .topbar-toggle-btn {
@@ -36,23 +37,19 @@
     border-radius: 0 !important;
     border: none !important;
     background: transparent !important;
+    color: var(--color-a3) !important;
+    border-right: 1px solid var(--color-a1) !important;
     transition: all 0.15s !important;
     cursor: pointer;
+}
+.topbar-toggle-btn.active {
+    color: var(--color-mmgis) !important;
+    font-weight: 600 !important;
+    background: var(--color-accent-active) !important;
 }
 
 .topbar-toggle-btn:last-child {
     border-right: none !important;
-}
-
-/* --- User account area --- */
-.topbar-user-area {
-    display: flex;
-    align-items: center;
-    margin-left: 4px;
-}
-
-.topbar-user-wrapper {
-    position: relative;
 }
 
 .topbar-user-avatar {
@@ -65,8 +62,22 @@
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.15s, box-shadow 0.15s;
     user-select: none;
+    background: var(--color-accent-active);
+    color: var(--color-c);
+    border: 1px solid var(--color-a1);
+    transition: background 0.15s, box-shadow 0.15s;
+}
+
+/* --- User account area --- */
+.topbar-user-area {
+    display: flex;
+    align-items: center;
+    margin-left: 4px;
+}
+
+.topbar-user-wrapper {
+    position: relative;
 }
 
 .topbar-user-card {

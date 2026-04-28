@@ -8,9 +8,6 @@ import './TopBar.css'
 function TopBar({ userInterface }) {
     const topBarLeftRef = useRef(null)
     const isMobile = useUIStore((s) => s.isMobile)
-    const mobileTopSize = useUIStore((s) => s.mobileTopSize)
-    const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
-    const toolsWrapperRawWidth = useUIStore((s) => s.toolsWrapperRawWidth)
 
     const [viewerOpen, setViewerOpen] = useState(false)
     const [mapOpen, setMapOpen] = useState(true)
@@ -196,22 +193,14 @@ function TopBar({ userInterface }) {
         if (loginoutBtn) loginoutBtn.click()
     }, [])
 
-    // Compute TopBar styles reactively from store state
-    const TOOLBAR_WIDTH = 40
-    const leftOffset = isMobile ? mobileTopSize : TOOLBAR_WIDTH
-    const topBarStyle = {
-        transition: 'margin-left 0.2s ease-out, width 0.2s ease-out, padding-left 0.2s ease-out',
-    }
+    // TopBar stays full-width always — tool panel floats underneath it
+    // In PR #47, topbar is always left:0, width:100%, padding-left:40px (toolbar width)
+    const topBarStyle = {}
     if (isMobile) {
         topBarStyle.background = 'var(--color-a)'
-    }
-    // Tool panel floats over content — TopBar doesn't shift for it
-    if (toolsWrapperRawWidth && toolsWrapperRawWidth !== 0 && toolsWrapperRawWidth !== 'full') {
-        const newTopWidth = leftOffset + toolsWrapperRawWidth
-        topBarStyle.marginLeft = newTopWidth + 'px'
-        topBarStyle.width = `calc(100% - ${newTopWidth}px)`
+        topBarStyle.paddingLeft = '80px'
     } else {
-        topBarStyle.paddingLeft = isMobile ? '80px' : '40px'
+        topBarStyle.paddingLeft = '40px'
     }
 
     return (
