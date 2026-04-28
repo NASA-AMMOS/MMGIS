@@ -308,7 +308,9 @@ const UserInterfaceBridge = {
                 l_.FUTURES.panelPercents[2]
             )
 
-        this.minimalist(true)
+        // minimalist() removed — splitscreens, toolbar, and toolPanel now use
+        // their default positioning (below topBar, beside toolbar) so they
+        // never underlap. Matches PR #47.
 
         if (l_.configData.look) {
             if (
