@@ -6,6 +6,7 @@ import L_ from '../../../Layers_/Layers_'
 import TimeUI from '../../../TimeControl_/TimeUI'
 import Dropy from '../../../../../external/Dropy/dropy'
 import * as _UserInterface_ from '../../UserInterface_'
+import useUIStore from '../../store/uiStore'
 import calls from '../../../../../pre/calls'
 
 import tippy from 'tippy.js'
@@ -862,6 +863,9 @@ function toggleTimeUI() {
     $('#timeUI').toggleClass('active')
 
     const isExpanded = $('#timeUI').hasClass('expanded') || $('#timeUI').hasClass('defaultExpanded')
+
+    useUIStore.getState().setTimeUIActive(!active)
+    useUIStore.getState().setTimeUIExpanded(isExpanded)
     const timeUIHeight = isExpanded
         ? 177
         : $('#timeUI').hasClass('active')
