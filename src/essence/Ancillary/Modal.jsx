@@ -159,8 +159,6 @@ const Modal = {
             Modal._onRemoveCallback[modalId]()
         Modal._onRemoveCallback[modalId] = null
 
-        _applyBlur()
-
         if (isImmediate) {
             delete _state.modals[modalId]
             _notify()
@@ -168,7 +166,6 @@ const Modal = {
         } else {
             _state.modals[modalId].closing = true
             _notify()
-            _applyBlur()
             setTimeout(() => {
                 delete _state.modals[modalId]
                 _notify()

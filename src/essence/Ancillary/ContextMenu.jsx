@@ -88,11 +88,11 @@ function ContextMenuPopup({ x, y, featuresAtClick, contextMenuActions, onClose }
                     link = link.replace(new RegExp(`{${s}\\[2\\]}`, 'gi'), converted[2])
                 }
             })
-            if (link.indexOf('{wkt}') !== -1) {
+            if (link.indexOf('{wkt}') !== -1 && feature && feature.feature) {
                 const geom = F_.simplifyGeometry(feature.feature.geometry, 0.0003)
                 link = link.replace(new RegExp('{wkt}', 'gi'), geojsonToWKT(geom))
             }
-            if (link.indexOf('{wkt_}') !== -1) {
+            if (link.indexOf('{wkt_}') !== -1 && feature && feature.feature) {
                 const geom = F_.simplifyGeometry(feature.feature.geometry, 0.0003)
                 link = link.replace(new RegExp('{wkt_}', 'gi'), geojsonToWKT(geom).replace(/,/g, '_'))
             }
