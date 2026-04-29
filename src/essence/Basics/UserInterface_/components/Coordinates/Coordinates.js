@@ -164,6 +164,12 @@ const Coordinates = {
                 placement: 'top',
                 theme: 'blue',
             })
+            tippy('#toggleTimeUI', {
+                content: 'Time',
+                placement: 'top',
+                theme: 'blue',
+                offset: [0, 20],
+            })
         }
 
         if (
@@ -175,6 +181,7 @@ const Coordinates = {
                     L_.FUTURES.live === true)
             )
         ) {
+            $('#toggleTimeUI').css({ display: 'none' })
             $('#CoordinatesDiv').css({ marginRight: '0px' })
         }
         if (L_.configData.coordinates) {
@@ -341,7 +348,7 @@ const Coordinates = {
         // Event functions
         $('#pickLngLat').on('click', pickLngLat)
         $('#mouseGoPicking').on('click', pickLngLatGo)
-
+        $('#toggleTimeUI').on('click', toggleTimeUI)
         Map_.map.on('mousemove', mouseLngLatMove)
         Map_.map.on('click', urlClick)
 
@@ -688,7 +695,7 @@ const Coordinates = {
         //Clear all the stuffes
         $('#pickLngLat').off('click', pickLngLat)
         $('#mouseGoPicking').off('click', pickLngLatGo)
-
+        $('#toggleTimeUI').off('click', toggleTimeUI)
         Map_.map.off('mousemove', mouseLngLatMove)
         Map_.map.off('click', urlClick)
     },
@@ -862,53 +869,16 @@ function urlClick(e) {
 }
 
 function toggleTimeUI() {
-    const active = $('#timeUI').hasClass('active')
+    const active = $('#toggleTimeUI').hasClass('active')
+    $('#toggleTimeUI').toggleClass('active')
     $('#timeUI').toggleClass('active')
 
     const isExpanded = $('#timeUI').hasClass('expanded') || $('#timeUI').hasClass('defaultExpanded')
 
-    useUIStore.getState().setTimeUIActive(!active)
-    useUIStore.getState().setTimeUIExpanded(isExpanded)
-    const timeUIHeight = isExpanded
-        ? 177
-        : $('#timeUI').hasClass('active')
-        ? 40
-        : 0
-    const newBottom = !active
-        ? timeUIHeight
-        : $('#timeUI').hasClass('active')
-        ? 40
-        : 0
-    const timeBottom = 0
-
     Map_.map._fadeAnimated = active
 
-    $('#CoordinatesDiv').css({
-        bottom: newBottom + (UserInterface.pxIsTools || 0) + 'px',
-    })
-    $('#mapToolBar').css({
-        bottom: newBottom + (UserInterface.pxIsTools || 0) + 'px',
-    })
-    $('.leaflet-bottom.leaflet-left').css({
-        bottom: newBottom + 'px',
-    })
-    $('#mmgis-attributions').css({
-        bottom: (UserInterface.pxIsTools || 0) + 'px',
-    })
-    $('.leaflet-bottom.leaflet-right').css({
-        bottom: newBottom + (UserInterface.pxIsTools || 0) + 'px',
-    })
-    $('#photosphereAzIndicator').css({
-        bottom: newBottom + (UserInterface.pxIsTools || 0) + 'px',
-        transition: 'bottom 0.2s ease-in',
-    })
-    $('#_lithosphere_controls_bottomleft').css({
-        bottom: newBottom + (UserInterface.pxIsTools || 0) + 10 + 'px',
-        transition: 'bottom 0.2s ease-in',
-    })
-    $('#timeUI').css({
-        bottom: timeBottom + (UserInterface.pxIsTools || 0) + 'px',
-    })
+    useUIStore.getState().setTimeUIActive(!active)
+    useUIStore.getState().setTimeUIExpanded(isExpanded)
 
     Object.keys(L_._onTimeUIToggleSubscriptions).forEach((k) => {
         L_._onTimeUIToggleSubscriptions[k](!active)
@@ -931,7 +901,7 @@ function interfaceWithMMWebGIS() {
     Coordinates.init()
 
     if (UserInterface.isMobile) {
-
+        $('#CoordinatesDiv > #toggleTimeUI').remove()
 
         const mapRect = document.getElementById('map').getBoundingClientRect()
 
