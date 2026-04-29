@@ -152,7 +152,7 @@ export function computeGlobeSplitMoveResult(state, clientX) {
 export function computeToolsSplitMoveResult(state, clientY) {
     let pxIsTools = state.mainHeight - clientY + state.splitterSize / 4
     const reserve = state.toolHeightReserve != null ? state.toolHeightReserve : state.topSize
-    const minHeight = state.toolNativeHeight || 0
+    const minHeight = Math.max(state.toolNativeHeight || 0, state.splitterSize / 4)
 
     if (pxIsTools < minHeight) {
         pxIsTools = minHeight
