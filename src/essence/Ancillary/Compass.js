@@ -1,86 +1,106 @@
 /**
- * Compass — directional compass for the Leaflet map.
+ * Compass — directional compass overlay for the Leaflet map.
  *
- * Migrated from jQuery to native DOM. Same imperative API:
- *   Compass.init()    — binds map events and renders
- *   Compass.refresh() — updates bearing display
- *   Compass.remove()  — unbinds events
+ * Full React component rendered via createRoot into the Leaflet
+ * bottom-left control container. Updates bearing on map move/zoom.
+ *
+ * Same imperative API:
+ *   Compass.init()    — mounts the component and binds map events
+ *   Compass.refresh() — forces a bearing update
+ *   Compass.remove()  — unmounts and unbinds
  */
+import React, { useState, useEffect, useCallback } from 'react'
+import { createRoot } from 'react-dom/client'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
 
-var Compass = {
-    CompassSVG: null,
-    ScaleBox: null,
-    bearing: null,
-    prevBearing: null,
-    smoothBearing: null,
-    init: function (scaleBox) {
-        Map_.map.on('zoomend', Compass.update)
-        Map_.map.on('moveend', Compass.update)
-        Compass.update()
-    },
-    refresh: function () {
-        Compass.update()
-    },
-    remove: function () {
-        Map_.map.off('zoomend', Compass.update)
-        Map_.map.off('moveend', Compass.update)
-    },
-    update: function () {
+function CompassWidget() {
+    const [bearing, setBearing] = useState(0)
+
+    const update = useCallback(() => {
         const mapEl = document.getElementById('map')
         if (!mapEl) return
-        const mapRect = mapEl.getBoundingClientRect()
+        const rect = mapEl.getBoundingClientRect()
 
-        const wOffset = mapRect.width / 2
-        const hOffset = mapRect.height / 2
+        const wOffset = rect.width / 2
+        const hOffset = rect.height / 2
 
-        const centerLatLong = Map_.map.containerPointToLatLng([
-            wOffset,
-            hOffset,
-        ])
-        const pixelBelowCenterLatLong = Map_.map.containerPointToLatLng([
-            wOffset,
-            hOffset + 1,
-        ])
+        const center = Map_.map.containerPointToLatLng([wOffset, hOffset])
+        const below = Map_.map.containerPointToLatLng([wOffset, hOffset + 1])
 
-        Compass.bearing = F_.bearingBetweenTwoLatLngs(
-            pixelBelowCenterLatLong.lat,
-            pixelBelowCenterLatLong.lng,
-            centerLatLong.lat,
-            centerLatLong.lng
-        )
+        const b = F_.bearingBetweenTwoLatLngs(below.lat, below.lng, center.lat, center.lng)
+        setBearing(b)
+    }, [])
 
-        Compass.smoothBearing = -Compass.bearing
+    useEffect(() => {
+        Map_.map.on('zoomend', update)
+        Map_.map.on('moveend', update)
+        update()
 
-        let compassEl = document.getElementById('mmgis-map-compass')
-        if (!compassEl) {
-            const container = document.querySelector('.leaflet-bottom.leaflet-left')
-            if (!container) return
-            compassEl = document.createElement('div')
-            compassEl.id = 'mmgis-map-compass'
-            // prettier-ignore
-            compassEl.innerHTML = [
-                `<div class='spin'>`,
-                    `<div class='north'></div>`,
-                    `<div class='south'></div>`,
-                `</div>`,
-                `<div class='info'>`,
-                    `<div class='angle'></div>`,
-                    `<div class='help'><div></div>North</div>`,
-                `</div>`,
-            ].join('\n')
-            container.appendChild(compassEl)
+        // Expose update for imperative refresh
+        Compass._update = update
+
+        return () => {
+            Map_.map.off('zoomend', update)
+            Map_.map.off('moveend', update)
         }
+    }, [update])
 
-        const angleEl = compassEl.querySelector('.info .angle')
-        if (angleEl) {
-            angleEl.textContent = `${((360 - Compass.bearing) % 360).toFixed(1)}°`
+    const rotation = -bearing
+    const displayAngle = ((360 - bearing) % 360).toFixed(1)
+
+    return (
+        <div id="mmgis-map-compass">
+            <div className="spin" style={{ transform: `rotateZ(${rotation}deg)` }}>
+                <div className="north" />
+                <div className="south" />
+            </div>
+            <div className="info">
+                <div className="angle">{displayAngle}°</div>
+                <div className="help">
+                    <div />
+                    North
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ── Imperative service ──────────────────────────────────────────────────
+
+let _root = null
+let _container = null
+
+const Compass = {
+    _update: null,
+    bearing: null,
+
+    init: function () {
+        Compass.remove()
+
+        const leafletContainer = document.querySelector('.leaflet-bottom.leaflet-left')
+        if (!leafletContainer) return
+
+        _container = document.createElement('div')
+        _container.id = 'compassRoot'
+        leafletContainer.appendChild(_container)
+
+        _root = createRoot(_container)
+        _root.render(<CompassWidget />)
+    },
+
+    refresh: function () {
+        if (Compass._update) Compass._update()
+    },
+
+    remove: function () {
+        if (_root) {
+            _root.unmount()
+            _root = null
         }
-
-        const spinEl = compassEl.querySelector('.spin')
-        if (spinEl) {
-            spinEl.style.transform = `rotateZ(${Compass.smoothBearing}deg)`
+        if (_container && _container.parentNode) {
+            _container.parentNode.removeChild(_container)
+            _container = null
         }
     },
 }

@@ -1,22 +1,24 @@
 /**
- * Modal — React-based modal with backdrop.
+ * Modal — React-based modal service using the design-system Modal (Base UI Dialog).
  *
- * Exposes the same imperative API as the old jQuery version so that existing
- * callers (tools, BottomBar, etc.) continue to work without changes:
- *   Modal.set(html, onAddCallback, onRemoveCallback, modalId)
+ * Renders through a React tree with the design-system Modal component (which wraps
+ * Base UI Dialog). Exposes the same imperative API so existing jQuery callers
+ * (tools, BottomBar, etc.) continue to work without changes:
+ *
+ *   Modal.set(content, onAddCallback, onRemoveCallback, modalId)
+ *     - content can be an HTML string (legacy) or a React element (new callers)
  *   Modal.remove(isImmediate, modalId)
- *
- * Internally renders a React tree into a lazily-created container div.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
+import { Dialog } from '@base-ui-components/react/dialog'
 
-import './Modal.css'
+import styles from './Modal.module.css'
 
 // ── Shared state store (singleton, subscribed to by ModalHost) ──────────
 
 const _state = {
-    modals: {},       // { [modalId]: { html, onRemoveCallback } }
+    modals: {},
     listeners: [],
 }
 
@@ -24,7 +26,7 @@ function _notify() {
     _state.listeners.forEach((fn) => fn({ ..._state.modals }))
 }
 
-// ── React component ─────────────────────────────────────────────────────
+// ── React component that renders all active modals ──────────────────────
 
 function ModalHost() {
     const [modals, setModals] = useState({})
@@ -37,18 +39,6 @@ function ModalHost() {
         }
     }, [])
 
-    const handleBackdropClick = useCallback((e, modalId) => {
-        // Only close when clicking the backdrop itself, not inner content
-        if (e.target === e.currentTarget) {
-            Modal.remove(false, modalId)
-        }
-    }, [])
-
-    const handleCloseClick = useCallback((e, modalId) => {
-        e.stopPropagation()
-        Modal.remove(false, modalId)
-    }, [])
-
     const ids = Object.keys(modals)
 
     return (
@@ -57,13 +47,11 @@ function ModalHost() {
                 const m = modals[modalId]
                 if (!m) return null
                 return (
-                    <ModalOverlay
+                    <ModalInstance
                         key={modalId}
                         modalId={modalId}
-                        html={m.html}
+                        content={m.content}
                         blurCount={ids.length}
-                        onBackdropClick={handleBackdropClick}
-                        onCloseClick={handleCloseClick}
                     />
                 )
             })}
@@ -71,33 +59,11 @@ function ModalHost() {
     )
 }
 
-function ModalOverlay({ modalId, html, blurCount, onBackdropClick, onCloseClick }) {
-    const innerRef = useRef(null)
-    const overlayRef = useRef(null)
-    const id = `mmgisModal_${modalId}`
+function ModalInstance({ modalId, content, blurCount }) {
+    const contentRef = useRef(null)
+    const isHtmlString = typeof content === 'string'
 
-    // Fade in on mount
-    useEffect(() => {
-        const el = overlayRef.current
-        if (el) {
-            // Force reflow then animate
-            el.style.opacity = '0'
-            requestAnimationFrame(() => {
-                el.style.transition = 'opacity 0.4s ease'
-                el.style.opacity = '1'
-            })
-        }
-    }, [])
-
-    // Set innerHTML and call onAddCallback
-    useEffect(() => {
-        const el = innerRef.current
-        if (el && html != null) {
-            el.innerHTML = html
-        }
-    }, [html])
-
-    // Apply blur to main-container
+    // Apply blur to main-container while modal is open
     useEffect(() => {
         const mc = document.getElementById('main-container')
         if (mc) mc.style.filter = `blur(${3 * blurCount}px)`
@@ -107,26 +73,34 @@ function ModalOverlay({ modalId, html, blurCount, onBackdropClick, onCloseClick 
         }
     }, [blurCount])
 
+    const handleOpenChange = useCallback(
+        (open) => {
+            if (!open) {
+                Modal.remove(false, modalId)
+            }
+        },
+        [modalId]
+    )
+
     return (
-        <div
-            ref={overlayRef}
-            id={id}
-            className="mmgisModal dontCloseWhenClicked"
-            onClick={(e) => {
-                // Check if target is inside dontCloseWhenClicked
-                if (!e.target.closest || !e.target.closest('.dontCloseWhenClicked') || e.target === e.currentTarget) {
-                    onBackdropClick(e, modalId)
-                }
-            }}
-        >
-            <div
-                id="mmgisModalClose"
-                onClick={(e) => onCloseClick(e, modalId)}
-            >
-                <i className="mdi mdi-close mdi-24px" />
-            </div>
-            <div id="mmgisModalInner" ref={innerRef} />
-        </div>
+        <Dialog.Root open={true} onOpenChange={handleOpenChange}>
+            <Dialog.Portal>
+                <Dialog.Backdrop className={styles.backdrop} />
+                <Dialog.Popup className={styles.popup}>
+                    <Dialog.Close className={styles.close}>
+                        <i className="mdi mdi-close mdi-24px" />
+                    </Dialog.Close>
+                    {isHtmlString ? (
+                        <div
+                            ref={contentRef}
+                            dangerouslySetInnerHTML={{ __html: content }}
+                        />
+                    ) : (
+                        content
+                    )}
+                </Dialog.Popup>
+            </Dialog.Portal>
+        </Dialog.Root>
     )
 }
 
@@ -146,61 +120,48 @@ function _ensureMounted() {
 
 const Modal = {
     _onRemoveCallback: {},
-    _activeModalIds: {},
 
-    set: function (html, onAddCallback, onRemoveCallback, modalId) {
+    /**
+     * Open a modal.
+     * @param {string|React.ReactElement} content - HTML string (legacy) or React element
+     * @param {Function} [onAddCallback] - Called after the modal renders (next tick)
+     * @param {Function} [onRemoveCallback] - Called when the modal is removed
+     * @param {string|number} [modalId=0] - Unique modal identifier for stacking
+     */
+    set: function (content, onAddCallback, onRemoveCallback, modalId) {
         modalId = modalId || 0
         _ensureMounted()
 
-        Modal._activeModalIds[modalId] = true
-        Modal._onRemoveCallback[modalId] = typeof onRemoveCallback === 'function' ? onRemoveCallback : null
+        Modal._onRemoveCallback[modalId] =
+            typeof onRemoveCallback === 'function' ? onRemoveCallback : null
 
-        _state.modals[modalId] = { html, onRemoveCallback }
+        _state.modals[modalId] = { content }
         _notify()
 
-        // Call onAddCallback after React renders (next tick)
         if (typeof onAddCallback === 'function') {
             setTimeout(() => onAddCallback(`mmgisModal_${modalId}`), 50)
         }
     },
 
+    /**
+     * Close a modal.
+     * @param {boolean} [isImmediate] - Skip fade-out animation
+     * @param {string|number} [modalId=0]
+     */
     remove: function (isImmediate, modalId) {
         modalId = modalId || 0
-        const id = `mmgisModal_${modalId}`
 
         if (typeof Modal._onRemoveCallback[modalId] === 'function')
             Modal._onRemoveCallback[modalId]()
         Modal._onRemoveCallback[modalId] = null
 
-        if (isImmediate) {
-            delete _state.modals[modalId]
-            delete Modal._activeModalIds[modalId]
-            _notify()
+        delete _state.modals[modalId]
+        _notify()
 
-            const mc = document.getElementById('main-container')
-            if (mc) mc.style.filter = `blur(${3 * (Object.keys(Modal._activeModalIds).length)}px)`
-        } else {
-            // Fade out then remove
-            const el = document.getElementById(id)
-            if (el) {
-                el.style.transition = 'opacity 0.4s ease'
-                el.style.opacity = '0'
-                setTimeout(() => {
-                    delete _state.modals[modalId]
-                    delete Modal._activeModalIds[modalId]
-                    _notify()
-
-                    const mc = document.getElementById('main-container')
-                    if (mc) {
-                        const count = Object.keys(Modal._activeModalIds).length
-                        mc.style.filter = count > 0 ? `blur(${3 * count}px)` : ''
-                    }
-                }, 400)
-            } else {
-                delete _state.modals[modalId]
-                delete Modal._activeModalIds[modalId]
-                _notify()
-            }
+        const mc = document.getElementById('main-container')
+        if (mc) {
+            const count = Object.keys(_state.modals).length
+            mc.style.filter = count > 0 ? `blur(${3 * count}px)` : ''
         }
     },
 }

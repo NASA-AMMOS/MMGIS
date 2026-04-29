@@ -1,10 +1,15 @@
 /**
  * ContextMenu — right-click context menu on the map.
  *
- * Migrated from jQuery to native DOM. Same imperative API:
+ * Full React component rendered via createRoot. The menu is positioned
+ * at click coordinates and renders JSX menu items with proper event handlers.
+ *
+ * Same imperative API:
  *   ContextMenu.init()   — binds contextmenu handlers
  *   ContextMenu.remove() — unbinds and hides
  */
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { createRoot } from 'react-dom/client'
 import L_ from '../Basics/Layers_/Layers_'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
@@ -12,21 +17,196 @@ import Coordinates from './Coordinates'
 
 import { geojsonToWKT } from '@terraformer/wkt'
 
-import './ContextMenu.css'
+import styles from './ContextMenu.module.css'
 
-var ContextMenu = {
-    init: function () {
-        this.remove()
-        Map_.map.on('contextmenu', showContextMenuMap)
-        const lithoScene = document.getElementById('_lithosphere_scene')
-        if (lithoScene) lithoScene.addEventListener('contextmenu', showContextMenuMap)
-    },
-    remove: function () {
-        hideContextMenuMap()
-        Map_.map.off('contextmenu', showContextMenuMap)
-        const lithoScene = document.getElementById('_lithosphere_scene')
-        if (lithoScene) lithoScene.removeEventListener('contextmenu', showContextMenuMap)
-    },
+// ── React component ─────────────────────────────────────────────────────
+
+function ContextMenuPopup({ x, y, featuresAtClick, contextMenuActions, onClose }) {
+    const menuRef = useRef(null)
+    const [copiedCoords, setCopiedCoords] = useState(false)
+    const [copiedKeys, setCopiedKeys] = useState({})
+
+    // Track which action items to render
+    const actionItems = []
+
+    // Global context menu actions (no "for" filter)
+    contextMenuActions.forEach((a, idx) => {
+        if (a.for == null) {
+            actionItems.push({ type: 'action', action: a, idx, idx2: 0, feature: null })
+        }
+    })
+
+    // Per-feature items
+    featuresAtClick.forEach((f, idx2) => {
+        const layerName = f.options.layerName
+        const displayName = L_.layers.data[layerName]?.display_name || layerName
+        const pv = L_.getLayersChosenNamePropVal(f.feature, layerName)
+        const key = Object.keys(pv)[0]
+        const val = pv[key]
+
+        actionItems.push({
+            type: 'header',
+            feature: f,
+            idx2,
+            geomType: f.feature.geometry.type,
+            displayName,
+            propKey: key,
+            propVal: val,
+        })
+
+        contextMenuActions.forEach((a, idx) => {
+            const forLower = a.for ? a.for.toLowerCase() : null
+            if (forLower === 'polygon' && f.feature.geometry.type.toLowerCase() === forLower) {
+                actionItems.push({ type: 'featureAction', action: a, idx, idx2, feature: f })
+            }
+        })
+    })
+
+    const handleCopyCoords = useCallback(() => {
+        F_.copyToClipboard(JSON.stringify(Coordinates.getAllCoordinates(), null, 2))
+        setCopiedCoords(true)
+        setTimeout(() => setCopiedCoords(false), 2000)
+    }, [])
+
+    const handleCopyable = useCallback((key, copyable) => {
+        F_.copyToClipboard(JSON.stringify(copyable.copyable, null, 2))
+        setCopiedKeys((prev) => ({ ...prev, [key]: true }))
+        setTimeout(() => {
+            setCopiedKeys((prev) => ({ ...prev, [key]: false }))
+        }, 2000)
+    }, [])
+
+    const handleActionClick = useCallback((action, feature) => {
+        if (action.link) {
+            let link = action.link
+            const lnglat = Coordinates.getLngLat()
+            Object.keys(Coordinates.states).forEach((s) => {
+                if (link.indexOf(`{${s}[`) !== -1) {
+                    const converted = Coordinates.convertLngLat(lnglat[0], lnglat[1], s, false, true)
+                    link = link.replace(new RegExp(`{${s}\\[0\\]}`, 'gi'), converted[0])
+                    link = link.replace(new RegExp(`{${s}\\[1\\]}`, 'gi'), converted[1])
+                    link = link.replace(new RegExp(`{${s}\\[2\\]}`, 'gi'), converted[2])
+                }
+            })
+            if (link.indexOf('{wkt}') !== -1) {
+                const geom = F_.simplifyGeometry(feature.feature.geometry, 0.0003)
+                link = link.replace(new RegExp('{wkt}', 'gi'), geojsonToWKT(geom))
+            }
+            if (link.indexOf('{wkt_}') !== -1) {
+                const geom = F_.simplifyGeometry(feature.feature.geometry, 0.0003)
+                link = link.replace(new RegExp('{wkt_}', 'gi'), geojsonToWKT(geom).replace(/,/g, '_'))
+            }
+            window.open(link, '_blank').focus()
+        }
+        if (action.goto === true && feature) {
+            if (typeof feature.getBounds === 'function') Map_.map.fitBounds(feature.getBounds())
+            else if (feature._latlng) Map_.map.panTo(feature._latlng)
+        }
+    }, [])
+
+    const handleHeaderClick = useCallback((feature) => {
+        if (feature) {
+            if (typeof feature.getBounds === 'function') Map_.map.fitBounds(feature.getBounds())
+            else if (feature._latlng) Map_.map.panTo(feature._latlng)
+        }
+    }, [])
+
+    return (
+        <div
+            ref={menuRef}
+            className={styles.menu}
+            style={{ left: x, top: y, maxHeight: window.innerHeight - y }}
+            onMouseLeave={onClose}
+        >
+            <div className={styles.cursor}>
+                <div className={styles.cursorRing} />
+                <div className={styles.cursorDot} />
+            </div>
+            <ul className={styles.list}>
+                <li className={styles.item} onClick={handleCopyCoords}>
+                    {copiedCoords ? 'Copied!' : 'Copy Coordinates'}
+                </li>
+
+                {Object.keys(L_._toolCopyables).map((key) => {
+                    const c = L_._toolCopyables[key]
+                    if (!c.title || !c.copyable) return null
+                    return (
+                        <li
+                            key={`copyable-${key}`}
+                            className={styles.item}
+                            onClick={() => handleCopyable(key, c)}
+                        >
+                            {copiedKeys[key] ? 'Copied!' : c.title}
+                        </li>
+                    )
+                })}
+
+                {actionItems.map((item, i) => {
+                    if (item.type === 'action') {
+                        return (
+                            <li
+                                key={`action-${item.idx}-${item.idx2}`}
+                                className={styles.item}
+                                onClick={() => handleActionClick(item.action, featuresAtClick[item.idx2])}
+                            >
+                                {item.action.name}
+                                {item.action.link != null && (
+                                    <span><i className="mdi mdi-open-in-new mdi-18px" /></span>
+                                )}
+                            </li>
+                        )
+                    }
+                    if (item.type === 'header') {
+                        return (
+                            <li
+                                key={`header-${item.idx2}`}
+                                className={`${styles.item} ${styles.header}`}
+                                onClick={() => handleHeaderClick(item.feature)}
+                            >
+                                <span className={styles.headerGeom}>{item.geomType}</span>
+                                <span className={styles.headerName}>{item.displayName}</span>
+                                -
+                                <span className={styles.headerKey}>{item.propKey}</span>
+                                :
+                                <span className={styles.headerVal}>{item.propVal}</span>
+                            </li>
+                        )
+                    }
+                    if (item.type === 'featureAction') {
+                        return (
+                            <li
+                                key={`featureAction-${item.idx}-${item.idx2}`}
+                                className={`${styles.item} ${styles.featureItem}`}
+                                onClick={() => handleActionClick(item.action, item.feature)}
+                            >
+                                {item.action.name}
+                                {item.action.link != null && (
+                                    <span><i className="mdi mdi-open-in-new mdi-18px" /></span>
+                                )}
+                            </li>
+                        )
+                    }
+                    return null
+                })}
+            </ul>
+        </div>
+    )
+}
+
+// ── Imperative service ──────────────────────────────────────────────────
+
+let _menuRoot = null
+let _menuContainer = null
+
+function _cleanup() {
+    if (_menuRoot) {
+        _menuRoot.unmount()
+        _menuRoot = null
+    }
+    if (_menuContainer && _menuContainer.parentNode) {
+        _menuContainer.parentNode.removeChild(_menuContainer)
+        _menuContainer = null
+    }
 }
 
 function showContextMenuMap(e) {
@@ -35,175 +215,45 @@ function showContextMenuMap(e) {
         'configData.coordinates.variables.rightClickMenuActions',
         []
     )
-    const contextMenuActionsFull = []
     e.latlng = e.latlng || Coordinates.getLatLng(true)
 
     const featuresAtClick = L_.getFeaturesAtPoint(e, true)
     featuresAtClick.splice(100)
 
-    hideContextMenuMap(true)
-    var x = e.originalEvent.clientX
-    var y = e.originalEvent.clientY
+    _cleanup()
 
-    // prettier-ignore
-    var markup = [
-        `<div class='ContextMenuMap' style='left: ${x}px; top: ${y}px; max-height: ${window.innerHeight - y}px;'>`,
-            "<div id='contextMenuCursor'>",
-                "<div></div>",
-                "<div></div>",
-            "</div>",
-            "<ul>",
-                "<li id='contextMenuMapCopyCoords'>Copy Coordinates</li>",
-                Object.keys(L_._toolCopyables).map((key, idx) => {
-                    const c = L_._toolCopyables[key]
-                    const items = []
-                    if( c.title && c.copyable)
-                    items.push(`<li id='contextMenuCopyable' data-key='${key}'>${c.title}</li>`)
-                    return items.join('\n')
-                }).join('\n'),
-                contextMenuActions.map((a, idx) => {
-                    const items = []
-                    if(a.for == null) {
-                            items.push(`<li id='contextMenuAction_${idx}_0'>${a.name}${a.link != null ? `<div><i class='mdi mdi-open-in-new mdi-18px'></i>` : ''}</li>`)
-                            contextMenuActionsFull.push({contextMenuAction: a, idx: idx, idx2: 0})
-                    }
-                    return items.join('\n')
-                } ).join('\n'),
-                featuresAtClick.map((f, idx2) => {
-                    const items = []
-                    const layerName = f.options.layerName
-                    const displayName = L_.layers.data[layerName]?.display_name || layerName
-                    const pv = L_.getLayersChosenNamePropVal(f.feature, layerName)
-                    const key = Object.keys(pv)[0]
-                    const val = pv[key]
-                    items.push(`<li class='contextMenuHeader' id='contextMenuAction_${'head'}_${idx2}'><span>${f.feature.geometry.type}</span><span>${displayName}</span>-<span>${key}</span>:<span>${val}</span></li>`)
-                    contextMenuActionsFull.push({contextMenuAction: { goto: true }, idx: 'head', idx2: idx2, feature: f})
-                    contextMenuActions.map((a, idx) => {
-                        const forLower = a.for ? a.for.toLowerCase() : null
-                        switch(forLower) {
-                            case "polygon":
-                                    if( f.feature.geometry.type.toLowerCase() === forLower) {
-                                        items.push(`<li class='contextMenuFeatureItem' id='contextMenuAction_${idx}_${idx2}'>${a.name}${a.link != null ? `<div><i class='mdi mdi-open-in-new mdi-18px'></i>` : ''}</li>`)
-                                        contextMenuActionsFull.push({contextMenuAction: a, idx: idx, idx2: idx2, feature: f})
-                                    }
-                                break;
-                            default:
-                        }
-                    } )
-                    return items.join('\n')
-                }).join('\n'),
-            "</ul>",
-        "</div>"
-    ].join('\n');
+    const x = e.originalEvent.clientX
+    const y = e.originalEvent.clientY
 
-    // Insert into DOM
-    const wrapper = document.createElement('div')
-    wrapper.innerHTML = markup
-    const menuEl = wrapper.firstElementChild
-    document.body.appendChild(menuEl)
+    _menuContainer = document.createElement('div')
+    _menuContainer.id = 'contextMenuRoot'
+    document.body.appendChild(_menuContainer)
 
-    menuEl.addEventListener('mouseleave', function () {
-        hideContextMenuMap()
-    })
-
-    const copyCoords = document.getElementById('contextMenuMapCopyCoords')
-    if (copyCoords) {
-        copyCoords.addEventListener('click', function () {
-            F_.copyToClipboard(
-                JSON.stringify(Coordinates.getAllCoordinates(), null, 2)
-            )
-            copyCoords.textContent = 'Copied!'
-            setTimeout(function () {
-                copyCoords.textContent = 'Copy Coordinates'
-            }, 2000)
-        })
-    }
-
-    document.querySelectorAll('#contextMenuCopyable').forEach(function (el) {
-        el.addEventListener('click', function () {
-            const key = el.getAttribute('data-key')
-            const copyable = L_._toolCopyables[key]
-            F_.copyToClipboard(JSON.stringify(copyable.copyable, null, 2))
-            el.textContent = 'Copied!'
-            setTimeout(function () {
-                el.textContent = copyable.title
-            }, 2000)
-        })
-    })
-
-    contextMenuActionsFull.forEach((c) => {
-        const actionEl = document.getElementById(`contextMenuAction_${c.idx}_${c.idx2}`)
-        if (!actionEl) return
-
-        actionEl.addEventListener('click', function () {
-            const a = c.contextMenuAction
-            const l = featuresAtClick[c.idx2]
-            if (a.link) {
-                let link = a.link
-
-                const lnglat = Coordinates.getLngLat()
-                Object.keys(Coordinates.states).forEach((s) => {
-                    if (link.indexOf(`{${s}[`) !== -1) {
-                        const converted = Coordinates.convertLngLat(
-                            lnglat[0],
-                            lnglat[1],
-                            s,
-                            false,
-                            true
-                        )
-                        link = link.replace(
-                            new RegExp(`{${s}\\[0\\]}`, 'gi'),
-                            converted[0]
-                        )
-                        link = link.replace(
-                            new RegExp(`{${s}\\[1\\]}`, 'gi'),
-                            converted[1]
-                        )
-                        link = link.replace(
-                            new RegExp(`{${s}\\[2\\]}`, 'gi'),
-                            converted[2]
-                        )
-                    }
-                })
-
-                let wkt
-                if (link.indexOf(`{wkt}`) !== -1) {
-                    const geom = F_.simplifyGeometry(l.feature.geometry, 0.0003)
-                    wkt = geojsonToWKT(geom)
-                    link = link.replace(new RegExp(`{wkt}`, 'gi'), wkt)
-                }
-                if (link.indexOf(`{wkt_}`) !== -1) {
-                    const geom = F_.simplifyGeometry(l.feature.geometry, 0.0003)
-                    wkt = geojsonToWKT(geom)
-                    link = link.replace(
-                        new RegExp(`{wkt_}`, 'gi'),
-                        wkt.replace(/,/g, '_')
-                    )
-                }
-                window.open(link, '_blank').focus()
-            }
-            if (a.goto === true) {
-                if (l) {
-                    if (typeof l.getBounds === 'function')
-                        Map_.map.fitBounds(l.getBounds())
-                    else if (l._latlng) Map_.map.panTo(l._latlng)
-                }
-            }
-        })
-    })
+    _menuRoot = createRoot(_menuContainer)
+    _menuRoot.render(
+        <ContextMenuPopup
+            x={x}
+            y={y}
+            featuresAtClick={featuresAtClick}
+            contextMenuActions={contextMenuActions}
+            onClose={() => _cleanup()}
+        />
+    )
 }
 
-function hideContextMenuMap(immediately) {
-    const menus = document.querySelectorAll('.ContextMenuMap')
-    menus.forEach((menu) => {
-        if (immediately) {
-            menu.remove()
-        } else {
-            menu.style.transition = 'opacity 0.25s ease'
-            menu.style.opacity = '0'
-            setTimeout(() => menu.remove(), 250)
-        }
-    })
+const ContextMenu = {
+    init: function () {
+        this.remove()
+        Map_.map.on('contextmenu', showContextMenuMap)
+        const lithoScene = document.getElementById('_lithosphere_scene')
+        if (lithoScene) lithoScene.addEventListener('contextmenu', showContextMenuMap)
+    },
+    remove: function () {
+        _cleanup()
+        Map_.map.off('contextmenu', showContextMenuMap)
+        const lithoScene = document.getElementById('_lithosphere_scene')
+        if (lithoScene) lithoScene.removeEventListener('contextmenu', showContextMenuMap)
+    },
 }
 
 export default ContextMenu

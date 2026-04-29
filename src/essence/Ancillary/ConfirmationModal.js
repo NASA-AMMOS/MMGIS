@@ -1,56 +1,68 @@
 /**
  * ConfirmationModal — "Are you sure?" confirmation dialog.
  *
- * Keeps the same imperative API: ConfirmationModal.prompt(message, cb)
- * Internally uses the React-based Modal.
+ * Renders a React element through the Modal service using design-system
+ * Button components. Keeps the same imperative API:
+ *   ConfirmationModal.prompt(message, cb)
  */
+import React from 'react'
 import Modal from './Modal'
+import { Button } from '../../design-system/components'
 
-import './ConfirmationModal.css'
+import styles from './ConfirmationModal.module.css'
+
+function ConfirmationContent({ message, onResult }) {
+    return (
+        <div className={styles.root}>
+            <div className={styles.title}>
+                <div className={styles.titleLeft}>
+                    <i className="mdi mdi-help mdi-18px" />
+                    <div>Are You Sure</div>
+                </div>
+            </div>
+            <div className={styles.content}>
+                <div>{message}</div>
+            </div>
+            <div className={styles.footer}>
+                <Button
+                    variant="secondary"
+                    className={styles.noBtn}
+                    onClick={() => onResult(false)}
+                >
+                    NO
+                </Button>
+                <Button
+                    variant="primary"
+                    className={styles.yesBtn}
+                    onClick={() => onResult(true)}
+                >
+                    YES
+                </Button>
+            </div>
+        </div>
+    )
+}
 
 const ConfirmationModal = {
     finished: false,
     prompt: function (message, cb) {
         ConfirmationModal.finished = false
 
-        // prettier-ignore
+        const handleResult = (result) => {
+            if (ConfirmationModal.finished) return
+            ConfirmationModal.finished = true
+            cb(result)
+            Modal.remove()
+        }
+
         Modal.set(
-            [
-                `<div id='ConfirmationModal'>`,
-                    `<div id='ConfirmationModalTitle'>`,
-                        `<div><i class='mdi mdi-help mdi-18px'></i><div>Are You Sure</div></div>`,
-                        `<div id='ConfirmationModalClose'><i class='mmgisHoverBlue mdi mdi-close mdi-18px'></i></div>`,
-                    `</div>`,
-                    `<div id='ConfirmationModalContent'>`,
-                        `<div>${message}</div>`,
-                    `</div>`,
-                    `<div id='ConfirmationModalFooter'>`,
-                        `<div id='ConfirmationModalNo' class='mmgisButton5'>NO</div>`,
-                        `<div id='ConfirmationModalYes' class='mmgisButton5'>YES</div>`,
-                    `</div>`,
-                `</div>`
-            ].join('\n'),
+            <ConfirmationContent message={message} onResult={handleResult} />,
+            null,
             () => {
-                document.getElementById('ConfirmationModalClose')?.addEventListener('click', function () {
-                    cb(false)
+                if (!ConfirmationModal.finished) {
                     ConfirmationModal.finished = true
-                    Modal.remove()
-                })
-                document.getElementById('ConfirmationModalNo')?.addEventListener('click', function () {
                     cb(false)
-                    ConfirmationModal.finished = true
-                    Modal.remove()
-                })
-                document.getElementById('ConfirmationModalYes')?.addEventListener('click', function () {
-                    cb(true)
-                    ConfirmationModal.finished = true
-                    Modal.remove()
-                })
-            },
-            () => {
-                if(!ConfirmationModal.finished)
-                    cb(false)
-                ConfirmationModal.finished = true
+                }
             }
         )
     },

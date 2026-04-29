@@ -1,0 +1,54 @@
+/* Modal — uses Base UI Dialog rendered through design-system Modal */
+
+.backdrop {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.5));
+    z-index: 9998;
+}
+
+.popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    outline: none;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.close {
+    position: fixed;
+    top: 0;
+    right: 0;
+    color: #ddd;
+    cursor: pointer;
+    padding: 16px;
+    transition: color 0.2s ease;
+    background: var(--color-k);
+    border: none;
+    border-bottom-left-radius: 100%;
+    box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 1);
+    z-index: 10000;
+}
+.close i {
+    position: relative;
+    top: -5px;
+    right: -5px;
+}
+.close:hover {
+    color: var(--color-c);
+}
+
+/* Legacy .dropdown styling for tools that inject HTML into the modal */
+.popup :global(.dropdown) {
+    background-color: var(--color-a1);
+    border: none;
+    margin: 1px 0px;
+    width: 120px;
+    height: 28px;
+    font-size: 14px;
+    color: var(--color-f);
+    padding: 0px 2px;
+}

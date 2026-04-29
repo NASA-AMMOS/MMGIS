@@ -1,19 +1,60 @@
 /**
  * Help — renders a help button that opens a markdown help modal.
  *
- * Same imperative API as before:
+ * Renders a React element through the Modal service using design-system components.
+ * Same imperative API:
  *   Help.getComponent(helpKey) → HTML string for the button
  *   Help.finalize(helpKey)     → binds the click handler
  */
+import React, { useState, useEffect } from 'react'
 import Modal from './Modal'
 import showdown from 'showdown'
 
-import './Help.css'
+import styles from './Help.module.css'
 
 showdown.setFlavor('github')
 
+function HelpContent({ helpKey }) {
+    const [html, setHtml] = useState(null)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const baseUrl = `${window.location.origin}${(
+            window.location.pathname || ''
+        ).replace(/\/$/g, '')}/public/helps/${helpKey}.md`
+
+        fetch(baseUrl)
+            .then((res) => res.text())
+            .then((doc) => {
+                const converter = new showdown.Converter()
+                setHtml(converter.makeHtml(doc))
+                setLoading(false)
+            })
+            .catch(() => setLoading(false))
+    }, [helpKey])
+
+    return (
+        <div className={styles.root}>
+            <div className={styles.title}>
+                <div className={styles.titleLeft}>
+                    <i className="mdi mdi-help-rhombus-outline mdi-18px" />
+                    <div>Help</div>
+                </div>
+            </div>
+            <div className={styles.content}>
+                {loading ? (
+                    <div>Loading...</div>
+                ) : html ? (
+                    <div dangerouslySetInnerHTML={{ __html: html }} />
+                ) : (
+                    <div>No help content available.</div>
+                )}
+            </div>
+        </div>
+    )
+}
+
 const Help = {
-    converter: new showdown.Converter(),
     getComponent: function (helpKey) {
         return `<div id='helpModal_${helpKey}' class='mmgisButton5 mmgisHelpButton' title='Help'><i class='mdi mdi-help-rhombus-outline mdi-18px'></i></div>`
     },
@@ -22,34 +63,7 @@ const Help = {
         if (!btn) return
 
         btn.addEventListener('click', function () {
-            const baseUrl = `${window.location.origin}${(
-                window.location.pathname || ''
-            ).replace(/\/$/g, '')}/public/helps/${helpKey}.md`
-
-            fetch(baseUrl)
-                .then((res) => res.text())
-                .then((doc) => {
-                    // prettier-ignore
-                    Modal.set(
-                        [
-                            `<div id='HelpModal'>`,
-                                `<div id='HelpModalTitle'>`,
-                                    `<div><i class='mdi mdi-help-rhombus-outline mdi-18px'></i><div>Help</div></div>`,
-                                    `<div id='HelpModalClose'><i class='mmgisHoverBlue mdi mdi-close mdi-18px'></i></div>`,
-                                `</div>`,
-                                `<div id='HelpModalContent'>`,
-                                    Help.converter.makeHtml(doc),
-                                `</div>`,
-                            `</div>`
-                        ].join('\n'),
-                        function () {
-                            document.getElementById('HelpModalClose')?.addEventListener('click', function () {
-                                Modal.remove()
-                            })
-                        }
-                    )
-                })
-                .catch(() => {})
+            Modal.set(<HelpContent helpKey={helpKey} />)
         })
     },
 }
