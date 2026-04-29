@@ -29,17 +29,25 @@ function _notify() {
 // ── React component that renders all active modals ──────────────────────
 
 function ModalHost() {
-    const [modals, setModals] = useState({})
+    const [modals, setModals] = useState(() => ({ ..._state.modals }))
 
     useEffect(() => {
         const listener = (m) => setModals(m)
         _state.listeners.push(listener)
+        setModals({ ..._state.modals })
         return () => {
             _state.listeners = _state.listeners.filter((l) => l !== listener)
         }
     }, [])
 
     const ids = Object.keys(modals)
+
+    useEffect(() => {
+        const mc = document.getElementById('main-container')
+        if (mc) {
+            mc.style.filter = ids.length > 0 ? `blur(${3 * ids.length}px)` : ''
+        }
+    }, [ids.length])
 
     return (
         <>
@@ -51,7 +59,6 @@ function ModalHost() {
                         key={modalId}
                         modalId={modalId}
                         content={m.content}
-                        blurCount={ids.length}
                     />
                 )
             })}
@@ -59,19 +66,9 @@ function ModalHost() {
     )
 }
 
-function ModalInstance({ modalId, content, blurCount }) {
+function ModalInstance({ modalId, content }) {
     const contentRef = useRef(null)
     const isHtmlString = typeof content === 'string'
-
-    // Apply blur to main-container while modal is open
-    useEffect(() => {
-        const mc = document.getElementById('main-container')
-        if (mc) mc.style.filter = `blur(${3 * blurCount}px)`
-        return () => {
-            const mc2 = document.getElementById('main-container')
-            if (mc2) mc2.style.filter = ''
-        }
-    }, [blurCount])
 
     const handleOpenChange = useCallback(
         (open) => {

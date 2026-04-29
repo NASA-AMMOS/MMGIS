@@ -5,8 +5,7 @@ import styles from './Tooltip.module.css'
 function Tooltip({ content, placement = 'right', children, className, ...props }) {
     return (
         <BaseTooltip.Root {...props}>
-            <BaseTooltip.Trigger className={styles.trigger}>
-                {children}
+            <BaseTooltip.Trigger render={children}>
             </BaseTooltip.Trigger>
             <BaseTooltip.Portal>
                 <BaseTooltip.Positioner side={placement} sideOffset={6}>

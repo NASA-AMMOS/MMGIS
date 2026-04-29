@@ -12,16 +12,17 @@ import calls from '../../../pre/calls'
 
 import metricsGraphics from '../../../external/MetricsGraphics/metricsgraphics.min'
 
-import { render, unmountComponentAtNode } from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import React, { useState, useEffect, useRef } from 'react'
 
-import { Chart } from 'chart.js'
+import { Chart, registerables } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import zoomPlugin from 'chartjs-plugin-zoom'
 import * as moment from 'moment'
 
 import './MeasureTool.css'
 
+Chart.register(...registerables)
 // Zoom isn't working nicely. Keep off
 //Chart.register(zoomPlugin)
 
@@ -812,10 +813,16 @@ let MeasureTool = {
         this.dems = MeasureTool.getDems()
         this.activeDemIdx = 0
 
-        render(<Measure />, document.getElementById('tools'))
+        if (!MeasureTool._root) {
+            MeasureTool._root = createRoot(document.getElementById('tools'))
+        }
+        MeasureTool._root.render(<Measure />)
     },
     destroy: function () {
-        unmountComponentAtNode(document.getElementById('tools'))
+        if (MeasureTool._root) {
+            MeasureTool._root.unmount()
+            MeasureTool._root = null
+        }
 
         Map_.map
             .off('click', MeasureTool.clickMap)

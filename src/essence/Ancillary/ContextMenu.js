@@ -197,6 +197,8 @@ function ContextMenuPopup({ x, y, featuresAtClick, contextMenuActions, onClose }
 
 let _menuRoot = null
 let _menuContainer = null
+let _lithoScene = null
+let _lithoHandler = null
 
 function _cleanup() {
     if (_menuRoot) {
@@ -215,6 +217,8 @@ function showContextMenuMap(e) {
         'configData.coordinates.variables.rightClickMenuActions',
         []
     )
+
+    const evt = e.originalEvent || e
     e.latlng = e.latlng || Coordinates.getLatLng(true)
 
     const featuresAtClick = L_.getFeaturesAtPoint(e, true)
@@ -222,8 +226,8 @@ function showContextMenuMap(e) {
 
     _cleanup()
 
-    const x = e.originalEvent.clientX
-    const y = e.originalEvent.clientY
+    const x = evt.clientX
+    const y = evt.clientY
 
     _menuContainer = document.createElement('div')
     _menuContainer.id = 'contextMenuRoot'
@@ -245,14 +249,22 @@ const ContextMenu = {
     init: function () {
         this.remove()
         Map_.map.on('contextmenu', showContextMenuMap)
-        const lithoScene = document.getElementById('_lithosphere_scene')
-        if (lithoScene) lithoScene.addEventListener('contextmenu', showContextMenuMap)
+        _lithoScene = document.getElementById('_lithosphere_scene')
+        if (_lithoScene) {
+            _lithoHandler = function (nativeEvent) {
+                showContextMenuMap({ originalEvent: nativeEvent, latlng: null })
+            }
+            _lithoScene.addEventListener('contextmenu', _lithoHandler)
+        }
     },
     remove: function () {
         _cleanup()
         Map_.map.off('contextmenu', showContextMenuMap)
-        const lithoScene = document.getElementById('_lithosphere_scene')
-        if (lithoScene) lithoScene.removeEventListener('contextmenu', showContextMenuMap)
+        if (_lithoScene && _lithoHandler) {
+            _lithoScene.removeEventListener('contextmenu', _lithoHandler)
+        }
+        _lithoScene = null
+        _lithoHandler = null
     },
 }
 

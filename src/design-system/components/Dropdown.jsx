@@ -5,8 +5,7 @@ import styles from './Dropdown.module.css'
 function Dropdown({ trigger, children, align = 'end', className, ...props }) {
     return (
         <Menu.Root {...props}>
-            <Menu.Trigger className={`${styles.trigger} ${className || ''}`}>
-                {trigger}
+            <Menu.Trigger render={trigger}>
             </Menu.Trigger>
             <Menu.Portal>
                 <Menu.Positioner align={align} sideOffset={8}>
