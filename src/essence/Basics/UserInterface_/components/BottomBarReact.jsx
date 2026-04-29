@@ -27,7 +27,7 @@ function BottomBarReact({ userInterface }) {
         const tippyInstances = []
         const timer = setTimeout(() => {
             const tips = [
-                ['#topBarInfo', 'About'],
+                ['#bottomBarAbout', 'About'],
                 ['#topBarLink', 'Copy Link'],
             ]
             tips.forEach(([sel, content]) => {
@@ -103,7 +103,7 @@ function BottomBarReact({ userInterface }) {
 
             {/* About (info icon) — below copy link */}
             <i
-                id="topBarInfo"
+                id="bottomBarAbout"
                 title="About"
                 tabIndex={105}
                 className="mmgisHoverBlue mdi mdi-information-outline mdi-18px"
