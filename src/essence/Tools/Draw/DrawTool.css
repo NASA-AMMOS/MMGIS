@@ -6,8 +6,9 @@
 #drawToolNotLoggedIn {
     display: none;
     position: absolute;
+    top: 81px;
     width: 100%;
-    height: 100%;
+    height: calc(100% - 81px);
     background: var(--color-a);
     opacity: 0.95;
     z-index: 3003;

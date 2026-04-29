@@ -87,16 +87,6 @@ function BottomBarReact({ userInterface }) {
 
     return (
         <div id="barBottom" style={containerStyle}>
-            {/* About (info icon) */}
-            <i
-                id="topBarInfo"
-                title="About"
-                tabIndex={105}
-                className="mmgisHoverBlue mdi mdi-information-outline mdi-18px"
-                style={buttonStyle}
-                onClick={handleAbout}
-            />
-
             {/* Copy Link */}
             <i
                 id="topBarLink"
@@ -109,6 +99,16 @@ function BottomBarReact({ userInterface }) {
                     color: linkCopied ? 'var(--color-green)' : undefined,
                 }}
                 onClick={handleCopyLink}
+            />
+
+            {/* About (info icon) — below copy link */}
+            <i
+                id="topBarInfo"
+                title="About"
+                tabIndex={105}
+                className="mmgisHoverBlue mdi mdi-information-outline mdi-18px"
+                style={buttonStyle}
+                onClick={handleAbout}
             />
         </div>
     )

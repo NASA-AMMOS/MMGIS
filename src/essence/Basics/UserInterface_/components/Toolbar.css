@@ -2,7 +2,7 @@
 
 #toolbar {
     box-shadow: 4px 8px 12px rgba(0, 0, 0, 0.3) !important;
-    z-index: 101 !important;
+    z-index: 2006 !important;
     padding: 6px 0 !important;
     display: flex !important;
     flex-direction: column !important;

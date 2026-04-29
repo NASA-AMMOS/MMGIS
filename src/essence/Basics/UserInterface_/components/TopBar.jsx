@@ -61,12 +61,15 @@ function TopBar({ userInterface }) {
         return () => clearInterval(interval)
     }, [])
 
-    // Hide the jQuery #loginDiv since we handle user UI in React now
+    // Hide the jQuery #loginDiv and #loginoutButton since we handle user UI in React now
     useEffect(() => {
         const loginDiv = document.getElementById('loginDiv')
         if (loginDiv) loginDiv.style.display = 'none'
+        const loginoutBtn = document.getElementById('loginoutButton')
+        if (loginoutBtn) loginoutBtn.style.display = 'none'
         return () => {
             if (loginDiv) loginDiv.style.display = ''
+            if (loginoutBtn) loginoutBtn.style.display = ''
         }
     }, [])
 
@@ -264,39 +267,41 @@ function TopBar({ userInterface }) {
                         </button>
                     </div>
 
-                    {/* User account area */}
-                    <div className="topbar-user-area">
-                        {username ? (
-                            <div className="topbar-user-wrapper">
-                                <div
-                                    ref={userBtnRef}
-                                    className="topbar-user-avatar"
-                                    onClick={() => setShowUserCard(!showUserCard)}
-                                    title={username}
-                                >
-                                    {username[0].toUpperCase()}
-                                </div>
-                                {showUserCard && (
-                                    <div ref={userCardRef} className="topbar-user-card">
-                                        <div className="topbar-user-card-name">{username}</div>
-                                        <div className="topbar-user-card-divider" />
-                                        <div className="topbar-user-card-action" onClick={handleLogout}>
-                                            <i className="mdi mdi-logout" style={{ marginRight: 6, fontSize: 14 }} />
-                                            Logout
-                                        </div>
+                    {/* User account area — hidden when AUTH=off */}
+                    {typeof window !== 'undefined' && window.mmgisglobal && window.mmgisglobal.AUTH !== 'off' && (
+                        <div className="topbar-user-area">
+                            {username ? (
+                                <div className="topbar-user-wrapper">
+                                    <div
+                                        ref={userBtnRef}
+                                        className="topbar-user-avatar"
+                                        onClick={() => setShowUserCard(!showUserCard)}
+                                        title={username}
+                                    >
+                                        {username[0].toUpperCase()}
                                     </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div
-                                className="topbar-signin-btn"
-                                onClick={handleSignIn}
-                                title="Sign In"
-                            >
-                                <i className="mdi mdi-login" style={{ fontSize: 16 }} />
-                            </div>
-                        )}
-                    </div>
+                                    {showUserCard && (
+                                        <div ref={userCardRef} className="topbar-user-card">
+                                            <div className="topbar-user-card-name">{username}</div>
+                                            <div className="topbar-user-card-divider" />
+                                            <div className="topbar-user-card-action" onClick={handleLogout}>
+                                                <i className="mdi mdi-logout" style={{ marginRight: 6, fontSize: 14 }} />
+                                                Logout
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div
+                                    className="topbar-signin-btn"
+                                    onClick={handleSignIn}
+                                    title="Sign In"
+                                >
+                                    <i className="mdi mdi-login" style={{ fontSize: 16 }} />
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Right menu (kebab) */}
                     <div className="topbar-menu-wrapper">

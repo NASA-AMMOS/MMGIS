@@ -63,7 +63,7 @@ function BottomElementPositioner() {
             const compass = document.getElementById('mmgis-map-compass')
             if (compass) {
                 compass.style.transition = ease
-                compass.style.bottom = (totalOffset + 38) + 'px'
+                compass.style.bottom = (totalOffset + 8) + 'px'
                 compass.style.left = (12 + tpShift) + 'px'
             }
 

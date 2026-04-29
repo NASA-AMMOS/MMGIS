@@ -236,6 +236,37 @@ function ToolButton({ tool, index, isMobile, isActive, onToolClick }) {
     )
 }
 
+/**
+ * SepToolsContainer — a React container that hosts the jQuery-created
+ * separated tool buttons (#toolcontroller_sepdiv). Uses a ref to re-parent
+ * the jQuery element into the React tree after each render.
+ */
+function SepToolsContainer() {
+    const containerRef = useRef(null)
+
+    useEffect(() => {
+        const container = containerRef.current
+        if (!container) return
+
+        const reparent = () => {
+            const ToolController_ =
+                require('../../ToolController_/ToolController_').default
+            if (ToolController_.sepToolbarDiv && ToolController_.sepToolbarDiv[0]) {
+                const sepEl = ToolController_.sepToolbarDiv[0]
+                if (sepEl.parentElement !== container) {
+                    container.appendChild(sepEl)
+                }
+            }
+        }
+
+        reparent()
+        const timer = setInterval(reparent, 500)
+        return () => clearInterval(timer)
+    }, [])
+
+    return <div ref={containerRef} id="sepToolsReactContainer" />
+}
+
 function Toolbar({ userInterface }) {
     const isMobile = useUIStore((s) => s.isMobile)
     const topSize = useUIStore((s) => s.topSize)
@@ -298,7 +329,7 @@ function Toolbar({ userInterface }) {
                     borderBottom: '2px solid black',
                     bottom: (pxIsTools || 0) + 'px',
                     width: '100%',
-                    zIndex: 1004,
+                    zIndex: 2006,
                     transition: 'bottom 0.4s ease-out',
                     display: toolbarVisible ? 'inherit' : 'none',
                 } : {
@@ -307,7 +338,7 @@ function Toolbar({ userInterface }) {
                     borderRight: toolbarVisible ? '1px solid var(--color-a1)' : 'none',
                     top: topSize + 'px',
                     height: `calc(100% - ${topSize}px)`,
-                    zIndex: 1004,
+                    zIndex: 2006,
                     display: toolbarVisible ? 'flex' : 'none',
                     flexDirection: 'column',
                 }}
@@ -344,6 +375,8 @@ function Toolbar({ userInterface }) {
                             })}
                             {isMobile && <MobileExtraButtons />}
                         </div>
+                        {/* Container for jQuery-created separated tool buttons */}
+                        {!isMobile && <SepToolsContainer />}
                     </div>
                 )}
                 {!isMobile && <BottomBarReact userInterface={userInterface} />}
@@ -361,7 +394,7 @@ function Toolbar({ userInterface }) {
                     left: '0px',
                     zIndex: 2005,
                     imageRendering: 'pixelated',
-                    borderRight: '1px solid var(--color-a-5)',
+                    borderRight: '1px solid var(--color-a1)',
                 }}
                 onClick={F_.toHostForceLanding}
                 dangerouslySetInnerHTML={{

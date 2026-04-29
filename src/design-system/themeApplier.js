@@ -75,19 +75,24 @@ function applyThemeToDOM(themeName) {
         compass.style.border = `1px solid ${t['--color-a1']}`
     }
 
-    // --- Zoom controls ---
+    // --- Zoom controls (solid, matching topbar/toolbar) ---
     document.querySelectorAll('.leaflet-control-zoom').forEach((el) => {
-        el.style.background = a('--color-a', 0.88)
+        el.style.background = t['--color-a']
         el.style.border = `1px solid ${t['--color-a1']}`
     })
     document.querySelectorAll('.leaflet-control-zoom a').forEach((el) => {
         el.style.color = t['--color-c']
         el.style.borderBottom = `1px solid ${t['--color-a1']}`
     })
+    // --- Home button (solid) ---
+    document.querySelectorAll('.leaflet-control-zoom-home').forEach((el) => {
+        el.style.background = t['--color-a']
+        el.style.color = t['--color-c']
+    })
 
-    // --- Scalefactor goto ---
+    // --- Scalefactor goto (solid) ---
     document.querySelectorAll('.leaflet-control-scalefactor-goto').forEach((el) => {
-        el.style.background = a('--color-a', 0.88)
+        el.style.background = t['--color-a']
         el.style.border = `1px solid ${t['--color-a1']}`
     })
 
@@ -143,6 +148,61 @@ function applyThemeToDOM(themeName) {
     if (logoPath) {
         logoPath.setAttribute('fill', t['--color-mmgis'])
     }
+
+    // --- Issue #10: Text color contrast for light themes ---
+    // CoordinatesDiv text
+    document.querySelectorAll('#CoordinatesDiv, #CoordinatesDiv *').forEach((el) => {
+        if (el.tagName === 'INPUT' || el.tagName === 'SELECT') return
+        el.style.color = t['--color-f']
+    })
+    // topBarMain mission name
+    const topBarMain = document.getElementById('topBarMain')
+    if (topBarMain) {
+        topBarMain.style.color = t['--color-f']
+    }
+    // TimeUI buttons (follow feature, expand)
+    const timeUIFollow = document.getElementById('mmgisTimeUIFollowFeature')
+    if (timeUIFollow) {
+        timeUIFollow.style.color = t['--color-a3']
+    }
+    const timeUIExpand = document.getElementById('mmgisTimeUIExpand')
+    if (timeUIExpand) {
+        timeUIExpand.style.color = t['--color-a3']
+    }
+    // TimeUI mode, end-time, start-time text
+    document.querySelectorAll('#mmgisTimeUIMode, #mmgisTimeUIStartTime, #mmgisTimeUIEndTime, #mmgisTimeUIRelativeTime').forEach((el) => {
+        el.style.color = t['--color-f']
+    })
+    // DrawTool filter options and file names
+    document.querySelectorAll('#drawToolDrawFilterOptions, #drawToolDrawFilterOptions *, .drawToolDrawFilesListElem, .drawToolDrawFilesListElem *, #drawToolDrawFilter').forEach((el) => {
+        if (el.style && !el.style.color) {
+            el.style.color = t['--color-f']
+        }
+    })
+    // DrawTool nav tabs
+    document.querySelectorAll('#drawToolNav .drawToolNavButton').forEach((el) => {
+        if (!el.classList.contains('active')) {
+            el.style.color = t['--color-a3']
+        }
+    })
+
+    // --- Issue #11: TimeUI timeline colors ---
+    const timeUITimeline = document.getElementById('mmgisTimeUITimeline')
+    if (timeUITimeline) {
+        timeUITimeline.style.background = t['--color-a-5']
+        timeUITimeline.style.borderTop = `1px solid ${t['--color-a1']}`
+    }
+    document.querySelectorAll('.mmgisTimeUITimelineLabel, .mmgisTimeUITimelineTick').forEach((el) => {
+        el.style.color = t['--color-a3']
+    })
+    document.querySelectorAll('#mmgisTimeUITimelineInner').forEach((el) => {
+        el.style.background = t['--color-a-5']
+    })
+    // TimeUI controls area
+    document.querySelectorAll('#mmgisTimeUIControls').forEach((el) => {
+        el.style.background = a('--color-a', 0.92)
+        el.style.color = t['--color-f']
+    })
 }
 
 /**

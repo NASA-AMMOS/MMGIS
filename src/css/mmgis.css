@@ -1311,17 +1311,24 @@ mark {
 /* Standardized tool header pattern */
 .mmgisToolHeader {
     width: 100%;
+    display: flex;
+    align-items: center;
+    height: 40px;
+    background: var(--color-a);
+    color: #ccc;
 }
 .mmgisToolHeader > div:first-child {
     display: flex;
     height: 40px;
     line-height: 18px;
-    color: #ccc;
-    background: var(--color-a);
+    align-items: center;
+    flex: 1;
+    min-width: 0;
     justify-content: space-between;
 }
 .mmgisToolHeader > div:first-child > div:first-child {
     display: flex;
+    align-items: center;
     padding-left: 0px;
 }
 .mmgisToolTitle {

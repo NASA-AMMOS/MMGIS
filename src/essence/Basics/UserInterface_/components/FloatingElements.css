@@ -34,25 +34,22 @@
     transition: bottom 0.2s ease-out !important;
 }
 
-/* --- Leaflet zoom controls --- */
+/* --- Leaflet zoom controls (solid background like topbar/toolbar) --- */
 .leaflet-control-zoom {
     border-radius: 10px !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
     overflow: hidden !important;
 }
 .leaflet-control-zoom a {
-    background: transparent !important;
     transition: background 0.15s !important;
 }
 .leaflet-control-zoom a:last-child {
     border-bottom: none !important;
 }
 
-/* --- Leaflet home button --- */
+/* --- Leaflet home button (solid) --- */
 .leaflet-control-zoom-home {
-    background: transparent !important;
+    transition: background 0.15s !important;
 }
 
 /* --- Scale factor (goto button) --- */
