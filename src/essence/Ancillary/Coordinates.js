@@ -865,8 +865,7 @@ function urlClick(e) {
 }
 
 function toggleTimeUI() {
-    const active = $('#toggleTimeUI').hasClass('active')
-    $('#toggleTimeUI').toggleClass('active')
+    const active = $('#timeUI').hasClass('active')
     $('#timeUI').toggleClass('active')
 
     const isExpanded = $('#timeUI').hasClass('expanded') || $('#timeUI').hasClass('defaultExpanded')
