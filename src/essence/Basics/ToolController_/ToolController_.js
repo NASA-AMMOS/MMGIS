@@ -431,9 +431,13 @@ let ToolController_ = {
         this.prevHeight = 0
     },
     injectCloseButton: function () {
-        // Determine which container the tool rendered into
+        // Horizontal tools: close button is rendered by the React
+        // BottomFloatingBar component (SplitScreens.jsx) — no injection
+        // needed here. Only inject for vertical (side-panel) tools.
         const isHorizontal = this.activeTool && this.activeTool.height > 0
-        const container = isHorizontal ? $('#tools') : $('#toolPanel')
+        if (isHorizontal) return
+
+        const container = $('#toolPanel')
         if (!container.length) return
 
         // Remove any existing injected close button

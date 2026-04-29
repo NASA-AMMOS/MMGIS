@@ -3540,47 +3540,12 @@ const TimeUI = {
             return
         }
 
-        const active = !$('#toggleTimeUI').hasClass('active')
-
-        const defaultExpanded = $('#timeUI').hasClass('expanded')
-        const timeUIHeight = defaultExpanded
-            ? 177
-            : $('#timeUI').hasClass('active')
-              ? 40
-              : 0
-        const newBottom = !active
-            ? timeUIHeight
-            : $('#timeUI').hasClass('active')
-              ? 40
-              : 0
-        const timeBottom = 0
-
-        $('#CoordinatesDiv').css({
-            bottom: newBottom + (L_.UserInterface_.pxIsTools || 0) + 'px',
-        })
-        $('#mapToolBar').css({
-            bottom: newBottom + (L_.UserInterface_.pxIsTools || 0) + 'px',
-        })
-        $('.leaflet-bottom.leaflet-left').css({
-            bottom: newBottom + 'px',
-        })
-        $('#mmgis-attributions').css({
-            bottom: (L_.UserInterface_.pxIsTools || 0) + 'px',
-        })
-        $('.leaflet-bottom.leaflet-right').css({
-            bottom: newBottom + (L_.UserInterface_.pxIsTools || 0) + 'px',
-        })
-        $('#photosphereAzIndicator').css({
-            bottom: newBottom + (L_.UserInterface_.pxIsTools || 0) + 'px',
-            transition: 'bottom 0.2s ease-in',
-        })
-        $('#_lithosphere_controls_bottomleft').css({
-            bottom: newBottom + (L_.UserInterface_.pxIsTools || 0) + 10 + 'px',
-            transition: 'bottom 0.2s ease-in',
-        })
-        $('#timeUI').css({
-            bottom: timeBottom + (L_.UserInterface_.pxIsTools || 0) + 'px',
-        })
+        // The centralized BottomElementPositioner (React) handles all
+        // bottom-anchored element positioning via the Zustand store.
+        // The MutationObserver in UserInterfaceLayout.jsx watches #timeUI
+        // class changes and updates timeUIActive/timeUIExpanded in the
+        // store, which triggers BottomElementPositioner to recalculate.
+        // No direct CSS manipulation needed here.
     },
 }
 

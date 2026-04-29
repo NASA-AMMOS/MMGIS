@@ -91,6 +91,13 @@ function BottomElementPositioner() {
                 lithoControls.style.bottom = (totalOffset + 10) + 'px'
             }
 
+            // Leaflet bottom-left controls (scalebar, etc.)
+            const leafletBottomLeft = document.querySelector('.leaflet-bottom.leaflet-left')
+            if (leafletBottomLeft) {
+                leafletBottomLeft.style.transition = 'bottom 0.2s ease-out'
+                leafletBottomLeft.style.bottom = totalOffset + 'px'
+            }
+
             // Adjust vertical tool panel height so it doesn't overlap the bottom bar
             const toolPanel = document.getElementById('toolPanel')
             if (toolPanel) {
