@@ -1,9 +1,9 @@
 import L_ from '../Basics/Layers_/Layers_'
 import F_ from '../Basics/Formulae_/Formulae_'
 import ToolController_ from '../Basics/ToolController_/ToolController_'
-import QueryURL from '../Ancillary/QueryURL'
+import QueryURL from '../services/QueryURL'
 import TimeControl from '../Basics/TimeControl_/TimeControl'
-import Login from '../Ancillary/Login/Login'
+import Login from '../Basics/UserInterface_/components/Login/Login'
 import LegendTool from '../Tools/Legend/LegendTool.js'
 
 import $ from 'jquery'

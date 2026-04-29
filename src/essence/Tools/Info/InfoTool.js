@@ -6,8 +6,8 @@ import { Kinds } from '../../../pre/tools'
 import Dropy from '../../../external/Dropy/dropy'
 
 import MetadataCapturer from '../../Basics/Layers_/MetadataCapturer'
-import Help from '../../Ancillary/Help'
-import ConfirmationModal from '../../Ancillary/ConfirmationModal'
+import Help from '../../Basics/UserInterface_/components/Help/Help'
+import ConfirmationModal from '../../Basics/UserInterface_/components/ConfirmationModal/ConfirmationModal'
 
 import tippy from 'tippy.js'
 

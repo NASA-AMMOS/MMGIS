@@ -2,7 +2,7 @@ import $ from 'jquery'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
-import Help from '../../Ancillary/Help'
+import Help from '../../Basics/UserInterface_/components/Help/Help'
 
 const helpKey = 'LegendTool'
 

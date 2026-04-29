@@ -1,11 +1,11 @@
 import $ from 'jquery'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
-import CursorInfo from '../../Ancillary/CursorInfo'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
 
 import IsochroneManager from './IsochroneTool_Manager'
 import models from './models'
-import Help from '../../Ancillary/Help'
+import Help from '../../Basics/UserInterface_/components/Help/Help'
 
 import './IsochroneTool.css'
 const L = window.L

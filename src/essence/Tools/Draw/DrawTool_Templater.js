@@ -1,7 +1,7 @@
 import $ from 'jquery'
 
 import F_ from '../../Basics/Formulae_/Formulae_'
-import CursorInfo from '../../Ancillary/CursorInfo'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
 import Map_ from '../../Basics/Map_/Map_'
 import Dropy from '../../../external/Dropy/dropy'
 import TimeControl from '../../Basics/TimeControl_/TimeControl'

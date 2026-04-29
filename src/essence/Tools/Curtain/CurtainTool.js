@@ -5,7 +5,7 @@ import TC_ from '../../Basics/ToolController_/ToolController_'
 import Viewer_ from '../../Basics/Viewer_/Viewer_'
 import Map_ from '../../Basics/Map_/Map_'
 import Globe_ from '../../Basics/Globe_/Globe_'
-import CursorInfo from '../../Ancillary/CursorInfo'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
 import calls from '../../../pre/calls'
 
 import { createRoot } from 'react-dom/client'

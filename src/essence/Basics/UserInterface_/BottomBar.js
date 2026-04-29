@@ -6,9 +6,9 @@ import DOMPurify from 'dompurify'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 
-import Attributions from '../../Ancillary/Attributions'
-import QueryURL from '../../Ancillary/QueryURL'
-import Modal from '../../Ancillary/Modal'
+import Attributions from './components/Attributions/Attributions'
+import QueryURL from '../../services/QueryURL'
+import Modal from './components/Modal/Modal'
 import HTML2Canvas from 'html2canvas'
 import useUIStore from './store/uiStore'
 
@@ -516,7 +516,7 @@ let BottomBar = {
                     $('.splitterVInner').css('display', 'none')
                     break
                 case 'timeui':
-                    import('../../Ancillary/Coordinates').then(m => m.default.toggleTimeUI(false))
+                    import('./components/Coordinates/Coordinates').then(m => m.default.toggleTimeUI(false))
                     break
                 default:
                     break
@@ -554,7 +554,7 @@ let BottomBar = {
                     $('.splitterVInner').css('display', 'inline-flex')
                     break
                 case 'timeui':
-                    import('../../Ancillary/Coordinates').then(m => m.default.toggleTimeUI(true))
+                    import('./components/Coordinates/Coordinates').then(m => m.default.toggleTimeUI(true))
                     break
                 default:
                     break

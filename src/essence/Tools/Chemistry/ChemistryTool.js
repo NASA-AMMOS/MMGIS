@@ -6,7 +6,7 @@ import Globe_ from '../../Basics/Globe_/Globe_'
 import Map_ from '../../Basics/Map_/Map_'
 import Viewer_ from '../../Basics/Viewer_/Viewer_'
 import chemistrychart from './chemistrychart'
-import Help from '../../Ancillary/Help'
+import Help from '../../Basics/UserInterface_/components/Help/Help'
 //import chemistryplot from './chemistryplot'
 
 import './ChemistryTool.css'

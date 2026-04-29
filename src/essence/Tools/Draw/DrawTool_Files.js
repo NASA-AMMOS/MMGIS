@@ -4,8 +4,8 @@ import L_ from '../../Basics/Layers_/Layers_'
 import LayerGeologic from '../../Basics/Layers_/LayerGeologic/LayerGeologic'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import Map_ from '../../Basics/Map_/Map_'
-import CursorInfo from '../../Ancillary/CursorInfo'
-import Modal from '../../Ancillary/Modal'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Modal from '../../Basics/UserInterface_/components/Modal/Modal'
 
 import DrawTool_Templater from './DrawTool_Templater'
 

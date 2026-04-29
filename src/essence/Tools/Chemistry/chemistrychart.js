@@ -2,7 +2,7 @@ import $ from 'jquery'
 import * as d3 from 'd3'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
-import CursorInfo from '../../Ancillary/CursorInfo'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
 
 function makeChemistryChart(chems, chemLayerVar, divId) {
     var chemsNameArr // = ["Al2O3", "CaO", "FeOT", "K2O", "MgO", "Na2O", "SiO2", "TiO2"];

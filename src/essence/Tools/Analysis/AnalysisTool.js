@@ -5,7 +5,7 @@ import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 
-import Help from '../../Ancillary/Help'
+import Help from '../../Basics/UserInterface_/components/Help/Help'
 import TimeControl from '../../Basics/TimeControl_/TimeControl'
 
 import './AnalysisTool.css'

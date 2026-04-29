@@ -1,6 +1,6 @@
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
-import Sprites from '../../Ancillary/Sprites'
+import Sprites from '../../services/Sprites'
 import Hammer from 'hammerjs'
 import WebVR from '../../../external/THREE/WebVR'
 

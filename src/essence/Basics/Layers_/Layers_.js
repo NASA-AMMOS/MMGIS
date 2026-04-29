@@ -1,8 +1,8 @@
 // Holds all layer data
 import F_ from '../Formulae_/Formulae_'
-import Description from '../../Ancillary/Description'
-import Search from '../../Ancillary/Search'
-import Attributions from '../../Ancillary/Attributions'
+import Description from '../UserInterface_/components/Description/Description'
+import Search from '../UserInterface_/components/Search/Search'
+import Attributions from '../UserInterface_/components/Attributions/Attributions'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import LayerGeologic from './LayerGeologic/LayerGeologic'
 import { transformStacUrl, parseExternalStacUrl } from './LayerUtils'
