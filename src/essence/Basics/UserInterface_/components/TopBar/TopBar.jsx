@@ -5,6 +5,7 @@ import BottomBarReact from '../BottomBar/BottomBarReact'
 import Toggle from '../../../../../design-system/components/Toggle/Toggle'
 import Dropdown from '../../../../../design-system/components/Dropdown/Dropdown'
 import IconButton from '../../../../../design-system/components/IconButton/IconButton'
+import Tooltip from '../../../../../design-system/components/Tooltip/Tooltip'
 
 import styles from './TopBar.module.css'
 
@@ -216,27 +217,30 @@ function TopBar({ userInterface }) {
             {!isMobile && (
                 <div className={styles.reactOverlay}>
                     <Toggle.Group className={styles.panelToggles}>
-                        <Toggle
-                            pressed={viewerOpen}
-                            onPressedChange={handleToggleViewer}
-                            title="Toggle Viewer panel"
-                        >
-                            Viewer
-                        </Toggle>
-                        <Toggle
-                            pressed={mapOpen}
-                            onPressedChange={handleToggleMap}
-                            title="Toggle Map panel"
-                        >
-                            Map
-                        </Toggle>
-                        <Toggle
-                            pressed={globeOpen}
-                            onPressedChange={handleToggleGlobe}
-                            title="Toggle Globe panel"
-                        >
-                            Globe
-                        </Toggle>
+                        <Tooltip content="Toggle Viewer panel" placement="bottom">
+                            <Toggle
+                                pressed={viewerOpen}
+                                onPressedChange={handleToggleViewer}
+                            >
+                                Viewer
+                            </Toggle>
+                        </Tooltip>
+                        <Tooltip content="Toggle Map panel" placement="bottom">
+                            <Toggle
+                                pressed={mapOpen}
+                                onPressedChange={handleToggleMap}
+                            >
+                                Map
+                            </Toggle>
+                        </Tooltip>
+                        <Tooltip content="Toggle Globe panel" placement="bottom">
+                            <Toggle
+                                pressed={globeOpen}
+                                onPressedChange={handleToggleGlobe}
+                            >
+                                Globe
+                            </Toggle>
+                        </Tooltip>
                     </Toggle.Group>
 
                     {/* User account area — hidden when AUTH=off */}
@@ -266,7 +270,6 @@ function TopBar({ userInterface }) {
                             ) : (
                                 <IconButton
                                     onClick={handleSignIn}
-                                    title="Sign In"
                                 >
                                     <i className="mdi mdi-login" style={{ fontSize: 16 }} />
                                 </IconButton>
@@ -277,7 +280,7 @@ function TopBar({ userInterface }) {
                     {/* Right menu (kebab) */}
                     <Dropdown
                         trigger={
-                            <IconButton title="Menu" className={styles.menuBtn}>
+                            <IconButton className={styles.menuBtn}>
                                 <i className="mdi mdi-dots-vertical" style={{ fontSize: 20 }} />
                             </IconButton>
                         }

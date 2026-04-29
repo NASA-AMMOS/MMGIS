@@ -9,14 +9,12 @@
 }
 
 .popup {
-    background: var(--color-a);
-    color: var(--color-f);
-    border: 1px solid var(--color-a1);
-    border-radius: 6px;
-    padding: 4px 10px;
+    background: var(--color-c2);
+    color: white;
+    border-radius: 2px;
+    padding: 4px 8px;
     font-size: 12px;
     line-height: 1.4;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 10000;
     white-space: nowrap;
     pointer-events: none;

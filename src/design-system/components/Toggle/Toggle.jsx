@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { forwardRef } from 'react'
 import styles from './Toggle.module.css'
 
-function Toggle({ pressed, onPressedChange, children, className, ...props }) {
+const Toggle = forwardRef(function Toggle({ pressed, onPressedChange, children, className, ...props }, ref) {
     return (
         <button
+            ref={ref}
             role="switch"
             aria-checked={pressed}
             className={`${styles.toggle} ${pressed ? styles.active : ''} ${className || ''}`}
@@ -13,7 +14,7 @@ function Toggle({ pressed, onPressedChange, children, className, ...props }) {
             {children}
         </button>
     )
-}
+})
 
 function ToggleGroup({ children, className, ...props }) {
     return (

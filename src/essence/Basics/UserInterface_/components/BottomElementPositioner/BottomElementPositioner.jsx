@@ -54,14 +54,8 @@ function BottomElementPositioner() {
                 mapToolBar.style.left = (12 + tpShift) + 'px'
             }
 
-            const scaleFactor = document.querySelector('.leaflet-control-scalefactor')
-            if (scaleFactor) {
-                scaleFactor.style.transition = ease
-                scaleFactor.style.bottom = (totalOffset + 28) + 'px'
-                scaleFactor.style.left = (44 + tpShift) + 'px'
-            }
-
-            // Compass is inside .leaflet-bottom.leaflet-left — it moves with the container
+            // Compass and scalefactor are both inside .leaflet-bottom.leaflet-left
+            // and use position:absolute relative to that container — they move with it.
 
             const leafletBottomRight = document.querySelector('.leaflet-bottom.leaflet-right')
             if (leafletBottomRight) {

@@ -44,6 +44,12 @@ function HelpContent({ helpKey }) {
                     <i className="mdi mdi-help-rhombus-outline mdi-18px" />
                     <div>Help</div>
                 </div>
+                <div
+                    className={styles.closeBtn}
+                    onClick={() => Modal.remove()}
+                >
+                    <i className="mdi mdi-close mdi-18px" />
+                </div>
             </div>
             <div className={styles.content}>
                 {loading ? (

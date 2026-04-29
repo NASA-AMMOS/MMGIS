@@ -181,6 +181,7 @@ const Modal = {
         } else {
             _state.modals[modalId].closing = true
             _notify()
+            _applyBlur()
             setTimeout(() => {
                 delete _state.modals[modalId]
                 _notify()

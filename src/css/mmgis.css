@@ -691,7 +691,7 @@ body {
     pointer-events: auto;
     position: absolute;
     bottom: 38px;
-    left: 12px;
+    left: 36px;
     width: 32px;
     height: 32px;
     border-radius: 16px;
@@ -777,11 +777,11 @@ body {
 
 .leaflet-control-scalefactor {
     position: absolute;
-    bottom: 48px;
-    left: 44px;
+    bottom: 46px;
+    left: 12px;
     display: flex;
     margin-left: 2px !important;
-    transition: bottom 0.2s ease-out;
+    transition: bottom 0.2s ease-out, left 0.2s ease-out;
 }
 .leaflet-control-scalefactor-goto {
     white-space: nowrap;
