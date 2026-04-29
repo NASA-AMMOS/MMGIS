@@ -12,6 +12,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
+import useUIStore from '../Basics/UserInterface_/store/uiStore'
 
 import styles from './Modal.module.css'
 
@@ -33,11 +34,7 @@ function _activeCount() {
 }
 
 function _applyBlur() {
-    const mc = document.getElementById('main-container')
-    if (mc) {
-        const count = _activeCount()
-        mc.style.filter = count > 0 ? `blur(${3 * count}px)` : ''
-    }
+    useUIStore.getState().setModalBlurCount(_activeCount())
 }
 
 // ── React components ────────────────────────────────────────────────────

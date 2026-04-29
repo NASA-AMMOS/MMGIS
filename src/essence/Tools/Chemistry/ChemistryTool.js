@@ -88,6 +88,8 @@ function interfaceWithMMWebGIS() {
     //Add the markup to tools or do it manually
     tools.html(markup)
 
+    Help.finalize('ChemistryTool')
+
     $('.mmgisRadioBar#chemistryToolSingleMulti div').click(function () {
         $('.mmgisRadioBar#chemistryToolSingleMulti div').removeClass('active')
         $(this).addClass('active')

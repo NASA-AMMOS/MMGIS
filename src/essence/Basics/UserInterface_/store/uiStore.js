@@ -69,6 +69,10 @@ const useUIStore = create((set, get) => ({
     // Visibility of main container (toggled by show/hide)
     visible: false,
 
+    // Modal blur (number of active modals, drives blur on #main-container)
+    modalBlurCount: 0,
+    setModalBlurCount: (count) => set({ modalBlurCount: count }),
+
     // Right panel width offset (for openRightPanel/closeRightPanel)
     rightPanelWidth: 0,
 

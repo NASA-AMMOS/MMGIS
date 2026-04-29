@@ -17,6 +17,7 @@ function UserInterfaceLayout() {
     const visible = useUIStore((s) => s.visible)
     const rightPanelWidth = useUIStore((s) => s.rightPanelWidth)
     const isMobile = useUIStore((s) => s.isMobile)
+    const modalBlurCount = useUIStore((s) => s.modalBlurCount)
 
     useEffect(() => {
         // Import bridge lazily to avoid circular deps
@@ -111,7 +112,7 @@ function UserInterfaceLayout() {
             ref={containerRef}
             style={{
                 opacity: visible ? 1 : 0,
-                filter: visible ? 'none' : 'blur(5px)',
+                filter: !visible ? 'blur(5px)' : modalBlurCount > 0 ? `blur(${3 * modalBlurCount}px)` : 'none',
                 transition: visible ? 'opacity 1s, filter 0.3s ease-in-out' : 'none',
                 width: rightPanelWidth > 0 ? `calc(100% - ${rightPanelWidth}px)` : '100%',
                 height: '100vh',

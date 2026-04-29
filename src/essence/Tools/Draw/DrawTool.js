@@ -1713,6 +1713,8 @@ function interfaceWithMMGIS() {
     //Add the markup to tools or do it manually
     toolsContainer.append(tools)
 
+    Help.finalize(helpKey)
+
     // Set default Public filter state
     if (window._toolStates?.draw?.filter?.public != null) {
         if (window._toolStates.draw.filter.public === true)

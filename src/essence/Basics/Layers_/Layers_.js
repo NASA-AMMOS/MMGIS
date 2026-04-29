@@ -165,15 +165,7 @@ const L_ = {
         Search.init('.Search', L_, this.Viewer_, this.Map_, this.Globe_)
         Description.updateInfo()
 
-        $('#main-container').animate(
-            {
-                filter: 'blur(0px)',
-            },
-            800,
-            function () {
-                $('#main-container').css('filter', 'blur(0px)')
-            }
-        )
+        $('#main-container').css('filter', '')
         $('.LoadingPage').animate(
             {
                 opacity: 0,

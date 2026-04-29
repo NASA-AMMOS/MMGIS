@@ -599,6 +599,8 @@ function interfaceWithMMGIS() {
     tools.append(toolContainer)
     toolContainer.html(markup)
 
+    Help.finalize(helpKey)
+
     const clickEventContainer = (e) => IsochroneTool.handleClick(e)
     Map_.map.on('click', clickEventContainer)
 
