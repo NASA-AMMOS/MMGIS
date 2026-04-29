@@ -160,7 +160,6 @@ function TopBar({ userInterface }) {
     }, [userInterface])
 
     const handleLogout = useCallback(() => {
-        setShowUserCard(false)
         const loginoutBtn = document.getElementById('loginoutButton')
         if (loginoutBtn) loginoutBtn.click()
     }, [])
