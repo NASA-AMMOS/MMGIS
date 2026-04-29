@@ -1,12 +1,12 @@
-/* TopBar — layout and structure only. Colors come from themeApplier.js */
+/* TopBar — layout and structure. Colors from CSS custom properties (theme system). */
 
-#topBar {
-    background: var(--color-a) !important;
-    border-bottom: 1px solid var(--color-a1) !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+:global(#topBar) {
+    background: var(--color-a);
+    border-bottom: 1px solid var(--color-a1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-.topbar-react-overlay {
+.reactOverlay {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -17,10 +17,10 @@
 }
 
 /* Reorder TopBar flex children */
-#topBar > #topBarLeft { order: 1; }
-#topBar > #topBarRight { order: 2; flex: 0; margin-left: auto; }
+:global(#topBar) > :global(#topBarLeft) { order: 1; }
+:global(#topBar) > :global(#topBarRight) { order: 2; flex: 0; margin-left: auto; }
 
-.topbar-panel-toggles {
+.panelToggles {
     display: flex;
     align-items: center;
     border-radius: 8px;
@@ -30,31 +30,7 @@
     border: 1px solid var(--color-a1);
 }
 
-.topbar-toggle-btn {
-    font-size: 10px !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.02em;
-    padding: 0 12px !important;
-    height: 100% !important;
-    border-radius: 0 !important;
-    border: none !important;
-    background: transparent !important;
-    color: var(--color-a3) !important;
-    border-right: 1px solid var(--color-a1) !important;
-    transition: all 0.15s !important;
-    cursor: pointer;
-}
-.topbar-toggle-btn.active {
-    color: var(--color-mmgis) !important;
-    font-weight: 600 !important;
-    background: var(--color-accent-active) !important;
-}
-
-.topbar-toggle-btn:last-child {
-    border-right: none !important;
-}
-
-.topbar-user-avatar {
+.userAvatar {
     width: 28px;
     height: 28px;
     border-radius: 50%;
@@ -72,17 +48,17 @@
 }
 
 /* --- User account area --- */
-.topbar-user-area {
+.userArea {
     display: flex;
     align-items: center;
     margin-left: 4px;
 }
 
-.topbar-user-wrapper {
+.userWrapper {
     position: relative;
 }
 
-.topbar-user-card {
+.userCard {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
@@ -90,7 +66,7 @@
     border-radius: 8px;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     z-index: 2100;
     overflow: hidden;
     pointer-events: auto;
@@ -98,7 +74,7 @@
     border: 1px solid var(--color-a1);
 }
 
-.topbar-user-card-name {
+.userCardName {
     padding: 10px 14px 8px;
     font-size: 12px;
     font-weight: 600;
@@ -108,13 +84,13 @@
     color: var(--color-a5);
 }
 
-.topbar-user-card-divider {
+.userCardDivider {
     height: 1px;
     margin: 0 8px;
     background: var(--color-a1);
 }
 
-.topbar-user-card-action {
+.userCardAction {
     padding: 8px 14px 10px;
     font-size: 12px;
     cursor: pointer;
@@ -123,11 +99,11 @@
     color: var(--color-a3);
     transition: background 0.1s, color 0.1s;
 }
-.topbar-user-card-action:hover {
-    background: rgba(255,255,255,0.06);
+.userCardAction:hover {
+    background: var(--color-accent-hover);
 }
 
-.topbar-signin-btn {
+.signinBtn {
     width: 28px;
     height: 28px;
     border-radius: 50%;
@@ -140,17 +116,17 @@
     border: 1px solid var(--color-a1);
     transition: color 0.15s, background 0.15s;
 }
-.topbar-signin-btn:hover {
+.signinBtn:hover {
     color: var(--color-c);
 }
 
 /* Menu dropdown (kebab) */
-.topbar-menu-wrapper {
+.menuWrapper {
     position: relative;
     display: flex;
     align-items: center;
 }
-.topbar-menu-btn {
+.menuBtn {
     width: 28px;
     height: 28px;
     display: flex;
@@ -161,38 +137,12 @@
     color: var(--color-a3);
     transition: background 0.15s;
 }
-.topbar-menu-btn:hover {
-    background: rgba(255,255,255,0.08);
-}
-.topbar-menu-dropdown {
-    position: absolute;
-    top: 34px;
-    right: 0;
-    min-width: 180px;
-    border-radius: 6px;
-    padding: 4px 0;
-    z-index: 9999;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    background: var(--color-a);
-    border: 1px solid var(--color-a1);
-}
-.topbar-menu-item {
-    padding: 8px 14px;
-    font-size: 13px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    color: var(--color-a3);
-    transition: background 0.12s;
-}
-.topbar-menu-item:hover {
-    background: rgba(255,255,255,0.08);
+.menuBtn:hover {
+    background: var(--color-accent-hover);
 }
 
 /* Hide jQuery login elements — React TopBar handles user UI */
-#loginDiv,
-#loginoutButton {
+:global(#loginDiv),
+:global(#loginoutButton) {
     display: none !important;
 }

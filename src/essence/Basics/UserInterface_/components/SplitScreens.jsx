@@ -6,7 +6,7 @@ import GlobePanel from './GlobePanel'
 import Splitter from './Splitter'
 import SeparatedTools from './SeparatedTools'
 
-import './SplitScreens.css'
+import styles from './SplitScreens.module.css'
 
 function SplitScreens() {
     const topSize = useUIStore((s) => s.topSize)
@@ -147,23 +147,14 @@ function BottomFloatingBar() {
     return (
         <div
             id="bottomFloatingBar"
+            className={`${styles.bottomFloatingBar} ${!isVisible ? styles.bottomFloatingBarHidden : ''}`}
             style={{
-                position: 'absolute',
-                bottom: '12px',
-                left: '12px',
-                right: '12px',
                 zIndex: 1500,
-                borderRadius: '10px',
-                border: '1px solid var(--color-a1)',
-                background: 'rgba(29, 31, 32, 0.92)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                overflow: 'visible',
-                pointerEvents: 'auto',
                 maxHeight: 'calc(100% - 24px)',
                 boxShadow: '0 -4px 20px rgba(0,0,0,0.3)',
                 display: isVisible ? 'flex' : 'none',
                 flexDirection: 'column',
+                overflow: 'visible',
             }}
         >
             {/* Horizontal tool content — expands upward */}

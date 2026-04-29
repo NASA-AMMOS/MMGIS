@@ -1,19 +1,20 @@
-/* React overlay layout styles — layout only, colors from useTheme()/themeApplier */
+/* React overlay layout styles — layout only, colors from CSS custom properties */
 
 /* TopBar shadow */
-#main-container > #topBar {
+:global(#main-container) > :global(#topBar) {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 /* Title styling */
-#main-container > #topBar #topBarTitleName {
+:global(#main-container) > :global(#topBar) :global(#topBarTitleName) {
     font-size: 11px !important;
     font-weight: 500;
     letter-spacing: 0.02em;
+    color: var(--color-a4);
 }
 
 /* TopBar icons layout */
-#main-container > #topBar #topBarRight > i {
+:global(#main-container) > :global(#topBar) :global(#topBarRight) > i {
     width: 28px;
     height: 28px;
     display: flex;
@@ -23,4 +24,5 @@
     cursor: pointer;
     transition: all 0.15s;
     font-size: 16px;
+    color: var(--color-a3);
 }

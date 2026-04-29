@@ -1,6 +1,6 @@
 import React, { useRef, useCallback } from 'react'
 import useUIStore from '../store/uiStore'
-import './ToolPanel.css'
+import styles from './ToolPanel.module.css'
 
 // The toolbar is always 40px wide regardless of topSize
 const TOOLBAR_WIDTH = 40
@@ -39,8 +39,6 @@ function ToolPanel() {
                 const newWidth =
                     parseInt(dragRef.current.style.left) - panelLeftOffset
                 if (newWidth > 0) {
-                    // Use active tool's configured width as minimum,
-                    // matching UserInterfaceBridge.resizeToolPanel()
                     const ToolController_ =
                         require('../../ToolController_/ToolController_').default
                     const activeTool = ToolController_.getTool(
@@ -52,9 +50,6 @@ function ToolPanel() {
                         minWidth
                     )
                     useUIStore.getState().openToolPanel(clampedWidth)
-                    // TopBar styles are computed reactively by TopBar.jsx
-                    // from toolPanelWidth in the store, so no imperative
-                    // DOM update is needed here.
                 }
                 dragRef.current.style.background = 'transparent'
                 dragRef.current.style.opacity = '1'
@@ -66,52 +61,37 @@ function ToolPanel() {
         document.addEventListener('mouseup', handleMouseUp)
     }, [toolPanelWidth, topSize, panelLeftOffset])
 
+    const isOpen = toolPanelWidth > 0
+
     return (
         <>
             {/* Tool panel - unmanaged DOM node for jQuery tool injection */}
             <div
                 id="toolPanel"
+                className={`${styles.toolPanel} ${isOpen ? styles.toolPanelOpen : styles.toolPanelClosed}`}
                 style={{
-                    position: 'absolute',
                     width: toolPanelWidth + 'px',
                     top: (topSize + 12) + 'px',
                     height: `calc(100% - ${topSize + 24}px)`,
                     left: panelLeftOffset + 'px',
-                    background: 'rgba(29, 31, 32, 0.88)',
-                    border: toolPanelWidth > 0 ? '1px solid var(--color-a1)' : '1px solid transparent',
-                    borderRadius: '10px',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
                     transition: 'width 0.2s ease-out, opacity 0.2s ease-out, border-color 0.2s ease-out',
-                    overflow: 'hidden',
-                    zIndex: 1400,
-                    boxShadow: toolPanelWidth > 0 ? '0 8px 32px rgba(0,0,0,0.4)' : 'none',
-                    opacity: toolPanelWidth > 0 ? 1 : 0,
                 }}
             ></div>
             {/* Drag handle */}
             <div
                 id="toolPanelDrag"
                 ref={dragRef}
+                className={styles.dragHandle}
                 style={{
-                    position: 'absolute',
-                    width: '6px',
                     top: (topSize + 12) + 'px',
                     height: `calc(100% - ${topSize + 24}px)`,
-                    cursor: 'col-resize',
                     display: toolPanelDragVisible ? 'flex' : 'none',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1401,
                     left: (toolPanelWidth + panelLeftOffset) + 'px',
                     transition: 'left 0.2s ease-out',
-                    background: 'transparent',
-                    borderRadius: '3px',
                 }}
                 onMouseDown={handleDragMouseDown}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-mmgis)'; e.currentTarget.style.opacity = '0.5' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.opacity = '1' }}
             >
+                <i className="mdi mdi-drag-vertical mdi-18px"></i>
             </div>
         </>
     )

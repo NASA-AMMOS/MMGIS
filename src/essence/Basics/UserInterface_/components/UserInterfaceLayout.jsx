@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import ReactDOM from 'react-dom'
+import { createPortal } from 'react-dom'
 import useUIStore from '../store/uiStore'
 import TopBar from './TopBar'
 import Toolbar from './Toolbar'
@@ -9,7 +9,7 @@ import BottomElementPositioner from './BottomElementPositioner'
 
 import '../BottomBar.css'
 import './FloatingElements.css'
-import './UserInterfaceLayout.css'
+import './UserInterfaceLayout.module.css'
 
 function UserInterfaceLayout() {
     const containerRef = useRef(null)
@@ -125,7 +125,7 @@ function UserInterfaceLayout() {
             <SplitScreens />
             <BottomElementPositioner />
         </div>
-        {ReactDOM.createPortal(
+        {createPortal(
             <div
                 id="uiRightPanel"
                 style={{

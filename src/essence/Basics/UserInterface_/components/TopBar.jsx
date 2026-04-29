@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import useUIStore from '../store/uiStore'
 import BottomBar from '../BottomBar'
 import BottomBarReact from './BottomBarReact'
+import Toggle from '../../../../design-system/components/Toggle'
+import Dropdown from '../../../../design-system/components/Dropdown'
 
-import './TopBar.css'
+import styles from './TopBar.module.css'
 
 function TopBar({ userInterface }) {
     const topBarLeftRef = useRef(null)
@@ -16,9 +18,6 @@ function TopBar({ userInterface }) {
     const [showUserCard, setShowUserCard] = useState(false)
     const userCardRef = useRef(null)
     const userBtnRef = useRef(null)
-    const [showMenu, setShowMenu] = useState(false)
-    const menuRef = useRef(null)
-    const menuBtnRef = useRef(null)
 
     useEffect(() => {
         const el = topBarLeftRef.current
@@ -73,7 +72,7 @@ function TopBar({ userInterface }) {
         }
     }, [])
 
-    // Close user card and menu when clicking outside
+    // Close user card when clicking outside
     useEffect(() => {
         function handleClickOutside(e) {
             if (
@@ -81,12 +80,6 @@ function TopBar({ userInterface }) {
                 userBtnRef.current && !userBtnRef.current.contains(e.target)
             ) {
                 setShowUserCard(false)
-            }
-            if (
-                menuRef.current && !menuRef.current.contains(e.target) &&
-                menuBtnRef.current && !menuBtnRef.current.contains(e.target)
-            ) {
-                setShowMenu(false)
             }
         }
         document.addEventListener('mousedown', handleClickOutside)
@@ -192,7 +185,6 @@ function TopBar({ userInterface }) {
     }, [])
 
     // TopBar stays full-width always — tool panel floats underneath it
-    // In PR #47, topbar is always left:0, width:100%, padding-left:40px (toolbar width)
     const topBarStyle = {}
     if (isMobile) {
         topBarStyle.background = 'var(--color-a)'
@@ -237,49 +229,49 @@ function TopBar({ userInterface }) {
 
             {/* Panel toggles + user area + kebab menu */}
             {!isMobile && (
-                <div className="topbar-react-overlay">
-                    <div className="topbar-panel-toggles">
-                        <button
-                            className={'topbar-toggle-btn' + (viewerOpen ? ' active' : '')}
-                            onClick={handleToggleViewer}
+                <div className={styles.reactOverlay}>
+                    <Toggle.Group className={styles.panelToggles}>
+                        <Toggle
+                            pressed={viewerOpen}
+                            onPressedChange={handleToggleViewer}
                             title="Toggle Viewer panel"
                         >
                             Viewer
-                        </button>
-                        <button
-                            className={'topbar-toggle-btn' + (mapOpen ? ' active' : '')}
-                            onClick={handleToggleMap}
+                        </Toggle>
+                        <Toggle
+                            pressed={mapOpen}
+                            onPressedChange={handleToggleMap}
                             title="Toggle Map panel"
                         >
                             Map
-                        </button>
-                        <button
-                            className={'topbar-toggle-btn' + (globeOpen ? ' active' : '')}
-                            onClick={handleToggleGlobe}
+                        </Toggle>
+                        <Toggle
+                            pressed={globeOpen}
+                            onPressedChange={handleToggleGlobe}
                             title="Toggle Globe panel"
                         >
                             Globe
-                        </button>
-                    </div>
+                        </Toggle>
+                    </Toggle.Group>
 
                     {/* User account area — hidden when AUTH=off */}
                     {typeof window !== 'undefined' && window.mmgisglobal && window.mmgisglobal.AUTH !== 'off' && (
-                        <div className="topbar-user-area">
+                        <div className={styles.userArea}>
                             {username ? (
-                                <div className="topbar-user-wrapper">
+                                <div className={styles.userWrapper}>
                                     <div
                                         ref={userBtnRef}
-                                        className="topbar-user-avatar"
+                                        className={styles.userAvatar}
                                         onClick={() => setShowUserCard(!showUserCard)}
                                         title={username}
                                     >
                                         {username[0].toUpperCase()}
                                     </div>
                                     {showUserCard && (
-                                        <div ref={userCardRef} className="topbar-user-card">
-                                            <div className="topbar-user-card-name">{username}</div>
-                                            <div className="topbar-user-card-divider" />
-                                            <div className="topbar-user-card-action" onClick={handleLogout}>
+                                        <div ref={userCardRef} className={styles.userCard}>
+                                            <div className={styles.userCardName}>{username}</div>
+                                            <div className={styles.userCardDivider} />
+                                            <div className={styles.userCardAction} onClick={handleLogout}>
                                                 <i className="mdi mdi-logout" style={{ marginRight: 6, fontSize: 14 }} />
                                                 Logout
                                             </div>
@@ -288,7 +280,7 @@ function TopBar({ userInterface }) {
                                 </div>
                             ) : (
                                 <div
-                                    className="topbar-signin-btn"
+                                    className={styles.signinBtn}
                                     onClick={handleSignIn}
                                     title="Sign In"
                                 >
@@ -299,45 +291,34 @@ function TopBar({ userInterface }) {
                     )}
 
                     {/* Right menu (kebab) */}
-                    <div className="topbar-menu-wrapper">
-                        <div
-                            ref={menuBtnRef}
-                            className="topbar-menu-btn"
-                            onClick={() => setShowMenu(!showMenu)}
-                            title="Menu"
-                        >
-                            <i className="mdi mdi-dots-vertical" style={{ fontSize: 20 }} />
-                        </div>
-                        {showMenu && (
-                            <div ref={menuRef} className="topbar-menu-dropdown">
-                                <div className="topbar-menu-item"
-                                    onClick={() => { BottomBar.copyLink(); setShowMenu(false) }}>
-                                    <i className="mdi mdi-open-in-new" style={{ marginRight: 8, fontSize: 14 }} />
-                                    Copy Link
-                                </div>
-                                <div className="topbar-menu-item"
-                                    onClick={() => { BottomBar.takeScreenshot(); setShowMenu(false) }}>
-                                    <i className="mdi mdi-camera" style={{ marginRight: 8, fontSize: 14 }} />
-                                    Screenshot
-                                </div>
-                                <div className="topbar-menu-item"
-                                    onClick={() => { BottomBar.fullscreen(); setShowMenu(false) }}>
-                                    <i className="mdi mdi-fullscreen" style={{ marginRight: 8, fontSize: 14 }} />
-                                    Fullscreen
-                                </div>
-                                <div className="topbar-menu-item"
-                                    onClick={() => { BottomBar.toggleHotkeys(true); setShowMenu(false) }}>
-                                    <i className="mdi mdi-keyboard" style={{ marginRight: 8, fontSize: 14 }} />
-                                    Keyboard Shortcuts
-                                </div>
-                                <div className="topbar-menu-item"
-                                    onClick={() => { BottomBar.toggleSettings(true); setShowMenu(false) }}>
-                                    <i className="mdi mdi-cog" style={{ marginRight: 8, fontSize: 14 }} />
-                                    Settings
-                                </div>
+                    <Dropdown
+                        trigger={
+                            <div className={styles.menuBtn} title="Menu">
+                                <i className="mdi mdi-dots-vertical" style={{ fontSize: 20 }} />
                             </div>
-                        )}
-                    </div>
+                        }
+                    >
+                        <Dropdown.Item onClick={() => BottomBar.copyLink()}>
+                            <i className="mdi mdi-open-in-new" style={{ marginRight: 8, fontSize: 14 }} />
+                            Copy Link
+                        </Dropdown.Item>
+                        <Dropdown.Item onClick={() => BottomBar.takeScreenshot()}>
+                            <i className="mdi mdi-camera" style={{ marginRight: 8, fontSize: 14 }} />
+                            Screenshot
+                        </Dropdown.Item>
+                        <Dropdown.Item onClick={() => BottomBar.fullscreen()}>
+                            <i className="mdi mdi-fullscreen" style={{ marginRight: 8, fontSize: 14 }} />
+                            Fullscreen
+                        </Dropdown.Item>
+                        <Dropdown.Item onClick={() => BottomBar.toggleHotkeys(true)}>
+                            <i className="mdi mdi-keyboard" style={{ marginRight: 8, fontSize: 14 }} />
+                            Keyboard Shortcuts
+                        </Dropdown.Item>
+                        <Dropdown.Item onClick={() => BottomBar.toggleSettings(true)}>
+                            <i className="mdi mdi-cog" style={{ marginRight: 8, fontSize: 14 }} />
+                            Settings
+                        </Dropdown.Item>
+                    </Dropdown>
                 </div>
             )}
         </div>

@@ -3,7 +3,7 @@ import useUIStore from '../store/uiStore'
 import BottomBar from '../BottomBar'
 import tippy from 'tippy.js'
 
-import './BottomBarReact.css'
+import './BottomBarReact.module.css'
 
 /**
  * BottomBarReact — bottom toolbar buttons (About + Copy Link).

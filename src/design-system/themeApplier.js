@@ -42,18 +42,8 @@ function applyThemeToDOM(themeName) {
         el.style.background = t['--color-a2']
     })
 
-    // --- Floating bottom bar ---
-    const bottomBar = document.getElementById('bottomFloatingBar')
-    if (bottomBar) {
-        bottomBar.style.border = `1px solid ${t['--color-a1']}`
-        bottomBar.style.background = a('--color-a', 0.92)
-    }
-
-    // --- Tool panel (floating, glassy) ---
-    const toolPanel = document.getElementById('toolPanel')
-    if (toolPanel) {
-        toolPanel.style.background = a('--color-a', 0.88)
-    }
+    // NOTE: #bottomFloatingBar and #toolPanel are now styled via CSS Modules
+    // (SplitScreens.module.css and ToolPanel.module.css) using CSS custom properties.
 
     // --- TimeUI ---
     const timeUI = document.getElementById('timeUI')
@@ -125,23 +115,9 @@ function applyThemeToDOM(themeName) {
         toolsWrapper.style.borderBottom = 'none'
     }
 
-    // --- TopBar (solid background, full width) ---
-    const topBar = document.getElementById('topBar')
-    if (topBar) {
-        topBar.style.background = t['--color-a']
-        topBar.style.borderBottom = `1px solid ${t['--color-a1']}`
-    }
-
-    // --- TopBar title ---
-    const titleName = document.getElementById('topBarTitleName')
-    if (titleName) {
-        titleName.style.color = t['--color-a4']
-    }
-
-    // --- TopBar right icons ---
-    document.querySelectorAll('#topBarRight > i').forEach((el) => {
-        el.style.color = t['--color-a3']
-    })
+    // NOTE: #topBar, #topBarTitleName, and #topBarRight icons are now styled
+    // via CSS Modules (TopBar.module.css, UserInterfaceLayout.module.css)
+    // using CSS custom properties.
 
     // --- Separated tool panel headers ---
     document.querySelectorAll('.sep-tool-header').forEach((el) => {
@@ -164,11 +140,7 @@ function applyThemeToDOM(themeName) {
         if (el.tagName === 'INPUT' || el.tagName === 'SELECT') return
         el.style.color = t['--color-f']
     })
-    // topBarMain mission name
-    const topBarMain = document.getElementById('topBarMain')
-    if (topBarMain) {
-        topBarMain.style.color = t['--color-f']
-    }
+    // NOTE: #topBarMain color is now handled via CSS custom properties in CSS Modules.
     // TimeUI buttons (follow feature, expand)
     const timeUIFollow = document.getElementById('mmgisTimeUIFollowFeature')
     if (timeUIFollow) {

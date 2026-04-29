@@ -1,0 +1,46 @@
+.iconButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--color-a3);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-family: inherit;
+    line-height: 1;
+    padding: 0;
+}
+
+.md {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+}
+
+.sm {
+    width: 22px;
+    height: 22px;
+    font-size: 14px;
+}
+
+.lg {
+    width: 34px;
+    height: 34px;
+    font-size: 18px;
+}
+
+.iconButton:hover {
+    background: var(--color-a1);
+    color: var(--color-a5);
+}
+
+.active {
+    background: var(--color-accent-active);
+    color: var(--color-c);
+}
+.active:hover {
+    background: var(--color-accent-active);
+    color: var(--color-c);
+}

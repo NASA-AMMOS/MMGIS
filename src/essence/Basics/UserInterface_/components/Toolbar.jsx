@@ -4,7 +4,7 @@ import F_ from '../../Formulae_/Formulae_'
 import BottomBarReact from './BottomBarReact'
 import tippy from 'tippy.js'
 
-import './Toolbar.css'
+import styles from './Toolbar.module.css'
 
 /**
  * MobileTimeButton — renders a time toggle button in the mobile toolbar.

@@ -1,5 +1,6 @@
 import React, { useCallback, useRef } from 'react'
 import useUIStore from '../store/uiStore'
+import splitterStyles from './Splitter.module.css'
 
 const DRAG_THRESHOLD = 1
 

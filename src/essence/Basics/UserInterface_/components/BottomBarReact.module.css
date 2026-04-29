@@ -1,11 +1,12 @@
-/* BottomBar styling overrides for mockup alignment */
-#barBottom {
+/* BottomBar styling */
+:global(#barBottom) {
     align-items: center !important;
     padding-bottom: 6px !important;
+    background: transparent !important;
 }
 
-#barBottom > i,
-#barBottom > div:not(#barBottomContent) {
+:global(#barBottom) > i,
+:global(#barBottom) > div:not(:global(#barBottomContent)) {
     width: 28px !important;
     height: 28px !important;
     display: flex !important;
@@ -19,8 +20,8 @@
     font-size: 16px !important;
 }
 
-#barBottom > i:hover,
-#barBottom > div:not(#barBottomContent):hover {
+:global(#barBottom) > i:hover,
+:global(#barBottom) > div:not(:global(#barBottomContent)):hover {
     background: var(--color-a1) !important;
     color: var(--color-a5) !important;
 }

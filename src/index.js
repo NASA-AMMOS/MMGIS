@@ -1,5 +1,5 @@
 import React, { StrictMode } from 'react'
-import { render } from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import './index.css'
 
 import RefreshAuth from './pre/RefreshAuth'
@@ -67,11 +67,11 @@ import 'tippy.js/dist/tippy.css'
 import App from './App'
 import * as serviceWorker from './serviceWorker'
 
-render(
+const root = createRoot(document.getElementById('root'))
+root.render(
     <StrictMode>
         <App />
-    </StrictMode>,
-    document.getElementById('root')
+    </StrictMode>
 )
 
 // If you want your app to work offline and load faster, you can change

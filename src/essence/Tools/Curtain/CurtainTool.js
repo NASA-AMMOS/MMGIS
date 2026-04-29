@@ -8,7 +8,7 @@ import Globe_ from '../../Basics/Globe_/Globe_'
 import CursorInfo from '../../Ancillary/CursorInfo'
 import calls from '../../../pre/calls'
 
-import ReactDOM from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import React, { useState, useEffect, useRef } from 'react'
 
 import './CurtainTool.css'
@@ -270,7 +270,11 @@ let CurtainTool = {
         //Get tool variables
         this.vars = L_.getToolVars('curtain')
 
-        ReactDOM.render(<Curtain />, document.getElementById('tools'))
+        const toolsContainer = document.getElementById('tools')
+        if (!toolsContainer._reactRoot) {
+            toolsContainer._reactRoot = createRoot(toolsContainer)
+        }
+        toolsContainer._reactRoot.render(<Curtain />)
 
         this.osd = OpenSeadragon({
             id: 'curtainViewer',
