@@ -7,6 +7,7 @@
  *   Help.finalize(helpKey)     → binds the click handler
  */
 import React, { useState, useEffect } from 'react'
+import DOMPurify from 'dompurify'
 import Modal from './Modal'
 import showdown from 'showdown'
 
@@ -24,10 +25,13 @@ function HelpContent({ helpKey }) {
         ).replace(/\/$/g, '')}/public/helps/${helpKey}.md`
 
         fetch(baseUrl)
-            .then((res) => res.text())
+            .then((res) => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+                return res.text()
+            })
             .then((doc) => {
                 const converter = new showdown.Converter()
-                setHtml(converter.makeHtml(doc))
+                setHtml(DOMPurify.sanitize(converter.makeHtml(doc)))
                 setLoading(false)
             })
             .catch(() => setLoading(false))
