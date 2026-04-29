@@ -480,7 +480,7 @@
           "field": "look.aboutModalContent",
           "name": "About Modal Content",
           "description": "Markdown content displayed in the About modal. Supports full GitHub-flavored Markdown.",
-          "type": "textarea",
+          "type": "markdown",
           "width": 12
         }
       ]
