@@ -14,6 +14,7 @@ import './BottomBarReact.module.css'
  */
 function BottomBarReact({ userInterface }) {
     const isMobile = useUIStore((s) => s.isMobile)
+    const lookConfig = useUIStore((s) => s.lookConfig)
     const [linkCopied, setLinkCopied] = useState(false)
 
     useEffect(() => {
@@ -88,18 +89,20 @@ function BottomBarReact({ userInterface }) {
     return (
         <div id="barBottom" style={containerStyle}>
             {/* Copy Link */}
-            <i
-                id="topBarLink"
-                tabIndex={100}
-                className={`mmgisHoverBlue mdi ${
-                    linkCopied ? 'mdi-check-bold' : 'mdi-open-in-new'
-                } mdi-18px`}
-                style={{
-                    ...buttonStyle,
-                    color: linkCopied ? 'var(--color-green)' : undefined,
-                }}
-                onClick={handleCopyLink}
-            />
+            {lookConfig.copylink !== false && (
+                <i
+                    id="topBarLink"
+                    tabIndex={100}
+                    className={`mmgisHoverBlue mdi ${
+                        linkCopied ? 'mdi-check-bold' : 'mdi-open-in-new'
+                    } mdi-18px`}
+                    style={{
+                        ...buttonStyle,
+                        color: linkCopied ? 'var(--color-green)' : undefined,
+                    }}
+                    onClick={handleCopyLink}
+                />
+            )}
 
             {/* About (info icon) — below copy link */}
             <i

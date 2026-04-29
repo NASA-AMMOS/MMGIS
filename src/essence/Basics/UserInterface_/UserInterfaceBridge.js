@@ -337,38 +337,13 @@ const UserInterfaceBridge = {
 
         // Visibility toggles from config
         const look = l_.configData.look || {}
-        if (look.copylink != null) {
-            const el = document.getElementById('topBarLink')
-            if (el) el.style.display = look.copylink ? 'inherit' : 'none'
-        }
-        if (look.screenshot != null) {
-            const el = document.getElementById('topBarScreenshot')
-            if (el) el.style.display = look.screenshot ? 'inherit' : 'none'
-        }
-        if (look.fullscreen != null) {
-            const el = document.getElementById('topBarFullscreen')
-            if (el) el.style.display = look.fullscreen ? 'inherit' : 'none'
-        }
-        if (look.settings != null) {
-            const el = document.getElementById('bottomBarSettings')
-            if (el) el.style.display = look.settings ? 'inherit' : 'none'
-        }
 
-        if (look.info != null && look.infourl != null && look.infourl !== '') {
-            const el = document.getElementById('topBarInfo')
-            if (el) el.style.display = look.info ? 'inherit' : 'none'
-        } else {
-            const el = document.getElementById('topBarInfo')
-            if (el) el.style.display = 'none'
-        }
+        // Store look config in Zustand so React components (TopBar, BottomBarReact)
+        // can conditionally render based on mission configuration.
+        useUIStore.getState().setLookConfig(look)
 
-        if (look.help != null && look.helpurl != null && look.helpurl !== '') {
-            const el = document.getElementById('topBarHelp')
-            if (el) el.style.display = look.help ? 'inherit' : 'none'
-        } else {
-            const el = document.getElementById('topBarHelp')
-            if (el) el.style.display = 'none'
-        }
+        // copylink visibility (BottomBarReact reads from lookConfig)
+        // screenshot, fullscreen, settings visibility (TopBar reads from lookConfig)
 
         if (look.topbar === false)
             BottomBar.changeUIVisibility('topbar', false)

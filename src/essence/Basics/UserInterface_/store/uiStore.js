@@ -82,6 +82,10 @@ const useUIStore = create((set, get) => ({
         miscellaneous: true,
     },
 
+    // Config look flags (set by UserInterfaceBridge.fina from mission config)
+    lookConfig: {},
+    setLookConfig: (config) => set({ lookConfig: config }),
+
     // ToolController toolbar state (synced from ToolController_.init)
     toolsList: [],          // Array of tool config objects { name, icon, js, separatedTool, variables, ... }
     activeToolName: null,   // Name of the currently active toolbar tool (e.g. 'LayersTool')

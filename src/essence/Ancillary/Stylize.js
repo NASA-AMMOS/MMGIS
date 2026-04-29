@@ -80,13 +80,8 @@ export function stylize() {
             )
             $('#favicon').attr('href', L_.configData.look.logourl)
         }
-        // Note: look.infourl is now displayed in the About modal (BottomBar.showAboutModal)
-        // The old #topBarInfo button was replaced by #bottomBarAbout which opens the modal.
-        if (L_.configData.look.helpurl && L_.configData.look.helpurl != '') {
-            $('#topBarHelp').on('click', function () {
-                let win = window.open(L_.configData.look.helpurl, '_mmgishelp')
-                win.focus()
-            })
-        }
+        // Note: look.infourl and look.helpurl are now displayed in the About modal
+        // (BottomBar.showAboutModal). The old #topBarInfo and #topBarHelp buttons
+        // were removed — their jQuery click handlers are no longer needed.
     }
 }

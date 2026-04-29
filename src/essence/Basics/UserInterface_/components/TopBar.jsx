@@ -10,6 +10,7 @@ import styles from './TopBar.module.css'
 function TopBar({ userInterface }) {
     const topBarLeftRef = useRef(null)
     const isMobile = useUIStore((s) => s.isMobile)
+    const lookConfig = useUIStore((s) => s.lookConfig)
 
     const [viewerOpen, setViewerOpen] = useState(false)
     const [mapOpen, setMapOpen] = useState(true)
@@ -298,26 +299,34 @@ function TopBar({ userInterface }) {
                             </div>
                         }
                     >
-                        <Dropdown.Item onClick={() => BottomBar.copyLink()}>
-                            <i className="mdi mdi-open-in-new" style={{ marginRight: 8, fontSize: 14 }} />
-                            Copy Link
-                        </Dropdown.Item>
-                        <Dropdown.Item onClick={() => BottomBar.takeScreenshot()}>
-                            <i className="mdi mdi-camera" style={{ marginRight: 8, fontSize: 14 }} />
-                            Screenshot
-                        </Dropdown.Item>
-                        <Dropdown.Item onClick={() => BottomBar.fullscreen()}>
-                            <i className="mdi mdi-fullscreen" style={{ marginRight: 8, fontSize: 14 }} />
-                            Fullscreen
-                        </Dropdown.Item>
+                        {lookConfig.copylink !== false && (
+                            <Dropdown.Item onClick={() => BottomBar.copyLink()}>
+                                <i className="mdi mdi-open-in-new" style={{ marginRight: 8, fontSize: 14 }} />
+                                Copy Link
+                            </Dropdown.Item>
+                        )}
+                        {lookConfig.screenshot !== false && (
+                            <Dropdown.Item onClick={() => BottomBar.takeScreenshot()}>
+                                <i className="mdi mdi-camera" style={{ marginRight: 8, fontSize: 14 }} />
+                                Screenshot
+                            </Dropdown.Item>
+                        )}
+                        {lookConfig.fullscreen !== false && (
+                            <Dropdown.Item onClick={() => BottomBar.fullscreen()}>
+                                <i className="mdi mdi-fullscreen" style={{ marginRight: 8, fontSize: 14 }} />
+                                Fullscreen
+                            </Dropdown.Item>
+                        )}
                         <Dropdown.Item onClick={() => BottomBar.toggleHotkeys(true)}>
                             <i className="mdi mdi-keyboard" style={{ marginRight: 8, fontSize: 14 }} />
                             Keyboard Shortcuts
                         </Dropdown.Item>
-                        <Dropdown.Item onClick={() => BottomBar.toggleSettings(true)}>
-                            <i className="mdi mdi-cog" style={{ marginRight: 8, fontSize: 14 }} />
-                            Settings
-                        </Dropdown.Item>
+                        {lookConfig.settings !== false && (
+                            <Dropdown.Item onClick={() => BottomBar.toggleSettings(true)}>
+                                <i className="mdi mdi-cog" style={{ marginRight: 8, fontSize: 14 }} />
+                                Settings
+                            </Dropdown.Item>
+                        )}
                     </Dropdown>
                 </div>
             )}
