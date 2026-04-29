@@ -1,5 +1,11 @@
-// Compass sets up a directional compass for the leafet map
-import $ from 'jquery'
+/**
+ * Compass — directional compass for the Leaflet map.
+ *
+ * Migrated from jQuery to native DOM. Same imperative API:
+ *   Compass.init()    — binds map events and renders
+ *   Compass.refresh() — updates bearing display
+ *   Compass.remove()  — unbinds events
+ */
 import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
 
@@ -10,10 +16,8 @@ var Compass = {
     prevBearing: null,
     smoothBearing: null,
     init: function (scaleBox) {
-        //Reset the scale bars at the end of the user's zooms or pans
         Map_.map.on('zoomend', Compass.update)
         Map_.map.on('moveend', Compass.update)
-        // Update at first to so it's initially visible
         Compass.update()
     },
     refresh: function () {
@@ -24,13 +28,13 @@ var Compass = {
         Map_.map.off('moveend', Compass.update)
     },
     update: function () {
-        const mapRect = document.getElementById('map').getBoundingClientRect()
+        const mapEl = document.getElementById('map')
+        if (!mapEl) return
+        const mapRect = mapEl.getBoundingClientRect()
 
-        // Find center of map
         const wOffset = mapRect.width / 2
         const hOffset = mapRect.height / 2
 
-        //Find coordinates at map center and at another point one pixel below the center
         const centerLatLong = Map_.map.containerPointToLatLng([
             wOffset,
             hOffset,
@@ -49,28 +53,35 @@ var Compass = {
 
         Compass.smoothBearing = -Compass.bearing
 
-        if ($('#mmgis-map-compass').length === 0)
+        let compassEl = document.getElementById('mmgis-map-compass')
+        if (!compassEl) {
+            const container = document.querySelector('.leaflet-bottom.leaflet-left')
+            if (!container) return
+            compassEl = document.createElement('div')
+            compassEl.id = 'mmgis-map-compass'
             // prettier-ignore
-            $('.leaflet-bottom.leaflet-left').append(
-            [
-                `<div id='mmgis-map-compass'>`,
-                    `<div class='spin'>`,
-                        `<div class='north'></div>`,
-                        `<div class='south'></div>`,
-                    `</div>`,
-                    `<div class='info'>`,
-                        `<div class='angle'></div>`,
-                        `<div class='help'><div></div>North</div>`,
-                    `</div>`,
-                `</div>`
+            compassEl.innerHTML = [
+                `<div class='spin'>`,
+                    `<div class='north'></div>`,
+                    `<div class='south'></div>`,
+                `</div>`,
+                `<div class='info'>`,
+                    `<div class='angle'></div>`,
+                    `<div class='help'><div></div>North</div>`,
+                `</div>`,
             ].join('\n')
-        )
-        $('#mmgis-map-compass .info .angle').text(
-            `${((360 - Compass.bearing) % 360).toFixed(1)}°`
-        )
-        $('#mmgis-map-compass .spin').css({
-            transform: `rotateZ(${Compass.smoothBearing}deg)`,
-        })
+            container.appendChild(compassEl)
+        }
+
+        const angleEl = compassEl.querySelector('.info .angle')
+        if (angleEl) {
+            angleEl.textContent = `${((360 - Compass.bearing) % 360).toFixed(1)}°`
+        }
+
+        const spinEl = compassEl.querySelector('.spin')
+        if (spinEl) {
+            spinEl.style.transform = `rotateZ(${Compass.smoothBearing}deg)`
+        }
     },
 }
 

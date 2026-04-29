@@ -1,4 +1,9 @@
-import $ from 'jquery'
+/**
+ * ConfirmationModal — "Are you sure?" confirmation dialog.
+ *
+ * Keeps the same imperative API: ConfirmationModal.prompt(message, cb)
+ * Internally uses the React-based Modal.
+ */
 import Modal from './Modal'
 
 import './ConfirmationModal.css'
@@ -26,17 +31,17 @@ const ConfirmationModal = {
                 `</div>`
             ].join('\n'),
             () => {
-                $('#ConfirmationModalClose').on('click', function () {
+                document.getElementById('ConfirmationModalClose')?.addEventListener('click', function () {
                     cb(false)
                     ConfirmationModal.finished = true
                     Modal.remove()
                 })
-                $('#ConfirmationModalNo').on('click', function () {
+                document.getElementById('ConfirmationModalNo')?.addEventListener('click', function () {
                     cb(false)
                     ConfirmationModal.finished = true
                     Modal.remove()
                 })
-                $('#ConfirmationModalYes').on('click', function () {
+                document.getElementById('ConfirmationModalYes')?.addEventListener('click', function () {
                     cb(true)
                     ConfirmationModal.finished = true
                     Modal.remove()

@@ -1,4 +1,10 @@
-import $ from 'jquery'
+/**
+ * ContextMenu — right-click context menu on the map.
+ *
+ * Migrated from jQuery to native DOM. Same imperative API:
+ *   ContextMenu.init()   — binds contextmenu handlers
+ *   ContextMenu.remove() — unbinds and hides
+ */
 import L_ from '../Basics/Layers_/Layers_'
 import F_ from '../Basics/Formulae_/Formulae_'
 import Map_ from '../Basics/Map_/Map_'
@@ -12,12 +18,14 @@ var ContextMenu = {
     init: function () {
         this.remove()
         Map_.map.on('contextmenu', showContextMenuMap)
-        $('#_lithosphere_scene').on('contextmenu', showContextMenuMap)
+        const lithoScene = document.getElementById('_lithosphere_scene')
+        if (lithoScene) lithoScene.addEventListener('contextmenu', showContextMenuMap)
     },
     remove: function () {
         hideContextMenuMap()
         Map_.map.off('contextmenu', showContextMenuMap)
-        $('#_lithosphere_scene').off('contextmenu', showContextMenuMap)
+        const lithoScene = document.getElementById('_lithosphere_scene')
+        if (lithoScene) lithoScene.removeEventListener('contextmenu', showContextMenuMap)
     },
 }
 
@@ -50,7 +58,7 @@ function showContextMenuMap(e) {
                     const c = L_._toolCopyables[key]
                     const items = []
                     if( c.title && c.copyable)
-                    items.push(`<li id='contextMenuCopyable' key='${key}'>${c.title}</li>`)
+                    items.push(`<li id='contextMenuCopyable' data-key='${key}'>${c.title}</li>`)
                     return items.join('\n')
                 }).join('\n'),
                 contextMenuActions.map((a, idx) => {
@@ -88,35 +96,46 @@ function showContextMenuMap(e) {
         "</div>"
     ].join('\n');
 
-    $('body').append(markup)
+    // Insert into DOM
+    const wrapper = document.createElement('div')
+    wrapper.innerHTML = markup
+    const menuEl = wrapper.firstElementChild
+    document.body.appendChild(menuEl)
 
-    $('.ContextMenuMap').on('mouseleave', function () {
+    menuEl.addEventListener('mouseleave', function () {
         hideContextMenuMap()
     })
 
-    $('#contextMenuMapCopyCoords').on('click', function () {
-        F_.copyToClipboard(
-            JSON.stringify(Coordinates.getAllCoordinates(), null, 2)
-        )
-        $('#contextMenuMapCopyCoords').text('Copied!')
-        setTimeout(function () {
-            $('#contextMenuMapCopyCoords').text('Copy Coordinates')
-        }, 2000)
-    })
+    const copyCoords = document.getElementById('contextMenuMapCopyCoords')
+    if (copyCoords) {
+        copyCoords.addEventListener('click', function () {
+            F_.copyToClipboard(
+                JSON.stringify(Coordinates.getAllCoordinates(), null, 2)
+            )
+            copyCoords.textContent = 'Copied!'
+            setTimeout(function () {
+                copyCoords.textContent = 'Copy Coordinates'
+            }, 2000)
+        })
+    }
 
-    $('#contextMenuCopyable').on('click', function () {
-        const that = this
-        const key = $(that).attr('key')
-        const copyable = L_._toolCopyables[key]
-        F_.copyToClipboard(JSON.stringify(copyable.copyable, null, 2))
-        $(that).text('Copied!')
-        setTimeout(function () {
-            $(that).text(copyable.title)
-        }, 2000)
+    document.querySelectorAll('#contextMenuCopyable').forEach(function (el) {
+        el.addEventListener('click', function () {
+            const key = el.getAttribute('data-key')
+            const copyable = L_._toolCopyables[key]
+            F_.copyToClipboard(JSON.stringify(copyable.copyable, null, 2))
+            el.textContent = 'Copied!'
+            setTimeout(function () {
+                el.textContent = copyable.title
+            }, 2000)
+        })
     })
 
     contextMenuActionsFull.forEach((c) => {
-        $(`#contextMenuAction_${c.idx}_${c.idx2}`).on('click', function () {
+        const actionEl = document.getElementById(`contextMenuAction_${c.idx}_${c.idx2}`)
+        if (!actionEl) return
+
+        actionEl.addEventListener('click', function () {
             const a = c.contextMenuAction
             const l = featuresAtClick[c.idx2]
             if (a.link) {
@@ -175,17 +194,16 @@ function showContextMenuMap(e) {
 }
 
 function hideContextMenuMap(immediately) {
-    if (immediately) $('.ContextMenuMap').remove()
-    else
-        $('.ContextMenuMap').animate(
-            {
-                opacity: 0,
-            },
-            250,
-            function () {
-                $('.ContextMenuMap').remove()
-            }
-        )
+    const menus = document.querySelectorAll('.ContextMenuMap')
+    menus.forEach((menu) => {
+        if (immediately) {
+            menu.remove()
+        } else {
+            menu.style.transition = 'opacity 0.25s ease'
+            menu.style.opacity = '0'
+            setTimeout(() => menu.remove(), 250)
+        }
+    })
 }
 
 export default ContextMenu
