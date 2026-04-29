@@ -61,7 +61,6 @@ import './external/MetricsGraphics/metricsgraphics-dark.css'
 import './external/DataTables/datatables.css'
 import './css/mmgis.css'
 import './css/mmgisUI.css'
-import './css/tools.css'
 import 'tippy.js/dist/tippy.css'
 
 import App from './App'

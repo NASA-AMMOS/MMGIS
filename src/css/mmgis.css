@@ -131,50 +131,11 @@ body {
     --color-video: #7b2323;
 }
 
-#nodeenv {
-    display: none;
-    position: absolute;
-    width: 36px;
-    height: 1px;
-    left: 0;
-    bottom: 0;
-    overflow: hidden;
-    pointer-events: none;
-    background: #333;
-    z-index: 10000;
-}
-
 #webgl-error-message {
     display: none;
 }
 
-#topBar {
-}
-
-#topBarInfo {
-    width: 24px;
-    height: 24px;
-}
-
-#topBarHelp {
-    width: 24px;
-    height: 24px;
-}
-
 #topBarLink {
-    width: 24px;
-    height: 24px;
-}
-
-#topBarFullscreen {
-    width: 24px;
-    height: 24px;
-}
-
-#toggleUI {
-    opacity: 0.8;
-    cursor: pointer;
-    transition: color 0.3s;
     width: 24px;
     height: 24px;
 }
@@ -391,18 +352,6 @@ body {
     bottom: 0px;
     display: flex;
     flex-direction: column;
-}
-
-#logoGoBack {
-    transition: 0.25s ease-in;
-    position: absolute;
-    bottom: 1px;
-    left: 24px;
-    opacity: 0.2;
-    z-index: 103;
-}
-#logoGoBack:hover {
-    opacity: 1;
 }
 
 .leaflet-container {
