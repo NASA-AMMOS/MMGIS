@@ -1,9 +1,10 @@
 import React, { useEffect, useCallback, useState } from 'react'
 import useUIStore from '../store/uiStore'
 import BottomBar from '../BottomBar'
-import tippy from 'tippy.js'
+import IconButton from '../../../../design-system/components/IconButton'
+import Tooltip from '../../../../design-system/components/Tooltip'
 
-import './BottomBarReact.module.css'
+import styles from './BottomBarReact.module.css'
 
 /**
  * BottomBarReact — bottom toolbar buttons (About + Copy Link).
@@ -22,35 +23,6 @@ function BottomBarReact({ userInterface }) {
             BottomBar.setUI(userInterface)
         }
     }, [userInterface])
-
-    useEffect(() => {
-        if (isMobile) return
-        const tippyInstances = []
-        const timer = setTimeout(() => {
-            const tips = [
-                ['#bottomBarAbout', 'About'],
-                ['#topBarLink', 'Copy Link'],
-            ]
-            tips.forEach(([sel, content]) => {
-                try {
-                    const instances = tippy(sel, {
-                        content,
-                        placement: 'right',
-                        theme: 'blue',
-                    })
-                    if (Array.isArray(instances))
-                        tippyInstances.push(...instances)
-                    else if (instances) tippyInstances.push(instances)
-                } catch (e) {}
-            })
-        }, 100)
-        return () => {
-            clearTimeout(timer)
-            tippyInstances.forEach((t) => {
-                try { t.destroy() } catch (e) {}
-            })
-        }
-    }, [isMobile])
 
     const handleCopyLink = useCallback(() => {
         BottomBar.copyLink(() => {
@@ -77,42 +49,59 @@ function BottomBarReact({ userInterface }) {
               marginTop: 'auto',
           }
 
-    const buttonStyle = {
-        padding: '8px 10px',
-        width: '40px',
-        height: '36px',
-        lineHeight: '20px',
-        cursor: 'pointer',
-        textAlign: 'center',
-    }
-
     return (
-        <div id="barBottom" style={containerStyle}>
-            {/* Copy Link */}
+        <div id="barBottom" className={styles.barBottom} style={containerStyle}>
             {lookConfig.copylink !== false && (
-                <i
-                    id="topBarLink"
-                    tabIndex={100}
-                    className={`mmgisHoverBlue mdi ${
-                        linkCopied ? 'mdi-check-bold' : 'mdi-open-in-new'
-                    } mdi-18px`}
-                    style={{
-                        ...buttonStyle,
-                        color: linkCopied ? 'var(--color-green)' : undefined,
-                    }}
-                    onClick={handleCopyLink}
-                />
+                isMobile ? (
+                    <IconButton
+                        id="topBarLink"
+                        size="lg"
+                        className={styles.barButton}
+                        tabIndex={100}
+                        onClick={handleCopyLink}
+                        style={linkCopied ? { color: 'var(--color-green)' } : undefined}
+                    >
+                        <i className={`mdi ${linkCopied ? 'mdi-check-bold' : 'mdi-open-in-new'} mdi-18px`} />
+                    </IconButton>
+                ) : (
+                    <Tooltip content="Copy Link" placement="right">
+                        <IconButton
+                            id="topBarLink"
+                            size="lg"
+                            className={styles.barButton}
+                            tabIndex={100}
+                            onClick={handleCopyLink}
+                            style={linkCopied ? { color: 'var(--color-green)' } : undefined}
+                        >
+                            <i className={`mdi ${linkCopied ? 'mdi-check-bold' : 'mdi-open-in-new'} mdi-18px`} />
+                        </IconButton>
+                    </Tooltip>
+                )
             )}
 
-            {/* About (info icon) — below copy link */}
-            <i
-                id="bottomBarAbout"
-                title="About"
-                tabIndex={105}
-                className="mmgisHoverBlue mdi mdi-information-outline mdi-18px"
-                style={buttonStyle}
-                onClick={handleAbout}
-            />
+            {isMobile ? (
+                <IconButton
+                    id="bottomBarAbout"
+                    size="lg"
+                    className={styles.barButton}
+                    tabIndex={105}
+                    onClick={handleAbout}
+                >
+                    <i className="mdi mdi-information-outline mdi-18px" />
+                </IconButton>
+            ) : (
+                <Tooltip content="About" placement="right">
+                    <IconButton
+                        id="bottomBarAbout"
+                        size="lg"
+                        className={styles.barButton}
+                        tabIndex={105}
+                        onClick={handleAbout}
+                    >
+                        <i className="mdi mdi-information-outline mdi-18px" />
+                    </IconButton>
+                </Tooltip>
+            )}
         </div>
     )
 }

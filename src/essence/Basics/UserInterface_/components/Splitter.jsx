@@ -86,7 +86,7 @@ function Splitter({ type, orientation }) {
     if (type === 'viewer') {
         return (
             <div
-                className="splitterV"
+                className={splitterStyles.splitterV}
                 id="viewerSplit"
                 style={{
                     width: splitterSize + 'px',
@@ -103,7 +103,7 @@ function Splitter({ type, orientation }) {
         if (!hasViewer) return null
         return (
             <div
-                className="splitterV"
+                className={splitterStyles.splitterV}
                 id="mapSplit"
                 style={{
                     width: splitterSizeHidden + 'px',
@@ -215,7 +215,7 @@ function Splitter({ type, orientation }) {
         if (!hasGlobe) return null
         return (
             <div
-                className="splitterV"
+                className={splitterStyles.splitterV}
                 id="globeSplit"
                 style={{
                     width: splitterSizeHidden + 'px',

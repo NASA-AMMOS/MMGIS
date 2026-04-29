@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import useUIStore from '../store/uiStore'
+import splitStyles from './SplitScreens.module.css'
 
 function ViewerPanel() {
     const pxIsViewer = useUIStore((s) => s.pxIsViewer)
@@ -21,6 +22,7 @@ function ViewerPanel() {
     return (
         <div
             id="viewerScreen"
+            className={splitStyles.viewerScreen}
             style={{
                 position: 'absolute',
                 width: pxIsViewer + 'px',

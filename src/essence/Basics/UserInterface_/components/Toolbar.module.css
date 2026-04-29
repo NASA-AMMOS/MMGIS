@@ -1,5 +1,6 @@
 /* Toolbar — layout and structure. Colors from CSS custom properties. */
 
+/* #toolbar: externally referenced by Stylize.js, BottomBar.js, themeApplier.js, etc. */
 :global(#toolbar) {
     background: var(--color-a);
     border-right: 1px solid var(--color-a1);
@@ -11,6 +12,7 @@
     align-items: center !important;
 }
 
+/* #toolbarTools: externally referenced by ToolController_.js */
 :global(#toolbarTools) {
     width: 100% !important;
     display: flex !important;
@@ -18,14 +20,16 @@
     align-items: center !important;
 }
 
-:global(#toolcontroller_incdiv) {
-    width: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    padding: 0 !important;
+/* Scoped — no external jQuery references */
+.toolcontrollerIncdiv {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
 }
 
+/* #toolcontroller_sepdiv: jQuery-created by ToolController_, referenced by IdentifierTool.js */
 :global(#toolcontroller_sepdiv) {
     width: 100% !important;
     display: flex !important;
@@ -33,7 +37,8 @@
     align-items: center !important;
 }
 
-:global(#toolbar) .toolButton {
+/* .toolButton: externally referenced by themeApplier.js, ToolController_.js */
+:global(#toolbar) :global(.toolButton) {
     width: 34px !important;
     height: 34px !important;
     margin: 1px 0 !important;
@@ -48,16 +53,18 @@
     border-bottom: none !important;
 }
 
-:global(#toolbar) .toolButton :global(.mdi) {
+:global(#toolbar) :global(.toolButton) :global(.mdi) {
     font-size: 18px !important;
 }
 
+/* .toolSep: externally referenced by themeApplier.js, ToolController_.js */
 :global(#toolbar) :global(.toolSep) {
     width: 34px !important;
     height: 34px !important;
     margin: 1px 0 !important;
 }
 
+/* .toolSepDivider: externally referenced by themeApplier.js */
 :global(.toolSepDivider) {
     width: 26px;
     height: 1px;
@@ -65,12 +72,11 @@
     background: var(--color-a2);
 }
 
-/* Hide the Legend tool's own header since the panel wrapper provides one */
+/* jQuery-rendered tool elements */
 :global(#toolContentSeparated_Legend) > div:first-child {
     display: none !important;
 }
 
-/* Fix Legend content area height inside our wrapper */
 :global(#toolContentSeparated_Legend #LegendTool) {
     height: auto !important;
     max-height: calc(100vh - 200px) !important;

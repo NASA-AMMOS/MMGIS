@@ -5,6 +5,11 @@
     user-select: none;
 }
 
+.splitterV {
+    z-index: 402;
+    position: absolute;
+}
+
 .vertical {
     width: 4px;
     cursor: col-resize;

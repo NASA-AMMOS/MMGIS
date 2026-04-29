@@ -20,6 +20,28 @@
 :global(#topBar) > :global(#topBarLeft) { order: 1; }
 :global(#topBar) > :global(#topBarRight) { order: 2; flex: 0; margin-left: auto; }
 
+/* Title styling */
+:global(#topBarTitleName) {
+    font-size: 11px !important;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--color-a4);
+}
+
+/* TopBar icon buttons (jQuery Login appended to #topBarRight) */
+:global(#topBarRight) > i {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 16px;
+    color: var(--color-a3);
+}
+
 .panelToggles {
     display: flex;
     align-items: center;
@@ -58,22 +80,6 @@
     position: relative;
 }
 
-.userCard {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    min-width: 160px;
-    border-radius: 8px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    z-index: 2100;
-    overflow: hidden;
-    pointer-events: auto;
-    background: var(--color-a);
-    border: 1px solid var(--color-a1);
-}
-
 .userCardName {
     padding: 10px 14px 8px;
     font-size: 12px;
@@ -90,55 +96,9 @@
     background: var(--color-a1);
 }
 
-.userCardAction {
-    padding: 8px 14px 10px;
-    font-size: 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    color: var(--color-a3);
-    transition: background 0.1s, color 0.1s;
-}
-.userCardAction:hover {
-    background: var(--color-accent-hover);
-}
-
-.signinBtn {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: transparent;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--color-a3);
-    border: 1px solid var(--color-a1);
-    transition: color 0.15s, background 0.15s;
-}
-.signinBtn:hover {
-    color: var(--color-c);
-}
-
-/* Menu dropdown (kebab) */
-.menuWrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
+/* Kebab menu trigger — override IconButton border for circular shape */
 .menuBtn {
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     border-radius: 4px;
-    cursor: pointer;
-    color: var(--color-a3);
-    transition: background 0.15s;
-}
-.menuBtn:hover {
-    background: var(--color-accent-hover);
 }
 
 /* Hide jQuery login elements — React TopBar handles user UI */

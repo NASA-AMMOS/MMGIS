@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import useUIStore from '../store/uiStore'
+import splitStyles from './SplitScreens.module.css'
 
 function GlobePanel() {
     const pxIsGlobe = useUIStore((s) => s.pxIsGlobe)
@@ -23,6 +24,7 @@ function GlobePanel() {
     return (
         <div
             id="globeScreen"
+            className={splitStyles.globeScreen}
             style={{
                 position: 'absolute',
                 width: pxIsGlobe + 'px',

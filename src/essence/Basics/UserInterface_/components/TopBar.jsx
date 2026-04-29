@@ -4,6 +4,7 @@ import BottomBar from '../BottomBar'
 import BottomBarReact from './BottomBarReact'
 import Toggle from '../../../../design-system/components/Toggle'
 import Dropdown from '../../../../design-system/components/Dropdown'
+import IconButton from '../../../../design-system/components/IconButton'
 
 import styles from './TopBar.module.css'
 
@@ -16,8 +17,6 @@ function TopBar({ userInterface }) {
     const [mapOpen, setMapOpen] = useState(true)
     const [globeOpen, setGlobeOpen] = useState(false)
     const [username, setUsername] = useState(null)
-    const [showUserCard, setShowUserCard] = useState(false)
-    const userCardRef = useRef(null)
     const userBtnRef = useRef(null)
 
     useEffect(() => {
@@ -71,20 +70,6 @@ function TopBar({ userInterface }) {
             if (loginDiv) loginDiv.style.display = ''
             if (loginoutBtn) loginoutBtn.style.display = ''
         }
-    }, [])
-
-    // Close user card when clicking outside
-    useEffect(() => {
-        function handleClickOutside(e) {
-            if (
-                userCardRef.current && !userCardRef.current.contains(e.target) &&
-                userBtnRef.current && !userBtnRef.current.contains(e.target)
-            ) {
-                setShowUserCard(false)
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [])
 
     const handleMenuClick = useCallback(() => {
@@ -260,33 +245,32 @@ function TopBar({ userInterface }) {
                         <div className={styles.userArea}>
                             {username ? (
                                 <div className={styles.userWrapper}>
-                                    <div
-                                        ref={userBtnRef}
-                                        className={styles.userAvatar}
-                                        onClick={() => setShowUserCard(!showUserCard)}
-                                        title={username}
-                                    >
-                                        {username[0].toUpperCase()}
-                                    </div>
-                                    {showUserCard && (
-                                        <div ref={userCardRef} className={styles.userCard}>
-                                            <div className={styles.userCardName}>{username}</div>
-                                            <div className={styles.userCardDivider} />
-                                            <div className={styles.userCardAction} onClick={handleLogout}>
-                                                <i className="mdi mdi-logout" style={{ marginRight: 6, fontSize: 14 }} />
-                                                Logout
+                                    <Dropdown
+                                        trigger={
+                                            <div
+                                                ref={userBtnRef}
+                                                className={styles.userAvatar}
+                                                title={username}
+                                            >
+                                                {username[0].toUpperCase()}
                                             </div>
-                                        </div>
-                                    )}
+                                        }
+                                    >
+                                        <div className={styles.userCardName}>{username}</div>
+                                        <div className={styles.userCardDivider} />
+                                        <Dropdown.Item onClick={handleLogout}>
+                                            <i className="mdi mdi-logout" style={{ marginRight: 6, fontSize: 14 }} />
+                                            Logout
+                                        </Dropdown.Item>
+                                    </Dropdown>
                                 </div>
                             ) : (
-                                <div
-                                    className={styles.signinBtn}
+                                <IconButton
                                     onClick={handleSignIn}
                                     title="Sign In"
                                 >
                                     <i className="mdi mdi-login" style={{ fontSize: 16 }} />
-                                </div>
+                                </IconButton>
                             )}
                         </div>
                     )}
@@ -294,9 +278,9 @@ function TopBar({ userInterface }) {
                     {/* Right menu (kebab) */}
                     <Dropdown
                         trigger={
-                            <div className={styles.menuBtn} title="Menu">
+                            <IconButton title="Menu" className={styles.menuBtn}>
                                 <i className="mdi mdi-dots-vertical" style={{ fontSize: 20 }} />
-                            </div>
+                            </IconButton>
                         }
                     >
                         {lookConfig.copylink !== false && (

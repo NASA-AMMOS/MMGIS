@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useCallback, useState } from 'react'
 import useUIStore from '../store/uiStore'
 import F_ from '../../Formulae_/Formulae_'
 import BottomBarReact from './BottomBarReact'
-import tippy from 'tippy.js'
+import Tooltip from '../../../../design-system/components/Tooltip'
 
 import styles from './Toolbar.module.css'
 
@@ -190,24 +190,8 @@ function MobileExtraButtons() {
  * Replaces the jQuery-constructed toolButton divs from ToolController_.init().
  */
 function ToolButton({ tool, index, isMobile, isActive, onToolClick }) {
-    const buttonRef = useRef(null)
-
-    // Initialize tippy tooltip (desktop only)
-    useEffect(() => {
-        if (isMobile || !buttonRef.current) return
-        const instance = tippy(buttonRef.current, {
-            content: tool.name,
-            placement: 'right',
-            theme: 'blue',
-        })
-        return () => {
-            if (instance && instance.destroy) instance.destroy()
-        }
-    }, [isMobile, tool.name])
-
-    return (
+    const button = (
         <div
-            ref={buttonRef}
             id={'toolButton' + tool.name}
             className={'toolButton' + (isActive ? ' toolButtonActive' : '')}
             tabIndex={index + 1}
@@ -233,6 +217,14 @@ function ToolButton({ tool, index, isMobile, isActive, onToolClick }) {
                 style={{ cursor: 'pointer' }}
             />
         </div>
+    )
+
+    if (isMobile) return button
+
+    return (
+        <Tooltip content={tool.name} placement="right">
+            {button}
+        </Tooltip>
     )
 }
 
@@ -350,7 +342,7 @@ function Toolbar({ userInterface }) {
                     >
                         <div
                             id="toolcontroller_incdiv"
-                            className="sixteen wide column"
+                            className={`sixteen wide column ${styles.toolcontrollerIncdiv}`}
                             style={{
                                 transition: 'all 0.25s ease-in',
                                 pointerEvents: 'auto',

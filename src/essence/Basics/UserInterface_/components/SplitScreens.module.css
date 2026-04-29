@@ -1,26 +1,24 @@
 /* Panel layout styling */
+
+/* #splitscreens: externally referenced by TimeUI.js, ToolController_.js */
 :global(#splitscreens) {
     background: var(--color-a-5);
 }
 
-:global(#viewerScreen) {
-    background-color: var(--color-a-5) !important;
+/* Scoped — no external jQuery references */
+.viewerScreen {
+    background-color: var(--color-a-5);
 }
 
-:global(#mapScreen) {
-    background-color: var(--color-a-5) !important;
+.mapScreen {
+    background-color: var(--color-a-5);
 }
 
-:global(#globeScreen) {
-    background-color: var(--color-a1) !important;
+.globeScreen {
+    background-color: var(--color-a1);
 }
 
-/* Splitter styling - thin divider only, no arrow buttons */
-:global(.splitterV) {
-    z-index: 402 !important;
-}
-
-/* Hide splitter arrow buttons — panel toggles in TopBar replace them */
+/* .splitterVInner: externally referenced by BottomBar.js */
 :global(.splitterVInner) {
     display: none !important;
 }
