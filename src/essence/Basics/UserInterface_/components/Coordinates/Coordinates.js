@@ -37,6 +37,9 @@ const markup = [
             "<i class='mdi mdi-target mdi-18px'></i>",
         "</div>",
     "</div>",
+    "<div id='toggleTimeUI'>",
+        "<i class='mdi mdi-clock mdi-18px'></i>",
+    "</div>"
 ].join('\n');
 
 const Coordinates = {
