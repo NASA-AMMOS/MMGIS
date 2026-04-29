@@ -1,44 +1,26 @@
-/* Modal — uses Base UI Dialog rendered through design-system Modal */
+/* Modal — fullscreen backdrop with centered popup and fade transition */
 
-.backdrop {
+.wrapper {
+    overflow: auto;
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: linear-gradient(to top, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.5));
     z-index: 9998;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+.wrapper.visible {
+    opacity: 1;
 }
 
 .popup {
-    position: fixed;
-    top: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    position: absolute;
     left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 9999;
-    outline: none;
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-.close {
-    position: fixed;
-    top: 0;
-    right: 0;
-    color: #ddd;
-    cursor: pointer;
-    padding: 16px;
-    transition: color 0.2s ease;
-    background: var(--color-k);
-    border: none;
-    border-bottom-left-radius: 100%;
-    box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 1);
-    z-index: 10000;
-}
-.close i {
-    position: relative;
-    top: -5px;
-    right: -5px;
-}
-.close:hover {
-    color: var(--color-c);
+    top: 50%;
 }
 
 /* Legacy .dropdown styling for tools that inject HTML into the modal */
