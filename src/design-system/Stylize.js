@@ -5,6 +5,7 @@ import $ from 'jquery'
 import L_ from '../essence/Basics/Layers_/Layers_'
 import F_ from '../essence/Basics/Formulae_/Formulae_'
 import uiStore from '../essence/Basics/UserInterface_/store/uiStore'
+import { refreshThemeDOM } from './themeApplier'
 
 export function stylize() {
     if (L_.configData.look) {
@@ -83,5 +84,8 @@ export function stylize() {
         // Note: look.infourl and look.helpurl are now displayed in the About modal
         // (BottomBar.showAboutModal). The old #topBarInfo and #topBarHelp buttons
         // were removed — their jQuery click handlers are no longer needed.
+
+        // Re-apply theme to DOM elements so inline styles reflect CSS variable overrides
+        refreshThemeDOM()
     }
 }

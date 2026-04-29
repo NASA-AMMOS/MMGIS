@@ -90,6 +90,7 @@ function ModalInstance({ modalId, content, closing }) {
 
     return (
         <div
+            id={`mmgisModal_${modalId}`}
             ref={wrapperRef}
             className={`${styles.wrapper} ${visible ? styles.visible : ''}`}
             onClick={handleBackdropClick}
@@ -141,7 +142,21 @@ const Modal = {
         _applyBlur()
 
         if (typeof onAddCallback === 'function') {
-            setTimeout(() => onAddCallback(`mmgisModal_${modalId}`), 50)
+            const targetId = `mmgisModal_${modalId}`
+            const tryCallback = () => {
+                if (document.getElementById(targetId)) {
+                    onAddCallback(targetId)
+                    return true
+                }
+                return false
+            }
+            if (!tryCallback()) {
+                const obs = new MutationObserver(() => {
+                    if (tryCallback()) obs.disconnect()
+                })
+                obs.observe(document.body, { childList: true, subtree: true })
+                setTimeout(() => obs.disconnect(), 2000)
+            }
         }
     },
 

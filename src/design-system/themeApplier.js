@@ -10,12 +10,25 @@ import { getTheme } from './themes'
 import { hexToRgba } from './useTheme'
 
 let lastThemeName = null
+let forceRefresh = false
 
 function applyThemeToDOM(themeName) {
-    if (themeName === lastThemeName) return
+    if (themeName === lastThemeName && !forceRefresh) return
     lastThemeName = themeName
+    forceRefresh = false
 
-    const t = getTheme(themeName)
+    const themeObj = getTheme(themeName)
+    const root = document.documentElement
+    const computedStyle = getComputedStyle(root)
+    const t = new Proxy(themeObj, {
+        get(target, prop) {
+            if (typeof prop === 'string' && prop.startsWith('--')) {
+                const computed = computedStyle.getPropertyValue(prop).trim()
+                if (computed) return computed
+            }
+            return target[prop]
+        },
+    })
     const a = (varName, alpha) => hexToRgba(t[varName], alpha)
 
     // --- Toolbar (solid) ---
@@ -201,7 +214,7 @@ export function initThemeApplier() {
  * Useful after new elements are created (e.g., tool panel open, map control added).
  */
 export function refreshThemeDOM() {
-    lastThemeName = null
+    forceRefresh = true
     applyThemeToDOM(uiStore.getState().themeName)
 }
 
