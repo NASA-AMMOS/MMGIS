@@ -244,10 +244,12 @@
 #mmgisTimeUIModeDropdown {
     background: var(--color-a-5);
     width: 80px;
+    z-index: 1501;
 }
 #mmgisTimeUIQuickSelectDropdown {
     background: var(--color-a-5);
     width: 100px;
+    z-index: 1501;
 }
 #mmgisTimeUIStepWithinBeyondDropdown {
     background: var(--color-a-5);

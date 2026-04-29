@@ -1,14 +1,14 @@
 #CoordinatesDiv {
     position: absolute;
-    bottom: 0px;
-    right: 0px;
-    padding: 5px;
+    bottom: 12px;
+    right: 12px;
+    height: 30px;
+    padding: 0px 5px;
     margin: 0;
-    margin-right: 0px;
     z-index: 20;
     display: flex;
     transition: bottom 0.2s ease-in;
-    background: var(--color-a);
+    background: transparent;
     border-radius: 3px;
 }
 

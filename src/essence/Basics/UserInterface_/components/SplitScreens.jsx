@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react'
+import React, { useEffect, useRef } from 'react'
 import useUIStore from '../store/uiStore'
 import ViewerPanel from './ViewerPanel'
 import MapPanel from './MapPanel'
@@ -106,16 +106,11 @@ function BottomFloatingBar() {
     const pxIsTools = useUIStore((s) => s.pxIsTools)
     const timeUIActive = useUIStore((s) => s.timeUIActive)
     const timeUIExpanded = useUIStore((s) => s.timeUIExpanded)
+    const isDragging = useUIStore((s) => s.isDraggingSplitter)
     const timeUIDockRef = useRef(null)
 
     const hasToolContent = pxIsTools > 0
     const isVisible = timeUIActive || hasToolContent
-
-    const handleCloseTool = useCallback(() => {
-        const ToolController_ =
-            require('../../ToolController_/ToolController_').default
-        ToolController_.closeActiveTool()
-    }, [])
 
     // Reparent #timeUI into our timeUIDock when it appears in the DOM
     useEffect(() => {
@@ -180,7 +175,7 @@ function BottomFloatingBar() {
                     margin: '0',
                     background: 'transparent',
                     overflow: 'hidden',
-                    transition: 'height 0.3s ease-out',
+                    transition: isDragging ? 'none' : 'height 0.3s ease-out',
                     flexShrink: 0,
                     position: 'relative',
                 }}
@@ -195,40 +190,6 @@ function BottomFloatingBar() {
                     }}
                 ></div>
                 <Splitter type="tools" orientation="horizontal" />
-                {/* Close button for horizontal tools */}
-                {hasToolContent && (
-                    <div
-                        className="tool-close-btn"
-                        title="Close Tool"
-                        onClick={handleCloseTool}
-                        style={{
-                            position: 'absolute',
-                            top: '6px',
-                            right: '6px',
-                            width: '26px',
-                            height: '26px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            borderRadius: '4px',
-                            zIndex: 10,
-                            color: '#9ca3af',
-                            fontSize: '18px',
-                            transition: 'background 0.15s, color 0.15s',
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
-                            e.currentTarget.style.color = '#fff'
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'transparent'
-                            e.currentTarget.style.color = '#9ca3af'
-                        }}
-                    >
-                        <i className="mdi mdi-close mdi-18px"></i>
-                    </div>
-                )}
             </div>
             {/* TimeUI dock — #timeUI will be reparented here */}
             <div

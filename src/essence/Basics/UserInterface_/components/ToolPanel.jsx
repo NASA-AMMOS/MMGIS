@@ -26,7 +26,8 @@ function ToolPanel() {
             if (dragRef.current) {
                 dragRef.current._dragged = true
                 dragRef.current.style.left = newLeft + 'px'
-                dragRef.current.style.opacity = '0.7'
+                dragRef.current.style.background = 'var(--color-mmgis)'
+                dragRef.current.style.opacity = '0.5'
             }
         }
 
@@ -55,7 +56,8 @@ function ToolPanel() {
                     // from toolPanelWidth in the store, so no imperative
                     // DOM update is needed here.
                 }
-                dragRef.current.style.opacity = '0.35'
+                dragRef.current.style.background = 'transparent'
+                dragRef.current.style.opacity = '1'
             }
             if (dragRef.current) dragRef.current._dragged = false
         }
@@ -103,13 +105,12 @@ function ToolPanel() {
                     zIndex: 1401,
                     left: (toolPanelWidth + panelLeftOffset) + 'px',
                     transition: 'left 0.2s ease-out',
-                    background: 'var(--color-mmgis)',
-                    opacity: 0.35,
+                    background: 'transparent',
                     borderRadius: '3px',
                 }}
                 onMouseDown={handleDragMouseDown}
-                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7' }}
-                onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.35' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-mmgis)'; e.currentTarget.style.opacity = '0.5' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.opacity = '1' }}
             >
             </div>
         </>

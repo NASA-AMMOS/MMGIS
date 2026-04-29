@@ -29,6 +29,9 @@ function Splitter({ type, orientation }) {
                 if (dragCount.current <= DRAG_THRESHOLD) return
 
                 document.body.style.userSelect = 'none'
+                if (!useUIStore.getState().isDraggingSplitter) {
+                    useUIStore.setState({ isDraggingSplitter: true })
+                }
 
                 if (type === 'map') {
                     useUIStore
@@ -49,6 +52,7 @@ function Splitter({ type, orientation }) {
                 mouseIsDown.current = false
                 dragCount.current = 0
                 document.body.style.userSelect = ''
+                useUIStore.setState({ isDraggingSplitter: false })
                 document.removeEventListener('pointermove', handlePointerMove)
                 document.removeEventListener('pointerup', handlePointerUp)
             }

@@ -60,6 +60,9 @@ const useUIStore = create((set, get) => ({
     timeUIActive: false,
     timeUIExpanded: false,
 
+    // Drag state (disable CSS transitions during splitter drag)
+    isDraggingSplitter: false,
+
     // Layout ready flag for essence.js integration
     layoutReady: false,
 

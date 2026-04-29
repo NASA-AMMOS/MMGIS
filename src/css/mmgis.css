@@ -201,12 +201,12 @@ body {
     display: flex;
     align-items: center;
     z-index: 500;
-    background: var(--color-mmgis);
-    opacity: 0.35;
-    transition: opacity 0.2s ease-out;
+    background: transparent;
+    transition: background 0.2s ease-out;
 }
 .splitterV:hover {
-    opacity: 0.7;
+    background: var(--color-mmgis);
+    opacity: 0.5;
 }
 
 .splitterVInner {
@@ -310,12 +310,12 @@ body {
     position: absolute;
     cursor: row-resize;
     z-index: 6;
-    background: var(--color-mmgis);
-    opacity: 0.35;
-    transition: opacity 0.2s ease-out;
+    background: transparent;
+    transition: background 0.2s ease-out;
 }
 .splitterH:hover {
-    opacity: 0.7;
+    background: var(--color-mmgis);
+    opacity: 0.5;
 }
 
 .splitterText {

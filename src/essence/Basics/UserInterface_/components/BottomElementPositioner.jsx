@@ -17,9 +17,10 @@ function BottomElementPositioner() {
     const timeUIExpanded = useUIStore((s) => s.timeUIExpanded)
     const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
     const topSize = useUIStore((s) => s.topSize)
+    const isDragging = useUIStore((s) => s.isDraggingSplitter)
 
     useEffect(() => {
-        const ease = 'bottom 0.2s ease-out, left 0.2s ease-out'
+        const ease = isDragging ? 'none' : 'bottom 0.2s ease-out, left 0.2s ease-out'
 
         if (isMobile) {
             const coordsDiv = document.getElementById('CoordinatesDiv')
@@ -71,7 +72,7 @@ function BottomElementPositioner() {
             const coordsDiv = document.getElementById('CoordinatesDiv')
             if (coordsDiv) {
                 coordsDiv.style.transition = ease
-                coordsDiv.style.bottom = totalOffset + 'px'
+                coordsDiv.style.bottom = (totalOffset + 12) + 'px'
             }
 
             const photoAz = document.getElementById('photosphereAzIndicator')
@@ -89,8 +90,9 @@ function BottomElementPositioner() {
             // Leaflet bottom-left controls (scalebar, etc.)
             const leafletBottomLeft = document.querySelector('.leaflet-bottom.leaflet-left')
             if (leafletBottomLeft) {
-                leafletBottomLeft.style.transition = 'bottom 0.2s ease-out'
+                leafletBottomLeft.style.transition = ease
                 leafletBottomLeft.style.bottom = totalOffset + 'px'
+                leafletBottomLeft.style.left = (12 + tpShift) + 'px'
             }
 
             // Adjust vertical tool panel height so it doesn't overlap the bottom bar
@@ -109,10 +111,10 @@ function BottomElementPositioner() {
             const sepContent = document.getElementById('toolcontroller_sep_content')
             if (sepContent) {
                 sepContent.style.transition = 'left 0.2s ease-out'
-                sepContent.style.left = (12 + tpShift) + 'px'
+                sepContent.style.left = (12 + tpShift + (tpShift > 0 ? 12 : 0)) + 'px'
             }
         }
-    }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded, toolPanelWidth, topSize])
+    }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded, toolPanelWidth, topSize, isDragging])
 
     return null
 }
