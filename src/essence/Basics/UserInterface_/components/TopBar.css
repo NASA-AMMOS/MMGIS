@@ -190,3 +190,9 @@
 .topbar-menu-item:hover {
     background: rgba(255,255,255,0.08);
 }
+
+/* Hide jQuery login elements — React TopBar handles user UI */
+#loginDiv,
+#loginoutButton {
+    display: none !important;
+}

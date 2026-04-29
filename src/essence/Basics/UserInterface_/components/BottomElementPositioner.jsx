@@ -60,12 +60,7 @@ function BottomElementPositioner() {
                 scaleFactor.style.left = (44 + tpShift) + 'px'
             }
 
-            const compass = document.getElementById('mmgis-map-compass')
-            if (compass) {
-                compass.style.transition = ease
-                compass.style.bottom = (totalOffset + 8) + 'px'
-                compass.style.left = (12 + tpShift) + 'px'
-            }
+            // Compass is inside .leaflet-bottom.leaflet-left — it moves with the container
 
             const leafletBottomRight = document.querySelector('.leaflet-bottom.leaflet-right')
             if (leafletBottomRight) {
@@ -108,6 +103,13 @@ function BottomElementPositioner() {
             if (toolPanelDrag) {
                 const panelBottom = totalOffset > 0 ? (totalOffset + 12) : 12
                 toolPanelDrag.style.height = `calc(100% - ${topSize + 12 + panelBottom}px)`
+            }
+
+            // Push separated tool content panels (Legend, etc.) right of vertical tool panel
+            const sepContent = document.getElementById('toolcontroller_sep_content')
+            if (sepContent) {
+                sepContent.style.transition = 'left 0.2s ease-out'
+                sepContent.style.left = (12 + tpShift) + 'px'
             }
         }
     }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded, toolPanelWidth, topSize])

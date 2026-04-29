@@ -26,9 +26,7 @@ function ToolPanel() {
             if (dragRef.current) {
                 dragRef.current._dragged = true
                 dragRef.current.style.left = newLeft + 'px'
-                dragRef.current.style.height = '100%'
-                dragRef.current.style.borderRight =
-                    '2px solid var(--color-a1)'
+                dragRef.current.style.opacity = '0.7'
             }
         }
 
@@ -57,9 +55,7 @@ function ToolPanel() {
                     // from toolPanelWidth in the store, so no imperative
                     // DOM update is needed here.
                 }
-                dragRef.current.style.height = '28px'
-                dragRef.current.style.borderRight =
-                    '1px solid transparent'
+                dragRef.current.style.opacity = '0.35'
             }
             if (dragRef.current) dragRef.current._dragged = false
         }
@@ -97,26 +93,24 @@ function ToolPanel() {
                 ref={dragRef}
                 style={{
                     position: 'absolute',
-                    width: '24px',
-                    height: '28px',
-                    padding: '10px 2px',
-                    margin: '0px 3px',
-                    textAlign: 'center',
-                    top: '1px',
-                    color: 'var(--color-a3)',
-                    overflow: 'hidden',
+                    width: '6px',
+                    top: (topSize + 12) + 'px',
+                    height: `calc(100% - ${topSize + 24}px)`,
                     cursor: 'col-resize',
-                    display: toolPanelDragVisible ? 'block' : 'none',
-                    zIndex: 1400,
-                    borderRight: '1px solid transparent',
+                    display: toolPanelDragVisible ? 'flex' : 'none',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1401,
                     left: (toolPanelWidth + panelLeftOffset) + 'px',
                     transition: 'left 0.2s ease-out',
+                    background: 'var(--color-mmgis)',
+                    opacity: 0.35,
+                    borderRadius: '3px',
                 }}
                 onMouseDown={handleDragMouseDown}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.7' }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.35' }}
             >
-                <div>
-                    <i className="mdi mdi-drag-vertical mdi-18px"></i>
-                </div>
             </div>
         </>
     )

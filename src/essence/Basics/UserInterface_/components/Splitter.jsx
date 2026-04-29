@@ -60,17 +60,18 @@ function Splitter({ type, orientation }) {
     )
 
     if (orientation === 'horizontal' || type === 'tools') {
-        // Horizontal splitter for tools area
+        // Horizontal splitter (drag handle) for tools area
+        const handleHeight = 6
         return (
             <div
                 className="splitterH"
                 id="toolsSplit"
                 style={{
-                    height: splitterSize / 2 + 'px',
+                    height: handleHeight + 'px',
                     left: '0px',
-                    bottom:
-                        pxIsTools - splitterSize / 2 + 'px',
+                    top: '0px',
                     zIndex: 3,
+                    borderRadius: '3px 3px 0 0',
                 }}
                 onPointerDown={handlePointerDown}
             ></div>

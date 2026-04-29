@@ -104,15 +104,12 @@ function SplitScreens() {
  */
 function BottomFloatingBar() {
     const pxIsTools = useUIStore((s) => s.pxIsTools)
-    const toolsWrapperCSSWidth = useUIStore((s) => s.toolsWrapperCSSWidth)
     const timeUIActive = useUIStore((s) => s.timeUIActive)
     const timeUIExpanded = useUIStore((s) => s.timeUIExpanded)
-    const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
     const timeUIDockRef = useRef(null)
 
     const hasToolContent = pxIsTools > 0
     const isVisible = timeUIActive || hasToolContent
-    const barLeftOffset = (toolPanelWidth || 0) + 12
 
     const handleCloseTool = useCallback(() => {
         const ToolController_ =
@@ -158,10 +155,9 @@ function BottomFloatingBar() {
             style={{
                 position: 'absolute',
                 bottom: '12px',
-                left: barLeftOffset + 'px',
+                left: '12px',
                 right: '12px',
                 zIndex: 1500,
-                transition: 'left 0.2s ease-out',
                 borderRadius: '10px',
                 border: '1px solid var(--color-a1)',
                 background: 'rgba(29, 31, 32, 0.92)',
@@ -180,7 +176,7 @@ function BottomFloatingBar() {
                 id="toolsWrapper"
                 style={{
                     height: pxIsTools + 'px',
-                    width: toolsWrapperCSSWidth || '100%',
+                    width: '100%',
                     margin: '0',
                     background: 'transparent',
                     overflow: 'hidden',

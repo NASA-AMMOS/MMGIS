@@ -201,11 +201,12 @@ body {
     display: flex;
     align-items: center;
     z-index: 500;
-    background: transparent;
-    transition: background 0.2s ease-out;
+    background: var(--color-mmgis);
+    opacity: 0.35;
+    transition: opacity 0.2s ease-out;
 }
 .splitterV:hover {
-    background: var(--color-mmgis-a, rgba(0, 183, 255, 0.15));
+    opacity: 0.7;
 }
 
 .splitterVInner {
@@ -305,13 +306,16 @@ body {
 }
 
 .splitterH {
-    /*background-color: #1A1A1A;*/
     width: 100%;
     position: absolute;
-    /*border-top: 1px solid #333;*/
-    /*border-bottom: 1px solid rgba(0,0,0,0.95);*/
     cursor: row-resize;
     z-index: 6;
+    background: var(--color-mmgis);
+    opacity: 0.35;
+    transition: opacity 0.2s ease-out;
+}
+.splitterH:hover {
+    opacity: 0.7;
 }
 
 .splitterText {
@@ -1311,24 +1315,17 @@ mark {
 /* Standardized tool header pattern */
 .mmgisToolHeader {
     width: 100%;
-    display: flex;
-    align-items: center;
-    height: 40px;
-    background: var(--color-a);
-    color: #ccc;
 }
 .mmgisToolHeader > div:first-child {
     display: flex;
     height: 40px;
     line-height: 18px;
-    align-items: center;
-    flex: 1;
-    min-width: 0;
+    color: #ccc;
+    background: var(--color-a);
     justify-content: space-between;
 }
 .mmgisToolHeader > div:first-child > div:first-child {
     display: flex;
-    align-items: center;
     padding-left: 0px;
 }
 .mmgisToolTitle {

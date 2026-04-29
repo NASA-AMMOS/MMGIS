@@ -105,7 +105,7 @@ var InfoTool = {
         this.MMGISInterface = new interfaceWithMMGIS()
     },
     destroy: function () {
-        this.MMGISInterface.separateFromMMGIS()
+        if (this.MMGISInterface) this.MMGISInterface.separateFromMMGIS()
     },
     getUrlString: function () {
         return ''

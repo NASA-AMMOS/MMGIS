@@ -72,19 +72,22 @@ let ToolController_ = {
             })
         this.sepToolbarDiv.append(sepDivider)
 
-        // Create each separated tool (Legend last, matching PR #47 ordering)
+        // Create each separated tool (Legend first/above Identifier in toolbar)
         let legendToolIndex = -1
         for (let i = 0; i < tools.length; i++) {
-            if (tools[i].separatedTool === true && L_.UserInterface_.isMobile !== true) {
-                if (tools[i].name === 'Legend') {
-                    legendToolIndex = i
-                    continue
-                }
-                this._createSeparatedTool(tools, i)
+            if (tools[i].separatedTool === true && tools[i].name === 'Legend') {
+                legendToolIndex = i
+                break
             }
         }
-        if (legendToolIndex >= 0) {
+        if (legendToolIndex >= 0 && L_.UserInterface_.isMobile !== true) {
             this._createSeparatedTool(tools, legendToolIndex)
+        }
+        for (let i = 0; i < tools.length; i++) {
+            if (tools[i].separatedTool === true && L_.UserInterface_.isMobile !== true) {
+                if (tools[i].name === 'Legend') continue
+                this._createSeparatedTool(tools, i)
+            }
         }
 
         // Publish tools list to Zustand store for React rendering
@@ -262,8 +265,8 @@ let ToolController_ = {
             })
         }
 
-        // Auto-open on start if configured
-        if (tools[i].on !== false) {
+        // Auto-open on start if explicitly configured
+        if (tools[i].on === true) {
             setTimeout(() => {
                 $(`#toolButtonSeparated_${tools[i].name}`).click()
             }, 0)

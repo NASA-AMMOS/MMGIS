@@ -101,6 +101,12 @@ function applyThemeToDOM(themeName) {
         el.style.background = a('--color-a', 0.88)
         el.style.border = `1px solid ${t['--color-a1']}`
     })
+    // Separated tool content text
+    document.querySelectorAll('#toolcontroller_sep_content .mmgisScrollbar, #toolcontroller_sep_content label, #toolcontroller_sep_content span, #toolcontroller_sep_content div').forEach((el) => {
+        if (!el.style.color || el.style.color === 'white' || el.style.color === '#fff' || el.style.color === 'rgb(255, 255, 255)') {
+            el.style.color = t['--color-f']
+        }
+    })
 
     // --- Attributions ---
     const attr = document.getElementById('mmgis-attributions')
@@ -138,9 +144,12 @@ function applyThemeToDOM(themeName) {
     })
 
     // --- Separated tool panel headers ---
-    document.querySelectorAll('.sep-tool-panel-header').forEach((el) => {
+    document.querySelectorAll('.sep-tool-header').forEach((el) => {
         el.style.borderBottom = `1px solid ${t['--color-a1']}`
         el.style.color = t['--color-a4']
+    })
+    document.querySelectorAll('.sep-tool-header span').forEach((el) => {
+        el.style.color = t['--color-f']
     })
 
     // --- MMGIS logo SVG fill ---
@@ -175,9 +184,7 @@ function applyThemeToDOM(themeName) {
     })
     // DrawTool filter options and file names
     document.querySelectorAll('#drawToolDrawFilterOptions, #drawToolDrawFilterOptions *, .drawToolDrawFilesListElem, .drawToolDrawFilesListElem *, #drawToolDrawFilter').forEach((el) => {
-        if (el.style && !el.style.color) {
-            el.style.color = t['--color-f']
-        }
+        el.style.color = t['--color-f']
     })
     // DrawTool nav tabs
     document.querySelectorAll('#drawToolNav .drawToolNavButton').forEach((el) => {

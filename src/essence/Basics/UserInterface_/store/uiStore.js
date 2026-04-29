@@ -31,6 +31,7 @@ const useUIStore = create((set, get) => ({
     pxIsGlobe: 0,
     pxIsTools: 0,
     pxIsToolsInit: 0,
+    toolNativeHeight: 0,
 
     // Container dimensions
     mainWidth: 0,
@@ -165,7 +166,9 @@ const useUIStore = create((set, get) => ({
     },
 
     setToolHeight: (pxHeight, shouldntAnimate) => {
-        set({ pxIsTools: computeToolHeight(get(), pxHeight) })
+        const h = computeToolHeight(get(), pxHeight)
+        const nativeH = typeof pxHeight === 'number' ? pxHeight : h
+        set({ pxIsTools: h, toolNativeHeight: nativeH })
     },
 
     openToolPanel: (width) => {

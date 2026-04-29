@@ -29,13 +29,13 @@
 #CoordinatesDiv #mouseLngLat {
     font-size: 15px;
     line-height: 30px;
-    color: white;
+    color: var(--color-f);
     text-align: center;
 }
 #CoordinatesDiv #mouseElev {
     font-size: 15px;
     line-height: 30px;
-    color: white;
+    color: var(--color-f);
     text-align: center;
     transition: opacity 0.1s ease-out;
 }

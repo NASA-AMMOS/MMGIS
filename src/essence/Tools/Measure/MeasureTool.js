@@ -135,21 +135,21 @@ const Measure = () => {
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                         <div className='mmgisToolTitle'>Measure</div>
                         <div dangerouslySetInnerHTML={{ __html: Help.getComponent('MeasureTool') }} />
-                    </div>
-                    <div id='measureIcons'>
-                        <div
-                            id='measureUndo'
-                            title='Undo'
-                            onClick={MeasureTool.undo}
-                        >
-                            <i className='mdi mdi-undo mdi-18px'></i>
-                        </div>
-                        <div
-                            id='measureReset'
-                            title='Reset'
-                            onClick={MeasureTool.reset}
-                        >
-                            <i className='mdi mdi-refresh mdi-18px'></i>
+                        <div id='measureIcons' style={{ marginLeft: 'auto' }}>
+                            <div
+                                id='measureUndo'
+                                title='Undo'
+                                onClick={MeasureTool.undo}
+                            >
+                                <i className='mdi mdi-undo mdi-18px'></i>
+                            </div>
+                            <div
+                                id='measureReset'
+                                title='Reset'
+                                onClick={MeasureTool.reset}
+                            >
+                                <i className='mdi mdi-refresh mdi-18px'></i>
+                            </div>
                         </div>
                     </div>
                 </div>

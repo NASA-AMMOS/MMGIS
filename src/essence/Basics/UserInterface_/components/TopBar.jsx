@@ -153,18 +153,13 @@ function TopBar({ userInterface }) {
         }
     }, [userInterface])
 
-    const handleToggleGlobe = useCallback(async () => {
+    const handleToggleGlobe = useCallback(() => {
         if (userInterface && userInterface.setPanelPercents) {
             const Globe_ = require('../../Globe_/Globe_').default
-            if (Globe_._isInitializing) return
             const newState = !(useUIStore.getState().pxIsGlobe > 0)
-            if (!Globe_._initialized) {
-                Globe_._isInitializing = true
-                try {
-                    await Globe_.lazyInit()
-                } finally {
-                    Globe_._isInitializing = false
-                }
+            if (newState && !Globe_.hasBeenOpened) {
+                Globe_.init()
+                Globe_.hasBeenOpened = true
             }
             const pp = userInterface.getPanelPercents()
             if (newState) {
