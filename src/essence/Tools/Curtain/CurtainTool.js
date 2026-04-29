@@ -297,7 +297,11 @@ let CurtainTool = {
         })
     },
     destroy: function () {
-        ReactDOM.unmountComponentAtNode(document.getElementById('tools'))
+        const toolsContainer = document.getElementById('tools')
+        if (toolsContainer._reactRoot) {
+            toolsContainer._reactRoot.unmount()
+            delete toolsContainer._reactRoot
+        }
         CurtainTool.currentMapLayer = null
         L_.setActiveFeature()
     },
