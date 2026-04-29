@@ -325,10 +325,9 @@ const UserInterfaceBridge = {
             }
         }
 
-        // Apply theme from mission config if set
-        if (l_.configData && l_.configData.look && l_.configData.look.theme) {
-            useUIStore.getState().setTheme(l_.configData.look.theme)
-        }
+        // Theme is already applied by Stylize.js (which also applies
+        // individual color overrides on top). Don't re-apply here or
+        // the individual overrides would be clobbered.
 
         // Set UI reference so BottomBar utility methods can access it.
         // DOM construction is now handled by BottomBarReact.jsx.

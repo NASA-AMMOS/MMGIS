@@ -38,6 +38,7 @@ let BottomBar = {
         const version = esc(window.mmgisglobal?.version || L_.configData?.version || '')
         const mission = esc(L_.configData?.msv?.mission || '')
         const helpUrl = esc(L_.configData?.look?.helpurl || '')
+        const infoUrl = esc(L_.configData?.look?.infourl || '')
         const aboutContent = L_.configData?.look?.aboutModalContent || L_.configData?.look?.infoModalContent || ''
         const logoUrl = esc(L_.configData?.look?.logourl || '')
 
@@ -68,6 +69,7 @@ let BottomBar = {
                         mission ? `<div class='mainInfoModalRow'><span class='mainInfoModalLabel'>Mission</span><span>${mission}</span></div>` : '',
                         version ? `<div class='mainInfoModalRow'><span class='mainInfoModalLabel'>Version</span><span>${version}</span></div>` : '',
                         helpUrl ? `<div class='mainInfoModalRow'><span class='mainInfoModalLabel'>Help</span><a href='${helpUrl}' target='_blank' rel='noopener' style='color:var(--color-c);'>${helpUrl}</a></div>` : '',
+                        infoUrl ? `<div class='mainInfoModalRow'><span class='mainInfoModalLabel'>Info</span><a href='${infoUrl}' target='_blank' rel='noopener' style='color:var(--color-c);'>${infoUrl}</a></div>` : '',
                     `</div>`,
                     `<div class='mainInfoModalDescription'>Multi-Mission Geographic Information System</div>`,
                     attributionItems.length > 0 ? `<div class='mainInfoModalRow'><span class='mainInfoModalLabel'>Attributions</span><span>${attributionItems.join(' | ')}</span></div>` : '',
