@@ -23,6 +23,9 @@ function BottomElementPositioner() {
         const ease = isDragging ? 'none' : 'bottom 0.2s ease-out, left 0.2s ease-out'
 
         if (isMobile) {
+            const toolbarH = 40
+            const mobileOffset = toolbarH + (pxIsTools || 0)
+
             const coordsDiv = document.getElementById('CoordinatesDiv')
             if (coordsDiv) {
                 coordsDiv.style.transition = ease
@@ -32,6 +35,21 @@ function BottomElementPositioner() {
             if (toolbar) {
                 toolbar.style.transition = ease
                 toolbar.style.bottom = pxIsTools + 'px'
+            }
+            const mapToolBar = document.getElementById('mapToolBar')
+            if (mapToolBar) {
+                mapToolBar.style.transition = ease
+                mapToolBar.style.bottom = mobileOffset + 'px'
+            }
+            const leafletBottomLeft = document.querySelector('.leaflet-bottom.leaflet-left')
+            if (leafletBottomLeft) {
+                leafletBottomLeft.style.transition = ease
+                leafletBottomLeft.style.bottom = mobileOffset + 'px'
+            }
+            const leafletBottomRight = document.querySelector('.leaflet-bottom.leaflet-right')
+            if (leafletBottomRight) {
+                leafletBottomRight.style.transition = ease
+                leafletBottomRight.style.bottom = mobileOffset + 'px'
             }
         } else {
             // Calculate target bar height from known state
