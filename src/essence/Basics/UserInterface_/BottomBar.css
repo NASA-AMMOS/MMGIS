@@ -128,80 +128,164 @@
 
 #mainInfoModal {
     background: var(--color-k);
-    width: 440px;
+    width: 480px;
     max-width: 90vw;
     margin: 40px;
-    border-radius: 3px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
 }
 #mainInfoModalTitle {
-    padding: 0px 0px 0px 10px;
-    height: 40px;
-    line-height: 39px;
-    font-size: 18px;
-    background: var(--color-i);
-    border-top-left-radius: 3px;
-    border-top-right-radius: 3px;
+    height: 36px;
     display: flex;
-    justify-content: space-between;
-}
-#mainInfoModalTitle > div:first-child {
-    display: flex;
-}
-#mainInfoModalTitle > div:first-child > div {
-    margin-left: 6px;
-    line-height: 40px;
+    justify-content: flex-end;
+    padding: 0;
+    background: transparent;
 }
 #mainInfoModalClose {
-    width: 40px;
-    height: 40px;
-    text-align: center;
-    cursor: pointer;
-}
-#mainInfoModalContent {
-    padding: 20px 24px;
-}
-.mainInfoModalLogos {
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+}
+#mainInfoModalClose:hover {
+    opacity: 1;
+}
+#mainInfoModalContent {
+    padding: 0 32px 28px;
+}
+.mainInfoModalHero {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.mainInfoModalAscii {
+    margin-bottom: 8px;
+}
+.mainInfoModalAscii pre {
+    font-family: 'Courier New', monospace;
+    font-size: 8px;
+    line-height: 1.1;
+    color: var(--color-mmgis);
+    margin: 0;
+    letter-spacing: -0.5px;
+    overflow-x: auto;
+}
+.mainInfoModalSubtitle {
+    font-size: 12px;
+    color: var(--color-f);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+.mainInfoModalMissionLogo {
+    max-height: 48px;
+    max-width: 140px;
+    object-fit: contain;
+    margin-top: 14px;
+}
+.mainInfoModalMeta {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    padding: 14px 0;
+    border-top: 1px solid var(--color-a1);
+    border-bottom: 1px solid var(--color-a1);
     margin-bottom: 16px;
 }
-.mainInfoModalMmgisLogo {
+.mainInfoModalMetaItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+.mainInfoModalMetaLabel {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--color-f);
+    opacity: 0.6;
+}
+.mainInfoModalMetaValue {
+    font-size: 14px;
+    color: var(--color-a5);
+    font-weight: 500;
+}
+.mainInfoModalLinks {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.mainInfoModalLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--color-a5);
+    background: var(--color-a1);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+}
+.mainInfoModalLink:hover {
+    background: var(--color-mmgis);
+    color: var(--color-k);
+}
+.mainInfoModalLink svg,
+.mainInfoModalLink i {
+    font-size: 16px;
     flex-shrink: 0;
 }
-.mainInfoModalMapLogo {
-    max-height: 48px;
-    max-width: 120px;
-    object-fit: contain;
+.mainInfoModalAttributions {
+    text-align: center;
+    padding: 12px 0;
+    border-top: 1px solid var(--color-a1);
 }
-.mainInfoModalDetails {
-    margin-bottom: 12px;
-}
-.mainInfoModalRow {
-    display: flex;
-    gap: 8px;
-    padding: 4px 0;
-    font-size: 13px;
-    line-height: 20px;
-}
-.mainInfoModalLabel {
+.mainInfoModalAttrLabel {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
     color: var(--color-f);
-    min-width: 60px;
-    font-weight: 600;
+    opacity: 0.6;
+    margin-bottom: 4px;
 }
-.mainInfoModalDescription {
-    color: var(--color-f);
+.mainInfoModalAttrList {
     font-size: 12px;
-    font-style: italic;
-    padding-top: 8px;
-    border-top: 1px solid var(--color-a-5);
+    color: var(--color-a3);
+    line-height: 1.6;
+}
+.mainInfoModalAttrList a {
+    color: var(--color-c);
+    text-decoration: none;
+}
+.mainInfoModalAttrList a:hover {
+    text-decoration: underline;
 }
 .mainInfoModalCustom {
     margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px solid var(--color-a-5);
+    border-top: 1px solid var(--color-a1);
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.6;
+    color: var(--color-a3);
+}
+.mainInfoModalFooter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-a1);
+    font-size: 11px;
+    color: var(--color-f);
+    opacity: 0.5;
+    letter-spacing: 0.5px;
 }
 
 #hotkeyIndicator {
