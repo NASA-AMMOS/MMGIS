@@ -1,19 +1,23 @@
 .root {
-    background: var(--color-k);
+    background: rgba(var(--color-a-rgb, 29, 31, 32), 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     width: 840px;
     max-width: 90vw;
-    border-radius: 3px;
+    border-radius: 10px;
     font-family: sans-serif;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
 }
 
 .title {
-    padding: 1px 0px 0px 10px;
-    height: 40px;
-    line-height: 39px;
-    font-size: 18px;
-    background: var(--color-i);
-    border-top-left-radius: 3px;
-    border-top-right-radius: 3px;
+    padding: 0 0 0 14px;
+    height: 44px;
+    line-height: 44px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-f);
+    border-bottom: 1px solid var(--color-a1);
     display: flex;
     justify-content: space-between;
     text-transform: capitalize;
@@ -21,24 +25,22 @@
 
 .titleLeft {
     display: flex;
-}
-.titleLeft > div {
-    margin-left: 6px;
-    line-height: 40px;
+    align-items: center;
+    gap: 8px;
 }
 
 .closeBtn {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    opacity: 0.7;
-    transition: opacity 0.15s;
+    color: var(--color-a3);
+    transition: color 0.15s;
 }
 .closeBtn:hover {
-    opacity: 1;
+    color: var(--color-f);
 }
 
 .content {

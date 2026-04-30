@@ -83,7 +83,7 @@ function interfaceWithMMWebGIS() {
         const tools = $(
             LegendTool.targetId ? `#${LegendTool.targetId}` : '#toolPanel'
         )
-        tools.css('background', 'var(--color-k)')
+        tools.css('background', 'transparent')
         //Clear it
         tools.empty()
 
@@ -242,15 +242,11 @@ function drawLegendHeader() {
     }
 
     const tools = $(divID)
-    tools.css('background', 'var(--color-k)')
+    tools.css('background', 'transparent')
     //Clear it
     tools.empty()
     
     const legendHeader = $('<div>').attr('class', 'mmgisToolHeader')
-        .css({
-            'border-top-left-radius': '3px',
-            'border-top-right-radius': '3px',
-        })
         .html([
             "<div>",
                 "<div>",
@@ -266,11 +262,9 @@ function drawLegendHeader() {
     const legendContainer = $('<div>')
         .attr('id', 'LegendTool')
         .css({
-            'color': '#dcdcdc',
-            'height': 'calc(100% - 40px)',
-            'max-height': 'calc(100vh - 185px)',
-            'border-bottom-left-radius': '3px',
-            'border-bottom-right-radius': '3px',
+            'color': 'var(--color-a6)',
+            'height': 'calc(100% - 44px)',
+            'max-height': 'calc(100vh - 189px)',
             'overflow-y': 'auto'
         })
     tools.append(legendContainer)

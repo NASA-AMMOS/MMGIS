@@ -1,19 +1,22 @@
 .root {
-    background: var(--color-k);
+    background: rgba(var(--color-a-rgb, 29, 31, 32), 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     width: 360px;
-    border-radius: 3px;
+    border-radius: 10px;
     font-family: sans-serif;
-    box-shadow: 0px 3px 7px 0px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
 }
 
 .title {
-    padding: 1px 0px 0px 10px;
-    height: 40px;
-    line-height: 39px;
-    font-size: 18px;
-    background: var(--color-a1);
-    border-top-left-radius: 3px;
-    border-top-right-radius: 3px;
+    padding: 0 0 0 14px;
+    height: 44px;
+    line-height: 44px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-f);
+    border-bottom: 1px solid var(--color-a1);
     display: flex;
     justify-content: space-between;
     text-transform: capitalize;
@@ -21,14 +24,12 @@
 
 .titleLeft {
     display: flex;
-}
-.titleLeft > div {
-    margin-left: 6px;
-    line-height: 40px;
+    align-items: center;
+    gap: 8px;
 }
 
 .content {
-    padding: 16px 32px;
+    padding: 20px 32px;
     overflow-y: auto;
     max-height: 80vh;
     line-height: 26px;
@@ -40,10 +41,8 @@
 .footer {
     display: flex;
     justify-content: center;
-    background: var(--color-a1);
-    padding: 5px 0;
-    border-bottom-left-radius: 3px;
-    border-bottom-right-radius: 3px;
+    padding: 12px 0;
+    border-top: 1px solid var(--color-a1);
 }
 
 .noBtn {

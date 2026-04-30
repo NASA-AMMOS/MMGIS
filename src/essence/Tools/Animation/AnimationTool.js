@@ -276,7 +276,7 @@ function interfaceWithMMGIS() {
 
     // Initialize the tool UI
     const toolPanel = $('#toolPanel')
-    toolPanel.css('background', 'var(--color-k)')
+    toolPanel.css('background', 'transparent')
     toolPanel.empty()
 
     const tools = $('<div>').css('height', '100%').html(markup)

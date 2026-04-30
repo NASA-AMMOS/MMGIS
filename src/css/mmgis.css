@@ -1283,30 +1283,31 @@ mark {
 }
 .mmgisToolHeader > div:first-child {
     display: flex;
-    height: 40px;
-    line-height: 18px;
-    color: #ccc;
-    background: var(--color-a);
+    height: 44px;
+    line-height: 44px;
+    color: var(--color-f);
     justify-content: space-between;
+    border-bottom: 1px solid var(--color-a1);
 }
 .mmgisToolHeader > div:first-child > div:first-child {
     display: flex;
     padding-left: 0px;
 }
 .mmgisToolTitle {
-    height: 40px;
-    line-height: 40px;
+    height: 44px;
+    line-height: 44px;
     font-size: 16px;
-    padding-left: 6px;
+    font-weight: 600;
+    padding-left: 10px;
     font-family: 'lato-light';
     text-transform: uppercase;
     color: var(--color-l);
 }
 .mmgisToolHelpBtn {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     text-align: center;
-    line-height: 40px;
+    line-height: 44px;
     cursor: pointer;
     color: var(--color-a3);
 }

@@ -628,7 +628,7 @@ function interfaceWithMMWebGIS() {
                     ? `#${IdentifierTool.targetId}`
                     : '#toolPanel'
             )
-            tools.css('background', 'var(--color-k)')
+            tools.css('background', 'transparent')
             //Clear it
             tools.empty()
             var prevActive = $(

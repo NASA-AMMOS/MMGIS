@@ -169,7 +169,7 @@ var InfoTool = {
 
         // MMGIS should always have a div with id 'tools'
         const toolsContainer = $(divID)
-        toolsContainer.css('background', 'var(--color-k)')
+        toolsContainer.css('background', 'transparent')
         //Clear it
         toolsContainer.empty()
         //Add a semantic container
