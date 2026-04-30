@@ -632,7 +632,7 @@ function interfaceWithMMWebGIS() {
             //Clear it
             tools.empty()
             var prevActive = $(
-                '#toolcontroller_sepdiv #' + 'Identifier' + 'Tool'
+                '#toolcontroller_sepdiv #sepIcon_IdentifierTool'
             )
             prevActive.removeClass('active').css({
                 color: ToolController_.defaultColor,
