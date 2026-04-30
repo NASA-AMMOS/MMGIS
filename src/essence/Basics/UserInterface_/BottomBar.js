@@ -50,9 +50,9 @@ let BottomBar = {
             return `<span>${esc(attr.text)}</span>`
         })
 
-        const mmgisLogoSvg = `<svg width="64" height="38" viewBox="0 0 231 137" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0.222266 9.21339C-0.277832 14.7126 0.222266 133.713 0.222266 133.713H26.2223V45.7134C26.2223 45.7134 100.722 127.712 106.222 132.713C109.171 135.395 112.12 136.782 115.222 136.645C118.325 136.782 121.274 135.395 124.222 132.713C129.722 127.712 204.222 45.7134 204.222 45.7134V133.713H230.222C230.222 133.713 230.722 14.7126 230.222 9.21339C229.722 3.71413 218.222 -3.28766 210.222 1.71339C202.222 6.71444 115.222 104.713 115.222 104.713C115.222 104.713 28.2224 6.71444 20.2223 1.71339C12.2222 -3.28766 0.722363 3.71413 0.222266 9.21339Z" fill="var(--color-mmgis)"></path></svg>`
-
         const githubSvg = `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>`
+
+        const mmgisLogoURL = 'public/images/logos/mmgis.png'
 
         // prettier-ignore
         const modalContent = [
@@ -62,14 +62,7 @@ let BottomBar = {
                 `</div>`,
                 `<div id='mainInfoModalContent'>`,
                     `<div class='mainInfoModalHero'>`,
-                        `<div class='mainInfoModalAscii'><pre>`,
-`███╗   ███╗███╗   ███╗ ██████╗ ██╗███████╗`,
-`████╗ ████║████╗ ████║██╔════╝ ██║██╔════╝`,
-`██╔████╔██║██╔████╔██║██║  ███╗██║███████╗`,
-`██║╚██╔╝██║██║╚██╔╝██║██║   ██║██║╚════██║`,
-`██║ ╚═╝ ██║██║ ╚═╝ ██║╚██████╔╝██║███████║`,
-`╚═╝     ╚═╝╚═╝     ╚═╝ ╚═════╝ ╚═╝╚══════╝`,
-                        `</pre></div>`,
+                        `<img class='mainInfoModalLogo' src='${mmgisLogoURL}' alt='MMGIS' />`,
                         `<div class='mainInfoModalSubtitle'>Multi-Mission Geographic Information System</div>`,
                         logoUrl ? `<img class='mainInfoModalMissionLogo' src='${logoUrl}' alt='Mission Logo' />` : '',
                     `</div>`,
@@ -82,11 +75,10 @@ let BottomBar = {
                         helpUrl && L_.configData?.look?.help !== false ? `<a class='mainInfoModalLink' href='${helpUrl}' target='_blank' rel='noopener noreferrer'><i class='mdi mdi-help-circle-outline'></i><span>Help</span></a>` : '',
                         infoUrl && L_.configData?.look?.info !== false ? `<a class='mainInfoModalLink' href='${infoUrl}' target='_blank' rel='noopener noreferrer'><i class='mdi mdi-information-outline'></i><span>Info</span></a>` : '',
                     `</div>`,
-                    attributionItems.length > 0 ? `<div class='mainInfoModalAttributions'><div class='mainInfoModalAttrLabel'>Attributions</div><div class='mainInfoModalAttrList'>${attributionItems.join(' · ')}</div></div>` : '',
+                    attributionItems.length > 0 ? `<div class='mainInfoModalAttributions'><div class='mainInfoModalAttrLabel'>Map Layer Attributions</div><div class='mainInfoModalAttrList'>${attributionItems.join(' · ')}</div></div>` : '',
                     aboutContent ? `<div class='mainInfoModalCustom'>${DOMPurify.sanitize(BottomBar.mdConverter.makeHtml(aboutContent))}</div>` : '',
                     `<div class='mainInfoModalFooter'>`,
-                        `<div class='mainInfoModalFooterLogo'>${mmgisLogoSvg}</div>`,
-                        `<span>NASA-AMMOS</span>`,
+                        `<a href='https://ammos.nasa.gov/' target='_blank' rel='noopener noreferrer'>NASA-AMMOS</a>`,
                     `</div>`,
                 `</div>`,
             `</div>`

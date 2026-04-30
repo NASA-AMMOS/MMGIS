@@ -237,20 +237,72 @@ router.post("/signup", function (req, res, next) {
  * User login
  */
 router.post("/login", function (req, res) {
+  let MMGISUser;
+  try {
+    let userCookie = req.cookies.MMGISUser;
+    if (typeof userCookie === "string" && userCookie.endsWith("}undefined"))
+      userCookie = userCookie.substring(0, userCookie.length - 9);
+
+    MMGISUser = userCookie ? JSON.parse(userCookie) : false;
+  } catch (err) {
+    res.send({ status: "failure", message: "Malformed MMGISUser cookie." });
+    return null;
+  }
+
+  // Token-based re-authentication (page reload): verify the token without
+  // regenerating the session so that other tabs sharing this session stay
+  // authenticated.
+  if (req.body.useToken && MMGISUser) {
+    if (MMGISUser.token == null) {
+      res.send({ status: "failure", message: "Bad token." });
+      return null;
+    }
+    User.findOne({
+      where: {
+        username: MMGISUser.username,
+        token: MMGISUser.token,
+      },
+      attributes: ["id", "username", "email", "permission"],
+    })
+      .then((user) => {
+        if (!user) {
+          res.send({ status: "failure", message: "Bad token." });
+        } else {
+          // Refresh session data without regenerating the session ID
+          req.session.user = user.username;
+          req.session.uid = user.id;
+          req.session.permission = user.permission;
+          // Keep the existing token - no need to rotate on re-auth
+          if (!req.session.token) {
+            req.session.token = MMGISUser.token;
+          }
+          req.session.save(() => {
+            res.send({
+              status: "success",
+              username: user.username,
+              token: req.session.token,
+              groups: getUserGroups(user.username, req.leadGroupName),
+              additional:
+                process.env.THIRD_PARTY_COOKIES === "true"
+                  ? `; SameSite=None;${
+                      process.env.NODE_ENV === "production" ? " Secure" : ""
+                    }`
+                  : "",
+            });
+          });
+        }
+        return null;
+      })
+      .catch((err) => {
+        res.send({ status: "failure", message: "Bad token." });
+      });
+    return null;
+  }
+
+  // Credential-based login: regenerate the session to prevent session fixation
   clearLoginSession(req);
 
   req.session.regenerate((err) => {
-    let MMGISUser;
-    try {
-      let userCookie = req.cookies.MMGISUser;
-      if (typeof userCookie === "string" && userCookie.endsWith("}undefined"))
-        userCookie = userCookie.substring(0, userCookie.length - 9);
-
-      MMGISUser = userCookie ? JSON.parse(userCookie) : false;
-    } catch (err) {
-      res.send({ status: "failure", message: "Malformed MMGISUser cookie." });
-      return;
-    }
     let username = req.body.username || (MMGISUser ? MMGISUser.username : null);
 
     if (username == null) {
@@ -323,32 +375,7 @@ router.post("/login", function (req, res) {
             }
           }
 
-          if (req.body.useToken && MMGISUser) {
-            if (MMGISUser.token == null) {
-              res.send({ status: "failure", message: "Bad token." });
-              return null;
-            }
-            User.findOne({
-              where: {
-                username: MMGISUser.username,
-                token: MMGISUser.token,
-              },
-            })
-              .then((user) => {
-                if (!user) {
-                  res.send({ status: "failure", message: "Bad token." });
-                } else {
-                  pass(null, true, true);
-                }
-                return null;
-              })
-              .catch((err) => {
-                res.send({ status: "failure", message: "Bad token." });
-              });
-            return null;
-          } else {
-            bcrypt.compare(req.body.password, user.password, pass);
-          }
+          bcrypt.compare(req.body.password, user.password, pass);
           return null;
         }
         return null;

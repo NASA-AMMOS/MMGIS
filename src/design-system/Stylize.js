@@ -18,63 +18,66 @@ export function stylize() {
             uiStore.getState().setTheme(L_.configData.look.theme)
         }
 
-        // Apply individual color overrides (always for Custom, backward compat for presets)
+        // Apply individual color overrides only for Custom theme or legacy configs without a theme
+        const isCustom = !L_.configData.look.theme || L_.configData.look.theme === '' || L_.configData.look.theme === 'Custom'
         const r = document.querySelector(':root')
 
-        if (
-            L_.configData.look.primarycolor &&
-            L_.configData.look.primarycolor != ''
-        )
-            r.style.setProperty('--color-a', L_.configData.look.primarycolor)
-        if (
-            L_.configData.look.secondarycolor &&
-            L_.configData.look.secondarycolor != ''
-        )
-            r.style.setProperty(
-                '--color-a-5',
-                L_.configData.look.secondarycolor
+        if (isCustom) {
+            if (
+                L_.configData.look.primarycolor &&
+                L_.configData.look.primarycolor != ''
             )
-        if (
-            L_.configData.look.tertiarycolor &&
-            L_.configData.look.tertiarycolor != ''
-        )
-            r.style.setProperty('--color-f', L_.configData.look.tertiarycolor)
-        if (
-            L_.configData.look.accentcolor &&
-            L_.configData.look.accentcolor != ''
-        )
-            r.style.setProperty('--color-mmgis', L_.configData.look.accentcolor)
+                r.style.setProperty('--color-a', L_.configData.look.primarycolor)
+            if (
+                L_.configData.look.secondarycolor &&
+                L_.configData.look.secondarycolor != ''
+            )
+                r.style.setProperty(
+                    '--color-a-5',
+                    L_.configData.look.secondarycolor
+                )
+            if (
+                L_.configData.look.tertiarycolor &&
+                L_.configData.look.tertiarycolor != ''
+            )
+                r.style.setProperty('--color-f', L_.configData.look.tertiarycolor)
+            if (
+                L_.configData.look.accentcolor &&
+                L_.configData.look.accentcolor != ''
+            )
+                r.style.setProperty('--color-mmgis', L_.configData.look.accentcolor)
 
-        if (L_.configData.look.bodycolor && L_.configData.look.bodycolor != '')
-            $('body').css({ background: L_.configData.look.bodycolor })
-        if (
-            L_.configData.look.topbarcolor &&
-            L_.configData.look.topbarcolor != ''
-        ) {
-            $('#topBar').css({
-                background:
-                    L_.configData.look.topbarcolor || 'rgb(0, 0, 0, 0.15)',
-            })
-            if (!L_.configData.look.topbarcolor.includes('rgba')) {
-                $('#topBarTitle').css({ background: 'unset' })
+            if (L_.configData.look.bodycolor && L_.configData.look.bodycolor != '')
+                $('body').css({ background: L_.configData.look.bodycolor })
+            if (
+                L_.configData.look.topbarcolor &&
+                L_.configData.look.topbarcolor != ''
+            ) {
+                $('#topBar').css({
+                    background:
+                        L_.configData.look.topbarcolor || 'rgb(0, 0, 0, 0.15)',
+                })
+                if (!L_.configData.look.topbarcolor.includes('rgba')) {
+                    $('#topBarTitle').css({ background: 'unset' })
+                }
             }
+            if (
+                L_.configData.look.toolbarcolor &&
+                L_.configData.look.toolbarcolor != ''
+            ) {
+                $('#toolbar').css({
+                    background: L_.configData.look.toolbarcolor,
+                })
+                var bodyRGB = $('#toolbar').css('backgroundColor')
+                var bodyHEX = F_.rgb2hex(bodyRGB)
+                bodyRGB = F_.rgbToArray(bodyRGB)
+                var c =
+                    'rgba(' + bodyRGB[0] + ',' + bodyRGB[1] + ',' + bodyRGB[2] + ')'
+                $('#toolsWrapper').css({ background: c })
+            }
+            if (L_.configData.look.mapcolor && L_.configData.look.mapcolor != '')
+                $('#map').css({ background: L_.configData.look.mapcolor })
         }
-        if (
-            L_.configData.look.toolbarcolor &&
-            L_.configData.look.toolbarcolor != ''
-        ) {
-            $('#toolbar').css({
-                background: L_.configData.look.toolbarcolor,
-            })
-            var bodyRGB = $('#toolbar').css('backgroundColor')
-            var bodyHEX = F_.rgb2hex(bodyRGB)
-            bodyRGB = F_.rgbToArray(bodyRGB)
-            var c =
-                'rgba(' + bodyRGB[0] + ',' + bodyRGB[1] + ',' + bodyRGB[2] + ')'
-            $('#toolsWrapper').css({ background: c })
-        }
-        if (L_.configData.look.mapcolor && L_.configData.look.mapcolor != '')
-            $('#map').css({ background: L_.configData.look.mapcolor })
         if (L_.configData.look.logourl && L_.configData.look.logourl != '') {
             $('#mmgislogo').css({ padding: '7px 3px' })
             $('#mmgislogo').html(

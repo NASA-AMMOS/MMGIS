@@ -162,17 +162,10 @@
     text-align: center;
     margin-bottom: 20px;
 }
-.mainInfoModalAscii {
+.mainInfoModalLogo {
+    max-height: 48px;
+    object-fit: contain;
     margin-bottom: 8px;
-}
-.mainInfoModalAscii pre {
-    font-family: 'Courier New', monospace;
-    font-size: 8px;
-    line-height: 1.1;
-    color: var(--color-mmgis);
-    margin: 0;
-    letter-spacing: -0.5px;
-    overflow-x: auto;
 }
 .mainInfoModalSubtitle {
     font-size: 12px;
@@ -286,6 +279,14 @@
     color: var(--color-f);
     opacity: 0.5;
     letter-spacing: 0.5px;
+}
+.mainInfoModalFooter a {
+    color: var(--color-f);
+    text-decoration: none;
+}
+.mainInfoModalFooter a:hover {
+    opacity: 1;
+    text-decoration: underline;
 }
 
 #hotkeyIndicator {
