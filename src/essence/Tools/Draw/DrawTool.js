@@ -17,6 +17,7 @@ import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
 import Description from '../../Basics/UserInterface_/components/Description/Description'
 import TimeControl from '../../Basics/TimeControl_/TimeControl'
+import useUIStore from '../../Basics/UserInterface_/store/uiStore'
 import { Kinds } from '../../../pre/tools'
 import turf from 'turf'
 
@@ -1760,7 +1761,7 @@ function interfaceWithMMGIS() {
         ].join('\n'))
         $('#DrawTool_TimeToggle').css(
             'display',
-            $('#toggleTimeUI.active').length > 0 ? 'flex' : 'none'
+            useUIStore.getState().timeUIActive ? 'flex' : 'none'
         )
 
         $('#DrawTool_TimeToggle_switch').on('input', function (e) {

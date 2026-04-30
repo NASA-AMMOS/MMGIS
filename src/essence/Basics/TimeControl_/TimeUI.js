@@ -2831,7 +2831,8 @@ const TimeUI = {
             }
         }
 
-        if ($('#toggleTimeUI').hasClass('active') && ignoreHistogram !== true)
+        const useUIStore = require('../UserInterface_/store/uiStore').default
+        if (useUIStore.getState().timeUIActive && ignoreHistogram !== true)
             TimeUI._makeHistogram()
     },
     _addRangeShiftButtons: function () {

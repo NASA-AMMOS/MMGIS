@@ -1,7 +1,7 @@
 /* BottomBar — scoped styles for React-rendered buttons */
 .barBottom {
     align-items: center;
-    padding-bottom: 6px;
+    padding-bottom: 8px;
 }
 
 .barButton {

@@ -37,9 +37,7 @@ const markup = [
             "<i class='mdi mdi-target mdi-18px'></i>",
         "</div>",
     "</div>",
-    "<div id='toggleTimeUI'>",
-        "<i class='mdi mdi-clock mdi-18px'></i>",
-    "</div>"
+
 ].join('\n');
 
 const Coordinates = {
@@ -164,26 +162,10 @@ const Coordinates = {
                 placement: 'top',
                 theme: 'blue',
             })
-            tippy('#toggleTimeUI', {
-                content: 'Time',
-                placement: 'top',
-                theme: 'blue',
-                offset: [0, 20],
-            })
+
         }
 
-        if (
-            !(
-                L_.configData.time &&
-                L_.configData.time.enabled === true &&
-                (L_.configData.time.visible === true ||
-                    L_.configData.time.liveByDefault === true ||
-                    L_.FUTURES.live === true)
-            )
-        ) {
-            $('#toggleTimeUI').css({ display: 'none' })
-            $('#CoordinatesDiv').css({ marginRight: '0px' })
-        }
+
         if (L_.configData.coordinates) {
             // ll
             if (L_.configData.coordinates.coordll == false)
@@ -348,7 +330,7 @@ const Coordinates = {
         // Event functions
         $('#pickLngLat').on('click', pickLngLat)
         $('#mouseGoPicking').on('click', pickLngLatGo)
-        $('#toggleTimeUI').on('click', toggleTimeUI)
+
         Map_.map.on('mousemove', mouseLngLatMove)
         Map_.map.on('click', urlClick)
 
@@ -695,7 +677,7 @@ const Coordinates = {
         //Clear all the stuffes
         $('#pickLngLat').off('click', pickLngLat)
         $('#mouseGoPicking').off('click', pickLngLatGo)
-        $('#toggleTimeUI').off('click', toggleTimeUI)
+
         Map_.map.off('mousemove', mouseLngLatMove)
         Map_.map.off('click', urlClick)
     },
@@ -869,8 +851,7 @@ function urlClick(e) {
 }
 
 function toggleTimeUI() {
-    const active = $('#toggleTimeUI').hasClass('active')
-    $('#toggleTimeUI').toggleClass('active')
+    const active = useUIStore.getState().timeUIActive
     $('#timeUI').toggleClass('active')
 
     const isExpanded = $('#timeUI').hasClass('expanded') || $('#timeUI').hasClass('defaultExpanded')
@@ -901,7 +882,7 @@ function interfaceWithMMWebGIS() {
     Coordinates.init()
 
     if (UserInterface.isMobile) {
-        $('#CoordinatesDiv > #toggleTimeUI').remove()
+
 
         const mapRect = document.getElementById('map').getBoundingClientRect()
 

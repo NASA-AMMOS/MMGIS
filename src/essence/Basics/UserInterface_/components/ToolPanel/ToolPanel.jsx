@@ -91,7 +91,7 @@ function ToolPanel() {
                 }}
                 onMouseDown={handleDragMouseDown}
             >
-                <i className="mdi mdi-drag-vertical mdi-18px"></i>
+
             </div>
         </>
     )

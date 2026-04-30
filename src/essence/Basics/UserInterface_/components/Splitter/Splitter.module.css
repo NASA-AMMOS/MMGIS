@@ -8,6 +8,13 @@
 .splitterV {
     z-index: 402;
     position: absolute;
+    cursor: col-resize;
+    transition: background 0.2s ease-out;
+}
+
+.splitterV:hover {
+    background: var(--color-mmgis);
+    opacity: 0.5;
 }
 
 .vertical {

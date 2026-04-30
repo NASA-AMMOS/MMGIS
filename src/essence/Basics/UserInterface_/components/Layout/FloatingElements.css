@@ -14,13 +14,7 @@
 }
 
 /* --- Coordinate display --- */
-#CoordinatesDiv .mouseLngLat {
-    border-radius: 8px !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-    padding: 6px 14px !important;
-}
-#CoordinatesDiv .mouseLngLatPicking {
+#CoordinatesDiv {
     border-radius: 8px !important;
     backdrop-filter: blur(12px) !important;
     -webkit-backdrop-filter: blur(12px) !important;

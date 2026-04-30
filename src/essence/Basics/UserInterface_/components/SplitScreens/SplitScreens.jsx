@@ -169,6 +169,7 @@ function BottomFloatingBar() {
                     transition: isDragging ? 'none' : 'height 0.3s ease-out',
                     flexShrink: 0,
                     position: 'relative',
+                    borderBottom: hasToolContent ? '1px solid var(--color-a1)' : 'none',
                 }}
             >
                 <div

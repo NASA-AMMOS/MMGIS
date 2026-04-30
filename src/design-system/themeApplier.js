@@ -62,14 +62,14 @@ function applyThemeToDOM(themeName) {
     const timeUI = document.getElementById('timeUI')
     if (timeUI) {
         timeUI.style.background = a('--color-a', 0.92)
-        timeUI.style.borderTop = `1px solid ${t['--color-a1']}`
     }
 
     // --- Coordinate display ---
-    document.querySelectorAll('#CoordinatesDiv .mouseLngLat, #CoordinatesDiv .mouseLngLatPicking').forEach((el) => {
-        el.style.background = a('--color-a', 0.88)
-        el.style.border = `1px solid ${t['--color-a1']}`
-    })
+    const coordsDiv = document.getElementById('CoordinatesDiv')
+    if (coordsDiv) {
+        coordsDiv.style.background = a('--color-a', 0.88)
+        coordsDiv.style.border = `1px solid ${t['--color-a1']}`
+    }
 
     // --- Map compass ---
     const compass = document.getElementById('mmgis-map-compass')

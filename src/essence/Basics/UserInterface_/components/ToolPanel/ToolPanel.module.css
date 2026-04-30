@@ -35,7 +35,8 @@
 }
 
 .dragHandle:hover {
-    color: var(--color-mmgis);
+    background: var(--color-mmgis);
+    opacity: 0.5;
 }
 
 :global(#toolPanel #tools) {

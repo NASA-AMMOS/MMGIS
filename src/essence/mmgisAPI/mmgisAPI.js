@@ -546,7 +546,10 @@ var mmgisAPI = {
      * @param {boolean} - Whether to turn the TimeUI on or off. If true, makes visible.
      * @returns {boolean} - Whether the TimeUI is now on or off
      */
-    toggleTimeUI: TimeControl.toggleTimeUI,
+    toggleTimeUI: function (isOn) {
+        const Coordinates = require('../Basics/UserInterface_/components/Coordinates/Coordinates').default
+        Coordinates.toggleTimeUI(isOn)
+    },
 
     /**
      * This function sets the global time properties for all of MMGIS.

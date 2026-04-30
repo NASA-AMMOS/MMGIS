@@ -7,77 +7,6 @@ import Tooltip from '../../../../../design-system/components/Tooltip/Tooltip'
 import styles from './Toolbar.module.css'
 
 /**
- * MobileTimeButton — renders a time toggle button in the mobile toolbar.
- * Replaces the jQuery-constructed timeSelect div from ToolController_.init().
- */
-function MobileTimeButton() {
-    const [isActive, setIsActive] = useState(false)
-    const defaultColor = 'var(--color-f)'
-    const activeColor = 'var(--color-mmgis)'
-
-    const handleClick = useCallback(() => {
-        const ToolController_ =
-            require('../../../ToolController_/ToolController_').default
-        const TimeUI = require('../../../TimeControl_/TimeUI').default
-
-        // Button active/inactive styling is driven by React state (isActive)
-        // and activeToolName in the store — no imperative DOM toggling needed.
-
-        if (!isActive) {
-            TimeUI.initialize()
-            ToolController_.setToolHeight(TimeUI.height)
-            ToolController_.setToolWidth()
-            ToolController_.activeToolName = 'TimeUI'
-            useUIStore.getState().setActiveToolName('TimeUI')
-            TimeUI.make()
-            TimeUI.toggleExpanded()
-            TimeUI.fina()
-            setIsActive(true)
-        } else {
-            ToolController_.setToolHeight(0)
-            ToolController_.setToolWidth()
-            TimeUI.destroy()
-            ToolController_.closeActiveTool()
-            ToolController_.activeToolName = null
-            useUIStore.getState().setActiveToolName(null)
-            setIsActive(false)
-        }
-
-        const topBar = document.getElementById('topBar')
-        if (topBar) {
-            topBar.style.paddingLeft = '80px'
-            topBar.style.marginLeft = '0px'
-            topBar.style.width = '100%'
-        }
-    }, [isActive])
-
-    return (
-        <div
-            id="toggleTimeUI"
-            className={'toolButton' + (isActive ? ' active' : '')}
-            style={{
-                position: 'relative',
-                width: '45px',
-                height: '45px',
-                display: 'inline-block',
-                textAlign: 'center',
-                lineHeight: '45px',
-                verticalAlign: 'middle',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease-in',
-                color: isActive ? activeColor : defaultColor,
-            }}
-            onClick={handleClick}
-        >
-            <i
-                className="mdi mdi-clock mdi-18px"
-                style={{ cursor: 'pointer' }}
-            />
-        </div>
-    )
-}
-
-/**
  * MobileCoordButton — renders a coordinate toggle button in the mobile toolbar.
  * Replaces the jQuery-constructed coordSelect div from ToolController_.init().
  */
@@ -153,15 +82,11 @@ function MobileCoordButton() {
  */
 function MobileExtraButtons() {
     const [configChecked, setConfigChecked] = useState(false)
-    const [showTime, setShowTime] = useState(false)
     const [showCoords, setShowCoords] = useState(false)
 
     useEffect(() => {
         try {
             const L_ = require('../../../Layers_/Layers_').default
-            if (L_.configData.time && L_.configData.time.enabled === true) {
-                setShowTime(true)
-            }
             if (
                 L_.configData.coordinates &&
                 (L_.configData.coordinates.coordll === true ||
@@ -179,7 +104,6 @@ function MobileExtraButtons() {
 
     return (
         <>
-            {showTime && <MobileTimeButton />}
             {showCoords && <MobileCoordButton />}
         </>
     )
