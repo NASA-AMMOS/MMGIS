@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import useUIStore from '../../store/uiStore'
 import BottomBar from '../../BottomBar'
-import BottomBarReact from '../BottomBar/BottomBarReact'
 import Toggle from '../../../../../design-system/components/Toggle/Toggle'
 import Dropdown from '../../../../../design-system/components/Dropdown/Dropdown'
 import IconButton from '../../../../../design-system/components/IconButton/IconButton'
@@ -174,16 +173,6 @@ function TopBar({ userInterface }) {
         }
     }, [])
 
-    const handleMenuClick = useCallback(() => {
-        const barBottom = document.getElementById('barBottom')
-        if (barBottom) {
-            barBottom.style.display =
-                barBottom.style.display === 'none' || !barBottom.style.display
-                    ? 'flex'
-                    : 'none'
-        }
-    }, [])
-
     const handleToggleViewer = useCallback(() => {
         if (userInterface && userInterface.setPanelPercents) {
             const pp = userInterface.getPanelPercents()
@@ -275,22 +264,13 @@ function TopBar({ userInterface }) {
     const topBarStyle = {}
     if (isMobile) {
         topBarStyle.background = 'var(--color-a)'
-        topBarStyle.paddingLeft = '80px'
+        topBarStyle.paddingLeft = '40px'
     } else {
         topBarStyle.paddingLeft = '40px'
     }
 
     return (
         <div id="topBar" style={topBarStyle}>
-            {isMobile && (
-                <div
-                    id="topBarMenu"
-                    onClick={handleMenuClick}
-                >
-                    <i className="mdi mdi-menu mdi-24px"></i>
-                    <BottomBarReact userInterface={userInterface} />
-                </div>
-            )}
             <div id="topBarLeft" className="hideScrollbar" ref={topBarLeftRef}>
                 <div id="topBarMain" className={hasStatus ? 'hasStatus' : ''}>
                     <StatusIndicator />
@@ -316,8 +296,7 @@ function TopBar({ userInterface }) {
             </div>
 
             {/* Panel toggles + user area + kebab menu */}
-            {!isMobile && (
-                <div className={styles.reactOverlay}>
+            <div className={styles.reactOverlay} style={isMobile ? { gap: '6px' } : undefined}>
                     <Toggle.Group className={styles.panelToggles}>
                         <Tooltip content="Toggle Viewer panel" placement="bottom">
                             <Toggle
@@ -415,9 +394,14 @@ function TopBar({ userInterface }) {
                                 Settings
                             </Dropdown.Item>
                         )}
+                        {isMobile && (
+                            <Dropdown.Item onClick={() => BottomBar.showAboutModal()}>
+                                <i className="mdi mdi-information-outline" style={{ marginRight: 8, fontSize: 14 }} />
+                                About
+                            </Dropdown.Item>
+                        )}
                     </Dropdown>
                 </div>
-            )}
         </div>
     )
 }

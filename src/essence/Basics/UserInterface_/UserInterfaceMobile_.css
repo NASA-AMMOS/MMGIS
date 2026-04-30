@@ -12,7 +12,7 @@
     height: 40px;
     left: 0px;
     padding: 5px 5px 5px 0px;
-    padding-left: 40px;
+    padding-left: 0px;
     width: 100%;
     font-family: sans-serif;
     pointer-events: none;
@@ -264,9 +264,6 @@
 .Search {
     display: none;
 }
-#loginDiv {
-    display: none !important;
-}
 .mmgisHelpButton {
     display: none !important;
 }
@@ -277,29 +274,7 @@
 .leaflet-top {
     top: 5px;
 }
-#mmgislogo {
-    left: 40px !important;
-}
-#topBarMenu {
-    display: inherit;
-    padding: 9px 6px;
-    cursor: pointer;
-    width: 40px;
-    height: 40px;
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    z-index: 2005;
-    image-rendering: pixelated;
-    background: var(--color-a);
-}
-#topBarLink, #topBarScreenshot, #barBottom  {
-    background: inherit;
-}
-#barBottom {
-/* CSS for the top bar (for bottom bar items moved to the top bar) */
-    top: 40px;
-}
+
 #bottomBarSettings, #bottomBarHotkeys, #topBarFullscreen {
     display: none !important;
 }
@@ -311,12 +286,56 @@
     margin: 0;
     margin-right: inherit !important;
 }
-.leaflet-control-scalefactor {
-    display: none !important;
-}
+
 /* Force the icons in the toolbar to be larger */
 .toolButton > .mdi-18.mdi-set, .toolButton > .mdi-18px.mdi:before {
     font-size: 22px !important;
+}
+
+/* Toolbar horizontal layout for mobile (moved from @media queries to isMobile-driven CSS) */
+#toolbar {
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 0 !important;
+    border-right: none !important;
+    box-shadow: 0px -3px 3px 0px rgba(0, 0, 0, 0.3) !important;
+    overflow-x: auto !important;
+}
+
+#toolbarTools {
+    flex-direction: row !important;
+    align-items: center !important;
+    height: 100% !important;
+}
+
+#toolcontroller_incdiv {
+    flex-direction: row !important;
+    align-items: center !important;
+    height: 100% !important;
+    overflow-x: auto !important;
+}
+
+#toolbar .toolButton {
+    width: 45px !important;
+    height: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+}
+
+#toolbar .toolSep {
+    width: auto !important;
+    height: 100% !important;
+    margin: 0 !important;
+}
+
+.toolSepDivider {
+    width: 1px !important;
+    height: 26px !important;
+    margin: 0 4px !important;
+}
+
+#mapTopBar {
+    padding-left: 134px !important;
 }
 
 #topBar {

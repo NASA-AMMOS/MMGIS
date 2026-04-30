@@ -72,49 +72,7 @@
     background: var(--color-a2);
 }
 
-/* Mobile overrides — horizontal layout for tool icons */
-@media screen and (max-width: 800px) {
-    :global(#toolbar) {
-        flex-direction: row !important;
-        align-items: center !important;
-        padding: 0 !important;
-        border-right: none !important;
-        box-shadow: 0px -3px 3px 0px rgba(0, 0, 0, 0.3) !important;
-        overflow-x: auto !important;
-    }
-
-    :global(#toolbarTools) {
-        flex-direction: row !important;
-        align-items: center !important;
-        height: 100% !important;
-    }
-
-    .toolcontrollerIncdiv {
-        flex-direction: row;
-        align-items: center;
-        height: 100%;
-        overflow-x: auto;
-    }
-
-    :global(#toolbar) :global(.toolButton) {
-        width: 45px !important;
-        height: 100% !important;
-        margin: 0 !important;
-        border-radius: 0 !important;
-    }
-
-    :global(#toolbar) :global(.toolSep) {
-        width: auto !important;
-        height: 100% !important;
-        margin: 0 !important;
-    }
-
-    :global(.toolSepDivider) {
-        width: 1px;
-        height: 26px;
-        margin: 0 4px;
-    }
-}
+/* Mobile overrides are now in UserInterfaceMobile_.css (loaded only when isMobile is true) */
 
 /* jQuery-rendered tool elements */
 :global(#toolContentSeparated_Legend) > div:first-child {

@@ -35,19 +35,11 @@ function BottomBarReact({ userInterface }) {
         BottomBar.showAboutModal()
     }, [])
 
-    const containerStyle = isMobile
-        ? {
-              position: 'absolute',
-              width: '40px',
-              display: 'none',
-              flexFlow: 'column',
-              zIndex: 1005,
-          }
-        : {
-              display: 'flex',
-              flexFlow: 'column',
-              marginTop: 'auto',
-          }
+    const containerStyle = {
+        display: 'flex',
+        flexFlow: 'column',
+        marginTop: 'auto',
+    }
 
     return (
         <div id="barBottom" className={styles.barBottom} style={containerStyle}>
