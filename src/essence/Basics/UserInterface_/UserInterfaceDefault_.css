@@ -51,6 +51,12 @@
     height: 32px;
     margin-top: -2px;
     image-rendering: pixelated;
+    opacity: 0.7;
+    transition: opacity 0.2s ease, filter 0.2s ease;
+}
+#main-container #mmgislogo:hover {
+    opacity: 1;
+    filter: brightness(1.2);
 }
 
 #main-container > #topBar #topBarTitle {
