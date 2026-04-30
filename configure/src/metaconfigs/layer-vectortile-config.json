@@ -13,6 +13,7 @@
               "type": "dropdown",
               "width": 2,
               "options": [
+                "3dtiles",
                 "data",
                 "header",
                 "image",
@@ -118,6 +119,83 @@
               "min": 0,
               "max": 1,
               "width": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3D Extrusion",
+      "rows": [
+        {
+          "name": "Enable",
+          "components": [
+            {
+              "field": "extrudeEnabled",
+              "name": "Enable 3D Extrusion",
+              "description": "When enabled, this vector tile layer will render extruded 3D polygons on the globe using height data from feature properties.",
+              "type": "checkbox",
+              "width": 12,
+              "defaultChecked": false
+            }
+          ]
+        },
+        {
+          "name": "Extrusion Settings",
+          "components": [
+            {
+              "field": "extrudeHeightProperty",
+              "name": "Height Property",
+              "description": "Feature property containing height in meters (e.g., 'render_height').",
+              "type": "text",
+              "width": 3
+            },
+            {
+              "field": "extrudeDefaultHeight",
+              "name": "Default Height (m)",
+              "description": "Fallback height when the property is missing. Default: 0 (features with no height property are skipped).",
+              "type": "number",
+              "width": 2,
+              "default": 0
+            },
+            {
+              "field": "extrudeBaseProperty",
+              "name": "Base Height Property",
+              "description": "Feature property for base height in meters (e.g., 'render_min_height'). Optional.",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "extrudeVtLayer",
+              "name": "Sublayer to Extrude",
+              "description": "Vector tile sublayer name to extrude (e.g., 'building'). If empty, uses the first sublayer from the style.",
+              "type": "text",
+              "width": 2
+            },
+            {
+              "field": "extrudeColor",
+              "name": "Color",
+              "description": "Color of extruded 3D polygons. Default: #cccccc.",
+              "type": "colorpicker",
+              "width": 2
+            },
+            {
+              "field": "extrudeOverrideFeatureColor",
+              "name": "Override Feature Color",
+              "description": "When checked, always use the Color above instead of per-feature colors from the tile data (e.g., OpenMapTiles 'colour' property).",
+              "type": "checkbox",
+              "width": 2,
+              "defaultChecked": false
+            },
+            {
+              "field": "extrudeOpacity",
+              "name": "Opacity",
+              "description": "Opacity of extruded 3D polygons (0-1). Default: 0.9.",
+              "type": "slider",
+              "min": 0,
+              "max": 1,
+              "step": 0.01,
+              "width": 1
             }
           ]
         }

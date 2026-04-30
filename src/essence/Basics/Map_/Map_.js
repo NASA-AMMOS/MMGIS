@@ -19,6 +19,7 @@ import { Kinds } from '../../../pre/tools'
 import DataShaders from '../../Ancillary/DataShaders'
 import calls from '../../../pre/calls'
 import TimeControl from '../TimeControl_/TimeControl'
+import '../Map_/SimplifiedVectorGrid'
 
 import gjv from 'geojson-validation'
 import {
@@ -1523,10 +1524,21 @@ function makeVectorTileLayer(layerObj, mapContext = null) {
         )
     }
 
+    // Hide sublayers not explicitly listed in vtLayer styles.
+    // Without this, L.vectorGrid renders all sublayers with default blue styling.
+    const vtLayerStyles = layerObj.style.vtLayer || {}
+    const resolvedVtLayerStyles = new Proxy(vtLayerStyles, {
+        get(target, prop) {
+            if (prop in target) return target[prop]
+            return { fill: false, stroke: false, weight: 0, fillOpacity: 0, opacity: 0 }
+        },
+        has() { return true },
+    })
+
     var vectorTileOptions = {
         layerName: layerObj.name,
         rendererFactory: L.svg.tile,
-        vectorTileLayerStyles: layerObj.style.vtLayer || {},
+        vectorTileLayerStyles: resolvedVtLayerStyles,
         interactive: true,
         minZoom: layerObj.minZoom,
         maxZoom: layerObj.maxZoom,
@@ -1544,8 +1556,22 @@ function makeVectorTileLayer(layerObj, mapContext = null) {
         })(layerObj.style.vtId),
     }
 
-    L_.layers.layer[layerObj.name] = L.vectorGrid
-        .protobuf(layerUrl, vectorTileOptions)
+    // For extrusion-enabled layers (e.g., OSM buildings), use the simplified
+    // variant with a moderate tolerance to reduce polygon vertex counts. This
+    // significantly improves 2D rendering performance for dense tiles.
+    if (layerObj.extrudeEnabled && layerObj.simplifyTolerance !== 0) {
+        vectorTileOptions.simplifyTolerance = layerObj.simplifyTolerance ?? 4
+    }
+
+    const vectorGridFactory =
+        vectorTileOptions.simplifyTolerance > 0
+            ? L.simplifiedVectorGrid.protobuf
+            : L.vectorGrid.protobuf
+
+    L_.layers.layer[layerObj.name] = vectorGridFactory(
+        layerUrl,
+        vectorTileOptions
+    )
         .on('click', function (e, b, x) {
             let layerName = e.target.options.layerName
             let vtId = L_.layers.layer[layerName].vtId
