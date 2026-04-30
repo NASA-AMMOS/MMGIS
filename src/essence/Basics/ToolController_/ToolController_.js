@@ -431,6 +431,7 @@ let ToolController_ = {
         this.activeToolName = null
         // Sync to store so React re-renders button states
         useUIStore.getState().setActiveToolName(null)
+        useUIStore.getState().setToolPanelDragVisible(false)
         this.prevHeight = 0
     },
     injectCloseButton: function () {

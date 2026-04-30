@@ -85,7 +85,7 @@ function ToolPanel() {
                 style={{
                     top: (topSize + 12) + 'px',
                     height: `calc(100% - ${topSize + 24}px)`,
-                    display: toolPanelDragVisible ? 'flex' : 'none',
+                    display: (toolPanelDragVisible && isOpen) ? 'flex' : 'none',
                     left: (toolPanelWidth + panelLeftOffset) + 'px',
                     transition: 'left 0.2s ease-out',
                 }}
