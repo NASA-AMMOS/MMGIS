@@ -5,6 +5,7 @@ import LayerGeologic from '../../Basics/Layers_/LayerGeologic/LayerGeologic'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import Map_ from '../../Basics/Map_/Map_'
 import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '../../Basics/UserInterface_/components/Toast/Toast'
 import Modal from '../../Basics/UserInterface_/components/Modal/Modal'
 
 import DrawTool_Templater from './DrawTool_Templater'
@@ -162,15 +163,7 @@ var Files = {
 
                 DrawTool.setDrawingType(drawType)
             } else {
-                CursorInfo.update(
-                    `Please select a file from the list below (by clicking on its name). If none exist, make one with the create button below.`,
-                    6000,
-                    false,
-                    {
-                        x: 305,
-                        y: 6,
-                    }
-                )
+                Toast.info(`Please select a file from the list below (by clicking on its name). If none exist, make one with the create button below.`, 6000)
             }
         })
 
@@ -730,14 +723,7 @@ var Files = {
                                         })
                                 },
                                 function (err) {
-                                    CursorInfo.update(
-                                        `Failed to generate shapefile's .prj.`,
-                                        6000,
-                                        true,
-                                        { x: 305, y: 6 },
-                                        '#e9ff26',
-                                        'black'
-                                    )
+                                    Toast.warning(`Failed to generate shapefile's .prj.`, 6000)
                                 }
                             )
                             break
@@ -774,53 +760,25 @@ var Files = {
                                     newKeyword: newKeyword.toLowerCase(),
                                 },
                                 function () {
-                                    CursorInfo.update(
-                                        `Successfully renamed the '${headGroup}' ${
+                                    Toast.success(`Successfully renamed the '${headGroup}' ${
                                             activeTagFolType === 'tags'
                                                 ? 'tag'
                                                 : 'folder'
-                                        } to '${newKeyword}'!`,
-                                        3500,
-                                        false,
-                                        {
-                                            x: 305,
-                                            y: 6,
-                                        },
-                                        '#009eff',
-                                        'black',
-                                        null,
-                                        true
-                                    )
+                                        } to '${newKeyword}'!`, 3500)
                                     DrawTool.getFiles(function () {
                                         DrawTool.populateFiles()
                                     })
                                 },
                                 function () {
-                                    CursorInfo.update(
-                                        `Failed to remove ${
+                                    Toast.error(`Failed to remove ${
                                             activeTagFolType === 'tags'
                                                 ? 'tag'
                                                 : 'folder'
-                                        }!`,
-                                        3500,
-                                        true,
-                                        {
-                                            x: 305,
-                                            y: 6,
-                                        }
-                                    )
+                                        }!`, 3500)
                                 }
                             )
                         } else {
-                            CursorInfo.update(
-                                `No new name entered. Nothing to do.`,
-                                3500,
-                                true,
-                                {
-                                    x: 305,
-                                    y: 6,
-                                }
-                            )
+                            Toast.info(`No new name entered. Nothing to do.`, 3500)
                         }
                     }
                 })(activeTagFolType, headGroup)
@@ -847,53 +805,25 @@ var Files = {
                                     type: activeTagFolType,
                                 },
                                 function () {
-                                    CursorInfo.update(
-                                        `Successfully removed the '${headGroup}' ${
+                                    Toast.success(`Successfully removed the '${headGroup}' ${
                                             activeTagFolType === 'tags'
                                                 ? 'tag'
                                                 : 'folder'
-                                        }!`,
-                                        3500,
-                                        false,
-                                        {
-                                            x: 305,
-                                            y: 6,
-                                        },
-                                        '#009eff',
-                                        'black',
-                                        null,
-                                        true
-                                    )
+                                        }!`, 3500)
                                     DrawTool.getFiles(function () {
                                         DrawTool.populateFiles()
                                     })
                                 },
                                 function () {
-                                    CursorInfo.update(
-                                        `Failed to remove ${
+                                    Toast.error(`Failed to remove ${
                                             activeTagFolType === 'tags'
                                                 ? 'tag'
                                                 : 'folder'
-                                        }!`,
-                                        3500,
-                                        true,
-                                        {
-                                            x: 305,
-                                            y: 6,
-                                        }
-                                    )
+                                        }!`, 3500)
                                 }
                             )
                         } else {
-                            CursorInfo.update(
-                                `Check failed. Names don't match. Entered '${newKeyword}'. Required: '${headGroup}'`,
-                                3500,
-                                true,
-                                {
-                                    x: 305,
-                                    y: 6,
-                                }
-                            )
+                            Toast.error(`Check failed. Names don't match. Entered '${newKeyword}'. Required: '${headGroup}'`, 3500)
                         }
                     }
                 })(activeTagFolType, headGroup)
@@ -1284,17 +1214,9 @@ var Files = {
                             newTag.indexOf('~') > -1 ||
                             newTag.indexOf('$') > -1
                         ) {
-                            CursorInfo.update(
-                                `${
+                            Toast.warning(`${
                                     type === 'tag' ? 'Tags' : 'Folders'
-                                } may not contain spaces, dollar-signs or tildes!`,
-                                3500,
-                                true,
-                                {
-                                    x: 305,
-                                    y: 6,
-                                }
-                            )
+                                } may not contain spaces, dollar-signs or tildes!`, 3500)
                             return
                         }
 
@@ -1477,19 +1399,7 @@ var Files = {
                             body,
                             function (d) {
                                 Modal.remove()
-                                CursorInfo.update(
-                                    'Successfully saved changes to file!',
-                                    3500,
-                                    false,
-                                    {
-                                        x: 305,
-                                        y: 6,
-                                    },
-                                    '#009eff',
-                                    'black',
-                                    null,
-                                    true
-                                )
+                                Toast.success('Successfully saved changes to file!', 3500)
                                 elm.find('.drawToolFileName').text(filename)
                                 var files_i = F_.objectArrayIndexOfKeyWithValue(
                                     DrawTool.files,
@@ -1504,15 +1414,7 @@ var Files = {
                                 })
                             },
                             function () {
-                                CursorInfo.update(
-                                    'Failed to save changes to file!',
-                                    3500,
-                                    true,
-                                    {
-                                        x: 305,
-                                        y: 6,
-                                    }
-                                )
+                                Toast.error('Failed to save changes to file!', 3500)
                             }
                         )
                     })
@@ -2374,14 +2276,7 @@ var Files = {
             // Only show if this is a new truncation state (wasn't truncated before, or first time loading)
             if (hitLimit && !previouslyTruncated) {
                 const fileName = DrawTool.getFileObjectWithId(parsedId)?.file_name || 'file'
-                CursorInfo.update(
-                    `Only showing top 1k features for ${fileName}`,
-                    5000,
-                    false,
-                    { x: 305, y: 6 },
-                    '#ff9800',
-                    'white'
-                )
+                Toast.warning(`Only showing top 1k features for ${fileName}`, 5000)
             }
 
             // Don't clear features here - let refreshFile's keepGoing handle it

@@ -3,6 +3,7 @@ import F_ from '../../../../Basics/Formulae_/Formulae_'
 import L_ from '../../../../Basics/Layers_/Layers_'
 import Map_ from '../../../../Basics/Map_/Map_'
 import CursorInfo from '../../../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '../../../../Basics/UserInterface_/components/Toast/Toast'
 import 'markjs'
 
 import calls from '../../../../../pre/calls'
@@ -167,14 +168,7 @@ var SetOperations = {
                     file_id !=
                     DrawTool.contextMenuLayers[i].properties._.file_id
                 ) {
-                    CursorInfo.update(
-                        "Warning! Can't merge shapes from separate files.",
-                        6000,
-                        true,
-                        { x: 305, y: 6 },
-                        '#e9ff26',
-                        'black'
-                    )
+                    Toast.warning("Warning! Can't merge shapes from separate files.", 6000)
                     return
                 }
             }
@@ -185,14 +179,7 @@ var SetOperations = {
                 .attr('shape_id')
 
             if (propertyId == null) {
-                CursorInfo.update(
-                    'Merge: Select a shape whose properties will persist through the merge.',
-                    6000,
-                    true,
-                    { x: 305, y: 6 },
-                    '#e9ff26',
-                    'black'
-                )
+                Toast.warning('Merge: Select a shape whose properties will persist through the merge.', 6000)
                 return
             }
 
@@ -213,14 +200,7 @@ var SetOperations = {
         //Split
         $('.drawToolContextMenuTabSOSplitSplit').on('click', function () {
             if (SetOperations.lastSplitLine == null) {
-                CursorInfo.update(
-                    'Split: Draw a line to split against first.',
-                    6000,
-                    true,
-                    { x: 305, y: 6 },
-                    '#e9ff26',
-                    'black'
-                )
+                Toast.warning('Split: Draw a line to split against first.', 6000)
                 return
             }
 
@@ -232,14 +212,7 @@ var SetOperations = {
                     file_id !=
                     DrawTool.contextMenuLayers[i].properties._.file_id
                 ) {
-                    CursorInfo.update(
-                        "Warning! Can't split shapes from separate files.",
-                        6000,
-                        true,
-                        { x: 305, y: 6 },
-                        '#e9ff26',
-                        'black'
-                    )
+                    Toast.warning("Warning! Can't split shapes from separate files.", 6000)
                     SetOperations.endSplitDrawing()
                     return
                 }

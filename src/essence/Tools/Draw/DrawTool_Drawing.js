@@ -3,6 +3,7 @@ import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '../../Basics/UserInterface_/components/Toast/Toast'
 import turf from 'turf'
 import { circle as turfCircle } from '@turf/turf'
 
@@ -128,10 +129,7 @@ var Drawing = {
                             )
                                 noChange = true
                         } catch (error) {
-                            CursorInfo.update('ERROR: Topology.', 2500, true, {
-                                x: 305,
-                                y: 6,
-                            })
+                            Toast.error('ERROR: Topology.', 2500)
                             if (d.end && d.begin) {
                                 d.end()
                                 d.begin()
@@ -207,12 +205,7 @@ var Drawing = {
                                 })(feature, i),
                                 function () {
                                     throughLoop(i + 1)
-                                    CursorInfo.update(
-                                        'Failed to cut through some shapes.',
-                                        6000,
-                                        true,
-                                        { x: 305, y: 6 }
-                                    )
+                                    Toast.error('Failed to cut through some shapes.', 6000)
                                 }
                             )
                         }
@@ -245,10 +238,7 @@ var Drawing = {
                         d.shape.geometry = newGeometry
                     }
                 } catch (error) {
-                    CursorInfo.update('ERROR: Topology.', 2500, true, {
-                        x: 305,
-                        y: 6,
-                    })
+                    Toast.error('ERROR: Topology.', 2500)
                     if (d.end && d.begin) {
                         d.end()
                         d.begin()

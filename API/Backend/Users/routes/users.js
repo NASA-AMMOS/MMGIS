@@ -379,7 +379,7 @@ router.post("/login", function (req, res) {
         return null;
       })
       .catch((err) => {
-        res.send({ status: "failure", message: "Bad token." });
+        res.send({ status: "failure", message: "Login failed." });
       });
   });
   return null;
