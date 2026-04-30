@@ -315,14 +315,10 @@ body {
     background: var(--color-i) !important;
 }
 
-.toolButtonSep.active {
-    color: var(--color-c) !important;
-    border-bottom: 2px solid var(--color-c);
+.toolSep.active {
+    color: var(--color-mmgis) !important;
 }
-.toolButtonSep#toolButtonSeparated_Legend.active {
-    border-bottom: none !important;
-}
-.toolButtonSep:hover {
+.toolSep:hover {
     color: var(--color-c) !important;
 }
 #tScreen {
@@ -641,7 +637,7 @@ body {
     pointer-events: auto;
     position: absolute;
     bottom: 38px;
-    left: 36px;
+    left: 6px;
     width: 32px;
     height: 32px;
     border-radius: 16px;
@@ -728,7 +724,7 @@ body {
 .leaflet-control-scalefactor {
     position: absolute;
     bottom: 30px;
-    left: 56px;
+    left: 26px;
     display: flex;
     margin-left: 2px !important;
     transition: bottom 0.2s ease-out, left 0.2s ease-out;

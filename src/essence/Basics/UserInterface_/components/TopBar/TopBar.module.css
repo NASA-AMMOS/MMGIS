@@ -101,6 +101,29 @@
     border-radius: 4px;
 }
 
+/* Status indicator (reload / websocket / layer update) */
+.statusIndicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: opacity 0.6s ease-in-out;
+    animation: statusPulse 2.5s ease-in-out infinite;
+    margin-left: 6px;
+    flex-shrink: 0;
+}
+.statusIndicator:hover {
+    background: var(--color-a1);
+}
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
 /* Hide jQuery login elements — React TopBar handles user UI */
 :global(#loginDiv),
 :global(#loginoutButton) {

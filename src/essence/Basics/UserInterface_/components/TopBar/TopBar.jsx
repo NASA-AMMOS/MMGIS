@@ -6,8 +6,108 @@ import Toggle from '../../../../../design-system/components/Toggle/Toggle'
 import Dropdown from '../../../../../design-system/components/Dropdown/Dropdown'
 import IconButton from '../../../../../design-system/components/IconButton/IconButton'
 import Tooltip from '../../../../../design-system/components/Tooltip/Tooltip'
+import ConfirmationModal from '../ConfirmationModal/ConfirmationModal'
+import Modal from '../Modal/Modal'
 
 import styles from './TopBar.module.css'
+
+const STATUS_CONFIG = {
+    RELOAD: {
+        icon: 'mdi-reload-alert',
+        color: 'var(--color-h)',
+        tooltip: 'Updates available — click to reload MMGIS',
+    },
+    ADD_LAYER: {
+        icon: 'mdi-reload',
+        color: 'var(--color-green)',
+        tooltip: 'New layers available — click to update',
+    },
+    DISCONNECTED: {
+        icon: 'mdi-alert-outline',
+        color: 'var(--color-r1)',
+        tooltip: 'WebSocket connection closed',
+    },
+}
+
+function StatusIndicator() {
+    const statusType = useUIStore((s) => s.statusIndicator)
+    const config = statusType ? STATUS_CONFIG[statusType] : null
+
+    const handleClick = useCallback(() => {
+        if (!statusType) return
+        if (statusType === 'RELOAD' || statusType === 'DISCONNECTED') {
+            ConfirmationModal.prompt(
+                'Do you want to reload MMGIS to receive new updates?',
+                (isYes) => { if (isYes) location.reload() }
+            )
+        } else if (statusType === 'ADD_LAYER') {
+            const L_ = require('../../../Layers_/Layers_').default
+            const UserInterface_ = require('../../UserInterfaceBridge').default
+            // Show the layer update modal via LayerUpdatedControl's modal logic
+            let table = [
+                '<table class="table" style="text-align: left;">',
+                '<tr style="font-width: bold"><th style="column-width: 100px">Action</th><th>Layer name</th></tr>',
+            ]
+            for (let i in L_.addLayerQueue) {
+                const { newLayerName, type } = L_.addLayerQueue[i]
+                const typePrettify = type.split(/(?=[A-Z])/).map((e) => e.charAt(0).toUpperCase() + e.slice(1).toLowerCase())
+                table.push(`<tr><td style="column-width: 100px">${typePrettify.join(' ')}</td><td>${newLayerName}</td></tr>`)
+            }
+            table.push('</table>')
+            const modalContent = [
+                "<div id='mainSettingsModal'>",
+                    "<div id='mainSettingsModalTitle'>",
+                        "<div><i class='mdi mdi-reload mdi-18px'></i><div>Update map layers</div></div>",
+                        "<div id='mainSettingsModalClose'><i class='mmgisHoverBlue mdi mdi-close mdi-18px'></i></div>",
+                    "</div>",
+                    "<div id='update-modal-content'>",
+                        "<div class='update-modal-section'>",
+                            "<div class='update-modal-section-title'>The following changes can be updated:</div>",
+                            "<div class='update-modal-table-container'>",
+                            ...table,
+                            "</div>",
+                            "<div id='update-modal-actions'>",
+                                "<div class='update-modal-flex'>",
+                                    "<div class='drawToolFileCancel drawToolButton1'>Cancel</div>",
+                                    "<div class='drawToolFileSave drawToolButton1'>Update</div>",
+                                "</div>",
+                            "</div>",
+                        "</div>",
+                    "</div>",
+                "</div>",
+            ].join('\n')
+
+            Modal.set(modalContent, function () {
+                const $ = require('jquery')
+                $('.drawToolFileSave').on('click', function () {
+                    Modal.remove()
+                    L_.updateQueueLayers()
+                    UserInterface_.removeLayerUpdateButton()
+                })
+                $('.drawToolFileCancel').on('click', function () { Modal.remove() })
+                $('#mainSettingsModalClose').on('click', function () { Modal.remove() })
+            }, function () {})
+        }
+    }, [statusType])
+
+    return (
+        <div
+            className={styles.statusIndicator}
+            style={{ opacity: config ? 1 : 0, pointerEvents: config ? 'auto' : 'none' }}
+            onClick={handleClick}
+            title={config ? config.tooltip : ''}
+        >
+            {config && (
+                <Tooltip content={config.tooltip} placement="bottom">
+                    <i
+                        className={`mdi ${config.icon} mdi-18px`}
+                        style={{ color: config.color }}
+                    />
+                </Tooltip>
+            )}
+        </div>
+    )
+}
 
 function TopBar({ userInterface }) {
     const topBarLeftRef = useRef(null)
@@ -197,6 +297,7 @@ function TopBar({ userInterface }) {
                             {window.mmgisglobal.name}
                         </div>
                     </div>
+                    <StatusIndicator />
                 </div>
                 <div id="topBarSecondary">
                     <div

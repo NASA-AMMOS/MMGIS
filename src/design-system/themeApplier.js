@@ -84,13 +84,13 @@ function applyThemeToDOM(themeName) {
         el.style.border = `1px solid ${t['--color-a1']}`
     })
     document.querySelectorAll('.leaflet-control-zoom a').forEach((el) => {
-        el.style.color = t['--color-c']
+        el.style.color = t['--color-f']
         el.style.borderBottom = `1px solid ${t['--color-a1']}`
     })
     // --- Home button (solid) ---
     document.querySelectorAll('.leaflet-control-zoom-home').forEach((el) => {
         el.style.background = t['--color-a']
-        el.style.color = t['--color-c']
+        el.style.color = t['--color-f']
     })
 
     // --- Scalefactor goto (solid) ---

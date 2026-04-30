@@ -96,6 +96,11 @@ const useUIStore = create((set, get) => ({
     toolsLoaded: false,     // True after ToolController_ has initialized all tool modules
     mobileTools: [],        // Array of tool names shown on mobile (e.g. ['Layers', 'Legend', 'Info'])
 
+    // Status indicator (reload / websocket disconnected / layer update)
+    // type: null | 'RELOAD' | 'ADD_LAYER' | 'DISCONNECTED'
+    statusIndicator: null,
+    setStatusIndicator: (type) => set({ statusIndicator: type }),
+
     // References to imperative modules (set during fina)
     _Viewer: null,
     _Map: null,

@@ -1,6 +1,7 @@
 import useUIStore from './store/uiStore'
 import BottomBar from './BottomBar'
-import LayerUpdatedControl from './LayerUpdatedControl'
+// LayerUpdatedControl is no longer used as a Leaflet control;
+// status indicators now render in the TopBar via uiStore.statusIndicator
 import { applyTheme } from '../../../design-system/applyTheme'
 import { initThemeApplier, refreshThemeDOM } from '../../../design-system/themeApplier'
 
@@ -407,23 +408,11 @@ const UserInterfaceBridge = {
     },
 
     updateLayerUpdateButton: function (type) {
-        if (UserInterfaceBridge.layerUpdatedControl) {
-            UserInterfaceBridge.removeLayerUpdateButton()
-        }
-        if (Map_) {
-            UserInterfaceBridge.layerUpdatedControl = new LayerUpdatedControl({
-                position: 'topright',
-                type,
-            })
-            UserInterfaceBridge.layerUpdatedControl.addTo(Map_.map)
-        }
+        useUIStore.getState().setStatusIndicator(type)
     },
 
     removeLayerUpdateButton: function () {
-        if (UserInterfaceBridge.layerUpdatedControl && Map_) {
-            UserInterfaceBridge.layerUpdatedControl.remove(Map_.map)
-            UserInterfaceBridge.layerUpdatedControl = null
-        }
+        useUIStore.getState().setStatusIndicator(null)
     },
 }
 

@@ -200,7 +200,7 @@ let ToolController_ = {
                 'vertical-align': 'middle',
                 'cursor': 'pointer',
                 'transition': 'all 0.15s',
-                'color': 'var(--color-mmgis)',
+                'color': 'var(--color-f)',
             })
             .on('click', (function (idx) {
                 return function () {
