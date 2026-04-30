@@ -78,6 +78,7 @@ function MobileCoordButton() {
 
 /**
  * MobileTimeUIToggle — renders a time UI toggle button on the far right of the mobile toolbar.
+ * Directly toggles the #timeUI active class and syncs Zustand store state.
  */
 function MobileTimeUIToggle() {
     const timeUIActive = useUIStore((s) => s.timeUIActive)
@@ -95,8 +96,16 @@ function MobileTimeUIToggle() {
     }, [])
 
     const handleClick = useCallback(() => {
-        const Coordinates = require('../Coordinates/Coordinates').default
-        Coordinates.toggleTimeUI()
+        const $ = require('jquery')
+        const L_ = require('../../../Layers_/Layers_').default
+        const active = useUIStore.getState().timeUIActive
+        $('#timeUI').toggleClass('active')
+        const isExpanded = $('#timeUI').hasClass('expanded') || $('#timeUI').hasClass('defaultExpanded')
+        useUIStore.getState().setTimeUIActive(!active)
+        useUIStore.getState().setTimeUIExpanded(isExpanded)
+        Object.keys(L_._onTimeUIToggleSubscriptions).forEach((k) => {
+            L_._onTimeUIToggleSubscriptions[k](!active)
+        })
     }, [])
 
     if (!hasTime) return null
@@ -116,7 +125,7 @@ function MobileTimeUIToggle() {
                 verticalAlign: 'middle',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease-in',
-                marginLeft: 'auto',
+                float: 'right',
                 flexShrink: 0,
                 color: timeUIActive ? 'var(--color-mmgis)' : 'var(--color-f)',
             }}
