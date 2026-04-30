@@ -96,7 +96,6 @@ function StatusIndicator() {
             className={styles.statusIndicator}
             style={{ opacity: config ? 1 : 0, pointerEvents: config ? 'auto' : 'none' }}
             onClick={handleClick}
-            title={config ? config.tooltip : ''}
         >
             {config && (
                 <Tooltip content={config.tooltip} placement="bottom">
