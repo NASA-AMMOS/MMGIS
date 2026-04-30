@@ -46,9 +46,8 @@ function ViewerPanel() {
                 id="viewerToolBar"
                 style={{
                     position: 'absolute',
-                    top: '40px',
-                    width: '100%',
-                    height: '48px',
+                    top: '0px',
+                    right: '0px',
                     pointerEvents: 'none',
                     zIndex: 5,
                 }}

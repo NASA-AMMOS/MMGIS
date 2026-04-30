@@ -583,16 +583,16 @@ body {
     background: var(--color-a);
     line-height: 31px;
     text-align: center;
-    margin-right: 5px;
+    margin-bottom: 5px;
     cursor: pointer;
     border-radius: 3px;
-    color: #bbb;
-    display: inline-block;
+    color: var(--color-f);
+    display: block;
     position: relative;
-    transition: color 0.2s ease-out;
+    transition: color 0.2s ease-in 0s;
 }
 .osd-custom-buttons > div:hover {
-    color: white;
+    color: var(--color-mmgis);
 }
 
 .cplot_axis path {
@@ -1137,12 +1137,27 @@ body {
     left: 50%;
 }
 
-#_lithosphere_controls_topleft {
-    top: 40px !important;
-}
 #_lithosphere_controls_topright {
     top: 40px !important;
-    right: -5px !important;
+    right: 5px !important;
+}
+/* Override LithoSphere inline styles to match app control buttons */
+#_lithosphere_controls_topright > div > div {
+    width: 30px !important;
+    height: 30px !important;
+    background: var(--color-a) !important;
+    border-radius: 3px !important;
+    line-height: 30px !important;
+    color: var(--color-f) !important;
+    transition: color 0.2s ease-in 0s;
+}
+#_lithosphere_controls_topright > div > div:hover {
+    color: var(--color-mmgis) !important;
+}
+#_lithosphere_controls_bottomleft > div > div {
+    background: var(--color-a) !important;
+    border-radius: 3px !important;
+    color: var(--color-f) !important;
 }
 #_lithosphere_control_mmgisLithoNavigation svg {
     box-sizing: unset !important;
