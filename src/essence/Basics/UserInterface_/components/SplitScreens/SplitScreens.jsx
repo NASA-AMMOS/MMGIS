@@ -191,6 +191,9 @@ function BottomFloatingBar() {
                     width: '100%',
                     minHeight: '0px',
                     flexShrink: 0,
+                    position: 'relative',
+                    zIndex: 10000,
+                    overflow: 'visible',
                 }}
             ></div>
         </div>

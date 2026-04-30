@@ -1076,16 +1076,21 @@ input::-webkit-inner-spin-button {
 }
 #toast-container {
     position: fixed !important;
-    bottom: 80px !important;
-    right: 12px !important;
-    z-index: 1001 !important;
+    top: 44px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    bottom: auto !important;
+    right: auto !important;
+    z-index: 10001 !important;
+    max-width: 500px;
+    width: auto;
 }
 .mmgisToast {
     z-index: 1000;
     border-radius: 8px;
-    top: 35px;
+    top: 0;
     width: auto;
-    margin-top: 10px;
+    margin-top: 8px;
     position: relative;
     max-width: 100%;
     height: auto;
@@ -1096,10 +1101,6 @@ input::-webkit-inner-spin-button {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     padding: 10px 25px;
-    /*
-    font-size: 1.1rem;
-    font-weight: 300;
-*/
     color: var(--color-f);
     display: flex;
     align-items: center;
