@@ -100,6 +100,13 @@ function MobileTimeUIToggle() {
         const L_ = require('../../../Layers_/Layers_').default
         const active = useUIStore.getState().timeUIActive
         $('#timeUI').toggleClass('active')
+
+        // On mobile, always force expanded state when opening
+        if (!active) {
+            $('#timeUI').addClass('expanded')
+            $('#mmgisTimeUIExpandedContent').addClass('show')
+        }
+
         const isExpanded = $('#timeUI').hasClass('expanded') || $('#timeUI').hasClass('defaultExpanded')
         useUIStore.getState().setTimeUIActive(!active)
         useUIStore.getState().setTimeUIExpanded(isExpanded)

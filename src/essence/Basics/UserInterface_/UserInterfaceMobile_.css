@@ -350,6 +350,18 @@
     bottom: 0 !important;
 }
 
+/* TimeUI mobile: hide start time, always show expanded */
+#mmgisTimeUIStartWrapper,
+#mmgisTimeUIStartWrapperFake {
+    display: none !important;
+}
+#timeUI.active #mmgisTimeUIExpandedContent {
+    display: block !important;
+}
+#timeUI.active {
+    height: auto !important;
+}
+
 #topBar {
     height: 40px !important;
 }
