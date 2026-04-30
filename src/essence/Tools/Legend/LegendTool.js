@@ -202,7 +202,7 @@ function refreshLegends() {
 
     _refreshLegends(L_.configData.layers, {}, 0)
 
-    if ($('#LegendTool').children().length === 0) {
+    if (LegendTool.made && $('#LegendTool').length && $('#LegendTool').children().length === 0) {
         $('#LegendTool').append(
             $('<div>').css({
                 padding: '20px 14px',
