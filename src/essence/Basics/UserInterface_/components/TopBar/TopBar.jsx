@@ -94,7 +94,7 @@ function StatusIndicator() {
     return (
         <div
             className={styles.statusIndicator}
-            style={{ opacity: config ? 1 : 0, pointerEvents: config ? 'auto' : 'none' }}
+            style={{ display: config ? 'flex' : 'none', alignItems: 'center' }}
             onClick={handleClick}
         >
             {config && (

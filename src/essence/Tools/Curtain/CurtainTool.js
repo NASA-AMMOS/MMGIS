@@ -219,6 +219,14 @@ const Curtain = () => {
             </div>
             <div id='curtainToolBar'>
                 <div
+                    id='curtainClose'
+                    title='Close'
+                    onClick={() => { TC_.closeActiveTool() }}
+                >
+                    <i className='mdi mdi-close mdi-18px'></i>
+                </div>
+                <div style={{ flex: 1 }} />
+                <div
                     id='curtainExpand'
                     title='Expand/Shrink'
                     onClick={() => {
