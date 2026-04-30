@@ -78,7 +78,7 @@ function MobileCoordButton() {
 
 /**
  * MobileTimeUIToggle — renders a time UI toggle button on the far right of the mobile toolbar.
- * Directly toggles the #timeUI active class and syncs Zustand store state.
+ * Opens TimeUI inside the tool panel on mobile with header, end time input, and expanded rows.
  */
 function MobileTimeUIToggle() {
     const timeUIActive = useUIStore((s) => s.timeUIActive)
@@ -98,13 +98,25 @@ function MobileTimeUIToggle() {
     const handleClick = useCallback(() => {
         const $ = require('jquery')
         const L_ = require('../../../Layers_/Layers_').default
+        const ToolController_ = require('../../../ToolController_/ToolController_').default
         const active = useUIStore.getState().timeUIActive
-        $('#timeUI').toggleClass('active')
 
-        // On mobile, always force expanded state when opening
         if (!active) {
-            $('#timeUI').addClass('expanded')
+            // Close any active tool first
+            ToolController_.closeActiveTool()
+            ToolController_.activeToolName = null
+            useUIStore.getState().setActiveToolName(null)
+
+            // Show #timeUI in the tool panel
+            $('#timeUI').addClass('active expanded')
             $('#mmgisTimeUIExpandedContent').addClass('show')
+            ToolController_.setToolHeight(window.innerHeight * 0.5)
+            ToolController_.setToolWidth()
+        } else {
+            // Hide TimeUI and close tool panel
+            $('#timeUI').removeClass('active')
+            ToolController_.setToolHeight(0)
+            ToolController_.setToolWidth()
         }
 
         const isExpanded = $('#timeUI').hasClass('expanded') || $('#timeUI').hasClass('defaultExpanded')
