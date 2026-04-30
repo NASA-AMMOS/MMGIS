@@ -202,16 +202,19 @@ function refreshLegends() {
 
     _refreshLegends(L_.configData.layers, {}, 0)
 
-    if (LegendTool.made && $('#LegendTool').length && $('#LegendTool').children().length === 0) {
-        $('#LegendTool').append(
-            $('<div>').css({
-                padding: '20px 14px',
-                color: 'var(--color-a4)',
-                fontSize: '13px',
-                fontStyle: 'italic',
-                textAlign: 'center',
-            }).text('No active layers with legends')
-        )
+    if (LegendTool.made && LegendTool.targetId) {
+        const contentContainer = $(`#${LegendTool.targetId} #LegendTool`)
+        if (contentContainer.length && contentContainer.children().length === 0) {
+            contentContainer.append(
+                $('<div>').css({
+                    padding: '20px 14px',
+                    color: 'var(--color-a4)',
+                    fontSize: '13px',
+                    fontStyle: 'italic',
+                    textAlign: 'center',
+                }).text('No active layers with legends')
+            )
+        }
     }
 }
 
