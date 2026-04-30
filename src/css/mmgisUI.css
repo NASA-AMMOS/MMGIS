@@ -660,7 +660,7 @@
 /* tooltip */
 .tippy-box[data-theme~='blue'] {
     background-color: var(--color-c2);
-    color: white;
+    color: var(--color-c2-text, #ffffff);
     border-radius: 2px;
 }
 .tippy-box[data-theme~='blue'] .tippy-arrow {

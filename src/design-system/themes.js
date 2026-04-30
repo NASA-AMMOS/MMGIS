@@ -37,6 +37,7 @@ const baseVars = {
     '--color-velocity': '#24807c',
     '--color-image': '#b0518f',
     '--color-video': '#7b2323',
+    '--color-c2-text': '#ffffff',
 }
 
 const themes = {
@@ -348,7 +349,8 @@ const themes = {
         '--color-a7': '#ffffff',
         '--color-b': '#555555',
         '--color-c': '#ffd700',
-        '--color-c2': '#c8a800',
+        '--color-c2': '#ffd700',
+        '--color-c2-text': '#000000',
         '--color-d': '#111111',
         '--color-e': '#333333',
         '--color-f': '#ffffff',
