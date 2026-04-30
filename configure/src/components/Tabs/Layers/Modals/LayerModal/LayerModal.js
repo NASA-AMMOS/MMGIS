@@ -37,6 +37,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 
 import Maker from "../../../../../core/Maker";
 
+import threedtilesConfig from "../../../../../metaconfigs/layer-3dtiles-config.json";
 import dataConfig from "../../../../../metaconfigs/layer-data-config.json";
 import headerConfig from "../../../../../metaconfigs/layer-header-config.json";
 import modelConfig from "../../../../../metaconfigs/layer-model-config.json";
@@ -166,6 +167,10 @@ const LayerModal = (props) => {
 
   let config = {};
   switch (layer.type) {
+    case "3dtiles":
+      config = threedtilesConfig;
+      break;
+
     case "data":
       config = dataConfig;
       break;

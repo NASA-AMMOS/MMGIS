@@ -299,7 +299,15 @@ router.post("/upload", function (req, res, next) {
     let working = false;
     let uploaded = "";
     let uploadFinished = false;
-    const busboy = new Busboy({ headers: req.headers });
+    let busboy;
+    try {
+      busboy = new Busboy({ headers: req.headers });
+    } catch (err) {
+      return res.status(400).send({
+        status: "failure",
+        message: "Invalid Content-Type for file upload.",
+      });
+    }
     busboy.on("file", function (fieldname, file, filename, encoding, mimetype) {
       file.on("data", function (data) {
         uploaded += data.toString("utf8");
@@ -329,6 +337,15 @@ router.post("/upload", function (req, res, next) {
     busboy.on("finish", function () {
       uploadFinished = true;
       populateInterval = setInterval(populateNext, 100);
+    });
+    busboy.on("error", function (err) {
+      logger("error", "Busboy error during dataset upload.", req.originalUrl, req, err);
+      if (!res.headersSent) {
+        res.status(400).send({
+          status: "failure",
+          message: "Error parsing upload.",
+        });
+      }
     });
     req.pipe(busboy);
 

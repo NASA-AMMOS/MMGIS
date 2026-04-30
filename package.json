@@ -1,6 +1,6 @@
 {
   "name": "mmgis",
-  "version": "4.3.26-20260427",
+  "version": "4.3.27-20260428",
   "description": "A web-based mapping and localization solution for science operation on planetary missions.",
   "homepage": "build",
   "repository": {
@@ -77,6 +77,7 @@
     "@ffmpeg/ffmpeg": "^0.12.10",
     "@ffmpeg/util": "^0.12.1",
     "@mapbox/shp-write": "^0.4.3",
+    "@mapbox/vector-tile": "^2.0.4",
     "@maphubs/tokml": "^0.6.1",
     "@popperjs/core": "^2.11.6",
     "@terraformer/wkt": "^2.2.0",
@@ -137,6 +138,7 @@
     "nipplejs": "^0.8.5",
     "node-fetch": "^2.6.1",
     "node-schedule": "^2.1.1",
+    "pbf": "^4.0.1",
     "pg-promise": "12.6.2",
     "pixel-utils": "^0.7.0",
     "png-js": "^1.0.0",

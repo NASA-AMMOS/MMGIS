@@ -13,6 +13,7 @@
               "type": "dropdown",
               "width": 2,
               "options": [
+                "3dtiles",
                 "data",
                 "header",
                 "image",

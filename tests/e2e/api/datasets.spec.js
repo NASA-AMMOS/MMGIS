@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { getLongTermToken, revokeLongTermToken } from '../../helpers/auth.js';
 
 /**
  * E2E tests for the Datasets API.
@@ -131,13 +132,88 @@ test.describe.serial('Datasets API — recreate and query lifecycle', () => {
   });
 });
 
-test.describe('Datasets API — upload', () => {
+test.describe.serial('Datasets API — upload', () => {
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
+  let longTermToken = null;
 
-  test('POST /api/datasets/upload — multipart CSV upload', async ({ request }) => {
-    // Upload requires isLongTermToken (API key auth), which the test user may not have.
-    // We still validate the endpoint doesn't crash.
-    test.skip(true, 'SKIP: Dataset upload requires long-term API token (isLongTermToken) — not available in standard test auth');
+  test.beforeAll(async ({ request }) => {
+    longTermToken = await getLongTermToken(request);
+  });
+
+  test.afterAll(async ({ request }) => {
+    if (longTermToken) await revokeLongTermToken(request, longTermToken);
+  });
+
+  // --- Crash regression tests (busboy error handling) ---
+
+  test('POST /api/datasets/upload — invalid Content-Type does not crash server (returns 400, not 500)', async ({ request }) => {
+    // Sending a non-multipart Content-Type previously caused busboy to throw
+    // synchronously with no try/catch, crashing the process. After the fix it
+    // must return 400 (when a valid token is present) or a non-5xx auth failure.
+    const response = await request.post(`${baseURL}/api/datasets/upload`, {
+      headers: {
+        ...(longTermToken ? { Authorization: `Bearer ${longTermToken}` } : {}),
+        'Content-Type': 'text/plain',
+      },
+      data: 'not a multipart body',
+    });
+    expect(response.status()).not.toBe(500);
+    if (longTermToken) {
+      expect(response.status()).toBe(400);
+      const body = await response.json();
+      expect(body.status).toBe('failure');
+    }
+  });
+
+  test('POST /api/datasets/upload — missing Content-Type does not crash server', async ({ request }) => {
+    // Busboy throws 'Missing Content-Type' synchronously when the header is absent.
+    const response = await request.post(`${baseURL}/api/datasets/upload`, {
+      headers: {
+        ...(longTermToken ? { Authorization: `Bearer ${longTermToken}` } : {}),
+        'Content-Type': '',
+      },
+      data: '',
+    });
+    expect(response.status()).not.toBe(500);
+  });
+
+  // --- Auth gate ---
+
+  test('POST /api/datasets/upload — without token returns failure, not 5xx', async ({ request }) => {
+    const response = await request.post(`${baseURL}/api/datasets/upload`, {
+      multipart: {
+        name: `upload_noauth_${Date.now()}`,
+        header: JSON.stringify(['name', 'value']),
+        upsert: 'false',
+        file: { name: 'data.csv', mimeType: 'text/csv', buffer: Buffer.from('name,value\nfoo,1\n') },
+      },
+    });
+    expect(response.status()).not.toBe(500);
+    const body = await response.json();
+    expect(body.status).toBe('failure');
+  });
+
+  // --- Happy-path upload (only when a long-term token was obtained) ---
+
+  test('POST /api/datasets/upload — valid multipart CSV upload does not return 5xx', async ({ request }) => {
+    if (!longTermToken) {
+      test.skip(true, 'SKIP: Could not obtain a long-term token');
+      return;
+    }
+
+    const csvContent = ['name,score', 'alpha,10', 'beta,20', 'gamma,30'].join('\n') + '\n';
+    const response = await request.post(`${baseURL}/api/datasets/upload`, {
+      headers: { Authorization: `Bearer ${longTermToken}` },
+      multipart: {
+        name: `upload_e2e_${Date.now()}`,
+        header: JSON.stringify(['name', 'score']),
+        upsert: 'false',
+        file: { name: 'data.csv', mimeType: 'text/csv', buffer: Buffer.from(csvContent) },
+      },
+    });
+    expect(response.status()).not.toBe(500);
+    const body = await response.json();
+    expect(body).toHaveProperty('status');
   });
 });
 
