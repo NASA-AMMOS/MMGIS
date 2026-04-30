@@ -44,7 +44,7 @@ function MobileCoordButton() {
 
         const topBar = document.getElementById('topBar')
         if (topBar) {
-            topBar.style.paddingLeft = '80px'
+            topBar.style.paddingLeft = '34px'
             topBar.style.marginLeft = '0px'
             topBar.style.width = '100%'
         }
