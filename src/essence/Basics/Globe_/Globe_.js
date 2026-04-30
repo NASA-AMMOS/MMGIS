@@ -126,14 +126,16 @@ let Globe_ = {
             return
         }
 
-        this.litho.addControl('mmgisLithoHome', this.litho.controls.home)
+        this.litho.addControl('mmgisLithoHome', this.litho.controls.home, null, 'TopRight')
         this.litho.addControl(
             'mmgisLithoExaggerate',
-            this.litho.controls.exaggerate
+            this.litho.controls.exaggerate,
+            null,
+            'TopRight'
         )
         //this.litho.addControl('mmgisLithoLayers', this.litho.controls.layers)
-        this.litho.addControl('mmgisLithoObserve', this.litho.controls.observe)
-        this.litho.addControl('mmgisLithoWalk', this.litho.controls.walk)
+        this.litho.addControl('mmgisLithoObserve', this.litho.controls.observe, null, 'TopRight')
+        this.litho.addControl('mmgisLithoWalk', this.litho.controls.walk, null, 'TopRight')
         this.litho.addControl('mmgisLithoCompass', this.litho.controls.compass)
         this.litho.addControl(
             'mmgisLithoNavigation',
@@ -209,7 +211,8 @@ let Globe_ = {
                 onOrbitalUpdate: () => {
                     L_.Map_.hidePlayer()
                 },
-            }
+            },
+            'TopRight'
         )
         // Subscribe to time changes for Cesium renderer
         if (
@@ -244,12 +247,12 @@ let Globe_ = {
             )
                 numSep++
         })
-        $('#_lithosphere_controls_topleft').attr(
+        $('#_lithosphere_controls_topright').attr(
             'style',
             function (index, currentStyles) {
                 return `${currentStyles} top: ${
                     40 + numSep * 35
-                }px !important; left: 7px;`
+                }px !important; right: 5px;`
             }
         )
     },

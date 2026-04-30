@@ -185,7 +185,7 @@ const SegmentTool = {
 function interfaceWithMMGIS() {
     // Tool initialization
     const tools = $('#toolPanel')
-    tools.css('background', 'var(--color-k)')
+    tools.css('background', 'transparent')
     tools.empty()
     tools.html('<div style="height: 100%">' + markup + '</div>')
 

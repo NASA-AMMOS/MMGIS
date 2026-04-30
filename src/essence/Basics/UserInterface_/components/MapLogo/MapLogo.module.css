@@ -1,0 +1,21 @@
+.root {
+    position: absolute;
+    bottom: 45px;
+    right: 5px;
+    pointer-events: auto;
+    z-index: 1000;
+    padding: 5px;
+}
+
+.link {
+    display: block;
+    line-height: 0;
+}
+.link:hover {
+    opacity: 0.8;
+}
+
+.img {
+    height: auto;
+    display: block;
+}

@@ -67,6 +67,7 @@ body {
     --color-b: #555555;
     --color-c: #08aeea;
     --color-c2: #0792c5;
+    --color-c2-text: #ffffff;
     --color-d: #2a2a2a;
     --color-e: #3a3e40;
     --color-f: #e1e1e1;
@@ -131,50 +132,11 @@ body {
     --color-video: #7b2323;
 }
 
-#nodeenv {
-    display: none;
-    position: absolute;
-    width: 36px;
-    height: 1px;
-    left: 0;
-    bottom: 0;
-    overflow: hidden;
-    pointer-events: none;
-    background: #333;
-    z-index: 10000;
-}
-
 #webgl-error-message {
     display: none;
 }
 
-#topBar {
-}
-
-#topBarInfo {
-    width: 24px;
-    height: 24px;
-}
-
-#topBarHelp {
-    width: 24px;
-    height: 24px;
-}
-
 #topBarLink {
-    width: 24px;
-    height: 24px;
-}
-
-#topBarFullscreen {
-    width: 24px;
-    height: 24px;
-}
-
-#toggleUI {
-    opacity: 0.8;
-    cursor: pointer;
-    transition: color 0.3s;
     width: 24px;
     height: 24px;
 }
@@ -185,7 +147,7 @@ body {
     position: absolute;
     left: 0px;
     top: 0px;
-    z-index: 1;
+    z-index: auto;
     overflow: hidden;
 }
 #vmgScreen {
@@ -201,24 +163,21 @@ body {
     display: flex;
     align-items: center;
     z-index: 500;
-    transition: opacity 0.3s;
+    background: transparent;
+    transition: background 0.2s ease-out;
 }
 .splitterV:hover {
-    opacity: 0.9;
+    background: var(--color-mmgis);
+    opacity: 0.5;
 }
 
 .splitterVInner {
     position: absolute;
     left: -50%;
     height: 100vh;
-    background: linear-gradient(
-        to right,
-        rgba(0, 0, 0, 0),
-        rgba(0, 0, 0, 0.2),
-        rgba(0, 0, 0, 0)
-    );
+    background: none;
     text-align: center;
-    display: inline-flex;
+    display: none;
     justify-content: space-evenly;
     align-items: center;
 }
@@ -227,15 +186,10 @@ body {
 }
 
 .splitterVInner i {
-    width: 48px;
-    height: 30px;
-    line-height: 30px;
-    cursor: col-resize;
-    color: #fff;
+    display: none;
 }
 .splitterVInner i:hover {
-    color: var(--color-mmgis);
-    cursor: pointer;
+    display: none;
 }
 
 #mapTopBar {
@@ -314,13 +268,16 @@ body {
 }
 
 .splitterH {
-    /*background-color: #1A1A1A;*/
     width: 100%;
     position: absolute;
-    /*border-top: 1px solid #333;*/
-    /*border-bottom: 1px solid rgba(0,0,0,0.95);*/
     cursor: row-resize;
     z-index: 6;
+    background: transparent;
+    transition: background 0.2s ease-out;
+}
+.splitterH:hover {
+    background: var(--color-mmgis);
+    opacity: 0.5;
 }
 
 .splitterText {
@@ -345,18 +302,23 @@ body {
     border-top: 1px solid var(--color-a-5);
 }
 
+.toolButton {
+    color: var(--color-f);
+}
 .toolButton:hover {
     background: var(--color-a1-5) !important;
+    color: var(--color-c) !important;
+}
+.toolButton.toolButtonActive,
+.toolButton.toolButtonActive:hover {
+    color: var(--color-mmgis) !important;
+    background: var(--color-i) !important;
 }
 
-.toolButtonSep.active {
-    color: var(--color-c) !important;
-    border-bottom: 2px solid var(--color-c);
+.toolSep.active {
+    color: var(--color-mmgis) !important;
 }
-.toolButtonSep#toolButtonSeparated_Legend.active {
-    border-bottom: none !important;
-}
-.toolButtonSep:hover {
+.toolSep:hover {
     color: var(--color-c) !important;
 }
 #tScreen {
@@ -373,26 +335,20 @@ body {
     position: absolute;
     box-shadow: 0px -2px 3px 0px rgba(0, 0, 0, 0.2);
 }
+#bottomFloatingBar #toolsWrapper {
+    position: relative;
+    bottom: auto;
+    border: none;
+}
 
 #toolbar {
     width: auto;
     background: var(--color-a);
-    height: 30px;
     position: absolute;
     left: 0px;
     bottom: 0px;
-}
-
-#logoGoBack {
-    transition: 0.25s ease-in;
-    position: absolute;
-    bottom: 1px;
-    left: 24px;
-    opacity: 0.2;
-    z-index: 103;
-}
-#logoGoBack:hover {
-    opacity: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .leaflet-container {
@@ -542,7 +498,7 @@ body {
 
 .leaflet-control-zoom {
     border: none !important;
-    margin-top: 40px !important;
+    margin-top: 10px !important;
     margin-right: 5px !important;
     user-select: none;
 }
@@ -621,18 +577,18 @@ body {
     width: 30px;
     height: 30px;
     background: var(--color-a);
-    line-height: 31px;
+    line-height: 30px;
     text-align: center;
-    margin-right: 5px;
+    margin-bottom: 5px;
     cursor: pointer;
     border-radius: 3px;
-    color: #bbb;
-    display: inline-block;
+    color: var(--color-f);
+    display: block;
     position: relative;
-    transition: color 0.2s ease-out;
+    transition: color 0.2s ease-in 0s;
 }
 .osd-custom-buttons > div:hover {
-    color: white;
+    color: var(--color-mmgis);
 }
 
 .cplot_axis path {
@@ -681,14 +637,14 @@ body {
     pointer-events: auto;
     position: absolute;
     bottom: 38px;
-    left: 12px;
+    left: 6px;
     width: 32px;
     height: 32px;
     border-radius: 16px;
     background: var(--color-a);
     border: 1px solid var(--color-a-5);
     box-shadow: 0px 0px 3px 0px rgb(0 0 0);
-    transition: bottom 0.2s ease-out;
+    transition: bottom 0.2s ease-out, left 0.2s ease-out;
 }
 #mmgis-map-compass .spin {
     width: 100%;
@@ -767,11 +723,11 @@ body {
 
 .leaflet-control-scalefactor {
     position: absolute;
-    bottom: 48px;
-    left: 44px;
+    bottom: 29px;
+    left: 36px;
     display: flex;
     margin-left: 2px !important;
-    transition: bottom 0.2s ease-out;
+    transition: bottom 0.2s ease-out, left 0.2s ease-out;
 }
 .leaflet-control-scalefactor-goto {
     white-space: nowrap;
@@ -1177,12 +1133,27 @@ body {
     left: 50%;
 }
 
-#_lithosphere_controls_topleft {
-    top: 40px !important;
-}
 #_lithosphere_controls_topright {
     top: 40px !important;
-    right: -5px !important;
+    right: 5px !important;
+}
+/* Override LithoSphere inline styles to match app control buttons */
+#_lithosphere_controls_topright > div > div {
+    width: 30px !important;
+    height: 30px !important;
+    background: var(--color-a) !important;
+    border-radius: 3px !important;
+    line-height: 30px !important;
+    color: var(--color-f) !important;
+    transition: color 0.2s ease-in 0s;
+}
+#_lithosphere_controls_topright > div > div:hover {
+    color: var(--color-mmgis) !important;
+}
+#_lithosphere_controls_bottomleft > div > div {
+    background: var(--color-a) !important;
+    border-radius: 3px !important;
+    color: var(--color-f) !important;
 }
 #_lithosphere_control_mmgisLithoNavigation svg {
     box-sizing: unset !important;
@@ -1300,4 +1271,62 @@ mark {
 
 .cesium-widget-credits {
     display: none !important;
+}
+
+/* Standardized tool header pattern */
+.mmgisToolHeader {
+    width: 100%;
+}
+.mmgisToolHeader > div:first-child {
+    display: flex;
+    height: 40px;
+    line-height: 40px;
+    color: var(--color-f);
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--color-a1);
+}
+.mmgisToolHeader > div:first-child > div:first-child {
+    display: flex;
+    align-items: center;
+}
+.mmgisToolHeader > div:first-child > div:last-child {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+.mmgisToolTitle {
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    font-weight: 600;
+    padding-left: 10px;
+    font-family: 'lato-light';
+    text-transform: uppercase;
+    color: var(--color-l);
+}
+.mmgisToolHelpBtn {
+    width: 44px;
+    height: 44px;
+    text-align: center;
+    line-height: 44px;
+    cursor: pointer;
+    color: var(--color-a3);
+}
+.mmgisToolHelpBtn:hover {
+    color: var(--color-c);
+}
+.mmgisHelpButton {
+    line-height: 18px;
+    margin: 6px 4px;
+    padding: 0;
+    width: 18px;
+    height: 18px;
+    opacity: 0.7;
+    color: var(--color-h);
+}
+.mmgisHelpButton:hover {
+    opacity: 1;
+    color: var(--color-h);
+    background: rgba(0, 0, 0, 0);
 }

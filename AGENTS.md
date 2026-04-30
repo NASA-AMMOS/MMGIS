@@ -112,9 +112,14 @@ MMGIS/
 │   ├── logger.js                 # Winston logger configuration
 │   └── websocket.js              # WebSocket server setup
 ├── src/                          # Frontend source code
+│   ├── design-system/            # Reusable, generic UI components & theming
+│   │   ├── components/           # Generic components (Toast, Modal, Tooltip, Button, etc.)
+│   │   ├── themes.js             # Color scheme definitions
+│   │   └── themeApplier.js       # Runtime theme application
 │   └── essence/
-│       ├── Basics/               # Core map functionality
+│       ├── Basics/               # Core map/MMGIS-specific functionality
 │       │   ├── Map_.js           # Map rendering engine (Leaflet/Cesium)
+│       │   ├── UserInterface_/   # MMGIS-specific UI (TopBar, Toolbar, Coordinates, CursorInfo)
 │       │   └── TimeControl_/     # Temporal data control and UI
 │       ├── Tools/                # Interactive tool plugins (16 core tools)
 │       │   ├── Animation/        # Map animation creation (GIF/MP4)
@@ -160,6 +165,8 @@ MMGIS/
 
 - **`API/Backend/APIs/`** - RESTful endpoint handlers. Each file handles a feature area (auth, files, drawing, etc.)
 - **`API/Backend/Databases/`** - Sequelize ORM models and database migrations
+- **`src/design-system/`** - Generic, reusable UI components and theming infrastructure. Components here (Toast, Modal, Tooltip, Button, Toggle, Dropdown, IconButton) are **not MMGIS-specific** and could be used in any web app. New generic UI components belong here.
+- **`src/essence/Basics/UserInterface_/`** - MMGIS-specific UI components (TopBar, Toolbar, Coordinates, CursorInfo, BottomBar, etc.). Components here are tightly coupled to MMGIS state, map panels, or tool architecture. **Do not place generic/reusable components here** — use `src/design-system/` instead.
 - **`src/essence/Tools/`** - Plugin-based interactive mapping tools. Each tool is self-contained with defined interfaces.
 - **`src/essence/Basics/Map_.js`** - Core map rendering engine managing both Leaflet (2D) and Cesium (3D)
 - **`src/essence/Basics/TimeControl_/`** - Temporal data control system for time-enabled layers

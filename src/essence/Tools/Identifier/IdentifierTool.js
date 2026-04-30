@@ -6,7 +6,7 @@ import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import Globe_ from '../../Basics/Globe_/Globe_'
-import CursorInfo from '../../Ancillary/CursorInfo'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
 import calls from '../../../pre/calls'
 import { parseExternalStacUrl } from '../../Basics/Layers_/LayerUtils'
 
@@ -598,7 +598,7 @@ function interfaceWithMMWebGIS() {
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
 
-    var newActive = $('#toolcontroller_sepdiv #IdentifierTool')
+    var newActive = $('#toolcontroller_sepdiv #sepIcon_IdentifierTool')
     newActive.addClass('active').css({
         color: ToolController_.activeColor,
     })
@@ -628,11 +628,11 @@ function interfaceWithMMWebGIS() {
                     ? `#${IdentifierTool.targetId}`
                     : '#toolPanel'
             )
-            tools.css('background', 'var(--color-k)')
+            tools.css('background', 'transparent')
             //Clear it
             tools.empty()
             var prevActive = $(
-                '#toolcontroller_sepdiv #' + 'Identifier' + 'Tool'
+                '#toolcontroller_sepdiv #sepIcon_IdentifierTool'
             )
             prevActive.removeClass('active').css({
                 color: ToolController_.defaultColor,

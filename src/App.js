@@ -6,7 +6,7 @@ import F_ from './essence/Basics/Formulae_/Formulae_'
 
 import calls from './pre/calls'
 
-import UserInterfaceLayout from './essence/Basics/UserInterface_/components/UserInterfaceLayout'
+import UserInterfaceLayout from './essence/Basics/UserInterface_/components/Layout/UserInterfaceLayout'
 
 // Ensure useReactUI is always set (defensive fallback for non-standard bootstrap)
 ;(function () {

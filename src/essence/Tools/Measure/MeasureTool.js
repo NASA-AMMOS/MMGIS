@@ -5,21 +5,24 @@ import L_ from '../../Basics/Layers_/Layers_'
 import Viewer_ from '../../Basics/Viewer_/Viewer_'
 import Map_ from '../../Basics/Map_/Map_'
 import Globe_ from '../../Basics/Globe_/Globe_'
-import CursorInfo from '../../Ancillary/CursorInfo'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Help from '../../Basics/UserInterface_/components/Help/Help'
+import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import calls from '../../../pre/calls'
 
 import metricsGraphics from '../../../external/MetricsGraphics/metricsgraphics.min'
 
-import { render, unmountComponentAtNode } from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import React, { useState, useEffect, useRef } from 'react'
 
-import { Chart } from 'chart.js'
+import { Chart, registerables } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import zoomPlugin from 'chartjs-plugin-zoom'
 import * as moment from 'moment'
 
 import './MeasureTool.css'
 
+Chart.register(...registerables)
 // Zoom isn't working nicely. Keep off
 //Chart.register(zoomPlugin)
 
@@ -129,22 +132,25 @@ const Measure = () => {
             }}
         >
             <div id='measureLeft'>
-                <div id='measureTop'>
-                    <div id='measureTitle'>Measure</div>
-                    <div id='measureIcons'>
-                        <div
-                            id='measureUndo'
-                            title='Undo'
-                            onClick={MeasureTool.undo}
-                        >
-                            <i className='mdi mdi-undo mdi-18px'></i>
-                        </div>
-                        <div
-                            id='measureReset'
-                            title='Reset'
-                            onClick={MeasureTool.reset}
-                        >
-                            <i className='mdi mdi-refresh mdi-18px'></i>
+                <div className='mmgisToolHeader'>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div className='mmgisToolTitle'>Measure</div>
+                        <div dangerouslySetInnerHTML={{ __html: Help.getComponent('MeasureTool') }} />
+                        <div id='measureIcons' style={{ marginLeft: 'auto' }}>
+                            <div
+                                id='measureUndo'
+                                title='Undo'
+                                onClick={MeasureTool.undo}
+                            >
+                                <i className='mdi mdi-undo mdi-18px'></i>
+                            </div>
+                            <div
+                                id='measureReset'
+                                title='Reset'
+                                onClick={MeasureTool.reset}
+                            >
+                                <i className='mdi mdi-refresh mdi-18px'></i>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -663,7 +669,15 @@ const Measure = () => {
             </div>
             <div id='measureToolBar'>
                 <div
-                    id='measureReset'
+                    id='measureClose'
+                    title='Close'
+                    onClick={() => { ToolController_.closeActiveTool() }}
+                >
+                    <i className='mdi mdi-close mdi-18px'></i>
+                </div>
+                <div style={{ flex: 1 }} />
+                <div
+                    id='measureResetGraph'
                     title='Reset Graph'
                     onClick={() => {
                         // Zooming not working nicely, see register above
@@ -799,10 +813,16 @@ let MeasureTool = {
         this.dems = MeasureTool.getDems()
         this.activeDemIdx = 0
 
-        render(<Measure />, document.getElementById('tools'))
+        if (!MeasureTool._root) {
+            MeasureTool._root = createRoot(document.getElementById('tools'))
+        }
+        MeasureTool._root.render(<Measure />)
     },
     destroy: function () {
-        unmountComponentAtNode(document.getElementById('tools'))
+        if (MeasureTool._root) {
+            MeasureTool._root.unmount()
+            MeasureTool._root = null
+        }
 
         Map_.map
             .off('click', MeasureTool.clickMap)

@@ -1,0 +1,40 @@
+.popup {
+    min-width: 160px;
+    border-radius: 8px;
+    padding: 4px 0;
+    z-index: 9999;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: var(--color-a);
+    border: 1px solid var(--color-a1);
+    overflow: hidden;
+    animation: dropdownFadeIn 0.12s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.item {
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    color: var(--color-a5);
+    transition: background 0.12s, color 0.12s;
+    outline: none;
+    user-select: none;
+}
+.item:hover {
+    background: var(--color-a1);
+    color: var(--color-f);
+}

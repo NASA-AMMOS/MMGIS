@@ -1,7 +1,8 @@
 import $ from 'jquery'
 
 import F_ from '../../Basics/Formulae_/Formulae_'
-import CursorInfo from '../../Ancillary/CursorInfo'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '../../../design-system/components/Toast/Toast'
 import Map_ from '../../Basics/Map_/Map_'
 import Dropy from '../../../external/Dropy/dropy'
 import TimeControl from '../../Basics/TimeControl_/TimeControl'
@@ -280,14 +281,7 @@ const DrawTool_Templater = {
                             ? helperStates[idx].length
                             : 0
                         if (maxPoints > 0 && currentCount >= maxPoints) {
-                            CursorInfo.update(
-                                `Maximum of ${maxPoints} points reached. Delete a point to add more.`,
-                                4000,
-                                true,
-                                { x: 305, y: 6 },
-                                '#e9ff26',
-                                'black'
-                            )
+                            Toast.warning(`Maximum of ${maxPoints} points reached. Delete a point to add more.`, 4000)
                             return
                         }
 
@@ -342,14 +336,7 @@ const DrawTool_Templater = {
                 L_.TimeControl_.setTime(newStartTime, newEndTime)
 
                 // Show warning to user
-                CursorInfo.update(
-                    `Start time is later than end time. End time has been set to 1 day after start time.`,
-                    6000,
-                    true,
-                    { x: 305, y: 6 },
-                    '#e9ff26',
-                    'black'
-                )
+                Toast.warning(`Start time is later than end time. End time has been set to 1 day after start time.`, 6000)
             } else {
                 // Normal case: just set the start time
                 L_.TimeControl_.setTime(newStartTime, currentEndTime)
@@ -388,14 +375,7 @@ const DrawTool_Templater = {
                 L_.TimeControl_.setTime(newStartTime, newEndTime)
 
                 // Show warning to user
-                CursorInfo.update(
-                    `End time is earlier than start time. Start time has been set to 1 day before end time.`,
-                    6000,
-                    true,
-                    { x: 305, y: 6 },
-                    '#e9ff26',
-                    'black'
-                )
+                Toast.warning(`End time is earlier than start time. Start time has been set to 1 day before end time.`, 6000)
             } else {
                 // Normal case: just set the end time
                 L_.TimeControl_.setTime(currentStartTime, newEndTime)
@@ -594,14 +574,7 @@ const DrawTool_Templater = {
                     }
                 })
                 if (hadInvalid) {
-                    CursorInfo.update(
-                        `This feature has invalid form values: ${bestMessage}`,
-                        6000,
-                        true,
-                        { x: 305, y: 6 },
-                        '#e9ff26',
-                        'black'
-                    )
+                    Toast.warning(`This feature has invalid form values: ${bestMessage}`, 6000)
                     return false
                 } else {
                     if (onlyIfChanged === true) {
@@ -904,28 +877,14 @@ const DrawTool_Templater = {
     ) {
         // Check if already in point-adding mode
         if (DrawTool_Templater._addingPointState != null) {
-            CursorInfo.update(
-                'Already adding a point. Press ESC to cancel current operation.',
-                3000,
-                true,
-                { x: 305, y: 6 },
-                '#e9ff26',
-                'black'
-            )
+            Toast.warning('Already adding a point. Press ESC to cancel current operation.', 3000)
             return
         }
 
         // Validate parent UUID
         if (!parentUUID || parentUUID === 'unknown') {
             console.error('Cannot add point: no parent feature UUID')
-            CursorInfo.update(
-                'Error: Cannot add point to this feature',
-                3000,
-                true,
-                { x: 305, y: 6 },
-                '#ff0000',
-                'white'
-            )
+            Toast.error('Error: Cannot add point to this feature', 3000)
             return
         }
 
@@ -965,13 +924,7 @@ const DrawTool_Templater = {
         $(document).on('keydown.addpoint', DrawTool_Templater._onEscKeyHandler)
 
         // Show user feedback
-        CursorInfo.update(
-            'Click map to place point. Press ESC to cancel.',
-            null,
-            true,
-            { x: 305, y: 6 },
-            '#08aeea',
-            'black'
+        Toast.info('Click map to place point. Press ESC to cancel.', 10000
         )
 
         // Add active class to button
@@ -1059,14 +1012,7 @@ const DrawTool_Templater = {
             maxPoints > 0 &&
             state.helperStates[state.fieldIdx].length >= maxPoints
         ) {
-            CursorInfo.update(
-                `Maximum of ${maxPoints} points reached.`,
-                3000,
-                true,
-                { x: 305, y: 6 },
-                '#e9ff26',
-                'black'
-            )
+            Toast.warning(`Maximum of ${maxPoints} points reached.`, 3000)
             // End point-adding mode since max is reached
             DrawTool_Templater.endAddingPoint(false)
             return
@@ -1117,8 +1063,8 @@ const DrawTool_Templater = {
         Map_.map.off('draw:created', DrawTool_Templater._onPointPlacedHandler)
         $(document).off('keydown.addpoint')
 
-        // Clear CursorInfo
-        CursorInfo.update('', 0, true)
+        // Clear toast
+        Toast.dismissAll()
 
         // Remove active class from button
         $(
@@ -2192,14 +2138,7 @@ const DrawTool_Templater = {
         }
         // Validate
         if (template.name == null || template.name == '') {
-            CursorInfo.update(
-                `Please enter a template name`,
-                6000,
-                true,
-                { x: 305, y: 6 },
-                '#e9ff26',
-                'black'
-            )
+            Toast.warning(`Please enter a template name`, 6000)
             return false
         }
         if (reservedTemplatesNames.includes(template.name)) {
@@ -2209,14 +2148,7 @@ const DrawTool_Templater = {
                     template.template
                 )
             ) {
-                CursorInfo.update(
-                    `Use a different template name. A template by the name '${template.name}' already exists.`,
-                    6000,
-                    true,
-                    { x: 305, y: 6 },
-                    '#e9ff26',
-                    'black'
-                )
+                Toast.warning(`Use a different template name. A template by the name '${template.name}' already exists.`, 6000)
                 return false
             }
         }
@@ -2228,74 +2160,32 @@ const DrawTool_Templater = {
         for (let i = 0; i < template.template.length; i++) {
             const t = template.template[i]
             if (t.field == null || t.field == '') {
-                CursorInfo.update(
-                    `Template cannot contain empty 'Field Names'`,
-                    6000,
-                    true,
-                    { x: 305, y: 6 },
-                    '#e9ff26',
-                    'black'
-                )
+                Toast.warning(`Template cannot contain empty 'Field Names'`, 6000)
                 return false
             }
             if (t.field == 'uuid') {
-                CursorInfo.update(
-                    `Template cannot contain the field name 'uuid'`,
-                    6000,
-                    true,
-                    { x: 305, y: 6 },
-                    '#e9ff26',
-                    'black'
-                )
+                Toast.warning(`Template cannot contain the field name 'uuid'`, 6000)
                 return false
             }
             // Validate field name format (alphanumeric, spaces, dash, underscore, dot only)
             if (!/^[a-zA-Z0-9 _\-\.]+$/.test(t.field)) {
-                CursorInfo.update(
-                    `Template field name '${t.field}' contains invalid characters. Only letters, numbers, spaces, dashes, underscores, and dots are allowed.`,
-                    6000,
-                    true,
-                    { x: 305, y: 6 },
-                    '#e9ff26',
-                    'black'
-                )
+                Toast.warning(`Template field name '${t.field}' contains invalid characters. Only letters, numbers, spaces, dashes, underscores, and dots are allowed.`, 6000)
                 return false
             }
             if (t.type === 'date') {
                 if (t.isStart && t.isEnd) {
-                    CursorInfo.update(
-                        `Template cannot use same date field as Start Time and End Time.`,
-                        6000,
-                        true,
-                        { x: 305, y: 6 },
-                        '#e9ff26',
-                        'black'
-                    )
+                    Toast.warning(`Template cannot use same date field as Start Time and End Time.`, 6000)
                     return false
                 } else if (t.isStart) {
                     if (hasADateStartTime === false) hasADateStartTime = true
                     else {
-                        CursorInfo.update(
-                            `Template cannot use multiple date fields as Start Times.`,
-                            6000,
-                            true,
-                            { x: 305, y: 6 },
-                            '#e9ff26',
-                            'black'
-                        )
+                        Toast.warning(`Template cannot use multiple date fields as Start Times.`, 6000)
                         return false
                     }
                 } else if (t.isEnd) {
                     if (hasADateEndTime === false) hasADateEndTime = true
                     else {
-                        CursorInfo.update(
-                            `Template cannot use multiple date fields as End Times.`,
-                            6000,
-                            true,
-                            { x: 305, y: 6 },
-                            '#e9ff26',
-                            'black'
-                        )
+                        Toast.warning(`Template cannot use multiple date fields as End Times.`, 6000)
                         return false
                     }
                 }
@@ -2305,26 +2195,12 @@ const DrawTool_Templater = {
                     new RegExp(t.regex)
                 } catch (error) {
                     // no good
-                    CursorInfo.update(
-                        `Template cannot contain invalid regex: ${t.regex}`,
-                        6000,
-                        true,
-                        { x: 305, y: 6 },
-                        '#e9ff26',
-                        'black'
-                    )
+                    Toast.warning(`Template cannot contain invalid regex: ${t.regex}`, 6000)
                     return false
                 }
             }
             if (invalids[t.field] != null) {
-                CursorInfo.update(
-                    `Template field: ${invalids[t.field]}`,
-                    6000,
-                    true,
-                    { x: 305, y: 6 },
-                    '#e9ff26',
-                    'black'
-                )
+                Toast.warning(`Template field: ${invalids[t.field]}`, 6000)
                 return false
             }
         }
@@ -2553,31 +2429,9 @@ const DrawTool_Templater = {
                         intersectResult?.body?.features?.length != 1
                     ) {
                         if (intersectResult?.body?.features?.length === 0)
-                            CursorInfo.update(
-                                `No intersected feature for templating. Using fallbacks.`,
-                                5000,
-                                true,
-                                null,
-                                '#e9ff26',
-                                'black',
-                                null,
-                                null,
-                                null,
-                                5000
-                            )
+                            Toast.warning(`No intersected feature for templating. Using fallbacks.`, 5000)
                         else
-                            CursorInfo.update(
-                                `Multiple intersected features for templating. Using fallbacks.`,
-                                5000,
-                                true,
-                                null,
-                                '#08aeea',
-                                'black',
-                                null,
-                                null,
-                                null,
-                                5000
-                            )
+                            Toast.info(`Multiple intersected features for templating. Using fallbacks.`, 5000)
                     }
                 }
 

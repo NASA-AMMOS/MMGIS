@@ -1,0 +1,44 @@
+/* Splitter divider bars */
+.splitter {
+    position: absolute;
+    z-index: 402;
+    user-select: none;
+}
+
+.splitterV {
+    z-index: 402;
+    position: absolute;
+    cursor: col-resize;
+    transition: background 0.2s ease-out;
+}
+
+.splitterV:hover {
+    background: var(--color-mmgis);
+    opacity: 0.5;
+}
+
+.vertical {
+    width: 4px;
+    cursor: col-resize;
+    top: 0;
+    bottom: 0;
+    background: var(--color-a1);
+    transition: background 0.15s;
+}
+
+.vertical:hover {
+    background: var(--color-mmgis);
+}
+
+.horizontal {
+    height: 4px;
+    cursor: row-resize;
+    left: 0;
+    right: 0;
+    background: var(--color-a1);
+    transition: background 0.15s;
+}
+
+.horizontal:hover {
+    background: var(--color-mmgis);
+}

@@ -1,0 +1,127 @@
+/* Toolbar — layout and structure. Colors from CSS custom properties. */
+
+/* #toolbar: externally referenced by Stylize.js, BottomBar.js, themeApplier.js, etc. */
+:global(#toolbar) {
+    background: var(--color-a);
+    border-right: 1px solid var(--color-a1);
+    box-shadow: 4px 8px 12px rgba(0, 0, 0, 0.3) !important;
+    z-index: 2006 !important;
+    padding: 6px 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+
+/* #toolbarTools: externally referenced by ToolController_.js */
+:global(#toolbarTools) {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+
+/* Scoped — no external jQuery references */
+.toolcontrollerIncdiv {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+}
+
+/* #toolcontroller_sepdiv: jQuery-created by ToolController_, referenced by IdentifierTool.js */
+:global(#toolcontroller_sepdiv) {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+
+/* .toolButton: externally referenced by themeApplier.js, ToolController_.js */
+:global(#toolbar) :global(.toolButton) {
+    width: 34px !important;
+    height: 34px !important;
+    margin: 1px 0 !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.15s !important;
+    position: relative;
+    border: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+}
+
+:global(#toolbar) :global(.toolButton) :global(.mdi) {
+    font-size: 18px !important;
+}
+
+/* .toolSep: externally referenced by themeApplier.js, ToolController_.js */
+:global(#toolbar) :global(.toolSep) {
+    width: 34px !important;
+    height: 34px !important;
+    margin: 1px 0 !important;
+}
+
+/* .toolSepDivider: externally referenced by themeApplier.js */
+:global(.toolSepDivider) {
+    width: 26px;
+    height: 1px;
+    margin: 4px auto;
+    background: var(--color-a2);
+}
+
+/* Mobile overrides — horizontal layout for tool icons */
+@media screen and (max-width: 800px) {
+    :global(#toolbar) {
+        flex-direction: row !important;
+        align-items: center !important;
+        padding: 0 !important;
+        border-right: none !important;
+        box-shadow: 0px -3px 3px 0px rgba(0, 0, 0, 0.3) !important;
+        overflow-x: auto !important;
+    }
+
+    :global(#toolbarTools) {
+        flex-direction: row !important;
+        align-items: center !important;
+        height: 100% !important;
+    }
+
+    .toolcontrollerIncdiv {
+        flex-direction: row;
+        align-items: center;
+        height: 100%;
+        overflow-x: auto;
+    }
+
+    :global(#toolbar) :global(.toolButton) {
+        width: 45px !important;
+        height: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+
+    :global(#toolbar) :global(.toolSep) {
+        width: auto !important;
+        height: 100% !important;
+        margin: 0 !important;
+    }
+
+    :global(.toolSepDivider) {
+        width: 1px;
+        height: 26px;
+        margin: 0 4px;
+    }
+}
+
+/* jQuery-rendered tool elements */
+:global(#toolContentSeparated_Legend) > div:first-child {
+    display: none !important;
+}
+
+:global(#toolContentSeparated_Legend #LegendTool) {
+    height: auto !important;
+    max-height: calc(100vh - 200px) !important;
+}

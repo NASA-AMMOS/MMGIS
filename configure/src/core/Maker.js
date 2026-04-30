@@ -412,6 +412,10 @@ const getComponent = (
     }
     disabled = disabled || !switchVal;
   }
+  if (com.enableWhenField) {
+    const ewfVal = getIn(configuration, com.enableWhenField.field, com.enableWhenField.default || "");
+    disabled = disabled || ewfVal !== com.enableWhenField.value;
+  }
   const isRequired = isFieldRequired(com, layer, configuration);
   const fieldValue = value != null ? value : getIn(directConf, com.field, "");
   const hasError = isRequired && (fieldValue === "" || fieldValue == null);
@@ -1314,67 +1318,6 @@ const getComponent = (
           )}
         </div>
       );
-    case "defaulttooldropdown":
-      let tools =  configuration?.tools || null
-      tools = tools.filter(tool => {
-        return tool?.separatedTool !== true && tool?.on !== false
-      }).map(tool => tool.name)
-
-      tools.unshift("None")
-
-      inner = (
-        <FormControl className={c.dropdown} variant="filled" size="small">
-          <InputLabel>{com.name}</InputLabel>
-          <Select
-            disabled={disabled || isDisabled}
-            value={value || getIn(directConf, com.field, tools[0])}
-            onChange={(e) => {
-              if (!isDisabled) {
-                updateConfiguration(
-                  forceField || com.field,
-                  e.target.value,
-                  layer
-                );
-              }
-            }}
-          >
-            {tools.map((o) => {
-              return (
-                <MenuItem value={o}>
-                  {typeof o === "string" ? o.toUpperCase() : o}
-                </MenuItem>
-              );
-            })}
-          </Select>
-        </FormControl>
-      );
-      return (
-        <div style={isDisabled ? { opacity: 0.5 } : {}}>
-          {inlineHelp ? (
-            <>
-              {inner}
-              <div
-                className={c.subtitle2}
-                dangerouslySetInnerHTML={{ __html: isDisabled
-                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
-                  : com.description || "" }}
-              ></div>
-            </>
-          ) : (
-            <Tooltip
-              title={
-                isDisabled
-                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
-                  : com.description || ""
-              }
-              placement="top"
-              arrow
-            >
-              {inner}
-            </Tooltip>
-          )}
-        </div>
-      );
     case "objectarray":
       const section = [];
       let items;
@@ -1546,6 +1489,71 @@ const getComponent = (
       return (
         <div className={c.map} style={{ height: com.height || "200px" }}>
           <VideoPreview layer={layer} configuration={configuration} />
+        </div>
+      );
+    case "defaulttooldropdown":
+      let tools = configuration?.tools || null;
+      tools = tools
+        .filter((tool) => {
+          return tool?.separatedTool !== true && tool?.on !== false;
+        })
+        .map((tool) => tool.name);
+
+      tools.unshift("None");
+
+      inner = (
+        <FormControl className={c.dropdown} variant="filled" size="small">
+          <InputLabel>{com.name}</InputLabel>
+          <Select
+            disabled={disabled || isDisabled}
+            value={value || getIn(directConf, com.field, tools[0])}
+            onChange={(e) => {
+              if (!isDisabled) {
+                updateConfiguration(
+                  forceField || com.field,
+                  e.target.value,
+                  layer
+                );
+              }
+            }}
+          >
+            {tools.map((o) => {
+              return (
+                <MenuItem key={o} value={o}>
+                  {typeof o === "string" ? o.toUpperCase() : o}
+                </MenuItem>
+              );
+            })}
+          </Select>
+        </FormControl>
+      );
+      return (
+        <div style={isDisabled ? { opacity: 0.5 } : {}}>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <div
+                className={c.subtitle2}
+                dangerouslySetInnerHTML={{
+                  __html: isDisabled
+                    ? `${com.description || ""}\n\nNote: ${disabledMessage}`
+                    : com.description || "",
+                }}
+              ></div>
+            </>
+          ) : (
+            <Tooltip
+              title={
+                isDisabled
+                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
+                  : com.description || ""
+              }
+              placement="top"
+              arrow
+            >
+              {inner}
+            </Tooltip>
+          )}
         </div>
       );
     default:

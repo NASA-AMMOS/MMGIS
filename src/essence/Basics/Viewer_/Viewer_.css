@@ -19,7 +19,7 @@
 #viewer #viewer_help {
     letter-spacing: 2px;
     font-size: 14px;
-    color: #bbb;
+    color: var(--color-a5);
     text-align: right;
     display: none;
 }
@@ -33,7 +33,7 @@
     border: none;
     border-radius: 4px;
     background: transparent;
-    color: #fff;
+    color: var(--color-f);
     font: normal 13px sans-serif;
     text-align: left;
     opacity: 0.4;
@@ -44,6 +44,8 @@
 }
 #viewer_dropdownselector {
     min-width: 270px;
+    margin-bottom: 5px;
+    pointer-events: auto;
 }
 #viewer_dropdownselector .dropy {
     background: var(--color-a);
@@ -53,9 +55,6 @@
 
 #viewer_Help {
     display: none;
-    position: absolute;
-    left: 0;
-    top: 40px;
 }
 
 #viewer #pdfViewerWrapper {

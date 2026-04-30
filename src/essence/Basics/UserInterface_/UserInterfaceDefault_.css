@@ -41,6 +41,7 @@
 #main-container > #topBar #topBarMain,
 #main-container > #topBar #topBarSecondary {
     display: flex;
+    align-items: center;
 }
 #main-container #mmgislogo {
     padding: 0px 1px;
@@ -50,6 +51,11 @@
     height: 32px;
     margin-top: -2px;
     image-rendering: pixelated;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+#main-container #mmgislogo:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 #main-container > #topBar #topBarTitle {
@@ -78,6 +84,9 @@
 
 #main-container > #topBar #topBarTitle:hover {
     color: var(--color-mmgis);
+}
+#main-container > #topBar #topBarMain.hasStatus #topBarTitleName {
+    padding-left: 0px !important;
 }
 
 @media screen and (max-width: 600px) {

@@ -1,0 +1,84 @@
+/* =========================================================
+   Floating Elements — layout and structure only.
+   Colors come from themeApplier.js (inline JS CSS).
+   Rule: TopBar and Toolbar are SOLID.
+         Everything else that floats gets the glassy look.
+   ========================================================= */
+
+/* --- TimeUI bar --- */
+#timeUI {
+    border-radius: 10px 10px 0 0 !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.3) !important;
+}
+
+/* --- Coordinate display --- */
+#CoordinatesDiv {
+    border-radius: 8px !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+}
+
+/* --- Map compass --- */
+#mmgis-map-compass {
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    box-shadow: none !important;
+    transition: bottom 0.2s ease-out !important;
+}
+
+/* --- Leaflet zoom controls (solid background like topbar/toolbar) --- */
+.leaflet-control-zoom {
+    border-radius: 10px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    overflow: hidden !important;
+}
+.leaflet-control-zoom a {
+    transition: background 0.15s !important;
+}
+.leaflet-control-zoom a:last-child {
+    border-bottom: none !important;
+}
+
+/* --- Leaflet home button (solid, 30x30 standalone) --- */
+.leaflet-control-zoom-home {
+    width: 30px !important;
+    height: 30px !important;
+    line-height: 30px !important;
+    transition: background 0.15s !important;
+}
+
+/* --- Scale factor (goto button) --- */
+.leaflet-control-scalefactor-goto {
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    box-shadow: none !important;
+}
+
+/* --- Map toolbar area --- */
+#mapToolBar,
+#mapToolBar > * {
+    pointer-events: none;
+}
+
+/* --- Separated tool content panels --- */
+#toolcontroller_sep_content > div {
+    border-radius: 10px !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4) !important;
+}
+
+/* --- Bottom bar --- */
+#barBottom {
+    background: transparent !important;
+}
+
+/* --- Attributions --- */
+#mmgis-attributions {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border-radius: 4px !important;
+    padding: 2px 6px !important;
+}

@@ -244,10 +244,19 @@
 #mmgisTimeUIModeDropdown {
     background: var(--color-a-5);
     width: 80px;
+    z-index: 1501;
+}
+#mmgisTimeUIModeDropdown .dropy__content ul,
+#mmgisTimeUIQuickSelectDropdown .dropy__content ul,
+#mmgisTimeUIStepWithinBeyondDropdown .dropy__content ul,
+#mmgisTimeUIStepDropdown .dropy__content ul,
+#mmgisTimeUIRateDropdown .dropy__content ul {
+    z-index: 10000;
 }
 #mmgisTimeUIQuickSelectDropdown {
     background: var(--color-a-5);
     width: 100px;
+    z-index: 1501;
 }
 #mmgisTimeUIStepWithinBeyondDropdown {
     background: var(--color-a-5);
