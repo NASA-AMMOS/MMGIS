@@ -1293,6 +1293,7 @@ let ShadeTool = {
                 uniforms: uniforms,
                 tileUrlsAsDataUrls: true,
             })
+            L_.layers.layer[layerName]._noFade = true
             L_.layers.layer[layerName].setZIndex(1000)
             $(
                 '#vstShades #vstId_' +
