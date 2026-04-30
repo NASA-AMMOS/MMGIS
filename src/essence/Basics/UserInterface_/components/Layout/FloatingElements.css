@@ -57,11 +57,9 @@
 }
 
 /* --- Map toolbar area --- */
-#mapToolBar {
-    pointer-events: none;
-}
+#mapToolBar,
 #mapToolBar > * {
-    pointer-events: auto;
+    pointer-events: none;
 }
 
 /* --- Separated tool content panels --- */

@@ -397,12 +397,15 @@ const UserInterfaceBridge = {
         this.show()
 
         // Auto-open default tool if configured
+        // Deferred to allow React toolbar to render first
         if (l_.configData.look && l_.configData.look.defaultToolEnabled) {
             if (l_.configData.look.defaultTool && l_.configData.look.defaultTool !== 'None') {
-                const defaultToolBtn = document.getElementById(`toolButton${l_.configData.look.defaultTool}`)
-                if (defaultToolBtn) {
-                    defaultToolBtn.click()
-                }
+                requestAnimationFrame(() => {
+                    const defaultToolBtn = document.getElementById(`toolButton${l_.configData.look.defaultTool}`)
+                    if (defaultToolBtn) {
+                        defaultToolBtn.click()
+                    }
+                })
             }
         }
     },
