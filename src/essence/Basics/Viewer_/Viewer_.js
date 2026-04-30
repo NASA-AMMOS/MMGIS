@@ -641,16 +641,6 @@ function buildToolBar() {
         })
     Viewer_.toolBar.append(Viewer_.baseToolbar)
 
-    Viewer_.baseToolbar.append($('<div>')
-        .attr('id', 'osd-zoomin')
-        .html("<i class='mdi mdi-plus mdi-18px'></i>"))
-    Viewer_.baseToolbar.append($('<div>')
-        .attr('id', 'osd-zoomout')
-        .html("<i class='mdi mdi-minus mdi-18px'></i>"))
-    Viewer_.baseToolbar.append($('<div>')
-        .attr('id', 'osd-home')
-        .html("<i class='mdi mdi-home-variant-outline mdi-18px'></i>"))
-
     // prettier-ignore
     Viewer_.baseToolbar.append($('<div>')
         .attr('id', 'osd-settings')
@@ -671,8 +661,8 @@ function buildToolBar() {
                     "<div id='Viewer_SettingsReset' class='mmgisButton3' style='display: none; height: unset; line-height: 24px; margin: unset; padding-left: unset; padding-right: unset; border-radius: unset;'>",
                         "<i class='mdi mdi-refresh mdi-18px'></i>",
                     '</div>',
-                    "<div id='Viewer_SettingsSettingsPanel' style='display: none; position: absolute; top: 0; right: 100%; background: var(--color-a); width: 42px;'>",
-                        '<ul style="position: absolute; right: 0; list-style-type: none; margin: 0; padding: 8px 8px 5px 8px; border-radius: 3px; width: 220px; background: var(--color-a);">',
+                    "<div id='Viewer_SettingsSettingsPanel' style='display: none; position: absolute; top: 100%; right: 0; background: var(--color-a); width: 42px;'>",
+                        '<ul style="position: absolute; left: 0; list-style-type: none; margin: 0; padding: 8px 8px 5px 8px; border-radius: 3px; width: 220px; background: var(--color-a);">',
                             '<li style="height: 19px; line-height: 19px;">',
                                 '<div style="display: flex; justify-content: space-between;">',
                                     '<div style="font-size: 13px;">Rotation</div>',
@@ -703,6 +693,16 @@ function buildToolBar() {
             ].join('')
         ))
 
+
+    Viewer_.baseToolbar.append($('<div>')
+        .attr('id', 'osd-zoomin')
+        .html("<i class='mdi mdi-plus mdi-18px'></i>"))
+    Viewer_.baseToolbar.append($('<div>')
+        .attr('id', 'osd-zoomout')
+        .html("<i class='mdi mdi-minus mdi-18px'></i>"))
+    Viewer_.baseToolbar.append($('<div>')
+        .attr('id', 'osd-home')
+        .html("<i class='mdi mdi-home-variant-outline mdi-18px'></i>"))
     $('#Viewer_SettingsSettings, #Viewer_Settings').click(function () {
         var display = $('#Viewer_SettingsSettingsPanel').css('display')
         if (display == 'none') {

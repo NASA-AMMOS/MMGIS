@@ -7,6 +7,7 @@
     z-index: 20;
     display: flex;
     align-items: center;
+    height: 30px;
     transition: bottom 0.2s ease-in;
     background: transparent;
     border-radius: 8px;
@@ -15,7 +16,8 @@
 #CoordinatesDiv .mouseLngLat {
     display: flex;
     align-items: center;
-    padding: 6px 14px;
+    height: 30px;
+    padding: 0 10px;
 }
 #CoordinatesDiv #mouseDesc {
     font-size: 13px;
@@ -133,12 +135,11 @@
     text-align: center;
     cursor: pointer;
     border-radius: 3px;
-    width: 24px;
-    height: 24px;
-    line-height: 24px;
-    margin: 3px 0px 3px 5px;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    margin: 0;
     border-left: 1px solid var(--color-a1);
-    padding-left: 5px;
     pointer-events: all;
     transition: all 0.2s ease-in;
 }

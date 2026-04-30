@@ -20,7 +20,6 @@
 
 #loginModal {
     width: 400px;
-    padding: 0px 50px;
     position: absolute;
     left: 50%;
     top: 50%;
@@ -30,7 +29,26 @@
     -webkit-backdrop-filter: blur(20px);
     border-radius: 10px;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-    padding-bottom: 30px;
+    overflow: hidden;
+}
+
+#loginModalHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 44px;
+    padding: 0 0 0 14px;
+    border-bottom: 1px solid var(--color-a1);
+}
+#loginModalTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-f);
+    text-transform: capitalize;
+}
+
+#loginModalBody {
+    padding: 0 50px 30px;
 }
 
 #loginForm {
@@ -122,9 +140,6 @@
 }
 
 #loginModalClose {
-    position: absolute;
-    top: 0;
-    right: 0;
     width: 44px;
     height: 44px;
     display: flex;
@@ -133,6 +148,7 @@
     color: var(--color-a3);
     cursor: pointer;
     transition: color 0.15s;
+    flex-shrink: 0;
 }
 #loginModalClose:hover {
     color: var(--color-f);

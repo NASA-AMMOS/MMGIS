@@ -5,7 +5,7 @@
     border-radius: 6px;
     border: 1px solid transparent;
     background: transparent;
-    color: var(--color-a3);
+    color: var(--color-a5);
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
     font-family: inherit;
@@ -33,7 +33,7 @@
 
 .iconButton:hover {
     background: var(--color-a1);
-    color: var(--color-a5);
+    color: var(--color-f);
 }
 
 .active {

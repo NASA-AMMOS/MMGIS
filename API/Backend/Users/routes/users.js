@@ -249,9 +249,9 @@ router.post("/login", function (req, res) {
     return null;
   }
 
-  // Token-based re-authentication (page reload): verify the token in the DB,
-  // regenerate the session ID (prevent session fixation) while preserving
-  // session data, and rotate the token (limit exposure if leaked).
+  // Token-based re-authentication (page reload): verify the token in the DB
+  // and refresh session data in-place. Session regeneration and token rotation
+  // are intentionally skipped to preserve multi-tab compatibility.
   if (req.body.useToken && MMGISUser) {
     if (MMGISUser.token == null) {
       res.send({ status: "failure", message: "Bad token." });
@@ -267,52 +267,28 @@ router.post("/login", function (req, res) {
       .then((user) => {
         if (!user) {
           res.send({ status: "failure", message: "Bad token." });
-          return null;
-        }
-        // Preserve session data across regeneration
-        const sessionData = {
-          user: user.username,
-          uid: user.id,
-          permission: user.permission,
-        };
-        req.session.regenerate((err) => {
-          if (err) {
-            res.send({ status: "failure", message: "Session error." });
-            return;
+        } else {
+          req.session.user = user.username;
+          req.session.uid = user.id;
+          req.session.permission = user.permission;
+          if (!req.session.token) {
+            req.session.token = MMGISUser.token;
           }
-          req.session.user = sessionData.user;
-          req.session.uid = sessionData.uid;
-          req.session.permission = sessionData.permission;
-          // Rotate the token
-          req.session.token = crypto.randomBytes(128).toString("hex");
-          User.update(
-            { token: req.session.token },
-            { where: { id: user.id, username: user.username } }
-          )
-            .then(() => {
-              req.session.save(() => {
-                res.send({
-                  status: "success",
-                  username: user.username,
-                  token: req.session.token,
-                  groups: getUserGroups(user.username, req.leadGroupName),
-                  additional:
-                    process.env.THIRD_PARTY_COOKIES === "true"
-                      ? `; SameSite=None;${
-                          process.env.NODE_ENV === "production"
-                            ? " Secure"
-                            : ""
-                        }`
-                      : "",
-                });
-              });
-              return;
-            })
-            .catch(() => {
-              res.send({ status: "failure", message: "Token update failed." });
-              return;
+          req.session.save(() => {
+            res.send({
+              status: "success",
+              username: user.username,
+              token: req.session.token,
+              groups: getUserGroups(user.username, req.leadGroupName),
+              additional:
+                process.env.THIRD_PARTY_COOKIES === "true"
+                  ? `; SameSite=None;${
+                      process.env.NODE_ENV === "production" ? " Secure" : ""
+                    }`
+                  : "",
             });
-        });
+          });
+        }
         return null;
       })
       .catch((err) => {

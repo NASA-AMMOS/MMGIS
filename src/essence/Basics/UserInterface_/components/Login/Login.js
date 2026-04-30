@@ -268,22 +268,29 @@ var Login = {
             .attr('id', 'loginModalWrapper')
         $('#topBar').append(wrapper)
 
-        wrapper
-            .append($('<div>')
-            .attr('id', 'loginModalClose')
-            .html("<i class='mdi mdi-close mdi-24px'></i>"))
-        wrapper.append($('<div>').attr('id', 'loginModal').html(modalFormSignIn))
+        const modal = $('<div>').attr('id', 'loginModal')
+        wrapper.append(modal)
+
+        // Header with title and close button
+        const header = $('<div>').attr('id', 'loginModalHeader')
+        header.append($('<div>').attr('id', 'loginModalTitle').text('Log In'))
+        header.append($('<div>').attr('id', 'loginModalClose').html("<i class='mdi mdi-close mdi-18px'></i>"))
+        modal.append(header)
+
+        modal.append($('<div>').attr('id', 'loginModalBody').html(modalFormSignIn))
 
         $('#loginModal #loginInUpToggle').on('click', function () {
             $('#loginErrorMessage').animate({ opacity: '0' }, 500)
             if (!Login.signUp) {
                 Login.signUp = true
+                $('#loginModalTitle').text('Sign Up')
                 $('#loginEmail').css({ display: 'inherit' })
                 $('#loginRetypePassword').css({ display: 'inherit' })
                 $('#loginSubmit').val('Sign Up')
                 $('#loginInUpToggle').html('or sign in')
             } else {
                 Login.signUp = false
+                $('#loginModalTitle').text('Log In')
                 $('#loginEmail').css({ display: 'none' })
                 $('#loginRetypePassword').css({ display: 'none' })
                 $('#loginSubmit').val('Sign In')
@@ -472,6 +479,10 @@ var Login = {
         })
         $('#loginModalWrapper').on('click', function (e) {
             // stop the event from bubbling.
+            Login.closeModal()
+        })
+        $('#loginModalClose').on('click', function (e) {
+            e.stopPropagation()
             Login.closeModal()
         })
     },

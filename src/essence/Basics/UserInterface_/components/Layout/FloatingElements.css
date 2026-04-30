@@ -41,8 +41,11 @@
     border-bottom: none !important;
 }
 
-/* --- Leaflet home button (solid) --- */
+/* --- Leaflet home button (solid, 30x30 standalone) --- */
 .leaflet-control-zoom-home {
+    width: 30px !important;
+    height: 30px !important;
+    line-height: 30px !important;
     transition: background 0.15s !important;
 }
 

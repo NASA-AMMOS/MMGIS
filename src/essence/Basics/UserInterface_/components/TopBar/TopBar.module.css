@@ -39,7 +39,7 @@
     cursor: pointer;
     transition: all 0.15s;
     font-size: 16px;
-    color: var(--color-a3);
+    color: var(--color-a5);
 }
 
 .panelToggles {
