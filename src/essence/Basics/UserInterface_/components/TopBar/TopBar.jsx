@@ -264,7 +264,7 @@ function TopBar({ userInterface }) {
     const topBarStyle = {}
     if (isMobile) {
         topBarStyle.background = 'var(--color-a)'
-        topBarStyle.paddingLeft = '40px'
+        topBarStyle.paddingLeft = '34px'
     } else {
         topBarStyle.paddingLeft = '40px'
     }
