@@ -201,6 +201,18 @@ function refreshLegends() {
     }
 
     _refreshLegends(L_.configData.layers, {}, 0)
+
+    if ($('#LegendTool').children().length === 0) {
+        $('#LegendTool').append(
+            $('<div>').css({
+                padding: '20px 14px',
+                color: 'var(--color-a4)',
+                fontSize: '13px',
+                fontStyle: 'italic',
+                textAlign: 'center',
+            }).text('No active layers with legends')
+        )
+    }
 }
 
 // The legends parameter should be an array of objects, where each object must contain
@@ -263,7 +275,7 @@ function drawLegendHeader() {
         .attr('id', 'LegendTool')
         .css({
             'color': 'var(--color-a6)',
-            'height': 'calc(100% - 44px)',
+            'height': 'calc(100% - 40px)',
             'max-height': 'calc(100vh - 189px)',
             'overflow-y': 'auto'
         })

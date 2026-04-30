@@ -141,7 +141,7 @@ let ToolController_ = {
             const headerTitle = $('<span>')
                 .css({
                     'font-size': '13px',
-                    'font-weight': '600',
+                    'font-weight': '400',
                     'color': 'var(--color-f)',
                     'text-transform': 'uppercase',
                     'letter-spacing': '0.05em',
