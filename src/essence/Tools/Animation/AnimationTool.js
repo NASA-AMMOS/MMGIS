@@ -14,13 +14,24 @@ import gifshot from 'gifshot'
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile, toBlobURL } from '@ffmpeg/util'
 import OffscreenMapManager from './OffscreenMapManager'
+import Help from '../../Basics/UserInterface_/components/Help/Help'
 
 import './AnimationTool.css'
+
+const helpKey = 'AnimationTool'
 
 //Add the tool markup
 // prettier-ignore
 const markup = [
     "<div id='animationTool'>",
+        "<div id='animationToolHeader' class='mmgisToolHeader'>",
+            "<div>",
+                "<div>",
+                    "<div class='mmgisToolTitle'>Animation</div>",
+                    Help.getComponent(helpKey),
+                "</div>",
+            "</div>",
+        "</div>",
         "<div id='animationToolContent'>",
             "<div id='animationToolSteps'>",
                 "<div class='animation-step active' data-step='1'>",
@@ -256,6 +267,7 @@ const AnimationTool = {
 
     make: function () {
         this.MMGISInterface = new interfaceWithMMGIS()
+        Help.finalize(helpKey)
     },
 
     destroy: function () {

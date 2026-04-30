@@ -276,24 +276,25 @@ let CurtainTool = {
         }
         toolsContainer._reactRoot.render(<Curtain />)
 
-        this.osd = OpenSeadragon({
-            id: 'curtainViewer',
-            //prefixUrl: 'scripts/external/OpenSeadragon/images/',
-            defaultZoomLevel: 0.95,
-            //showNavigationControl: false,
-            showFullPageControl: false,
-            zoomInButton: 'curtainZoomIn',
-            zoomOutButton: 'curtainZoomOut',
-            homeButton: 'curtainReset',
-            showNavigator: false,
-            constrainDuringPan: true,
-            visibilityRatio: 1,
-            animationTime: 0.5,
-            minZoomLevel: 0.5,
-            maxZoomLevel: 12,
-            ajaxWithCredentials: true,
-            //zoomPerClick: 1, //disables click to zoom for tools...
-            imageSmoothingEnabled: false,
+        // Defer OSD init — React 18 render() is async so #curtainViewer
+        // isn't in the DOM yet when make() runs synchronously.
+        requestAnimationFrame(() => {
+            this.osd = OpenSeadragon({
+                id: 'curtainViewer',
+                defaultZoomLevel: 0.95,
+                showFullPageControl: false,
+                zoomInButton: 'curtainZoomIn',
+                zoomOutButton: 'curtainZoomOut',
+                homeButton: 'curtainReset',
+                showNavigator: false,
+                constrainDuringPan: true,
+                visibilityRatio: 1,
+                animationTime: 0.5,
+                minZoomLevel: 0.5,
+                maxZoomLevel: 12,
+                ajaxWithCredentials: true,
+                imageSmoothingEnabled: false,
+            })
         })
     },
     destroy: function () {

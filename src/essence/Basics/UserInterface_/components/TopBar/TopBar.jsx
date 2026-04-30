@@ -48,10 +48,11 @@ function StatusIndicator() {
                 '<table class="table" style="text-align: left;">',
                 '<tr style="font-width: bold"><th style="column-width: 100px">Action</th><th>Layer name</th></tr>',
             ]
+            const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
             for (let i in L_.addLayerQueue) {
                 const { newLayerName, type } = L_.addLayerQueue[i]
                 const typePrettify = type.split(/(?=[A-Z])/).map((e) => e.charAt(0).toUpperCase() + e.slice(1).toLowerCase())
-                table.push(`<tr><td style="column-width: 100px">${typePrettify.join(' ')}</td><td>${newLayerName}</td></tr>`)
+                table.push(`<tr><td style="column-width: 100px">${esc(typePrettify.join(' '))}</td><td>${esc(newLayerName)}</td></tr>`)
             }
             table.push('</table>')
             const modalContent = [

@@ -122,13 +122,13 @@ var InfoTool = {
         additional,
         featureLayers
     ) {
-        let toolActive = $('#InfoTool').hasClass('active')
+        let toolActive = $('#toolButtonInfo').hasClass('toolButtonActive')
 
         if (!open && toolActive) open = true
 
         //In the very least, update the info
         if (open && !toolActive) {
-            $('#InfoTool').click()
+            $('#toolButtonInfo').click()
         }
 
         if (additional && additional.idx) activeI = additional.idx
@@ -169,7 +169,7 @@ var InfoTool = {
 
         // MMGIS should always have a div with id 'tools'
         const toolsContainer = $(divID)
-        toolsContainer.css('background', 'transparent')
+        toolsContainer.css('background', 'var(--color-a)')
         //Clear it
         toolsContainer.empty()
         //Add a semantic container

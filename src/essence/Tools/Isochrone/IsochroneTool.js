@@ -19,12 +19,18 @@ are handled in IsochroneTool_Manager and its imports.
 const helpKey = 'IsochroneTool'
 const markup = `<div id="isochroneTool">
     <div id="isochroneToolHeader" class="mmgisToolHeader">
-        <span class="mmgisToolTitle">Isochrone</span>
-        ${Help.getComponent(helpKey)}
-        <span id="iscNew">
-            New
-            <i class="mdi mdi-plus mdi-18px"></i>
-        </span>
+        <div>
+            <div>
+                <span class="mmgisToolTitle">Isochrone</span>
+                ${Help.getComponent(helpKey)}
+            </div>
+            <div>
+                <span id="iscNew">
+                    New
+                    <i class="mdi mdi-plus mdi-18px"></i>
+                </span>
+            </div>
+        </div>
     </div>
     <ul id="isochroneOptionsContainer"></ul>
 </div>`

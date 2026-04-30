@@ -35,17 +35,16 @@
 }
 #shadeTool #vstHeader > div:first-child {
     display: flex;
-    height: 40px;
-    line-height: 18px;
+    height: 44px;
+    line-height: 44px;
     color: #ccc;
     background: var(--color-a);
     justify-content: space-between;
+    align-items: center;
 }
 #shadeTool #vstHeader > div:first-child > div {
     display: flex;
-}
-#shadeTool #helpModal_ShadeTool {
-    margin-top: 11px;
+    align-items: center;
 }
 /*
 #shadeTool #vstHeader > div:last-child {

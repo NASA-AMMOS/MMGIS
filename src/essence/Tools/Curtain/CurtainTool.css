@@ -164,6 +164,7 @@
     height: 100%;
     display: flex;
     flex-flow: column;
+    justify-content: flex-end;
 }
 .CurtainTool #curtainToolBar > div {
     width: 30px;

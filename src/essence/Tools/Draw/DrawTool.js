@@ -1705,7 +1705,7 @@ function interfaceWithMMGIS() {
 
     //MMGIS should always have a div with id 'tools'
     const toolsContainer = $('#toolPanel')
-    toolsContainer.css('background', 'transparent')
+    toolsContainer.css('background', 'var(--color-a)')
     //Clear it
     toolsContainer.empty()
     //Add a semantic container

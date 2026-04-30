@@ -41,12 +41,13 @@
 }
 #viewshedTool #vstHeader > div:first-child {
     display: flex;
-    height: 40px;
-    line-height: 18px;
+    height: 44px;
+    line-height: 44px;
     color: #ccc;
     background: var(--color-a);
     border-bottom: 1px solid var(--color-i);
     justify-content: space-between;
+    align-items: center;
 }
 #viewshedTool #vstHeader > div:last-child {
     display: flex;
@@ -70,10 +71,10 @@
 #viewshedTool #vstNew {
     display: flex;
     cursor: pointer;
-    height: 40px;
-    line-height: 40px;
+    height: 44px;
+    line-height: 44px;
     font-size: 14px;
-    padding-right: 6px;
+    padding-right: 30px;
     transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 #viewshedTool #vstNew:hover {

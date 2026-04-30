@@ -1283,11 +1283,17 @@ mark {
     line-height: 44px;
     color: var(--color-f);
     justify-content: space-between;
+    align-items: center;
     border-bottom: 1px solid var(--color-a1);
 }
 .mmgisToolHeader > div:first-child > div:first-child {
     display: flex;
-    padding-left: 0px;
+    align-items: center;
+}
+.mmgisToolHeader > div:first-child > div:last-child {
+    display: flex;
+    align-items: center;
+    gap: 2px;
 }
 .mmgisToolTitle {
     height: 44px;
