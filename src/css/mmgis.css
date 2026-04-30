@@ -1297,3 +1297,17 @@ mark {
 .mmgisToolHelpBtn:hover {
     color: var(--color-c);
 }
+.mmgisHelpButton {
+    line-height: 18px;
+    margin: 6px 4px;
+    padding: 0;
+    width: 18px;
+    height: 18px;
+    opacity: 0.7;
+    color: var(--color-h);
+}
+.mmgisHelpButton:hover {
+    opacity: 1;
+    color: var(--color-h);
+    background: rgba(0, 0, 0, 0);
+}
