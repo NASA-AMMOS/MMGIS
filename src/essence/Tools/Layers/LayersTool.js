@@ -9,7 +9,7 @@ import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
 import Filtering from '../../Basics/Layers_/Filtering/Filtering'
 import Help from '../../Basics/UserInterface_/components/Help/Help'
 import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
-import Toast from '../../Basics/UserInterface_/components/Toast/Toast'
+import Toast from '../../../design-system/components/Toast/Toast'
 import TimeUI from '../../Basics/TimeControl_/TimeUI'
 
 import LegendTool from '../Legend/LegendTool.js'

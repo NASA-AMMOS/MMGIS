@@ -3,7 +3,7 @@ import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 
 import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
-import Toast from '../../Basics/UserInterface_/components/Toast/Toast'
+import Toast from '../../../design-system/components/Toast/Toast'
 import Modal from '../../Basics/UserInterface_/components/Modal/Modal'
 import Dropy from '../../../external/Dropy/dropy'
 import tippy from 'tippy.js'

@@ -2,7 +2,7 @@ import $ from 'jquery'
 
 import F_ from '../../Basics/Formulae_/Formulae_'
 import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
-import Toast from '../../Basics/UserInterface_/components/Toast/Toast'
+import Toast from '../../../design-system/components/Toast/Toast'
 import Map_ from '../../Basics/Map_/Map_'
 import Dropy from '../../../external/Dropy/dropy'
 import TimeControl from '../../Basics/TimeControl_/TimeControl'

@@ -15,6 +15,7 @@ import Globe_ from '../../Basics/Globe_/Globe_'
 import Viewer_ from '../../Basics/Viewer_/Viewer_'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '../../../design-system/components/Toast/Toast'
 import Description from '../../Basics/UserInterface_/components/Description/Description'
 import TimeControl from '../../Basics/TimeControl_/TimeControl'
 import useUIStore from '../../Basics/UserInterface_/store/uiStore'
@@ -1294,36 +1295,13 @@ var DrawTool = {
                 if (data.status === 'success') {
                     DrawTool.getFiles(() => {
                         callback(data.body.file_id)
-                        CursorInfo.update(
-                            `Successfully made new file: ${filename}`,
-                            4000,
-                            false,
-                            { x: 305, y: 6 },
-                            '#009eff',
-                            'white',
-                            null,
-                            true
-                        )
+                        Toast.success(`Successfully made new file: ${filename}`, 4000)
                     })
                 } else
-                    CursorInfo.update(
-                        'Failed to add file.',
-                        6000,
-                        true,
-                        { x: 305, y: 6 },
-                        '#e9ff26',
-                        'black'
-                    )
+                    Toast.warning('Failed to add file.', 6000)
             },
             function () {
-                CursorInfo.update(
-                    'Failed to add file.',
-                    6000,
-                    true,
-                    { x: 305, y: 6 },
-                    '#e9ff26',
-                    'black'
-                )
+                Toast.warning('Failed to add file.', 6000)
             }
         )
     },
@@ -1402,14 +1380,7 @@ var DrawTool = {
         }
 
         if (body.file_id == null) {
-            CursorInfo.update(
-                'No file chosen. Please select or make a file for drawings.',
-                6000,
-                true,
-                { x: 305, y: 6 },
-                '#e9ff26',
-                'black'
-            )
+            Toast.warning('No file chosen. Please select or make a file for drawings.', 6000)
             if (typeof failure === 'function') failure()
             return
         }
@@ -1436,7 +1407,7 @@ var DrawTool = {
                 },
                 function (err) {
                     let message = err ? err.message : 'Server Failure'
-                    CursorInfo.update(message, 6000, true, { x: 305, y: 6 })
+                    Toast.error(message, 6000)
                     if (typeof failure === 'function') failure()
                 }
             )
@@ -1907,14 +1878,7 @@ function interfaceWithMMGIS() {
     //Copy shapes
     $('#drawToolShapesCopyGo').on('click', function () {
         if (DrawTool.copyFileId == null) {
-            CursorInfo.update(
-                'Please select a file to copy shapes to.',
-                6000,
-                true,
-                { x: 305, y: 6 },
-                '#e9ff26',
-                'black'
-            )
+            Toast.warning('Please select a file to copy shapes to.', 6000)
             return
         }
         //First check that all the selected intents match
@@ -2034,18 +1998,7 @@ function interfaceWithMMGIS() {
                         )
                     }
                     if (copiedSI < numToCopy) {
-                        CursorInfo.update(
-                            'Warning: only ' +
-                                copiedSI +
-                                '/' +
-                                numToCopy +
-                                ' science intents were copied over.',
-                            6000,
-                            true,
-                            { x: 305, y: 6 },
-                            '#e9ff26',
-                            'black'
-                        )
+                        Toast.warning('Warning: only ' + copiedSI + '/' + numToCopy + ' science intents were copied over.', 6000)
                     }
                     if (copied >= numToCopy) {
                         //rehighlight each shapeli
@@ -2125,14 +2078,7 @@ function interfaceWithMMGIS() {
                 }
             }
         } else {
-            CursorInfo.update(
-                'Please select shapes to copy.',
-                6000,
-                true,
-                { x: 305, y: 6 },
-                '#e9ff26',
-                'black'
-            )
+            Toast.warning('Please select shapes to copy.', 6000)
         }
     })
 
