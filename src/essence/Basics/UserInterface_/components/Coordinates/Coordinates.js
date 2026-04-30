@@ -856,7 +856,6 @@ function toggleTimeUI() {
 
     const isExpanded = $('#timeUI').hasClass('expanded') || $('#timeUI').hasClass('defaultExpanded')
 
-    Map_.map._fadeAnimated = active
 
     useUIStore.getState().setTimeUIActive(!active)
     useUIStore.getState().setTimeUIExpanded(isExpanded)

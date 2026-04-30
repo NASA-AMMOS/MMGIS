@@ -381,6 +381,15 @@ var TimeControl = {
         })
     },
     reloadTimeLayers: function () {
+        // Suppress tile fade during time-driven reloads so tiles swap instantly
+        if (Map_.map) {
+            Map_.map._suppressTileFade = true
+            clearTimeout(Map_.map._suppressTileFadeTimer)
+            Map_.map._suppressTileFadeTimer = setTimeout(() => {
+                Map_.map._suppressTileFade = false
+            }, 300)
+        }
+
         // refresh time enabled layers
         let reloadedLayers = []
         let savedActiveFeature = null

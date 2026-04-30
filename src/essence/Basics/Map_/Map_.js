@@ -29,6 +29,53 @@ import {
 
 let L = window.L
 
+// --- Selective tile fade: fade on pan/zoom, no fade on refresh/reload ---
+// Leaflet's tile fade is map-level (_fadeAnimated). We want tiles to fade in
+// when panning into new areas but NOT when refreshing/reloading existing tiles.
+// Strategy: wrap redraw() and setUrl() to temporarily suppress fade via a
+// map-level flag, then restore it after tiles begin loading.
+;(function patchTileFadeForRefresh() {
+    const origRedraw = L.GridLayer.prototype.redraw
+    L.GridLayer.prototype.redraw = function () {
+        if (this._map) {
+            this._map._suppressTileFade = true
+            clearTimeout(this._map._suppressTileFadeTimer)
+            const map = this._map
+            map._suppressTileFadeTimer = setTimeout(() => {
+                map._suppressTileFade = false
+            }, 300)
+        }
+        return origRedraw.call(this)
+    }
+
+    const origSetUrl = L.TileLayer.prototype.setUrl
+    L.TileLayer.prototype.setUrl = function (url, noRedraw) {
+        if (this._map) {
+            this._map._suppressTileFade = true
+            clearTimeout(this._map._suppressTileFadeTimer)
+            const map = this._map
+            map._suppressTileFadeTimer = setTimeout(() => {
+                map._suppressTileFade = false
+            }, 300)
+        }
+        return origSetUrl.call(this, url, noRedraw)
+    }
+
+    // Patch _tileReady to respect the suppress flag
+    const origTileReady = L.GridLayer.prototype._tileReady
+    L.GridLayer.prototype._tileReady = function (coords, err, tile) {
+        if (this._map && this._map._suppressTileFade) {
+            // Temporarily pretend fade is off so tiles appear instantly
+            const wasFade = this._map._fadeAnimated
+            this._map._fadeAnimated = false
+            origTileReady.call(this, coords, err, tile)
+            this._map._fadeAnimated = wasFade
+            return
+        }
+        return origTileReady.call(this, coords, err, tile)
+    }
+})()
+
 let essenceFina = function () {}
 
 import GeoRasterLayer from '../../../external/georaster-layer-for-leaflet/georaster-layer-for-leaflet.ts'
