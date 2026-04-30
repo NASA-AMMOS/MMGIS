@@ -9,6 +9,7 @@ import MetadataCapturer from '../../Basics/Layers_/MetadataCapturer'
 import Help from '../../Basics/UserInterface_/components/Help/Help'
 import ConfirmationModal from '../../Basics/UserInterface_/components/ConfirmationModal/ConfirmationModal'
 
+import TC_ from '../../Basics/ToolController_/ToolController_'
 import tippy from 'tippy.js'
 
 import './InfoTool.css'
@@ -194,6 +195,7 @@ var InfoTool = {
         })
 
         Help.finalize(helpKey)
+        TC_.injectCloseButton()
 
         $('#infoToolUnhideAll').css(
             'display',

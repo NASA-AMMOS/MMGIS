@@ -35,8 +35,8 @@
 }
 #shadeTool #vstHeader > div:first-child {
     display: flex;
-    height: 44px;
-    line-height: 44px;
+    height: 40px;
+    line-height: 40px;
     color: #ccc;
     background: var(--color-a);
     justify-content: space-between;

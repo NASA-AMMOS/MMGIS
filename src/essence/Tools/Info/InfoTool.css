@@ -8,8 +8,8 @@
 
 #infoToolHeader {
     display: flex;
-    height: 44px;
-    line-height: 44px;
+    height: 40px;
+    line-height: 40px;
     color: #ccc;
     background: var(--color-a);
     justify-content: space-between;
@@ -27,8 +27,8 @@
 }
 
 #infoToolTitle {
-    height: 44px;
-    line-height: 44px;
+    height: 40px;
+    line-height: 40px;
     font-size: 16px;
     padding-left: 6px;
     font-family: 'lato-light';

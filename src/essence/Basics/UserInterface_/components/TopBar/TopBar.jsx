@@ -293,12 +293,12 @@ function TopBar({ userInterface }) {
             )}
             <div id="topBarLeft" className="hideScrollbar" ref={topBarLeftRef}>
                 <div id="topBarMain">
+                    <StatusIndicator />
                     <div id="topBarTitle">
                         <div id="topBarTitleName" tabIndex={200}>
                             {window.mmgisglobal.name}
                         </div>
                     </div>
-                    <StatusIndicator />
                 </div>
                 <div id="topBarSecondary">
                     <div

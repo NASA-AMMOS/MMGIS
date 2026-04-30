@@ -12,8 +12,8 @@
 #isochroneToolHeader > div {
     display: flex;
     justify-content: space-between;
-    height: 44px;
-    line-height: 44px;
+    height: 40px;
+    line-height: 40px;
     font-size: 16px;
     color: var(--color-l);
     background-color: var(--color-a);
@@ -28,8 +28,8 @@
 #isochroneToolHeader #iscNew {
     display: flex;
     cursor: pointer;
-    height: 44px;
-    line-height: 44px;
+    height: 40px;
+    line-height: 40px;
     font-size: 14px;
     padding-right: 30px;
     transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
@@ -39,7 +39,7 @@
 }
 
 #isochroneOptionsContainer {
-    height: calc(100% - 44px);
+    height: calc(100% - 40px);
     overflow-y: auto;
     margin: 0;
     padding: 0;

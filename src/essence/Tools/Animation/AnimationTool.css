@@ -2,58 +2,11 @@
 #animationTool {
     font-family: 'Roboto', sans-serif;
     background: var(--color-k);
-    color: var(--color-a);
+    color: var(--color-f);
     display: flex;
     flex-direction: column;
     height: 100%;
     width: 100%;
-}
-
-#animationToolHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 20px;
-    border-bottom: 1px solid var(--color-j);
-    background: var(--color-l);
-}
-
-#animationToolHeader .left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-#animationToolHeader .right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-#animationToolTitle {
-    font-size: 18px;
-    font-weight: 500;
-    color: var(--color-a);
-}
-
-#animationToolHeader h3 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-#animationToolClose {
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-}
-
-#animationToolClose:hover {
-    background: var(--color-j);
 }
 
 #animationToolContent {

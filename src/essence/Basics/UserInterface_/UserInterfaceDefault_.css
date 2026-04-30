@@ -41,6 +41,7 @@
 #main-container > #topBar #topBarMain,
 #main-container > #topBar #topBarSecondary {
     display: flex;
+    align-items: center;
 }
 #main-container #mmgislogo {
     padding: 0px 1px;
