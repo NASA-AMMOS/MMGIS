@@ -412,6 +412,10 @@ const getComponent = (
     }
     disabled = disabled || !switchVal;
   }
+  if (com.enableWhenField) {
+    const ewfVal = getIn(configuration, com.enableWhenField.field, com.enableWhenField.default || "");
+    disabled = disabled || ewfVal !== com.enableWhenField.value;
+  }
   const isRequired = isFieldRequired(com, layer, configuration);
   const fieldValue = value != null ? value : getIn(directConf, com.field, "");
   const hasError = isRequired && (fieldValue === "" || fieldValue == null);

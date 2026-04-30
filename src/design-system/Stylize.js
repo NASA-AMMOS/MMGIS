@@ -13,11 +13,12 @@ export function stylize() {
             document.title = L_.configData.look.pagename + ' - ' + L_.mission
 
         // Apply theme preset first if set in mission config
-        if (L_.configData.look.theme && L_.configData.look.theme !== '') {
+        // "Custom" means no preset — only the color picker values below are used
+        if (L_.configData.look.theme && L_.configData.look.theme !== '' && L_.configData.look.theme !== 'Custom') {
             uiStore.getState().setTheme(L_.configData.look.theme)
         }
 
-        // Then apply individual color overrides on top (backward compat)
+        // Apply individual color overrides (always for Custom, backward compat for presets)
         const r = document.querySelector(':root')
 
         if (

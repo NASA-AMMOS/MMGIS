@@ -21,6 +21,106 @@
       ]
     },
     {
+      "name": "Theming",
+      "components": [
+        {
+          "field": "look.theme",
+          "name": "Color Theme",
+          "description": "Select a color theme for the interface. Preset themes apply a full set of coordinated colors. Choose 'Custom' to define your own colors using the options below.",
+          "type": "dropdown",
+          "width": 6,
+          "options": ["Dark Default", "Dark Blue", "Dark Warm", "Dark Mars", "Dark Midnight", "Light Default", "Light Cool", "Light Slate", "Light Warm", "High Contrast", "Custom"],
+          "default": "Dark Default"
+        }
+      ]
+    },
+    {
+      "subname": "Custom Color Options",
+      "subdescription": "These color values are only used when the Color Theme is set to <b>Custom</b>. They define the core colors of the interface.",
+      "components": [
+        {
+          "field": "look.primarycolor",
+          "name": "Surface Color",
+          "description": "The main background color for panels, toolbars, and sidebars.",
+          "type": "colorpicker",
+          "width": 3,
+          "enableWhenField": { "field": "look.theme", "value": "Custom", "default": "Dark Default" }
+        },
+        {
+          "field": "look.secondarycolor",
+          "name": "Deep Background Color",
+          "description": "The darker background behind panels — visible as the page body and behind the Viewer panel.",
+          "type": "colorpicker",
+          "width": 3,
+          "enableWhenField": { "field": "look.theme", "value": "Custom", "default": "Dark Default" }
+        },
+        {
+          "field": "look.tertiarycolor",
+          "name": "Text Color",
+          "description": "The primary color for labels, headings, and body text throughout the UI.",
+          "type": "colorpicker",
+          "width": 3,
+          "enableWhenField": { "field": "look.theme", "value": "Custom", "default": "Dark Default" }
+        },
+        {
+          "field": "look.accentcolor",
+          "name": "Accent Color",
+          "description": "Used for the active tool indicator, links, and interactive highlights.",
+          "type": "colorpicker",
+          "width": 3,
+          "enableWhenField": { "field": "look.theme", "value": "Custom", "default": "Dark Default" }
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "look.bodycolor",
+          "name": "Page Body Color",
+          "description": "Background color of the outermost page body. Usually only visible behind transparent panels.",
+          "type": "colorpicker",
+          "width": 3,
+          "enableWhenField": { "field": "look.theme", "value": "Custom", "default": "Dark Default" }
+        },
+        {
+          "field": "look.topbarcolor",
+          "name": "Top Bar Color",
+          "description": "Background color of the horizontal top bar. Supports rgba for transparency (e.g., 'rgba(0,0,0,0.15)').",
+          "type": "colorpicker",
+          "width": 3,
+          "enableWhenField": { "field": "look.theme", "value": "Custom", "default": "Dark Default" }
+        },
+        {
+          "field": "look.toolbarcolor",
+          "name": "Toolbar Color",
+          "description": "Background color of the vertical toolbar on the left side. Also applied to the tools wrapper panel.",
+          "type": "colorpicker",
+          "width": 3,
+          "enableWhenField": { "field": "look.theme", "value": "Custom", "default": "Dark Default" }
+        },
+        {
+          "field": "look.mapcolor",
+          "name": "Map Background Color",
+          "description": "Background color of the 2D map area, visible where no tiles or imagery are loaded.",
+          "type": "colorpicker",
+          "width": 3,
+          "enableWhenField": { "field": "look.theme", "value": "Custom", "default": "Dark Default" }
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "look.hightlightcolor",
+          "name": "Feature Highlight Color",
+          "description": "The color used to highlight selected or hovered features on the map.",
+          "type": "colorpicker",
+          "width": 3,
+          "enableWhenField": { "field": "look.theme", "value": "Custom", "default": "Dark Default" }
+        }
+      ]
+    },
+    {
       "name": "Map Logo",
       "components": [
         {
@@ -317,97 +417,6 @@
           "type": "checkbox",
           "width": 3,
           "defaultChecked": true
-        }
-      ]
-    },
-
-    {
-      "name": "Theme",
-      "components": [
-        {
-          "field": "look.theme",
-          "name": "Theme",
-          "description": "Select a predefined color theme for the MMGIS interface. Choose from various light and dark themes. Individual color overrides below will be applied on top of the selected theme.",
-          "type": "dropdown",
-          "width": 6,
-          "options": ["Dark Default", "Dark Blue", "Dark Warm", "Light Default", "Light Cool", "Light Slate"],
-          "default": "Dark Default"
-        }
-      ]
-    },
-    {
-      "name": "Advanced Color Overrides",
-      "components": [
-        {
-          "field": "look.primarycolor",
-          "name": "Primary Color",
-          "description": "Colors various buttons, components, panels, feature hover text.",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.secondarycolor",
-          "name": "Secondary Color",
-          "description": "Colors some panels and UI borders and is used as the background of the Viewer Panel.",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.tertiarycolor",
-          "name": "Tertiary Color",
-          "description": "Colors many icons and text.",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.accentcolor",
-          "name": "Accent Color",
-          "description": "Colors things like the active tool indicator.",
-          "type": "colorpicker",
-          "width": 3
-        }
-      ]
-    },
-    {
-      "components": [
-        {
-          "field": "look.bodycolor",
-          "name": "Body Color",
-          "description": "Colors the overall body but might have little impact.",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.topbarcolor",
-          "name": "TopBar Color",
-          "description": "Colors the top horizontal bar.",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.toolbarcolor",
-          "name": "ToolBar Color",
-          "description": "Colors the left vertical toolbar",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.mapcolor",
-          "name": "Map Color",
-          "description": "Colors the background of the map. The color is seen in regions of the 2D map where there is no data.",
-          "type": "colorpicker",
-          "width": 3
-        }
-      ]
-    },
-    {
-      "components": [
-        {
-          "field": "look.hightlightcolor",
-          "name": "Highlight Color",
-          "description": "The color with which to highlight selected features in the map.",
-          "type": "colorpicker",
-          "width": 3
         }
       ]
     },
