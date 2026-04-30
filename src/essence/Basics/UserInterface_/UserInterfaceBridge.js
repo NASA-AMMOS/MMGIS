@@ -22,9 +22,9 @@ const UserInterfaceBridge = {
     set isMobile(val) {
         this._isMobile = val
         useUIStore.getState().setIsMobile(!!val)
-        // Mobile uses topSize 50 (desktop uses 40)
+        // Mobile uses topSize 40 (same as desktop)
         if (val) {
-            useUIStore.setState({ topSize: 50, mobileTopSize: 50, toolHeightReserve: 50 })
+            useUIStore.setState({ topSize: 40, mobileTopSize: 40, toolHeightReserve: 40 })
         }
     },
 
@@ -361,15 +361,7 @@ const UserInterfaceBridge = {
         if (this.isMobile) {
             const mobileTools = ['Layers', 'Legend', 'Info']
 
-            // Position mapToolBar at top under topbar (contains scalebar)
-            const mapToolBar = document.getElementById('mapToolBar')
-            if (mapToolBar) {
-                mapToolBar.style.top = '48px'
-                mapToolBar.style.bottom = 'auto'
-            }
-            // Position compass at bottom
-            const compass = document.getElementById('mmgis-map-compass')
-            if (compass) compass.style.bottom = '60px'
+            // Keep mapToolBar and compass in default desktop position (bottom-left)
 
             // Remove the cursor info
             const cursorInfo = document.getElementById('cursorInfo')

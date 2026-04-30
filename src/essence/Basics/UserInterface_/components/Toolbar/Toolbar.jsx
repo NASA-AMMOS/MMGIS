@@ -56,11 +56,11 @@ function MobileCoordButton() {
             className={'toolButton' + (isActive ? ' active' : '')}
             style={{
                 position: 'relative',
-                width: '45px',
-                height: '45px',
+                width: '40px',
+                height: '40px',
                 display: 'inline-block',
                 textAlign: 'center',
-                lineHeight: '45px',
+                lineHeight: '40px',
                 verticalAlign: 'middle',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease-in',
@@ -70,6 +70,61 @@ function MobileCoordButton() {
         >
             <i
                 className="mdi mdi-target mdi-18px"
+                style={{ cursor: 'pointer' }}
+            />
+        </div>
+    )
+}
+
+/**
+ * MobileTimeUIToggle — renders a time UI toggle button on the far right of the mobile toolbar.
+ */
+function MobileTimeUIToggle() {
+    const timeUIActive = useUIStore((s) => s.timeUIActive)
+    const [hasTime, setHasTime] = useState(false)
+
+    useEffect(() => {
+        try {
+            const L_ = require('../../../Layers_/Layers_').default
+            if (L_.configData.time && L_.configData.time.enabled === true) {
+                setHasTime(true)
+            }
+        } catch (e) {
+            // L_ not available yet
+        }
+    }, [])
+
+    const handleClick = useCallback(() => {
+        const Coordinates = require('../Coordinates/Coordinates').default
+        Coordinates.toggleTimeUI()
+    }, [])
+
+    if (!hasTime) return null
+
+    return (
+        <div
+            className={'toolButton' + (timeUIActive ? ' toolButtonActive' : '')}
+            style={{
+                position: 'relative',
+                width: '40px',
+                height: '40px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                lineHeight: '40px',
+                verticalAlign: 'middle',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in',
+                marginLeft: 'auto',
+                flexShrink: 0,
+                color: timeUIActive ? 'var(--color-mmgis)' : 'var(--color-f)',
+            }}
+            onClick={handleClick}
+            title="Toggle Time UI"
+        >
+            <i
+                className="mdi mdi-clock-outline mdi-18px"
                 style={{ cursor: 'pointer' }}
             />
         </div>
@@ -105,6 +160,7 @@ function MobileExtraButtons() {
     return (
         <>
             {showCoords && <MobileCoordButton />}
+            <MobileTimeUIToggle />
         </>
     )
 }
@@ -120,13 +176,13 @@ function ToolButton({ tool, index, isMobile, isActive, onToolClick }) {
             className={'toolButton' + (isActive ? ' toolButtonActive' : '')}
             tabIndex={index + 1}
             style={{
-                width: isMobile ? '45px' : '34px',
+                width: isMobile ? '40px' : '34px',
                 height: isMobile ? '100%' : '34px',
                 display: isMobile ? 'inline-block' : 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
-                lineHeight: isMobile ? '45px' : '34px',
+                lineHeight: isMobile ? '40px' : '34px',
                 margin: isMobile ? undefined : '1px 0',
                 borderRadius: isMobile ? undefined : '8px',
                 verticalAlign: 'middle',
@@ -239,10 +295,9 @@ function Toolbar({ userInterface }) {
                 id="toolbar"
                 style={isMobile ? {
                     boxShadow: '0px -3px 3px 0px rgba(0, 0, 0, 0.3)',
-                    height: topSize + 'px',
+                    height: '40px',
                     paddingTop: '0px',
                     background: 'var(--color-a)',
-                    borderBottom: '2px solid black',
                     bottom: (pxIsTools || 0) + 'px',
                     width: '100%',
                     zIndex: 2006,
@@ -271,7 +326,8 @@ function Toolbar({ userInterface }) {
                                 transition: 'all 0.25s ease-in',
                                 pointerEvents: 'auto',
                                 opacity: 1,
-                                paddingBottom: '8px',
+                                paddingBottom: isMobile ? '0px' : '8px',
+                                overflowY: isMobile ? 'hidden' : undefined,
                             }}
                         >
                             {toolbarTools.map((tool) => {

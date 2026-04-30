@@ -256,8 +256,8 @@
 .toolButton {
     border-top: none !important;
     border-bottom: none !important;
-    width: 45px !important;
-    line-height: 45px !important;
+    width: 40px !important;
+    line-height: 40px !important;
 }
 
 /* Hide other misc items */
@@ -298,8 +298,10 @@
     align-items: center !important;
     padding: 0 !important;
     border-right: none !important;
+    border-bottom: none !important;
     box-shadow: 0px -3px 3px 0px rgba(0, 0, 0, 0.3) !important;
     overflow-x: auto !important;
+    height: 40px !important;
 }
 
 #toolbarTools {
@@ -313,10 +315,12 @@
     align-items: center !important;
     height: 100% !important;
     overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding-bottom: 0 !important;
 }
 
 #toolbar .toolButton {
-    width: 45px !important;
+    width: 40px !important;
     height: 100% !important;
     margin: 0 !important;
     border-radius: 0 !important;
@@ -336,6 +340,14 @@
 
 #mapTopBar {
     padding-left: 134px !important;
+}
+
+/* bottomFloatingBar: flush to edges on mobile */
+#bottomFloatingBar {
+    border-radius: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
 }
 
 #topBar {

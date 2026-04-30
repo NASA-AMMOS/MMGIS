@@ -384,10 +384,12 @@ function TopBar({ userInterface }) {
                                 Fullscreen
                             </Dropdown.Item>
                         )}
-                        <Dropdown.Item onClick={() => BottomBar.toggleHotkeys(true)}>
-                            <i className="mdi mdi-keyboard" style={{ marginRight: 8, fontSize: 14 }} />
-                            Keyboard Shortcuts
-                        </Dropdown.Item>
+                        {!isMobile && (
+                            <Dropdown.Item onClick={() => BottomBar.toggleHotkeys(true)}>
+                                <i className="mdi mdi-keyboard" style={{ marginRight: 8, fontSize: 14 }} />
+                                Keyboard Shortcuts
+                            </Dropdown.Item>
+                        )}
                         {lookConfig.settings !== false && (
                             <Dropdown.Item onClick={() => BottomBar.toggleSettings(true)}>
                                 <i className="mdi mdi-cog" style={{ marginRight: 8, fontSize: 14 }} />

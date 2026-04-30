@@ -54,7 +54,7 @@ const useUIStore = create((set, get) => ({
     helpOn: true,
     toolbarVisible: true,
     isMobile: false,
-    mobileTopSize: 50,
+    mobileTopSize: 40,
 
     // TimeUI state (synced from DOM via MutationObserver)
     timeUIActive: false,
