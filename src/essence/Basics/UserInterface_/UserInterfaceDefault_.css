@@ -80,6 +80,9 @@
 #main-container > #topBar #topBarTitle:hover {
     color: var(--color-mmgis);
 }
+#topBarMain.hasStatus #topBarTitleName {
+    padding-left: 0px;
+}
 
 @media screen and (max-width: 600px) {
     #main-container > #topBar #topBarTitleName {

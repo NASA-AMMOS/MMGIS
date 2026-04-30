@@ -113,6 +113,7 @@ function TopBar({ userInterface }) {
     const topBarLeftRef = useRef(null)
     const isMobile = useUIStore((s) => s.isMobile)
     const lookConfig = useUIStore((s) => s.lookConfig)
+    const hasStatus = useUIStore((s) => !!s.statusIndicator)
 
     const [viewerOpen, setViewerOpen] = useState(false)
     const [mapOpen, setMapOpen] = useState(true)
@@ -291,7 +292,7 @@ function TopBar({ userInterface }) {
                 </div>
             )}
             <div id="topBarLeft" className="hideScrollbar" ref={topBarLeftRef}>
-                <div id="topBarMain">
+                <div id="topBarMain" className={hasStatus ? 'hasStatus' : ''}>
                     <StatusIndicator />
                     <div id="topBarTitle">
                         <div id="topBarTitleName" tabIndex={200}>

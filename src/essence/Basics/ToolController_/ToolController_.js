@@ -250,7 +250,7 @@ let ToolController_ = {
             })(i))
         toolButton.append(
             $('<i>')
-                .attr('id', tools[i].name + 'Tool')
+                .attr('id', 'sepIcon_' + tools[i].name + 'Tool')
                 .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
                 .css('cursor', 'pointer')
         )

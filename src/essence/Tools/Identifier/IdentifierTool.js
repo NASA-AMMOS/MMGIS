@@ -598,7 +598,7 @@ function interfaceWithMMWebGIS() {
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
 
-    var newActive = $('#toolcontroller_sepdiv #IdentifierTool')
+    var newActive = $('#toolcontroller_sepdiv #sepIcon_IdentifierTool')
     newActive.addClass('active').css({
         color: ToolController_.activeColor,
     })
