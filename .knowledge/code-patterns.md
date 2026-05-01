@@ -42,8 +42,7 @@ MMGIS/
 │       │   ├── Viewer_/          # Viewer panel controller
 │       │   ├── UserInterface_/   # MMGIS-specific UI (TopBar, Toolbar, Coordinates, CursorInfo)
 │       │   ├── TimeControl_/     # Temporal data control and UI
-│       │   ├── ComponentController_/ # Component lifecycle manager
-│       │   └── Test_/            # Test utilities
+│       │   └── ComponentController_/ # Component lifecycle manager
 │       ├── Tools/                # Interactive tool plugins
 │       │   ├── Analysis/         # Data analysis
 │       │   ├── Animation/        # Map animation creation (GIF/MP4)
