@@ -73,6 +73,10 @@ Comprehensive documentation for the MMGIS project, organized for progressive dis
 
 - [11 — Migration](11-migration.md) — v3 to v4 migration guide
 
+## Devin Knowledge Notes
+
+- [12 — Devin Knowledge Notes](12-devin-knowledge-notes.md) — Curated lessons from past Devin sessions: CI gotchas, auth behavior, path security, DB init architecture, error handling conventions
+
 ## Reference Material
 
 For quick-reference guides and detailed lookup tables, see the **[reference/](./reference/README.md)** directory.
