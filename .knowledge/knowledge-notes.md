@@ -1,10 +1,6 @@
-# Devin Knowledge Notes
+# Knowledge Notes
 
-Lessons learned from past Devin sessions — gotchas not obvious from the codebase.
-
-## CI
-
-- `build-arm64` and `build-amd64` Docker build failures are **pre-existing** — ignore them. Required checks: `test (local)`, `test (off)`, `secret-detection`, `generate-tags`, `bump-version`.
+Lessons learned from past sessions — gotchas not obvious from the codebase.
 
 ## Child Sessions
 

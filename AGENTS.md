@@ -92,7 +92,7 @@ Agent-optimized context in **[.knowledge/](./.knowledge/README.md)**. Full docs 
 | `.knowledge/AI-GETTING-STARTED.md` | Setup, ports, key commands, mission creation |
 | `.knowledge/AI-DEVELOPMENT.md` | Spec-kit workflow, constitution |
 | `.knowledge/conventions-and-gotchas.md` | Naming, code style, component placement, common issues |
-| `.knowledge/12-devin-knowledge-notes.md` | CI, auth, DB init, path security gotchas |
+| `.knowledge/knowledge-notes.md` | Auth, DB init, path security, error handling gotchas |
 
 ## References
 
