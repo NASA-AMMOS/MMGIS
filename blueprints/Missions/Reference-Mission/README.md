@@ -579,7 +579,7 @@ When adding new features to MMGIS:
 4. **Update Spec**: If substantial, create a new spec in `specs/` following the spec-kit workflow
 5. **Constitution Check**: Verify the "Reference Mission mission updated" checklist item before merging
 
-See `AI-DEVELOPMENT.md` and `.specify/memory/constitution.md` for the development workflow.
+See `knowledge/AI-DEVELOPMENT.md` and `.specify/memory/constitution.md` for the development workflow.
 
 ---
 
