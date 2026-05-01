@@ -49,24 +49,49 @@ MMGIS/
 │       │   └── Viewshed/         # Line-of-sight visibility
 │       └── Ancillary/            # UI components and helpers
 ├── configure/                    # Admin configuration interface (separate React app)
-├── docs/                         # Documentation (Jekyll site)
-├── public/                       # Static assets
-├── Missions/                     # Mission data storage
 ├── scripts/                      # Build and utility scripts
 │   ├── build.js                  # Webpack build script
 │   ├── server.js                 # Express server startup
-│   └── init-db.js                # Database initialization
+│   ├── init-db.js                # Database initialization
+│   └── middleware.js             # Request middleware (path validation, auth)
+├── tests/                        # Test suite
+│   ├── e2e/                     # Playwright E2E tests
+│   ├── unit/                    # Jest unit tests
+│   ├── pages/                   # Page object models
+│   ├── fixtures/                # Test data
+│   ├── helpers/                 # Test utilities
+│   ├── global-setup.js          # Test environment setup
+│   └── test-db-clean.js         # Test database cleanup
+├── .knowledge/                   # Agent context: setup, conventions, gotchas
+│   ├── AI-GETTING-STARTED.md    # Agent setup guide
+│   ├── AI-DEVELOPMENT.md        # Spec-kit workflow guide
+│   ├── code-patterns.md         # This file — project tree + code templates
+│   ├── conventions-and-gotchas.md # Naming, style, common issues
+│   └── knowledge-notes.md       # Auth, DB init, path security gotchas
 ├── .specify/                     # Spec-kit infrastructure
 │   ├── memory/
 │   │   └── constitution.md       # Project governance principles
 │   ├── templates/                # Spec, plan, tasks templates
 │   └── scripts/bash/             # Workflow automation scripts
+├── .github/                      # GitHub Actions CI/CD, PR templates, CodeQL
 ├── specs/                        # Feature specifications (retrospective + new)
+├── docs/                         # Jekyll documentation site (docs/pages/)
+├── Missions/                     # Mission data storage
+├── blueprints/                   # Mission templates (Reference-Mission)
+├── adjacent-servers/             # TiTiler, STAC, TiPG, Veloserver proxy configs
+├── auxiliary/                    # GDAL tiling and data processing scripts
+├── build/                        # Production build output (compiled frontend)
 ├── configuration/
 │   └── webpack.config.js         # Webpack configuration
-├── docker-compose.sample.yml     # Sample Docker services definition
-├── Dockerfile                    # Dockerfile definition
-└── auxiliary/                    # GDAL tiling and data processing scripts
+├── examples/                     # Example integrations (ReactWrappedIframe, etc.)
+├── private/                      # Private API scripts (Python GDAL raster extraction)
+├── public/                       # Static assets, index.html, login pages
+├── spice/                        # SPICE kernel download and management
+├── views/                        # Pug templates (login, admin login, error pages)
+├── AGENTS.md                     # AI agent context (top-level, ~120 lines)
+├── CLAUDE.md                     # Claude Code context (references AGENTS.md)
+├── Dockerfile                    # Docker image definition
+└── docker-compose.sample.yml     # Sample Docker services definition
 ```
 
 ### Key Directories

@@ -59,13 +59,18 @@ MMGIS/
 ├── src/essence/          # Frontend: Basics/ (Map_, Layers_, UI), Tools/ (16 tools), Ancillary/
 ├── src/design-system/    # Generic reusable UI components & theming
 ├── configure/            # Separate React admin app (own npm install + build)
-├── scripts/              # server.js, init-db.js, build.js
-├── .knowledge/           # Agent context: setup, conventions, gotchas
+├── scripts/              # server.js, init-db.js, build.js, middleware.js
+├── tests/                # Playwright E2E + Jest unit tests
+├── .knowledge/           # Agent context: setup, conventions, gotchas, code patterns
+├── .specify/             # Spec-kit infrastructure + constitution
 ├── specs/                # Feature specifications (spec-kit)
 ├── blueprints/           # Mission templates (Reference-Mission)
-├── docs/                 # Jekyll documentation site
+├── docs/                 # Jekyll documentation site (docs/pages/)
 ├── Missions/             # Mission data storage
 ├── adjacent-servers/     # TiTiler, STAC, TiPG, Veloserver proxy configs
+├── views/                # Pug templates (login, admin, error pages)
+├── private/              # Private API scripts (Python GDAL)
+├── spice/                # SPICE kernel management
 └── auxiliary/            # GDAL tiling and data processing scripts
 ```
 
