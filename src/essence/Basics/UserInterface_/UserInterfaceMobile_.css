@@ -266,7 +266,7 @@
 .mmgisHelpButton {
     display: none !important;
 }
-#ContextMenuMap, #topBarSecondary, .LayersToolInfo {
+#ContextMenuMap, #topBarSecondary, .LayersToolInfo, #mmgis-map-logo {
     display: none !important;
 }
 
