@@ -237,15 +237,10 @@ let Globe_ = {
             coordinates.hideElevation()
         })
 
-        // Because there might be separated tools, push all the control below them:
-        // First find all left justified separated tools
+        // Because there might be separated tools, push all the control below them
         let numSep = 0
         L_.configData.tools.forEach((t) => {
-            if (
-                t.separatedTool === true &&
-                (t.variables == null || t.variables.justification != 'right')
-            )
-                numSep++
+            if (t.separatedTool === true) numSep++
         })
         $('#_lithosphere_controls_topright').attr(
             'style',

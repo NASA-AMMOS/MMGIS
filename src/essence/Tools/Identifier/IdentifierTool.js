@@ -29,12 +29,11 @@ var IdentifierTool = {
     mousemoveTimeoutMap: null,
     targetId: null,
     made: false,
-    justification: 'left',
+
     vars: {},
     initialize: function () {
         //Get tool variables
-        this.justification = L_.getToolVars('identifier')['justification']
-        // Justification is now handled by ToolController_ during initialization
+
     },
     make: function (targetId) {
         this.targetId = targetId

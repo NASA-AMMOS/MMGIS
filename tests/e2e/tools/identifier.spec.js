@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
  * E2E tests for the Identifier Tool.
  *
  * The Identifier tool is a separated tool (separatedTool: true) with
- * justification "left". It shows coordinate/pixel information when the
+ * left-positioned panel. It shows coordinate/pixel information when the
  * user clicks on the map.
  *
  * Currently covers:
