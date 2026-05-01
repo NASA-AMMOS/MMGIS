@@ -353,3 +353,19 @@
 #topBar {
     height: 40px !important;
 }
+
+/* TimeUI mobile: expanded content flows in column, hide start time */
+#mmgisTimeUIExpandedContent {
+    position: relative !important;
+    top: auto !important;
+}
+#mmgisTimeUIStartWrapper,
+#mmgisTimeUIStartWrapperFake {
+    display: none !important;
+}
+#timeUI {
+    overflow-y: auto !important;
+}
+#mmgisTimeUITopBar {
+    flex-wrap: wrap !important;
+}

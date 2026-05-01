@@ -134,9 +134,8 @@ function MobileTimeUIToggle() {
                 $('#mmgisTimeUIExpandedContent').addClass('show')
             }
 
-            // Open the tool panel
-            const toolHeight = Math.round(window.innerHeight * 0.45)
-            ToolController_.setToolHeight(toolHeight)
+            // Open the tool panel (217px matches TimeUI.height for mobile)
+            ToolController_.setToolHeight(217)
             ToolController_.setToolWidth()
 
             useUIStore.getState().setTimeUIActive(true)

@@ -1176,14 +1176,11 @@ const TimeUI = {
                     true
                 )
             } else {
-                // If in mobile mode, the TimeUI is created and destroyed based on whether it is visible
-                // or not and the user selected time should persist after the TimeUI is opened/closed
-                TimeUI._initialStart = L_.TimeControl_?.startTime
-                TimeUI._initialEnd = L_.TimeControl_?.endTime
-
+                // Mobile: use the same computed _initialStart/_initialEnd as desktop
+                // (L_.TimeControl_ times aren't set yet at this point)
                 TimeUI.timeChange(
-                    L_.TimeControl_?.startTime,
-                    L_.TimeControl_?.endTime,
+                    TimeUI._initialStart.toISOString(),
+                    TimeUI._initialEnd.toISOString(),
                     null,
                     true
                 )
@@ -1300,14 +1297,9 @@ const TimeUI = {
         TimeUI._shiftExpandedContainerView()
 
         if (_getUIStore().getState().isMobile === true) {
-            $('#mmgisTimeUIExpandedContent').css({
-                position: 'absolute',
-                top: '80px',
-            })
-
-            // FIXME Improve time pickers for mobile mode?
-            //  Do not allow users to edit using the start/time pickers
-            $('#mmgisTimeUIMain').css('pointer-events', 'none')
+            // On mobile, expanded is always true so populate the rows
+            TimeUI.expanded = true
+            TimeUI._populateExpandedRows()
         }
     },
     _shiftExpandedContainerView() {
