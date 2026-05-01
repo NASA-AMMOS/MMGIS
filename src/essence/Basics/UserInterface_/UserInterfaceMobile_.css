@@ -12,7 +12,7 @@
     height: 40px;
     left: 0px;
     padding: 5px 5px 5px 0px;
-    padding-left: 40px;
+    padding-left: 34px;
     width: 100%;
     font-family: sans-serif;
     pointer-events: none;
@@ -256,50 +256,24 @@
 .toolButton {
     border-top: none !important;
     border-bottom: none !important;
-    width: 45px !important;
-    line-height: 45px !important;
+    width: 40px !important;
 }
 
 /* Hide other misc items */
 .Search {
     display: none;
 }
-#loginDiv {
-    display: none !important;
-}
 .mmgisHelpButton {
     display: none !important;
 }
-#ContextMenuMap, #topBarSecondary, .LayersToolInfo {
+#ContextMenuMap, #topBarSecondary, .LayersToolInfo, #mmgis-map-logo {
     display: none !important;
 }
 
 .leaflet-top {
     top: 5px;
 }
-#mmgislogo {
-    left: 40px !important;
-}
-#topBarMenu {
-    display: inherit;
-    padding: 9px 6px;
-    cursor: pointer;
-    width: 40px;
-    height: 40px;
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    z-index: 2005;
-    image-rendering: pixelated;
-    background: var(--color-a);
-}
-#topBarLink, #topBarScreenshot, #barBottom  {
-    background: inherit;
-}
-#barBottom {
-/* CSS for the top bar (for bottom bar items moved to the top bar) */
-    top: 40px;
-}
+
 #bottomBarSettings, #bottomBarHotkeys, #topBarFullscreen {
     display: none !important;
 }
@@ -311,14 +285,94 @@
     margin: 0;
     margin-right: inherit !important;
 }
-.leaflet-control-scalefactor {
-    display: none !important;
-}
+
 /* Force the icons in the toolbar to be larger */
 .toolButton > .mdi-18.mdi-set, .toolButton > .mdi-18px.mdi:before {
     font-size: 22px !important;
 }
 
+/* Toolbar horizontal layout for mobile (moved from @media queries to isMobile-driven CSS) */
+#toolbar {
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 0 !important;
+    border-right: none !important;
+    overflow-x: auto !important;
+    height: 40px !important;
+}
+
+#toolbarTools {
+    flex-direction: row !important;
+    align-items: center !important;
+    height: 100% !important;
+}
+
+#toolcontroller_incdiv {
+    flex-direction: row !important;
+    align-items: center !important;
+    height: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding-bottom: 0 !important;
+}
+
+#toolbar .toolButton {
+    width: 40px !important;
+    height: 100% !important;
+    margin: 0 1px !important;
+}
+#toolbar .toolButton i {
+    height: 40px !important;
+}
+#toolbar .toolButton.toolButtonActive {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 8px !important;
+}
+
+#toolbar .toolSep {
+    width: auto !important;
+    height: 100% !important;
+    margin: 0 !important;
+}
+
+.toolSepDivider {
+    width: 1px !important;
+    height: 26px !important;
+    margin: 0 4px !important;
+}
+
+#mapTopBar {
+    padding-left: 134px !important;
+}
+
+/* bottomFloatingBar: flush to edges on mobile */
+#bottomFloatingBar {
+    border-radius: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+}
+
 #topBar {
     height: 40px !important;
+}
+
+/* TimeUI mobile: expanded content flows in column, hide start time */
+#mmgisTimeUIExpandedContent {
+    position: relative !important;
+    top: auto !important;
+}
+#mmgisTimeUIStartWrapper,
+#mmgisTimeUIStartWrapperFake {
+    display: none !important;
+}
+#timeUI {
+    overflow-y: hidden !important;
+}
+#mmgisTimeUITopBar {
+    flex-wrap: wrap !important;
+}
+#mmgisTimeUIMain {
+    justify-content: center !important;
 }
