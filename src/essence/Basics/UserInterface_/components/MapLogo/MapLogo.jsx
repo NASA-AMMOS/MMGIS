@@ -73,11 +73,9 @@ const MapLogo = {
 
         MapLogo.remove()
 
-        const mainContainer = document.getElementById('main-container') || document.body
-
         _container = document.createElement('div')
         _container.id = 'mapLogoRoot'
-        mainContainer.appendChild(_container)
+        document.body.appendChild(_container)
 
         _root = createRoot(_container)
         _root.render(<MapLogoWidget config={MapLogo.config} />)
