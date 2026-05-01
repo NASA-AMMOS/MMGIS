@@ -45,30 +45,23 @@ let ToolController_ = {
         // Auto-open separated tools that have on === true
         separatedTools.forEach((tool) => {
             if (tool.on === true && L_.UserInterface_.isMobile !== true) {
-                const toolModuleName = tool.name + 'Tool'
-                const targetId = `toolContentSeparated_${tool.name}`
-                // Wait for React to render the container div before calling make()
-                const tryMake = (attempts) => {
-                    if (document.getElementById(targetId)) {
-                        const tM = ToolController_.toolModules[toolModuleName]
-                        if (tM && tM.made === false) {
-                            tM.make(targetId)
-                            useUIStore.getState().addActiveSeparatedTool(toolModuleName)
-                            ToolController_.activeSeparatedTools.push(toolModuleName)
-                            document.dispatchEvent(
-                                new CustomEvent('toggleSeparatedTool', {
-                                    detail: {
-                                        toggledToolName: tool.js,
-                                        visible: true,
-                                    },
-                                })
-                            )
-                        }
-                    } else if (attempts < 20) {
-                        setTimeout(() => tryMake(attempts + 1), 50)
+                setTimeout(() => {
+                    const toolModuleName = tool.name + 'Tool'
+                    const tM = ToolController_.toolModules[toolModuleName]
+                    if (tM && tM.made === false) {
+                        tM.make(`toolContentSeparated_${tool.name}`)
+                        useUIStore.getState().addActiveSeparatedTool(toolModuleName)
+                        ToolController_.activeSeparatedTools.push(toolModuleName)
+                        document.dispatchEvent(
+                            new CustomEvent('toggleSeparatedTool', {
+                                detail: {
+                                    toggledToolName: tool.js,
+                                    visible: true,
+                                },
+                            })
+                        )
                     }
-                }
-                setTimeout(() => tryMake(0), 0)
+                }, 0)
             }
         })
 
@@ -324,25 +317,19 @@ let ToolController_ = {
                 const toolModuleName = tool.name + 'Tool'
                 const tM = ToolController_.toolModules[toolModuleName]
                 if (tM && tM.displayOnStart === true && tM.made === false) {
-                    const targetId = `toolContentSeparated_${tool.name}`
-                    const tryMake = (attempts) => {
-                        if (document.getElementById(targetId)) {
-                            tM.make(targetId)
-                            ToolController_.activeSeparatedTools.push(toolModuleName)
-                            useUIStore.getState().addActiveSeparatedTool(toolModuleName)
-                            document.dispatchEvent(
-                                new CustomEvent('toggleSeparatedTool', {
-                                    detail: {
-                                        toggledToolName: tool.js,
-                                        visible: true,
-                                    },
-                                })
-                            )
-                        } else if (attempts < 20) {
-                            setTimeout(() => tryMake(attempts + 1), 50)
-                        }
-                    }
-                    tryMake(0)
+                    setTimeout(() => {
+                        tM.make(`toolContentSeparated_${tool.name}`)
+                        ToolController_.activeSeparatedTools.push(toolModuleName)
+                        useUIStore.getState().addActiveSeparatedTool(toolModuleName)
+                        document.dispatchEvent(
+                            new CustomEvent('toggleSeparatedTool', {
+                                detail: {
+                                    toggledToolName: tool.js,
+                                    visible: true,
+                                },
+                            })
+                        )
+                    }, 0)
                 }
             })
         }
