@@ -53,18 +53,16 @@ function MobileCoordButton() {
     return (
         <div
             id="coordinatesDiv"
-            className={'toolButton' + (isActive ? ' active' : '')}
+            className={'toolButton' + (isActive ? ' toolButtonActive' : '')}
             style={{
                 position: 'relative',
                 width: '40px',
                 height: '40px',
-                display: 'inline-block',
-                textAlign: 'center',
-                lineHeight: '40px',
-                verticalAlign: 'middle',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease-in',
-                color: isActive ? activeColor : defaultColor,
+                transition: 'all 0.15s',
             }}
             onClick={handleClick}
         >
@@ -174,14 +172,13 @@ function MobileTimeUIToggle() {
                 position: 'relative',
                 width: '40px',
                 height: '40px',
-                display: 'inline-flex',
+                display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease-in',
+                transition: 'all 0.15s',
                 float: 'right',
                 flexShrink: 0,
-                color: isActive ? 'var(--color-mmgis)' : 'var(--color-f)',
             }}
             onClick={handleClick}
             title="Toggle Time UI"
@@ -238,7 +235,7 @@ function ToolButton({ tool, index, isMobile, isActive, onToolClick }) {
             style={{
                 width: isMobile ? '40px' : '34px',
                 height: isMobile ? '100%' : '34px',
-                display: isMobile ? 'inline-block' : 'flex',
+                display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
