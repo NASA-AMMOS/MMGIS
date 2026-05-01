@@ -74,7 +74,7 @@ At the bottom of the Configure page:
 
 ## Configuration API
 
-The Configure page exposes REST endpoints under `/api/configure/*`. These are restricted to Site Admins only. See [06.2-configure-rest-api.md](06.2-configure-rest-api.md) for endpoint details.
+The Configure page exposes REST endpoints under `/api/configure/*`. These are restricted to Site Admins only. See [06.1-configure-rest-api.md](06.1-configure-rest-api.md) for endpoint details.
 
 ## WebSocket Coordination
 
