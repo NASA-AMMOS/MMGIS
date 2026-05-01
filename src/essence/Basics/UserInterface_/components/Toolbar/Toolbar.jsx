@@ -32,6 +32,14 @@ function MobileCoordButton() {
         // and activeToolName in the store — no imperative DOM toggling needed.
 
         if (!isActive) {
+            // Close any active tool first and cancel deferred cleanup
+            ToolController_.closeActiveTool()
+            if (ToolController_._pendingCloseTool) {
+                ToolController_._pendingCloseTool.destroy()
+                ToolController_._pendingCloseTool = null
+            }
+            ++ToolController_._closeSeq
+
             L_.Coordinates.initialize()
             L_.Coordinates.init()
             ToolController_.setToolHeight(L_.Coordinates.height)
@@ -44,7 +52,6 @@ function MobileCoordButton() {
             ToolController_.setToolHeight(0)
             ToolController_.setToolWidth()
             L_.Coordinates.destroy()
-            ToolController_.closeActiveTool()
             ToolController_.activeToolName = null
             useUIStore.getState().setActiveToolName(null)
             setIsActive(false)
@@ -124,8 +131,13 @@ function MobileTimeUIToggle() {
             require('../../../ToolController_/ToolController_').default
 
         if (!isActive) {
-            // Close any active tool first
+            // Close any active tool first and cancel deferred cleanup
             ToolController_.closeActiveTool()
+            if (ToolController_._pendingCloseTool) {
+                ToolController_._pendingCloseTool.destroy()
+                ToolController_._pendingCloseTool = null
+            }
+            ++ToolController_._closeSeq
             ToolController_.activeToolName = 'MobileTimeUI'
             useUIStore.getState().setActiveToolName('MobileTimeUI')
 
