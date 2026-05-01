@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "MMGIS",
-    "version": "4.0.0",
+    "version": "5.0.0",
     "description": "A web-based mapping and localization solution for science operation on planetary missions."
   },
   "tags": [],
