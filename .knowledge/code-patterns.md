@@ -7,32 +7,45 @@ Copy-paste-modify templates for the main code patterns in MMGIS, plus the detail
 ```
 MMGIS/
 ├── API/                           # Backend Express server
-│   ├── Backend/
-│   │   ├── APIs/                 # RESTful endpoint handlers
-│   │   │   ├── routes.js         # Main route definitions
-│   │   │   ├── User.js           # User management & auth
-│   │   │   ├── Files.js          # File upload/download
-│   │   │   ├── Geodatasets.js    # Geodata management
-│   │   │   ├── Draw.js           # Vector drawing & collaboration
-│   │   │   └── Websocket.js      # Real-time WebSocket server
-│   │   ├── Databases/            # Sequelize models & migrations
-│   │   └── Utils/                # Backend utilities
+│   ├── Backend/                  # Feature-domain modules
+│   │   ├── Accounts/             # Account management (routes/, setup.js)
+│   │   ├── Config/               # Mission configuration (routes/, models/, setup.js)
+│   │   ├── Datasets/             # Dataset management (routes/, models/, setup.js)
+│   │   ├── Draw/                 # Vector drawing & collaboration (routes/, models/, setup.js)
+│   │   ├── Geodatasets/          # Geodata management (routes/, models/, setup.js)
+│   │   ├── LongTermToken/        # API token management (routes/, models/, setup.js)
+│   │   ├── Shortener/            # URL shortening (routes/, models/, setup.js)
+│   │   ├── Stac/                 # STAC catalog integration (routes/, setup.js)
+│   │   ├── Users/                # User auth & management (routes/, models/, setup.js)
+│   │   ├── Utils/                # Shared backend utilities (routes/)
+│   │   ├── Webhooks/             # Webhook processing (routes/, models/, processes/)
+│   │   ├── GeneralOptions/       # General options (models/, setup.js)
+│   │   └── setupTemplate.js      # Template for new backend modules
 │   ├── connection.js             # Database connection config
 │   ├── database.js               # Database initialization
 │   ├── logger.js                 # Winston logger configuration
+│   ├── setups.js                 # Loads all Backend/*/setup.js modules
+│   ├── utils.js                  # Shared API utilities
 │   └── websocket.js              # WebSocket server setup
 ├── src/                          # Frontend source code
 │   ├── design-system/            # Reusable, generic UI components & theming
-│   │   ├── components/           # Generic components (Toast, Modal, Tooltip, Button, etc.)
+│   │   ├── components/           # Generic components (Toast, Modal, Tooltip, Button, Toggle, Dropdown, IconButton)
 │   │   ├── themes.js             # Color scheme definitions
 │   │   └── themeApplier.js       # Runtime theme application
-│   └── essence/
-│       ├── Basics/               # Core map/MMGIS-specific functionality
-│       │   ├── Layers_/Layers_.js # Global layer state controller (L_)
-│       │   ├── Map_.js           # Map rendering engine (Leaflet/Cesium)
+│   └── essence/                  # Core MMGIS frontend
+│       ├── Basics/               # Global singleton controllers
+│       │   ├── Layers_/          # L_ — layer lifecycle, visibility, state
+│       │   ├── Map_/             # Map_ — 2D rendering (Leaflet)
+│       │   ├── Globe_/           # Globe_ — 3D rendering (Cesium/LithoSphere)
+│       │   ├── Formulae_/        # F_ — utility/math functions
+│       │   ├── ToolController_/  # Tool lifecycle manager
+│       │   ├── Viewer_/          # Viewer panel controller
 │       │   ├── UserInterface_/   # MMGIS-specific UI (TopBar, Toolbar, Coordinates, CursorInfo)
-│       │   └── TimeControl_/     # Temporal data control and UI
-│       ├── Tools/                # Interactive tool plugins (16 core tools)
+│       │   ├── TimeControl_/     # Temporal data control and UI
+│       │   ├── ComponentController_/ # Component lifecycle manager
+│       │   └── Test_/            # Test utilities
+│       ├── Tools/                # Interactive tool plugins
+│       │   ├── Analysis/         # Data analysis
 │       │   ├── Animation/        # Map animation creation (GIF/MP4)
 │       │   ├── Chemistry/        # Chemical composition visualization
 │       │   ├── Curtain/          # GPR subsurface imagery
@@ -44,11 +57,16 @@ MMGIS/
 │       │   ├── Layers/           # Layer management interface
 │       │   ├── Legend/           # Map legend display
 │       │   ├── Measure/          # Distance & elevation profiles
-│       │   ├── Query/            # Spatial query interface
+│       │   ├── SegmentTool/      # Segment analysis
 │       │   ├── Shade/            # Sun/shadow illumination
 │       │   ├── Sites/            # Quick navigation bookmarks
 │       │   └── Viewshed/         # Line-of-sight visibility
-│       └── Ancillary/            # UI components and helpers
+│       ├── Components/           # Shared UI components
+│       ├── Helpers/              # Frontend helper utilities
+│       ├── LandingPage/          # Mission selection landing page
+│       ├── mmgisAPI/             # JavaScript API for external integration
+│       ├── services/             # Frontend service modules
+│       └── essence.js            # Main frontend entry point
 ├── configure/                    # Admin configuration interface (separate React app)
 ├── scripts/                      # Build and utility scripts
 │   ├── build.js                  # Webpack build script
@@ -63,6 +81,9 @@ MMGIS/
 │   ├── helpers/                 # Test utilities
 │   ├── global-setup.js          # Test environment setup
 │   └── test-db-clean.js         # Test database cleanup
+├── configuration/                # Build configuration
+│   ├── webpack.config.js         # Webpack configuration
+│   └── webpackDevServer.config.js # Dev server configuration
 ├── .knowledge/                   # Agent context: setup, conventions, gotchas
 │   ├── AI-GETTING-STARTED.md    # Agent setup guide
 │   ├── AI-DEVELOPMENT.md        # Spec-kit workflow guide
@@ -82,8 +103,6 @@ MMGIS/
 ├── adjacent-servers/             # TiTiler, STAC, TiPG, Veloserver proxy configs
 ├── auxiliary/                    # GDAL tiling and data processing scripts
 ├── build/                        # Production build output (compiled frontend)
-├── configuration/
-│   └── webpack.config.js         # Webpack configuration
 ├── examples/                     # Example integrations (ReactWrappedIframe, etc.)
 ├── private/                      # Private API scripts (Python GDAL raster extraction)
 ├── public/                       # Static assets, index.html, login pages
@@ -97,26 +116,28 @@ MMGIS/
 
 ### Key Directories
 
-- **`API/Backend/APIs/`** — RESTful endpoint handlers. Each file handles a feature area (auth, files, drawing, etc.)
-- **`API/Backend/Databases/`** — Sequelize ORM models and database migrations
+- **`API/Backend/*/`** — Each backend feature is a self-contained module with `setup.js` (registers routes), `routes/` (Express handlers), and `models/` (Sequelize definitions). See `API/Backend/setupTemplate.js` for the pattern.
 - **`src/design-system/`** — Generic, reusable UI components and theming. Components here (Toast, Modal, Tooltip, Button, Toggle, Dropdown, IconButton) are **not MMGIS-specific**. New generic UI components belong here.
 - **`src/essence/Basics/UserInterface_/`** — MMGIS-specific UI (TopBar, Toolbar, Coordinates, CursorInfo, BottomBar). Tightly coupled to MMGIS state. **Do not place generic components here** — use `src/design-system/` instead.
-- **`src/essence/Tools/`** — Plugin-based interactive mapping tools. Each tool is self-contained.
-- **`src/essence/Basics/Map_.js`** — Core map rendering engine managing both Leaflet (2D) and Cesium (3D)
+- **`src/essence/Tools/`** — Plugin-based interactive mapping tools. Each tool is self-contained with `make()`/`destroy()` lifecycle.
+- **`src/essence/Basics/Layers_/`** — The `L_` singleton — manages all layer state, visibility, and lifecycle. One of the most important modules.
+- **`src/essence/Basics/Map_/`** — The `Map_` singleton — core 2D map rendering engine (Leaflet).
 - **`configure/`** — Separate admin interface for mission configuration. Needs its own `npm install && npm run build`.
-- **`specs/`** — Feature specifications following spec-kit format
+- **`specs/`** — Feature specifications following spec-kit format.
 
 ---
 
 ## Express Route Handler
 
 ```javascript
-// API/Backend/APIs/FeatureName.js
+// API/Backend/FeatureName/routes/featurename.js
 const express = require("express");
 const router = express.Router();
-const authenticate = require("../Utils/authenticate");
+const logger = require("../../../logger");
+const database = require("../../../database");
+const { sequelize } = require("../../../connection");
 
-router.post("/api/feature", authenticate, async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     // Validate input
     const { field } = req.body;
@@ -130,54 +151,72 @@ router.post("/api/feature", authenticate, async (req, res) => {
     // Response
     res.status(201).json({ success: true, data: result });
   } catch (err) {
-    console.error("Error in /api/feature:", err);
+    logger("error", "Error in /api/feature:", "FeatureName", null, err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-module.exports = router;
+module.exports = { router };
+```
+
+### Backend Module setup.js
+
+```javascript
+// API/Backend/FeatureName/setup.js
+const routerFeature = require("./routes/featurename").router;
+
+let setup = {
+  onceInit: (s) => {
+    s.app.use(
+      s.ROOT_PATH + "/api/featurename",
+      s.ensureUser(),
+      s.checkHeadersCodeInjection,
+      s.setContentType,
+      routerFeature
+    );
+  },
+  onceSynced: (s) => {
+    // Called after sequelize.sync() — run migrations here
+  },
+};
+
+module.exports = setup;
 ```
 
 ## Sequelize Model
 
 ```javascript
-// API/Backend/Databases/models/ModelName.js
-module.exports = (sequelize, DataTypes) => {
-  const ModelName = sequelize.define(
-    "ModelName",
-    {
-      id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-      },
-      name: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      geometry: {
-        type: DataTypes.GEOMETRY("POINT", 4326), // PostGIS geometry
-        allowNull: true,
-      },
-    },
-    {
-      tableName: "model_name",
-      timestamps: true,
-    },
-  );
+// API/Backend/FeatureName/models/featurename.js
+const Sequelize = require("sequelize");
+const { sequelize } = require("../../../connection");
+const logger = require("../../../logger");
 
-  ModelName.associate = function (models) {
-    // Define associations
-  };
-
-  return ModelName;
+const attributes = {
+  name: {
+    type: Sequelize.STRING,
+    unique: false,
+    allowNull: false,
+  },
+  geometry: {
+    type: Sequelize.DataTypes.GEOMETRY("POINT", 4326),
+    allowNull: true,
+  },
 };
+
+const FeatureName = sequelize.define("feature_name", attributes);
+
+const up = async () => {
+  // Schema migrations — runs in onceSynced callback
+  // ALTER TABLE ... ADD COLUMN IF NOT EXISTS
+};
+
+module.exports = { FeatureName, up };
 ```
 
 ## Frontend Tool Plugin
 
 ```javascript
-// src/essence/Tools/ToolName/ToolName.js
+// src/essence/Tools/ToolName/ToolNameTool.js
 import $ from "jquery";
 import F_ from "../../Basics/Formulae_/Formulae_";
 import L_ from "../../Basics/Layers_/Layers_";
@@ -205,12 +244,9 @@ function interfaceWithMMGIS() {
     separateFromMMGIS();
   };
 
-  // MMGIS should always have a div with id 'toolPanel'
   let tools = $("#toolPanel");
   tools.css("background", "var(--color-k)");
-  // Clear it
   tools.empty();
-  // Add the markup to tools
   tools.html('<div style="height: 100%">' + markup + "</div>");
 
   // Add event functions and whatnot
@@ -226,7 +262,7 @@ export default ToolName;
 ## WebSocket Message Handler
 
 ```javascript
-// API/Backend/APIs/Websocket.js
+// API/websocket.js
 ws.on("message", function (message) {
   try {
     const msg = JSON.parse(message);

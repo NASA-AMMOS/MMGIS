@@ -48,15 +48,15 @@ Express 5.2 backend (Node.js 22+) with PostgreSQL/PostGIS, Sequelize ORM, and We
 - **Singletons**: `L_` (Layers), `Map_`, `Globe_`, `F_` (Formulae), `ToolController_`, `Viewer_` — global state controllers with trailing underscore
 - **Tool lifecycle**: Each tool implements `make()` (open) and `destroy()` (close) in `src/essence/Tools/ToolName/`
 - **Layer types**: vector, tile, data, model, image, vectortile, velocity, video, header, query
-- **Backend pattern**: Routes → Controllers (`API/Backend/APIs/*.js`) → Models (`API/Backend/Databases/*.js`) → PostgreSQL
+- **Backend pattern**: Each feature is a module in `API/Backend/FeatureName/` with `setup.js` (registers routes), `routes/` (Express handlers), `models/` (Sequelize definitions)
 - **Plugin system**: `*Private-Tools*`, `*Plugin-Tools*`, `*Private-Backend*`, `*Plugin-Backend*`, `*Private-Components*`, `*Plugin-Components*` directories (auto-gitignored)
 
 ## Project Structure (Abbreviated)
 
 ```
 MMGIS/
-├── API/Backend/          # Express routes, Sequelize models, WebSocket
-├── src/essence/          # Frontend: Basics/ (Map_, Layers_, UI), Tools/ (16 tools), Ancillary/
+├── API/Backend/*/        # Feature-domain modules (routes/, models/, setup.js each)
+├── src/essence/          # Frontend: Basics/ (singletons), Tools/ (16 tools), Components/, Helpers/
 ├── src/design-system/    # Generic reusable UI components & theming
 ├── configure/            # Separate React admin app (own npm install + build)
 ├── scripts/              # server.js, init-db.js, build.js, middleware.js
