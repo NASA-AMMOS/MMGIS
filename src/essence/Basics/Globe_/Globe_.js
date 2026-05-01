@@ -237,19 +237,6 @@ let Globe_ = {
             coordinates.hideElevation()
         })
 
-        // Because there might be separated tools, push all the control below them
-        let numSep = 0
-        L_.configData.tools.forEach((t) => {
-            if (t.separatedTool === true) numSep++
-        })
-        $('#_lithosphere_controls_topright').attr(
-            'style',
-            function (index, currentStyles) {
-                return `${currentStyles} top: ${
-                    40 + numSep * 35
-                }px !important; right: 5px;`
-            }
-        )
     },
     getMockLitho: function () {
         return {
