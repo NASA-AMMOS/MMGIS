@@ -325,6 +325,7 @@
     height: 40px !important;
 }
 #toolbar .toolButton.toolButtonActive {
+    width: 34px !important;
     height: 34px !important;
     border-radius: 8px !important;
 }
