@@ -2910,6 +2910,9 @@ const TimeUI = {
         }, delay)
     },
     _makeHistogram() {
+        // Histogram is drawn inside the timeline slider which doesn't exist on mobile
+        if (_getUIStore().getState().isMobile === true) return
+
         const startTimestamp = TimeUI.removeOffset(
             TimeUI._timelineStartTimestamp
         )
