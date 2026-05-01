@@ -70,4 +70,4 @@ For significant features, use the documentation-first workflow:
 /speckit.specify → /speckit.plan → /speckit.tasks → /speckit.implement → /speckit.checklist
 ```
 
-See `knowledge/AI-DEVELOPMENT.md` for the complete workflow guide.
+See [AI-DEVELOPMENT.md](AI-DEVELOPMENT.md) for the complete workflow guide.
