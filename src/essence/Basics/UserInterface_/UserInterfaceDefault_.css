@@ -93,7 +93,7 @@
     #main-container > #topBar #topBarTitleName {
         font-size: 12px;
         padding: 0px 8px;
-        max-width: 110px;
+        white-space: nowrap;
         line-height: 12px;
     }
 }
