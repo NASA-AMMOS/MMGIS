@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react'
+import React, { useEffect, useCallback, useState } from 'react'
 import useUIStore from '../../store/uiStore'
 import F_ from '../../../Formulae_/Formulae_'
 import BottomBarReact from '../BottomBar/BottomBarReact'
@@ -270,34 +270,105 @@ function ToolButton({ tool, index, isMobile, isActive, onToolClick }) {
 }
 
 /**
- * SepToolsContainer — a React container that hosts the jQuery-created
- * separated tool buttons (#toolcontroller_sepdiv). Uses a ref to re-parent
- * the jQuery element into the React tree after each render.
+ * SepToolButton — a single separated tool button in the toolbar.
  */
-function SepToolsContainer() {
-    const containerRef = useRef(null)
+function SepToolButton({ tool, isActive }) {
+    const handleClick = useCallback(() => {
+        const ToolController_ =
+            require('../../../ToolController_/ToolController_').default
+        const toolModuleName = tool.name + 'Tool'
+        const tM = ToolController_.toolModules[toolModuleName]
+        if (!tM) return
 
-    useEffect(() => {
-        const container = containerRef.current
-        if (!container) return
-
-        const reparent = () => {
-            const ToolController_ =
-                require('../../../ToolController_/ToolController_').default
-            if (ToolController_.sepToolbarDiv && ToolController_.sepToolbarDiv[0]) {
-                const sepEl = ToolController_.sepToolbarDiv[0]
-                if (sepEl.parentElement !== container) {
-                    container.appendChild(sepEl)
-                }
-            }
+        if (tM.made === false) {
+            tM.make(`toolContentSeparated_${tool.name}`)
+            ToolController_.activeSeparatedTools.push(toolModuleName)
+            useUIStore.getState().addActiveSeparatedTool(toolModuleName)
+        } else {
+            tM.destroy()
+            ToolController_.activeSeparatedTools =
+                ToolController_.activeSeparatedTools.filter(
+                    (a) => a !== toolModuleName
+                )
+            useUIStore.getState().removeActiveSeparatedTool(toolModuleName)
         }
+        document.dispatchEvent(
+            new CustomEvent('toggleSeparatedTool', {
+                detail: { toggledToolName: tool.js, visible: tM.made },
+            })
+        )
+    }, [tool])
 
-        reparent()
-        const timer = setInterval(reparent, 500)
-        return () => clearInterval(timer)
-    }, [])
+    const button = (
+        <div
+            id={`toolButtonSeparated_${tool.name}`}
+            className={'toolButton toolSep' + (isActive ? ' active' : '')}
+            style={{
+                width: '100%',
+                height: '36px',
+                display: 'inline-block',
+                textAlign: 'center',
+                lineHeight: '36px',
+                verticalAlign: 'middle',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                color: isActive ? 'var(--color-c)' : 'var(--color-a3)',
+                background: isActive ? 'var(--color-accent-active)' : 'none',
+            }}
+            onClick={handleClick}
+        >
+            <i
+                id={`sepIcon_${tool.name}Tool`}
+                className={`mdi mdi-${tool.icon} mdi-18px`}
+                style={{ cursor: 'pointer' }}
+            />
+        </div>
+    )
 
-    return <div ref={containerRef} id="sepToolsReactContainer" />
+    return (
+        <Tooltip content={tool.name} placement="right">
+            {button}
+        </Tooltip>
+    )
+}
+
+/**
+ * SepToolsSection — renders the divider + all separated tool buttons below
+ * the main toolbar buttons.
+ */
+function SepToolsSection() {
+    const separatedToolsList = useUIStore((s) => s.separatedToolsList)
+    const activeSeparatedTools = useUIStore((s) => s.activeSeparatedTools)
+
+    if (!separatedToolsList || separatedToolsList.length === 0) return null
+
+    // Sort: Legend first
+    const sorted = [...separatedToolsList].sort((a, b) => {
+        if (a.name === 'Legend') return -1
+        if (b.name === 'Legend') return 1
+        return 0
+    })
+
+    return (
+        <div id="toolcontroller_sepdiv">
+            <div
+                className="toolSepDivider"
+                style={{
+                    width: '26px',
+                    height: '1px',
+                    margin: '4px auto',
+                    background: 'var(--color-a1)',
+                }}
+            />
+            {sorted.map((tool) => (
+                <SepToolButton
+                    key={tool.name}
+                    tool={tool}
+                    isActive={activeSeparatedTools.includes(tool.name + 'Tool')}
+                />
+            ))}
+        </div>
+    )
 }
 
 function Toolbar({ userInterface }) {
@@ -408,8 +479,7 @@ function Toolbar({ userInterface }) {
                             })}
                             {isMobile && <MobileExtraButtons />}
                         </div>
-                        {/* Container for jQuery-created separated tool buttons */}
-                        {!isMobile && <SepToolsContainer />}
+                        {!isMobile && <SepToolsSection />}
                     </div>
                 )}
                 {!isMobile && <BottomBarReact userInterface={userInterface} />}

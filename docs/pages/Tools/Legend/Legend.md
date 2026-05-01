@@ -12,12 +12,10 @@ A layer can be configured with a legend by pointing its Legend field to a .csv f
 On the Configure page, under Tools, you can specify additional options:
 
 * displayOnStart: Whether the expanded legend should automatically be displayed on start (`true`/`false`)
-* justification: The legend will display on the right side of the screen if set to `right`, otherwise default to the left side
 
 ```javascript
 {
-    "displayOnStart": true,
-    "justification": "right"
+    "displayOnStart": true
 }
 ```
 

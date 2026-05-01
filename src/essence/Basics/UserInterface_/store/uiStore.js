@@ -96,6 +96,30 @@ const useUIStore = create((set, get) => ({
     toolsLoaded: false,     // True after ToolController_ has initialized all tool modules
     mobileTools: [],        // Array of tool names shown on mobile (e.g. ['Layers', 'Legend', 'Info'])
 
+    // Separated tools (Legend, Identifier, etc.)
+    separatedToolsList: [],       // Array of tool config objects where separatedTool === true
+    activeSeparatedTools: [],     // Array of active separated tool module names (e.g. ['LegendTool'])
+    setSeparatedToolsList: (tools) => set({ separatedToolsList: tools }),
+    setActiveSeparatedTools: (tools) => set({ activeSeparatedTools: tools }),
+    addActiveSeparatedTool: (toolModuleName) =>
+        set((state) => ({
+            activeSeparatedTools: state.activeSeparatedTools.includes(toolModuleName)
+                ? state.activeSeparatedTools
+                : [...state.activeSeparatedTools, toolModuleName],
+        })),
+    removeActiveSeparatedTool: (toolModuleName) =>
+        set((state) => ({
+            activeSeparatedTools: state.activeSeparatedTools.filter(
+                (t) => t !== toolModuleName
+            ),
+        })),
+    toggleSeparatedTool: (toolModuleName) =>
+        set((state) => ({
+            activeSeparatedTools: state.activeSeparatedTools.includes(toolModuleName)
+                ? state.activeSeparatedTools.filter((t) => t !== toolModuleName)
+                : [...state.activeSeparatedTools, toolModuleName],
+        })),
+
     // Status indicator (reload / websocket disconnected / layer update)
     // type: null | 'RELOAD' | 'ADD_LAYER' | 'DISCONNECTED'
     statusIndicator: null,
