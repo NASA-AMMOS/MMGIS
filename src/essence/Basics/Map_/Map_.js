@@ -2175,6 +2175,9 @@ function allLayersLoaded() {
                         'toolContentSeparated_Legend'
                     )
                     ToolController_.activeSeparatedTools.push('LegendTool')
+                    const useUIStore =
+                        require('../UserInterface_/store/uiStore').default
+                    useUIStore.getState().addActiveSeparatedTool('LegendTool')
                     let _event = new CustomEvent('toggleSeparatedTool', {
                         detail: {
                             toggledToolName: 'LegendTool',

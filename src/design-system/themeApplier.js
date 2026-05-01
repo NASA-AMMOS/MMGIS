@@ -48,12 +48,8 @@ function applyThemeToDOM(themeName) {
         btn.style.background = t['--color-accent-active']
         btn.style.color = t['--color-c']
     })
-    document.querySelectorAll('#toolbar .toolSep').forEach((btn) => {
-        btn.style.color = t['--color-c']
-    })
-    document.querySelectorAll('.toolSepDivider').forEach((el) => {
-        el.style.background = t['--color-a2']
-    })
+    // NOTE: .toolSep and .toolSepDivider are now styled by React (SepToolsSection)
+    // using inline styles with CSS custom properties.
 
     // NOTE: #bottomFloatingBar and #toolPanel are now styled via CSS Modules
     // (SplitScreens.module.css and ToolPanel.module.css) using CSS custom properties.
@@ -99,17 +95,8 @@ function applyThemeToDOM(themeName) {
         el.style.border = `1px solid ${t['--color-a1']}`
     })
 
-    // --- Separated tool panels (Legend, etc.) ---
-    document.querySelectorAll('#toolcontroller_sep_content > div').forEach((el) => {
-        el.style.background = a('--color-a', 0.88)
-        el.style.border = `1px solid ${t['--color-a1']}`
-    })
-    // Separated tool content text
-    document.querySelectorAll('#toolcontroller_sep_content .mmgisScrollbar, #toolcontroller_sep_content label, #toolcontroller_sep_content span, #toolcontroller_sep_content div').forEach((el) => {
-        if (!el.style.color || el.style.color === 'white' || el.style.color === '#fff' || el.style.color === 'rgb(255, 255, 255)') {
-            el.style.color = t['--color-f']
-        }
-    })
+    // NOTE: Separated tool panels (Legend, etc.) are now styled via CSS Modules
+    // (SeparatedTools.module.css) using CSS custom properties.
 
     // --- Attributions ---
     const attr = document.getElementById('mmgis-attributions')
@@ -132,14 +119,8 @@ function applyThemeToDOM(themeName) {
     // via CSS Modules (TopBar.module.css, UserInterfaceLayout.module.css)
     // using CSS custom properties.
 
-    // --- Separated tool panel headers ---
-    document.querySelectorAll('.sep-tool-header').forEach((el) => {
-        el.style.borderBottom = `1px solid ${t['--color-a1']}`
-        el.style.color = t['--color-a4']
-    })
-    document.querySelectorAll('.sep-tool-header span').forEach((el) => {
-        el.style.color = t['--color-f']
-    })
+    // NOTE: Separated tool panel headers are now styled via CSS Modules
+    // (SeparatedTools.module.css) using CSS custom properties.
 
     // --- MMGIS logo SVG fill ---
     const logoPath = document.querySelector('#mmgislogo svg path')

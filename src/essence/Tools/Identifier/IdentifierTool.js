@@ -598,13 +598,7 @@ function interfaceWithMMWebGIS() {
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
 
-    var newActive = $('#toolcontroller_sepdiv #sepIcon_IdentifierTool')
-    newActive.addClass('active').css({
-        color: ToolController_.activeColor,
-    })
-    newActive.parent().css({
-        background: ToolController_.activeBG,
-    })
+    // Active styling is now handled reactively by SepToolButton in Toolbar.jsx
 
     function separateFromMMWebGIS() {
         CursorInfo.hide()
@@ -631,16 +625,7 @@ function interfaceWithMMWebGIS() {
             tools.css('background', 'transparent')
             //Clear it
             tools.empty()
-            var prevActive = $(
-                '#toolcontroller_sepdiv #sepIcon_IdentifierTool'
-            )
-            prevActive.removeClass('active').css({
-                color: ToolController_.defaultColor,
-                background: 'none',
-            })
-            prevActive.parent().css({
-                background: 'none',
-            })
+            // Active styling is now handled reactively by SepToolButton in Toolbar.jsx
         } else {
             $('#map').css('cursor', previousCursor)
         }
