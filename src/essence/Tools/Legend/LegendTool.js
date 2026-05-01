@@ -200,7 +200,7 @@ function refreshLegends() {
 
     _refreshLegends(L_.configData.layers, {}, 0)
 
-    if (LegendTool.made && LegendTool.targetId) {
+    if (LegendTool.targetId) {
         const contentContainer = $(`#${LegendTool.targetId} #LegendTool`)
         if (contentContainer.length && contentContainer.children().length === 0) {
             contentContainer.append(
