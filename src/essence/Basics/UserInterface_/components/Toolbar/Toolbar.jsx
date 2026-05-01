@@ -84,6 +84,7 @@ function MobileCoordButton() {
 function MobileTimeUIToggle() {
     const [isActive, setIsActive] = useState(false)
     const [hasTime, setHasTime] = useState(false)
+    const activeToolName = useUIStore((s) => s.activeToolName)
 
     useEffect(() => {
         try {
@@ -95,6 +96,20 @@ function MobileTimeUIToggle() {
             // L_ not available yet
         }
     }, [])
+
+    // When another tool opens, rescue #timeUI back to staging before
+    // the new tool's make() clears #tools
+    useEffect(() => {
+        if (activeToolName && isActive) {
+            const timeUI = document.getElementById('timeUI')
+            const staging = document.getElementById('timeUIMobileStaging')
+            if (timeUI && staging) {
+                staging.appendChild(timeUI)
+            }
+            useUIStore.getState().setTimeUIActive(false)
+            setIsActive(false)
+        }
+    }, [activeToolName]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleClick = useCallback(() => {
         const $ = require('jquery')
