@@ -319,13 +319,13 @@
 #toolbar .toolButton {
     width: 40px !important;
     height: 100% !important;
-    margin: 0 2px !important;
+    margin: 0 1px !important;
 }
 #toolbar .toolButton i {
     height: 40px !important;
 }
 #toolbar .toolButton.toolButtonActive {
-    margin: 1px 2px !important;
+    height: 34px !important;
     border-radius: 8px !important;
 }
 

@@ -76,7 +76,7 @@ function MobileCoordButton() {
         >
             <i
                 className="mdi mdi-target mdi-18px"
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: 'pointer', lineHeight: '40px' }}
             />
         </div>
     )
@@ -193,7 +193,7 @@ function MobileTimeUIToggle() {
             onClick={handleClick}
             title="Toggle Time UI"
         >
-            <i className="mdi mdi-clock-outline mdi-18px" />
+            <i className="mdi mdi-clock-outline mdi-18px" style={{ lineHeight: '40px' }} />
         </div>
     )
 }
