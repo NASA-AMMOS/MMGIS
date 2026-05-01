@@ -7,6 +7,13 @@
 > **New to this repo?** See [.knowledge/AI-GETTING-STARTED.md](./.knowledge/AI-GETTING-STARTED.md) for setup guide, port map, and common pitfalls.
 > **Development workflow?** See [.knowledge/AI-DEVELOPMENT.md](./.knowledge/AI-DEVELOPMENT.md) for the spec-kit workflow.
 
+## Important Instructions
+
+- Use MCP tools, such as serena and playwright, when possible for code analysis, symbol navigation, and code modifications.
+- Local development uses hot-reloading — there is little reason to run `npm run build` during development.
+- New development work that depends on a specific configuration and/or data should often be included in the `/blueprints/Missions/Reference-Mission`. This Reference-Mission serves as a basis for demo, development, and testing. Site Admins can create a working Reference-Mission in `/Missions` via the Configure Page, and developers can update the blueprint itself.
+- For code pattern templates (Express routes, Sequelize models, Tool plugins, WebSocket handlers) and the detailed project structure, see [.knowledge/code-patterns.md](./.knowledge/code-patterns.md).
+
 ## Quick Start
 
 ```bash
@@ -91,6 +98,7 @@ Agent-optimized context in **[.knowledge/](./.knowledge/README.md)**. Full docs 
 |------|-------------|
 | `.knowledge/AI-GETTING-STARTED.md` | Setup, ports, key commands, mission creation |
 | `.knowledge/AI-DEVELOPMENT.md` | Spec-kit workflow, constitution |
+| `.knowledge/code-patterns.md` | Full project tree, key directories, code templates |
 | `.knowledge/conventions-and-gotchas.md` | Naming, code style, component placement, common issues |
 | `.knowledge/knowledge-notes.md` | Auth, DB init, path security, error handling gotchas |
 

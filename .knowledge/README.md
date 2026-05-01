@@ -8,6 +8,7 @@ Agent-optimized context for MMGIS. For full documentation, see `docs/pages/`.
 |------|-------------|
 | [AI-GETTING-STARTED.md](AI-GETTING-STARTED.md) | Setup walkthrough, port map, key commands, mission creation |
 | [AI-DEVELOPMENT.md](AI-DEVELOPMENT.md) | Spec-kit workflow, constitution, when to use it |
+| [code-patterns.md](code-patterns.md) | Full project tree, key directories, Express/Sequelize/Tool/WebSocket templates |
 | [conventions-and-gotchas.md](conventions-and-gotchas.md) | Naming patterns, code style, component placement, common issues |
 | [knowledge-notes.md](knowledge-notes.md) | Auth behavior, DB init, path security, error handling gotchas |
 
