@@ -55,6 +55,11 @@ function BottomElementPositioner() {
                 leafletBottomRight.style.transition = ease
                 leafletBottomRight.style.bottom = mapControlOffset + 'px'
             }
+            const mapLogo = document.getElementById('mmgis-map-logo')
+            if (mapLogo) {
+                mapLogo.style.transition = ease
+                mapLogo.style.bottom = (mapControlOffset + 45) + 'px'
+            }
         } else {
             // Calculate target bar height from known state
             const toolsH = pxIsTools || 0
@@ -83,6 +88,12 @@ function BottomElementPositioner() {
             if (leafletBottomRight) {
                 leafletBottomRight.style.transition = ease
                 leafletBottomRight.style.bottom = totalOffset + 'px'
+            }
+
+            const mapLogo = document.getElementById('mmgis-map-logo')
+            if (mapLogo) {
+                mapLogo.style.transition = ease
+                mapLogo.style.bottom = (totalOffset + 45) + 'px'
             }
 
             const coordsDiv = document.getElementById('CoordinatesDiv')

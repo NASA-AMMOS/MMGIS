@@ -73,12 +73,11 @@ const MapLogo = {
 
         MapLogo.remove()
 
-        const leafletContainer = document.querySelector('.leaflet-bottom.leaflet-right')
-        if (!leafletContainer) return
+        const mainContainer = document.getElementById('main-container') || document.body
 
         _container = document.createElement('div')
         _container.id = 'mapLogoRoot'
-        leafletContainer.appendChild(_container)
+        mainContainer.appendChild(_container)
 
         _root = createRoot(_container)
         _root.render(<MapLogoWidget config={MapLogo.config} />)

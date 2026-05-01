@@ -1,5 +1,5 @@
 .root {
-    position: absolute;
+    position: fixed;
     bottom: 45px;
     right: 5px;
     pointer-events: auto;
