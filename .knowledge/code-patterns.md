@@ -28,6 +28,7 @@ MMGIS/
 │   │   └── themeApplier.js       # Runtime theme application
 │   └── essence/
 │       ├── Basics/               # Core map/MMGIS-specific functionality
+│       │   ├── Layers_/Layers_.js # Global layer state controller (L_)
 │       │   ├── Map_.js           # Map rendering engine (Leaflet/Cesium)
 │       │   ├── UserInterface_/   # MMGIS-specific UI (TopBar, Toolbar, Coordinates, CursorInfo)
 │       │   └── TimeControl_/     # Temporal data control and UI
