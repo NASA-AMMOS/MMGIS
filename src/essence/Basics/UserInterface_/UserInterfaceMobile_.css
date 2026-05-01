@@ -298,8 +298,6 @@
     align-items: center !important;
     padding: 0 !important;
     border-right: none !important;
-    border-bottom: none !important;
-    box-shadow: 0px -3px 3px 0px rgba(0, 0, 0, 0.3) !important;
     overflow-x: auto !important;
     height: 40px !important;
 }
@@ -368,4 +366,7 @@
 }
 #mmgisTimeUITopBar {
     flex-wrap: wrap !important;
+}
+#mmgisTimeUIMain {
+    justify-content: center !important;
 }
