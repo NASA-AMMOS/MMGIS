@@ -21,7 +21,6 @@ import $ from 'jquery'
 import WebSocket from 'isomorphic-ws'
 import M from 'materialize-css'
 import F_ from './Basics/Formulae_/Formulae_'
-import T_ from './Basics/Test_/Test_'
 import L_ from './Basics/Layers_/Layers_'
 import Viewer_ from './Basics/Viewer_/Viewer_'
 import Map_ from './Basics/Map_/Map_'
@@ -112,18 +111,6 @@ $(document).keyup(function (e) {
             1
         )
         tabFocusAdded = true
-    }
-})
-
-$(document.body).keydown(function (e) {
-    if (
-        ToolController_.activeTool == null &&
-        !$('#loginModal').length &&
-        UserInterface_.getPanelPercents().globe == 0 &&
-        e.shiftKey &&
-        e.keyCode === 84
-    ) {
-        T_.toggle()
     }
 })
 
