@@ -24,9 +24,11 @@ function BottomElementPositioner() {
 
         if (isMobile) {
             const toolbarH = 40
-            const mobileOffset = toolbarH + (pxIsTools || 0)
-
             const toolsH = pxIsTools || 0
+
+            // Scalebar/compass stay fixed above the toolbar at rest (40px).
+            // They don't shift up when a tool panel opens.
+            const mapControlOffset = toolbarH
 
             const coordsDiv = document.getElementById('CoordinatesDiv')
             if (coordsDiv) {
@@ -41,17 +43,17 @@ function BottomElementPositioner() {
             const mapToolBar = document.getElementById('mapToolBar')
             if (mapToolBar) {
                 mapToolBar.style.transition = ease
-                mapToolBar.style.bottom = mobileOffset + 'px'
+                mapToolBar.style.bottom = mapControlOffset + 'px'
             }
             const leafletBottomLeft = document.querySelector('.leaflet-bottom.leaflet-left')
             if (leafletBottomLeft) {
                 leafletBottomLeft.style.transition = ease
-                leafletBottomLeft.style.bottom = mobileOffset + 'px'
+                leafletBottomLeft.style.bottom = mapControlOffset + 'px'
             }
             const leafletBottomRight = document.querySelector('.leaflet-bottom.leaflet-right')
             if (leafletBottomRight) {
                 leafletBottomRight.style.transition = ease
-                leafletBottomRight.style.bottom = mobileOffset + 'px'
+                leafletBottomRight.style.bottom = mapControlOffset + 'px'
             }
         } else {
             // Calculate target bar height from known state

@@ -362,7 +362,7 @@
     display: none !important;
 }
 #timeUI {
-    overflow-y: auto !important;
+    overflow-y: hidden !important;
 }
 #mmgisTimeUITopBar {
     flex-wrap: wrap !important;
