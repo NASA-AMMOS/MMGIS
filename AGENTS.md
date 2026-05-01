@@ -53,7 +53,7 @@ MMGIS/
 ├── src/design-system/    # Generic reusable UI components & theming
 ├── configure/            # Separate React admin app (own npm install + build)
 ├── scripts/              # server.js, init-db.js, build.js
-├── .knowledge/            # Deep documentation (this knowledge base)
+├── .knowledge/           # Agent context: setup, conventions, gotchas
 ├── specs/                # Feature specifications (spec-kit)
 ├── blueprints/           # Mission templates (Reference-Mission)
 ├── docs/                 # Jekyll documentation site
@@ -85,22 +85,18 @@ Seven principles in `.specify/memory/constitution.md`: Documentation-First Devel
 
 ## Knowledge Base
 
-For comprehensive documentation, explore the **[.knowledge/](./.knowledge/README.md)** directory:
+Agent-optimized context in **[.knowledge/](./.knowledge/README.md)**. Full docs in `docs/pages/`.
 
-| Tier | Location | What's There |
-|------|----------|-------------|
-| **Getting Started** | `.knowledge/AI-GETTING-STARTED.md` | Setup, ports, mission creation |
-| **Development** | `.knowledge/AI-DEVELOPMENT.md` | Spec-kit workflow, constitution |
-| **Deep Knowledge** | `.knowledge/*.md` | 25+ pages on architecture, tools, APIs, DB, infra |
-| **Reference** | `.knowledge/reference/*.md` | Coding conventions, directory details, API reference, troubleshooting |
+| File | What's There |
+|------|-------------|
+| `.knowledge/AI-GETTING-STARTED.md` | Setup, ports, key commands, mission creation |
+| `.knowledge/AI-DEVELOPMENT.md` | Spec-kit workflow, constitution |
+| `.knowledge/conventions-and-gotchas.md` | Naming, code style, component placement, common issues |
+| `.knowledge/12-devin-knowledge-notes.md` | CI, auth, DB init, path security gotchas |
 
 ## References
 
-- **Knowledge Base Index**: [.knowledge/README.md](./.knowledge/README.md)
-- **Spec-Kit Workflow**: [.knowledge/AI-DEVELOPMENT.md](./.knowledge/AI-DEVELOPMENT.md)
-- **Getting Started**: [.knowledge/AI-GETTING-STARTED.md](./.knowledge/AI-GETTING-STARTED.md)
-- **Reference Material**: [.knowledge/reference/](./.knowledge/reference/)
-- **Official Documentation**: https://nasa-ammos.github.io/MMGIS/
+- **Full Documentation**: `docs/pages/` or https://nasa-ammos.github.io/MMGIS/
 - **GitHub Repository**: https://github.com/NASA-AMMOS/MMGIS
 - **Constitution**: `.specify/memory/constitution.md`
-- **API Documentation**: Swagger UI at `/api-docs` when server running
+- **API Docs**: Swagger UI at `/api-docs` when server running
