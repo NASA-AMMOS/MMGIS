@@ -45,23 +45,30 @@ let ToolController_ = {
         // Auto-open separated tools that have on === true
         separatedTools.forEach((tool) => {
             if (tool.on === true && L_.UserInterface_.isMobile !== true) {
-                setTimeout(() => {
-                    const toolModuleName = tool.name + 'Tool'
-                    const tM = ToolController_.toolModules[toolModuleName]
-                    if (tM && tM.made === false) {
-                        tM.make(`toolContentSeparated_${tool.name}`)
-                        useUIStore.getState().addActiveSeparatedTool(toolModuleName)
-                        ToolController_.activeSeparatedTools.push(toolModuleName)
-                        document.dispatchEvent(
-                            new CustomEvent('toggleSeparatedTool', {
-                                detail: {
-                                    toggledToolName: tool.js,
-                                    visible: true,
-                                },
-                            })
-                        )
+                const toolModuleName = tool.name + 'Tool'
+                const targetId = `toolContentSeparated_${tool.name}`
+                // Wait for React to render the container div before calling make()
+                const tryMake = (attempts) => {
+                    if (document.getElementById(targetId)) {
+                        const tM = ToolController_.toolModules[toolModuleName]
+                        if (tM && tM.made === false) {
+                            tM.make(targetId)
+                            useUIStore.getState().addActiveSeparatedTool(toolModuleName)
+                            ToolController_.activeSeparatedTools.push(toolModuleName)
+                            document.dispatchEvent(
+                                new CustomEvent('toggleSeparatedTool', {
+                                    detail: {
+                                        toggledToolName: tool.js,
+                                        visible: true,
+                                    },
+                                })
+                            )
+                        }
+                    } else if (attempts < 20) {
+                        setTimeout(() => tryMake(attempts + 1), 50)
                     }
-                }, 0)
+                }
+                setTimeout(() => tryMake(0), 0)
             }
         })
 
@@ -308,6 +315,36 @@ let ToolController_ = {
             if (tool && typeof tool.finalize === 'function') {
                 tool.finalize()
             }
+        }
+
+        // Open separated tools with displayOnStart after all layers are loaded
+        if (L_.UserInterface_.isMobile !== true) {
+            const separatedTools = useUIStore.getState().separatedToolsList
+            separatedTools.forEach((tool) => {
+                const toolModuleName = tool.name + 'Tool'
+                const tM = ToolController_.toolModules[toolModuleName]
+                if (tM && tM.displayOnStart === true && tM.made === false) {
+                    const targetId = `toolContentSeparated_${tool.name}`
+                    const tryMake = (attempts) => {
+                        if (document.getElementById(targetId)) {
+                            tM.make(targetId)
+                            ToolController_.activeSeparatedTools.push(toolModuleName)
+                            useUIStore.getState().addActiveSeparatedTool(toolModuleName)
+                            document.dispatchEvent(
+                                new CustomEvent('toggleSeparatedTool', {
+                                    detail: {
+                                        toggledToolName: tool.js,
+                                        visible: true,
+                                    },
+                                })
+                            )
+                        } else if (attempts < 20) {
+                            setTimeout(() => tryMake(attempts + 1), 50)
+                        }
+                    }
+                    tryMake(0)
+                }
+            })
         }
     },
 }
