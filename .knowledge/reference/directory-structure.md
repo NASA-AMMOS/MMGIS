@@ -62,7 +62,7 @@ MMGIS/
 │   ├── templates/                # Spec, plan, tasks templates
 │   └── scripts/bash/             # Workflow automation scripts
 ├── specs/                        # Feature specifications (retrospective + new)
-├── knowledge/                    # AI agent knowledge base (this directory)
+├── .knowledge/                   # AI agent knowledge base (this directory)
 │   ├── reference/                # Detailed reference material
 │   ├── AI-GETTING-STARTED.md     # Agent setup guide
 │   └── AI-DEVELOPMENT.md         # Spec-kit workflow guide

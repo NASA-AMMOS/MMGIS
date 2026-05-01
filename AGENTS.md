@@ -4,8 +4,8 @@
 **Version**: 4.3.0
 **Last Updated**: 2026-05-01
 
-> **New to this repo?** See [knowledge/AI-GETTING-STARTED.md](./knowledge/AI-GETTING-STARTED.md) for setup guide, port map, and common pitfalls.
-> **Development workflow?** See [knowledge/AI-DEVELOPMENT.md](./knowledge/AI-DEVELOPMENT.md) for the spec-kit workflow.
+> **New to this repo?** See [.knowledge/AI-GETTING-STARTED.md](./.knowledge/AI-GETTING-STARTED.md) for setup guide, port map, and common pitfalls.
+> **Development workflow?** See [.knowledge/AI-DEVELOPMENT.md](./.knowledge/AI-DEVELOPMENT.md) for the spec-kit workflow.
 
 ## Quick Start
 
@@ -53,7 +53,7 @@ MMGIS/
 ├── src/design-system/    # Generic reusable UI components & theming
 ├── configure/            # Separate React admin app (own npm install + build)
 ├── scripts/              # server.js, init-db.js, build.js
-├── knowledge/            # Deep documentation (this knowledge base)
+├── .knowledge/            # Deep documentation (this knowledge base)
 ├── specs/                # Feature specifications (spec-kit)
 ├── blueprints/           # Mission templates (Reference-Mission)
 ├── docs/                 # Jekyll documentation site
@@ -85,21 +85,21 @@ Seven principles in `.specify/memory/constitution.md`: Documentation-First Devel
 
 ## Knowledge Base
 
-For comprehensive documentation, explore the **[knowledge/](./knowledge/README.md)** directory:
+For comprehensive documentation, explore the **[.knowledge/](./.knowledge/README.md)** directory:
 
 | Tier | Location | What's There |
 |------|----------|-------------|
-| **Getting Started** | `knowledge/AI-GETTING-STARTED.md` | Setup, ports, mission creation |
-| **Development** | `knowledge/AI-DEVELOPMENT.md` | Spec-kit workflow, constitution |
-| **Deep Knowledge** | `knowledge/*.md` | 25+ pages on architecture, tools, APIs, DB, infra |
-| **Reference** | `knowledge/reference/*.md` | Coding conventions, directory details, API reference, troubleshooting |
+| **Getting Started** | `.knowledge/AI-GETTING-STARTED.md` | Setup, ports, mission creation |
+| **Development** | `.knowledge/AI-DEVELOPMENT.md` | Spec-kit workflow, constitution |
+| **Deep Knowledge** | `.knowledge/*.md` | 25+ pages on architecture, tools, APIs, DB, infra |
+| **Reference** | `.knowledge/reference/*.md` | Coding conventions, directory details, API reference, troubleshooting |
 
 ## References
 
-- **Knowledge Base Index**: [knowledge/README.md](./knowledge/README.md)
-- **Spec-Kit Workflow**: [knowledge/AI-DEVELOPMENT.md](./knowledge/AI-DEVELOPMENT.md)
-- **Getting Started**: [knowledge/AI-GETTING-STARTED.md](./knowledge/AI-GETTING-STARTED.md)
-- **Reference Material**: [knowledge/reference/](./knowledge/reference/)
+- **Knowledge Base Index**: [.knowledge/README.md](./.knowledge/README.md)
+- **Spec-Kit Workflow**: [.knowledge/AI-DEVELOPMENT.md](./.knowledge/AI-DEVELOPMENT.md)
+- **Getting Started**: [.knowledge/AI-GETTING-STARTED.md](./.knowledge/AI-GETTING-STARTED.md)
+- **Reference Material**: [.knowledge/reference/](./.knowledge/reference/)
 - **Official Documentation**: https://nasa-ammos.github.io/MMGIS/
 - **GitHub Repository**: https://github.com/NASA-AMMOS/MMGIS
 - **Constitution**: `.specify/memory/constitution.md`

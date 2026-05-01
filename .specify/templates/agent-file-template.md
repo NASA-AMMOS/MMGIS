@@ -34,7 +34,7 @@ This project uses **spec-kit** for feature development. When working on new feat
 4. **Implement**: `/speckit.implement`
 5. **Check**: `/speckit.checklist`
 
-See `knowledge/AI-DEVELOPMENT.md` for complete workflow guide.
+See `.knowledge/AI-DEVELOPMENT.md` for complete workflow guide.
 
 ## Project Structure
 
