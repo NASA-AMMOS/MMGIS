@@ -425,7 +425,7 @@ let BottomBar = {
                                     `<div class="mmgis-checkbox"><input type="checkbox" ${BottomBar.settings.visibility.miscellaneous ? 'checked ' : ''}id="checkbox_msmsUIV6" value='miscellaneous'/><label for="checkbox_msmsUIV6"></label></div>`,
                                     `<div>Miscellaneous</div>`,
                                 `</li>`,
-                                (L_.configData.time && L_.configData.time.enabled === true && !L_.UserInterface_?.isMobile ? [
+                                (L_.configData.time && L_.configData.time.enabled === true ? [
                                 `<li>`,
                                     `<div class="mmgis-checkbox"><input type="checkbox" ${$('#timeUI').hasClass('active') ? 'checked ' : ''}id="checkbox_msmsUIV7" value='timeui'/><label for="checkbox_msmsUIV7"></label></div>`,
                                     `<div>Time UI</div>`,

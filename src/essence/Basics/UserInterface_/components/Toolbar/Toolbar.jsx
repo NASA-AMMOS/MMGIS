@@ -77,89 +77,6 @@ function MobileCoordButton() {
 }
 
 /**
- * MobileTimeUIToggle — renders a time UI toggle button on the far right of the mobile toolbar.
- * Opens TimeUI inside the tool panel on mobile with header, end time input, and expanded rows.
- */
-function MobileTimeUIToggle() {
-    const timeUIActive = useUIStore((s) => s.timeUIActive)
-    const [hasTime, setHasTime] = useState(false)
-
-    useEffect(() => {
-        try {
-            const L_ = require('../../../Layers_/Layers_').default
-            if (L_.configData.time && L_.configData.time.enabled === true) {
-                setHasTime(true)
-            }
-        } catch (e) {
-            // L_ not available yet
-        }
-    }, [])
-
-    const handleClick = useCallback(() => {
-        const $ = require('jquery')
-        const L_ = require('../../../Layers_/Layers_').default
-        const ToolController_ = require('../../../ToolController_/ToolController_').default
-        const active = useUIStore.getState().timeUIActive
-
-        if (!active) {
-            // Close any active tool first
-            ToolController_.closeActiveTool()
-            ToolController_.activeToolName = null
-            useUIStore.getState().setActiveToolName(null)
-
-            // Show #timeUI in the tool panel
-            $('#timeUI').addClass('active expanded')
-            $('#mmgisTimeUIExpandedContent').addClass('show')
-            ToolController_.setToolHeight(window.innerHeight * 0.5)
-            ToolController_.setToolWidth()
-        } else {
-            // Hide TimeUI and close tool panel
-            $('#timeUI').removeClass('active')
-            ToolController_.setToolHeight(0)
-            ToolController_.setToolWidth()
-        }
-
-        const isExpanded = $('#timeUI').hasClass('expanded') || $('#timeUI').hasClass('defaultExpanded')
-        useUIStore.getState().setTimeUIActive(!active)
-        useUIStore.getState().setTimeUIExpanded(isExpanded)
-        Object.keys(L_._onTimeUIToggleSubscriptions).forEach((k) => {
-            L_._onTimeUIToggleSubscriptions[k](!active)
-        })
-    }, [])
-
-    if (!hasTime) return null
-
-    return (
-        <div
-            className={'toolButton' + (timeUIActive ? ' toolButtonActive' : '')}
-            style={{
-                position: 'relative',
-                width: '40px',
-                height: '40px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                lineHeight: '40px',
-                verticalAlign: 'middle',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease-in',
-                float: 'right',
-                flexShrink: 0,
-                color: timeUIActive ? 'var(--color-mmgis)' : 'var(--color-f)',
-            }}
-            onClick={handleClick}
-            title="Toggle Time UI"
-        >
-            <i
-                className="mdi mdi-clock-outline mdi-18px"
-                style={{ cursor: 'pointer' }}
-            />
-        </div>
-    )
-}
-
-/**
  * MobileExtraButtons — conditionally renders time and coordinate toggle
  * buttons in the mobile toolbar (matches jQuery ToolController_.init() lines 317-470).
  */
@@ -188,7 +105,6 @@ function MobileExtraButtons() {
     return (
         <>
             {showCoords && <MobileCoordButton />}
-            <MobileTimeUIToggle />
         </>
     )
 }

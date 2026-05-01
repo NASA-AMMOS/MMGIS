@@ -350,22 +350,6 @@
     bottom: 0 !important;
 }
 
-/* TimeUI mobile: only show header, end time input, and expanded rows */
-#mmgisTimeUIStartWrapper,
-#mmgisTimeUIStartWrapperFake {
-    display: none !important;
-}
-#mmgisTimeUITopBar {
-    flex-wrap: wrap !important;
-}
-#mmgisTimeUIExpandedContent {
-    position: relative !important;
-    top: auto !important;
-}
-#timeUI {
-    overflow-y: auto !important;
-}
-
 #topBar {
     height: 40px !important;
 }

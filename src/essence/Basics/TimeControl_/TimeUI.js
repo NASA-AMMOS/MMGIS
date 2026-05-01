@@ -18,7 +18,6 @@ import { TempusDominus, Namespace } from '@eonasdan/tempus-dominus'
 import '@eonasdan/tempus-dominus/dist/css/tempus-dominus.css'
 
 import './TimeUI.css'
-import useUIStore from '../UserInterface_/store/uiStore'
 
 const FORMAT = 'MM/DD/yyyy, hh:mm:ss A'
 
@@ -39,7 +38,7 @@ const TimeUI = {
     vars: {},
     MMGISInterface: null,
     initialize: function () {
-        if (useUIStore.getState().isMobile === true) {
+        if (L_.UserInterface_?.isMobile === true) {
             this.width = 'full'
             this.height = 217
         }
@@ -94,7 +93,7 @@ const TimeUI = {
         // prettier-ignore
         let markup = [
             `<div id="mmgisTimeUI">`,
-            useUIStore.getState().isMobile == true ? 
+            L_.UserInterface_?.isMobile == true ? 
                 ["<div id='timeUIHeader'>",
                     "<div class='left'>",
                         "<div id='timeUITitle'>Time</div>",
@@ -103,7 +102,7 @@ const TimeUI = {
                 `<div id="mmgisTimeUITopBar">`,
         ].join('\n')
 
-        if (useUIStore.getState().isMobile !== true) {
+        if (L_.UserInterface_?.isMobile !== true) {
             // prettier-ignore
             markup += [
                 `<div id="mmgisTimeUIActionsLeft">`,
@@ -135,7 +134,7 @@ const TimeUI = {
         ].join('\n')
 
         // Nest the timeline if not mobile
-        if (useUIStore.getState().isMobile !== true) {
+        if (L_.UserInterface_?.isMobile !== true) {
             // prettier-ignore
             markup += [
                 `<div id="mmgisTimeUITimeline">`,
@@ -162,7 +161,7 @@ const TimeUI = {
             `</div>`,
         ].join('\n')
 
-        if (useUIStore.getState().isMobile !== true) {
+        if (L_.UserInterface_?.isMobile !== true) {
             // prettier-ignore
             markup += [
                 `<div id="mmgisTimeUIActionsRight">`,
@@ -211,7 +210,7 @@ const TimeUI = {
         }
 
         // Put the expanded content separately if mobile
-        if (useUIStore.getState().isMobile === true) {
+        if (L_.UserInterface_?.isMobile === true) {
             // prettier-ignore
             markup += [
                 `<div id="mmgisTimeUIExpandedContent" class="show">`,
@@ -282,7 +281,7 @@ const TimeUI = {
             `</div>`,
         ].join('\n')
 
-        if (useUIStore.getState().isMobile === true) {
+        if (L_.UserInterface_?.isMobile === true) {
             const toolsContainer = $('#tools')
             //Add a semantic container
             const tools = $('<div>')
@@ -364,7 +363,7 @@ const TimeUI = {
         return { dateString, additionalSeconds }
     },
     alignPopovers(e) {
-        if (useUIStore.getState().isMobile === true) {
+        if (L_.UserInterface_?.isMobile === true) {
             return
         }
 
@@ -406,7 +405,7 @@ const TimeUI = {
             TimeUI._startingModeIndex = 1
 
         // FIXME Figure out what this does
-        if (useUIStore.getState().isMobile !== true) {
+        if (L_.UserInterface_?.isMobile !== true) {
             document.addEventListener('toolChange', TimeUI.alignPopovers)
         }
 
@@ -829,7 +828,7 @@ const TimeUI = {
             }
         })
 
-        if (useUIStore.getState().isMobile !== true) {
+        if (L_.UserInterface_?.isMobile !== true) {
             // tippy
             tippy('#mmgisTimeUIMode', {
                 content: 'Mode',
@@ -1158,7 +1157,7 @@ const TimeUI = {
 
         // FIXME
         if (TimeUI.timeChange) {
-            if (useUIStore.getState().isMobile !== true) {
+            if (L_.UserInterface_?.isMobile !== true) {
                 // Initialize the time control times, but don't trigger events
                 TimeUI.timeChange(
                     TimeUI._initialStart.toISOString(),
@@ -1290,7 +1289,7 @@ const TimeUI = {
         // Shift to view the selected elements in the expanded timeline
         TimeUI._shiftExpandedContainerView()
 
-        if (useUIStore.getState().isMobile === true) {
+        if (L_.UserInterface_?.isMobile === true) {
             $('#mmgisTimeUIExpandedContent').css({
                 position: 'absolute',
                 top: '80px',
@@ -1913,7 +1912,7 @@ const TimeUI = {
     toggleExpanded() {
         TimeUI.expanded = !TimeUI.expanded
 
-        if (useUIStore.getState().isMobile === true) {
+        if (L_.UserInterface_?.isMobile === true) {
             TimeUI.expanded = true
         }
 
@@ -1956,7 +1955,7 @@ const TimeUI = {
         // Populate Hours Row
         TimeUI._populateHoursRow()
 
-        if (useUIStore.getState().isMobile !== true) {
+        if (L_.UserInterface_?.isMobile !== true) {
             // Update range indicators
             TimeUI._updateRangeIndicators()
         } else {
@@ -2702,7 +2701,7 @@ const TimeUI = {
         waitForActiveFeature()
     },
     _remakeTimeSlider(ignoreHistogram) {
-        if (useUIStore.getState().isMobile === true) {
+        if (L_.UserInterface_?.isMobile === true) {
             return
         }
 
@@ -3538,7 +3537,7 @@ const TimeUI = {
         TimeUI._remakeTimeSlider(true)
     },
     _updateBottomUIHeight() {
-        if (useUIStore.getState().isMobile === true) {
+        if (L_.UserInterface_?.isMobile === true) {
             return
         }
 

@@ -372,9 +372,11 @@ const UserInterfaceBridge = {
             // Store the mobile tools list so Toolbar can filter.
             useUIStore.setState({ mobileTools: mobileTools })
 
-            // Remove the coordinates div (redrawn as a tool on mobile)
+            // Remove the coordinates div and timeUI (redrawn as tools on mobile)
             const coordsDiv = document.getElementById('CoordinatesDiv')
             if (coordsDiv) coordsDiv.remove()
+            const timeUI = document.getElementById('timeUI')
+            if (timeUI) timeUI.remove()
 
             // Zoom in if needed
             if (l_.configData.msv && 'mapZoomMobileInit' in l_.configData.msv) {
