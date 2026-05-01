@@ -266,8 +266,6 @@ Curtain data typically configured as vector layer with custom `kind`:
 **Purpose**: Advanced collaborative vector drawing and annotation with comprehensive file management
 **Toolbar Priority**: 1001
 **Expandable**: Yes
-**Test Coverage**: `DrawTool.test.js`
-
 ### Overview
 
 The Draw Tool is MMGIS's most complex tool, providing a comprehensive geospatial vector data creation, editing, and sharing platform. It enables mission teams to collaboratively create, annotate, and manage geographic features with real-time history tracking, advanced geometric operations, and flexible sharing controls.
@@ -1757,14 +1755,6 @@ Tools properly escape user-generated content:
 ---
 
 ## Testing Strategy
-
-### Unit Tests
-
-The Draw tool includes comprehensive unit tests (`DrawTool.test.js`) demonstrating the pattern:
-- Test tool initialization
-- Test state management
-- Test file operations
-- Test validation logic
 
 ### Integration Tests
 

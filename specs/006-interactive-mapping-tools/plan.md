@@ -1514,28 +1514,6 @@ const DrawTool = await import('./Tools/Draw/DrawTool.js');
 
 ## Testing Strategy
 
-### Unit Tests
-
-**Draw Tool** (`DrawTool.test.js`):
-```javascript
-describe('Draw Tool', () => {
-  test('Initialize tool', () => {
-    const tool = DrawTool.make();
-    expect(tool).toBeDefined();
-  });
-
-  test('Create file', async () => {
-    const file = await DrawTool.createFile('Test File', 'roi');
-    expect(file.id).toBeDefined();
-  });
-
-  test('Clip features', async () => {
-    const clipped = await DrawTool.clipFeatures(newGeom, existingGeoms, 'over');
-    expect(clipped.geometry).toBeDefined();
-  });
-});
-```
-
 ### Integration Tests
 
 Tools should be tested for:
