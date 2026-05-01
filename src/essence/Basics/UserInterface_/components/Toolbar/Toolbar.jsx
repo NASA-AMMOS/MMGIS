@@ -362,7 +362,7 @@ function Toolbar({ userInterface }) {
                     bottom: (pxIsTools || 0) + 'px',
                     width: '100%',
                     zIndex: 2006,
-                    transition: 'bottom 0.4s ease-out',
+                    transition: 'bottom 0.3s ease-out',
                     display: toolbarVisible ? 'inherit' : 'none',
                 } : {
                     width: toolbarVisible ? '40px' : '0px',

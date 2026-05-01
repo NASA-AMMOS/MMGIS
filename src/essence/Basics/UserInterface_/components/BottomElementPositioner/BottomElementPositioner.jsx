@@ -20,21 +20,23 @@ function BottomElementPositioner() {
     const isDragging = useUIStore((s) => s.isDraggingSplitter)
 
     useEffect(() => {
-        const ease = isDragging ? 'none' : 'bottom 0.2s ease-out, left 0.2s ease-out'
+        const ease = isDragging ? 'none' : 'bottom 0.3s ease-out, left 0.3s ease-out'
 
         if (isMobile) {
             const toolbarH = 40
             const mobileOffset = toolbarH + (pxIsTools || 0)
 
+            const toolsH = pxIsTools || 0
+
             const coordsDiv = document.getElementById('CoordinatesDiv')
             if (coordsDiv) {
                 coordsDiv.style.transition = ease
-                coordsDiv.style.bottom = pxIsTools + 'px'
+                coordsDiv.style.bottom = toolsH + 'px'
             }
             const toolbar = document.getElementById('toolbar')
             if (toolbar) {
                 toolbar.style.transition = ease
-                toolbar.style.bottom = pxIsTools + 'px'
+                toolbar.style.bottom = toolsH + 'px'
             }
             const mapToolBar = document.getElementById('mapToolBar')
             if (mapToolBar) {

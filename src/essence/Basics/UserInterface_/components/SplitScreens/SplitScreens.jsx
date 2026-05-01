@@ -112,8 +112,11 @@ function BottomFloatingBar() {
     const hasToolContent = pxIsTools > 0
     const isVisible = timeUIActive || hasToolContent
 
-    // Reparent #timeUI into our timeUIDock when it appears in the DOM
+    // Reparent #timeUI into our timeUIDock when it appears in the DOM (desktop only).
+    // On mobile, MobileTimeUIToggle manages #timeUI placement into #tools.
     useEffect(() => {
+        if (useUIStore.getState().isMobile) return
+
         const dock = timeUIDockRef.current
         if (!dock) return
 
