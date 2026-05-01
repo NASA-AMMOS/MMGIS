@@ -195,11 +195,6 @@ body {
 #mapTopBar {
     transition: padding-left 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
-@media screen and (max-width: 800px) {
-    #mapTopBar {
-        padding-left: 134px !important;
-    }
-}
 #mapSplitInnerViewerInfo {
     position: absolute;
     left: 61px;
@@ -637,7 +632,7 @@ body {
     pointer-events: auto;
     position: absolute;
     bottom: 38px;
-    left: 6px;
+    left: 12px;
     width: 32px;
     height: 32px;
     border-radius: 16px;
@@ -724,7 +719,7 @@ body {
 .leaflet-control-scalefactor {
     position: absolute;
     bottom: 29px;
-    left: 36px;
+    left: 42px;
     display: flex;
     margin-left: 2px !important;
     transition: bottom 0.2s ease-out, left 0.2s ease-out;

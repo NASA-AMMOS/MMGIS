@@ -12,8 +12,16 @@ import styles from './Toolbar.module.css'
  */
 function MobileCoordButton() {
     const [isActive, setIsActive] = useState(false)
-    const defaultColor = 'var(--color-f)'
-    const activeColor = 'var(--color-mmgis)'
+    const activeToolName = useUIStore((s) => s.activeToolName)
+
+    // When another tool opens, deactivate coords
+    useEffect(() => {
+        if (activeToolName && activeToolName !== 'CoordinatesTool' && isActive) {
+            const L_ = require('../../../Layers_/Layers_').default
+            L_.Coordinates.destroy()
+            setIsActive(false)
+        }
+    }, [activeToolName]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleClick = useCallback(() => {
         const ToolController_ =
@@ -24,6 +32,14 @@ function MobileCoordButton() {
         // and activeToolName in the store — no imperative DOM toggling needed.
 
         if (!isActive) {
+            // Close any active tool first and cancel deferred cleanup
+            ToolController_.closeActiveTool()
+            if (ToolController_._pendingCloseTool) {
+                ToolController_._pendingCloseTool.destroy()
+                ToolController_._pendingCloseTool = null
+            }
+            ++ToolController_._closeSeq
+
             L_.Coordinates.initialize()
             L_.Coordinates.init()
             ToolController_.setToolHeight(L_.Coordinates.height)
@@ -36,7 +52,6 @@ function MobileCoordButton() {
             ToolController_.setToolHeight(0)
             ToolController_.setToolWidth()
             L_.Coordinates.destroy()
-            ToolController_.closeActiveTool()
             ToolController_.activeToolName = null
             useUIStore.getState().setActiveToolName(null)
             setIsActive(false)
@@ -44,7 +59,7 @@ function MobileCoordButton() {
 
         const topBar = document.getElementById('topBar')
         if (topBar) {
-            topBar.style.paddingLeft = '80px'
+            topBar.style.paddingLeft = '34px'
             topBar.style.marginLeft = '0px'
             topBar.style.width = '100%'
         }
@@ -53,32 +68,151 @@ function MobileCoordButton() {
     return (
         <div
             id="coordinatesDiv"
-            className={'toolButton' + (isActive ? ' active' : '')}
+            className={'toolButton' + (isActive ? ' toolButtonActive' : '')}
             style={{
                 position: 'relative',
-                width: '45px',
-                height: '45px',
-                display: 'inline-block',
-                textAlign: 'center',
-                lineHeight: '45px',
-                verticalAlign: 'middle',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease-in',
-                color: isActive ? activeColor : defaultColor,
+                transition: 'all 0.15s',
             }}
             onClick={handleClick}
         >
             <i
                 className="mdi mdi-target mdi-18px"
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: 'pointer', lineHeight: '40px' }}
             />
         </div>
     )
 }
 
 /**
+ * MobileTimeUIToggle — toggle button that moves #timeUI in/out of #tools.
+ * TimeUI.init() stages the mobile markup in a hidden #timeUIMobileStaging div.
+ * This button moves it into #tools (opening the tool panel) or back (closing).
+ */
+function MobileTimeUIToggle() {
+    const [isActive, setIsActive] = useState(false)
+    const [hasTime, setHasTime] = useState(false)
+    const activeToolName = useUIStore((s) => s.activeToolName)
+
+    useEffect(() => {
+        try {
+            const L_ = require('../../../Layers_/Layers_').default
+            if (L_.configData.time && L_.configData.time.enabled === true) {
+                setHasTime(true)
+            }
+        } catch (e) {
+            // L_ not available yet
+        }
+    }, [])
+
+    // When another tool opens, rescue #timeUI back to staging before
+    // the new tool's make() clears #tools
+    useEffect(() => {
+        if (activeToolName && activeToolName !== 'MobileTimeUI' && isActive) {
+            const timeUI = document.getElementById('timeUI')
+            const staging = document.getElementById('timeUIMobileStaging')
+            if (timeUI && staging) {
+                staging.appendChild(timeUI)
+            }
+            useUIStore.getState().setTimeUIActive(false)
+            setIsActive(false)
+        }
+    }, [activeToolName]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleClick = useCallback(() => {
+        const $ = require('jquery')
+        const L_ = require('../../../Layers_/Layers_').default
+        const ToolController_ =
+            require('../../../ToolController_/ToolController_').default
+
+        if (!isActive) {
+            // Close any active tool first and cancel deferred cleanup
+            ToolController_.closeActiveTool()
+            if (ToolController_._pendingCloseTool) {
+                ToolController_._pendingCloseTool.destroy()
+                ToolController_._pendingCloseTool = null
+            }
+            ++ToolController_._closeSeq
+            ToolController_.activeToolName = 'MobileTimeUI'
+            useUIStore.getState().setActiveToolName('MobileTimeUI')
+
+            // Move #timeUI from staging into #tools
+            const timeUI = document.getElementById('timeUI')
+            const toolsContainer = document.getElementById('tools')
+            if (timeUI && toolsContainer) {
+                toolsContainer.innerHTML = ''
+                toolsContainer.appendChild(timeUI)
+                timeUI.style.display = ''
+                $('#timeUI').addClass('active expanded')
+                $('#mmgisTimeUIExpandedContent').addClass('show')
+            }
+
+            // Open the tool panel (217px matches TimeUI.height for mobile)
+            ToolController_.setToolHeight(217)
+            ToolController_.setToolWidth()
+
+            useUIStore.getState().setTimeUIActive(true)
+            useUIStore.getState().setTimeUIExpanded(true)
+            Object.keys(L_._onTimeUIToggleSubscriptions).forEach((k) => {
+                L_._onTimeUIToggleSubscriptions[k](true)
+            })
+            setIsActive(true)
+        } else {
+            // Move #timeUI back to staging
+            const timeUI = document.getElementById('timeUI')
+            const staging = document.getElementById('timeUIMobileStaging')
+            if (timeUI && staging) {
+                staging.appendChild(timeUI)
+                $('#timeUI').removeClass('active')
+            }
+
+            // Close the tool panel
+            ToolController_.setToolHeight(0)
+            ToolController_.setToolWidth()
+            ToolController_.activeToolName = null
+            useUIStore.getState().setActiveToolName(null)
+
+            useUIStore.getState().setTimeUIActive(false)
+            Object.keys(L_._onTimeUIToggleSubscriptions).forEach((k) => {
+                L_._onTimeUIToggleSubscriptions[k](false)
+            })
+            setIsActive(false)
+        }
+    }, [isActive])
+
+    if (!hasTime) return null
+
+    return (
+        <div
+            className={'toolButton' + (isActive ? ' toolButtonActive' : '')}
+            style={{
+                position: 'relative',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                float: 'right',
+                flexShrink: 0,
+            }}
+            onClick={handleClick}
+            title="Toggle Time UI"
+        >
+            <i className="mdi mdi-clock-outline mdi-18px" style={{ lineHeight: '40px' }} />
+        </div>
+    )
+}
+
+/**
  * MobileExtraButtons — conditionally renders time and coordinate toggle
- * buttons in the mobile toolbar (matches jQuery ToolController_.init() lines 317-470).
+ * buttons in the mobile toolbar.
  */
 function MobileExtraButtons() {
     const [configChecked, setConfigChecked] = useState(false)
@@ -105,6 +239,7 @@ function MobileExtraButtons() {
     return (
         <>
             {showCoords && <MobileCoordButton />}
+            <MobileTimeUIToggle />
         </>
     )
 }
@@ -120,13 +255,13 @@ function ToolButton({ tool, index, isMobile, isActive, onToolClick }) {
             className={'toolButton' + (isActive ? ' toolButtonActive' : '')}
             tabIndex={index + 1}
             style={{
-                width: isMobile ? '45px' : '34px',
+                width: isMobile ? '40px' : '34px',
                 height: isMobile ? '100%' : '34px',
-                display: isMobile ? 'inline-block' : 'flex',
+                display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
-                lineHeight: isMobile ? '45px' : '34px',
+                lineHeight: isMobile ? '40px' : '34px',
                 margin: isMobile ? undefined : '1px 0',
                 borderRadius: isMobile ? undefined : '8px',
                 verticalAlign: 'middle',
@@ -310,14 +445,13 @@ function Toolbar({ userInterface }) {
                 id="toolbar"
                 style={isMobile ? {
                     boxShadow: '0px -3px 3px 0px rgba(0, 0, 0, 0.3)',
-                    height: topSize + 'px',
+                    height: '40px',
                     paddingTop: '0px',
                     background: 'var(--color-a)',
-                    borderBottom: '2px solid black',
                     bottom: (pxIsTools || 0) + 'px',
                     width: '100%',
                     zIndex: 2006,
-                    transition: 'bottom 0.4s ease-out',
+                    transition: 'bottom 0.3s ease-out',
                     display: toolbarVisible ? 'inherit' : 'none',
                 } : {
                     width: toolbarVisible ? '40px' : '0px',
@@ -342,7 +476,8 @@ function Toolbar({ userInterface }) {
                                 transition: 'all 0.25s ease-in',
                                 pointerEvents: 'auto',
                                 opacity: 1,
-                                paddingBottom: '8px',
+                                paddingBottom: isMobile ? '0px' : '8px',
+                                overflowY: isMobile ? 'hidden' : undefined,
                             }}
                         >
                             {toolbarTools.map((tool) => {
