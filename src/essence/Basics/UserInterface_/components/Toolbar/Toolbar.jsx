@@ -77,8 +77,109 @@ function MobileCoordButton() {
 }
 
 /**
+ * MobileTimeUIToggle — toggle button that moves #timeUI in/out of #tools.
+ * TimeUI.init() stages the mobile markup in a hidden #timeUIMobileStaging div.
+ * This button moves it into #tools (opening the tool panel) or back (closing).
+ */
+function MobileTimeUIToggle() {
+    const [isActive, setIsActive] = useState(false)
+    const [hasTime, setHasTime] = useState(false)
+
+    useEffect(() => {
+        try {
+            const L_ = require('../../../Layers_/Layers_').default
+            if (L_.configData.time && L_.configData.time.enabled === true) {
+                setHasTime(true)
+            }
+        } catch (e) {
+            // L_ not available yet
+        }
+    }, [])
+
+    const handleClick = useCallback(() => {
+        const $ = require('jquery')
+        const L_ = require('../../../Layers_/Layers_').default
+        const ToolController_ =
+            require('../../../ToolController_/ToolController_').default
+
+        if (!isActive) {
+            // Close any active tool first
+            ToolController_.closeActiveTool()
+            ToolController_.activeToolName = null
+            useUIStore.getState().setActiveToolName(null)
+
+            // Move #timeUI from staging into #tools
+            const timeUI = document.getElementById('timeUI')
+            const toolsContainer = document.getElementById('tools')
+            if (timeUI && toolsContainer) {
+                toolsContainer.innerHTML = ''
+                toolsContainer.appendChild(timeUI)
+                timeUI.style.display = ''
+                $('#timeUI').addClass('active expanded')
+                $('#mmgisTimeUIExpandedContent').addClass('show')
+            }
+
+            // Open the tool panel
+            const toolHeight = Math.round(window.innerHeight * 0.45)
+            ToolController_.setToolHeight(toolHeight)
+            ToolController_.setToolWidth()
+
+            useUIStore.getState().setTimeUIActive(true)
+            useUIStore.getState().setTimeUIExpanded(true)
+            Object.keys(L_._onTimeUIToggleSubscriptions).forEach((k) => {
+                L_._onTimeUIToggleSubscriptions[k](true)
+            })
+            setIsActive(true)
+        } else {
+            // Move #timeUI back to staging
+            const timeUI = document.getElementById('timeUI')
+            const staging = document.getElementById('timeUIMobileStaging')
+            if (timeUI && staging) {
+                staging.appendChild(timeUI)
+                $('#timeUI').removeClass('active')
+            }
+
+            // Close the tool panel
+            ToolController_.setToolHeight(0)
+            ToolController_.setToolWidth()
+
+            useUIStore.getState().setTimeUIActive(false)
+            Object.keys(L_._onTimeUIToggleSubscriptions).forEach((k) => {
+                L_._onTimeUIToggleSubscriptions[k](false)
+            })
+            setIsActive(false)
+        }
+    }, [isActive])
+
+    if (!hasTime) return null
+
+    return (
+        <div
+            className={'toolButton' + (isActive ? ' toolButtonActive' : '')}
+            style={{
+                position: 'relative',
+                width: '40px',
+                height: '40px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in',
+                float: 'right',
+                flexShrink: 0,
+                color: isActive ? 'var(--color-mmgis)' : 'var(--color-f)',
+            }}
+            onClick={handleClick}
+            title="Toggle Time UI"
+        >
+            <i className="mdi mdi-clock-outline mdi-18px" />
+        </div>
+    )
+}
+
+/**
  * MobileExtraButtons — conditionally renders time and coordinate toggle
- * buttons in the mobile toolbar (matches jQuery ToolController_.init() lines 317-470).
+ * buttons in the mobile toolbar.
  */
 function MobileExtraButtons() {
     const [configChecked, setConfigChecked] = useState(false)
@@ -105,6 +206,7 @@ function MobileExtraButtons() {
     return (
         <>
             {showCoords && <MobileCoordButton />}
+            <MobileTimeUIToggle />
         </>
     )
 }

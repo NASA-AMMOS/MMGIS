@@ -372,11 +372,11 @@ const UserInterfaceBridge = {
             // Store the mobile tools list so Toolbar can filter.
             useUIStore.setState({ mobileTools: mobileTools })
 
-            // Remove the coordinates div and timeUI (redrawn as tools on mobile)
+            // Remove the coordinates div (redrawn as a tool on mobile)
             const coordsDiv = document.getElementById('CoordinatesDiv')
             if (coordsDiv) coordsDiv.remove()
-            const timeUI = document.getElementById('timeUI')
-            if (timeUI) timeUI.remove()
+            // #timeUI is staged in a hidden container by TimeUI.init() on mobile;
+            // MobileTimeUIToggle handles moving it into #tools when toggled.
 
             // Zoom in if needed
             if (l_.configData.msv && 'mapZoomMobileInit' in l_.configData.msv) {
