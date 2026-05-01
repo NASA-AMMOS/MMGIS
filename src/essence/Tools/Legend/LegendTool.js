@@ -17,7 +17,7 @@ var LegendTool = {
     targetId: null,
     made: false,
     displayOnStart: false,
-    justification: 'left',
+
     initialize: function () {
         if (L_.UserInterface_.isMobile === true) {
             const mapRect = document.getElementById('map').getBoundingClientRect()
@@ -27,9 +27,7 @@ var LegendTool = {
 
         //Get tool variables
         this.displayOnStart = L_.getToolVars('legend')['displayOnStart']
-        this.justification = L_.getToolVars('legend')['justification']
         this.showHeadersInLegend = L_.getToolVars('legend')['showHeadersInLegend']
-        // Justification is now handled by ToolController_ during initialization
     },
     make: function (targetId) {
         this.targetId =
@@ -202,7 +200,7 @@ function refreshLegends() {
 
     _refreshLegends(L_.configData.layers, {}, 0)
 
-    if (LegendTool.made && LegendTool.targetId) {
+    if (LegendTool.targetId) {
         const contentContainer = $(`#${LegendTool.targetId} #LegendTool`)
         if (contentContainer.length && contentContainer.children().length === 0) {
             contentContainer.append(

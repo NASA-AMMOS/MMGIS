@@ -4,8 +4,7 @@
     "descriptionFull": {
         "title": "A layer can be configured with a legend by pointing its Legend field to a .csv file or by including a JSON legend array into the layer's Raw Variables. The Legend Tool renders symbologies and gradient scales for any properly configured on layer.",
         "example": {
-            "displayOnStart": true,
-            "justification": "right"
+            "displayOnStart": true
         }
     },
     "hasVars": true,
@@ -20,28 +19,12 @@
             {
                 "components": [
                     {
-                        "field": "separatedTool",
-                        "name": "Separated Tool",
-                        "description": "If true, this tool will live outside the left-hand toolbar and be independently accessible.",
-                        "type": "checkbox",
-                        "width": 3,
-                        "defaultChecked": true
-                    },
-                    {
                         "field": "variables.displayOnStart",
                         "name": "Display on Start",
                         "description": "Whether the expanded legend should automatically be displayed on start.",
                         "type": "checkbox",
                         "width": 3,
                         "defaultChecked": false
-                    },
-                    {
-                        "field": "variables.justification",
-                        "name": "Justification",
-                        "description": "The legend will display on the right side of the screen if set to right, otherwise default to the left side",
-                        "type": "dropdown",
-                        "width": 2,
-                        "options": ["left", "right"]
                     },
                     {
                         "field": "variables.showHeadersInLegend",

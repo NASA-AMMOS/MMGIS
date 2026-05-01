@@ -17,5 +17,4 @@ Image-based legends are displayed inline when a layer's `legend` property points
 | Variable | Description |
 |---|---|
 | `displayOnStart` | Whether to show the legend panel when the tool is first activated |
-| `justification` | Panel position: `left` or `right` |
 | `showHeadersInLegend` | Whether to show layer group headers in the legend |

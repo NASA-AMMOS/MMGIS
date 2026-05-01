@@ -29,7 +29,7 @@
     padding: 0;
 }
 
-/* #toolcontroller_sepdiv: jQuery-created by ToolController_, referenced by IdentifierTool.js */
+/* #toolcontroller_sepdiv: now React-rendered by SepToolsSection in Toolbar.jsx */
 :global(#toolcontroller_sepdiv) {
     width: 100% !important;
     display: flex !important;
@@ -116,12 +116,4 @@
     }
 }
 
-/* jQuery-rendered tool elements */
-:global(#toolContentSeparated_Legend) > div:first-child {
-    display: none !important;
-}
-
-:global(#toolContentSeparated_Legend #LegendTool) {
-    height: auto !important;
-    max-height: calc(100vh - 200px) !important;
-}
+/* Legend overrides moved to SeparatedTools.module.css */
