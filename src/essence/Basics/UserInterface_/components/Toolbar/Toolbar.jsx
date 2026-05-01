@@ -12,8 +12,16 @@ import styles from './Toolbar.module.css'
  */
 function MobileCoordButton() {
     const [isActive, setIsActive] = useState(false)
-    const defaultColor = 'var(--color-f)'
-    const activeColor = 'var(--color-mmgis)'
+    const activeToolName = useUIStore((s) => s.activeToolName)
+
+    // When another tool opens, deactivate coords
+    useEffect(() => {
+        if (activeToolName && activeToolName !== 'CoordinatesTool' && isActive) {
+            const L_ = require('../../../Layers_/Layers_').default
+            L_.Coordinates.destroy()
+            setIsActive(false)
+        }
+    }, [activeToolName]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleClick = useCallback(() => {
         const ToolController_ =
@@ -98,7 +106,7 @@ function MobileTimeUIToggle() {
     // When another tool opens, rescue #timeUI back to staging before
     // the new tool's make() clears #tools
     useEffect(() => {
-        if (activeToolName && isActive) {
+        if (activeToolName && activeToolName !== 'MobileTimeUI' && isActive) {
             const timeUI = document.getElementById('timeUI')
             const staging = document.getElementById('timeUIMobileStaging')
             if (timeUI && staging) {
@@ -118,8 +126,8 @@ function MobileTimeUIToggle() {
         if (!isActive) {
             // Close any active tool first
             ToolController_.closeActiveTool()
-            ToolController_.activeToolName = null
-            useUIStore.getState().setActiveToolName(null)
+            ToolController_.activeToolName = 'MobileTimeUI'
+            useUIStore.getState().setActiveToolName('MobileTimeUI')
 
             // Move #timeUI from staging into #tools
             const timeUI = document.getElementById('timeUI')
@@ -154,6 +162,8 @@ function MobileTimeUIToggle() {
             // Close the tool panel
             ToolController_.setToolHeight(0)
             ToolController_.setToolWidth()
+            ToolController_.activeToolName = null
+            useUIStore.getState().setActiveToolName(null)
 
             useUIStore.getState().setTimeUIActive(false)
             Object.keys(L_._onTimeUIToggleSubscriptions).forEach((k) => {

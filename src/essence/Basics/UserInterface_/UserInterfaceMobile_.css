@@ -257,7 +257,6 @@
     border-top: none !important;
     border-bottom: none !important;
     width: 40px !important;
-    line-height: 40px !important;
 }
 
 /* Hide other misc items */
@@ -320,8 +319,10 @@
 #toolbar .toolButton {
     width: 40px !important;
     height: 100% !important;
-    margin: 0 !important;
-    border-radius: 0 !important;
+}
+#toolbar .toolButton.toolButtonActive {
+    margin: 1px 0 !important;
+    border-radius: 8px !important;
 }
 
 #toolbar .toolSep {
