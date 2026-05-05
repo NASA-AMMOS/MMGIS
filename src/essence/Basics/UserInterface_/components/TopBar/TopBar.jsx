@@ -175,6 +175,13 @@ function TopBar({ userInterface }) {
 
     const handleToggleViewer = useCallback(() => {
         if (userInterface && userInterface.setPanelPercents) {
+            if (isMobile) {
+                const isOpen = useUIStore.getState().pxIsViewer > 0
+                if (!isOpen) {
+                    userInterface.setPanelPercents(100, 0, 0)
+                }
+                return
+            }
             const pp = userInterface.getPanelPercents()
             const newState = !(useUIStore.getState().pxIsViewer > 0)
             if (newState) {
@@ -193,10 +200,17 @@ function TopBar({ userInterface }) {
                 }
             }
         }
-    }, [userInterface])
+    }, [userInterface, isMobile])
 
     const handleToggleMap = useCallback(() => {
         if (userInterface && userInterface.setPanelPercents) {
+            if (isMobile) {
+                const isOpen = useUIStore.getState().pxIsMap > 0
+                if (!isOpen) {
+                    userInterface.setPanelPercents(0, 100, 0)
+                }
+                return
+            }
             const pp = userInterface.getPanelPercents()
             const newState = !(useUIStore.getState().pxIsMap > 0)
             if (newState) {
@@ -221,7 +235,7 @@ function TopBar({ userInterface }) {
                 }
             }
         }
-    }, [userInterface])
+    }, [userInterface, isMobile])
 
     const handleToggleGlobe = useCallback(() => {
         if (userInterface && userInterface.setPanelPercents) {
@@ -230,6 +244,13 @@ function TopBar({ userInterface }) {
             if (newState && !Globe_.hasBeenOpened) {
                 Globe_.init()
                 Globe_.hasBeenOpened = true
+            }
+            if (isMobile) {
+                const isOpen = useUIStore.getState().pxIsGlobe > 0
+                if (!isOpen) {
+                    userInterface.setPanelPercents(0, 0, 100)
+                }
+                return
             }
             const pp = userInterface.getPanelPercents()
             if (newState) {
@@ -248,7 +269,7 @@ function TopBar({ userInterface }) {
                 }
             }
         }
-    }, [userInterface])
+    }, [userInterface, isMobile])
 
     const handleLogout = useCallback(() => {
         const loginoutBtn = document.getElementById('loginoutButton')
