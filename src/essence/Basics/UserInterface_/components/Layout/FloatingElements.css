@@ -7,7 +7,7 @@
 
 /* --- TimeUI bar --- */
 #timeUI {
-    border-radius: 10px 10px 0 0 !important;
+    border-radius: 10px !important;
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
     box-shadow: 0 -4px 20px var(--color-shadow) !important;
