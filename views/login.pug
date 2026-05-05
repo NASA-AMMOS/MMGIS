@@ -3,20 +3,20 @@ html(lang='en')
   head
     title MMGIS / Login
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    link(rel='shortcut icon' href=ROOT_PATH + '/public/images/logos/logo.png')
-    link(type='text/css' rel='stylesheet' href=ROOT_PATH + '/public/login.css')
+    link(rel='shortcut icon' href=ROOT_PATH + 'public/images/logos/logo.png')
+    link(type='text/css' rel='stylesheet' href=ROOT_PATH + 'public/login.css')
     script.
       allowSignup = #{AUTH_LOCAL_ALLOW_SIGNUP}
-    script(type='text/javascript' src=ROOT_PATH + '/public/jquery.min.js')
-    script(type='text/javascript' src=ROOT_PATH + '/public/login.js')
+    script(type='text/javascript' src=ROOT_PATH + 'public/jquery.min.js')
+    script(type='text/javascript' src=ROOT_PATH + 'public/login.js')
     style.
-      @font-face { font-family: "Source Sans Pro"; src: url(#{ROOT_PATH}/public/fonts/sourcesanspro/SourceSansPro-Regular.ttf); }
-      body { background-image: url(#{ROOT_PATH}/public/images/contours.png) !important; }
+      @font-face { font-family: "Source Sans Pro"; src: url(#{ROOT_PATH}public/fonts/sourcesanspro/SourceSansPro-Regular.ttf); }
+      body { background-image: url(#{ROOT_PATH}public/images/contours.png) !important; }
   body.mmgisScrollbar
     .header
-      img(src=ROOT_PATH + '/public/images/logos/local_login_brand.png' alt='Branding' style='left: 44px; transform: unset; height: 60px; opacity: 0.5;')
+      img(src=ROOT_PATH + 'public/images/logos/local_login_brand.png' alt='Branding' style='left: 44px; transform: unset; height: 60px; opacity: 0.5;')
     #container(style='z-index: 1;')
-      img(src=ROOT_PATH + '/public/images/logos/mmgis.png' alt='MMGIS')
+      img(src=ROOT_PATH + 'public/images/logos/mmgis.png' alt='MMGIS')
       span#msg.error
       form.box(name='form1')
         h4
@@ -37,7 +37,7 @@ html(lang='en')
         div#toggleWrapper
           div#toggle(onClick='toggle()') Or Sign Up
     .footer(style='position: absolute; bottom: 0; padding: 44px; box-sizing: border-box; width: 100%; color: #adadad; font-size: 14px; display: flex; justify-content: flex-end; text-align: end;')
-      
+
       div
         div Contact: #{CONTACT_INFO}
         div Clearance Number: #{CLEARANCE_NUMBER}
