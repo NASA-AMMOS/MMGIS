@@ -151,13 +151,16 @@ function MobileTimeUIToggle() {
                 $('#timeUI').addClass('active expanded')
                 $('#mmgisTimeUIExpandedContent').addClass('show')
             } else if (toolsContainer) {
-                // #timeUI was destroyed — re-initialize it
+                // #timeUI was destroyed — re-initialize it. TimeUI.init()
+                // appends the new element to #timeUIMobileStaging on mobile,
+                // so we still need to move it into #tools ourselves.
                 toolsContainer.innerHTML = ''
                 const TimeUI =
                     require('../../../TimeControl_/TimeUI').default
                 TimeUI.init(TimeUI.timeChange, true)
                 const freshTimeUI = document.getElementById('timeUI')
                 if (freshTimeUI) {
+                    toolsContainer.appendChild(freshTimeUI)
                     freshTimeUI.style.display = ''
                     $('#timeUI').addClass('active expanded')
                     $('#mmgisTimeUIExpandedContent').addClass('show')
