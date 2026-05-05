@@ -865,6 +865,20 @@ function toggleTimeUI() {
     })
 }
 
+// On mobile, #timeUI lives inside #tools when active. Move it back to its
+// hidden staging container before #tools is emptied so the time UI element
+// (and its event listeners) survives Coordinates open/close.
+function rescueMobileTimeUI() {
+    if (!useUIStore.getState().isMobile) return
+    const timeUI = document.getElementById('timeUI')
+    const staging = document.getElementById('timeUIMobileStaging')
+    if (timeUI && staging && timeUI.closest('#tools')) {
+        staging.appendChild(timeUI)
+    }
+    useUIStore.getState().setTimeUIActive(false)
+    useUIStore.getState().setTimeUIExpanded(false)
+}
+
 function interfaceWithMMWebGIS() {
     this.separateFromMMWebGIS = function () {
         separateFromMMWebGIS()
@@ -872,6 +886,7 @@ function interfaceWithMMWebGIS() {
 
     //MMWebGIS should always have a div with id 'tools'
     var tools = $('#tools')
+    rescueMobileTimeUI()
     //Clear it
     tools.empty()
 
@@ -900,10 +915,12 @@ function interfaceWithMMWebGIS() {
     }
 
     function separateFromMMWebGIS() {
-        let tools = $('#tools')
-
-        //Clear it
-        tools.empty()
+        // Only remove Coordinates-specific DOM so any other content
+        // currently sharing #tools (e.g. the mobile #timeUI that the
+        // Time toggle just placed there before MobileCoordButton's
+        // async cleanup useEffect fires) survives.
+        $('#coordUIHeader').remove()
+        $('#CoordinatesDiv').remove()
     }
 }
 

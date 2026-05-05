@@ -129,6 +129,21 @@ let ToolController_ = {
                             ?.expandable === true
                     )
 
+                    // On mobile, rescue #timeUI back to staging before the new
+                    // tool's make() clears #tools — the React useEffect in
+                    // MobileTimeUIToggle fires too late (async) to save it.
+                    if (useUIStore.getState().isMobile) {
+                        const timeUI = document.getElementById('timeUI')
+                        const staging = document.getElementById(
+                            'timeUIMobileStaging'
+                        )
+                        if (timeUI && staging && timeUI.closest('#tools')) {
+                            staging.appendChild(timeUI)
+                        }
+                        useUIStore.getState().setTimeUIActive(false)
+                        useUIStore.getState().setTimeUIExpanded(false)
+                    }
+
                     this.activeTool = tool
                     tool.make(this)
 

@@ -150,6 +150,32 @@ function MobileTimeUIToggle() {
                 timeUI.style.display = ''
                 $('#timeUI').addClass('active expanded')
                 $('#mmgisTimeUIExpandedContent').addClass('show')
+            } else if (toolsContainer) {
+                // #timeUI was destroyed by some unexpected path. Best-effort
+                // recovery: re-initialize TimeUI from scratch. Remove the old
+                // global popover divs first so the second init() doesn't end
+                // up with duplicate-id elements on <body>. After init() puts
+                // the new #timeUI into #timeUIMobileStaging, move it into
+                // #tools and call fina() so date pickers and button click
+                // handlers are wired up (init() alone leaves them dormant).
+                // The primary rescues in ToolController_.makeTool() and
+                // Coordinates.js should make this branch unreachable in
+                // normal use; some delegated body/document handlers will be
+                // duplicated here, which is acceptable for a degraded path.
+                toolsContainer.innerHTML = ''
+                $('#timeUIPlayPopover_global').remove()
+                $('#timeUIQuickSelectPopover_global').remove()
+                const TimeUI =
+                    require('../../../TimeControl_/TimeUI').default
+                TimeUI.init(TimeUI.timeChange, true)
+                const freshTimeUI = document.getElementById('timeUI')
+                if (freshTimeUI) {
+                    toolsContainer.appendChild(freshTimeUI)
+                    freshTimeUI.style.display = ''
+                    $('#timeUI').addClass('active expanded')
+                    $('#mmgisTimeUIExpandedContent').addClass('show')
+                    TimeUI.fina()
+                }
             }
 
             // Open the tool panel (217px matches TimeUI.height for mobile)
