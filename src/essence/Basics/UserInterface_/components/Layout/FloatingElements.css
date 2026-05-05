@@ -10,7 +10,7 @@
     border-radius: 10px 10px 0 0 !important;
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 -4px 20px var(--color-shadow) !important;
 }
 
 /* --- Coordinate display --- */
@@ -31,7 +31,7 @@
 /* --- Leaflet zoom controls (solid background like topbar/toolbar) --- */
 .leaflet-control-zoom {
     border-radius: 10px !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 4px 12px var(--color-shadow) !important;
     overflow: hidden !important;
 }
 .leaflet-control-zoom a {

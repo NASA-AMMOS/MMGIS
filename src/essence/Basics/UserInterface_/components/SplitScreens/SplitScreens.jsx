@@ -154,7 +154,7 @@ function BottomFloatingBar() {
             style={{
                 zIndex: 1500,
                 maxHeight: 'calc(100% - 24px)',
-                boxShadow: '0 -4px 20px rgba(0,0,0,0.3)',
+                boxShadow: '0 -4px 20px var(--color-shadow)',
                 display: isVisible ? 'flex' : 'none',
                 flexDirection: 'column',
                 overflow: 'visible',

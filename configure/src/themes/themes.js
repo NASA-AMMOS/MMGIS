@@ -1,3 +1,11 @@
+/**
+ * Themes mirror copy for the configure app.
+ *
+ * Configure is built with Create React App, whose ModuleScopePlugin blocks
+ * imports from outside `configure/src`, so we keep a duplicate of
+ * `src/design-system/themes.js` here. When updating themes, update BOTH
+ * files so the configure-page ThemePreview stays in sync with the main app.
+ */
 const baseVars = {
     '--color-green': '#00d200',
     '--color-green2': '#08ea58',

@@ -47,6 +47,7 @@ import { isFieldRequired } from "./validators";
 import Map from "../components/Map/Map";
 import VideoPreview from "../components/VideoPreview/VideoPreview";
 import ColorButton from "../components/ColorButton/ColorButton";
+import ThemePreview from "../components/ThemePreview/ThemePreview";
 import MDEditor from "@uiw/react-md-editor";
 import CodeMirror from "@uiw/react-codemirror";
 import { json } from "@codemirror/lang-json";
@@ -1077,13 +1078,18 @@ const getComponent = (
           )}
         </div>
       );
-    case "dropdown":
+    case "dropdown": {
+      const isOptionObject = (o) => typeof o === "object" && o !== null;
+      const optionValue = (o) => (isOptionObject(o) ? o.value : o);
+      const optionLabel = (o) =>
+        isOptionObject(o) ? o.label ?? o.value : o;
+      const firstOptionValue = optionValue(com.options?.[0]);
       inner = (
         <FormControl className={c.dropdown} variant="filled" size="small">
           <InputLabel>{com.name}</InputLabel>
           <Select
             disabled={disabled || isDisabled}
-            value={value || getIn(directConf, com.field, com.options?.[0])}
+            value={value || getIn(directConf, com.field, firstOptionValue)}
             onChange={(e) => {
               if (!isDisabled) {
                 updateConfiguration(
@@ -1095,9 +1101,11 @@ const getComponent = (
             }}
           >
             {com.options.map((o) => {
+              const v = optionValue(o);
+              const l = optionLabel(o);
               return (
-                <MenuItem value={o}>
-                  {typeof o === "string" ? o.toUpperCase() : o}
+                <MenuItem value={v} key={v}>
+                  {typeof l === "string" ? l.toUpperCase() : l}
                 </MenuItem>
               );
             })}
@@ -1131,6 +1139,7 @@ const getComponent = (
           )}
         </div>
       );
+    }
     case "searchdropdown":
       let searchOptions = com.options;
 
@@ -1491,6 +1500,8 @@ const getComponent = (
           <VideoPreview layer={layer} configuration={configuration} />
         </div>
       );
+    case "themepreview":
+      return <ThemePreview configuration={configuration} />;
     case "defaulttooldropdown":
       let tools = configuration?.tools || null;
       tools = tools
