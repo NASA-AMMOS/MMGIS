@@ -1128,9 +1128,10 @@ body {
     left: 50%;
 }
 
+/* --- LithoSphere Globe Controls --- */
 #_lithosphere_controls_topright {
-    top: 40px !important;
-    right: 5px !important;
+    top: 10px !important;
+    right: 10px !important;
 }
 /* Override LithoSphere inline styles to match app control buttons */
 #_lithosphere_controls_topright > div > div {
@@ -1138,6 +1139,7 @@ body {
     height: 30px !important;
     background: var(--color-a) !important;
     border-radius: 3px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
     line-height: 30px !important;
     color: var(--color-f) !important;
     transition: color 0.2s ease-in 0s;
@@ -1145,11 +1147,27 @@ body {
 #_lithosphere_controls_topright > div > div:hover {
     color: var(--color-mmgis) !important;
 }
+
+/* Bottom-right controls (compass) */
+#_lithosphere_controls_bottomright {
+    bottom: 10px !important;
+    right: 10px !important;
+}
+#_lithosphere_controls_bottomright > div > div {
+    background: var(--color-a) !important;
+    border-radius: 3px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    color: var(--color-f) !important;
+}
+
+/* Keep bottom-left styling in case anything still lands there */
 #_lithosphere_controls_bottomleft > div > div {
     background: var(--color-a) !important;
     border-radius: 3px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
     color: var(--color-f) !important;
 }
+
 #_lithosphere_control_mmgisLithoNavigation svg {
     box-sizing: unset !important;
 }

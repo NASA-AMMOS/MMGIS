@@ -114,6 +114,12 @@ function BottomElementPositioner() {
                 lithoControls.style.bottom = (totalOffset + 10) + 'px'
             }
 
+            const lithoControlsBR = document.getElementById('_lithosphere_controls_bottomright')
+            if (lithoControlsBR) {
+                lithoControlsBR.style.transition = ease
+                lithoControlsBR.style.bottom = (totalOffset + 10) + 'px'
+            }
+
             // Leaflet bottom-left controls (scalebar, etc.)
             const leafletBottomLeft = document.querySelector('.leaflet-bottom.leaflet-left')
             if (leafletBottomLeft) {
