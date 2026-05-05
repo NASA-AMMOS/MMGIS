@@ -2144,10 +2144,11 @@ class GlobeRenderer {
      * @param {string} id - Control ID
      * @param {object} control - Control object
      * @param {object} options - Control options
+     * @param {string} position - Control corner (e.g., 'TopRight', 'BottomRight')
      */
-    addControl(id, control, options) {
+    addControl(id, control, options, position) {
         if (this.rendererType === 'lithosphere') {
-            return this.renderer.addControl(id, control, options)
+            return this.renderer.addControl(id, control, options, position)
         } else {
             // Handle special controls for Cesium
             if (id === 'mmgisLithoLink') {

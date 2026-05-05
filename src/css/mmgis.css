@@ -1123,30 +1123,141 @@ body {
     left: 50%;
 }
 
+/* --- LithoSphere Globe Controls --- */
+/* Anchor the top-right cluster and arrange children in a 2-column grid:
+   - Column 1, Row 1: navigation (horizontal spin/tilt/pan/zoom)
+   - Column 2, Row 1: compass (very top-right)
+   - Column 2, Rows 2+: vertical stack of home/walk/exaggerate/observe/link
+   The row-gap stays small so the vertical buttons sit directly under compass. */
 #_lithosphere_controls_topright {
-    top: 40px !important;
-    right: 5px !important;
+    top: 10px !important;
+    right: 10px !important;
+    display: grid !important;
+    grid-template-columns: auto auto !important;
+    grid-auto-rows: min-content !important;
+    align-items: start !important;
+    justify-items: end !important;
+    column-gap: 6px !important;
+    row-gap: 5px !important;
 }
-/* Override LithoSphere inline styles to match app control buttons */
-#_lithosphere_controls_topright > div > div {
-    width: 30px !important;
+/* Reset the per-child marginRight/marginBottom that LithoSphere applies inline */
+#_lithosphere_controls_topright > div {
+    margin: 0 !important;
+}
+
+/* Navigation (horizontal): top row, left column */
+#_lithosphere_control_mmgisLithoNavigation {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+}
+/* Theme the navigation header buttons to match the rest of the cluster */
+#_lithosphere_control_mmgisLithoNavigation
+    #_lithosphere_control_navigation_root
+    > div
+    > div:first-child {
     height: 30px !important;
-    background: var(--color-a) !important;
-    border-radius: 3px !important;
     line-height: 30px !important;
-    color: var(--color-f) !important;
-    transition: color 0.2s ease-in 0s;
-}
-#_lithosphere_controls_topright > div > div:hover {
-    color: var(--color-mmgis) !important;
-}
-#_lithosphere_controls_bottomleft > div > div {
     background: var(--color-a) !important;
-    border-radius: 3px !important;
     color: var(--color-f) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    border-radius: 3px !important;
+}
+/* Each navigation column is the relative anchor for its absolute hover panel */
+#_lithosphere_control_mmgisLithoNavigation
+    #_lithosphere_control_navigation_root
+    > div {
+    position: relative !important;
+}
+/* Float the hover panels so they overlay instead of growing the grid row
+   (which would shove the vertical stack of buttons below the compass down) */
+#_lithosphere_control_mmgisLithoNavigation
+    #_lithosphere_control_navigation_root
+    ._lithosphere_control_navigation_panel {
+    position: absolute !important;
+    top: 30px !important;
+    left: 0 !important;
+    width: 80px !important;
+    z-index: 10 !important;
+    background: var(--color-a) !important;
+    color: var(--color-f) !important;
+    border-top-color: var(--color-c, #444) !important;
 }
 #_lithosphere_control_mmgisLithoNavigation svg {
     box-sizing: unset !important;
+}
+
+/* Compass: very top-right corner, circular */
+#_lithosphere_control_mmgisLithoCompass {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+}
+#_lithosphere_control_mmgisLithoCompass #_lithosphere_control_compass_root,
+#_lithosphere_control_mmgisLithoCompass #_lithosphere_control_compass_root svg {
+    border-radius: 50% !important;
+    overflow: hidden !important;
+}
+#_lithosphere_control_mmgisLithoCompass #_lithosphere_control_compass_root {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+}
+
+/* Vertical stack under compass: home, walk, exaggerate, observe, link */
+#_lithosphere_control_mmgisLithoHome,
+#_lithosphere_control_mmgisLithoWalk,
+#_lithosphere_control_mmgisLithoExaggerate,
+#_lithosphere_control_mmgisLithoObserve,
+#_lithosphere_control_mmgisLithoLink {
+    grid-column: 2 !important;
+    justify-self: end !important;
+}
+
+/* Themed simple square buttons (matches Cesium link / Leaflet zoom) */
+#_lithosphere_control_mmgisLithoHome > div,
+#_lithosphere_control_mmgisLithoWalk > div,
+#_lithosphere_control_mmgisLithoLink > div,
+#_lithosphere_control_mmgisLithoExaggerate > div > div:first-child,
+#_lithosphere_control_mmgisLithoObserve > div > div:first-child {
+    width: 30px !important;
+    height: 30px !important;
+    line-height: 30px !important;
+    background: var(--color-a) !important;
+    border-radius: 3px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    color: var(--color-f) !important;
+    transition: color 0.2s ease-in 0s;
+}
+#_lithosphere_control_mmgisLithoHome > div:hover,
+#_lithosphere_control_mmgisLithoWalk > div:hover,
+#_lithosphere_control_mmgisLithoLink > div:hover,
+#_lithosphere_control_mmgisLithoExaggerate > div > div:first-child:hover,
+#_lithosphere_control_mmgisLithoObserve > div > div:first-child:hover {
+    color: var(--color-mmgis) !important;
+}
+
+/* Open exaggerate / observe hover panels on the LEFT of the icon
+   (since the column is anchored to the right side of the screen) */
+#_lithosphere_control_exaggerate_root > span > div,
+#_lithosphere_control_observe_root > span > div {
+    flex-direction: row-reverse !important;
+    left: auto !important;
+    right: 0 !important;
+}
+#_lithosphere_control_exaggerate_root > span > div > div:nth-child(2),
+#_lithosphere_control_observe_root > span > div > div:nth-child(2) {
+    margin-left: 0 !important;
+    margin-right: 5px !important;
+}
+/* Anchor the observe settings panel to the left of the column */
+#_lithosphere_WalkSettingsPanel {
+    right: 34px !important;
+    left: auto !important;
+}
+
+/* Keep bottom-left styling in case anything still lands there */
+#_lithosphere_controls_bottomleft > div > div {
+    background: var(--color-a) !important;
+    border-radius: 3px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    color: var(--color-f) !important;
 }
 
 .mdi-12px.mdi-set,
