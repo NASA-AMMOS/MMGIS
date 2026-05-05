@@ -915,11 +915,12 @@ function interfaceWithMMWebGIS() {
     }
 
     function separateFromMMWebGIS() {
-        let tools = $('#tools')
-
-        rescueMobileTimeUI()
-        //Clear it
-        tools.empty()
+        // Only remove Coordinates-specific DOM so any other content
+        // currently sharing #tools (e.g. the mobile #timeUI that the
+        // Time toggle just placed there before MobileCoordButton's
+        // async cleanup useEffect fires) survives.
+        $('#coordUIHeader').remove()
+        $('#CoordinatesDiv').remove()
     }
 }
 
