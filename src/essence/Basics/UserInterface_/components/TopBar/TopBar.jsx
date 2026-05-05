@@ -396,24 +396,6 @@ function TopBar({ userInterface }) {
                             </IconButton>
                         }
                     >
-                        {lookConfig.copylink !== false && (
-                            <Dropdown.Item onClick={() => BottomBar.copyLink()}>
-                                <i className="mdi mdi-open-in-new" style={{ marginRight: 8, fontSize: 14 }} />
-                                Copy Link
-                            </Dropdown.Item>
-                        )}
-                        {lookConfig.screenshot !== false && (
-                            <Dropdown.Item onClick={() => BottomBar.takeScreenshot()}>
-                                <i className="mdi mdi-camera" style={{ marginRight: 8, fontSize: 14 }} />
-                                Screenshot
-                            </Dropdown.Item>
-                        )}
-                        {lookConfig.fullscreen !== false && (
-                            <Dropdown.Item onClick={() => BottomBar.fullscreen()}>
-                                <i className="mdi mdi-fullscreen" style={{ marginRight: 8, fontSize: 14 }} />
-                                Fullscreen
-                            </Dropdown.Item>
-                        )}
                         {!isMobile && (
                             <Dropdown.Item onClick={() => BottomBar.toggleHotkeys(true)}>
                                 <i className="mdi mdi-keyboard" style={{ marginRight: 8, fontSize: 14 }} />
@@ -426,12 +408,10 @@ function TopBar({ userInterface }) {
                                 Settings
                             </Dropdown.Item>
                         )}
-                        {isMobile && (
-                            <Dropdown.Item onClick={() => BottomBar.showAboutModal()}>
-                                <i className="mdi mdi-information-outline" style={{ marginRight: 8, fontSize: 14 }} />
-                                About
-                            </Dropdown.Item>
-                        )}
+                        <Dropdown.Item onClick={() => BottomBar.showAboutModal()}>
+                            <i className="mdi mdi-information-outline" style={{ marginRight: 8, fontSize: 14 }} />
+                            About
+                        </Dropdown.Item>
                     </Dropdown>
                 </div>
         </div>
