@@ -338,9 +338,9 @@ const Coordinates = {
             L_.configData.time &&
             L_.configData.time.enabled === true &&
             (L_.FUTURES.live === true ||
+                L_.configData.time.initiallyOpen === true ||
                 (L_.FUTURES.live == null &&
-                    (L_.configData.time.initiallyOpen === true ||
-                        L_.configData.time.liveByDefault === true))) &&
+                    L_.configData.time.liveByDefault === true)) &&
             !UserInterface.isMobile
         ) {
             toggleTimeUI()
