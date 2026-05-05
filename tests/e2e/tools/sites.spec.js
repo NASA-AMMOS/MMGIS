@@ -40,11 +40,11 @@ test.describe('Sites Tool', () => {
     await sitesBtn.click();
     await page.waitForTimeout(500);
 
-    // Verify the Sites panel is visible
-    // MMGIS uses #SitesTool for the Sites tool panel
-    const panel = page.locator(
-      '#SitesTool, [class*="SitesTool"], [class*="sitestool"]'
-    ).first();
+    // Verify the Sites panel is visible.
+    // NOTE: the toolbar icon and the panel container both use id="SitesTool"
+    // (see Toolbar.jsx and SitesTool.js). Scope the lookup to #toolPanel so
+    // we get the panel container, not the toolbar icon (which has no text).
+    const panel = page.locator('#toolPanel #SitesTool, #tools #SitesTool').first();
     const panelVisible = await panel.isVisible({ timeout: 5000 }).catch(() => false);
 
     if (!panelVisible) {
