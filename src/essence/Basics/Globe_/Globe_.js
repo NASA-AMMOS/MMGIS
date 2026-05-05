@@ -136,10 +136,12 @@ let Globe_ = {
         //this.litho.addControl('mmgisLithoLayers', this.litho.controls.layers)
         this.litho.addControl('mmgisLithoObserve', this.litho.controls.observe, null, 'TopRight')
         this.litho.addControl('mmgisLithoWalk', this.litho.controls.walk, null, 'TopRight')
-        this.litho.addControl('mmgisLithoCompass', this.litho.controls.compass)
+        this.litho.addControl('mmgisLithoCompass', this.litho.controls.compass, null, 'TopRight')
         this.litho.addControl(
             'mmgisLithoNavigation',
-            this.litho.controls.navigation
+            this.litho.controls.navigation,
+            null,
+            'TopRight'
         )
         this.litho.addControl(
             'mmgisLithoCoords',

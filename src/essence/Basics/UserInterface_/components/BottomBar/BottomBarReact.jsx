@@ -7,8 +7,8 @@ import Tooltip from '../../../../../design-system/components/Tooltip/Tooltip'
 import styles from './BottomBarReact.module.css'
 
 /**
- * BottomBarReact — bottom toolbar buttons (About + Copy Link).
- * All other actions (Screenshot, Fullscreen, Hotkeys, Settings) are in TopBar kebab menu.
+ * BottomBarReact — bottom toolbar buttons (Copy Link, Screenshot, Fullscreen).
+ * About is in the TopBar kebab menu.
  *
  * Desktop: rendered inside Toolbar.jsx at the bottom (via flex margin-top: auto)
  * Mobile: rendered by TopBar inside the hamburger menu (#topBarMenu)
@@ -31,8 +31,12 @@ function BottomBarReact({ userInterface }) {
         })
     }, [])
 
-    const handleAbout = useCallback(() => {
-        BottomBar.showAboutModal()
+    const handleScreenshot = useCallback(() => {
+        BottomBar.takeScreenshot()
+    }, [])
+
+    const handleFullscreen = useCallback(() => {
+        BottomBar.fullscreen()
     }, [])
 
     const containerStyle = {
@@ -71,28 +75,56 @@ function BottomBarReact({ userInterface }) {
                 )
             )}
 
-            {isMobile ? (
-                <IconButton
-                    id="bottomBarAbout"
-                    size="lg"
-                    className={styles.barButton}
-                    tabIndex={105}
-                    onClick={handleAbout}
-                >
-                    <i className="mdi mdi-information-outline mdi-18px" />
-                </IconButton>
-            ) : (
-                <Tooltip content="About" placement="right">
+            {lookConfig.screenshot !== false && (
+                isMobile ? (
                     <IconButton
-                        id="bottomBarAbout"
+                        id="topBarScreenshot"
                         size="lg"
                         className={styles.barButton}
-                        tabIndex={105}
-                        onClick={handleAbout}
+                        tabIndex={101}
+                        onClick={handleScreenshot}
                     >
-                        <i className="mdi mdi-information-outline mdi-18px" />
+                        <i className="mdi mdi-camera mdi-18px" />
                     </IconButton>
-                </Tooltip>
+                ) : (
+                    <Tooltip content="Screenshot" placement="right">
+                        <IconButton
+                            id="topBarScreenshot"
+                            size="lg"
+                            className={styles.barButton}
+                            tabIndex={101}
+                            onClick={handleScreenshot}
+                        >
+                            <i className="mdi mdi-camera mdi-18px" />
+                        </IconButton>
+                    </Tooltip>
+                )
+            )}
+
+            {lookConfig.fullscreen !== false && (
+                isMobile ? (
+                    <IconButton
+                        id="topBarFullscreen"
+                        size="lg"
+                        className={styles.barButton}
+                        tabIndex={102}
+                        onClick={handleFullscreen}
+                    >
+                        <i className="mdi mdi-fullscreen mdi-18px" />
+                    </IconButton>
+                ) : (
+                    <Tooltip content="Fullscreen" placement="right">
+                        <IconButton
+                            id="topBarFullscreen"
+                            size="lg"
+                            className={styles.barButton}
+                            tabIndex={102}
+                            onClick={handleFullscreen}
+                        >
+                            <i className="mdi mdi-fullscreen mdi-18px" />
+                        </IconButton>
+                    </Tooltip>
+                )
             )}
         </div>
     )
