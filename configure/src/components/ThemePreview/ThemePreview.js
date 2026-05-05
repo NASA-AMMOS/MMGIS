@@ -110,72 +110,32 @@ const useStyles = makeStyles(() => ({
   },
 }));
 
-// Read a look.* color picker value, returning fallback if missing or empty.
-const lookOr = (look, key, fallback) => {
-  const v = look && look[key];
-  return v && v !== "" ? v : fallback;
-};
-
 export default function ThemePreview() {
   const c = useStyles();
 
-  const look = useSelector(
-    (state) => state.core?.configuration?.look || {}
+  const themeName = useSelector(
+    (state) =>
+      state.core?.configuration?.look?.theme || "Dark Default"
   );
-  const themeName = look.theme || "Dark Default";
-  const isCustom = !themeName || themeName === "" || themeName === "Custom";
 
-  // Base colors come from the named theme; for Custom we use Dark Default as
-  // the base and overlay the user's look.* color picker values on top so the
-  // preview matches what Stylize.js will apply at runtime.
-  const baseTheme = themes[isCustom ? "Dark Default" : themeName] ||
-    themes["Dark Default"];
+  const theme = themes[themeName] || themes["Dark Default"];
 
-  const baseSurface = baseTheme["--color-a"];
-  const baseSurfaceElevated = baseTheme["--color-a1"];
-  const baseSurfaceBackground = baseTheme["--color-a-5"];
-  const baseAccent = baseTheme["--color-mmgis"] || baseTheme["--color-c"];
-  const baseTextPrimary = baseTheme["--color-f"];
-  const baseTextSecondary = baseTheme["--color-a4"];
-  const baseBorder = baseTheme["--color-a1"];
-  const baseShadow = baseTheme["--color-shadow"] || "rgba(0, 0, 0, 0.4)";
-
-  let surface = baseSurface;
-  let surfaceElevated = baseSurfaceElevated;
-  let surfaceBackground = baseSurfaceBackground;
-  let accent = baseAccent;
-  let textPrimary = baseTextPrimary;
-  let textSecondary = baseTextSecondary;
-  let border = baseBorder;
-  let shadow = baseShadow;
-  let topbarBg = surface;
-  let toolbarBg = surface;
-  let mapBg = surfaceBackground;
-
-  if (isCustom) {
-    surface = lookOr(look, "primarycolor", surface);
-    surfaceBackground = lookOr(look, "secondarycolor", surfaceBackground);
-    textPrimary = lookOr(look, "tertiarycolor", textPrimary);
-    accent = lookOr(look, "accentcolor", accent);
-    shadow = lookOr(look, "shadowcolor", shadow);
-    topbarBg = lookOr(look, "topbarcolor", surface);
-    toolbarBg = lookOr(look, "toolbarcolor", surface);
-    mapBg = lookOr(look, "mapcolor", surfaceBackground);
-  } else {
-    topbarBg = surface;
-    toolbarBg = surface;
-    mapBg = surfaceBackground;
-  }
+  const surface = theme["--color-a"];
+  const surfaceElevated = theme["--color-a1"];
+  const surfaceBackground = theme["--color-a-5"];
+  const accent = theme["--color-mmgis"] || theme["--color-c"];
+  const textPrimary = theme["--color-f"];
+  const textSecondary = theme["--color-a4"];
+  const border = theme["--color-a1"];
+  const shadow = theme["--color-shadow"] || "rgba(0, 0, 0, 0.4)";
 
   return (
     <div className={c.wrapper}>
-      <div className={c.label}>
-        Theme Preview — {isCustom ? "Custom" : themeName}
-      </div>
+      <div className={c.label}>Theme Preview — {themeName}</div>
       <div
         className={c.preview}
         style={{
-          background: mapBg,
+          background: surfaceBackground,
           border: `1px solid ${border}`,
           boxShadow: `0 4px 12px ${shadow}`,
         }}
@@ -183,7 +143,7 @@ export default function ThemePreview() {
         <div
           className={c.topbar}
           style={{
-            background: topbarBg,
+            background: surface,
             color: textPrimary,
             borderBottom: `1px solid ${border}`,
             boxShadow: `0 2px 6px ${shadow}`,
@@ -199,15 +159,12 @@ export default function ThemePreview() {
           <div
             className={c.toolbar}
             style={{
-              background: toolbarBg,
+              background: surface,
               borderRight: `1px solid ${border}`,
               boxShadow: `2px 0 6px ${shadow}`,
             }}
           >
-            <div
-              className={c.toolIcon}
-              style={{ background: accent }}
-            />
+            <div className={c.toolIcon} style={{ background: accent }} />
             <div
               className={c.toolIcon}
               style={{ background: textSecondary, opacity: 0.7 }}
@@ -217,7 +174,7 @@ export default function ThemePreview() {
               style={{ background: textSecondary, opacity: 0.5 }}
             />
           </div>
-          <div className={c.mapArea} style={{ background: mapBg }}>
+          <div className={c.mapArea} style={{ background: surfaceBackground }}>
             <div
               className={c.panel}
               style={{
@@ -226,26 +183,17 @@ export default function ThemePreview() {
                 boxShadow: `0 4px 12px ${shadow}`,
               }}
             >
-              <div
-                className={c.panelTitle}
-                style={{ color: textPrimary }}
-              >
+              <div className={c.panelTitle} style={{ color: textPrimary }}>
                 Tool Panel
               </div>
-              <div
-                className={c.panelRow}
-                style={{ color: textPrimary }}
-              >
+              <div className={c.panelRow} style={{ color: textPrimary }}>
                 <span
                   className={c.accentDot}
                   style={{ background: accent }}
                 />
                 <span className={c.panelText}>Active layer</span>
               </div>
-              <div
-                className={c.panelText}
-                style={{ color: textSecondary }}
-              >
+              <div className={c.panelText} style={{ color: textSecondary }}>
                 Secondary text sample
               </div>
               <div
