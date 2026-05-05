@@ -150,6 +150,18 @@ function MobileTimeUIToggle() {
                 timeUI.style.display = ''
                 $('#timeUI').addClass('active expanded')
                 $('#mmgisTimeUIExpandedContent').addClass('show')
+            } else if (toolsContainer) {
+                // #timeUI was destroyed — re-initialize it
+                toolsContainer.innerHTML = ''
+                const TimeUI =
+                    require('../../../TimeControl_/TimeUI').default
+                TimeUI.init(TimeUI.timeChange, true)
+                const freshTimeUI = document.getElementById('timeUI')
+                if (freshTimeUI) {
+                    freshTimeUI.style.display = ''
+                    $('#timeUI').addClass('active expanded')
+                    $('#mmgisTimeUIExpandedContent').addClass('show')
+                }
             }
 
             // Open the tool panel (217px matches TimeUI.height for mobile)
