@@ -29,7 +29,7 @@
           "description": "Select a color theme for the interface. Preset themes apply a full set of coordinated colors. Choose 'Custom' to define your own colors using the options below.",
           "type": "dropdown",
           "width": 6,
-          "options": ["Dark Default", "Dark Blue", "Dark Warm", "Dark Mars", "Dark Midnight", "Dark Terra", "Dark Nebula", "Dark Lunar", "Dark Supernova", "Light Default", "Light Cool", "Light Slate", "Light Warm", "Light Botanical", "High Contrast", "Custom"],
+          "options": ["Dark Default", "Dark Blue", "Dark Warm", "Dark Mars", "Dark Midnight", "Dark Terra", "Dark Nebula", "Dark Lunar", "Dark Supernova", "Dark Heliosphere", "Dark Monokai", "Light Default", "Light Cool", "Light Slate", "Light Warm", "Light Botanical", "Light Solarized", "High Contrast", "Custom"],
           "default": "Dark Default"
         }
       ]
