@@ -113,6 +113,9 @@ function TopBar({ userInterface }) {
     const isMobile = useUIStore((s) => s.isMobile)
     const lookConfig = useUIStore((s) => s.lookConfig)
     const hasStatus = useUIStore((s) => !!s.statusIndicator)
+    const hasViewer = useUIStore((s) => s.hasViewer)
+    const hasGlobe = useUIStore((s) => s.hasGlobe)
+    const showPanelToggles = hasViewer || hasGlobe
 
     const [viewerOpen, setViewerOpen] = useState(false)
     const [mapOpen, setMapOpen] = useState(true)
@@ -318,32 +321,38 @@ function TopBar({ userInterface }) {
 
             {/* Panel toggles + user area + kebab menu */}
             <div className={styles.reactOverlay} style={isMobile ? { gap: '6px' } : undefined}>
-                    <Toggle.Group className={styles.panelToggles}>
-                        <Tooltip content="Toggle Viewer panel" placement="bottom">
-                            <Toggle
-                                pressed={viewerOpen}
-                                onPressedChange={handleToggleViewer}
-                            >
-                                Viewer
-                            </Toggle>
-                        </Tooltip>
-                        <Tooltip content="Toggle Map panel" placement="bottom">
-                            <Toggle
-                                pressed={mapOpen}
-                                onPressedChange={handleToggleMap}
-                            >
-                                Map
-                            </Toggle>
-                        </Tooltip>
-                        <Tooltip content="Toggle Globe panel" placement="bottom">
-                            <Toggle
-                                pressed={globeOpen}
-                                onPressedChange={handleToggleGlobe}
-                            >
-                                Globe
-                            </Toggle>
-                        </Tooltip>
-                    </Toggle.Group>
+                    {showPanelToggles && (
+                        <Toggle.Group className={styles.panelToggles}>
+                            {hasViewer && (
+                                <Tooltip content="Toggle Viewer panel" placement="bottom">
+                                    <Toggle
+                                        pressed={viewerOpen}
+                                        onPressedChange={handleToggleViewer}
+                                    >
+                                        Viewer
+                                    </Toggle>
+                                </Tooltip>
+                            )}
+                            <Tooltip content="Toggle Map panel" placement="bottom">
+                                <Toggle
+                                    pressed={mapOpen}
+                                    onPressedChange={handleToggleMap}
+                                >
+                                    Map
+                                </Toggle>
+                            </Tooltip>
+                            {hasGlobe && (
+                                <Tooltip content="Toggle Globe panel" placement="bottom">
+                                    <Toggle
+                                        pressed={globeOpen}
+                                        onPressedChange={handleToggleGlobe}
+                                    >
+                                        Globe
+                                    </Toggle>
+                                </Tooltip>
+                            )}
+                        </Toggle.Group>
+                    )}
 
                     {/* User account area — hidden when AUTH=off */}
                     {typeof window !== 'undefined' && window.mmgisglobal && window.mmgisglobal.AUTH !== 'off' && (
