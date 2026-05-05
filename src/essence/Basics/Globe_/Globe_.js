@@ -254,6 +254,8 @@ let Globe_ = {
             orderLayers: function () {},
             invalidateSize: function () {},
             setLayerSpecificOptions: function () {},
+            setGradientHoverPoint: function () {},
+            clearGradientHoverPoint: function () {},
             getElevationAtLngLat: function () {
                 return 0
             },
