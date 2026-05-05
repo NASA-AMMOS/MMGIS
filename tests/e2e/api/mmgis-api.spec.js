@@ -32,9 +32,41 @@ async function ensurePrerequisites(request, testCtx) {
   }
 }
 
+/**
+ * Authenticate as the admin user so that subsequent page navigations are not
+ * redirected to the login screen. A no-op in AUTH=off mode.
+ *
+ * Logs in via the standalone login page (form fill) — this is the reliable
+ * path under AUTH=local because the login page persists the auth state into
+ * the same `MMGISSession` cookie the rest of the app reads. POSTing to
+ * `/api/users/login` from a separate request context does NOT carry the
+ * resulting session over to subsequent `page.goto(...)` calls.
+ */
+async function loginIfRequired(page) {
+  if ((process.env.AUTH || 'off') === 'off') return;
+
+  await page.goto('/');
+  await page.locator('#username').waitFor({ state: 'visible', timeout: 10000 });
+  await page.fill('#username', 'test_admin');
+  await page.fill('#pwd', 'TestAdmin1!'); // pragma: allowlist secret
+  // login.js calls window.location.reload() on success — wait for that to
+  // happen *and* for the resulting page to leave the login screen.
+  await Promise.all([
+    page.waitForLoadState('load'),
+    page.click('#login'),
+  ]);
+  await page.locator('#username').waitFor({ state: 'detached', timeout: 15000 });
+}
+
 test.describe('mmgisAPI Client-Side API', () => {
+  // Run serially: under AUTH=local each test logs in as the shared admin
+  // account, and concurrent logins from multiple workers race on the server's
+  // session store and produce intermittent 401 responses.
+  test.describe.configure({ mode: 'serial' });
+
   test('window.mmgisAPI exists after map load', async ({ page, request }) => {
     await ensurePrerequisites(request, test);
+    await loginIfRequired(page);
 
     await page.goto(MISSION_URL);
     await waitForMapReady(page, { timeout: 60000 });
@@ -45,6 +77,7 @@ test.describe('mmgisAPI Client-Side API', () => {
 
   test('mmgisAPI.map is a valid Leaflet map', async ({ page, request }) => {
     await ensurePrerequisites(request, test);
+    await loginIfRequired(page);
 
     await page.goto(MISSION_URL);
     await waitForMapReady(page, { timeout: 60000 });
@@ -65,6 +98,7 @@ test.describe('mmgisAPI Client-Side API', () => {
 
   test('mmgisAPI.map.getCenter() returns valid coordinates', async ({ page, request }) => {
     await ensurePrerequisites(request, test);
+    await loginIfRequired(page);
 
     await page.goto(MISSION_URL);
     await waitForMapReady(page, { timeout: 60000 });
@@ -82,6 +116,7 @@ test.describe('mmgisAPI Client-Side API', () => {
 
   test('mmgisAPI.map.getZoom() returns valid zoom level', async ({ page, request }) => {
     await ensurePrerequisites(request, test);
+    await loginIfRequired(page);
 
     await page.goto(MISSION_URL);
     await waitForMapReady(page, { timeout: 60000 });
@@ -95,6 +130,7 @@ test.describe('mmgisAPI Client-Side API', () => {
 
   test('mmgisAPI.map.setView() changes the map view', async ({ page, request }) => {
     await ensurePrerequisites(request, test);
+    await loginIfRequired(page);
 
     await page.goto(MISSION_URL);
     await waitForMapReady(page, { timeout: 60000 });
@@ -129,6 +165,7 @@ test.describe('mmgisAPI Client-Side API', () => {
 
   test('mmgisAPI exposes expected documented methods', async ({ page, request }) => {
     await ensurePrerequisites(request, test);
+    await loginIfRequired(page);
 
     await page.goto(MISSION_URL);
     await waitForMapReady(page, { timeout: 60000 });

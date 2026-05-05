@@ -25,9 +25,15 @@ test.describe('Map Widgets', () => {
   });
 
   test('zoom control is NOT present (config has zoomcontrol: false)', async ({ page }) => {
-    // MISSION_LOOK.zoomcontrol is false, so Leaflet zoom buttons should not appear
+    // MISSION_LOOK.zoomcontrol is false, so Leaflet zoom buttons should not appear.
+    // NOTE: target the actual zoom-in/zoom-out buttons specifically — MMGIS
+    // also renders a custom Home/reset-view control that re-uses the
+    // .leaflet-control-zoom class for styling, so the bare class selector
+    // would always match it (see Map_.js _addHomeControl).
     expect(MISSION_LOOK.zoomcontrol).toBeFalsy();
-    await expect(page.locator('.leaflet-control-zoom')).not.toBeVisible({ timeout: 5000 });
+    await expect(
+      page.locator('.leaflet-control-zoom-in, .leaflet-control-zoom-out')
+    ).toHaveCount(0, { timeout: 5000 });
   });
 
   test('graticule is visible (config has graticule: true)', async ({ page }) => {
