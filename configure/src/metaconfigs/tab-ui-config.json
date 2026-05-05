@@ -29,7 +29,26 @@
           "description": "Select a color theme for the interface. Each preset applies a full set of coordinated colors.",
           "type": "dropdown",
           "width": 6,
-          "options": ["Dark Default", "Dark Blue", "Dark Warm", "Dark Mars", "Dark Midnight", "Dark Terra", "Dark Nebula", "Dark Lunar", "Dark Supernova", "Dark Heliosphere", "Dark Monokai", "Light Default", "Light Cool", "Light Slate", "Light Warm", "Light Botanical", "Light Solarized", "High Contrast"],
+          "options": [
+            "Dark Default",
+            "Dark Blue",
+            "Dark Warm",
+            "Dark Mars",
+            "Dark Midnight",
+            "Dark Terra",
+            "Dark Nebula",
+            "Dark Lunar",
+            "Dark Supernova",
+            "Dark Heliosphere",
+            "Dark Monokai",
+            { "value": "Light Default", "label": "Light Default (experimental)" },
+            { "value": "Light Cool", "label": "Light Cool (experimental)" },
+            { "value": "Light Slate", "label": "Light Slate (experimental)" },
+            { "value": "Light Warm", "label": "Light Warm (experimental)" },
+            { "value": "Light Botanical", "label": "Light Botanical (experimental)" },
+            { "value": "Light Solarized", "label": "Light Solarized (experimental)" },
+            "High Contrast"
+          ],
           "default": "Dark Default"
         }
       ]
