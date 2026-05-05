@@ -3,7 +3,7 @@
 :global(#topBar) {
     background: var(--color-a);
     border-bottom: 1px solid var(--color-a1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 12px var(--color-shadow);
 }
 
 .reactOverlay {

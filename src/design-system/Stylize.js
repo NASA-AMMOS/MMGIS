@@ -77,6 +77,8 @@ export function stylize() {
             }
             if (L_.configData.look.mapcolor && L_.configData.look.mapcolor != '')
                 $('#map').css({ background: L_.configData.look.mapcolor })
+            if (L_.configData.look.shadowcolor && L_.configData.look.shadowcolor != '')
+                r.style.setProperty('--color-shadow', L_.configData.look.shadowcolor)
         }
         if (L_.configData.look.logourl && L_.configData.look.logourl != '') {
             $('#mmgislogo').css({ padding: '7px 3px' })

@@ -36,6 +36,7 @@ module.exports = {
     topbarcolor: "",
     toolbarcolor: "",
     mapcolor: "",
+    shadowcolor: "",
     swap: true,
     copylink: true,
     screenshot: true,

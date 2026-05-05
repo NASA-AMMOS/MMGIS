@@ -15,7 +15,7 @@
     border-radius: 10px;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 16px 48px var(--color-shadow);
     z-index: 9999;
     padding: 20px;
     min-width: 280px;

@@ -47,6 +47,7 @@ import { isFieldRequired } from "./validators";
 import Map from "../components/Map/Map";
 import VideoPreview from "../components/VideoPreview/VideoPreview";
 import ColorButton from "../components/ColorButton/ColorButton";
+import ThemePreview from "../components/ThemePreview/ThemePreview";
 import MDEditor from "@uiw/react-md-editor";
 import CodeMirror from "@uiw/react-codemirror";
 import { json } from "@codemirror/lang-json";
@@ -1491,6 +1492,8 @@ const getComponent = (
           <VideoPreview layer={layer} configuration={configuration} />
         </div>
       );
+    case "themepreview":
+      return <ThemePreview configuration={configuration} />;
     case "defaulttooldropdown":
       let tools = configuration?.tools || null;
       tools = tools

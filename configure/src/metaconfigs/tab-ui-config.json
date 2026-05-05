@@ -29,8 +29,16 @@
           "description": "Select a color theme for the interface. Preset themes apply a full set of coordinated colors. Choose 'Custom' to define your own colors using the options below.",
           "type": "dropdown",
           "width": 6,
-          "options": ["Dark Default", "Dark Blue", "Dark Warm", "Dark Mars", "Dark Midnight", "Light Default", "Light Cool", "Light Slate", "Light Warm", "High Contrast", "Custom"],
+          "options": ["Dark Default", "Dark Blue", "Dark Warm", "Dark Mars", "Dark Midnight", "Dark Terra", "Dark Nebula", "Dark Lunar", "Dark Supernova", "Light Default", "Light Cool", "Light Slate", "Light Warm", "Light Botanical", "High Contrast", "Custom"],
           "default": "Dark Default"
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "type": "themepreview",
+          "width": 12
         }
       ]
     },
@@ -114,6 +122,14 @@
           "field": "look.hightlightcolor",
           "name": "Feature Highlight Color",
           "description": "The color used to highlight selected or hovered features on the map.",
+          "type": "colorpicker",
+          "width": 3,
+          "enableWhenField": { "field": "look.theme", "value": "Custom", "default": "Dark Default" }
+        },
+        {
+          "field": "look.shadowcolor",
+          "name": "Shadow Color",
+          "description": "The color used for drop shadows on panels, toolbars, and floating elements. Use rgba for transparency (e.g., 'rgba(0,0,0,0.1)').",
           "type": "colorpicker",
           "width": 3,
           "enableWhenField": { "field": "look.theme", "value": "Custom", "default": "Dark Default" }
