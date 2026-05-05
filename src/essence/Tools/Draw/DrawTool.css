@@ -2591,7 +2591,8 @@ line-height: 20px;
 
 #DrawTool_TimeToggle {
     position: absolute;
-    bottom: 45px;
+    bottom: 57px;
+    z-index: 400;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
