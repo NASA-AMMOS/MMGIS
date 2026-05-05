@@ -1,0 +1,222 @@
+_With Devin_
+
+# Deficiency Report: Offline Support (PWA) spec.md and plan.md
+
+This report consolidates all deficiencies identified through codebase verification across our full review. Issues are organized by severity and category.
+
+---
+
+## Critical: Factual Errors and Misrepresentations
+
+### 1. `extant_start` / `extant_end` columns do not exist
+
+The plan states: _"Existing `extant_start` / `extant_end` columns are sufficient for conflict detection — no new columns."_
+
+This is **false**. The `user_features` model defines only `file_id`, `level`, `intent`, `properties`, and `geom` — with `timestamps: false`, meaning there are no `createdAt`/`updatedAt` columns either. There are 4 references to `extant_start` in `draw.js` routes, but these are not backed by a persisted column in the Sequelize model. The entire Phase 3 conflict detection strategy (`baseline_extant_start`) is built on a column that doesn't exist in the schema. [7-cite-0](#7-cite-0)
+
+**Impact**: Phase 3's conflict detection design needs to be reworked. Either `extant_start`/`extant_end` columns must be added via a migration, or an alternative conflict detection mechanism (e.g., a version counter or hash) must be used.
+
+### 2. `public/index.html` has no `<link rel="manifest">` — needs adding, not modifying
+
+The plan says to modify the manifest link to resolve against `ROOT_PATH`. There is **no manifest link** in `index.html` at all. It needs to be _added_, not modified. Similarly, there are no `apple-touch-icon`, `apple-mobile-web-app-capable`, or `apple-mobile-web-app-title` meta tags. [7-cite-1](#7-cite-1)
+
+### 3. `RefreshAuth.js` is CSSO-only, not a general CSRF/auth refresh mechanism
+
+The plan's Open Question #3 asks _"does `src/pre/RefreshAuth.js` issue a token that needs refreshing per drain?"_ — implying it might be a general auth refresh mechanism. It is **exclusively a CSSO (SSO) auth refresh** that checks SSO token expiry and refreshes the inactivity timeout. It only activates when `mmgisglobal.AUTH == 'csso'`. For local auth or other auth backends, this file does nothing. The plan's Phase 3 queue drain auth strategy needs to account for the full auth backend matrix (local, CSSO, off), not just CSSO. [7-cite-2](#7-cite-2)
+
+### 4. The `calls.js` `api()` function already exists — plan mischaracterizes the integration
+
+The plan says _"wrap `$.ajax` in `api()`"_ — but `api()` already exists and already wraps `$.ajax`. The plan should say "intercept the existing `api()` function" or "add offline-aware logic to the existing `api()` call path." The existing `api()` function is the sole entry point for all API calls. [7-cite-3](#7-cite-3)
+
+---
+
+## Critical: Missing Technical Considerations
+
+### 5. Mission config is not explicitly pre-cached
+
+The mission config (`GET /api/configure/get?mission=X`) is **the single most critical data dependency** for offline. Without it, the app is a blank shell — no layers, no tools, no UI structure. The plan mentions `StaleWhileRevalidate` for this endpoint, which is insufficient for cold-start offline. If the cache was evicted (iPadOS can evict after ~7 days), the app is dead. The config must be **explicitly pinned** during the Phase 2 AOI download flow. [7-cite-4](#7-cite-4)
+
+### 6. Geodatasets are completely unaddressed
+
+Geodataset-backed vector layers (`url: "geodatasets:layer_name"`) query PostGIS via `/api/geodatasets/get` on every load. There are two modes:
+
+- **Static geodatasets**: fetched once as GeoJSON. Could be SW-cached but the plan doesn't mention `/api/geodatasets/get` in its caching strategy.
+- **Dynamic extent geodatasets**: re-query the server on every pan/zoom with viewport bounds. Fundamentally incompatible with offline without pre-fetching the full dataset for the AOI.
+- **Geodataset MVT**: served as vector tiles via `/api/geodatasets/get?type=mvt&x={x}&y={y}&z={z}`. Dynamically generated from PostGIS — not addressed by the tile cache.
+
+The plan treats offline as a tiles + Draw mutations problem but ignores this entire data category. [7-cite-5](#7-cite-5)
+
+### 7. Datasets (CSV tabular data) are unaddressed
+
+Dataset links (`variables.datasetLinks`) lazy-load tabular data on feature click via `/api/datasets/get`. Offline, clicking any feature with dataset links will fail silently. The plan doesn't mention datasets at all.
+
+### 8. WebSocket interaction with offline mode is unaddressed
+
+MMGIS has WebSocket support (`ENABLE_MMGIS_WEBSOCKETS`) for real-time collaboration. The spec says _"No offline collaboration (one user offline at a time per file)"_ but neither document addresses:
+
+- What happens to active WebSocket connections when going offline
+- Whether the Draw tool's real-time collaboration conflicts with the offline queue
+- How to enforce "one user offline at a time per file"
+- Whether WebSocket reconnection on network restore could race with the sync queue drain [7-cite-6](#7-cite-6)
+
+### 9. Cesium static assets must be excluded from SW precache
+
+The webpack config copies 4 directories of Cesium assets (Workers, ThirdParty, Assets, Widgets) into the build output. These are large and will bloat the precache manifest if not explicitly excluded in the Workbox `InjectManifest` config. The plan doesn't mention this. [7-cite-7](#7-cite-7)
+
+### 10. Vendored libraries in `src/index.js` inflate precache size
+
+The app imports ~30 vendored libraries (Leaflet plugins, THREE.js, OpenSeadragon, etc.) from `src/external/`. These are bundled into the webpack output and will be part of the precache manifest. The plan doesn't estimate the total precache size or set a budget for the app shell. [7-cite-8](#7-cite-8)
+
+### 11. Server-dependent tools are not addressed for offline degradation
+
+Multiple tools make server-side API calls at runtime and will fail offline with no graceful degradation:
+
+| Tool                   | Server Dependency                                   | Offline Feasibility          |
+| ---------------------- | --------------------------------------------------- | ---------------------------- | --------------------- |
+| **Measure** (profiles) | `api/utils/getprofile` — server-side GDAL           | Not possible                 |
+| **Identifier**         | `api/utils/getbands` — server-side GDAL             | Not possible                 |
+| **Shade**              | `api/utils/getbands` + `api/utils/ll2aerll` (SPICE) | Not possible                 |
+| **Viewshed**           | Client-side DEM tile fetch via `PNG.load()`         | Possible if DEM tiles cached |
+| **Isochrone**          | Client-side DEM/slope tile fetch                    | Possible if tiles cached     | [7-cite-9](#7-cite-9) |
+
+The plan should document which tools work offline, disable server-dependent tools with clear UI when offline, and optionally include DEM tile URLs in the Phase 2 AOI cache for tools that do client-side DEM processing.
+
+### 12. Client-side DEM tile fetching bypasses Leaflet's tile pipeline
+
+The Viewshed and Isochrone tools fetch DEM tiles via `PNG.load()` — a vendored PNG decoder that makes its own HTTP requests, not through Leaflet's tile layer. The SW tile interception from Phase 2 would need to also match these URLs, and `PNG.load()` would need to be able to find cached responses. This is not addressed. [7-cite-10](#7-cite-10)
+
+### 13. Layer Tool advanced filters have two code paths — one breaks offline
+
+- **`LocalFilterer`**: filters already-loaded GeoJSON client-side. Works offline.
+- **`GeodatasetFilterer`**: encodes filters into URL params and triggers a server re-query. Fails offline.
+- **`ESFilterer`**: queries Elasticsearch. Fails offline.
+- **Draw Tool aggregations**: fetches from server for filter autocomplete. Fails offline.
+
+The plan doesn't document which filter paths work offline or provide graceful degradation for server-dependent filtering.
+
+### 14. WMS tiles use BBOX-based URLs, not z/x/y
+
+WMS tiles construct URLs with bounding-box coordinates, not `{z}/{x}/{y}`. The `TileCacheManager`'s tile enumeration logic can't simply iterate z/x/y for WMS layers. The cache key canonicalizer would need to handle BBOX-based URLs differently. The plan lists WMS as a supported format but doesn't address this structural difference. [7-cite-11](#7-cite-11)
+
+### 15. DEM tiles are 32×32 pixels — 64× more tiles per area
+
+MMGIS supports 32×32 pixel DEM tiles (not just 256×256). If DEM/data layers are included in the AOI selector, the tile count explodes by a factor of 64. The plan doesn't distinguish between standard raster tiles and DEM tiles.
+
+### 16. Sync queue error handling is incomplete
+
+The existing `calls.js` error handler passes **no HTTP status code or response body** to the error callback — just `console.warn('error')`. The Phase 3 interceptor needs to parse the actual XHR response to distinguish 401/409/5xx, but the current error handler doesn't expose this. The interceptor will need to replace the error handler entirely. [7-cite-12](#7-cite-12)
+
+### 17. Network failure recovery has multiple unaddressed edge cases
+
+**After max retries**: The plan says "exponential backoff, max 10 attempts" for 5xx but doesn't define a terminal state. Items would be stuck — not in the conflict tray, not discarded, not retrying.
+
+**Lost responses**: Server processes a request but the network drops before the client receives the 200. The plan adds `correlation_uuid` idempotency for `/add`, but `/edit`, `/remove`, `/merge`, and `/split` have no idempotency mechanism. Replaying these after a lost response could cause duplicates or errors.
+
+**Dependent items**: If item 3 (`/add`) fails with 5xx and item 4 is an `/edit` of that same feature, item 4 will fail because the feature doesn't exist. The plan should pause the entire queue on any non-terminal failure, not just on 401.
+
+**Network flapping**: If the network drops mid-drain, some items may have been sent but their responses lost. The plan doesn't specify whether the drain aborts immediately or continues trying remaining items.
+
+### 18. Configure app needs changes — not just "out of scope"
+
+The plan conflates "the configure app doesn't need to become a PWA" (correct) with "the configure app doesn't need any changes" (incorrect). Required changes include:
+
+- **`config.json` files** for `OfflineTool` and `GPSPathTool` — without these, the tools are invisible in the configure page's Tools tab and admins can't enable or configure them.
+- **Feature flag placement** — `mmgisglobal.options.offline` flags need to be settable somewhere (ENV, GeneralOptions, or mission config). The plan doesn't specify which.
+- **GPS target Draw file** configuration in the GPSPathTool config.
+- **Optional per-layer offline eligibility** fields in layer metaconfigs.
+
+### 19. STAC/COG tile URL canonicalization complexity is understated
+
+The `leaflet-tilelayer-middleware.js` constructs STAC/COG tile URLs with many optional parameters: `datetime`, `exitwhenfull`, `skipcovered`, `rescale`, `colormap_name`, `expression`, `items_limit`, `scan_limit`, `time_limit`, `bidx`, `resampling`. The `cacheKey.js` canonicalizer must handle all of these. The plan mentions this as a risk but doesn't enumerate the full parameter set. [7-cite-13](#7-cite-13)
+
+### 20. COG tile URLs include deployment path — cache key must account for it
+
+COG tiles are constructed with `window.location.origin` and `window.location.pathname` baked in. The cache key must account for the deployment path, and the SW's tile route matching must handle this proxied path pattern.
+
+### 21. Time-dependent tile URLs are not addressed
+
+The tile middleware injects `{time}`, `{starttime}`, `{endtime}`, and `{customtime.N}` into tile URLs. If a user changes the time slider while offline, the tile URLs change and won't match cached entries. The plan doesn't address whether time-dependent tiles should be cached at multiple time steps, or whether the time slider should be locked to the cached time range while offline. [7-cite-14](#7-cite-14)
+
+### 22. TiTiler server load from bulk pre-caching
+
+COG and STAC mosaic tiles are dynamically rendered by TiTiler, which runs with `WEB_CONCURRENCY=1`. Bulk-fetching 750+ tiles through TiTiler with a concurrency pool of 6 could saturate or crash the tile server. The plan mentions the concurrency pool but doesn't address server-side rate limiting or differentiated throttling for TiTiler-routed tiles.
+
+---
+
+## Medium: Minor Reference Errors
+
+### 23. Line number off-by-one for `serviceWorker.unregister()`
+
+The plan says `src/index.js:80`. The actual line is 79. [7-cite-15](#7-cite-15)
+
+### 24. `Map_.js` line reference is misleading
+
+The plan says _"Modify `Map_.js` (~1272–1452) — add `Map_.getActiveTileLayers()`."_ Those lines are the `makeTileLayer()` function body. The plan is adding a _new_ method, not modifying code at those lines. [7-cite-16](#7-cite-16)
+
+### 25. `leaflet.draw` is vendored, not an npm package
+
+The plan references `leaflet.draw` as if it's a standard dependency. It's a vendored copy at `src/external/Leaflet/leaflet.draw`. For the AOI rectangle drawing in Phase 2, this works, but the plan should note this to avoid confusion. [7-cite-17](#7-cite-17)
+
+### 26. `manifest.json` references non-existent icons
+
+The current `manifest.json` references `logo192.png` and `logo512.png` which are CRA defaults. The plan says to replace the manifest but doesn't note that MMGIS-branded icons need to be created. [7-cite-18](#7-cite-18)
+
+---
+
+## Medium: Open Questions That Can Be Closed
+
+### 27. Open Question #4 (attachments) can be answered definitively
+
+`DrawTool_Templater.js` does **not** support photo/file attachments. The supported template types are: `checkbox`, `number`, `text`, `textarea`, `range`/`slider`, `dropdown`, `date`, `incrementer`, `point`. No `file`, `image`, or `attachment` type exists. This should be moved from "open question" to "confirmed: not supported, defer to follow-up." [7-cite-19](#7-cite-19)
+
+### 28. Open Question #3 (CSRF refresh) can be partially answered
+
+`RefreshAuth.js` is CSSO-only. For local auth, the session cookie is the only auth state — there is no CSRF token mechanism. The question should be reframed as: "For CSSO deployments, does the SSO token need refreshing before each drain? For local auth, does the session cookie expire during a 1–2 day offline window?" [7-cite-20](#7-cite-20)
+
+---
+
+## Summary Table
+
+| #     | Category                                         | Severity | Phase Affected |
+| ----- | ------------------------------------------------ | -------- | -------------- |
+| 1     | `extant_start`/`extant_end` don't exist in model | Critical | P3             |
+| 2     | No `<link rel="manifest">` in index.html         | Critical | P1             |
+| 3     | `RefreshAuth.js` is CSSO-only                    | Critical | P3             |
+| 4     | `api()` already exists — mischaracterized        | Medium   | P3             |
+| 5     | Mission config not explicitly pre-cached         | Critical | P2             |
+| 6     | Geodatasets unaddressed                          | Critical | P2             |
+| 7     | Datasets unaddressed                             | Medium   | P2             |
+| 8     | WebSocket interaction unaddressed                | Critical | P3             |
+| 9     | Cesium assets bloat precache                     | Medium   | P1             |
+| 10    | Vendored libraries inflate precache              | Medium   | P1             |
+| 11    | Server-dependent tools not degraded              | Critical | P1–P4          |
+| 12    | DEM tile fetch bypasses Leaflet pipeline         | Medium   | P2/P4          |
+| 13    | Filter paths partially break offline             | Medium   | P2             |
+| 14    | WMS tiles use BBOX, not z/x/y                    | Medium   | P2             |
+| 15    | 32px DEM tiles explode tile count                | Medium   | P2             |
+| 16    | Error handler exposes no HTTP status             | Medium   | P3             |
+| 17    | Sync queue recovery edge cases                   | Critical | P3             |
+| 18    | Configure app needs tool configs                 | Critical | P1–P4          |
+| 19    | STAC/COG URL canonicalization understated        | Medium   | P2             |
+| 20    | COG URLs include deployment path                 | Medium   | P2             |
+| 21    | Time-dependent tile URLs unaddressed             | Medium   | P2             |
+| 22    | TiTiler server load from bulk caching            | Medium   | P2             |
+| 23–26 | Minor reference errors                           | Low      | Various        |
+| 27–28 | Closeable open questions                         | Low      | P3             |
+
+**Totals**: 8 Critical, 14 Medium, 6 Low across 28 distinct deficiencies.
+
+---
+
+## Recommended Actions Before Implementation
+
+1. **Verify and add `extant_start`/`extant_end`** to the `user_features` Sequelize model via a migration, or redesign conflict detection around a version counter. This is a P3 blocker.
+2. **Add an "Offline Data Scope" section** to the plan categorizing every data source (config, geodatasets, datasets, tiles, Draw files) with its offline strategy or explicit "out of scope with graceful degradation."
+3. **Add a "Tool Availability Matrix"** documenting which tools work offline, which degrade, and which are disabled.
+4. **Close Open Questions #3 and #4** — the answers are in the codebase.
+5. **Add Cesium asset exclusion** to Phase 1's Workbox config and estimate total precache size.
+6. **Address WebSocket state** during offline periods and on reconnection.
+7. **Add idempotency to `/edit`, `/remove`, `/merge`, `/split`** — not just `/add`.
+8. **Create `config.json` files** for `OfflineTool` and `GPSPathTool` and decide feature flag placement.
+9. **Decide time-dependent tile caching strategy** — lock time slider offline, or cache multiple time steps.
+10. **Add server-side throttling** for TiTiler-routed bulk tile requests.
