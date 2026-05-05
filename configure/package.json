@@ -1,6 +1,6 @@
 {
   "name": "configure",
-  "version": "4.3.28-20260505",
+  "version": "4.3.29-20260505",
   "homepage": "./configure/build",
   "private": true,
   "dependencies": {
