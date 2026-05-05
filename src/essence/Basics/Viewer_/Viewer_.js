@@ -621,33 +621,25 @@ var Viewer_ = {
 function buildToolBar() {
     $('#viewerToolBar').html('')
 
-    const toolBarContainer = $('<div>').append($('<div>')
-        .attr('class', 'row childpointerevents')
+    const toolBarContainer = $('<div>')
+        .attr('class', 'childpointerevents')
         .css({
             'display': 'flex',
-            'justify-content': 'space-between',
-            'padding': '0px 5px'
-        }))
+            'flex-direction': 'column',
+            'align-items': 'flex-end',
+            'padding': '5px'
+        })
     $('#viewerToolBar').append(toolBarContainer)
-    Viewer_.toolBar = toolBarContainer.children().first()
-
-    const left = $('<div>')
-    Viewer_.toolBar.append(left)
+    Viewer_.toolBar = toolBarContainer
 
     Viewer_.baseToolbar = $('<div>')
         .attr('class', 'osd-custom-buttons')
-        .css('display', 'flex')
-    left.append(Viewer_.baseToolbar)
-
-    Viewer_.baseToolbar.append($('<div>')
-        .attr('id', 'osd-zoomin')
-        .html("<i class='mdi mdi-plus mdi-18px'></i>"))
-    Viewer_.baseToolbar.append($('<div>')
-        .attr('id', 'osd-zoomout')
-        .html("<i class='mdi mdi-minus mdi-18px'></i>"))
-    Viewer_.baseToolbar.append($('<div>')
-        .attr('id', 'osd-home')
-        .html("<i class='mdi mdi-home-variant-outline mdi-18px'></i>"))
+        .css({
+            'display': 'flex',
+            'flex-direction': 'column',
+            'align-items': 'flex-end'
+        })
+    Viewer_.toolBar.append(Viewer_.baseToolbar)
 
     // prettier-ignore
     Viewer_.baseToolbar.append($('<div>')
@@ -669,30 +661,30 @@ function buildToolBar() {
                     "<div id='Viewer_SettingsReset' class='mmgisButton3' style='display: none; height: unset; line-height: 24px; margin: unset; padding-left: unset; padding-right: unset; border-radius: unset;'>",
                         "<i class='mdi mdi-refresh mdi-18px'></i>",
                     '</div>',
-                    "<div id='Viewer_SettingsSettingsPanel' style='display: none; position: absolute; top: 27px; background: var(--color-a); width: 42px; margin-left: 6px;'>",
-                        '<ul style="position: absolute; left: -12px; list-style-type: none; margin: 0; padding: 8px 8px 5px 8px; border-radius: 3px; width: 220px; background: var(--color-a);">',
+                    "<div id='Viewer_SettingsSettingsPanel' style='display: none; position: absolute; top: 100%; right: 0; background: var(--color-a); width: 42px;'>",
+                        '<ul style="position: absolute; left: 0; list-style-type: none; margin: 0; padding: 8px 8px 5px 8px; border-radius: 3px; width: 220px; background: var(--color-a);">',
                             '<li style="height: 19px; line-height: 19px;">',
                                 '<div style="display: flex; justify-content: space-between;">',
                                     '<div style="font-size: 13px;">Rotation</div>',
-                                    '<input class="viewer_rotationslider slider2" style="background: #444444; width: 120px;" type="range" min="0" max="360" step="1" value="0" default="0">',
+                                    '<input class="viewer_rotationslider slider2" style="background: var(--color-a3); width: 120px;" type="range" min="0" max="360" step="1" value="0" default="0">',
                                 '</div>',
                             '</li>',
                             '<li style="height: 19px; line-height: 19px;">',
                                 '<div style="display: flex; justify-content: space-between;">',
                                     '<div style="font-size: 13px;">Brightness</div>',
-                                    '<input class="viewer_filterslider viewer_filterslider_brightness slider2" style="background: #444444; width: 120px;" type="range" min="0.25" max="2" step="0.05" value="1" default="1">',
+                                    '<input class="viewer_filterslider viewer_filterslider_brightness slider2" style="background: var(--color-a3); width: 120px;" type="range" min="0.25" max="2" step="0.05" value="1" default="1">',
                                 '</div>',
                             '</li>',
                             '<li style="height: 19px; line-height: 19px;">',
                                 '<div style="display: flex; justify-content: space-between;">',
                                     '<div style="font-size: 13px;">Contrast</div>',
-                                    '<input class="viewer_filterslider viewer_filterslider_contrast slider2" style="background: #444444; width: 120px;" type="range" min="0.25" max="6" step="0.05" value="1" default="1">',
+                                    '<input class="viewer_filterslider viewer_filterslider_contrast slider2" style="background: var(--color-a3); width: 120px;" type="range" min="0.25" max="6" step="0.05" value="1" default="1">',
                                 '</div>',
                             '</li>',
                             '<li style="height: 19px; line-height: 19px;">',
                                 '<div style="display: flex; justify-content: space-between;">',
                                     '<div style="font-size: 13px;">Saturation</div>',
-                                    '<input class="viewer_filterslider viewer_filterslider_saturate slider2" style="background: #444444; width: 120px;" type="range" min="0" max="2" step="0.05" value="1" default="1">',
+                                    '<input class="viewer_filterslider viewer_filterslider_saturate slider2" style="background: var(--color-a3); width: 120px;" type="range" min="0" max="2" step="0.05" value="1" default="1">',
                                 '</div>',
                             '</li>',
                         '</ul>',
@@ -701,6 +693,16 @@ function buildToolBar() {
             ].join('')
         ))
 
+
+    Viewer_.baseToolbar.append($('<div>')
+        .attr('id', 'osd-zoomin')
+        .html("<i class='mdi mdi-plus mdi-18px'></i>"))
+    Viewer_.baseToolbar.append($('<div>')
+        .attr('id', 'osd-zoomout')
+        .html("<i class='mdi mdi-minus mdi-18px'></i>"))
+    Viewer_.baseToolbar.append($('<div>')
+        .attr('id', 'osd-home')
+        .html("<i class='mdi mdi-home-variant-outline mdi-18px'></i>"))
     $('#Viewer_SettingsSettings, #Viewer_Settings').click(function () {
         var display = $('#Viewer_SettingsSettingsPanel').css('display')
         if (display == 'none') {
@@ -751,7 +753,7 @@ function buildToolBar() {
 
     Viewer_.toolBarSelector = $('<div>')
         .attr('id', 'viewer_dropdownselector')
-    Viewer_.toolBar.append(Viewer_.toolBarSelector)
+    Viewer_.toolBar.prepend(Viewer_.toolBarSelector)
 
     Viewer_.toolBarLoading = $('<div>')
         .attr('id', 'viewer_loading')

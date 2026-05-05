@@ -2,8 +2,9 @@ import $ from 'jquery'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
-import CursorInfo from '../../Ancillary/CursorInfo'
-import LocalFilterer from '../../Ancillary/LocalFilterer'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '../../../design-system/components/Toast/Toast'
+import LocalFilterer from '../../services/LocalFilterer'
 import Dropy from '../../../external/Dropy/dropy'
 import Sortable from 'sortablejs'
 import calls from '../../../pre/calls'
@@ -555,14 +556,7 @@ var Shapes = {
                                 DrawTool.contextMenuLayer != null &&
                                 DrawTool.contextMenuLayers.length > 0
                             ) {
-                                CursorInfo.update(
-                                    'Grouped shapes must share intent.',
-                                    6000,
-                                    true,
-                                    { x: 305, y: 6 },
-                                    '#e9ff26',
-                                    'black'
-                                )
+                                Toast.warning('Grouped shapes must share intent.', 6000)
                                 return
                             }
 

@@ -4,11 +4,12 @@ import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 
-import DataShaders from '../../Ancillary/DataShaders'
+import DataShaders from '../../services/DataShaders'
 import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
 import Filtering from '../../Basics/Layers_/Filtering/Filtering'
-import Help from '../../Ancillary/Help'
-import CursorInfo from '../../Ancillary/CursorInfo'
+import Help from '../../Basics/UserInterface_/components/Help/Help'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '../../../design-system/components/Toast/Toast'
 import TimeUI from '../../Basics/TimeControl_/TimeUI'
 
 import LegendTool from '../Legend/LegendTool.js'
@@ -85,10 +86,10 @@ function generateMarkup() {
     // prettier-ignore
     return [
         "<div id='layersTool'>",
-            "<div id='layersToolHeader'>",
+            "<div id='layersToolHeader' class='mmgisToolHeader'>",
                 "<div id='filterLayers'>",
                     "<div class='left'>",
-                        '<div id="title">Layers</div>',
+                        '<div class="mmgisToolTitle">Layers</div>',
                         Help.getComponent(helpKey),
                     "</div>",
                     "<div class='right'>",
@@ -1795,26 +1796,12 @@ function interfaceWithMMGIS(fromInit) {
         const layer = L_.layers.layer[layerName]
 
         if (!data || !layer) {
-            CursorInfo.update(
-                'Unable to locate layer.',
-                4000,
-                true,
-                { x: 395, y: 6 },
-                '#e9ff26',
-                'black'
-            )
+            Toast.warning('Unable to locate layer.', 4000)
             return
         }
 
         if (L_.layers.on[layerName] !== true) {
-            CursorInfo.update(
-                'Please turn the layer on before locating.',
-                4000,
-                true,
-                { x: 395, y: 6 },
-                '#e9ff26',
-                'black'
-            )
+            Toast.warning('Please turn the layer on before locating.', 4000)
             return
         }
 
@@ -1827,25 +1814,11 @@ function interfaceWithMMGIS(fromInit) {
                     [data.boundingBox[3], data.boundingBox[2]],
                 ])
             } else {
-                CursorInfo.update(
-                    'Unable to locate layer.',
-                    4000,
-                    true,
-                    { x: 395, y: 6 },
-                    '#e9ff26',
-                    'black'
-                )
+                Toast.warning('Unable to locate layer.', 4000)
                 return
             }
         } catch (err) {
-            CursorInfo.update(
-                'Unable to locate layer.',
-                4000,
-                true,
-                { x: 385, y: 6 },
-                '#e9ff26',
-                'black'
-            )
+            Toast.warning('Unable to locate layer.', 4000)
             return
         }
     })
@@ -1870,23 +1843,9 @@ function interfaceWithMMGIS(fromInit) {
             // Update TimeUI with the layer's data extent
             TimeUI.updateTimes(startTime, endTime, endTime)
 
-            CursorInfo.update(
-                'Global time set to layer extent.',
-                3000,
-                false,
-                { x: 395, y: 6 },
-                '#0792c5',
-                'white'
-            )
+            Toast.info('Global time set to layer extent.', 3000)
         } else {
-            CursorInfo.update(
-                'Layer data extent not configured!',
-                3000,
-                true,
-                { x: 395, y: 6 },
-                '#ff2626',
-                'white'
-            )
+            Toast.error('Layer data extent not configured!', 3000)
         }
     })
 
@@ -1923,14 +1882,7 @@ function interfaceWithMMGIS(fromInit) {
         else coords = 'source'
 
         if (L_.layers.layer[layerUUID] === false) {
-            CursorInfo.update(
-                'Please turn layer on before exporting.',
-                6000,
-                true,
-                { x: 385, y: 6 },
-                '#e9ff26',
-                'black'
-            )
+            Toast.warning('Please turn layer on before exporting.', 6000)
             return
         }
 
@@ -1983,14 +1935,7 @@ function interfaceWithMMGIS(fromInit) {
                                 })
                         },
                         function (err) {
-                            CursorInfo.update(
-                                `Failed to generate shapefile's .prj.`,
-                                6000,
-                                true,
-                                { x: 385, y: 6 },
-                                '#e9ff26',
-                                'black'
-                            )
+                            Toast.warning(`Failed to generate shapefile's .prj.`, 6000)
                         }
                     )
                     break
@@ -2013,14 +1958,7 @@ function interfaceWithMMGIS(fromInit) {
                         download(data.body)
                     },
                     (data) => {
-                        CursorInfo.update(
-                            `Failed to download ${layerDisplayName}.`,
-                            6000,
-                            true,
-                            { x: 385, y: 6 },
-                            '#e9ff26',
-                            'black'
-                        )
+                        Toast.error(`Failed to download ${layerDisplayName}.`, 6000)
                         console.warn(
                             'ERROR: ' +
                                 data.status +
@@ -2094,14 +2032,7 @@ function interfaceWithMMGIS(fromInit) {
                     download(data)
                 },
                 (data) => {
-                    CursorInfo.update(
-                        `Failed to download ${layerDisplayName}.`,
-                        6000,
-                        true,
-                        { x: 385, y: 6 },
-                        '#e9ff26',
-                        'black'
-                    )
+                    Toast.error(`Failed to download ${layerDisplayName}.`, 6000)
                     console.warn(
                         'ERROR: ' +
                             data.status +

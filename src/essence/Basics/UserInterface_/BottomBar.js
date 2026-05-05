@@ -1,15 +1,21 @@
 import $ from 'jquery'
 import hotkeys from 'hotkeys-js'
+import showdown from 'showdown'
+import DOMPurify from 'dompurify'
 
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 
-import QueryURL from '../../Ancillary/QueryURL'
-import Modal from '../../Ancillary/Modal'
+import Attributions from './components/Attributions/Attributions'
+import QueryURL from '../../services/QueryURL'
+import Modal from './components/Modal/Modal'
 import HTML2Canvas from 'html2canvas'
 import useUIStore from './store/uiStore'
 
+showdown.setFlavor('github')
+
 let BottomBar = {
+    mdConverter: new showdown.Converter(),
     UI_: null,
     settings: {},
 
@@ -24,6 +30,69 @@ let BottomBar = {
             F_.copyToClipboard(L_.url)
             if (callback) callback()
         })
+    },
+
+    // About modal
+    showAboutModal: function () {
+        const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;').replace(/"/g,'&quot;')
+        const version = esc(window.mmgisglobal?.version || L_.configData?.version || '')
+        const mission = esc(L_.configData?.msv?.mission || '')
+        const helpUrl = esc(L_.configData?.look?.helpurl || '')
+        const infoUrl = esc(L_.configData?.look?.infourl || '')
+        const aboutContent = L_.configData?.look?.aboutModalContent || L_.configData?.look?.infoModalContent || ''
+        const logoUrl = esc(L_.configData?.look?.logourl || '')
+
+        const attributions = Attributions.visibleAttributions || []
+        const attributionItems = attributions.map((attr) => {
+            if (attr.link && attr.link.length > 0) {
+                return `<a href='${esc(attr.link)}' target='_blank' rel='noopener noreferrer'>${esc(attr.text)}</a>`
+            }
+            return `<span>${esc(attr.text)}</span>`
+        })
+
+        const githubSvg = `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>`
+
+        const mmgisLogoURL = 'public/images/logos/mmgis.png'
+
+        // prettier-ignore
+        const modalContent = [
+            `<div id='mainInfoModal'>`,
+                `<div id='mainInfoModalTitle'>`,
+                    `<div id='mainInfoModalClose'><i class='mmgisHoverBlue mdi mdi-close mdi-18px'></i></div>`,
+                `</div>`,
+                `<div id='mainInfoModalContent'>`,
+                    `<div class='mainInfoModalHero'>`,
+                        `<img class='mainInfoModalLogo' src='${mmgisLogoURL}' alt='MMGIS' />`,
+                        `<div class='mainInfoModalSubtitle'>Multi-Mission Geographic Information System</div>`,
+                        logoUrl ? `<img class='mainInfoModalMissionLogo' src='${logoUrl}' alt='Mission Logo' />` : '',
+                    `</div>`,
+                    aboutContent ? `<div class='mainInfoModalCustom'>${DOMPurify.sanitize(BottomBar.mdConverter.makeHtml(aboutContent))}</div>` : '',
+                    `<div class='mainInfoModalMeta'>`,
+                        mission ? `<div class='mainInfoModalMetaItem'><span class='mainInfoModalMetaLabel'>Mission</span><span class='mainInfoModalMetaValue'>${mission}</span></div>` : '',
+                        version ? `<div class='mainInfoModalMetaItem'><span class='mainInfoModalMetaLabel'>Version</span><span class='mainInfoModalMetaValue'>${version}</span></div>` : '',
+                    `</div>`,
+                    `<div class='mainInfoModalLinks'>`,
+                        `<a class='mainInfoModalLink' href='https://github.com/NASA-AMMOS/MMGIS' target='_blank' rel='noopener noreferrer'>${githubSvg}<span>GitHub</span></a>`,
+                        helpUrl && L_.configData?.look?.help !== false ? `<a class='mainInfoModalLink' href='${helpUrl}' target='_blank' rel='noopener noreferrer'><i class='mdi mdi-help-circle-outline'></i><span>Help</span></a>` : '',
+                        infoUrl && L_.configData?.look?.info !== false ? `<a class='mainInfoModalLink' href='${infoUrl}' target='_blank' rel='noopener noreferrer'><i class='mdi mdi-information-outline'></i><span>Info</span></a>` : '',
+                    `</div>`,
+                    attributionItems.length > 0 ? `<div class='mainInfoModalAttributions'><div class='mainInfoModalAttrLabel'>Map Layer Attributions</div><div class='mainInfoModalAttrList'>${attributionItems.join(' · ')}</div></div>` : '',
+                    `<div class='mainInfoModalFooter'>`,
+                        `<a href='https://ammos.nasa.gov/' target='_blank' rel='noopener noreferrer'>NASA-AMMOS</a>`,
+                    `</div>`,
+                `</div>`,
+            `</div>`
+        ].join('\n')
+
+        Modal.set(
+            modalContent,
+            function () {
+                $('#mainInfoModalClose').on('click', function () {
+                    Modal.remove()
+                })
+            },
+            function () {}
+        )
     },
 
     // Take a screenshot of the map (extracted from init's click handler)
@@ -43,7 +112,11 @@ let BottomBar = {
         const savedMapToolBarBottom =
             $('#mapToolBar').css('bottom') || '0px'
         $('#mapToolBar').css('bottom', '0px')
-        $('#toggleTimeUI.active').trigger('click')
+        // Hide TimeUI for screenshot (synchronous DOM hide)
+        const wasTimeUIActive = $('#timeUI').hasClass('active')
+        if (wasTimeUIActive) {
+            $('#timeUI').css('display', 'none')
+        }
 
         const documentElm = document.getElementById('mapScreen')
         HTML2Canvas(documentElm, {
@@ -129,6 +202,9 @@ let BottomBar = {
             $('.leaflet-control-zoom').css('display', 'block')
             $('#scaleBar').css('margin-top', '5px')
             $('#mapToolBar').css('bottom', savedMapToolBarBottom)
+            if (wasTimeUIActive) {
+                $('#timeUI').css('display', '')
+            }
         }
     },
     toggleHotkeys: function (on) {
@@ -349,6 +425,12 @@ let BottomBar = {
                                     `<div class="mmgis-checkbox"><input type="checkbox" ${BottomBar.settings.visibility.miscellaneous ? 'checked ' : ''}id="checkbox_msmsUIV6" value='miscellaneous'/><label for="checkbox_msmsUIV6"></label></div>`,
                                     `<div>Miscellaneous</div>`,
                                 `</li>`,
+                                (L_.configData.time && L_.configData.time.enabled === true && !L_.UserInterface_?.isMobile ? [
+                                `<li>`,
+                                    `<div class="mmgis-checkbox"><input type="checkbox" ${$('#timeUI').hasClass('active') ? 'checked ' : ''}id="checkbox_msmsUIV7" value='timeui'/><label for="checkbox_msmsUIV7"></label></div>`,
+                                    `<div>Time UI</div>`,
+                                `</li>`,
+                                ].join('') : ''),
                             `</ul>`,
                         `</div>`,
                         (L_.Globe_ && L_.hasGlobe ? 
@@ -439,6 +521,9 @@ let BottomBar = {
                     $('.leaflet-control-container').css('display', 'none')
                     $('.splitterVInner').css('display', 'none')
                     break
+                case 'timeui':
+                    import('./components/Coordinates/Coordinates').then(m => m.default.toggleTimeUI(false))
+                    break
                 default:
                     break
             }
@@ -473,6 +558,9 @@ let BottomBar = {
                 case 'miscellaneous':
                     $('.leaflet-control-container').css('display', 'block')
                     $('.splitterVInner').css('display', 'inline-flex')
+                    break
+                case 'timeui':
+                    import('./components/Coordinates/Coordinates').then(m => m.default.toggleTimeUI(true))
                     break
                 default:
                     break

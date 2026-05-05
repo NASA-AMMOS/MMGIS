@@ -67,6 +67,8 @@ body {
     --color-b: #555555;
     --color-c: #08aeea;
     --color-c2: #0792c5;
+    --color-c2-text: #ffffff;
+    --color-shadow: rgba(0, 0, 0, 0.4);
     --color-d: #2a2a2a;
     --color-e: #3a3e40;
     --color-f: #e1e1e1;
@@ -131,52 +133,8 @@ body {
     --color-video: #7b2323;
 }
 
-#nodeenv {
-    display: none;
-    position: absolute;
-    width: 36px;
-    height: 1px;
-    left: 0;
-    bottom: 0;
-    overflow: hidden;
-    pointer-events: none;
-    background: #333;
-    z-index: 10000;
-}
-
 #webgl-error-message {
     display: none;
-}
-
-#topBar {
-}
-
-#topBarInfo {
-    width: 24px;
-    height: 24px;
-}
-
-#topBarHelp {
-    width: 24px;
-    height: 24px;
-}
-
-#topBarLink {
-    width: 24px;
-    height: 24px;
-}
-
-#topBarFullscreen {
-    width: 24px;
-    height: 24px;
-}
-
-#toggleUI {
-    opacity: 0.8;
-    cursor: pointer;
-    transition: color 0.3s;
-    width: 24px;
-    height: 24px;
 }
 
 #splitscreens {
@@ -185,7 +143,7 @@ body {
     position: absolute;
     left: 0px;
     top: 0px;
-    z-index: 1;
+    z-index: auto;
     overflow: hidden;
 }
 #vmgScreen {
@@ -201,24 +159,21 @@ body {
     display: flex;
     align-items: center;
     z-index: 500;
-    transition: opacity 0.3s;
+    background: transparent;
+    transition: background 0.2s ease-out;
 }
 .splitterV:hover {
-    opacity: 0.9;
+    background: var(--color-mmgis);
+    opacity: 0.5;
 }
 
 .splitterVInner {
     position: absolute;
     left: -50%;
     height: 100vh;
-    background: linear-gradient(
-        to right,
-        rgba(0, 0, 0, 0),
-        rgba(0, 0, 0, 0.2),
-        rgba(0, 0, 0, 0)
-    );
+    background: none;
     text-align: center;
-    display: inline-flex;
+    display: none;
     justify-content: space-evenly;
     align-items: center;
 }
@@ -227,24 +182,14 @@ body {
 }
 
 .splitterVInner i {
-    width: 48px;
-    height: 30px;
-    line-height: 30px;
-    cursor: col-resize;
-    color: #fff;
+    display: none;
 }
 .splitterVInner i:hover {
-    color: var(--color-mmgis);
-    cursor: pointer;
+    display: none;
 }
 
 #mapTopBar {
     transition: padding-left 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-@media screen and (max-width: 800px) {
-    #mapTopBar {
-        padding-left: 134px !important;
-    }
 }
 #mapSplitInnerViewerInfo {
     position: absolute;
@@ -314,13 +259,16 @@ body {
 }
 
 .splitterH {
-    /*background-color: #1A1A1A;*/
     width: 100%;
     position: absolute;
-    /*border-top: 1px solid #333;*/
-    /*border-bottom: 1px solid rgba(0,0,0,0.95);*/
     cursor: row-resize;
     z-index: 6;
+    background: transparent;
+    transition: background 0.2s ease-out;
+}
+.splitterH:hover {
+    background: var(--color-mmgis);
+    opacity: 0.5;
 }
 
 .splitterText {
@@ -345,18 +293,23 @@ body {
     border-top: 1px solid var(--color-a-5);
 }
 
+.toolButton {
+    color: var(--color-f);
+}
 .toolButton:hover {
     background: var(--color-a1-5) !important;
+    color: var(--color-c) !important;
+}
+.toolButton.toolButtonActive,
+.toolButton.toolButtonActive:hover {
+    color: var(--color-mmgis) !important;
+    background: var(--color-i) !important;
 }
 
-.toolButtonSep.active {
-    color: var(--color-c) !important;
-    border-bottom: 2px solid var(--color-c);
+.toolSep.active {
+    color: var(--color-mmgis) !important;
 }
-.toolButtonSep#toolButtonSeparated_Legend.active {
-    border-bottom: none !important;
-}
-.toolButtonSep:hover {
+.toolSep:hover {
     color: var(--color-c) !important;
 }
 #tScreen {
@@ -373,26 +326,20 @@ body {
     position: absolute;
     box-shadow: 0px -2px 3px 0px rgba(0, 0, 0, 0.2);
 }
+#bottomFloatingBar #toolsWrapper {
+    position: relative;
+    bottom: auto;
+    border: none;
+}
 
 #toolbar {
     width: auto;
     background: var(--color-a);
-    height: 30px;
     position: absolute;
     left: 0px;
     bottom: 0px;
-}
-
-#logoGoBack {
-    transition: 0.25s ease-in;
-    position: absolute;
-    bottom: 1px;
-    left: 24px;
-    opacity: 0.2;
-    z-index: 103;
-}
-#logoGoBack:hover {
-    opacity: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .leaflet-container {
@@ -542,7 +489,7 @@ body {
 
 .leaflet-control-zoom {
     border: none !important;
-    margin-top: 40px !important;
+    margin-top: 10px !important;
     margin-right: 5px !important;
     user-select: none;
 }
@@ -621,18 +568,18 @@ body {
     width: 30px;
     height: 30px;
     background: var(--color-a);
-    line-height: 31px;
+    line-height: 30px;
     text-align: center;
-    margin-right: 5px;
+    margin-bottom: 5px;
     cursor: pointer;
     border-radius: 3px;
-    color: #bbb;
-    display: inline-block;
+    color: var(--color-f);
+    display: block;
     position: relative;
-    transition: color 0.2s ease-out;
+    transition: color 0.2s ease-in 0s;
 }
 .osd-custom-buttons > div:hover {
-    color: white;
+    color: var(--color-mmgis);
 }
 
 .cplot_axis path {
@@ -688,7 +635,7 @@ body {
     background: var(--color-a);
     border: 1px solid var(--color-a-5);
     box-shadow: 0px 0px 3px 0px rgb(0 0 0);
-    transition: bottom 0.2s ease-out;
+    transition: bottom 0.2s ease-out, left 0.2s ease-out;
 }
 #mmgis-map-compass .spin {
     width: 100%;
@@ -767,11 +714,11 @@ body {
 
 .leaflet-control-scalefactor {
     position: absolute;
-    bottom: 48px;
-    left: 44px;
+    bottom: 29px;
+    left: 42px;
     display: flex;
     margin-left: 2px !important;
-    transition: bottom 0.2s ease-out;
+    transition: bottom 0.2s ease-out, left 0.2s ease-out;
 }
 .leaflet-control-scalefactor-goto {
     white-space: nowrap;
@@ -1177,15 +1124,141 @@ body {
     left: 50%;
 }
 
-#_lithosphere_controls_topleft {
-    top: 40px !important;
-}
+/* --- LithoSphere Globe Controls --- */
+/* Anchor the top-right cluster and arrange children in a 2-column grid:
+   - Column 1, Row 1: navigation (horizontal spin/tilt/pan/zoom)
+   - Column 2, Row 1: compass (very top-right)
+   - Column 2, Rows 2+: vertical stack of home/walk/exaggerate/observe/link
+   The row-gap stays small so the vertical buttons sit directly under compass. */
 #_lithosphere_controls_topright {
-    top: 40px !important;
-    right: -5px !important;
+    top: 10px !important;
+    right: 10px !important;
+    display: grid !important;
+    grid-template-columns: auto auto !important;
+    grid-auto-rows: min-content !important;
+    align-items: start !important;
+    justify-items: end !important;
+    column-gap: 6px !important;
+    row-gap: 5px !important;
+}
+/* Reset the per-child marginRight/marginBottom that LithoSphere applies inline */
+#_lithosphere_controls_topright > div {
+    margin: 0 !important;
+}
+
+/* Navigation (horizontal): top row, left column */
+#_lithosphere_control_mmgisLithoNavigation {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+}
+/* Theme the navigation header buttons to match the rest of the cluster */
+#_lithosphere_control_mmgisLithoNavigation
+    #_lithosphere_control_navigation_root
+    > div
+    > div:first-child {
+    height: 30px !important;
+    line-height: 30px !important;
+    background: var(--color-a) !important;
+    color: var(--color-f) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    border-radius: 3px !important;
+}
+/* Each navigation column is the relative anchor for its absolute hover panel */
+#_lithosphere_control_mmgisLithoNavigation
+    #_lithosphere_control_navigation_root
+    > div {
+    position: relative !important;
+}
+/* Float the hover panels so they overlay instead of growing the grid row
+   (which would shove the vertical stack of buttons below the compass down) */
+#_lithosphere_control_mmgisLithoNavigation
+    #_lithosphere_control_navigation_root
+    ._lithosphere_control_navigation_panel {
+    position: absolute !important;
+    top: 30px !important;
+    left: 0 !important;
+    width: 80px !important;
+    z-index: 10 !important;
+    background: var(--color-a) !important;
+    color: var(--color-f) !important;
+    border-top-color: var(--color-c, #444) !important;
 }
 #_lithosphere_control_mmgisLithoNavigation svg {
     box-sizing: unset !important;
+}
+
+/* Compass: very top-right corner, circular */
+#_lithosphere_control_mmgisLithoCompass {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+}
+#_lithosphere_control_mmgisLithoCompass #_lithosphere_control_compass_root,
+#_lithosphere_control_mmgisLithoCompass #_lithosphere_control_compass_root svg {
+    border-radius: 50% !important;
+    overflow: hidden !important;
+}
+#_lithosphere_control_mmgisLithoCompass #_lithosphere_control_compass_root {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+}
+
+/* Vertical stack under compass: home, walk, exaggerate, observe, link */
+#_lithosphere_control_mmgisLithoHome,
+#_lithosphere_control_mmgisLithoWalk,
+#_lithosphere_control_mmgisLithoExaggerate,
+#_lithosphere_control_mmgisLithoObserve,
+#_lithosphere_control_mmgisLithoLink {
+    grid-column: 2 !important;
+    justify-self: end !important;
+}
+
+/* Themed simple square buttons (matches Cesium link / Leaflet zoom) */
+#_lithosphere_control_mmgisLithoHome > div,
+#_lithosphere_control_mmgisLithoWalk > div,
+#_lithosphere_control_mmgisLithoLink > div,
+#_lithosphere_control_mmgisLithoExaggerate > div > div:first-child,
+#_lithosphere_control_mmgisLithoObserve > div > div:first-child {
+    width: 30px !important;
+    height: 30px !important;
+    line-height: 30px !important;
+    background: var(--color-a) !important;
+    border-radius: 3px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    color: var(--color-f) !important;
+    transition: color 0.2s ease-in 0s;
+}
+#_lithosphere_control_mmgisLithoHome > div:hover,
+#_lithosphere_control_mmgisLithoWalk > div:hover,
+#_lithosphere_control_mmgisLithoLink > div:hover,
+#_lithosphere_control_mmgisLithoExaggerate > div > div:first-child:hover,
+#_lithosphere_control_mmgisLithoObserve > div > div:first-child:hover {
+    color: var(--color-mmgis) !important;
+}
+
+/* Open exaggerate / observe hover panels on the LEFT of the icon
+   (since the column is anchored to the right side of the screen) */
+#_lithosphere_control_exaggerate_root > span > div,
+#_lithosphere_control_observe_root > span > div {
+    flex-direction: row-reverse !important;
+    left: auto !important;
+    right: 0 !important;
+}
+#_lithosphere_control_exaggerate_root > span > div > div:nth-child(2),
+#_lithosphere_control_observe_root > span > div > div:nth-child(2) {
+    margin-left: 0 !important;
+    margin-right: 5px !important;
+}
+/* Anchor the observe settings panel to the left of the column */
+#_lithosphere_WalkSettingsPanel {
+    right: 34px !important;
+    left: auto !important;
+}
+
+/* Keep bottom-left styling in case anything still lands there */
+#_lithosphere_controls_bottomleft > div > div {
+    background: var(--color-a) !important;
+    border-radius: 3px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    color: var(--color-f) !important;
 }
 
 .mdi-12px.mdi-set,
@@ -1300,4 +1373,62 @@ mark {
 
 .cesium-widget-credits {
     display: none !important;
+}
+
+/* Standardized tool header pattern */
+.mmgisToolHeader {
+    width: 100%;
+}
+.mmgisToolHeader > div:first-child {
+    display: flex;
+    height: 40px;
+    line-height: 40px;
+    color: var(--color-f);
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--color-a1);
+}
+.mmgisToolHeader > div:first-child > div:first-child {
+    display: flex;
+    align-items: center;
+}
+.mmgisToolHeader > div:first-child > div:last-child {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+.mmgisToolTitle {
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    font-weight: 600;
+    padding-left: 10px;
+    font-family: 'lato-light';
+    text-transform: uppercase;
+    color: var(--color-l);
+}
+.mmgisToolHelpBtn {
+    width: 44px;
+    height: 44px;
+    text-align: center;
+    line-height: 44px;
+    cursor: pointer;
+    color: var(--color-a3);
+}
+.mmgisToolHelpBtn:hover {
+    color: var(--color-c);
+}
+.mmgisHelpButton {
+    line-height: 18px;
+    margin: 6px 4px;
+    padding: 0;
+    width: 18px;
+    height: 18px;
+    opacity: 0.7;
+    color: var(--color-h);
+}
+.mmgisHelpButton:hover {
+    opacity: 1;
+    color: var(--color-h);
+    background: rgba(0, 0, 0, 0);
 }

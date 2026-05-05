@@ -80,7 +80,7 @@ export function computeMapSplitMoveResult(state, clientX) {
 
     // Mobile: toolbar is at bottom, no left offset; Desktop: 40px left toolbar
     const toolbarLeftOffset = state.isMobile ? 0 : 40
-    let x = clientX - state.splitterSize - toolbarLeftOffset - state.toolPanelWidth
+    let x = clientX - state.splitterSize - toolbarLeftOffset
 
     if (x >= state.mainWidth - 5) x = state.mainWidth
     else if (x <= 5) x = 0
@@ -116,7 +116,7 @@ export function computeGlobeSplitMoveResult(state, clientX) {
 
     // Mobile: toolbar is at bottom, no left offset; Desktop: 40px left toolbar
     const toolbarLeftOffset = state.isMobile ? 0 : 40
-    let x = clientX - toolbarLeftOffset - state.toolPanelWidth
+    let x = clientX - toolbarLeftOffset
 
     if (state.hasViewer !== false) {
         x -= state.splitterSize
@@ -152,9 +152,10 @@ export function computeGlobeSplitMoveResult(state, clientX) {
 export function computeToolsSplitMoveResult(state, clientY) {
     let pxIsTools = state.mainHeight - clientY + state.splitterSize / 4
     const reserve = state.toolHeightReserve != null ? state.toolHeightReserve : state.topSize
+    const minHeight = Math.max(state.toolNativeHeight || 0, state.splitterSize / 4)
 
-    if (pxIsTools < state.splitterSize / 4) {
-        pxIsTools = state.splitterSize / 4
+    if (pxIsTools < minHeight) {
+        pxIsTools = minHeight
     }
     if (
         pxIsTools >

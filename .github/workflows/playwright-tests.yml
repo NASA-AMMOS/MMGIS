@@ -64,6 +64,8 @@ jobs:
           echo "DB_NAME=mmgis-test" >> .env
           echo "DB_USER=test_user" >> .env
           echo "DB_PASS=test_password" >> .env
+          echo "DB_USER_TEST=test_user" >> .env
+          echo "DB_PASS_TEST=test_password" >> .env
           echo "ENABLE_MMGIS_WEBSOCKETS=false" >> .env
           echo "ENABLE_CONFIG_WEBSOCKETS=false" >> .env
           echo "HIDE_CONFIG=false" >> .env

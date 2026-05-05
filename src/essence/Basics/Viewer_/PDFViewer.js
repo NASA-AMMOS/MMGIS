@@ -1,4 +1,4 @@
-import { render } from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import React, { useState, useEffect } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import { useResizeDetector } from 'react-resize-detector'
@@ -219,10 +219,11 @@ export default function (options) {
     options = options || {}
 
     async function changePDF(pdfPath, canvasId) {
-        render(
-            <ReactPDF pdfPath={pdfPath} />,
-            document.getElementById('pdfViewerWrapper')
-        )
+        const container = document.getElementById('pdfViewerWrapper')
+        if (!container._reactRoot) {
+            container._reactRoot = createRoot(container)
+        }
+        container._reactRoot.render(<ReactPDF pdfPath={pdfPath} />)
     }
 
     return {

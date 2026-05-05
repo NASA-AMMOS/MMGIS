@@ -1,3 +1,4 @@
+import $ from 'jquery'
 import L_ from '../Layers_/Layers_'
 import { toolModules, toolConfigs } from '../../../pre/tools'
 import useUIStore from '../UserInterface_/store/uiStore'
@@ -18,10 +19,8 @@ let ToolController_ = {
     loaded: false,
 
     // init: Build the tool module name list and initialize all tool modules.
-    // DOM construction is now handled by React components:
-    //   - Toolbar.jsx renders sidebar tool buttons
-    //   - SeparatedTools.jsx renders floating map-overlay tool buttons
-    // The tools list is published to the Zustand store so React can render.
+    // DOM construction for toolbar buttons and separated tools is handled by React
+    // (Toolbar.jsx and SeparatedTools.jsx).
     init: function (tools) {
         this.tools = tools
 
@@ -37,6 +36,33 @@ let ToolController_ = {
                 typeof ToolController_.toolModules[t].initialize === 'function'
             )
                 ToolController_.toolModules[t].initialize()
+        })
+
+        // Publish separated tools list to store (React renders them)
+        const separatedTools = tools.filter((t) => t.separatedTool === true)
+        useUIStore.getState().setSeparatedToolsList(separatedTools)
+
+        // Auto-open separated tools that have on === true
+        separatedTools.forEach((tool) => {
+            if (tool.on === true && L_.UserInterface_.isMobile !== true) {
+                setTimeout(() => {
+                    const toolModuleName = tool.name + 'Tool'
+                    const tM = ToolController_.toolModules[toolModuleName]
+                    if (tM && tM.made === false) {
+                        tM.make(`toolContentSeparated_${tool.name}`)
+                        useUIStore.getState().addActiveSeparatedTool(toolModuleName)
+                        ToolController_.activeSeparatedTools.push(toolModuleName)
+                        document.dispatchEvent(
+                            new CustomEvent('toggleSeparatedTool', {
+                                detail: {
+                                    toggledToolName: tool.js,
+                                    visible: true,
+                                },
+                            })
+                        )
+                    }
+                }, 0)
+            }
         })
 
         // Publish tools list to Zustand store for React rendering
@@ -56,6 +82,8 @@ let ToolController_ = {
         this.toolModuleNames = []
         this.activeSeparatedTools = []
         this.toolModules = toolModules
+        useUIStore.getState().setSeparatedToolsList([])
+        useUIStore.getState().setActiveSeparatedTools([])
         useUIStore.getState().setToolsList([])
         useUIStore.getState().setToolsLoaded(false)
     },
@@ -103,6 +131,9 @@ let ToolController_ = {
 
                     this.activeTool = tool
                     tool.make(this)
+
+                    // Inject close X button into the tool's content area
+                    ToolController_.injectCloseButton()
                 } else {
                     console.warn(
                         'WARNING: ' +
@@ -195,7 +226,61 @@ let ToolController_ = {
         this.activeToolName = null
         // Sync to store so React re-renders button states
         useUIStore.getState().setActiveToolName(null)
+        useUIStore.getState().setToolPanelDragVisible(false)
         this.prevHeight = 0
+    },
+    injectCloseButton: function () {
+        // Horizontal tools: close button is rendered by the React
+        // BottomFloatingBar component (SplitScreens.jsx) — no injection
+        // needed here. Only inject for vertical (side-panel) tools.
+        const isHorizontal = this.activeTool && this.activeTool.height > 0
+        if (isHorizontal) return
+
+        const container = $('#toolPanel')
+        if (!container.length) return
+
+        // Remove any existing injected close button
+        container.find('.tool-close-btn').remove()
+
+        const closeBtn = $('<div>')
+            .addClass('tool-close-btn')
+            .attr('title', 'Close Tool')
+            .css({
+                position: 'absolute',
+                top: '6px',
+                right: '6px',
+                width: '26px',
+                height: '26px',
+                display: 'flex',
+                'align-items': 'center',
+                'justify-content': 'center',
+                cursor: 'pointer',
+                'border-radius': '4px',
+                'z-index': '10',
+                color: '#9ca3af',
+                'font-size': '18px',
+                transition: 'background 0.15s, color 0.15s',
+            })
+            .html("<i class='mdi mdi-close mdi-18px'></i>")
+            .on('mouseenter', function () {
+                $(this).css({ background: 'rgba(255,255,255,0.1)', color: '#fff' })
+            })
+            .on('mouseleave', function () {
+                $(this).css({ background: 'transparent', color: '#9ca3af' })
+            })
+            .on('click', function () {
+                ToolController_.closeActiveTool()
+            })
+
+        // Ensure the container has position:relative for absolute positioning
+        const firstChild = container.children().first()
+        if (firstChild.length) {
+            firstChild.css('position', 'relative')
+            firstChild.append(closeBtn)
+        } else {
+            container.css('position', 'relative')
+            container.append(closeBtn)
+        }
     },
     getToolsUrl: function () {
         var toolsUrl = ''
@@ -223,6 +308,30 @@ let ToolController_ = {
             if (tool && typeof tool.finalize === 'function') {
                 tool.finalize()
             }
+        }
+
+        // Open separated tools with displayOnStart after all layers are loaded
+        if (L_.UserInterface_.isMobile !== true) {
+            const separatedTools = useUIStore.getState().separatedToolsList
+            separatedTools.forEach((tool) => {
+                const toolModuleName = tool.name + 'Tool'
+                const tM = ToolController_.toolModules[toolModuleName]
+                if (tM && tM.displayOnStart === true && tM.made === false) {
+                    setTimeout(() => {
+                        tM.make(`toolContentSeparated_${tool.name}`)
+                        ToolController_.activeSeparatedTools.push(toolModuleName)
+                        useUIStore.getState().addActiveSeparatedTool(toolModuleName)
+                        document.dispatchEvent(
+                            new CustomEvent('toggleSeparatedTool', {
+                                detail: {
+                                    toggledToolName: tool.js,
+                                    visible: true,
+                                },
+                            })
+                        )
+                    }, 0)
+                }
+            })
         }
     },
 }

@@ -1,0 +1,93 @@
+/* SeparatedTools — glassmorphism floating panels over the map */
+
+.container {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 1002;
+    display: flex;
+    gap: 12px;
+    pointer-events: none;
+}
+
+.panel {
+    border-radius: 10px;
+    background: rgba(var(--color-a-rgb, 29, 31, 32), 0.88);
+    border: 1px solid var(--color-a1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 8px 32px var(--color-shadow);
+    flex-direction: column;
+    overflow: hidden;
+    pointer-events: auto;
+}
+
+.panelVisible {
+    display: flex;
+}
+
+.panelHidden {
+    display: none;
+}
+
+.panelIdentifier {
+    width: 0;
+    max-height: 0;
+    background: transparent;
+    border: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+    pointer-events: none;
+    display: none !important;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--color-a1);
+    flex-shrink: 0;
+}
+
+.headerTitle {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--color-f);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.headerClose {
+    cursor: pointer;
+    color: var(--color-a3);
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.15s;
+}
+
+.headerClose:hover {
+    color: var(--color-f);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.content {
+    flex: 1;
+    overflow: auto;
+    min-height: 0;
+}
+
+/* Legend-specific overrides */
+.panel :global(#toolContentSeparated_Legend) > div:first-child {
+    display: none !important;
+}
+
+.panel :global(#toolContentSeparated_Legend #LegendTool) {
+    height: auto !important;
+    max-height: calc(100vh - 200px) !important;
+}

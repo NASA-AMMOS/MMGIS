@@ -11,14 +11,15 @@ import Filtering from '../Layers_/Filtering/Filtering'
 import Viewer_ from '../Viewer_/Viewer_'
 import Globe_ from '../Globe_/Globe_'
 import ToolController_ from '../ToolController_/ToolController_'
-import CursorInfo from '../../Ancillary/CursorInfo'
-import Description from '../../Ancillary/Description'
-import QueryURL from '../../Ancillary/QueryURL'
+import CursorInfo from '../UserInterface_/components/CursorInfo/CursorInfo'
+import Description from '../UserInterface_/components/Description/Description'
+import QueryURL from '../../services/QueryURL'
 import MetadataCapturer from '../Layers_/MetadataCapturer.js'
 import { Kinds } from '../../../pre/tools'
-import DataShaders from '../../Ancillary/DataShaders'
+import DataShaders from '../../services/DataShaders'
 import calls from '../../../pre/calls'
 import TimeControl from '../TimeControl_/TimeControl'
+import '../Map_/SimplifiedVectorGrid'
 
 import gjv from 'geojson-validation'
 import {
@@ -27,6 +28,25 @@ import {
 } from '../../../external/js-colormaps/js-colormaps.js'
 
 let L = window.L
+
+// --- Per-layer fade control ---
+// Leaflet's tile fade is map-level (_fadeAnimated). Time-enabled tile/raster
+// layers should never fade (instant tile swap on pan or time change).
+// All other tile layers fade normally.
+// Strategy: patch _tileReady to check a per-layer _noFade flag.
+;(function patchPerLayerFade() {
+    const origTileReady = L.GridLayer.prototype._tileReady
+    L.GridLayer.prototype._tileReady = function (coords, err, tile) {
+        if (this._noFade && this._map) {
+            const wasFade = this._map._fadeAnimated
+            this._map._fadeAnimated = false
+            origTileReady.call(this, coords, err, tile)
+            this._map._fadeAnimated = wasFade
+            return
+        }
+        return origTileReady.call(this, coords, err, tile)
+    }
+})()
 
 let essenceFina = function () {}
 
@@ -200,6 +220,27 @@ let Map_ = {
         }
 
         if (this.map.zoomControl) this.map.zoomControl.setPosition('topright')
+
+        // Home button on zoom controls (resets to configured initial view)
+        var HomeControl = L.Control.extend({
+            options: { position: 'topright' },
+            onAdd: function () {
+                var container = L.DomUtil.create('div', 'leaflet-control-zoom leaflet-bar leaflet-control')
+                var btn = L.DomUtil.create('a', 'leaflet-control-zoom-home', container)
+                btn.innerHTML = '<i class="mdi mdi-home-variant-outline" style="font-size:16px;line-height:30px;"></i>'
+                btn.href = '#'
+                btn.title = 'Reset View'
+                btn.setAttribute('role', 'button')
+                btn.setAttribute('aria-label', 'Reset View')
+                L.DomEvent.disableClickPropagation(btn)
+                L.DomEvent.on(btn, 'click', function (e) {
+                    L.DomEvent.preventDefault(e)
+                    Map_.resetView(L_.view)
+                })
+                return container
+            },
+        })
+        this.map.addControl(new HomeControl())
 
         if (Map_.mapScaleZoom) {
             L.control
@@ -1390,6 +1431,11 @@ async function makeTileLayer(layerObj, mapContext = null) {
         variables: layerObj.variables || {},
     })
 
+    // Time-enabled tile layers should never fade (instant swap on pan or time change)
+    if (layerObj.time && layerObj.time.enabled === true) {
+        ctx.layerRegistry.layer[layerObj.name]._noFade = true
+    }
+
     // Add to map
     if (ctx.default != true) {
         ctx.layerRegistry.layer[layerObj.name].addTo(ctx.map)
@@ -1523,10 +1569,21 @@ function makeVectorTileLayer(layerObj, mapContext = null) {
         )
     }
 
+    // Hide sublayers not explicitly listed in vtLayer styles.
+    // Without this, L.vectorGrid renders all sublayers with default blue styling.
+    const vtLayerStyles = layerObj.style.vtLayer || {}
+    const resolvedVtLayerStyles = new Proxy(vtLayerStyles, {
+        get(target, prop) {
+            if (prop in target) return target[prop]
+            return { fill: false, stroke: false, weight: 0, fillOpacity: 0, opacity: 0 }
+        },
+        has() { return true },
+    })
+
     var vectorTileOptions = {
         layerName: layerObj.name,
         rendererFactory: L.svg.tile,
-        vectorTileLayerStyles: layerObj.style.vtLayer || {},
+        vectorTileLayerStyles: resolvedVtLayerStyles,
         interactive: true,
         minZoom: layerObj.minZoom,
         maxZoom: layerObj.maxZoom,
@@ -1544,8 +1601,22 @@ function makeVectorTileLayer(layerObj, mapContext = null) {
         })(layerObj.style.vtId),
     }
 
-    L_.layers.layer[layerObj.name] = L.vectorGrid
-        .protobuf(layerUrl, vectorTileOptions)
+    // For extrusion-enabled layers (e.g., OSM buildings), use the simplified
+    // variant with a moderate tolerance to reduce polygon vertex counts. This
+    // significantly improves 2D rendering performance for dense tiles.
+    if (layerObj.extrudeEnabled && layerObj.simplifyTolerance !== 0) {
+        vectorTileOptions.simplifyTolerance = layerObj.simplifyTolerance ?? 4
+    }
+
+    const vectorGridFactory =
+        vectorTileOptions.simplifyTolerance > 0
+            ? L.simplifiedVectorGrid.protobuf
+            : L.vectorGrid.protobuf
+
+    L_.layers.layer[layerObj.name] = vectorGridFactory(
+        layerUrl,
+        vectorTileOptions
+    )
         .on('click', function (e, b, x) {
             let layerName = e.target.options.layerName
             let vtId = L_.layers.layer[layerName].vtId
@@ -1765,6 +1836,11 @@ function makeDataLayer(layerObj, mapContext = null) {
         pixelPerfect: true,
         uniforms: uniforms,
     })
+
+    // Time-enabled data/GL layers should never fade
+    if (layerObj.time && layerObj.time.enabled === true) {
+        L_.layers.layer[layerObj.name]._noFade = true
+    }
 
     if (DataShaders[shaderType].attachImmediateEvents) {
         DataShaders[shaderType].attachImmediateEvents(layerObj.name, shader)
@@ -2088,27 +2164,9 @@ function allLayersLoaded() {
         L_.loaded()
         //OTHER TEMPORARY TEST STUFF THINGS
 
-        if (L_.UserInterface_.isMobile !== true) {
-            // Turn on legend if displayOnStart is true
-            if ('LegendTool' in ToolController_.toolModules) {
-                if (
-                    ToolController_.toolModules['LegendTool'].displayOnStart ==
-                    true
-                ) {
-                    ToolController_.toolModules['LegendTool'].make(
-                        'toolContentSeparated_Legend'
-                    )
-                    ToolController_.activeSeparatedTools.push('LegendTool')
-                    let _event = new CustomEvent('toggleSeparatedTool', {
-                        detail: {
-                            toggledToolName: 'LegendTool',
-                            visible: true,
-                        },
-                    })
-                    document.dispatchEvent(_event)
-                }
-            }
-        }
+        // displayOnStart for separated tools (e.g. Legend) is now handled
+        // by ToolController_.finalizeTools() above — Map_ does not reference
+        // specific tools.
     }
 }
 

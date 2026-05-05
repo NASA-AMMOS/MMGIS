@@ -65,6 +65,10 @@ const validateLayers = (config) => {
         // Check zooms
         errs = errs.concat(isValidZooms(layer));
         break;
+      case "3dtiles":
+        // Check url
+        errs = errs.concat(isValidUrl(layer));
+        break;
       case "data":
         // Check url
         errs = errs.concat(isValidDemUrl(layer));
@@ -369,6 +373,8 @@ const fillInMissingFieldsWithDefaults = (layer) => {
     case "vectortile":
       layer.style = layer.style || {};
       layer.style.className = layer.name.replace(/ /g, "").toLowerCase();
+      break;
+    case "3dtiles":
       break;
     case "data":
       layer.style = layer.style || {};

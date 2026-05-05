@@ -2,7 +2,7 @@ import $ from 'jquery'
 import * as d3 from 'd3'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
-import CursorInfo from '../../Ancillary/CursorInfo'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
 
 var clearFunction
 var chemsArray = []

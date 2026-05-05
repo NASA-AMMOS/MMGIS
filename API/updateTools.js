@@ -161,7 +161,6 @@ function updateTools() {
   //Build dynamic /src/pre/tools.js file
   let toolConfigs = "";
   let toolModules = {};
-  let testModules = {};
   let kindsModule = null;
   for (let t in tools) {
     for (let p in tools[t].paths) {
@@ -172,21 +171,12 @@ function updateTools() {
       } else toolModules[p] = p;
       toolConfigs += `import ${pname || p} from '../${tools[t].paths[p]}'\n`;
     }
-    if (tools[t].tests) {
-      for (let test in tools[t].tests) {
-        testModules[test] = test;
-        toolConfigs += `import ${test} from '../${tools[t].tests[test]}'\n`;
-      }
-    }
   }
 
   toolConfigs += `\n`;
   toolConfigs += `export const toolConfigs = ${JSON.stringify(tools)}\n`;
   toolConfigs += `export const toolModules = ${JSON.stringify(
     toolModules
-  ).replace(/"/g, "")}\n`;
-  toolConfigs += `export const testModules = ${JSON.stringify(
-    testModules
   ).replace(/"/g, "")}\n`;
   toolConfigs += `export const Kinds = kinds`;
 

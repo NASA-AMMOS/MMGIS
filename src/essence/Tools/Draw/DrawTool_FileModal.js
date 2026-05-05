@@ -2,8 +2,9 @@ import $ from 'jquery'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 
-import CursorInfo from '../../Ancillary/CursorInfo'
-import Modal from '../../Ancillary/Modal'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '../../../design-system/components/Toast/Toast'
+import Modal from '../../Basics/UserInterface_/components/Modal/Modal'
 import Dropy from '../../../external/Dropy/dropy'
 import tippy from 'tippy.js'
 import shp from '../../../external/shpjs/shapefile'
@@ -304,14 +305,7 @@ const DrawTool_FileModal = {
                     $('#drawToolFileUpload > i').css('color', 'unset')
                 }
                 function CIU(message) {
-                    CursorInfo.update(
-                        message,
-                        6000,
-                        true,
-                        { x: 305, y: 6 },
-                        '#e9ff26',
-                        'black'
-                    )
+                    Toast.warning(message, 6000)
                     endLoad()
                 }
             })
@@ -351,25 +345,11 @@ const DrawTool_FileModal = {
                 const intent = 'all'
                 //templateItems[DrawTool_FileModal.newFileModalTemplateIndex]
                 if (val == null || val === '') {
-                    CursorInfo.update(
-                        'Please enter a file name.',
-                        6000,
-                        true,
-                        { x: 305, y: 6 },
-                        '#e9ff26',
-                        'black'
-                    )
+                    Toast.warning('Please enter a file name.', 6000)
                     return
                 }
                 if (/[&\'\"<>]/g.test(val)) {
-                    CursorInfo.update(
-                        'Invalid file name.',
-                        6000,
-                        true,
-                        { x: 305, y: 6 },
-                        '#e9ff26',
-                        'black'
-                    )
+                    Toast.warning('Invalid file name.', 6000)
                     return
                 }
                 let chosenTemplate =

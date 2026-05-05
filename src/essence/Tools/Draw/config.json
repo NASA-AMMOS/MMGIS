@@ -85,9 +85,6 @@
     "paths": {
         "DrawTool": "essence/Tools/Draw/DrawTool"
     },
-    "tests": {
-        "DrawToolTest": "essence/Tools/Draw/DrawTool.test"
-    },
     "expandable": true,
     "config": {
         "rows": [

@@ -1,9 +1,9 @@
 import L_ from '../Basics/Layers_/Layers_'
 import F_ from '../Basics/Formulae_/Formulae_'
 import ToolController_ from '../Basics/ToolController_/ToolController_'
-import QueryURL from '../Ancillary/QueryURL'
+import QueryURL from '../services/QueryURL'
 import TimeControl from '../Basics/TimeControl_/TimeControl'
-import Login from '../Ancillary/Login/Login'
+import Login from '../Basics/UserInterface_/components/Login/Login'
 import LegendTool from '../Tools/Legend/LegendTool.js'
 
 import $ from 'jquery'
@@ -546,7 +546,10 @@ var mmgisAPI = {
      * @param {boolean} - Whether to turn the TimeUI on or off. If true, makes visible.
      * @returns {boolean} - Whether the TimeUI is now on or off
      */
-    toggleTimeUI: TimeControl.toggleTimeUI,
+    toggleTimeUI: function (isOn) {
+        const Coordinates = require('../Basics/UserInterface_/components/Coordinates/Coordinates').default
+        Coordinates.toggleTimeUI(isOn)
+    },
 
     /**
      * This function sets the global time properties for all of MMGIS.

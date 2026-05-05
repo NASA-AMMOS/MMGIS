@@ -8,8 +8,16 @@ import {
     computeToolsSplitMoveResult,
     computeWindowResize,
 } from './uiStoreMath'
+import { applyTheme } from '../../../../design-system/applyTheme'
 
 const useUIStore = create((set, get) => ({
+    // Theme
+    themeName: 'Dark Default',
+    setTheme: (name) => {
+        set({ themeName: name })
+        applyTheme(name)
+    },
+
     // Layout dimensions
     splitterSize: 0,
     splitterSizeHidden: 17,
@@ -23,6 +31,7 @@ const useUIStore = create((set, get) => ({
     pxIsGlobe: 0,
     pxIsTools: 0,
     pxIsToolsInit: 0,
+    toolNativeHeight: 0,
 
     // Container dimensions
     mainWidth: 0,
@@ -45,17 +54,24 @@ const useUIStore = create((set, get) => ({
     helpOn: true,
     toolbarVisible: true,
     isMobile: false,
-    mobileTopSize: 50,
+    mobileTopSize: 40,
 
     // TimeUI state (synced from DOM via MutationObserver)
     timeUIActive: false,
     timeUIExpanded: false,
+
+    // Drag state (disable CSS transitions during splitter drag)
+    isDraggingSplitter: false,
 
     // Layout ready flag for essence.js integration
     layoutReady: false,
 
     // Visibility of main container (toggled by show/hide)
     visible: false,
+
+    // Modal blur (number of active modals, drives blur on #main-container)
+    modalBlurCount: 0,
+    setModalBlurCount: (count) => set({ modalBlurCount: count }),
 
     // Right panel width offset (for openRightPanel/closeRightPanel)
     rightPanelWidth: 0,
@@ -70,11 +86,44 @@ const useUIStore = create((set, get) => ({
         miscellaneous: true,
     },
 
+    // Config look flags (set by UserInterfaceBridge.fina from mission config)
+    lookConfig: {},
+    setLookConfig: (config) => set({ lookConfig: config }),
+
     // ToolController toolbar state (synced from ToolController_.init)
     toolsList: [],          // Array of tool config objects { name, icon, js, separatedTool, variables, ... }
     activeToolName: null,   // Name of the currently active toolbar tool (e.g. 'LayersTool')
     toolsLoaded: false,     // True after ToolController_ has initialized all tool modules
     mobileTools: [],        // Array of tool names shown on mobile (e.g. ['Layers', 'Legend', 'Info'])
+
+    // Separated tools (Legend, Identifier, etc.)
+    separatedToolsList: [],       // Array of tool config objects where separatedTool === true
+    activeSeparatedTools: [],     // Array of active separated tool module names (e.g. ['LegendTool'])
+    setSeparatedToolsList: (tools) => set({ separatedToolsList: tools }),
+    setActiveSeparatedTools: (tools) => set({ activeSeparatedTools: tools }),
+    addActiveSeparatedTool: (toolModuleName) =>
+        set((state) => ({
+            activeSeparatedTools: state.activeSeparatedTools.includes(toolModuleName)
+                ? state.activeSeparatedTools
+                : [...state.activeSeparatedTools, toolModuleName],
+        })),
+    removeActiveSeparatedTool: (toolModuleName) =>
+        set((state) => ({
+            activeSeparatedTools: state.activeSeparatedTools.filter(
+                (t) => t !== toolModuleName
+            ),
+        })),
+    toggleSeparatedTool: (toolModuleName) =>
+        set((state) => ({
+            activeSeparatedTools: state.activeSeparatedTools.includes(toolModuleName)
+                ? state.activeSeparatedTools.filter((t) => t !== toolModuleName)
+                : [...state.activeSeparatedTools, toolModuleName],
+        })),
+
+    // Status indicator (reload / websocket disconnected / layer update)
+    // type: null | 'RELOAD' | 'ADD_LAYER' | 'DISCONNECTED'
+    statusIndicator: null,
+    setStatusIndicator: (type) => set({ statusIndicator: type }),
 
     // References to imperative modules (set during fina)
     _Viewer: null,
@@ -157,7 +206,9 @@ const useUIStore = create((set, get) => ({
     },
 
     setToolHeight: (pxHeight, shouldntAnimate) => {
-        set({ pxIsTools: computeToolHeight(get(), pxHeight) })
+        const h = computeToolHeight(get(), pxHeight)
+        const nativeH = typeof pxHeight === 'number' ? pxHeight : h
+        set({ pxIsTools: h, toolNativeHeight: nativeH })
     },
 
     openToolPanel: (width) => {

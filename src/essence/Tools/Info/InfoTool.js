@@ -6,9 +6,10 @@ import { Kinds } from '../../../pre/tools'
 import Dropy from '../../../external/Dropy/dropy'
 
 import MetadataCapturer from '../../Basics/Layers_/MetadataCapturer'
-import Help from '../../Ancillary/Help'
-import ConfirmationModal from '../../Ancillary/ConfirmationModal'
+import Help from '../../Basics/UserInterface_/components/Help/Help'
+import ConfirmationModal from '../../Basics/UserInterface_/components/ConfirmationModal/ConfirmationModal'
 
+import TC_ from '../../Basics/ToolController_/ToolController_'
 import tippy from 'tippy.js'
 
 import './InfoTool.css'
@@ -105,7 +106,7 @@ var InfoTool = {
         this.MMGISInterface = new interfaceWithMMGIS()
     },
     destroy: function () {
-        this.MMGISInterface.separateFromMMGIS()
+        if (this.MMGISInterface) this.MMGISInterface.separateFromMMGIS()
     },
     getUrlString: function () {
         return ''
@@ -122,13 +123,13 @@ var InfoTool = {
         additional,
         featureLayers
     ) {
-        let toolActive = $('#InfoTool').hasClass('active')
+        let toolActive = $('#toolButtonInfo').hasClass('toolButtonActive')
 
         if (!open && toolActive) open = true
 
         //In the very least, update the info
         if (open && !toolActive) {
-            $('#InfoTool').click()
+            $('#toolButtonInfo').click()
         }
 
         if (additional && additional.idx) activeI = additional.idx
@@ -169,7 +170,7 @@ var InfoTool = {
 
         // MMGIS should always have a div with id 'tools'
         const toolsContainer = $(divID)
-        toolsContainer.css('background', 'var(--color-k)')
+        toolsContainer.css('background', 'var(--color-a)')
         //Clear it
         toolsContainer.empty()
         //Add a semantic container
@@ -194,6 +195,7 @@ var InfoTool = {
         })
 
         Help.finalize(helpKey)
+        TC_.injectCloseButton()
 
         $('#infoToolUnhideAll').css(
             'display',

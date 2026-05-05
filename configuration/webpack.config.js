@@ -414,6 +414,7 @@ module.exports = function (webpackEnv) {
                 sourceMap: isEnvProduction && shouldUseSourceMap,
                 modules: {
                   localIdentName: "[path][name]__[local]--[hash:base64:5]",
+                  namedExport: false,
                 },
               }),
             },

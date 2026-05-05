@@ -14,7 +14,7 @@
 }
 
 #layersTool #layersToolHeader .mmgisHelpButton {
-    margin: 11px 4px;
+    margin: 0px 4px;
 }
 
 #layersTool #searchLayers {
@@ -29,9 +29,11 @@
 #layersTool #filterLayers {
     display: flex;
     height: 40px;
-    line-height: 18px;
+    line-height: 40px;
     color: #ccc;
     justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--color-a1);
 }
 #layersTool #filterLayers #title {
     height: 40px;
@@ -44,15 +46,17 @@
 }
 #layersTool #filterLayers > div {
     display: flex;
+    align-items: center;
 }
 #layersTool #filterLayers > .right {
-    margin-right: 24px;
+    margin-right: 30px;
+    gap: 2px;
 }
 #layersTool #filterLayers > .right > div {
     width: 24px;
-    height: 28px;
+    height: unset;
     padding: 2px;
-    margin: 8px 3px;
+    margin: 0px 3px;
     text-align: center;
     cursor: pointer;
     border: 1px solid transparent;

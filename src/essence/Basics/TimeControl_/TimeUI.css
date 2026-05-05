@@ -11,6 +11,7 @@
     opacity: 0;
     pointer-events: none;
     transition: all 0.2s ease-in;
+    border-radius: 10px;
 }
 #timeUI.active {
     opacity: 1;
@@ -193,6 +194,10 @@
     display: flex;
     justify-content: space-between;
     height: 40px;
+    border-radius: 10px;
+}
+#mmgisTimeUIActionsRight > div:not(#mmgisTimeUIPresent) {
+    border-radius: 10px;
 }
 .mmgisTimeUIButton {
     margin: 5px;
@@ -244,10 +249,24 @@
 #mmgisTimeUIModeDropdown {
     background: var(--color-a-5);
     width: 80px;
+    height: 40px;
+    z-index: 1501;
+    border-radius: 10px;
+}
+#mmgisTimeUIModeDropdown .dropy__title {
+    border-color: transparent;
+}
+#mmgisTimeUIModeDropdown .dropy__content ul,
+#mmgisTimeUIQuickSelectDropdown .dropy__content ul,
+#mmgisTimeUIStepWithinBeyondDropdown .dropy__content ul,
+#mmgisTimeUIStepDropdown .dropy__content ul,
+#mmgisTimeUIRateDropdown .dropy__content ul {
+    z-index: 10000;
 }
 #mmgisTimeUIQuickSelectDropdown {
     background: var(--color-a-5);
     width: 100px;
+    z-index: 1501;
 }
 #mmgisTimeUIStepWithinBeyondDropdown {
     background: var(--color-a-5);

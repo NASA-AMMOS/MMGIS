@@ -91,3 +91,47 @@ export async function loginAsAdmin(request) {
     password: DEFAULT_ADMIN.password,
   });
 }
+
+/**
+ * Generate a short-lived long-term token via the admin API.
+ *
+ * Requires the server to be running with AUTH enabled and the test admin
+ * account to have admin privileges. Returns `null` if the token could not
+ * be obtained (e.g. AUTH=off, no admin account).
+ *
+ * Callers are responsible for revoking the token when done (see
+ * `revokeLongTermToken`).
+ *
+ * @param {import('@playwright/test').APIRequestContext} request
+ * @param {string} [name] - Human-readable label for the token.
+ * @returns {Promise<string|null>} The raw token string, or null.
+ */
+export async function getLongTermToken(request, name = `test_token_${Date.now()}`) {
+  const resp = await request.post('/api/longtermtoken/generate', {
+    data: { name, period: '1d' },
+  });
+  if (resp.status() !== 200) return null;
+  const body = await resp.json();
+  if (body.status !== 'success' || !body.body?.token) return null;
+  return body.body.token;
+}
+
+/**
+ * Revoke a long-term token by its token string.
+ *
+ * Looks up the token in the listing and deletes it. Silently no-ops if
+ * the token is not found or the listing call fails.
+ *
+ * @param {import('@playwright/test').APIRequestContext} request
+ * @param {string} token - The token string returned by `getLongTermToken`.
+ * @returns {Promise<void>}
+ */
+export async function revokeLongTermToken(request, token) {
+  const listResp = await request.get('/api/longtermtoken/get');
+  if (listResp.status() !== 200) return;
+  const listBody = await listResp.json();
+  if (listBody.status !== 'success') return;
+  const entry = listBody.tokens?.find((t) => t.token === token);
+  if (!entry) return;
+  await request.post('/api/longtermtoken/clear', { data: { id: entry.id } });
+}
