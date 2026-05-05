@@ -72,12 +72,12 @@ The app imports ~30 vendored libraries (Leaflet plugins, THREE.js, OpenSeadragon
 Multiple tools make server-side API calls at runtime and will fail offline with no graceful degradation:
 
 | Tool                   | Server Dependency                                   | Offline Feasibility          |
-| ---------------------- | --------------------------------------------------- | ---------------------------- | --------------------- |
+| ---------------------- | --------------------------------------------------- | ---------------------------- |
 | **Measure** (profiles) | `api/utils/getprofile` — server-side GDAL           | Not possible                 |
 | **Identifier**         | `api/utils/getbands` — server-side GDAL             | Not possible                 |
 | **Shade**              | `api/utils/getbands` + `api/utils/ll2aerll` (SPICE) | Not possible                 |
 | **Viewshed**           | Client-side DEM tile fetch via `PNG.load()`         | Possible if DEM tiles cached |
-| **Isochrone**          | Client-side DEM/slope tile fetch                    | Possible if tiles cached     | [7-cite-9](#7-cite-9) |
+| **Isochrone**          | Client-side DEM/slope tile fetch                    | Possible if tiles cached     |
 
 The plan should document which tools work offline, disable server-dependent tools with clear UI when offline, and optionally include DEM tile URLs in the Phase 2 AOI cache for tools that do client-side DEM processing.
 
@@ -151,7 +151,7 @@ The plan says `src/index.js:80`. The actual line is 79. [7-cite-15](#7-cite-15)
 
 ### 24. `Map_.js` line reference is misleading
 
-The plan says _"Modify `Map_.js` (~1272–1452) — add `Map_.getActiveTileLayers()`."_ Those lines are the `makeTileLayer()` function body. The plan is adding a _new_ method, not modifying code at those lines. [7-cite-16](#7-cite-16)
+The plan says _"Modify `Map_.js`(~1272–1452) — add`Map*.getActiveTileLayers()`."* Those lines are the `makeTileLayer()` function body. The plan is adding a _new_ method, not modifying code at those lines. [7-cite-16](#7-cite-16)
 
 ### 25. `leaflet.draw` is vendored, not an npm package
 
@@ -220,3 +220,120 @@ The current `manifest.json` references `logo192.png` and `logo512.png` which are
 8. **Create `config.json` files** for `OfflineTool` and `GPSPathTool` and decide feature flag placement.
 9. **Decide time-dependent tile caching strategy** — lock time slider offline, or cache multiple time steps.
 10. **Add server-side throttling** for TiTiler-routed bulk tile requests.
+
+---
+
+# Is a PWA the right choice?
+
+A PWA is a defensible choice for Phases 1–3, but it's the wrong tool for Phase 4 (GPS tracking), and the plan significantly understates how much of MMGIS's value evaporates offline regardless of approach. Here's the full analysis:
+
+## The Core Problem: What Actually Works Offline?
+
+Before evaluating the delivery mechanism, consider what MMGIS can actually do without its server:
+
+| Capability                        | Server Dependency     | Offline?          |
+| --------------------------------- | --------------------- | ----------------- |
+| View pre-cached raster tiles      | None (if cached)      | Yes               |
+| Draw features with form data      | Write queue           | Yes (deferred)    |
+| Record GPS path                   | None                  | Yes               |
+| Elevation profiles (Measure)      | GDAL on server        | No                |
+| Raster value queries (Identifier) | GDAL / TiTiler        | No                |
+| Viewshed computation              | Client-side DEM tiles | Maybe (if cached) |
+| Shade / sun position              | SPICE on server       | No                |
+| Geodataset queries                | PostGIS               | No                |
+| Dataset links (on-click)          | Express API           | No                |
+| Geodataset filtering              | PostGIS               | No                |
+| 3D Globe (Cesium)                 | Terrain server        | No                |
+| STAC catalog browsing             | STAC API              | No                |
+
+The offline feature set reduces to: **view a cached map, take notes on it, and record where you walked**. That's a legitimate field workflow, but it's a thin slice of MMGIS. The question is whether the complexity of retrofitting a full PWA onto a 100+ dependency SPA is proportionate to that slice.
+
+## PWA Limitations Specific to MMGIS
+
+### 1. The app shell is too heavy to precache
+
+The `src/index.js` entry point eagerly imports vendored THREE.js (14 modules), OpenSeadragon (3 modules), ~20 Leaflet plugins, jQuery, React 18, and more — all before the app even renders: [8-cite-0](#8-cite-0)
+
+On top of that, webpack copies **four directories** of Cesium static assets (Workers, ThirdParty, Assets, Widgets) into the build output. Cesium's static assets alone are typically 30–50 MB: [8-cite-1](#8-cite-1)
+
+A Workbox `InjectManifest` precache of the full MMGIS shell — JS chunks, CSS, Cesium assets, fonts, images — will likely exceed **60–80 MB**. On iOS, where PWA storage can be evicted after ~7 days of non-use, this is a significant concern. The plan doesn't estimate total precache size anywhere.
+
+### 2. Background GPS tracking doesn't work on iOS
+
+This is the most critical issue. The plan's Phase 4 proposes `navigator.geolocation.watchPosition()` for GPS path capture. On iOS:
+
+- **Screen lock** → `watchPosition` callbacks stop firing
+- **App backgrounded** (user switches to another app) → callbacks stop
+- **Wake Lock API** → not supported on iOS Safari / WKWebView
+- **Page Visibility API** → the plan says "pause + visible 'paused' UI" but this means the GPS track has gaps every time the user checks a text message
+
+The plan's risk register lists this as "Cert. / Med" with mitigation "Document; advise device sleep-disable; show banner." That's not a mitigation — it's telling field scientists they can never lock their screen or switch apps during a multi-hour traverse. For a tool targeting iPad/iPhone field use, this is a fundamental capability gap. [8-cite-2](#8-cite-2)
+
+### 3. iOS Safari PWA storage is unreliable
+
+- `navigator.storage.estimate()` returns inflated/inaccurate values on iOS
+- No `navigator.storage.persist()` support in iOS PWAs — storage is always "best effort"
+- Standalone PWAs on iOS use WKWebView, which has different storage behavior than Safari tabs
+- After ~7 days of non-use, iOS can evict all PWA storage (Cache API + IDB)
+
+For a "1–2 day field shift" use case, the 7-day eviction window is probably fine. But if a user installs the PWA, pre-caches tiles on Monday, and doesn't go to the field until the following Monday, their cache may be gone.
+
+### 4. No Background Sync API on iOS
+
+The plan's Phase 3 sync queue relies on detecting `online` events and draining the queue. On Android, the Background Sync API can drain the queue even when the app isn't open. On iOS, there is no Background Sync — the queue only drains when the user has the app open and in the foreground. This is workable but means the user must manually open the app after returning to connectivity.
+
+## Alternatives
+
+### Option A: Capacitor wrapper
+
+[Capacitor](https://capacitorjs.com/) wraps the existing web app in a native iOS/Android shell. It reuses 99% of the codebase and adds native plugin access:
+
+| Capability             | PWA            | Capacitor                     |
+| ---------------------- | -------------- | ----------------------------- |
+| Background GPS         | No (iOS)       | Yes (native plugin)           |
+| Storage eviction       | Yes (iOS, ~7d) | No (native filesystem)        |
+| Background Sync        | No (iOS)       | Yes (native background fetch) |
+| App Store distribution | No             | Yes (optional)                |
+| `beforeinstallprompt`  | No (iOS)       | N/A (native install)          |
+| Wake Lock              | No (iOS)       | Yes (native)                  |
+| Build complexity       | Low            | Medium (Xcode/Android Studio) |
+| Desktop support        | Yes            | No (separate Electron needed) |
+
+Capacitor solves the GPS problem definitively. The `capacitor-background-geolocation` plugin provides continuous tracking even with the screen locked. Storage is native and not subject to browser eviction.
+
+**Downside**: Requires Xcode and Android Studio in the build pipeline, app store review (or enterprise distribution), and a team member who can troubleshoot native build issues. For a NASA/JPL internal tool, enterprise distribution (no App Store review) is likely available.
+
+### Option B: Lightweight companion PWA
+
+Instead of retrofitting the full MMGIS SPA for offline use, build a **separate, lightweight field data collection PWA** that:
+
+- Has its own minimal UI (map viewer + form + GPS)
+- Precaches only what it needs (~2 MB shell, not 60+ MB)
+- Syncs collected data back to the main MMGIS instance via API
+- Doesn't try to replicate MMGIS's full tool suite offline
+
+This sidesteps the precache size problem, the Cesium asset problem, the tool degradation problem, and the configure-app-needs-updates problem. The GPS limitation on iOS remains, but the app is small enough that Capacitor wrapping is trivial if needed later.
+
+### Option C: PWA for Phases 1–3, defer Phase 4
+
+Accept that GPS tracking in a PWA is foreground-only on iOS. Ship Phases 1–3 as a PWA. For Phase 4, either:
+
+- Accept the foreground-only limitation and document it
+- Add Capacitor later specifically for GPS-heavy field deployments
+- Build GPS capture as a separate native/Capacitor micro-app
+
+## Recommendation
+
+**A PWA is the right strategy for Phases 1–3 if and only if:**
+
+1. The precache is scoped aggressively (exclude Cesium assets, exclude vendored THREE.js modules, use runtime caching for non-critical chunks)
+2. The plan acknowledges that most tools are disabled offline and provides clear degradation UI
+3. iOS storage limitations are accepted as a known constraint
+
+**A PWA is the wrong strategy for Phase 4 (GPS tracking) on iOS.** The plan should either:
+
+- Scope Phase 4 to Android-only and desktop (where Wake Lock and background tabs work better)
+- Use Capacitor for Phase 4's mobile delivery
+- Accept foreground-only GPS and document the limitation honestly (not as "advise device sleep-disable")
+
+**The plan should also seriously consider Option B** — a lightweight companion app for field collection. The full MMGIS SPA was never designed for offline use, and the number of deficiencies identified in our review (28 issues, 8 critical) reflects the fundamental mismatch between "make this desktop GIS app work offline" and "build a field data collection tool." A purpose-built companion app would be simpler, more reliable, and easier to maintain.
