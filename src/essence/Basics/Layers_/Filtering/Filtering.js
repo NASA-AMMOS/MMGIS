@@ -537,7 +537,7 @@ const Filtering = {
                 ],
                 'op',
                 opId,
-                { openUp: false, hideChevron: true }
+                { openUp: true, hideChevron: true }
             )
         )
         Dropy.init($(elmId), function (idx) {
@@ -730,7 +730,7 @@ const Filtering = {
                 ],
                 'op',
                 opId,
-                { openUp: false, hideChevron: true }
+                { openUp: true, hideChevron: true }
             )
         )
         Dropy.init($(elmId), function (idx) {
