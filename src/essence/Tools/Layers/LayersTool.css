@@ -398,6 +398,9 @@
     color: white;
     background: var(--color-a2);
 }
+#layersToolList > li.gears_on {
+    overflow: visible;
+}
 #layersTool #layersToolList > li.download_on .layerExport,
 #layersTool #layersToolList > li.gears_on .settings {
     height: auto;
