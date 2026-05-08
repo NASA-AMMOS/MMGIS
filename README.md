@@ -215,7 +215,7 @@ For detailed plugin development instructions, see the [Contributing Guide](https
 
 | Scenario | Instance Type | RAM | Notes |
 |---|---|---|---|
-| **Bare minimum** (MMGIS only, DB on RDS, no adjacent servers) | **t3.small** | **2 GB** | May hit rare OOM issues depending on usage. Set `NODE_OPTIONS=--max-old-space-size=1024` and add swap space. |
+| **Bare minimum** (MMGIS only, DB on RDS, no adjacent servers) | **t3.small** | **2 GB** | Slightly risky depending on usage. Set `NODE_OPTIONS=--max-old-space-size=1024` and add swap space. |
 | **Minimum viable** (MMGIS only, DB on RDS, no adjacent servers) | **t3.medium** | **4 GB** | Decent and workable. |
 | **Recommended production** (MMGIS only) | **t3.large** | **8 GB** | Comfortable headroom for large uploads, concurrent users, local database, and growth. |
 | **With adjacent servers** (STAC, TiTiler, TiPG, etc.) | **t3.xlarge+** | **16+ GB** | The docker-compose sample allocates 8-12GB just for TiTiler services alone. |
