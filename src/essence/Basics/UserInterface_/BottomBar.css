@@ -2,11 +2,15 @@
     background: rgba(var(--color-a-rgb, 29, 31, 32), 0.92);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+    width: min(420px, calc(100vw - 80px));
     max-width: 90vw;
+    max-height: calc(100vh - 80px);
     margin: 40px;
     border-radius: 10px;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 #mainHotkeysModalTitle {
     padding: 0 0 0 14px;
@@ -18,6 +22,7 @@
     border-bottom: 1px solid var(--color-a1);
     display: flex;
     justify-content: space-between;
+    flex: 0 0 auto;
 }
 #mainHotkeysModalTitle > div:first-child {
     display: flex;
@@ -38,17 +43,28 @@
     color: var(--color-f);
 }
 #mainHotkeysModalContent {
-    padding: 10px 20px;
+    padding: 4px 20px 14px;
     display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex: 1 1 auto;
 }
-.mainHotkeysModalSection:not(:last-child) {
-    padding-right: 10px;
-    margin-right: 10px;
-    border-right: 1px solid var(--color-a2);
+.mainHotkeysModalSection {
+    padding: 10px 0;
+}
+.mainHotkeysModalSection + .mainHotkeysModalSection {
+    border-top: 1px solid var(--color-a1);
+}
+.mainHotkeysModalSectionTitle {
+    color: var(--color-h);
+    font-weight: 600;
+    font-size: 14px;
+    padding-bottom: 4px;
 }
 .mainHotkeysModalSectionOptions > li {
     display: flex;
     justify-content: space-between;
+    gap: 20px;
     padding: 2px 0px;
     font-size: 14px;
     white-space: nowrap;
@@ -58,13 +74,16 @@
 }
 .mainHotkeysModalSectionOptions > li > div:last-child {
     color: var(--color-a6);
-    margin-left: 20px;
     font-size: 13px;
 }
 .mainHotkeysModalSectionSubtitle {
-    color: var(--color-yellow);
+    color: var(--color-f);
     font-size: 12px !important;
     text-transform: uppercase;
+    margin-top: 8px;
+}
+.mainHotkeysModalSectionOptions > .mainHotkeysModalSectionSubtitle:first-child {
+    margin-top: 0;
 }
 
 #mainSettingsModal {
