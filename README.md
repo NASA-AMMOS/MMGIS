@@ -43,6 +43,7 @@
 - [Features](#features)
 - [Installation](#installation)
 - [Plugins](#plugins)
+- [Minimum Specs](#minimum-specs)
 - [License](#license-apache-20)
 - [Contacts](#contacts)
 
@@ -207,6 +208,17 @@ Place miscellaneous custom UI behaviors and components in directories matching `
 Place custom backends in directories matching `/API/*Private-Backend*` or `/API/*Plugin-Backend*`. These directories are automatically gitignored and loaded when you run `npm start`.
 
 For detailed plugin development instructions, see the [Contributing Guide](https://nasa-ammos.github.io/MMGIS/contributing/).
+
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
+
+## Minimum Specs
+
+| Scenario | Instance Type | RAM | Notes |
+|---|---|---|---|
+| **Bare minimum** (MMGIS only, DB on RDS, no adjacent servers) | **t3.small** | **2 GB** | Slightly risky depending on usage. Set `NODE_OPTIONS=--max-old-space-size=1024` and add swap space. |
+| **Minimum viable** (MMGIS only, DB on RDS, no adjacent servers) | **t3.medium** | **4 GB** | Decent and workable. |
+| **Recommended production** (MMGIS only) | **t3.large** | **8 GB** | Comfortable headroom for large uploads, concurrent users, local database, and growth. |
+| **With adjacent servers** (STAC, TiTiler, TiPG, etc.) | **t3.xlarge+** | **16+ GB** | The docker-compose sample allocates 8-12GB just for TiTiler services alone. |
 
 <div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 

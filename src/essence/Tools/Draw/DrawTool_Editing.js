@@ -150,6 +150,14 @@ var Editing = {
                 }
             }
         } else if (DrawTool.contextMenuLayer) {
+            const departingFeatureId =
+                DrawTool.contextMenuLayer?.feature?.properties?._?.id
+            if (departingFeatureId && DrawTool.showAssociatedPoints) {
+                DrawTool.showAssociatedPoints(
+                    departingFeatureId,
+                    DrawTool.lastContextLayerIndexFileId?.layer
+                )
+            }
             resetShape()
         }
 

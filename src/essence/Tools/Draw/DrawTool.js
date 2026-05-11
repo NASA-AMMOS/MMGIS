@@ -1624,6 +1624,68 @@ var DrawTool = {
                                 }
                             }
                         })
+                    } else if (l._isAssociatedPoint) {
+                        const parentLayer = L_.layers.layer[
+                            `DrawTool_${fileId}`
+                        ].find((pl) => {
+                            if (pl == null) return false
+                            // Direct feature on layer (Point, annotation)
+                            if (
+                                pl.feature?.properties?._?.id ===
+                                l._parentFeatureId
+                            )
+                                return true
+                            // Feature nested inside _layers (LineString, Polygon via L.geoJson)
+                            if (pl._layers) {
+                                return Object.values(pl._layers).some(
+                                    (sl) =>
+                                        sl.feature?.properties?._?.id ===
+                                        l._parentFeatureId
+                                )
+                            }
+                            return false
+                        })
+
+                        // Default visible if parent not found or time filtering is off
+                        let isVisible = true
+                        if (parentLayer) {
+                            const parentFeature =
+                                parentLayer.feature ||
+                                (parentLayer._layers &&
+                                    Object.values(parentLayer._layers).find(
+                                        (sl) =>
+                                            sl.feature?.properties?._?.id ===
+                                            l._parentFeatureId
+                                    )?.feature)
+                            if (parentFeature) {
+                                isVisible =
+                                    DrawTool._isFeatureTemporallyVisible(
+                                        parentFeature,
+                                        startField,
+                                        endField
+                                    )
+                            }
+                        }
+
+                        if (l.savedOptions == null)
+                            l.savedOptions = {
+                                opacity: l.options.opacity,
+                                fillOpacity: l.options.fillOpacity,
+                            }
+
+                        l.temporallyHidden = !isVisible
+                        if (l.temporallyHidden) {
+                            l.setStyle({ opacity: 0, fillOpacity: 0 })
+                            if (l._path?.style)
+                                l._path.style.pointerEvents = 'none'
+                        } else if (l.savedOptions) {
+                            l.setStyle({
+                                opacity: l.savedOptions.opacity,
+                                fillOpacity: l.savedOptions.fillOpacity,
+                            })
+                            if (l._path?.style)
+                                l._path.style.pointerEvents = 'all'
+                        }
                     }
                 } else {
                     const isVisible = DrawTool._isFeatureTemporallyVisible(
