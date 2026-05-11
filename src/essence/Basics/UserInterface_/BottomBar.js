@@ -233,7 +233,7 @@ let BottomBar = {
             const modalContent = [
                 `<div id='mainHotkeysModal'>`,
                     `<div id='mainHotkeysModalTitle'>`,
-                        `<div><i class='mdi mdi-keyboard mdi-18px'></i><div>Hotkeys</div></div>`,
+                        `<div><i class='mdi mdi-keyboard mdi-18px'></i><div>Keyboard Shortcuts</div></div>`,
                         `<div id='mainHotkeysModalClose'><i class='mmgisHoverBlue mdi mdi-close mdi-18px'></i></div>`,
                     `</div>`,
                     `<div id='mainHotkeysModalContent'>`,
