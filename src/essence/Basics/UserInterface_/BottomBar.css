@@ -2,7 +2,7 @@
     background: rgba(var(--color-a-rgb, 29, 31, 32), 0.92);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    width: min(720px, calc(100vw - 80px));
+    width: min(420px, calc(100vw - 80px));
     max-width: 90vw;
     max-height: calc(100vh - 80px);
     margin: 40px;
@@ -44,45 +44,25 @@
 }
 #mainHotkeysModalContent {
     padding: 14px 20px;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px 22px;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
     flex: 1 1 auto;
-}
-@media (max-width: 640px) {
-    #mainHotkeysModalContent {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-@media (max-width: 420px) {
-    #mainHotkeysModalContent {
-        grid-template-columns: minmax(0, 1fr);
-    }
-}
-.mainHotkeysModalSection {
-    min-width: 0;
 }
 .mainHotkeysModalSectionOptions > li {
     display: flex;
     justify-content: space-between;
-    gap: 12px;
+    gap: 20px;
     padding: 2px 0px;
     font-size: 14px;
+    white-space: nowrap;
 }
 .mainHotkeysModalSectionOptions > li > div:first-child {
     color: var(--color-a5);
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 .mainHotkeysModalSectionOptions > li > div:last-child {
     color: var(--color-a6);
     font-size: 13px;
-    white-space: nowrap;
-    flex-shrink: 0;
 }
 .mainHotkeysModalSectionSubtitle {
     color: var(--color-yellow);
