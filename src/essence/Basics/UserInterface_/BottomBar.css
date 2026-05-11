@@ -74,7 +74,9 @@
 .mainHotkeysModalSectionOptions > li > div:first-child {
     color: var(--color-a5);
     min-width: 0;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .mainHotkeysModalSectionOptions > li > div:last-child {
     color: var(--color-a6);
