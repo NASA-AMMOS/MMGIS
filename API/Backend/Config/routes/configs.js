@@ -518,23 +518,23 @@ function upsert(req, res, next, cb, info) {
 
   const forceClientUpdate = req.body?.forceClientUpdate || false;
 
-  Config.findAll({
+  Config.max("version", {
     where: {
       mission: req.body.mission,
     },
-    order: [["id", "DESC"]],
   })
-    .then((missions) => {
-      missions.every(function (mission, i) {
-        if (hasVersion && missions[i].version == req.body.version) {
-          versionConfig = missions[i].config;
-          return false;
-        }
-        return true;
-      });
+    .then((maxVersion) => {
+      const currentVersion = maxVersion == null || isNaN(maxVersion) ? -1 : maxVersion;
 
-      if (missions && missions.length > 0) return missions[0].version;
-      return -1;
+      if (hasVersion) {
+        return Config.findOne({
+          where: { mission: req.body.mission, version: req.body.version },
+        }).then((match) => {
+          if (match) versionConfig = match.config;
+          return currentVersion;
+        });
+      }
+      return currentVersion;
     })
     .then((version) => {
       let configJSON;
@@ -658,7 +658,10 @@ function upsert(req, res, next, cb, info) {
           }
 
           openWebSocket(
-            req.body,
+            {
+              mission: req.body.mission,
+              config: true,
+            },
             {
               status: "success",
               mission: created.mission,
