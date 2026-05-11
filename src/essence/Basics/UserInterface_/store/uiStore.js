@@ -195,11 +195,18 @@ const useUIStore = create((set, get) => ({
                 const current = get()
                 if (current._Globe && !current._Globe.hasBeenOpened) {
                     current._Globe.hasBeenOpened = true
+                    current._Globe.init()
                     if (current._L && current._L.FUTURES.globeView == null) {
                         setTimeout(() => {
                             current._Globe.syncToMapCenter()
                         }, 100)
                     }
+                }
+                // Always invalidateSize when globe opens, even if already initialized
+                if (current._Globe && current._Globe.litho) {
+                    requestAnimationFrame(() => {
+                        current._Globe.litho.invalidateSize()
+                    })
                 }
             }, 0)
         }
