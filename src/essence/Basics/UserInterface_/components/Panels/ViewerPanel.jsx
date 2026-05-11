@@ -30,6 +30,7 @@ function ViewerPanel() {
                 top: '0px',
                 overflow: 'hidden',
                 left: '0px',
+                borderRight: '1px solid var(--color-a1)',
             }}
         >
             <div
