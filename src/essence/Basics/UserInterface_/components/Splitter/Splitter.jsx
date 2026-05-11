@@ -103,7 +103,7 @@ function Splitter({ type, orientation }) {
         if (!hasViewer) return null
         return (
             <div
-                className={splitterStyles.splitterV}
+                className={`${splitterStyles.splitterV} ${splitterStyles.splitterVGradient}`}
                 id="mapSplit"
                 style={{
                     width: splitterSizeHidden + 'px',
@@ -112,7 +112,6 @@ function Splitter({ type, orientation }) {
                         pxIsViewer -
                         splitterSizeHidden / 2 +
                         'px',
-                    background: 'linear-gradient(90deg, transparent, transparent, rgba(29, 31, 32, 0.4), transparent, transparent)',
                 }}
                 onPointerDown={handlePointerDown}
             >
@@ -216,7 +215,7 @@ function Splitter({ type, orientation }) {
         if (!hasGlobe) return null
         return (
             <div
-                className={splitterStyles.splitterV}
+                className={`${splitterStyles.splitterV} ${splitterStyles.splitterVGradient}`}
                 id="globeSplit"
                 style={{
                     width: splitterSizeHidden + 'px',
@@ -226,7 +225,6 @@ function Splitter({ type, orientation }) {
                         pxIsMap -
                         splitterSizeHidden / 2 +
                         'px',
-                    background: 'linear-gradient(90deg, transparent, transparent, rgba(29, 31, 32, 0.4), transparent, transparent)',
                 }}
                 onPointerDown={handlePointerDown}
             >

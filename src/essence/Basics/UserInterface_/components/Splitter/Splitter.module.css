@@ -12,6 +12,17 @@
     transition: background 0.2s ease-out;
 }
 
+.splitterVGradient {
+    background: linear-gradient(
+        90deg,
+        transparent,
+        transparent,
+        rgba(var(--color-a-rgb, 29, 31, 32), 0.4),
+        transparent,
+        transparent
+    );
+}
+
 .splitterV:hover {
     background: var(--color-mmgis);
     opacity: 0.5;
