@@ -112,6 +112,7 @@ function Splitter({ type, orientation }) {
                         pxIsViewer -
                         splitterSizeHidden / 2 +
                         'px',
+                    background: 'linear-gradient(90deg, transparent, transparent, rgba(29, 31, 32, 0.13), transparent, transparent)',
                 }}
                 onPointerDown={handlePointerDown}
             >
@@ -225,6 +226,7 @@ function Splitter({ type, orientation }) {
                         pxIsMap -
                         splitterSizeHidden / 2 +
                         'px',
+                    background: 'linear-gradient(90deg, transparent, transparent, rgba(29, 31, 32, 0.13), transparent, transparent)',
                 }}
                 onPointerDown={handlePointerDown}
             >

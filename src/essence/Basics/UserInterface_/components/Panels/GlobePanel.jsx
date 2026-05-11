@@ -33,6 +33,7 @@ function GlobePanel() {
                 overflow: 'hidden',
                 left: pxIsViewer + pxIsMap + 'px',
                 zIndex: 401,
+                borderLeft: '1px solid var(--color-a1)',
             }}
         >
             <div
