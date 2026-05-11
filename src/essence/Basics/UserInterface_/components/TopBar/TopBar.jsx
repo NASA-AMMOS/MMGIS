@@ -244,22 +244,38 @@ function TopBar({ userInterface }) {
         if (userInterface && userInterface.setPanelPercents) {
             const Globe_ = require('../../../Globe_/Globe_').default
             const newState = !(useUIStore.getState().pxIsGlobe > 0)
-            if (newState && !Globe_.hasBeenOpened) {
-                Globe_.init()
-                Globe_.hasBeenOpened = true
-            }
+
             if (isMobile) {
                 const isOpen = useUIStore.getState().pxIsGlobe > 0
                 if (!isOpen) {
                     userInterface.setPanelPercents(0, 0, 100)
+                    if (!Globe_.hasBeenOpened) {
+                        requestAnimationFrame(() => {
+                            Globe_.init()
+                            Globe_.hasBeenOpened = true
+                            requestAnimationFrame(() => {
+                                if (Globe_.litho) Globe_.litho.invalidateSize()
+                            })
+                        })
+                    }
                 }
                 return
             }
+
             const pp = userInterface.getPanelPercents()
             if (newState) {
                 const viewerAmt = pp.viewer > 0 ? 33 : 0
                 const mapAmt = 100 - 33 - viewerAmt
                 userInterface.setPanelPercents(viewerAmt, mapAmt, 33)
+                if (!Globe_.hasBeenOpened) {
+                    requestAnimationFrame(() => {
+                        Globe_.init()
+                        Globe_.hasBeenOpened = true
+                        requestAnimationFrame(() => {
+                            if (Globe_.litho) Globe_.litho.invalidateSize()
+                        })
+                    })
+                }
             } else {
                 if (pp.map > 0 && pp.viewer > 0) {
                     userInterface.setPanelPercents(pp.viewer + pp.globe / 2, pp.map + pp.globe / 2, 0)
