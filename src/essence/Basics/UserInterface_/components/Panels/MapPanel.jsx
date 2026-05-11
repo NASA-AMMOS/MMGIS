@@ -34,6 +34,7 @@ function MapPanel() {
                 transition: isMobile ? 'height 0.4s ease-out' : undefined,
                 top: '0px',
                 left: pxIsViewer + splitterSize + 'px',
+                borderLeft: '1px solid var(--color-a1)',
             }}
         >
             <div

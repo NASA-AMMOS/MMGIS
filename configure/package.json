@@ -1,6 +1,10 @@
 {
   "name": "configure",
+<<<<<<< devin/1778526896-hotkeys-modal-3col
   "version": "5.0.5-20260511",
+=======
+  "version": "5.0.4-20260511",
+>>>>>>> development
   "homepage": "./configure/build",
   "private": true,
   "dependencies": {
