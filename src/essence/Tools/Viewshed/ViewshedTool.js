@@ -8,9 +8,9 @@ import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import Globe_ from '../../Basics/Globe_/Globe_'
-import CursorInfo from '../../Ancillary/CursorInfo'
-import DataShaders from '../../Ancillary/DataShaders'
-import Help from '../../Ancillary/Help'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import DataShaders from '../../services/DataShaders'
+import Help from '../../Basics/UserInterface_/components/Help/Help'
 
 import arc from '../../../external/Arc/arc'
 import '../../../external/ColorPicker/jqColorPicker'
@@ -28,19 +28,23 @@ const helpKey = 'ViewshedTool'
 let markup = [
     "<div id='viewshedTool'>",
         "<div id='vstHeader'>",
-            "<div>",
-                "<div style='display: flex;'>",
-                    "<div id='vstTitle'>Viewshed</div>",
-                    Help.getComponent(helpKey),
+            "<div class='mmgisToolHeader'>",
+                "<div>",
+                    "<div>",
+                        "<div class='mmgisToolTitle'>Viewshed</div>",
+                        Help.getComponent(helpKey),
+                    "</div>",
+                "</div>",
+            "</div>",
+            "<div id='vstSubHeader'>",
+                "<div id='vstSubHeaderLeft'>",
+                    "<div id='vstToggleAll' class='checkbox on'></div>",
+                    "<div class='vstLabel'>Toggle All</div>",
                 "</div>",
                 "<div id='vstNew'>",
                     "<div>New</div>",
                     "<i class='mdi mdi-plus mdi-18px'></i>",
                 "</div>",
-            "</div>",
-            "<div>",
-                "<div id='vstToggleAll' class='checkbox on'></div>",
-                "<div class='vstLabel'>Toggle All</div>",
             "</div>",
         "</div>",
         "<div id='vstContent'>",
@@ -1300,6 +1304,7 @@ let ViewshedTool = {
                 uniforms: uniforms,
                 tileUrlsAsDataUrls: true,
             })
+            L_.layers.layer[layerName]._noFade = true
             L_.layers.layer[layerName].setZIndex(1000)
             $(
                 '#vstViewsheds #vstId_' +

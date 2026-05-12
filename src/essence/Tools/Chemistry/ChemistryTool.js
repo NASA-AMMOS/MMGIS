@@ -6,6 +6,7 @@ import Globe_ from '../../Basics/Globe_/Globe_'
 import Map_ from '../../Basics/Map_/Map_'
 import Viewer_ from '../../Basics/Viewer_/Viewer_'
 import chemistrychart from './chemistrychart'
+import Help from '../../Basics/UserInterface_/components/Help/Help'
 //import chemistryplot from './chemistryplot'
 
 import './ChemistryTool.css'
@@ -17,8 +18,9 @@ var markup = [
       "<div id='chemistry_panel' style='width: 100%; height: 100%; display: flex; text-shadow: none;'></div>",
     "</div>",
     "<div id='chemistryToolOptions' style='display: flex;'>",
-      "<div id='chemistryToolHeader'>",
-        "<div id='title'>Chemistry</div>",
+      "<div id='chemistryToolHeader' class='mmgisToolHeader'>",
+        '<div class="mmgisToolTitle">Chemistry</div>',
+        Help.getComponent('ChemistryTool'),
       "</div>",
       "<div id='chemistryToolName' style='margin-left: 8px; font-size: 18px; line-height: 34px;'>Place Name</div>",
       "<div id='chemistryToolSingleMulti' class='mmgisRadioBar' style='display: none;margin-left: 0;'>",
@@ -85,6 +87,8 @@ function interfaceWithMMWebGIS() {
         .style('height', '100%')
     //Add the markup to tools or do it manually
     tools.html(markup)
+
+    Help.finalize('ChemistryTool')
 
     $('.mmgisRadioBar#chemistryToolSingleMulti div').click(function () {
         $('.mmgisRadioBar#chemistryToolSingleMulti div').removeClass('active')

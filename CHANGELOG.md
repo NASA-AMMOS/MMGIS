@@ -4,6 +4,94 @@
 
 _TBD_
 
+## 5.0.0
+
+_May 1, 2026_
+
+#### Summary
+
+This major release modernizes the MMGIS frontend by migrating core UI infrastructure from jQuery/Materialize to React 18 and Base UI. The separated tools system has been fully rewritten as React components. The Ancillary directory has been dissolved and its components reorganized. A comprehensive mobile UI overhaul improves toolbar layout, TimeUI integration, and responsive positioning. A configurable theme system with High Contrast support has been added. The internal test infrastructure (Test_ module) has been removed in favor of the Playwright-based E2E framework. The Cesium 3D globe link button has been restyled and repositioned. Various bug fixes address TimeControl, Legend, modal, tooltip, and z-index issues.
+
+### Compatibility
+
+- **Mission configurations: Fully backward compatible.** No changes are required to existing mission configuration JSON files. All existing config fields (`separatedTool`, `look.*`, tool definitions, layer definitions, etc.) continue to work as before. The removed `justification` field is silently ignored if still present. New optional fields (`look.theme`, `look.primarycolor`, `look.secondarycolor`, `look.tertiarycolor`, `look.accentcolor`, `look.hightlightcolor`) are additive and do not need to be set.
+- **JavaScript API (`window.mmgisAPI`): Fully backward compatible.** All documented public API functions remain unchanged. No migration needed for code using `mmgisAPI`.
+- **End users: No breaking changes.** The application UI has been modernized but all user-facing functionality is preserved or improved. No retraining or workflow changes are needed.
+
+### Migration Guide (Developers Only)
+
+The following breaking changes affect **developers who maintain custom tool plugins, component plugins, or code that imports internal MMGIS modules**. They do NOT affect mission operators, end users, or mission configurations.
+
+- **Breaking (Developers): Ancillary directory dissolved.** Components previously under `src/essence/Ancillary/` have been reorganized into nested locations under `src/essence/Basics/UserInterface_/components/`. Any custom plugin code importing from `Ancillary/` paths will need import path updates.
+- **Breaking (Developers): jQuery UI components replaced with React.** Modal, Tooltip, Toast, Help, ContextMenu, and Coordinates components are now React-based. Any custom plugin code relying on jQuery selectors (e.g., `$('.modal')`, `$('.tooltipped')`) or Materialize CSS classes for these components will need updating to use the new React component APIs or DOM IDs.
+- **Breaking (Developers): Separated tools system rewritten.** The separated/floating tools system is now React-based. Custom tools that used the old jQuery-based separated tools DOM API will need migration. The tool module interface (`make()`, `destroy()`, `initialize()`, `finalize()`) is unchanged — only the DOM container rendering has changed.
+- **Breaking (Developers): Test_ module removed.** The internal `Test_` module, `testModules`, and `DrawTool.test` have been removed. Use the Playwright-based E2E test framework (`tests/e2e/`) instead.
+
+#### Added
+
+- React 18 and Base UI as core frontend framework (PR #49)
+- Proper Toast notification component replacing ~69 ad-hoc CursorInfo toast calls
+- Configurable theme system with High Contrast theme via Configure page UI tab
+- Custom theme mode with `enableWhenField` support in Configure
+- `.knowledge/` directory with AI agent knowledge architecture (PR #52)
+- Legend empty state message when no legend items are present
+- Hover effect on MMGIS logo (subtle background highlight)
+- Per-layer fade control: time-enabled and shade/viewshed layers never fade
+- Selective tile fade: fade on pan/zoom, instant on refresh/reload
+
+#### Changed
+
+- Migrated Ancillary UI components (Modal, Tooltip, Toast, Help, ContextMenu, Coordinates) from jQuery/Materialize to React 18 + Base UI (PR #49)
+- Rewrote separated tools system from jQuery to React components (PR #51)
+- Dissolved `Ancillary/` folder and reorganized components into nested structure
+- Repositioned Viewer and Globe panel buttons to top-right
+- Moved Cesium link button to top-right with Leaflet zoom button styling (PR #55)
+- Anchored map logo to document.body to avoid CSS filter containing block issues (PR #56)
+- Reverted tooltips to tippy.js for consistency
+- Redesigned About modal
+- Removed dead CSS: deleted `tools.css`, cleaned ~600 lines from `mmgisUI.css` and `mmgis.css`
+- Removed `separatedTool/justification` config toggles (field silently ignored if present in existing configs)
+- Removed separated tools offset logic from `Globe_.js`
+- Updated docs to remove references to deleted test infrastructure (PR #57)
+
+#### Fixed
+
+- Mobile toolbar: 40px height, active button styling matching desktop, icon alignment (PR #50)
+- Mobile TimeUI: overflow, panel height, expanded rows, Invalid date, isMobile detection (PR #50)
+- Mobile topBar padding and hamburger menu positioning (PR #50)
+- Mobile topBarTitleName text wrapping via `white-space: nowrap` (PR #58)
+- Mobile scalebar/compass positioning at correct offset (PR #50)
+- Mobile hotkeys hidden on mobile devices (PR #50)
+- TimeUI dropdown z-index above tool panel
+- TimeUI `#toggleTimeUI` click handler, tippy tooltip, and active class restoration
+- TimeControl `.fina()` assignment operator used instead of comparison
+- Legend empty message scoped to content container via targetId
+- Legend duplicate ID issue
+- IdentifierTool deactivation icon ID reference in `separateFromMMWebGIS`
+- CurtainTool `destroy()` using undefined `ReactDOM.unmountComponentAtNode`
+- Modal blur persistence and race condition during fade-out
+- ContextMenu WKT null guard
+- Help.jsx fetch error handling and HTML sanitization with DOMPurify
+- CoordinatesDiv z-index
+- `topBarTitleName` padding override specificity
+- `toolPanelDrag` visibility when no tool is open
+- `mapToolBar` pointer events, login padding, default tool, About modal order
+- Session logout regression
+- `defaulttooldropdown` case handler in `Maker.js`
+- Circular import in `TimeUI.js`
+- `--color-a3` text contrast
+- StatusIndicator spacing and title attribute conflict with tippy tooltip
+- Tool headers fixed to 40px height
+- Various tool UI issues: ViewshedTool subheader, AnimationTool header, InfoTool close button
+
+#### Removed
+
+- Internal test infrastructure: `Test_` module, `testModules`, `DrawTool.test` (PR #53)
+- `tools.css` and ~600 lines of dead CSS from `mmgisUI.css` and `mmgis.css`
+- `separatedTool/justification` configuration toggles
+- Separated tools offset logic from `Globe_.js`
+- Stale `setShowUserCard` call in `handleLogout`
+
 ## 4.2.34
 
 _April 2, 2026_

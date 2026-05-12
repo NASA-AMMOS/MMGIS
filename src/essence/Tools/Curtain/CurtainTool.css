@@ -38,10 +38,11 @@
 }
 
 .CurtainTool #curtainLeft #curtainTitle {
-    height: 34px;
-    line-height: 34px;
+    height: 40px;
+    line-height: 40px;
     font-size: 16px;
-    padding-left: 6px;
+    font-weight: 600;
+    padding-left: 10px;
     font-family: 'lato-light';
     text-transform: uppercase;
     color: var(--color-l);
@@ -164,6 +165,7 @@
     height: 100%;
     display: flex;
     flex-flow: column;
+    justify-content: flex-end;
 }
 .CurtainTool #curtainToolBar > div {
     width: 30px;

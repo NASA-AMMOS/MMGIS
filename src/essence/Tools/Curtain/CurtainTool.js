@@ -5,10 +5,10 @@ import TC_ from '../../Basics/ToolController_/ToolController_'
 import Viewer_ from '../../Basics/Viewer_/Viewer_'
 import Map_ from '../../Basics/Map_/Map_'
 import Globe_ from '../../Basics/Globe_/Globe_'
-import CursorInfo from '../../Ancillary/CursorInfo'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
 import calls from '../../../pre/calls'
 
-import ReactDOM from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import React, { useState, useEffect, useRef } from 'react'
 
 import './CurtainTool.css'
@@ -219,6 +219,14 @@ const Curtain = () => {
             </div>
             <div id='curtainToolBar'>
                 <div
+                    id='curtainClose'
+                    title='Close'
+                    onClick={() => { TC_.closeActiveTool() }}
+                >
+                    <i className='mdi mdi-close mdi-18px'></i>
+                </div>
+                <div style={{ flex: 1 }} />
+                <div
                     id='curtainExpand'
                     title='Expand/Shrink'
                     onClick={() => {
@@ -270,30 +278,39 @@ let CurtainTool = {
         //Get tool variables
         this.vars = L_.getToolVars('curtain')
 
-        ReactDOM.render(<Curtain />, document.getElementById('tools'))
+        const toolsContainer = document.getElementById('tools')
+        if (!toolsContainer._reactRoot) {
+            toolsContainer._reactRoot = createRoot(toolsContainer)
+        }
+        toolsContainer._reactRoot.render(<Curtain />)
 
-        this.osd = OpenSeadragon({
-            id: 'curtainViewer',
-            //prefixUrl: 'scripts/external/OpenSeadragon/images/',
-            defaultZoomLevel: 0.95,
-            //showNavigationControl: false,
-            showFullPageControl: false,
-            zoomInButton: 'curtainZoomIn',
-            zoomOutButton: 'curtainZoomOut',
-            homeButton: 'curtainReset',
-            showNavigator: false,
-            constrainDuringPan: true,
-            visibilityRatio: 1,
-            animationTime: 0.5,
-            minZoomLevel: 0.5,
-            maxZoomLevel: 12,
-            ajaxWithCredentials: true,
-            //zoomPerClick: 1, //disables click to zoom for tools...
-            imageSmoothingEnabled: false,
+        // Defer OSD init — React 18 render() is async so #curtainViewer
+        // isn't in the DOM yet when make() runs synchronously.
+        requestAnimationFrame(() => {
+            this.osd = OpenSeadragon({
+                id: 'curtainViewer',
+                defaultZoomLevel: 0.95,
+                showFullPageControl: false,
+                zoomInButton: 'curtainZoomIn',
+                zoomOutButton: 'curtainZoomOut',
+                homeButton: 'curtainReset',
+                showNavigator: false,
+                constrainDuringPan: true,
+                visibilityRatio: 1,
+                animationTime: 0.5,
+                minZoomLevel: 0.5,
+                maxZoomLevel: 12,
+                ajaxWithCredentials: true,
+                imageSmoothingEnabled: false,
+            })
         })
     },
     destroy: function () {
-        ReactDOM.unmountComponentAtNode(document.getElementById('tools'))
+        const toolsContainer = document.getElementById('tools')
+        if (toolsContainer._reactRoot) {
+            toolsContainer._reactRoot.unmount()
+            delete toolsContainer._reactRoot
+        }
         CurtainTool.currentMapLayer = null
         L_.setActiveFeature()
     },

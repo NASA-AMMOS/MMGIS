@@ -222,10 +222,14 @@ test.describe('Coordinate Display', () => {
   });
 
   test('time toggle button is present when time is enabled', async ({ page }) => {
-    // Config has time.enabled: true and time.visible: true
-    // The toggle time UI button should be visible in the coordinates bar
-    const timeToggle = page.locator('#toggleTimeUI');
-    const count = await timeToggle.count();
-    expect(count).toBeGreaterThan(0);
+    // Config has time.enabled: true and time.visible: true.
+    // The TimeUI toggle was moved out of the coordinates bar and into the
+    // Settings modal (see comment in Coordinates.css). Open the Settings modal
+    // via the topbar kebab menu and verify the Time UI checkbox is rendered.
+    // The topbar kebab IconButton — scoped to the visible top-bar instance.
+    await page.locator('button:has(.mdi-dots-vertical)').first().click();
+    await page.locator('text=Settings').first().click();
+    const timeToggle = page.locator('#mainSettingsModal input[value="timeui"]');
+    await expect(timeToggle).toHaveCount(1);
   });
 });

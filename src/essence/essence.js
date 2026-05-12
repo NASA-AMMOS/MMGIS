@@ -21,7 +21,6 @@ import $ from 'jquery'
 import WebSocket from 'isomorphic-ws'
 import M from 'materialize-css'
 import F_ from './Basics/Formulae_/Formulae_'
-import T_ from './Basics/Test_/Test_'
 import L_ from './Basics/Layers_/Layers_'
 import Viewer_ from './Basics/Viewer_/Viewer_'
 import Map_ from './Basics/Map_/Map_'
@@ -29,22 +28,21 @@ import Globe_ from './Basics/Globe_/Globe_'
 import * as _UserInterface_ from './Basics/UserInterface_/UserInterface_'
 import ToolController_ from './Basics/ToolController_/ToolController_'
 import ComponentController_ from './Basics/ComponentController_/ComponentController_'
-import CursorInfo from './Ancillary/CursorInfo'
-import ContextMenu from './Ancillary/ContextMenu'
-import Coordinates from './Ancillary/Coordinates'
-import Description from './Ancillary/Description'
-import ScaleBar from './Ancillary/ScaleBar'
-import ScaleBox from './Ancillary/ScaleBox'
-import Compass from './Ancillary/Compass'
-import MapLogo from './Ancillary/MapLogo'
-import Attributions from './Ancillary/Attributions'
-//import Swap from './Ancillary/Swap'
-import QueryURL from './Ancillary/QueryURL'
+import CursorInfo from './Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import ContextMenu from './Basics/UserInterface_/components/ContextMenu/ContextMenu'
+import Coordinates from './Basics/UserInterface_/components/Coordinates/Coordinates'
+import Description from './Basics/UserInterface_/components/Description/Description'
+import ScaleBar from './Basics/UserInterface_/components/ScaleBar/ScaleBar'
+import ScaleBox from './Basics/UserInterface_/components/ScaleBox/ScaleBox'
+import Compass from './Basics/UserInterface_/components/Compass/Compass'
+import MapLogo from './Basics/UserInterface_/components/MapLogo/MapLogo'
+import Attributions from './Basics/UserInterface_/components/Attributions/Attributions'
+import QueryURL from './services/QueryURL'
 import TimeControl from './Basics/TimeControl_/TimeControl'
 import calls from '../pre/calls'
 import { mmgisAPI_, mmgisAPI } from './mmgisAPI/mmgisAPI'
 import { makeMissionNotFoundDiv } from './LandingPage/LandingPage'
-import { stylize } from './Ancillary/Stylize'
+import { stylize } from '../design-system/Stylize'
 //Requiring UserInterface_ initializes itself
 
 const UserInterface_ = await _UserInterface_.default()
@@ -113,18 +111,6 @@ $(document).keyup(function (e) {
             1
         )
         tabFocusAdded = true
-    }
-})
-
-$(document.body).keydown(function (e) {
-    if (
-        ToolController_.activeTool == null &&
-        !$('#loginModal').length &&
-        UserInterface_.getPanelPercents().globe == 0 &&
-        e.shiftKey &&
-        e.keyCode === 84
-    ) {
-        T_.toggle()
     }
 })
 

@@ -2144,10 +2144,11 @@ class GlobeRenderer {
      * @param {string} id - Control ID
      * @param {object} control - Control object
      * @param {object} options - Control options
+     * @param {string} position - Control corner (e.g., 'TopRight', 'BottomRight')
      */
-    addControl(id, control, options) {
+    addControl(id, control, options, position) {
         if (this.rendererType === 'lithosphere') {
-            return this.renderer.addControl(id, control, options)
+            return this.renderer.addControl(id, control, options, position)
         } else {
             // Handle special controls for Cesium
             if (id === 'mmgisLithoLink') {
@@ -2224,11 +2225,11 @@ class GlobeRenderer {
         }
 
         const controlsDiv = document.createElement('div')
-        controlsDiv.setAttribute('id', '_cesium_controls_topleft')
+        controlsDiv.setAttribute('id', '_cesium_controls_topright')
         controlsDiv.style.cssText = `
             position: absolute;
             top: 10px;
-            left: 10px;
+            right: 10px;
             z-index: 1000;
             display: flex;
             flex-direction: column;
@@ -2247,9 +2248,12 @@ class GlobeRenderer {
         const button = document.createElement('div')
         button.setAttribute('id', '_cesium_control_link')
         button.style.cssText = `
-            width: 26px;
-            height: 26px;
-            background: #1d1f20;
+            width: 30px;
+            height: 30px;
+            background: var(--color-a);
+            border-radius: 3px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            color: var(--color-f);
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -2260,7 +2264,7 @@ class GlobeRenderer {
 
         // Use SVG instead of MDI icons (matches LithoSphere)
         button.innerHTML = `
-            <svg style="width:18px; height:18px; color: white;" viewBox="0 0 24 24">
+            <svg style="width:18px; height:18px; color: var(--color-f);" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76V7.76L12.71,4.22C14.66,2.27 17.83,2.27 19.78,4.22C21.73,6.17 21.73,9.34 19.78,11.29L18.29,12.78C18.3,11.96 18.17,11.14 17.89,10.36L18.36,9.88C19.54,8.71 19.54,6.81 18.36,5.64C17.19,4.46 15.29,4.46 14.12,5.64L10.59,9.17C9.41,10.34 9.41,12.24 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24V16.24L11.29,19.78C9.34,21.73 6.17,21.73 4.22,19.78C2.27,17.83 2.27,14.66 4.22,12.71L5.71,11.22C5.7,12.04 5.83,12.86 6.11,13.65L5.64,14.12C4.46,15.29 4.46,17.19 5.64,18.36C6.81,19.54 8.71,19.54 9.88,18.36L13.41,14.83C14.59,13.66 14.59,11.76 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z" />
             </svg>
         `
@@ -2268,12 +2272,14 @@ class GlobeRenderer {
         // Add hover effect
         button.addEventListener('mouseenter', () => {
             if (!linkControl._isLinked) {
-                button.style.background = '#2d2f30'
+                const svg = button.querySelector('svg')
+                if (svg) svg.style.color = 'var(--color-mmgis)'
             }
         })
         button.addEventListener('mouseleave', () => {
             if (!linkControl._isLinked) {
-                button.style.background = '#1d1f20'
+                const svg = button.querySelector('svg')
+                if (svg) svg.style.color = 'var(--color-f)'
             }
         })
 
@@ -2329,9 +2335,9 @@ class GlobeRenderer {
                         this._buttonElement.style.background = '#ffdd5c'
                         svg.style.color = 'black'
                     } else {
-                        // Inactive state: dark background, white icon
-                        this._buttonElement.style.background = '#1d1f20'
-                        svg.style.color = 'white'
+                        // Inactive state: themed background, themed icon
+                        this._buttonElement.style.background = 'var(--color-a)'
+                        svg.style.color = 'var(--color-f)'
                     }
                 }
             },

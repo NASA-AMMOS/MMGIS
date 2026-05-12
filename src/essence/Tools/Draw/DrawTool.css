@@ -6,8 +6,9 @@
 #drawToolNotLoggedIn {
     display: none;
     position: absolute;
+    top: 81px;
     width: 100%;
-    height: 100%;
+    height: calc(100% - 81px);
     background: var(--color-a);
     opacity: 0.95;
     z-index: 3003;
@@ -58,7 +59,7 @@
 #drawToolNav {
     padding: 0px 10px;
     height: 41px;
-    margin-right: 15px;
+    margin-right: 0px;
     display: flex;
     justify-content: space-between;
     text-align: center;
@@ -185,10 +186,10 @@
 
 #drawToolContents {
     position: absolute;
-    top: 40px;
+    top: 81px;
     left: 0px;
     width: 100%;
-    height: calc(100% - 40px);
+    height: calc(100% - 81px);
 }
 
 #drawToolContents > div {
@@ -2590,7 +2591,8 @@ line-height: 20px;
 
 #DrawTool_TimeToggle {
     position: absolute;
-    bottom: 45px;
+    bottom: 57px;
+    z-index: 400;
     left: 50%;
     transform: translateX(-50%);
     display: flex;

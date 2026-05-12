@@ -5,7 +5,8 @@ import LayerGeologic from '../../Basics/Layers_/LayerGeologic/LayerGeologic'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import Map_ from '../../Basics/Map_/Map_'
 import Viewer_ from '../../Basics/Viewer_/Viewer_'
-import CursorInfo from '../../Ancillary/CursorInfo'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '../../../design-system/components/Toast/Toast'
 import turf from 'turf'
 
 import DrawTool_Templater from './DrawTool_Templater'
@@ -2596,16 +2597,11 @@ var Editing = {
                             if (DrawTool.isReviewOpen) DrawTool.showReview()
                         },
                         function (err) {
-                            CursorInfo.update(
-                                `${err.message}${
+                            Toast.error(`${err.message}${
                                     err.body?.error
                                         ? ` - ${err.body.error}`
                                         : ''
-                                }`,
-                                6000,
-                                true,
-                                { x: 305, y: 6 }
-                            )
+                                }`, 6000)
                             $('.drawToolContextMenuSave').css(
                                 'background',
                                 '#ff2626'
@@ -2754,16 +2750,11 @@ var Editing = {
                             }
                         })(newProperties, newGeometry, featureType, fileid),
                         function (err) {
-                            CursorInfo.update(
-                                `${err.message}${
+                            Toast.error(`${err.message}${
                                     err.body?.error
                                         ? ` - ${err.body.error}`
                                         : ''
-                                }`,
-                                6000,
-                                true,
-                                { x: 305, y: 6 }
-                            )
+                                }`, 6000)
                             $('.drawToolContextMenuSave').css(
                                 'background',
                                 '#ff2626'
@@ -2837,16 +2828,11 @@ var Editing = {
                                 }
                             })(l, l.file.id, l.properties._.id, newProperties),
                             function (err) {
-                                CursorInfo.update(
-                                    `${err.message}${
+                                Toast.error(`${err.message}${
                                         err.body?.error
                                             ? ` - ${err.body.error}`
                                             : ''
-                                    }`,
-                                    6000,
-                                    true,
-                                    { x: 305, y: 6 }
-                                )
+                                    }`, 6000)
                                 $('.drawToolContextMenuSave').css(
                                     'background',
                                     '#ff2626'

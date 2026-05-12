@@ -1,0 +1,131 @@
+/* TopBar — layout and structure. Colors from CSS custom properties (theme system). */
+
+:global(#topBar) {
+    background: var(--color-a);
+    border-bottom: 1px solid var(--color-a1);
+    box-shadow: 0 4px 12px var(--color-shadow);
+}
+
+.reactOverlay {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 100%;
+    padding-right: 2px;
+    pointer-events: auto;
+    order: 3;
+}
+
+/* Reorder TopBar flex children */
+:global(#topBar) > :global(#topBarLeft) { order: 1; }
+:global(#topBar) > :global(#topBarRight) { order: 2; flex: 0; margin-left: auto; }
+
+/* Title styling */
+:global(#topBarTitleName) {
+    font-size: 11px !important;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--color-a4);
+}
+
+/* TopBar icon buttons (jQuery Login appended to #topBarRight) */
+:global(#topBarRight) > i {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 16px;
+    color: var(--color-a5);
+}
+
+.panelToggles {
+    display: flex;
+    align-items: center;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 28px;
+    background: var(--color-a-5);
+    border: 1px solid var(--color-a1);
+}
+
+.userAvatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    background: var(--color-accent-active);
+    color: var(--color-c);
+    border: 1px solid var(--color-a1);
+    transition: background 0.15s, box-shadow 0.15s;
+}
+
+/* --- User account area --- */
+.userArea {
+    display: flex;
+    align-items: center;
+    margin-left: 4px;
+}
+
+.userWrapper {
+    position: relative;
+}
+
+.userCardName {
+    padding: 10px 14px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--color-a5);
+}
+
+.userCardDivider {
+    height: 1px;
+    margin: 0 8px;
+    background: var(--color-a1);
+}
+
+/* Kebab menu trigger — override IconButton border for circular shape */
+.menuBtn {
+    border-radius: 4px;
+}
+
+/* Status indicator (reload / websocket / layer update) */
+.statusIndicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: opacity 0.6s ease-in-out;
+    animation: statusPulse 2.5s ease-in-out infinite;
+    margin-left: 6px;
+    flex-shrink: 0;
+}
+.statusIndicator:hover {
+    background: var(--color-a1);
+}
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* Hide jQuery login elements — React TopBar handles user UI */
+:global(#loginDiv),
+:global(#loginoutButton) {
+    display: none !important;
+}

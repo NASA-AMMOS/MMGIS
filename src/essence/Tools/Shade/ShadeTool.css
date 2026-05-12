@@ -36,16 +36,15 @@
 #shadeTool #vstHeader > div:first-child {
     display: flex;
     height: 40px;
-    line-height: 18px;
+    line-height: 40px;
     color: #ccc;
     background: var(--color-a);
     justify-content: space-between;
+    align-items: center;
 }
 #shadeTool #vstHeader > div:first-child > div {
     display: flex;
-}
-#shadeTool #helpModal_ShadeTool {
-    margin-top: 11px;
+    align-items: center;
 }
 /*
 #shadeTool #vstHeader > div:last-child {
@@ -63,7 +62,8 @@
     height: 40px;
     line-height: 40px;
     font-size: 16px;
-    padding-left: 6px;
+    font-weight: 600;
+    padding-left: 10px;
     font-family: 'lato-light';
     text-transform: uppercase;
     color: var(--color-l);

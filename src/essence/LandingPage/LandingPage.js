@@ -1,6 +1,6 @@
 import s from '../essence'
 import $ from 'jquery'
-import QueryURL from '../Ancillary/QueryURL'
+import QueryURL from '../services/QueryURL'
 import calls from '../../pre/calls'
 import { mmgisAPI_ } from '../mmgisAPI/mmgisAPI'
 import attributions from '../../external/attributions'

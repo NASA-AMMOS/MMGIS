@@ -3,8 +3,8 @@ import $ from 'jquery'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import ToolController_ from '../ToolController_/ToolController_.js'
-import Modal from '../../Ancillary/Modal'
-import ConfirmationModal from '../../Ancillary/ConfirmationModal'
+import Modal from './components/Modal/Modal'
+import ConfirmationModal from './components/ConfirmationModal/ConfirmationModal'
 
 import tippy from 'tippy.js'
 

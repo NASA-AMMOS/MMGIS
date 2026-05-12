@@ -1,6 +1,9 @@
 import useUIStore from './store/uiStore'
 import BottomBar from './BottomBar'
-import LayerUpdatedControl from './LayerUpdatedControl'
+// LayerUpdatedControl is no longer used as a Leaflet control;
+// status indicators now render in the TopBar via uiStore.statusIndicator
+import { applyTheme } from '../../../design-system/applyTheme'
+import { initThemeApplier, refreshThemeDOM } from '../../../design-system/themeApplier'
 
 var Viewer_ = null
 var Map_ = null
@@ -19,9 +22,9 @@ const UserInterfaceBridge = {
     set isMobile(val) {
         this._isMobile = val
         useUIStore.getState().setIsMobile(!!val)
-        // Mobile uses topSize 50 (desktop uses 40)
+        // Mobile uses topSize 40 (same as desktop)
         if (val) {
-            useUIStore.setState({ topSize: 50, mobileTopSize: 50, toolHeightReserve: 50 })
+            useUIStore.setState({ topSize: 40, mobileTopSize: 40, toolHeightReserve: 40 })
         }
     },
 
@@ -104,8 +107,10 @@ const UserInterfaceBridge = {
     },
 
     init: function () {
-        // In React mode, layout is rendered by React components.
-        // This is a no-op - React handles mounting via UserInterfaceLayout.
+        // Apply default theme on init
+        applyTheme(useUIStore.getState().themeName)
+        // Start the imperative theme applier for jQuery-managed elements
+        initThemeApplier()
     },
 
     hide: function () {
@@ -304,7 +309,9 @@ const UserInterfaceBridge = {
                 l_.FUTURES.panelPercents[2]
             )
 
-        this.minimalist(true)
+        // minimalist() removed — splitscreens, toolbar, and toolPanel now use
+        // their default positioning (below topBar, beside toolbar) so they
+        // never underlap. Matches PR #47.
 
         if (l_.configData.look) {
             if (
@@ -319,6 +326,10 @@ const UserInterfaceBridge = {
             }
         }
 
+        // Theme is already applied by Stylize.js (which also applies
+        // individual color overrides on top). Don't re-apply here or
+        // the individual overrides would be clobbered.
+
         // Set UI reference so BottomBar utility methods can access it.
         // DOM construction is now handled by BottomBarReact.jsx.
         if (!BottomBar.UI_) {
@@ -327,38 +338,13 @@ const UserInterfaceBridge = {
 
         // Visibility toggles from config
         const look = l_.configData.look || {}
-        if (look.copylink != null) {
-            const el = document.getElementById('topBarLink')
-            if (el) el.style.display = look.copylink ? 'inherit' : 'none'
-        }
-        if (look.screenshot != null) {
-            const el = document.getElementById('topBarScreenshot')
-            if (el) el.style.display = look.screenshot ? 'inherit' : 'none'
-        }
-        if (look.fullscreen != null) {
-            const el = document.getElementById('topBarFullscreen')
-            if (el) el.style.display = look.fullscreen ? 'inherit' : 'none'
-        }
-        if (look.settings != null) {
-            const el = document.getElementById('bottomBarSettings')
-            if (el) el.style.display = look.settings ? 'inherit' : 'none'
-        }
 
-        if (look.info != null && look.infourl != null && look.infourl !== '') {
-            const el = document.getElementById('topBarInfo')
-            if (el) el.style.display = look.info ? 'inherit' : 'none'
-        } else {
-            const el = document.getElementById('topBarInfo')
-            if (el) el.style.display = 'none'
-        }
+        // Store look config in Zustand so React components (TopBar, BottomBarReact)
+        // can conditionally render based on mission configuration.
+        useUIStore.getState().setLookConfig(look)
 
-        if (look.help != null && look.helpurl != null && look.helpurl !== '') {
-            const el = document.getElementById('topBarHelp')
-            if (el) el.style.display = look.help ? 'inherit' : 'none'
-        } else {
-            const el = document.getElementById('topBarHelp')
-            if (el) el.style.display = 'none'
-        }
+        // copylink visibility (BottomBarReact reads from lookConfig)
+        // screenshot, fullscreen, settings visibility (TopBar reads from lookConfig)
 
         if (look.topbar === false)
             BottomBar.changeUIVisibility('topbar', false)
@@ -375,15 +361,7 @@ const UserInterfaceBridge = {
         if (this.isMobile) {
             const mobileTools = ['Layers', 'Legend', 'Info']
 
-            // Position mapToolBar at top under topbar (contains scalebar)
-            const mapToolBar = document.getElementById('mapToolBar')
-            if (mapToolBar) {
-                mapToolBar.style.top = '48px'
-                mapToolBar.style.bottom = 'auto'
-            }
-            // Position compass at bottom
-            const compass = document.getElementById('mmgis-map-compass')
-            if (compass) compass.style.bottom = '60px'
+            // Keep mapToolBar and compass in default desktop position (bottom-left)
 
             // Remove the cursor info
             const cursorInfo = document.getElementById('cursorInfo')
@@ -394,11 +372,11 @@ const UserInterfaceBridge = {
             // Store the mobile tools list so Toolbar can filter.
             useUIStore.setState({ mobileTools: mobileTools })
 
-            // Remove the coordinates div and timeUI (redrawn as tools on mobile)
+            // Remove the coordinates div (redrawn as a tool on mobile)
             const coordsDiv = document.getElementById('CoordinatesDiv')
             if (coordsDiv) coordsDiv.remove()
-            const timeUI = document.getElementById('timeUI')
-            if (timeUI) timeUI.remove()
+            // #timeUI is staged in a hidden container by TimeUI.init() on mobile;
+            // MobileTimeUIToggle handles moving it into #tools when toggled.
 
             // Zoom in if needed
             if (l_.configData.msv && 'mapZoomMobileInit' in l_.configData.msv) {
@@ -411,34 +389,25 @@ const UserInterfaceBridge = {
         this.show()
 
         // Auto-open default tool if configured
+        // Deferred to allow React toolbar to render first
         if (l_.configData.look && l_.configData.look.defaultToolEnabled) {
             if (l_.configData.look.defaultTool && l_.configData.look.defaultTool !== 'None') {
-                const defaultToolBtn = document.getElementById(`toolButton${l_.configData.look.defaultTool}`)
-                if (defaultToolBtn) {
-                    defaultToolBtn.click()
-                }
+                requestAnimationFrame(() => {
+                    const defaultToolBtn = document.getElementById(`toolButton${l_.configData.look.defaultTool}`)
+                    if (defaultToolBtn) {
+                        defaultToolBtn.click()
+                    }
+                })
             }
         }
     },
 
     updateLayerUpdateButton: function (type) {
-        if (UserInterfaceBridge.layerUpdatedControl) {
-            UserInterfaceBridge.removeLayerUpdateButton()
-        }
-        if (Map_) {
-            UserInterfaceBridge.layerUpdatedControl = new LayerUpdatedControl({
-                position: 'topright',
-                type,
-            })
-            UserInterfaceBridge.layerUpdatedControl.addTo(Map_.map)
-        }
+        useUIStore.getState().setStatusIndicator(type)
     },
 
     removeLayerUpdateButton: function () {
-        if (UserInterfaceBridge.layerUpdatedControl && Map_) {
-            UserInterfaceBridge.layerUpdatedControl.remove(Map_.map)
-            UserInterfaceBridge.layerUpdatedControl = null
-        }
+        useUIStore.getState().setStatusIndicator(null)
     },
 }
 

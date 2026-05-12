@@ -35,7 +35,7 @@ function interfaceWithMMGIS() {
 
     //MMGIS should always have a div with id 'toolPanel'
     const toolsContainer = $('#toolPanel')
-    toolsContainer.css('background', 'var(--color-k)')
+    toolsContainer.css('background', 'transparent')
     //Clear it
     toolsContainer.empty()
 

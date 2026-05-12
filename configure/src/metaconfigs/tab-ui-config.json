@@ -21,6 +21,47 @@
       ]
     },
     {
+      "name": "Theming",
+      "components": [
+        {
+          "field": "look.theme",
+          "name": "Color Theme",
+          "description": "Select a color theme for the interface. Each preset applies a full set of coordinated colors.",
+          "type": "dropdown",
+          "width": 6,
+          "options": [
+            "Dark Default",
+            "Dark Blue",
+            "Dark Warm",
+            "Dark Mars",
+            "Dark Midnight",
+            "Dark Terra",
+            "Dark Nebula",
+            "Dark Lunar",
+            "Dark Supernova",
+            "Dark Heliosphere",
+            "Dark Monokai",
+            { "value": "Light Default", "label": "Light Default (experimental)" },
+            { "value": "Light Cool", "label": "Light Cool (experimental)" },
+            { "value": "Light Slate", "label": "Light Slate (experimental)" },
+            { "value": "Light Warm", "label": "Light Warm (experimental)" },
+            { "value": "Light Botanical", "label": "Light Botanical (experimental)" },
+            { "value": "Light Solarized", "label": "Light Solarized (experimental)" },
+            "High Contrast"
+          ],
+          "default": "Dark Default"
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "type": "themepreview",
+          "width": 12
+        }
+      ]
+    },
+    {
       "name": "Map Logo",
       "components": [
         {
@@ -320,83 +361,6 @@
         }
       ]
     },
-
-    {
-      "name": "Colors",
-      "components": [
-        {
-          "field": "look.primarycolor",
-          "name": "Primary Color",
-          "description": "Colors various buttons, components, panels, feature hover text.",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.secondarycolor",
-          "name": "Secondary Color",
-          "description": "Colors some panels and UI borders and is used as the background of the Viewer Panel.",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.tertiarycolor",
-          "name": "Tertiary Color",
-          "description": "Colors many icons and text.",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.accentcolor",
-          "name": "Accent Color",
-          "description": "Colors things like the active tool indicator.",
-          "type": "colorpicker",
-          "width": 3
-        }
-      ]
-    },
-    {
-      "components": [
-        {
-          "field": "look.bodycolor",
-          "name": "Body Color",
-          "description": "Colors the overall body but might have little impact.",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.topbarcolor",
-          "name": "TopBar Color",
-          "description": "Colors the top horizontal bar.",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.toolbarcolor",
-          "name": "ToolBar Color",
-          "description": "Colors the left vertical toolbar",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.mapcolor",
-          "name": "Map Color",
-          "description": "Colors the background of the map. The color is seen in regions of the 2D map where there is no data.",
-          "type": "colorpicker",
-          "width": 3
-        }
-      ]
-    },
-    {
-      "components": [
-        {
-          "field": "look.hightlightcolor",
-          "name": "Highlight Color",
-          "description": "The color with which to highlight selected features in the map.",
-          "type": "colorpicker",
-          "width": 3
-        }
-      ]
-    },
     {
       "name": "Secondary/Bottom Tools",
       "components": [
@@ -461,6 +425,13 @@
           "description": "Required in order to enable button.",
           "type": "text",
           "width": 10
+        },
+        {
+          "field": "look.aboutModalContent",
+          "name": "About Modal Content",
+          "description": "Markdown content displayed in the About modal. Supports full GitHub-flavored Markdown.",
+          "type": "markdown",
+          "width": 12
         }
       ]
     },

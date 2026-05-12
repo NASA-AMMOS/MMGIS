@@ -14,7 +14,7 @@ authors:
     given-names: "Amanda"
     orcid: "https://orcid.org/0009-0004-8926-7859"
 title: "MMGIS (Multi-Mission Geographic Information System)"
-version: 4.0.0
+version: 5.0.0
 doi: 10.5281/zenodo.15237385
-date-released: 2025-04-17
+date-released: 2026-05-01
 url: "https://github.com/NASA-AMMOS/MMGIS"

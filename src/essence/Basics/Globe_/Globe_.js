@@ -15,6 +15,19 @@ let Globe_ = {
     hasBeenOpened: false, // Track if Globe panel has been opened before
     init: function () {
         const containerId = this.id
+
+        // Idempotent: if a renderer (real or mock) already exists for this
+        // container, just re-sync size and bail. This prevents subsequent
+        // init() calls from the toggle path (uiStore setTimeout + TopBar
+        // requestAnimationFrame) and any future code from leaking a second
+        // GlobeRenderer instance on top of the first.
+        if (this.litho) {
+            if (typeof this.litho.invalidateSize === 'function') {
+                this.litho.invalidateSize()
+            }
+            return
+        }
+
         let initialView = null
         if (L_.FUTURES.globeView != null) {
             initialView = L_.FUTURES.globeView
@@ -126,18 +139,22 @@ let Globe_ = {
             return
         }
 
-        this.litho.addControl('mmgisLithoHome', this.litho.controls.home)
+        this.litho.addControl('mmgisLithoHome', this.litho.controls.home, null, 'TopRight')
         this.litho.addControl(
             'mmgisLithoExaggerate',
-            this.litho.controls.exaggerate
+            this.litho.controls.exaggerate,
+            null,
+            'TopRight'
         )
         //this.litho.addControl('mmgisLithoLayers', this.litho.controls.layers)
-        this.litho.addControl('mmgisLithoObserve', this.litho.controls.observe)
-        this.litho.addControl('mmgisLithoWalk', this.litho.controls.walk)
-        this.litho.addControl('mmgisLithoCompass', this.litho.controls.compass)
+        this.litho.addControl('mmgisLithoObserve', this.litho.controls.observe, null, 'TopRight')
+        this.litho.addControl('mmgisLithoWalk', this.litho.controls.walk, null, 'TopRight')
+        this.litho.addControl('mmgisLithoCompass', this.litho.controls.compass, null, 'TopRight')
         this.litho.addControl(
             'mmgisLithoNavigation',
-            this.litho.controls.navigation
+            this.litho.controls.navigation,
+            null,
+            'TopRight'
         )
         this.litho.addControl(
             'mmgisLithoCoords',
@@ -209,7 +226,8 @@ let Globe_ = {
                 onOrbitalUpdate: () => {
                     L_.Map_.hidePlayer()
                 },
-            }
+            },
+            'TopRight'
         )
         // Subscribe to time changes for Cesium renderer
         if (
@@ -234,24 +252,6 @@ let Globe_ = {
             coordinates.hideElevation()
         })
 
-        // Because there might be separated tools, push all the control below them:
-        // First find all left justified separated tools
-        let numSep = 0
-        L_.configData.tools.forEach((t) => {
-            if (
-                t.separatedTool === true &&
-                (t.variables == null || t.variables.justification != 'right')
-            )
-                numSep++
-        })
-        $('#_lithosphere_controls_topleft').attr(
-            'style',
-            function (index, currentStyles) {
-                return `${currentStyles} top: ${
-                    40 + numSep * 35
-                }px !important; left: 7px;`
-            }
-        )
     },
     getMockLitho: function () {
         return {

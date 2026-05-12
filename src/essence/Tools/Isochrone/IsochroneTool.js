@@ -1,10 +1,11 @@
 import $ from 'jquery'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
-import CursorInfo from '../../Ancillary/CursorInfo'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
 
 import IsochroneManager from './IsochroneTool_Manager'
 import models from './models'
+import Help from '../../Basics/UserInterface_/components/Help/Help'
 
 import './IsochroneTool.css'
 const L = window.L
@@ -15,13 +16,21 @@ Individual isochrones, from data gathering to modeling to analysis,
 are handled in IsochroneTool_Manager and its imports.
 */
 
+const helpKey = 'IsochroneTool'
 const markup = `<div id="isochroneTool">
-    <div id="isochroneToolHeader">
-        <span id="isochroneToolTitle">Isochrone</span>
-        <span id="iscNew">
-            New
-            <i class="mdi mdi-plus mdi-18px"></i>
-        </span>
+    <div id="isochroneToolHeader" class="mmgisToolHeader">
+        <div>
+            <div>
+                <span class="mmgisToolTitle">Isochrone</span>
+                ${Help.getComponent(helpKey)}
+            </div>
+            <div>
+                <span id="iscNew">
+                    New
+                    <i class="mdi mdi-plus mdi-18px"></i>
+                </span>
+            </div>
+        </div>
     </div>
     <ul id="isochroneOptionsContainer"></ul>
 </div>`
@@ -595,6 +604,8 @@ function interfaceWithMMGIS() {
         .css({ height: '100%' })
     tools.append(toolContainer)
     toolContainer.html(markup)
+
+    Help.finalize(helpKey)
 
     const clickEventContainer = (e) => IsochroneTool.handleClick(e)
     Map_.map.on('click', clickEventContainer)

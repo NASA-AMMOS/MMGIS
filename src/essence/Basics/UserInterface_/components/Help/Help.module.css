@@ -1,0 +1,85 @@
+.root {
+    background: rgba(var(--color-a-rgb, 29, 31, 32), 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    width: 840px;
+    max-width: 90vw;
+    border-radius: 10px;
+    font-family: sans-serif;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+.title {
+    padding: 0 0 0 14px;
+    height: 44px;
+    line-height: 44px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-f);
+    border-bottom: 1px solid var(--color-a1);
+    display: flex;
+    justify-content: space-between;
+    text-transform: capitalize;
+}
+
+.titleLeft {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.closeBtn {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--color-a3);
+    transition: color 0.15s;
+}
+.closeBtn:hover {
+    color: var(--color-f);
+}
+
+.content {
+    padding: 20px 40px 40px 40px;
+    overflow-y: auto;
+    max-height: 80vh;
+}
+
+.content code {
+    background: var(--color-a1);
+    padding: 0px 4px;
+    border-radius: 2px;
+    color: var(--color-a6);
+}
+.content h2 {
+    margin-top: 8px;
+    color: var(--color-r5);
+}
+.content h3 {
+    margin-top: 36px;
+    color: var(--color-p0);
+}
+.content h4 {
+    color: var(--color-p2);
+}
+.content ul {
+    margin-left: 30px;
+    margin-bottom: 20px;
+}
+.content li {
+    margin: 4px 0px;
+    line-height: 22px;
+}
+.content pre {
+    background: var(--color-a1);
+    border: 1px solid var(--color-a2);
+    padding: 8px;
+}
+.content pre code {
+    padding: 0px;
+    color: var(--color-p3);
+}

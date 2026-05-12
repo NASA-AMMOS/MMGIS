@@ -2,6 +2,9 @@ import $ from 'jquery'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
+import Help from '../../Basics/UserInterface_/components/Help/Help'
+
+const helpKey = 'LegendTool'
 
 //Add the tool markup if you want to do it this way
 var markup = [].join('\n')
@@ -14,7 +17,7 @@ var LegendTool = {
     targetId: null,
     made: false,
     displayOnStart: false,
-    justification: 'left',
+
     initialize: function () {
         if (L_.UserInterface_.isMobile === true) {
             const mapRect = document.getElementById('map').getBoundingClientRect()
@@ -24,9 +27,7 @@ var LegendTool = {
 
         //Get tool variables
         this.displayOnStart = L_.getToolVars('legend')['displayOnStart']
-        this.justification = L_.getToolVars('legend')['justification']
         this.showHeadersInLegend = L_.getToolVars('legend')['showHeadersInLegend']
-        // Justification is now handled by ToolController_ during initialization
     },
     make: function (targetId) {
         this.targetId =
@@ -80,7 +81,7 @@ function interfaceWithMMWebGIS() {
         const tools = $(
             LegendTool.targetId ? `#${LegendTool.targetId}` : '#toolPanel'
         )
-        tools.css('background', 'var(--color-k)')
+        tools.css('background', 'transparent')
         //Clear it
         tools.empty()
 
@@ -198,6 +199,21 @@ function refreshLegends() {
     }
 
     _refreshLegends(L_.configData.layers, {}, 0)
+
+    if (LegendTool.targetId) {
+        const contentContainer = $(`#${LegendTool.targetId} #LegendTool`)
+        if (contentContainer.length && contentContainer.children().length === 0) {
+            contentContainer.append(
+                $('<div>').css({
+                    padding: '20px 14px',
+                    color: 'var(--color-a4)',
+                    fontSize: '13px',
+                    fontStyle: 'italic',
+                    textAlign: 'center',
+                }).text('No active layers with legends')
+            )
+        }
+    }
 }
 
 // The legends parameter should be an array of objects, where each object must contain
@@ -239,37 +255,29 @@ function drawLegendHeader() {
     }
 
     const tools = $(divID)
-    tools.css('background', 'var(--color-k)')
+    tools.css('background', 'transparent')
     //Clear it
     tools.empty()
     
-    const legendHeader = $('<div>')
-        .css({
-            'height': '30px',
-            'line-height': '30px',
-            'font-size': '13px',
-            'padding-right': LegendTool.justification === 'right' ? '30px' : '8px',
-            'padding-left': LegendTool.justification === 'right' ? '10px' : '30px',
-            'color': 'var(--color-l)',
-            'background': 'var(--color-i)',
-            'font-family': 'lato-light',
-            'text-transform': 'uppercase',
-            'border-top-left-radius': '3px',
-            'border-top-right-radius': '3px',
-            'border-bottom': '1px solid var(--color-i)'
-        })
-        .html('Legend')
+    const legendHeader = $('<div>').attr('class', 'mmgisToolHeader')
+        .html([
+            "<div>",
+                "<div>",
+                    "<div class='mmgisToolTitle'>Legend</div>",
+                    Help.getComponent(helpKey),
+                "</div>",
+            "</div>",
+        ].join(''))
     tools.append(legendHeader)
+    Help.finalize(helpKey)
 
     //Add a semantic container
     const legendContainer = $('<div>')
         .attr('id', 'LegendTool')
         .css({
-            'color': '#dcdcdc',
+            'color': 'var(--color-a6)',
             'height': 'calc(100% - 40px)',
-            'max-height': 'calc(100vh - 185px)',
-            'border-bottom-left-radius': '3px',
-            'border-bottom-right-radius': '3px',
+            'max-height': 'calc(100vh - 189px)',
             'overflow-y': 'auto'
         })
     tools.append(legendContainer)

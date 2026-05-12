@@ -36,8 +36,6 @@ var TimeControl = {
                 L_.configData.time.format
             )
         } else {
-            $('#toggleTimeUI').css({ display: 'none' })
-            $('#CoordinatesDiv').css({ marginRight: '0px' })
             return
         }
 
@@ -49,7 +47,7 @@ var TimeControl = {
         initLayerDataTimes()
     },
     fina: function () {
-        if ((TimeControl.enabled = true && TimeControl.timeUI != null))
+        if (TimeControl.enabled === true && TimeControl.timeUI != null)
             TimeControl.timeUI.fina()
     },
     subscribe: function () {},

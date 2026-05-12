@@ -5,22 +5,33 @@ import Map_ from '../../Basics/Map_/Map_'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import Viewer_ from '../../Basics/Viewer_/Viewer_'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
-import CursorInfo from '../../Ancillary/CursorInfo'
-import Description from '../../Ancillary/Description'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Description from '../../Basics/UserInterface_/components/Description/Description'
 import TimeControl from '../../Basics/TimeControl_/TimeControl'
-import Modal from '../../Ancillary/Modal'
+import Modal from '../../Basics/UserInterface_/components/Modal/Modal'
 import HTML2Canvas from 'html2canvas'
 import gifshot from 'gifshot'
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile, toBlobURL } from '@ffmpeg/util'
 import OffscreenMapManager from './OffscreenMapManager'
+import Help from '../../Basics/UserInterface_/components/Help/Help'
 
 import './AnimationTool.css'
+
+const helpKey = 'AnimationTool'
 
 //Add the tool markup
 // prettier-ignore
 const markup = [
     "<div id='animationTool'>",
+        "<div id='animationToolHeader' class='mmgisToolHeader'>",
+            "<div>",
+                "<div>",
+                    "<div class='mmgisToolTitle'>Animation</div>",
+                    Help.getComponent(helpKey),
+                "</div>",
+            "</div>",
+        "</div>",
         "<div id='animationToolContent'>",
             "<div id='animationToolSteps'>",
                 "<div class='animation-step active' data-step='1'>",
@@ -256,6 +267,7 @@ const AnimationTool = {
 
     make: function () {
         this.MMGISInterface = new interfaceWithMMGIS()
+        Help.finalize(helpKey)
     },
 
     destroy: function () {
@@ -276,7 +288,7 @@ function interfaceWithMMGIS() {
 
     // Initialize the tool UI
     const toolPanel = $('#toolPanel')
-    toolPanel.css('background', 'var(--color-k)')
+    toolPanel.css('background', 'transparent')
     toolPanel.empty()
 
     const tools = $('<div>').css('height', '100%').html(markup)

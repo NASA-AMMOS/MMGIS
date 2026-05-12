@@ -9,10 +9,11 @@ import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import Globe_ from '../../Basics/Globe_/Globe_'
-import CursorInfo from '../../Ancillary/CursorInfo'
-import DataShaders from '../../Ancillary/DataShaders'
+import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '../../../design-system/components/Toast/Toast'
+import DataShaders from '../../services/DataShaders'
 import TimeControl from '../../Basics/TimeControl_/TimeControl'
-import Help from '../../Ancillary/Help'
+import Help from '../../Basics/UserInterface_/components/Help/Help'
 
 import '../../../external/ColorPicker/jqColorPicker'
 import '../../../external/PNG/zlib'
@@ -549,14 +550,7 @@ let ShadeTool = {
                         TimeControl.setTime(TimeControl.getStartTime(), time)
                         ShadeTool.updateObserverSpecificTime(id)
                     } else {
-                        CursorInfo.update(
-                            'Invalid Time Entered',
-                            6000,
-                            true,
-                            { x: 296, y: -5 },
-                            '#e9ff26',
-                            'black'
-                        )
+                        Toast.warning('Invalid Time Entered', 6000)
                     }
                 }
             })(id)
@@ -867,14 +861,7 @@ let ShadeTool = {
             },
             function (s) {
                 if (s.error) {
-                    CursorInfo.update(
-                        "Cannot Convert to Observer's Time",
-                        6000,
-                        true,
-                        { x: 296, y: -5 },
-                        '#e9ff26',
-                        'black'
-                    )
+                    Toast.error("Cannot Convert to Observer's Time", 6000)
                 } else {
                     $(
                         '#vstShades #vstId_' +
@@ -912,14 +899,7 @@ let ShadeTool = {
             },
             function (s) {
                 if (s.error) {
-                    CursorInfo.update(
-                        'Cannot Process Inputted Time',
-                        6000,
-                        true,
-                        { x: 296, y: -5 },
-                        '#e9ff26',
-                        'black'
-                    )
+                    Toast.error('Cannot Process Inputted Time', 6000)
                 } else {
                     ShadeTool._lastConvertedMs = s.result.split('.')[1] || '000'
                     TimeControl.setTime(
@@ -984,14 +964,7 @@ let ShadeTool = {
                 $('#shadeTool_results_outputs_range_input').val()
             )
             if (isNaN(customAz) || isNaN(customEl) || isNaN(customRange)) {
-                CursorInfo.update(
-                    'Azimuth, Elevation and Range need to be set when using Custom Az/El source.',
-                    6000,
-                    true,
-                    { x: 296, y: -5 },
-                    '#e9ff26',
-                    'black'
-                )
+                Toast.warning('Azimuth, Elevation and Range need to be set when using Custom Az/El source.', 6000)
                 return
             }
         }
@@ -1096,14 +1069,7 @@ let ShadeTool = {
                                 s.message =
                                     'Insufficient SPICE kernels for this source entity and time period.'
                             if (s.error) {
-                                CursorInfo.update(
-                                    s.message || 'LatLng to AzEl Error',
-                                    6000,
-                                    true,
-                                    { x: 296, y: -5 },
-                                    '#e9ff26',
-                                    'black'
-                                )
+                                Toast.error(s.message || 'LatLng to AzEl Error', 6000)
                             } else {
                                 // Update result outputs
                                 $('#shadeTool_results_outputs_az').text(
@@ -1327,6 +1293,7 @@ let ShadeTool = {
                 uniforms: uniforms,
                 tileUrlsAsDataUrls: true,
             })
+            L_.layers.layer[layerName]._noFade = true
             L_.layers.layer[layerName].setZIndex(1000)
             $(
                 '#vstShades #vstId_' +
