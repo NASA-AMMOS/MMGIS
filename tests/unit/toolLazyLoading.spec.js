@@ -11,6 +11,16 @@ const path = require('path');
 
 const TOOLS_JS = path.resolve(__dirname, '..', '..', 'src', 'pre', 'tools.js');
 
+// `src/pre/tools.js` is gitignored — generate it on demand before the
+// suite runs so the tests work both locally (where it may already
+// exist) and on CI (where `npm run build` has not yet been invoked).
+test.beforeAll(() => {
+    if (!fs.existsSync(TOOLS_JS)) {
+        const { updateTools } = require('../../API/updateTools');
+        updateTools();
+    }
+});
+
 test.describe('Generated tools.js (lazy loading)', () => {
     test('exists and is non-empty', () => {
         expect(fs.existsSync(TOOLS_JS)).toBe(true);
