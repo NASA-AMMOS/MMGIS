@@ -251,8 +251,10 @@ function TopBar({ userInterface }) {
                     userInterface.setPanelPercents(0, 0, 100)
                     if (!Globe_.hasBeenOpened) {
                         requestAnimationFrame(() => {
-                            Globe_.init()
-                            Globe_.hasBeenOpened = true
+                            if (!Globe_.hasBeenOpened) {
+                                Globe_.init()
+                                Globe_.hasBeenOpened = true
+                            }
                             requestAnimationFrame(() => {
                                 if (Globe_.litho) Globe_.litho.invalidateSize()
                             })
@@ -269,8 +271,10 @@ function TopBar({ userInterface }) {
                 userInterface.setPanelPercents(viewerAmt, mapAmt, 33)
                 if (!Globe_.hasBeenOpened) {
                     requestAnimationFrame(() => {
-                        Globe_.init()
-                        Globe_.hasBeenOpened = true
+                        if (!Globe_.hasBeenOpened) {
+                            Globe_.init()
+                            Globe_.hasBeenOpened = true
+                        }
                         requestAnimationFrame(() => {
                             if (Globe_.litho) Globe_.litho.invalidateSize()
                         })
