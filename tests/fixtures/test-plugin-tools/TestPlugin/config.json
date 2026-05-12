@@ -1,0 +1,13 @@
+{
+    "name": "TestPlugin",
+    "description": "Minimal fixture plugin used by the MMGIS plugin-system unit tests.",
+    "descriptionFull": {
+        "title": "Test fixture plugin — not for production use."
+    },
+    "defaultIcon": "bug",
+    "hasVars": false,
+    "toolbarPriority": 9999,
+    "paths": {
+        "TestPluginTool": "essence/Plugin-Tools-Test/TestPlugin/TestPluginTool"
+    }
+}

@@ -10,6 +10,15 @@
     "paths": {
         "AnimationTool": "essence/Tools/Animation/AnimationTool"
     },
+    "dependencies": {
+        "npm": {
+            "@ffmpeg/ffmpeg": "^0.12.10",
+            "@ffmpeg/core": "^0.12.6",
+            "@ffmpeg/util": "^0.12.1",
+            "gifshot": "^0.4.5",
+            "html2canvas": "^1.4.1"
+        }
+    },
     "expandable": true,
     "config": {
         "rows": [

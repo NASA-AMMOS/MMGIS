@@ -78,6 +78,28 @@ WORKDIR /usr/src/app
 # Now copy source code - changes here won't invalidate dependency layers
 COPY . .
 
+# Resolve per-plugin dependencies (writes plugin-package.json,
+# plugin-python-requirements.txt, plugin-conda-deps.txt) and install
+# whatever each plugin declared on top of the root deps.
+RUN node scripts/resolve-plugin-deps.js
+
+RUN --mount=type=cache,target=/root/.npm \
+    if [ -s plugin-package.json ] && node -e "process.exit(Object.keys(require('./plugin-package.json').dependencies || {}).length ? 0 : 1)"; then \
+        echo "Installing plugin npm dependencies..." && \
+        node -e "const d=require('./plugin-package.json').dependencies||{};console.log(Object.entries(d).map(([k,v])=>k+'@'+v).join(' '))" \
+            | xargs -r npm install --no-save --no-package-lock --ignore-scripts; \
+    else \
+        echo "No plugin npm dependencies to install."; \
+    fi
+
+RUN if [ -s plugin-python-requirements.txt ] && grep -qv '^#' plugin-python-requirements.txt; then \
+        echo "Installing plugin pip dependencies..." && \
+        source ~/.bashrc && \
+        micromamba run -n mmgis pip install -r plugin-python-requirements.txt; \
+    else \
+        echo "No plugin pip dependencies to install."; \
+    fi
+
 # Build MMGIS main
 RUN npm run build
 

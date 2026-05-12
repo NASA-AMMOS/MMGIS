@@ -321,26 +321,33 @@ function SepToolButton({ tool, isActive }) {
         const ToolController_ =
             require('../../../ToolController_/ToolController_').default
         const toolModuleName = tool.name + 'Tool'
-        const tM = ToolController_.toolModules[toolModuleName]
-        if (!tM) return
+        // Tool modules are lazy-loaded — resolve the module first so
+        // that we have its `make`/`destroy` methods available. Calling
+        // `ensureToolLoaded` against an already-loaded module is a
+        // cheap no-op (returns the cached module).
+        ToolController_.ensureToolLoaded(toolModuleName).then((tM) => {
+            if (!tM) return
 
-        if (tM.made === false) {
-            tM.make(`toolContentSeparated_${tool.name}`)
-            ToolController_.activeSeparatedTools.push(toolModuleName)
-            useUIStore.getState().addActiveSeparatedTool(toolModuleName)
-        } else {
-            tM.destroy()
-            ToolController_.activeSeparatedTools =
-                ToolController_.activeSeparatedTools.filter(
-                    (a) => a !== toolModuleName
-                )
-            useUIStore.getState().removeActiveSeparatedTool(toolModuleName)
-        }
-        document.dispatchEvent(
-            new CustomEvent('toggleSeparatedTool', {
-                detail: { toggledToolName: tool.js, visible: tM.made },
-            })
-        )
+            if (tM.made === false) {
+                tM.make(`toolContentSeparated_${tool.name}`)
+                ToolController_.activeSeparatedTools.push(toolModuleName)
+                useUIStore.getState().addActiveSeparatedTool(toolModuleName)
+            } else {
+                tM.destroy()
+                ToolController_.activeSeparatedTools =
+                    ToolController_.activeSeparatedTools.filter(
+                        (a) => a !== toolModuleName
+                    )
+                useUIStore
+                    .getState()
+                    .removeActiveSeparatedTool(toolModuleName)
+            }
+            document.dispatchEvent(
+                new CustomEvent('toggleSeparatedTool', {
+                    detail: { toggledToolName: tool.js, visible: tM.made },
+                })
+            )
+        })
     }, [tool])
 
     const button = (
@@ -437,21 +444,24 @@ function Toolbar({ userInterface }) {
         // and applies color/background reactively — no imperative DOM
         // class toggling needed.
 
-        ToolController_.makeTool(toolModuleName, index)
+        // `makeTool` is async (lazy module load); wait until the tool
+        // is actually made before syncing state/dispatching events so
+        // listeners see the correct activeTool/activeToolName.
+        Promise.resolve(ToolController_.makeTool(toolModuleName, index)).then(
+            () => {
+                useUIStore
+                    .getState()
+                    .setActiveToolName(ToolController_.activeToolName)
 
-        // Sync active state to store for React re-render
-        useUIStore.getState().setActiveToolName(
-            ToolController_.activeToolName
-        )
-
-        // Dispatch `toolChange` event (matches jQuery behavior)
-        document.dispatchEvent(
-            new CustomEvent('toolChange', {
-                detail: {
-                    activeTool: ToolController_.activeTool,
-                    activeToolName: ToolController_.activeToolName,
-                },
-            })
+                document.dispatchEvent(
+                    new CustomEvent('toolChange', {
+                        detail: {
+                            activeTool: ToolController_.activeTool,
+                            activeToolName: ToolController_.activeToolName,
+                        },
+                    })
+                )
+            }
         )
     }, [])
 

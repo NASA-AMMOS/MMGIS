@@ -405,6 +405,97 @@ MMGIS now supports a flexible plugin system that allows you to add custom tools 
        InfoTool.js (with your custom implementation)
    ```
 
+#### Plugin `config.json` Schema
+
+Every tool or component plugin must include a `config.json`. The build step (`API/updateTools.js` → `validatePluginConfig()`) validates each config and refuses to register a plugin that fails validation. Failed plugins are logged and skipped — they do **not** abort the build.
+
+Required fields (for tools and components):
+
+- `name` *(string, non-empty)* — The display name of the plugin. Must match the directory name when overriding a standard tool/component.
+- `paths` *(object of `string` → `string`)* — Maps the module name(s) the tool registers to the import path(s) of the corresponding `.js` file(s). At least one entry is required.
+
+Optional fields:
+
+- `description`, `descriptionFull`, `defaultIcon` *(strings/object)* — UI metadata.
+- `hasVars` *(boolean)* — Marks whether the plugin exposes user-configurable variables.
+- `toolbarPriority` *(number)* — Sort order in the toolbar (lower = earlier).
+- `expandable` *(boolean)* — Whether the tool can be vertically expanded.
+- `separatedTool` *(boolean)* — Render the tool outside the main toolbar.
+- `kinds` *(any)* — Reserved for the `Kinds` tool.
+- `config` *(object)* — Configuration schema shown to admins on the Configure page.
+- `dependencies` *(object)* — Per-plugin npm/Python dependencies (see "Plugin Dependencies" below).
+
+Unknown top-level fields are preserved but logged as warnings so that newer plugins remain forward compatible.
+
+#### Override Behavior
+
+Plugins are keyed by their **on-disk directory name**, not the `name` field in their config:
+
+- Standard tools (`src/essence/Tools/*`) are loaded first.
+- Plugin and private directories (`src/essence/*Plugin-Tools*`, `src/essence/*Private-Tools*`) are scanned afterwards and **may override standard tools** (or each other) by re-using the same directory name.
+- When an override occurs the new plugin replaces the previous registration entirely and a `warn`-level log line is emitted (e.g. `Tool 'Info' overridden by My-Plugin-Tools`).
+- Multiple plugin containers are scanned in the order returned by the filesystem; the **last container scanned wins** on collision. Avoid relying on a specific scan order — give override plugins a unique container path if determinism matters.
+
+#### Plugin Dependencies
+
+Each plugin (tool, component, or backend) may declare its own npm and Python dependencies in `config.json` (backend plugins place the same declaration in a sibling `config.json` next to `setup.js`):
+
+```json
+{
+    "name": "MyTool",
+    "paths": { "MyTool": "essence/Plugin-Tools-Custom/MyTool/MyTool" },
+    "dependencies": {
+        "npm": {
+            "html2canvas": "^1.4.1",
+            "@ffmpeg/ffmpeg": "^0.12.10"
+        },
+        "python": {
+            "pip": ["spiceypy==5.1.2"],
+            "conda": ["gdal==3.12.2"]
+        }
+    }
+}
+```
+
+##### Build-Time Aggregation
+
+`scripts/resolve-plugin-deps.js` runs at the start of every build (`npm run build` calls it before `updateTools()`/`updateComponents()`). It scans every tool, component, and backend plugin and writes three files at the repo root:
+
+| File | Format | Consumed by |
+|------|--------|-------------|
+| `plugin-package.json` | npm-style `{ "dependencies": {...} }` | Docker `npm install --no-save` and local dev scripts |
+| `plugin-python-requirements.txt` | one `pkg==ver` per line | `pip install -r` |
+| `plugin-conda-deps.txt` | one `pkg=ver` per line | optional `micromamba install -f` |
+
+All three files are gitignored.
+
+##### Version Conflict Detection
+
+If two plugins declare the same npm package with different version specifiers (or the same pip/conda package with different specifiers), `resolve-plugin-deps.js` fails the build with a message listing every conflict:
+
+```
+Plugin dependency conflicts detected:
+  * npm package 'html2canvas' declared with conflicting versions:
+      - tool:Animation: ^1.4.1
+      - tool:Snapshot: ^1.5.0
+Resolve by aligning version specifiers across plugins, or removing the duplicated declaration.
+```
+
+To debug: search the offending plugins' `config.json` files for the conflicting key and align the version specifiers.
+
+##### Docker Build Integration
+
+The Dockerfile runs `node scripts/resolve-plugin-deps.js` after `COPY . .` (so all plugin manifests are available) and then:
+
+1. `npm install --no-save --no-package-lock --ignore-scripts` from `plugin-package.json` so plugin npm deps land in `node_modules` without touching the root lockfile.
+2. `pip install -r plugin-python-requirements.txt` inside the `mmgis` micromamba environment.
+
+For local development you can run `node scripts/resolve-plugin-deps.js` directly and then `npm install --no-save --no-package-lock --ignore-scripts $(...)` with the resulting deps, or simply rely on the deps already being declared in the root `package.json` during the transition period.
+
+##### Migration Notes
+
+The first plugin to declare its deps in `config.json` is **Animation** (`@ffmpeg/ffmpeg`, `@ffmpeg/core`, `@ffmpeg/util`, `gifshot`, `html2canvas`). Those packages also remain in the root `package.json` for now so local dev keeps working without any new install steps; they can be removed from the root `package.json` once all consumers verify they install correctly from `plugin-package.json`. New tool/component/backend plugins should declare their deps **only** in their plugin `config.json`.
+
 ### Notes
 
 - The original single directory `/src/essence/MMGIS-Private-Tools` is still supported for backward compatibility

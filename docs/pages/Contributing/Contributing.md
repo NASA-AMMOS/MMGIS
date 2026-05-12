@@ -83,6 +83,53 @@ Each plugin directory should contain subdirectories for individual components wi
 
 All plugin directories are automatically gitignored and can override standard tools/backends/components by using the same names.
 
+### Plugin `config.json` Validation
+
+Every tool or component plugin is run through a validator (`API/pluginValidation.js → validatePluginConfig`) at build time. If a plugin's `config.json` is missing required fields it is **skipped** (errors are logged but the build continues for all other plugins).
+
+Required fields for tool and component plugins:
+
+| Field   | Type   | Notes |
+|---------|--------|-------|
+| `name`  | string | Non-empty. |
+| `paths` | object | Non-empty `{ string: string }` map of module names to import paths. |
+
+Optional fields include `description`, `descriptionFull`, `defaultIcon`, `hasVars`, `toolbarPriority`, `expandable`, `separatedTool`, `kinds`, `config`, and `dependencies` (see the Plugin Dependencies section). Unknown top-level fields are preserved but logged as warnings, so newer plugins remain forward compatible.
+
+### Override Behavior
+
+Plugins are keyed by their **on-disk directory name**, not by the `name` field inside `config.json`. To override a standard MMGIS tool, name your plugin directory the same as the standard tool (e.g. `/src/essence/My-Plugin-Tools/Info` to override the standard `Info` tool).
+
+- Standard tools/components are loaded first.
+- Plugin/private directories are scanned afterwards and may override what was already registered.
+- When an override happens, MMGIS logs a `warn` line such as `Tool 'Info' overridden by My-Plugin-Tools` so the override is auditable in build/server logs.
+- Multiple plugin containers are scanned in the order returned by the filesystem; the **last container scanned wins** on a collision.
+
+### Plugin Dependencies
+
+Plugins may declare their own npm and Python dependencies inside `config.json` (for tools and components) or a sibling `config.json` next to `setup.js` (for backends):
+
+```json
+{
+    "name": "MyTool",
+    "paths": { "MyTool": "essence/Plugin-Tools-Custom/MyTool/MyTool" },
+    "dependencies": {
+        "npm": { "html2canvas": "^1.4.1" },
+        "python": { "pip": ["spiceypy==5.1.2"], "conda": ["gdal==3.12.2"] }
+    }
+}
+```
+
+At build time, `scripts/resolve-plugin-deps.js` aggregates these declarations across every plugin and emits three gitignored artifacts at the repo root:
+
+- `plugin-package.json` — npm-style dependency manifest.
+- `plugin-python-requirements.txt` — pip-style requirements file.
+- `plugin-conda-deps.txt` — conda-style requirements file.
+
+The Dockerfile installs the npm and pip deps after the root `npm ci` so each plugin contributes only what it actually needs. If two plugins declare the same package with conflicting versions, the build fails with a clear message listing the conflicting declarations.
+
+See `CONTRIBUTING.md` (Plugin Dependencies section) for the full reference and Docker integration details.
+
 ### Quickstart to Contributing
 
 1. See our open list of [issue tickets](https://github.com/NASA-AMMOS/MMGIS/issues) and pick a ticket(s) you're interested in, or write your own!
