@@ -66,11 +66,11 @@ try {
 }
 
 // Attach any tool plugins to the application
-console.log(chalk.cyan("Updating Tools...\n"));
+console.log(chalk.cyan("Plugging in Tools...\n"));
 updateTools();
 
 // Attach any component plugins to the application
-console.log(chalk.cyan("Updating Components...\n"));
+console.log(chalk.cyan("Plugging in Components...\n"));
 updateComponents();
 
 checkBrowsers(paths.appPath, isInteractive)

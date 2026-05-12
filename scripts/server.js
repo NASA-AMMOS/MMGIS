@@ -634,6 +634,7 @@ app.use(cors());
 /*Require all dynamic backend setup scripts
 and return functions that bulk run their functions
 */
+console.log(chalk.cyan("Plugging in Backends...\n"));
 setups.getBackendSetups(function (setups) {
   //Sync all tables
   sequelize
@@ -740,10 +741,10 @@ setups.getBackendSetups(function (setups) {
   // We're only doing this for dev because we're assuming
   // build will also call this.
   if (process.env.NODE_ENV === "development") {
-    console.log(chalk.cyan("Updating Tools...\n"));
+    console.log(chalk.cyan("Plugging in Tools...\n"));
     updateTools();
 
-    console.log(chalk.cyan("Updating Components...\n"));
+    console.log(chalk.cyan("Plugging in Components...\n"));
     updateComponents();
   }
 
