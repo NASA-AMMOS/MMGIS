@@ -57,7 +57,7 @@ const config = configFactory("production");
 
 // Aggregate per-plugin dependencies into plugin-package.json,
 // plugin-python-requirements.txt, and plugin-conda-deps.txt.
-console.log(chalk.cyan("Resolving Plugin Dependencies...\n"));
+console.log(chalk.cyan("\nResolving Plugin Dependencies..."));
 try {
   resolvePluginDeps();
 } catch (err) {
@@ -66,11 +66,11 @@ try {
 }
 
 // Attach any tool plugins to the application
-console.log(chalk.cyan("Plugging in Tools...\n"));
+console.log(chalk.cyan("\nPlugging in Tools..."));
 updateTools();
 
 // Attach any component plugins to the application
-console.log(chalk.cyan("Plugging in Components...\n"));
+console.log(chalk.cyan("\nPlugging in Components..."));
 updateComponents();
 
 checkBrowsers(paths.appPath, isInteractive)
