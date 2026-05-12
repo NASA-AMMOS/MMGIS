@@ -126,7 +126,17 @@ At build time, `scripts/resolve-plugin-deps.js` aggregates these declarations ac
 - `plugin-python-requirements.txt` — pip-style requirements file.
 - `plugin-conda-deps.txt` — conda-style requirements file.
 
-The Dockerfile installs the npm and pip deps after the root `npm ci` so each plugin contributes only what it actually needs. For local development a `postinstall` hook on the root `package.json` runs the same resolve + install step automatically, so a plain `npm install` picks up every plugin's declared npm deps without any extra commands. If two plugins declare the same package with conflicting versions, the build fails with a clear message listing the conflicting declarations.
+The Dockerfile installs the npm and pip deps after the root `npm ci` so each plugin contributes only what it actually needs. For local development a `postinstall` hook on the root `package.json` runs the same resolve + install step automatically, so a plain `npm install` picks up every plugin's declared npm deps without any extra commands.
+
+Plugin **Python** deps are not installed automatically by `npm install` — there is no portable way to know which interpreter or environment to target. After creating your Python environment, install them manually (only the pip-side step is needed unless a plugin declares conda deps):
+
+```bash
+micromamba run -n mmgis pip install -r plugin-python-requirements.txt
+# Optional, only if any plugin declares conda deps:
+micromamba install -n mmgis --file plugin-conda-deps.txt
+```
+
+If two plugins declare the same package with conflicting versions, the build fails with a clear message listing the conflicting declarations.
 
 See `CONTRIBUTING.md` (Plugin Dependencies section) for the full reference and Docker integration details.
 

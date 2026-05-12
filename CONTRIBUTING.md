@@ -492,6 +492,20 @@ The Dockerfile runs `node scripts/resolve-plugin-deps.js` after `COPY . .` (so a
 
 For local development the root `package.json` runs `scripts/resolve-plugin-deps.js && scripts/install-plugin-deps.js` from its `postinstall` hook, so a plain `npm install` (or `npm ci`) picks up every plugin's declared npm deps automatically. The install step filters out deps already satisfied by the root `package.json` (matching name + version specifier), so the Animation transitional case is a no-op and the lockfile stays clean. You can also run the same step on demand with `npm run plugins:install`.
 
+Plugin **Python** deps are not auto-installed locally — there is no portable way to detect which interpreter/environment to target. After creating your Python environment (e.g. `micromamba env create -f python-environment.yml`), run the resolver once so `plugin-python-requirements.txt` and `plugin-conda-deps.txt` exist, then install whichever side(s) are non-empty:
+
+```bash
+node scripts/resolve-plugin-deps.js
+
+# pip-side plugin deps
+micromamba run -n mmgis pip install -r plugin-python-requirements.txt
+
+# conda-side plugin deps (optional; only if any plugin declares them)
+micromamba install -n mmgis --file plugin-conda-deps.txt
+```
+
+`npm run build` (or `npm install`) regenerates these files whenever plugins change, so re-run the two install commands above after pulling new plugins or editing an existing plugin's Python deps.
+
 ##### Migration Notes
 
 The first plugin to declare its deps in `config.json` is **Animation** (`@ffmpeg/ffmpeg`, `@ffmpeg/core`, `@ffmpeg/util`, `gifshot`, `html2canvas`). Those packages also remain in the root `package.json` for now so local dev keeps working without any new install steps; they can be removed from the root `package.json` once all consumers verify they install correctly from `plugin-package.json`. New tool/component/backend plugins should declare their deps **only** in their plugin `config.json`.
