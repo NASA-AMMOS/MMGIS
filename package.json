@@ -43,6 +43,8 @@
     "start:docs": "cd ./docs && bundle exec jekyll serve",
     "start:analyzer": "node scripts/server.js --analyze",
     "build": "node scripts/build.js",
+    "postinstall": "node -e \"if(require('fs').existsSync('scripts/resolve-plugin-deps.js')&&require('fs').existsSync('scripts/install-plugin-deps.js'))require('child_process').execSync('node scripts/resolve-plugin-deps.js && node scripts/install-plugin-deps.js',{stdio:'inherit'})\"",
+    "plugins:install": "node scripts/resolve-plugin-deps.js && node scripts/install-plugin-deps.js",
     "test": "playwright test",
     "test:unit": "cross-env PLAYWRIGHT_TEST_UNIT_ONLY=true playwright test tests/unit",
     "test:e2e": "cross-env DB_NAME=mmgis-test playwright test tests/e2e",

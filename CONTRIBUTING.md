@@ -490,7 +490,7 @@ The Dockerfile runs `node scripts/resolve-plugin-deps.js` after `COPY . .` (so a
 1. `npm install --no-save --no-package-lock --ignore-scripts` from `plugin-package.json` so plugin npm deps land in `node_modules` without touching the root lockfile.
 2. `pip install -r plugin-python-requirements.txt` inside the `mmgis` micromamba environment.
 
-For local development you can run `node scripts/resolve-plugin-deps.js` directly and then `npm install --no-save --no-package-lock --ignore-scripts $(...)` with the resulting deps, or simply rely on the deps already being declared in the root `package.json` during the transition period.
+For local development the root `package.json` runs `scripts/resolve-plugin-deps.js && scripts/install-plugin-deps.js` from its `postinstall` hook, so a plain `npm install` (or `npm ci`) picks up every plugin's declared npm deps automatically. The install step filters out deps already satisfied by the root `package.json` (matching name + version specifier), so the Animation transitional case is a no-op and the lockfile stays clean. You can also run the same step on demand with `npm run plugins:install`.
 
 ##### Migration Notes
 
