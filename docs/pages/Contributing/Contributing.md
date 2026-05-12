@@ -94,7 +94,7 @@ Required fields for tool and component plugins:
 | `name`  | string | Non-empty. |
 | `paths` | object | Non-empty `{ string: string }` map of module names to import paths. |
 
-Optional fields include `description`, `descriptionFull`, `defaultIcon`, `hasVars`, `toolbarPriority`, `expandable`, `separatedTool`, `kinds`, `config`, and `dependencies` (see the Plugin Dependencies section). Unknown top-level fields are preserved but logged as warnings, so newer plugins remain forward compatible.
+Optional fields include `description`, `descriptionFull`, `defaultIcon`, `hasVars`, `toolbarPriority`, `expandable`, `separatedTool`, `kinds`, `config`, `dependencies` (see the Plugin Dependencies section), and `preload`. Setting `"preload": true` eagerly loads the tool's chunk at startup — required for tools that other tools reach into synchronously via `ToolController_.getTool(name)` (e.g. `InfoTool`, which is invoked from `Map_` on every feature click). Unknown top-level fields are preserved but logged as warnings, so newer plugins remain forward compatible.
 
 ### Override Behavior
 

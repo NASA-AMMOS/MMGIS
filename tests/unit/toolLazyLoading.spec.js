@@ -58,4 +58,82 @@ test.describe('Generated tools.js (lazy loading)', () => {
         const contents = fs.readFileSync(TOOLS_JS, 'utf8');
         expect(contents).toMatch(/export const toolModules = \{[^}]+\}/);
     });
+
+    test('propagates `preload: true` for cross-referenced tools', () => {
+        const contents = fs.readFileSync(TOOLS_JS, 'utf8');
+        // Parse the JSON literal embedded in the `toolConfigs` export.
+        const match = contents.match(
+            /export const toolConfigs = (\{[\s\S]*?\})\nexport const toolModules/
+        );
+        expect(match).not.toBeNull();
+        const cfg = JSON.parse(match[1]);
+        // Tools reached by cross-tool consumers (Map_, mmgisAPI,
+        // LegendTool, Kinds) must be preloaded so `getTool(name)`
+        // returns a real module at first call.
+        for (const name of ['Info', 'Draw', 'Layers', 'Chemistry']) {
+            expect(cfg[name], `${name} should be present`).toBeTruthy();
+            expect(
+                cfg[name].preload,
+                `${name} should declare preload: true`
+            ).toBe(true);
+        }
+    });
+});
+
+test.describe('ToolController_ accessor contract', () => {
+    test('getTool returns a method-callable stub for unresolved lazy loaders', () => {
+        // Stand-alone simulation of the relevant slice of
+        // ToolController_ so the unit test does not pull in the
+        // full essence runtime (which depends on Leaflet/jQuery/etc.
+        // and is not available outside a browser context).
+        const ToolController_ = {
+            toolModules: {
+                LazyTool: () => Promise.resolve({ default: { use() {} } }),
+                LoadedTool: { use() {}, value: 42 },
+            },
+            ensureToolLoaded(name) {
+                // Tracked so the test can verify background resolution.
+                this._resolvedDuringGet = (this._resolvedDuringGet || []).concat(
+                    [name]
+                );
+                return Promise.resolve(null);
+            },
+            getTool(name) {
+                const tool = this.toolModules[name];
+                if (!tool) return { use: function () {} };
+                if (typeof tool === 'function') {
+                    this.ensureToolLoaded(name);
+                    return { use: function () {} };
+                }
+                return tool;
+            },
+            getLoadedTool(name) {
+                const tm = this.toolModules[name];
+                if (!tm || typeof tm === 'function') return null;
+                return tm;
+            },
+        };
+
+        // Unresolved lazy loader: getTool returns the stub, NOT the
+        // raw function, so `.use()` is a no-op instead of TypeError.
+        const lazy = ToolController_.getTool('LazyTool');
+        expect(typeof lazy).toBe('object');
+        expect(typeof lazy.use).toBe('function');
+        expect(() => lazy.use()).not.toThrow();
+        // And ensureToolLoaded was called in the background.
+        expect(ToolController_._resolvedDuringGet).toContain('LazyTool');
+
+        // Resolved tool: getTool returns the module itself.
+        const loaded = ToolController_.getTool('LoadedTool');
+        expect(loaded.value).toBe(42);
+
+        // Unknown tool: getTool returns the stub.
+        const missing = ToolController_.getTool('NopeTool');
+        expect(typeof missing.use).toBe('function');
+
+        // getLoadedTool: null for unresolved/missing, real for resolved.
+        expect(ToolController_.getLoadedTool('LazyTool')).toBeNull();
+        expect(ToolController_.getLoadedTool('NopeTool')).toBeNull();
+        expect(ToolController_.getLoadedTool('LoadedTool').value).toBe(42);
+    });
 });

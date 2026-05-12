@@ -92,6 +92,12 @@ let ToolController_ = {
         ToolController_.loaded = true
         L_.toolsLoaded = true
 
+        // Kick off lazy-load resolution for any tool whose config has
+        // `preload: true`. Cross-tool consumers (Map_ feature clicks,
+        // mmgisAPI, LegendTool, …) reach into these tools through
+        // `getTool(name).method(...)` and need them resolved.
+        ToolController_.preloadEagerTools()
+
         L_.fullyLoaded()
     },
 
@@ -107,9 +113,30 @@ let ToolController_ = {
         useUIStore.getState().setToolsList([])
         useUIStore.getState().setToolsLoaded(false)
     },
+    // Synchronous accessor — preserves the legacy "always returns
+    // something method-callable" contract that pre-existed lazy loading.
+    //
+    // When a tool is lazy-loaded but not yet resolved, `toolModules[name]`
+    // is a `() => import(...)` arrow function. Returning that raw
+    // function to callers that expect a tool object would crash on
+    // `.use()`, `.currentLayer`, `.populateCogScale()`, etc. — so we:
+    //   (a) kick off `ensureToolLoaded` in the background so the next
+    //       call sees the resolved module, and
+    //   (b) return the same `{ use: () => {} }` fallback stub callers
+    //       have always received when a tool was missing.
+    //
+    // Cross-tool dependencies that must always work synchronously
+    // should declare `"preload": true` in their `config.json` — those
+    // tools are eagerly resolved at startup (see `preloadEagerTools`).
     getTool: function (name) {
         var tool = this.toolModules[name]
-        return tool || { use: function () {} }
+        if (!tool) return { use: function () {} }
+        if (typeof tool === 'function') {
+            // Trigger background resolution; ignore the promise.
+            this.ensureToolLoaded(name)
+            return { use: function () {} }
+        }
+        return tool
     },
     // Return the loaded module for `name` or null when it has not yet
     // been materialised. Use this from call sites that synchronously
@@ -118,6 +145,29 @@ let ToolController_ = {
         const tm = this.toolModules[name]
         if (!tm || typeof tm === 'function') return null
         return tm
+    },
+    // Eagerly load every tool whose config sets `preload: true`. Called
+    // by `init()` after the synchronous setup has finished so that the
+    // tool chunks download in parallel with the rest of the page
+    // becoming interactive. Errors are swallowed — a failed preload
+    // simply means the tool stays lazy.
+    //
+    // Source of truth for `preload` is the per-tool `config.json`
+    // (exposed via the build-time-generated `toolConfigs` map), NOT
+    // mission config — so it can't be turned off accidentally per
+    // mission.
+    preloadEagerTools: function () {
+        Object.keys(toolConfigs || {}).forEach((toolName) => {
+            const cfg = toolConfigs[toolName]
+            if (!cfg || cfg.preload !== true) return
+            // `paths` maps importName -> module path. Eagerly load
+            // each import name so all of a tool's modules are
+            // available synchronously to cross-tool consumers.
+            const paths = cfg.paths || {}
+            Object.keys(paths).forEach((importName) => {
+                this.ensureToolLoaded(importName)
+            })
+        })
     },
     // Resolve a lazy tool loader and cache the loaded module in
     // `toolModules[name]`. Returns the loaded module (or null when

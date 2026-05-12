@@ -32,6 +32,7 @@ const KNOWN_FIELDS = {
     "config",
     "kinds",
     "dependencies",
+    "preload",
   ]),
   component: new Set([
     "name",

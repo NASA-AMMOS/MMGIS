@@ -13,6 +13,7 @@
     "paths": {
         "LayersTool": "essence/Tools/Layers/LayersTool"
     },
+    "preload": true,
     "expandable": true,
     "config": {
         "rows": [
