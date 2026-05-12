@@ -105,12 +105,10 @@ var SitesTool = {
                                 SitesTool.getViewFromLatLngZoom(sitesVar)
                             )
                             L_.disableAllBut(sitesVar.code)
-                            {
-                                const layersTool =
-                                    TC_.getLoadedTool('LayersTool')
-                                if (layersTool && typeof layersTool.setHeader === 'function')
-                                    layersTool.setHeader(sitesVar.code)
-                            }
+                            if (TC_.toolModules['LayersTool'])
+                                TC_.toolModules['LayersTool'].setHeader(
+                                    sitesVar.code
+                                )
                         }
                     })(this.sitesVar[i])
                 )
@@ -152,11 +150,8 @@ var SitesTool = {
         L_.setSite(newSiteCode, siteView, dontSetGlobe)
         L_.disableAllBut(newSiteCode, aggregate)
         //Update Layers to begin in site directory
-        {
-            const layersTool = TC_.getLoadedTool('LayersTool')
-            if (layersTool && typeof layersTool.setHeader === 'function')
-                layersTool.setHeader(newSiteCode)
-        }
+        if (TC_.toolModules['LayersTool'])
+            TC_.toolModules['LayersTool'].setHeader(newSiteCode)
     },
     destroy: function () {},
 }

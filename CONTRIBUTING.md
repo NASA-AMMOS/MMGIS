@@ -424,7 +424,6 @@ Optional fields:
 - `kinds` *(any)* — Reserved for the `Kinds` tool.
 - `config` *(object)* — Configuration schema shown to admins on the Configure page.
 - `dependencies` *(object)* — Per-plugin npm/Python dependencies (see "Plugin Dependencies" below).
-- `preload` *(boolean)* — Eagerly load this tool's chunk at startup instead of on first open. Set `"preload": true` for tools that other tools reach into synchronously via `ToolController_.getTool(name)` (e.g. `InfoTool` is invoked on every map feature click). Without `preload`, the first cross-tool call returns a `{ use() {} }` stub and triggers a background load — the tool will be ready on subsequent calls but its first call is a no-op.
 
 Unknown top-level fields are preserved but logged as warnings so that newer plugins remain forward compatible.
 

@@ -3662,17 +3662,12 @@ const L_ = {
             if (L_.Map_) L_.Map_.orderedBringToFront(true)
 
             // If the user rearranged the layers with the LayersTool, reset the ordering history
-            {
-                const layersTool = ToolController_.getLoadedTool
-                    ? ToolController_.getLoadedTool('LayersTool')
-                    : ToolController_.toolModules['LayersTool']
-                if (
-                    layersTool &&
-                    Array.isArray(layersTool.orderingHistory) &&
-                    layersTool.orderingHistory.length > 0
-                ) {
-                    layersTool.orderingHistory = []
-                }
+            if (
+                ToolController_.toolModules['LayersTool'] &&
+                ToolController_.toolModules['LayersTool'].orderingHistory
+                    .length > 0
+            ) {
+                ToolController_.toolModules['LayersTool'].orderingHistory = []
             }
 
             // Update the LayersTool in the ToolController if it is active

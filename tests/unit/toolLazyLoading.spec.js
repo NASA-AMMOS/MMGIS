@@ -1,8 +1,9 @@
 /**
- * Verify that the generated `src/pre/tools.js` exposes lazy tool
- * loaders rather than static imports — i.e. each tool is emitted as
- * `const FooTool = () => import(...)`. This guarantees webpack can
- * split each tool into its own chunk.
+ * Verify that the generated `src/pre/tools.js` statically imports every
+ * tool. Cross-tool consumers (`Map_` feature-click → `InfoTool.use(...)`,
+ * `LegendTool` → `LayersTool.populateCogScale`, `mmgisAPI`, `Kinds`)
+ * reach into other tools synchronously, so every tool module must be
+ * available the moment `ToolController_` initialises.
  */
 
 import { test, expect } from '@playwright/test';
@@ -21,119 +22,83 @@ test.beforeAll(() => {
     }
 });
 
-test.describe('Generated tools.js (lazy loading)', () => {
+test.describe('Generated tools.js (static imports)', () => {
     test('exists and is non-empty', () => {
         expect(fs.existsSync(TOOLS_JS)).toBe(true);
         const stat = fs.statSync(TOOLS_JS);
         expect(stat.size).toBeGreaterThan(0);
     });
 
-    test('emits each tool as a dynamic-import arrow function', () => {
+    test('emits a static default import for every tool', () => {
         const contents = fs.readFileSync(TOOLS_JS, 'utf8');
-        // Every non-Kinds tool should be a `() => import(...)` declaration.
-        const dynamicImportPattern =
-            /const \w+ = \(\) => import\(\/\* webpackChunkName: "tool-\w+" \*\/ '[^']+'\)/;
-        expect(contents).toMatch(dynamicImportPattern);
-        // At least one well-known tool should be lazy-loaded.
-        expect(contents).toContain(
-            "const IdentifierTool = () => import(/* webpackChunkName: \"tool-IdentifierTool\" */"
+        // Each tool should be a `import FooTool from '...'` line.
+        // At least one well-known tool should be present.
+        expect(contents).toMatch(
+            /^\s*import\s+IdentifierTool\s+from\s+'[^']+'/m
         );
     });
 
-    test('Kinds remains a static import (needed synchronously)', () => {
+    test('imports Kinds as `kinds`', () => {
         const contents = fs.readFileSync(TOOLS_JS, 'utf8');
         expect(contents).toMatch(/import kinds from '[^']+'/);
+        expect(contents).toContain('export const Kinds = kinds');
     });
 
-    test('does not statically import any non-Kinds tool', () => {
+    test('does NOT use lazy `() => import(...)` for any tool', () => {
         const contents = fs.readFileSync(TOOLS_JS, 'utf8');
-        // No `import XxxTool from '...'` lines (except the Kinds line
-        // which imports `kinds`, not a `*Tool` symbol).
-        const staticToolImport =
-            /^\s*import\s+\w*Tool(\w*)?\s+from\s+'[^']+'/m;
-        expect(contents).not.toMatch(staticToolImport);
+        // Phase 4 lazy loading was reverted — no dynamic-import arrow
+        // functions should appear in the generated file.
+        expect(contents).not.toMatch(
+            /const\s+\w+\s*=\s*\(\)\s*=>\s*import\(/
+        );
+        expect(contents).not.toContain('webpackChunkName');
     });
 
-    test('toolModules export still maps each tool name to a symbol', () => {
+    test('toolModules export maps each tool name to its symbol', () => {
         const contents = fs.readFileSync(TOOLS_JS, 'utf8');
         expect(contents).toMatch(/export const toolModules = \{[^}]+\}/);
     });
 
-    test('propagates `preload: true` for cross-referenced tools', () => {
+    test('toolConfigs JSON is parseable and includes core tools', () => {
         const contents = fs.readFileSync(TOOLS_JS, 'utf8');
-        // Parse the JSON literal embedded in the `toolConfigs` export.
         const match = contents.match(
             /export const toolConfigs = (\{[\s\S]*?\})\nexport const toolModules/
         );
         expect(match).not.toBeNull();
         const cfg = JSON.parse(match[1]);
-        // Tools reached by cross-tool consumers (Map_, mmgisAPI,
-        // LegendTool, Kinds) must be preloaded so `getTool(name)`
-        // returns a real module at first call.
-        for (const name of ['Info', 'Draw', 'Layers', 'Chemistry']) {
+        // Sanity check: every Tools/<Name>/config.json from the
+        // standard set should land here.
+        for (const name of ['Info', 'Draw', 'Layers', 'Identifier']) {
             expect(cfg[name], `${name} should be present`).toBeTruthy();
-            expect(
-                cfg[name].preload,
-                `${name} should declare preload: true`
-            ).toBe(true);
+            expect(typeof cfg[name].paths).toBe('object');
         }
     });
 });
 
 test.describe('ToolController_ accessor contract', () => {
-    test('getTool returns a method-callable stub for unresolved lazy loaders', () => {
+    test('getTool returns the loaded module when present, stub when absent', () => {
         // Stand-alone simulation of the relevant slice of
-        // ToolController_ so the unit test does not pull in the
-        // full essence runtime (which depends on Leaflet/jQuery/etc.
-        // and is not available outside a browser context).
+        // ToolController_ so the unit test does not pull in the full
+        // essence runtime (which depends on Leaflet/jQuery/etc. and is
+        // not available outside a browser context).
         const ToolController_ = {
             toolModules: {
-                LazyTool: () => Promise.resolve({ default: { use() {} } }),
                 LoadedTool: { use() {}, value: 42 },
-            },
-            ensureToolLoaded(name) {
-                // Tracked so the test can verify background resolution.
-                this._resolvedDuringGet = (this._resolvedDuringGet || []).concat(
-                    [name]
-                );
-                return Promise.resolve(null);
             },
             getTool(name) {
                 const tool = this.toolModules[name];
-                if (!tool) return { use: function () {} };
-                if (typeof tool === 'function') {
-                    this.ensureToolLoaded(name);
-                    return { use: function () {} };
-                }
-                return tool;
-            },
-            getLoadedTool(name) {
-                const tm = this.toolModules[name];
-                if (!tm || typeof tm === 'function') return null;
-                return tm;
+                return tool || { use: function () {} };
             },
         };
 
-        // Unresolved lazy loader: getTool returns the stub, NOT the
-        // raw function, so `.use()` is a no-op instead of TypeError.
-        const lazy = ToolController_.getTool('LazyTool');
-        expect(typeof lazy).toBe('object');
-        expect(typeof lazy.use).toBe('function');
-        expect(() => lazy.use()).not.toThrow();
-        // And ensureToolLoaded was called in the background.
-        expect(ToolController_._resolvedDuringGet).toContain('LazyTool');
-
-        // Resolved tool: getTool returns the module itself.
+        // Loaded tool: returns the real module.
         const loaded = ToolController_.getTool('LoadedTool');
         expect(loaded.value).toBe(42);
 
-        // Unknown tool: getTool returns the stub.
+        // Missing tool: returns a stub with a callable `use` so legacy
+        // callers like `Map_.getTool('Foo').use(...)` don't crash.
         const missing = ToolController_.getTool('NopeTool');
         expect(typeof missing.use).toBe('function');
-
-        // getLoadedTool: null for unresolved/missing, real for resolved.
-        expect(ToolController_.getLoadedTool('LazyTool')).toBeNull();
-        expect(ToolController_.getLoadedTool('NopeTool')).toBeNull();
-        expect(ToolController_.getLoadedTool('LoadedTool').value).toBe(42);
+        expect(() => missing.use()).not.toThrow();
     });
 });

@@ -126,31 +126,22 @@ function updateTools() {
     logger("error", "Failed to write toolConfigs.json", "Tools", null, err);
   }
 
-  // 5. Build dynamic /src/pre/tools.js file
-  //
-  // Each tool is emitted as a lazy import:
-  //    const FooTool = () => import(/* webpackChunkName: "tool-Foo" */ '...')
-  //
-  // The `Kinds` tool is still a default-export object and is needed
-  // synchronously at startup, so it remains a static import.
-  //
-  // `toolModules` maps the import name to its lazy loader function (or,
-  // once resolved, to the loaded module). `ToolController_` resolves
-  // the loader lazily via `ensureToolLoaded(name)`.
+  // 5. Build dynamic /src/pre/tools.js file with static imports for every
+  //    tool. Tool modules are referenced synchronously by cross-tool code
+  //    (e.g. `Map_` feature-click hands off to `InfoTool.use(...)`,
+  //    `LegendTool` reads `LayersTool.populateCogScale`), so they must be
+  //    available the moment `ToolController_` is initialised.
   let toolConfigs = "";
   const toolModules = {};
   let kindsModule = null;
   for (const t in tools) {
     for (const p in tools[t].paths) {
       if (p === "Kinds") {
-        // Kinds is the only required-at-startup tool. Keep the static
-        // import so it's bundled into the main chunk.
         kindsModule = p;
         toolConfigs += `import kinds from '../${tools[t].paths[p]}'\n`;
       } else {
-        const chunkName = `tool-${p}`;
         toolModules[p] = p;
-        toolConfigs += `const ${p} = () => import(/* webpackChunkName: "${chunkName}" */ '../${tools[t].paths[p]}')\n`;
+        toolConfigs += `import ${p} from '../${tools[t].paths[p]}'\n`;
       }
     }
   }

@@ -6,6 +6,5 @@
     "name": "Chemistry",
     "paths": {
         "ChemistryTool": "essence/Tools/Chemistry/ChemistryTool"
-    },
-    "preload": true
+    }
 }

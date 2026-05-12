@@ -19,9 +19,7 @@ function SeparatedTools() {
         const ToolController_ =
             require('../../../ToolController_/ToolController_').default
         const toolModuleName = tool.name + 'Tool'
-        const tM = ToolController_.getLoadedTool
-            ? ToolController_.getLoadedTool(toolModuleName)
-            : ToolController_.toolModules[toolModuleName]
+        const tM = ToolController_.toolModules[toolModuleName]
         if (tM && tM.made) {
             tM.destroy()
             ToolController_.activeSeparatedTools =
@@ -47,9 +45,7 @@ function SeparatedTools() {
                 const isActive = activeSeparatedTools.includes(toolModuleName)
                 const ToolController_ =
                     require('../../../ToolController_/ToolController_').default
-                const tM = ToolController_.getLoadedTool
-                    ? ToolController_.getLoadedTool(toolModuleName)
-                    : ToolController_.toolModules[toolModuleName]
+                const tM = ToolController_.toolModules[toolModuleName]
                 const toolWidth = tM ? tM.width || 200 : 200
 
                 const panelClasses = [

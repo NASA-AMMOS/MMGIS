@@ -36,6 +36,11 @@ function getBackendSetups(cb) {
   );
   for (const plugin of standardBackends) {
     setups[plugin.name] = plugin.manifest;
+    logger(
+      "info",
+      `Loaded backend: ${plugin.name} from ${plugin.container}`,
+      "Setups"
+    );
   }
 
   // 2. Plugin/private backends — `API/*Plugin-Backend*` and `API/*Private-Backend*`.
@@ -50,7 +55,7 @@ function getBackendSetups(cb) {
     setups[plugin.name] = plugin.manifest;
     logger(
       "info",
-      `Loaded backend setup: ${plugin.name} from ${plugin.container}${
+      `Loaded backend: ${plugin.name} from ${plugin.container}${
         isOverride ? " (overriding standard backend)" : ""
       }`,
       "Setups"

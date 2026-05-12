@@ -13,7 +13,6 @@
     "paths": {
         "InfoTool": "essence/Tools/Info/InfoTool"
     },
-    "preload": true,
     "expandable": true,
     "config": {
         "rows": [

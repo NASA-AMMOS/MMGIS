@@ -89,7 +89,6 @@
     "paths": {
         "DrawTool": "essence/Tools/Draw/DrawTool"
     },
-    "preload": true,
     "expandable": true,
     "config": {
         "rows": [
