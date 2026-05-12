@@ -37,8 +37,8 @@ function getBackendSetups(cb) {
   for (const plugin of standardBackends) {
     setups[plugin.name] = plugin.manifest;
     logger(
-      "info",
-      `Loaded backend: ${plugin.name} from ${plugin.container}`,
+      "loaded",
+      `Backend: ${plugin.name} from ${plugin.container}`,
       "Setups"
     );
   }
@@ -54,8 +54,8 @@ function getBackendSetups(cb) {
     const isOverride = setups[plugin.name] !== undefined;
     setups[plugin.name] = plugin.manifest;
     logger(
-      "info",
-      `Loaded backend: ${plugin.name} from ${plugin.container}${
+      "loaded",
+      `Backend: ${plugin.name} from ${plugin.container}${
         isOverride ? " (overriding standard backend)" : ""
       }`,
       "Setups"

@@ -41,8 +41,8 @@ function registerPlugin({
   const isOverride = registry[name] !== undefined;
   registry[name] = config;
   logger(
-    "info",
-    `Loaded ${pluginType}: ${name} from ${source}${
+    "loaded",
+    `${pluginType[0].toUpperCase() + pluginType.slice(1)}: ${name} from ${source}${
       isOverride ? ` (overriding standard ${pluginType})` : ""
     }`,
     loggerCategory
