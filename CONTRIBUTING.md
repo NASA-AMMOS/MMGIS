@@ -492,19 +492,7 @@ The Dockerfile runs `node scripts/resolve-plugin-deps.js` after `COPY . .` (so a
 
 For local development the root `package.json` runs `scripts/resolve-plugin-deps.js && scripts/install-plugin-deps.js` from its `postinstall` hook, so a plain `npm install` (or `npm ci`) picks up every plugin's declared npm deps automatically. The install step filters out deps already satisfied by the root `package.json` (matching name + version specifier), so the Animation transitional case is a no-op and the lockfile stays clean. You can also run the same step on demand with `npm run plugins:install`.
 
-Plugin **Python** deps are not auto-installed locally — there is no portable way to detect which interpreter/environment to target. After creating your Python environment (e.g. `micromamba env create -f python-environment.yml`), run the resolver once so `plugin-python-requirements.txt` and `plugin-conda-deps.txt` exist, then install whichever side(s) are non-empty:
-
-```bash
-node scripts/resolve-plugin-deps.js
-
-# pip-side plugin deps
-micromamba run -n mmgis pip install -r plugin-python-requirements.txt
-
-# conda-side plugin deps (optional; only if any plugin declares them)
-micromamba install -n mmgis --file plugin-conda-deps.txt
-```
-
-`npm run build` (or `npm install`) regenerates these files whenever plugins change, so re-run the two install commands above after pulling new plugins or editing an existing plugin's Python deps.
+Plugin **Python** deps are not auto-installed locally — see the [Installation docs](https://nasa-ammos.github.io/MMGIS/setup/installation#setup) (the numbered step right after `micromamba activate mmgis`) for the `pip install -r plugin-python-requirements.txt` and optional `micromamba install --file plugin-conda-deps.txt` commands. Re-run those after pulling new plugins or editing an existing plugin's Python deps.
 
 ##### Migration Notes
 
