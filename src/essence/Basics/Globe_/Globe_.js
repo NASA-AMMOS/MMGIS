@@ -15,6 +15,19 @@ let Globe_ = {
     hasBeenOpened: false, // Track if Globe panel has been opened before
     init: function () {
         const containerId = this.id
+
+        // Idempotent: if a renderer (real or mock) already exists for this
+        // container, just re-sync size and bail. This prevents subsequent
+        // init() calls from the toggle path (uiStore setTimeout + TopBar
+        // requestAnimationFrame) and any future code from leaking a second
+        // GlobeRenderer instance on top of the first.
+        if (this.litho) {
+            if (typeof this.litho.invalidateSize === 'function') {
+                this.litho.invalidateSize()
+            }
+            return
+        }
+
         let initialView = null
         if (L_.FUTURES.globeView != null) {
             initialView = L_.FUTURES.globeView
