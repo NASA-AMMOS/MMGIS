@@ -739,6 +739,54 @@ test.describe('Concurrent Layer Reload', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Test 16a — Lock-release invariant. `L_._layersBeingMade[key]` MUST be
+  // `false` after every reload completes (success OR caught exception). If
+  // the try/finally wrapper in `makeLayer` ever regresses to a bare release
+  // path, this test catches it — accidental lock retention would silently
+  // jam all future reloads for the layer.
+  // ---------------------------------------------------------------------------
+  test('_layersBeingMade lock is released after single and concurrent reloads', async ({ page }) => {
+    await layersPanel.expandGroup('Geodatasets').catch(() => {});
+    await page.waitForTimeout(300);
+
+    const key = await ensureLayerOn(page, 'Geodatasets - Time Series');
+    if (!key) test.skip(true, 'SKIP: Geodatasets - Time Series not present in mission');
+    await page.waitForTimeout(1500);
+
+    // --- single reload ---
+    const lockAfterSingle = await page.evaluate(async (k) => {
+      await window.mmgisAPI.reloadLayer('Geodatasets - Time Series');
+      // Allow the queue drain's setTimeout(0) to fire so the lock truly
+      // settles to its final value.
+      await new Promise((r) => setTimeout(r, 100));
+      return window.L_._layersBeingMade?.[k] === true;
+    }, key);
+    expect(lockAfterSingle, '_layersBeingMade should be false (not true) after a single reload').toBe(false);
+
+    // --- 5 concurrent reloads ---
+    const lockAfterBurst = await page.evaluate(async (k) => {
+      const promises = [];
+      for (let i = 0; i < 5; i++) {
+        promises.push(window.mmgisAPI.reloadLayer('Geodatasets - Time Series'));
+      }
+      await Promise.all(promises);
+      // Give the queue drain time to complete (setTimeout(0) + any
+      // in-flight makeLayer awaits).
+      await new Promise((r) => setTimeout(r, 1000));
+      return window.L_._layersBeingMade?.[k] === true;
+    }, key);
+    expect(lockAfterBurst, '_layersBeingMade should be false (not true) after a burst of concurrent reloads').toBe(false);
+
+    // --- queue should also be empty (otherwise a future reload would
+    //     trigger an immediate drain instead of doing its own work) ---
+    const queueEmpty = await page.evaluate(() => {
+      const q = window.L_._layerReloadQueue || {};
+      return Object.keys(q).length === 0;
+    });
+    expect(queueEmpty, '_layerReloadQueue should be empty after the burst settles').toBe(true);
+  });
+
+  // ---------------------------------------------------------------------------
   // Test 16 — Robustness: `mmgisAPI.reloadLayers` handles empty array and
   // non-array inputs gracefully (returns `[]` instead of throwing).
   // ---------------------------------------------------------------------------
