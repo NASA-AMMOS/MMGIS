@@ -13,6 +13,7 @@ tests/
 │   ├── api/                    # API endpoint tests (HTTP-only, no browser UI)
 │   ├── auth/                   # Authentication flow tests (AUTH=local)
 │   ├── map/                    # Map UI tests
+│   ├── time/                   # Time-control / time-enabled layer tests
 │   ├── tools/                  # Tool-specific UI tests
 │   ├── configure/              # CMS / Configure page tests
 │   ├── security/               # Security tests (injection, bypass, headers)
@@ -69,6 +70,7 @@ npm run test:e2e:auth-local    # Auth tests with AUTH=local
 npm run test:e2e:security      # Security tests
 npm run test:e2e:startup       # Server startup / healthcheck
 npm run test:e2e:map           # Map UI tests
+npm run test:e2e:time          # Time-control / time-enabled layer tests
 npm run test:e2e:tools         # Tool UI tests
 npm run test:e2e:configure     # CMS / Configure page tests
 npm run test:e2e:collaboration # Multi-user / WebSocket tests

@@ -547,7 +547,8 @@ let Map_ = {
         layerObj,
         cb,
         skipOrderedBringToFront,
-        stopLoops
+        stopLoops,
+        resolvedUrl
     ) {
         // If it's a dynamic extent layer, just re-call its function
         const dynamicExtentKey = `dynamicextent_${layerObj.name}`
@@ -584,8 +585,15 @@ let Map_ = {
             ) {
                 // Original
                 if (L_._layersBeingMade[layerObj.name] !== true) {
-                    // makeLayer now handles all layer swapping internally for refresh operations
                     L_.layers.on[layerObj.name] = true
+
+                    // Pass `resolvedUrl` through to makeLayer instead of
+                    // mutating `layerObj.url`. Mutation leaked the resolved
+                    // URL to any concurrent code reading `layer.url` during
+                    // the async makeLayer window (most importantly to a
+                    // second TimeControl.reloadLayer() call that would then
+                    // capture the *resolved* URL as its "template" and
+                    // corrupt the placeholders for every subsequent reload).
                     await makeLayer(
                         layerObj,
                         true,
@@ -593,17 +601,30 @@ let Map_ = {
                         null,
                         null,
                         stopLoops,
-                        true
+                        true,
+                        null,
+                        resolvedUrl
                     )
                     L_.addVisible(Map_, [layerObj.name])
 
                     L_.enforceVisibilityCutoffs()
                 } else {
-                    console.warn(
-                        `WARNING - refreshLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
-                    )
-                    if (typeof cb === 'function') cb()
-                    return false
+                    // A reload of this same layer is already in flight.
+                    // Instead of silently dropping this request (causing
+                    // "gaps" where dynamically-appearing data fails to
+                    // show up), coalesce it into a single pending queued
+                    // reload that fires after the in-flight one finishes.
+                    // The queue uses one slot per layer name — duplicate
+                    // queued reloads coalesce automatically.
+                    L_._layerReloadQueue = L_._layerReloadQueue || {}
+                    L_._layerReloadQueue[layerObj.name] = {
+                        layerObj,
+                        cb,
+                        skipOrderedBringToFront,
+                        stopLoops,
+                        resolvedUrl,
+                    }
+                    return true
                 }
                 if (typeof cb === 'function') cb()
                 return true
@@ -724,7 +745,8 @@ async function makeLayer(
     forceMake,
     stopLoops,
     isRefresh = false,
-    targetMapContext = null
+    targetMapContext = null,
+    resolvedUrl = null
 ) {
     // Default to main map context for backward compatibility
     const mapContext = targetMapContext || {
@@ -745,72 +767,121 @@ async function makeLayer(
         } else {
             lockRegistry[layerName] = true
         }
-        //Decide what kind of layer it is
-        //Headers do not need to be made
-        if (layerObj.type != 'header') {
-            //Simply call the appropriate function for each layer type
-            switch (layerObj.type) {
-                case 'vector':
-                    await makeVectorLayer(
-                        layerObj,
-                        evenIfOff,
-                        null,
-                        forceGeoJSON,
-                        isRefresh,
-                        mapContext
-                    )
-                    break
-                case 'velocity':
-                    await makeVelocityLayer(
-                        layerObj,
-                        evenIfOff,
-                        null,
-                        forceGeoJSON,
-                        mapContext
-                    )
-                    break
-                case 'tile':
-                    makeTileLayer(layerObj, mapContext)
-                    break
-                case 'vectortile':
-                    makeVectorTileLayer(layerObj, mapContext)
-                    break
-                case 'query':
-                    await makeVectorLayer(
-                        layerObj,
-                        false,
-                        true,
-                        forceGeoJSON,
-                        false,
-                        mapContext
-                    )
-                    break
-                case 'data':
-                    makeDataLayer(layerObj, mapContext)
-                    break
-                case 'image':
-                    makeImageLayer(layerObj, mapContext)
-                    break
-                case 'model':
-                    //Globe only
-                    makeModelLayer(layerObj, mapContext)
-                    break
-                case 'video':
-                    makeVideoLayer(layerObj, mapContext)
-                    break
-                default:
-                    console.warn('Unknown layer type: ' + layerObj.type)
+
+        // Wrap the layer-builder dispatch in try/finally so the lock is
+        // ALWAYS released (and any queued reload drained) even if one of
+        // the per-type builders throws. Otherwise the lock would stay
+        // pinned at `true` and every subsequent refreshLayer call for
+        // this layer would queue against a permanently-locked entry that
+        // never drains — silently breaking all future reloads.
+        let madeSuccessfully = true
+        try {
+            //Decide what kind of layer it is
+            //Headers do not need to be made
+            if (layerObj.type != 'header') {
+                //Simply call the appropriate function for each layer type
+                switch (layerObj.type) {
+                    case 'vector':
+                        await makeVectorLayer(
+                            layerObj,
+                            evenIfOff,
+                            null,
+                            forceGeoJSON,
+                            isRefresh,
+                            mapContext,
+                            resolvedUrl
+                        )
+                        break
+                    case 'velocity':
+                        await makeVelocityLayer(
+                            layerObj,
+                            evenIfOff,
+                            null,
+                            forceGeoJSON,
+                            mapContext
+                        )
+                        break
+                    case 'tile':
+                        makeTileLayer(layerObj, mapContext)
+                        break
+                    case 'vectortile':
+                        makeVectorTileLayer(layerObj, mapContext)
+                        break
+                    case 'query':
+                        await makeVectorLayer(
+                            layerObj,
+                            false,
+                            true,
+                            forceGeoJSON,
+                            false,
+                            mapContext
+                        )
+                        break
+                    case 'data':
+                        makeDataLayer(layerObj, mapContext)
+                        break
+                    case 'image':
+                        makeImageLayer(layerObj, mapContext)
+                        break
+                    case 'model':
+                        //Globe only
+                        makeModelLayer(layerObj, mapContext)
+                        break
+                    case 'video':
+                        makeVideoLayer(layerObj, mapContext)
+                        break
+                    default:
+                        console.warn('Unknown layer type: ' + layerObj.type)
+                }
             }
-        }
 
-        // release hold on layer (use same registry as above)
-        lockRegistry[layerName] = false
+            if (stopLoops !== true && layerObj.type === 'vector') {
+                Filtering.updateGeoJSON(layerObj.name)
+                Filtering.triggerFilter(layerObj.name)
+            }
+        } catch (err) {
+            madeSuccessfully = false
+            console.error(
+                `ERROR - makeLayer: failed to make layer ${layerObj.display_name}/${layerObj.name}`,
+                err
+            )
+        } finally {
+            // release hold on layer (use same registry as above)
+            lockRegistry[layerName] = false
 
-        if (stopLoops !== true && layerObj.type === 'vector') {
-            Filtering.updateGeoJSON(layerObj.name)
-            Filtering.triggerFilter(layerObj.name)
+            // Drain any queued reload request for this layer that arrived
+            // while the lock was held. We dequeue exactly one entry — the
+            // queue coalesces by layer name so newer queued requests have
+            // already replaced older ones. Fire-and-forget: the queued
+            // caller's Promise has already resolved with `true`, so we
+            // don't need to wait or propagate this result.
+            //
+            // CRITICAL: this MUST run in finally — otherwise an exception
+            // inside the switch above would leave the queue holding a
+            // stale entry that the next caller would re-queue against,
+            // permanently blocking reloads for this layer.
+            L_._layerReloadQueue = L_._layerReloadQueue || {}
+            if (L_._layerReloadQueue[layerObj.name]) {
+                const queued = L_._layerReloadQueue[layerObj.name]
+                delete L_._layerReloadQueue[layerObj.name]
+                // Use setTimeout 0 so the current resolve() chain unwinds
+                // first — this prevents stack growth if multiple reloads
+                // are queued back-to-back, and gives any awaiting code in
+                // the original caller a chance to see makeLayer's result
+                // before the next reload begins.
+                setTimeout(() => {
+                    Map_.refreshLayer(
+                        queued.layerObj,
+                        queued.cb,
+                        queued.skipOrderedBringToFront,
+                        queued.stopLoops,
+                        queued.resolvedUrl
+                    )
+                }, 0)
+            }
+
+            resolve(madeSuccessfully)
         }
-        resolve(true)
     })
 }
 
@@ -948,7 +1019,8 @@ async function makeVectorLayer(
     useEmptyGeoJSON,
     forceGeoJSON,
     isRefresh = false,
-    mapContext = null
+    mapContext = null,
+    resolvedUrl = null
 ) {
     // Default to main map context for backward compatibility
     const ctx = mapContext || {
@@ -962,7 +1034,11 @@ async function makeVectorLayer(
         else
             captureVector(
                 layerObj,
-                { evenIfOff: evenIfOff, useEmptyGeoJSON: useEmptyGeoJSON },
+                {
+                    evenIfOff: evenIfOff,
+                    useEmptyGeoJSON: useEmptyGeoJSON,
+                    resolvedUrl: resolvedUrl,
+                },
                 add,
                 (f) => {
                     Map_.map.on('moveend', f)

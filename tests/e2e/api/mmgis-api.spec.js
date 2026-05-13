@@ -191,4 +191,27 @@ test.describe('mmgisAPI Client-Side API', () => {
     expect(apiInfo.mapMethods).toContain('getZoom');
     expect(apiInfo.mapMethods).toContain('setView');
   });
+
+  test('mmgisAPI exposes reloadLayer and reloadLayers as functions', async ({ page, request }) => {
+    await ensurePrerequisites(request, test);
+    await loginIfRequired(page);
+
+    await page.goto(MISSION_URL);
+    await waitForMapReady(page, { timeout: 60000 });
+
+    const info = await page.evaluate(() => {
+      const api = window.mmgisAPI;
+      return {
+        hasReloadLayer: 'reloadLayer' in api,
+        reloadLayerIsFn: typeof api.reloadLayer === 'function',
+        hasReloadLayers: 'reloadLayers' in api,
+        reloadLayersIsFn: typeof api.reloadLayers === 'function',
+      };
+    });
+
+    expect(info.hasReloadLayer).toBe(true);
+    expect(info.reloadLayerIsFn).toBe(true);
+    expect(info.hasReloadLayers).toBe(true);
+    expect(info.reloadLayersIsFn).toBe(true);
+  });
 });

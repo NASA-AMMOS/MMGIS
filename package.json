@@ -1,6 +1,6 @@
 {
   "name": "mmgis",
-  "version": "5.0.7-20260512",
+  "version": "5.0.9-20260513",
   "description": "A web-based mapping and localization solution for science operation on planetary missions.",
   "homepage": "build",
   "repository": {
@@ -50,6 +50,7 @@
     "test:e2e:auth-off": "cross-env DB_NAME=mmgis-test AUTH=off playwright test tests/e2e/auth",
     "test:e2e:auth-local": "cross-env DB_NAME=mmgis-test AUTH=local playwright test tests/e2e/auth",
     "test:e2e:map": "cross-env DB_NAME=mmgis-test playwright test tests/e2e/map",
+    "test:e2e:time": "cross-env DB_NAME=mmgis-test playwright test tests/e2e/time",
     "test:e2e:tools": "cross-env DB_NAME=mmgis-test playwright test tests/e2e/tools",
     "test:e2e:security": "cross-env DB_NAME=mmgis-test playwright test tests/e2e/security",
     "test:e2e:configure": "cross-env DB_NAME=mmgis-test playwright test tests/e2e/configure",
