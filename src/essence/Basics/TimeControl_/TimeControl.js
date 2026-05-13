@@ -255,6 +255,10 @@ var TimeControl = {
                             /{endtime}/g,
                             layerTimeFormat(Date.parse(layer.time.end))
                         )
+                        .replace(
+                            /{time}/g,
+                            layerTimeFormat(Date.parse(layer.time.end))
+                        )
 
                     if (
                         TimeControl.customTimes?.times &&
