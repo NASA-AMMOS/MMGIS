@@ -428,6 +428,12 @@ var TimeControl = {
         // fire-and-forget and a setTimeout/500ms was used to "hope" all
         // layers had finished — that race left feature-selection and
         // follow-pan logic running against partially-loaded layers.
+        //
+        // Use Promise.allSettled (not Promise.all) so a single failing
+        // layer (e.g. network error, malformed config) does NOT throw
+        // here and skip the active-feature restoration and follow-pan
+        // logic below — the old setTimeout(500) approach ran them
+        // unconditionally and we preserve that robustness.
         const reloadPromises = []
         for (let layerName in L_.layers.data) {
             const layer = L_.layers.data[layerName]
@@ -440,7 +446,7 @@ var TimeControl = {
                 reloadedLayers.push(layer.name)
             }
         }
-        await Promise.all(reloadPromises)
+        await Promise.allSettled(reloadPromises)
 
         // Restore active feature after layers reload
         if (
