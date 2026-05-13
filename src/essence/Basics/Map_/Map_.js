@@ -585,38 +585,26 @@ let Map_ = {
             ) {
                 // Original
                 if (L_._layersBeingMade[layerObj.name] !== true) {
-                    // makeLayer now handles all layer swapping internally for refresh operations
                     L_.layers.on[layerObj.name] = true
 
-                    // If a resolved URL was supplied, temporarily swap
-                    // layer.url so the fetch in makeLayer/captureVector
-                    // uses the resolved value, then restore the template.
-                    // Restoration is wrapped in finally so an exception
-                    // inside makeLayer can't leave layer.url corrupted.
-                    let prevUrl = null
-                    let didSwapUrl = false
-                    if (
-                        typeof resolvedUrl === 'string' &&
-                        resolvedUrl.length > 0 &&
-                        resolvedUrl !== layerObj.url
-                    ) {
-                        prevUrl = layerObj.url
-                        layerObj.url = resolvedUrl
-                        didSwapUrl = true
-                    }
-                    try {
-                        await makeLayer(
-                            layerObj,
-                            true,
-                            null,
-                            null,
-                            null,
-                            stopLoops,
-                            true
-                        )
-                    } finally {
-                        if (didSwapUrl) layerObj.url = prevUrl
-                    }
+                    // Pass `resolvedUrl` through to makeLayer instead of
+                    // mutating `layerObj.url`. Mutation leaked the resolved
+                    // URL to any concurrent code reading `layer.url` during
+                    // the async makeLayer window (most importantly to a
+                    // second TimeControl.reloadLayer() call that would then
+                    // capture the *resolved* URL as its "template" and
+                    // corrupt the placeholders for every subsequent reload).
+                    await makeLayer(
+                        layerObj,
+                        true,
+                        null,
+                        null,
+                        null,
+                        stopLoops,
+                        true,
+                        null,
+                        resolvedUrl
+                    )
                     L_.addVisible(Map_, [layerObj.name])
 
                     L_.enforceVisibilityCutoffs()
@@ -757,7 +745,8 @@ async function makeLayer(
     forceMake,
     stopLoops,
     isRefresh = false,
-    targetMapContext = null
+    targetMapContext = null,
+    resolvedUrl = null
 ) {
     // Default to main map context for backward compatibility
     const mapContext = targetMapContext || {
@@ -790,7 +779,8 @@ async function makeLayer(
                         null,
                         forceGeoJSON,
                         isRefresh,
-                        mapContext
+                        mapContext,
+                        resolvedUrl
                     )
                     break
                 case 'velocity':
@@ -1008,7 +998,8 @@ async function makeVectorLayer(
     useEmptyGeoJSON,
     forceGeoJSON,
     isRefresh = false,
-    mapContext = null
+    mapContext = null,
+    resolvedUrl = null
 ) {
     // Default to main map context for backward compatibility
     const ctx = mapContext || {
@@ -1022,7 +1013,11 @@ async function makeVectorLayer(
         else
             captureVector(
                 layerObj,
-                { evenIfOff: evenIfOff, useEmptyGeoJSON: useEmptyGeoJSON },
+                {
+                    evenIfOff: evenIfOff,
+                    useEmptyGeoJSON: useEmptyGeoJSON,
+                    resolvedUrl: resolvedUrl,
+                },
                 add,
                 (f) => {
                     Map_.map.on('moveend', f)

@@ -52,7 +52,16 @@ const _layerRequestLastTimestamp = {}
 const _layerRequestLastLoc = {}
 export const captureVector = (layerObj, options, cb, dynamicCb) => {
     options = options || {}
-    let layerUrl = layerObj.url
+    // If a resolved URL was supplied by the caller (e.g.
+    // TimeControl.reloadLayer already performed time placeholder
+    // replacement) use that instead of reading `layerObj.url`. This lets
+    // concurrent reloads execute without any caller having to mutate
+    // `layerObj.url` in place — the URL template stays intact on the
+    // layer for the next reload to read.
+    const hasResolvedUrl =
+        typeof options.resolvedUrl === 'string' &&
+        options.resolvedUrl.length > 0
+    let layerUrl = hasResolvedUrl ? options.resolvedUrl : layerObj.url
     const layerData = L_.layers.data[layerObj.name]
 
     // If there is no url to a JSON file but the "controlled" option is checked in the layer config,
@@ -90,7 +99,12 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
             ? layerTimeFormat(Date.parse(TimeControl.getEndTime()))
             : layerObj.time.end
 
-    if (typeof layerObj.time != 'undefined') {
+    // Only run time-placeholder replacement when the caller did NOT
+    // already supply a fully-resolved URL. If hasResolvedUrl is true,
+    // layerUrl is already the final URL (TimeControl.reloadLayer did the
+    // replacement); re-running the regex against an already-resolved URL
+    // would be a no-op, but skipping it keeps the intent explicit.
+    if (!hasResolvedUrl && typeof layerObj.time != 'undefined') {
         layerUrl = layerObj.url
             .replace(/{starttime}/g, startTime)
             .replace(/{endtime}/g, endTime)
