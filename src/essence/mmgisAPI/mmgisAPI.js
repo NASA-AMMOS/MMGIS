@@ -611,14 +611,23 @@ var mmgisAPI = {
 
     /** reloadLayers will reload multiple time-enabled layers concurrently.
      * Each layer is reloaded via TimeControl.reloadLayer() and the returned
-     * array preserves the same order as the input layerNames.
+     * array preserves the same order as the input layerNames. Uses
+     * Promise.allSettled internally so a single failing layer reload
+     * (e.g. unknown name, network error, malformed config) does not
+     * reject the whole batch — the failing entry is reported as
+     * false in the returned array.
      * @param {string[]} layerNames - Array of layer name strings (or UUIDs).
-     * @returns {Promise<boolean[]>} - Per-layer reload results in input order.
+     * @returns {Promise<boolean[]>} - Per-layer reload results in input order;
+     *   each entry is the truthy return value from TimeControl.reloadLayer()
+     *   for successful reloads, or false for layers that threw / rejected.
      */
     reloadLayers: async function (layerNames) {
         if (!Array.isArray(layerNames)) return []
-        return Promise.all(
+        const settled = await Promise.allSettled(
             layerNames.map((name) => TimeControl.reloadLayer(name))
+        )
+        return settled.map((r) =>
+            r.status === 'fulfilled' ? r.value : false
         )
     },
 

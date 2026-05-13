@@ -390,13 +390,13 @@ window.mmgisAPI.reloadLayer("Earthquakes");
 
 ### reloadLayers(layerNames)
 
-This function will reload multiple time-enabled layers concurrently by calling `reloadLayer` on each. This is the safe way to refresh many layers at once — using a `Promise.all` over individual `reloadLayer` calls is equivalent, but `reloadLayers` is preferred because it documents intent and is a single round-trip across the API boundary.
+This function will reload multiple time-enabled layers concurrently by calling `reloadLayer` on each. This is the safer way to refresh many layers at once: unlike a hand-rolled `Promise.all` over individual `reloadLayer` calls, `reloadLayers` uses `Promise.allSettled` internally, so a single failing layer (unknown name, network error, malformed config) does not reject the whole batch — that layer's slot in the returned array is reported as `false` and every other reload still completes.
 
 #### Function parameters
 
 - `layerNames` - `string[]` | Array of layer name strings (or UUIDs)
 
-Returns a `Promise<boolean[]>` — each element is the per-layer reload result in the same order as `layerNames`. Concurrent reloads of the _same_ layer are coalesced and queued internally so none are silently dropped.
+Returns a `Promise<boolean[]>` — each element is the per-layer reload result in the same order as `layerNames`. Successful entries carry the truthy return value from `reloadLayer`; failed entries are `false`. Concurrent reloads of the _same_ layer are coalesced and queued internally so none are silently dropped.
 
 The following is an example of how to call the `reloadLayers` function:
 
