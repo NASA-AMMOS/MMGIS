@@ -569,12 +569,15 @@ window.mmgisAPI.getEndTime("Earthquakes");
 
 ### reloadTimeLayers()
 
-This function will reload every layer that is time-enabled by re-fetching the data and re-drawing on the map. It should be called after `setTime` or `setLayerTime`. It will return a list of layers that were reloaded.
+This function will reload every layer that is time-enabled by re-fetching the data and re-drawing on the map. It should be called after `setTime` or `setLayerTime`.
+
+**This function is `async` and returns a `Promise<string[]>`** that resolves once every per-layer reload has settled. The promise resolves to the list of layer names that were reloaded. Earlier versions of MMGIS returned the list synchronously — external callers relying on the synchronous return value must update their code to use `await` (or `.then(...)`) to access the array.
 
 The following is an example of how to call the `reloadTimeLayers` function:
 
 ```javascript
-window.mmgisAPI.reloadTimeLayers()[("Lunaserv", "Earthquakes")];
+const reloaded = await window.mmgisAPI.reloadTimeLayers();
+// reloaded === ["Lunaserv", "Earthquakes", ...]
 ```
 
 ### setLayersTimeStatus(color)

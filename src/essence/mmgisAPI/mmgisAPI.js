@@ -598,8 +598,13 @@ var mmgisAPI = {
      */
     getLayerEndTime: TimeControl.getLayerEndTime,
 
-    /** reloadTimeLayers will reload every time enabled layer
-     * @returns {array} - A list of layers that were reloaded
+    /** reloadTimeLayers will reload every time-enabled layer.
+     * Now async: awaits every per-layer reload (via Promise.allSettled)
+     * before resolving, so the active-feature restoration and follow-pan
+     * logic run after layers are actually refreshed.
+     * @returns {Promise<string[]>} - Resolves to a list of layer names
+     *   that were reloaded. Callers must await the returned promise to
+     *   access the array.
      */
     reloadTimeLayers: TimeControl.reloadTimeLayers,
 
