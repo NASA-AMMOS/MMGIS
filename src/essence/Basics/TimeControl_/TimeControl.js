@@ -199,15 +199,17 @@ var TimeControl = {
                 : utcFormat(layer.time.format)
         layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
 
-        let originalUrl = layer.url
-
-        layer.url = await TimeControl.performTimeUrlReplacements(
+        // Compute the resolved URL locally without mutating layer.url.
+        // Mutating layer.url in-place caused a race condition where a
+        // concurrent reloadLayer() call would capture the resolved URL as
+        // its "original", corrupting the template placeholders permanently.
+        let resolvedUrl = await TimeControl.performTimeUrlReplacements(
             layer.url,
             layer,
             forceRequery
         )
         let changedUrl = null
-        if (layer.url !== originalUrl) changedUrl = layer.url
+        if (resolvedUrl !== layer.url) changedUrl = resolvedUrl
 
         if (layer.type === 'tile') {
             if (layer.time && layer.time.enabled === true) {
@@ -236,14 +238,15 @@ var TimeControl = {
                 }
             }
         } else {
-            // replace start/endtime keywords
+            // replace start/endtime keywords on the resolved URL (NOT on
+            // layer.url) — passed through to refreshLayer below.
             if (layer.time && layer.time.enabled === true) {
                 if (
                     layer.time.type === 'global' ||
                     layer.time.type === 'requery' ||
                     forceRequery
                 ) {
-                    layer.url = layer.url
+                    resolvedUrl = resolvedUrl
                         .replace(
                             /{starttime}/g,
                             layerTimeFormat(Date.parse(layer.time.start))
@@ -262,7 +265,7 @@ var TimeControl = {
                             i < TimeControl.customTimes.times.length;
                             i++
                         ) {
-                            layer.url = layer.url.replace(
+                            resolvedUrl = resolvedUrl.replace(
                                 new RegExp(`{customtime.${i}}`, 'g'),
                                 TimeControl.customTimes.times[i]
                             )
@@ -289,40 +292,36 @@ var TimeControl = {
                         return await Map_.refreshLayer(
                             layer,
                             () => {
-                                if (layer.time && layer.time.enabled === true) {
-                                    // put start/endtime keywords back
-                                    layer.url = originalUrl
-
-                                    // if requery was force, remember to timeFilter after load
+                                // if requery was forced, remember to
+                                // timeFilter after load
+                                if (
+                                    layer.time &&
+                                    layer.time.enabled === true &&
+                                    layer.type === 'vector' &&
+                                    layer.time.type === 'local' &&
+                                    layer.time.endProp != null &&
+                                    forceRequery === true
+                                ) {
                                     if (
-                                        layer.type === 'vector' &&
-                                        layer.time.type === 'local' &&
-                                        layer.time.endProp != null &&
-                                        forceRequery === true
-                                    ) {
-                                        if (
-                                            evenIfControlled === true ||
-                                            layer.controlled !== true
+                                        evenIfControlled === true ||
+                                        layer.controlled !== true
+                                    )
+                                        L_.timeFilterVectorLayer(
+                                            layer.name,
+                                            new Date(
+                                                layer.time.start
+                                            ).getTime(),
+                                            new Date(layer.time.end).getTime()
                                         )
-                                            L_.timeFilterVectorLayer(
-                                                layer.name,
-                                                new Date(
-                                                    layer.time.start
-                                                ).getTime(),
-                                                new Date(
-                                                    layer.time.end
-                                                ).getTime()
-                                            )
-                                    }
                                 }
                             },
-                            skipOrderedBringToFront
+                            skipOrderedBringToFront,
+                            undefined,
+                            resolvedUrl
                         )
                     }
             }
         }
-        // put start/endtime keywords back
-        if (layer.time && layer.time.enabled === true) layer.url = originalUrl
         return true
     },
     performTimeUrlReplacements: async function (
@@ -380,7 +379,7 @@ var TimeControl = {
             resolve(nextUrl)
         })
     },
-    reloadTimeLayers: function () {
+    reloadTimeLayers: async function () {
         // refresh time enabled layers
         let reloadedLayers = []
         let savedActiveFeature = null
@@ -424,6 +423,12 @@ var TimeControl = {
             }
         }
 
+        // Kick off all reloads concurrently and wait for every reload's
+        // promise to settle. Previously the loop just called reloadLayer
+        // fire-and-forget and a setTimeout/500ms was used to "hope" all
+        // layers had finished — that race left feature-selection and
+        // follow-pan logic running against partially-loaded layers.
+        const reloadPromises = []
         for (let layerName in L_.layers.data) {
             const layer = L_.layers.data[layerName]
             if (
@@ -431,67 +436,62 @@ var TimeControl = {
                 layer.time.enabled === true &&
                 layer.variables?.dynamicExtent != true
             ) {
-                TimeControl.reloadLayer(layer)
+                reloadPromises.push(TimeControl.reloadLayer(layer))
                 reloadedLayers.push(layer.name)
             }
         }
+        await Promise.all(reloadPromises)
 
         // Restore active feature after layers reload
         if (
             savedActiveFeature &&
             reloadedLayers.includes(savedActiveFeature.layerName)
         ) {
-            setTimeout(() => {
-                // Try to restore using key/value if available
-                if (savedActiveFeature.key && savedActiveFeature.value) {
+            // Try to restore using key/value if available
+            if (savedActiveFeature.key && savedActiveFeature.value) {
+                L_.selectPoint({
+                    layerUUID: savedActiveFeature.layerName,
+                    key: savedActiveFeature.key,
+                    value: savedActiveFeature.value,
+                })
+            } else if (
+                savedActiveFeature.feature.geometry &&
+                savedActiveFeature.feature.geometry.coordinates
+            ) {
+                // Fallback to selecting by coordinates
+                const coords =
+                    savedActiveFeature.feature.geometry.coordinates
+                let lat, lon
+                if (savedActiveFeature.feature.geometry.type === 'Point') {
+                    lon = coords[0]
+                    lat = coords[1]
+                } else if (
+                    savedActiveFeature.feature.geometry.type ===
+                        'LineString' ||
+                    savedActiveFeature.feature.geometry.type === 'Polygon'
+                ) {
+                    // Get first coordinate or centroid
+                    const firstCoord =
+                        savedActiveFeature.feature.geometry.type === 'Polygon'
+                            ? coords[0][0]
+                            : coords[0]
+                    lon = firstCoord[0]
+                    lat = firstCoord[1]
+                }
+
+                if (lat != null && lon != null) {
                     L_.selectPoint({
                         layerUUID: savedActiveFeature.layerName,
-                        key: savedActiveFeature.key,
-                        value: savedActiveFeature.value,
+                        lat: lat,
+                        lon: lon,
                     })
-                } else if (
-                    savedActiveFeature.feature.geometry &&
-                    savedActiveFeature.feature.geometry.coordinates
-                ) {
-                    // Fallback to selecting by coordinates
-                    const coords =
-                        savedActiveFeature.feature.geometry.coordinates
-                    let lat, lon
-                    if (savedActiveFeature.feature.geometry.type === 'Point') {
-                        lon = coords[0]
-                        lat = coords[1]
-                    } else if (
-                        savedActiveFeature.feature.geometry.type ===
-                            'LineString' ||
-                        savedActiveFeature.feature.geometry.type === 'Polygon'
-                    ) {
-                        // Get first coordinate or centroid
-                        const firstCoord =
-                            savedActiveFeature.feature.geometry.type ===
-                            'Polygon'
-                                ? coords[0][0]
-                                : coords[0]
-                        lon = firstCoord[0]
-                        lat = firstCoord[1]
-                    }
-
-                    if (lat != null && lon != null) {
-                        L_.selectPoint({
-                            layerUUID: savedActiveFeature.layerName,
-                            lat: lat,
-                            lon: lon,
-                        })
-                    }
                 }
-            }, 500)
+            }
         }
 
         // Pan to followed feature after layers reload
         if (TimeUI.followEnabled && TimeUI.followedFeature) {
-            // Add a small delay to ensure layers have finished loading
-            setTimeout(() => {
-                TimeUI.panToFollowedFeature()
-            }, 500)
+            TimeUI.panToFollowedFeature()
         }
 
         return reloadedLayers

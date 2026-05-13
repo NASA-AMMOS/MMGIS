@@ -609,6 +609,19 @@ var mmgisAPI = {
      */
     reloadLayer: TimeControl.reloadLayer,
 
+    /** reloadLayers will reload multiple time-enabled layers concurrently.
+     * Each layer is reloaded via TimeControl.reloadLayer() and the returned
+     * array preserves the same order as the input layerNames.
+     * @param {string[]} layerNames - Array of layer name strings (or UUIDs).
+     * @returns {Promise<boolean[]>} - Per-layer reload results in input order.
+     */
+    reloadLayers: async function (layerNames) {
+        if (!Array.isArray(layerNames)) return []
+        return Promise.all(
+            layerNames.map((name) => TimeControl.reloadLayer(name))
+        )
+    },
+
     /** Sets layer UUIDs and layer Names to UUIDs
      * @param {string} [uuid]
      * @returns {string} - Best UUID, else null

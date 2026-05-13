@@ -547,7 +547,8 @@ let Map_ = {
         layerObj,
         cb,
         skipOrderedBringToFront,
-        stopLoops
+        stopLoops,
+        resolvedUrl
     ) {
         // If it's a dynamic extent layer, just re-call its function
         const dynamicExtentKey = `dynamicextent_${layerObj.name}`
@@ -586,24 +587,56 @@ let Map_ = {
                 if (L_._layersBeingMade[layerObj.name] !== true) {
                     // makeLayer now handles all layer swapping internally for refresh operations
                     L_.layers.on[layerObj.name] = true
-                    await makeLayer(
-                        layerObj,
-                        true,
-                        null,
-                        null,
-                        null,
-                        stopLoops,
-                        true
-                    )
+
+                    // If a resolved URL was supplied, temporarily swap
+                    // layer.url so the fetch in makeLayer/captureVector
+                    // uses the resolved value, then restore the template.
+                    // Restoration is wrapped in finally so an exception
+                    // inside makeLayer can't leave layer.url corrupted.
+                    let prevUrl = null
+                    let didSwapUrl = false
+                    if (
+                        typeof resolvedUrl === 'string' &&
+                        resolvedUrl.length > 0 &&
+                        resolvedUrl !== layerObj.url
+                    ) {
+                        prevUrl = layerObj.url
+                        layerObj.url = resolvedUrl
+                        didSwapUrl = true
+                    }
+                    try {
+                        await makeLayer(
+                            layerObj,
+                            true,
+                            null,
+                            null,
+                            null,
+                            stopLoops,
+                            true
+                        )
+                    } finally {
+                        if (didSwapUrl) layerObj.url = prevUrl
+                    }
                     L_.addVisible(Map_, [layerObj.name])
 
                     L_.enforceVisibilityCutoffs()
                 } else {
-                    console.warn(
-                        `WARNING - refreshLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
-                    )
-                    if (typeof cb === 'function') cb()
-                    return false
+                    // A reload of this same layer is already in flight.
+                    // Instead of silently dropping this request (causing
+                    // "gaps" where dynamically-appearing data fails to
+                    // show up), coalesce it into a single pending queued
+                    // reload that fires after the in-flight one finishes.
+                    // The queue uses one slot per layer name — duplicate
+                    // queued reloads coalesce automatically.
+                    L_._layerReloadQueue = L_._layerReloadQueue || {}
+                    L_._layerReloadQueue[layerObj.name] = {
+                        layerObj,
+                        cb,
+                        skipOrderedBringToFront,
+                        stopLoops,
+                        resolvedUrl,
+                    }
+                    return true
                 }
                 if (typeof cb === 'function') cb()
                 return true
@@ -810,6 +843,33 @@ async function makeLayer(
             Filtering.updateGeoJSON(layerObj.name)
             Filtering.triggerFilter(layerObj.name)
         }
+
+        // Drain any queued reload request for this layer that arrived
+        // while the lock was held. We dequeue exactly one entry — the
+        // queue coalesces by layer name so newer queued requests have
+        // already replaced older ones. Fire-and-forget: the queued
+        // caller's Promise has already resolved with `true`, so we
+        // don't need to wait or propagate this result.
+        L_._layerReloadQueue = L_._layerReloadQueue || {}
+        if (L_._layerReloadQueue[layerObj.name]) {
+            const queued = L_._layerReloadQueue[layerObj.name]
+            delete L_._layerReloadQueue[layerObj.name]
+            // Use setTimeout 0 so the current resolve() chain unwinds
+            // first — this prevents stack growth if multiple reloads
+            // are queued back-to-back, and gives any awaiting code in
+            // the original caller a chance to see makeLayer's result
+            // before the next reload begins.
+            setTimeout(() => {
+                Map_.refreshLayer(
+                    queued.layerObj,
+                    queued.cb,
+                    queued.skipOrderedBringToFront,
+                    queued.stopLoops,
+                    queued.resolvedUrl
+                )
+            }, 0)
+        }
+
         resolve(true)
     })
 }
