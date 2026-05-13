@@ -99,13 +99,17 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
             ? layerTimeFormat(Date.parse(TimeControl.getEndTime()))
             : layerObj.time.end
 
-    // Only run time-placeholder replacement when the caller did NOT
-    // already supply a fully-resolved URL. If hasResolvedUrl is true,
-    // layerUrl is already the final URL (TimeControl.reloadLayer did the
-    // replacement); re-running the regex against an already-resolved URL
-    // would be a no-op, but skipping it keeps the intent explicit.
-    if (!hasResolvedUrl && typeof layerObj.time != 'undefined') {
-        layerUrl = layerObj.url
+    // Always run time-placeholder replacement when the layer has time
+    // enabled. The replacement is idempotent on an already-resolved URL
+    // (regexes simply do not match), but it is required for time types
+    // that bypass the replacement in TimeControl.reloadLayer — e.g.
+    // `time.type === 'local'` with `endProp == null`, which still flows
+    // through Map_.refreshLayer -> makeLayer -> captureVector but does
+    // NOT have its placeholders pre-resolved by the caller. Reading the
+    // source from `layerUrl` (the resolvedUrl or layerObj.url already
+    // chosen above) keeps both code paths correct.
+    if (typeof layerObj.time != 'undefined') {
+        layerUrl = layerUrl
             .replace(/{starttime}/g, startTime)
             .replace(/{endtime}/g, endTime)
             .replace(/{time}/g, endTime)
