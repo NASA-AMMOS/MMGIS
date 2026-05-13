@@ -129,6 +129,31 @@ function mergePython(sources, kind /* "pip" | "conda" */) {
 }
 
 /**
+ * Apply override semantics that mirror `API/updateTools.js` and
+ * `API/setups.js`: a plugin/private entry with the same directory
+ * name as a standard entry replaces the standard one entirely.
+ *
+ * Returns the post-override set of plugin records — the standard
+ * entries that were *not* overridden, plus all plugin/private
+ * entries. Aggregating dependencies from this set (rather than from
+ * `standard.concat(overrides)`) prevents an override that bumps a
+ * package version from spuriously conflicting with the standard
+ * entry it's intended to replace.
+ *
+ * @template T
+ * @param {Array<{name:string} & T>} standard  Standard plugins.
+ * @param {Array<{name:string} & T>} overrides  Plugin/private plugins
+ *   that override standard entries by directory name.
+ * @returns {Array<{name:string} & T>}
+ */
+function winnersByName(standard, overrides) {
+    const byName = new Map();
+    for (const p of standard) byName.set(p.name, p);
+    for (const p of overrides) byName.set(p.name, p);
+    return Array.from(byName.values());
+}
+
+/**
  * Discover all plugin manifests and return an array of
  * `{ plugin: <displayName>, deps: <dependencies-block-or-null> }`.
  *
@@ -188,13 +213,15 @@ function gatherDependencies() {
         out.push({ plugin: label, deps });
     };
 
-    for (const p of toolStandard.concat(toolPlugins)) {
+    // Only aggregate dependencies from the *winning* (post-override)
+    // entry per plugin name — see `winnersByName` for the rationale.
+    for (const p of winnersByName(toolStandard, toolPlugins)) {
         pushManifest(`tool:${p.name}`, p, depsFromManifest(p.manifest));
     }
-    for (const p of componentStandard.concat(componentPlugins)) {
+    for (const p of winnersByName(componentStandard, componentPlugins)) {
         pushManifest(`component:${p.name}`, p, depsFromManifest(p.manifest));
     }
-    for (const p of backendStandard.concat(backendPlugins)) {
+    for (const p of winnersByName(backendStandard, backendPlugins)) {
         pushManifest(`backend:${p.name}`, p, depsForBackend(p));
     }
 
@@ -303,6 +330,7 @@ module.exports = {
     resolvePluginDeps,
     mergeNpm,
     mergePython,
+    winnersByName,
     gatherDependencies,
     OUTPUT_NPM,
     OUTPUT_PIP,

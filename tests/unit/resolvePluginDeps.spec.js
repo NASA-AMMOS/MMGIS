@@ -11,6 +11,7 @@ import { test, expect } from '@playwright/test';
 const {
     mergeNpm,
     mergePython,
+    winnersByName,
 } = require('../../scripts/resolve-plugin-deps');
 
 test.describe('mergeNpm', () => {
@@ -139,5 +140,63 @@ test.describe('mergePython', () => {
         // same package name but with different specifiers, so they
         // should conflict.
         expect(conflicts.some((c) => c.package === 'requests')).toBe(true);
+    });
+});
+
+test.describe('winnersByName (override semantics)', () => {
+    test('plugin entry with same name overrides standard entry', () => {
+        const standard = [
+            { name: 'Animation', manifest: { dependencies: { npm: { '@ffmpeg/ffmpeg': '^0.12.10' } } } },
+            { name: 'Draw', manifest: { dependencies: null } },
+        ];
+        const overrides = [
+            { name: 'Animation', manifest: { dependencies: { npm: { '@ffmpeg/ffmpeg': '^0.13.0' } } } },
+        ];
+        const winners = winnersByName(standard, overrides);
+        // 'Animation' should now be the override entry (^0.13.0), and
+        // 'Draw' (only in standard) should still be present.
+        expect(winners.length).toBe(2);
+        const animation = winners.find((w) => w.name === 'Animation');
+        expect(animation.manifest.dependencies.npm['@ffmpeg/ffmpeg']).toBe('^0.13.0');
+        const draw = winners.find((w) => w.name === 'Draw');
+        expect(draw).toBeTruthy();
+    });
+
+    test('override avoids spurious conflict that concat would produce', () => {
+        const standard = [
+            { name: 'Animation', manifest: { dependencies: { npm: { '@ffmpeg/ffmpeg': '^0.12.10' } } } },
+        ];
+        const overrides = [
+            { name: 'Animation', manifest: { dependencies: { npm: { '@ffmpeg/ffmpeg': '^0.13.0' } } } },
+        ];
+
+        // Naive concat would aggregate both versions and conflict.
+        const concatSources = standard.concat(overrides).map((p) => ({
+            plugin: `tool:${p.name}`,
+            deps: p.manifest.dependencies,
+        }));
+        const concatResult = mergeNpm(concatSources);
+        expect(concatResult.conflicts.length).toBe(1);
+
+        // winnersByName picks only the override; no conflict.
+        const winnerSources = winnersByName(standard, overrides).map((p) => ({
+            plugin: `tool:${p.name}`,
+            deps: p.manifest.dependencies,
+        }));
+        const winnerResult = mergeNpm(winnerSources);
+        expect(winnerResult.conflicts).toEqual([]);
+        expect(winnerResult.merged['@ffmpeg/ffmpeg']).toBe('^0.13.0');
+    });
+
+    test('entries unique to either side are preserved', () => {
+        const standard = [
+            { name: 'A', manifest: {} },
+            { name: 'B', manifest: {} },
+        ];
+        const overrides = [
+            { name: 'C', manifest: {} },
+        ];
+        const winners = winnersByName(standard, overrides);
+        expect(winners.map((w) => w.name).sort()).toEqual(['A', 'B', 'C']);
     });
 });
