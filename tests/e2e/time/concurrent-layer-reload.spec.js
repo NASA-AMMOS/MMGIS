@@ -319,4 +319,257 @@ test.describe('Concurrent Layer Reload', () => {
     expect(info.hasMethod).toBe(true);
     expect(info.isFunction).toBe(true);
   });
+
+  // ---------------------------------------------------------------------------
+  // Test 8 — `{time}` placeholder preserved as literal in layer.url after
+  // reload (regression: captureVector previously handled `{time}` directly,
+  // but once it was gated on `!hasResolvedUrl` the replacement had to migrate
+  // into TimeControl.reloadLayer's resolved-URL block).
+  // ---------------------------------------------------------------------------
+  test('reloadLayer preserves literal {time} placeholder in layer.url', async ({ page }) => {
+    await layersPanel.expandGroup('Geodatasets').catch(() => {});
+    await page.waitForTimeout(300);
+
+    const key = await ensureLayerOn(page, 'Geodatasets - Time Series');
+    if (!key) test.skip(true, 'SKIP: Geodatasets - Time Series not present in mission');
+    await page.waitForTimeout(1500);
+
+    const templateUrl = await page.evaluate((layerName) => {
+      const L_ = window.L_;
+      const k = Object.keys(L_.layers.data).find((kk) => {
+        const l = L_.layers.data[kk];
+        return l && (l.name === layerName || l.display_name === layerName);
+      });
+      if (!k) return null;
+      const layer = L_.layers.data[k];
+      const original = `${layer.url}?at={time}`;
+      layer.url = original;
+      layer.time = layer.time || {};
+      layer.time.type = 'global';
+      layer.time.enabled = true;
+      layer.time.start = layer.time.start || '2024-01-01T00:00:00Z';
+      layer.time.end = layer.time.end || '2024-01-20T00:00:00Z';
+      return original;
+    }, 'Geodatasets - Time Series');
+
+    expect(templateUrl).toContain('{time}');
+
+    await page.evaluate(async () => {
+      await window.mmgisAPI.reloadLayer('Geodatasets - Time Series');
+    });
+
+    const urlAfter = await page.evaluate((layerName) => {
+      const L_ = window.L_;
+      const k = Object.keys(L_.layers.data).find((kk) => {
+        const l = L_.layers.data[kk];
+        return l && (l.name === layerName || l.display_name === layerName);
+      });
+      return k ? L_.layers.data[k].url : null;
+    }, 'Geodatasets - Time Series');
+
+    // Template must remain on the layer; the fetch URL is resolved
+    // independently inside captureVector.
+    expect(urlAfter).toContain('{time}');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Test 9 — time.type=local with endProp==null still gets placeholders
+  // resolved in the outgoing request (this branch bypasses the in-
+  // TimeControl resolved-URL replacement; captureVector must handle it).
+  // ---------------------------------------------------------------------------
+  test('local time.type with null endProp still resolves placeholders in outgoing fetch', async ({ page }) => {
+    await layersPanel.expandGroup('Geodatasets').catch(() => {});
+    await page.waitForTimeout(300);
+
+    const key = await ensureLayerOn(page, 'Geodatasets - Time Series');
+    if (!key) test.skip(true, 'SKIP: Geodatasets - Time Series not present in mission');
+    await page.waitForTimeout(1500);
+
+    await page.evaluate((layerName) => {
+      const L_ = window.L_;
+      const k = Object.keys(L_.layers.data).find((kk) => {
+        const l = L_.layers.data[kk];
+        return l && (l.name === layerName || l.display_name === layerName);
+      });
+      if (!k) return;
+      const layer = L_.layers.data[k];
+      // Force the "local + endProp==null" branch in TimeControl.reloadLayer
+      // (TimeControl.js:276-287). This branch falls through to the else block
+      // which calls refreshLayer with a resolvedUrl that has NOT been
+      // placeholder-replaced — so captureVector must do the replacement.
+      layer.url = `${layer.url}?from={starttime}&to={endtime}`;
+      layer.time = layer.time || {};
+      layer.time.type = 'local';
+      layer.time.enabled = true;
+      layer.time.endProp = null;
+      layer.time.start = layer.time.start || '2024-01-01T00:00:00Z';
+      layer.time.end = layer.time.end || '2024-01-20T00:00:00Z';
+    }, 'Geodatasets - Time Series');
+
+    // Capture outgoing geodataset requests during the reload window.
+    const capturedRequests = [];
+    const onRequest = (req) => {
+      const u = req.url();
+      if (u.includes('/geodatasets/') || u.includes('geodatasets_get')) {
+        capturedRequests.push(u);
+      }
+    };
+    page.on('request', onRequest);
+
+    await page.evaluate(async () => {
+      await window.mmgisAPI.reloadLayer('Geodatasets - Time Series');
+    });
+    await page.waitForTimeout(750);
+    page.off('request', onRequest);
+
+    // If no geodataset request was issued at all the test environment
+    // probably skipped the fetch — skip rather than fail spuriously.
+    if (capturedRequests.length === 0) {
+      test.skip(true, 'SKIP: no geodataset request observed during reload window');
+      return;
+    }
+
+    // Combine all observed request URLs into a single string for the
+    // assertion. None of them should contain a literal placeholder.
+    const combined = capturedRequests.join('\n');
+    expect(combined).not.toContain('{starttime}');
+    expect(combined).not.toContain('{endtime}');
+    expect(combined).not.toContain('{time}');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Test 10 — Stress: 20 rapid reloads coalesce without dropping or
+  // mutating the URL template.
+  // ---------------------------------------------------------------------------
+  test('20 rapid reloads of the same layer all complete and preserve template', async ({ page }) => {
+    await layersPanel.expandGroup('Geodatasets').catch(() => {});
+    await page.waitForTimeout(300);
+
+    const key = await ensureLayerOn(page, 'Geodatasets - Time Series');
+    if (!key) test.skip(true, 'SKIP: Geodatasets - Time Series not present in mission');
+    await page.waitForTimeout(1500);
+
+    const templateUrl = await page.evaluate((layerName) => {
+      const L_ = window.L_;
+      const k = Object.keys(L_.layers.data).find((kk) => {
+        const l = L_.layers.data[kk];
+        return l && (l.name === layerName || l.display_name === layerName);
+      });
+      if (!k) return null;
+      const layer = L_.layers.data[k];
+      const original = `${layer.url}?from={starttime}&to={endtime}`;
+      layer.url = original;
+      layer.time = layer.time || {};
+      layer.time.type = 'global';
+      layer.time.enabled = true;
+      layer.time.start = layer.time.start || '2024-01-01T00:00:00Z';
+      layer.time.end = layer.time.end || '2024-01-20T00:00:00Z';
+      return original;
+    }, 'Geodatasets - Time Series');
+
+    expect(templateUrl).toContain('{starttime}');
+
+    const droppedWarnings = [];
+    const onConsole = (msg) => {
+      const t = msg.type();
+      if ((t === 'warning' || t === 'error') && msg.text().includes('Cannot make layer')) {
+        droppedWarnings.push(msg.text());
+      }
+    };
+    page.on('console', onConsole);
+
+    const results = await page.evaluate(async () => {
+      const promises = [];
+      for (let i = 0; i < 20; i++) {
+        promises.push(window.mmgisAPI.reloadLayer('Geodatasets - Time Series'));
+      }
+      return Promise.all(promises);
+    });
+
+    // Allow the setTimeout(0)-based queue drain to complete fully.
+    await page.waitForTimeout(2000);
+    page.off('console', onConsole);
+
+    expect(results).toHaveLength(20);
+    for (const r of results) expect(r).not.toBe(false);
+
+    expect(
+      droppedWarnings,
+      `Reloads were silently dropped:\n${droppedWarnings.join('\n')}`
+    ).toHaveLength(0);
+
+    const urlAfter = await page.evaluate((layerName) => {
+      const L_ = window.L_;
+      const k = Object.keys(L_.layers.data).find((kk) => {
+        const l = L_.layers.data[kk];
+        return l && (l.name === layerName || l.display_name === layerName);
+      });
+      return k ? L_.layers.data[k].url : null;
+    }, 'Geodatasets - Time Series');
+
+    expect(urlAfter).toContain('{starttime}');
+    expect(urlAfter).toContain('{endtime}');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Test 11 — User-visible symptom: features remain rendered after a burst
+  // of concurrent reloads (no "gaps where dynamically-appearing data
+  // doesn't show up" — the original bug report).
+  // ---------------------------------------------------------------------------
+  test('layer features remain rendered after concurrent reloads of the same layer', async ({ page }) => {
+    await layersPanel.expandGroup('Geodatasets').catch(() => {});
+    await page.waitForTimeout(300);
+
+    const key = await ensureLayerOn(page, 'Geodatasets - Time Series');
+    if (!key) test.skip(true, 'SKIP: Geodatasets - Time Series not present in mission');
+    await page.waitForTimeout(2000);
+
+    const countBefore = await page.evaluate((layerName) => {
+      const L_ = window.L_;
+      const k = Object.keys(L_.layers.data).find((kk) => {
+        const l = L_.layers.data[kk];
+        return l && (l.name === layerName || l.display_name === layerName);
+      });
+      if (!k) return -1;
+      const lyr = L_.layers.layer[k];
+      if (!lyr) return 0;
+      if (typeof lyr.getLayers === 'function') return lyr.getLayers().length;
+      return 0;
+    }, 'Geodatasets - Time Series');
+
+    // countBefore can be 0 if the dataset returns no rows in the current
+    // viewport/time range — in that case the post-reload count comparison
+    // isn't meaningful, so skip.
+    if (countBefore <= 0) {
+      test.skip(true, `SKIP: layer has no features pre-reload (count=${countBefore})`);
+      return;
+    }
+
+    await page.evaluate(async () => {
+      const promises = [];
+      for (let i = 0; i < 5; i++) {
+        promises.push(window.mmgisAPI.reloadLayer('Geodatasets - Time Series'));
+      }
+      await Promise.all(promises);
+    });
+    // Allow queued drain + fetch + redraw to complete
+    await page.waitForTimeout(2500);
+
+    const countAfter = await page.evaluate((layerName) => {
+      const L_ = window.L_;
+      const k = Object.keys(L_.layers.data).find((kk) => {
+        const l = L_.layers.data[kk];
+        return l && (l.name === layerName || l.display_name === layerName);
+      });
+      if (!k) return -1;
+      const lyr = L_.layers.layer[k];
+      if (!lyr) return 0;
+      if (typeof lyr.getLayers === 'function') return lyr.getLayers().length;
+      return 0;
+    }, 'Geodatasets - Time Series');
+
+    // The layer should still have features after the burst — not zero
+    // (which is what the original "gap" symptom looked like).
+    expect(countAfter).toBeGreaterThan(0);
+  });
 });
