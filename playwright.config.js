@@ -24,7 +24,11 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Local default: cap at 4 workers. Playwright's default of `undefined`
+  // resolves to ~half the CPU cores, which on higher-core machines
+  // (e.g. 16 cores → 8 workers) tends to overload the dev server and
+  // actually slows the suite down. CI still runs serially (1 worker).
+  workers: process.env.CI ? 1 : 4,
 
   // Reporter configuration
   reporter: [

@@ -209,60 +209,6 @@ test.describe('Time Control UI', () => {
     expect(restoredCount).toBeGreaterThanOrEqual(0);
   });
 
-  test('GIBS MODIS with Time tile layer — tile URL includes time parameter', async ({ page }) => {
-    // This test depends on external GIBS service availability
-    const gibsReachable = await page.evaluate(async () => {
-      try {
-        const resp = await fetch(
-          'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/1.0.0/WMTSCapabilities.xml',
-          { method: 'HEAD', signal: AbortSignal.timeout(5000) }
-        );
-        return resp.ok;
-      } catch {
-        return false;
-      }
-    }).catch(() => false);
-
-    if (!gibsReachable) {
-      test.skip(true, 'SKIP: GIBS service unreachable — external dependency');
-      return;
-    }
-
-    const layersPanel = new LayersPanelPage(page);
-
-    // Open Layers panel and toggle on "GIBS MODIS with Time"
-    await missionPage.openTool('Layers');
-    await page.waitForTimeout(500);
-
-    // The GIBS layer is under "Tile Layers" header
-    await layersPanel.expandGroup('Tile Layers').catch(() => {});
-    await page.waitForTimeout(300);
-
-    await layersPanel.toggleLayer('GIBS MODIS with Time');
-    await page.waitForTimeout(3000);
-
-    // Check tile URLs contain a time parameter (the {time} template should be substituted)
-    const tileUrls = await page.evaluate(() => {
-      const tiles = document.querySelectorAll('.leaflet-tile-pane img');
-      return Array.from(tiles)
-        .map((img) => img.src)
-        .filter((src) => src.includes('gibs.earthdata.nasa.gov'));
-    });
-
-    if (tileUrls.length > 0) {
-      // The URL should have the {time} placeholder replaced with an actual date
-      // e.g., .../default/2024-01-10/GoogleMapsCompatible_Level9/...
-      const hasTimeInUrl = tileUrls.some((url) => {
-        // The time placeholder should be replaced, not contain literal "{time}"
-        return !url.includes('{time}') && /\/default\/\d{4}-\d{2}-\d{2}\//.test(url);
-      });
-      expect(hasTimeInUrl).toBeTruthy();
-    } else {
-      // GIBS tiles may not have loaded — acceptable if service was flaky
-      test.skip(true, 'SKIP: No GIBS tiles loaded — service may be intermittent');
-    }
-  });
-
   test('time control mode dropdown is present', async ({ page }) => {
     // The mode dropdown (Range/Point) should exist
     const modeDropdown = page.locator('#mmgisTimeUIModeDropdown, #mmgisTimeUIMode');

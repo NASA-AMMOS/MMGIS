@@ -598,8 +598,13 @@ var mmgisAPI = {
      */
     getLayerEndTime: TimeControl.getLayerEndTime,
 
-    /** reloadTimeLayers will reload every time enabled layer
-     * @returns {array} - A list of layers that were reloaded
+    /** reloadTimeLayers will reload every time-enabled layer.
+     * Now async: awaits every per-layer reload (via Promise.allSettled)
+     * before resolving, so the active-feature restoration and follow-pan
+     * logic run after layers are actually refreshed.
+     * @returns {Promise<string[]>} - Resolves to a list of layer names
+     *   that were reloaded. Callers must await the returned promise to
+     *   access the array.
      */
     reloadTimeLayers: TimeControl.reloadTimeLayers,
 
@@ -608,6 +613,28 @@ var mmgisAPI = {
      * @returns {boolean} - Whether the layer was successfully reloaded
      */
     reloadLayer: TimeControl.reloadLayer,
+
+    /** reloadLayers will reload multiple time-enabled layers concurrently.
+     * Each layer is reloaded via TimeControl.reloadLayer() and the returned
+     * array preserves the same order as the input layerNames. Uses
+     * Promise.allSettled internally so a single failing layer reload
+     * (e.g. unknown name, network error, malformed config) does not
+     * reject the whole batch — the failing entry is reported as
+     * false in the returned array.
+     * @param {string[]} layerNames - Array of layer name strings (or UUIDs).
+     * @returns {Promise<boolean[]>} - Per-layer reload results in input order;
+     *   each entry is the truthy return value from TimeControl.reloadLayer()
+     *   for successful reloads, or false for layers that threw / rejected.
+     */
+    reloadLayers: async function (layerNames) {
+        if (!Array.isArray(layerNames)) return []
+        const settled = await Promise.allSettled(
+            layerNames.map((name) => TimeControl.reloadLayer(name))
+        )
+        return settled.map((r) =>
+            r.status === 'fulfilled' ? r.value : false
+        )
+    },
 
     /** Sets layer UUIDs and layer Names to UUIDs
      * @param {string} [uuid]

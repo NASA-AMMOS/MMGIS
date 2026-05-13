@@ -24,6 +24,7 @@ The `src/essence/mmgisAPI/mmgisAPI.js` file exposes functions that can be called
   - [trimLineString(layerUUID, time, timeProp, trimN, startOrEnd)](#trimlinestringlayeruuid-time-timeprop-trimn-startorend)
   - [appendLineString(layerUUID, inputData, timeProp)](#appendlinestringlayeruuid-inputdata-timeprop)
   - [reloadLayer(layer, evenIfOff, evenIfControlled)](#reloadlayerlayer-evenifoff-evenifcontrolled)
+  - [reloadLayers(layerNames)](#reloadlayerslayernames)
   - [asLayerUUID(uuid)](#asLayerUUIDuuid)
 - [Time Control](#time-control)
   - [toggleTimeUI(visibility)](#toggletimeuivisibility)
@@ -387,6 +388,22 @@ The following is an example of how to call the `reloadLayer` function:
 window.mmgisAPI.reloadLayer("Earthquakes");
 ```
 
+### reloadLayers(layerNames)
+
+This function will reload multiple time-enabled layers concurrently by calling `reloadLayer` on each. This is the safer way to refresh many layers at once: unlike a hand-rolled `Promise.all` over individual `reloadLayer` calls, `reloadLayers` uses `Promise.allSettled` internally, so a single failing layer (unknown name, network error, malformed config) does not reject the whole batch — that layer's slot in the returned array is reported as `false` and every other reload still completes.
+
+#### Function parameters
+
+- `layerNames` - `string[]` | Array of layer name strings (or UUIDs)
+
+Returns a `Promise<boolean[]>` — each element is the per-layer reload result in the same order as `layerNames`. Successful entries carry the truthy return value from `reloadLayer`; failed entries are `false`. Concurrent reloads of the _same_ layer are coalesced and queued internally so none are silently dropped.
+
+The following is an example of how to call the `reloadLayers` function:
+
+```javascript
+await window.mmgisAPI.reloadLayers(["Layer1", "Layer2", "Layer3"]);
+```
+
 ### asLayerUUID(uuid)
 
 If `uuid` is a valid uuid, it is returned. If not but it's a valid layer Name, it will return the first corresponding uuid. If still not, returns null.
@@ -552,12 +569,15 @@ window.mmgisAPI.getEndTime("Earthquakes");
 
 ### reloadTimeLayers()
 
-This function will reload every layer that is time-enabled by re-fetching the data and re-drawing on the map. It should be called after `setTime` or `setLayerTime`. It will return a list of layers that were reloaded.
+This function will reload every layer that is time-enabled by re-fetching the data and re-drawing on the map. It should be called after `setTime` or `setLayerTime`.
+
+**This function is `async` and returns a `Promise<string[]>`** that resolves once every per-layer reload has settled. The promise resolves to the list of layer names that were reloaded. Earlier versions of MMGIS returned the list synchronously — external callers relying on the synchronous return value must update their code to use `await` (or `.then(...)`) to access the array.
 
 The following is an example of how to call the `reloadTimeLayers` function:
 
 ```javascript
-window.mmgisAPI.reloadTimeLayers()[("Lunaserv", "Earthquakes")];
+const reloaded = await window.mmgisAPI.reloadTimeLayers();
+// reloaded === ["Lunaserv", "Earthquakes", ...]
 ```
 
 ### setLayersTimeStatus(color)
