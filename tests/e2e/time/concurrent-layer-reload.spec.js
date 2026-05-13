@@ -572,4 +572,212 @@ test.describe('Concurrent Layer Reload', () => {
     // (which is what the original "gap" symptom looked like).
     expect(countAfter).toBeGreaterThan(0);
   });
+
+  // ---------------------------------------------------------------------------
+  // Test 12 — `{customtime.N}` placeholder preserved on layer.url after reload.
+  // The customtime replacement loop in TimeControl.reloadLayer was migrated
+  // off `layer.url = ...` onto a local `resolvedUrl = ...`; this test asserts
+  // the template on the shared layer object stays intact afterwards.
+  // ---------------------------------------------------------------------------
+  test('reloadLayer preserves literal {customtime.0} placeholder in layer.url', async ({ page }) => {
+    await layersPanel.expandGroup('Geodatasets').catch(() => {});
+    await page.waitForTimeout(300);
+
+    const key = await ensureLayerOn(page, 'Geodatasets - Time Series');
+    if (!key) test.skip(true, 'SKIP: Geodatasets - Time Series not present in mission');
+    await page.waitForTimeout(1500);
+
+    const templateUrl = await page.evaluate((layerName) => {
+      const L_ = window.L_;
+      const TimeControl = window.TimeControl || window.mmgisAPI?._TimeControl;
+      const k = Object.keys(L_.layers.data).find((kk) => {
+        const l = L_.layers.data[kk];
+        return l && (l.name === layerName || l.display_name === layerName);
+      });
+      if (!k) return null;
+      const layer = L_.layers.data[k];
+      const original = `${layer.url}?at={customtime.0}`;
+      layer.url = original;
+      layer.time = layer.time || {};
+      layer.time.type = 'global';
+      layer.time.enabled = true;
+      layer.time.start = layer.time.start || '2024-01-01T00:00:00Z';
+      layer.time.end = layer.time.end || '2024-01-20T00:00:00Z';
+      // Seed TimeControl.customTimes so the customtime replacement loop runs
+      // unconditionally — without this the loop is skipped entirely and the
+      // placeholder stays as-is for an uninteresting reason.
+      if (TimeControl) {
+        TimeControl.customTimes = TimeControl.customTimes || {};
+        TimeControl.customTimes.times = ['2024-06-15T12:00:00Z'];
+      }
+      return original;
+    }, 'Geodatasets - Time Series');
+
+    expect(templateUrl).toContain('{customtime.0}');
+
+    await page.evaluate(async () => {
+      await window.mmgisAPI.reloadLayer('Geodatasets - Time Series');
+    });
+
+    const urlAfter = await page.evaluate((layerName) => {
+      const L_ = window.L_;
+      const k = Object.keys(L_.layers.data).find((kk) => {
+        const l = L_.layers.data[kk];
+        return l && (l.name === layerName || l.display_name === layerName);
+      });
+      return k ? L_.layers.data[k].url : null;
+    }, 'Geodatasets - Time Series');
+
+    expect(urlAfter).toContain('{customtime.0}');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Test 13 — `mmgisAPI.reloadTimeLayers()` returns a thenable. This is a
+  // backward-incompatible behavior change from the previous synchronous return
+  // — documented in docs/pages/APIs/JavaScript/Main/Main.md but worth pinning
+  // with a test so the contract doesn't silently regress in either direction.
+  // ---------------------------------------------------------------------------
+  test('mmgisAPI.reloadTimeLayers returns a Promise that resolves to an array', async ({ page }) => {
+    const info = await page.evaluate(async () => {
+      const ret = window.mmgisAPI.reloadTimeLayers();
+      const isThenable = !!(ret && typeof ret.then === 'function');
+      const awaited = await ret;
+      return {
+        isThenable,
+        isArray: Array.isArray(awaited),
+        length: Array.isArray(awaited) ? awaited.length : null,
+      };
+    });
+    expect(info.isThenable).toBe(true);
+    expect(info.isArray).toBe(true);
+    expect(info.length).toBeGreaterThanOrEqual(0);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Test 14 — `mmgisAPI.reloadLayers` handles an invalid layer name without
+  // rejecting. `Promise.allSettled` semantics must surface the failure as
+  // `false` in the returned array, in the same position as the input name.
+  // ---------------------------------------------------------------------------
+  test('mmgisAPI.reloadLayers returns false (not throw) for unknown layer names', async ({ page }) => {
+    await layersPanel.expandGroup('Geodatasets').catch(() => {});
+    await page.waitForTimeout(300);
+
+    const realLayer = await ensureLayerOn(page, 'Geodatasets - Time Series');
+    if (!realLayer) test.skip(true, 'SKIP: Geodatasets - Time Series not present in mission');
+    await page.waitForTimeout(1500);
+
+    const result = await page.evaluate(async () => {
+      // Wrap in try/catch so a rejection surfaces as an explicit shape
+      // (Playwright's evaluate returns rejection as an exception).
+      try {
+        const arr = await window.mmgisAPI.reloadLayers([
+          'Geodatasets - Time Series',
+          '__no_such_layer__',
+          'Geodatasets - Time Series',
+        ]);
+        return { ok: true, arr };
+      } catch (e) {
+        return { ok: false, err: String(e && e.message ? e.message : e) };
+      }
+    });
+
+    expect(result.ok, `reloadLayers threw: ${result.err}`).toBe(true);
+    expect(Array.isArray(result.arr)).toBe(true);
+    expect(result.arr).toHaveLength(3);
+    // Real layers should not return false; the unknown name must return false.
+    expect(result.arr[0]).not.toBe(false);
+    expect(result.arr[1]).toBe(false);
+    expect(result.arr[2]).not.toBe(false);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Test 15 — Reloading a time-DISABLED vector layer is a no-op for the URL
+  // template (no replacement work was ever expected for these, but the
+  // mutate-in-place fix must not have accidentally introduced new mutations
+  // for layers that opted out of time).
+  // ---------------------------------------------------------------------------
+  test('reloadLayer on a time-disabled vector layer leaves layer.url unchanged', async ({ page }) => {
+    // Pick any vector layer without time. The Reference Mission's geometry
+    // layers (e.g., "Points Basic") fit this category.
+    const candidate = await page.evaluate(() => {
+      const L_ = window.L_;
+      for (const k of Object.keys(L_.layers.data)) {
+        const l = L_.layers.data[k];
+        if (
+          l &&
+          l.type === 'vector' &&
+          (!l.time || l.time.enabled !== true) &&
+          l.url
+        ) {
+          return { key: k, name: l.name, display_name: l.display_name, url: l.url };
+        }
+      }
+      return null;
+    });
+
+    if (!candidate) test.skip(true, 'SKIP: no time-disabled vector layer with a URL found');
+
+    // Toggle on (if needed) so the reload code path actually runs.
+    await ensureLayerOn(page, candidate.display_name || candidate.name);
+    await page.waitForTimeout(1000);
+
+    const before = await page.evaluate((k) => window.L_.layers.data[k].url, candidate.key);
+
+    const result = await page.evaluate(async (name) => {
+      try {
+        const r = await window.mmgisAPI.reloadLayer(name);
+        return { ok: true, r };
+      } catch (e) {
+        return { ok: false, err: String(e && e.message ? e.message : e) };
+      }
+    }, candidate.display_name || candidate.name);
+
+    const after = await page.evaluate((k) => window.L_.layers.data[k].url, candidate.key);
+
+    expect(result.ok, `reloadLayer threw for time-disabled vector: ${result.err}`).toBe(true);
+    expect(after).toBe(before);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Test 16 — Robustness: `mmgisAPI.reloadLayers` handles empty array and
+  // non-array inputs gracefully (returns `[]` instead of throwing).
+  // ---------------------------------------------------------------------------
+  test('mmgisAPI.reloadLayers returns [] for empty array and non-array inputs', async ({ page }) => {
+    const results = await page.evaluate(async () => {
+      const out = {};
+      try {
+        out.empty = await window.mmgisAPI.reloadLayers([]);
+      } catch (e) {
+        out.empty = { __threw__: String(e && e.message ? e.message : e) };
+      }
+      try {
+        out.nullArg = await window.mmgisAPI.reloadLayers(null);
+      } catch (e) {
+        out.nullArg = { __threw__: String(e && e.message ? e.message : e) };
+      }
+      try {
+        out.undefArg = await window.mmgisAPI.reloadLayers(undefined);
+      } catch (e) {
+        out.undefArg = { __threw__: String(e && e.message ? e.message : e) };
+      }
+      try {
+        out.stringArg = await window.mmgisAPI.reloadLayers('not-an-array');
+      } catch (e) {
+        out.stringArg = { __threw__: String(e && e.message ? e.message : e) };
+      }
+      return out;
+    });
+
+    expect(Array.isArray(results.empty)).toBe(true);
+    expect(results.empty).toHaveLength(0);
+
+    expect(Array.isArray(results.nullArg)).toBe(true);
+    expect(results.nullArg).toHaveLength(0);
+
+    expect(Array.isArray(results.undefArg)).toBe(true);
+    expect(results.undefArg).toHaveLength(0);
+
+    expect(Array.isArray(results.stringArg)).toBe(true);
+    expect(results.stringArg).toHaveLength(0);
+  });
 });
