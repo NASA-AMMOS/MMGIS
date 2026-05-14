@@ -100,13 +100,18 @@ const logger = function (level, message, caller, req, err) {
           chalk.black(chalk.bgGreenBright("\r " + level + " "))
         );
         break;
+      case "loaded":
+        process.stdout.write(
+          chalk.white(chalk.bgHex("#a855f7")("\r " + level + " "))
+        );
+        break;
       default:
         process.stdout.write(
           chalk.black(chalk.bgHex("#009eff")("\r " + level + " "))
         );
     }
     if (message) console.log(" ", message);
-    if (caller && level != "success" && level != "info")
+    if (caller && level != "success" && level != "info" && level != "loaded")
       console.log("   Caller:", caller);
     if (err) console.log("   Error:", err);
   } else {

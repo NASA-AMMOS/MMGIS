@@ -7,10 +7,12 @@
 /* Main container - positioned at bottom center */
 .operationsClockComponent {
     position: fixed;
-    bottom: 40px;
+    bottom: 58px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 50;
+    /* Sit above #bottomFloatingBar (z-index 1500) so the clock isn't covered
+       by the docked TimeUI / horizontal tool content bar. */
+    z-index: 1600;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
     font-size: 14px;
     user-select: none;

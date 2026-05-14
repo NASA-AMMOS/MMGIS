@@ -634,6 +634,7 @@ app.use(cors());
 /*Require all dynamic backend setup scripts
 and return functions that bulk run their functions
 */
+console.log(chalk.cyan("\nPlugging in Backends..."));
 setups.getBackendSetups(function (setups) {
   //Sync all tables
   sequelize
@@ -732,7 +733,7 @@ setups.getBackendSetups(function (setups) {
 
   // Validate envs
   if (process.env.NODE_ENV === "development") {
-    console.log(chalk.cyan("Validating Environment Variables...\n"));
+    console.log(chalk.cyan("\nValidating Environment Variables..."));
   }
   testEnv.test(setups.envs, port);
 
@@ -740,10 +741,10 @@ setups.getBackendSetups(function (setups) {
   // We're only doing this for dev because we're assuming
   // build will also call this.
   if (process.env.NODE_ENV === "development") {
-    console.log(chalk.cyan("Updating Tools...\n"));
+    console.log(chalk.cyan("\nPlugging in Tools..."));
     updateTools();
 
-    console.log(chalk.cyan("Updating Components...\n"));
+    console.log(chalk.cyan("\nPlugging in Components..."));
     updateComponents();
   }
 
@@ -845,7 +846,7 @@ setups.getBackendSetups(function (setups) {
     );
 
     if (process.env.ENABLE_MMGIS_WEBSOCKETS) {
-      console.log(chalk.cyan("Starting websocket...\n"));
+      console.log(chalk.cyan("\nStarting websocket..."));
       websocket.init(httpServer);
     }
   });
@@ -951,7 +952,7 @@ function setupDevServer() {
       );
       console.log();
     }
-    console.log(chalk.cyan("Starting the development server...\n"));
+    console.log(chalk.cyan("\nStarting the development server..."));
   });
 
   ["SIGINT", "SIGTERM"].forEach(function (sig) {

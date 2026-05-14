@@ -29,6 +29,7 @@ const {
 } = require("../configuration/build-utils");
 
 const { updateTools, updateComponents } = require("../API/updateTools");
+const { resolvePluginDeps } = require("./resolve-plugin-deps");
 
 const measureFileSizesBeforeBuild =
   FileSizeReporter.measureFileSizesBeforeBuild;
@@ -54,12 +55,22 @@ const config = configFactory("production");
 // We require that you explicitly set browsers and do not fall back to
 // browserslist defaults.
 
+// Aggregate per-plugin dependencies into plugin-package.json,
+// plugin-python-requirements.txt, and plugin-conda-deps.txt.
+console.log(chalk.cyan("\nResolving Plugin Dependencies..."));
+try {
+  resolvePluginDeps();
+} catch (err) {
+  console.log(chalk.red(err.message || err));
+  process.exit(1);
+}
+
 // Attach any tool plugins to the application
-console.log(chalk.cyan("Updating Tools...\n"));
+console.log(chalk.cyan("\nPlugging in Tools..."));
 updateTools();
 
 // Attach any component plugins to the application
-console.log(chalk.cyan("Updating Components...\n"));
+console.log(chalk.cyan("\nPlugging in Components..."));
 updateComponents();
 
 checkBrowsers(paths.appPath, isInteractive)
