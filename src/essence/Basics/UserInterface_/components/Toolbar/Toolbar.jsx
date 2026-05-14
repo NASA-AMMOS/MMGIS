@@ -334,7 +334,9 @@ function SepToolButton({ tool, isActive }) {
                 ToolController_.activeSeparatedTools.filter(
                     (a) => a !== toolModuleName
                 )
-            useUIStore.getState().removeActiveSeparatedTool(toolModuleName)
+            useUIStore
+                .getState()
+                .removeActiveSeparatedTool(toolModuleName)
         }
         document.dispatchEvent(
             new CustomEvent('toggleSeparatedTool', {
@@ -439,12 +441,10 @@ function Toolbar({ userInterface }) {
 
         ToolController_.makeTool(toolModuleName, index)
 
-        // Sync active state to store for React re-render
-        useUIStore.getState().setActiveToolName(
-            ToolController_.activeToolName
-        )
+        useUIStore
+            .getState()
+            .setActiveToolName(ToolController_.activeToolName)
 
-        // Dispatch `toolChange` event (matches jQuery behavior)
         document.dispatchEvent(
             new CustomEvent('toolChange', {
                 detail: {

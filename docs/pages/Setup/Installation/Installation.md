@@ -121,6 +121,7 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
       ```
       micromamba activate mmgis
       ```
+   1. If any tool, component, or backend plugin declares Python dependencies in its `config.json`, install them now (see the [Setup steps](#setup) below for the exact commands). This is only needed for plugin-declared deps — the core `python-environment.yml` packages are already installed by the `env create` step above.
    #### Legacy (without micromamba):
    - GDAL [3.4+](https://gdal.org/download.html) with Python bindings (Windows users may find [these](https://github.com/cgohlke/geospatial-wheels/releases) helpful)
    - Python [>=3.10 and <3.13](https://www.python.org/downloads/)
@@ -164,6 +165,18 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 1. Go back to the root `/` directory
 
 1. Run `micromamba activate mmgis` or `python -m pip install -r python-requirements.txt` (if not using python environments)
+
+1. If any plugin declares Python dependencies, install them on top of the activated environment. `npm run build` (step 5 above) writes `plugin-python-requirements.txt` and `plugin-conda-deps.txt` at the repo root — install whichever side(s) are non-empty:
+
+   ```
+   # pip-side plugin deps
+   micromamba run -n mmgis pip install -r plugin-python-requirements.txt
+
+   # conda-side plugin deps (only if any plugin declares them)
+   micromamba install -n mmgis --file plugin-conda-deps.txt
+   ```
+
+   Plugin **npm** deps are installed automatically by `npm install` via a `postinstall` hook, so no separate command is needed for those. Re-run the two commands above after pulling new plugins or editing an existing plugin's Python deps. The Dockerfile already installs the pip-side plugin deps automatically, so this step only applies to non-Docker installs.
 
 1. If using adjacent-servers (titiler, stac, ...) make `.env` files from the samples within the `/adjacent-servers/{servers}/` directory.
 

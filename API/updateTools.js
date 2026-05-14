@@ -2,136 +2,104 @@ const fs = require("fs");
 const path = require("path");
 
 const logger = require("./logger");
+const { validatePluginConfig } = require("./pluginValidation");
+const { discoverPlugins } = require("./pluginDiscovery");
+
+const STANDARD_TOOLS_PATH = "./src/essence/Tools";
+const STANDARD_COMPONENTS_PATH = "./src/essence/Components";
+const ESSENCE_PATH = path.join(__dirname, "..", "src", "essence");
+const TOOL_PLUGIN_PATTERNS = ["Private-Tools", "Plugin-Tools"];
+const COMPONENT_PLUGIN_PATTERNS = ["Private-Components", "Plugin-Components"];
+
+/**
+ * Register a single plugin's parsed config.json onto the in-memory
+ * registry. Returns true if the plugin was registered, false if it was
+ * rejected for failing validation.
+ */
+function registerPlugin({
+  registry,
+  name,
+  config,
+  pluginType,
+  source,
+  loggerCategory,
+}) {
+  const errors = validatePluginConfig(config, name, pluginType);
+  if (errors.length > 0) {
+    for (const e of errors) {
+      logger("error", e, loggerCategory);
+    }
+    logger(
+      "error",
+      `Skipping invalid ${pluginType} plugin: ${name}${
+        source ? ` from ${source}` : ""
+      }`,
+      loggerCategory
+    );
+    return false;
+  }
+  const isOverride = registry[name] !== undefined;
+  registry[name] = config;
+  logger(
+    "loaded",
+    `${pluginType[0].toUpperCase() + pluginType.slice(1)}: ${name} from ${source}${
+      isOverride ? ` (overriding standard ${pluginType})` : ""
+    }`,
+    loggerCategory
+  );
+  if (isOverride) {
+    logger(
+      "warn",
+      `${pluginType[0].toUpperCase() + pluginType.slice(1)} '${name}' overridden by ${source}`,
+      loggerCategory
+    );
+  }
+  return true;
+}
 
 function updateTools() {
   let tools = {};
 
-  let items = null;
-
-  // First read all the standard tools
-  let toolsPath = "./src/essence/Tools";
-  try {
-    items = fs.readdirSync(toolsPath, { withFileTypes: true });
-  } catch (err) {
-    items = [];
-    logger(
-      "warn",
-      "Could not find any default tools: ${toolsPath}. Did you mean to do this?",
-      "Tools",
-      null,
-      err
-    );
-  }
-  items = items || [];
-  for (let i = 0; i < items.length; i++) {
-    let isDir = false;
-    try {
-      isDir = items[i].isDirectory();
-    } catch (err) {
-      logger(
-        "error",
-        "No tools could be added. Is your node version >= v10.10.0?",
-        "Tools",
-        null,
-        err
-      );
-      return;
-    }
-
-    if (isDir && items[i].name[0] != "_" && items[i].name[0] != ".") {
-      try {
-        const contents = fs.readFileSync(
-          toolsPath + "/" + items[i].name + "/config.json"
-        );
-        const jsonContent = JSON.parse(contents);
-        tools[items[i].name] = jsonContent;
-      } catch (err) {
-        logger(
-          "error",
-          "The following tool could not be added: " + items[i].name,
-          "Tools",
-          null,
-          err
-        );
-      }
-    }
+  // 1. Standard tools live directly under src/essence/Tools/<ToolName>/config.json
+  //    Use discoverPlugins() with an exact-name pattern so the shared
+  //    scanner picks up `Tools` as the container.
+  const standardToolPlugins = discoverPlugins(
+    path.join(ESSENCE_PATH),
+    ["__exact:Tools"],
+    "config.json",
+    { loggerCategory: "Tools" }
+  );
+  for (const plugin of standardToolPlugins) {
+    registerPlugin({
+      registry: tools,
+      name: plugin.name,
+      config: plugin.manifest,
+      pluginType: "tool",
+      source: "Tools",
+      loggerCategory: "Tools",
+    });
   }
 
-  // Now read all private and plugin tool directories
-  const essencePath = path.join(__dirname, "..", "src", "essence");
-  let essenceItems = [];
-  try {
-    essenceItems = fs.readdirSync(essencePath, { withFileTypes: true });
-  } catch (err) {
-    logger(
-      "warn",
-      "Could not read essence directory for plugin tools",
-      "Tools",
-      null,
-      err
-    );
+  // 2. Plugin/private tool containers (e.g. *Plugin-Tools*, *Private-Tools*).
+  //    Same scan, but with substring matching on container names.
+  const pluginToolPlugins = discoverPlugins(
+    ESSENCE_PATH,
+    TOOL_PLUGIN_PATTERNS,
+    "config.json",
+    { loggerCategory: "Tools" }
+  );
+  for (const plugin of pluginToolPlugins) {
+    registerPlugin({
+      registry: tools,
+      name: plugin.name,
+      config: plugin.manifest,
+      pluginType: "tool",
+      source: plugin.container,
+      loggerCategory: "Tools",
+    });
   }
 
-  // Filter directories that match *Private-Tools* or *Plugin-Tools*
-  const pluginToolDirs = essenceItems.filter(item => {
-    try {
-      return item.isDirectory() && 
-             (item.name.includes("Private-Tools") || 
-              item.name.includes("Plugin-Tools"));
-    } catch (err) {
-      return false;
-    }
-  });
-
-  // Process each plugin tools directory
-  pluginToolDirs.forEach((pluginDir) => {
-    const pluginPath = `${essencePath}/${pluginDir.name}`;
-    let pluginItems = [];
-    
-    try {
-      pluginItems = fs.readdirSync(pluginPath, { withFileTypes: true });
-    } catch (err) {
-      logger(
-        "warn",
-        `Could not read plugin tools directory: ${pluginDir.name}`,
-        "Tools",
-        null,
-        err
-      );
-      return;
-    }
-
-    for (let i = 0; i < pluginItems.length; i++) {
-      if (
-        pluginItems[i].isDirectory() &&
-        pluginItems[i].name[0] != "_" &&
-        pluginItems[i].name[0] != "."
-      ) {
-        try {
-          const contents = fs.readFileSync(
-            pluginPath + "/" + pluginItems[i].name + "/config.json"
-          );
-          const jsonContent = JSON.parse(contents);
-          tools[pluginItems[i].name] = jsonContent;
-          logger(
-            "info",
-            `Loaded tool: ${pluginItems[i].name} from ${pluginDir.name}`,
-            "Tools"
-          );
-        } catch (err) {
-          logger(
-            "error",
-            `The following tool could not be added from ${pluginDir.name}: ${pluginItems[i].name}`,
-            "Tools",
-            null,
-            err
-          );
-        }
-      }
-    }
-  });
-
-  // Sort the tools by toolbarPriority
+  // 3. Sort by toolbarPriority (preserve previous behavior).
   tools = Object.keys(tools)
     .sort(function (a, b) {
       return (
@@ -143,7 +111,7 @@ function updateTools() {
       return obj;
     }, {});
 
-  // Build dynamic toolConfigs.json file for configure page
+  // 4. Build dynamic toolConfigs.json for the Configure page.
   try {
     fs.writeFileSync(
       "./configure/public/toolConfigs.json",
@@ -158,18 +126,23 @@ function updateTools() {
     logger("error", "Failed to write toolConfigs.json", "Tools", null, err);
   }
 
-  //Build dynamic /src/pre/tools.js file
+  // 5. Build dynamic /src/pre/tools.js file with static imports for every
+  //    tool. Tool modules are referenced synchronously by cross-tool code
+  //    (e.g. `Map_` feature-click hands off to `InfoTool.use(...)`,
+  //    `LegendTool` reads `LayersTool.populateCogScale`), so they must be
+  //    available the moment `ToolController_` is initialised.
   let toolConfigs = "";
-  let toolModules = {};
+  const toolModules = {};
   let kindsModule = null;
-  for (let t in tools) {
-    for (let p in tools[t].paths) {
-      let pname;
+  for (const t in tools) {
+    for (const p in tools[t].paths) {
       if (p === "Kinds") {
         kindsModule = p;
-        pname = "kinds";
-      } else toolModules[p] = p;
-      toolConfigs += `import ${pname || p} from '../${tools[t].paths[p]}'\n`;
+        toolConfigs += `import kinds from '../${tools[t].paths[p]}'\n`;
+      } else {
+        toolModules[p] = p;
+        toolConfigs += `import ${p} from '../${tools[t].paths[p]}'\n`;
+      }
     }
   }
 
@@ -204,180 +177,96 @@ function updateTools() {
 }
 
 function updateComponents() {
-    let components = {};
+  let components = {};
 
-    const essencePath = path.join(__dirname, "..", "src", "essence");
-
-    // First, scan standard Components directory (lower precedence)
-    const componentsPath = path.join(essencePath, "Components");
-    try {
-        const componentItems = fs.readdirSync(componentsPath, { withFileTypes: true });
-
-        for (let i = 0; i < componentItems.length; i++) {
-            if (
-                componentItems[i].isDirectory() &&
-                componentItems[i].name[0] != "_" &&
-                componentItems[i].name[0] != "."
-            ) {
-                try {
-                    const contents = fs.readFileSync(
-                        path.join(componentsPath, componentItems[i].name, "config.json")
-                    );
-                    const jsonContent = JSON.parse(contents);
-                    components[componentItems[i].name] = jsonContent;
-                    logger(
-                        "info",
-                        `Loaded component: ${componentItems[i].name} from Components`,
-                        "Components"
-                    );
-                } catch (err) {
-                    logger(
-                        "error",
-                        `The following component could not be added from Components: ${componentItems[i].name}`,
-                        "Components",
-                        null,
-                        err
-                    );
-                }
-            }
-        }
-    } catch (err) {
-        // Components directory might not exist, that's okay
-        logger(
-            "info",
-            "No standard Components directory found (optional)",
-            "Components"
-        );
-    }
-
-    // Now scan plugin component directories (higher precedence - can override)
-    let essenceItems = [];
-    try {
-        essenceItems = fs.readdirSync(essencePath, { withFileTypes: true });
-    } catch (err) {
-        logger(
-            "warn",
-            "Could not read essence directory for plugin components",
-            "Components",
-            null,
-            err
-        );
-    }
-
-    // Filter directories that match *Private-Components* or *Plugin-Components*
-    const pluginComponentDirs = essenceItems.filter((item) => {
-        try {
-            return (
-                item.isDirectory() &&
-                (item.name.includes("Private-Components") ||
-                    item.name.includes("Plugin-Components"))
-            );
-        } catch (err) {
-            return false;
-        }
+  // 1. Standard components: src/essence/Components/<ComponentName>/config.json.
+  //    The standard Components directory is optional — `discoverPlugins`
+  //    will warn but not throw if it doesn't exist.
+  const standardComponentPlugins = discoverPlugins(
+    ESSENCE_PATH,
+    ["__exact:Components"],
+    "config.json",
+    { loggerCategory: "Components" }
+  );
+  for (const plugin of standardComponentPlugins) {
+    registerPlugin({
+      registry: components,
+      name: plugin.name,
+      config: plugin.manifest,
+      pluginType: "component",
+      source: "Components",
+      loggerCategory: "Components",
     });
+  }
 
-    // Process each plugin components directory
-    pluginComponentDirs.forEach((pluginDir) => {
-        const pluginPath = `${essencePath}/${pluginDir.name}`;
-        let pluginItems = [];
-
-        try {
-            pluginItems = fs.readdirSync(pluginPath, { withFileTypes: true });
-        } catch (err) {
-            logger(
-                "warn",
-                `Could not read plugin components directory: ${pluginDir.name}`,
-                "Components",
-                null,
-                err
-            );
-            return;
-        }
-
-        for (let i = 0; i < pluginItems.length; i++) {
-            if (
-                pluginItems[i].isDirectory() &&
-                pluginItems[i].name[0] != "_" &&
-                pluginItems[i].name[0] != "."
-            ) {
-                try {
-                    const contents = fs.readFileSync(
-                        pluginPath + "/" + pluginItems[i].name + "/config.json"
-                    );
-                    const jsonContent = JSON.parse(contents);
-                    const isOverride = components[pluginItems[i].name] !== undefined;
-                    components[pluginItems[i].name] = jsonContent;
-                    logger(
-                        "info",
-                        `Loaded component: ${pluginItems[i].name} from ${pluginDir.name}${isOverride ? ' (overriding standard component)' : ''}`,
-                        "Components"
-                    );
-                } catch (err) {
-                    logger(
-                        "error",
-                        `The following component could not be added from ${pluginDir.name}: ${pluginItems[i].name}`,
-                        "Components",
-                        null,
-                        err
-                    );
-                }
-            }
-        }
+  // 2. Plugin/private component containers.
+  const pluginComponentPlugins = discoverPlugins(
+    ESSENCE_PATH,
+    COMPONENT_PLUGIN_PATTERNS,
+    "config.json",
+    { loggerCategory: "Components" }
+  );
+  for (const plugin of pluginComponentPlugins) {
+    registerPlugin({
+      registry: components,
+      name: plugin.name,
+      config: plugin.manifest,
+      pluginType: "component",
+      source: plugin.container,
+      loggerCategory: "Components",
     });
+  }
 
-    // Build dynamic componentConfigs.json file for configure page
-    try {
-        fs.writeFileSync(
-            "./configure/public/componentConfigs.json",
-            JSON.stringify(components)
-        );
-        logger(
-            "success",
-            "Successfully updated source component configurations.",
-            "Components"
-        );
-    } catch (err) {
-        logger(
-            "error",
-            "Failed to write componentConfigs.json",
-            "Components",
-            null,
-            err
-        );
+  // 3. Write componentConfigs.json (Configure page) and src/pre/components.js.
+  try {
+    fs.writeFileSync(
+      "./configure/public/componentConfigs.json",
+      JSON.stringify(components)
+    );
+    logger(
+      "success",
+      "Successfully updated source component configurations.",
+      "Components"
+    );
+  } catch (err) {
+    logger(
+      "error",
+      "Failed to write componentConfigs.json",
+      "Components",
+      null,
+      err
+    );
+  }
+
+  let componentConfigs = "";
+  const componentModules = {};
+  for (const c in components) {
+    for (const p in components[c].paths) {
+      componentModules[p] = p;
+      componentConfigs += `import ${p} from '../${components[c].paths[p]}'\n`;
     }
+  }
 
-    // Build dynamic /src/pre/components.js file
-    let componentConfigs = "";
-    let componentModules = {};
+  componentConfigs += `\n`;
+  componentConfigs += `export const componentConfigs = ${JSON.stringify(
+    components
+  )}\n`;
+  componentConfigs += `export const componentModules = ${JSON.stringify(
+    componentModules
+  ).replace(/"/g, "")}\n`;
 
-    for (let c in components) {
-        for (let p in components[c].paths) {
-            componentModules[p] = p;
-            componentConfigs += `import ${p} from '../${components[c].paths[p]}'\n`;
-        }
-    }
-
-    componentConfigs += `\n`;
-    componentConfigs += `export const componentConfigs = ${JSON.stringify(
-        components
-    )}\n`;
-    componentConfigs += `export const componentModules = ${JSON.stringify(
-        componentModules
-    ).replace(/"/g, "")}\n`;
-
-    try {
-        fs.writeFileSync("./src/pre/components.js", componentConfigs);
-        logger("success", "Successfully plugged-in components.", "Components");
-    } catch (err) {
-        logger(
-            "error",
-            "Failed to write component paths to src/pre/components.js",
-            "Components",
-            null,
-            err
-        );
-    }
+  try {
+    fs.writeFileSync("./src/pre/components.js", componentConfigs);
+    logger("success", "Successfully plugged-in components.", "Components");
+  } catch (err) {
+    logger(
+      "error",
+      "Failed to write component paths to src/pre/components.js",
+      "Components",
+      null,
+      err
+    );
+  }
 }
 
 module.exports = { updateTools, updateComponents };
