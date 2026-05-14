@@ -140,14 +140,6 @@ function BottomElementPositioner() {
                 sepContent.style.transition = 'left 0.2s ease-out'
                 sepContent.style.left = (12 + tpShift + (tpShift > 0 ? 12 : 0)) + 'px'
             }
-
-            // OperationsClock sits at the bottom-center; lift it slightly
-            // when TimeUI is open so it stays clear of the floating bar.
-            const opsClock = document.getElementById('operationsClock')
-            if (opsClock) {
-                opsClock.style.transition = ease
-                opsClock.style.bottom = (timeUIActive ? 58 : 40) + 'px'
-            }
         }
     }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded, toolPanelWidth, topSize, isDragging])
 

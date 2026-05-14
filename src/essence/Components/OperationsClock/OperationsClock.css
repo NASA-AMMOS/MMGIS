@@ -7,7 +7,7 @@
 /* Main container - positioned at bottom center */
 .operationsClockComponent {
     position: fixed;
-    bottom: 40px;
+    bottom: 58px;
     left: 50%;
     transform: translateX(-50%);
     /* Sit above #bottomFloatingBar (z-index 1500) so the clock isn't covered
