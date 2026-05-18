@@ -618,18 +618,29 @@ var mmgisAPI = {
      * Each layer is reloaded via TimeControl.reloadLayer() and the returned
      * array preserves the same order as the input layerNames. Uses
      * Promise.allSettled internally so a single failing layer reload
-     * (e.g. unknown name, network error, malformed config) does not
-     * reject the whole batch — the failing entry is reported as
+     * does not reject the whole batch — the failing entry is reported as
      * false in the returned array.
      * @param {string[]} layerNames - Array of layer name strings (or UUIDs).
+     * @param {boolean} [evenIfOff] - Reload layers even if they are toggled off.
+     * @param {boolean} [evenIfControlled] - Reload layers even if they are controlled.
+     * @param {boolean} [forceRequery] - Force a requery of the layer data.
+     * @param {boolean} [skipOrderedBringToFront] - Skip ordered bring-to-front after reload.
      * @returns {Promise<boolean[]>} - Per-layer reload results in input order;
      *   each entry is the truthy return value from TimeControl.reloadLayer()
      *   for successful reloads, or false for layers that threw / rejected.
      */
-    reloadLayers: async function (layerNames) {
+    reloadLayers: async function (layerNames, evenIfOff, evenIfControlled, forceRequery, skipOrderedBringToFront) {
         if (!Array.isArray(layerNames)) return []
         const settled = await Promise.allSettled(
-            layerNames.map((name) => TimeControl.reloadLayer(name))
+            layerNames.map((name) =>
+                TimeControl.reloadLayer(
+                    name,
+                    evenIfOff,
+                    evenIfControlled,
+                    forceRequery,
+                    skipOrderedBringToFront
+                )
+            )
         )
         return settled.map((r) =>
             r.status === 'fulfilled' ? r.value : false
