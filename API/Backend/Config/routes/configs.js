@@ -251,8 +251,22 @@ router.get("/get", function (req, res, next) {
  * Create a Reference Mission demo
  */
 async function createReferenceMission(req, res, cb) {
-  // Hardcode mission name to "Reference-Mission" (no timestamp)
-  const missionName = "Reference-Mission";
+  // Resolve variant key from request body (defaults to "default")
+  const variantKey = req.body.referenceMissionVariant || "default";
+  const variants = missionTemplates.REFERENCE_MISSION_VARIANTS;
+
+  if (!variants[variantKey]) {
+    const validKeys = Object.keys(variants).join(", ");
+    const errorResponse = {
+      status: "failure",
+      message: `Unknown reference mission variant: ${sanitizeInput(variantKey)}. Valid variants: ${validKeys}`,
+    };
+    if (cb) cb(errorResponse);
+    else res.send(errorResponse);
+    return;
+  }
+
+  const missionName = variants[variantKey].missionName;
 
   try {
     // Check if mission already exists
@@ -261,7 +275,7 @@ async function createReferenceMission(req, res, cb) {
     });
 
     // Create or update Reference Mission
-    const result = await missionTemplates.createReferenceMission(missionName);
+    const result = await missionTemplates.createReferenceMission(missionName, variantKey);
 
     if (existingMission) {
       // Delete all existing rows for this mission and create a fresh one.
@@ -343,8 +357,8 @@ async function createReferenceMission(req, res, cb) {
 }
 
 function add(req, res, next, cb) {
-  // NEW: Check for Reference Mission mode
-  if (req.body.setupReferenceMission === true) {
+  // Check for Reference Mission mode (boolean or string variant key)
+  if (req.body.setupReferenceMission === true || typeof req.body.setupReferenceMission === 'string') {
     return createReferenceMission(req, res, cb);
   }
 

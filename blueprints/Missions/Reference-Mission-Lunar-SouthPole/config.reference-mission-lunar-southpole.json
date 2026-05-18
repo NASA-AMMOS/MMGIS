@@ -1,0 +1,79 @@
+{
+  "msv": {
+    "mission": "Reference-Mission-Lunar-SouthPole",
+    "missionFolderName": "Reference-Mission-Lunar-SouthPole",
+    "site": "Lunar South Pole",
+    "masterdb": false,
+    "view": [0, 0, 3],
+    "radius": {
+      "major": "1737400",
+      "minor": "1737400"
+    },
+    "mapscale": "3"
+  },
+  "projection": {
+    "custom": true,
+    "epsg": "IAU2000:30120",
+    "proj": "+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=1737400 +b=1737400 +units=m +no_defs",
+    "globeproj": "",
+    "xmlpath": "",
+    "bounds": [
+      "-1095700",
+      "-1095600",
+      "1095600",
+      "1095700"
+    ],
+    "origin": [
+      "-1095700",
+      "-1095600"
+    ],
+    "reszoomlevel": "0",
+    "resunitsperpixel": "12800.00000000000000"
+  },
+  "look": {
+    "pagename": "MMGIS Lunar South Pole",
+    "missionname": "Lunar South Pole",
+    "missionsubtitle": "Reference Mission - South Polar Stereographic",
+    "minimalist": false,
+    "topbar": true,
+    "toolbar": true,
+    "scalebar": true,
+    "noscalebar": false,
+    "coordinates": true,
+    "zoomcontrol": false,
+    "graticule": true,
+    "miscellaneous": true,
+    "timestamp": false,
+    "radiusdivs": false,
+    "bodycolor": "",
+    "topbarcolor": "",
+    "toolbarcolor": "",
+    "mapcolor": "",
+    "swap": true,
+    "copylink": true,
+    "screenshot": true,
+    "fullscreen": true,
+    "help": true,
+    "logourl": "",
+    "helpurl": "",
+    "aboutModalContent": ""
+  },
+  "panels": {
+    "viewer": true,
+    "map": true,
+    "globe": false,
+    "defaultWidths": {
+      "viewer": 0,
+      "map": 100,
+      "globe": 0
+    }
+  },
+  "layers": [],
+  "tools": [
+    { "name": "Layers", "icon": "layers", "js": "LayersTool" },
+    { "name": "Legend", "icon": "format-list-bulleted-type", "js": "LegendTool" },
+    { "name": "Info", "icon": "information-variant", "js": "InfoTool" },
+    { "name": "Draw", "icon": "vector-polyline", "js": "DrawTool" },
+    { "name": "Measure", "icon": "ruler", "js": "MeasureTool" }
+  ]
+}
