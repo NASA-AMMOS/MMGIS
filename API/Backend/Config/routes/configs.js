@@ -252,7 +252,7 @@ router.get("/get", function (req, res, next) {
  */
 async function createReferenceMission(req, res, cb) {
   // Resolve variant key from request body (defaults to "default")
-  const variantKey = req.body.referenceMissionVariant || "default";
+  const variantKey = req.body.referenceMissionVariant || (typeof req.body.setupReferenceMission === 'string' && req.body.setupReferenceMission) || "default";
   const variants = missionTemplates.REFERENCE_MISSION_VARIANTS;
 
   if (!variants[variantKey]) {
@@ -358,7 +358,7 @@ async function createReferenceMission(req, res, cb) {
 
 function add(req, res, next, cb) {
   // Check for Reference Mission mode (boolean or string variant key)
-  if (req.body.setupReferenceMission === true || typeof req.body.setupReferenceMission === 'string') {
+  if (req.body.setupReferenceMission === true || (typeof req.body.setupReferenceMission === 'string' && req.body.setupReferenceMission !== '')) {
     return createReferenceMission(req, res, cb);
   }
 
