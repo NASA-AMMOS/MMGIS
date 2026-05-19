@@ -901,7 +901,7 @@ let MeasureTool = {
                                 name:
                                     item.name ||
                                     L_.layers.data[name]?.display_name,
-                                path: item.url,
+                                path: item.url || item.dem,
                             })
                         }
                     }
