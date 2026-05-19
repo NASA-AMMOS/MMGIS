@@ -1464,7 +1464,7 @@ function makeProfile() {
     if (numOfPts > 1 && path && path != 'none' && path != 'undefined') {
         // enable remote access via GDAL Virtual File Systems /vsi* prefix
         let pathDEM
-        if (path.startsWith('/vsi') || path.startsWith('http://') || path.startsWith('https://')) pathDEM = path
+        if (path.startsWith('/vsi')) pathDEM = path
         else pathDEM = 'Missions/' + L_.mission + '/' + path
 
         //elevPoints.push([{"x": clickedLatLngs[numOfPts - 2].x, "y": clickedLatLngs[numOfPts - 2].y}, {"x": clickedLatLngs[numOfPts - 1].x, "y": clickedLatLngs[numOfPts - 1].y}]);
