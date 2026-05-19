@@ -3244,7 +3244,7 @@
                     "layerDems": [
                       {
                         "layer": "USGS SF DEM — Elevation",
-                        "dem": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif"
+                        "url": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif"
                       }
                     ]
                   }
