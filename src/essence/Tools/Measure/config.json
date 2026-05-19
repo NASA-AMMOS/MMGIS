@@ -47,8 +47,8 @@
                                 "width": 4
                             },
                             {
-                                "field": "dem",
-                                "name": "DEM Path",
+                                "field": "url",
+                                "name": "DEM URL",
                                 "description": "",
                                 "type": "text",
                                 "width": 8
