@@ -1678,12 +1678,16 @@ router.get("/getGeneralOptions", function (req, res, next) {
 // Reference Mission: Save current config back to blueprints template
 router.post("/reference-mission/save-to-base", checkMissionPermission, function (req, res, next) {
   const mission = req.body.mission;
+  const variants = missionTemplates.REFERENCE_MISSION_VARIANTS;
 
-  // Only allow for Reference-Mission mission
-  if (mission !== "Reference-Mission") {
+  // Look up the variant whose missionName matches
+  const variantEntry = Object.values(variants).find(
+    (v) => v.missionName === mission
+  );
+  if (!variantEntry) {
     return res.send({
       status: "failure",
-      message: "This endpoint is only available for Reference-Mission mission.",
+      message: "This endpoint is only available for Reference Mission variants.",
     });
   }
 
@@ -1694,6 +1698,8 @@ router.post("/reference-mission/save-to-base", checkMissionPermission, function 
       message: "This endpoint is only available in development mode.",
     });
   }
+
+  const basePath = `./blueprints/Missions/${variantEntry.blueprintDir}/${variantEntry.configFile}`;
 
   // Get current working config
   Config.findOne({
@@ -1706,12 +1712,11 @@ router.post("/reference-mission/save-to-base", checkMissionPermission, function 
       if (!missionConfig) {
         return res.send({
           status: "failure",
-          message: "Reference-Mission mission not found.",
+          message: `${mission} mission not found.`,
         });
       }
 
       const config = missionConfig.config;
-      const basePath = "./blueprints/Missions/Reference-Mission/config.reference-mission.json";
 
       // Write config to base template location
       fs.writeFile(
@@ -1720,23 +1725,23 @@ router.post("/reference-mission/save-to-base", checkMissionPermission, function 
         "utf8",
         (err) => {
           if (err) {
-            logger("error", "Failed to save Reference-Mission config to base template.", req.originalUrl, req, err);
+            logger("error", `Failed to save ${mission} config to base template.`, req.originalUrl, req, err);
             return res.send({
               status: "failure",
               message: "Failed to save config to base template.",
             });
           }
 
-          logger("info", "Reference-Mission config saved to base template.", req.originalUrl, req);
+          logger("info", `${mission} config saved to base template.`, req.originalUrl, req);
           res.send({
             status: "success",
-            message: "Config saved to blueprints/Missions/Reference-Mission/config.reference-mission.json",
+            message: `Config saved to ${basePath}`,
           });
         }
       );
     })
     .catch((err) => {
-      logger("error", "Failed to retrieve Reference-Mission config.", req.originalUrl, req, err);
+      logger("error", `Failed to retrieve ${mission} config.`, req.originalUrl, req, err);
       res.send({
         status: "failure",
         message: "Failed to retrieve config.",
