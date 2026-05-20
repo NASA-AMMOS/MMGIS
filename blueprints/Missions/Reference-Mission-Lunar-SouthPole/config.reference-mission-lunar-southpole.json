@@ -4,7 +4,11 @@
     "missionFolderName": "Reference-Mission-Lunar-SouthPole",
     "site": "Lunar South Pole",
     "masterdb": false,
-    "view": [0, 0, 3],
+    "view": [
+      -90,
+      0,
+      2
+    ],
     "radius": {
       "major": "1737400",
       "minor": "1737400"
@@ -40,8 +44,8 @@
     "scalebar": true,
     "noscalebar": false,
     "coordinates": true,
-    "zoomcontrol": false,
-    "graticule": true,
+    "zoomcontrol": true,
+    "graticule": false,
     "miscellaneous": true,
     "timestamp": false,
     "radiusdivs": false,
@@ -86,9 +90,13 @@
           "initialOpacity": 1,
           "minZoom": 0,
           "maxNativeZoom": 2,
-          "maxZoom": 2,
+          "maxZoom": 6,
           "demparser": "",
           "throughTileServer": false,
+          "cogResampling": "nearest",
+          "cogExpressionEditable": false,
+          "cogTransform": false,
+          "cogColormap": "Accent",
           "style": {
             "brightness": 1,
             "contrast": 1,
@@ -98,7 +106,11 @@
           "time": {
             "enabled": false,
             "type": "requery",
-            "compositeTile": false
+            "compositeTile": false,
+            "refreshIntervalEnabled": false
+          },
+          "variables": {
+            "legendOrientation": "vertical"
           },
           "description": "Lunar south pole 100m/pixel basemap tiles."
         }
@@ -108,10 +120,53 @@
     }
   ],
   "tools": [
-    { "name": "Layers", "icon": "layers", "js": "LayersTool" },
-    { "name": "Legend", "icon": "format-list-bulleted-type", "js": "LegendTool" },
-    { "name": "Info", "icon": "information-variant", "js": "InfoTool" },
-    { "name": "Draw", "icon": "vector-polyline", "js": "DrawTool" },
-    { "name": "Measure", "icon": "ruler", "js": "MeasureTool" }
+    {
+      "name": "Layers",
+      "icon": "layers",
+      "js": "LayersTool"
+    },
+    {
+      "name": "Legend",
+      "icon": "format-list-bulleted-type",
+      "js": "LegendTool",
+      "variables": {
+        "displayOnStart": false,
+        "showHeadersInLegend": false
+      }
+    },
+    {
+      "name": "Info",
+      "icon": "information-variant",
+      "js": "InfoTool",
+      "variables": {
+        "sortAlphabetically": false
+      }
+    },
+    {
+      "name": "Draw",
+      "icon": "vector-polyline",
+      "js": "DrawTool",
+      "variables": {
+        "dynamicExtent": {
+          "enabled": false
+        },
+        "defaultDrawClipping": "over",
+        "leadsCanEditFileInfo": false,
+        "hoverLengthOnLines": false,
+        "defaultPublicFilter": false,
+        "defaultYoursOnlyFilter": true,
+        "defaultOnFilter": false
+      }
+    },
+    {
+      "name": "Measure",
+      "icon": "ruler",
+      "js": "MeasureTool",
+      "on": false,
+      "variables": {
+        "onlyShowDemIfLayerOn": false,
+        "defaultMode": "segment"
+      }
+    }
   ]
 }
