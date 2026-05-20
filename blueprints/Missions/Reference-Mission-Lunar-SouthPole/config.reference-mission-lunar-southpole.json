@@ -68,7 +68,45 @@
       "globe": 0
     }
   },
-  "layers": [],
+  "layers": [
+    {
+      "name": "Basemap",
+      "type": "header",
+      "uuid": "1d9926e5-2bac-4de8-996f-f70dfd39eb76",
+      "sublayers": [
+        {
+          "name": "South Pole 100m",
+          "uuid": "a4c8e1f2-7b3d-4e5a-9f6c-2d1e0b8a7c3f",
+          "type": "tile",
+          "visibility": true,
+          "sourceType": "url",
+          "url": "Layers/SPole_100m/{z}/{x}/{y}.png",
+          "tileformat": "tms",
+          "controlled": false,
+          "initialOpacity": 1,
+          "minZoom": 0,
+          "maxNativeZoom": 2,
+          "maxZoom": 2,
+          "demparser": "",
+          "throughTileServer": false,
+          "style": {
+            "brightness": 1,
+            "contrast": 1,
+            "saturation": 1,
+            "blend": "none"
+          },
+          "time": {
+            "enabled": false,
+            "type": "requery",
+            "compositeTile": false
+          },
+          "description": "Lunar south pole 100m/pixel basemap tiles."
+        }
+      ],
+      "expanded": true,
+      "description": ""
+    }
+  ],
   "tools": [
     { "name": "Layers", "icon": "layers", "js": "LayersTool" },
     { "name": "Legend", "icon": "format-list-bulleted-type", "js": "LegendTool" },

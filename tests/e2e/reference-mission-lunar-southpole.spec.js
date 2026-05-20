@@ -59,12 +59,20 @@ test.describe('Reference Mission Lunar South Pole - Smoke Tests', () => {
     expect(data.panels.globe).toBe(false);
   });
 
-  test('layers array is empty', async ({ page, request }) => {
+  test('layers contain South Pole 100m basemap', async ({ page, request }) => {
     const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
     const res = await request.get(
       `${baseURL}/api/configure/get?mission=${missionName}`
     );
     const data = await res.json();
-    expect(data.layers).toEqual([]);
+    expect(data.layers.length).toBeGreaterThan(0);
+    const basemapHeader = data.layers.find((l) => l.name === 'Basemap');
+    expect(basemapHeader).toBeDefined();
+    const spole = basemapHeader.sublayers.find(
+      (l) => l.name === 'South Pole 100m'
+    );
+    expect(spole).toBeDefined();
+    expect(spole.type).toBe('tile');
+    expect(spole.url).toContain('SPole_100m');
   });
 });
