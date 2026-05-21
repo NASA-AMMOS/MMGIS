@@ -5,6 +5,7 @@ const userModel = require("./models/user");
 let setup = {
   //Once the app initializes
   onceInit: (s) => {
+    router._authLimiter = s.authLimiter;
     s.app.use(s.ROOT_PATH + "/api/users", s.checkHeadersCodeInjection, router);
   },
   //Once the server starts

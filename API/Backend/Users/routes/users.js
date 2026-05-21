@@ -236,7 +236,7 @@ router.post("/signup", function (req, res, next) {
 /**
  * User login
  */
-router.post("/login", function (req, res) {
+router.post("/login", router._authLimiter || function(r,s,n){n()}, function (req, res) {
   let MMGISUser;
   try {
     let userCookie = req.cookies.MMGISUser;

@@ -70,6 +70,18 @@ const apilimiter = rateLimit({
   max: 20000, // limit each IP to 100 requests per windowMs
 });
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  message: { status: 'failure', message: 'Too many attempts, try again later.' },
+});
+
+const computeLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30,
+  message: { status: 'failure', message: 'Rate limit exceeded.' },
+});
+
 // Load the permissions.json file, which maps LDAP groups to permission sets.
 // This application has two permission sets: "users" and "admins".
 let permissions = {};
@@ -542,6 +554,8 @@ let s = {
   useSwaggerSchema,
   permissions,
   ROOT_PATH,
+  authLimiter,
+  computeLimiter,
 };
 
 // Trust first proxy

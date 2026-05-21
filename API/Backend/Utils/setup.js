@@ -2,6 +2,7 @@ const router = require("./routes/utils");
 let setup = {
   //Once the app initializes
   onceInit: (s) => {
+    router._computeLimiter = s.computeLimiter;
     s.app.use(
       s.ROOT_PATH + "/api/utils",
       s.ensureUser(),

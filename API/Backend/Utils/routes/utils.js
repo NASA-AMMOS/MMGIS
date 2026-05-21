@@ -290,7 +290,7 @@ router.get("/healthcheck", function (req, res) {
 // TODO: Remove or move to Setup structure. Some are definitely still used.
 
 //utils getprofile
-router.post("/getprofile", function (req, res) {
+router.post("/getprofile", router._computeLimiter || function(r,s,n){n()}, function (req, res) {
   const path = encodeURIComponent(req.body.path);
   const lat1 = encodeURIComponent(req.body.lat1);
   const lon1 = encodeURIComponent(req.body.lon1);
@@ -324,7 +324,7 @@ router.post("/getprofile", function (req, res) {
 });
 
 //utils getbands
-router.post("/getbands", function (req, res) {
+router.post("/getbands", router._computeLimiter || function(r,s,n){n()}, function (req, res) {
   const path = encodeURIComponent(req.body.path);
   const x = encodeURIComponent(req.body.x);
   const y = encodeURIComponent(req.body.y);
@@ -346,7 +346,7 @@ router.post("/getbands", function (req, res) {
 });
 
 //utils getminmax
-router.post("/getminmax", function (req, res) {
+router.post("/getminmax", router._computeLimiter || function(r,s,n){n()}, function (req, res) {
   const path = encodeURIComponent(req.body.path);
   const bands = encodeURIComponent(req.body.bands);
 
@@ -365,7 +365,7 @@ router.post("/getminmax", function (req, res) {
 });
 
 //utils ll2aerll
-router.post("/ll2aerll", function (req, res) {
+router.post("/ll2aerll", router._computeLimiter || function(r,s,n){n()}, function (req, res) {
   const lng = encodeURIComponent(req.body.lng);
   const lat = encodeURIComponent(req.body.lat);
   const height = encodeURIComponent(req.body.height);
@@ -408,7 +408,7 @@ router.post("/ll2aerll", function (req, res) {
 });
 
 //utils chronos (spice time converter)
-router.post("/chronice", function (req, res) {
+router.post("/chronice", router._computeLimiter || function(r,s,n){n()}, function (req, res) {
   const body = encodeURIComponent(req.body.body);
   const target = encodeURIComponent(req.body.target);
   const fromFormat = encodeURIComponent(req.body.from);
@@ -427,7 +427,7 @@ router.post("/chronice", function (req, res) {
 });
 
 //utils chronos (spice time converter)
-router.get("/proj42wkt", function (req, res) {
+router.get("/proj42wkt", router._computeLimiter || function(r,s,n){n()}, function (req, res) {
   const proj4 = encodeURIComponent(req.query.proj4);
 
   execFile(
