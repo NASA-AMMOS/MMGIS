@@ -98,7 +98,7 @@ MMGIS/
 ├── specs/                        # Feature specifications (retrospective + new)
 ├── docs/                         # Jekyll documentation site (docs/pages/)
 ├── Missions/                     # Mission data storage
-├── blueprints/                   # Mission templates (Reference-Mission)
+├── blueprints/                   # Mission templates and variants (see blueprints/README.md)
 ├── adjacent-servers/             # TiTiler, STAC, TiPG, Veloserver proxy configs
 ├── auxiliary/                    # GDAL tiling and data processing scripts
 ├── build/                        # Production build output (compiled frontend)

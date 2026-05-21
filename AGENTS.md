@@ -11,7 +11,7 @@
 
 - Use MCP tools, such as serena and playwright, when possible for code analysis, symbol navigation, and code modifications.
 - Local development uses hot-reloading — there is little reason to run `npm run build` during development.
-- New development work that depends on a specific configuration and/or data should often be included in the `/blueprints/Missions/Reference-Mission`. This Reference-Mission serves as a basis for demo, development, and testing. Site Admins can create a working Reference-Mission in `/Missions` via the Configure Page, and developers can update the blueprint itself.
+- New development work that depends on a specific configuration and/or data should often be included in a Reference Mission blueprint under `/blueprints/Missions/`. Multiple variants exist (Earth, Lunar South Pole, etc.) — see [blueprints/README.md](./blueprints/README.md) for the full list and instructions on adding new variants. Site Admins can create a working Reference Mission in `/Missions` via the Configure Page, and developers can update the blueprint itself.
 - For code pattern templates (Express routes, Sequelize models, Tool plugins, WebSocket handlers) and the detailed project structure, see [.knowledge/code-patterns.md](./.knowledge/code-patterns.md).
 
 ## Quick Start
@@ -35,7 +35,7 @@ Docker: `docker build -t mmgis . && docker-compose up -d`
 - **No raw SQL for data**: Use application APIs and UI workflows — never bypass the application layer with direct SQL.
 - **Admin auth always required**: CMS endpoints (`/api/configure/*`) require admin session even when `AUTH=off`.
 - **Database safety**: Never `DROP DATABASE` in app code. Test DBs only: `mmgis-test`, `mmgis-stac-test`.
-- **Reference Mission**: New features needing specific config/data should be added to `/blueprints/Missions/Reference-Mission`.
+- **Reference Mission**: New features needing specific config/data should be added to a Reference Mission blueprint. See [blueprints/README.md](./blueprints/README.md).
 - **Design system placement**: Generic UI components → `src/design-system/`. MMGIS-specific UI → `src/essence/Basics/UserInterface_/`.
 - **Spec-kit for features**: Significant new features follow: `/speckit.specify` → `/speckit.plan` → `/speckit.tasks` → `/speckit.implement` → `/speckit.checklist`.
 
@@ -64,7 +64,7 @@ MMGIS/
 ├── .knowledge/           # Agent context: setup, conventions, gotchas, code patterns
 ├── .specify/             # Spec-kit infrastructure + constitution
 ├── specs/                # Feature specifications (spec-kit)
-├── blueprints/           # Mission templates (Reference-Mission)
+├── blueprints/           # Mission templates and variants (see blueprints/README.md)
 ├── docs/                 # Jekyll documentation site (docs/pages/)
 ├── Missions/             # Mission data storage
 ├── adjacent-servers/     # TiTiler, STAC, TiPG, Veloserver proxy configs
