@@ -43,7 +43,7 @@ async function ensurePrerequisites(request, testCtx) {
  * resulting session over to subsequent `page.goto(...)` calls.
  */
 async function loginIfRequired(page) {
-  if ((process.env.AUTH || 'off') === 'off') return;
+  if (['off', 'none'].includes((process.env.AUTH || 'off').toLowerCase())) return;
 
   await page.goto('/');
   await page.locator('#username').waitFor({ state: 'visible', timeout: 10000 });
