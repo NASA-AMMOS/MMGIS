@@ -120,7 +120,7 @@ const logger = function (level, message, caller, req, err) {
     if (message) console.log(" ", sanitizeForLog(message));
     if (caller && level != "success" && level != "info" && level != "loaded")
       console.log("   Caller:", sanitizeForLog(caller));
-    if (err) console.log("   Error:", sanitizeForLog(String(err)));
+    if (err) console.log("   Error:", sanitizeForLog(err instanceof Error ? err.stack || String(err) : String(err)));
   } else {
     console.log(log);
   }
