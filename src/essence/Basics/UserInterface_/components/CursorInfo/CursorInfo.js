@@ -7,6 +7,7 @@
 */
 import $ from 'jquery'
 import { pointer } from 'd3-selection'
+import { safeHTML } from '../../../../services/Sanitize'
 
 var CursorInfo = {
     //The div that will follow the mouse around
@@ -116,13 +117,13 @@ var CursorInfo = {
             const keys = Object.keys(message)
             keys.forEach((k, idx) => {
                 if (typeof k === 'string')
-                    messageFormatted += `<span style="color: var(--color-a5);">${k.capitalizeFirstLetter()}:</span> ${
-                        message[k]
+                    messageFormatted += `<span style="color: var(--color-a5);">${safeHTML(k.capitalizeFirstLetter())}:</span> ${
+                        safeHTML(String(message[k]))
                     }${idx === keys.length - 1 ? '' : '\n'}`
             })
             CursorInfo.cursorInfoDiv.html(messageFormatted)
         } else {
-            if (asHTML) CursorInfo.cursorInfoDiv.html(message)
+            if (asHTML) CursorInfo.cursorInfoDiv.html(safeHTML(message))
             else CursorInfo.cursorInfoDiv.text(message)
         }
 

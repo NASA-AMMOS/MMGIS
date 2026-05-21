@@ -15,6 +15,7 @@ import { createRoot } from 'react-dom/client'
 import useUIStore from '../../store/uiStore'
 
 import styles from './Modal.module.css'
+import { safeHTML } from '../../../../services/Sanitize'
 
 // ── Shared state store (singleton, subscribed to by ModalHost) ──────────
 
@@ -97,7 +98,7 @@ function ModalInstance({ modalId, content, closing }) {
         >
             <div className={styles.popup}>
                 {isHtmlString ? (
-                    <div dangerouslySetInnerHTML={{ __html: content }} />
+                    <div dangerouslySetInnerHTML={{ __html: safeHTML(content) }} />
                 ) : (
                     content
                 )}

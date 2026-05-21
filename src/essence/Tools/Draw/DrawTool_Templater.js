@@ -1,4 +1,5 @@
 import $ from 'jquery'
+import { safeHTML } from '../../services/Sanitize'
 
 import F_ from '../../Basics/Formulae_/Formulae_'
 import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
@@ -718,7 +719,7 @@ const DrawTool_Templater = {
 
                 li.find('.drawToolTemplaterPointNameDropdown').html(
                     Dropy.construct(
-                        processedNameOptions,
+                        processedNameOptions.map(opt => safeHTML(opt)),
                         'Point Name',
                         selectedIdx,
                         {
