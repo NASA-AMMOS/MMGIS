@@ -141,6 +141,18 @@ if (sessionSecret.length < 24) {
   );
   process.exit(1);
 }
+// Public static assets - served before session middleware to avoid unnecessary cookies
+app.use(`${ROOT_PATH}/public`, express.static(path.join(rootDir, "/public")));
+app.use(
+  `${ROOT_PATH}/README.md`,
+  express.static(path.join(rootDir, "/README.md")),
+);
+if (process.argv.includes("--with_examples"))
+  app.use(
+    `${ROOT_PATH}/examples`,
+    express.static(path.join(rootDir, "/examples")),
+  );
+
 app.use(
   session({
     secret: sessionSecret,
@@ -673,7 +685,7 @@ setups.getBackendSetups(function (setups) {
       ),
     );
 
-  // STATICS
+  // Authenticated static routes - must remain after session middleware
 
   app.use(
     `${ROOT_PATH}/build`,
@@ -686,10 +698,6 @@ setups.getBackendSetups(function (setups) {
     express.static(path.join(rootDir, "/docs")),
   );
   app.use(
-    `${ROOT_PATH}/README.md`,
-    express.static(path.join(rootDir, "/README.md")),
-  );
-  app.use(
     `${ROOT_PATH}/configure/build`,
     ensureUser(),
     express.static(path.join(rootDir, "/configure/build")),
@@ -700,12 +708,6 @@ setups.getBackendSetups(function (setups) {
     express.static(path.join(rootDir, "/configure/public")),
   );
 
-  if (process.argv.includes("--with_examples"))
-    app.use(
-      `${ROOT_PATH}/examples`,
-      express.static(path.join(rootDir, "/examples")),
-    );
-  app.use(`${ROOT_PATH}/public`, express.static(path.join(rootDir, "/public")));
   app.use(
     `${ROOT_PATH}/Missions`,
     ensureUser(),
