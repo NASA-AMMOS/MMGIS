@@ -149,11 +149,7 @@ jobs:
             image=moby/buildkit:latest
 
       - name: Docker buildx build and push (ARM64)
-        permissions:
-  contents: read
-  packages: write
-
-env:
+        env:
           DOCKER_BUILDKIT: 1
         run: |
           IMAGE_ID="${{ needs.generate-tags.outputs.image-id }}"
@@ -198,11 +194,7 @@ env:
             image=moby/buildkit:latest
 
       - name: Docker buildx build and push (AMD64)
-        permissions:
-  contents: read
-  packages: write
-
-env:
+        env:
           DOCKER_BUILDKIT: 1
         run: |
           IMAGE_ID="${{ needs.generate-tags.outputs.image-id }}"
