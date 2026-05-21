@@ -5,12 +5,16 @@ on:
     branches:
       - development
       - sonarcloud_action
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   sonarqube:
     name: SonarQube
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
       - name: Extract version from package.json
@@ -20,11 +24,11 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "Extracted version: $VERSION"
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3
         with:
           config-file: ./.github/codeql/codeql-config.yml
       - name: CodeQL Scan
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3
       - name: Prepare SARIF Files
         run: |
           results_dir=`realpath ${{ github.workspace }}/../results`
@@ -61,7 +65,7 @@ jobs:
           echo "SARIF files for SonarQube:"
           echo "$sarif_list"
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:

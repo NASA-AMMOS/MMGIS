@@ -21,14 +21,14 @@ jobs:
 
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.head_ref }} # Check out the PR branch, not merge commit
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "20"
 
@@ -61,7 +61,7 @@ jobs:
               echo "✓ All version changes were made by the bot, checking if date is current..."
 
               # Get current version and extract date
-              CURRENT_VERSION=$(node -p "require('./package.json').version")
+              CURRENT_VERSION=$(jq -r .version package.json)
               VERSION_DATE=$(echo $CURRENT_VERSION | grep -oE '[0-9]{8}$' || echo "")
 
               if [ "$VERSION_DATE" == "$TODAY" ]; then
@@ -74,7 +74,7 @@ jobs:
               fi
             else
               echo "✓ Version was manually updated by a user"
-              CURRENT_VERSION=$(node -p "require('./package.json').version")
+              CURRENT_VERSION=$(jq -r .version package.json)
               echo "needs_bump=false" >> $GITHUB_OUTPUT
               echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
             fi
@@ -91,7 +91,7 @@ jobs:
           DATE=$(date +%Y%m%d)
 
           # Read current version from package.json
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          CURRENT_VERSION=$(jq -r .version package.json)
           echo "Current version: $CURRENT_VERSION"
 
           # Strip any existing date suffix (e.g., 4.1.1-20251022 -> 4.1.1)
@@ -116,22 +116,12 @@ jobs:
           fi
 
           # Update package.json
-          node -e "
-            const fs = require('fs');
-            const pkg = require('./package.json');
-            pkg.version = '$NEW_VERSION';
-            fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
+          jq --arg v "$NEW_VERSION" '.version = $v' package.json > tmp.json && mv tmp.json package.json
           echo "✓ Updated package.json"
 
           # Update configure/package.json (with error handling)
           if [ -f configure/package.json ]; then
-            node -e "
-              const fs = require('fs');
-              const pkg = require('./configure/package.json');
-              pkg.version = '$NEW_VERSION';
-              fs.writeFileSync('./configure/package.json', JSON.stringify(pkg, null, 2) + '\n');
-            "
+            jq --arg v "$NEW_VERSION" '.version = $v' configure/package.json > tmp.json && mv tmp.json configure/package.json
             echo "✓ Updated configure/package.json"
           else
             echo "ℹ configure/package.json not found, skipping"
@@ -168,7 +158,7 @@ jobs:
 
       - name: Comment on PR - Version Auto-Bumped
         if: steps.check.outputs.needs_bump == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const comment = `## 🤖 Version Auto-Bumped
@@ -214,7 +204,7 @@ jobs:
 
       - name: Comment on PR - Version Already Updated
         if: steps.check.outputs.needs_bump == 'false'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const comment = `## ✅ Version Already Updated
