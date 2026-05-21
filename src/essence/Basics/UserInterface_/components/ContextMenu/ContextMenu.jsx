@@ -114,7 +114,7 @@ function ContextMenuPopup({ x, y, featuresAtClick, contextMenuActions, onClose }
     return (
         <div
             ref={menuRef}
-            className={styles.menu}
+            className={`${styles.menu} ContextMenuMap`}
             style={{ left: x, top: y, maxHeight: window.innerHeight - y }}
             onMouseLeave={onClose}
         >
@@ -123,7 +123,7 @@ function ContextMenuPopup({ x, y, featuresAtClick, contextMenuActions, onClose }
                 <div className={styles.cursorDot} />
             </div>
             <ul className={styles.list}>
-                <li className={styles.item} onClick={handleCopyCoords}>
+                <li id="contextMenuMapCopyCoords" className={styles.item} onClick={handleCopyCoords}>
                     {copiedCoords ? 'Copied!' : 'Copy Coordinates'}
                 </li>
 

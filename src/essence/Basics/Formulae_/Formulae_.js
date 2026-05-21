@@ -2048,23 +2048,32 @@ var Formulae_ = {
      * @credit https://hackernoon.com/copying-text-to-clipboard-with-javascript-df4d4988697f
      */
     copyToClipboard(text) {
-        const el = document.createElement('textarea') // Create a <textarea> element
-        el.value = text // Set its value to the string that you want copied
-        el.setAttribute('readonly', '') // Make it readonly to be tamper-proof
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch(() => {
+                // Fallback for when clipboard API fails (e.g., non-secure context)
+                this._copyToClipboardFallback(text)
+            })
+        } else {
+            this._copyToClipboardFallback(text)
+        }
+    },
+    _copyToClipboardFallback(text) {
+        const el = document.createElement('textarea')
+        el.value = text
+        el.setAttribute('readonly', '')
         el.style.position = 'absolute'
-        el.style.left = '-9999px' // Move outside the screen to make it invisible
-        document.body.appendChild(el) // Append the <textarea> element to the HTML document
+        el.style.left = '-9999px'
+        document.body.appendChild(el)
         const selected =
-            document.getSelection().rangeCount > 0 // Check if there is any content selected previously
-                ? document.getSelection().getRangeAt(0) // Store selection if found
-                : false // Mark as false to know no selection existed before
-        el.select() // Select the <textarea> content
-        document.execCommand('copy') // Copy - only works as a result of a user action (e.g. click events)
-        document.body.removeChild(el) // Remove the <textarea> element
+            document.getSelection().rangeCount > 0
+                ? document.getSelection().getRangeAt(0)
+                : false
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
         if (selected) {
-            // If a selection existed before copying
-            document.getSelection().removeAllRanges() // Unselect everything on the HTML document
-            document.getSelection().addRange(selected) // Restore the original selection
+            document.getSelection().removeAllRanges()
+            document.getSelection().addRange(selected)
         }
     },
     speedToMetersPerSeconds(speed, fromUnit) {

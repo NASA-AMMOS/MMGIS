@@ -3,6 +3,7 @@
     flex-direction: column;
     height: 100%;
     color: var(--color-l);
+    background: var(--color-a);
 }
 
 #segmentToolHeader {
