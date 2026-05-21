@@ -377,7 +377,7 @@ var Files = {
                     "<div class='drawToolIntentColor' style='height: 100%; width: 7px; background: " + DrawTool.categoryStyles[file.intent].color + "'></div>",
                     "<div class='drawToolFileInfo'>",
                         "<i title='Owned by you!' class='drawToolFileOwner mdi" + (file.is_master ? ' mdi-account-tie' : isAllEdit ? ' mdi-account-group' : isListEdit ? ' mdi-account-multiple' : (ownedByUser) ? ' mdi-account' : '' ) + " mdi-18px " + ( (file.is_master || ownedByUser || isAllEdit || isListEdit) ? 'alwaysShow' : '' )  + "' style='pointer-events: " + ( (ownedByUser) ? 'all' : 'none' ) + "' file_id='" + file.id + "'></i>",
-                        `<div class='drawToolFileName' title='${file.file_name}\nIntent: ${file.intent}\nAuthor: ${file.file_owner}\nId: ${file.id}\nSelect to draw in,\nInfo button for information,\nCheck-box to toggle on,\nRight-Click for actions'>${safeHTML(file.file_name)}</div>`,
+                        `<div class='drawToolFileName' title='${String(file.file_name).replace(/'/g, "&apos;")}\nIntent: ${String(file.intent).replace(/'/g, "&apos;")}\nAuthor: ${String(file.file_owner).replace(/'/g, "&apos;")}\nId: ${file.id}\nSelect to draw in,\nInfo button for information,\nCheck-box to toggle on,\nRight-Click for actions'>${safeHTML(file.file_name)}</div>`,
                     "</div>",
                     "</div>",
                     "<div class='flexbetween'>",
