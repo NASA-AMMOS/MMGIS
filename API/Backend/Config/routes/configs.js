@@ -255,7 +255,7 @@ async function createReferenceMission(req, res, cb) {
   const variantKey = req.body.referenceMissionVariant || (typeof req.body.setupReferenceMission === 'string' && req.body.setupReferenceMission) || "default";
   const variants = missionTemplates.REFERENCE_MISSION_VARIANTS;
 
-  if (!variants[variantKey]) {
+  if (!Object.hasOwn(variants, variantKey)) {
     const validKeys = Object.keys(variants).join(", ");
     const errorResponse = {
       status: "failure",
