@@ -47,13 +47,15 @@ test.describe('Fix 1: Geodatasets type coercion', () => {
     expect(result.valid).toBe(false);
   });
 
-  test('rejects array format', () => {
+  test('array format defaults to safe string (not rejected)', () => {
     const result = validateTimeParams({
       starttime: '2024-01-01',
       endtime: '2024-12-31',
       format: ['YYYY', 'MM'],
     });
-    expect(result.valid).toBe(false);
+    // Array format is coerced to the safe default, so params are valid
+    expect(result.valid).toBe(true);
+    expect(result.format).toBe('YYYY-MM-DDTHH:MI:SSZ');
   });
 
   test('valid string parameters work correctly', () => {

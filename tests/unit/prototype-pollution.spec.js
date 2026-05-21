@@ -94,9 +94,9 @@ test.describe('Fix 2: Prototype pollution guards', () => {
       attributes[element] = { type: 'STRING', unique: false, allowNull: true };
     });
     expect(Object.keys(attributes)).toEqual(['name', 'value', 'valid_col']);
-    expect(attributes['__proto__']).toBeUndefined();
-    expect(attributes['constructor']).toBeUndefined();
-    expect(attributes['prototype']).toBeUndefined();
+    expect(Object.prototype.hasOwnProperty.call(attributes, '__proto__')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(attributes, 'constructor')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(attributes, 'prototype')).toBe(false);
   });
 
   test('field names with __proto__ are blocked in datasets route', () => {
