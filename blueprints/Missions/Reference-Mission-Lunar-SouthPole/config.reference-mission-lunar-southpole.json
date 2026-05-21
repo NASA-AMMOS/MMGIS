@@ -117,6 +117,32 @@
       ],
       "expanded": true,
       "description": ""
+    },
+    {
+      "name": "Vectors",
+      "type": "header",
+      "uuid": "b5e3f1a7-9c2d-4a8b-b0d6-3e7f5c1a9d24",
+      "sublayers": [
+        {
+          "name": "South Pole Traverse",
+          "type": "vector",
+          "url": "Layers/Vectors/traverse-to-south-pole.geojson",
+          "initialOpacity": 1,
+          "visibility": true,
+          "style": {
+            "className": "southpoletraverse",
+            "strokeColor": "#00ccff",
+            "strokeWeight": 3,
+            "strokeOpacity": 0.9
+          },
+          "description": "Meandering traverse route from -60 lat to the south pole.",
+          "demparser": "",
+          "controlled": false,
+          "uuid": "c7d4e2f3-8a1b-4c5d-9e0f-6b2a3d4c5e6f"
+        }
+      ],
+      "expanded": true,
+      "description": ""
     }
   ],
   "tools": [
