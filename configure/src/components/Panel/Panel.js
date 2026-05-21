@@ -121,6 +121,7 @@ const useStyles = makeStyles((theme) => ({
     color: `${theme.palette.swatches.grey[900]} !important`,
     textTransform: "capitalize !important",
     justifyContent: "end !important",
+    textAlign: "right !important",
     fontSize: "16px !important",
     padding: "3px 16px !important",
     transition:
