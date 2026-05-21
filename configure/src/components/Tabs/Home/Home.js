@@ -25,6 +25,11 @@ import UploadConfigModal from "./Modals/UploadConfigModal/UploadConfigModal";
 import CloneConfigModal from "./Modals/CloneConfigModal/CloneConfigModal";
 import DeleteConfigModal from "./Modals/DeleteConfigModal/DeleteConfigModal";
 
+const REFERENCE_MISSION_NAMES = new Set([
+  "Reference-Mission",
+  "Reference-Mission-Lunar-SouthPole",
+]);
+
 const useStyles = makeStyles((theme) => ({
   Home: {
     width: "100%",
@@ -229,7 +234,7 @@ export default function Home() {
                 <DeleteForeverIcon fontSize="medium" />
               </IconButton>
             </Tooltip>
-            {mission === "Reference-Mission" && isDevelopment && (
+            {REFERENCE_MISSION_NAMES.has(mission) && isDevelopment && (
               <Button
                 variant="contained"
                 color="success"

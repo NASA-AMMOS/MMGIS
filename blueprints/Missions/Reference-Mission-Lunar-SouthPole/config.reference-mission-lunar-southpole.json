@@ -1,0 +1,198 @@
+{
+  "msv": {
+    "mission": "Reference-Mission-Lunar-SouthPole",
+    "missionFolderName": "Reference-Mission-Lunar-SouthPole",
+    "site": "Lunar South Pole",
+    "masterdb": false,
+    "view": [
+      -90,
+      0,
+      2
+    ],
+    "radius": {
+      "major": "1737400",
+      "minor": "1737400"
+    },
+    "mapscale": "3"
+  },
+  "projection": {
+    "custom": true,
+    "epsg": "IAU2000:30120",
+    "proj": "+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=1737400 +b=1737400 +units=m +no_defs",
+    "globeproj": "",
+    "xmlpath": "",
+    "bounds": [
+      "-1095700",
+      "-1095600",
+      "1095600",
+      "1095700"
+    ],
+    "origin": [
+      "-1095700",
+      "-1095600"
+    ],
+    "reszoomlevel": "0",
+    "resunitsperpixel": "12800.00000000000000"
+  },
+  "look": {
+    "pagename": "MMGIS Lunar South Pole",
+    "missionname": "Lunar South Pole",
+    "missionsubtitle": "Reference Mission - South Polar Stereographic",
+    "minimalist": false,
+    "topbar": true,
+    "toolbar": true,
+    "scalebar": true,
+    "noscalebar": false,
+    "coordinates": true,
+    "zoomcontrol": true,
+    "graticule": false,
+    "miscellaneous": true,
+    "timestamp": false,
+    "radiusdivs": false,
+    "bodycolor": "",
+    "topbarcolor": "",
+    "toolbarcolor": "",
+    "mapcolor": "",
+    "swap": true,
+    "copylink": true,
+    "screenshot": true,
+    "fullscreen": true,
+    "help": true,
+    "logourl": "",
+    "helpurl": "",
+    "aboutModalContent": ""
+  },
+  "panels": {
+    "viewer": true,
+    "map": true,
+    "globe": false,
+    "defaultWidths": {
+      "viewer": 0,
+      "map": 100,
+      "globe": 0
+    }
+  },
+  "layers": [
+    {
+      "name": "Vectors",
+      "type": "header",
+      "uuid": "b5e3f1a7-9c2d-4a8b-b0d6-3e7f5c1a9d24",
+      "sublayers": [
+        {
+          "name": "South Pole Traverse",
+          "type": "vector",
+          "url": "Layers/Vectors/traverse-to-south-pole.geojson",
+          "initialOpacity": 1,
+          "visibility": true,
+          "style": {
+            "className": "southpoletraverse",
+            "strokeColor": "#00ccff",
+            "strokeWeight": 3,
+            "strokeOpacity": 0.9
+          },
+          "description": "Meandering traverse route from -60 lat to the south pole.",
+          "demparser": "",
+          "controlled": false,
+          "uuid": "c7d4e2f3-8a1b-4c5d-9e0f-6b2a3d4c5e6f"
+        }
+      ],
+      "expanded": true,
+      "description": ""
+    },
+    {
+      "name": "Basemap",
+      "type": "header",
+      "uuid": "1d9926e5-2bac-4de8-996f-f70dfd39eb76",
+      "sublayers": [
+        {
+          "name": "South Pole 100m",
+          "uuid": "a4c8e1f2-7b3d-4e5a-9f6c-2d1e0b8a7c3f",
+          "type": "tile",
+          "visibility": true,
+          "sourceType": "url",
+          "url": "Layers/SPole_100m/{z}/{x}/{y}.png",
+          "tileformat": "tms",
+          "controlled": false,
+          "initialOpacity": 1,
+          "minZoom": 0,
+          "maxNativeZoom": 2,
+          "maxZoom": 6,
+          "demparser": "",
+          "throughTileServer": false,
+          "cogResampling": "nearest",
+          "cogExpressionEditable": false,
+          "cogTransform": false,
+          "cogColormap": "Accent",
+          "style": {
+            "brightness": 1,
+            "contrast": 1,
+            "saturation": 1,
+            "blend": "none"
+          },
+          "time": {
+            "enabled": false,
+            "type": "requery",
+            "compositeTile": false,
+            "refreshIntervalEnabled": false
+          },
+          "variables": {
+            "legendOrientation": "vertical"
+          },
+          "description": "Lunar south pole 100m/pixel basemap tiles."
+        }
+      ],
+      "expanded": true,
+      "description": ""
+    }
+  ],
+  "tools": [
+    {
+      "name": "Layers",
+      "icon": "layers",
+      "js": "LayersTool"
+    },
+    {
+      "name": "Legend",
+      "icon": "format-list-bulleted-type",
+      "js": "LegendTool",
+      "variables": {
+        "displayOnStart": false,
+        "showHeadersInLegend": false
+      }
+    },
+    {
+      "name": "Info",
+      "icon": "information-variant",
+      "js": "InfoTool",
+      "variables": {
+        "sortAlphabetically": false
+      }
+    },
+    {
+      "name": "Draw",
+      "icon": "vector-polyline",
+      "js": "DrawTool",
+      "variables": {
+        "dynamicExtent": {
+          "enabled": false
+        },
+        "defaultDrawClipping": "over",
+        "leadsCanEditFileInfo": false,
+        "hoverLengthOnLines": false,
+        "defaultPublicFilter": false,
+        "defaultYoursOnlyFilter": true,
+        "defaultOnFilter": false
+      }
+    },
+    {
+      "name": "Measure",
+      "icon": "ruler",
+      "js": "MeasureTool",
+      "on": false,
+      "variables": {
+        "onlyShowDemIfLayerOn": false,
+        "defaultMode": "segment"
+      }
+    }
+  ]
+}

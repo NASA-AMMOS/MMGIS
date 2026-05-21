@@ -7,12 +7,53 @@ const { sequelize } = require('../../connection');
 const Utils = require('../../utils.js');
 
 /**
+ * Registry of Reference Mission variants.
+ * Each key is a variant identifier; "default" is the original Earth demo.
+ */
+const REFERENCE_MISSION_VARIANTS = {
+    default: {
+        missionName: 'Reference-Mission',
+        blueprintDir: 'Reference-Mission',
+        configFile: 'config.reference-mission.json',
+        label: 'Earth (Default)',
+        description: 'Comprehensive Earth demo with 20+ layers and 14 tools',
+    },
+    'Lunar-SouthPole': {
+        missionName: 'Reference-Mission-Lunar-SouthPole',
+        blueprintDir: 'Reference-Mission-Lunar-SouthPole',
+        configFile: 'config.reference-mission-lunar-southpole.json',
+        label: 'Lunar South Pole',
+        description: 'South polar stereographic mission (IAU2000:30120)',
+    },
+};
+
+/**
+ * Resolve a variant key to its blueprint source path and mission name.
+ * @param {string} variantKey - Key from REFERENCE_MISSION_VARIANTS (e.g. "default", "Lunar-SouthPole")
+ * @returns {{ sourcePath: string, missionName: string, configFile: string } | null}
+ */
+function resolveVariantBlueprintPath(variantKey) {
+    const variant = REFERENCE_MISSION_VARIANTS[variantKey];
+    if (!variant) return null;
+    return {
+        sourcePath: path.resolve('./blueprints/Missions', variant.blueprintDir),
+        missionName: variant.missionName,
+        configFile: variant.configFile,
+    };
+}
+
+/**
  * Create a complete Reference Mission copy
- * @param {string} missionName - Mission name (always "Reference-Mission")
+ * @param {string} missionName - Mission name
+ * @param {string} [variantKey='default'] - Variant key from REFERENCE_MISSION_VARIANTS
  * @returns {Promise<Object>} Reference Mission config with updated mission fields
  */
-async function createReferenceMission(missionName) {
-    const sourcePath = path.resolve('./blueprints/Missions/Reference-Mission');
+async function createReferenceMission(missionName, variantKey) {
+    const resolved = resolveVariantBlueprintPath(variantKey || 'default');
+    if (!resolved) {
+        throw new Error(`Unknown reference mission variant: ${variantKey}`);
+    }
+    const sourcePath = resolved.sourcePath;
     const destPath = path.resolve('./Missions', missionName);
 
     try {
@@ -33,7 +74,7 @@ async function createReferenceMission(missionName) {
         logger('info', `Copied Reference Mission blueprint to ${destPath}`, null, null);
 
         // 3. Always read config from template source
-        const templateConfigPath = path.join(sourcePath, 'config.reference-mission.json');
+        const templateConfigPath = path.join(sourcePath, resolved.configFile);
         const configData = await fs.readFile(templateConfigPath, 'utf8');
         const referenceMissionConfig = JSON.parse(configData);
 
@@ -41,11 +82,11 @@ async function createReferenceMission(missionName) {
         const customConfig = customizeReferenceMissionConfig(referenceMissionConfig, missionName);
 
         // 5. Set up geodatasets from blueprint Geodatasets/ directory
-        const geodatasetResult = await setupReferenceGeodatasets(missionName);
+        const geodatasetResult = await setupReferenceGeodatasets(missionName, sourcePath);
         logger('info', `Reference Mission geodatasets: ${geodatasetResult.created} created, ${geodatasetResult.errors} errors`, null, null);
 
         // 6. Set up STAC collections and items from blueprint STAC/ directory (if WITH_STAC=true)
-        const stacResult = await setupReferenceSTAC(missionName);
+        const stacResult = await setupReferenceSTAC(missionName, sourcePath);
         if (process.env.WITH_STAC === 'true') {
             logger('info', `Reference Mission STAC: ${stacResult.created} items upserted, ${stacResult.errors} errors`, null, null);
         }
@@ -94,11 +135,6 @@ function customizeReferenceMissionConfig(referenceMissionConfig, missionName) {
     config.msv.mission = missionName;
     config.msv.missionFolderName = missionName;
 
-    // Keep display name as "Reference Mission"
-    config.look.pagename = 'MMGIS Reference Mission';
-    config.look.missionname = 'Reference Mission';
-    config.look.missionsubtitle = 'Reference Mission Demo';
-
     // Add required fields to all layers for Configure Page compatibility
     addRequiredLayerFields(config.layers);
 
@@ -131,11 +167,14 @@ function addRequiredLayerFields(layers) {
  * Each .geojson file in blueprints/Missions/Reference-Mission/Geodatasets/ becomes a
  * geodataset named "{missionSlug}-{filename_without_ext}".
  * Only geodatasets for this specific mission (by slug) are deleted/recreated.
- * @param {string} missionName - Mission name (e.g. "Reference-Mission", "Reference-Mission-Moon")
+ * @param {string} missionName - Mission name (e.g. "Reference-Mission", "Reference-Mission-Lunar-SouthPole")
+ * @param {string} [blueprintSourcePath] - Blueprint source directory path
  * @returns {Promise<{created: number, errors: number}>}
  */
-async function setupReferenceGeodatasets(missionName) {
-    const geodatasetsDir = path.resolve('./blueprints/Missions/Reference-Mission/Geodatasets');
+async function setupReferenceGeodatasets(missionName, blueprintSourcePath) {
+    const geodatasetsDir = blueprintSourcePath
+        ? path.join(blueprintSourcePath, 'Geodatasets')
+        : path.resolve('./blueprints/Missions/Reference-Mission/Geodatasets');
     const missionSlug = missionName.toLowerCase();
 
     try {
@@ -227,15 +266,18 @@ async function setupReferenceGeodatasets(missionName) {
  * Each subdirectory in blueprints/Missions/Reference-Mission/STAC/ becomes a STAC collection
  * named "{missionSlug}_{dirName_with_underscores}". Only runs when WITH_STAC=true.
  * @param {string} missionName - Mission name (e.g. "Reference-Mission")
+ * @param {string} [blueprintSourcePath] - Blueprint source directory path
  * @returns {Promise<{created: number, errors: number}>}
  */
-async function setupReferenceSTAC(missionName) {
+async function setupReferenceSTAC(missionName, blueprintSourcePath) {
     if (process.env.WITH_STAC !== 'true') {
         logger('info', 'WITH_STAC not enabled, skipping STAC setup for Reference Mission', null, null);
         return { created: 0, errors: 0 };
     }
 
-    const stacBlueprintDir = path.resolve('./blueprints/Missions/Reference-Mission/STAC');
+    const stacBlueprintDir = blueprintSourcePath
+        ? path.join(blueprintSourcePath, 'STAC')
+        : path.resolve('./blueprints/Missions/Reference-Mission/STAC');
     const missionSlug = missionName.toLowerCase().replace(/-/g, '_');
     const stacUrl = `http://${process.env.IS_DOCKER === 'true' ? 'stac-fastapi' : 'localhost'}:${process.env.STAC_PORT || 8881}`;
 
@@ -390,4 +432,6 @@ async function setupReferenceSTAC(missionName) {
 
 module.exports = {
     createReferenceMission,
+    REFERENCE_MISSION_VARIANTS,
+    resolveVariantBlueprintPath,
 };
