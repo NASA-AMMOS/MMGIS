@@ -30,7 +30,9 @@ function makeNewDatasetTable(name, columns, success, failure) {
 
   let attributes = {};
 
+  const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
   columns.forEach((element) => {
+    if (DANGEROUS_KEYS.has(element)) return;
     attributes[element] = {
       type: Sequelize.STRING,
       unique: false,

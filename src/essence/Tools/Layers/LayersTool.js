@@ -380,7 +380,7 @@ var LayersTool = {
             }${units || ''}`
             if (i !== 0 && i !== 8) {
                 // Match all id
-                $(`[id=tileCogLegend_${i}]`).html(label)
+                $(`[id=tileCogLegend_${i}]`).text(label)
             }
 
             let color

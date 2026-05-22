@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [master, main, development]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     timeout-minutes: 30
@@ -31,10 +34,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "18"
           cache: "npm"
@@ -46,7 +49,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Setup Python for adjacent servers
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
 
@@ -88,7 +91,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: playwright-report-${{ matrix.auth_mode }}
           path: playwright-report/
@@ -96,7 +99,7 @@ jobs:
 
       - name: Upload test artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: test-results-${{ matrix.auth_mode }}
           path: test-results/
