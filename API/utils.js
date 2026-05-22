@@ -63,9 +63,11 @@ const Utils = {
     else object[keyArray[keyArray.length - 1]] = value;
     return true;
   },
+  DANGEROUS_KEYS: new Set(['__proto__', 'constructor', 'prototype']),
   setIn2: function (obj, keyArray, value, force) {
     if (keyArray == null || keyArray.length === 0) return null;
     if (typeof keyArray === "string") keyArray = keyArray.split(".");
+    if (keyArray.some(k => Utils.DANGEROUS_KEYS.has(k))) return null;
     let object = obj;
     for (let i = 0; i < keyArray.length - 1; i++) {
       if (force) {

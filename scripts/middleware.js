@@ -6,7 +6,7 @@ const logger = require("../API/logger");
 const rootDir = `${__dirname}/..`;
 const rootDirMissions = `${rootDir}/Missions`;
 
-const dirStore = {};
+const dirStore = Object.create(null);
 const DIR_STORE_MAX_AGE =
   process.env.COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS == null ||
   isNaN(parseInt(process.env.COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS))

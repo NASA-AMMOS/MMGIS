@@ -173,29 +173,31 @@ function get(reqtype, req, res, next) {
           let endProp = "end_time";
           let end_time = "";
           if (req.query?.endtime != null) {
-            const format = req.query?.format || "YYYY-MM-DDTHH:MI:SSZ";
+            const starttime = typeof req.query?.starttime === 'string' ? req.query.starttime : null;
+            const endtime = typeof req.query?.endtime === 'string' ? req.query.endtime : null;
+            const format = typeof req.query?.format === 'string' ? req.query.format : "YYYY-MM-DDTHH:MI:SSZ";
             let t = ` `;
             if (!hasBounds) t += `WHERE `;
             else t += `AND `;
 
             if (
-              req.query?.starttime == null ||
-              req.query?.starttime.indexOf(`'`) != -1 ||
-              req.query?.endtime == null ||
-              req.query?.endtime.indexOf(`'`) != -1 ||
+              starttime == null ||
+              starttime.indexOf(`'`) != -1 ||
+              endtime == null ||
+              endtime.indexOf(`'`) != -1 ||
               format.indexOf(`'`) != -1
             ) {
               res.send({
                 status: "failure",
-                message: "Missing inner or malformed time parameters.",
+                message: "Missing or malformed time parameters.",
               });
               return;
             }
 
             start_time = new Date(
-              req.query.starttime || "1970-01-01T00:00:00Z"
+              starttime || "1970-01-01T00:00:00Z"
             ).getTime();
-            end_time = new Date(req.query.endtime).getTime();
+            end_time = new Date(endtime).getTime();
 
             startProp = Utils.forceAlphaNumUnder(
               req.query.startProp || startProp
@@ -639,28 +641,30 @@ router.post("/intersect", function (req, res, next) {
         let endProp = "end_time";
         let end_time = "";
         if (req.body?.endtime != null) {
-          const format = req.body?.format || "YYYY-MM-DDTHH:MI:SSZ";
+          const starttime = typeof req.body?.starttime === 'string' ? req.body.starttime : null;
+          const endtime = typeof req.body?.endtime === 'string' ? req.body.endtime : null;
+          const format = typeof req.body?.format === 'string' ? req.body.format : "YYYY-MM-DDTHH:MI:SSZ";
           let t = ` `;
           t += `AND `;
 
           if (
-            req.body?.starttime == null ||
-            req.body?.starttime.indexOf(`'`) != -1 ||
-            req.body?.endtime == null ||
-            req.body?.endtime.indexOf(`'`) != -1 ||
+            starttime == null ||
+            starttime.indexOf(`'`) != -1 ||
+            endtime == null ||
+            endtime.indexOf(`'`) != -1 ||
             format.indexOf(`'`) != -1
           ) {
             res.send({
               status: "failure",
-              message: "Missing inner or malformed time parameters.",
+              message: "Missing or malformed time parameters.",
             });
             return;
           }
 
           start_time = new Date(
-            req.body.starttime || "1970-01-01T00:00:00Z"
+            starttime || "1970-01-01T00:00:00Z"
           ).getTime();
-          end_time = new Date(req.body.endtime).getTime();
+          end_time = new Date(endtime).getTime();
 
           startProp = Utils.forceAlphaNumUnder(req.body.startProp || startProp);
           endProp = Utils.forceAlphaNumUnder(req.body.endProp || endProp);
@@ -799,29 +803,31 @@ router.get("/aggregations", function (req, res, next) {
         let endProp = "end_time";
         let end_time = "";
         if (req.query?.endtime != null) {
-          const format = req.query?.format || "YYYY-MM-DDTHH:MI:SSZ";
+          const starttime = typeof req.query?.starttime === 'string' ? req.query.starttime : null;
+          const endtime = typeof req.query?.endtime === 'string' ? req.query.endtime : null;
+          const format = typeof req.query?.format === 'string' ? req.query.format : "YYYY-MM-DDTHH:MI:SSZ";
           let t = ` `;
           if (!hasBounds) t += `WHERE `;
           else t += `AND `;
 
           if (
-            req.query?.starttime == null ||
-            req.query?.starttime.indexOf(`'`) != -1 ||
-            req.query?.endtime == null ||
-            req.query?.endtime.indexOf(`'`) != -1 ||
+            starttime == null ||
+            starttime.indexOf(`'`) != -1 ||
+            endtime == null ||
+            endtime.indexOf(`'`) != -1 ||
             format.indexOf(`'`) != -1
           ) {
             res.send({
               status: "failure",
-              message: "Missing inner or malformed time parameters.",
+              message: "Missing or malformed time parameters.",
             });
             return;
           }
 
           start_time = new Date(
-            req.query.starttime || "1970-01-01T00:00:00Z"
+            starttime || "1970-01-01T00:00:00Z"
           ).getTime();
-          end_time = new Date(req.query.endtime).getTime();
+          end_time = new Date(endtime).getTime();
 
           startProp = Utils.forceAlphaNumUnder(
             req.query.startProp || startProp

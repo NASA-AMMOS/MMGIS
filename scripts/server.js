@@ -70,6 +70,18 @@ const apilimiter = rateLimit({
   max: 20000, // limit each IP to 100 requests per windowMs
 });
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  message: { status: 'failure', message: 'Too many attempts, try again later.' },
+});
+
+const computeLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30,
+  message: { status: 'failure', message: 'Rate limit exceeded.' },
+});
+
 // Load the permissions.json file, which maps LDAP groups to permission sets.
 // This application has two permission sets: "users" and "admins".
 let permissions = {};
@@ -129,6 +141,18 @@ if (sessionSecret.length < 24) {
   );
   process.exit(1);
 }
+// Public static assets - served before session middleware to avoid unnecessary cookies
+app.use(`${ROOT_PATH}/public`, express.static(path.join(rootDir, "/public")));
+app.use(
+  `${ROOT_PATH}/README.md`,
+  express.static(path.join(rootDir, "/README.md")),
+);
+if (process.argv.includes("--with_examples"))
+  app.use(
+    `${ROOT_PATH}/examples`,
+    express.static(path.join(rootDir, "/examples")),
+  );
+
 app.use(
   session({
     secret: sessionSecret,
@@ -542,6 +566,8 @@ let s = {
   useSwaggerSchema,
   permissions,
   ROOT_PATH,
+  authLimiter,
+  computeLimiter,
 };
 
 // Trust first proxy
@@ -659,7 +685,7 @@ setups.getBackendSetups(function (setups) {
       ),
     );
 
-  // STATICS
+  // Authenticated static routes - must remain after session middleware
 
   app.use(
     `${ROOT_PATH}/build`,
@@ -672,10 +698,6 @@ setups.getBackendSetups(function (setups) {
     express.static(path.join(rootDir, "/docs")),
   );
   app.use(
-    `${ROOT_PATH}/README.md`,
-    express.static(path.join(rootDir, "/README.md")),
-  );
-  app.use(
     `${ROOT_PATH}/configure/build`,
     ensureUser(),
     express.static(path.join(rootDir, "/configure/build")),
@@ -686,12 +708,6 @@ setups.getBackendSetups(function (setups) {
     express.static(path.join(rootDir, "/configure/public")),
   );
 
-  if (process.argv.includes("--with_examples"))
-    app.use(
-      `${ROOT_PATH}/examples`,
-      express.static(path.join(rootDir, "/examples")),
-    );
-  app.use(`${ROOT_PATH}/public`, express.static(path.join(rootDir, "/public")));
   app.use(
     `${ROOT_PATH}/Missions`,
     ensureUser(),

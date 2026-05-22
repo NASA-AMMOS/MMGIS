@@ -207,13 +207,15 @@ var QueryURL = {
                 var arr = layersOn.split(',')
                 for (var l of arr) {
                     let s = l.split('$')
+                    if (['__proto__', 'constructor', 'prototype'].includes(s[0])) continue
                     onLayers[s[0]] = { opacity: parseFloat(s[1]) }
                 }
             }
             //Turn the selected layer on too
             if (selected !== false) {
                 let s = selected.split(',')
-                onLayers[s[0]] = { opacity: 1 }
+                if (!['__proto__', 'constructor', 'prototype'].includes(s[0]))
+                    onLayers[s[0]] = { opacity: 1 }
             }
 
             //This is so that when preselecting data the layer can turn on along with all default layers

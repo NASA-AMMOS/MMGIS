@@ -244,9 +244,9 @@ const Filtering = {
         let id, key, op, val
         if (value) {
             id = value.id
-            key = value.key != null ? ` value='${value.key}'` : ''
+            key = value.key != null ? ` value='${String(value.key).replace(/'/g, "&apos;")}'` : ''
             op = value.op
-            val = value.value != null ? ` value='${value.value}'` : ''
+            val = value.value != null ? ` value='${String(value.value).replace(/'/g, "&apos;")}'` : ''
         } else id = Filtering.filters[layerName].values.length
 
         // prettier-ignore

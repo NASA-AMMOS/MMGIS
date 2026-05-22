@@ -325,6 +325,7 @@ router.post("/upload", function (req, res, next) {
         encoding,
         mimetype
       ) {
+        if (['__proto__', 'constructor', 'prototype'].includes(fieldname)) return;
         fields[fieldname] = val;
         if (
           fields.name != null &&
