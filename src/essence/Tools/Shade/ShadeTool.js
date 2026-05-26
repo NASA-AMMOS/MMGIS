@@ -643,6 +643,25 @@ let ShadeTool = {
                 }
             })(id)
         )
+        // Composite mode change handler
+        $('#vstShades #vstId_' + id + ' .vstOptionCompositeMode select').on(
+            'change',
+            (function (id) {
+                return function () {
+                    $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
+                        'changed'
+                    )
+                    if (
+                        $(
+                            `#vstShades #vstId_${id} .vstOptionResolution select`
+                        ).val() <= ShadeTool.dynamicUpdateResCutoff
+                    ) {
+                        ShadeTool.setActiveElmId(id)
+                        ShadeTool.setSource()
+                    }
+                }
+            })(id)
+        )
         // Multi-source checkbox list click handlers
         $('#vstShades #vstId_' + id + ' .vstSourceList .vstSourceItem').on(
             'click',
@@ -1661,7 +1680,7 @@ let ShadeTool = {
                                 elevation: r.elevation,
                                 range: r.range,
                             })
-                            if (r.grid) sweepGrids.push(r.grid)
+                            sweepGrids.push(r.grid || null)
                         })
                         completed += batchResults.length
                         $('#vstSweepProgress').text(
@@ -1760,7 +1779,7 @@ let ShadeTool = {
         const data = ShadeTool._lastData
         const options = ShadeTool._lastOptions
 
-        ShadeTool.renderResultToMap(data, grid, options, activeElmId)
+        if (grid) ShadeTool.renderResultToMap(data, grid, options, activeElmId)
 
         const timeLabel =
             ShadeTool.sweepResults &&
