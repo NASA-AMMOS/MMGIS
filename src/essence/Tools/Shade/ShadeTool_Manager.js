@@ -54,9 +54,12 @@ let ShadeTool_Manager = {
                     ? vars.curvature
                     : true,
                 hasDataCurved: false,
-                zoom: Math.min(
-                    Math.round(Map_.map.getZoom()) + resolution,
-                    dataLayer.maxNativeZoom
+                zoom: Math.max(
+                    dataLayer.minZoom || 0,
+                    Math.min(
+                        Math.round(Map_.map.getZoom()) + resolution,
+                        dataLayer.maxNativeZoom
+                    )
                 ),
                 options: options,
                 result: [],
@@ -126,9 +129,12 @@ let ShadeTool_Manager = {
                     ? vars.curvature
                     : true,
                 hasDataCurved: false,
-                zoom: Math.min(
-                    Math.round(Map_.map.getZoom()) + resolution,
-                    dataLayer.maxNativeZoom
+                zoom: Math.max(
+                    dataLayer.minZoom || 0,
+                    Math.min(
+                        Math.round(Map_.map.getZoom()) + resolution,
+                        dataLayer.maxNativeZoom
+                    )
                 ),
                 options: options,
                 result: [],
@@ -194,8 +200,8 @@ let ShadeTool_Manager = {
             bboxTileBounds = {
                 minX: Math.floor(bboxMinPx.x / 256),
                 minY: Math.floor(bboxMaxPx.y / 256),
-                maxX: Math.ceil(bboxMaxPx.x / 256) - 1,
-                maxY: Math.ceil(bboxMinPx.y / 256) - 1,
+                maxX: Math.floor(bboxMaxPx.x / 256),
+                maxY: Math.floor(bboxMinPx.y / 256),
             }
             min.x = Math.max(min.x, bboxTileBounds.minX)
             min.y = Math.max(min.y, bboxTileBounds.minY)
@@ -326,7 +332,9 @@ let ShadeTool_Manager = {
             this.data[shadeId].tileResolution
 
         for (let i = 0; i < h; i++) {
-            this.data[shadeId].data.push(new Array(w).fill(0))
+            this.data[shadeId].data.push(
+                new Array(w).fill(this.internalNoDataValue)
+            )
         }
 
         this.data[shadeId].topLeftTile = {
@@ -541,6 +549,7 @@ let ShadeTool_Manager = {
     },
     interpolateSeams(shadeId) {
         const tileRes = this.data[shadeId].tileResolution
+        const noData = this.internalNoDataValue
         let d = this.data[shadeId].data
         if (!d || d.length === 0) return
 
@@ -550,6 +559,9 @@ let ShadeTool_Manager = {
                 if (x - 2 > 0 && x + 2 < d[y].length) {
                     const a = d[y][x - 2]
                     const b = d[y][x + 1]
+
+                    // Skip interpolation across noData boundaries
+                    if (a === noData || b === noData) continue
 
                     const inc = (a - b) / 3
 
@@ -565,6 +577,9 @@ let ShadeTool_Manager = {
                 if (d[y - 2] && d[y + 1]) {
                     const a = d[y - 2][x]
                     const b = d[y + 1][x]
+
+                    // Skip interpolation across noData boundaries
+                    if (a === noData || b === noData) continue
 
                     const inc = (a - b) / 3
 

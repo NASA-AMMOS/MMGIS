@@ -62,28 +62,61 @@ let ShadeTool_Algorithm = {
         }
 
         // We're going to say that all edges (2px thick) of the screen/data are visible
+        // but skip noData cells so they don't corrupt the shadow plane
 
         // Top and Bottom
         for (let x = 0; x < d.data[0].length; x++) {
-            refGrid[0][x] = d.data[0][x]
-            refGrid[1][x] = d.data[1][x]
-            resultGrid[0][x] = 1
-            resultGrid[1][x] = 1
-            refGrid[d.data.length - 1][x] = d.data[d.data.length - 1][x]
-            refGrid[d.data.length - 2][x] = d.data[d.data.length - 2][x]
-            resultGrid[d.data.length - 1][x] = 1
-            resultGrid[d.data.length - 2][x] = 1
+            if (!this.isNoData(d.data[0][x])) {
+                refGrid[0][x] = d.data[0][x]
+                resultGrid[0][x] = 1
+            } else {
+                resultGrid[0][x] = 9
+            }
+            if (!this.isNoData(d.data[1][x])) {
+                refGrid[1][x] = d.data[1][x]
+                resultGrid[1][x] = 1
+            } else {
+                resultGrid[1][x] = 9
+            }
+            if (!this.isNoData(d.data[d.data.length - 1][x])) {
+                refGrid[d.data.length - 1][x] = d.data[d.data.length - 1][x]
+                resultGrid[d.data.length - 1][x] = 1
+            } else {
+                resultGrid[d.data.length - 1][x] = 9
+            }
+            if (!this.isNoData(d.data[d.data.length - 2][x])) {
+                refGrid[d.data.length - 2][x] = d.data[d.data.length - 2][x]
+                resultGrid[d.data.length - 2][x] = 1
+            } else {
+                resultGrid[d.data.length - 2][x] = 9
+            }
         }
         // Right and Left
         for (let y = 0; y < d.data.length; y++) {
-            refGrid[y][0] = d.data[y][0]
-            refGrid[y][1] = d.data[y][1]
-            resultGrid[y][0] = 1
-            resultGrid[y][1] = 1
-            refGrid[y][d.data[0].length - 1] = d.data[y][d.data[0].length - 1]
-            refGrid[y][d.data[0].length - 2] = d.data[y][d.data[0].length - 2]
-            resultGrid[y][d.data[0].length - 1] = 1
-            resultGrid[y][d.data[0].length - 2] = 1
+            if (!this.isNoData(d.data[y][0])) {
+                refGrid[y][0] = d.data[y][0]
+                resultGrid[y][0] = 1
+            } else {
+                resultGrid[y][0] = 9
+            }
+            if (!this.isNoData(d.data[y][1])) {
+                refGrid[y][1] = d.data[y][1]
+                resultGrid[y][1] = 1
+            } else {
+                resultGrid[y][1] = 9
+            }
+            if (!this.isNoData(d.data[y][d.data[0].length - 1])) {
+                refGrid[y][d.data[0].length - 1] = d.data[y][d.data[0].length - 1]
+                resultGrid[y][d.data[0].length - 1] = 1
+            } else {
+                resultGrid[y][d.data[0].length - 1] = 9
+            }
+            if (!this.isNoData(d.data[y][d.data[0].length - 2])) {
+                refGrid[y][d.data[0].length - 2] = d.data[y][d.data[0].length - 2]
+                resultGrid[y][d.data[0].length - 2] = 1
+            } else {
+                resultGrid[y][d.data[0].length - 2] = 9
+            }
         }
 
         return { refGrid, resultGrid }
@@ -116,7 +149,9 @@ let ShadeTool_Algorithm = {
                 g.resultGrid[o.y][i] = 9
 
             // Set ref position to the greater: plane height or actual elevation
-            g.refGrid[o.y][i] = Math.max(g.refGrid[o.y][i], d.data[o.y][i])
+            // Skip noData cells to prevent corrupting the shadow plane
+            if (!ShadeTool_Algorithm.isNoData(d.data[o.y][i]))
+                g.refGrid[o.y][i] = Math.max(g.refGrid[o.y][i], d.data[o.y][i])
         }
 
         // Process Right
@@ -140,7 +175,9 @@ let ShadeTool_Algorithm = {
                 g.resultGrid[o.y][i] = 9
 
             // Set ref position to the greater: plane height or actual elevation
-            g.refGrid[o.y][i] = Math.max(g.refGrid[o.y][i], d.data[o.y][i])
+            // Skip noData cells to prevent corrupting the shadow plane
+            if (!ShadeTool_Algorithm.isNoData(d.data[o.y][i]))
+                g.refGrid[o.y][i] = Math.max(g.refGrid[o.y][i], d.data[o.y][i])
         }
 
         // Process Up
@@ -164,7 +201,9 @@ let ShadeTool_Algorithm = {
                 g.resultGrid[j][o.x] = 9
 
             // Set ref position to the greater: plane height or actual elevation
-            g.refGrid[j][o.x] = Math.max(g.refGrid[j][o.x], d.data[j][o.x])
+            // Skip noData cells to prevent corrupting the shadow plane
+            if (!ShadeTool_Algorithm.isNoData(d.data[j][o.x]))
+                g.refGrid[j][o.x] = Math.max(g.refGrid[j][o.x], d.data[j][o.x])
         }
 
         // Process Down
@@ -188,7 +227,9 @@ let ShadeTool_Algorithm = {
                 g.resultGrid[j][o.x] = 9
 
             // Set ref position to the greater: plane height or actual elevation
-            g.refGrid[j][o.x] = Math.max(g.refGrid[j][o.x], d.data[j][o.x])
+            // Skip noData cells to prevent corrupting the shadow plane
+            if (!ShadeTool_Algorithm.isNoData(d.data[j][o.x]))
+                g.refGrid[j][o.x] = Math.max(g.refGrid[j][o.x], d.data[j][o.x])
         }
     },
     processUp: function (d, g) {
@@ -249,7 +290,9 @@ let ShadeTool_Algorithm = {
                     g.resultGrid[j][i] = 9
 
                 // Set ref position to the greater: plane height or actual elevation
-                g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
+                // Skip noData cells to prevent corrupting the shadow plane
+                if (!ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                    g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
             }
 
             // Process Right
@@ -302,7 +345,9 @@ let ShadeTool_Algorithm = {
                     g.resultGrid[j][i] = 9
 
                 // Set ref position to the greater: plane height or actual elevation
-                g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
+                // Skip noData cells to prevent corrupting the shadow plane
+                if (!ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                    g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
             }
         }
     },
@@ -364,7 +409,9 @@ let ShadeTool_Algorithm = {
                     g.resultGrid[j][i] = 9
 
                 // Set ref position to the greater: plane height or actual elevation
-                g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
+                // Skip noData cells to prevent corrupting the shadow plane
+                if (!ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                    g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
             }
 
             // Process Right
@@ -417,7 +464,9 @@ let ShadeTool_Algorithm = {
                     g.resultGrid[j][i] = 9
 
                 // Set ref position to the greater: plane height or actual elevation
-                g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
+                // Skip noData cells to prevent corrupting the shadow plane
+                if (!ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                    g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
             }
         }
     },
