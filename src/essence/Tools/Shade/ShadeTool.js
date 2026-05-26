@@ -59,6 +59,7 @@ let ShadeTool = {
     sweepPlayTimer: null,
     sweepPlayIndex: 0,
     sweepPlaySpeed: 500,
+    sweepPlayElmId: null,
     compositeMode: 'or',
     dynamicUpdateResCutoff: 1,
     dynamicUpdatePanCutoff: 1,
@@ -1441,6 +1442,16 @@ let ShadeTool = {
         const activeElmId = ShadeTool.activeElmId
         if (activeElmId == null) return
 
+        // Stop any existing playback before starting a new sweep
+        if (ShadeTool.sweepPlayTimer) {
+            clearInterval(ShadeTool.sweepPlayTimer)
+            ShadeTool.sweepPlayTimer = null
+            ShadeTool.sweepPlaying = false
+            $('#vstSweepPlayBtn').html(
+                "<i class='mdi mdi-play mdi-14px'></i>"
+            )
+        }
+
         const options = ShadeTool.getShadeOptions(activeElmId)
         const selectedTargets = options.targets || []
         if (selectedTargets.length === 0) {
@@ -1751,7 +1762,9 @@ let ShadeTool = {
         )
     },
     sweepPlay: function () {
-        const activeElmId = ShadeTool.activeElmId
+        const activeElmId = ShadeTool.sweepPlayElmId != null
+            ? ShadeTool.sweepPlayElmId
+            : ShadeTool.activeElmId
         if (
             !ShadeTool.sweepGrids ||
             ShadeTool.sweepGrids.length === 0 ||
@@ -1761,6 +1774,7 @@ let ShadeTool = {
 
         ShadeTool.sweepPlaying = !ShadeTool.sweepPlaying
         if (ShadeTool.sweepPlaying) {
+            ShadeTool.sweepPlayElmId = activeElmId
             $('#vstSweepPlayBtn').html(
                 "<i class='mdi mdi-pause mdi-14px'></i>"
             )
@@ -1782,7 +1796,11 @@ let ShadeTool = {
             return
         ShadeTool.sweepPlayIndex =
             (ShadeTool.sweepPlayIndex + 1) % ShadeTool.sweepGrids.length
-        ShadeTool.sweepShowFrame(ShadeTool.activeElmId)
+        ShadeTool.sweepShowFrame(
+            ShadeTool.sweepPlayElmId != null
+                ? ShadeTool.sweepPlayElmId
+                : ShadeTool.activeElmId
+        )
     },
     sweepStepBack: function () {
         if (!ShadeTool.sweepGrids || ShadeTool.sweepGrids.length === 0)
@@ -1790,7 +1808,11 @@ let ShadeTool = {
         ShadeTool.sweepPlayIndex =
             (ShadeTool.sweepPlayIndex - 1 + ShadeTool.sweepGrids.length) %
             ShadeTool.sweepGrids.length
-        ShadeTool.sweepShowFrame(ShadeTool.activeElmId)
+        ShadeTool.sweepShowFrame(
+            ShadeTool.sweepPlayElmId != null
+                ? ShadeTool.sweepPlayElmId
+                : ShadeTool.activeElmId
+        )
     },
     sweepShowFrame: function (activeElmId) {
         if (
@@ -2579,7 +2601,11 @@ function interfaceWithMMGIS() {
                 ShadeTool.sweepPlayIndex =
                     (ShadeTool.sweepPlayIndex + 1) %
                     ShadeTool.sweepGrids.length
-                ShadeTool.sweepShowFrame(ShadeTool.activeElmId)
+                ShadeTool.sweepShowFrame(
+                    ShadeTool.sweepPlayElmId != null
+                        ? ShadeTool.sweepPlayElmId
+                        : ShadeTool.activeElmId
+                )
             }, ShadeTool.sweepPlaySpeed)
         }
     })
