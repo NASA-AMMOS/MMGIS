@@ -1793,7 +1793,12 @@ let ShadeTool = {
                 processBatch(0)
             }
         )
-            } // end getbands callback
+            }, // end getbands callback
+            function () {
+                Toast.error('Failed to query terrain elevation for sweep.', 6000)
+                $('.vstSweepBtn').removeClass('regening')
+                $('#vstSweepProgress').text('')
+            }
         )
     },
     sweepPlay: function () {

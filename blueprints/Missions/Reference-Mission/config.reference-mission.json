@@ -3696,8 +3696,8 @@
           {
             "name": "USGS SF DEM (tileset required)",
             "demtileurl": "Data/dem_rgba_tiles/{z}/{x}/{y}.png",
-            "minZoom": 8,
-            "maxNativeZoom": 18
+            "minZoom": 10,
+            "maxNativeZoom": 14
           }
         ],
         "sources": [
