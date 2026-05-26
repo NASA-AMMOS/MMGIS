@@ -89,6 +89,83 @@ let ShadeTool_Manager = {
         }
         return this.data[shadeId]
     },
+    // Fetches DEM tiles once and prepares data, without running the algorithm.
+    // Use computeShade() afterwards to run the algorithm with different targetSources.
+    gatherTiles: function (
+        shadeId,
+        dataLayer,
+        resolution,
+        source,
+        options,
+        vars,
+        progcb,
+        cb
+    ) {
+        if (this.existingTileTags.length > this.existingStoreMax) {
+            this.existingTileData = {}
+            this.existingTileTags = []
+        }
+
+        if (this.data[shadeId] == null) {
+            this.data[shadeId] = {
+                shadeId: shadeId,
+                dataLayer: dataLayer,
+                resolution: resolution,
+                source: source,
+                targetSource: null,
+                desiredTiles: [],
+                topLeftTile: {},
+                bottomLeftLatLng: {},
+                cellSize: 0,
+                outputTopLeftTile: {},
+                tileResolution: 32,
+                tiles: {},
+                data: [],
+                dataSource: {},
+                useCurvature: vars.hasOwnProperty('curvature')
+                    ? vars.curvature
+                    : true,
+                hasDataCurved: false,
+                zoom: Math.min(
+                    Math.round(Map_.map.getZoom()) + resolution,
+                    dataLayer.maxNativeZoom
+                ),
+                options: options,
+                result: [],
+            }
+            this.data[shadeId].resolution =
+                this.data[shadeId].zoom - Math.round(Map_.map.getZoom())
+
+            this.updateDesiredTiles(shadeId)
+            this.refreshData(shadeId)
+            this.queryDesiredTiles(shadeId, progcb, function (dv) {
+                ShadeTool_Manager.interpolateSeams(shadeId)
+                ShadeTool_Manager.finishUp(shadeId)
+                cb(dv)
+            })
+        } else {
+            this.data[shadeId].source = source
+            this.data[shadeId].options = options
+            cb(this.data[shadeId])
+        }
+    },
+    // Runs the shade algorithm on already-gathered tile data with a given targetSource.
+    // Returns the resultGrid. Does not mutate data[shadeId].result.
+    computeShade: function (shadeId, targetSource, options) {
+        const d = this.data[shadeId]
+        if (!d) return null
+
+        d.targetSource = targetSource
+        d.options = options
+        this.locateSource(shadeId)
+
+        // Clone hasDataCurved so re-runs don't skip curving
+        const wasCurved = d.hasDataCurved
+        d.hasDataCurved = false
+        const result = ShadeTool_Algorithm.shade(d, options)
+        d.hasDataCurved = wasCurved
+        return result
+    },
     getData: function (shadeId) {
         return this.data[shadeId]
     },

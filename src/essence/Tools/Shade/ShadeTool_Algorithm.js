@@ -531,6 +531,69 @@ let ShadeTool_Algorithm = {
         const a = (1 / r) * dist
         return height - r * (1 - Math.cos(a))
     },
+    // Composites multiple result grids from different sources into one
+    // mode: 'or' = shadow if hidden from ANY source (union of shadows)
+    //        'and' = shadow only if hidden from ALL sources (intersection)
+    // Returns a new resultGrid
+    compositeResults: function (resultGrids, mode) {
+        if (!resultGrids || resultGrids.length === 0) return []
+        if (resultGrids.length === 1) return resultGrids[0]
+
+        const rows = resultGrids[0].length
+        const cols = resultGrids[0][0].length
+        let composited = []
+
+        for (let y = 0; y < rows; y++) {
+            composited.push(new Array(cols).fill(0))
+            for (let x = 0; x < cols; x++) {
+                let noData = false
+                let values = []
+                for (let g = 0; g < resultGrids.length; g++) {
+                    const v = resultGrids[g][y][x]
+                    if (v === 9) {
+                        noData = true
+                        break
+                    }
+                    values.push(v)
+                }
+                if (noData) {
+                    composited[y][x] = 9
+                } else if (mode === 'and') {
+                    // Shadow only if hidden from ALL sources
+                    composited[y][x] = values.every((v) => v === 0) ? 0 : 1
+                } else {
+                    // 'or' default: shadow if hidden from ANY source
+                    composited[y][x] = values.some((v) => v === 0) ? 0 : 1
+                }
+            }
+        }
+        return composited
+    },
+    // Computes a cumulative visibility heatmap from multiple result grids
+    // (e.g. from a time sweep). Returns a 2D array of fractions [0.0..1.0]
+    // representing the fraction of timesteps where each cell was visible.
+    cumulativeVisibility: function (resultGrids) {
+        if (!resultGrids || resultGrids.length === 0) return []
+        const rows = resultGrids[0].length
+        const cols = resultGrids[0][0].length
+        let heatmap = []
+
+        for (let y = 0; y < rows; y++) {
+            heatmap.push(new Array(cols).fill(0))
+            for (let x = 0; x < cols; x++) {
+                let visCount = 0
+                let total = 0
+                for (let g = 0; g < resultGrids.length; g++) {
+                    const v = resultGrids[g][y][x]
+                    if (v === 9) continue
+                    total++
+                    if (v === 1 || v === 2) visCount++
+                }
+                heatmap[y][x] = total > 0 ? visCount / total : -1
+            }
+        }
+        return heatmap
+    },
     calcHeightDiagonal2: function (i, j, Za, Ia, Ja, Zb, Ib, Jb, Zo) {
         const p = { x: 0, y: 0, z: Zo }
         const q = { x: Ia, y: Ja, z: Za }

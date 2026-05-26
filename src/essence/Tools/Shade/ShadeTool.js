@@ -26,6 +26,17 @@ import ShaderTool_Algorithm from './ShadeTool_Algorithm'
 
 import './ShadeTool.css'
 
+const MULTI_SOURCE_COLORS = [
+    { r: 0, g: 0, b: 0 },
+    { r: 180, g: 40, b: 40 },
+    { r: 40, g: 40, b: 180 },
+    { r: 40, g: 160, b: 40 },
+    { r: 180, g: 120, b: 0 },
+    { r: 120, g: 40, b: 180 },
+    { r: 0, g: 160, b: 160 },
+    { r: 180, g: 0, b: 180 },
+]
+
 const helpKey = 'ShadeTool'
 
 let ShadeTool = {
@@ -42,6 +53,13 @@ let ShadeTool = {
     shedColors: [{ r: 0, g: 0, b: 0, a: 192 }],
     shedMarkers: {},
     canvases: {},
+    sweepResults: null,
+    sweepGrids: null,
+    sweepPlaying: false,
+    sweepPlayTimer: null,
+    sweepPlayIndex: 0,
+    sweepPlaySpeed: 500,
+    compositeMode: 'or',
     dynamicUpdateResCutoff: 1,
     dynamicUpdatePanCutoff: 1,
     MMGISInterface: null,
@@ -294,16 +312,19 @@ let ShadeTool = {
         ) {
             sourcesList = ShadeTool.vars.sources.concat(sourcesList)
         }
+        // Multi-select checkbox list for sources
         allSources = sourcesList
             .map(
-                (c, i) =>
-                    "<option value='" +
-                    c.value +
-                    "' " +
-                    (i === 0 ? 'selected' : '') +
-                    '>' +
-                    c.name +
-                    '</option>'
+                (c, i) => {
+                    const color = MULTI_SOURCE_COLORS[i % MULTI_SOURCE_COLORS.length]
+                    return (
+                        "<div class='vstSourceItem' data-value='" + c.value + "' data-index='" + i + "'>" +
+                        "<div class='vstSourceCheck" + (i === 0 ? ' on' : '') + "'></div>" +
+                        "<span class='vstSourceSwatch' style='background:rgb(" + color.r + "," + color.g + "," + color.b + ");'></span>" +
+                        "<span>" + c.name + "</span>" +
+                        "</div>"
+                    )
+                }
             )
             .join('\n')
 
@@ -336,9 +357,16 @@ let ShadeTool = {
                         "<div class='vstLoading'></div>",
                         `<div class='vstOptionHeading'>Source</div>`,
                         "<div class='vstOptionTarget'>",
-                            `<div title='Orbiter or body that is the source of "light".'><span style='color: var(--color-p0);'>Entity</span></div>`,
-                            "<select class='dropdown'>",
+                            `<div title='Orbiter or body that is the source of "light". Select one or more.'><span style='color: var(--color-p0);'>Entity</span></div>`,
+                            "<div class='vstSourceList'>",
                                 allSources,
+                            "</div>",
+                        "</div>",
+                        "<div class='vstOptionCompositeMode'>",
+                            `<div title='How to composite shadows from multiple sources.'>Composite</div>`,
+                            "<select class='dropdown'>",
+                                "<option value='or' selected>Shadow from Any (OR)</option>",
+                                "<option value='and'>Shadow from All (AND)</option>",
                             "</select>",
                         "</div>",
                         "<div class='vstOptionIncludeSunEarth'>",
@@ -400,6 +428,12 @@ let ShadeTool = {
                                 "<div>Generate</div>",
                                 "<span></span>",
                             "</div>",
+                        "</div>",
+                        "<div class='vstExportBar'>",
+                            "<div class='vstExportBtn' title='Export shade map as PNG'><i class='mdi mdi-image mdi-14px'></i> PNG</div>",
+                            "<div class='vstExportCsvBtn' title='Export sweep results as CSV'><i class='mdi mdi-file-delimited mdi-14px'></i> CSV</div>",
+                            "<div class='vstExportGeoBtn' title='Export shade map as GeoJSON'><i class='mdi mdi-map mdi-14px'></i> GeoJSON</div>",
+                            "<div class='vstExportJsonBtn' title='Export report as JSON'><i class='mdi mdi-code-json mdi-14px'></i> Report</div>",
                         "</div>",
                     "</div>",
                     "<div id='shadeTool_results'>",
@@ -609,69 +643,38 @@ let ShadeTool = {
                 }
             })(id)
         )
-        $('#vstShades #vstId_' + id + ' .vstOptionTarget select').on(
-            'change',
+        // Multi-source checkbox list click handlers
+        $('#vstShades #vstId_' + id + ' .vstSourceList .vstSourceItem').on(
+            'click',
             (function (id) {
                 return function () {
+                    $(this).find('.vstSourceCheck').toggleClass('on')
                     $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
                         'changed'
                     )
-                    const val = $(
-                        '#vstShades #vstId_' + id + ' .vstOptionTarget select'
-                    ).val()
-                    if (val === 'false') {
-                        $('#shadeTool_results_outputs_az').css({
-                            display: 'none',
-                        })
-                        $('#shadeTool_results_outputs_az_input_wrap').css({
-                            display: 'inherit',
-                        })
+                    // Check if only Custom is selected
+                    const selected = ShadeTool.getSelectedSources(id)
+                    if (selected.length === 1 && selected[0].value === 'false') {
+                        $('#shadeTool_results_outputs_az').css({ display: 'none' })
+                        $('#shadeTool_results_outputs_az_input_wrap').css({ display: 'inherit' })
                         $('#shadeTool_results_outputs_az_input').val(
-                            parseFloat(
-                                $('#shadeTool_results_outputs_az').text()
-                            )
+                            parseFloat($('#shadeTool_results_outputs_az').text())
                         )
-                        $('#shadeTool_results_outputs_el').css({
-                            display: 'none',
-                        })
-                        $('#shadeTool_results_outputs_el_input_wrap').css({
-                            display: 'inherit',
-                        })
+                        $('#shadeTool_results_outputs_el').css({ display: 'none' })
+                        $('#shadeTool_results_outputs_el_input_wrap').css({ display: 'inherit' })
                         $('#shadeTool_results_outputs_el_input').val(
-                            parseFloat(
-                                $('#shadeTool_results_outputs_el').text()
-                            )
+                            parseFloat($('#shadeTool_results_outputs_el').text())
                         )
-                        $('#shadeTool_results_outputs_range').css({
-                            display: 'none',
-                        })
-                        $('#shadeTool_results_outputs_range_input_wrap').css({
-                            display: 'inherit',
-                        })
-                        $('#shadeTool_results_outputs_range_input').val(
-                            parseFloat(
-                                100000 //$('#shadeTool_results_outputs_range').text()
-                            )
-                        )
+                        $('#shadeTool_results_outputs_range').css({ display: 'none' })
+                        $('#shadeTool_results_outputs_range_input_wrap').css({ display: 'inherit' })
+                        $('#shadeTool_results_outputs_range_input').val(parseFloat(100000))
                     } else {
-                        $('#shadeTool_results_outputs_az').css({
-                            display: 'inherit',
-                        })
-                        $('#shadeTool_results_outputs_az_input_wrap').css({
-                            display: 'none',
-                        })
-                        $('#shadeTool_results_outputs_el').css({
-                            display: 'inherit',
-                        })
-                        $('#shadeTool_results_outputs_el_input_wrap').css({
-                            display: 'none',
-                        })
-                        $('#shadeTool_results_outputs_range').css({
-                            display: 'inherit',
-                        })
-                        $('#shadeTool_results_outputs_range_input_wrap').css({
-                            display: 'none',
-                        })
+                        $('#shadeTool_results_outputs_az').css({ display: 'inherit' })
+                        $('#shadeTool_results_outputs_az_input_wrap').css({ display: 'none' })
+                        $('#shadeTool_results_outputs_el').css({ display: 'inherit' })
+                        $('#shadeTool_results_outputs_el_input_wrap').css({ display: 'none' })
+                        $('#shadeTool_results_outputs_range').css({ display: 'inherit' })
+                        $('#shadeTool_results_outputs_range_input_wrap').css({ display: 'none' })
                     }
                     if (
                         $(
@@ -810,10 +813,37 @@ let ShadeTool = {
 
         ShadeTool.setActiveElmId(id)
 
+        // Export button handlers
+        $('#vstShades #vstId_' + id + ' .vstExportBtn').on('click', function () {
+            ShadeTool.exportPNG(id)
+        })
+        $('#vstShades #vstId_' + id + ' .vstExportCsvBtn').on('click', function () {
+            ShadeTool.exportCSV()
+        })
+        $('#vstShades #vstId_' + id + ' .vstExportGeoBtn').on('click', function () {
+            ShadeTool.exportGeoJSON(id)
+        })
+        $('#vstShades #vstId_' + id + ' .vstExportJsonBtn').on('click', function () {
+            ShadeTool.exportReport(id)
+        })
+
         if (forcedId == null) ShadeTool.shadeElmCount++
         else
             ShadeTool.shadeElmCount =
                 Math.max(forcedId, ShadeTool.shadeElmCount) + 1
+    },
+    getSelectedSources: function (elmId) {
+        let selected = []
+        $('#vstShades #vstId_' + elmId + ' .vstSourceList .vstSourceItem').each(function () {
+            if ($(this).find('.vstSourceCheck').hasClass('on')) {
+                selected.push({
+                    value: $(this).attr('data-value'),
+                    index: parseInt($(this).attr('data-index')),
+                    color: MULTI_SOURCE_COLORS[parseInt($(this).attr('data-index')) % MULTI_SOURCE_COLORS.length],
+                })
+            }
+        })
+        return selected
     },
     setActiveElmId: function (activeId) {
         $('#vstShades > li .activator').removeClass('on')
@@ -951,7 +981,8 @@ let ShadeTool = {
 
         let dataLayer = ShadeTool.vars.data[options.dataIndex]
 
-        const isCustom = options.target === 'false'
+        const selectedTargets = options.targets || []
+        const isCustom = selectedTargets.length === 1 && selectedTargets[0].value === 'false'
         let customAz, customEl, customRange
         if (isCustom) {
             customAz = parseFloat(
@@ -969,6 +1000,7 @@ let ShadeTool = {
             }
         }
 
+        const targetKeys = selectedTargets.map((t) => t.value).join('_')
         ShadeTool.tags[activeElmId] =
             activeElmId +
             'd' +
@@ -984,17 +1016,15 @@ let ShadeTool = {
             'w' +
             b._southWest.lng +
             'g' +
-            options.target +
+            targetKeys +
             't' +
             options.time.replace(/ /g, '_')
 
-        // Custom source needs azimuth, elevation and range part of id to make it unique
         if (isCustom)
             ShadeTool.tags[
                 activeElmId
             ] += `A${customAz}E${customEl}R${customRange}`
 
-        //
         let obsRefFrame
         let obsBody
         if (ShadeTool.vars?.observers) {
@@ -1003,7 +1033,6 @@ let ShadeTool = {
                     obsRefFrame = ShadeTool.vars.observers[i].frame
                     obsBody = ShadeTool.vars.observers[i].body
                 } else if (options.observer == null) {
-                    // If no observer, pick first
                     obsRefFrame = ShadeTool.vars.observers[0].frame
                     obsBody = ShadeTool.vars.observers[0].body
                     break
@@ -1026,88 +1055,84 @@ let ShadeTool = {
             },
             function (data) {
                 if (data[0] && data[0][1] != null) {
-                    calls.api(
-                        'll2aerll',
-                        {
-                            lng: source.lng,
-                            lat: source.lat,
-                            height: data[0][1],
-                            target: options.target,
-                            time: options.time + ' UTC',
-                            obsRefFrame: obsRefFrame,
-                            obsBody: obsBody,
-                            includeSunEarth: options.includeSunEarth,
-                            isCustom: isCustom,
-                            customAz,
-                            customEl,
-                            customRange,
-                        },
-                        function (s) {
-                            /*
-                            Map_.rmNotNull(ShadeTool.tempIndicatorPoint)
-                            ShadeTool.tempIndicatorPoint =
-                                new L.circleMarker(
-                                    [source.lat, source.lng],
-                                    ShadeTool.tempIndicatorPointStyle
-                                )
-                                    .setRadius(4)
-                                    .addTo(Map_.map)
-                                    .bringToFront()
+                    // Multi-source: call ll2aerll for each selected target in parallel
+                    const centerHeight = data[0][1]
+                    const ll2aerllPromises = selectedTargets.map((tgt) => {
+                        return new Promise((resolve, reject) => {
+                            const tgtIsCustom = tgt.value === 'false'
+                            calls.api(
+                                'll2aerll',
+                                {
+                                    lng: source.lng,
+                                    lat: source.lat,
+                                    height: centerHeight,
+                                    target: tgt.value,
+                                    time: options.time + ' UTC',
+                                    obsRefFrame: obsRefFrame,
+                                    obsBody: obsBody,
+                                    includeSunEarth: options.includeSunEarth,
+                                    isCustom: tgtIsCustom,
+                                    customAz: tgtIsCustom ? customAz : undefined,
+                                    customEl: tgtIsCustom ? customEl : undefined,
+                                    customRange: tgtIsCustom ? customRange : undefined,
+                                },
+                                function (s) {
+                                    resolve({ ...s, _sourceTarget: tgt })
+                                },
+                                function (e) {
+                                    resolve({ error: true, _sourceTarget: tgt })
+                                }
+                            )
+                        })
+                    })
 
-                            ShadeTool.indicatorDragOn()
-                            */
+                    Promise.all(ll2aerllPromises).then((results) => {
+                        // Show RAE indicators for the first source
+                        const firstResult = results[0]
+                        ShadeTool.updateRAEIndicators(firstResult, activeElmId, results)
 
-                            ShadeTool.updateRAEIndicators(s, activeElmId)
-                            // CLear result outputs
-                            $('#shadeTool_results_outputs_az').text('--')
-                            $('#shadeTool_results_outputs_el').text('--')
-                            $('#shadeTool_results_outputs_range').text('--')
-                            //$('#shadeTool_results_outputs_lng').text('--')
-                            //$('#shadeTool_results_outputs_lat').text('--')
+                        $('#shadeTool_results_outputs_az').text('--')
+                        $('#shadeTool_results_outputs_el').text('--')
+                        $('#shadeTool_results_outputs_range').text('--')
 
-                            if (s.message && s.message.indexOf('INSUFFDATA'))
-                                s.message =
-                                    'Insufficient SPICE kernels for this source entity and time period.'
-                            if (s.error) {
-                                Toast.error(s.message || 'LatLng to AzEl Error', 6000)
-                            } else {
-                                // Update result outputs
-                                $('#shadeTool_results_outputs_az').text(
-                                    s.azimuth.toFixed(3) + '°'
-                                )
-                                $('#shadeTool_results_outputs_el').text(
-                                    s.elevation.toFixed(3) + '°'
-                                )
-                                $('#shadeTool_results_outputs_range').text(
-                                    s.range.toFixed(3) + 'km'
-                                )
-                                /*
-                                    $('#shadeTool_results_outputs_lng').text(
-                                        s.longitude.toFixed(8) + '°'
-                                    )
-                                    $('#shadeTool_results_outputs_lat').text(
-                                        s.latitude.toFixed(8) + '°'
-                                    )
-                                    */
+                        const validResults = results.filter((s) => !s.error)
 
-                                keepGoing({
-                                    lat: s.latitude,
-                                    lng: s.longitude,
-                                    altitude: s.horizontal_altitude,
-                                    az: s.azimuth,
-                                    el: s.elevation,
-                                    range: s.range,
-                                })
-                            }
-                        },
-                        function (e) {
+                        if (validResults.length === 0) {
+                            const msg = firstResult.message && firstResult.message.indexOf('INSUFFDATA') >= 0
+                                ? 'Insufficient SPICE kernels for this source entity and time period.'
+                                : 'LatLng to AzEl Error'
+                            Toast.error(msg, 6000)
                             $(
-                                '#vstShades #vstId_' +
-                                    activeElmId +
-                                    ' .vstRegen'
+                                '#vstShades #vstId_' + activeElmId + ' .vstRegen'
                             ).removeClass('regening')
+                            return
                         }
-                    )
+
+                        // Display first valid result's RAE values
+                        const primary = validResults[0]
+                        $('#shadeTool_results_outputs_az').text(
+                            primary.azimuth.toFixed(3) + '°'
+                        )
+                        $('#shadeTool_results_outputs_el').text(
+                            primary.elevation.toFixed(3) + '°'
+                        )
+                        $('#shadeTool_results_outputs_range').text(
+                            primary.range.toFixed(3) + 'km'
+                        )
+
+                        // Build targetSources array from valid results
+                        const targetSources = validResults.map((s) => ({
+                            lat: s.latitude,
+                            lng: s.longitude,
+                            altitude: s.horizontal_altitude,
+                            az: s.azimuth,
+                            el: s.elevation,
+                            range: s.range,
+                            _sourceTarget: s._sourceTarget,
+                        }))
+
+                        keepGoing(targetSources)
+                    })
                 }
             },
             function () {
@@ -1115,13 +1140,15 @@ let ShadeTool = {
             }
         )
 
-        function keepGoing(targetSource) {
-            ShadeTool_Manager.gather(
-                ShadeTool.tags[activeElmId],
+        function keepGoing(targetSources) {
+            // Use gatherTiles to fetch DEM once, then computeShade per source
+            const shadeTag = ShadeTool.tags[activeElmId]
+
+            ShadeTool_Manager.gatherTiles(
+                shadeTag,
                 dataLayer,
                 options.resolution,
                 source,
-                targetSource,
                 options,
                 ShadeTool.vars,
                 function (progress) {
@@ -1152,121 +1179,33 @@ let ShadeTool = {
                     $(
                         '#vstShades #vstId_' + activeElmId + ' .vstRegen div'
                     ).text('Regenerate')
-                    // We'll use a single canvas for all tiles for capturing
-                    // their dataURLs
-                    let c = document.createElement('canvas')
-                    const res =
-                        data.tileResolution * Math.pow(2, data.resolution)
-                    c.width = res
-                    c.height = res
-                    let ctx = c.getContext('2d')
-                    let cImgData = ctx.createImageData(res, res)
-                    let cData = cImgData.data
 
-                    let dl = {}
-                    let dlc = {}
+                    // Run algorithm for each target source
+                    const resultGrids = targetSources.map((ts) =>
+                        ShadeTool_Manager.computeShade(shadeTag, ts, options)
+                    )
 
-                    for (let j = 0; j <= data.outputTopLeftTile.h; j++) {
-                        for (let i = 0; i <= data.outputTopLeftTile.w; i++) {
-                            const z = data.outputTopLeftTile.z
-                            const x = data.outputTopLeftTile.x + i
-                            const y = data.outputTopLeftTile.y + j
+                    // Composite all grids
+                    const compositedResult =
+                        resultGrids.length === 1
+                            ? resultGrids[0]
+                            : ShaderTool_Algorithm.compositeResults(
+                                  resultGrids,
+                                  options.compositeMode || 'or'
+                              )
 
-                            const xO = data.outputTopLeftTile.x % 1 == 0
-                            const yO = data.outputTopLeftTile.y % 1 == 0
+                    data.result = compositedResult
 
-                            dl[z] = dl[z] || {}
-                            dl[z][Math.floor(x)] = dl[z][Math.floor(x)] || {}
+                    ShadeTool.renderResultToMap(
+                        data,
+                        compositedResult,
+                        options,
+                        activeElmId
+                    )
 
-                            dlc[z] = dlc[z] || {}
-                            dlc[z][Math.floor(x)] = dlc[z][Math.floor(x)] || {}
-
-                            const tileRow =
-                                (y -
-                                    Math.floor(data.outputTopLeftTile.y) -
-                                    (Math.abs(data.outputTopLeftTile.y) % 1) *
-                                        2) *
-                                res
-
-                            const tileCol =
-                                (x -
-                                    Math.floor(data.outputTopLeftTile.x) -
-                                    (Math.abs(data.outputTopLeftTile.x) % 1) *
-                                        2) *
-                                res
-
-                            // Draw canvas
-                            let px = 0
-                            let val = null
-                            for (let p = 0; p < cData.length; p += 4) {
-                                const isEdge =
-                                    p / 4 < res ||
-                                    p / 4 > cData.length - res - 1 ||
-                                    (p / 4) % res == 0 ||
-                                    (p / 4 + 1) % res == 0
-                                val =
-                                    data.result[tileRow + Math.floor(px / res)]
-                                if (val != null) {
-                                    val = val[tileCol + (px % res)]
-                                    let c
-                                    switch (val) {
-                                        case 0:
-                                            c =
-                                                options.invert == 0
-                                                    ? { r: 0, g: 0, b: 0, a: 0 }
-                                                    : options.color
-                                            break
-                                        case 1:
-                                            c =
-                                                options.invert == 0
-                                                    ? options.color
-                                                    : { r: 0, g: 0, b: 0, a: 0 }
-                                            break
-                                        case 2:
-                                            c =
-                                                options.invert == 0
-                                                    ? options.color
-                                                    : { r: 0, g: 0, b: 0, a: 0 }
-                                            break
-                                        case 3:
-                                            c = { r: 0, g: 255, b: 0, a: 0 }
-                                            break
-                                        case 8:
-                                            c = { r: 0, g: 0, b: 0, a: 0 }
-                                            break
-                                        case 9:
-                                            c = { r: 255, g: 0, b: 0, a: 35 }
-                                            break
-                                        default:
-                                            c = { r: 0, g: 0, b: 0, a: 0 }
-                                    }
-                                    if (ShadeTool.showTileEdges && isEdge)
-                                        c = { r: 255, g: 255, b: 255, a: 200 }
-
-                                    cData[p] = c.r
-                                    cData[p + 1] = c.g
-                                    cData[p + 2] = c.b
-                                    cData[p + 3] = c.a
-                                } else {
-                                    cData[p] = 0
-                                    cData[p + 1] = 0
-                                    cData[p + 2] = 0
-                                    cData[p + 3] = 0
-                                }
-                                px++
-                            }
-                            ctx.putImageData(cImgData, 0, 0)
-                            dl[z][Math.floor(x)][Math.floor(y)] = c.toDataURL()
-                            dlc[z][Math.floor(x)][Math.floor(y)] =
-                                F_.cloneCanvas(c)
-                        }
-                    }
-                    ShadeTool.canvases[activeElmId] = dlc
-                    makeDataLayer(dl, activeElmId, dlc)
                     $(
                         '#vstShades #vstId_' + activeElmId + ' .vstRegen'
                     ).removeClass('regening')
-
                     $(
                         '#vstShades #vstId_' + activeElmId + ' .vstRegen'
                     ).removeClass('changed')
@@ -1274,36 +1213,734 @@ let ShadeTool = {
             )
         }
 
-        function makeDataLayer(layerUrl, activeElmId, dlc) {
-            let layerName = 'shade' + activeElmId
+    },
+    makeDataLayer: function (layerUrl, activeElmId, dlc) {
+        let layerName = 'shade' + activeElmId
 
-            Map_.rmNotNull(L_.layers.layer[layerName])
+        Map_.rmNotNull(L_.layers.layer[layerName])
 
-            let uniforms = {}
+        let uniforms = {}
 
-            L_.layers.layer[layerName] = L.tileLayer.gl({
-                options: {
-                    tms: false,
-                    className: 'nofade',
-                    maxNativeZoom: Map_.map.getZoom(),
-                    maxZoom: 30,
-                },
-                fragmentShader: DataShaders['image'].frag,
-                tileUrls: [layerUrl],
-                uniforms: uniforms,
-                tileUrlsAsDataUrls: true,
-            })
-            L_.layers.layer[layerName]._noFade = true
-            L_.layers.layer[layerName].setZIndex(1000)
-            $(
-                '#vstShades #vstId_' +
-                    activeElmId +
-                    ' .vstShadeHeader .checkbox'
-            ).addClass('on')
-            Map_.map.addLayer(L_.layers.layer[layerName])
+        L_.layers.layer[layerName] = L.tileLayer.gl({
+            options: {
+                tms: false,
+                className: 'nofade',
+                maxNativeZoom: Map_.map.getZoom(),
+                maxZoom: 30,
+            },
+            fragmentShader: DataShaders['image'].frag,
+            tileUrls: [layerUrl],
+            uniforms: uniforms,
+            tileUrlsAsDataUrls: true,
+        })
+        L_.layers.layer[layerName]._noFade = true
+        L_.layers.layer[layerName].setZIndex(1000)
+        $(
+            '#vstShades #vstId_' +
+                activeElmId +
+                ' .vstShadeHeader .checkbox'
+        ).addClass('on')
+        Map_.map.addLayer(L_.layers.layer[layerName])
 
-            Globe_.litho.removeLayer(layerName)
+        Globe_.litho.removeLayer(layerName)
+    },
+    renderResultToMap: function (data, resultGrid, options, activeElmId) {
+        let c = document.createElement('canvas')
+        const res = data.tileResolution * Math.pow(2, data.resolution)
+        c.width = res
+        c.height = res
+        let ctx = c.getContext('2d')
+        let cImgData = ctx.createImageData(res, res)
+        let cData = cImgData.data
+
+        let dl = {}
+        let dlc = {}
+
+        for (let j = 0; j <= data.outputTopLeftTile.h; j++) {
+            for (let i = 0; i <= data.outputTopLeftTile.w; i++) {
+                const z = data.outputTopLeftTile.z
+                const x = data.outputTopLeftTile.x + i
+                const y = data.outputTopLeftTile.y + j
+
+                dl[z] = dl[z] || {}
+                dl[z][Math.floor(x)] = dl[z][Math.floor(x)] || {}
+                dlc[z] = dlc[z] || {}
+                dlc[z][Math.floor(x)] = dlc[z][Math.floor(x)] || {}
+
+                const tileRow =
+                    (y -
+                        Math.floor(data.outputTopLeftTile.y) -
+                        (Math.abs(data.outputTopLeftTile.y) % 1) * 2) *
+                    res
+                const tileCol =
+                    (x -
+                        Math.floor(data.outputTopLeftTile.x) -
+                        (Math.abs(data.outputTopLeftTile.x) % 1) * 2) *
+                    res
+
+                let px = 0
+                let val = null
+                for (let p = 0; p < cData.length; p += 4) {
+                    const isEdge =
+                        p / 4 < res ||
+                        p / 4 > cData.length - res - 1 ||
+                        (p / 4) % res == 0 ||
+                        (p / 4 + 1) % res == 0
+                    val = resultGrid[tileRow + Math.floor(px / res)]
+                    if (val != null) {
+                        val = val[tileCol + (px % res)]
+                        let cl
+                        switch (val) {
+                            case 0:
+                                cl =
+                                    options.invert == 0
+                                        ? { r: 0, g: 0, b: 0, a: 0 }
+                                        : options.color
+                                break
+                            case 1:
+                                cl =
+                                    options.invert == 0
+                                        ? options.color
+                                        : { r: 0, g: 0, b: 0, a: 0 }
+                                break
+                            case 2:
+                                cl =
+                                    options.invert == 0
+                                        ? options.color
+                                        : { r: 0, g: 0, b: 0, a: 0 }
+                                break
+                            case 3:
+                                cl = { r: 0, g: 255, b: 0, a: 0 }
+                                break
+                            case 8:
+                                cl = { r: 0, g: 0, b: 0, a: 0 }
+                                break
+                            case 9:
+                                cl = { r: 255, g: 0, b: 0, a: 35 }
+                                break
+                            default:
+                                cl = { r: 0, g: 0, b: 0, a: 0 }
+                        }
+                        if (ShadeTool.showTileEdges && isEdge)
+                            cl = { r: 255, g: 255, b: 255, a: 200 }
+
+                        cData[p] = cl.r
+                        cData[p + 1] = cl.g
+                        cData[p + 2] = cl.b
+                        cData[p + 3] = cl.a
+                    } else {
+                        cData[p] = 0
+                        cData[p + 1] = 0
+                        cData[p + 2] = 0
+                        cData[p + 3] = 0
+                    }
+                    px++
+                }
+                ctx.putImageData(cImgData, 0, 0)
+                dl[z][Math.floor(x)][Math.floor(y)] = c.toDataURL()
+                dlc[z][Math.floor(x)][Math.floor(y)] = F_.cloneCanvas(c)
+            }
         }
+        ShadeTool.canvases[activeElmId] = dlc
+        ShadeTool._lastData = data
+        ShadeTool._lastResultGrid = resultGrid
+        ShadeTool._lastOptions = options
+        ShadeTool.makeDataLayer(dl, activeElmId, dlc)
+    },
+    renderHeatmapToMap: function (data, heatmap, activeElmId) {
+        let c = document.createElement('canvas')
+        const res = data.tileResolution * Math.pow(2, data.resolution)
+        c.width = res
+        c.height = res
+        let ctx = c.getContext('2d')
+        let cImgData = ctx.createImageData(res, res)
+        let cData = cImgData.data
+
+        let dl = {}
+        let dlc = {}
+
+        for (let j = 0; j <= data.outputTopLeftTile.h; j++) {
+            for (let i = 0; i <= data.outputTopLeftTile.w; i++) {
+                const z = data.outputTopLeftTile.z
+                const x = data.outputTopLeftTile.x + i
+                const y = data.outputTopLeftTile.y + j
+
+                dl[z] = dl[z] || {}
+                dl[z][Math.floor(x)] = dl[z][Math.floor(x)] || {}
+                dlc[z] = dlc[z] || {}
+                dlc[z][Math.floor(x)] = dlc[z][Math.floor(x)] || {}
+
+                const tileRow =
+                    (y -
+                        Math.floor(data.outputTopLeftTile.y) -
+                        (Math.abs(data.outputTopLeftTile.y) % 1) * 2) *
+                    res
+                const tileCol =
+                    (x -
+                        Math.floor(data.outputTopLeftTile.x) -
+                        (Math.abs(data.outputTopLeftTile.x) % 1) * 2) *
+                    res
+
+                let px = 0
+                for (let p = 0; p < cData.length; p += 4) {
+                    const row = heatmap[tileRow + Math.floor(px / res)]
+                    if (row != null) {
+                        const frac = row[tileCol + (px % res)]
+                        if (frac < 0) {
+                            cData[p] = 0
+                            cData[p + 1] = 0
+                            cData[p + 2] = 0
+                            cData[p + 3] = 0
+                        } else {
+                            // Red (always shadowed) -> Yellow -> Green (always visible)
+                            cData[p] = Math.round(255 * (1 - frac))
+                            cData[p + 1] = Math.round(255 * frac)
+                            cData[p + 2] = 0
+                            cData[p + 3] = 160
+                        }
+                    } else {
+                        cData[p] = 0
+                        cData[p + 1] = 0
+                        cData[p + 2] = 0
+                        cData[p + 3] = 0
+                    }
+                    px++
+                }
+                ctx.putImageData(cImgData, 0, 0)
+                dl[z][Math.floor(x)][Math.floor(y)] = c.toDataURL()
+                dlc[z][Math.floor(x)][Math.floor(y)] = F_.cloneCanvas(c)
+            }
+        }
+        ShadeTool.canvases[activeElmId] = dlc
+        ShadeTool.makeDataLayer(dl, activeElmId, dlc)
+    },
+    // === Time-Range Sweep ===
+    shadeSweep: function (startTime, endTime, stepMinutes) {
+        const activeElmId = ShadeTool.activeElmId
+        if (activeElmId == null) return
+
+        const options = ShadeTool.getShadeOptions(activeElmId)
+        const selectedTargets = options.targets || []
+        if (selectedTargets.length === 0) {
+            Toast.warning('Select at least one source entity for sweep.', 6000)
+            return
+        }
+
+        const startMs = new Date(startTime).getTime()
+        const endMs = new Date(endTime).getTime()
+        if (isNaN(startMs) || isNaN(endMs) || startMs >= endMs) {
+            Toast.warning('Invalid time range for sweep.', 6000)
+            return
+        }
+
+        const stepMs = stepMinutes * 60 * 1000
+        const timestamps = []
+        for (let t = startMs; t <= endMs; t += stepMs) {
+            timestamps.push(new Date(t).toISOString())
+        }
+
+        if (timestamps.length > 500) {
+            Toast.warning('Too many timesteps (max 500). Increase step size.', 6000)
+            return
+        }
+
+        options.color.a =
+            options.opacity != null
+                ? parseInt(options.opacity * 255)
+                : ShadeTool.shedColors[
+                      activeElmId % ShadeTool.shedColors.length
+                  ].a
+
+        const mapRect = document.getElementById('map').getBoundingClientRect()
+        const wOffset = mapRect.width / 2
+        const hOffset = mapRect.height / 2
+        let centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
+        if (ShadeTool.indicatorLastDragPoint)
+            centerLatLng = ShadeTool.indicatorLastDragPoint
+
+        const source = {
+            lng: parseFloat(centerLatLng.lng),
+            lat: parseFloat(centerLatLng.lat),
+        }
+        source.height =
+            options.height.length > 0 || !isNaN(options.height)
+                ? parseFloat(options.height)
+                : 2
+
+        options.resolution = parseInt(options.resolution) || 0
+        const b = Map_.map.getBounds()
+        const dataLayer = ShadeTool.vars.data[options.dataIndex]
+
+        const shadeTag =
+            activeElmId +
+            'd' +
+            dataLayer.name.replace(/ /g, '_') +
+            'r' +
+            options.resolution +
+            'n' + b._northEast.lat +
+            'e' + b._northEast.lng +
+            's' + b._southWest.lat +
+            'w' + b._southWest.lng +
+            'sweep_' + startMs + '_' + endMs
+
+        // Delete old tag data so tiles refresh
+        ShadeTool_Manager.data[shadeTag] = null
+
+        let obsRefFrame
+        let obsBody
+        if (ShadeTool.vars?.observers) {
+            for (let i = 0; i < ShadeTool.vars.observers.length; i++) {
+                if ((ShadeTool.vars.observers[i].value = options.observer)) {
+                    obsRefFrame = ShadeTool.vars.observers[i].frame
+                    obsBody = ShadeTool.vars.observers[i].body
+                } else if (options.observer == null) {
+                    obsRefFrame = ShadeTool.vars.observers[0].frame
+                    obsBody = ShadeTool.vars.observers[0].body
+                    break
+                }
+            }
+        }
+
+        let demUrl = ShadeTool.vars.dem
+        if (!F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
+
+        // Show progress
+        $('#vstSweepProgress').text('Loading tiles...')
+        $('.vstSweepBtn').addClass('regening')
+
+        // 1. Gather DEM tiles once
+        ShadeTool_Manager.gatherTiles(
+            shadeTag,
+            dataLayer,
+            options.resolution,
+            source,
+            options,
+            ShadeTool.vars,
+            function (progress) {
+                $('#vstSweepProgress').text('Tiles: ' + parseInt(progress) + '%')
+            },
+            function (data) {
+                // 2. For each timestamp, call ll2aerll then run algorithm
+                const sweepResults = []
+                const sweepGrids = []
+                let completed = 0
+                const total = timestamps.length
+                const BATCH_SIZE = 4
+
+                function processBatch(batchStart) {
+                    const batchEnd = Math.min(batchStart + BATCH_SIZE, total)
+                    const batchPromises = []
+
+                    for (let ti = batchStart; ti < batchEnd; ti++) {
+                        const ts = timestamps[ti]
+                        const timeStr = ShadeTool.parseToUTCTime(ts)
+
+                        // For each timestamp, resolve all selected targets
+                        const tsPromise = new Promise((resolveTs) => {
+                            const targetPromises = selectedTargets.map(
+                                (tgt) =>
+                                    new Promise((resolveTarget) => {
+                                        calls.api(
+                                            'll2aerll',
+                                            {
+                                                lng: source.lng,
+                                                lat: source.lat,
+                                                height: source.height,
+                                                target: tgt.value,
+                                                time: timeStr + ' UTC',
+                                                obsRefFrame: obsRefFrame,
+                                                obsBody: obsBody,
+                                                includeSunEarth: 'false',
+                                                isCustom: false,
+                                            },
+                                            function (s) {
+                                                resolveTarget(s)
+                                            },
+                                            function () {
+                                                resolveTarget({ error: true })
+                                            }
+                                        )
+                                    })
+                            )
+
+                            Promise.all(targetPromises).then(
+                                (targetResults) => {
+                                    const validTargets = targetResults.filter(
+                                        (s) => !s.error
+                                    )
+                                    if (validTargets.length > 0) {
+                                        const grids = validTargets.map((s) =>
+                                            ShadeTool_Manager.computeShade(
+                                                shadeTag,
+                                                {
+                                                    lat: s.latitude,
+                                                    lng: s.longitude,
+                                                    altitude:
+                                                        s.horizontal_altitude,
+                                                    az: s.azimuth,
+                                                    el: s.elevation,
+                                                    range: s.range,
+                                                },
+                                                options
+                                            )
+                                        )
+                                        const compositedGrid =
+                                            grids.length === 1
+                                                ? grids[0]
+                                                : ShaderTool_Algorithm.compositeResults(
+                                                      grids,
+                                                      options.compositeMode ||
+                                                          'or'
+                                                  )
+
+                                        // Count visibility
+                                        let visCount = 0
+                                        let totalCells = 0
+                                        for (
+                                            let y = 0;
+                                            y < compositedGrid.length;
+                                            y++
+                                        ) {
+                                            for (
+                                                let x = 0;
+                                                x < compositedGrid[y].length;
+                                                x++
+                                            ) {
+                                                if (compositedGrid[y][x] !== 9) {
+                                                    totalCells++
+                                                    if (
+                                                        compositedGrid[y][x] ===
+                                                            1 ||
+                                                        compositedGrid[y][x] ===
+                                                            2
+                                                    )
+                                                        visCount++
+                                                }
+                                            }
+                                        }
+                                        const primary = validTargets[0]
+                                        resolveTs({
+                                            time: ts,
+                                            visibilityPct:
+                                                totalCells > 0
+                                                    ? (
+                                                          (visCount /
+                                                              totalCells) *
+                                                          100
+                                                      ).toFixed(2)
+                                                    : 0,
+                                            azimuth: primary.azimuth,
+                                            elevation: primary.elevation,
+                                            range: primary.range,
+                                            grid: compositedGrid,
+                                        })
+                                    } else {
+                                        resolveTs({
+                                            time: ts,
+                                            visibilityPct: 0,
+                                            azimuth: 0,
+                                            elevation: 0,
+                                            range: 0,
+                                            grid: null,
+                                        })
+                                    }
+                                }
+                            )
+                        })
+                        batchPromises.push(tsPromise)
+                    }
+
+                    Promise.all(batchPromises).then((batchResults) => {
+                        batchResults.forEach((r) => {
+                            sweepResults.push({
+                                time: r.time,
+                                visibilityPct: r.visibilityPct,
+                                azimuth: r.azimuth,
+                                elevation: r.elevation,
+                                range: r.range,
+                            })
+                            if (r.grid) sweepGrids.push(r.grid)
+                        })
+                        completed += batchResults.length
+                        $('#vstSweepProgress').text(
+                            'Sweep: ' +
+                                parseInt((completed / total) * 100) +
+                                '%'
+                        )
+
+                        if (completed >= total) {
+                            ShadeTool.sweepResults = sweepResults
+                            ShadeTool.sweepGrids = sweepGrids
+                            ShadeTool.sweepPlayIndex = 0
+                            $('.vstSweepBtn').removeClass('regening')
+                            $('#vstSweepProgress').text(
+                                'Done (' + total + ' steps)'
+                            )
+                            Toast.success(
+                                'Sweep complete. ' +
+                                    total +
+                                    ' timesteps processed.',
+                                4000
+                            )
+
+                            // Render cumulative heatmap
+                            if (sweepGrids.length > 0) {
+                                const heatmap =
+                                    ShaderTool_Algorithm.cumulativeVisibility(
+                                        sweepGrids
+                                    )
+                                ShadeTool.renderHeatmapToMap(
+                                    data,
+                                    heatmap,
+                                    activeElmId
+                                )
+                            }
+                        } else {
+                            processBatch(batchEnd)
+                        }
+                    })
+                }
+
+                processBatch(0)
+            }
+        )
+    },
+    sweepPlay: function () {
+        const activeElmId = ShadeTool.activeElmId
+        if (
+            !ShadeTool.sweepGrids ||
+            ShadeTool.sweepGrids.length === 0 ||
+            !ShadeTool._lastData
+        )
+            return
+
+        ShadeTool.sweepPlaying = !ShadeTool.sweepPlaying
+        if (ShadeTool.sweepPlaying) {
+            $('#vstSweepPlayBtn').html(
+                "<i class='mdi mdi-pause mdi-14px'></i>"
+            )
+            ShadeTool.sweepPlayTimer = setInterval(function () {
+                ShadeTool.sweepPlayIndex =
+                    (ShadeTool.sweepPlayIndex + 1) %
+                    ShadeTool.sweepGrids.length
+                ShadeTool.sweepShowFrame(activeElmId)
+            }, ShadeTool.sweepPlaySpeed)
+        } else {
+            $('#vstSweepPlayBtn').html(
+                "<i class='mdi mdi-play mdi-14px'></i>"
+            )
+            clearInterval(ShadeTool.sweepPlayTimer)
+        }
+    },
+    sweepStepForward: function () {
+        if (!ShadeTool.sweepGrids || ShadeTool.sweepGrids.length === 0)
+            return
+        ShadeTool.sweepPlayIndex =
+            (ShadeTool.sweepPlayIndex + 1) % ShadeTool.sweepGrids.length
+        ShadeTool.sweepShowFrame(ShadeTool.activeElmId)
+    },
+    sweepStepBack: function () {
+        if (!ShadeTool.sweepGrids || ShadeTool.sweepGrids.length === 0)
+            return
+        ShadeTool.sweepPlayIndex =
+            (ShadeTool.sweepPlayIndex - 1 + ShadeTool.sweepGrids.length) %
+            ShadeTool.sweepGrids.length
+        ShadeTool.sweepShowFrame(ShadeTool.activeElmId)
+    },
+    sweepShowFrame: function (activeElmId) {
+        if (
+            !ShadeTool.sweepGrids ||
+            !ShadeTool._lastData ||
+            !ShadeTool._lastOptions
+        )
+            return
+        const grid = ShadeTool.sweepGrids[ShadeTool.sweepPlayIndex]
+        const data = ShadeTool._lastData
+        const options = ShadeTool._lastOptions
+
+        ShadeTool.renderResultToMap(data, grid, options, activeElmId)
+
+        const timeLabel =
+            ShadeTool.sweepResults &&
+            ShadeTool.sweepResults[ShadeTool.sweepPlayIndex]
+                ? ShadeTool.sweepResults[ShadeTool.sweepPlayIndex].time
+                : ''
+        $('#vstSweepFrameLabel').text(
+            'Frame ' +
+                (ShadeTool.sweepPlayIndex + 1) +
+                '/' +
+                ShadeTool.sweepGrids.length +
+                (timeLabel ? ' — ' + timeLabel.substring(0, 19) : '')
+        )
+    },
+    // === Export Methods ===
+    exportPNG: function (elmId) {
+        const dlc = ShadeTool.canvases[elmId]
+        if (!dlc) {
+            Toast.warning('No shade map to export. Generate first.', 6000)
+            return
+        }
+        // Composite all tile canvases into one big canvas
+        let allCanvases = []
+        let minX = Infinity
+        let maxX = -Infinity
+        let minY = Infinity
+        let maxY = -Infinity
+        let tileSize = 0
+
+        for (let z in dlc) {
+            for (let x in dlc[z]) {
+                for (let y in dlc[z][x]) {
+                    const cx = parseInt(x)
+                    const cy = parseInt(y)
+                    if (cx < minX) minX = cx
+                    if (cx > maxX) maxX = cx
+                    if (cy < minY) minY = cy
+                    if (cy > maxY) maxY = cy
+                    allCanvases.push({ x: cx, y: cy, canvas: dlc[z][x][y] })
+                    if (dlc[z][x][y].width > tileSize)
+                        tileSize = dlc[z][x][y].width
+                }
+            }
+        }
+
+        if (allCanvases.length === 0) return
+
+        const cols = maxX - minX + 1
+        const rows = maxY - minY + 1
+        const compositeCanvas = document.createElement('canvas')
+        compositeCanvas.width = cols * tileSize
+        compositeCanvas.height = rows * tileSize
+        const compositeCtx = compositeCanvas.getContext('2d')
+
+        allCanvases.forEach((tc) => {
+            compositeCtx.drawImage(
+                tc.canvas,
+                (tc.x - minX) * tileSize,
+                (tc.y - minY) * tileSize
+            )
+        })
+
+        compositeCanvas.toBlob(function (blob) {
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.setAttribute('download', 'shade_map.png')
+            link.setAttribute('href', url)
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+        })
+    },
+    exportCSV: function () {
+        if (!ShadeTool.sweepResults || ShadeTool.sweepResults.length === 0) {
+            Toast.warning(
+                'No sweep results to export. Run a time sweep first.',
+                6000
+            )
+            return
+        }
+        const headers = [
+            'time',
+            'visibility_pct',
+            'azimuth',
+            'elevation',
+            'range',
+        ]
+        const rows = ShadeTool.sweepResults.map((r) => [
+            r.time,
+            r.visibilityPct,
+            r.azimuth,
+            r.elevation,
+            r.range,
+        ])
+        F_.downloadArrayAsCSV(headers, rows, 'shade_sweep_results')
+    },
+    exportGeoJSON: function (elmId) {
+        const data = ShadeTool._lastData
+        const resultGrid = ShadeTool._lastResultGrid
+        if (!data || !resultGrid) {
+            Toast.warning(
+                'No shade results to export. Generate first.',
+                6000
+            )
+            return
+        }
+
+        const features = []
+        const tileRes = data.tileResolution
+        const topLeft = data.topLeftTile
+        const zoom = topLeft.z
+
+        for (let y = 0; y < resultGrid.length; y++) {
+            for (let x = 0; x < resultGrid[y].length; x++) {
+                const val = resultGrid[y][x]
+                if (val === 9 || val === 8) continue
+
+                const tileX = topLeft.x + x / tileRes
+                const tileY = topLeft.y + y / tileRes
+                const ll = Globe_.litho.projection.tileXYZ2LatLng(
+                    tileX,
+                    tileY,
+                    zoom
+                )
+                const ll2 = Globe_.litho.projection.tileXYZ2LatLng(
+                    tileX + 1 / tileRes,
+                    tileY + 1 / tileRes,
+                    zoom
+                )
+
+                features.push({
+                    type: 'Feature',
+                    properties: {
+                        visibility: val === 1 || val === 2 ? 'visible' : 'shadowed',
+                        value: val,
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [
+                            [
+                                [ll.lng, ll.lat],
+                                [ll2.lng, ll.lat],
+                                [ll2.lng, ll2.lat],
+                                [ll.lng, ll2.lat],
+                                [ll.lng, ll.lat],
+                            ],
+                        ],
+                    },
+                })
+            }
+        }
+
+        const geojson = {
+            type: 'FeatureCollection',
+            features: features,
+        }
+
+        F_.downloadObject(geojson, 'shade_map', '.geojson')
+    },
+    exportReport: function (elmId) {
+        const options = ShadeTool.getShadeOptions(elmId)
+        const report = {
+            parameters: {
+                sources: (options.targets || []).map((t) => t.value),
+                compositeMode: options.compositeMode,
+                time: options.time,
+                observer: options.observer,
+                resolution: options.resolution,
+                height: options.height,
+                dataIndex: options.dataIndex,
+            },
+            results: {
+                azimuth: $('#shadeTool_results_outputs_az').text(),
+                elevation: $('#shadeTool_results_outputs_el').text(),
+                range: $('#shadeTool_results_outputs_range').text(),
+            },
+            sweep:
+                ShadeTool.sweepResults && ShadeTool.sweepResults.length > 0
+                    ? ShadeTool.sweepResults
+                    : null,
+        }
+        F_.downloadObject(report, 'shade_report', '.json')
     },
     getShadeOptions: function (elmId, nextColor) {
         return {
@@ -1343,9 +1980,13 @@ let ShadeTool = {
                 '#vstShades #vstId_' + elmId + ' .vstOptionResolution select'
             ).val(),
             invert: 1,
-            target: $(
-                '#vstShades #vstId_' + elmId + ' .vstOptionTarget select'
-            ).val(),
+            target: ShadeTool.getSelectedSources(elmId).length > 0
+                ? ShadeTool.getSelectedSources(elmId)[0].value
+                : 'false',
+            targets: ShadeTool.getSelectedSources(elmId),
+            compositeMode: $(
+                '#vstShades #vstId_' + elmId + ' .vstOptionCompositeMode select'
+            ).val() || 'or',
             targetHeight: parseFloat(
                 $(
                     '#vstShades #vstId_' + elmId + ' .vstOptionHeight input'
@@ -1360,8 +2001,8 @@ let ShadeTool = {
             time: $('.vstOptionTime input').attr('raw'),
         }
     },
-    // Update Range Azimuth Elevation indicators
-    updateRAEIndicators(rae, shadeId) {
+    // Update Range Azimuth Elevation indicators (allResults optional for multi-source)
+    updateRAEIndicators(rae, shadeId, allResults) {
         const size = 240
         const sizeInner = 220
         const origin = { x: size / 2, y: size / 2 }
@@ -1469,6 +2110,31 @@ let ShadeTool = {
                             : 'yellow',
                 }
             )
+
+            // Draw arrows for additional sources (multi-source)
+            if (allResults && allResults.length > 1) {
+                for (let si = 1; si < allResults.length; si++) {
+                    const sr = allResults[si]
+                    if (sr.error || sr.azimuth == null) continue
+                    let srAz = sr.azimuth
+                    if (srAz < 0) srAz += 360
+                    const srAzRad = srAz * (Math.PI / 180)
+                    const srcColor = MULTI_SOURCE_COLORS[
+                        (sr._sourceTarget?.index || si) % MULTI_SOURCE_COLORS.length
+                    ]
+                    ShadeTool.drawAzAngleGuideOnCanvas(
+                        ctxAz,
+                        origin,
+                        sizeInner,
+                        sr.azimuth,
+                        srAzRad,
+                        {
+                            color: `rgb(${srcColor.r},${srcColor.g},${srcColor.b})`,
+                            shortenPx: 20 + si * 10,
+                        }
+                    )
+                }
+            }
         }
 
         // El ========================
@@ -1787,6 +2453,32 @@ function interfaceWithMMGIS() {
             "<div id='vstContent'>",
                 "<ul id='vstShades'>",
                 "</ul>",
+                "<div id='vstSweepSection'>",
+                    "<div class='vstOptionHeading'>Time-Range Sweep</div>",
+                    "<div class='vstSweepRow'>",
+                        "<div>Start</div>",
+                        "<input type='text' id='vstSweepStart' placeholder='YYYY-MM-DDTHH:MM:SSZ'>",
+                    "</div>",
+                    "<div class='vstSweepRow'>",
+                        "<div>End</div>",
+                        "<input type='text' id='vstSweepEnd' placeholder='YYYY-MM-DDTHH:MM:SSZ'>",
+                    "</div>",
+                    "<div class='vstSweepRow'>",
+                        "<div>Step (min)</div>",
+                        "<input type='number' id='vstSweepStep' value='60' min='1' step='1'>",
+                    "</div>",
+                    "<div class='vstSweepControls'>",
+                        "<div class='vstSweepBtn' title='Run time-range sweep'><i class='mdi mdi-play-box-outline mdi-14px'></i> Sweep</div>",
+                        "<span id='vstSweepProgress'></span>",
+                    "</div>",
+                    "<div class='vstSweepPlayback'>",
+                        "<div id='vstSweepStepBack' title='Step back'><i class='mdi mdi-skip-previous mdi-18px'></i></div>",
+                        "<div id='vstSweepPlayBtn' title='Play/Pause'><i class='mdi mdi-play mdi-14px'></i></div>",
+                        "<div id='vstSweepStepFwd' title='Step forward'><i class='mdi mdi-skip-next mdi-18px'></i></div>",
+                        "<input type='range' id='vstSweepSpeed' min='100' max='2000' step='100' value='500' title='Playback speed (ms/frame)'>",
+                        "<span id='vstSweepFrameLabel'></span>",
+                    "</div>",
+                "</div>",
             "</div>",
         "</div>"
     ].join('\n');
@@ -1813,6 +2505,39 @@ function interfaceWithMMGIS() {
     Map_.map.on('click', ShadeTool.setSource)
     Map_.map.on('moveend', ShadeTool.panEnd)
 
+    // Sweep event bindings
+    $('.vstSweepBtn').on('click', function () {
+        const start = $('#vstSweepStart').val()
+        const end = $('#vstSweepEnd').val()
+        const step = parseFloat($('#vstSweepStep').val())
+        if (!start || !end || !step) {
+            Toast.warning('Fill in Start, End, and Step for sweep.', 6000)
+            return
+        }
+        ShadeTool.shadeSweep(start, end, step)
+    })
+    $('#vstSweepPlayBtn').on('click', function () {
+        ShadeTool.sweepPlay()
+    })
+    $('#vstSweepStepBack').on('click', function () {
+        ShadeTool.sweepStepBack()
+    })
+    $('#vstSweepStepFwd').on('click', function () {
+        ShadeTool.sweepStepForward()
+    })
+    $('#vstSweepSpeed').on('input', function () {
+        ShadeTool.sweepPlaySpeed = parseInt($(this).val())
+        if (ShadeTool.sweepPlaying) {
+            clearInterval(ShadeTool.sweepPlayTimer)
+            ShadeTool.sweepPlayTimer = setInterval(function () {
+                ShadeTool.sweepPlayIndex =
+                    (ShadeTool.sweepPlayIndex + 1) %
+                    ShadeTool.sweepGrids.length
+                ShadeTool.sweepShowFrame(ShadeTool.activeElmId)
+            }, ShadeTool.sweepPlaySpeed)
+        }
+    })
+
     TimeControl.subscribe('ShadeTool', (t) => {
         ShadeTool.timeChange(ShadeTool.parseToUTCTime(t.currentTime))
     })
@@ -1822,6 +2547,11 @@ function interfaceWithMMGIS() {
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
     function separateFromMMGIS() {
+        // Stop sweep playback if running
+        if (ShadeTool.sweepPlayTimer) {
+            clearInterval(ShadeTool.sweepPlayTimer)
+            ShadeTool.sweepPlaying = false
+        }
         Map_.rmNotNull(ShadeTool.tempIndicatorPoint)
         ShadeTool.delete(0)
         ShadeTool.lastShadesUl = {}

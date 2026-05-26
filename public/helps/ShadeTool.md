@@ -12,7 +12,11 @@ _Shades the ground when line-of-sights to an orbiting target are occluded._
 #### Source
 
 - _Entity_
-  - Indicates which spacecraft, orbiter or celestial body to "look towards" and to "shine light back" upon the visible terrain.
+  - Select one or more spacecraft, orbiter or celestial body to "look towards" and to "shine light back" upon the visible terrain. Multiple entities can be selected simultaneously using the checkbox list, and each will be assigned a distinct color swatch for visual identification.
+- _Composite Mode_
+  - When multiple source entities are selected, this controls how their shadows are combined:
+    - **Shadow from Any (OR)**: A pixel is shadowed if it is hidden from _any_ selected source. This is the union of all shadow maps.
+    - **Shadow from All (AND)**: A pixel is shadowed only if it is hidden from _all_ selected sources. This is the intersection of shadow maps.
 - _Include Sun + Earth_
   - If true, the relative Sun and Earth positions will also be computed and their directional arrows will be rendered in the bottom azimuth and elevation indicators. In the azimuth and elevation indicators, the Sun is represented by a medium-length yellow arrow and the Earth is represented by a short-length blue-green arrow. These do **not** cast shadows on the visible terrain — only the source entity casts shadows.
 
@@ -43,6 +47,13 @@ _Shades the ground when line-of-sights to an orbiting target are occluded._
 - _Generate/Regenerate_
   - Submits a request to generate a shade map with the provided parameters. Note that if the resolution is 'high' or 'ultra', the Shade Tool will not regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
 
+#### Export
+
+- _PNG_: Exports the current shade map as a PNG image. All tile canvases are composited into a single image.
+- _CSV_: Exports time-range sweep results as a CSV file with columns: time, visibility_pct, azimuth, elevation, range. Only available after a sweep has been run.
+- _GeoJSON_: Exports the shade map as a GeoJSON FeatureCollection with polygon features for each grid cell, including visibility status properties.
+- _Report_: Exports a JSON file containing the parameters used (sources, time, observer, location), results (azimuth, elevation, range), and sweep data if applicable.
+
 #### Results
 
 - _Azimuth_: The compass-angle in (0 -> 360) degrees clockwise from north of the direction of the 'Source Entity' as seen from the map's center longitude and latitude. 0 = North, 90 = East, 180 = South, 270 = West.
@@ -54,8 +65,19 @@ _Shades the ground when line-of-sights to an orbiting target are occluded._
 
 #### Indicators
 
-- _Azimuth_: A top-down birds-eye view of the surface with north up. The long yellow-orange arrow visualizes the azimuthal direction towards the 'Source Entity'. If 'Include Sun + Earth' is on, shorter Sun and Earth arrows will also appear in the indicator with the respective yellow and green-blue colors.
+- _Azimuth_: A top-down birds-eye view of the surface with north up. The long yellow-orange arrow visualizes the azimuthal direction towards the 'Source Entity'. If 'Include Sun + Earth' is on, shorter Sun and Earth arrows will also appear in the indicator with the respective yellow and green-blue colors. When multiple sources are selected, each source gets its own arrow in its assigned color. These do **not** cast shadows on the visible terrain — only the source entity casts shadows.
 - _Elevation_: A horizontal and half-submerged side view of the surface. The long yellow-orange arrow visualizes the elevational direction towards the 'Source Entity'. If 'Include Sun + Earth' is on, shorter Sun and Earth arrows will also appear in the indicator with the respective yellow and green-blue colors. Note that elevation values only goes from -90 -> 90 but that the rendered elevation arrow can be drawn between 0 -> 360. This is because, while only half a circle is needed, the elevation arrow will choose whether to draw in the left or right half circle depending on which half-circle the azimuth value is in. Azimuth values from 0 -> 180 will result in an elevation arrow drawn in the right half-circle and azimuth values from 180 -> 360 will results in an elevation arrow drawn in the left half-circle. This is to aid in visualizing the 'Source Entity's 3D direction.
+
+#### Time-Range Sweep
+
+The Time-Range Sweep section allows analyzing how shading changes over a time period:
+
+- _Start Time_: The beginning of the time range (ISO 8601 format, e.g. `2023-09-06T00:00:00Z`).
+- _End Time_: The end of the time range.
+- _Step (min)_: The interval between timesteps in minutes.
+- _Sweep_: Runs the analysis. DEM tiles are fetched once, then for each timestep the source position is recomputed and shading is recalculated. A progress indicator shows completion status.
+- _Cumulative Heatmap_: After the sweep completes, a cumulative visibility heatmap overlay is shown on the map. Red = always shadowed, green = always visible, with a gradient for intermediate values.
+- _Playback Controls_: After a sweep completes, use play/pause, step forward/back, and speed slider to animate through the individual timestep results. The current timestamp is displayed during playback.
 
 ### Algorithm
 
