@@ -21,7 +21,7 @@ const Toast = {
         const id = toastManager.add({
             title: message,
             type: 'info',
-            duration: duration || DEFAULT_DURATION,
+            timeout: duration || DEFAULT_DURATION,
         })
         activeIds.add(id)
     },
@@ -29,7 +29,7 @@ const Toast = {
         const id = toastManager.add({
             title: message,
             type: 'success',
-            duration: duration || DEFAULT_DURATION,
+            timeout: duration || DEFAULT_DURATION,
         })
         activeIds.add(id)
     },
@@ -37,7 +37,7 @@ const Toast = {
         const id = toastManager.add({
             title: message,
             type: 'warning',
-            duration: duration || DEFAULT_DURATION,
+            timeout: duration || DEFAULT_DURATION,
         })
         activeIds.add(id)
     },
@@ -45,7 +45,7 @@ const Toast = {
         const id = toastManager.add({
             title: message,
             type: 'error',
-            duration: duration || DEFAULT_DURATION,
+            timeout: duration || DEFAULT_DURATION,
         })
         activeIds.add(id)
     },

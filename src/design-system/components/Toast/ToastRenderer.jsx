@@ -45,14 +45,14 @@ const variantBorder = {
 function ToastList() {
     const { toasts } = Toast.useToastManager()
     return toasts.map((toast) => {
-        const type = toast.data?.type
+        const type = toast.type
         const style = type && variantBorder[type]
             ? { ...baseToastStyle, borderLeft: variantBorder[type] }
             : baseToastStyle
         return (
             <Toast.Root key={toast.id} toast={toast} style={style}>
                 <Toast.Content>
-                    <Toast.Title />
+                    <Toast.Title render={<span />} />
                 </Toast.Content>
             </Toast.Root>
         )
