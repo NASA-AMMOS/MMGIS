@@ -1029,9 +1029,10 @@ let ShadeTool = {
         let obsBody
         if (ShadeTool.vars?.observers) {
             for (let i = 0; i < ShadeTool.vars.observers.length; i++) {
-                if ((ShadeTool.vars.observers[i].value = options.observer)) {
+                if (ShadeTool.vars.observers[i].value === options.observer) {
                     obsRefFrame = ShadeTool.vars.observers[i].frame
                     obsBody = ShadeTool.vars.observers[i].body
+                    break
                 } else if (options.observer == null) {
                     obsRefFrame = ShadeTool.vars.observers[0].frame
                     obsBody = ShadeTool.vars.observers[0].body
@@ -1428,7 +1429,7 @@ let ShadeTool = {
 
         const startMs = new Date(startTime).getTime()
         const endMs = new Date(endTime).getTime()
-        if (isNaN(startMs) || isNaN(endMs) || startMs >= endMs) {
+        if (isNaN(startMs) || isNaN(endMs) || startMs > endMs) {
             Toast.warning('Invalid time range for sweep.', 6000)
             return
         }
@@ -1490,9 +1491,10 @@ let ShadeTool = {
         let obsBody
         if (ShadeTool.vars?.observers) {
             for (let i = 0; i < ShadeTool.vars.observers.length; i++) {
-                if ((ShadeTool.vars.observers[i].value = options.observer)) {
+                if (ShadeTool.vars.observers[i].value === options.observer) {
                     obsRefFrame = ShadeTool.vars.observers[i].frame
                     obsBody = ShadeTool.vars.observers[i].body
+                    break
                 } else if (options.observer == null) {
                     obsRefFrame = ShadeTool.vars.observers[0].frame
                     obsBody = ShadeTool.vars.observers[0].body
