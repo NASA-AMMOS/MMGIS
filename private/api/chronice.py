@@ -31,7 +31,7 @@ def chronice(body, target, fromFormat, time):
         # Crawl main dir for kernels
         path = PATH_TO_KERNELS
         for x in os.listdir(os.path.join(package_dir, path )):
-            if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls')):
+            if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls', '.bpc')):
                 kernels_to_load.append(path + x)
     except:
         pass
@@ -40,7 +40,7 @@ def chronice(body, target, fromFormat, time):
         # Crawl body dir for kernels
         path = PATH_TO_KERNELS + body + '/'
         for x in os.listdir(os.path.join(package_dir, path )):
-            if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls')):
+            if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls', '.bpc')):
                 kernels_to_load.append(path + x)
     except:
         pass
@@ -49,7 +49,7 @@ def chronice(body, target, fromFormat, time):
         # Crawl body/target dir for kernels
         path = PATH_TO_KERNELS + body + '/' + target + '/'
         for x in os.listdir(os.path.join(package_dir, path)):
-            if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls')):
+            if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls', '.bpc')):
                 kernels_to_load.append(path + x)
     except:
         pass

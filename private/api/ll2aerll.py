@@ -34,7 +34,7 @@ def ll2aerll(lng, lat, height, target, time, obsRefFrame, obsBody, includeSunEar
         # Crawl main dir for kernels
         path = PATH_TO_KERNELS
         for x in os.listdir(os.path.join(package_dir, path )):
-            if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls')):
+            if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls', '.bpc')):
                 kernels_to_load.append(path + x)
     except:
         pass
@@ -43,7 +43,7 @@ def ll2aerll(lng, lat, height, target, time, obsRefFrame, obsBody, includeSunEar
         # Crawl body dir for kernels
         path = PATH_TO_KERNELS + obsBody + '/'
         for x in os.listdir(os.path.join(package_dir, path )):
-            if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls')):
+            if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls', '.bpc')):
                 kernels_to_load.append(path + x)
     except:
         pass
@@ -53,7 +53,7 @@ def ll2aerll(lng, lat, height, target, time, obsRefFrame, obsBody, includeSunEar
         if isCustom != 'true':
             path = PATH_TO_KERNELS + obsBody + '/' + target + '/'
             for x in os.listdir(os.path.join(package_dir, path)):
-                if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls')):
+                if x.endswith(('.bsp', '.tpc', '.tsc', '.tf', '.tls', '.bpc')):
                     kernels_to_load.append(path + x)
     except:
         pass
