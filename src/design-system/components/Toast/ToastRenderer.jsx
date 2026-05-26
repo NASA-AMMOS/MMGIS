@@ -20,7 +20,7 @@ const transitionCSS = `
 
 const viewportStyle = {
     position: 'fixed',
-    top: '12px',
+    top: '48px',
     left: '50%',
     transform: 'translateX(-50%)',
     zIndex: 1000000,
