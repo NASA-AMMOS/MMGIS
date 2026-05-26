@@ -181,6 +181,27 @@ let ShadeTool_Manager = {
         let min = minPx.divideBy(256).floor()
         let max = maxPx.divideBy(256).floor()
 
+        // Clamp to bounding box if the data source defines one
+        const rawBbox = this.data[shadeId].dataLayer.boundingBox
+        const bbox = Array.isArray(rawBbox)
+            ? rawBbox.map(Number)
+            : null
+        let bboxTileBounds = null
+        if (bbox && bbox.length === 4 && bbox.every((v) => !isNaN(v))) {
+            const bboxMinPx = Map_.map.project(L.latLng(bbox[1], bbox[0]), zoom)
+            const bboxMaxPx = Map_.map.project(L.latLng(bbox[3], bbox[2]), zoom)
+            bboxTileBounds = {
+                minX: Math.floor(bboxMinPx.x / 256),
+                minY: Math.floor(bboxMaxPx.y / 256),
+                maxX: Math.ceil(bboxMaxPx.x / 256) - 1,
+                maxY: Math.ceil(bboxMinPx.y / 256) - 1,
+            }
+            min.x = Math.max(min.x, bboxTileBounds.minX)
+            min.y = Math.max(min.y, bboxTileBounds.minY)
+            max.x = Math.min(max.x, bboxTileBounds.maxX)
+            max.y = Math.min(max.y, bboxTileBounds.maxY)
+        }
+
         let viewportDesiredTiles = []
         for (let i = min.x; i <= max.x; i++) {
             for (let j = min.y; j <= max.y; j++) {
@@ -198,6 +219,13 @@ let ShadeTool_Manager = {
             .divideBy(256)
             .floor()
         let sourceMax = sourceCenter.add(halfViewport).divideBy(256).floor()
+
+        if (bboxTileBounds) {
+            sourceMin.x = Math.max(sourceMin.x, bboxTileBounds.minX)
+            sourceMin.y = Math.max(sourceMin.y, bboxTileBounds.minY)
+            sourceMax.x = Math.min(sourceMax.x, bboxTileBounds.maxX)
+            sourceMax.y = Math.min(sourceMax.y, bboxTileBounds.maxY)
+        }
 
         let sourceDesiredTiles = []
         for (let i = sourceMin.x; i <= sourceMax.x; i++) {
@@ -239,6 +267,16 @@ let ShadeTool_Manager = {
         let tileTags = []
         let uniqueDesiredTiles = []
         for (let i = 0; i < fullDesiredTiles.length; i++) {
+            // Skip tiles outside the bounding box
+            if (bboxTileBounds) {
+                if (
+                    fullDesiredTiles[i].x < bboxTileBounds.minX ||
+                    fullDesiredTiles[i].x > bboxTileBounds.maxX ||
+                    fullDesiredTiles[i].y < bboxTileBounds.minY ||
+                    fullDesiredTiles[i].y > bboxTileBounds.maxY
+                )
+                    continue
+            }
             const t =
                 fullDesiredTiles[i].z +
                 '-' +

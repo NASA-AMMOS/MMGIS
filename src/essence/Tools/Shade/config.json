@@ -10,7 +10,8 @@
                     "name": "User-friendly name for DEM",
                     "demtileurl": "pathToDEMTiles/{z}/{x}/{y}.png",
                     "minZoom": 8,
-                    "maxNativeZoom": 18
+                    "maxNativeZoom": 18,
+                    "boundingBox": [-122.51, 37.71, -122.41, 37.78]
                 }
             ],
             "sources": [
@@ -97,6 +98,13 @@
                                 "min": 0,
                                 "step": 1,
                                 "width": 1
+                            },
+                            {
+                                "field": "boundingBox",
+                                "name": "Bounding Box",
+                                "description": "west,south,east,north in EPSG:4326. Clamps tile requests to this extent.",
+                                "type": "textarray",
+                                "width": 4
                             }
                         ]
                     }
