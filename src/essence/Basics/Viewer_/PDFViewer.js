@@ -7,7 +7,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 
 // Setting worker path to worker bundle.
-pdfjs.GlobalWorkerOptions.workerSrc = '/public/workers/pdf.worker.min.js'
+pdfjs.GlobalWorkerOptions.workerSrc = '/public/workers/pdf.worker.min.mjs'
 
 const ReactPDF = (props) => {
     const { pdfPath } = props

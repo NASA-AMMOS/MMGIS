@@ -1,5 +1,5 @@
 import React from 'react'
-import { Button as BaseButton } from '@base-ui-components/react/button'
+import { Button as BaseButton } from '@base-ui/react/button'
 import styles from './Button.module.css'
 
 function Button({ variant = 'secondary', size = 'md', className, children, ...props }) {

@@ -19,7 +19,7 @@
 
 import $ from 'jquery'
 import WebSocket from 'isomorphic-ws'
-import M from 'materialize-css'
+import Toast from '../design-system/components/Toast/Toast'
 import F_ from './Basics/Formulae_/Formulae_'
 import L_ from './Basics/Layers_/Layers_'
 import Viewer_ from './Basics/Viewer_/Viewer_'
@@ -171,16 +171,15 @@ var essence = {
         essence.ws.onerror = function (e) {
             console.log(`Unable to connect to WebSocket at ${path}`)
 
-            M.Toast.dismissAll()
+            Toast.dismissAll()
 
             const asMinutes = essence.webSocketRetryInterval / 60000 || ''
-            M.toast({
-                html: `Not connected to WebSocket. Retrying in ${
+            Toast.error(
+                `Not connected to WebSocket. Retrying in ${
                     asMinutes >= 1 ? parseInt(asMinutes) : asMinutes.toFixed(2)
                 } minute${asMinutes > 1 ? 's' : ''}...`,
-                displayLength: 10000,
-                classes: 'mmgisToast failure',
-            })
+                10000
+            )
         }
 
         essence.ws.onopen = function () {
@@ -188,18 +187,14 @@ var essence = {
 
             UserInterface_.removeLayerUpdateButton()
 
-            M.Toast.dismissAll()
+            Toast.dismissAll()
 
             if (
                 essence.webSocketRetryInterval >
                 essence.initialWebSocketRetryInterval
             ) {
                 /*
-                M.toast({
-                    html: 'Successfully connected to WebSocket',
-                    displayLength: 1600,
-                    classes: 'mmgisToast',
-                })
+                Toast.info('Successfully connected to WebSocket', 1600)
                 */
 
                 essence.webSocketRetryInterval =

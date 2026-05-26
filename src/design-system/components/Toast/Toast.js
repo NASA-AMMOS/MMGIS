@@ -1,4 +1,4 @@
-import M from 'materialize-css'
+import { Toast as BaseToast } from '@base-ui/react/toast'
 
 /**
  * Toast utility for displaying notification messages.
@@ -11,39 +11,35 @@ import M from 'materialize-css'
  *
  * Default duration is 3500ms.
  */
+export const toastManager = BaseToast.createToastManager()
+
 const DEFAULT_DURATION = 3500
+const activeIds = new Set()
+
+function addToast(options) {
+    const timeout = options.timeout || DEFAULT_DURATION
+    const id = toastManager.add(options)
+    activeIds.add(id)
+    setTimeout(() => activeIds.delete(id), timeout + 500)
+    return id
+}
 
 const Toast = {
     info(message, duration) {
-        M.toast({
-            html: message,
-            displayLength: duration || DEFAULT_DURATION,
-            classes: 'mmgisToast info',
-        })
+        addToast({ title: message, type: 'info', timeout: duration || DEFAULT_DURATION })
     },
     success(message, duration) {
-        M.toast({
-            html: message,
-            displayLength: duration || DEFAULT_DURATION,
-            classes: 'mmgisToast success',
-        })
+        addToast({ title: message, type: 'success', timeout: duration || DEFAULT_DURATION })
     },
     warning(message, duration) {
-        M.toast({
-            html: message,
-            displayLength: duration || DEFAULT_DURATION,
-            classes: 'mmgisToast warning',
-        })
+        addToast({ title: message, type: 'warning', timeout: duration || DEFAULT_DURATION })
     },
     error(message, duration) {
-        M.toast({
-            html: message,
-            displayLength: duration || DEFAULT_DURATION,
-            classes: 'mmgisToast failure',
-        })
+        addToast({ title: message, type: 'error', timeout: duration || DEFAULT_DURATION })
     },
     dismissAll() {
-        M.Toast.dismissAll()
+        activeIds.forEach((id) => toastManager.close(id))
+        activeIds.clear()
     },
 }
 
