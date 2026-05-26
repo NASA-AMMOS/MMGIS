@@ -3695,7 +3695,7 @@
         "data": [
           {
             "name": "USGS SF DEM (tileset required)",
-            "demtileurl": "Data/dem-tiles/{z}/{x}/{y}.png",
+            "demtileurl": "Data/dem_rgba_tiles/{z}/{x}/{y}.png",
             "minZoom": 8,
             "maxNativeZoom": 18
           }

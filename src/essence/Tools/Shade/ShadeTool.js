@@ -899,6 +899,21 @@ let ShadeTool = {
 
         if (body == null || options.observer == null) return
 
+        // Earth missions use UTC natively; no SPICE clock conversion needed
+        if (body.toUpperCase() === 'EARTH') {
+            $(
+                '#vstShades #vstId_' +
+                    id +
+                    ' .vstOptionTimeSpecific input'
+            ).val(
+                TimeControl.getEndTime().replace(
+                    '.000Z',
+                    `.${ShadeTool._lastConvertedMs}Z`
+                )
+            )
+            return
+        }
+
         calls.api(
             'chronice',
             {
@@ -938,6 +953,20 @@ let ShadeTool = {
         }
 
         if (body == null || options.observer == null) return
+
+        // Earth missions use UTC natively; no SPICE clock conversion needed
+        if (body.toUpperCase() === 'EARTH') {
+            const inputTime = $(
+                '#vstShades #vstId_' + id + ' .vstOptionTimeSpecific input'
+            ).val()
+            ShadeTool._lastConvertedMs = '000'
+            TimeControl.setTime(
+                TimeControl.getStartTime(),
+                inputTime.replace(' ', 'T') +
+                    (inputTime.endsWith('Z') ? '' : 'Z')
+            )
+            return
+        }
 
         calls.api(
             'chronice',
