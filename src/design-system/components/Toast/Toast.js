@@ -16,38 +16,26 @@ export const toastManager = BaseToast.createToastManager()
 const DEFAULT_DURATION = 3500
 const activeIds = new Set()
 
+function addToast(options) {
+    const timeout = options.timeout || DEFAULT_DURATION
+    const id = toastManager.add(options)
+    activeIds.add(id)
+    setTimeout(() => activeIds.delete(id), timeout + 500)
+    return id
+}
+
 const Toast = {
     info(message, duration) {
-        const id = toastManager.add({
-            title: message,
-            type: 'info',
-            timeout: duration || DEFAULT_DURATION,
-        })
-        activeIds.add(id)
+        addToast({ title: message, type: 'info', timeout: duration || DEFAULT_DURATION })
     },
     success(message, duration) {
-        const id = toastManager.add({
-            title: message,
-            type: 'success',
-            timeout: duration || DEFAULT_DURATION,
-        })
-        activeIds.add(id)
+        addToast({ title: message, type: 'success', timeout: duration || DEFAULT_DURATION })
     },
     warning(message, duration) {
-        const id = toastManager.add({
-            title: message,
-            type: 'warning',
-            timeout: duration || DEFAULT_DURATION,
-        })
-        activeIds.add(id)
+        addToast({ title: message, type: 'warning', timeout: duration || DEFAULT_DURATION })
     },
     error(message, duration) {
-        const id = toastManager.add({
-            title: message,
-            type: 'error',
-            timeout: duration || DEFAULT_DURATION,
-        })
-        activeIds.add(id)
+        addToast({ title: message, type: 'error', timeout: duration || DEFAULT_DURATION })
     },
     dismissAll() {
         activeIds.forEach((id) => toastManager.close(id))
