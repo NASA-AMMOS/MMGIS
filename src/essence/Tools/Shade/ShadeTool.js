@@ -1453,6 +1453,10 @@ let ShadeTool = {
             return
         }
 
+        if (stepMinutes <= 0) {
+            Toast.warning('Step must be a positive number.', 6000)
+            return
+        }
         const stepMs = stepMinutes * 60 * 1000
         const timestamps = []
         for (let t = startMs; t <= endMs; t += stepMs) {

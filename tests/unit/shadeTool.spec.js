@@ -44,8 +44,10 @@ function compositeResults(resultGrids, mode) {
 // Inline implementation of cumulativeVisibility for testing
 function cumulativeVisibility(resultGrids) {
     if (!resultGrids || resultGrids.length === 0) return []
-    const rows = resultGrids[0].length
-    const cols = resultGrids[0][0].length
+    const validGrids = resultGrids.filter((g) => g != null)
+    if (validGrids.length === 0) return []
+    const rows = validGrids[0].length
+    const cols = validGrids[0][0].length
     let heatmap = []
 
     for (let y = 0; y < rows; y++) {
@@ -53,8 +55,8 @@ function cumulativeVisibility(resultGrids) {
         for (let x = 0; x < cols; x++) {
             let visCount = 0
             let total = 0
-            for (let g = 0; g < resultGrids.length; g++) {
-                const v = resultGrids[g][y][x]
+            for (let g = 0; g < validGrids.length; g++) {
+                const v = validGrids[g][y][x]
                 if (v === 9) continue
                 total++
                 if (v === 1 || v === 2) visCount++
@@ -194,6 +196,19 @@ test.describe('cumulativeVisibility', () => {
         const g2 = [[9]]
         const result = cumulativeVisibility([g1, g2])
         expect(result[0][0]).toBe(-1)
+    })
+
+    test('filters out null grids from failed timesteps', () => {
+        const g1 = [[1, 0]]
+        const g2 = [[0, 1]]
+        const result = cumulativeVisibility([g1, null, g2, null])
+        expect(result[0][0]).toBe(0.5)
+        expect(result[0][1]).toBe(0.5)
+    })
+
+    test('returns empty array when all grids are null', () => {
+        const result = cumulativeVisibility([null, null])
+        expect(result).toEqual([])
     })
 })
 
