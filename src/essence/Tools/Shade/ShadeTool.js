@@ -1829,6 +1829,7 @@ let ShadeTool = {
             document.body.appendChild(link)
             link.click()
             link.remove()
+            URL.revokeObjectURL(url)
         })
     },
     exportCSV: function () {
