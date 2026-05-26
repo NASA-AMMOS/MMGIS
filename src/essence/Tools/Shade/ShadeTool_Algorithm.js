@@ -574,8 +574,11 @@ let ShadeTool_Algorithm = {
     // representing the fraction of timesteps where each cell was visible.
     cumulativeVisibility: function (resultGrids) {
         if (!resultGrids || resultGrids.length === 0) return []
-        const rows = resultGrids[0].length
-        const cols = resultGrids[0][0].length
+        // Filter out null grids (failed timesteps)
+        const validGrids = resultGrids.filter((g) => g != null)
+        if (validGrids.length === 0) return []
+        const rows = validGrids[0].length
+        const cols = validGrids[0][0].length
         let heatmap = []
 
         for (let y = 0; y < rows; y++) {
@@ -583,8 +586,8 @@ let ShadeTool_Algorithm = {
             for (let x = 0; x < cols; x++) {
                 let visCount = 0
                 let total = 0
-                for (let g = 0; g < resultGrids.length; g++) {
-                    const v = resultGrids[g][y][x]
+                for (let g = 0; g < validGrids.length; g++) {
+                    const v = validGrids[g][y][x]
                     if (v === 9) continue
                     total++
                     if (v === 1 || v === 2) visCount++
