@@ -1037,9 +1037,9 @@ let ShadeTool = {
             Toast.warning('Select at least one source entity.', 6000)
             return
         }
-        const isCustom = selectedTargets.length === 1 && selectedTargets[0].value === 'false'
+        const hasCustom = selectedTargets.some((t) => t.value === 'false')
         let customAz, customEl, customRange
-        if (isCustom) {
+        if (hasCustom) {
             customAz = parseFloat(
                 $('#shadeTool_results_outputs_az_input').val()
             )
@@ -1075,7 +1075,7 @@ let ShadeTool = {
             't' +
             options.time.replace(/ /g, '_')
 
-        if (isCustom)
+        if (hasCustom)
             ShadeTool.tags[
                 activeElmId
             ] += `A${customAz}E${customEl}R${customRange}`

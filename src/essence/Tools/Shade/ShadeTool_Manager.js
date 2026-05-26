@@ -154,6 +154,7 @@ let ShadeTool_Manager = {
     computeShade: function (shadeId, targetSource, options) {
         const d = this.data[shadeId]
         if (!d) return null
+        if (!d.data || d.data.length === 0) return []
 
         d.targetSource = targetSource
         d.options = options
@@ -549,6 +550,7 @@ let ShadeTool_Manager = {
     interpolateSeams(shadeId) {
         const tileRes = this.data[shadeId].tileResolution
         let d = this.data[shadeId].data
+        if (!d || d.length === 0) return
 
         // Vertical | |
         for (let y = 0; y < d.length; y++) {
