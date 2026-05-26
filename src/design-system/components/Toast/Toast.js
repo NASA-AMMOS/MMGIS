@@ -1,4 +1,4 @@
-import toastManager from './toastManager'
+import { Toast as BaseToast } from '@base-ui/react/toast'
 
 /**
  * Toast utility for displaying notification messages.
@@ -11,6 +11,8 @@ import toastManager from './toastManager'
  *
  * Default duration is 3500ms.
  */
+export const toastManager = BaseToast.createToastManager()
+
 const DEFAULT_DURATION = 3500
 
 const Toast = {

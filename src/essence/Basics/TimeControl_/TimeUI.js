@@ -18,7 +18,7 @@ import { TempusDominus, Namespace } from '@eonasdan/tempus-dominus'
 import '@eonasdan/tempus-dominus/dist/css/tempus-dominus.css'
 
 import './TimeUI.css'
-import Toast from '../../../../design-system/components/Toast/Toast'
+import Toast from '../../../design-system/components/Toast/Toast'
 
 // Lazy accessor to avoid circular import (uiStore → ... → TimeUI)
 function _getUIStore() {

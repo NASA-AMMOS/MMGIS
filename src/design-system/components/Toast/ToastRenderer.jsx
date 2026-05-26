@@ -1,6 +1,6 @@
 import React from 'react'
 import { Toast } from '@base-ui/react/toast'
-import toastManager from './toastManager'
+import { toastManager } from './Toast'
 
 const viewportStyle = {
     position: 'fixed',
