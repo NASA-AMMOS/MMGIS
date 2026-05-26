@@ -3704,9 +3704,20 @@
           {
             "name": "Sun",
             "value": "SUN"
+          },
+          {
+            "name": "Moon",
+            "value": "MOON"
           }
         ],
-        "observers": [],
+        "observers": [
+          {
+            "name": "Earth (UTC)",
+            "value": "EARTH",
+            "frame": "IAU_EARTH",
+            "body": "EARTH"
+          }
+        ],
         "defaultHeight": 0,
         "observerTimePlaceholder": "YYYY-MM-DD HH:MM:SS",
         "utcTimeFormat": "%Y-%m-%d %H:%M:%S"

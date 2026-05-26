@@ -1,7 +1,7 @@
 # ll2aerl - Longitude, Latitude to Azimuth, Elevation, Range, Longitude, Latitude, Height
 # Given a lnglat ground position, time and a target object:
 # Returns the az/el/range in the sky as well as the lnglat position directory under the object 
-# !!! Currently only designed for Mars
+# Works for any SPICE body (Mars, Earth, Moon, etc.) via obsRefFrame and obsBody params
 
 # example: python ll2aerll.py [lng] [lat] [height] [target] [time] [obsRefFrame] [obsBody] [includeSunEarth] [isCustom] [customAz] [customEl] [customRange]
 # python ll2aerll.py 77.36885547637941 18.481028548936987 -2410.2507 MRO "2023 NOV 10 00:21:31 UTC" IAU_MARS MARS false false
@@ -110,12 +110,13 @@ def ll2aerll(lng, lat, height, target, time, obsRefFrame, obsBody, includeSunEar
         sun_az_output = sun_razel[1] * spiceypy.dpr()
         sun_el_output = sun_razel[2] * spiceypy.dpr()
 
-        targetSE = 'EARTH'
-        earth_obspos = spiceypy.georec( lng * spiceypy.rpd(), lat * spiceypy.rpd(), height / 1000, radii[0], flattening)
-        earth_output = spiceypy.azlcpo( method, targetSE, et, abcorr, azccw, elplsz, earth_obspos, obsctr, obsref)
-        earth_razel = earth_output[0]
-        earth_az_output = earth_razel[1] * spiceypy.dpr()
-        earth_el_output = earth_razel[2] * spiceypy.dpr()
+        if obsBody.upper() != 'EARTH':
+            targetSE = 'EARTH'
+            earth_obspos = spiceypy.georec( lng * spiceypy.rpd(), lat * spiceypy.rpd(), height / 1000, radii[0], flattening)
+            earth_output = spiceypy.azlcpo( method, targetSE, et, abcorr, azccw, elplsz, earth_obspos, obsctr, obsref)
+            earth_razel = earth_output[0]
+            earth_az_output = earth_razel[1] * spiceypy.dpr()
+            earth_el_output = earth_razel[2] * spiceypy.dpr()
 
     if isCustom == 'true':
         target_lat, target_lng, target_alt = pm.aer2geodetic(az_output, el_output, range_output * 1000,
