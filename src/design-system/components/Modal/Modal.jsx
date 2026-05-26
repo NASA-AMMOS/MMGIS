@@ -1,5 +1,5 @@
 import React from 'react'
-import { Dialog } from '@base-ui-components/react/dialog'
+import { Dialog } from '@base-ui/react/dialog'
 import styles from './Modal.module.css'
 
 function Modal({ open, onOpenChange, children, className, ...props }) {

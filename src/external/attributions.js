@@ -260,15 +260,15 @@ export default [
         githublink: 'https://github.com/kartena/Proj4Leaflet',
     },
     {
-        library: 'Materialize',
-        librarylink: 'https://materializecss.com/',
-        version: '0.97.7',
-        author: 'Materializes',
-        authorlink: 'https://materializecss.com/',
+        library: 'Base UI',
+        librarylink: 'https://base-ui.com/',
+        version: '1.5.0',
+        author: 'MUI',
+        authorlink: 'https://mui.com/',
         license: 'MIT',
         licenselink:
-            'https://github.com/Dogfalo/materialize/blob/v1-dev/LICENSE',
-        githublink: 'https://github.com/Dogfalo/materialize',
+            'https://github.com/mui/base-ui/blob/master/LICENSE',
+        githublink: 'https://github.com/mui/base-ui',
     },
     {
         library: 'MetricsGraphics.js',
