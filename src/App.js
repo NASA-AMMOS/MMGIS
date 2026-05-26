@@ -7,6 +7,7 @@ import F_ from './essence/Basics/Formulae_/Formulae_'
 import calls from './pre/calls'
 
 import UserInterfaceLayout from './essence/Basics/UserInterface_/components/Layout/UserInterfaceLayout'
+import ToastRenderer from './design-system/components/Toast/ToastRenderer'
 
 // Ensure useReactUI is always set (defensive fallback for non-standard bootstrap)
 ;(function () {
@@ -115,6 +116,7 @@ function App() {
     return (
         <div className='App'>
             <UserInterfaceLayout />
+            <ToastRenderer />
         </div>
     )
 }

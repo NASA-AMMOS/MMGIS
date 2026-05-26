@@ -18,6 +18,7 @@ import { TempusDominus, Namespace } from '@eonasdan/tempus-dominus'
 import '@eonasdan/tempus-dominus/dist/css/tempus-dominus.css'
 
 import './TimeUI.css'
+import Toast from '../../../../design-system/components/Toast/Toast'
 
 // Lazy accessor to avoid circular import (uiStore → ... → TimeUI)
 function _getUIStore() {
@@ -1809,11 +1810,7 @@ const TimeUI = {
                 !activeFeature.layer.options.layerName
             ) {
                 // Show toast message
-                M.toast({
-                    html: 'Select a feature from a real-time layer first',
-                    displayLength: 3000,
-                    classes: 'mmgisToast feature',
-                })
+                Toast.info('Select a feature from a real-time layer first', 3000)
                 return
             }
 
@@ -1835,44 +1832,28 @@ const TimeUI = {
         const layer = L_.layers.data[layerName]
         if (!layer) {
             // Show toast message
-            M.toast({
-                html: 'Layer not found.',
-                displayLength: 3000,
-                classes: 'mmgisToast failure',
-            })
+            Toast.error('Layer not found.', 3000)
             return false
         }
 
         // Layer must be time-enabled
         if (!layer.time || layer.time.enabled !== true) {
             // Show toast message
-            M.toast({
-                html: 'Selected layer does not support real-time updates.',
-                displayLength: 3000,
-                classes: 'mmgisToast failure',
-            })
+            Toast.error('Selected layer does not support real-time updates.', 3000)
             return false
         }
 
         // Layer must fetch new data (global or requery types)
         if (layer.time.type !== 'global' && layer.time.type !== 'requery') {
             // Show toast message
-            M.toast({
-                html: 'Selected layer does not support real-time updates.',
-                displayLength: 3000,
-                classes: 'mmgisToast failure',
-            })
+            Toast.error('Selected layer does not support real-time updates.', 3000)
             return false
         }
 
         // Present mode should be on for real-time following
         if (!TimeUI.now) {
             // Show toast message
-            M.toast({
-                html: 'Present Mode is not active.',
-                displayLength: 3000,
-                classes: 'mmgisToast failure',
-            })
+            Toast.error('Present Mode is not active.', 3000)
             return false
         }
 

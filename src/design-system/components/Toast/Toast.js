@@ -1,4 +1,4 @@
-import M from 'materialize-css'
+import toastManager from './toastManager'
 
 /**
  * Toast utility for displaying notification messages.
@@ -15,35 +15,36 @@ const DEFAULT_DURATION = 3500
 
 const Toast = {
     info(message, duration) {
-        M.toast({
-            html: message,
-            displayLength: duration || DEFAULT_DURATION,
-            classes: 'mmgisToast info',
+        toastManager.add({
+            title: message,
+            type: 'info',
+            duration: duration || DEFAULT_DURATION,
         })
     },
     success(message, duration) {
-        M.toast({
-            html: message,
-            displayLength: duration || DEFAULT_DURATION,
-            classes: 'mmgisToast success',
+        toastManager.add({
+            title: message,
+            type: 'success',
+            duration: duration || DEFAULT_DURATION,
         })
     },
     warning(message, duration) {
-        M.toast({
-            html: message,
-            displayLength: duration || DEFAULT_DURATION,
-            classes: 'mmgisToast warning',
+        toastManager.add({
+            title: message,
+            type: 'warning',
+            duration: duration || DEFAULT_DURATION,
         })
     },
     error(message, duration) {
-        M.toast({
-            html: message,
-            displayLength: duration || DEFAULT_DURATION,
-            classes: 'mmgisToast failure',
+        toastManager.add({
+            title: message,
+            type: 'error',
+            duration: duration || DEFAULT_DURATION,
         })
     },
     dismissAll() {
-        M.Toast.dismissAll()
+        const { toasts } = toastManager
+        toasts.forEach((t) => toastManager.close(t.id))
     },
 }
 

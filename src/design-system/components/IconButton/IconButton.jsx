@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react'
-import { Button as BaseButton } from '@base-ui-components/react/button'
+import { Button as BaseButton } from '@base-ui/react/button'
 import styles from './IconButton.module.css'
 
 const IconButton = forwardRef(function IconButton({ size = 'md', active, className, children, ...props }, ref) {

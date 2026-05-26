@@ -1085,32 +1085,7 @@ input::-webkit-inner-spin-button {
     max-width: 500px;
     width: auto;
 }
-.mmgisToast {
-    z-index: 1000;
-    border-radius: 8px;
-    top: 0;
-    width: auto;
-    margin-top: 8px;
-    position: relative;
-    max-width: 100%;
-    height: auto;
-    line-height: 1.5em;
-    background-color: var(--color-a);
-    border: 1px solid var(--color-a1);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    padding: 10px 25px;
-    color: var(--color-f);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: default;
-}
-.mmgisToast.failure {
-    background-color: var(--color-a);
-    border-left: 3px solid var(--color-r1);
-}
+
 
 /*spinner1*/
 .mmgis-spinner1 {
