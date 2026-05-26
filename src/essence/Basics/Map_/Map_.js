@@ -285,6 +285,10 @@ let Map_ = {
         //Remove attribution
         $('.leaflet-control-attribution').remove()
 
+        // Expose Map_ on L_ early so that AJAX callbacks from makeLayers
+        // can safely access L_.Map_.map (e.g. getZoom()) before L_.fina() runs.
+        L_.Map_ = this
+
         //Make our layers
         makeLayers(L_.layers.dataFlat)
 
