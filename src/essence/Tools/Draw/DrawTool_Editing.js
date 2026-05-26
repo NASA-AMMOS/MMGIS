@@ -7,7 +7,7 @@ import Map_ from '../../Basics/Map_/Map_'
 import Viewer_ from '../../Basics/Viewer_/Viewer_'
 import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
 import Toast from '../../../design-system/components/Toast/Toast'
-import * as turf from '@turf/turf'
+import { bbox as turfBbox } from '@turf/turf'
 
 import DrawTool_Templater from './DrawTool_Templater'
 
@@ -407,7 +407,7 @@ var Editing = {
 
             file = DrawTool.getFileObjectWithId(fileid)
 
-            var bbox = turf.bbox(DrawTool.contextMenuLayerOriginalGeoJSON)
+            var bbox = turfBbox(DrawTool.contextMenuLayerOriginalGeoJSON)
 
             var bounds = [
                 [bbox[1], bbox[0]],
@@ -1052,7 +1052,7 @@ var Editing = {
             Map_.rmNotNull(DrawTool.contextMenuLayers[0].selectionLayer)
             if (typeof DrawTool.contextMenuLayer.toGeoJSON !== 'function')
                 return
-            var bbox = turf.bbox(
+            var bbox = turfBbox(
                 DrawTool.contextMenuLayer.toGeoJSON(L_.GEOJSON_PRECISION)
             )
             var bounds = [

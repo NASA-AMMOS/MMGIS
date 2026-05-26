@@ -4,7 +4,7 @@ import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
 import Toast from '../../../design-system/components/Toast/Toast'
-import * as turf from '@turf/turf'
+import { bbox as turfBbox, difference as turfDifference } from '@turf/turf'
 
 import calls from '../../../pre/calls'
 
@@ -92,7 +92,7 @@ var Drawing = {
         //DrawTool.drawOver(d)
 
         //Then modify the ones it overlapped
-        var bb = turf.bbox(d.shape)
+        var bb = turfBbox(d.shape)
 
         var lg = L_.layers.layer['DrawTool_' + DrawTool.currentFileId]
 
@@ -114,11 +114,11 @@ var Drawing = {
                     : null
                 if (features != null) {
                     let geojson = features[0]
-                    if (F_.doBoundingBoxesIntersect(bb, turf.bbox(geojson))) {
+                    if (F_.doBoundingBoxesIntersect(bb, turfBbox(geojson))) {
                         let newGeometry
                         let noChange = false
                         try {
-                            newGeometry = turf.difference(
+                            newGeometry = turfDifference(
                                 geojson,
                                 d.shape
                             ).geometry
@@ -219,7 +219,7 @@ var Drawing = {
     },
     drawUnder: function (d) {
         //Modify shape based on intersecting features
-        var bb = turf.bbox(d.shape)
+        var bb = turfBbox(d.shape)
         var lg = L_.layers.layer['DrawTool_' + DrawTool.currentFileId]
 
         for (var i = 0; i < lg.length; i++) {
@@ -227,10 +227,10 @@ var Drawing = {
             let geojson =
                 lg[i].feature ||
                 lg[i]._layers[Object.keys(lg[i]._layers)[0]].feature
-            if (F_.doBoundingBoxesIntersect(bb, turf.bbox(geojson))) {
+            if (F_.doBoundingBoxesIntersect(bb, turfBbox(geojson))) {
                 let newGeometry
                 try {
-                    newGeometry = turf.difference(d.shape, geojson).geometry
+                    newGeometry = turfDifference(d.shape, geojson).geometry
                     if (
                         JSON.stringify(newGeometry) != JSON.stringify(d.shape)
                     ) {
