@@ -289,6 +289,26 @@ let ShadeTool_Manager = {
             }
         }
 
+        // Enforce tile limit — prioritize tiles nearest the source point
+        if (uniqueDesiredTiles.length > this.maxNumOfDataTiles) {
+            const srcTile = Map_.map
+                .project(this.data[shadeId].source, zoom)
+                .divideBy(256)
+            uniqueDesiredTiles.sort((a, b) => {
+                const da =
+                    Math.pow(a.x - srcTile.x, 2) +
+                    Math.pow(a.y - srcTile.y, 2)
+                const db =
+                    Math.pow(b.x - srcTile.x, 2) +
+                    Math.pow(b.y - srcTile.y, 2)
+                return da - db
+            })
+            uniqueDesiredTiles = uniqueDesiredTiles.slice(
+                0,
+                this.maxNumOfDataTiles
+            )
+        }
+
         this.data[shadeId].desiredTiles = uniqueDesiredTiles
     },
     // Restores the shade's data matrix to all 0s,
@@ -305,7 +325,9 @@ let ShadeTool_Manager = {
             this.data[shadeId].tileResolution
 
         for (let i = 0; i < h; i++) {
-            this.data[shadeId].data.push(new Array(w).fill(0))
+            this.data[shadeId].data.push(
+                new Array(w).fill(this.internalNoDataValue)
+            )
         }
 
         this.data[shadeId].topLeftTile = {
@@ -353,6 +375,12 @@ let ShadeTool_Manager = {
         if (source.y < -tilePixelsAcross / 2) source.y += tilePixelsAcross
         if (source.y > tilePixelsAcross / 2) source.y -= tilePixelsAcross
 
+        // Clamp to valid grid bounds (algorithm accesses 8 neighbors)
+        const maxX = dv.data[0] ? dv.data[0].length - 2 : 1
+        const maxY = dv.data.length - 2
+        source.x = Math.max(1, Math.min(source.x, maxX))
+        source.y = Math.max(1, Math.min(source.y, maxY))
+
         this.data[shadeId].dataSource = source
     },
     queryDesiredTiles: function (shadeId, progcb, cb) {
@@ -363,6 +391,10 @@ let ShadeTool_Manager = {
         )
 
         let totalTiles = this.data[shadeId].desiredTiles.length
+        if (totalTiles === 0) {
+            cb(ShadeTool_Manager.data[shadeId])
+            return
+        }
         let tilesLoaded = 0
         let tilesQueried = 0
         let tilesPerStep = 8
