@@ -1004,6 +1004,10 @@ let ShadeTool = {
         let dataLayer = ShadeTool.vars.data[options.dataIndex]
 
         const selectedTargets = options.targets || []
+        if (selectedTargets.length === 0) {
+            Toast.warning('Select at least one source entity.', 6000)
+            return
+        }
         const isCustom = selectedTargets.length === 1 && selectedTargets[0].value === 'false'
         let customAz, customEl, customRange
         if (isCustom) {
