@@ -2,6 +2,22 @@ import React from 'react'
 import { Toast } from '@base-ui/react/toast'
 import { toastManager } from './Toast'
 
+const transitionCSS = `
+.mmgisToastRoot {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 1;
+    transform: translateY(0);
+}
+.mmgisToastRoot[data-starting-style] {
+    opacity: 0;
+    transform: translateY(-12px);
+}
+.mmgisToastRoot[data-ending-style] {
+    opacity: 0;
+    transform: translateY(12px);
+}
+`
+
 const viewportStyle = {
     position: 'fixed',
     top: '12px',
@@ -50,7 +66,12 @@ function ToastList() {
             ? { ...baseToastStyle, borderLeft: variantBorder[type] }
             : baseToastStyle
         return (
-            <Toast.Root key={toast.id} toast={toast} style={style}>
+            <Toast.Root
+                key={toast.id}
+                toast={toast}
+                style={style}
+                className="mmgisToastRoot"
+            >
                 <Toast.Content>
                     <Toast.Title render={<span />} />
                 </Toast.Content>
@@ -62,6 +83,7 @@ function ToastList() {
 export default function ToastRenderer() {
     return (
         <Toast.Provider toastManager={toastManager}>
+            <style>{transitionCSS}</style>
             <Toast.Portal>
                 <Toast.Viewport style={viewportStyle}>
                     <ToastList />
