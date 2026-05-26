@@ -889,8 +889,9 @@ let ShadeTool = {
         let body
         if (ShadeTool.vars?.observers) {
             for (let i = 0; i < ShadeTool.vars.observers.length; i++) {
-                if ((ShadeTool.vars.observers[i].value = options.observer)) {
+                if (ShadeTool.vars.observers[i].value === options.observer) {
                     body = ShadeTool.vars.observers[i].body
+                    break
                 }
             }
         }
@@ -928,8 +929,9 @@ let ShadeTool = {
         let body
         if (ShadeTool.vars?.observers) {
             for (let i = 0; i < ShadeTool.vars.observers.length; i++) {
-                if ((ShadeTool.vars.observers[i].value = options.observer)) {
+                if (ShadeTool.vars.observers[i].value === options.observer) {
                     body = ShadeTool.vars.observers[i].body
+                    break
                 }
             }
         }
@@ -1533,6 +1535,22 @@ let ShadeTool = {
         $('#vstSweepProgress').text('Loading tiles...')
         $('.vstSweepBtn').addClass('regening')
 
+        // 0. Query terrain elevation at center, same as shade() does
+        calls.api(
+            'getbands',
+            {
+                x: source.lat,
+                y: source.lng,
+                xyorll: 'll',
+                bands: '[[1,1]]',
+                path: demUrl,
+            },
+            function (bandData) {
+                const centerHeight =
+                    bandData && bandData[0] && bandData[0][1] != null
+                        ? bandData[0][1]
+                        : source.height
+
         // 1. Gather DEM tiles once
         ShadeTool_Manager.gatherTiles(
             shadeTag,
@@ -1570,7 +1588,7 @@ let ShadeTool = {
                                             {
                                                 lng: source.lng,
                                                 lat: source.lat,
-                                                height: source.height,
+                                                height: centerHeight,
                                                 target: tgt.value,
                                                 time: timeStr + ' UTC',
                                                 obsRefFrame: obsRefFrame,
@@ -1728,6 +1746,8 @@ let ShadeTool = {
 
                 processBatch(0)
             }
+        )
+            } // end getbands callback
         )
     },
     sweepPlay: function () {
