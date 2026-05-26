@@ -159,11 +159,9 @@ let ShadeTool_Manager = {
         d.options = options
         this.locateSource(shadeId)
 
-        // Clone hasDataCurved so re-runs don't skip curving
-        const wasCurved = d.hasDataCurved
-        d.hasDataCurved = false
+        // curveData mutates d.data in-place; let it run on the first call
+        // and skip on subsequent calls (hasDataCurved will be true)
         const result = ShadeTool_Algorithm.shade(d, options)
-        d.hasDataCurved = wasCurved
         return result
     },
     getData: function (shadeId) {
