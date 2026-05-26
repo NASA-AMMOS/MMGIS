@@ -326,9 +326,7 @@ let ShadeTool_Manager = {
             this.data[shadeId].tileResolution
 
         for (let i = 0; i < h; i++) {
-            this.data[shadeId].data.push(
-                new Array(w).fill(this.internalNoDataValue)
-            )
+            this.data[shadeId].data.push(new Array(w).fill(0))
         }
 
         this.data[shadeId].topLeftTile = {
@@ -375,12 +373,6 @@ let ShadeTool_Manager = {
         if (source.x > tilePixelsAcross / 2) source.x -= tilePixelsAcross
         if (source.y < -tilePixelsAcross / 2) source.y += tilePixelsAcross
         if (source.y > tilePixelsAcross / 2) source.y -= tilePixelsAcross
-
-        // Clamp to valid grid bounds (algorithm accesses 8 neighbors)
-        const maxX = dv.data[0] ? dv.data[0].length - 2 : 1
-        const maxY = dv.data.length - 2
-        source.x = Math.max(1, Math.min(source.x, maxX))
-        source.y = Math.max(1, Math.min(source.y, maxY))
 
         this.data[shadeId].dataSource = source
     },
