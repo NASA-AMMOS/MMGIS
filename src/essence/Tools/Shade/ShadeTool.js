@@ -1726,6 +1726,8 @@ let ShadeTool = {
                             ShadeTool.sweepResults = sweepResults
                             ShadeTool.sweepGrids = sweepGrids
                             ShadeTool.sweepPlayIndex = 0
+                            ShadeTool._lastData = data
+                            ShadeTool._lastOptions = options
                             $('.vstSweepBtn').removeClass('regening')
                             $('#vstSweepProgress').text(
                                 'Done (' + total + ' steps)'
