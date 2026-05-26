@@ -37,7 +37,7 @@ const baseToastStyle = {
     width: 'auto',
     maxWidth: '100%',
     lineHeight: '1.4em',
-    fontSize: '13px',
+    fontSize: '14px',
     backgroundColor: 'var(--color-a)',
     border: '1px solid var(--color-a1)',
     boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
