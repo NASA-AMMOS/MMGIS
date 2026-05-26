@@ -34,7 +34,15 @@ module.exports = function (proxy, allowedHost, options) {
       // remove last slash so user can land on `/test` instead of `/test/`
       publicPath: paths.publicUrlOrPath.slice(0, -1),
     },
-    https: getHttpsConfig(),
+    server: (() => {
+      const httpsConfig = getHttpsConfig();
+      if (httpsConfig && httpsConfig !== false) {
+        return typeof httpsConfig === 'object'
+          ? { type: 'https', options: httpsConfig }
+          : { type: 'https' };
+      }
+      return 'http';
+    })(),
     host,
     client: {
       // Silence WebpackDevServer's own logs since they're generally not useful.

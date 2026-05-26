@@ -160,15 +160,14 @@
     "resolve": "1.15.0",
     "resolve-url-loader": "^5.0.0",
     "semver": "6.3",
-    "sequelize": "^6.33.0",
-    "sharp": "^0.31.2",
+    "sequelize": "^6.37.8",
+    "sharp": "^0.33.0",
     "showdown": "^2.1.0",
     "snap-bbox": "^0.2.0",
     "sortablejs": "^1.15.0",
     "swagger-ui-express": "5.0.1",
     "tippy.js": "^6.3.7",
     "ts-pnp": "1.1.6",
-    "turf": "^3.0.14",
     "util": "^0.12.3",
     "utm-utils": "^0.1.0",
     "uuid": "^9.0.0",
@@ -244,7 +243,7 @@
     "webpack": "5.105.4",
     "webpack-bundle-analyzer": "4.10.2",
     "webpack-cli": "5.1.4",
-    "webpack-dev-server": "4.15.2",
+    "webpack-dev-server": "^5.2.1",
     "webpack-manifest-plugin": "5.0.1"
   }
 }

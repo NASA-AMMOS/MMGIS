@@ -7,7 +7,7 @@ import Map_ from '../../Basics/Map_/Map_'
 import Viewer_ from '../../Basics/Viewer_/Viewer_'
 import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
 import Toast from '../../../design-system/components/Toast/Toast'
-import turf from 'turf'
+import * as turf from '@turf/turf'
 
 import DrawTool_Templater from './DrawTool_Templater'
 

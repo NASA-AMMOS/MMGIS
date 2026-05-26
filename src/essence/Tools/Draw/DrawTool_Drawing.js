@@ -4,8 +4,7 @@ import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
 import Toast from '../../../design-system/components/Toast/Toast'
-import turf from 'turf'
-import { circle as turfCircle } from '@turf/turf'
+import * as turf from '@turf/turf'
 
 import calls from '../../../pre/calls'
 

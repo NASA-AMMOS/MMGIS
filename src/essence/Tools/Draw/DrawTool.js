@@ -20,7 +20,6 @@ import Description from '../../Basics/UserInterface_/components/Description/Desc
 import TimeControl from '../../Basics/TimeControl_/TimeControl'
 import useUIStore from '../../Basics/UserInterface_/store/uiStore'
 import { Kinds } from '../../../pre/tools'
-import turf from 'turf'
 
 import calls from '../../../pre/calls'
 
