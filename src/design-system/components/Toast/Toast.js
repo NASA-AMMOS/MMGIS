@@ -14,39 +14,44 @@ import { Toast as BaseToast } from '@base-ui/react/toast'
 export const toastManager = BaseToast.createToastManager()
 
 const DEFAULT_DURATION = 3500
+const activeIds = new Set()
 
 const Toast = {
     info(message, duration) {
-        toastManager.add({
+        const id = toastManager.add({
             title: message,
             type: 'info',
             duration: duration || DEFAULT_DURATION,
         })
+        activeIds.add(id)
     },
     success(message, duration) {
-        toastManager.add({
+        const id = toastManager.add({
             title: message,
             type: 'success',
             duration: duration || DEFAULT_DURATION,
         })
+        activeIds.add(id)
     },
     warning(message, duration) {
-        toastManager.add({
+        const id = toastManager.add({
             title: message,
             type: 'warning',
             duration: duration || DEFAULT_DURATION,
         })
+        activeIds.add(id)
     },
     error(message, duration) {
-        toastManager.add({
+        const id = toastManager.add({
             title: message,
             type: 'error',
             duration: duration || DEFAULT_DURATION,
         })
+        activeIds.add(id)
     },
     dismissAll() {
-        const { toasts } = toastManager
-        toasts.forEach((t) => toastManager.close(t.id))
+        activeIds.forEach((id) => toastManager.close(id))
+        activeIds.clear()
     },
 }
 
