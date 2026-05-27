@@ -30,6 +30,20 @@
     -moz-appearance: textfield;
 }
 
+.input:disabled {
+    color: var(--color-a3);
+    cursor: not-allowed;
+}
+
+.wrapper:has(.input:disabled) {
+    opacity: 0.5;
+}
+
+.input:read-only {
+    color: var(--color-a5);
+    cursor: default;
+}
+
 .unit {
     flex-shrink: 0;
     padding: 0 6px;

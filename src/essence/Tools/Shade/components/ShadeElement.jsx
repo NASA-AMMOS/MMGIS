@@ -246,13 +246,14 @@ export default function ShadeElement({ elmId }) {
                                     <InputWithUnit
                                         unit="km"
                                         type="number"
-                                        disabled
+                                        readOnly
                                         value={
                                             isNaN(el.customRange)
                                                 ? ''
                                                 : el.customRange
                                         }
                                         className="vstFieldInput"
+                                        title="Computed from source ephemeris"
                                     />
                                 </div>
                             </>

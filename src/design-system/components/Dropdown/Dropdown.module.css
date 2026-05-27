@@ -6,7 +6,7 @@
     box-shadow: 0 8px 24px var(--color-shadow);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    background: var(--color-a);
+    background: var(--color-a-5);
     border: 1px solid var(--color-a1);
     overflow: hidden;
     animation: dropdownFadeIn 0.12s ease-out;
