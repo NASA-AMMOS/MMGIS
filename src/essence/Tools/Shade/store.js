@@ -9,6 +9,8 @@ export const MULTI_SOURCE_COLORS = [
     { r: 120, g: 40, b: 180 },
     { r: 0, g: 160, b: 160 },
     { r: 180, g: 0, b: 180 },
+    { r: 100, g: 100, b: 100 },
+    { r: 200, g: 160, b: 60 },
 ]
 
 export function buildSourcesList(vars) {

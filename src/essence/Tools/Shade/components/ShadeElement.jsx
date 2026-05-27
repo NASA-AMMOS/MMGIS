@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import useShadeStore, { buildSourcesList, MULTI_SOURCE_COLORS } from '../store'
 import ShadeResults from './ShadeResults'
 import ExportBar from './ExportBar'
@@ -103,28 +103,17 @@ export default function ShadeElement({ elmId }) {
         })
     }, [elmId, el])
 
-    const colorInputRef = useRef(null)
+    const [colorPickerOpen, setColorPickerOpen] = useState(false)
 
-    const handleColorClick = useCallback(() => {
-        colorInputRef.current?.click()
-    }, [])
-
-    const handleColorChange = useCallback(
-        (e) => {
-            const hex = e.target.value
-            const r = parseInt(hex.slice(1, 3), 16)
-            const g = parseInt(hex.slice(3, 5), 16)
-            const b = parseInt(hex.slice(5, 7), 16)
-            updateElement(elmId, { color: { r, g, b }, changed: true })
+    const handleColorSelect = useCallback(
+        (color) => {
+            updateElement(elmId, { color: { ...color }, changed: true })
+            setColorPickerOpen(false)
         },
         [elmId, updateElement]
     )
 
     if (!el) return null
-
-    const colorHex = el
-        ? `#${el.color.r.toString(16).padStart(2, '0')}${el.color.g.toString(16).padStart(2, '0')}${el.color.b.toString(16).padStart(2, '0')}`
-        : '#000000'
 
     const isCustom =
         sourcesList[el.sourceIndex] &&
@@ -136,19 +125,25 @@ export default function ShadeElement({ elmId }) {
             <div className="vstLoading" style={{ opacity: el.loading ? 1 : 0, width: el.loadingProgress + '%' }} />
             <div className="vstShadeHeader">
                 <div className="vstShadeHeaderLeft">
-                    <div
-                        className="vstColorSwatch"
-                        style={{ background: rgbStr(el.color), cursor: 'pointer' }}
-                        onClick={handleColorClick}
-                        title="Click to change color"
-                    >
-                        <input
-                            ref={colorInputRef}
-                            type="color"
-                            value={colorHex}
-                            onChange={handleColorChange}
-                            className="vstColorInput"
+                    <div className="vstColorSwatchWrap">
+                        <div
+                            className="vstColorSwatch"
+                            style={{ background: rgbStr(el.color) }}
+                            onClick={() => setColorPickerOpen(!colorPickerOpen)}
+                            title="Click to change color"
                         />
+                        {colorPickerOpen && (
+                            <div className="vstColorPalette">
+                                {MULTI_SOURCE_COLORS.map((c, i) => (
+                                    <div
+                                        key={i}
+                                        className="vstColorOption"
+                                        style={{ background: rgbStr(c) }}
+                                        onClick={() => handleColorSelect(c)}
+                                    />
+                                ))}
+                            </div>
+                        )}
                     </div>
                     <IconButton
                         size="sm"

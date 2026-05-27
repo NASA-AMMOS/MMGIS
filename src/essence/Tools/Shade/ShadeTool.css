@@ -142,25 +142,47 @@
     flex-shrink: 0;
 }
 
+#shadeTool.shadeToolNew .vstColorSwatchWrap {
+    position: relative;
+    flex-shrink: 0;
+}
+
 #shadeTool.shadeToolNew .vstColorSwatch {
     width: 14px;
     height: 14px;
     border-radius: 3px;
-    flex-shrink: 0;
-    position: relative;
-    overflow: hidden;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+#shadeTool.shadeToolNew .vstColorSwatch:hover {
+    border-color: rgba(255, 255, 255, 0.5);
 }
 
-#shadeTool.shadeToolNew .vstColorInput {
+#shadeTool.shadeToolNew .vstColorPalette {
     position: absolute;
-    top: 0;
+    top: 18px;
     left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+    padding: 4px;
+    background: var(--color-a);
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+}
+
+#shadeTool.shadeToolNew .vstColorOption {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
     cursor: pointer;
-    border: none;
-    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+#shadeTool.shadeToolNew .vstColorOption:hover {
+    border-color: white;
+    transform: scale(1.2);
 }
 
 #shadeTool.shadeToolNew .vstShadeName {
