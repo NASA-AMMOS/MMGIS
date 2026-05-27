@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react'
 import useShadeStore from '../store'
-import ShadeToolNew from '../ShadeToolNew'
+import ShadeTool from '../ShadeTool'
 
 export default function SweepSection() {
     const sweepStart = useShadeStore((s) => s.sweepStart)
@@ -13,7 +13,7 @@ export default function SweepSection() {
 
     const handleSweep = useCallback(() => {
         if (!sweepStart || !sweepEnd || !sweepStep) return
-        ShadeToolNew.shadeSweep(sweepStart, sweepEnd, sweepStep)
+        ShadeTool.shadeSweep(sweepStart, sweepEnd, sweepStep)
     }, [sweepStart, sweepEnd, sweepStep])
 
     return (
@@ -70,14 +70,14 @@ export default function SweepSection() {
                 <div
                     id="vstSweepStepBack"
                     title="Step back"
-                    onClick={() => ShadeToolNew.sweepStepBack()}
+                    onClick={() => ShadeTool.sweepStepBack()}
                 >
                     <i className="mdi mdi-skip-previous mdi-18px" />
                 </div>
                 <div
                     id="vstSweepPlayBtn"
                     title="Play/Pause"
-                    onClick={() => ShadeToolNew.sweepPlay()}
+                    onClick={() => ShadeTool.sweepPlay()}
                 >
                     <i
                         className={
@@ -89,7 +89,7 @@ export default function SweepSection() {
                 <div
                     id="vstSweepStepFwd"
                     title="Step forward"
-                    onClick={() => ShadeToolNew.sweepStepForward()}
+                    onClick={() => ShadeTool.sweepStepForward()}
                 >
                     <i className="mdi mdi-skip-next mdi-18px" />
                 </div>
@@ -103,7 +103,7 @@ export default function SweepSection() {
                     onChange={(e) => {
                         const speed = parseInt(e.target.value)
                         setSweepField('sweepPlaySpeed', speed)
-                        ShadeToolNew.updateSweepSpeed(speed)
+                        ShadeTool.updateSweepSpeed(speed)
                     }}
                 />
                 <span id="vstSweepFrameLabel" />

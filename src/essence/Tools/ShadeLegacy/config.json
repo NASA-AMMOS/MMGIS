@@ -1,6 +1,6 @@
 {
     "defaultIcon": "sun-angle-outline",
-    "description": "Realtime user generated sun and orbiter masks (React).",
+    "description": "Realtime user generated sun and orbiter masks.",
     "descriptionFull": {
         "title": "Shades the ground when line-of-sights to an orbiting target are occluded.",
         "example": {
@@ -38,12 +38,13 @@
         }
     },
     "hasVars": true,
-    "name": "ShadeNew",
+    "name": "ShadeLegacy",
     "toolbarPriority": 103,
     "paths": {
-        "ShadeToolNew": "essence/Tools/ShadeToolNew/ShadeToolNew"
+        "ShadeLegacyTool": "essence/Tools/ShadeLegacy/ShadeTool",
+        "ShadeLegacy_Manager": "essence/Tools/ShadeLegacy/ShadeTool_Manager",
+        "ShadeLegacy_Algorithm": "essence/Tools/ShadeLegacy/ShadeTool_Algorithm"
     },
-    "expandable": true,
     "config": {
         "rows": [
             {
@@ -51,7 +52,7 @@
                     {
                         "field": "variables.dem",
                         "name": "DEM path",
-                        "description": "A path to a DEM.tif. This is used to get the current center elevation.",
+                        "description": "A path to a DEM.tif. This is used to get the current center elevation. This can/should be the same file used for the Measure Tool and the Coordinate's elevation.",
                         "type": "text",
                         "width": 12
                     }
@@ -62,7 +63,7 @@
                     {
                         "field": "variables.data",
                         "name": "Layer specific DEMs",
-                        "description": "At minimum, the Shade tool requires at least one 'data' source.",
+                        "description": "At minimum, the Shade tool requires at least one 'data' source. A data source describes a DEM tileset (see /auxiliary/gdal2customtiles or /auxiliary/1bto4b) and allows users to select it by name to generate shade maps over.",
                         "type": "objectarray",
                         "width": 12,
                         "object": [
@@ -114,23 +115,23 @@
                     {
                         "field": "variables.sources",
                         "name": "Sources",
-                        "description": "SPICE bodies that cast shadows.",
+                        "description": "An array of objects with the properties 'name' and 'value'. 'name' is the display name for the Source Entity dropdown. 'value' is the SPICE spacecraft ID that gets passed to the backend ll2aerll.py script. Ensure the right kernels for the configured source entities/targets exist in /private/api/spice/kernels.",
                         "type": "objectarray",
                         "width": 12,
                         "object": [
                             {
                                 "field": "name",
                                 "name": "Name",
-                                "description": "User-friendly name",
+                                "description": "User-friendly name for orbiter or body that 'casts light'",
                                 "type": "text",
-                                "width": 6
+                                "width": 4
                             },
                             {
                                 "field": "value",
-                                "name": "SPICE Value",
+                                "name": "Value",
                                 "description": "NAIF SPICE Spacecraft name or ID",
                                 "type": "text",
-                                "width": 6
+                                "width": 4
                             }
                         ]
                     }
@@ -141,35 +142,35 @@
                     {
                         "field": "variables.observers",
                         "name": "Observers",
-                        "description": "Ground observers for time conversions.",
+                        "description": "An array of objects with the properties 'name' and 'value'. 'name' is the display name for the Source Entity dropdown. 'value' is the SPICE spacecraft ID that gets passed to the backend chronos.py scripts. Ensure the right kernels for the configured observers exist in /private/api/spice/kernels and that there is a proper chronos setup file for each observer's value private/api/spice/chronosSetups/chronos-{lowercased_observer_value}.setup.",
                         "type": "objectarray",
                         "width": 12,
                         "object": [
                             {
                                 "field": "name",
                                 "name": "Name",
-                                "description": "",
+                                "description": "User-friendly name for observer for spacecraft time computations",
                                 "type": "text",
                                 "width": 3
                             },
                             {
                                 "field": "value",
-                                "name": "SPICE Value",
-                                "description": "",
+                                "name": "Value",
+                                "description": "NAIF SPICE Spacecraft name or ID",
                                 "type": "text",
                                 "width": 3
                             },
                             {
                                 "field": "frame",
-                                "name": "Reference Frame",
-                                "description": "e.g. IAU_MARS",
+                                "name": "Frame",
+                                "description": "SPICE reference frame. i.e. 'IAU_MARS'",
                                 "type": "text",
                                 "width": 3
                             },
                             {
                                 "field": "body",
-                                "name": "Planet Body",
-                                "description": "e.g. MARS",
+                                "name": "Body",
+                                "description": "SPICE planet body. i.e. 'MARS'",
                                 "type": "text",
                                 "width": 3
                             }
@@ -181,19 +182,25 @@
                 "components": [
                     {
                         "field": "variables.defaultHeight",
-                        "name": "Default Height (m)",
-                        "description": "Default height above surface.",
+                        "name": "Default Height",
+                        "description": "Sets a default for the 'Height' parameter. Height in meters above the surface to use when calculating line-of-sight shading. For instance, a point on the surface (0m) may not be visible to a 'Source Entity', say the Mars Reconnaissance Orbiter (MRO), but 2m above that point may be. This value does not only apply to the center longitude and latitude but to all points on the visible terrain. Gradually increasing this value shows the shade map n-meters above the surface. The regular default is 0 meters.",
                         "type": "number",
                         "min": 0,
-                        "step": 1,
-                        "width": 6
+                        "width": 4
                     },
                     {
                         "field": "variables.observerTimePlaceholder",
                         "name": "Observer Time Placeholder",
-                        "description": "",
+                        "description": "Sets the placeholder information for when the observer time's input box is cleared. Useful for denoting the expected time format to be inputted. For example “SOL DDDD HH:MM:SS”. Default null.",
                         "type": "text",
-                        "width": 6
+                        "width": 4
+                    },
+                    {
+                        "field": "variables.utcTimeFormat",
+                        "name": "UTC Time Format",
+                        "description": "Sets the placeholder information for when the observer time's input box is cleared. Useful for denoting the expected time format to be inputted. Uses d3 time syntax (https://d3js.org/d3-time-format#locale_format). Example for day-of-year: '%Y-%j %H:%M:%S'. Defaults to times like so: 2023 SEP 06 19:27:05.",
+                        "type": "text",
+                        "width": 4
                     }
                 ]
             }

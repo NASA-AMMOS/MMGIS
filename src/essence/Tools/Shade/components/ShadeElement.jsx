@@ -4,7 +4,7 @@ import SourceList from './SourceList'
 import ShadeOptions from './ShadeOptions'
 import ShadeResults from './ShadeResults'
 import ExportBar from './ExportBar'
-import ShadeToolNew from '../ShadeToolNew'
+import ShadeTool from '../ShadeTool'
 
 export default function ShadeElement({ elmId, isActive }) {
     const el = useShadeStore((s) => s.elements[elmId])
@@ -12,7 +12,7 @@ export default function ShadeElement({ elmId, isActive }) {
 
     const handleGenerate = useCallback(() => {
         if (!el?.changed || el?.regenerating) return
-        ShadeToolNew.shade(null, elmId)
+        ShadeTool.shade(null, elmId)
     }, [elmId, el?.changed, el?.regenerating])
 
     if (!el) return null

@@ -5,7 +5,7 @@ import SweepSection from './SweepSection'
 import Help from '../../../Basics/UserInterface_/components/Help/Help'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 
-const helpKey = 'ShadeToolNew'
+const helpKey = 'ShadeTool'
 
 export default function ShadePanel({ onTimeChange }) {
     const vars = useShadeStore((s) => s.vars)

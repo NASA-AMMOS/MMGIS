@@ -1,18 +1,18 @@
 import React, { useCallback } from 'react'
-import ShadeToolNew from '../ShadeToolNew'
+import ShadeTool from '../ShadeTool'
 
 export default function ExportBar({ elmId }) {
     const handlePNG = useCallback(
-        () => ShadeToolNew.exportPNG(elmId),
+        () => ShadeTool.exportPNG(elmId),
         [elmId]
     )
-    const handleCSV = useCallback(() => ShadeToolNew.exportCSV(), [])
+    const handleCSV = useCallback(() => ShadeTool.exportCSV(), [])
     const handleGeoJSON = useCallback(
-        () => ShadeToolNew.exportGeoJSON(elmId),
+        () => ShadeTool.exportGeoJSON(elmId),
         [elmId]
     )
     const handleReport = useCallback(
-        () => ShadeToolNew.exportReport(elmId),
+        () => ShadeTool.exportReport(elmId),
         [elmId]
     )
 
