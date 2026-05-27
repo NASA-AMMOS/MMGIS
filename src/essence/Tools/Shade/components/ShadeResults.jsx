@@ -10,7 +10,6 @@ export default function ShadeResults({ elmId }) {
 
     return (
         <div className="vstResults">
-            <div className="vstSectionLabel">Results</div>
             <div className="vstResultsOutputs">
                 <div className="vstOptionRow">
                     <div className="vstOptionLabel">Azimuth</div>

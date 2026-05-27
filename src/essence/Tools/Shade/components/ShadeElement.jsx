@@ -162,6 +162,21 @@ export default function ShadeElement({ elmId }) {
                     <span className="vstShadeName">{el.name}</span>
                 </div>
                 <div className="vstShadeHeaderRight">
+                    {el.changed && !el.regenerating && (
+                        <IconButton
+                            size="sm"
+                            onClick={handleGenerate}
+                            title="Regenerate shade map"
+                            className="vstRegenIcon"
+                        >
+                            <i className="mdi mdi-refresh mdi-14px" />
+                        </IconButton>
+                    )}
+                    {el.regenerating && (
+                        <span className="vstRegenProgress">
+                            {Math.round(el.loadingProgress)}%
+                        </span>
+                    )}
                     <IconButton
                         size="sm"
                         active={el.expanded}
@@ -174,13 +189,12 @@ export default function ShadeElement({ elmId }) {
             </div>
             <Collapsible open={el.expanded} onOpenChange={handleExpandToggle}>
                 <Collapsible.Content>
-                    <div
-                        className="vstShadeBody"
-                        style={{ borderLeft: `4px solid ${rgbStr(el.color)}` }}
-                    >
+                    <div className="vstShadeBody">
+                        {/* — Source — */}
+                        <div className="vstGroupHeader">Source</div>
                         <div className="vstOptionRow">
                             <div className="vstOptionLabel" title='Orbiter or body that is the source of "light".'>
-                                Source
+                                Entity
                             </div>
                             <Select
                                 value={String(el.sourceIndex)}
@@ -191,7 +205,6 @@ export default function ShadeElement({ elmId }) {
                                 className="vstSelect"
                             />
                         </div>
-
                         {isCustom && (
                             <>
                                 <div className="vstOptionRow">
@@ -247,9 +260,6 @@ export default function ShadeElement({ elmId }) {
                                 </div>
                             </>
                         )}
-
-                        <div className="vstSectionLabel">Settings</div>
-
                         {observerOptions.length > 0 && (
                             <div className="vstOptionRow">
                                 <div className="vstOptionLabel" title="Ground observer for time conversions">
@@ -285,6 +295,9 @@ export default function ShadeElement({ elmId }) {
                                 <span className="vstInputUnit">m</span>
                             </div>
                         </div>
+
+                        {/* — Display — */}
+                        <div className="vstGroupHeader">Display</div>
                         <div className="vstOptionRow">
                             <div className="vstOptionLabel">Opacity</div>
                             <div className="vstSliderWrap">
@@ -326,11 +339,15 @@ export default function ShadeElement({ elmId }) {
                             />
                         </div>
 
+                        {/* — Results — */}
+                        <div className="vstGroupHeader">Results</div>
                         <ShadeResults elmId={elmId} />
 
-                        <div className="vstSectionLabel">Download</div>
+                        {/* — Download — */}
+                        <div className="vstGroupHeader">Download</div>
                         <ExportBar elmId={elmId} />
 
+                        {/* — Actions — */}
                         <div className="vstShadeActions">
                             <IconButton
                                 size="sm"
