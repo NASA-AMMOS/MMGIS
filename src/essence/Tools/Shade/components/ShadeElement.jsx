@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo, useRef } from 'react'
 import useShadeStore, { buildSourcesList, MULTI_SOURCE_COLORS } from '../store'
 import ShadeResults from './ShadeResults'
 import ExportBar from './ExportBar'
@@ -103,7 +103,28 @@ export default function ShadeElement({ elmId }) {
         })
     }, [elmId, el])
 
+    const colorInputRef = useRef(null)
+
+    const handleColorClick = useCallback(() => {
+        colorInputRef.current?.click()
+    }, [])
+
+    const handleColorChange = useCallback(
+        (e) => {
+            const hex = e.target.value
+            const r = parseInt(hex.slice(1, 3), 16)
+            const g = parseInt(hex.slice(3, 5), 16)
+            const b = parseInt(hex.slice(5, 7), 16)
+            updateElement(elmId, { color: { r, g, b }, changed: true })
+        },
+        [elmId, updateElement]
+    )
+
     if (!el) return null
+
+    const colorHex = el
+        ? `#${el.color.r.toString(16).padStart(2, '0')}${el.color.g.toString(16).padStart(2, '0')}${el.color.b.toString(16).padStart(2, '0')}`
+        : '#000000'
 
     const isCustom =
         sourcesList[el.sourceIndex] &&
@@ -117,8 +138,18 @@ export default function ShadeElement({ elmId }) {
                 <div className="vstShadeHeaderLeft">
                     <div
                         className="vstColorSwatch"
-                        style={{ background: rgbStr(el.color) }}
-                    />
+                        style={{ background: rgbStr(el.color), cursor: 'pointer' }}
+                        onClick={handleColorClick}
+                        title="Click to change color"
+                    >
+                        <input
+                            ref={colorInputRef}
+                            type="color"
+                            value={colorHex}
+                            onChange={handleColorChange}
+                            className="vstColorInput"
+                        />
+                    </div>
                     <IconButton
                         size="sm"
                         active={el.on}

@@ -147,6 +147,20 @@
     height: 14px;
     border-radius: 3px;
     flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+#shadeTool.shadeToolNew .vstColorInput {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    border: none;
+    padding: 0;
 }
 
 #shadeTool.shadeToolNew .vstShadeName {
