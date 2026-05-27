@@ -329,6 +329,14 @@ let ShadeTool = {
 
                         keepGoing(targetSources)
                     })
+                } else {
+                    console.warn(
+                        'ShadeTool: getbands returned null elevation data.'
+                    )
+                    useShadeStore.getState().updateElement(activeElmId, {
+                        regenerating: false,
+                        loading: false,
+                    })
                 }
             },
             function () {
