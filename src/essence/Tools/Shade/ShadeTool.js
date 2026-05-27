@@ -15,7 +15,7 @@ import calls from '../../../pre/calls'
 import ShadeTool_Manager from './ShadeTool_Manager'
 import ShaderTool_Algorithm from './ShadeTool_Algorithm'
 
-import useShadeStore, { MULTI_SOURCE_COLORS, buildSourcesList } from './store'
+import useShadeStore, { MULTI_SOURCE_COLORS } from './store'
 import ShadePanel from './components/ShadePanel'
 
 import './ShadeTool.css'
@@ -263,7 +263,7 @@ let ShadeTool = {
                                     time: options.time + ' UTC',
                                     obsRefFrame,
                                     obsBody,
-                                    includeSunEarth: options.includeSunEarth,
+                                    includeSunEarth: 'false',
                                     isCustom: tgtIsCustom,
                                     customAz: tgtIsCustom ? customAz : undefined,
                                     customEl: tgtIsCustom ? customEl : undefined,
@@ -398,6 +398,15 @@ let ShadeTool = {
                 }
             )
         }
+    },
+
+    deleteElement: function (elmId) {
+        const store = useShadeStore.getState()
+        Map_.rmNotNull(L_.layers.layer['shade' + elmId])
+        Map_.rmNotNull(store.shedMarkers[elmId])
+        delete store.canvases[elmId]
+        delete store.tags[elmId]
+        store.removeElement(elmId)
     },
 
     // === Rendering ===
@@ -953,6 +962,21 @@ let ShadeTool = {
         )
     },
 
+    shadeSweepAll: function (startTime, endTime, stepMinutes) {
+        const store = useShadeStore.getState()
+        const activeIds = Object.keys(store.elements).filter(
+            (id) => store.elements[id].on
+        )
+        if (activeIds.length === 0) {
+            Toast.warning('Enable at least one shade map for sweep.', 6000)
+            return
+        }
+        activeIds.forEach((id) => {
+            store.setActiveElmId(parseInt(id))
+            ShadeTool.shadeSweep(startTime, endTime, stepMinutes)
+        })
+    },
+
     // === Sweep Playback ===
 
     sweepPlay: function () {
@@ -965,17 +989,12 @@ let ShadeTool = {
             store.setSweepField('sweepPlaying', false)
         } else {
             store.setSweepField('sweepPlaying', true)
-            store.setSweepField('sweepPlayElmId', store.activeElmId)
             ShadeTool._sweepPlayTimer = setInterval(function () {
                 const s = useShadeStore.getState()
                 const nextIdx =
                     (s.sweepPlayIndex + 1) % s.sweepGrids.length
                 s.setSweepField('sweepPlayIndex', nextIdx)
-                ShadeTool.sweepShowFrame(
-                    s.sweepPlayElmId != null
-                        ? s.sweepPlayElmId
-                        : s.activeElmId
-                )
+                ShadeTool.sweepShowFrame(s.activeElmId)
             }, store.sweepPlaySpeed)
         }
     },
@@ -1024,11 +1043,7 @@ let ShadeTool = {
                 const nextIdx =
                     (s.sweepPlayIndex + 1) % s.sweepGrids.length
                 s.setSweepField('sweepPlayIndex', nextIdx)
-                ShadeTool.sweepShowFrame(
-                    s.sweepPlayElmId != null
-                        ? s.sweepPlayElmId
-                        : s.activeElmId
-                )
+                ShadeTool.sweepShowFrame(s.activeElmId)
             }, speed)
         }
     },

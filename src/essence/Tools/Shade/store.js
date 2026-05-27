@@ -11,23 +11,29 @@ export const MULTI_SOURCE_COLORS = [
     { r: 180, g: 0, b: 180 },
 ]
 
-const DEFAULT_SHED_COLOR = { r: 0, g: 0, b: 0, a: 192 }
+export function buildSourcesList(vars) {
+    const list = []
+    if (vars?.sources?.length > 0) {
+        vars.sources.forEach((s) => list.push(s))
+    }
+    list.push({ name: 'Custom', value: false })
+    return list
+}
 
 function makeDefaultElement(id, vars) {
-    const sourcesList = buildSourcesList(vars)
+    const color = MULTI_SOURCE_COLORS[id % MULTI_SOURCE_COLORS.length]
     return {
         id,
         name: `Shade ${id}`,
-        on: true,
+        on: false,
+        expanded: false,
         dataIndex: 0,
-        color: { ...DEFAULT_SHED_COLOR },
+        color: { ...color },
         opacity: 0.75,
-        includeSunEarth: 'false',
         resolution: 1,
-        compositeMode: 'or',
         height: vars?.defaultHeight || 0,
         observer: vars?.observers?.[0]?.value || null,
-        selectedSourceIndices: sourcesList.length > 0 ? [0] : [],
+        sourceIndex: 0,
         customAz: NaN,
         customEl: NaN,
         customRange: NaN,
@@ -40,29 +46,17 @@ function makeDefaultElement(id, vars) {
     }
 }
 
-export function buildSourcesList(vars) {
-    const list = []
-    if (vars?.sources?.length > 0) {
-        vars.sources.forEach((s) => list.push(s))
-    }
-    list.push({ name: 'Custom', value: false })
-    return list
-}
-
 const useShadeStore = create((set, get) => ({
-    // Tool-level state
     vars: null,
     activeElmId: 0,
     elements: {},
     elmCount: 0,
     firstOpen: true,
-    showTileEdges: false,
     utcTime: '',
     rawTime: '',
     lastConvertedMs: '000',
     indicatorLastDragPoint: null,
 
-    // Map layer references (not serializable, but needed for lifecycle)
     canvases: {},
     tags: {},
     shedMarkers: {},
@@ -79,7 +73,6 @@ const useShadeStore = create((set, get) => ({
     sweepPlaying: false,
     sweepPlayIndex: 0,
     sweepPlaySpeed: 500,
-    sweepPlayElmId: null,
     sweepProgress: '',
 
     // Actions
@@ -98,15 +91,15 @@ const useShadeStore = create((set, get) => ({
                     initObj.dataIndex != null ? initObj.dataIndex : el.dataIndex,
                 color: initObj.color || el.color,
                 opacity: initObj.opacity != null ? initObj.opacity : el.opacity,
-                includeSunEarth:
-                    initObj.includeSunEarth != null
-                        ? initObj.includeSunEarth
-                        : el.includeSunEarth,
                 resolution:
                     initObj.resolution != null
                         ? initObj.resolution
                         : el.resolution,
                 height: initObj.height != null ? initObj.height : el.height,
+                sourceIndex:
+                    initObj.sourceIndex != null
+                        ? initObj.sourceIndex
+                        : el.sourceIndex,
             })
         }
         set((state) => ({
@@ -132,39 +125,33 @@ const useShadeStore = create((set, get) => ({
             return { elements: next }
         }),
 
-    toggleSourceSelection: (elmId, sourceIndex) =>
+    toggleAll: () =>
         set((state) => {
-            const el = state.elements[elmId]
-            if (!el) return state
-            const sel = [...el.selectedSourceIndices]
-            const idx = sel.indexOf(sourceIndex)
-            if (idx >= 0) sel.splice(idx, 1)
-            else sel.push(sourceIndex)
-            return {
-                elements: {
-                    ...state.elements,
-                    [elmId]: {
-                        ...el,
-                        selectedSourceIndices: sel,
-                        changed: true,
-                    },
-                },
+            const allOn = Object.values(state.elements).every((e) => e.on)
+            const next = {}
+            for (const id in state.elements) {
+                next[id] = { ...state.elements[id], on: !allOn }
             }
+            return { elements: next }
         }),
 
     setSweepField: (field, value) => set({ [field]: value }),
 
-    // Derived getters (imperative, for algorithm code)
     getSelectedSources: (elmId) => {
         const { elements, vars } = get()
         const el = elements[elmId]
         if (!el) return []
         const sourcesList = buildSourcesList(vars)
-        return el.selectedSourceIndices.map((i) => ({
-            ...sourcesList[i],
-            index: i,
-            color: MULTI_SOURCE_COLORS[i % MULTI_SOURCE_COLORS.length],
-        }))
+        const src = sourcesList[el.sourceIndex]
+        if (!src) return []
+        return [
+            {
+                ...src,
+                index: el.sourceIndex,
+                color: el.color,
+                opacity: el.opacity,
+            },
+        ]
     },
 
     getShadeOptions: (elmId) => {
@@ -178,15 +165,11 @@ const useShadeStore = create((set, get) => ({
             dataIndex: el.dataIndex,
             color: { ...el.color },
             opacity: el.opacity,
-            includeSunEarth: el.includeSunEarth,
             resolution: el.resolution,
             invert: 1,
-            target:
-                targets.length > 0
-                    ? targets[0].value
-                    : 'false',
+            target: targets.length > 0 ? targets[0].value : 'false',
             targets,
-            compositeMode: el.compositeMode,
+            compositeMode: 'or',
             targetHeight: parseFloat(el.height) || 0,
             observer: el.observer,
             height: el.height,

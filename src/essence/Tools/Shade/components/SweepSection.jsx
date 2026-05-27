@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react'
 import useShadeStore from '../store'
 import ShadeTool from '../ShadeTool'
+import { Button, IconButton, Slider } from '../../../../design-system/components'
 
 export default function SweepSection() {
     const sweepStart = useShadeStore((s) => s.sweepStart)
@@ -13,16 +14,17 @@ export default function SweepSection() {
 
     const handleSweep = useCallback(() => {
         if (!sweepStart || !sweepEnd || !sweepStep) return
-        ShadeTool.shadeSweep(sweepStart, sweepEnd, sweepStep)
+        ShadeTool.shadeSweepAll(sweepStart, sweepEnd, sweepStep)
     }, [sweepStart, sweepEnd, sweepStep])
 
     return (
-        <div id="vstSweepSection">
-            <div className="vstOptionHeading">Time-Range Sweep</div>
-            <div className="vstSweepRow">
-                <div>Start</div>
+        <div className="vstSweepSection">
+            <div className="vstSectionLabel">Time-Range Sweep</div>
+            <div className="vstOptionRow">
+                <div className="vstOptionLabel">Start</div>
                 <input
                     type="text"
+                    className="vstSweepInput"
                     placeholder="YYYY-MM-DDTHH:MM:SSZ"
                     value={sweepStart}
                     onChange={(e) =>
@@ -30,10 +32,11 @@ export default function SweepSection() {
                     }
                 />
             </div>
-            <div className="vstSweepRow">
-                <div>End</div>
+            <div className="vstOptionRow">
+                <div className="vstOptionLabel">End</div>
                 <input
                     type="text"
+                    className="vstSweepInput"
                     placeholder="YYYY-MM-DDTHH:MM:SSZ"
                     value={sweepEnd}
                     onChange={(e) =>
@@ -41,10 +44,11 @@ export default function SweepSection() {
                     }
                 />
             </div>
-            <div className="vstSweepRow">
-                <div>Step (min)</div>
+            <div className="vstOptionRow">
+                <div className="vstOptionLabel">Step (min)</div>
                 <input
                     type="number"
+                    className="vstSweepStepInput"
                     value={sweepStep}
                     min="1"
                     step="1"
@@ -57,56 +61,55 @@ export default function SweepSection() {
                 />
             </div>
             <div className="vstSweepControls">
-                <div
-                    className="vstSweepBtn"
-                    title="Run time-range sweep"
+                <Button
+                    variant="primary"
+                    size="sm"
                     onClick={handleSweep}
+                    title="Run time-range sweep on all active shade maps"
                 >
-                    <i className="mdi mdi-play-box-outline mdi-14px" /> Sweep
-                </div>
-                <span id="vstSweepProgress">{sweepProgress}</span>
+                    <i className="mdi mdi-play-box-outline mdi-12px" /> Sweep All
+                </Button>
+                <span className="vstSweepProgress">{sweepProgress}</span>
             </div>
             <div className="vstSweepPlayback">
-                <div
-                    id="vstSweepStepBack"
+                <IconButton
+                    size="sm"
                     title="Step back"
                     onClick={() => ShadeTool.sweepStepBack()}
                 >
-                    <i className="mdi mdi-skip-previous mdi-18px" />
-                </div>
-                <div
-                    id="vstSweepPlayBtn"
+                    <i className="mdi mdi-skip-previous mdi-14px" />
+                </IconButton>
+                <IconButton
+                    size="sm"
                     title="Play/Pause"
                     onClick={() => ShadeTool.sweepPlay()}
                 >
                     <i
-                        className={
-                            'mdi mdi-14px ' +
-                            (sweepPlaying ? 'mdi-pause' : 'mdi-play')
-                        }
+                        className={`mdi mdi-14px ${
+                            sweepPlaying ? 'mdi-pause' : 'mdi-play'
+                        }`}
                     />
-                </div>
-                <div
-                    id="vstSweepStepFwd"
+                </IconButton>
+                <IconButton
+                    size="sm"
                     title="Step forward"
                     onClick={() => ShadeTool.sweepStepForward()}
                 >
-                    <i className="mdi mdi-skip-next mdi-18px" />
+                    <i className="mdi mdi-skip-next mdi-14px" />
+                </IconButton>
+                <div className="vstSweepSpeedWrap">
+                    <Slider
+                        value={sweepPlaySpeed}
+                        onValueChange={(v) => {
+                            setSweepField('sweepPlaySpeed', v)
+                            ShadeTool.updateSweepSpeed(v)
+                        }}
+                        min={100}
+                        max={2000}
+                        step={100}
+                    />
                 </div>
-                <input
-                    type="range"
-                    id="vstSweepSpeed"
-                    min="100"
-                    max="2000"
-                    step="100"
-                    value={sweepPlaySpeed}
-                    onChange={(e) => {
-                        const speed = parseInt(e.target.value)
-                        setSweepField('sweepPlaySpeed', speed)
-                        ShadeTool.updateSweepSpeed(speed)
-                    }}
-                />
-                <span id="vstSweepFrameLabel" />
+                <span className="vstSweepFrameLabel" />
             </div>
         </div>
     )

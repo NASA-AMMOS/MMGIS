@@ -1,41 +1,47 @@
-import React, { useEffect, useCallback } from 'react'
+import React, { useEffect, useCallback, useMemo } from 'react'
 import useShadeStore from '../store'
 import ShadeElement from './ShadeElement'
 import SweepSection from './SweepSection'
 import Help from '../../../Basics/UserInterface_/components/Help/Help'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
+import { Button, IconButton, Checkbox } from '../../../../design-system/components'
 
 const helpKey = 'ShadeTool'
 
-export default function ShadePanel({ onTimeChange }) {
+export default function ShadePanel() {
     const vars = useShadeStore((s) => s.vars)
     const elements = useShadeStore((s) => s.elements)
-    const activeElmId = useShadeStore((s) => s.activeElmId)
     const utcTime = useShadeStore((s) => s.utcTime)
-
     const addElement = useShadeStore((s) => s.addElement)
-
-    const handleNew = useCallback(() => {
-        addElement()
-    }, [addElement])
+    const toggleAll = useShadeStore((s) => s.toggleAll)
 
     useEffect(() => {
         Help.finalize(helpKey)
     }, [])
 
+    const handleNew = useCallback(() => {
+        addElement()
+    }, [addElement])
+
+    const elementIds = useMemo(
+        () =>
+            Object.keys(elements).sort(
+                (a, b) => parseInt(a) - parseInt(b)
+            ),
+        [elements]
+    )
+
+    const allOn = useMemo(
+        () =>
+            elementIds.length > 0 &&
+            elementIds.every((id) => elements[id]?.on),
+        [elements, elementIds]
+    )
+
     if (!TimeControl.enabled) {
         return (
             <div id="shadeTool" className="shadeToolNew">
-                <div
-                    style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translateX(-50%) translateY(-50%)',
-                        textAlign: 'center',
-                        color: 'var(--color-h)',
-                    }}
-                >
+                <div className="vstTimeDisabled">
                     The Shade Tool requires that Time be enabled by the
                     administrators.
                 </div>
@@ -43,16 +49,12 @@ export default function ShadePanel({ onTimeChange }) {
         )
     }
 
-    const elementIds = Object.keys(elements).sort(
-        (a, b) => parseInt(a) - parseInt(b)
-    )
-
     return (
         <div id="shadeTool" className="shadeToolNew">
-            <div id="vstHeader">
-                <div>
-                    <div>
-                        <div id="vstTitle">Shade</div>
+            <div className="vstHeader">
+                <div className="vstHeaderTop">
+                    <div className="vstHeaderLeft">
+                        <div className="vstTitle">Shade</div>
                         <span
                             dangerouslySetInnerHTML={{
                                 __html: Help.getComponent(helpKey),
@@ -60,25 +62,29 @@ export default function ShadePanel({ onTimeChange }) {
                         />
                     </div>
                 </div>
-                <div className="vstOptionTime">
-                    <div className="flexbetween">
-                        <div className="vstClockIcon">
-                            <i className="mdi mdi-clock-outline mdi-18px" />
-                        </div>
-                        <input type="text" value={utcTime} readOnly />
+                <div className="vstTime">
+                    <div className="vstClockIcon">
+                        <i className="mdi mdi-clock-outline mdi-14px" />
                     </div>
+                    <span>{utcTime}</span>
+                </div>
+                <div className="vstSubHeader">
+                    <Checkbox
+                        checked={allOn}
+                        onCheckedChange={toggleAll}
+                    >
+                        Toggle All
+                    </Checkbox>
+                    <Button size="sm" onClick={handleNew}>
+                        <i className="mdi mdi-plus mdi-14px" />
+                        New
+                    </Button>
                 </div>
             </div>
-            <div id="vstContent">
-                <ul id="vstShades">
-                    {elementIds.map((id) => (
-                        <ShadeElement
-                            key={id}
-                            elmId={parseInt(id)}
-                            isActive={parseInt(id) === activeElmId}
-                        />
-                    ))}
-                </ul>
+            <div className="vstContent">
+                {elementIds.map((id) => (
+                    <ShadeElement key={id} elmId={parseInt(id)} />
+                ))}
                 <SweepSection />
             </div>
         </div>

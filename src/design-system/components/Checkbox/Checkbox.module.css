@@ -1,0 +1,45 @@
+.label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.root {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1px solid var(--color-a2);
+    background: var(--color-a-5);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+    flex-shrink: 0;
+    padding: 0;
+}
+
+.root:hover {
+    border-color: var(--color-a3);
+}
+
+.root[data-checked] {
+    background: var(--color-accent-active);
+    border-color: var(--color-accent-active);
+}
+
+.indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-c);
+    font-size: 12px;
+    line-height: 1;
+}
+
+.text {
+    font-size: 12px;
+    color: var(--color-a5);
+}
