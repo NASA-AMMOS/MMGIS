@@ -4,8 +4,6 @@
     padding: 4px 0;
     z-index: 9999;
     box-shadow: 0 8px 24px var(--color-shadow);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     background: var(--color-a-5);
     border: 1px solid var(--color-a1);
     overflow: hidden;
