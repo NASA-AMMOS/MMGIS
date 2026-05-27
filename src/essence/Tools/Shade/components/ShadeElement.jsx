@@ -179,6 +179,41 @@ export default function ShadeElement({ elmId }) {
                     )}
                     <IconButton
                         size="sm"
+                        onClick={handleClone}
+                        title="Clone"
+                    >
+                        <i className="mdi mdi-content-copy mdi-14px" />
+                    </IconButton>
+                    <Dropdown
+                        align="end"
+                        trigger={
+                            <IconButton size="sm" title="Export">
+                                <i className="mdi mdi-download mdi-14px" />
+                            </IconButton>
+                        }
+                    >
+                        <Dropdown.Item onClick={() => ShadeTool.exportPNG(elmId)}>
+                            <i className="mdi mdi-image mdi-14px" /> Shade Map (PNG)
+                        </Dropdown.Item>
+                        <Dropdown.Item onClick={() => ShadeTool.exportCSV()}>
+                            <i className="mdi mdi-file-delimited mdi-14px" /> Sweep Results (CSV)
+                        </Dropdown.Item>
+                        <Dropdown.Item onClick={() => ShadeTool.exportGeoJSON(elmId)}>
+                            <i className="mdi mdi-map mdi-14px" /> Shade Map (GeoJSON)
+                        </Dropdown.Item>
+                        <Dropdown.Item onClick={() => ShadeTool.exportReport(elmId)}>
+                            <i className="mdi mdi-code-json mdi-14px" /> Report (JSON)
+                        </Dropdown.Item>
+                    </Dropdown>
+                    <IconButton
+                        size="sm"
+                        onClick={handleDelete}
+                        title="Delete"
+                    >
+                        <i className="mdi mdi-delete mdi-14px" />
+                    </IconButton>
+                    <IconButton
+                        size="sm"
                         active={el.expanded}
                         onClick={handleExpandToggle}
                         title="Settings"
@@ -344,48 +379,8 @@ export default function ShadeElement({ elmId }) {
                         <div className="vstGroupHeader">Results</div>
                         <ShadeResults elmId={elmId} />
 
-                        {/* — Download — */}
-                        <div className="vstGroupHeader">Download</div>
-                        <div className="vstOptionRow">
-                            <Dropdown
-                                align="start"
-                                trigger={
-                                    <Button variant="ghost" size="sm">
-                                        <i className="mdi mdi-download mdi-14px" /> Export
-                                    </Button>
-                                }
-                            >
-                                <Dropdown.Item onClick={() => ShadeTool.exportPNG(elmId)}>
-                                    <i className="mdi mdi-image mdi-14px" /> Shade Map (PNG)
-                                </Dropdown.Item>
-                                <Dropdown.Item onClick={() => ShadeTool.exportCSV()}>
-                                    <i className="mdi mdi-file-delimited mdi-14px" /> Sweep Results (CSV)
-                                </Dropdown.Item>
-                                <Dropdown.Item onClick={() => ShadeTool.exportGeoJSON(elmId)}>
-                                    <i className="mdi mdi-map mdi-14px" /> Shade Map (GeoJSON)
-                                </Dropdown.Item>
-                                <Dropdown.Item onClick={() => ShadeTool.exportReport(elmId)}>
-                                    <i className="mdi mdi-code-json mdi-14px" /> Report (JSON)
-                                </Dropdown.Item>
-                            </Dropdown>
-                        </div>
-
                         {/* — Actions — */}
                         <div className="vstShadeActions">
-                            <IconButton
-                                size="sm"
-                                onClick={handleDelete}
-                                title="Delete"
-                            >
-                                <i className="mdi mdi-delete mdi-14px" />
-                            </IconButton>
-                            <IconButton
-                                size="sm"
-                                onClick={handleClone}
-                                title="Clone"
-                            >
-                                <i className="mdi mdi-plus-circle-multiple-outline mdi-14px" />
-                            </IconButton>
                             <Button
                                 variant={el.changed ? 'primary' : 'secondary'}
                                 size="sm"
