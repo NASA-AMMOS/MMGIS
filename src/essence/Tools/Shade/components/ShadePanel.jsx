@@ -94,8 +94,8 @@ export default function ShadePanel() {
                 {elementIds.map((id) => (
                     <ShadeElement key={id} elmId={parseInt(id)} />
                 ))}
-                <SweepSection />
             </div>
+            <SweepSection />
         </div>
     )
 }
