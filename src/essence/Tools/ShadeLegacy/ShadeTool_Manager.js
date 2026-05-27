@@ -323,6 +323,7 @@ let ShadeTool_Manager = {
     // defines it top left tile
     refreshData: function (shadeId) {
         this.data[shadeId].data = []
+        if (this.data[shadeId].desiredTiles.length === 0) return
         let dataBounds = this.getTilesetBounds(this.data[shadeId].desiredTiles)
         let w =
             (dataBounds.maxX - dataBounds.minX + 1) *
