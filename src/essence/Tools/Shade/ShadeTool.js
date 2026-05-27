@@ -15,11 +15,9 @@ import DataShaders from '../../services/DataShaders'
 import TimeControl from '../../Basics/TimeControl_/TimeControl'
 import Help from '../../Basics/UserInterface_/components/Help/Help'
 
+import '../../../external/ColorPicker/jqColorPicker'
 import '../../../external/PNG/zlib'
 import '../../../external/PNG/png'
-
-import { createRoot } from 'react-dom/client'
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
 
 import calls from '../../../pre/calls'
 
@@ -40,174 +38,6 @@ const MULTI_SOURCE_COLORS = [
 ]
 
 const helpKey = 'ShadeTool'
-
-function rgbToHex(rgb) {
-    return (
-        '#' +
-        [rgb.r, rgb.g, rgb.b]
-            .map((c) => c.toString(16).padStart(2, '0'))
-            .join('')
-    )
-}
-function hexToRgb(hex) {
-    return {
-        r: parseInt(hex.slice(1, 3), 16),
-        g: parseInt(hex.slice(3, 5), 16),
-        b: parseInt(hex.slice(5, 7), 16),
-    }
-}
-
-// Bridge between React source list and ShadeTool logic
-let _sourceListStates = {}
-let _sourceListRoots = {}
-
-function handleSourceUpdate(shadeId, sources) {
-    _sourceListStates[shadeId] = sources
-    $('#vstShades #vstId_' + shadeId + ' .vstRegen').addClass('changed')
-
-    const selected = sources.filter((s) => s.checked)
-    const onlyCustom =
-        selected.length === 1 && String(selected[0].value) === 'false'
-    if (onlyCustom) {
-        $('#shadeTool_results_outputs_az').css({ display: 'none' })
-        $('#shadeTool_results_outputs_az_input_wrap').css({
-            display: 'inherit',
-        })
-        $('#shadeTool_results_outputs_az_input').val(
-            parseFloat($('#shadeTool_results_outputs_az').text())
-        )
-        $('#shadeTool_results_outputs_el').css({ display: 'none' })
-        $('#shadeTool_results_outputs_el_input_wrap').css({
-            display: 'inherit',
-        })
-        $('#shadeTool_results_outputs_el_input').val(
-            parseFloat($('#shadeTool_results_outputs_el').text())
-        )
-        $('#shadeTool_results_outputs_range').css({ display: 'none' })
-        $('#shadeTool_results_outputs_range_input_wrap').css({
-            display: 'inherit',
-        })
-        $('#shadeTool_results_outputs_range_input').val(parseFloat(100000))
-    } else {
-        $('#shadeTool_results_outputs_az').css({ display: 'inherit' })
-        $('#shadeTool_results_outputs_az_input_wrap').css({ display: 'none' })
-        $('#shadeTool_results_outputs_el').css({ display: 'inherit' })
-        $('#shadeTool_results_outputs_el_input_wrap').css({ display: 'none' })
-        $('#shadeTool_results_outputs_range').css({ display: 'inherit' })
-        $('#shadeTool_results_outputs_range_input_wrap').css({
-            display: 'none',
-        })
-    }
-
-    const resolution = parseInt(
-        $(
-            '#vstShades #vstId_' + shadeId + ' .vstOptionResolution select'
-        ).val()
-    )
-    if (resolution <= ShadeTool.dynamicUpdateResCutoff) {
-        ShadeTool.setActiveElmId(shadeId)
-        ShadeTool.setSource()
-    }
-}
-
-const ShadeSourceList = ({ shadeId, sourcesList, onUpdate }) => {
-    const [sources, setSources] = useState(() =>
-        sourcesList.map((s, i) => ({
-            value: String(s.value),
-            name: s.name,
-            checked: i === 0,
-            color: rgbToHex(
-                MULTI_SOURCE_COLORS[i % MULTI_SOURCE_COLORS.length]
-            ),
-            opacity: 0.75,
-        }))
-    )
-
-    useEffect(() => {
-        _sourceListStates[shadeId] = sources
-        if (onUpdate) onUpdate(shadeId, sources)
-    }, [sources, shadeId])
-
-    const toggleSource = useCallback((index) => {
-        setSources((prev) =>
-            prev.map((s, i) =>
-                i === index ? { ...s, checked: !s.checked } : s
-            )
-        )
-    }, [])
-
-    const updateColor = useCallback((index, color) => {
-        setSources((prev) =>
-            prev.map((s, i) => (i === index ? { ...s, color } : s))
-        )
-    }, [])
-
-    const updateOpacity = useCallback((index, opacity) => {
-        setSources((prev) =>
-            prev.map((s, i) =>
-                i === index ? { ...s, opacity: parseFloat(opacity) } : s
-            )
-        )
-    }, [])
-
-    return (
-        <div className="vstSourceListReact">
-            {sources.map((source, i) => (
-                <div
-                    key={i}
-                    className={
-                        'vstSourceItemReact' +
-                        (source.checked ? ' checked' : '')
-                    }
-                >
-                    <label className="vstSourceRow">
-                        <input
-                            type="checkbox"
-                            className="vstSourceCheckbox"
-                            checked={source.checked}
-                            onChange={() => toggleSource(i)}
-                        />
-                        <span className="vstSourceName">
-                            {source.name}
-                        </span>
-                    </label>
-                    {source.checked && (
-                        <div className="vstSourceControls">
-                            <div className="vstSourceControlRow">
-                                <span>Color</span>
-                                <input
-                                    type="color"
-                                    className="vstSourceColorPicker"
-                                    value={source.color}
-                                    onChange={(e) =>
-                                        updateColor(i, e.target.value)
-                                    }
-                                />
-                            </div>
-                            <div className="vstSourceControlRow">
-                                <span>Opacity</span>
-                                <input
-                                    type="range"
-                                    className="slider2 vstSourceOpacitySlider"
-                                    min="0"
-                                    max="1"
-                                    step="0.01"
-                                    value={source.opacity}
-                                    onChange={(e) =>
-                                        updateOpacity(
-                                            i,
-                                            e.target.value
-                                        )
-                                    }
-                                />
-                            </div>
-                        </div>
-                    )}
-                </div>
-            ))}
-        </div>
-    )
-}
 
 let ShadeTool = {
     height: 0,
@@ -469,6 +299,7 @@ let ShadeTool = {
                 .join('\n')
         }
 
+        let allSources = ''
         let sourcesList = [
             {
                 name: 'Custom',
@@ -482,6 +313,21 @@ let ShadeTool = {
         ) {
             sourcesList = ShadeTool.vars.sources.concat(sourcesList)
         }
+        // Multi-select checkbox list for sources
+        allSources = sourcesList
+            .map(
+                (c, i) => {
+                    const color = MULTI_SOURCE_COLORS[i % MULTI_SOURCE_COLORS.length]
+                    return (
+                        "<div class='vstSourceItem' data-value='" + c.value + "' data-index='" + i + "'>" +
+                        "<div class='vstSourceCheck" + (i === 0 ? ' on' : '') + "'></div>" +
+                        "<span class='vstSourceSwatch' style='background:rgb(" + color.r + "," + color.g + "," + color.b + ");'></span>" +
+                        "<span>" + c.name + "</span>" +
+                        "</div>"
+                    )
+                }
+            )
+            .join('\n')
 
         let allObservers = ''
         if (
@@ -511,7 +357,12 @@ let ShadeTool = {
                     "<div class='vstShadeContents'>",
                         "<div class='vstLoading'></div>",
                         `<div class='vstOptionHeading'>Source</div>`,
-                        "<div class='vstSourceListContainer' id='vstSourceListContainer_" + id + "'></div>",
+                        "<div class='vstOptionTarget'>",
+                            `<div title='Orbiter or body that is the source of "light". Select one or more.'><span style='color: var(--color-p0);'>Entity</span></div>`,
+                            "<div class='vstSourceList'>",
+                                allSources,
+                            "</div>",
+                        "</div>",
                         "<div class='vstOptionCompositeMode'>",
                             `<div title='How to composite shadows from multiple sources.'>Composite</div>`,
                             "<select class='dropdown'>",
@@ -549,7 +400,15 @@ let ShadeTool = {
                                 "<div class='vstUnit smallFont'>m</div>",
                             "</div>",
                         "</div>",
-
+                        `<div class='vstOptionHeading'>Shaded Region Options</div>`,
+                        "<div class='vstOptionColor'>",
+                            "<div>Color</div>",
+                            "<div id='vstId_" + id + "_color'></div>",
+                        "</div>",
+                        "<div class='vstOptionOpacity'>",
+                            "<div>Opacity</div>",
+                            "<input class='slider2' type='range' min='0' max='1' step='0.01' value='" + initObj.opacity + "' default='0.5'>",
+                        "</div>",
                         "<div class='vstOptionResolution'>",
                             "<div title='High or Ultra disables auto-regeneration.'>Resolution</div>",
                             "<select class='dropdown'>",
@@ -571,7 +430,6 @@ let ShadeTool = {
                                 "<span></span>",
                             "</div>",
                         "</div>",
-                        `<div class='vstOptionHeading'>Download</div>`,
                         "<div class='vstExportBar'>",
                             "<div class='vstExportBtn' title='Export shade map as PNG'><i class='mdi mdi-image mdi-14px'></i> PNG</div>",
                             "<div class='vstExportCsvBtn' title='Export sweep results as CSV'><i class='mdi mdi-file-delimited mdi-14px'></i> CSV</div>",
@@ -740,6 +598,24 @@ let ShadeTool = {
                 }
             })(id)
         )
+        $('#vstShades #vstId_' + id + ' .vstOptionOpacity input').on(
+            'change',
+            (function (id) {
+                return function () {
+                    $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
+                        'changed'
+                    )
+                    if (
+                        $(
+                            `#vstShades #vstId_${id} .vstOptionResolution select`
+                        ).val() <= ShadeTool.dynamicUpdateResCutoff
+                    ) {
+                        ShadeTool.setActiveElmId(id)
+                        ShadeTool.setSource()
+                    }
+                }
+            })(id)
+        )
         $('#vstShades #vstId_' + id + ' .vstOptionIncludeSunEarth select').on(
             'change',
             (function (id) {
@@ -776,6 +652,50 @@ let ShadeTool = {
                     $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
                         'changed'
                     )
+                    if (
+                        $(
+                            `#vstShades #vstId_${id} .vstOptionResolution select`
+                        ).val() <= ShadeTool.dynamicUpdateResCutoff
+                    ) {
+                        ShadeTool.setActiveElmId(id)
+                        ShadeTool.setSource()
+                    }
+                }
+            })(id)
+        )
+        // Multi-source checkbox list click handlers
+        $('#vstShades #vstId_' + id + ' .vstSourceList .vstSourceItem').on(
+            'click',
+            (function (id) {
+                return function () {
+                    $(this).find('.vstSourceCheck').toggleClass('on')
+                    $('#vstShades #vstId_' + id + ' .vstRegen').addClass(
+                        'changed'
+                    )
+                    // Check if only Custom is selected
+                    const selected = ShadeTool.getSelectedSources(id)
+                    if (selected.length === 1 && selected[0].value === 'false') {
+                        $('#shadeTool_results_outputs_az').css({ display: 'none' })
+                        $('#shadeTool_results_outputs_az_input_wrap').css({ display: 'inherit' })
+                        $('#shadeTool_results_outputs_az_input').val(
+                            parseFloat($('#shadeTool_results_outputs_az').text())
+                        )
+                        $('#shadeTool_results_outputs_el').css({ display: 'none' })
+                        $('#shadeTool_results_outputs_el_input_wrap').css({ display: 'inherit' })
+                        $('#shadeTool_results_outputs_el_input').val(
+                            parseFloat($('#shadeTool_results_outputs_el').text())
+                        )
+                        $('#shadeTool_results_outputs_range').css({ display: 'none' })
+                        $('#shadeTool_results_outputs_range_input_wrap').css({ display: 'inherit' })
+                        $('#shadeTool_results_outputs_range_input').val(parseFloat(100000))
+                    } else {
+                        $('#shadeTool_results_outputs_az').css({ display: 'inherit' })
+                        $('#shadeTool_results_outputs_az_input_wrap').css({ display: 'none' })
+                        $('#shadeTool_results_outputs_el').css({ display: 'inherit' })
+                        $('#shadeTool_results_outputs_el_input_wrap').css({ display: 'none' })
+                        $('#shadeTool_results_outputs_range').css({ display: 'inherit' })
+                        $('#shadeTool_results_outputs_range_input_wrap').css({ display: 'none' })
+                    }
                     if (
                         $(
                             `#vstShades #vstId_${id} .vstOptionResolution select`
@@ -884,21 +804,32 @@ let ShadeTool = {
             })(id)
         )
 
-        // Render React source list component
-        const sourceContainer = document.getElementById(
-            'vstSourceListContainer_' + id
-        )
-        if (sourceContainer) {
-            const root = createRoot(sourceContainer)
-            _sourceListRoots[id] = root
-            root.render(
-                <ShadeSourceList
-                    shadeId={id}
-                    sourcesList={sourcesList}
-                    onUpdate={handleSourceUpdate}
-                />
-            )
-        }
+        $('#vstId_' + id + '_color').colorPicker({
+            opacity: false,
+            renderCallback: function (elm, toggled) {
+                const bg = elm._css.backgroundColor.replace('NaN', 1)
+                $('#vstId_' + id + '_color').css({
+                    background: bg,
+                })
+                $('#vstShades #vstId_' + id + ' .vstRegen').addClass('changed')
+                $('#vstId_' + id + '_color').attr(
+                    'color',
+                    JSON.stringify(this.color.colors.RND.rgb)
+                )
+                clearTimeout(ShadeTool._colorTimeout)
+                ShadeTool._colorTimeout = setTimeout(() => {
+                    // prettier-ignore
+                    if( $('#vstShades #vstId_' + id + ' .vstOptionResolution select').val() <= ShadeTool.dynamicUpdateResCutoff) {
+                        ShadeTool.setActiveElmId(id)
+                        ShadeTool.setSource()
+                    }
+                }, 500)
+            },
+        })
+
+        $('#vstId_' + id + '_color').css({
+            'background-color': initObj.color,
+        })
 
         ShadeTool.setActiveElmId(id)
 
@@ -922,16 +853,17 @@ let ShadeTool = {
                 Math.max(forcedId, ShadeTool.shadeElmCount) + 1
     },
     getSelectedSources: function (elmId) {
-        const states = _sourceListStates[elmId]
-        if (!states) return []
-        return states
-            .filter((s) => s.checked)
-            .map((s, idx) => ({
-                value: s.value,
-                index: states.indexOf(s),
-                color: hexToRgb(s.color),
-                opacity: s.opacity,
-            }))
+        let selected = []
+        $('#vstShades #vstId_' + elmId + ' .vstSourceList .vstSourceItem').each(function () {
+            if ($(this).find('.vstSourceCheck').hasClass('on')) {
+                selected.push({
+                    value: $(this).attr('data-value'),
+                    index: parseInt($(this).attr('data-index')),
+                    color: MULTI_SOURCE_COLORS[parseInt($(this).attr('data-index')) % MULTI_SOURCE_COLORS.length],
+                })
+            }
+        })
+        return selected
     },
     setActiveElmId: function (activeId) {
         $('#vstShades > li .activator').removeClass('on')
@@ -2119,13 +2051,6 @@ let ShadeTool = {
         F_.downloadObject(report, 'shade_report', '.json')
     },
     getShadeOptions: function (elmId, nextColor) {
-        const _selected = ShadeTool.getSelectedSources(elmId)
-        const _primaryColor =
-            _selected.length > 0
-                ? _selected[0].color
-                : { r: 0, g: 0, b: 0 }
-        const _primaryOpacity =
-            _selected.length > 0 ? _selected[0].opacity : 0.75
         return {
             name: $(
                 '#vstShades #vstId_' + elmId + ' .vstShadeHeader input'
@@ -2136,13 +2061,24 @@ let ShadeTool = {
             dataIndex: parseInt(
                 $('#vstShades #vstId_' + elmId + ' .vstOptionData select').val()
             ),
-            color: nextColor
-                ? ShadeTool.shedColors[
-                      (ShadeTool.shadeElmCount + 1) %
-                          ShadeTool.shedColors.length
-                  ]
-                : _primaryColor,
-            opacity: _primaryOpacity,
+            color: JSON.parse(
+                nextColor
+                    ? JSON.stringify(
+                          ShadeTool.shedColors[
+                              (ShadeTool.shadeElmCount + 1) %
+                                  ShadeTool.shedColors.length
+                          ]
+                      )
+                    : $('#vstId_' + elmId + '_color').attr('color') ||
+                          JSON.stringify(
+                              ShadeTool.shedColors[
+                                  elmId % ShadeTool.shedColors.length
+                              ]
+                          )
+            ),
+            opacity: $(
+                '#vstShades #vstId_' + elmId + ' .vstOptionOpacity input'
+            ).val(),
             includeSunEarth: $(
                 '#vstShades #vstId_' +
                     elmId +
@@ -2544,11 +2480,6 @@ let ShadeTool = {
         Map_.rmNotNull(L_.layers.layer['shade' + activeElmId])
         L_.layers.layer['shade' + activeElmId] = null
         ShadeTool.canvases[activeElmId] = null
-        if (_sourceListRoots[activeElmId]) {
-            _sourceListRoots[activeElmId].unmount()
-            delete _sourceListRoots[activeElmId]
-            delete _sourceListStates[activeElmId]
-        }
     },
     indicatorDragOn: function () {
         ShadeTool.tempIndicatorPoint.on(
@@ -2733,12 +2664,6 @@ function interfaceWithMMGIS() {
             clearInterval(ShadeTool.sweepPlayTimer)
             ShadeTool.sweepPlaying = false
         }
-        // Clean up React source list roots
-        for (let rid in _sourceListRoots) {
-            _sourceListRoots[rid].unmount()
-        }
-        _sourceListRoots = {}
-        _sourceListStates = {}
         Map_.rmNotNull(ShadeTool.tempIndicatorPoint)
         ShadeTool.delete(0)
         ShadeTool.lastShadesUl = {}

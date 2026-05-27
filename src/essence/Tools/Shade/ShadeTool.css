@@ -542,68 +542,43 @@
     pointer-events: none;
 }
 
-/* Source list container - override generic vstShadeContents > div rules */
-#shadeTool .vstSourceListContainer {
-    display: block !important;
-    height: auto !important;
-    padding-left: 0 !important;
-    border-bottom: none !important;
+/* Multi-source checkbox list */
+#shadeTool .vstSourceList {
+    max-height: 120px;
+    overflow-y: auto;
+    background: var(--color-a1);
+    border-left: 1px solid var(--color-a1-5);
+    width: 108px;
 }
-
-/* React source list */
-#shadeTool .vstSourceListReact {
-    width: 100%;
-}
-#shadeTool .vstSourceItemReact {
-    border-bottom: 1px solid var(--color-a1-5);
-}
-#shadeTool .vstSourceRow {
+#shadeTool .vstSourceItem {
     display: flex;
     align-items: center;
-    padding: 5px 8px 5px 15px;
+    padding: 2px 4px;
     cursor: pointer;
-    gap: 8px;
-    font-size: 13px;
-    color: var(--color-a7);
+    font-size: 12px;
+    gap: 4px;
     transition: background 0.15s ease;
 }
-#shadeTool .vstSourceRow:hover {
+#shadeTool .vstSourceItem:hover {
     background: var(--color-a2);
 }
-#shadeTool .vstSourceCheckbox {
-    width: 15px;
-    height: 15px;
-    accent-color: var(--color-mmgis);
+#shadeTool .vstSourceCheck {
+    width: 12px;
+    height: 12px;
+    border: 2px solid #666;
+    border-radius: 2px;
     flex-shrink: 0;
-    cursor: pointer;
-    margin: 0;
+    transition: background 0.15s ease, border 0.15s ease;
 }
-#shadeTool .vstSourceName {
-    flex: 1;
-    user-select: none;
+#shadeTool .vstSourceCheck.on {
+    background: white;
+    border-color: white;
 }
-#shadeTool .vstSourceControls {
-    padding: 2px 15px 6px 38px;
-    background: var(--color-a-5);
-}
-#shadeTool .vstSourceControlRow {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 24px;
-    font-size: 12px;
-    color: var(--color-a5);
-}
-#shadeTool .vstSourceColorPicker {
-    width: 40px;
-    height: 22px;
-    border: 1px solid var(--color-a2);
-    background: none;
-    cursor: pointer;
-    padding: 0;
-}
-#shadeTool .vstSourceOpacitySlider {
-    width: 80px !important;
+#shadeTool .vstSourceSwatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
 }
 
 /* Composite mode dropdown */
