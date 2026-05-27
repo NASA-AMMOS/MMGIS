@@ -699,6 +699,7 @@ let ShadeTool = {
         calls.api(
             'getbands',
             {
+                type: 'band',
                 x: source.lat,
                 y: source.lng,
                 xyorll: 'll',
