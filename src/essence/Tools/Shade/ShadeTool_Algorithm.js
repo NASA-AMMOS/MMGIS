@@ -589,6 +589,7 @@ let ShadeTool_Algorithm = {
         if (resultGrids.length === 1) return resultGrids[0]
 
         const rows = resultGrids[0].length
+        if (rows === 0) return []
         const cols = resultGrids[0][0].length
         let composited = []
 
@@ -627,6 +628,7 @@ let ShadeTool_Algorithm = {
         const validGrids = resultGrids.filter((g) => g != null)
         if (validGrids.length === 0) return []
         const rows = validGrids[0].length
+        if (rows === 0) return []
         const cols = validGrids[0][0].length
         let heatmap = []
 
