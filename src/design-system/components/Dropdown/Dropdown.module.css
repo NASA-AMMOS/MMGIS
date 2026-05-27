@@ -29,6 +29,7 @@
     cursor: pointer;
     display: flex;
     align-items: center;
+    gap: 8px;
     color: var(--color-a5);
     transition: background 0.12s, color 0.12s;
     outline: none;
