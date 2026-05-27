@@ -597,7 +597,7 @@ let ShadeTool = {
 
     // === Time-Range Sweep ===
 
-    shadeSweep: function (startTime, endTime, stepMinutes) {
+    shadeSweep: function (startTime, endTime, stepMinutes, onComplete) {
         const store = useShadeStore.getState()
         const activeElmId = store.activeElmId
         if (activeElmId == null) return
@@ -940,6 +940,7 @@ let ShadeTool = {
                                             activeElmId
                                         )
                                     }
+                                    if (typeof onComplete === 'function') onComplete()
                                 } else {
                                     processBatch(batchEnd)
                                 }
@@ -958,6 +959,7 @@ let ShadeTool = {
                 useShadeStore
                     .getState()
                     .setSweepField('sweepProgress', '')
+                if (typeof onComplete === 'function') onComplete()
             }
         )
     },
@@ -971,10 +973,16 @@ let ShadeTool = {
             Toast.warning('Enable at least one shade map for sweep.', 6000)
             return
         }
-        activeIds.forEach((id) => {
-            store.setActiveElmId(parseInt(id))
-            ShadeTool.shadeSweep(startTime, endTime, stepMinutes)
-        })
+        // Serialize sweeps to avoid concurrent writes to shared sweep state
+        let idx = 0
+        function runNext() {
+            if (idx >= activeIds.length) return
+            const id = parseInt(activeIds[idx])
+            idx++
+            store.setActiveElmId(id)
+            ShadeTool.shadeSweep(startTime, endTime, stepMinutes, runNext)
+        }
+        runNext()
     },
 
     // === Sweep Playback ===
