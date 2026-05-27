@@ -1,15 +1,15 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import useShadeStore, { buildSourcesList, MULTI_SOURCE_COLORS } from '../store'
 import ShadeResults from './ShadeResults'
-import ExportBar from './ExportBar'
 import ShadeTool from '../ShadeTool'
 import {
     Button,
     IconButton,
     Collapsible,
+    Dropdown,
+    InputWithUnit,
     Select,
     Slider,
-    Tooltip,
 } from '../../../../design-system/components'
 
 function rgbStr(c) {
@@ -209,54 +209,51 @@ export default function ShadeElement({ elmId }) {
                             <>
                                 <div className="vstOptionRow">
                                     <div className="vstOptionLabel">Azimuth</div>
-                                    <div className="vstInputGroup">
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max="360"
-                                            value={isNaN(el.customAz) ? '' : el.customAz}
-                                            onChange={(e) =>
-                                                handleChange(
-                                                    'customAz',
-                                                    parseFloat(e.target.value)
-                                                )
-                                            }
-                                        />
-                                        <span className="vstInputUnit">&deg;</span>
-                                    </div>
+                                    <InputWithUnit
+                                        unit="°"
+                                        type="number"
+                                        min="0"
+                                        max="360"
+                                        value={isNaN(el.customAz) ? '' : el.customAz}
+                                        onChange={(e) =>
+                                            handleChange(
+                                                'customAz',
+                                                parseFloat(e.target.value)
+                                            )
+                                        }
+                                        className="vstFieldInput"
+                                    />
                                 </div>
                                 <div className="vstOptionRow">
                                     <div className="vstOptionLabel">Elevation</div>
-                                    <div className="vstInputGroup">
-                                        <input
-                                            type="number"
-                                            min="-90"
-                                            max="90"
-                                            value={isNaN(el.customEl) ? '' : el.customEl}
-                                            onChange={(e) =>
-                                                handleChange(
-                                                    'customEl',
-                                                    parseFloat(e.target.value)
-                                                )
-                                            }
-                                        />
-                                        <span className="vstInputUnit">&deg;</span>
-                                    </div>
+                                    <InputWithUnit
+                                        unit="°"
+                                        type="number"
+                                        min="-90"
+                                        max="90"
+                                        value={isNaN(el.customEl) ? '' : el.customEl}
+                                        onChange={(e) =>
+                                            handleChange(
+                                                'customEl',
+                                                parseFloat(e.target.value)
+                                            )
+                                        }
+                                        className="vstFieldInput"
+                                    />
                                 </div>
                                 <div className="vstOptionRow">
                                     <div className="vstOptionLabel">Range</div>
-                                    <div className="vstInputGroup">
-                                        <input
-                                            type="number"
-                                            disabled
-                                            value={
-                                                isNaN(el.customRange)
-                                                    ? ''
-                                                    : el.customRange
-                                            }
-                                        />
-                                        <span className="vstInputUnit">km</span>
-                                    </div>
+                                    <InputWithUnit
+                                        unit="km"
+                                        type="number"
+                                        disabled
+                                        value={
+                                            isNaN(el.customRange)
+                                                ? ''
+                                                : el.customRange
+                                        }
+                                        className="vstFieldInput"
+                                    />
                                 </div>
                             </>
                         )}
@@ -279,21 +276,20 @@ export default function ShadeElement({ elmId }) {
                             <div className="vstOptionLabel" title="Height above surface of source point.">
                                 Height
                             </div>
-                            <div className="vstInputGroup">
-                                <input
-                                    type="number"
-                                    min="0"
-                                    step="1"
-                                    value={el.height}
-                                    onChange={(e) =>
-                                        handleChange(
-                                            'height',
-                                            parseFloat(e.target.value)
-                                        )
-                                    }
-                                />
-                                <span className="vstInputUnit">m</span>
-                            </div>
+                            <InputWithUnit
+                                unit="m"
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={el.height}
+                                onChange={(e) =>
+                                    handleChange(
+                                        'height',
+                                        parseFloat(e.target.value)
+                                    )
+                                }
+                                className="vstFieldInput"
+                            />
                         </div>
 
                         {/* — Display — */}
@@ -345,7 +341,29 @@ export default function ShadeElement({ elmId }) {
 
                         {/* — Download — */}
                         <div className="vstGroupHeader">Download</div>
-                        <ExportBar elmId={elmId} />
+                        <div className="vstOptionRow">
+                            <Dropdown
+                                align="start"
+                                trigger={
+                                    <Button variant="ghost" size="sm">
+                                        <i className="mdi mdi-download mdi-14px" /> Export
+                                    </Button>
+                                }
+                            >
+                                <Dropdown.Item onClick={() => ShadeTool.exportPNG(elmId)}>
+                                    <i className="mdi mdi-image mdi-14px" /> Shade Map (PNG)
+                                </Dropdown.Item>
+                                <Dropdown.Item onClick={() => ShadeTool.exportCSV()}>
+                                    <i className="mdi mdi-file-delimited mdi-14px" /> Sweep Results (CSV)
+                                </Dropdown.Item>
+                                <Dropdown.Item onClick={() => ShadeTool.exportGeoJSON(elmId)}>
+                                    <i className="mdi mdi-map mdi-14px" /> Shade Map (GeoJSON)
+                                </Dropdown.Item>
+                                <Dropdown.Item onClick={() => ShadeTool.exportReport(elmId)}>
+                                    <i className="mdi mdi-code-json mdi-14px" /> Report (JSON)
+                                </Dropdown.Item>
+                            </Dropdown>
+                        </div>
 
                         {/* — Actions — */}
                         <div className="vstShadeActions">

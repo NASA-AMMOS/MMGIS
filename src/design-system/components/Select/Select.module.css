@@ -15,6 +15,14 @@
     min-width: 0;
     width: 100%;
     gap: 4px;
+    overflow: hidden;
+}
+
+.trigger > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 }
 
 .trigger:hover {

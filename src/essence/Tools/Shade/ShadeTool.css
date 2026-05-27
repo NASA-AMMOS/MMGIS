@@ -250,41 +250,26 @@
 
 /* Select (design-system) overrides */
 #shadeTool.shadeToolNew .vstSelect {
-    width: 110px;
+    width: 140px;
     flex-shrink: 0;
+    min-width: 0;
+}
+#shadeTool.shadeToolNew .vstSelect [data-select-value] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 }
 
-/* Number inputs */
-#shadeTool.shadeToolNew .vstInputGroup {
-    display: flex;
-    align-items: center;
-}
-
-#shadeTool.shadeToolNew .vstInputGroup input[type='number'] {
-    width: 70px;
-    height: 24px;
-    background: var(--color-a1);
-    border: none;
-    border-left: 1px solid var(--color-a1-5);
-    color: #ededed;
-    text-align: right;
-    font-size: 12px;
-    padding: 0 4px;
-}
-
-#shadeTool.shadeToolNew .vstInputUnit {
-    width: 20px;
-    text-align: center;
-    background: var(--color-a1);
-    color: #bfbfbf;
-    font-size: 12px;
-    line-height: 24px;
-    border-left: 1px solid var(--color-a1-5);
+/* InputWithUnit field width */
+#shadeTool.shadeToolNew .vstFieldInput {
+    width: 140px;
+    flex-shrink: 0;
 }
 
 /* Slider wrapper */
 #shadeTool.shadeToolNew .vstSliderWrap {
-    width: 110px;
+    width: 140px;
     flex-shrink: 0;
 }
 
@@ -322,12 +307,9 @@
     height: 116px;
 }
 
-/* ====== Export bar ====== */
-#shadeTool.shadeToolNew .vstExportBar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    padding: 4px 8px;
+/* ====== Export dropdown ====== */
+#shadeTool.shadeToolNew .vstOptionRow .vstExportBar {
+    padding: 0;
 }
 
 /* ====== Action bar (delete, clone, generate) ====== */
