@@ -4,6 +4,7 @@ import ShadeElement from './ShadeElement'
 import SweepSection from './SweepSection'
 import Help from '../../../Basics/UserInterface_/components/Help/Help'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
+import ToolController_ from '../../../Basics/ToolController_/ToolController_'
 import { Button, IconButton, Checkbox } from '../../../../design-system/components'
 
 const helpKey = 'ShadeTool'
@@ -61,6 +62,14 @@ export default function ShadePanel() {
                             }}
                         />
                     </div>
+                    <IconButton
+                        size="sm"
+                        onClick={() => ToolController_.closeActiveTool()}
+                        title="Close"
+                        className="vstClose"
+                    >
+                        <i className="mdi mdi-close mdi-18px" />
+                    </IconButton>
                 </div>
                 <div className="vstTime">
                     <div className="vstClockIcon">

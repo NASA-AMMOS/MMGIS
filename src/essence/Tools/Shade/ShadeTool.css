@@ -42,6 +42,14 @@
     align-items: center;
 }
 
+#shadeTool.shadeToolNew .vstClose {
+    margin-right: 6px;
+    color: var(--color-a5);
+}
+#shadeTool.shadeToolNew .vstClose:hover {
+    color: var(--color-f);
+}
+
 #shadeTool.shadeToolNew .vstTitle {
     height: 40px;
     line-height: 40px;
