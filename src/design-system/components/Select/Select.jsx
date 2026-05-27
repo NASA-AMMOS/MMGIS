@@ -21,18 +21,18 @@ const Select = forwardRef(function Select(
                 <BaseSelect.Positioner className={styles.positioner}>
                     <BaseSelect.Popup className={styles.popup}>
                         {options.map((opt) => (
-                            <BaseSelect.Option
+                            <BaseSelect.Item
                                 key={opt.value}
                                 value={opt.value}
                                 className={styles.option}
                             >
-                                <BaseSelect.OptionIndicator className={styles.optionIndicator}>
+                                <BaseSelect.ItemIndicator className={styles.optionIndicator}>
                                     <i className="mdi mdi-check mdi-12px" />
-                                </BaseSelect.OptionIndicator>
-                                <BaseSelect.OptionText>
+                                </BaseSelect.ItemIndicator>
+                                <BaseSelect.ItemText>
                                     {opt.label}
-                                </BaseSelect.OptionText>
-                            </BaseSelect.Option>
+                                </BaseSelect.ItemText>
+                            </BaseSelect.Item>
                         ))}
                     </BaseSelect.Popup>
                 </BaseSelect.Positioner>
