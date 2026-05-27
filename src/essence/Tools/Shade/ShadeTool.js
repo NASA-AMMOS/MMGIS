@@ -62,11 +62,10 @@ let ShadeTool = {
             store.addElement()
         }
 
-        if (!ShadeTool._root) {
-            ShadeTool._root = createRoot(
-                document.getElementById('tools')
-            )
-        }
+        const toolPanel = document.getElementById('toolPanel')
+        if (toolPanel) toolPanel.innerHTML = ''
+
+        ShadeTool._root = createRoot(toolPanel)
         ShadeTool._root.render(<ShadePanel />)
 
         Map_.map.on('click', ShadeTool._onMapClick)
