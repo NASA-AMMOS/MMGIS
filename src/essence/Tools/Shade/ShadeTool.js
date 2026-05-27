@@ -1232,7 +1232,7 @@ let ShadeTool = {
         const origin = { x: size / 2, y: size / 2 }
 
         const indicatorEl = document.querySelector(
-            `#vstId_${shadeId} #shadeTool_indicators`
+            `[data-shade-id="${shadeId}"] #shadeTool_indicators`
         )
         if (indicatorEl) {
             indicatorEl.style.borderBottom = rae.error
@@ -1242,7 +1242,7 @@ let ShadeTool = {
 
         // Azimuth
         const azValueEl = document.querySelector(
-            `#vstId_${shadeId} #shadeTool_azValue`
+            `[data-shade-id="${shadeId}"] #shadeTool_azValue`
         )
         if (azValueEl) {
             azValueEl.textContent = rae.error
@@ -1250,7 +1250,7 @@ let ShadeTool = {
                 : rae.azimuth.toFixed(2) + '\u00B0'
         }
         const cAz = document.querySelector(
-            `#vstId_${shadeId} #shadeTool_az`
+            `[data-shade-id="${shadeId}"] #shadeTool_az`
         )
         if (!cAz) return
         cAz.width = size
@@ -1368,7 +1368,7 @@ let ShadeTool = {
 
         // Elevation
         const elValueEl = document.querySelector(
-            `#vstId_${shadeId} #shadeTool_elValue`
+            `[data-shade-id="${shadeId}"] #shadeTool_elValue`
         )
         if (elValueEl) {
             elValueEl.textContent = rae.error
@@ -1376,7 +1376,7 @@ let ShadeTool = {
                 : rae.elevation.toFixed(2) + '\u00B0'
         }
         const cEl = document.querySelector(
-            `#vstId_${shadeId} #shadeTool_el`
+            `[data-shade-id="${shadeId}"] #shadeTool_el`
         )
         if (!cEl) return
         cEl.width = size

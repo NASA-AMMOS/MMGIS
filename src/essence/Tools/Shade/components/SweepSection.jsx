@@ -109,7 +109,7 @@ export default function SweepSection() {
                         step={100}
                     />
                 </div>
-                <span className="vstSweepFrameLabel" />
+                <span id="vstSweepFrameLabel" className="vstSweepFrameLabel" />
             </div>
         </div>
     )
