@@ -185,8 +185,9 @@ let ShadeTool = {
             return
         }
 
-        store.setSweepField('hoverFrac', frac)
-        const pct = (frac * 100).toFixed(1)
+        const shadeFrac = 1 - frac
+        store.setSweepField('hoverFrac', shadeFrac)
+        const pct = (shadeFrac * 100).toFixed(1)
         CursorInfo.update(`Shaded: ${pct}%`, null, false)
     },
 
@@ -708,7 +709,6 @@ let ShadeTool = {
         const store = useShadeStore.getState()
         const rampName = store.sweepColorRamp || 'shadow'
         const discrete = store.sweepDiscrete || false
-        const opacity = store.sweepOpacity != null ? store.sweepOpacity : 1
         const allRamps = ShadeTool.getSweepColorRamps()
         const rampDef = allRamps.find((r) => r.name === rampName) || allRamps[0]
         const colors = rampDef.colors
@@ -759,14 +759,17 @@ let ShadeTool = {
                             cData[p + 2] = 0
                             cData[p + 3] = 0
                         } else {
-                            const cl = ShadeTool.evalColor(colors, frac, discrete, bins)
+                            // frac is visibility (0=always shaded, 1=never shaded)
+                            // shadeFrac is shading (0=never shaded, 1=always shaded)
+                            const shadeFrac = 1 - frac
+                            const cl = ShadeTool.evalColor(colors, shadeFrac, discrete, bins)
                             cData[p] = Math.round(cl[0] * 255)
                             cData[p + 1] = Math.round(cl[1] * 255)
                             cData[p + 2] = Math.round(cl[2] * 255)
                             if (isShadowRamp) {
-                                cData[p + 3] = Math.round((frac * 200 + 55) * opacity)
+                                cData[p + 3] = Math.round(shadeFrac * 200 + 55)
                             } else {
-                                cData[p + 3] = Math.round(255 * opacity)
+                                cData[p + 3] = 255
                             }
                         }
                     } else {
@@ -784,12 +787,23 @@ let ShadeTool = {
         }
         useShadeStore.getState().canvases[activeElmId] = dlc
         ShadeTool.makeDataLayer(dl, activeElmId)
+        ShadeTool.applySweepOpacity(activeElmId)
     },
 
     refreshHeatmap: function (activeElmId) {
         const store = useShadeStore.getState()
         if (!store.sweepHeatmap || !store.lastData) return
         ShadeTool.renderHeatmapToMap(store.lastData, store.sweepHeatmap, activeElmId)
+    },
+
+    applySweepOpacity: function (activeElmId) {
+        const store = useShadeStore.getState()
+        const opacity = store.sweepOpacity != null ? store.sweepOpacity : 1
+        const layerName = 'shade' + activeElmId
+        const layer = L_.layers.layer[layerName]
+        if (layer && typeof layer.setOpacity === 'function') {
+            layer.setOpacity(opacity)
+        }
     },
 
     // Fragment shader for atlas-based sweep playback.
@@ -1395,6 +1409,7 @@ let ShadeTool = {
                     newLayer.once('load', function () {
                         newLayer.reRender()
                     })
+                    ShadeTool.applySweepOpacity(activeElmId)
                 }
             }
         } else {

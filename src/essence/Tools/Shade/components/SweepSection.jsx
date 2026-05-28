@@ -25,7 +25,6 @@ function getTimeUIMode() {
 
 function HeatmapLegend({ rampName, discrete }) {
     const hoverFrac = useShadeStore((s) => s.hoverFrac)
-    const sweepOpacity = useShadeStore((s) => s.sweepOpacity)
     const isShadowRamp = rampName === 'shadow'
     const allRamps = ShadeTool.getSweepColorRamps()
     const rampDef = allRamps.find((r) => r.name === rampName) || allRamps[0]
@@ -33,13 +32,13 @@ function HeatmapLegend({ rampName, discrete }) {
     const bins = rampDef.bins || colors.length
     const steps = discrete ? bins : 32
     const gradientStops = []
-    for (let i = 0; i < steps; i++) {
-        const t = i / Math.max(steps - 1, 1)
+    for (let i = 0; i <= steps; i++) {
+        const t = i / steps
         const cl = ShadeTool.evalColor(colors, t, discrete, bins)
         const r = Math.round(cl[0] * 255)
         const g = Math.round(cl[1] * 255)
         const b = Math.round(cl[2] * 255)
-        const a = isShadowRamp ? ((t * 200 + 55) / 255) * sweepOpacity : sweepOpacity
+        const a = isShadowRamp ? (t * 200 + 55) / 255 : 1
         gradientStops.push(`rgba(${r},${g},${b},${a.toFixed(2)}) ${(t * 100).toFixed(1)}%`)
     }
     const showIndicator = hoverFrac != null && Number.isFinite(hoverFrac) && hoverFrac >= 0
@@ -58,9 +57,9 @@ function HeatmapLegend({ rampName, discrete }) {
                 )}
             </div>
             <div className="vstSweepLegendLabels">
-                <span>100%</span>
-                <span>% Shaded</span>
                 <span>0%</span>
+                <span>% Shaded</span>
+                <span>100%</span>
             </div>
         </div>
     )
@@ -182,12 +181,8 @@ export default function SweepSection() {
 
     const handleOpacityChange = useCallback((val) => {
         setSweepField('sweepOpacity', val)
-        setTimeout(() => {
-            const store = useShadeStore.getState()
-            if (store.sweepViewMode === 'composite') {
-                ShadeTool.refreshHeatmap(store.activeElmId)
-            }
-        }, 0)
+        const store = useShadeStore.getState()
+        ShadeTool.applySweepOpacity(store.activeElmId)
     }, [setSweepField])
 
     return (
@@ -375,6 +370,19 @@ export default function SweepSection() {
                                     />
                                 </div>
                             )}
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel">Opacity</div>
+                                <div className="vstOpacitySlider">
+                                    <Slider
+                                        value={sweepOpacity}
+                                        onValueChange={handleOpacityChange}
+                                        min={0}
+                                        max={1}
+                                        step={0.05}
+                                    />
+                                    <span className="vstOpacityValue">{Math.round(sweepOpacity * 100)}%</span>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
