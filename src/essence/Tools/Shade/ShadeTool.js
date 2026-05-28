@@ -457,13 +457,6 @@ let ShadeTool = {
             uniforms: {},
             tileUrlsAsDataUrls: true,
         })
-        // Enable re-rendering and pre-init the texture cache before addLayer
-        // so createTile can store fetched textures for later reRender() calls.
-        // _initGl checks _isReRenderable to init these, but since we have no
-        // uniforms it would skip them — so we set both the flag and the objects.
-        L_.layers.layer[layerName]._isReRenderable = true
-        L_.layers.layer[layerName]._fetchedTextures = {}
-        L_.layers.layer[layerName]._2dContexts = {}
         L_.layers.layer[layerName]._noFade = true
         L_.layers.layer[layerName].setZIndex(1000)
         Map_.map.addLayer(L_.layers.layer[layerName])
@@ -639,6 +632,104 @@ let ShadeTool = {
         }
         useShadeStore.getState().canvases[activeElmId] = dlc
         ShadeTool.makeDataLayer(dl, activeElmId)
+    },
+
+    // Fragment shader for atlas-based sweep playback.
+    // Samples from a grid atlas texture using frameIndex to compute UV offset.
+    _sweepAtlasShader: [
+        'uniform float frameIndex;',
+        'uniform float atlasCols;',
+        'uniform float atlasRows;',
+        'void main(void) {',
+        '    float col = mod(frameIndex, atlasCols);',
+        '    float row = floor(frameIndex / atlasCols);',
+        '    vec2 frameUV = vec2(',
+        '        (col + vTextureCoords.s) / atlasCols,',
+        '        (row + vTextureCoords.t) / atlasRows',
+        '    );',
+        '    gl_FragColor = texture2D(uTexture0, frameUV);',
+        '}',
+    ].join('\n'),
+
+    buildAndShowSweepAtlas: function (data, sweepGrids, options, activeElmId) {
+        const res = data.tileResolution * Math.pow(2, data.resolution)
+        const numFrames = sweepGrids.length
+        const atlasCols = Math.ceil(Math.sqrt(numFrames))
+        const atlasRows = Math.ceil(numFrames / atlasCols)
+
+        // Render each frame to tile canvases
+        const frameCanvases = []
+        for (let fi = 0; fi < numFrames; fi++) {
+            if (sweepGrids[fi] == null) {
+                frameCanvases.push(null)
+            } else {
+                const { dlc } = ShadeTool.renderResultToTileData(
+                    data, sweepGrids[fi], options
+                )
+                frameCanvases.push(dlc)
+            }
+        }
+
+        // Build one atlas per tile coord
+        const atlasDl = {}
+        for (let j = 0; j <= data.outputTopLeftTile.h; j++) {
+            for (let i = 0; i <= data.outputTopLeftTile.w; i++) {
+                const z = data.outputTopLeftTile.z
+                const x = Math.floor(data.outputTopLeftTile.x + i)
+                const y = Math.floor(data.outputTopLeftTile.y + j)
+
+                const atlas = document.createElement('canvas')
+                atlas.width = res * atlasCols
+                atlas.height = res * atlasRows
+                const actx = atlas.getContext('2d')
+
+                for (let fi = 0; fi < numFrames; fi++) {
+                    const fc = frameCanvases[fi]
+                    if (!fc || !fc[z] || !fc[z][x] || !fc[z][x][y]) continue
+                    const col = fi % atlasCols
+                    const row = Math.floor(fi / atlasCols)
+                    actx.drawImage(fc[z][x][y], col * res, row * res)
+                }
+
+                atlasDl[z] = atlasDl[z] || {}
+                atlasDl[z][x] = atlasDl[z][x] || {}
+                atlasDl[z][x][y] = atlas.toDataURL()
+            }
+        }
+
+        // Create the GL tile layer with the atlas shader
+        ShadeTool.makeSweepLayer(
+            atlasDl, activeElmId, atlasCols, atlasRows
+        )
+    },
+
+    makeSweepLayer: function (atlasDl, activeElmId, atlasCols, atlasRows) {
+        const layerName = 'shade' + activeElmId
+
+        Map_.rmNotNull(L_.layers.layer[layerName])
+
+        L_.layers.layer[layerName] = L.tileLayer.gl({
+            options: {
+                tms: false,
+                className: 'nofade',
+                maxNativeZoom: Map_.map.getZoom(),
+                maxZoom: 30,
+            },
+            fragmentShader: ShadeTool._sweepAtlasShader,
+            tileUrls: [atlasDl],
+            uniforms: {
+                frameIndex: 0,
+                atlasCols: atlasCols,
+                atlasRows: atlasRows,
+            },
+            tileUrlsAsDataUrls: true,
+        })
+        L_.layers.layer[layerName]._noFade = true
+        L_.layers.layer[layerName].setZIndex(1000)
+        Map_.map.addLayer(L_.layers.layer[layerName])
+        useShadeStore.getState().updateElement(activeElmId, { on: true })
+
+        Globe_.litho.removeLayer(layerName)
     },
 
     // === Time-Range Sweep ===
@@ -971,32 +1062,13 @@ let ShadeTool = {
                                     currentStore.lastData = data
                                     currentStore.lastOptions = options
 
-                                    // Pre-cache all frame tile canvases for smooth playback.
-                                    // Each frame stores { "x:y:z": [canvas], ... } matching
-                                    // the _fetchedTextures format of L.tileLayer.gl so we can
-                                    // swap textures and call reRender() without recreating the layer.
-                                    // Uses Canvas elements (not Image) so data is available synchronously.
-                                    const frameTileCache = []
-                                    for (let fi = 0; fi < sweepGrids.length; fi++) {
-                                        if (sweepGrids[fi] == null) {
-                                            frameTileCache.push(null)
-                                            continue
-                                        }
-                                        const { dlc } = ShadeTool.renderResultToTileData(
-                                            data, sweepGrids[fi], options
-                                        )
-                                        const textures = {}
-                                        for (const z in dlc) {
-                                            for (const x in dlc[z]) {
-                                                for (const y in dlc[z][x]) {
-                                                    const key = x + ':' + y + ':' + z
-                                                    textures[key] = [dlc[z][x][y]]
-                                                }
-                                            }
-                                        }
-                                        frameTileCache.push(textures)
-                                    }
-                                    currentStore.sweepFrameTileData = frameTileCache
+                                    // Build atlas textures and create the sweep GL layer.
+                                    // Packs all frame canvases per tile coord into a single
+                                    // atlas texture so playback uses setUniform + reRender
+                                    // (same pattern as Data Layer color ramp updates).
+                                    ShadeTool.buildAndShowSweepAtlas(
+                                        data, sweepGrids, options, activeElmId
+                                    )
                                     currentStore.setSweepField(
                                         'sweepProgress',
                                         'Done (' + total + ' steps)'
@@ -1118,33 +1190,12 @@ let ShadeTool = {
         const layerName = 'shade' + activeElmId
         const layer = L_.layers.layer[layerName]
 
-        // Use pre-cached tile canvases for smooth playback.
-        // Draws directly to each tile's 2D canvas context, bypassing GL entirely.
-        const cachedTextures = store.sweepFrameTileData?.[idx]
-        if (cachedTextures && layer && layer._tiles) {
-            for (const key in layer._tiles) {
-                const tile = layer._tiles[key]
-                if (!tile.current || !tile.loaded) continue
-                const coords = layer._keyToTileCoords(key)
-                const wrappedKey = layer._tileCoordsToKey(
-                    layer._wrapCoords(coords)
-                )
-                const cached = cachedTextures[wrappedKey]
-                if (!cached || !cached[0]) continue
-                const ctx = tile.el.getContext('2d')
-                // Use 'copy' composite to atomically replace all pixels.
-                // Avoids the clearRect→drawImage gap that causes a flash.
-                ctx.globalCompositeOperation = 'copy'
-                ctx.drawImage(cached[0], 0, 0, tile.el.width, tile.el.height)
-                ctx.globalCompositeOperation = 'source-over'
-            }
-        } else {
-            // Fallback: full re-render (first frame or cache not ready)
-            const grid = store.sweepGrids?.[idx]
-            const data = store.lastData
-            const options = store.lastOptions
-            if (!grid || !data || !options) return
-            ShadeTool.renderResultToMap(data, grid, options, activeElmId)
+        // Atlas-based playback: update the frameIndex uniform and re-render.
+        // The atlas texture stays the same — only the shader parameter changes,
+        // identical to how Data Layers update color ramps without flashing.
+        if (layer && layer.setUniform) {
+            layer.setUniform('frameIndex', idx)
+            layer.reRender()
         }
 
         const label = store.sweepResults?.[idx]?.time || ''
