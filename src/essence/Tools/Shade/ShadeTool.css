@@ -490,3 +490,56 @@
     text-align: right;
     white-space: nowrap;
 }
+
+/* Composite heatmap settings */
+#shadeTool .vstSweepCompositeSettings {
+    background: var(--color-a);
+    border-radius: 4px;
+    padding: 6px 8px;
+    margin-bottom: 4px;
+}
+
+#shadeTool .vstSweepCompositeSettings .vstOptionRow {
+    margin-bottom: 4px;
+}
+
+#shadeTool .vstSweepViewToggle {
+    background: var(--color-b);
+    color: var(--color-f);
+    border: 1px solid var(--color-e);
+    border-radius: 3px;
+    padding: 2px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.15s;
+}
+#shadeTool .vstSweepViewToggle:hover {
+    background: var(--color-c);
+}
+#shadeTool .vstSweepViewToggle.active {
+    background: var(--color-mmgis);
+    border-color: var(--color-mmgis);
+}
+
+#shadeTool .vstSweepSelect {
+    min-width: 100px;
+}
+
+/* Legend */
+#shadeTool .vstSweepLegend {
+    margin-top: 6px;
+}
+
+#shadeTool .vstSweepLegendBar {
+    height: 12px;
+    border-radius: 2px;
+    border: 1px solid var(--color-e);
+}
+
+#shadeTool .vstSweepLegendLabels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--color-a5);
+    margin-top: 2px;
+}

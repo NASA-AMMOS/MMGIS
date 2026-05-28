@@ -77,6 +77,10 @@ const useShadeStore = create((set, get) => ({
     sweepPlaySpeed: 500,
     sweepProgress: '',
     sweepProgressPct: 0,
+    sweepHeatmap: null,
+    sweepViewMode: 'composite',
+    sweepColorRamp: 'red-green',
+    sweepDiscrete: false,
 
     // Actions
     setVars: (vars) => set({ vars }),

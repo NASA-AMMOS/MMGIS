@@ -3,14 +3,49 @@ import useShadeStore from '../store'
 import ShadeTool from '../ShadeTool'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import TimeUI from '../../../Basics/TimeControl_/TimeUI'
-import { IconButton, InputWithUnit, ProgressButton, Slider } from '../../../../design-system/components'
+import { IconButton, InputWithUnit, ProgressButton, Select, Slider } from '../../../../design-system/components'
 
 const SPEED_NORMAL = 500
 const SPEED_FAST = 150
 
+const COLOR_RAMP_OPTIONS = [
+    { label: 'Red → Green', value: 'red-green' },
+    { label: 'Blue → Red', value: 'blue-red' },
+    { label: 'Viridis', value: 'viridis' },
+    { label: 'Plasma', value: 'plasma' },
+    { label: 'Grayscale', value: 'grayscale' },
+]
+
 function getTimeUIMode() {
     if (!TimeUI.modes) return 'Range'
     return TimeUI.modes[TimeUI.modeIndex] || 'Range'
+}
+
+function HeatmapLegend({ rampName, discrete }) {
+    const ramp = ShadeTool.HEATMAP_RAMPS[rampName] || ShadeTool.HEATMAP_RAMPS['red-green']
+    const steps = discrete ? ramp.length : 32
+    const gradientStops = []
+    for (let i = 0; i < steps; i++) {
+        const t = i / (steps - 1)
+        const cl = ShadeTool._lerpColor(ramp, t, discrete)
+        const r = Math.round(cl[0] * 255)
+        const g = Math.round(cl[1] * 255)
+        const b = Math.round(cl[2] * 255)
+        const a = (t * 200 + 55) / 255
+        gradientStops.push(`rgba(${r},${g},${b},${a.toFixed(2)}) ${(t * 100).toFixed(1)}%`)
+    }
+    return (
+        <div className="vstSweepLegend">
+            <div className="vstSweepLegendBar" style={{
+                background: `linear-gradient(to right, ${gradientStops.join(', ')})`,
+            }} />
+            <div className="vstSweepLegendLabels">
+                <span>0%</span>
+                <span>% Shaded</span>
+                <span>100%</span>
+            </div>
+        </div>
+    )
 }
 
 export default function SweepSection() {
@@ -23,12 +58,19 @@ export default function SweepSection() {
     const sweepPlaySpeed = useShadeStore((s) => s.sweepPlaySpeed)
     const sweepPlayIndex = useShadeStore((s) => s.sweepPlayIndex)
     const sweepGrids = useShadeStore((s) => s.sweepGrids)
+    const sweepViewMode = useShadeStore((s) => s.sweepViewMode)
+    const sweepColorRamp = useShadeStore((s) => s.sweepColorRamp)
+    const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
+    const sweepHeatmap = useShadeStore((s) => s.sweepHeatmap)
+    const activeElmId = useShadeStore((s) => s.activeElmId)
     const setSweepField = useShadeStore((s) => s.setSweepField)
 
     const totalFrames = useMemo(
         () => (sweepGrids ? sweepGrids.length : 0),
         [sweepGrids]
     )
+
+    const hasSweepData = !!sweepHeatmap
 
     const [expanded, setExpanded] = useState(false)
 
@@ -41,19 +83,15 @@ export default function SweepSection() {
             const endTime = TimeControl.getEndTime()
 
             if (mode === 'Point') {
-                // Point mode: only update start time with current time
                 if (currentTime) setSweepField('sweepStart', currentTime)
             } else {
-                // Range mode: start = startTime, end = endTime
                 if (startTime) setSweepField('sweepStart', startTime)
                 if (endTime) setSweepField('sweepEnd', endTime)
             }
         }
 
-        // Initial sync
         syncFromTimeUI()
 
-        // Subscribe to time changes
         TimeControl.subscribe('ShadeTool_Sweep', (t) => {
             const mode = getTimeUIMode()
             if (mode === 'Point') {
@@ -93,6 +131,36 @@ export default function SweepSection() {
     const handleTimelineScrub = useCallback((v) => {
         setSweepField('sweepPlayIndex', v)
         ShadeTool.sweepShowFrame(useShadeStore.getState().activeElmId)
+    }, [setSweepField])
+
+    const handleViewModeToggle = useCallback(() => {
+        const store = useShadeStore.getState()
+        if (store.sweepViewMode === 'composite') {
+            ShadeTool.sweepShowFrame(store.activeElmId)
+        } else {
+            ShadeTool.sweepShowComposite(store.activeElmId)
+        }
+    }, [])
+
+    const handleColorRampChange = useCallback((value) => {
+        setSweepField('sweepColorRamp', value)
+        setTimeout(() => {
+            const store = useShadeStore.getState()
+            if (store.sweepViewMode === 'composite') {
+                ShadeTool.refreshHeatmap(store.activeElmId)
+            }
+        }, 0)
+    }, [setSweepField])
+
+    const handleDiscreteToggle = useCallback(() => {
+        const next = !useShadeStore.getState().sweepDiscrete
+        setSweepField('sweepDiscrete', next)
+        setTimeout(() => {
+            const store = useShadeStore.getState()
+            if (store.sweepViewMode === 'composite') {
+                ShadeTool.refreshHeatmap(store.activeElmId)
+            }
+        }, 0)
     }, [setSweepField])
 
     return (
@@ -167,6 +235,42 @@ export default function SweepSection() {
                     >
                         Sweep
                     </ProgressButton>
+
+                    {/* Composite settings (shown after sweep completes) */}
+                    {hasSweepData && (
+                        <div className="vstSweepCompositeSettings">
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel">View</div>
+                                <button
+                                    className={`vstSweepViewToggle ${sweepViewMode === 'composite' ? 'active' : ''}`}
+                                    onClick={handleViewModeToggle}
+                                    title={sweepViewMode === 'composite' ? 'Switch to frame playback' : 'Switch to composite heatmap'}
+                                >
+                                    {sweepViewMode === 'composite' ? 'Composite' : 'Playback'}
+                                </button>
+                            </div>
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel">Color Ramp</div>
+                                <Select
+                                    value={sweepColorRamp}
+                                    onValueChange={handleColorRampChange}
+                                    options={COLOR_RAMP_OPTIONS}
+                                    className="vstSweepSelect"
+                                />
+                            </div>
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel">Mode</div>
+                                <button
+                                    className={`vstSweepViewToggle ${sweepDiscrete ? 'active' : ''}`}
+                                    onClick={handleDiscreteToggle}
+                                >
+                                    {sweepDiscrete ? 'Discrete' : 'Continuous'}
+                                </button>
+                            </div>
+                            <HeatmapLegend rampName={sweepColorRamp} discrete={sweepDiscrete} />
+                        </div>
+                    )}
+
                     {/* Playback controls container */}
                     <div className="vstSweepControlsWrap">
                         <div className="vstSweepPlaybarRow">

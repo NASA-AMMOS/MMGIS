@@ -567,7 +567,62 @@ let ShadeTool = {
         ShadeTool.makeDataLayer(dl, activeElmId)
     },
 
+    HEATMAP_RAMPS: {
+        'red-green': [
+            [1.0, 0.0, 0.0],
+            [1.0, 0.5, 0.0],
+            [1.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+        ],
+        'blue-red': [
+            [0.0, 0.0, 0.8],
+            [0.0, 0.6, 1.0],
+            [1.0, 1.0, 0.0],
+            [1.0, 0.0, 0.0],
+        ],
+        'viridis': [
+            [0.267, 0.004, 0.329],
+            [0.128, 0.567, 0.551],
+            [0.741, 0.873, 0.150],
+            [0.993, 0.906, 0.144],
+        ],
+        'grayscale': [
+            [0.1, 0.1, 0.1],
+            [0.4, 0.4, 0.4],
+            [0.7, 0.7, 0.7],
+            [1.0, 1.0, 1.0],
+        ],
+        'plasma': [
+            [0.050, 0.030, 0.528],
+            [0.798, 0.280, 0.470],
+            [0.988, 0.652, 0.250],
+            [0.940, 0.975, 0.131],
+        ],
+    },
+
+    _lerpColor: function (ramp, t, discrete) {
+        const n = ramp.length - 1
+        if (discrete) {
+            const idx = Math.min(Math.floor(t * ramp.length), n)
+            return ramp[idx]
+        }
+        const scaled = t * n
+        const lo = Math.floor(scaled)
+        const hi = Math.min(lo + 1, n)
+        const f = scaled - lo
+        return [
+            ramp[lo][0] + (ramp[hi][0] - ramp[lo][0]) * f,
+            ramp[lo][1] + (ramp[hi][1] - ramp[lo][1]) * f,
+            ramp[lo][2] + (ramp[hi][2] - ramp[lo][2]) * f,
+        ]
+    },
+
     renderHeatmapToMap: function (data, heatmap, activeElmId) {
+        const store = useShadeStore.getState()
+        const rampName = store.sweepColorRamp || 'red-green'
+        const discrete = store.sweepDiscrete || false
+        const ramp = ShadeTool.HEATMAP_RAMPS[rampName] || ShadeTool.HEATMAP_RAMPS['red-green']
+
         let c = document.createElement('canvas')
         const res = data.tileResolution * Math.pow(2, data.resolution)
         c.width = res
@@ -612,10 +667,11 @@ let ShadeTool = {
                             cData[p + 2] = 0
                             cData[p + 3] = 0
                         } else {
-                            cData[p] = Math.round(255 * (1 - frac))
-                            cData[p + 1] = Math.round(255 * frac)
-                            cData[p + 2] = 0
-                            cData[p + 3] = 160
+                            const cl = ShadeTool._lerpColor(ramp, frac, discrete)
+                            cData[p] = Math.round(cl[0] * 255)
+                            cData[p + 1] = Math.round(cl[1] * 255)
+                            cData[p + 2] = Math.round(cl[2] * 255)
+                            cData[p + 3] = Math.round(frac * 200 + 55)
                         }
                     } else {
                         cData[p] = 0
@@ -632,6 +688,12 @@ let ShadeTool = {
         }
         useShadeStore.getState().canvases[activeElmId] = dlc
         ShadeTool.makeDataLayer(dl, activeElmId)
+    },
+
+    refreshHeatmap: function (activeElmId) {
+        const store = useShadeStore.getState()
+        if (!store.sweepHeatmap || !store.lastData) return
+        ShadeTool.renderHeatmapToMap(store.lastData, store.sweepHeatmap, activeElmId)
     },
 
     // Fragment shader for atlas-based sweep playback.
@@ -1087,6 +1149,14 @@ let ShadeTool = {
                                             ShaderTool_Algorithm.cumulativeVisibility(
                                                 sweepGrids
                                             )
+                                        currentStore.setSweepField(
+                                            'sweepHeatmap',
+                                            heatmap
+                                        )
+                                        currentStore.setSweepField(
+                                            'sweepViewMode',
+                                            'composite'
+                                        )
                                         ShadeTool.renderHeatmapToMap(
                                             data,
                                             heatmap,
@@ -1209,7 +1279,12 @@ let ShadeTool = {
         const layerName = 'shade' + activeElmId
         const layer = L_.layers.layer[layerName]
 
-        // Lazy-create the atlas layer on first playback frame
+        store.setSweepField('sweepViewMode', 'playback')
+
+        // Lazy-create the atlas layer on first playback frame.
+        // Don't call reRender() immediately — tiles haven't loaded yet.
+        // The initial render happens naturally through createTile (frame 0).
+        // Once tiles are loaded, subsequent frames use setUniform + reRender.
         if (!layer || !layer._uniformLocations || !layer._uniformLocations.frameIndex) {
             const atlas = store.sweepAtlas
             if (atlas) {
@@ -1218,9 +1293,11 @@ let ShadeTool = {
                     atlas.atlasScaleS, atlas.atlasScaleT
                 )
                 const newLayer = L_.layers.layer[layerName]
-                if (newLayer && newLayer.setUniform) {
+                if (newLayer) {
                     newLayer.setUniform('frameIndex', idx)
-                    newLayer.reRender()
+                    newLayer.once('load', function () {
+                        newLayer.reRender()
+                    })
                 }
             }
         } else {
@@ -1234,6 +1311,14 @@ let ShadeTool = {
         const label = store.sweepResults?.[idx]?.time || ''
         const frameLabel = document.getElementById('vstSweepFrameLabel')
         if (frameLabel) frameLabel.textContent = label
+    },
+
+    sweepShowComposite: function (activeElmId) {
+        const store = useShadeStore.getState()
+        store.setSweepField('sweepViewMode', 'composite')
+        if (store.sweepHeatmap && store.lastData) {
+            ShadeTool.renderHeatmapToMap(store.lastData, store.sweepHeatmap, activeElmId)
+        }
     },
 
     updateSweepSpeed: function (speed) {
