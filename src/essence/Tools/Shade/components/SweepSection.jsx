@@ -40,7 +40,7 @@ function HeatmapLegend({ rampName, discrete }) {
             const r = Math.round(cl[0] * 255)
             const g = Math.round(cl[1] * 255)
             const b = Math.round(cl[2] * 255)
-            const a = isShadowRamp ? (tMid * 200 + 55) / 255 : 1
+            const a = isShadowRamp ? ((1 - tMid) * 200 + 55) / 255 : 1
             gradientStops.push(`rgba(${r},${g},${b},${a.toFixed(2)}) ${(tStart * 100).toFixed(1)}%`)
             gradientStops.push(`rgba(${r},${g},${b},${a.toFixed(2)}) ${(tEnd * 100).toFixed(1)}%`)
         }
@@ -52,7 +52,7 @@ function HeatmapLegend({ rampName, discrete }) {
             const r = Math.round(cl[0] * 255)
             const g = Math.round(cl[1] * 255)
             const b = Math.round(cl[2] * 255)
-            const a = isShadowRamp ? (t * 200 + 55) / 255 : 1
+            const a = isShadowRamp ? ((1 - t) * 200 + 55) / 255 : 1
             gradientStops.push(`rgba(${r},${g},${b},${a.toFixed(2)}) ${(t * 100).toFixed(1)}%`)
         }
     }

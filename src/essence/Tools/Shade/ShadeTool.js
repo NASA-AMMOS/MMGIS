@@ -771,7 +771,7 @@ let ShadeTool = {
                             cData[p + 1] = Math.round(cl[1] * 255)
                             cData[p + 2] = Math.round(cl[2] * 255)
                             if (isShadowRamp) {
-                                cData[p + 3] = Math.round(frac * 200 + 55)
+                                cData[p + 3] = Math.round((1 - frac) * 200 + 55)
                             } else {
                                 cData[p + 3] = 255
                             }
