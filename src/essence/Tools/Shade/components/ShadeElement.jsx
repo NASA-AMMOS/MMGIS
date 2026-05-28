@@ -130,43 +130,16 @@ export default function ShadeElement({ elmId }) {
                         checked={el.on}
                         onCheckedChange={handleToggle}
                     />
-                    <div className="vstColorSwatchWrap" ref={colorPickerRef}>
-                        <div
-                            className="vstColorBar"
-                            style={{ background: rgbStr(el.color) }}
-                            onClick={() => setColorPickerOpen(!colorPickerOpen)}
-                            title="Change color"
-                        />
-                        {colorPickerOpen && (
-                            <div className="vstColorPalette">
-                                {MULTI_SOURCE_COLORS.map((c, i) => (
-                                    <div
-                                        key={i}
-                                        className="vstColorOption"
-                                        style={{ background: rgbStr(c) }}
-                                        onClick={() => handleColorSelect(c)}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </div>
                 </div>
-                <div className="vstShadeHeaderRight">
-                    <Tooltip content="Delete shade map">
-                        <IconButton
-                            size="sm"
-                            onClick={handleDelete}
-                            className="vstDeleteBtn"
-                        >
-                            <i className="mdi mdi-delete mdi-18px" />
-                        </IconButton>
-                    </Tooltip>
+                <div className="vstShadeHeaderCenter">
                     <Dropdown
-                        align="end"
+                        align="start"
                         trigger={
-                            <IconButton size="sm">
-                                <i className="mdi mdi-download mdi-18px" />
-                            </IconButton>
+                            <Tooltip content="Export shade map">
+                                <IconButton size="sm">
+                                    <i className="mdi mdi-download mdi-18px" />
+                                </IconButton>
+                            </Tooltip>
                         }
                     >
                         <Dropdown.Item onClick={() => ShadeTool.exportPNG(elmId)}>
@@ -182,6 +155,17 @@ export default function ShadeElement({ elmId }) {
                             <i className="mdi mdi-code-json mdi-14px" /> Report (JSON)
                         </Dropdown.Item>
                     </Dropdown>
+                </div>
+                <div className="vstShadeHeaderRight">
+                    <Tooltip content="Remove shade map">
+                        <IconButton
+                            size="sm"
+                            onClick={handleDelete}
+                            className="vstDeleteBtn"
+                        >
+                            <i className="mdi mdi-close mdi-18px" />
+                        </IconButton>
+                    </Tooltip>
                 </div>
             </div>
             <div className="vstShadeBody">
@@ -294,6 +278,29 @@ export default function ShadeElement({ elmId }) {
 
                 {/* — Display — */}
                 <div className="vstGroupHeader">Display</div>
+                <div className="vstOptionRow">
+                    <div className="vstOptionLabel">Color</div>
+                    <div className="vstColorSwatchWrap" ref={colorPickerRef}>
+                        <div
+                            className="vstColorSwatch"
+                            style={{ background: rgbStr(el.color) }}
+                            onClick={() => setColorPickerOpen(!colorPickerOpen)}
+                            title="Change color"
+                        />
+                        {colorPickerOpen && (
+                            <div className="vstColorPalette">
+                                {MULTI_SOURCE_COLORS.map((c, i) => (
+                                    <div
+                                        key={i}
+                                        className="vstColorOption"
+                                        style={{ background: rgbStr(c) }}
+                                        onClick={() => handleColorSelect(c)}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
                 <div className="vstOptionRow">
                     <div className="vstOptionLabel">Opacity</div>
                     <div className="vstSliderWrap">

@@ -136,28 +136,32 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    min-width: 0;
+}
+
+#shadeTool .vstShadeHeaderCenter {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    justify-content: center;
 }
 
 #shadeTool .vstShadeHeaderRight {
     display: flex;
     align-items: center;
-    gap: 2px;
-    flex-shrink: 0;
 }
 
 #shadeTool .vstColorSwatchWrap {
     position: relative;
 }
 
-#shadeTool .vstColorBar {
-    width: 50px;
+#shadeTool .vstColorSwatch {
+    width: 145px;
     height: 20px;
     border-radius: 3px;
     cursor: pointer;
     border: 1px solid var(--color-a2);
 }
-#shadeTool .vstColorBar:hover {
+#shadeTool .vstColorSwatch:hover {
     border-color: var(--color-a5);
 }
 
