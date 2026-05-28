@@ -3,7 +3,7 @@ import useShadeStore from '../store'
 import ShadeTool from '../ShadeTool'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import TimeUI from '../../../Basics/TimeControl_/TimeUI'
-import { Button, IconButton, Slider } from '../../../../design-system/components'
+import { Button, IconButton, InputWithUnit, Slider } from '../../../../design-system/components'
 
 function getTimeUIMode() {
     if (!TimeUI.modes) return 'Range'
@@ -82,50 +82,48 @@ export default function SweepSection() {
             {expanded && (
                 <div className="vstSweepBody">
                     {/* Start time — own row */}
-                    <div className="vstSweepTimeRowSingle">
-                        <label className="vstSweepTimeLabel">Start</label>
-                        <input
+                    <div className="vstOptionRow">
+                        <div className="vstOptionLabel">Start</div>
+                        <InputWithUnit
                             type="text"
-                            className="vstSweepInput"
-                            placeholder="Start time"
+                            placeholder="YYYY-MM-DDTHH:MM:SSZ"
                             value={sweepStart}
                             onChange={(e) =>
                                 setSweepField('sweepStart', e.target.value)
                             }
-                            title="Start time (YYYY-MM-DDTHH:MM:SSZ)"
+                            className="vstSweepField"
                         />
                     </div>
                     {/* End time — own row */}
-                    <div className="vstSweepTimeRowSingle">
-                        <label className="vstSweepTimeLabel">End</label>
-                        <input
+                    <div className="vstOptionRow">
+                        <div className="vstOptionLabel">End</div>
+                        <InputWithUnit
                             type="text"
-                            className="vstSweepInput"
-                            placeholder="End time"
+                            placeholder="YYYY-MM-DDTHH:MM:SSZ"
                             value={sweepEnd}
                             onChange={(e) =>
                                 setSweepField('sweepEnd', e.target.value)
                             }
-                            title="End time (YYYY-MM-DDTHH:MM:SSZ)"
+                            className="vstSweepField"
                         />
                     </div>
                     {/* Step row */}
-                    <div className="vstSweepStepRow">
-                        <div className="vstSweepStepLabel">Step</div>
-                        <input
+                    <div className="vstOptionRow">
+                        <div className="vstOptionLabel">Step</div>
+                        <InputWithUnit
+                            unit="min"
                             type="number"
-                            className="vstSweepStepInput"
-                            value={sweepStep}
                             min="1"
                             step="1"
+                            value={sweepStep}
                             onChange={(e) =>
                                 setSweepField(
                                     'sweepStep',
                                     parseFloat(e.target.value)
                                 )
                             }
+                            className="vstSweepField"
                         />
-                        <span className="vstSweepStepUnit">min</span>
                     </div>
                     {/* Full-width Sweep button */}
                     <Button
@@ -164,18 +162,19 @@ export default function SweepSection() {
                         >
                             <i className="mdi mdi-skip-next mdi-14px" />
                         </IconButton>
-                        <div className="vstSweepSpeedWrap">
-                            <Slider
-                                value={sweepPlaySpeed}
-                                onValueChange={(v) => {
-                                    setSweepField('sweepPlaySpeed', v)
-                                    ShadeTool.updateSweepSpeed(v)
-                                }}
-                                min={100}
-                                max={2000}
-                                step={100}
-                            />
-                        </div>
+                    </div>
+                    {/* Speed slider — full width own row */}
+                    <div className="vstSweepSpeedWrap">
+                        <Slider
+                            value={sweepPlaySpeed}
+                            onValueChange={(v) => {
+                                setSweepField('sweepPlaySpeed', v)
+                                ShadeTool.updateSweepSpeed(v)
+                            }}
+                            min={100}
+                            max={2000}
+                            step={100}
+                        />
                     </div>
                     {/* Full-width timeline indicator */}
                     <div className="vstSweepIndicator">

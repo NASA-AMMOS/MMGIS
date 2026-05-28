@@ -2,6 +2,7 @@ import React, { useEffect, useCallback, useMemo } from 'react'
 import useShadeStore from '../store'
 import ShadeElement from './ShadeElement'
 import SweepSection from './SweepSection'
+import ShadeTool from '../ShadeTool'
 import Help from '../../../Basics/UserInterface_/components/Help/Help'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import ToolController_ from '../../../Basics/ToolController_/ToolController_'
@@ -20,7 +21,8 @@ export default function ShadePanel() {
     }, [])
 
     const handleNew = useCallback(() => {
-        addElement()
+        const newId = addElement()
+        setTimeout(() => ShadeTool.shade(null, newId), 0)
     }, [addElement])
 
     const elementIds = useMemo(
