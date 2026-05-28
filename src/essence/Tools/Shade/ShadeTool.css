@@ -185,13 +185,7 @@
     transform: scale(1.2);
 }
 
-#shadeTool.shadeToolNew .vstShadeName {
-    font-size: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--color-a5);
-}
+/* shade names removed — header is icons only */
 
 /* ====== Collapsible body ====== */
 
@@ -246,6 +240,11 @@
     font-size: 10px;
     color: var(--color-a5);
     margin-right: 4px;
+}
+
+/* Delete button — red on hover */
+#shadeTool.shadeToolNew .vstDeleteBtn:hover {
+    color: #e53935;
 }
 
 /* Select (design-system) overrides */

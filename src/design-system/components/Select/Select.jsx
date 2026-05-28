@@ -23,7 +23,7 @@ const Select = forwardRef(function Select(
                 </BaseSelect.Icon>
             </BaseSelect.Trigger>
             <BaseSelect.Portal>
-                <BaseSelect.Positioner className={styles.positioner} sideOffset={4} alignItemToTrigger={false}>
+                <BaseSelect.Positioner className={styles.positioner} sideOffset={4} alignItemWithTrigger={false}>
                     <BaseSelect.Popup className={styles.popup}>
                         <BaseSelect.List className={styles.list}>
                             {options.map((opt) => (

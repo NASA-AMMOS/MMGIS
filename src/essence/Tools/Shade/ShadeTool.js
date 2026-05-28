@@ -408,6 +408,17 @@ let ShadeTool = {
         }
     },
 
+    toggleElementVisibility: function (elmId, on) {
+        const layerName = 'shade' + elmId
+        const layer = L_.layers.layer[layerName]
+        if (!layer) return
+        if (on) {
+            if (!Map_.map.hasLayer(layer)) Map_.map.addLayer(layer)
+        } else {
+            if (Map_.map.hasLayer(layer)) Map_.map.removeLayer(layer)
+        }
+    },
+
     deleteElement: function (elmId) {
         const store = useShadeStore.getState()
         Map_.rmNotNull(L_.layers.layer['shade' + elmId])

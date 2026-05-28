@@ -9,6 +9,7 @@ import {
     InputWithUnit,
     Select,
     Slider,
+    Tooltip,
 } from '../../../../design-system/components'
 
 function rgbStr(c) {
@@ -62,7 +63,9 @@ export default function ShadeElement({ elmId }) {
     )
 
     const handleToggle = useCallback(() => {
-        updateElement(elmId, { on: !el?.on })
+        const newOn = !el?.on
+        updateElement(elmId, { on: newOn })
+        ShadeTool.toggleElementVisibility(elmId, newOn)
     }, [elmId, el?.on, updateElement])
 
     const handleChange = useCallback(
@@ -79,9 +82,7 @@ export default function ShadeElement({ elmId }) {
     }, [elmId, el?.changed, el?.regenerating, setActiveElmId])
 
     const handleDelete = useCallback(() => {
-        if (window.confirm('Are you sure you want to delete this shade map?')) {
-            ShadeTool.deleteElement(elmId)
-        }
+        ShadeTool.deleteElement(elmId)
     }, [elmId])
 
     const handleClone = useCallback(() => {
@@ -121,76 +122,81 @@ export default function ShadeElement({ elmId }) {
             <div className="vstLoading" style={{ opacity: el.loading ? 1 : 0, width: el.loadingProgress + '%' }} />
             <div className="vstShadeHeader">
                 <div className="vstShadeHeaderLeft">
-                    <div className="vstColorSwatchWrap">
-                        <div
-                            className="vstColorSwatch"
-                            style={{ background: rgbStr(el.color) }}
-                            onClick={() => setColorPickerOpen(!colorPickerOpen)}
-                            title="Change color"
-                        />
-                        {colorPickerOpen && (
-                            <div className="vstColorPalette">
-                                {MULTI_SOURCE_COLORS.map((c, i) => (
-                                    <div
-                                        key={i}
-                                        className="vstColorOption"
-                                        style={{ background: rgbStr(c) }}
-                                        onClick={() => handleColorSelect(c)}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                    <IconButton
-                        size="sm"
-                        active={el.on}
-                        onClick={handleToggle}
-                        title={el.on ? 'Hide shade map' : 'Show shade map'}
-                    >
-                        <i
-                            className={`mdi mdi-18px ${
-                                el.on
-                                    ? 'mdi-eye'
-                                    : 'mdi-eye-off-outline'
-                            }`}
-                        />
-                    </IconButton>
-                    <span className="vstShadeName">{el.name}</span>
+                    <Tooltip content="Change color">
+                        <div className="vstColorSwatchWrap">
+                            <div
+                                className="vstColorSwatch"
+                                style={{ background: rgbStr(el.color) }}
+                                onClick={() => setColorPickerOpen(!colorPickerOpen)}
+                            />
+                            {colorPickerOpen && (
+                                <div className="vstColorPalette">
+                                    {MULTI_SOURCE_COLORS.map((c, i) => (
+                                        <div
+                                            key={i}
+                                            className="vstColorOption"
+                                            style={{ background: rgbStr(c) }}
+                                            onClick={() => handleColorSelect(c)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </Tooltip>
+                    <Tooltip content={el.on ? 'Hide shade map' : 'Show shade map'}>
+                        <IconButton
+                            size="sm"
+                            active={el.on}
+                            onClick={handleToggle}
+                        >
+                            <i
+                                className={`mdi mdi-18px ${
+                                    el.on
+                                        ? 'mdi-eye'
+                                        : 'mdi-eye-off-outline'
+                                }`}
+                            />
+                        </IconButton>
+                    </Tooltip>
                 </div>
                 <div className="vstShadeHeaderRight">
                     {el.changed && !el.regenerating && (
-                        <IconButton
-                            size="sm"
-                            onClick={handleGenerate}
-                            title="Regenerate shade map"
-                            className="vstRegenIcon"
-                        >
-                            <i className="mdi mdi-refresh mdi-18px" />
-                        </IconButton>
+                        <Tooltip content="Regenerate shade map">
+                            <IconButton
+                                size="sm"
+                                onClick={handleGenerate}
+                                className="vstRegenIcon"
+                            >
+                                <i className="mdi mdi-refresh mdi-18px" />
+                            </IconButton>
+                        </Tooltip>
                     )}
                     {el.regenerating && (
                         <span className="vstRegenProgress">
                             {Math.round(el.loadingProgress)}%
                         </span>
                     )}
-                    <IconButton
-                        size="sm"
-                        onClick={handleDelete}
-                        title="Delete shade map"
-                    >
-                        <i className="mdi mdi-delete mdi-18px" />
-                    </IconButton>
-                    <IconButton
-                        size="sm"
-                        onClick={handleClone}
-                        title="Clone shade map"
-                    >
-                        <i className="mdi mdi-content-copy mdi-18px" />
-                    </IconButton>
+                    <Tooltip content="Delete shade map">
+                        <IconButton
+                            size="sm"
+                            onClick={handleDelete}
+                            className="vstDeleteBtn"
+                        >
+                            <i className="mdi mdi-delete mdi-18px" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip content="Clone shade map">
+                        <IconButton
+                            size="sm"
+                            onClick={handleClone}
+                        >
+                            <i className="mdi mdi-content-copy mdi-18px" />
+                        </IconButton>
+                    </Tooltip>
                     <Dropdown
                         align="end"
                         trigger={
-                            <IconButton size="sm" title="Export shade map">
+                            <IconButton size="sm">
                                 <i className="mdi mdi-download mdi-18px" />
                             </IconButton>
                         }
