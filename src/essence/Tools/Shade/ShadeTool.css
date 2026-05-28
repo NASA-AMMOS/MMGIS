@@ -502,6 +502,7 @@
     border-radius: 4px;
     margin-bottom: 4px;
     overflow: hidden;
+    padding: 4px 6px;
 }
 
 #shadeTool .vstSweepPlaybar {
@@ -509,27 +510,22 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
-    padding: 4px 6px;
     width: 100%;
     box-sizing: border-box;
 }
 
-#shadeTool .vstSweepSpeedWrap {
+#shadeTool .vstSweepTimeline {
     width: 100%;
     box-sizing: border-box;
-    padding: 2px 16px 6px;
+    padding: 2px 10px 0;
     --color-mmgis: var(--color-red);
     --color-c: var(--color-red2);
     --color-accent-active: var(--color-red);
 }
 
-#shadeTool .vstSweepIndicator {
-    width: 100%;
-    padding: 4px 0;
-    text-align: center;
-}
-
 #shadeTool .vstSweepFrameLabel {
-    font-size: 10px;
+    font-size: 14px;
     color: var(--color-a5);
+    text-align: center;
+    padding: 2px 0;
 }

@@ -1,9 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import useShadeStore from '../store'
 import ShadeTool from '../ShadeTool'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import TimeUI from '../../../Basics/TimeControl_/TimeUI'
 import { Button, IconButton, InputWithUnit, Slider } from '../../../../design-system/components'
+
+const SPEED_NORMAL = 500
+const SPEED_FAST = 150
 
 function getTimeUIMode() {
     if (!TimeUI.modes) return 'Range'
@@ -17,7 +20,14 @@ export default function SweepSection() {
     const sweepProgress = useShadeStore((s) => s.sweepProgress)
     const sweepPlaying = useShadeStore((s) => s.sweepPlaying)
     const sweepPlaySpeed = useShadeStore((s) => s.sweepPlaySpeed)
+    const sweepPlayIndex = useShadeStore((s) => s.sweepPlayIndex)
+    const sweepGrids = useShadeStore((s) => s.sweepGrids)
     const setSweepField = useShadeStore((s) => s.setSweepField)
+
+    const totalFrames = useMemo(
+        () => (sweepGrids ? sweepGrids.length : 0),
+        [sweepGrids]
+    )
 
     const [expanded, setExpanded] = useState(false)
 
@@ -62,6 +72,27 @@ export default function SweepSection() {
         if (!sweepStart || !sweepEnd || !sweepStep) return
         ShadeTool.shadeSweepAll(sweepStart, sweepEnd, sweepStep)
     }, [sweepStart, sweepEnd, sweepStep])
+
+    const handlePlayNormal = useCallback(() => {
+        setSweepField('sweepPlaySpeed', SPEED_NORMAL)
+        ShadeTool.updateSweepSpeed(SPEED_NORMAL)
+        if (!useShadeStore.getState().sweepPlaying) ShadeTool.sweepPlay()
+    }, [setSweepField])
+
+    const handlePlayFast = useCallback(() => {
+        setSweepField('sweepPlaySpeed', SPEED_FAST)
+        ShadeTool.updateSweepSpeed(SPEED_FAST)
+        if (!useShadeStore.getState().sweepPlaying) ShadeTool.sweepPlay()
+    }, [setSweepField])
+
+    const handlePause = useCallback(() => {
+        if (useShadeStore.getState().sweepPlaying) ShadeTool.sweepPlay()
+    }, [])
+
+    const handleTimelineScrub = useCallback((v) => {
+        setSweepField('sweepPlayIndex', v)
+        ShadeTool.sweepShowFrame(useShadeStore.getState().activeElmId)
+    }, [setSweepField])
 
     return (
         <div className="vstSweepSection">
@@ -135,7 +166,7 @@ export default function SweepSection() {
                     >
                         Sweep
                     </Button>
-                    {/* Playbar + speed container */}
+                    {/* Playback controls container */}
                     <div className="vstSweepControlsWrap">
                         <div className="vstSweepPlaybar">
                             <IconButton
@@ -145,17 +176,32 @@ export default function SweepSection() {
                             >
                                 <i className="mdi mdi-skip-previous mdi-14px" />
                             </IconButton>
-                            <IconButton
-                                size="sm"
-                                title="Play/Pause"
-                                onClick={() => ShadeTool.sweepPlay()}
-                            >
-                                <i
-                                    className={`mdi mdi-14px ${
-                                        sweepPlaying ? 'mdi-pause' : 'mdi-play'
-                                    }`}
-                                />
-                            </IconButton>
+                            {sweepPlaying ? (
+                                <IconButton
+                                    size="sm"
+                                    title="Pause"
+                                    onClick={handlePause}
+                                >
+                                    <i className="mdi mdi-pause mdi-14px" />
+                                </IconButton>
+                            ) : (
+                                <>
+                                    <IconButton
+                                        size="sm"
+                                        title="Play"
+                                        onClick={handlePlayNormal}
+                                    >
+                                        <i className="mdi mdi-play mdi-14px" />
+                                    </IconButton>
+                                    <IconButton
+                                        size="sm"
+                                        title="Play fast"
+                                        onClick={handlePlayFast}
+                                    >
+                                        <i className="mdi mdi-fast-forward mdi-14px" />
+                                    </IconButton>
+                                </>
+                            )}
                             <IconButton
                                 size="sm"
                                 title="Step forward"
@@ -164,25 +210,20 @@ export default function SweepSection() {
                                 <i className="mdi mdi-skip-next mdi-14px" />
                             </IconButton>
                         </div>
-                        <div className="vstSweepSpeedWrap">
-                            <Slider
-                                value={sweepPlaySpeed}
-                                onValueChange={(v) => {
-                                    setSweepField('sweepPlaySpeed', v)
-                                    ShadeTool.updateSweepSpeed(v)
-                                }}
-                                min={100}
-                                max={2000}
-                                step={100}
-                            />
+                        {totalFrames > 0 && (
+                            <div className="vstSweepTimeline">
+                                <Slider
+                                    value={sweepPlayIndex}
+                                    onValueChange={handleTimelineScrub}
+                                    min={0}
+                                    max={Math.max(totalFrames - 1, 1)}
+                                    step={1}
+                                />
+                            </div>
+                        )}
+                        <div className="vstSweepFrameLabel">
+                            <span id="vstSweepFrameLabel" />
                         </div>
-                    </div>
-                    {/* Full-width timeline indicator */}
-                    <div className="vstSweepIndicator">
-                        <span
-                            id="vstSweepFrameLabel"
-                            className="vstSweepFrameLabel"
-                        />
                     </div>
                 </div>
             )}
