@@ -2,6 +2,7 @@ import React, { useEffect, useCallback, useMemo } from 'react'
 import useShadeStore from '../store'
 import ShadeElement from './ShadeElement'
 import SweepSection from './SweepSection'
+import ShadeTool from '../ShadeTool'
 import Help from '../../../Basics/UserInterface_/components/Help/Help'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import ToolController_ from '../../../Basics/ToolController_/ToolController_'
@@ -23,6 +24,14 @@ export default function ShadePanel() {
     const handleNew = useCallback(() => {
         addElement()
     }, [addElement])
+
+    const handleToggleAll = useCallback(() => {
+        const newOn = !allOn
+        toggleAll()
+        for (const id in elements) {
+            ShadeTool.toggleElementVisibility(parseInt(id), newOn)
+        }
+    }, [allOn, elements, toggleAll])
 
     const elementIds = useMemo(
         () =>
@@ -80,7 +89,7 @@ export default function ShadePanel() {
                 <div className="vstSubHeader">
                     <Checkbox
                         checked={allOn}
-                        onCheckedChange={toggleAll}
+                        onCheckedChange={handleToggleAll}
                     >
                         Toggle All
                     </Checkbox>
