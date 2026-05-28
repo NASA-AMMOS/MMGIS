@@ -3,7 +3,7 @@ import useShadeStore from '../store'
 import ShadeTool from '../ShadeTool'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import TimeUI from '../../../Basics/TimeControl_/TimeUI'
-import { Button, IconButton, InputWithUnit, Slider } from '../../../../design-system/components'
+import { IconButton, InputWithUnit, ProgressButton, Slider } from '../../../../design-system/components'
 
 const SPEED_NORMAL = 500
 const SPEED_FAST = 150
@@ -18,6 +18,7 @@ export default function SweepSection() {
     const sweepEnd = useShadeStore((s) => s.sweepEnd)
     const sweepStep = useShadeStore((s) => s.sweepStep)
     const sweepProgress = useShadeStore((s) => s.sweepProgress)
+    const sweepProgressPct = useShadeStore((s) => s.sweepProgressPct)
     const sweepPlaying = useShadeStore((s) => s.sweepPlaying)
     const sweepPlaySpeed = useShadeStore((s) => s.sweepPlaySpeed)
     const sweepPlayIndex = useShadeStore((s) => s.sweepPlayIndex)
@@ -157,15 +158,15 @@ export default function SweepSection() {
                         />
                     </div>
                     {/* Full-width Sweep button */}
-                    <Button
-                        variant="primary"
-                        size="md"
-                        className="vstSweepButton"
+                    <ProgressButton
+                        active={!!(sweepStart && sweepEnd && sweepStep) && (!sweepProgress || sweepProgress.startsWith('Done'))}
+                        loading={!!sweepProgress && !sweepProgress.startsWith('Done')}
+                        progress={sweepProgressPct || 0}
                         onClick={handleSweep}
-                        title="Run time-range sweep on all active shade maps"
+                        className="vstSweepButton"
                     >
                         Sweep
-                    </Button>
+                    </ProgressButton>
                     {/* Playback controls container */}
                     <div className="vstSweepControlsWrap">
                         <div className="vstSweepPlaybar">

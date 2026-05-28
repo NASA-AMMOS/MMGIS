@@ -76,6 +76,7 @@ const useShadeStore = create((set, get) => ({
     sweepPlayIndex: 0,
     sweepPlaySpeed: 500,
     sweepProgress: '',
+    sweepProgressPct: 0,
 
     // Actions
     setVars: (vars) => set({ vars }),

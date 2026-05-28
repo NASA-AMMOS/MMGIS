@@ -725,6 +725,7 @@ let ShadeTool = {
         if (!F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
 
         store.setSweepField('sweepProgress', 'Loading tiles...')
+        store.setSweepField('sweepProgressPct', 0)
 
         calls.api(
             'getbands',
@@ -933,6 +934,10 @@ let ShadeTool = {
                                         ) +
                                         '%'
                                 )
+                                currentStore.setSweepField(
+                                    'sweepProgressPct',
+                                    (completed / total) * 100
+                                )
 
                                 if (completed >= total) {
                                     currentStore.setSweepField(
@@ -952,6 +957,10 @@ let ShadeTool = {
                                     currentStore.setSweepField(
                                         'sweepProgress',
                                         'Done (' + total + ' steps)'
+                                    )
+                                    currentStore.setSweepField(
+                                        'sweepProgressPct',
+                                        100
                                     )
                                     Toast.success(
                                         'Sweep complete. ' +
@@ -990,6 +999,9 @@ let ShadeTool = {
                 useShadeStore
                     .getState()
                     .setSweepField('sweepProgress', '')
+                useShadeStore
+                    .getState()
+                    .setSweepField('sweepProgressPct', 0)
                 if (typeof onComplete === 'function') onComplete()
             }
         )

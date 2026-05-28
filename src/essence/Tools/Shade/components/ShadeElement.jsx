@@ -8,6 +8,7 @@ import {
     IconButton,
     Dropdown,
     InputWithUnit,
+    ProgressButton,
     Select,
     Slider,
     Tooltip,
@@ -346,23 +347,14 @@ export default function ShadeElement({ elmId }) {
 
                 {/* — Actions — */}
                 <div className="vstShadeActions">
-                    <button
-                        className={`vstGenerate ${el.changed ? 'vstGenerateActive' : ''} ${el.regenerating ? 'vstGenerating' : ''}`}
+                    <ProgressButton
+                        active={el.changed}
+                        loading={el.regenerating}
+                        progress={el.loadingProgress || 0}
                         onClick={handleGenerate}
-                        disabled={!el.changed || el.regenerating}
                     >
-                        {el.regenerating && (
-                            <span
-                                className="vstGenerateProgress"
-                                style={{ width: el.loadingProgress + '%' }}
-                            />
-                        )}
-                        <span className="vstGenerateLabel">
-                            {el.regenerating
-                                ? `${Math.round(el.loadingProgress)}%`
-                                : 'Generate'}
-                        </span>
-                    </button>
+                        Generate
+                    </ProgressButton>
                 </div>
             </div>
         </div>
