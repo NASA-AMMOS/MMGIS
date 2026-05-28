@@ -299,7 +299,7 @@
 }
 
 /* ====== Indicators — preserved exactly ====== */
-#shadeTool #shadeTool_indicators {
+#shadeTool [id^="shadeTool_indicators"] {
     display: flex;
     justify-content: space-around;
     background: var(--color-a1-5);
@@ -307,15 +307,15 @@
     border-top: 2px solid var(--color-a);
     border-bottom: 2px solid var(--color-a);
 }
-#shadeTool #shadeTool_indicators > div {
+#shadeTool [id^="shadeTool_indicators"] > div {
     display: flex;
     flex-direction: column;
     padding: 4px 0;
 }
-#shadeTool #shadeTool_indicators > div:first-child {
+#shadeTool [id^="shadeTool_indicators"] > div:first-child {
     border-right: 2px solid var(--color-a);
 }
-#shadeTool #shadeTool_indicators > div > div {
+#shadeTool [id^="shadeTool_indicators"] > div > div {
     text-align: center;
     text-transform: uppercase;
     font-size: 12px;
@@ -323,7 +323,7 @@
     letter-spacing: 1px;
     padding: 4px 0px;
 }
-#shadeTool #shadeTool_indicators canvas {
+#shadeTool [id^="shadeTool_indicators"] canvas {
     width: 116px;
     height: 116px;
 }
@@ -447,6 +447,19 @@
     margin-bottom: 6px;
 }
 
+#shadeTool .vstSweepStaleMsg {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    color: var(--color-yellow);
+    background: rgba(255, 193, 7, 0.08);
+    border-radius: 3px;
+    border: 1px solid rgba(255, 193, 7, 0.2);
+}
+
 #shadeTool .vstSweepProgress {
     font-size: 10px;
     color: var(--color-a5);
@@ -522,12 +535,20 @@
 
 #shadeTool .vstSweepLegendBarWrap {
     position: relative;
+    background-image: linear-gradient(45deg, #555 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #555 75%),
+        linear-gradient(45deg, transparent 75%, #555 75%),
+        linear-gradient(45deg, #555 25%, #999 25%);
+    background-size: 8px 8px;
+    background-position: 0 0, 0 0, -4px -4px, 4px 4px;
+    border-radius: 2px;
+    overflow: hidden;
 }
 
 #shadeTool .vstSweepLegendBar {
     height: 12px;
-    border-radius: 2px;
     border: 1px solid var(--color-e);
+    position: relative;
 }
 
 #shadeTool .vstSweepLegendIndicator {

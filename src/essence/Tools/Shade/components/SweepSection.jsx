@@ -77,6 +77,7 @@ export default function SweepSection() {
     const sweepColorRamp = useShadeStore((s) => s.sweepColorRamp)
     const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
     const sweepHeatmap = useShadeStore((s) => s.sweepHeatmap)
+    const sweepStale = useShadeStore((s) => s.sweepStale)
     const setSweepField = useShadeStore((s) => s.setSweepField)
 
     const totalFrames = useMemo(
@@ -84,7 +85,7 @@ export default function SweepSection() {
         [sweepGrids]
     )
 
-    const hasSweepData = !!sweepHeatmap
+    const hasSweepData = !!sweepHeatmap && !sweepStale
 
     const [expanded, setExpanded] = useState(false)
 
@@ -244,6 +245,13 @@ export default function SweepSection() {
                     >
                         Sweep
                     </ProgressButton>
+
+                    {sweepStale && !!sweepHeatmap && (
+                        <div className="vstSweepStaleMsg">
+                            <i className="mdi mdi-alert-outline mdi-14px" />
+                            <span>Viewport changed — re-run sweep to update results</span>
+                        </div>
+                    )}
 
                     {/* View mode toggle (only after sweep data exists) */}
                     {hasSweepData && (

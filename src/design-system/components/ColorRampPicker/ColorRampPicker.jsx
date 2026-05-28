@@ -1,21 +1,30 @@
 import React, { forwardRef, useMemo, useRef, useState, useEffect } from 'react'
 import styles from './ColorRampPicker.module.css'
 
-function buildGradient(colors, reverse) {
-    if (!colors || colors.length === 0) return 'transparent'
-    const steps = Math.min(colors.length, 64)
-    const stops = []
-    for (let i = 0; i < steps; i++) {
-        const idx = reverse ? steps - 1 - i : i
-        const c = colors[Math.floor((idx / (steps - 1)) * (colors.length - 1))]
+function buildDiscreteBlocks(colors, bins) {
+    if (!colors || colors.length === 0) return []
+    const n = colors.length - 1
+    const count = bins || colors.length
+    const blocks = []
+    for (let i = 0; i < count; i++) {
+        const t = count === 1 ? 0.5 : (i + 0.5) / count
+        const ci = Math.min(Math.floor(t * n), n)
+        const c = colors[ci]
         if (!c) continue
         const r = Math.round(c[0] * 255)
         const g = Math.round(c[1] * 255)
         const b = Math.round(c[2] * 255)
-        stops.push(`rgb(${r},${g},${b}) ${((i / (steps - 1)) * 100).toFixed(1)}%`)
+        const isBlack = r === 0 && g === 0 && b === 0
+        blocks.push({ r, g, b, isBlack })
     }
-    return `linear-gradient(to right, ${stops.join(', ')})`
+    return blocks
 }
+
+const CHECKERBOARD_BG =
+    'linear-gradient(45deg, #555 25%, transparent 25%), ' +
+    'linear-gradient(45deg, transparent 75%, #555 75%), ' +
+    'linear-gradient(45deg, transparent 75%, #555 75%), ' +
+    'linear-gradient(45deg, #555 25%, #999 25%)'
 
 const ColorRampPicker = forwardRef(function ColorRampPicker(
     { value, onValueChange, ramps, className, ...props },
@@ -39,8 +48,8 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
         if (!ramps) return []
         return ramps.map((r) => ({
             name: r.name,
-            label: r.label || r.name,
-            gradient: buildGradient(r.colors, r.reverse),
+            blocks: buildDiscreteBlocks(r.colors, r.bins),
+            isTransparentRamp: r.name === 'shadow',
         }))
     }, [ramps])
 
@@ -61,8 +70,7 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
                 className={styles.trigger}
                 onClick={() => setOpen(!open)}
             >
-                <div className={styles.swatch} style={{ background: selected?.gradient || 'transparent' }} />
-                <span className={styles.label}>{selected?.label || 'Select...'}</span>
+                <SwatchBar blocks={selected?.blocks} isTransparent={selected?.isTransparentRamp} />
                 <i className="mdi mdi-chevron-down mdi-14px" style={{ flexShrink: 0, color: 'var(--color-a3)' }} />
             </button>
             {open && (
@@ -77,8 +85,7 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
                                 setOpen(false)
                             }}
                         >
-                            <div className={styles.optionSwatch} style={{ background: r.gradient }} />
-                            <span className={styles.optionLabel}>{r.label}</span>
+                            <SwatchBar blocks={r.blocks} isTransparent={r.isTransparentRamp} />
                         </button>
                     ))}
                 </div>
@@ -86,5 +93,34 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
         </div>
     )
 })
+
+function SwatchBar({ blocks, isTransparent }) {
+    if (!blocks || blocks.length === 0) return null
+    return (
+        <div className={styles.swatchBar}>
+            {isTransparent && (
+                <div
+                    className={styles.swatchBlock}
+                    style={{
+                        backgroundImage: CHECKERBOARD_BG,
+                        backgroundSize: '8px 8px',
+                        backgroundPosition: '0 0, 0 0, -4px -4px, 4px 4px',
+                        flex: 1,
+                    }}
+                />
+            )}
+            {blocks.map((b, i) => (
+                <div
+                    key={i}
+                    className={styles.swatchBlock}
+                    style={{
+                        background: `rgb(${b.r},${b.g},${b.b})`,
+                        flex: 1,
+                    }}
+                />
+            ))}
+        </div>
+    )
+}
 
 export default ColorRampPicker

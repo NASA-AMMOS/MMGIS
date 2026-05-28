@@ -126,6 +126,24 @@ let ShadeTool = {
 
     _onPanEnd: function () {
         const store = useShadeStore.getState()
+
+        // Invalidate sweep results when viewport changes
+        if (store.sweepHeatmap && !store.sweepStale) {
+            store.setSweepField('sweepStale', true)
+            store.setSweepField('hoverFrac', null)
+            // Stop playback if running
+            if (ShadeTool._sweepPlayTimer) {
+                clearInterval(ShadeTool._sweepPlayTimer)
+                ShadeTool._sweepPlayTimer = null
+                store.setSweepField('sweepPlaying', false)
+            }
+            // Remove the heatmap/atlas layer from the map
+            for (const id in store.elements) {
+                Map_.rmNotNull(L_.layers.layer['shade' + id])
+                L_.layers.layer['shade' + id] = null
+            }
+        }
+
         for (const id in store.elements) {
             const el = store.elements[id]
             if (!el) continue
@@ -139,7 +157,7 @@ let ShadeTool = {
 
     _onCompositeHover: function (e) {
         const store = useShadeStore.getState()
-        if (store.sweepViewMode !== 'composite' || !store.sweepHeatmap || !store.lastData) {
+        if (store.sweepStale || store.sweepViewMode !== 'composite' || !store.sweepHeatmap || !store.lastData) {
             return
         }
         const data = store.lastData
@@ -1285,6 +1303,7 @@ let ShadeTool = {
 
     shadeSweepAll: function (startTime, endTime, stepMinutes) {
         const store = useShadeStore.getState()
+        store.setSweepField('sweepStale', false)
         const activeIds = Object.keys(store.elements).filter(
             (id) => store.elements[id].on
         )

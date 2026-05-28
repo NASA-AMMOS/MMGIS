@@ -24,17 +24,17 @@
     border-color: var(--color-a2);
 }
 
-.swatch {
+.swatchBar {
+    display: flex;
     flex: 1;
     height: 12px;
     border-radius: 2px;
+    overflow: hidden;
     min-width: 0;
 }
 
-.label {
-    flex-shrink: 0;
-    font-size: 11px;
-    white-space: nowrap;
+.swatchBlock {
+    height: 100%;
 }
 
 .popup {
@@ -62,37 +62,23 @@
 .option {
     display: flex;
     align-items: center;
-    gap: 8px;
     width: 100%;
-    padding: 5px 10px;
+    padding: 4px 10px;
     border: none;
     background: transparent;
-    color: var(--color-a5);
-    font-size: 12px;
-    font-family: inherit;
     cursor: pointer;
     transition: background 0.1s;
     box-sizing: border-box;
 }
 .option:hover {
     background: var(--color-a1);
-    color: var(--color-f);
 }
 .option.selected {
-    color: var(--color-mmgis);
+    outline: 2px solid var(--color-mmgis);
+    outline-offset: -2px;
+    border-radius: 3px;
 }
 
-.optionSwatch {
-    flex: 1;
-    height: 14px;
-    border-radius: 2px;
-    min-width: 0;
-}
-
-.optionLabel {
-    flex-shrink: 0;
-    font-size: 11px;
-    white-space: nowrap;
-    min-width: 60px;
-    text-align: right;
+.option .swatchBar {
+    height: 16px;
 }

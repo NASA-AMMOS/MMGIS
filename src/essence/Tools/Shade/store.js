@@ -82,6 +82,7 @@ const useShadeStore = create((set, get) => ({
     sweepColorRamp: 'shadow',
     sweepDiscrete: false,
     hoverFrac: null,
+    sweepStale: false,
 
     // Actions
     setVars: (vars) => set({ vars }),
