@@ -8,6 +8,7 @@
     flex-flow: column;
     background: var(--color-k);
     box-shadow: inset 2px 0px 10px 0px var(--color-shadow);
+    --color-accent-active: var(--color-a2);
 }
 
 /* Time-disabled message */
@@ -552,7 +553,6 @@
     padding: 2px 10px 0;
     --color-mmgis: var(--color-red);
     --color-c: var(--color-red2);
-    --color-accent-active: var(--color-red);
 }
 
 #shadeTool .vstSweepFrameLabel {
