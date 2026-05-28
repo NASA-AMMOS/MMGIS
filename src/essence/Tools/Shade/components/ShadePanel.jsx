@@ -12,7 +12,7 @@ const helpKey = 'ShadeTool'
 
 const SHADE_TABS = [
     { value: 'shademaps', label: 'Shademaps', icon: 'mdi-layers-outline' },
-    { value: 'sweep', label: 'Sweep', icon: 'mdi-chart-timeline-variant' },
+    { value: 'sweep', label: 'Sweep', icon: 'mdi-timelapse' },
 ]
 
 export default function ShadePanel() {
@@ -73,6 +73,16 @@ export default function ShadePanel() {
                     </IconButton>
                 </div>
             </div>
+            <div className="vstBinaryLegend">
+                <div className="vstBinaryLegendItem">
+                    <div className="vstBinaryLegendSwatch vstBinaryLegendInShadow" />
+                    <span>In Shadow <span className="vstBinaryLegendMuted">Filled</span></span>
+                </div>
+                <div className="vstBinaryLegendItem">
+                    <div className="vstBinaryLegendSwatch vstBinaryLegendNotVisible" />
+                    <span>Source Visible <span className="vstBinaryLegendMuted">Empty</span></span>
+                </div>
+            </div>
             <Tabs
                 value={activeTab}
                 onValueChange={setActiveTab}
@@ -86,16 +96,6 @@ export default function ShadePanel() {
                             <i className="mdi mdi-clock-outline mdi-14px" />
                         </div>
                         <span>{utcTime}</span>
-                    </div>
-                    <div className="vstBinaryLegend">
-                        <div className="vstBinaryLegendItem">
-                            <div className="vstBinaryLegendSwatch vstBinaryLegendInShadow" />
-                            <span>In Shadow <span className="vstBinaryLegendMuted">Filled</span></span>
-                        </div>
-                        <div className="vstBinaryLegendItem">
-                            <div className="vstBinaryLegendSwatch vstBinaryLegendNotVisible" />
-                            <span>Source Visible <span className="vstBinaryLegendMuted">Empty</span></span>
-                        </div>
                     </div>
                     <div className="vstContent">
                         {elementIds.map((id) => (

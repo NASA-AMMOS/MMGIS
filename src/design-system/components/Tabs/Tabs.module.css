@@ -10,7 +10,7 @@
     display: flex;
     gap: 0;
     flex-shrink: 0;
-    padding: 3px;
+    padding: 4px;
     background: var(--color-a);
 }
 
@@ -24,7 +24,7 @@
     color: var(--color-a5);
     border: none;
     cursor: pointer;
-    padding: 6px 14px;
+    padding: 8px 16px;
     font-size: 12px;
     font-weight: 400;
     line-height: 1.4;
@@ -44,9 +44,9 @@
 
 .indicator {
     position: absolute;
-    top: 3px;
+    top: 4px;
     left: 0;
-    bottom: 3px;
+    bottom: 4px;
     background: var(--color-a2);
     border-radius: 4px;
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
@@ -77,14 +77,14 @@
 
 /* Sizes */
 .sm .tab {
-    padding: 4px 10px;
+    padding: 6px 12px;
     font-size: 11px;
 }
 .md .tab {
-    padding: 6px 14px;
+    padding: 8px 16px;
     font-size: 12px;
 }
 .lg .tab {
-    padding: 8px 18px;
+    padding: 10px 20px;
     font-size: 13px;
 }

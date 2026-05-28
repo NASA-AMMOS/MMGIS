@@ -12,7 +12,7 @@ const Tabs = forwardRef(function Tabs(
         const container = containerRef.current
         if (!container) return
         const active = container.querySelector(`[data-tab-active="true"]`)
-        if (active) {
+        if (active && active.offsetWidth > 0) {
             setIndicator({
                 left: active.offsetLeft,
                 width: active.offsetWidth,
@@ -27,6 +27,15 @@ const Tabs = forwardRef(function Tabs(
     useEffect(() => {
         window.addEventListener('resize', updateIndicator)
         return () => window.removeEventListener('resize', updateIndicator)
+    }, [updateIndicator])
+
+    // Re-measure when the tab bar resizes (e.g. parent panel animating open)
+    useEffect(() => {
+        const container = containerRef.current
+        if (!container || typeof ResizeObserver === 'undefined') return
+        const ro = new ResizeObserver(() => updateIndicator())
+        ro.observe(container)
+        return () => ro.disconnect()
     }, [updateIndicator])
 
     const activeIndex = tabs.findIndex((t) => t.value === value)
