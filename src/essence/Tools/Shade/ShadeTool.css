@@ -87,8 +87,24 @@
     height: 32px;
     padding: 0 8px;
     background: var(--color-a1-5);
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
+}
+
+#shadeTool .vstNewBtn {
+    background: none;
+    border: none;
+    color: #5b9bd5;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+}
+#shadeTool .vstNewBtn:hover {
+    color: #7bb8ec;
 }
 
 /* ====== Content ====== */
@@ -295,7 +311,7 @@
 }
 
 /* ====== Export dropdown ====== */
-#shadeTool .vstOptionRow .vstExportBar {
+#shadeTool .vstOptionRow .vstExportMenu {
     padding: 0;
 }
 

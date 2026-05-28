@@ -2,11 +2,10 @@ import React, { useEffect, useCallback, useMemo } from 'react'
 import useShadeStore from '../store'
 import ShadeElement from './ShadeElement'
 import SweepSection from './SweepSection'
-import ShadeTool from '../ShadeTool'
 import Help from '../../../Basics/UserInterface_/components/Help/Help'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import ToolController_ from '../../../Basics/ToolController_/ToolController_'
-import { Button, IconButton, Checkbox } from '../../../../design-system/components'
+import { Button, IconButton } from '../../../../design-system/components'
 
 const helpKey = 'ShadeTool'
 
@@ -15,7 +14,6 @@ export default function ShadePanel() {
     const elements = useShadeStore((s) => s.elements)
     const utcTime = useShadeStore((s) => s.utcTime)
     const addElement = useShadeStore((s) => s.addElement)
-    const toggleAll = useShadeStore((s) => s.toggleAll)
 
     useEffect(() => {
         Help.finalize(helpKey)
@@ -33,20 +31,6 @@ export default function ShadePanel() {
         [elements]
     )
 
-    const allOn = useMemo(
-        () =>
-            elementIds.length > 0 &&
-            elementIds.every((id) => elements[id]?.on),
-        [elements, elementIds]
-    )
-
-    const handleToggleAll = useCallback(() => {
-        const newOn = !allOn
-        toggleAll()
-        for (const id in elements) {
-            ShadeTool.toggleElementVisibility(parseInt(id), newOn)
-        }
-    }, [allOn, elements, toggleAll])
 
     if (!TimeControl.enabled) {
         return (
@@ -87,13 +71,10 @@ export default function ShadePanel() {
                     <span>{utcTime}</span>
                 </div>
                 <div className="vstSubHeader">
-                    <Checkbox
-                        checked={allOn}
-                        onCheckedChange={handleToggleAll}
+                    <Button
+                        className="vstNewBtn"
+                        onClick={handleNew}
                     >
-                        Toggle All
-                    </Checkbox>
-                    <Button size="md" onClick={handleNew}>
                         <i className="mdi mdi-plus mdi-18px" />
                         New
                     </Button>

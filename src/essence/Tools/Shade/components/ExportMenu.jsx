@@ -2,7 +2,7 @@ import React, { useCallback } from 'react'
 import ShadeTool from '../ShadeTool'
 import { Button } from '../../../../design-system/components'
 
-export default function ExportBar({ elmId }) {
+export default function ExportMenu({ elmId }) {
     const handlePNG = useCallback(() => ShadeTool.exportPNG(elmId), [elmId])
     const handleCSV = useCallback(() => ShadeTool.exportCSV(), [])
     const handleGeoJSON = useCallback(
@@ -15,7 +15,7 @@ export default function ExportBar({ elmId }) {
     )
 
     return (
-        <div className="vstExportBar">
+        <div className="vstExportMenu">
             <Button
                 variant="ghost"
                 size="sm"
