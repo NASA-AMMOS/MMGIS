@@ -1,7 +1,14 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import useShadeStore from '../store'
 import ShadeTool from '../ShadeTool'
+import TimeControl from '../../../Basics/TimeControl_/TimeControl'
+import TimeUI from '../../../Basics/TimeControl_/TimeUI'
 import { Button, IconButton, Slider } from '../../../../design-system/components'
+
+function getTimeUIMode() {
+    if (!TimeUI.modes) return 'Range'
+    return TimeUI.modes[TimeUI.modeIndex] || 'Range'
+}
 
 export default function SweepSection() {
     const sweepStart = useShadeStore((s) => s.sweepStart)
@@ -13,6 +20,43 @@ export default function SweepSection() {
     const setSweepField = useShadeStore((s) => s.setSweepField)
 
     const [expanded, setExpanded] = useState(false)
+
+    // Sync sweep start/end with TimeUI on mount and on time changes
+    useEffect(() => {
+        function syncFromTimeUI() {
+            const mode = getTimeUIMode()
+            const currentTime = TimeControl.getTime()
+            const startTime = TimeControl.getStartTime()
+            const endTime = TimeControl.getEndTime()
+
+            if (mode === 'Point') {
+                // Point mode: only update start time with current time
+                if (currentTime) setSweepField('sweepStart', currentTime)
+            } else {
+                // Range mode: start = startTime, end = endTime
+                if (startTime) setSweepField('sweepStart', startTime)
+                if (endTime) setSweepField('sweepEnd', endTime)
+            }
+        }
+
+        // Initial sync
+        syncFromTimeUI()
+
+        // Subscribe to time changes
+        TimeControl.subscribe('ShadeTool_Sweep', (t) => {
+            const mode = getTimeUIMode()
+            if (mode === 'Point') {
+                if (t.currentTime) setSweepField('sweepStart', t.currentTime)
+            } else {
+                if (t.startTime) setSweepField('sweepStart', t.startTime)
+                if (t.endTime) setSweepField('sweepEnd', t.endTime)
+            }
+        })
+
+        return () => {
+            TimeControl.unsubscribe('ShadeTool_Sweep')
+        }
+    }, [setSweepField])
 
     const handleSweep = useCallback(() => {
         if (!sweepStart || !sweepEnd || !sweepStep) return
@@ -37,21 +81,27 @@ export default function SweepSection() {
             </div>
             {expanded && (
                 <div className="vstSweepBody">
-                    <div className="vstSweepTimeRow">
+                    {/* Start time — own row */}
+                    <div className="vstSweepTimeRowSingle">
+                        <label className="vstSweepTimeLabel">Start</label>
                         <input
                             type="text"
                             className="vstSweepInput"
-                            placeholder="Start"
+                            placeholder="Start time"
                             value={sweepStart}
                             onChange={(e) =>
                                 setSweepField('sweepStart', e.target.value)
                             }
                             title="Start time (YYYY-MM-DDTHH:MM:SSZ)"
                         />
+                    </div>
+                    {/* End time — own row */}
+                    <div className="vstSweepTimeRowSingle">
+                        <label className="vstSweepTimeLabel">End</label>
                         <input
                             type="text"
                             className="vstSweepInput"
-                            placeholder="End"
+                            placeholder="End time"
                             value={sweepEnd}
                             onChange={(e) =>
                                 setSweepField('sweepEnd', e.target.value)
@@ -59,6 +109,7 @@ export default function SweepSection() {
                             title="End time (YYYY-MM-DDTHH:MM:SSZ)"
                         />
                     </div>
+                    {/* Step row */}
                     <div className="vstSweepStepRow">
                         <div className="vstSweepStepLabel">Step</div>
                         <input
@@ -75,15 +126,18 @@ export default function SweepSection() {
                             }
                         />
                         <span className="vstSweepStepUnit">min</span>
-                        <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={handleSweep}
-                            title="Run time-range sweep on all active shade maps"
-                        >
-                            Sweep
-                        </Button>
                     </div>
+                    {/* Full-width Sweep button */}
+                    <Button
+                        variant="primary"
+                        size="md"
+                        className="vstSweepButton"
+                        onClick={handleSweep}
+                        title="Run time-range sweep on all active shade maps"
+                    >
+                        Sweep
+                    </Button>
+                    {/* Full-width timeline playbar */}
                     <div className="vstSweepPlaybar">
                         <IconButton
                             size="sm"
@@ -122,7 +176,13 @@ export default function SweepSection() {
                                 step={100}
                             />
                         </div>
-                        <span id="vstSweepFrameLabel" className="vstSweepFrameLabel" />
+                    </div>
+                    {/* Full-width timeline indicator */}
+                    <div className="vstSweepIndicator">
+                        <span
+                            id="vstSweepFrameLabel"
+                            className="vstSweepFrameLabel"
+                        />
                     </div>
                 </div>
             )}

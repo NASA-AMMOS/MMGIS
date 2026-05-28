@@ -383,6 +383,20 @@
     margin-bottom: 4px;
 }
 
+#shadeTool.shadeToolNew .vstSweepTimeRowSingle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+#shadeTool.shadeToolNew .vstSweepTimeLabel {
+    font-size: 11px;
+    color: var(--color-a5);
+    min-width: 30px;
+    flex-shrink: 0;
+}
+
 #shadeTool.shadeToolNew .vstSweepInput {
     flex: 1;
     height: 24px;
@@ -423,6 +437,14 @@
     color: var(--color-a5);
 }
 
+#shadeTool.shadeToolNew .vstSweepButton {
+    width: 100%;
+    height: 32px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
 #shadeTool.shadeToolNew .vstSweepProgress {
     font-size: 10px;
     color: var(--color-a5);
@@ -436,6 +458,9 @@
     padding: 4px 6px;
     background: var(--color-a1);
     border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 4px;
 }
 
 #shadeTool.shadeToolNew .vstSweepSpeedWrap {
@@ -443,8 +468,13 @@
     margin-left: 4px;
 }
 
+#shadeTool.shadeToolNew .vstSweepIndicator {
+    width: 100%;
+    padding: 4px 0;
+    text-align: center;
+}
+
 #shadeTool.shadeToolNew .vstSweepFrameLabel {
     font-size: 10px;
     color: var(--color-a5);
-    margin-left: auto;
 }
