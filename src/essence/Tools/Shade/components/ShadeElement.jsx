@@ -1,9 +1,10 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useShadeStore, { buildSourcesList, MULTI_SOURCE_COLORS } from '../store'
 import ShadeResults from './ShadeResults'
 import ShadeTool from '../ShadeTool'
 import {
     Button,
+    Checkbox,
     IconButton,
     Dropdown,
     InputWithUnit,
@@ -87,6 +88,24 @@ export default function ShadeElement({ elmId }) {
 
 
     const [colorPickerOpen, setColorPickerOpen] = useState(false)
+    const colorPickerRef = useRef(null)
+
+    // Close color picker on outside click
+    useEffect(() => {
+        if (!colorPickerOpen) return
+        const handleOutsideClick = (e) => {
+            if (
+                colorPickerRef.current &&
+                !colorPickerRef.current.contains(e.target)
+            ) {
+                setColorPickerOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handleOutsideClick, true)
+        return () => {
+            document.removeEventListener('mousedown', handleOutsideClick, true)
+        }
+    }, [colorPickerOpen])
 
     const handleColorSelect = useCallback(
         (color) => {
@@ -107,42 +126,30 @@ export default function ShadeElement({ elmId }) {
         <div className="vstShadeItem" data-shade-id={elmId}>
             <div className="vstShadeHeader">
                 <div className="vstShadeHeaderLeft">
-                    <Tooltip content="Change color">
-                        <div className="vstColorSwatchWrap">
-                            <div
-                                className="vstColorSwatch"
-                                style={{ background: rgbStr(el.color) }}
-                                onClick={() => setColorPickerOpen(!colorPickerOpen)}
-                            />
-                            {colorPickerOpen && (
-                                <div className="vstColorPalette">
-                                    {MULTI_SOURCE_COLORS.map((c, i) => (
-                                        <div
-                                            key={i}
-                                            className="vstColorOption"
-                                            style={{ background: rgbStr(c) }}
-                                            onClick={() => handleColorSelect(c)}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </Tooltip>
-                    <Tooltip content={el.on ? 'Hide shade map' : 'Show shade map'}>
-                        <IconButton
-                            size="sm"
-                            active={el.on}
-                            onClick={handleToggle}
-                        >
-                            <i
-                                className={`mdi mdi-18px ${
-                                    el.on
-                                        ? 'mdi-eye'
-                                        : 'mdi-eye-off-outline'
-                                }`}
-                            />
-                        </IconButton>
-                    </Tooltip>
+                    <Checkbox
+                        checked={el.on}
+                        onCheckedChange={handleToggle}
+                    />
+                    <div className="vstColorSwatchWrap" ref={colorPickerRef}>
+                        <div
+                            className="vstColorBar"
+                            style={{ background: rgbStr(el.color) }}
+                            onClick={() => setColorPickerOpen(!colorPickerOpen)}
+                            title="Change color"
+                        />
+                        {colorPickerOpen && (
+                            <div className="vstColorPalette">
+                                {MULTI_SOURCE_COLORS.map((c, i) => (
+                                    <div
+                                        key={i}
+                                        className="vstColorOption"
+                                        style={{ background: rgbStr(c) }}
+                                        onClick={() => handleColorSelect(c)}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <div className="vstShadeHeaderRight">
                     <Tooltip content="Delete shade map">

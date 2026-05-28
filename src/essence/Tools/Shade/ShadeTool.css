@@ -148,17 +148,18 @@
 
 #shadeTool .vstColorSwatchWrap {
     position: relative;
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 0;
 }
 
-#shadeTool .vstColorSwatch {
-    width: 20px;
+#shadeTool .vstColorBar {
     height: 20px;
     border-radius: 3px;
     cursor: pointer;
     border: 1px solid var(--color-a2);
+    width: 100%;
 }
-#shadeTool .vstColorSwatch:hover {
+#shadeTool .vstColorBar:hover {
     border-color: var(--color-a5);
 }
 
