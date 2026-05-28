@@ -119,7 +119,10 @@
 
 #shadeTool .vstShadeItem {
     position: relative;
-    border-bottom: 1px solid var(--color-e);
+    margin: 6px;
+    border-radius: 6px;
+    background: var(--color-a1-5);
+    overflow: hidden;
 }
 
 /* Instance header */
@@ -129,7 +132,6 @@
     align-items: center;
     height: 32px;
     padding: 0 6px;
-    background: var(--color-a);
 }
 
 #shadeTool .vstShadeHeaderLeft {
@@ -198,7 +200,6 @@
 
 #shadeTool .vstShadeBody {
     padding: 0;
-    background: var(--color-a);
 }
 
 /* ====== Shared row layout ====== */
