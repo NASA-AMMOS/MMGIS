@@ -135,11 +135,9 @@ export default function ShadeElement({ elmId }) {
                     <Dropdown
                         align="start"
                         trigger={
-                            <Tooltip content="Export shade map">
-                                <IconButton size="sm">
-                                    <i className="mdi mdi-download mdi-18px" />
-                                </IconButton>
-                            </Tooltip>
+                            <IconButton size="sm" title="Export shade map">
+                                <i className="mdi mdi-download mdi-18px" />
+                            </IconButton>
                         }
                     >
                         <Dropdown.Item onClick={() => ShadeTool.exportPNG(elmId)}>
