@@ -50,7 +50,7 @@ export default function ShadePanel() {
 
     if (!TimeControl.enabled) {
         return (
-            <div id="shadeTool" className="shadeToolNew">
+            <div id="shadeTool">
                 <div className="vstTimeDisabled">
                     The Shade Tool requires that Time be enabled by the
                     administrators.
@@ -60,7 +60,7 @@ export default function ShadePanel() {
     }
 
     return (
-        <div id="shadeTool" className="shadeToolNew">
+        <div id="shadeTool">
             <div className="vstHeader">
                 <div className="vstHeaderTop">
                     <div className="vstHeaderLeft">

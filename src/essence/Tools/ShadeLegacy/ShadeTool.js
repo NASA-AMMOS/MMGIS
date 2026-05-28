@@ -191,7 +191,7 @@ let ShadeTool = {
         return urlString
     },
     timeChange: function () {
-        $('#shadeTool .vstRegen').addClass('changed')
+        $('#shadeToolLegacy .vstRegen').addClass('changed')
         $('#vstShades > li').each((i, elm) => {
             const id = $(elm).attr('shadeId')
             $('.vstOptionTime input').val(
@@ -212,7 +212,7 @@ let ShadeTool = {
     },
     panEnd: function () {
         ShadeTool.indicatorLastDragPoint = null
-        $('#shadeTool .vstRegen').addClass('changed')
+        $('#shadeToolLegacy .vstRegen').addClass('changed')
         $('#vstShades > li').each((i, elm) => {
             const id = $(elm).attr('shadeId')
             // prettier-ignore
@@ -437,56 +437,56 @@ let ShadeTool = {
                             "<div class='vstExportJsonBtn' title='Export report as JSON'><i class='mdi mdi-code-json mdi-14px'></i> Report</div>",
                         "</div>",
                     "</div>",
-                    "<div id='shadeTool_results'>",
-                        "<div id='shadeTool_results_title'>Results</div>",
-                        "<div id='shadeTool_results_outputs'>",
+                    "<div id='shadeToolLegacy_results'>",
+                        "<div id='shadeToolLegacy_results_title'>Results</div>",
+                        "<div id='shadeToolLegacy_results_outputs'>",
                             "<ul>",
                                 "<li>",
                                     "<div>Azimuth</div>",
-                                    "<div id='shadeTool_results_outputs_az'></div>",
-                                    "<div class='flexbetween' id='shadeTool_results_outputs_az_input_wrap' style='display: none;'>",
-                                        "<input id='shadeTool_results_outputs_az_input' type='number' min='0' max='360'></input>",
+                                    "<div id='shadeToolLegacy_results_outputs_az'></div>",
+                                    "<div class='flexbetween' id='shadeToolLegacy_results_outputs_az_input_wrap' style='display: none;'>",
+                                        "<input id='shadeToolLegacy_results_outputs_az_input' type='number' min='0' max='360'></input>",
                                         "<div class='vstUnit smallFont'>&deg;</div>",
                                     "</div>",
                                 "</li>",
                                 "<li>",
                                     "<div>Elevation</div>",
-                                    "<div id='shadeTool_results_outputs_el'></div>",
-                                    "<div class='flexbetween' id='shadeTool_results_outputs_el_input_wrap' style='display: none;'>",
-                                        "<input id='shadeTool_results_outputs_el_input' type='number' min='-90' max='90'></input>",
+                                    "<div id='shadeToolLegacy_results_outputs_el'></div>",
+                                    "<div class='flexbetween' id='shadeToolLegacy_results_outputs_el_input_wrap' style='display: none;'>",
+                                        "<input id='shadeToolLegacy_results_outputs_el_input' type='number' min='-90' max='90'></input>",
                                         "<div class='vstUnit smallFont'>&deg;</div>",
                                     "</div>",
                                 "</li>",
                                 "<li>",
                                     "<div>Range</div>",
-                                    "<div id='shadeTool_results_outputs_range'></div>",
-                                    "<div class='flexbetween' id='shadeTool_results_outputs_range_input_wrap' style='display: none;'>",
-                                        "<input id='shadeTool_results_outputs_range_input' type='number' disabled></input>",
+                                    "<div id='shadeToolLegacy_results_outputs_range'></div>",
+                                    "<div class='flexbetween' id='shadeToolLegacy_results_outputs_range_input_wrap' style='display: none;'>",
+                                        "<input id='shadeToolLegacy_results_outputs_range_input' type='number' disabled></input>",
                                         "<div class='vstUnit smallFont'>km</div>",
                                     "</div>",
                                 "</li>",
                                 /*
                                 "<li>",
                                     "<div>Longitude</div>",
-                                    "<div id='shadeTool_results_outputs_lng'></div>",
+                                    "<div id='shadeToolLegacy_results_outputs_lng'></div>",
                                 "</li>",
                                 "<li>",
                                     "<div>Latitude</div>",
-                                    "<div id='shadeTool_results_outputs_lat'></div>",
+                                    "<div id='shadeToolLegacy_results_outputs_lat'></div>",
                                 "</li>",
                                 */
                             "</ul>",
                         "</div>",
-                        "<div id='shadeTool_indicators'>",
+                        "<div id='shadeToolLegacy_indicators'>",
                             "<div>",
                                 "<div>Azimuth</div>",
-                                "<canvas id='shadeTool_az'></canvas>",
-                                "<div id='shadeTool_azValue'></div>",
+                                "<canvas id='shadeToolLegacy_az'></canvas>",
+                                "<div id='shadeToolLegacy_azValue'></div>",
                             "</div>",
                             "<div>",
                                 "<div>Elevation</div>",
-                                "<canvas id='shadeTool_el'></canvas>",
-                                "<div id='shadeTool_elValue'></div>",
+                                "<canvas id='shadeToolLegacy_el'></canvas>",
+                                "<div id='shadeToolLegacy_elValue'></div>",
                             "</div>",
                         "</div>",
                     "</div>",
@@ -675,26 +675,26 @@ let ShadeTool = {
                     // Check if only Custom is selected
                     const selected = ShadeTool.getSelectedSources(id)
                     if (selected.length === 1 && selected[0].value === 'false') {
-                        $('#shadeTool_results_outputs_az').css({ display: 'none' })
-                        $('#shadeTool_results_outputs_az_input_wrap').css({ display: 'inherit' })
-                        $('#shadeTool_results_outputs_az_input').val(
-                            parseFloat($('#shadeTool_results_outputs_az').text())
+                        $('#shadeToolLegacy_results_outputs_az').css({ display: 'none' })
+                        $('#shadeToolLegacy_results_outputs_az_input_wrap').css({ display: 'inherit' })
+                        $('#shadeToolLegacy_results_outputs_az_input').val(
+                            parseFloat($('#shadeToolLegacy_results_outputs_az').text())
                         )
-                        $('#shadeTool_results_outputs_el').css({ display: 'none' })
-                        $('#shadeTool_results_outputs_el_input_wrap').css({ display: 'inherit' })
-                        $('#shadeTool_results_outputs_el_input').val(
-                            parseFloat($('#shadeTool_results_outputs_el').text())
+                        $('#shadeToolLegacy_results_outputs_el').css({ display: 'none' })
+                        $('#shadeToolLegacy_results_outputs_el_input_wrap').css({ display: 'inherit' })
+                        $('#shadeToolLegacy_results_outputs_el_input').val(
+                            parseFloat($('#shadeToolLegacy_results_outputs_el').text())
                         )
-                        $('#shadeTool_results_outputs_range').css({ display: 'none' })
-                        $('#shadeTool_results_outputs_range_input_wrap').css({ display: 'inherit' })
-                        $('#shadeTool_results_outputs_range_input').val(parseFloat(100000))
+                        $('#shadeToolLegacy_results_outputs_range').css({ display: 'none' })
+                        $('#shadeToolLegacy_results_outputs_range_input_wrap').css({ display: 'inherit' })
+                        $('#shadeToolLegacy_results_outputs_range_input').val(parseFloat(100000))
                     } else {
-                        $('#shadeTool_results_outputs_az').css({ display: 'inherit' })
-                        $('#shadeTool_results_outputs_az_input_wrap').css({ display: 'none' })
-                        $('#shadeTool_results_outputs_el').css({ display: 'inherit' })
-                        $('#shadeTool_results_outputs_el_input_wrap').css({ display: 'none' })
-                        $('#shadeTool_results_outputs_range').css({ display: 'inherit' })
-                        $('#shadeTool_results_outputs_range_input_wrap').css({ display: 'none' })
+                        $('#shadeToolLegacy_results_outputs_az').css({ display: 'inherit' })
+                        $('#shadeToolLegacy_results_outputs_az_input_wrap').css({ display: 'none' })
+                        $('#shadeToolLegacy_results_outputs_el').css({ display: 'inherit' })
+                        $('#shadeToolLegacy_results_outputs_el_input_wrap').css({ display: 'none' })
+                        $('#shadeToolLegacy_results_outputs_range').css({ display: 'inherit' })
+                        $('#shadeToolLegacy_results_outputs_range_input_wrap').css({ display: 'none' })
                     }
                     if (
                         $(
@@ -707,7 +707,7 @@ let ShadeTool = {
                 }
             })(id)
         )
-        $('#shadeTool_results_outputs_az_input').on(
+        $('#shadeToolLegacy_results_outputs_az_input').on(
             'change',
             (function (id) {
                 return function () {
@@ -727,7 +727,7 @@ let ShadeTool = {
                 }
             })(id)
         )
-        $('#shadeTool_results_outputs_el_input').on(
+        $('#shadeToolLegacy_results_outputs_el_input').on(
             'change',
             (function (id) {
                 return function () {
@@ -747,7 +747,7 @@ let ShadeTool = {
                 }
             })(id)
         )
-        $('#shadeTool_results_outputs_range_input').on(
+        $('#shadeToolLegacy_results_outputs_range_input').on(
             'change',
             (function (id) {
                 return function () {
@@ -1041,13 +1041,13 @@ let ShadeTool = {
         let customAz, customEl, customRange
         if (hasCustom) {
             customAz = parseFloat(
-                $('#shadeTool_results_outputs_az_input').val()
+                $('#shadeToolLegacy_results_outputs_az_input').val()
             )
             customEl = parseFloat(
-                $('#shadeTool_results_outputs_el_input').val()
+                $('#shadeToolLegacy_results_outputs_el_input').val()
             )
             customRange = parseFloat(
-                $('#shadeTool_results_outputs_range_input').val()
+                $('#shadeToolLegacy_results_outputs_range_input').val()
             )
             if (isNaN(customAz) || isNaN(customEl) || isNaN(customRange)) {
                 Toast.warning('Azimuth, Elevation and Range need to be set when using Custom Az/El source.', 6000)
@@ -1147,9 +1147,9 @@ let ShadeTool = {
                         const firstResult = results[0]
                         ShadeTool.updateRAEIndicators(firstResult, activeElmId, results)
 
-                        $('#shadeTool_results_outputs_az').text('--')
-                        $('#shadeTool_results_outputs_el').text('--')
-                        $('#shadeTool_results_outputs_range').text('--')
+                        $('#shadeToolLegacy_results_outputs_az').text('--')
+                        $('#shadeToolLegacy_results_outputs_el').text('--')
+                        $('#shadeToolLegacy_results_outputs_range').text('--')
 
                         const validResults = results.filter((s) => !s.error)
 
@@ -1166,13 +1166,13 @@ let ShadeTool = {
 
                         // Display first valid result's RAE values
                         const primary = validResults[0]
-                        $('#shadeTool_results_outputs_az').text(
+                        $('#shadeToolLegacy_results_outputs_az').text(
                             primary.azimuth.toFixed(3) + '°'
                         )
-                        $('#shadeTool_results_outputs_el').text(
+                        $('#shadeToolLegacy_results_outputs_el').text(
                             primary.elevation.toFixed(3) + '°'
                         )
-                        $('#shadeTool_results_outputs_range').text(
+                        $('#shadeToolLegacy_results_outputs_range').text(
                             primary.range.toFixed(3) + 'km'
                         )
 
@@ -2039,9 +2039,9 @@ let ShadeTool = {
                 dataIndex: options.dataIndex,
             },
             results: {
-                azimuth: $('#shadeTool_results_outputs_az').text(),
-                elevation: $('#shadeTool_results_outputs_el').text(),
-                range: $('#shadeTool_results_outputs_range').text(),
+                azimuth: $('#shadeToolLegacy_results_outputs_az').text(),
+                elevation: $('#shadeToolLegacy_results_outputs_el').text(),
+                range: $('#shadeToolLegacy_results_outputs_range').text(),
             },
             sweep:
                 ShadeTool.sweepResults && ShadeTool.sweepResults.length > 0
@@ -2115,15 +2115,15 @@ let ShadeTool = {
         const sizeInner = 220
         const origin = { x: size / 2, y: size / 2 }
 
-        $(`#vstId_${shadeId} #shadeTool_indicators`).css({
+        $(`#vstId_${shadeId} #shadeToolLegacy_indicators`).css({
             borderBottom: rae.error ? '3px solid var(--color-red)' : 'none',
         })
 
         // Azimuth ===================
-        $(`#vstId_${shadeId} #shadeTool_azValue`).text(
+        $(`#vstId_${shadeId} #shadeToolLegacy_azValue`).text(
             rae.error ? 'Error' : rae.azimuth.toFixed(2) + '°'
         )
-        const cAz = document.querySelector(`#vstId_${shadeId} #shadeTool_az`)
+        const cAz = document.querySelector(`#vstId_${shadeId} #shadeToolLegacy_az`)
         cAz.width = size
         cAz.height = size
         const ctxAz = cAz.getContext('2d')
@@ -2246,10 +2246,10 @@ let ShadeTool = {
         }
 
         // El ========================
-        $(`#vstId_${shadeId} #shadeTool_elValue`).text(
+        $(`#vstId_${shadeId} #shadeToolLegacy_elValue`).text(
             rae.error ? 'Error' : rae.elevation.toFixed(2) + '°'
         )
-        const cEl = document.querySelector(`#vstId_${shadeId} #shadeTool_el`)
+        const cEl = document.querySelector(`#vstId_${shadeId} #shadeToolLegacy_el`)
         cEl.width = size
         cEl.height = size
         const ctxEl = cEl.getContext('2d')
@@ -2543,7 +2543,7 @@ function interfaceWithMMGIS() {
     const rawTime = ShadeTool.parseToUTCTime(TimeControl.getEndTime())
     // prettier-ignore
     let markup = [
-        "<div id='shadeTool'>",
+        "<div id='shadeToolLegacy'>",
             "<div id='vstHeader'>",
                 "<div>",
                     "<div>",
