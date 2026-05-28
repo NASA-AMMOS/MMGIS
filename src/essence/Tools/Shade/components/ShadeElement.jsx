@@ -158,8 +158,6 @@ export default function ShadeElement({ elmId }) {
                             />
                         </IconButton>
                     </Tooltip>
-                </div>
-                <div className="vstShadeHeaderRight">
                     {el.changed && !el.regenerating && (
                         <Tooltip content="Regenerate shade map">
                             <IconButton
@@ -176,6 +174,8 @@ export default function ShadeElement({ elmId }) {
                             {Math.round(el.loadingProgress)}%
                         </span>
                     )}
+                </div>
+                <div className="vstShadeHeaderRight">
                     <Tooltip content="Delete shade map">
                         <IconButton
                             size="sm"

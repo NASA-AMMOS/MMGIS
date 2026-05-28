@@ -117,17 +117,27 @@ let ShadeTool = {
 
     _onPanEnd: function () {
         const store = useShadeStore.getState()
-        const el = store.elements[store.activeElmId]
-        if (el && el.resolution <= store.vars?.dynamicUpdateResCutoff) {
-            ShadeTool.shade(null, store.activeElmId)
+        for (const id in store.elements) {
+            const el = store.elements[id]
+            if (!el) continue
+            if (el.resolution <= (store.vars?.dynamicUpdateResCutoff ?? 1)) {
+                ShadeTool.shade(null, parseInt(id))
+            } else {
+                store.updateElement(parseInt(id), { changed: true })
+            }
         }
     },
 
     _onTimeChange: function (rawTime) {
         const store = useShadeStore.getState()
-        const el = store.elements[store.activeElmId]
-        if (el && el.resolution <= 1) {
-            ShadeTool.shade(null, store.activeElmId)
+        for (const id in store.elements) {
+            const el = store.elements[id]
+            if (!el) continue
+            if (el.resolution <= 1) {
+                ShadeTool.shade(null, parseInt(id))
+            } else {
+                store.updateElement(parseInt(id), { changed: true })
+            }
         }
     },
 
@@ -450,6 +460,7 @@ let ShadeTool = {
         L_.layers.layer[layerName]._noFade = true
         L_.layers.layer[layerName].setZIndex(1000)
         Map_.map.addLayer(L_.layers.layer[layerName])
+        useShadeStore.getState().updateElement(activeElmId, { on: true })
 
         Globe_.litho.removeLayer(layerName)
     },
