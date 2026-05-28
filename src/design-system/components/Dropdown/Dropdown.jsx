@@ -6,14 +6,14 @@ function Dropdown({ trigger, children, align = 'end', className }) {
     const [open, setOpen] = useState(false)
     const triggerRef = useRef(null)
     const popupRef = useRef(null)
-    const [position, setPosition] = useState({ top: 0, left: 0 })
+    const [position, setPosition] = useState({ top: 0, left: 0, minWidth: 0 })
 
     const updatePosition = useCallback(() => {
         if (!triggerRef.current) return
         const rect = triggerRef.current.getBoundingClientRect()
         const top = rect.bottom + 4
         const left = align === 'end' ? rect.right : rect.left
-        setPosition({ top, left })
+        setPosition({ top, left, minWidth: rect.width })
     }, [align])
 
     const handleToggle = useCallback((e) => {
@@ -71,6 +71,7 @@ function Dropdown({ trigger, children, align = 'end', className }) {
                     style={{
                         position: 'fixed',
                         top: position.top,
+                        minWidth: position.minWidth,
                         ...(align === 'end'
                             ? { right: window.innerWidth - position.left }
                             : { left: position.left }),

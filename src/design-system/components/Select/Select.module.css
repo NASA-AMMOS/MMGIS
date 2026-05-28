@@ -41,7 +41,7 @@
 }
 
 .popup {
-    min-width: 120px;
+    min-width: var(--anchor-width, 120px);
     max-height: 200px;
     overflow-y: auto;
     border-radius: 6px;
