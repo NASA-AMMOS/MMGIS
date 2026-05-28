@@ -275,6 +275,19 @@ export default function ShadeElement({ elmId }) {
                         className="vstFieldInput"
                     />
                 </div>
+                <div className="vstOptionRow">
+                    <div className="vstOptionLabel" title="Dataset to shade.">
+                        DEM
+                    </div>
+                    <Select
+                        value={String(el.dataIndex)}
+                        onValueChange={(v) =>
+                            handleChange('dataIndex', parseInt(v))
+                        }
+                        options={dataOptions}
+                        className="vstSelect"
+                    />
+                </div>
 
                 {/* — Display — */}
                 <div className="vstGroupHeader">Display</div>
@@ -325,19 +338,6 @@ export default function ShadeElement({ elmId }) {
                             handleChange('resolution', parseInt(v))
                         }
                         options={resolutionOptions}
-                        className="vstSelect"
-                    />
-                </div>
-                <div className="vstOptionRow">
-                    <div className="vstOptionLabel" title="Dataset to shade.">
-                        Elevation Map
-                    </div>
-                    <Select
-                        value={String(el.dataIndex)}
-                        onValueChange={(v) =>
-                            handleChange('dataIndex', parseInt(v))
-                        }
-                        options={dataOptions}
                         className="vstSelect"
                     />
                 </div>
