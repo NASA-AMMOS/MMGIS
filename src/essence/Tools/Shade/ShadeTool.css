@@ -3,11 +3,11 @@
 #shadeTool {
     width: 100%;
     height: 100%;
-    color: white;
+    color: var(--color-f);
     display: flex;
     flex-flow: column;
     background: var(--color-k);
-    box-shadow: inset 2px 0px 10px 0px rgba(0, 0, 0, 0.2);
+    box-shadow: inset 2px 0px 10px 0px var(--color-shadow);
 }
 
 /* Time-disabled message */
@@ -94,7 +94,7 @@
 #shadeTool .vstNewBtn {
     background: none;
     border: none;
-    color: #5b9bd5;
+    color: var(--color-c);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -104,7 +104,7 @@
     padding: 4px 8px;
 }
 #shadeTool .vstNewBtn:hover {
-    color: #7bb8ec;
+    color: var(--color-c2);
 }
 
 /* ====== Content ====== */
@@ -156,10 +156,10 @@
     height: 20px;
     border-radius: 3px;
     cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--color-a2);
 }
 #shadeTool .vstColorSwatch:hover {
-    border-color: rgba(255, 255, 255, 0.5);
+    border-color: var(--color-a5);
 }
 
 #shadeTool .vstColorPalette {
@@ -173,7 +173,7 @@
     background: var(--color-a);
     border: 1px solid var(--color-a1);
     border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px var(--color-shadow);
     z-index: 100;
 }
 
@@ -182,10 +182,10 @@
     height: 16px;
     border-radius: 3px;
     cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--color-a1);
 }
 #shadeTool .vstColorOption:hover {
-    border-color: white;
+    border-color: var(--color-f);
     transform: scale(1.2);
 }
 
@@ -248,7 +248,7 @@
 
 /* Delete button — red on hover */
 #shadeTool .vstDeleteBtn:hover {
-    color: #e53935;
+    color: var(--color-red2);
 }
 
 /* Select (design-system) overrides */
@@ -340,16 +340,16 @@
     overflow: hidden;
 }
 #shadeTool .vstGenerate.vstGenerateActive {
-    background: #2e7d32;
-    color: #fff;
+    background: var(--color-green);
+    color: var(--color-l);
     cursor: pointer;
 }
 #shadeTool .vstGenerate.vstGenerateActive:hover {
-    background: #388e3c;
+    background: var(--color-green2);
 }
 #shadeTool .vstGenerate.vstGenerating {
     background: var(--color-a1);
-    color: #fff;
+    color: var(--color-l);
     cursor: default;
 }
 #shadeTool .vstGenerateProgress {
@@ -357,7 +357,7 @@
     top: 0;
     left: 0;
     height: 100%;
-    background: #2e7d32;
+    background: var(--color-green);
     transition: width 0.15s linear;
     pointer-events: none;
 }
@@ -419,7 +419,7 @@
     background: var(--color-a1);
     border: 1px solid var(--color-a1-5);
     border-radius: 3px;
-    color: #ededed;
+    color: var(--color-f);
     font-size: 11px;
     padding: 0 6px;
 }
@@ -442,7 +442,7 @@
     background: var(--color-a1);
     border: 1px solid var(--color-a1-5);
     border-radius: 3px;
-    color: #ededed;
+    color: var(--color-f);
     font-size: 11px;
     padding: 0 4px;
     text-align: right;
