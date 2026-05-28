@@ -1,0 +1,39 @@
+.group {
+    display: inline-flex;
+    border: 1px solid var(--color-e);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.option {
+    background: var(--color-b);
+    color: var(--color-a5);
+    border: none;
+    border-right: 1px solid var(--color-e);
+    cursor: pointer;
+    padding: 2px 10px;
+    font-size: 12px;
+    line-height: 1.4;
+    transition: background 0.12s, color 0.12s;
+    white-space: nowrap;
+}
+.option:last-child {
+    border-right: none;
+}
+.option:hover {
+    background: var(--color-c);
+}
+.option.active {
+    background: var(--color-mmgis);
+    color: var(--color-f);
+}
+
+/* Sizes */
+.sm .option {
+    padding: 2px 8px;
+    font-size: 11px;
+}
+.md .option {
+    padding: 3px 12px;
+    font-size: 12px;
+}

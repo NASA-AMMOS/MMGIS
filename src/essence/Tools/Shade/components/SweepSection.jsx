@@ -3,10 +3,20 @@ import useShadeStore from '../store'
 import ShadeTool from '../ShadeTool'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import TimeUI from '../../../Basics/TimeControl_/TimeUI'
-import { IconButton, InputWithUnit, ProgressButton, Select, Slider } from '../../../../design-system/components'
+import { IconButton, InputWithUnit, ProgressButton, RadioGroup, Select, Slider } from '../../../../design-system/components'
 
 const SPEED_NORMAL = 500
 const SPEED_FAST = 150
+
+const VIEW_MODE_OPTIONS = [
+    { label: 'Composite', value: 'composite' },
+    { label: 'Playback', value: 'playback' },
+]
+
+const COLOR_MODE_OPTIONS = [
+    { label: 'Continuous', value: 'continuous' },
+    { label: 'Discrete', value: 'discrete' },
+]
 
 const COLOR_RAMP_OPTIONS = [
     { label: 'Red → Green', value: 'red-green' },
@@ -55,14 +65,12 @@ export default function SweepSection() {
     const sweepProgress = useShadeStore((s) => s.sweepProgress)
     const sweepProgressPct = useShadeStore((s) => s.sweepProgressPct)
     const sweepPlaying = useShadeStore((s) => s.sweepPlaying)
-    const sweepPlaySpeed = useShadeStore((s) => s.sweepPlaySpeed)
     const sweepPlayIndex = useShadeStore((s) => s.sweepPlayIndex)
     const sweepGrids = useShadeStore((s) => s.sweepGrids)
     const sweepViewMode = useShadeStore((s) => s.sweepViewMode)
     const sweepColorRamp = useShadeStore((s) => s.sweepColorRamp)
     const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
     const sweepHeatmap = useShadeStore((s) => s.sweepHeatmap)
-    const activeElmId = useShadeStore((s) => s.activeElmId)
     const setSweepField = useShadeStore((s) => s.setSweepField)
 
     const totalFrames = useMemo(
@@ -74,7 +82,6 @@ export default function SweepSection() {
 
     const [expanded, setExpanded] = useState(false)
 
-    // Sync sweep start/end with TimeUI on mount and on time changes
     useEffect(() => {
         function syncFromTimeUI() {
             const mode = getTimeUIMode()
@@ -133,9 +140,9 @@ export default function SweepSection() {
         ShadeTool.sweepShowFrame(useShadeStore.getState().activeElmId)
     }, [setSweepField])
 
-    const handleViewModeToggle = useCallback(() => {
+    const handleViewModeChange = useCallback((mode) => {
         const store = useShadeStore.getState()
-        if (store.sweepViewMode === 'composite') {
+        if (mode === 'playback') {
             ShadeTool.sweepShowFrame(store.activeElmId)
         } else {
             ShadeTool.sweepShowComposite(store.activeElmId)
@@ -152,9 +159,9 @@ export default function SweepSection() {
         }, 0)
     }, [setSweepField])
 
-    const handleDiscreteToggle = useCallback(() => {
-        const next = !useShadeStore.getState().sweepDiscrete
-        setSweepField('sweepDiscrete', next)
+    const handleColorModeChange = useCallback((mode) => {
+        const isDiscrete = mode === 'discrete'
+        setSweepField('sweepDiscrete', isDiscrete)
         setTimeout(() => {
             const store = useShadeStore.getState()
             if (store.sweepViewMode === 'composite') {
@@ -181,7 +188,6 @@ export default function SweepSection() {
             </div>
             {expanded && (
                 <div className="vstSweepBody">
-                    {/* Start time — own row */}
                     <div className="vstOptionRow">
                         <div className="vstOptionLabel">Start Time</div>
                         <input
@@ -194,7 +200,6 @@ export default function SweepSection() {
                             }
                         />
                     </div>
-                    {/* End time — own row */}
                     <div className="vstOptionRow">
                         <div className="vstOptionLabel">End Time</div>
                         <input
@@ -207,7 +212,6 @@ export default function SweepSection() {
                             }
                         />
                     </div>
-                    {/* Step row */}
                     <div className="vstOptionRow">
                         <div className="vstOptionLabel">Step Size</div>
                         <InputWithUnit
@@ -225,7 +229,6 @@ export default function SweepSection() {
                             className="vstSweepField"
                         />
                     </div>
-                    {/* Full-width Sweep button */}
                     <ProgressButton
                         active={!!(sweepStart && sweepEnd && sweepStep) && (!sweepProgress || sweepProgress.startsWith('Done'))}
                         loading={!!sweepProgress && !sweepProgress.startsWith('Done')}
@@ -236,19 +239,21 @@ export default function SweepSection() {
                         Sweep
                     </ProgressButton>
 
-                    {/* Composite settings (shown after sweep completes) */}
+                    {/* View mode toggle (only after sweep data exists) */}
                     {hasSweepData && (
+                        <div className="vstSweepViewRow">
+                            <div className="vstOptionLabel">View</div>
+                            <RadioGroup
+                                value={sweepViewMode}
+                                onValueChange={handleViewModeChange}
+                                options={VIEW_MODE_OPTIONS}
+                            />
+                        </div>
+                    )}
+
+                    {/* Composite settings (only in composite mode) */}
+                    {hasSweepData && sweepViewMode === 'composite' && (
                         <div className="vstSweepCompositeSettings">
-                            <div className="vstOptionRow">
-                                <div className="vstOptionLabel">View</div>
-                                <button
-                                    className={`vstSweepViewToggle ${sweepViewMode === 'composite' ? 'active' : ''}`}
-                                    onClick={handleViewModeToggle}
-                                    title={sweepViewMode === 'composite' ? 'Switch to frame playback' : 'Switch to composite heatmap'}
-                                >
-                                    {sweepViewMode === 'composite' ? 'Composite' : 'Playback'}
-                                </button>
-                            </div>
                             <div className="vstOptionRow">
                                 <div className="vstOptionLabel">Color Ramp</div>
                                 <Select
@@ -260,78 +265,79 @@ export default function SweepSection() {
                             </div>
                             <div className="vstOptionRow">
                                 <div className="vstOptionLabel">Mode</div>
-                                <button
-                                    className={`vstSweepViewToggle ${sweepDiscrete ? 'active' : ''}`}
-                                    onClick={handleDiscreteToggle}
-                                >
-                                    {sweepDiscrete ? 'Discrete' : 'Continuous'}
-                                </button>
+                                <RadioGroup
+                                    value={sweepDiscrete ? 'discrete' : 'continuous'}
+                                    onValueChange={handleColorModeChange}
+                                    options={COLOR_MODE_OPTIONS}
+                                />
                             </div>
                             <HeatmapLegend rampName={sweepColorRamp} discrete={sweepDiscrete} />
                         </div>
                     )}
 
-                    {/* Playback controls container */}
-                    <div className="vstSweepControlsWrap">
-                        <div className="vstSweepPlaybarRow">
-                            <div className="vstSweepPlaybar">
-                                <IconButton
-                                    size="sm"
-                                    title="Step back"
-                                    onClick={() => ShadeTool.sweepStepBack()}
-                                >
-                                    <i className="mdi mdi-skip-previous mdi-14px" />
-                                </IconButton>
-                                {sweepPlaying ? (
+                    {/* Playback controls (only in playback mode) */}
+                    {hasSweepData && sweepViewMode === 'playback' && (
+                        <div className="vstSweepControlsWrap">
+                            <div className="vstSweepPlaybarRow">
+                                <div className="vstSweepPlaybar">
                                     <IconButton
                                         size="sm"
-                                        title="Pause"
-                                        onClick={handlePause}
+                                        title="Step back"
+                                        onClick={() => ShadeTool.sweepStepBack()}
                                     >
-                                        <i className="mdi mdi-pause mdi-14px" />
+                                        <i className="mdi mdi-skip-previous mdi-14px" />
                                     </IconButton>
-                                ) : (
-                                    <>
+                                    {sweepPlaying ? (
                                         <IconButton
                                             size="sm"
-                                            title="Play"
-                                            onClick={handlePlayNormal}
+                                            title="Pause"
+                                            onClick={handlePause}
                                         >
-                                            <i className="mdi mdi-play mdi-14px" />
+                                            <i className="mdi mdi-pause mdi-14px" />
                                         </IconButton>
-                                        <IconButton
-                                            size="sm"
-                                            title="Play fast"
-                                            onClick={handlePlayFast}
-                                        >
-                                            <i className="mdi mdi-fast-forward mdi-14px" />
-                                        </IconButton>
-                                    </>
-                                )}
-                                <IconButton
-                                    size="sm"
-                                    title="Step forward"
-                                    onClick={() => ShadeTool.sweepStepForward()}
-                                >
-                                    <i className="mdi mdi-skip-next mdi-14px" />
-                                </IconButton>
+                                    ) : (
+                                        <>
+                                            <IconButton
+                                                size="sm"
+                                                title="Play"
+                                                onClick={handlePlayNormal}
+                                            >
+                                                <i className="mdi mdi-play mdi-14px" />
+                                            </IconButton>
+                                            <IconButton
+                                                size="sm"
+                                                title="Play fast"
+                                                onClick={handlePlayFast}
+                                            >
+                                                <i className="mdi mdi-fast-forward mdi-14px" />
+                                            </IconButton>
+                                        </>
+                                    )}
+                                    <IconButton
+                                        size="sm"
+                                        title="Step forward"
+                                        onClick={() => ShadeTool.sweepStepForward()}
+                                    >
+                                        <i className="mdi mdi-skip-next mdi-14px" />
+                                    </IconButton>
+                                </div>
+                                <div className="vstSweepFrameLabel">
+                                    <span id="vstSweepFrameLabel" />
+                                </div>
                             </div>
-                            <div className="vstSweepFrameLabel">
-                                <span id="vstSweepFrameLabel" />
-                            </div>
+                            {totalFrames > 0 && (
+                                <div className="vstSweepTimeline">
+                                    <Slider
+                                        value={sweepPlayIndex}
+                                        onValueChange={handleTimelineScrub}
+                                        min={0}
+                                        max={Math.max(totalFrames - 1, 1)}
+                                        step={1}
+                                    />
+                                </div>
+                            )}
                         </div>
-                        {totalFrames > 0 && (
-                            <div className="vstSweepTimeline">
-                                <Slider
-                                    value={sweepPlayIndex}
-                                    onValueChange={handleTimelineScrub}
-                                    min={0}
-                                    max={Math.max(totalFrames - 1, 1)}
-                                    step={1}
-                                />
-                            </div>
-                        )}
-                    </div>
+                    )}
                 </div>
             )}
         </div>

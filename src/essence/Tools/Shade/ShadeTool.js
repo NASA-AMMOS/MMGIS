@@ -601,13 +601,15 @@ let ShadeTool = {
     },
 
     _lerpColor: function (ramp, t, discrete) {
+        if (!ramp || ramp.length === 0) return [0, 0, 0]
         const n = ramp.length - 1
+        const tc = Math.max(0, Math.min(1, t))
         if (discrete) {
-            const idx = Math.min(Math.floor(t * ramp.length), n)
+            const idx = Math.min(Math.floor(tc * ramp.length), n)
             return ramp[idx]
         }
-        const scaled = t * n
-        const lo = Math.floor(scaled)
+        const scaled = tc * n
+        const lo = Math.min(Math.floor(scaled), n)
         const hi = Math.min(lo + 1, n)
         const f = scaled - lo
         return [

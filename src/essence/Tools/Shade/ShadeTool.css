@@ -491,6 +491,14 @@
     white-space: nowrap;
 }
 
+/* View mode row */
+#shadeTool .vstSweepViewRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
 /* Composite heatmap settings */
 #shadeTool .vstSweepCompositeSettings {
     background: var(--color-a);
@@ -501,24 +509,6 @@
 
 #shadeTool .vstSweepCompositeSettings .vstOptionRow {
     margin-bottom: 4px;
-}
-
-#shadeTool .vstSweepViewToggle {
-    background: var(--color-b);
-    color: var(--color-f);
-    border: 1px solid var(--color-e);
-    border-radius: 3px;
-    padding: 2px 10px;
-    cursor: pointer;
-    font-size: 12px;
-    transition: background 0.15s;
-}
-#shadeTool .vstSweepViewToggle:hover {
-    background: var(--color-c);
-}
-#shadeTool .vstSweepViewToggle.active {
-    background: var(--color-mmgis);
-    border-color: var(--color-mmgis);
 }
 
 #shadeTool .vstSweepSelect {
