@@ -25,6 +25,10 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         },
         selfHandleResponse: true,
         on: {
+          proxyReq: (proxyReq, req, res) => {
+            proxyReq.setHeader("X-Forwarded-Host", req.get("host"));
+            proxyReq.setHeader("X-Forwarded-Proto", req.headers["x-forwarded-proto"] || req.protocol);
+          },
           proxyRes: createSwaggerInterceptor("stac", stacTarget),
         },
       })
@@ -272,6 +276,10 @@ const createSwaggerInterceptor = (path, target) => {
         res.get("Content-Type").includes("html"))
     ) {
       newResponse = newResponse || responseBuffer.toString("utf8");
+      const serviceHost = new URL(target).hostname;
+      newResponse = newResponse.replaceAll(`https://${serviceHost}/`, `${req.protocol}://${req.get("host")}/${path}/`);
+      newResponse = newResponse.replaceAll(`https://${serviceHost}`, `${req.protocol}://${req.get("host")}/${path}`);
+      newResponse = newResponse.replaceAll(`http://${serviceHost}/`, `${req.protocol}://${req.get("host")}/${path}/`);
       newResponse = newResponse.replaceAll(
         target,
         `${req.protocol}://${req.get("host")}/${path}`
