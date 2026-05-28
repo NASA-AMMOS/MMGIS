@@ -130,7 +130,7 @@
     height: 32px;
     padding: 0 6px;
     background: var(--color-a1);
-    border-bottom: 1px solid var(--color-a);
+    border-bottom: 2px solid var(--color-a);
 }
 
 #shadeTool .vstShadeHeaderLeft {
@@ -229,7 +229,7 @@
     color: var(--color-a7);
     padding: 6px 8px 3px;
     margin-top: 2px;
-    border-top: 1px solid var(--color-a);
+    border-top: 2px solid var(--color-a);
 }
 #shadeTool .vstGroupHeader:first-child {
     border-top: none;
@@ -291,18 +291,18 @@
 #shadeTool #shadeTool_indicators {
     display: flex;
     justify-content: space-around;
-    padding: 4px 0;
     background: var(--color-a1-5);
     height: 174px;
-    border-top: 1px solid var(--color-a1);
-    border-bottom: 1px solid var(--color-a1);
+    border-top: 2px solid var(--color-a);
+    border-bottom: 2px solid var(--color-a);
 }
 #shadeTool #shadeTool_indicators > div {
     display: flex;
     flex-direction: column;
+    padding: 4px 0;
 }
 #shadeTool #shadeTool_indicators > div:first-child {
-    border-right: 1px solid var(--color-a2);
+    border-right: 2px solid var(--color-a);
 }
 #shadeTool #shadeTool_indicators > div > div {
     text-align: center;

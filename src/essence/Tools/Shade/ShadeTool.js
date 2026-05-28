@@ -1276,7 +1276,7 @@ let ShadeTool = {
         if (indicatorEl) {
             indicatorEl.style.borderBottom = rae.error
                 ? '3px solid var(--color-red)'
-                : 'none'
+                : ''
         }
 
         // Azimuth
