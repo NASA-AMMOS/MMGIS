@@ -1064,8 +1064,11 @@ let ShadeTool = {
         let demUrl = vars.dem
         if (!F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
 
-        store.setSweepField('sweepProgress', 'Loading tiles...')
-        store.setSweepField('sweepProgressPct', 0)
+        const curElm = store.sweepCurrentElm || 1
+        const totElms = store.sweepTotalElms || 1
+        const pfx = totElms > 1 ? ('Shade ' + curElm + ' of ' + totElms + ': ') : ''
+        store.setSweepField('sweepProgress', pfx + 'Loading tiles...')
+        store.setSweepField('sweepProgressPct', ((curElm - 1) / totElms) * 100)
 
         calls.api(
             'getbands',
@@ -1091,12 +1094,11 @@ let ShadeTool = {
                     options,
                     vars,
                     function (progress) {
-                        useShadeStore
-                            .getState()
-                            .setSweepField(
-                                'sweepProgress',
-                                'Tiles: ' + parseInt(progress) + '%'
-                            )
+                        const s = useShadeStore.getState()
+                        const ce = s.sweepCurrentElm || 1
+                        const te = s.sweepTotalElms || 1
+                        const p = te > 1 ? ('Shade ' + ce + ' of ' + te + ': ') : ''
+                        s.setSweepField('sweepProgress', p + 'Tiles: ' + parseInt(progress) + '%')
                     },
                     function (data) {
                         const sweepResults = []
@@ -1266,17 +1268,18 @@ let ShadeTool = {
 
                                 const currentStore =
                                     useShadeStore.getState()
+                                const curElm = currentStore.sweepCurrentElm || 1
+                                const totElms = currentStore.sweepTotalElms || 1
+                                const elmPct = (completed / total) * 100
+                                const overallPct = ((curElm - 1) / totElms) * 100 + (elmPct / totElms)
+                                const prefix = totElms > 1 ? ('Shade ' + curElm + ' of ' + totElms + ': ') : ''
                                 currentStore.setSweepField(
                                     'sweepProgress',
-                                    'Sweep: ' +
-                                        parseInt(
-                                            (completed / total) * 100
-                                        ) +
-                                        '%'
+                                    prefix + parseInt(elmPct) + '%'
                                 )
                                 currentStore.setSweepField(
                                     'sweepProgressPct',
-                                    (completed / total) * 100
+                                    overallPct
                                 )
 
                                 if (completed >= total) {
@@ -1323,20 +1326,29 @@ let ShadeTool = {
                                         data, sweepGrids, options, activeElmId
                                     )
 
+                                    const _ce = currentStore.sweepCurrentElm || 1
+                                    const _te = currentStore.sweepTotalElms || 1
+                                    const _pf = _te > 1 ? ('Shade ' + _ce + ' of ' + _te + ': ') : ''
+                                    const _overallDone = (_ce / _te) * 100
                                     currentStore.setSweepField(
                                         'sweepProgress',
-                                        'Done (' + total + ' steps)'
+                                        _pf + 'Done (' + total + ' steps)'
                                     )
                                     currentStore.setSweepField(
                                         'sweepProgressPct',
-                                        100
+                                        _overallDone
                                     )
-                                    Toast.success(
-                                        'Sweep complete. ' +
-                                            total +
-                                            ' timesteps processed.',
-                                        4000
-                                    )
+                                    if (_te > 1) {
+                                        Toast.success(
+                                            'Shade ' + _ce + ' of ' + _te + ': ' + total + ' timesteps processed.',
+                                            3000
+                                        )
+                                    } else {
+                                        Toast.success(
+                                            'Sweep complete. ' + total + ' timesteps processed.',
+                                            4000
+                                        )
+                                    }
                                     if (typeof onComplete === 'function') onComplete()
                                 } else {
                                     processBatch(batchEnd)
@@ -1382,14 +1394,23 @@ let ShadeTool = {
             if (!existingSet.has(String(id))) newOrder.push(parseInt(id))
         })
         store.setSweepCardOrder(newOrder.map(Number))
+        store.setSweepField('sweepTotalElms', activeIds.length)
+        store.setSweepField('sweepCurrentElm', 0)
 
         // Serialize sweeps to avoid concurrent writes to shared sweep state
         let idx = 0
         function runNext() {
-            if (idx >= activeIds.length) return
+            if (idx >= activeIds.length) {
+                const s = useShadeStore.getState()
+                s.setSweepField('sweepProgress', 'Done (' + activeIds.length + ' shade maps)')
+                s.setSweepField('sweepProgressPct', 100)
+                return
+            }
             const id = parseInt(activeIds[idx])
             idx++
-            store.setActiveElmId(id)
+            const s = useShadeStore.getState()
+            s.setSweepField('sweepCurrentElm', idx)
+            s.setActiveElmId(id)
             ShadeTool.shadeSweep(startTime, endTime, stepMinutes, runNext)
         }
         runNext()
@@ -2075,6 +2096,104 @@ let ShadeTool = {
             4,
             options.color || 'yellow'
         )
+    },
+
+    drawMiniRAEIndicators(azCanvasId, elCanvasId, rae) {
+        const size = 80
+        const sizeInner = 70
+        const origin = { x: size / 2, y: size / 2 }
+
+        // Azimuth
+        const cAz = document.getElementById(azCanvasId)
+        if (cAz) {
+            cAz.width = size
+            cAz.height = size
+            const ctx = cAz.getContext('2d')
+            ctx.clearRect(0, 0, size, size)
+
+            ctx.beginPath()
+            ctx.arc(size / 2, size / 2, sizeInner / 2, 0, 2 * Math.PI)
+            ctx.fillStyle = 'rgba(255,255,255,0.1)'
+            ctx.fill()
+            ctx.strokeStyle = 'black'
+            ctx.lineWidth = 1
+            ctx.stroke()
+
+            ctx.beginPath()
+            ctx.moveTo(origin.x, size - (size - sizeInner) / 2)
+            ctx.lineTo(origin.x, (size - sizeInner) / 2)
+            ctx.lineWidth = 0.5
+            ctx.strokeStyle = 'rgba(0,0,0,0.9)'
+            ctx.stroke()
+
+            ctx.beginPath()
+            ctx.moveTo(size - (size - sizeInner) / 2, origin.y)
+            ctx.lineTo((size - sizeInner) / 2, origin.y)
+            ctx.lineWidth = 0.5
+            ctx.strokeStyle = 'rgba(0,0,0,0.9)'
+            ctx.stroke()
+
+            if (rae && rae.azimuth != null) {
+                ctx.font = '8px Arial'
+                ctx.fillStyle = 'rgba(255,255,255,0.7)'
+                ctx.textAlign = 'center'
+                ctx.fillText('N', size / 2, (size - sizeInner) * 1.2 + 1)
+
+                ShadeTool.drawAzAngleGuideOnCanvas(
+                    ctx, origin, sizeInner,
+                    rae.azimuth,
+                    rae.azimuth * (Math.PI / 180),
+                    { angleGuide: true, color: '#dbb658' }
+                )
+            }
+        }
+
+        // Elevation
+        const cEl = document.getElementById(elCanvasId)
+        if (cEl) {
+            cEl.width = size
+            cEl.height = size
+            const ctx = cEl.getContext('2d')
+            ctx.clearRect(0, 0, size, size)
+
+            ctx.beginPath()
+            ctx.arc(size / 2, size / 2, sizeInner / 2, 0, 2 * Math.PI)
+            ctx.fillStyle = 'rgba(255,255,255,0.1)'
+            ctx.fill()
+            ctx.strokeStyle = 'black'
+            ctx.lineWidth = 1
+            ctx.stroke()
+
+            ctx.beginPath()
+            ctx.moveTo(origin.x, origin.y)
+            ctx.arc(origin.x, origin.y, sizeInner / 2, 0, Math.PI, true)
+            const sky = ctx.createLinearGradient(0, 0, 0, sizeInner / 2)
+            sky.addColorStop(0, 'rgba(8, 174, 234, 0.25)')
+            sky.addColorStop(1, 'rgba(255, 255, 255, 0.25)')
+            ctx.fillStyle = sky
+            ctx.fill()
+
+            ctx.beginPath()
+            ctx.moveTo(origin.x, size - (size - sizeInner) / 2)
+            ctx.lineTo(origin.x, (size - sizeInner) / 2)
+            ctx.lineWidth = 0.5
+            ctx.strokeStyle = 'rgba(0,0,0,0.9)'
+            ctx.stroke()
+
+            if (rae && rae.elevation != null) {
+                let azGreaterThan180 = false
+                if (rae.azimuth != null) {
+                    let az = rae.azimuth
+                    if (az < 0) az += 360
+                    azGreaterThan180 = az > 180
+                }
+                ShadeTool.drawElAngleGuideOnCanvas(
+                    ctx, origin, sizeInner,
+                    rae.elevation,
+                    { azGreaterThan180, angleGuide: true, color: '#dbb658' }
+                )
+            }
+        }
     },
 
     // === Utility ===

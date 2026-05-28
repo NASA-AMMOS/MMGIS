@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef } from 'react'
 import useShadeStore, { buildSourcesList } from '../store'
 import ShadeTool from '../ShadeTool'
 import { ColorRampPicker, RadioGroup, Slider } from '../../../../design-system/components'
@@ -10,29 +10,6 @@ const COLOR_MODE_OPTIONS = [
 
 function rgbStr(c) {
     return `rgb(${c.r},${c.g},${c.b})`
-}
-
-function MiniAzEl({ azimuth, elevation }) {
-    const size = 48
-    const r = 20
-    const cx = size / 2
-    const cy = size / 2
-    const rad = ((azimuth - 90) * Math.PI) / 180
-    const elNorm = Math.max(0, Math.min(90, elevation)) / 90
-    const pr = r * (1 - elNorm)
-    const px = cx + pr * Math.cos(rad)
-    const py = cy + pr * Math.sin(rad)
-    return (
-        <svg width={size} height={size} className="vstSweepCardMiniAzEl">
-            <circle cx={cx} cy={cy} r={r} fill="rgba(255,255,255,0.08)" stroke="var(--color-a3)" strokeWidth="1" />
-            <line x1={cx} y1={cy - r} x2={cx} y2={cy + r} stroke="var(--color-a3)" strokeWidth="0.5" />
-            <line x1={cx - r} y1={cy} x2={cx + r} y2={cy} stroke="var(--color-a3)" strokeWidth="0.5" />
-            <circle cx={px} cy={py} r={3} fill="var(--color-mmgis)" />
-            <text x={cx} y={size - 1} textAnchor="middle" fill="var(--color-a5)" fontSize="8">
-                {elevation != null ? `${elevation.toFixed(0)}°` : ''}
-            </text>
-        </svg>
-    )
 }
 
 function CardLegend({ rampName, discrete, visiblePct }) {
@@ -98,6 +75,8 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
     const sweepPlayIndex = useShadeStore((s) => s.sweepPlayIndex)
     const setSweepElField = useShadeStore((s) => s.setSweepElField)
     const cardRef = useRef(null)
+    const handleRef = useRef(null)
+    const isDraggingRef = useRef(false)
 
     const sourcesList = useMemo(() => buildSourcesList(vars), [vars])
 
@@ -119,13 +98,11 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
     const colorRamp = ed?.colorRamp || 'shadow'
     const discrete = ed?.discrete || false
 
-    // Current frame result for playback mini indicators
     const currentResult = useMemo(() => {
         if (mode !== 'playback' || !ed?.results) return null
         return ed.results[sweepPlayIndex] || null
     }, [mode, ed, sweepPlayIndex])
 
-    // Average visibility for composite legend
     const avgVisiblePct = useMemo(() => {
         if (mode !== 'composite' || !ed?.heatmap) return null
         let sum = 0
@@ -143,6 +120,37 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
         }
         return count > 0 ? (sum / count) * 100 : null
     }, [mode, ed])
+
+    // Draw mini az/el canvases when playback result changes
+    const azCanvasId = `sweepMiniAz_${elmId}`
+    const elCanvasId = `sweepMiniEl_${elmId}`
+    useEffect(() => {
+        if (mode !== 'playback' || !currentResult) return
+        ShadeTool.drawMiniRAEIndicators(azCanvasId, elCanvasId, currentResult)
+    }, [mode, currentResult, azCanvasId, elCanvasId])
+
+    // Drag from handle only — use mousedown on handle to allow next dragstart
+    const handleHandleMouseDown = useCallback(() => {
+        isDraggingRef.current = true
+    }, [])
+
+    const handleCardDragStart = useCallback((e) => {
+        if (!isDraggingRef.current) {
+            e.preventDefault()
+            return
+        }
+        // Create a clone for drag image to lock visual to Y axis
+        if (cardRef.current) {
+            const rect = cardRef.current.getBoundingClientRect()
+            e.dataTransfer.setDragImage(cardRef.current, rect.width / 2, 10)
+        }
+        e.dataTransfer.effectAllowed = 'move'
+        onDragStart(e, elmId)
+    }, [elmId, onDragStart])
+
+    const handleCardDragEnd = useCallback(() => {
+        isDraggingRef.current = false
+    }, [])
 
     const handleOpacityChange = useCallback((val) => {
         setSweepElField(elmId, 'opacity', val)
@@ -177,12 +185,17 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
             ref={cardRef}
             className="vstSweepCard"
             draggable
-            onDragStart={(e) => onDragStart(e, elmId)}
+            onDragStart={handleCardDragStart}
+            onDragEnd={handleCardDragEnd}
             onDragOver={onDragOver}
             onDrop={(e) => onDrop(e, elmId)}
         >
             <div className="vstSweepCardHeader">
-                <div className="vstSweepCardDragHandle">
+                <div
+                    ref={handleRef}
+                    className="vstSweepCardDragHandle"
+                    onMouseDown={handleHandleMouseDown}
+                >
                     <i className="mdi mdi-drag-vertical mdi-14px" />
                 </div>
                 <div className="vstSweepCardColor" style={{ background: colorStr }} />
@@ -190,9 +203,6 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
                     <span className="vstSweepCardSource">{sourceName}</span>
                     {observerName && <span className="vstSweepCardObserver">{observerName}</span>}
                 </div>
-                {mode === 'playback' && currentResult && (
-                    <MiniAzEl azimuth={currentResult.azimuth} elevation={currentResult.elevation} />
-                )}
             </div>
 
             {mode === 'composite' && (
@@ -246,10 +256,20 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
                         </div>
                     </div>
                     {currentResult && (
+                        <div className="vstSweepCardMiniIndicators">
+                            <div className="vstSweepCardMiniIndicator">
+                                <div className="vstSweepCardMiniLabel">Az: {currentResult.azimuth?.toFixed(1)}°</div>
+                                <canvas id={azCanvasId} width="80" height="80" />
+                            </div>
+                            <div className="vstSweepCardMiniIndicator">
+                                <div className="vstSweepCardMiniLabel">El: {currentResult.elevation?.toFixed(1)}°</div>
+                                <canvas id={elCanvasId} width="80" height="80" />
+                            </div>
+                        </div>
+                    )}
+                    {currentResult && (
                         <div className="vstSweepCardPlaybackInfo">
                             <span>Visible: {currentResult.visibilityPct}%</span>
-                            <span>Az: {currentResult.azimuth?.toFixed(1)}°</span>
-                            <span>El: {currentResult.elevation?.toFixed(1)}°</span>
                         </div>
                     )}
                 </div>

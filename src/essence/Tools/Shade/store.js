@@ -75,6 +75,8 @@ const useShadeStore = create((set, get) => ({
     sweepPlaySpeed: 500,
     sweepProgress: '',
     sweepProgressPct: 0,
+    sweepCurrentElm: 0,
+    sweepTotalElms: 0,
     sweepViewMode: 'composite',
     hoverFrac: null,
     sweepStale: false,
