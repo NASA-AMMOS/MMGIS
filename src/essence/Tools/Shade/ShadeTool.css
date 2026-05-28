@@ -291,15 +291,17 @@
     display: flex;
     justify-content: space-around;
     padding: 4px 0;
-    background: var(--color-a-5);
+    background: var(--color-a1-5);
     height: 174px;
+    border-top: 1px solid var(--color-a1);
+    border-bottom: 1px solid var(--color-a1);
 }
 #shadeTool #shadeTool_indicators > div {
     display: flex;
     flex-direction: column;
 }
 #shadeTool #shadeTool_indicators > div:first-child {
-    border-right: 1px solid var(--color-a1-5);
+    border-right: 1px solid var(--color-a2);
 }
 #shadeTool #shadeTool_indicators > div > div {
     text-align: center;
