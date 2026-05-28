@@ -191,13 +191,11 @@ export default function SweepSection() {
                         type="number"
                         min="1"
                         step="1"
-                        value={sweepStep}
-                        onChange={(e) =>
-                            setSweepField(
-                                'sweepStep',
-                                parseFloat(e.target.value)
-                            )
-                        }
+                        value={sweepStep || ''}
+                        onChange={(e) => {
+                            const v = parseFloat(e.target.value)
+                            setSweepField('sweepStep', Number.isFinite(v) ? v : '')
+                        }}
                         className="vstSweepField"
                     />
                 </div>

@@ -191,17 +191,17 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
             onDrop={(e) => onDrop(e, elmId)}
         >
             <div className="vstSweepCardHeader">
+                <div className="vstSweepCardColor" style={{ background: colorStr }} />
+                <div className="vstSweepCardIdentity">
+                    <span className="vstSweepCardSource">{sourceName}</span>
+                    {observerName && <span className="vstSweepCardObserver">{observerName}</span>}
+                </div>
                 <div
                     ref={handleRef}
                     className="vstSweepCardDragHandle"
                     onMouseDown={handleHandleMouseDown}
                 >
                     <i className="mdi mdi-drag-vertical mdi-14px" />
-                </div>
-                <div className="vstSweepCardColor" style={{ background: colorStr }} />
-                <div className="vstSweepCardIdentity">
-                    <span className="vstSweepCardSource">{sourceName}</span>
-                    {observerName && <span className="vstSweepCardObserver">{observerName}</span>}
                 </div>
             </div>
 

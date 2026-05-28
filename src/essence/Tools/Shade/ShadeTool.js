@@ -75,6 +75,8 @@ let ShadeTool = {
 
         Map_.map.on('click', ShadeTool._onMapClick)
         Map_.map.on('moveend', ShadeTool._onPanEnd)
+        Map_.map.on('mousemove', ShadeTool._onCompositeHover)
+        Map_.map.on('mouseout', ShadeTool._onCompositeHoverEnd)
 
         TimeControl.subscribe('ShadeTool', (t) => {
             const raw = ShadeTool.parseToUTCTime(t.currentTime)
@@ -94,6 +96,8 @@ let ShadeTool = {
         }
         Map_.map.off('click', ShadeTool._onMapClick)
         Map_.map.off('moveend', ShadeTool._onPanEnd)
+        Map_.map.off('mousemove', ShadeTool._onCompositeHover)
+        Map_.map.off('mouseout', ShadeTool._onCompositeHoverEnd)
 
         TimeControl.unsubscribe('ShadeTool')
 

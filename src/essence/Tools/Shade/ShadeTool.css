@@ -680,6 +680,7 @@
     align-items: center;
     gap: 6px;
     padding: 5px 6px;
+    background: var(--color-a2);
 }
 
 #shadeTool .vstSweepCardDragHandle {
