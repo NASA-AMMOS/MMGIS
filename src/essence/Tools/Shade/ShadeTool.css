@@ -642,3 +642,15 @@
     color: var(--color-a5);
     margin-top: 2px;
 }
+
+#shadeTool .vstTabs {
+    flex: 1;
+    min-height: 0;
+}
+
+#shadeTool .vstSweepProgressLabel {
+    font-size: 10px;
+    color: var(--color-a5);
+    text-align: center;
+    padding: 2px 0;
+}

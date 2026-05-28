@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo } from 'react'
 import useShadeStore from '../store'
 import ShadeTool from '../ShadeTool'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
@@ -108,7 +108,7 @@ export default function SweepSection() {
         return !sweepStale && Object.keys(sweepElData).some((id) => sweepElData[id]?.heatmap != null)
     }, [sweepElData, sweepStale])
 
-    const [expanded, setExpanded] = useState(false)
+    
 
     useEffect(() => {
         function syncFromTimeUI() {
@@ -199,22 +199,7 @@ export default function SweepSection() {
 
     return (
         <div className="vstSweepSection">
-            <div
-                className="vstSweepHeader"
-                onClick={() => setExpanded(!expanded)}
-            >
-                <i
-                    className={`mdi mdi-12px ${
-                        expanded ? 'mdi-chevron-down' : 'mdi-chevron-right'
-                    }`}
-                />
-                <span>Time-Range Sweep</span>
-                {sweepProgress && (
-                    <span className="vstSweepProgress">{sweepProgress}</span>
-                )}
-            </div>
-            {expanded && (
-                <div className="vstSweepBody">
+            <div className="vstSweepBody">
                     <div className="vstOptionRow">
                         <div className="vstOptionLabel">Start Time</div>
                         <input
@@ -265,6 +250,9 @@ export default function SweepSection() {
                     >
                         Sweep
                     </ProgressButton>
+                    {sweepProgress && (
+                        <div className="vstSweepProgressLabel">{sweepProgress}</div>
+                    )}
 
                     {sweepStale && Object.keys(sweepElData).some((id) => sweepElData[id]?.heatmap) && (
                         <div className="vstSweepStaleMsg">
@@ -412,7 +400,7 @@ export default function SweepSection() {
                         </div>
                     )}
                 </div>
-            )}
+            </div>
         </div>
     )
 }
