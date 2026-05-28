@@ -25,14 +25,6 @@ export default function ShadePanel() {
         addElement()
     }, [addElement])
 
-    const handleToggleAll = useCallback(() => {
-        const newOn = !allOn
-        toggleAll()
-        for (const id in elements) {
-            ShadeTool.toggleElementVisibility(parseInt(id), newOn)
-        }
-    }, [allOn, elements, toggleAll])
-
     const elementIds = useMemo(
         () =>
             Object.keys(elements).sort(
@@ -47,6 +39,14 @@ export default function ShadePanel() {
             elementIds.every((id) => elements[id]?.on),
         [elements, elementIds]
     )
+
+    const handleToggleAll = useCallback(() => {
+        const newOn = !allOn
+        toggleAll()
+        for (const id in elements) {
+            ShadeTool.toggleElementVisibility(parseInt(id), newOn)
+        }
+    }, [allOn, elements, toggleAll])
 
     if (!TimeControl.enabled) {
         return (
