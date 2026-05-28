@@ -461,13 +461,18 @@
     padding: 4px 6px;
 }
 
+#shadeTool .vstSweepPlaybarRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 #shadeTool .vstSweepPlaybar {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 2px;
-    width: 100%;
-    box-sizing: border-box;
 }
 
 #shadeTool .vstSweepTimeline {
@@ -480,8 +485,8 @@
 }
 
 #shadeTool .vstSweepFrameLabel {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--color-a5);
-    text-align: center;
-    padding: 2px 0;
+    text-align: right;
+    white-space: nowrap;
 }
