@@ -457,9 +457,13 @@ let ShadeTool = {
             uniforms: {},
             tileUrlsAsDataUrls: true,
         })
-        // Enable re-rendering so _fetchedTextures are stored and reRender() works.
-        // This allows sweep playback to swap textures without removing/re-adding the layer.
+        // Enable re-rendering and pre-init the texture cache before addLayer
+        // so createTile can store fetched textures for later reRender() calls.
+        // _initGl checks _isReRenderable to init these, but since we have no
+        // uniforms it would skip them — so we set both the flag and the objects.
         L_.layers.layer[layerName]._isReRenderable = true
+        L_.layers.layer[layerName]._fetchedTextures = {}
+        L_.layers.layer[layerName]._2dContexts = {}
         L_.layers.layer[layerName]._noFade = true
         L_.layers.layer[layerName].setZIndex(1000)
         Map_.map.addLayer(L_.layers.layer[layerName])
