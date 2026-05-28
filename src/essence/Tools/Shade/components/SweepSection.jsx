@@ -24,6 +24,7 @@ function getTimeUIMode() {
 }
 
 function HeatmapLegend({ rampName, discrete }) {
+    const hoverFrac = useShadeStore((s) => s.hoverFrac)
     const allRamps = ShadeTool.getSweepColorRamps()
     const rampDef = allRamps.find((r) => r.name === rampName) || allRamps[0]
     const colors = rampDef.colors
@@ -39,11 +40,21 @@ function HeatmapLegend({ rampName, discrete }) {
         const a = (t * 200 + 55) / 255
         gradientStops.push(`rgba(${r},${g},${b},${a.toFixed(2)}) ${(t * 100).toFixed(1)}%`)
     }
+    const showIndicator = hoverFrac != null && Number.isFinite(hoverFrac) && hoverFrac >= 0
+    const indicatorPct = showIndicator ? hoverFrac * 100 : 0
     return (
         <div className="vstSweepLegend">
-            <div className="vstSweepLegendBar" style={{
-                background: `linear-gradient(to right, ${gradientStops.join(', ')})`,
-            }} />
+            <div className="vstSweepLegendBarWrap">
+                <div className="vstSweepLegendBar" style={{
+                    background: `linear-gradient(to right, ${gradientStops.join(', ')})`,
+                }} />
+                {showIndicator && (
+                    <div className="vstSweepLegendIndicator" style={{ left: `${indicatorPct}%` }}>
+                        <div className="vstSweepLegendIndicatorLine" />
+                        <div className="vstSweepLegendIndicatorLabel">{(hoverFrac * 100).toFixed(1)}%</div>
+                    </div>
+                )}
+            </div>
             <div className="vstSweepLegendLabels">
                 <span>100%</span>
                 <span>% Shaded</span>

@@ -81,6 +81,7 @@ const useShadeStore = create((set, get) => ({
     sweepViewMode: 'composite',
     sweepColorRamp: 'shadow',
     sweepDiscrete: false,
+    hoverFrac: null,
 
     // Actions
     setVars: (vars) => set({ vars }),

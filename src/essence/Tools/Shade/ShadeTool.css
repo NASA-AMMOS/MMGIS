@@ -520,10 +520,40 @@
     margin-top: 6px;
 }
 
+#shadeTool .vstSweepLegendBarWrap {
+    position: relative;
+}
+
 #shadeTool .vstSweepLegendBar {
     height: 12px;
     border-radius: 2px;
     border: 1px solid var(--color-e);
+}
+
+#shadeTool .vstSweepLegendIndicator {
+    position: absolute;
+    top: -2px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#shadeTool .vstSweepLegendIndicatorLine {
+    width: 2px;
+    height: 16px;
+    background: var(--color-f);
+    box-shadow: 0 0 2px rgba(0,0,0,0.6);
+}
+
+#shadeTool .vstSweepLegendIndicatorLabel {
+    font-size: 9px;
+    color: var(--color-f);
+    white-space: nowrap;
+    margin-top: 1px;
+    font-weight: bold;
+    text-shadow: 0 0 3px var(--color-a);
 }
 
 #shadeTool .vstSweepLegendLabels {
