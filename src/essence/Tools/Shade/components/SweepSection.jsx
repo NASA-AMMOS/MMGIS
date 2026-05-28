@@ -83,33 +83,33 @@ export default function SweepSection() {
                 <div className="vstSweepBody">
                     {/* Start time — own row */}
                     <div className="vstOptionRow">
-                        <div className="vstOptionLabel">Start</div>
-                        <InputWithUnit
+                        <div className="vstOptionLabel">Start Time</div>
+                        <input
                             type="text"
+                            className="vstSweepInput"
                             placeholder="YYYY-MM-DDTHH:MM:SSZ"
                             value={sweepStart}
                             onChange={(e) =>
                                 setSweepField('sweepStart', e.target.value)
                             }
-                            className="vstSweepField"
                         />
                     </div>
                     {/* End time — own row */}
                     <div className="vstOptionRow">
-                        <div className="vstOptionLabel">End</div>
-                        <InputWithUnit
+                        <div className="vstOptionLabel">End Time</div>
+                        <input
                             type="text"
+                            className="vstSweepInput"
                             placeholder="YYYY-MM-DDTHH:MM:SSZ"
                             value={sweepEnd}
                             onChange={(e) =>
                                 setSweepField('sweepEnd', e.target.value)
                             }
-                            className="vstSweepField"
                         />
                     </div>
                     {/* Step row */}
                     <div className="vstOptionRow">
-                        <div className="vstOptionLabel">Step</div>
+                        <div className="vstOptionLabel">Step Size</div>
                         <InputWithUnit
                             unit="min"
                             type="number"

@@ -108,9 +108,11 @@
     align-items: center;
     gap: 4px;
     padding: 4px 8px;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 #shadeTool .vstNewBtn:hover {
     color: var(--color-c2);
+    background: var(--color-a1-5);
 }
 
 /* ====== Content ====== */
@@ -402,6 +404,7 @@
     letter-spacing: 0.5px;
     color: var(--color-a7);
     user-select: none;
+    transition: background 0.15s ease;
 }
 #shadeTool .vstSweepHeader:hover {
     background: var(--color-a2);
@@ -432,14 +435,18 @@
 }
 
 #shadeTool .vstSweepInput {
-    flex: 1;
-    height: 24px;
-    background: var(--color-a1);
-    border: 1px solid var(--color-a1-5);
-    border-radius: 3px;
+    width: 145px;
+    flex-shrink: 0;
+    height: 26px;
+    background: var(--color-a);
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
     color: var(--color-f);
-    font-size: 11px;
+    font-size: 12px;
     padding: 0 6px;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
 }
 
 #shadeTool .vstSweepStepRow {
@@ -510,7 +517,10 @@
 #shadeTool .vstSweepSpeedWrap {
     width: 100%;
     box-sizing: border-box;
-    padding: 2px 6px 6px;
+    padding: 2px 16px 6px;
+    --color-mmgis: var(--color-red);
+    --color-c: var(--color-red2);
+    --color-accent-active: var(--color-red);
 }
 
 #shadeTool .vstSweepIndicator {
