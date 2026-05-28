@@ -650,7 +650,7 @@ let ShadeTool = {
         '}',
     ].join('\n'),
 
-    buildAndShowSweepAtlas: function (data, sweepGrids, options, activeElmId) {
+    buildSweepAtlas: function (data, sweepGrids, options, activeElmId) {
         const res = data.tileResolution * Math.pow(2, data.resolution)
         const numFrames = sweepGrids.length
         const atlasCols = Math.ceil(Math.sqrt(numFrames))
@@ -696,10 +696,13 @@ let ShadeTool = {
             }
         }
 
-        // Create the GL tile layer with the atlas shader
-        ShadeTool.makeSweepLayer(
-            atlasDl, activeElmId, atlasCols, atlasRows
-        )
+        // Store atlas data for lazy layer creation on first play
+        const store = useShadeStore.getState()
+        store.sweepAtlas = {
+            dl: atlasDl,
+            atlasCols: atlasCols,
+            atlasRows: atlasRows,
+        }
     },
 
     makeSweepLayer: function (atlasDl, activeElmId, atlasCols, atlasRows) {
@@ -1061,13 +1064,25 @@ let ShadeTool = {
                                     currentStore.lastData = data
                                     currentStore.lastOptions = options
 
-                                    // Build atlas textures and create the sweep GL layer.
-                                    // Packs all frame canvases per tile coord into a single
-                                    // atlas texture so playback uses setUniform + reRender
-                                    // (same pattern as Data Layer color ramp updates).
-                                    ShadeTool.buildAndShowSweepAtlas(
+                                    // Show the heatmap first (initial view after sweep)
+                                    if (sweepGrids.length > 0) {
+                                        const heatmap =
+                                            ShaderTool_Algorithm.cumulativeVisibility(
+                                                sweepGrids
+                                            )
+                                        ShadeTool.renderHeatmapToMap(
+                                            data,
+                                            heatmap,
+                                            activeElmId
+                                        )
+                                    }
+
+                                    // Pre-build atlas textures for playback (stored but not shown).
+                                    // When the user clicks play, makeSweepLayer swaps in the atlas.
+                                    ShadeTool.buildSweepAtlas(
                                         data, sweepGrids, options, activeElmId
                                     )
+
                                     currentStore.setSweepField(
                                         'sweepProgress',
                                         'Done (' + total + ' steps)'
@@ -1082,18 +1097,6 @@ let ShadeTool = {
                                             ' timesteps processed.',
                                         4000
                                     )
-
-                                    if (sweepGrids.length > 0) {
-                                        const heatmap =
-                                            ShaderTool_Algorithm.cumulativeVisibility(
-                                                sweepGrids
-                                            )
-                                        ShadeTool.renderHeatmapToMap(
-                                            data,
-                                            heatmap,
-                                            activeElmId
-                                        )
-                                    }
                                     if (typeof onComplete === 'function') onComplete()
                                 } else {
                                     processBatch(batchEnd)
@@ -1189,10 +1192,23 @@ let ShadeTool = {
         const layerName = 'shade' + activeElmId
         const layer = L_.layers.layer[layerName]
 
-        // Atlas-based playback: update the frameIndex uniform and re-render.
-        // The atlas texture stays the same — only the shader parameter changes,
-        // identical to how Data Layers update color ramps without flashing.
-        if (layer && layer.setUniform) {
+        // Lazy-create the atlas layer on first playback frame
+        if (!layer || !layer._uniformLocations || !layer._uniformLocations.frameIndex) {
+            const atlas = store.sweepAtlas
+            if (atlas) {
+                ShadeTool.makeSweepLayer(
+                    atlas.dl, activeElmId, atlas.atlasCols, atlas.atlasRows
+                )
+                const newLayer = L_.layers.layer[layerName]
+                if (newLayer && newLayer.setUniform) {
+                    newLayer.setUniform('frameIndex', idx)
+                    newLayer.reRender()
+                }
+            }
+        } else {
+            // Atlas-based playback: update the frameIndex uniform and re-render.
+            // The atlas texture stays the same — only the shader parameter changes,
+            // identical to how Data Layers update color ramps without flashing.
             layer.setUniform('frameIndex', idx)
             layer.reRender()
         }
