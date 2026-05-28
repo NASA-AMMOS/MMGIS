@@ -84,8 +84,8 @@ export default function ShadePanel() {
                     >
                         Toggle All
                     </Checkbox>
-                    <Button size="sm" onClick={handleNew}>
-                        <i className="mdi mdi-plus mdi-14px" />
+                    <Button size="md" onClick={handleNew}>
+                        <i className="mdi mdi-plus mdi-18px" />
                         New
                     </Button>
                 </div>
