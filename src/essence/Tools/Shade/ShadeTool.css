@@ -237,7 +237,7 @@
 
 /* Select (design-system) overrides */
 #shadeTool.shadeToolNew .vstSelect {
-    width: 150px;
+    width: 145px;
     flex-shrink: 0;
     min-width: 0;
 }
@@ -250,13 +250,13 @@
 
 /* InputWithUnit field width */
 #shadeTool.shadeToolNew .vstFieldInput {
-    width: 150px;
+    width: 145px;
     flex-shrink: 0;
 }
 
 /* Slider wrapper */
 #shadeTool.shadeToolNew .vstSliderWrap {
-    width: 150px;
+    width: 145px;
     flex-shrink: 0;
 }
 

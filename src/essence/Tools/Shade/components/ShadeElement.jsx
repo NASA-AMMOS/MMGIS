@@ -85,20 +85,6 @@ export default function ShadeElement({ elmId }) {
         ShadeTool.deleteElement(elmId)
     }, [elmId])
 
-    const handleClone = useCallback(() => {
-        const store = useShadeStore.getState()
-        const opts = store.getShadeOptions(elmId)
-        store.addElement(null, {
-            name: null,
-            on: false,
-            dataIndex: opts.dataIndex,
-            color: { ...el.color },
-            opacity: el.opacity,
-            resolution: el.resolution,
-            height: el.height,
-            sourceIndex: el.sourceIndex,
-        })
-    }, [elmId, el])
 
     const [colorPickerOpen, setColorPickerOpen] = useState(false)
 
@@ -166,14 +152,6 @@ export default function ShadeElement({ elmId }) {
                             className="vstDeleteBtn"
                         >
                             <i className="mdi mdi-delete mdi-18px" />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip content="Clone shade map">
-                        <IconButton
-                            size="sm"
-                            onClick={handleClone}
-                        >
-                            <i className="mdi mdi-content-copy mdi-18px" />
                         </IconButton>
                     </Tooltip>
                     <Dropdown
