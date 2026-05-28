@@ -109,7 +109,7 @@
     border-radius: 2px;
 }
 
-#shadeTool .vstBinaryLegendVisible {
+#shadeTool .vstBinaryLegendInShadow {
     background: var(--color-a1-5);
 }
 

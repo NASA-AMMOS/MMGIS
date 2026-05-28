@@ -75,12 +75,12 @@ export default function ShadePanel() {
             </div>
             <div className="vstBinaryLegend">
                 <div className="vstBinaryLegendItem">
-                    <div className="vstBinaryLegendSwatch vstBinaryLegendVisible" />
-                    <span>Source visible</span>
+                    <div className="vstBinaryLegendSwatch vstBinaryLegendInShadow" />
+                    <span>In shadow</span>
                 </div>
                 <div className="vstBinaryLegendItem">
                     <div className="vstBinaryLegendSwatch vstBinaryLegendNotVisible" />
-                    <span>Not visible</span>
+                    <span>Source visible</span>
                 </div>
             </div>
             <div className="vstContent">
