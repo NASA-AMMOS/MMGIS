@@ -25,7 +25,7 @@ const earthColor = '#58dbb8'
 
 let ShadeTool = {
     height: 0,
-    width: 260,
+    width: 280,
     _root: null,
     _sweepPlayTimer: null,
 

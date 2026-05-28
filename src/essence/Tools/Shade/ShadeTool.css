@@ -85,10 +85,19 @@
 #shadeTool .vstNewBtnWrap {
     display: flex;
     justify-content: center;
-    padding: 8px 0;
+    padding: 0;
 }
 
 #shadeTool .vstNewBtn {
+    width: 100%;
+    justify-content: center;
+}
+
+#shadeTool .vstNewBtn i {
+    line-height: 14px;
+}
+
+#shadeTool .vstNewBtn.vstNewBtn {
     background: none;
     border: none;
     color: var(--color-c);
@@ -378,6 +387,7 @@
 #shadeTool .vstSweepSection {
     border-top: 1px solid var(--color-a2);
     flex-shrink: 0;
+    background: var(--color-a1-5);
 }
 
 #shadeTool .vstSweepHeader {
@@ -394,7 +404,7 @@
     user-select: none;
 }
 #shadeTool .vstSweepHeader:hover {
-    background: var(--color-a1-5);
+    background: var(--color-a2);
 }
 
 #shadeTool .vstSweepBody {
@@ -480,22 +490,27 @@
     margin-left: auto;
 }
 
+#shadeTool .vstSweepControlsWrap {
+    background: var(--color-a);
+    border-radius: 4px;
+    margin-bottom: 4px;
+    overflow: hidden;
+}
+
 #shadeTool .vstSweepPlaybar {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 2px;
     padding: 4px 6px;
-    background: var(--color-a1);
-    border-radius: 4px;
     width: 100%;
     box-sizing: border-box;
-    margin-bottom: 4px;
 }
 
 #shadeTool .vstSweepSpeedWrap {
     width: 100%;
     box-sizing: border-box;
-    padding: 2px 6px;
+    padding: 2px 6px 6px;
 }
 
 #shadeTool .vstSweepIndicator {

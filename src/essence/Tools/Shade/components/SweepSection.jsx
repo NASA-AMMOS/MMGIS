@@ -135,46 +135,47 @@ export default function SweepSection() {
                     >
                         Sweep
                     </Button>
-                    {/* Full-width timeline playbar */}
-                    <div className="vstSweepPlaybar">
-                        <IconButton
-                            size="sm"
-                            title="Step back"
-                            onClick={() => ShadeTool.sweepStepBack()}
-                        >
-                            <i className="mdi mdi-skip-previous mdi-14px" />
-                        </IconButton>
-                        <IconButton
-                            size="sm"
-                            title="Play/Pause"
-                            onClick={() => ShadeTool.sweepPlay()}
-                        >
-                            <i
-                                className={`mdi mdi-14px ${
-                                    sweepPlaying ? 'mdi-pause' : 'mdi-play'
-                                }`}
+                    {/* Playbar + speed container */}
+                    <div className="vstSweepControlsWrap">
+                        <div className="vstSweepPlaybar">
+                            <IconButton
+                                size="sm"
+                                title="Step back"
+                                onClick={() => ShadeTool.sweepStepBack()}
+                            >
+                                <i className="mdi mdi-skip-previous mdi-14px" />
+                            </IconButton>
+                            <IconButton
+                                size="sm"
+                                title="Play/Pause"
+                                onClick={() => ShadeTool.sweepPlay()}
+                            >
+                                <i
+                                    className={`mdi mdi-14px ${
+                                        sweepPlaying ? 'mdi-pause' : 'mdi-play'
+                                    }`}
+                                />
+                            </IconButton>
+                            <IconButton
+                                size="sm"
+                                title="Step forward"
+                                onClick={() => ShadeTool.sweepStepForward()}
+                            >
+                                <i className="mdi mdi-skip-next mdi-14px" />
+                            </IconButton>
+                        </div>
+                        <div className="vstSweepSpeedWrap">
+                            <Slider
+                                value={sweepPlaySpeed}
+                                onValueChange={(v) => {
+                                    setSweepField('sweepPlaySpeed', v)
+                                    ShadeTool.updateSweepSpeed(v)
+                                }}
+                                min={100}
+                                max={2000}
+                                step={100}
                             />
-                        </IconButton>
-                        <IconButton
-                            size="sm"
-                            title="Step forward"
-                            onClick={() => ShadeTool.sweepStepForward()}
-                        >
-                            <i className="mdi mdi-skip-next mdi-14px" />
-                        </IconButton>
-                    </div>
-                    {/* Speed slider — full width own row */}
-                    <div className="vstSweepSpeedWrap">
-                        <Slider
-                            value={sweepPlaySpeed}
-                            onValueChange={(v) => {
-                                setSweepField('sweepPlaySpeed', v)
-                                ShadeTool.updateSweepSpeed(v)
-                            }}
-                            min={100}
-                            max={2000}
-                            step={100}
-                        />
+                        </div>
                     </div>
                     {/* Full-width timeline indicator */}
                     <div className="vstSweepIndicator">
