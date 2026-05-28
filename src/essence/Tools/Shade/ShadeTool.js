@@ -7,7 +7,7 @@ import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import Toast from '../../../design-system/components/Toast/Toast'
-import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
+
 import DataShaders from '../../services/DataShaders'
 import TimeControl from '../../Basics/TimeControl_/TimeControl'
 
@@ -132,7 +132,9 @@ let ShadeTool = {
         // Invalidate sweep results when viewport changes
         if (store.hasSweepData() && !store.sweepStale) {
             store.setSweepField('sweepStale', true)
-            store.setSweepField('hoverFrac', null)
+            for (const id in store.sweepElData) {
+                store.setSweepElField(parseInt(id), 'hoverFrac', null)
+            }
             // Stop playback if running
             if (ShadeTool._sweepPlayTimer) {
                 clearInterval(ShadeTool._sweepPlayTimer)
@@ -160,48 +162,42 @@ let ShadeTool = {
     _onCompositeHover: function (e) {
         const store = useShadeStore.getState()
         if (store.sweepStale || store.sweepViewMode !== 'composite') return
-        // Use the first element that has sweep data for hover
-        let data = null, heatmap = null
-        for (const id in store.sweepElData) {
-            const ed = store.sweepElData[id]
-            if (ed?.heatmap && ed?.lastData) {
-                data = ed.lastData
-                heatmap = ed.heatmap
-                break
-            }
-        }
-        if (!data || !heatmap) return
+
         const lat = e.latlng.lat
         const lng = e.latlng.lng
-        const tileRes = data.tileResolution
-        const topLeft = data.topLeftTile
-        const zoom = topLeft.z
 
-        const tile = Globe_.litho.projection.latLngZ2TileXYZ(lat, lng, zoom, true)
-        const col = Math.floor((tile.x - topLeft.x) * tileRes)
-        const row = Math.floor((tile.y - topLeft.y) * tileRes)
+        for (const id in store.sweepElData) {
+            const ed = store.sweepElData[id]
+            if (!ed?.heatmap || !ed?.lastData) continue
+            const data = ed.lastData
+            const heatmap = ed.heatmap
+            const tileRes = data.tileResolution
+            const topLeft = data.topLeftTile
+            const zoom = topLeft.z
 
-        if (row < 0 || col < 0 || row >= heatmap.length || !heatmap[row] || col >= heatmap[row].length) {
-            store.setSweepField('hoverFrac', null)
-            CursorInfo.hide()
-            return
+            const tile = Globe_.litho.projection.latLngZ2TileXYZ(lat, lng, zoom, true)
+            const col = Math.floor((tile.x - topLeft.x) * tileRes)
+            const row = Math.floor((tile.y - topLeft.y) * tileRes)
+
+            if (row < 0 || col < 0 || row >= heatmap.length || !heatmap[row] || col >= heatmap[row].length) {
+                store.setSweepElField(parseInt(id), 'hoverFrac', null)
+                continue
+            }
+
+            const frac = heatmap[row][col]
+            if (frac == null || frac < 0 || !Number.isFinite(frac)) {
+                store.setSweepElField(parseInt(id), 'hoverFrac', null)
+            } else {
+                store.setSweepElField(parseInt(id), 'hoverFrac', frac)
+            }
         }
-
-        const frac = heatmap[row][col]
-        if (frac == null || frac < 0 || !Number.isFinite(frac)) {
-            store.setSweepField('hoverFrac', null)
-            CursorInfo.hide()
-            return
-        }
-
-        store.setSweepField('hoverFrac', frac)
-        const pct = (frac * 100).toFixed(1)
-        CursorInfo.update(`Visible: ${pct}%`, null, false)
     },
 
     _onCompositeHoverEnd: function () {
-        useShadeStore.getState().setSweepField('hoverFrac', null)
-        CursorInfo.hide()
+        const store = useShadeStore.getState()
+        for (const id in store.sweepElData) {
+            store.setSweepElField(parseInt(id), 'hoverFrac', null)
+        }
     },
 
     _onTimeChange: function (rawTime) {

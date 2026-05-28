@@ -90,6 +90,16 @@ export default function ShadeElement({ elmId }) {
         [elmId, updateElement]
     )
 
+    // Auto-generate when settings change
+    useEffect(() => {
+        if (!el?.changed || el?.regenerating) return
+        const timer = setTimeout(() => {
+            setActiveElmId(elmId)
+            ShadeTool.shade(null, elmId)
+        }, 300)
+        return () => clearTimeout(timer)
+    }, [elmId, el?.changed, el?.regenerating, setActiveElmId])
+
     const handleGenerate = useCallback(() => {
         if (!el?.changed || el?.regenerating) return
         setActiveElmId(elmId)

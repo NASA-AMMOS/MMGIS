@@ -103,23 +103,11 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
         return ed.results[sweepPlayIndex] || null
     }, [mode, ed, sweepPlayIndex])
 
-    const avgVisiblePct = useMemo(() => {
-        if (mode !== 'composite' || !ed?.heatmap) return null
-        let sum = 0
-        let count = 0
-        for (let r = 0; r < ed.heatmap.length; r++) {
-            const row = ed.heatmap[r]
-            if (!row) continue
-            for (let c = 0; c < row.length; c++) {
-                const v = row[c]
-                if (v != null && v >= 0 && Number.isFinite(v)) {
-                    sum += v
-                    count++
-                }
-            }
-        }
-        return count > 0 ? (sum / count) * 100 : null
-    }, [mode, ed])
+    const hoverFrac = ed?.hoverFrac
+    const hoverPct = useMemo(() => {
+        if (hoverFrac == null || !Number.isFinite(hoverFrac)) return null
+        return hoverFrac * 100
+    }, [hoverFrac])
 
     // Draw mini az/el canvases when playback result changes
     const azCanvasId = `sweepMiniAz_${elmId}`
@@ -236,7 +224,7 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
                             <span className="vstOpacityValue">{Math.round(opacity * 100)}%</span>
                         </div>
                     </div>
-                    <CardLegend rampName={colorRamp} discrete={discrete} visiblePct={avgVisiblePct} />
+                    <CardLegend rampName={colorRamp} discrete={discrete} visiblePct={hoverPct} />
                 </div>
             )}
 
