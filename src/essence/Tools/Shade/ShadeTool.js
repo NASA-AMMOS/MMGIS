@@ -457,6 +457,9 @@ let ShadeTool = {
             uniforms: {},
             tileUrlsAsDataUrls: true,
         })
+        // Enable re-rendering so _fetchedTextures are stored and reRender() works.
+        // This allows sweep playback to swap textures without removing/re-adding the layer.
+        L_.layers.layer[layerName]._isReRenderable = true
         L_.layers.layer[layerName]._noFade = true
         L_.layers.layer[layerName].setZIndex(1000)
         Map_.map.addLayer(L_.layers.layer[layerName])
@@ -964,15 +967,43 @@ let ShadeTool = {
                                     currentStore.lastData = data
                                     currentStore.lastOptions = options
 
-                                    // Pre-cache all frame tile data for smooth playback
+                                    // Pre-cache all frame tile images for smooth playback.
+                                    // Each frame stores { "x:y:z": [Image], ... } matching
+                                    // the _fetchedTextures format of L.tileLayer.gl so we can
+                                    // swap textures and call reRender() without recreating the layer.
                                     const frameTileCache = []
+                                    const imagePromises = []
                                     for (let fi = 0; fi < sweepGrids.length; fi++) {
+                                        if (sweepGrids[fi] == null) {
+                                            frameTileCache.push(null)
+                                            continue
+                                        }
                                         const { dl } = ShadeTool.renderResultToTileData(
                                             data, sweepGrids[fi], options
                                         )
-                                        frameTileCache.push(dl)
+                                        const textures = {}
+                                        for (const z in dl) {
+                                            for (const x in dl[z]) {
+                                                for (const y in dl[z][x]) {
+                                                    const key = x + ':' + y + ':' + z
+                                                    const img = new Image()
+                                                    img.src = dl[z][x][y]
+                                                    textures[key] = [img]
+                                                    imagePromises.push(
+                                                        new Promise((res) => {
+                                                            img.onload = res
+                                                            img.onerror = res
+                                                        })
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        frameTileCache.push(textures)
                                     }
-                                    currentStore.sweepFrameTileData = frameTileCache
+                                    // Wait for all images to decode before marking done
+                                    Promise.all(imagePromises).then(() => {
+                                        currentStore.sweepFrameTileData = frameTileCache
+                                    })
                                     currentStore.setSweepField(
                                         'sweepProgress',
                                         'Done (' + total + ' steps)'
@@ -1094,18 +1125,18 @@ let ShadeTool = {
         const layerName = 'shade' + activeElmId
         const layer = L_.layers.layer[layerName]
 
-        // Use pre-cached tile data if available for smooth playback
-        if (store.sweepFrameTileData && store.sweepFrameTileData[idx]) {
-            const cachedDl = store.sweepFrameTileData[idx]
-            if (layer && layer._tileLayers && layer._tileLayers[0]) {
-                layer._tileLayers[0].dataUrls = cachedDl
-                layer.redraw()
-            } else {
-                ShadeTool.makeDataLayer(cachedDl, activeElmId)
+        // Use pre-cached tile images if available for smooth playback.
+        // Swaps _fetchedTextures on the existing GL tile layer and calls
+        // reRender() — same technique Data Layers use for color ramp updates.
+        const cachedTextures = store.sweepFrameTileData?.[idx]
+        if (cachedTextures && layer && layer._fetchedTextures) {
+            for (const key in cachedTextures) {
+                layer._fetchedTextures[key] = cachedTextures[key]
             }
+            layer.reRender()
         } else {
-            // Fallback: render on the fly
-            const grid = store.sweepGrids[idx]
+            // Fallback: full re-render (first frame or cache not ready)
+            const grid = store.sweepGrids?.[idx]
             const data = store.lastData
             const options = store.lastOptions
             if (!grid || !data || !options) return
