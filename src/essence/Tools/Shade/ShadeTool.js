@@ -465,7 +465,7 @@ let ShadeTool = {
         Globe_.litho.removeLayer(layerName)
     },
 
-    renderResultToMap: function (data, resultGrid, options, activeElmId) {
+    renderResultToTileData: function (data, resultGrid, options) {
         let c = document.createElement('canvas')
         const res = data.tileResolution * Math.pow(2, data.resolution)
         c.width = res
@@ -554,6 +554,15 @@ let ShadeTool = {
                 dlc[z][Math.floor(x)][Math.floor(y)] = F_.cloneCanvas(c)
             }
         }
+        return { dl, dlc }
+    },
+
+    renderResultToMap: function (data, resultGrid, options, activeElmId) {
+        const { dl, dlc } = ShadeTool.renderResultToTileData(
+            data,
+            resultGrid,
+            options
+        )
         useShadeStore.getState().canvases[activeElmId] = dlc
         ShadeTool.makeDataLayer(dl, activeElmId)
     },
@@ -954,6 +963,16 @@ let ShadeTool = {
                                     )
                                     currentStore.lastData = data
                                     currentStore.lastOptions = options
+
+                                    // Pre-cache all frame tile data for smooth playback
+                                    const frameTileCache = []
+                                    for (let fi = 0; fi < sweepGrids.length; fi++) {
+                                        const { dl } = ShadeTool.renderResultToTileData(
+                                            data, sweepGrids[fi], options
+                                        )
+                                        frameTileCache.push(dl)
+                                    }
+                                    currentStore.sweepFrameTileData = frameTileCache
                                     currentStore.setSweepField(
                                         'sweepProgress',
                                         'Done (' + total + ' steps)'
@@ -1072,13 +1091,26 @@ let ShadeTool = {
     sweepShowFrame: function (activeElmId) {
         const store = useShadeStore.getState()
         const idx = store.sweepPlayIndex
-        const grid = store.sweepGrids[idx]
-        const data = store.lastData
-        const options = store.lastOptions
+        const layerName = 'shade' + activeElmId
+        const layer = L_.layers.layer[layerName]
 
-        if (!grid || !data || !options) return
-
-        ShadeTool.renderResultToMap(data, grid, options, activeElmId)
+        // Use pre-cached tile data if available for smooth playback
+        if (store.sweepFrameTileData && store.sweepFrameTileData[idx]) {
+            const cachedDl = store.sweepFrameTileData[idx]
+            if (layer && layer._tileLayers && layer._tileLayers[0]) {
+                layer._tileLayers[0].dataUrls = cachedDl
+                layer.redraw()
+            } else {
+                ShadeTool.makeDataLayer(cachedDl, activeElmId)
+            }
+        } else {
+            // Fallback: render on the fly
+            const grid = store.sweepGrids[idx]
+            const data = store.lastData
+            const options = store.lastOptions
+            if (!grid || !data || !options) return
+            ShadeTool.renderResultToMap(data, grid, options, activeElmId)
+        }
 
         const label = store.sweepResults?.[idx]?.time || ''
         const frameLabel = document.getElementById('vstSweepFrameLabel')
