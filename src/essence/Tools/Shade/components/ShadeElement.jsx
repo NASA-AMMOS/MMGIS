@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useShadeStore, { buildSourcesList, MULTI_SOURCE_COLORS } from '../store'
 import ShadeResults from './ShadeResults'
 import ShadeTool from '../ShadeTool'
+import L_ from '../../../Basics/Layers_/Layers_'
 import {
     Button,
     Checkbox,
@@ -73,6 +74,18 @@ export default function ShadeElement({ elmId }) {
     const handleChange = useCallback(
         (field, value) => {
             updateElement(elmId, { [field]: value, changed: true })
+        },
+        [elmId, updateElement]
+    )
+
+    const handleOpacityChange = useCallback(
+        (value) => {
+            updateElement(elmId, { opacity: value })
+            const layerName = 'shade' + elmId
+            const layer = L_.layers.layer[layerName]
+            if (layer && typeof layer.setOpacity === 'function') {
+                layer.setOpacity(value)
+            }
         },
         [elmId, updateElement]
     )
@@ -318,9 +331,7 @@ export default function ShadeElement({ elmId }) {
                     <div className="vstSliderWrap">
                         <Slider
                             value={el.opacity}
-                            onValueChange={(v) =>
-                                handleChange('opacity', v)
-                            }
+                            onValueChange={handleOpacityChange}
                             min={0}
                             max={1}
                             step={0.01}

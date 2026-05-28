@@ -58,7 +58,7 @@ function HeatmapLegend({ rampName, discrete }) {
             </div>
             <div className="vstSweepLegendLabels">
                 <span>0%</span>
-                <span>% Shaded</span>
+                <span>% Visible</span>
                 <span>100%</span>
             </div>
         </div>

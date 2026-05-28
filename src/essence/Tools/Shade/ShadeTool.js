@@ -185,10 +185,9 @@ let ShadeTool = {
             return
         }
 
-        const shadeFrac = 1 - frac
-        store.setSweepField('hoverFrac', shadeFrac)
-        const pct = (shadeFrac * 100).toFixed(1)
-        CursorInfo.update(`Shaded: ${pct}%`, null, false)
+        store.setSweepField('hoverFrac', frac)
+        const pct = (frac * 100).toFixed(1)
+        CursorInfo.update(`Visible: ${pct}%`, null, false)
     },
 
     _onCompositeHoverEnd: function () {
@@ -528,7 +527,12 @@ let ShadeTool = {
         L_.layers.layer[layerName]._noFade = true
         L_.layers.layer[layerName].setZIndex(1000)
         Map_.map.addLayer(L_.layers.layer[layerName])
-        useShadeStore.getState().updateElement(activeElmId, { on: true })
+        const store = useShadeStore.getState()
+        store.updateElement(activeElmId, { on: true })
+        const el = store.elements[activeElmId]
+        if (el && el.opacity != null) {
+            L_.layers.layer[layerName].setOpacity(el.opacity)
+        }
 
         Globe_.litho.removeLayer(layerName)
     },
@@ -759,15 +763,15 @@ let ShadeTool = {
                             cData[p + 2] = 0
                             cData[p + 3] = 0
                         } else {
-                            // frac is visibility (0=always shaded, 1=never shaded)
-                            // shadeFrac is shading (0=never shaded, 1=always shaded)
-                            const shadeFrac = 1 - frac
-                            const cl = ShadeTool.evalColor(colors, shadeFrac, discrete, bins)
+                            // frac = visibility fraction (% of time the
+                            // body is visible from this cell). 1 = always
+                            // visible, 0 = never visible.
+                            const cl = ShadeTool.evalColor(colors, frac, discrete, bins)
                             cData[p] = Math.round(cl[0] * 255)
                             cData[p + 1] = Math.round(cl[1] * 255)
                             cData[p + 2] = Math.round(cl[2] * 255)
                             if (isShadowRamp) {
-                                cData[p + 3] = Math.round(shadeFrac * 200 + 55)
+                                cData[p + 3] = Math.round(frac * 200 + 55)
                             } else {
                                 cData[p + 3] = 255
                             }
