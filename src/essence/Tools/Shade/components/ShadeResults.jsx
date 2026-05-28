@@ -30,16 +30,16 @@ export default function ShadeResults({ elmId }) {
                     </span>
                 </div>
             </div>
-            <div id="shadeTool_indicators">
+            <div id={`shadeTool_indicators_${elmId}`}>
                 <div>
                     <div>Azimuth</div>
-                    <canvas id="shadeTool_az" ref={azCanvasRef} />
-                    <div id="shadeTool_azValue" />
+                    <canvas id={`shadeTool_az_${elmId}`} ref={azCanvasRef} />
+                    <div id={`shadeTool_azValue_${elmId}`} />
                 </div>
                 <div>
                     <div>Elevation</div>
-                    <canvas id="shadeTool_el" ref={elCanvasRef} />
-                    <div id="shadeTool_elValue" />
+                    <canvas id={`shadeTool_el_${elmId}`} ref={elCanvasRef} />
+                    <div id={`shadeTool_elValue_${elmId}`} />
                 </div>
             </div>
         </div>
