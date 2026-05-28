@@ -128,7 +128,7 @@ let ShadeTool = {
         const store = useShadeStore.getState()
 
         // Invalidate sweep results when viewport changes
-        if (store.sweepHeatmap && !store.sweepStale) {
+        if (store.hasSweepData() && !store.sweepStale) {
             store.setSweepField('sweepStale', true)
             store.setSweepField('hoverFrac', null)
             // Stop playback if running
@@ -157,11 +157,18 @@ let ShadeTool = {
 
     _onCompositeHover: function (e) {
         const store = useShadeStore.getState()
-        if (store.sweepStale || store.sweepViewMode !== 'composite' || !store.sweepHeatmap || !store.lastData) {
-            return
+        if (store.sweepStale || store.sweepViewMode !== 'composite') return
+        // Use the first element that has sweep data for hover
+        let data = null, heatmap = null
+        for (const id in store.sweepElData) {
+            const ed = store.sweepElData[id]
+            if (ed?.heatmap && ed?.lastData) {
+                data = ed.lastData
+                heatmap = ed.heatmap
+                break
+            }
         }
-        const data = store.lastData
-        const heatmap = store.sweepHeatmap
+        if (!data || !heatmap) return
         const lat = e.latlng.lat
         const lng = e.latlng.lng
         const tileRes = data.tileResolution
@@ -796,13 +803,36 @@ let ShadeTool = {
 
     refreshHeatmap: function (activeElmId) {
         const store = useShadeStore.getState()
-        if (!store.sweepHeatmap || !store.lastData) return
-        ShadeTool.renderHeatmapToMap(store.lastData, store.sweepHeatmap, activeElmId)
+        // Refresh all elements that have sweep data
+        if (activeElmId != null) {
+            const ed = store.sweepElData[activeElmId]
+            if (ed?.heatmap && ed?.lastData) {
+                ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, activeElmId)
+            }
+        } else {
+            for (const id in store.sweepElData) {
+                const ed = store.sweepElData[id]
+                if (ed?.heatmap && ed?.lastData) {
+                    ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
+                }
+            }
+        }
+    },
+
+    refreshAllHeatmaps: function () {
+        const store = useShadeStore.getState()
+        for (const id in store.sweepElData) {
+            const ed = store.sweepElData[id]
+            if (ed?.heatmap && ed?.lastData) {
+                ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
+            }
+        }
     },
 
     applySweepOpacity: function (activeElmId) {
         const store = useShadeStore.getState()
-        const opacity = store.sweepOpacity != null ? store.sweepOpacity : 1
+        const ed = store.sweepElData[activeElmId]
+        const opacity = ed?.opacity != null ? ed.opacity : 1
         const layerName = 'shade' + activeElmId
         const layer = L_.layers.layer[layerName]
         if (layer && typeof layer.setOpacity === 'function') {
@@ -884,16 +914,15 @@ let ShadeTool = {
             }
         }
 
-        // Store atlas data for lazy layer creation on first play.
+        // Store atlas data per-element for lazy layer creation on first play.
         // atlasScaleS/T map the content region within the POT texture.
-        const store = useShadeStore.getState()
-        store.sweepAtlas = {
+        useShadeStore.getState().setSweepElField(activeElmId, 'atlas', {
             dl: atlasDl,
             atlasCols: atlasCols,
             atlasRows: atlasRows,
             atlasScaleS: contentW / atlasW,
             atlasScaleT: contentH / atlasH,
-        }
+        })
     },
 
     makeSweepLayer: function (atlasDl, activeElmId, atlasCols, atlasRows, atlasScaleS, atlasScaleT) {
@@ -1242,20 +1271,22 @@ let ShadeTool = {
                                 )
 
                                 if (completed >= total) {
-                                    currentStore.setSweepField(
-                                        'sweepResults',
-                                        sweepResults
+                                    currentStore.setSweepElField(
+                                        activeElmId, 'results', sweepResults
                                     )
-                                    currentStore.setSweepField(
-                                        'sweepGrids',
-                                        sweepGrids
+                                    currentStore.setSweepElField(
+                                        activeElmId, 'grids', sweepGrids
                                     )
                                     currentStore.setSweepField(
                                         'sweepPlayIndex',
                                         0
                                     )
-                                    currentStore.lastData = data
-                                    currentStore.lastOptions = options
+                                    currentStore.setSweepElField(
+                                        activeElmId, 'lastData', data
+                                    )
+                                    currentStore.setSweepElField(
+                                        activeElmId, 'lastOptions', options
+                                    )
 
                                     // Show the heatmap first (initial view after sweep)
                                     if (sweepGrids.length > 0) {
@@ -1263,9 +1294,8 @@ let ShadeTool = {
                                             ShaderTool_Algorithm.cumulativeVisibility(
                                                 sweepGrids
                                             )
-                                        currentStore.setSweepField(
-                                            'sweepHeatmap',
-                                            heatmap
+                                        currentStore.setSweepElField(
+                                            activeElmId, 'heatmap', heatmap
                                         )
                                         currentStore.setSweepField(
                                             'sweepViewMode',
@@ -1351,7 +1381,8 @@ let ShadeTool = {
 
     sweepPlay: function () {
         const store = useShadeStore.getState()
-        if (!store.sweepGrids || store.sweepGrids.length === 0) return
+        const frameCount = store.getSweepFrameCount()
+        if (frameCount === 0) return
 
         if (store.sweepPlaying) {
             clearInterval(ShadeTool._sweepPlayTimer)
@@ -1361,31 +1392,52 @@ let ShadeTool = {
             store.setSweepField('sweepPlaying', true)
             ShadeTool._sweepPlayTimer = setInterval(function () {
                 const s = useShadeStore.getState()
-                const nextIdx =
-                    (s.sweepPlayIndex + 1) % s.sweepGrids.length
+                const fc = s.getSweepFrameCount()
+                if (fc === 0) return
+                const nextIdx = (s.sweepPlayIndex + 1) % fc
                 s.setSweepField('sweepPlayIndex', nextIdx)
-                ShadeTool.sweepShowFrame(s.activeElmId)
+                ShadeTool.sweepShowAllFrames()
             }, store.sweepPlaySpeed)
         }
     },
 
     sweepStepForward: function () {
         const store = useShadeStore.getState()
-        if (!store.sweepGrids || store.sweepGrids.length === 0) return
-        const nextIdx =
-            (store.sweepPlayIndex + 1) % store.sweepGrids.length
+        const frameCount = store.getSweepFrameCount()
+        if (frameCount === 0) return
+        const nextIdx = (store.sweepPlayIndex + 1) % frameCount
         store.setSweepField('sweepPlayIndex', nextIdx)
-        ShadeTool.sweepShowFrame(store.activeElmId)
+        ShadeTool.sweepShowAllFrames()
     },
 
     sweepStepBack: function () {
         const store = useShadeStore.getState()
-        if (!store.sweepGrids || store.sweepGrids.length === 0) return
-        const nextIdx =
-            (store.sweepPlayIndex - 1 + store.sweepGrids.length) %
-            store.sweepGrids.length
+        const frameCount = store.getSweepFrameCount()
+        if (frameCount === 0) return
+        const nextIdx = (store.sweepPlayIndex - 1 + frameCount) % frameCount
         store.setSweepField('sweepPlayIndex', nextIdx)
-        ShadeTool.sweepShowFrame(store.activeElmId)
+        ShadeTool.sweepShowAllFrames()
+    },
+
+    sweepShowAllFrames: function () {
+        const store = useShadeStore.getState()
+        store.setSweepField('sweepViewMode', 'playback')
+        for (const id in store.sweepElData) {
+            const ed = store.sweepElData[id]
+            if (ed?.grids?.length > 0) {
+                ShadeTool.sweepShowFrame(parseInt(id))
+            }
+        }
+        // Show time label from first element with results
+        const idx = store.sweepPlayIndex
+        for (const id in store.sweepElData) {
+            const ed = store.sweepElData[id]
+            if (ed?.results?.[idx]?.time) {
+                const frameLabel = document.getElementById('vstSweepFrameLabel')
+                if (frameLabel) frameLabel.textContent = ed.results[idx].time
+                break
+            }
+        }
     },
 
     sweepShowFrame: function (activeElmId) {
@@ -1393,47 +1445,40 @@ let ShadeTool = {
         const idx = store.sweepPlayIndex
         const layerName = 'shade' + activeElmId
         const layer = L_.layers.layer[layerName]
+        const ed = store.sweepElData[activeElmId]
 
-        store.setSweepField('sweepViewMode', 'playback')
+        if (!ed?.atlas) return
 
         // Lazy-create the atlas layer on first playback frame.
-        // Don't call reRender() immediately — tiles haven't loaded yet.
-        // The initial render happens naturally through createTile (frame 0).
-        // Once tiles are loaded, subsequent frames use setUniform + reRender.
         if (!layer || !layer._uniformLocations || !layer._uniformLocations.frameIndex) {
-            const atlas = store.sweepAtlas
-            if (atlas) {
-                ShadeTool.makeSweepLayer(
-                    atlas.dl, activeElmId, atlas.atlasCols, atlas.atlasRows,
-                    atlas.atlasScaleS, atlas.atlasScaleT
-                )
-                const newLayer = L_.layers.layer[layerName]
-                if (newLayer) {
-                    newLayer.setUniform('frameIndex', idx)
-                    newLayer.once('load', function () {
-                        newLayer.reRender()
-                    })
-                    ShadeTool.applySweepOpacity(activeElmId)
-                }
+            const atlas = ed.atlas
+            ShadeTool.makeSweepLayer(
+                atlas.dl, activeElmId, atlas.atlasCols, atlas.atlasRows,
+                atlas.atlasScaleS, atlas.atlasScaleT
+            )
+            const newLayer = L_.layers.layer[layerName]
+            if (newLayer) {
+                newLayer.setUniform('frameIndex', idx)
+                newLayer.once('load', function () {
+                    newLayer.reRender()
+                })
+                ShadeTool.applySweepOpacity(activeElmId)
             }
         } else {
-            // Atlas-based playback: update the frameIndex uniform and re-render.
-            // The atlas texture stays the same — only the shader parameter changes,
-            // identical to how Data Layers update color ramps without flashing.
             layer.setUniform('frameIndex', idx)
             layer.reRender()
         }
-
-        const label = store.sweepResults?.[idx]?.time || ''
-        const frameLabel = document.getElementById('vstSweepFrameLabel')
-        if (frameLabel) frameLabel.textContent = label
     },
 
     sweepShowComposite: function (activeElmId) {
         const store = useShadeStore.getState()
         store.setSweepField('sweepViewMode', 'composite')
-        if (store.sweepHeatmap && store.lastData) {
-            ShadeTool.renderHeatmapToMap(store.lastData, store.sweepHeatmap, activeElmId)
+        // Render composite heatmap for ALL elements with sweep data
+        for (const id in store.sweepElData) {
+            const ed = store.sweepElData[id]
+            if (ed?.heatmap && ed?.lastData) {
+                ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
+            }
         }
     },
 
@@ -1443,10 +1488,11 @@ let ShadeTool = {
             clearInterval(ShadeTool._sweepPlayTimer)
             ShadeTool._sweepPlayTimer = setInterval(function () {
                 const s = useShadeStore.getState()
-                const nextIdx =
-                    (s.sweepPlayIndex + 1) % s.sweepGrids.length
+                const fc = s.getSweepFrameCount()
+                if (fc === 0) return
+                const nextIdx = (s.sweepPlayIndex + 1) % fc
                 s.setSweepField('sweepPlayIndex', nextIdx)
-                ShadeTool.sweepShowFrame(s.activeElmId)
+                ShadeTool.sweepShowAllFrames()
             }, speed)
         }
     },
@@ -1511,9 +1557,21 @@ let ShadeTool = {
         })
     },
 
-    exportCSV: function () {
+    exportCSV: function (elmId) {
         const store = useShadeStore.getState()
-        if (!store.sweepResults || store.sweepResults.length === 0) {
+        // Find sweep results: from specific element or first with data
+        let results = null
+        if (elmId != null && store.sweepElData[elmId]?.results?.length > 0) {
+            results = store.sweepElData[elmId].results
+        } else {
+            for (const id in store.sweepElData) {
+                if (store.sweepElData[id]?.results?.length > 0) {
+                    results = store.sweepElData[id].results
+                    break
+                }
+            }
+        }
+        if (!results || results.length === 0) {
             Toast.warning(
                 'No sweep results to export. Run a time sweep first.',
                 6000
@@ -1527,7 +1585,7 @@ let ShadeTool = {
             'elevation',
             'range',
         ]
-        const rows = store.sweepResults.map((r) => [
+        const rows = results.map((r) => [
             r.time,
             r.visibilityPct,
             r.azimuth,
@@ -1622,7 +1680,7 @@ let ShadeTool = {
                 range: el?.raeResults?.range || '--',
             },
             sweep:
-                store.sweepResults?.length > 0 ? store.sweepResults : null,
+                store.sweepElData[elmId]?.results?.length > 0 ? store.sweepElData[elmId].results : null,
         }
         F_.downloadObject(report, 'shade_report', '.json')
     },

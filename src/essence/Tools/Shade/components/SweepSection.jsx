@@ -88,21 +88,25 @@ export default function SweepSection() {
     const sweepProgressPct = useShadeStore((s) => s.sweepProgressPct)
     const sweepPlaying = useShadeStore((s) => s.sweepPlaying)
     const sweepPlayIndex = useShadeStore((s) => s.sweepPlayIndex)
-    const sweepGrids = useShadeStore((s) => s.sweepGrids)
     const sweepViewMode = useShadeStore((s) => s.sweepViewMode)
     const sweepColorRamp = useShadeStore((s) => s.sweepColorRamp)
     const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
-    const sweepHeatmap = useShadeStore((s) => s.sweepHeatmap)
-    const sweepOpacity = useShadeStore((s) => s.sweepOpacity)
     const sweepStale = useShadeStore((s) => s.sweepStale)
+    const sweepElData = useShadeStore((s) => s.sweepElData)
+    const elements = useShadeStore((s) => s.elements)
     const setSweepField = useShadeStore((s) => s.setSweepField)
+    const setSweepElField = useShadeStore((s) => s.setSweepElField)
 
-    const totalFrames = useMemo(
-        () => (sweepGrids ? sweepGrids.length : 0),
-        [sweepGrids]
-    )
+    const totalFrames = useMemo(() => {
+        for (const id in sweepElData) {
+            if (sweepElData[id]?.grids?.length > 0) return sweepElData[id].grids.length
+        }
+        return 0
+    }, [sweepElData])
 
-    const hasSweepData = !!sweepHeatmap && !sweepStale
+    const hasSweepData = useMemo(() => {
+        return !sweepStale && Object.keys(sweepElData).some((id) => sweepElData[id]?.heatmap != null)
+    }, [sweepElData, sweepStale])
 
     const [expanded, setExpanded] = useState(false)
 
@@ -161,13 +165,13 @@ export default function SweepSection() {
 
     const handleTimelineScrub = useCallback((v) => {
         setSweepField('sweepPlayIndex', v)
-        ShadeTool.sweepShowFrame(useShadeStore.getState().activeElmId)
+        ShadeTool.sweepShowAllFrames()
     }, [setSweepField])
 
     const handleViewModeChange = useCallback((mode) => {
         const store = useShadeStore.getState()
         if (mode === 'playback') {
-            ShadeTool.sweepShowFrame(store.activeElmId)
+            ShadeTool.sweepShowAllFrames()
         } else {
             ShadeTool.sweepShowComposite(store.activeElmId)
         }
@@ -176,10 +180,7 @@ export default function SweepSection() {
     const handleColorRampChange = useCallback((value) => {
         setSweepField('sweepColorRamp', value)
         setTimeout(() => {
-            const store = useShadeStore.getState()
-            if (store.sweepViewMode === 'composite') {
-                ShadeTool.refreshHeatmap(store.activeElmId)
-            }
+            ShadeTool.refreshAllHeatmaps()
         }, 0)
     }, [setSweepField])
 
@@ -187,18 +188,14 @@ export default function SweepSection() {
         const isDiscrete = mode === 'discrete'
         setSweepField('sweepDiscrete', isDiscrete)
         setTimeout(() => {
-            const store = useShadeStore.getState()
-            if (store.sweepViewMode === 'composite') {
-                ShadeTool.refreshHeatmap(store.activeElmId)
-            }
+            ShadeTool.refreshAllHeatmaps()
         }, 0)
     }, [setSweepField])
 
-    const handleOpacityChange = useCallback((val) => {
-        setSweepField('sweepOpacity', val)
-        const store = useShadeStore.getState()
-        ShadeTool.applySweepOpacity(store.activeElmId)
-    }, [setSweepField])
+    const handleOpacityChange = useCallback((elmId, val) => {
+        setSweepElField(elmId, 'opacity', val)
+        ShadeTool.applySweepOpacity(elmId)
+    }, [setSweepElField])
 
     return (
         <div className="vstSweepSection">
@@ -269,7 +266,7 @@ export default function SweepSection() {
                         Sweep
                     </ProgressButton>
 
-                    {sweepStale && !!sweepHeatmap && (
+                    {sweepStale && Object.keys(sweepElData).some((id) => sweepElData[id]?.heatmap) && (
                         <div className="vstSweepStaleMsg">
                             <i className="mdi mdi-alert-outline mdi-14px" />
                             <span>Viewport changed — re-run sweep to update results</span>
@@ -307,19 +304,26 @@ export default function SweepSection() {
                                     options={COLOR_MODE_OPTIONS}
                                 />
                             </div>
-                            <div className="vstOptionRow">
-                                <div className="vstOptionLabel">Opacity</div>
-                                <div className="vstOpacitySlider">
-                                    <Slider
-                                        value={sweepOpacity}
-                                        onValueChange={handleOpacityChange}
-                                        min={0}
-                                        max={1}
-                                        step={0.05}
-                                    />
-                                    <span className="vstOpacityValue">{Math.round(sweepOpacity * 100)}%</span>
-                                </div>
-                            </div>
+                            {Object.keys(sweepElData).filter((id) => sweepElData[id]?.heatmap).map((id) => {
+                                const ed = sweepElData[id]
+                                const elName = elements[id]?.name || `Shade ${id}`
+                                const opacity = ed?.opacity != null ? ed.opacity : 1
+                                return (
+                                    <div className="vstOptionRow" key={id}>
+                                        <div className="vstOptionLabel">{elName} Opacity</div>
+                                        <div className="vstOpacitySlider">
+                                            <Slider
+                                                value={opacity}
+                                                onValueChange={(val) => handleOpacityChange(parseInt(id), val)}
+                                                min={0}
+                                                max={1}
+                                                step={0.05}
+                                            />
+                                            <span className="vstOpacityValue">{Math.round(opacity * 100)}%</span>
+                                        </div>
+                                    </div>
+                                )
+                            })}
                             <HeatmapLegend rampName={sweepColorRamp} discrete={sweepDiscrete} />
                         </div>
                     )}
@@ -385,19 +389,26 @@ export default function SweepSection() {
                                     />
                                 </div>
                             )}
-                            <div className="vstOptionRow">
-                                <div className="vstOptionLabel">Opacity</div>
-                                <div className="vstOpacitySlider">
-                                    <Slider
-                                        value={sweepOpacity}
-                                        onValueChange={handleOpacityChange}
-                                        min={0}
-                                        max={1}
-                                        step={0.05}
-                                    />
-                                    <span className="vstOpacityValue">{Math.round(sweepOpacity * 100)}%</span>
-                                </div>
-                            </div>
+                            {Object.keys(sweepElData).filter((id) => sweepElData[id]?.grids?.length > 0).map((id) => {
+                                const ed = sweepElData[id]
+                                const elName = elements[id]?.name || `Shade ${id}`
+                                const opacity = ed?.opacity != null ? ed.opacity : 1
+                                return (
+                                    <div className="vstOptionRow" key={id}>
+                                        <div className="vstOptionLabel">{elName} Opacity</div>
+                                        <div className="vstOpacitySlider">
+                                            <Slider
+                                                value={opacity}
+                                                onValueChange={(val) => handleOpacityChange(parseInt(id), val)}
+                                                min={0}
+                                                max={1}
+                                                step={0.05}
+                                            />
+                                            <span className="vstOpacityValue">{Math.round(opacity * 100)}%</span>
+                                        </div>
+                                    </div>
+                                )
+                            })}
                         </div>
                     )}
                 </div>

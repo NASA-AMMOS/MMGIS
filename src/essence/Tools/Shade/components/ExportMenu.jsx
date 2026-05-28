@@ -4,7 +4,7 @@ import { Button } from '../../../../design-system/components'
 
 export default function ExportMenu({ elmId }) {
     const handlePNG = useCallback(() => ShadeTool.exportPNG(elmId), [elmId])
-    const handleCSV = useCallback(() => ShadeTool.exportCSV(), [])
+    const handleCSV = useCallback(() => ShadeTool.exportCSV(elmId), [elmId])
     const handleGeoJSON = useCallback(
         () => ShadeTool.exportGeoJSON(elmId),
         [elmId]

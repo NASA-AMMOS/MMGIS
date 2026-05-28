@@ -66,24 +66,23 @@ const useShadeStore = create((set, get) => ({
     lastResultGrid: null,
     lastOptions: null,
 
-    // Sweep state
+    // Sweep state — shared options
     sweepStart: '',
     sweepEnd: '',
     sweepStep: 60,
-    sweepResults: null,
-    sweepGrids: null,
     sweepPlaying: false,
     sweepPlayIndex: 0,
     sweepPlaySpeed: 500,
     sweepProgress: '',
     sweepProgressPct: 0,
-    sweepHeatmap: null,
     sweepViewMode: 'composite',
     sweepColorRamp: 'shadow',
     sweepDiscrete: false,
-    sweepOpacity: 1.0,
     hoverFrac: null,
     sweepStale: false,
+
+    // Per-element sweep data: { [elmId]: { results, grids, heatmap, opacity, atlas, lastData, lastOptions } }
+    sweepElData: {},
 
     // Actions
     setVars: (vars) => set({ vars }),
@@ -146,6 +145,39 @@ const useShadeStore = create((set, get) => ({
         }),
 
     setSweepField: (field, value) => set({ [field]: value }),
+
+    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: 1.0, atlas: null, lastData: null, lastOptions: null }),
+    getSweepElData: (elmId) => {
+        return get().sweepElData[elmId] || null
+    },
+    setSweepElField: (elmId, field, value) =>
+        set((state) => ({
+            sweepElData: {
+                ...state.sweepElData,
+                [elmId]: {
+                    ...(state.sweepElData[elmId] || get()._defaultSweepEl()),
+                    [field]: value,
+                },
+            },
+        })),
+    initSweepElData: (elmId) =>
+        set((state) => ({
+            sweepElData: {
+                ...state.sweepElData,
+                [elmId]: state.sweepElData[elmId] || get()._defaultSweepEl(),
+            },
+        })),
+    hasSweepData: () => {
+        const sd = get().sweepElData
+        return Object.keys(sd).some((id) => sd[id]?.heatmap != null)
+    },
+    getSweepFrameCount: () => {
+        const sd = get().sweepElData
+        for (const id in sd) {
+            if (sd[id]?.grids?.length > 0) return sd[id].grids.length
+        }
+        return 0
+    },
 
     getSelectedSources: (elmId) => {
         const { elements, vars } = get()

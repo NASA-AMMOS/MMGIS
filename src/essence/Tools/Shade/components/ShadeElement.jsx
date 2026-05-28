@@ -157,7 +157,7 @@ export default function ShadeElement({ elmId }) {
                         <Dropdown.Item onClick={() => ShadeTool.exportPNG(elmId)}>
                             <i className="mdi mdi-image mdi-14px" /> Shade Map (PNG)
                         </Dropdown.Item>
-                        <Dropdown.Item onClick={() => ShadeTool.exportCSV()}>
+                        <Dropdown.Item onClick={() => ShadeTool.exportCSV(elmId)}>
                             <i className="mdi mdi-file-delimited mdi-14px" /> Sweep Results (CSV)
                         </Dropdown.Item>
                         <Dropdown.Item onClick={() => ShadeTool.exportGeoJSON(elmId)}>
