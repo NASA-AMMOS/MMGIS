@@ -96,6 +96,7 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
 
 function SwatchBar({ blocks, isTransparent }) {
     if (!blocks || blocks.length === 0) return null
+    const displayBlocks = isTransparent ? [blocks[blocks.length - 1]] : blocks
     return (
         <div className={styles.swatchBar}>
             {isTransparent && (
@@ -109,7 +110,7 @@ function SwatchBar({ blocks, isTransparent }) {
                     }}
                 />
             )}
-            {blocks.map((b, i) => (
+            {displayBlocks.map((b, i) => (
                 <div
                     key={i}
                     className={styles.swatchBlock}

@@ -675,7 +675,7 @@ let ShadeTool = {
                 label: cfg.label || rawName,
                 colors: colors,
                 reverse: false,
-                bins: cfg.bins || colors.length,
+                bins: Math.min(cfg.bins || 6, 12),
             })
         }
         return ramps
@@ -708,10 +708,12 @@ let ShadeTool = {
         const store = useShadeStore.getState()
         const rampName = store.sweepColorRamp || 'shadow'
         const discrete = store.sweepDiscrete || false
+        const opacity = store.sweepOpacity != null ? store.sweepOpacity : 1
         const allRamps = ShadeTool.getSweepColorRamps()
         const rampDef = allRamps.find((r) => r.name === rampName) || allRamps[0]
         const colors = rampDef.colors
         const bins = rampDef.bins || colors.length
+        const isShadowRamp = rampName === 'shadow'
 
         let c = document.createElement('canvas')
         const res = data.tileResolution * Math.pow(2, data.resolution)
@@ -761,7 +763,11 @@ let ShadeTool = {
                             cData[p] = Math.round(cl[0] * 255)
                             cData[p + 1] = Math.round(cl[1] * 255)
                             cData[p + 2] = Math.round(cl[2] * 255)
-                            cData[p + 3] = Math.round(frac * 200 + 55)
+                            if (isShadowRamp) {
+                                cData[p + 3] = Math.round((frac * 200 + 55) * opacity)
+                            } else {
+                                cData[p + 3] = Math.round(255 * opacity)
+                            }
                         }
                     } else {
                         cData[p] = 0

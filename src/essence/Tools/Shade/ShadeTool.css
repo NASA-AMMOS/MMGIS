@@ -447,6 +447,20 @@
     margin-bottom: 6px;
 }
 
+#shadeTool .vstOpacitySlider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+#shadeTool .vstOpacityValue {
+    font-size: 11px;
+    color: var(--color-a5);
+    min-width: 30px;
+    text-align: right;
+}
+
 #shadeTool .vstSweepStaleMsg {
     display: flex;
     align-items: center;

@@ -25,6 +25,8 @@ function getTimeUIMode() {
 
 function HeatmapLegend({ rampName, discrete }) {
     const hoverFrac = useShadeStore((s) => s.hoverFrac)
+    const sweepOpacity = useShadeStore((s) => s.sweepOpacity)
+    const isShadowRamp = rampName === 'shadow'
     const allRamps = ShadeTool.getSweepColorRamps()
     const rampDef = allRamps.find((r) => r.name === rampName) || allRamps[0]
     const colors = rampDef.colors
@@ -37,7 +39,7 @@ function HeatmapLegend({ rampName, discrete }) {
         const r = Math.round(cl[0] * 255)
         const g = Math.round(cl[1] * 255)
         const b = Math.round(cl[2] * 255)
-        const a = (t * 200 + 55) / 255
+        const a = isShadowRamp ? ((t * 200 + 55) / 255) * sweepOpacity : sweepOpacity
         gradientStops.push(`rgba(${r},${g},${b},${a.toFixed(2)}) ${(t * 100).toFixed(1)}%`)
     }
     const showIndicator = hoverFrac != null && Number.isFinite(hoverFrac) && hoverFrac >= 0
@@ -77,6 +79,7 @@ export default function SweepSection() {
     const sweepColorRamp = useShadeStore((s) => s.sweepColorRamp)
     const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
     const sweepHeatmap = useShadeStore((s) => s.sweepHeatmap)
+    const sweepOpacity = useShadeStore((s) => s.sweepOpacity)
     const sweepStale = useShadeStore((s) => s.sweepStale)
     const setSweepField = useShadeStore((s) => s.setSweepField)
 
@@ -169,6 +172,16 @@ export default function SweepSection() {
     const handleColorModeChange = useCallback((mode) => {
         const isDiscrete = mode === 'discrete'
         setSweepField('sweepDiscrete', isDiscrete)
+        setTimeout(() => {
+            const store = useShadeStore.getState()
+            if (store.sweepViewMode === 'composite') {
+                ShadeTool.refreshHeatmap(store.activeElmId)
+            }
+        }, 0)
+    }, [setSweepField])
+
+    const handleOpacityChange = useCallback((val) => {
+        setSweepField('sweepOpacity', val)
         setTimeout(() => {
             const store = useShadeStore.getState()
             if (store.sweepViewMode === 'composite') {
@@ -283,6 +296,19 @@ export default function SweepSection() {
                                     onValueChange={handleColorModeChange}
                                     options={COLOR_MODE_OPTIONS}
                                 />
+                            </div>
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel">Opacity</div>
+                                <div className="vstOpacitySlider">
+                                    <Slider
+                                        value={sweepOpacity}
+                                        onValueChange={handleOpacityChange}
+                                        min={0}
+                                        max={1}
+                                        step={0.05}
+                                    />
+                                    <span className="vstOpacityValue">{Math.round(sweepOpacity * 100)}%</span>
+                                </div>
                             </div>
                             <HeatmapLegend rampName={sweepColorRamp} discrete={sweepDiscrete} />
                         </div>
