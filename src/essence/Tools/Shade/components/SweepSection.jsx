@@ -400,7 +400,6 @@ export default function SweepSection() {
                         </div>
                     )}
                 </div>
-            </div>
         </div>
     )
 }
