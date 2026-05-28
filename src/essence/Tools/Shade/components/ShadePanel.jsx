@@ -72,12 +72,6 @@ export default function ShadePanel() {
                         <i className="mdi mdi-close mdi-18px" />
                     </IconButton>
                 </div>
-                <div className="vstTime">
-                    <div className="vstClockIcon">
-                        <i className="mdi mdi-clock-outline mdi-14px" />
-                    </div>
-                    <span>{utcTime}</span>
-                </div>
             </div>
             <Tabs
                 value={activeTab}
@@ -87,6 +81,12 @@ export default function ShadePanel() {
             >
                 {/* Shademaps tab */}
                 <div>
+                    <div className="vstTime">
+                        <div className="vstClockIcon">
+                            <i className="mdi mdi-clock-outline mdi-14px" />
+                        </div>
+                        <span>{utcTime}</span>
+                    </div>
                     <div className="vstBinaryLegend">
                         <div className="vstBinaryLegendItem">
                             <div className="vstBinaryLegendSwatch vstBinaryLegendInShadow" />

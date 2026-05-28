@@ -9,8 +9,9 @@
     position: relative;
     display: flex;
     gap: 0;
-    border-bottom: 1px solid var(--color-a2);
     flex-shrink: 0;
+    padding: 3px;
+    background: var(--color-a);
 }
 
 .tab {
@@ -23,31 +24,35 @@
     color: var(--color-a5);
     border: none;
     cursor: pointer;
-    padding: 7px 14px;
+    padding: 6px 14px;
     font-size: 12px;
     font-weight: 400;
     line-height: 1.4;
     white-space: nowrap;
     transition: color 0.2s ease;
     user-select: none;
+    position: relative;
+    z-index: 1;
+    border-radius: 4px;
 }
 .tab:hover {
     color: var(--color-f);
 }
 .tab.active {
     color: var(--color-f);
-    font-weight: 600;
 }
 
 .indicator {
     position: absolute;
-    bottom: 0;
+    top: 3px;
     left: 0;
-    height: 2px;
-    background: var(--color-mmgis);
+    bottom: 3px;
+    background: var(--color-a2);
+    border-radius: 4px;
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
                 width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform, width;
+    z-index: 0;
 }
 
 .panels {
@@ -72,14 +77,14 @@
 
 /* Sizes */
 .sm .tab {
-    padding: 5px 10px;
+    padding: 4px 10px;
     font-size: 11px;
 }
 .md .tab {
-    padding: 7px 14px;
+    padding: 6px 14px;
     font-size: 12px;
 }
 .lg .tab {
-    padding: 9px 18px;
+    padding: 8px 18px;
     font-size: 13px;
 }
