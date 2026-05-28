@@ -137,7 +137,6 @@
     align-items: center;
     gap: 4px;
     min-width: 0;
-    flex: 1;
 }
 
 #shadeTool .vstShadeHeaderRight {
@@ -149,16 +148,14 @@
 
 #shadeTool .vstColorSwatchWrap {
     position: relative;
-    flex: 1;
-    min-width: 0;
 }
 
 #shadeTool .vstColorBar {
+    width: 50px;
     height: 20px;
     border-radius: 3px;
     cursor: pointer;
     border: 1px solid var(--color-a2);
-    width: 100%;
 }
 #shadeTool .vstColorBar:hover {
     border-color: var(--color-a5);
@@ -342,12 +339,12 @@
     overflow: hidden;
 }
 #shadeTool .vstGenerate.vstGenerateActive {
-    background: var(--color-green);
+    background: var(--color-c);
     color: var(--color-l);
     cursor: pointer;
 }
 #shadeTool .vstGenerate.vstGenerateActive:hover {
-    background: var(--color-green2);
+    background: var(--color-c2);
 }
 #shadeTool .vstGenerate.vstGenerating {
     background: var(--color-a1);
@@ -359,7 +356,7 @@
     top: 0;
     left: 0;
     height: 100%;
-    background: var(--color-green);
+    background: var(--color-c);
     transition: width 0.15s linear;
     pointer-events: none;
 }

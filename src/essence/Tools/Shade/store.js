@@ -27,7 +27,7 @@ function makeDefaultElement(id, vars) {
     return {
         id,
         name: `Shade ${id}`,
-        on: false,
+        on: true,
         expanded: false,
         dataIndex: 0,
         color: { ...color },
