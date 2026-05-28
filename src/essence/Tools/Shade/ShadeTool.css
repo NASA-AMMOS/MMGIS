@@ -654,3 +654,98 @@
     text-align: center;
     padding: 2px 0;
 }
+
+/* === Sweep Cards === */
+
+#shadeTool .vstSweepCards {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+#shadeTool .vstSweepCard {
+    background: var(--color-a1-5);
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: grab;
+    border: 1px solid var(--color-a2);
+    transition: box-shadow 0.15s ease;
+}
+#shadeTool .vstSweepCard:active {
+    cursor: grabbing;
+}
+#shadeTool .vstSweepCard[draggable="true"]:hover {
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+#shadeTool .vstSweepCardHeader {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 6px;
+}
+
+#shadeTool .vstSweepCardDragHandle {
+    color: var(--color-a4);
+    display: flex;
+    align-items: center;
+    cursor: grab;
+    flex-shrink: 0;
+}
+
+#shadeTool .vstSweepCardColor {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.15);
+}
+
+#shadeTool .vstSweepCardIdentity {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+#shadeTool .vstSweepCardSource {
+    font-size: 11px;
+    color: var(--color-f);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#shadeTool .vstSweepCardObserver {
+    font-size: 9px;
+    color: var(--color-a5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#shadeTool .vstSweepCardBody {
+    padding: 2px 8px 6px;
+}
+
+#shadeTool .vstSweepCardRow {
+    margin-bottom: 2px;
+}
+
+#shadeTool .vstSweepCardLegend {
+    margin-top: 2px;
+}
+
+#shadeTool .vstSweepCardPlaybackInfo {
+    display: flex;
+    gap: 10px;
+    font-size: 10px;
+    color: var(--color-a5);
+    padding: 2px 0;
+}
+
+#shadeTool .vstSweepCardMiniAzEl {
+    flex-shrink: 0;
+}

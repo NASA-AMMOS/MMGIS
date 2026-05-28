@@ -76,12 +76,11 @@ const useShadeStore = create((set, get) => ({
     sweepProgress: '',
     sweepProgressPct: 0,
     sweepViewMode: 'composite',
-    sweepColorRamp: 'shadow',
-    sweepDiscrete: false,
     hoverFrac: null,
     sweepStale: false,
+    sweepCardOrder: [],
 
-    // Per-element sweep data: { [elmId]: { results, grids, heatmap, opacity, atlas, lastData, lastOptions } }
+    // Per-element sweep data: { [elmId]: { results, grids, heatmap, opacity, colorRamp, discrete, atlas, lastData, lastOptions } }
     sweepElData: {},
 
     // Actions
@@ -146,7 +145,7 @@ const useShadeStore = create((set, get) => ({
 
     setSweepField: (field, value) => set({ [field]: value }),
 
-    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: 1.0, atlas: null, lastData: null, lastOptions: null }),
+    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: 1.0, colorRamp: 'shadow', discrete: false, atlas: null, lastData: null, lastOptions: null }),
     getSweepElData: (elmId) => {
         return get().sweepElData[elmId] || null
     },
@@ -178,6 +177,8 @@ const useShadeStore = create((set, get) => ({
         }
         return 0
     },
+
+    setSweepCardOrder: (order) => set({ sweepCardOrder: order }),
 
     getSelectedSources: (elmId) => {
         const { elements, vars } = get()

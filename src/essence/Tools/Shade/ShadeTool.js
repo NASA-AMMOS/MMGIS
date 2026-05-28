@@ -75,8 +75,7 @@ let ShadeTool = {
 
         Map_.map.on('click', ShadeTool._onMapClick)
         Map_.map.on('moveend', ShadeTool._onPanEnd)
-        Map_.map.on('mousemove', ShadeTool._onCompositeHover)
-        Map_.map.on('mouseout', ShadeTool._onCompositeHoverEnd)
+
         TimeControl.subscribe('ShadeTool', (t) => {
             const raw = ShadeTool.parseToUTCTime(t.currentTime)
             useShadeStore.getState().setSweepField('rawTime', raw)
@@ -95,8 +94,7 @@ let ShadeTool = {
         }
         Map_.map.off('click', ShadeTool._onMapClick)
         Map_.map.off('moveend', ShadeTool._onPanEnd)
-        Map_.map.off('mousemove', ShadeTool._onCompositeHover)
-        Map_.map.off('mouseout', ShadeTool._onCompositeHoverEnd)
+
         TimeControl.unsubscribe('ShadeTool')
 
         if (ShadeTool._root) {
@@ -718,8 +716,9 @@ let ShadeTool = {
 
     renderHeatmapToMap: function (data, heatmap, activeElmId) {
         const store = useShadeStore.getState()
-        const rampName = store.sweepColorRamp || 'shadow'
-        const discrete = store.sweepDiscrete || false
+        const ed = store.sweepElData[activeElmId]
+        const rampName = ed?.colorRamp || 'shadow'
+        const discrete = ed?.discrete || false
         const allRamps = ShadeTool.getSweepColorRamps()
         const rampDef = allRamps.find((r) => r.name === rampName) || allRamps[0]
         const colors = rampDef.colors
@@ -817,6 +816,16 @@ let ShadeTool = {
                 }
             }
         }
+    },
+
+    reorderSweepLayers: function (orderedIds) {
+        orderedIds.forEach((id, i) => {
+            const layerName = 'shade' + id
+            const layer = L_.layers.layer[layerName]
+            if (layer && typeof layer.setZIndex === 'function') {
+                layer.setZIndex(1000 + i)
+            }
+        })
     },
 
     refreshAllHeatmaps: function () {
@@ -1365,6 +1374,15 @@ let ShadeTool = {
             Toast.warning('Enable at least one shade map for sweep.', 6000)
             return
         }
+        // Initialize card order — preserve existing order for known ids, append new ones
+        const existingOrder = store.sweepCardOrder || []
+        const existingSet = new Set(existingOrder.map(String))
+        const newOrder = existingOrder.filter((id) => activeIds.includes(String(id)))
+        activeIds.forEach((id) => {
+            if (!existingSet.has(String(id))) newOrder.push(parseInt(id))
+        })
+        store.setSweepCardOrder(newOrder.map(Number))
+
         // Serialize sweeps to avoid concurrent writes to shared sweep state
         let idx = 0
         function runNext() {
