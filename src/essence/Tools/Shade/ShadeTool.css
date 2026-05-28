@@ -82,13 +82,10 @@
     font-size: 13px;
 }
 
-#shadeTool .vstSubHeader {
+#shadeTool .vstNewBtnWrap {
     display: flex;
-    height: 32px;
-    padding: 0 8px;
-    background: var(--color-a1-5);
     justify-content: center;
-    align-items: center;
+    padding: 8px 0;
 }
 
 #shadeTool .vstNewBtn {
@@ -163,10 +160,12 @@
     height: 20px;
     border-radius: 3px;
     cursor: pointer;
-    border: 1px solid var(--color-a2);
+    border: 1px solid var(--color-a1);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 #shadeTool .vstColorSwatch:hover {
-    border-color: var(--color-a5);
+    border-color: var(--color-a3);
+    box-shadow: 0 0 0 1px var(--color-a2);
 }
 
 #shadeTool .vstColorPalette {

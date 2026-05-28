@@ -70,7 +70,12 @@ export default function ShadePanel() {
                     </div>
                     <span>{utcTime}</span>
                 </div>
-                <div className="vstSubHeader">
+            </div>
+            <div className="vstContent">
+                {elementIds.map((id) => (
+                    <ShadeElement key={id} elmId={parseInt(id)} />
+                ))}
+                <div className="vstNewBtnWrap">
                     <Button
                         className="vstNewBtn"
                         onClick={handleNew}
@@ -79,11 +84,6 @@ export default function ShadePanel() {
                         New
                     </Button>
                 </div>
-            </div>
-            <div className="vstContent">
-                {elementIds.map((id) => (
-                    <ShadeElement key={id} elmId={parseInt(id)} />
-                ))}
             </div>
             <SweepSection />
         </div>

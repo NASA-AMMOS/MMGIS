@@ -4,7 +4,7 @@
     padding: 4px 0;
     z-index: 9999;
     box-shadow: 0 8px 24px var(--color-shadow);
-    background: var(--color-a1-5);
+    background: var(--color-a);
     border: 1px solid var(--color-a1);
     overflow: hidden;
     animation: dropdownFadeIn 0.12s ease-out;
