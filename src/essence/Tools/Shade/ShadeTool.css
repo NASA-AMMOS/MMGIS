@@ -113,7 +113,7 @@
     align-items: center;
     height: 32px;
     padding: 0 6px;
-    background: var(--color-a2);
+    background: var(--color-a6);
 }
 
 #shadeTool.shadeToolNew .vstShadeHeaderLeft {
@@ -136,8 +136,8 @@
 }
 
 #shadeTool.shadeToolNew .vstColorSwatch {
-    width: 14px;
-    height: 14px;
+    width: 20px;
+    height: 20px;
     border-radius: 3px;
     cursor: pointer;
     border: 1px solid rgba(255, 255, 255, 0.2);
