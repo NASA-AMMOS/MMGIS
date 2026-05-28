@@ -73,6 +73,16 @@ export default function ShadePanel() {
                     <span>{utcTime}</span>
                 </div>
             </div>
+            <div className="vstBinaryLegend">
+                <div className="vstBinaryLegendItem">
+                    <div className="vstBinaryLegendSwatch vstBinaryLegendVisible" />
+                    <span>Source visible</span>
+                </div>
+                <div className="vstBinaryLegendItem">
+                    <div className="vstBinaryLegendSwatch vstBinaryLegendNotVisible" />
+                    <span>Not visible</span>
+                </div>
+            </div>
             <div className="vstContent">
                 {elementIds.map((id) => (
                     <ShadeElement key={id} elmId={parseInt(id)} />

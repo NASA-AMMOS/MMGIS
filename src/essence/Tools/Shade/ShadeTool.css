@@ -82,6 +82,44 @@
     font-size: 13px;
 }
 
+/* ====== Binary Legend ====== */
+
+#shadeTool .vstBinaryLegend {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 6px 10px;
+    background: var(--color-a);
+    border-bottom: 1px solid var(--color-e);
+    flex-shrink: 0;
+}
+
+#shadeTool .vstBinaryLegendItem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--color-f);
+}
+
+#shadeTool .vstBinaryLegendSwatch {
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--color-h);
+    border-radius: 2px;
+}
+
+#shadeTool .vstBinaryLegendVisible {
+    background: var(--color-a1-5);
+}
+
+#shadeTool .vstBinaryLegendNotVisible {
+    background: repeating-conic-gradient(
+        rgba(128, 128, 128, 0.3) 0% 25%,
+        transparent 0% 50%
+    ) 0 0 / 6px 6px;
+}
+
 #shadeTool .vstNewBtnWrap {
     display: flex;
     justify-content: center;
