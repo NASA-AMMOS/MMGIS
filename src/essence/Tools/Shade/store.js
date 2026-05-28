@@ -79,7 +79,7 @@ const useShadeStore = create((set, get) => ({
     sweepProgressPct: 0,
     sweepHeatmap: null,
     sweepViewMode: 'composite',
-    sweepColorRamp: 'red-green',
+    sweepColorRamp: 'shadow',
     sweepDiscrete: false,
 
     // Actions

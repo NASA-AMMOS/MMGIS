@@ -19,6 +19,7 @@ const COLOR_MODE_OPTIONS = [
 ]
 
 const COLOR_RAMP_OPTIONS = [
+    { label: 'Shadow', value: 'shadow' },
     { label: 'Red → Green', value: 'red-green' },
     { label: 'Blue → Red', value: 'blue-red' },
     { label: 'Viridis', value: 'viridis' },
@@ -32,7 +33,7 @@ function getTimeUIMode() {
 }
 
 function HeatmapLegend({ rampName, discrete }) {
-    const ramp = ShadeTool.HEATMAP_RAMPS[rampName] || ShadeTool.HEATMAP_RAMPS['red-green']
+    const ramp = ShadeTool.HEATMAP_RAMPS[rampName] || ShadeTool.HEATMAP_RAMPS['shadow']
     const steps = discrete ? ramp.length : 32
     const gradientStops = []
     for (let i = 0; i < steps; i++) {

@@ -568,6 +568,10 @@ let ShadeTool = {
     },
 
     HEATMAP_RAMPS: {
+        'shadow': [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+        ],
         'red-green': [
             [1.0, 0.0, 0.0],
             [1.0, 0.5, 0.0],
@@ -621,9 +625,9 @@ let ShadeTool = {
 
     renderHeatmapToMap: function (data, heatmap, activeElmId) {
         const store = useShadeStore.getState()
-        const rampName = store.sweepColorRamp || 'red-green'
+        const rampName = store.sweepColorRamp || 'shadow'
         const discrete = store.sweepDiscrete || false
-        const ramp = ShadeTool.HEATMAP_RAMPS[rampName] || ShadeTool.HEATMAP_RAMPS['red-green']
+        const ramp = ShadeTool.HEATMAP_RAMPS[rampName] || ShadeTool.HEATMAP_RAMPS['shadow']
 
         let c = document.createElement('canvas')
         const res = data.tileResolution * Math.pow(2, data.resolution)
@@ -663,7 +667,7 @@ let ShadeTool = {
                     const row = heatmap[tileRow + Math.floor(px / res)]
                     if (row != null) {
                         const frac = row[tileCol + (px % res)]
-                        if (frac < 0) {
+                        if (frac == null || frac < 0 || !Number.isFinite(frac)) {
                             cData[p] = 0
                             cData[p + 1] = 0
                             cData[p + 2] = 0
