@@ -3721,7 +3721,15 @@
         ],
         "defaultHeight": 0,
         "observerTimePlaceholder": "YYYY-MM-DD HH:MM:SS",
-        "utcTimeFormat": "%Y-%m-%d %H:%M:%S"
+        "utcTimeFormat": "%Y-%m-%d %H:%M:%S",
+        "sweepColorRamps": [
+          { "name": "viridis", "label": "Viridis", "bins": 8 },
+          { "name": "plasma", "label": "Plasma", "bins": 8 },
+          { "name": "Greys", "label": "Greys", "bins": 8 },
+          { "name": "RdYlGn_r", "label": "Red-Yellow-Green", "bins": 8 },
+          { "name": "inferno", "label": "Inferno", "bins": 8 },
+          { "name": "Blues", "label": "Blues", "bins": 8 }
+        ]
       }
     },
     {

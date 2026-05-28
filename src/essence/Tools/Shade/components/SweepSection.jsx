@@ -3,7 +3,7 @@ import useShadeStore from '../store'
 import ShadeTool from '../ShadeTool'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import TimeUI from '../../../Basics/TimeControl_/TimeUI'
-import { IconButton, InputWithUnit, ProgressButton, RadioGroup, Select, Slider } from '../../../../design-system/components'
+import { ColorRampPicker, IconButton, InputWithUnit, ProgressButton, RadioGroup, Slider } from '../../../../design-system/components'
 
 const SPEED_NORMAL = 500
 const SPEED_FAST = 150
@@ -18,27 +18,21 @@ const COLOR_MODE_OPTIONS = [
     { label: 'Discrete', value: 'discrete' },
 ]
 
-const COLOR_RAMP_OPTIONS = [
-    { label: 'Shadow', value: 'shadow' },
-    { label: 'Red → Green', value: 'red-green' },
-    { label: 'Blue → Red', value: 'blue-red' },
-    { label: 'Viridis', value: 'viridis' },
-    { label: 'Plasma', value: 'plasma' },
-    { label: 'Grayscale', value: 'grayscale' },
-]
-
 function getTimeUIMode() {
     if (!TimeUI.modes) return 'Range'
     return TimeUI.modes[TimeUI.modeIndex] || 'Range'
 }
 
 function HeatmapLegend({ rampName, discrete }) {
-    const ramp = ShadeTool.HEATMAP_RAMPS[rampName] || ShadeTool.HEATMAP_RAMPS['shadow']
-    const steps = discrete ? ramp.length : 32
+    const allRamps = ShadeTool.getSweepColorRamps()
+    const rampDef = allRamps.find((r) => r.name === rampName) || allRamps[0]
+    const colors = rampDef.colors
+    const bins = rampDef.bins || colors.length
+    const steps = discrete ? bins : 32
     const gradientStops = []
     for (let i = 0; i < steps; i++) {
-        const t = i / (steps - 1)
-        const cl = ShadeTool._lerpColor(ramp, t, discrete)
+        const t = i / Math.max(steps - 1, 1)
+        const cl = ShadeTool.evalColor(colors, t, discrete, bins)
         const r = Math.round(cl[0] * 255)
         const g = Math.round(cl[1] * 255)
         const b = Math.round(cl[2] * 255)
@@ -51,9 +45,9 @@ function HeatmapLegend({ rampName, discrete }) {
                 background: `linear-gradient(to right, ${gradientStops.join(', ')})`,
             }} />
             <div className="vstSweepLegendLabels">
-                <span>0%</span>
-                <span>% Shaded</span>
                 <span>100%</span>
+                <span>% Shaded</span>
+                <span>0%</span>
             </div>
         </div>
     )
@@ -257,11 +251,10 @@ export default function SweepSection() {
                         <div className="vstSweepCompositeSettings">
                             <div className="vstOptionRow">
                                 <div className="vstOptionLabel">Color Ramp</div>
-                                <Select
+                                <ColorRampPicker
                                     value={sweepColorRamp}
                                     onValueChange={handleColorRampChange}
-                                    options={COLOR_RAMP_OPTIONS}
-                                    className="vstSweepSelect"
+                                    ramps={ShadeTool.getSweepColorRamps()}
                                 />
                             </div>
                             <div className="vstOptionRow">

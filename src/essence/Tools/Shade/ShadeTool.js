@@ -11,6 +11,10 @@ import DataShaders from '../../services/DataShaders'
 import TimeControl from '../../Basics/TimeControl_/TimeControl'
 
 import calls from '../../../pre/calls'
+import {
+    data as colormapData,
+    evaluate_cmap,
+} from '../../../external/js-colormaps/js-colormaps.js'
 
 import ShadeTool_Manager from './ShadeTool_Manager'
 import ShaderTool_Algorithm from './ShadeTool_Algorithm'
@@ -567,59 +571,73 @@ let ShadeTool = {
         ShadeTool.makeDataLayer(dl, activeElmId)
     },
 
-    HEATMAP_RAMPS: {
-        'shadow': [
-            [0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0],
-        ],
-        'red-green': [
-            [1.0, 0.0, 0.0],
-            [1.0, 0.5, 0.0],
-            [1.0, 1.0, 0.0],
-            [0.0, 1.0, 0.0],
-        ],
-        'blue-red': [
-            [0.0, 0.0, 0.8],
-            [0.0, 0.6, 1.0],
-            [1.0, 1.0, 0.0],
-            [1.0, 0.0, 0.0],
-        ],
-        'viridis': [
-            [0.267, 0.004, 0.329],
-            [0.128, 0.567, 0.551],
-            [0.741, 0.873, 0.150],
-            [0.993, 0.906, 0.144],
-        ],
-        'grayscale': [
-            [0.1, 0.1, 0.1],
-            [0.4, 0.4, 0.4],
-            [0.7, 0.7, 0.7],
-            [1.0, 1.0, 1.0],
-        ],
-        'plasma': [
-            [0.050, 0.030, 0.528],
-            [0.798, 0.280, 0.470],
-            [0.988, 0.652, 0.250],
-            [0.940, 0.975, 0.131],
-        ],
+    // Returns the list of available sweep color ramp definitions.
+    // Each entry: { name, label, colors (0-1 RGB arrays), reverse, bins }
+    // 'shadow' is always present. Additional ramps come from the tool's
+    // config variable "sweepColorRamps" which references js-colormaps names.
+    getSweepColorRamps: function () {
+        const vars = useShadeStore.getState().vars || {}
+        const configured = vars.sweepColorRamps || [
+            { name: 'viridis' },
+            { name: 'plasma' },
+            { name: 'Greys' },
+            { name: 'RdYlGn_r' },
+        ]
+
+        const ramps = [{
+            name: 'shadow',
+            label: 'Shadow',
+            colors: Array.from({ length: 64 }, () => [0.0, 0.0, 0.0]),
+            reverse: false,
+            bins: 2,
+        }]
+
+        for (const cfg of configured) {
+            const rawName = cfg.name || cfg
+            let cmapName = rawName
+            let reverse = false
+            if (cmapName.toLowerCase().endsWith('_r')) {
+                cmapName = cmapName.substring(0, cmapName.length - 2)
+                reverse = true
+            }
+            const cmapKey = Object.keys(colormapData).find(
+                (k) => k.toLowerCase() === cmapName.toLowerCase()
+            )
+            if (!cmapKey) continue
+            const entry = colormapData[cmapKey]
+            let colors = entry.colors
+            if (reverse) colors = [...colors].reverse()
+            ramps.push({
+                name: rawName,
+                label: cfg.label || rawName,
+                colors: colors,
+                reverse: false,
+                bins: cfg.bins || colors.length,
+            })
+        }
+        return ramps
     },
 
-    _lerpColor: function (ramp, t, discrete) {
-        if (!ramp || ramp.length === 0) return [0, 0, 0]
-        const n = ramp.length - 1
+    // Evaluate a color from a ramp at position t [0..1].
+    // In discrete mode, snaps to one of `bins` equal-width bins.
+    evalColor: function (colors, t, discrete, bins) {
+        if (!colors || colors.length === 0) return [0, 0, 0]
         const tc = Math.max(0, Math.min(1, t))
-        if (discrete) {
-            const idx = Math.min(Math.floor(tc * ramp.length), n)
-            return ramp[idx]
+        const n = colors.length - 1
+        if (discrete && bins > 0) {
+            const binIdx = Math.min(Math.floor(tc * bins), bins - 1)
+            const binCenter = (binIdx + 0.5) / bins
+            const ci = Math.min(Math.floor(binCenter * n), n)
+            return colors[ci]
         }
         const scaled = tc * n
         const lo = Math.min(Math.floor(scaled), n)
         const hi = Math.min(lo + 1, n)
         const f = scaled - lo
         return [
-            ramp[lo][0] + (ramp[hi][0] - ramp[lo][0]) * f,
-            ramp[lo][1] + (ramp[hi][1] - ramp[lo][1]) * f,
-            ramp[lo][2] + (ramp[hi][2] - ramp[lo][2]) * f,
+            colors[lo][0] + (colors[hi][0] - colors[lo][0]) * f,
+            colors[lo][1] + (colors[hi][1] - colors[lo][1]) * f,
+            colors[lo][2] + (colors[hi][2] - colors[lo][2]) * f,
         ]
     },
 
@@ -627,7 +645,10 @@ let ShadeTool = {
         const store = useShadeStore.getState()
         const rampName = store.sweepColorRamp || 'shadow'
         const discrete = store.sweepDiscrete || false
-        const ramp = ShadeTool.HEATMAP_RAMPS[rampName] || ShadeTool.HEATMAP_RAMPS['shadow']
+        const allRamps = ShadeTool.getSweepColorRamps()
+        const rampDef = allRamps.find((r) => r.name === rampName) || allRamps[0]
+        const colors = rampDef.colors
+        const bins = rampDef.bins || colors.length
 
         let c = document.createElement('canvas')
         const res = data.tileResolution * Math.pow(2, data.resolution)
@@ -673,7 +694,7 @@ let ShadeTool = {
                             cData[p + 2] = 0
                             cData[p + 3] = 0
                         } else {
-                            const cl = ShadeTool._lerpColor(ramp, frac, discrete)
+                            const cl = ShadeTool.evalColor(colors, frac, discrete, bins)
                             cData[p] = Math.round(cl[0] * 255)
                             cData[p + 1] = Math.round(cl[1] * 255)
                             cData[p + 2] = Math.round(cl[2] * 255)
