@@ -119,7 +119,6 @@ export default function ShadeElement({ elmId }) {
 
     return (
         <div className="vstShadeItem" data-shade-id={elmId}>
-            <div className="vstLoading" style={{ opacity: el.loading ? 1 : 0, width: el.loadingProgress + '%' }} />
             <div className="vstShadeHeader">
                 <div className="vstShadeHeaderLeft">
                     <Tooltip content="Change color">
@@ -373,17 +372,23 @@ export default function ShadeElement({ elmId }) {
 
                 {/* — Actions — */}
                 <div className="vstShadeActions">
-                    <Button
-                        variant={el.changed ? 'primary' : 'secondary'}
-                        size="sm"
-                        className="vstGenerate"
+                    <button
+                        className={`vstGenerate ${el.changed ? 'vstGenerateActive' : ''} ${el.regenerating ? 'vstGenerating' : ''}`}
                         onClick={handleGenerate}
                         disabled={!el.changed || el.regenerating}
                     >
-                        {el.regenerating
-                            ? `${Math.round(el.loadingProgress)}%`
-                            : 'Generate'}
-                    </Button>
+                        {el.regenerating && (
+                            <span
+                                className="vstGenerateProgress"
+                                style={{ width: el.loadingProgress + '%' }}
+                            />
+                        )}
+                        <span className="vstGenerateLabel">
+                            {el.regenerating
+                                ? `${Math.round(el.loadingProgress)}%`
+                                : 'Generate'}
+                        </span>
+                    </button>
                 </div>
             </div>
         </div>

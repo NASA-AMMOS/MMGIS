@@ -106,18 +106,6 @@
     border-bottom: 1px solid var(--color-e);
 }
 
-/* Loading bar */
-#shadeTool.shadeToolNew .vstLoading {
-    height: 2px;
-    pointer-events: none;
-    position: absolute;
-    top: 0;
-    left: 0;
-    background: var(--color-r6);
-    transition: opacity 0.2s ease, width 0.1s linear;
-    z-index: 1;
-}
-
 /* Instance header */
 #shadeTool.shadeToolNew .vstShadeHeader {
     display: flex;
@@ -322,22 +310,44 @@
 }
 
 #shadeTool.shadeToolNew .vstGenerate {
+    position: relative;
     flex: 1;
     margin-left: 0;
     height: 34px;
     font-size: 14px;
     font-weight: 600;
-    background: #2e7d32;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-}
-#shadeTool.shadeToolNew .vstGenerate:hover {
-    background: #388e3c;
-}
-#shadeTool.shadeToolNew .vstGenerate:disabled {
     background: var(--color-a1);
     color: var(--color-a3);
+    border: none;
+    border-radius: 4px;
+    cursor: default;
+    overflow: hidden;
+}
+#shadeTool.shadeToolNew .vstGenerate.vstGenerateActive {
+    background: #2e7d32;
+    color: #fff;
+    cursor: pointer;
+}
+#shadeTool.shadeToolNew .vstGenerate.vstGenerateActive:hover {
+    background: #388e3c;
+}
+#shadeTool.shadeToolNew .vstGenerate.vstGenerating {
+    background: var(--color-a1);
+    color: #fff;
+    cursor: default;
+}
+#shadeTool.shadeToolNew .vstGenerateProgress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: #2e7d32;
+    transition: width 0.15s linear;
+    pointer-events: none;
+}
+#shadeTool.shadeToolNew .vstGenerateLabel {
+    position: relative;
+    z-index: 1;
 }
 
 /* ====== Sweep section ====== */
