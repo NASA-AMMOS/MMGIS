@@ -418,8 +418,8 @@ router.post("/ll2aerll_bulk", function(req,res,next){(router._computeLimiter||fu
   if (req.body.times.length > MAX_TIMES) {
     return res.status(400).json({ error: true, message: "times array exceeds maximum of " + MAX_TIMES + " entries" });
   }
-  if (req.body.lng == null || req.body.lat == null || !req.body.target) {
-    return res.status(400).json({ error: true, message: "lng, lat, and target are required" });
+  if (req.body.lng == null || req.body.lat == null || req.body.height == null || !req.body.target) {
+    return res.status(400).json({ error: true, message: "lng, lat, height, and target are required" });
   }
   const inputData = {
     lng: req.body.lng,
@@ -448,8 +448,12 @@ router.post("/ll2aerll_bulk", function(req,res,next){(router._computeLimiter||fu
   child.on("close", (code) => {
     if (code !== 0) {
       logger("error", "ll2aerll_bulk failure:", "server", null, stderr);
+      if (!res.headersSent) return res.status(500).json({ error: true, message: stderr || "Python process exited with code " + code });
     }
     if (!res.headersSent) res.send(stdout);
+  });
+  child.stdin.on("error", (err) => {
+    logger("error", "ll2aerll_bulk stdin error:", "server", null, err);
   });
   child.stdin.write(JSON.stringify(inputData));
   child.stdin.end();
