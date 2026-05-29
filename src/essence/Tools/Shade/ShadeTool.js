@@ -478,6 +478,11 @@ let ShadeTool = {
                     currentStore.lastData = data
                     currentStore.lastResultGrid = compositedResult
                     currentStore.lastOptions = options
+                    // Also store per-element for correct export
+                    currentStore.updateElement(activeElmId, {
+                        lastData: data,
+                        lastResultGrid: compositedResult,
+                    })
 
                     currentStore.updateElement(activeElmId, {
                         regenerating: false,
@@ -1000,7 +1005,7 @@ let ShadeTool = {
         const stepMs = stepMinutes * 60 * 1000
         const timestamps = []
         for (let t = startMs; t <= endMs; t += stepMs) {
-            timestamps.push(new Date(t).toISOString())
+            timestamps.push(new Date(t).toISOString().replace(/\.\d{3}Z$/, 'Z'))
         }
 
         if (timestamps.length > 500) {
@@ -1473,7 +1478,7 @@ let ShadeTool = {
             const ed = store.sweepElData[id]
             if (ed?.results?.[idx]?.time) {
                 const frameLabel = document.getElementById('vstSweepFrameLabel')
-                if (frameLabel) frameLabel.textContent = ed.results[idx].time
+                if (frameLabel) frameLabel.textContent = ed.results[idx].time.replace(/\.\d{3}Z$/, 'Z')
                 break
             }
         }
@@ -1636,8 +1641,9 @@ let ShadeTool = {
 
     exportGeoJSON: function (elmId) {
         const store = useShadeStore.getState()
-        const data = store.lastData
-        const resultGrid = store.lastResultGrid
+        const el = store.elements[elmId]
+        const data = el?.lastData || store.lastData
+        const resultGrid = el?.lastResultGrid || store.lastResultGrid
         if (!data || !resultGrid) {
             Toast.warning(
                 'No shade results to export. Generate first.',

@@ -9,6 +9,12 @@ import { IconButton, InputWithUnit, ProgressButton, RadioGroup, Slider } from '.
 const SPEED_NORMAL = 500
 const SPEED_FAST = 150
 
+// Strip milliseconds and ensure trailing Z for UTC display
+function fmtUTC(t) {
+    if (!t) return t
+    return t.replace(/\.\d{3}Z$/, 'Z').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z')
+}
+
 const VIEW_MODE_OPTIONS = [
     { label: 'Composite', value: 'composite' },
     { label: 'Playback', value: 'playback' },
@@ -72,10 +78,10 @@ export default function SweepSection() {
             const endTime = TimeControl.getEndTime()
 
             if (mode === 'Point') {
-                if (currentTime) setSweepField('sweepStart', currentTime)
+                if (currentTime) setSweepField('sweepStart', fmtUTC(currentTime))
             } else {
-                if (startTime) setSweepField('sweepStart', startTime)
-                if (endTime) setSweepField('sweepEnd', endTime)
+                if (startTime) setSweepField('sweepStart', fmtUTC(startTime))
+                if (endTime) setSweepField('sweepEnd', fmtUTC(endTime))
             }
         }
 
@@ -84,10 +90,10 @@ export default function SweepSection() {
         TimeControl.subscribe('ShadeTool_Sweep', (t) => {
             const mode = getTimeUIMode()
             if (mode === 'Point') {
-                if (t.currentTime) setSweepField('sweepStart', t.currentTime)
+                if (t.currentTime) setSweepField('sweepStart', fmtUTC(t.currentTime))
             } else {
-                if (t.startTime) setSweepField('sweepStart', t.startTime)
-                if (t.endTime) setSweepField('sweepEnd', t.endTime)
+                if (t.startTime) setSweepField('sweepStart', fmtUTC(t.startTime))
+                if (t.endTime) setSweepField('sweepEnd', fmtUTC(t.endTime))
             }
         })
 
