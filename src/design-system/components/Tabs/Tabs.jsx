@@ -1,6 +1,8 @@
 import React, { useRef, useState, useEffect, useCallback, forwardRef } from 'react'
 import styles from './Tabs.module.css'
 
+const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1)
+
 const Tabs = forwardRef(function Tabs(
     { value, onValueChange, tabs, size = 'md', className, children, ...props },
     ref
@@ -40,13 +42,17 @@ const Tabs = forwardRef(function Tabs(
 
     const activeIndex = tabs.findIndex((t) => t.value === value)
 
+    const sizeTab = styles['tab' + capitalize(size)] || ''
+    const sizeBar = styles['tabBar' + capitalize(size)] || ''
+    const sizeIndicator = styles['indicator' + capitalize(size)] || ''
+
     return (
         <div
             ref={ref}
-            className={`${styles.tabs} ${styles[size] || ''} ${className || ''}`}
+            className={`${styles.tabs} ${className || ''}`}
             {...props}
         >
-            <div className={styles.tabBar} ref={containerRef}>
+            <div className={`${styles.tabBar} ${sizeBar}`} ref={containerRef}>
                 {tabs.map((tab) => (
                     <button
                         key={tab.value}
@@ -54,7 +60,7 @@ const Tabs = forwardRef(function Tabs(
                         role="tab"
                         aria-selected={value === tab.value}
                         data-tab-active={value === tab.value ? 'true' : 'false'}
-                        className={`${styles.tab} ${value === tab.value ? styles.active : ''}`}
+                        className={`${styles.tab} ${sizeTab} ${value === tab.value ? styles.active : ''}`}
                         onClick={() => onValueChange(tab.value)}
                     >
                         {tab.icon && <i className={`mdi ${tab.icon} mdi-14px`} />}
@@ -62,7 +68,7 @@ const Tabs = forwardRef(function Tabs(
                     </button>
                 ))}
                 <div
-                    className={styles.indicator}
+                    className={`${styles.indicator} ${sizeIndicator}`}
                     style={{
                         transform: `translateX(${indicator.left}px)`,
                         width: `${indicator.width}px`,

@@ -75,30 +75,27 @@
     overflow-y: auto;
 }
 
-/* Sizes */
-.xs {
-    /* sub-tab sizing — exported for styles['xs'] lookup */
-}
-.xs .tabBar {
+/* Size: xs — compact sub-tabs */
+.tabBarXs {
     padding: 2px;
 }
-.xs .tab {
+.tabXs {
     padding: 3px 10px;
     font-size: 10px;
 }
-.xs .indicator {
+.indicatorXs {
     top: 2px;
     bottom: 2px;
 }
-.sm .tab {
+
+/* Size: sm */
+.tabSm {
     padding: 6px 12px;
     font-size: 11px;
 }
-.md .tab {
-    padding: 8px 16px;
-    font-size: 12px;
-}
-.lg .tab {
+
+/* Size: lg */
+.tabLg {
     padding: 10px 20px;
     font-size: 13px;
 }

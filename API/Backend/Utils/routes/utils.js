@@ -411,6 +411,16 @@ router.post("/ll2aerll", function(req,res,next){(router._computeLimiter||functio
 
 //utils ll2aerll_bulk (batch time queries, kernels loaded once)
 router.post("/ll2aerll_bulk", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
+  const MAX_TIMES = 1000;
+  if (!Array.isArray(req.body.times) || req.body.times.length === 0) {
+    return res.status(400).json({ error: true, message: "times must be a non-empty array" });
+  }
+  if (req.body.times.length > MAX_TIMES) {
+    return res.status(400).json({ error: true, message: "times array exceeds maximum of " + MAX_TIMES + " entries" });
+  }
+  if (!req.body.lng || !req.body.lat || !req.body.target) {
+    return res.status(400).json({ error: true, message: "lng, lat, and target are required" });
+  }
   const inputData = {
     lng: req.body.lng,
     lat: req.body.lat,

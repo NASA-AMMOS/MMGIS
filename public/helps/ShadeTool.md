@@ -84,7 +84,6 @@ Shows a cumulative visibility heatmap — each pixel's color indicates how often
 
 - _Continuous / Discrete_: Controls whether the color ramp interpolates smoothly or snaps to distinct color bins. Applies to all shade maps.
 - _Fit to data range_: When off, the color ramp spans 0% → 100% visible. When on, the ramp is stretched to fit the actual min/max visibility values in the data, providing better visual contrast when the data range is narrow (e.g. 40%–80% visible).
-- _Blend_: When two or more shade maps have sweep data, combines their heatmaps into a single layer. Modes: None (independent layers), Average, Min, Max, Multiply, Union.
 - _Sweep Cards_: Each shade map gets a draggable card showing its color ramp picker, opacity slider, and legend. Drag cards to reorder map layer draw order.
 
 ##### Playback Mode
