@@ -44,9 +44,11 @@ function CardLegend({ rampName, discrete, visiblePct, fitToData, minFrac, maxFra
     return (
         <div className="vstSweepCardLegend">
             <div className="vstSweepLegendBarWrap">
-                <div className="vstSweepLegendBar" style={{
-                    background: `linear-gradient(to right, ${gradientStops.join(', ')})`,
-                }} />
+                <div className="vstSweepLegendBar">
+                    <div className="vstSweepLegendGradient" style={{
+                        background: `linear-gradient(to right, ${gradientStops.join(', ')})`,
+                    }} />
+                </div>
                 {hasPct && (
                     <div className="vstSweepLegendIndicator" style={{ left: `${pctVal}%` }}>
                         <div className="vstSweepLegendIndicatorLine" />

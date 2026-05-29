@@ -623,20 +623,29 @@
 
 #shadeTool .vstSweepLegendBarWrap {
     position: relative;
+    margin-bottom: 14px;
+}
+
+#shadeTool .vstSweepLegendBar {
+    height: 12px;
+    border: 1px solid var(--color-e);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
     background-image: linear-gradient(45deg, #555 25%, transparent 25%),
         linear-gradient(45deg, transparent 75%, #555 75%),
         linear-gradient(45deg, transparent 75%, #555 75%),
         linear-gradient(45deg, #555 25%, #999 25%);
     background-size: 8px 8px;
     background-position: 0 0, 0 0, -4px -4px, 4px 4px;
-    border-radius: 2px;
-    overflow: hidden;
 }
 
-#shadeTool .vstSweepLegendBar {
-    height: 12px;
-    border: 1px solid var(--color-e);
-    position: relative;
+#shadeTool .vstSweepLegendGradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 #shadeTool .vstSweepLegendIndicator {
