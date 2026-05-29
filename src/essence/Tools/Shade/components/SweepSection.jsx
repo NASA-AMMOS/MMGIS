@@ -30,6 +30,15 @@ const FIT_MODE_OPTIONS = [
     { label: 'Fit to data', value: 'fit' },
 ]
 
+const BLEND_MODE_OPTIONS = [
+    { label: 'None', value: 'none' },
+    { label: 'Average', value: 'average' },
+    { label: 'Min', value: 'min' },
+    { label: 'Max', value: 'max' },
+    { label: 'Multiply', value: 'multiply' },
+    { label: 'Union', value: 'union' },
+]
+
 function getTimeUIMode() {
     if (!TimeUI.modes) return 'Range'
     return TimeUI.modes[TimeUI.modeIndex] || 'Range'
@@ -50,6 +59,7 @@ export default function SweepSection() {
     const elements = useShadeStore((s) => s.elements)
     const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
     const sweepFitToData = useShadeStore((s) => s.sweepFitToData)
+    const sweepBlendMode = useShadeStore((s) => s.sweepBlendMode)
     const setSweepField = useShadeStore((s) => s.setSweepField)
     const setSweepCardOrder = useShadeStore((s) => s.setSweepCardOrder)
 
@@ -128,6 +138,19 @@ export default function SweepSection() {
         setSweepField('sweepFitToData', val === 'fit')
         setTimeout(() => ShadeTool.refreshHeatmap(), 0)
     }, [setSweepField])
+
+    const handleBlendChange = useCallback((val) => {
+        setSweepField('sweepBlendMode', val)
+        setTimeout(() => ShadeTool.refreshBlend(), 0)
+    }, [setSweepField])
+
+    const multipleHeatmaps = useMemo(() => {
+        let count = 0
+        for (const id in sweepElData) {
+            if (sweepElData[id]?.heatmap) count++
+        }
+        return count >= 2
+    }, [sweepElData])
 
     const handlePlayNormal = useCallback(() => {
         setSweepField('sweepPlaySpeed', SPEED_NORMAL)
@@ -292,6 +315,18 @@ export default function SweepSection() {
                                 />
                             </div>
                         </div>
+                        {multipleHeatmaps && (
+                            <div className="vstSweepGlobalRow">
+                                <span className="vstSweepGlobalLabel">Blend</span>
+                                <div style={{ width: 145 }}>
+                                    <Select
+                                        value={sweepBlendMode || 'none'}
+                                        onValueChange={handleBlendChange}
+                                        options={BLEND_MODE_OPTIONS}
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

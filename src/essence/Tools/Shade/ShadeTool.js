@@ -526,11 +526,14 @@ let ShadeTool = {
             Map_.rmNotNull(L_.layers.layer['shade' + id])
             L_.layers.layer['shade' + id] = null
         }
-        // Render sweep heatmaps for all elements with data
-        for (const id in store.sweepElData) {
-            const ed = store.sweepElData[id]
-            if (ed?.heatmap && ed?.lastData) {
-                ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
+        if (store.sweepBlendMode !== 'none') {
+            ShadeTool.refreshBlend()
+        } else {
+            for (const id in store.sweepElData) {
+                const ed = store.sweepElData[id]
+                if (ed?.heatmap && ed?.lastData) {
+                    ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
+                }
             }
         }
     },
@@ -542,6 +545,8 @@ let ShadeTool = {
             Map_.rmNotNull(L_.layers.layer['shade' + id])
             L_.layers.layer['shade' + id] = null
         }
+        Map_.rmNotNull(L_.layers.layer['shadeblend'])
+        L_.layers.layer['shadeblend'] = null
     },
 
     deleteElement: function (elmId) {
@@ -759,7 +764,8 @@ let ShadeTool = {
 
     renderHeatmapToMap: function (data, heatmap, activeElmId) {
         const store = useShadeStore.getState()
-        const ed = store.sweepElData[activeElmId]
+        const isBlend = activeElmId === 'blend'
+        const ed = isBlend ? null : store.sweepElData[activeElmId]
         const rampName = ed?.colorRamp || 'shadow'
         const discrete = store.sweepDiscrete || false
         const fitToData = store.sweepFitToData !== false
@@ -769,8 +775,12 @@ let ShadeTool = {
         const bins = rampDef.bins || colors.length
         const isShadowRamp = rampName === 'shadow'
 
-        const elMinFrac = ed?.minFrac != null ? ed.minFrac : 0
-        const elMaxFrac = ed?.maxFrac != null ? ed.maxFrac : 1
+        const elMinFrac = isBlend
+            ? (store.sweepBlendMinFrac != null ? store.sweepBlendMinFrac : 0)
+            : (ed?.minFrac != null ? ed.minFrac : 0)
+        const elMaxFrac = isBlend
+            ? (store.sweepBlendMaxFrac != null ? store.sweepBlendMaxFrac : 1)
+            : (ed?.maxFrac != null ? ed.maxFrac : 1)
         const fracRange = elMaxFrac - elMinFrac
 
         let c = document.createElement('canvas')
@@ -858,7 +868,10 @@ let ShadeTool = {
 
     refreshHeatmap: function (activeElmId) {
         const store = useShadeStore.getState()
-        // Refresh all elements that have sweep data
+        if (store.sweepBlendMode !== 'none') {
+            ShadeTool.refreshBlend()
+            return
+        }
         if (activeElmId != null) {
             const ed = store.sweepElData[activeElmId]
             if (ed?.heatmap && ed?.lastData) {
@@ -891,6 +904,111 @@ let ShadeTool = {
             if (ed?.heatmap && ed?.lastData) {
                 ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
             }
+        }
+    },
+
+    computeBlendedHeatmap: function () {
+        const store = useShadeStore.getState()
+        const mode = store.sweepBlendMode
+        if (mode === 'none') {
+            store.setSweepField('sweepBlendHeatmap', null)
+            return
+        }
+
+        // Collect all per-element heatmaps
+        const heatmaps = []
+        for (const id in store.sweepElData) {
+            const ed = store.sweepElData[id]
+            if (ed?.heatmap) heatmaps.push(ed.heatmap)
+        }
+        if (heatmaps.length < 2) {
+            store.setSweepField('sweepBlendHeatmap', null)
+            return
+        }
+
+        const rows = heatmaps[0].length
+        const cols = heatmaps[0][0]?.length || 0
+        const blended = []
+
+        for (let r = 0; r < rows; r++) {
+            const row = new Array(cols)
+            for (let c = 0; c < cols; c++) {
+                const vals = []
+                for (let h = 0; h < heatmaps.length; h++) {
+                    const f = heatmaps[h][r]?.[c]
+                    if (f != null && f >= 0 && Number.isFinite(f)) vals.push(f)
+                }
+                if (vals.length === 0) {
+                    row[c] = -1
+                } else if (mode === 'average') {
+                    row[c] = vals.reduce((a, b) => a + b, 0) / vals.length
+                } else if (mode === 'min') {
+                    row[c] = Math.min(...vals)
+                } else if (mode === 'max') {
+                    row[c] = Math.max(...vals)
+                } else if (mode === 'multiply') {
+                    row[c] = vals.reduce((a, b) => a * b, 1)
+                } else if (mode === 'union') {
+                    row[c] = 1 - vals.reduce((a, b) => a * (1 - b), 1)
+                }
+            }
+            blended.push(row)
+        }
+
+        // Compute min/max for fit-to-data (exclude border)
+        const border = 2
+        let minFrac = 1, maxFrac = 0
+        for (let r = border; r < blended.length - border; r++) {
+            const row = blended[r]
+            if (!row) continue
+            for (let c = border; c < row.length - border; c++) {
+                const f = row[c]
+                if (f == null || f < 0 || !Number.isFinite(f)) continue
+                if (f < minFrac) minFrac = f
+                if (f > maxFrac) maxFrac = f
+            }
+        }
+        if (minFrac > maxFrac) { minFrac = 0; maxFrac = 1 }
+
+        store.setSweepField('sweepBlendHeatmap', blended)
+        store.setSweepField('sweepBlendMinFrac', minFrac)
+        store.setSweepField('sweepBlendMaxFrac', maxFrac)
+    },
+
+    renderBlendedHeatmap: function () {
+        const store = useShadeStore.getState()
+        const blended = store.sweepBlendHeatmap
+        if (!blended) return
+
+        // Use the first element's lastData for tile geometry
+        let data = null
+        for (const id in store.sweepElData) {
+            const ed = store.sweepElData[id]
+            if (ed?.lastData) { data = ed.lastData; break }
+        }
+        if (!data) return
+
+        ShadeTool.renderHeatmapToMap(data, blended, 'blend')
+    },
+
+    refreshBlend: function () {
+        const store = useShadeStore.getState()
+        const mode = store.sweepBlendMode
+        if (mode === 'none') {
+            // Remove blended layer, show individual layers
+            const layerName = 'shadeblend'
+            Map_.rmNotNull(L_.layers.layer[layerName])
+            L_.layers.layer[layerName] = null
+            ShadeTool.refreshAllHeatmaps()
+        } else {
+            // Hide individual layers, show blended
+            for (const id in store.sweepElData) {
+                const layerName = 'shade' + id
+                Map_.rmNotNull(L_.layers.layer[layerName])
+                L_.layers.layer[layerName] = null
+            }
+            ShadeTool.computeBlendedHeatmap()
+            ShadeTool.renderBlendedHeatmap()
         }
     },
 

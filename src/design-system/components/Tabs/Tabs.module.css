@@ -76,6 +76,9 @@
 }
 
 /* Sizes */
+.xs {
+    /* sub-tab sizing — exported for styles['xs'] lookup */
+}
 .xs .tabBar {
     padding: 2px;
 }
