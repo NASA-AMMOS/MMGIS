@@ -45,21 +45,19 @@
     right: 0;
     bottom: 0;
     background: linear-gradient(
-        -45deg,
-        rgba(255, 255, 255, 0.12) 25%,
-        transparent 25%,
-        transparent 50%,
-        rgba(255, 255, 255, 0.12) 50%,
-        rgba(255, 255, 255, 0.12) 75%,
-        transparent 75%
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.18) 40%,
+        rgba(255, 255, 255, 0.18) 60%,
+        transparent 100%
     );
-    background-size: 20px 20px;
-    animation: progressStripe 0.6s linear infinite;
+    background-size: 200% 100%;
+    animation: progressShimmer 1.5s ease-in-out infinite;
 }
 
-@keyframes progressStripe {
-    0% { background-position: 0 0; }
-    100% { background-position: 20px 0; }
+@keyframes progressShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 .label {
