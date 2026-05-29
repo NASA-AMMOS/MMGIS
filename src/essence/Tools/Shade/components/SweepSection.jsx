@@ -319,62 +319,62 @@ export default function SweepSection() {
                 <div className="vstSweepControlsWrap">
                     <div className="vstSweepPlaybarRow">
                         <div className="vstSweepPlaybar">
+                            <IconButton
+                                size="md"
+                                title="Step back"
+                                onClick={() => ShadeTool.sweepStepBack()}
+                            >
+                                <i className="mdi mdi-skip-previous mdi-18px" />
+                            </IconButton>
+                            {sweepPlaying ? (
                                 <IconButton
-                                    size="sm"
-                                    title="Step back"
-                                    onClick={() => ShadeTool.sweepStepBack()}
+                                    size="md"
+                                    title="Pause"
+                                    onClick={handlePause}
                                 >
-                                    <i className="mdi mdi-skip-previous mdi-14px" />
+                                    <i className="mdi mdi-pause mdi-18px" />
                                 </IconButton>
-                                {sweepPlaying ? (
+                            ) : (
+                                <>
                                     <IconButton
-                                        size="sm"
-                                        title="Pause"
-                                        onClick={handlePause}
+                                        size="md"
+                                        title="Play"
+                                        onClick={handlePlayNormal}
                                     >
-                                        <i className="mdi mdi-pause mdi-14px" />
+                                        <i className="mdi mdi-play mdi-18px" />
                                     </IconButton>
-                                ) : (
-                                    <>
-                                        <IconButton
-                                            size="sm"
-                                            title="Play"
-                                            onClick={handlePlayNormal}
-                                        >
-                                            <i className="mdi mdi-play mdi-14px" />
-                                        </IconButton>
-                                        <IconButton
-                                            size="sm"
-                                            title="Play fast"
-                                            onClick={handlePlayFast}
-                                        >
-                                            <i className="mdi mdi-fast-forward mdi-14px" />
-                                        </IconButton>
-                                    </>
-                                )}
-                                <IconButton
-                                    size="sm"
-                                    title="Step forward"
-                                    onClick={() => ShadeTool.sweepStepForward()}
-                                >
-                                    <i className="mdi mdi-skip-next mdi-14px" />
-                                </IconButton>
-                            </div>
-                            <div className="vstSweepFrameLabel">
-                                <span id="vstSweepFrameLabel" />
-                            </div>
+                                    <IconButton
+                                        size="md"
+                                        title="Play fast"
+                                        onClick={handlePlayFast}
+                                    >
+                                        <i className="mdi mdi-fast-forward mdi-18px" />
+                                    </IconButton>
+                                </>
+                            )}
+                            <IconButton
+                                size="md"
+                                title="Step forward"
+                                onClick={() => ShadeTool.sweepStepForward()}
+                            >
+                                <i className="mdi mdi-skip-next mdi-18px" />
+                            </IconButton>
                         </div>
-                        {totalFrames > 0 && (
-                            <div className="vstSweepTimeline">
-                                <Slider
-                                    value={sweepPlayIndex}
-                                    onValueChange={handleTimelineScrub}
-                                    min={0}
-                                    max={Math.max(totalFrames - 1, 1)}
-                                    step={1}
-                                />
+                    </div>
+                    {totalFrames > 0 && (
+                        <div className="vstSweepTimeline">
+                            <Slider
+                                value={sweepPlayIndex}
+                                onValueChange={handleTimelineScrub}
+                                min={0}
+                                max={Math.max(totalFrames - 1, 1)}
+                                step={1}
+                            />
                         </div>
                     )}
+                    <div className="vstSweepFrameLabel">
+                        <span id="vstSweepFrameLabel" />
+                    </div>
                 </div>
             )}
         </div>
