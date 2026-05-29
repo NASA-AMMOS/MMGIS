@@ -43,6 +43,10 @@ const c = {
         type: 'POST',
         url: 'api/utils/ll2aerll',
     },
+    ll2aerll_bulk: {
+        type: 'POST',
+        url: 'api/utils/ll2aerll_bulk',
+    },
     chronice: {
         type: 'POST',
         url: 'api/utils/chronice',

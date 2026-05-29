@@ -8,6 +8,7 @@ const fs = require("fs");
 const path = require("path");
 const exec = require("child_process").exec;
 const execFile = require("child_process").execFile;
+const spawn = require("child_process").spawn;
 
 const Sequelize = require("sequelize");
 const { sequelizeSTAC } = require("../../../connection");
@@ -407,6 +408,39 @@ router.post("/ll2aerll", function(req,res,next){(router._computeLimiter||functio
   );
 });
 
+
+//utils ll2aerll_bulk (batch time queries, kernels loaded once)
+router.post("/ll2aerll_bulk", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
+  const inputData = {
+    lng: req.body.lng,
+    lat: req.body.lat,
+    height: req.body.height,
+    target: req.body.target,
+    times: req.body.times,
+    obsRefFrame: req.body.obsRefFrame || "IAU_MARS",
+    obsBody: req.body.obsBody || "MARS",
+    includeSunEarth: req.body.includeSunEarth || "false",
+    isCustom: req.body.isCustom || "false",
+    customAz: req.body.customAz || 0,
+    customEl: req.body.customEl || 0,
+    customRange: req.body.customRange || 0,
+  };
+
+  const child = spawn("python", ["private/api/ll2aerll.py", "--bulk"]);
+  let stdout = "";
+  let stderr = "";
+  child.stdout.on("data", (data) => { stdout += data.toString(); });
+  child.stderr.on("data", (data) => { stderr += data.toString(); });
+  child.on("close", (code) => {
+    if (code !== 0) {
+      logger("error", "ll2aerll_bulk failure:", "server", null, stderr);
+    }
+    res.send(stdout);
+  });
+  child.stdin.write(JSON.stringify(inputData));
+  child.stdin.end();
+});
+
 //utils chronos (spice time converter)
 router.post("/chronice", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
   const body = encodeURIComponent(req.body.body);
@@ -424,6 +458,39 @@ router.post("/chronice", function(req,res,next){(router._computeLimiter||functio
       res.send(stdout);
     }
   );
+});
+
+
+//utils ll2aerll_bulk (batch time queries, kernels loaded once)
+router.post("/ll2aerll_bulk", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
+  const inputData = {
+    lng: req.body.lng,
+    lat: req.body.lat,
+    height: req.body.height,
+    target: req.body.target,
+    times: req.body.times,
+    obsRefFrame: req.body.obsRefFrame || "IAU_MARS",
+    obsBody: req.body.obsBody || "MARS",
+    includeSunEarth: req.body.includeSunEarth || "false",
+    isCustom: req.body.isCustom || "false",
+    customAz: req.body.customAz || 0,
+    customEl: req.body.customEl || 0,
+    customRange: req.body.customRange || 0,
+  };
+
+  const child = spawn("python", ["private/api/ll2aerll.py", "--bulk"]);
+  let stdout = "";
+  let stderr = "";
+  child.stdout.on("data", (data) => { stdout += data.toString(); });
+  child.stderr.on("data", (data) => { stderr += data.toString(); });
+  child.on("close", (code) => {
+    if (code !== 0) {
+      logger("error", "ll2aerll_bulk failure:", "server", null, stderr);
+    }
+    res.send(stdout);
+  });
+  child.stdin.write(JSON.stringify(inputData));
+  child.stdin.end();
 });
 
 //utils chronos (spice time converter)

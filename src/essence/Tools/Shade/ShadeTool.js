@@ -1160,172 +1160,119 @@ let ShadeTool = {
                     function (data) {
                         const sweepResults = []
                         const sweepGrids = []
-                        let completed = 0
                         const total = timestamps.length
-                        const BATCH_SIZE = 2
 
-                        function processBatch(batchStart) {
-                            const batchEnd = Math.min(
-                                batchStart + BATCH_SIZE,
-                                total
-                            )
-                            const batchPromises = []
+                        // Build UTC time strings for all timestamps
+                        const timeStrs = timestamps.map((ts) =>
+                            ShadeTool.parseToUTCTime(ts) + ' UTC'
+                        )
 
-                            for (let ti = batchStart; ti < batchEnd; ti++) {
-                                const ts = timestamps[ti]
-                                const timeStr =
-                                    ShadeTool.parseToUTCTime(ts)
+                        // Fetch all target positions in bulk (one call per target, all times)
+                        const currentStore0 = useShadeStore.getState()
+                        const curElm0 = currentStore0.sweepCurrentElm || 1
+                        const totElms0 = currentStore0.sweepTotalElms || 1
+                        const prefix0 = totElms0 > 1 ? ('Shade ' + curElm0 + ' of ' + totElms0 + ': ') : ''
+                        currentStore0.setSweepField('sweepProgress', prefix0 + 'Computing positions...')
 
-                                const tsPromise = new Promise((resolveTs) => {
-                                    const targetPromises =
-                                        selectedTargets.map(
-                                            (tgt) =>
-                                                new Promise(
-                                                    (resolveTarget) => {
-                                                        calls.api(
-                                                            'll2aerll',
-                                                            {
-                                                                lng: source.lng,
-                                                                lat: source.lat,
-                                                                height: centerHeight,
-                                                                target: tgt.value,
-                                                                time:
-                                                                    timeStr +
-                                                                    ' UTC',
-                                                                obsRefFrame,
-                                                                obsBody,
-                                                                includeSunEarth:
-                                                                    'false',
-                                                                isCustom: false,
-                                                            },
-                                                            function (s) {
-                                                                resolveTarget(s)
-                                                            },
-                                                            function () {
-                                                                resolveTarget({
-                                                                    error: true,
-                                                                })
-                                                            }
-                                                        )
-                                                    }
-                                                )
-                                        )
-
-                                    Promise.all(targetPromises).then(
-                                        (targetResults) => {
-                                            const validTargets =
-                                                targetResults.filter(
-                                                    (s) => !s.error
-                                                )
-                                            if (validTargets.length > 0) {
-                                                const grids =
-                                                    validTargets.map((s) =>
-                                                        ShadeTool_Manager.computeShade(
-                                                            shadeTag,
-                                                            {
-                                                                lat: s.latitude,
-                                                                lng: s.longitude,
-                                                                altitude:
-                                                                    s.horizontal_altitude,
-                                                                az: s.azimuth,
-                                                                el: s.elevation,
-                                                                range: s.range,
-                                                            },
-                                                            options
-                                                        )
-                                                    )
-                                                const compositedGrid =
-                                                    grids.length === 1
-                                                        ? grids[0]
-                                                        : ShaderTool_Algorithm.compositeResults(
-                                                              grids,
-                                                              options.compositeMode ||
-                                                                  'or'
-                                                          )
-
-                                                let visCount = 0
-                                                let totalCells = 0
-                                                for (
-                                                    let y = 0;
-                                                    y <
-                                                    compositedGrid.length;
-                                                    y++
-                                                ) {
-                                                    for (
-                                                        let x = 0;
-                                                        x <
-                                                        compositedGrid[y]
-                                                            .length;
-                                                        x++
-                                                    ) {
-                                                        if (
-                                                            compositedGrid[y][
-                                                                x
-                                                            ] !== 9
-                                                        ) {
-                                                            totalCells++
-                                                            if (
-                                                                compositedGrid[
-                                                                    y
-                                                                ][x] === 1 ||
-                                                                compositedGrid[
-                                                                    y
-                                                                ][x] === 2
-                                                            )
-                                                                visCount++
-                                                        }
-                                                    }
-                                                }
-                                                const primary =
-                                                    validTargets[0]
-                                                resolveTs({
-                                                    time: ts,
-                                                    visibilityPct:
-                                                        totalCells > 0
-                                                            ? (
-                                                                  (visCount /
-                                                                      totalCells) *
-                                                                  100
-                                                              ).toFixed(2)
-                                                            : 0,
-                                                    azimuth: primary.azimuth,
-                                                    elevation:
-                                                        primary.elevation,
-                                                    range: primary.range,
-                                                    grid: compositedGrid,
-                                                })
-                                            } else {
-                                                resolveTs({
-                                                    time: ts,
-                                                    visibilityPct: 0,
-                                                    azimuth: 0,
-                                                    elevation: 0,
-                                                    range: 0,
-                                                    grid: null,
-                                                })
-                                            }
+                        const targetBulkPromises = selectedTargets.map(
+                            (tgt) =>
+                                new Promise((resolve) => {
+                                    calls.api(
+                                        'll2aerll_bulk',
+                                        {
+                                            lng: source.lng,
+                                            lat: source.lat,
+                                            height: centerHeight,
+                                            target: tgt.value,
+                                            times: timeStrs,
+                                            obsRefFrame,
+                                            obsBody,
+                                            includeSunEarth: 'false',
+                                            isCustom: 'false',
+                                        },
+                                        function (results) {
+                                            resolve(Array.isArray(results) ? results : [])
+                                        },
+                                        function () {
+                                            resolve([])
                                         }
                                     )
                                 })
-                                batchPromises.push(tsPromise)
-                            }
+                        )
 
-                            Promise.all(batchPromises).then((batchResults) => {
+                        Promise.all(targetBulkPromises).then((allTargetResults) => {
+                            if (sweepRunId !== ShadeTool._sweepRunId) return
+
+                            // allTargetResults[tgtIdx][timeIdx] = position result
+                            for (let ti = 0; ti < total; ti++) {
                                 if (sweepRunId !== ShadeTool._sweepRunId) return
-                                batchResults.forEach((r) => {
-                                    sweepResults.push({
-                                        time: r.time,
-                                        visibilityPct: r.visibilityPct,
-                                        azimuth: r.azimuth,
-                                        elevation: r.elevation,
-                                        range: r.range,
-                                    })
-                                    sweepGrids.push(r.grid || null)
-                                })
-                                completed += batchResults.length
+                                const ts = timestamps[ti]
 
-                                const currentStore =
-                                    useShadeStore.getState()
+                                const validTargets = []
+                                for (let tgtIdx = 0; tgtIdx < allTargetResults.length; tgtIdx++) {
+                                    const r = allTargetResults[tgtIdx][ti]
+                                    if (r && !r.error) validTargets.push(r)
+                                }
+
+                                if (validTargets.length > 0) {
+                                    const grids = validTargets.map((s) =>
+                                        ShadeTool_Manager.computeShade(
+                                            shadeTag,
+                                            {
+                                                lat: s.latitude,
+                                                lng: s.longitude,
+                                                altitude: s.horizontal_altitude,
+                                                az: s.azimuth,
+                                                el: s.elevation,
+                                                range: s.range,
+                                            },
+                                            options
+                                        )
+                                    )
+                                    const compositedGrid =
+                                        grids.length === 1
+                                            ? grids[0]
+                                            : ShaderTool_Algorithm.compositeResults(
+                                                  grids,
+                                                  options.compositeMode || 'or'
+                                              )
+
+                                    let visCount = 0
+                                    let totalCells = 0
+                                    for (let y = 0; y < compositedGrid.length; y++) {
+                                        for (let x = 0; x < compositedGrid[y].length; x++) {
+                                            if (compositedGrid[y][x] !== 9) {
+                                                totalCells++
+                                                if (compositedGrid[y][x] === 1 || compositedGrid[y][x] === 2)
+                                                    visCount++
+                                            }
+                                        }
+                                    }
+                                    const primary = validTargets[0]
+                                    sweepResults.push({
+                                        time: ts,
+                                        visibilityPct: totalCells > 0
+                                            ? ((visCount / totalCells) * 100).toFixed(2)
+                                            : 0,
+                                        azimuth: primary.azimuth,
+                                        elevation: primary.elevation,
+                                        range: primary.range,
+                                    })
+                                    sweepGrids.push(compositedGrid)
+                                } else {
+                                    sweepResults.push({
+                                        time: ts,
+                                        visibilityPct: 0,
+                                        azimuth: 0,
+                                        elevation: 0,
+                                        range: 0,
+                                    })
+                                    sweepGrids.push(null)
+                                }
+
+                                // Update progress
+                                const completed = ti + 1
+                                const currentStore = useShadeStore.getState()
                                 const curElm = currentStore.sweepCurrentElm || 1
                                 const totElms = currentStore.sweepTotalElms || 1
                                 const elmPct = (completed / total) * 100
@@ -1339,97 +1286,52 @@ let ShadeTool = {
                                     'sweepProgressPct',
                                     overallPct
                                 )
+                            }
 
-                                if (completed >= total) {
-                                    currentStore.setSweepElField(
-                                        activeElmId, 'results', sweepResults
-                                    )
-                                    currentStore.setSweepElField(
-                                        activeElmId, 'grids', sweepGrids
-                                    )
-                                    currentStore.setSweepField(
-                                        'sweepPlayIndex',
-                                        0
-                                    )
-                                    currentStore.setSweepElField(
-                                        activeElmId, 'lastData', data
-                                    )
-                                    currentStore.setSweepElField(
-                                        activeElmId, 'lastOptions', options
-                                    )
+                            // All timesteps processed — store results
+                            const currentStoreF = useShadeStore.getState()
+                            currentStoreF.setSweepElField(activeElmId, 'results', sweepResults)
+                            currentStoreF.setSweepElField(activeElmId, 'grids', sweepGrids)
+                            currentStoreF.setSweepField('sweepPlayIndex', 0)
+                            currentStoreF.setSweepElField(activeElmId, 'lastData', data)
+                            currentStoreF.setSweepElField(activeElmId, 'lastOptions', options)
 
-                                    // Show the heatmap first (initial view after sweep)
-                                    if (sweepGrids.length > 0) {
-                                        const heatmap =
-                                            ShaderTool_Algorithm.cumulativeVisibility(
-                                                sweepGrids
-                                            )
-                                        // Compute actual data range for fit-to-data normalization
-                                        let minFrac = 1, maxFrac = 0
-                                        for (let r = 0; r < heatmap.length; r++) {
-                                            const row = heatmap[r]
-                                            if (!row) continue
-                                            for (let c = 0; c < row.length; c++) {
-                                                const f = row[c]
-                                                if (f == null || f < 0 || !Number.isFinite(f)) continue
-                                                if (f < minFrac) minFrac = f
-                                                if (f > maxFrac) maxFrac = f
-                                            }
-                                        }
-                                        if (minFrac > maxFrac) { minFrac = 0; maxFrac = 1 }
-                                        currentStore.setSweepElField(activeElmId, 'minFrac', minFrac)
-                                        currentStore.setSweepElField(activeElmId, 'maxFrac', maxFrac)
-                                        currentStore.setSweepElField(
-                                            activeElmId, 'heatmap', heatmap
-                                        )
-                                        currentStore.setSweepField(
-                                            'sweepViewMode',
-                                            'composite'
-                                        )
-                                        ShadeTool.renderHeatmapToMap(
-                                            data,
-                                            heatmap,
-                                            activeElmId
-                                        )
+                            if (sweepGrids.length > 0) {
+                                const heatmap = ShaderTool_Algorithm.cumulativeVisibility(sweepGrids)
+                                let minFrac = 1, maxFrac = 0
+                                for (let r = 0; r < heatmap.length; r++) {
+                                    const row = heatmap[r]
+                                    if (!row) continue
+                                    for (let c = 0; c < row.length; c++) {
+                                        const f = row[c]
+                                        if (f == null || f < 0 || !Number.isFinite(f)) continue
+                                        if (f < minFrac) minFrac = f
+                                        if (f > maxFrac) maxFrac = f
                                     }
-
-                                    // Pre-build atlas textures for playback (stored but not shown).
-                                    // When the user clicks play, makeSweepLayer swaps in the atlas.
-                                    ShadeTool.buildSweepAtlas(
-                                        data, sweepGrids, options, activeElmId
-                                    )
-
-                                    const _ce = currentStore.sweepCurrentElm || 1
-                                    const _te = currentStore.sweepTotalElms || 1
-                                    const _pf = _te > 1 ? ('Shade ' + _ce + ' of ' + _te + ': ') : ''
-                                    const _overallDone = (_ce / _te) * 100
-                                    currentStore.setSweepField(
-                                        'sweepProgress',
-                                        _pf + 'Done (' + total + ' steps)'
-                                    )
-                                    currentStore.setSweepField(
-                                        'sweepProgressPct',
-                                        _overallDone
-                                    )
-                                    if (_te > 1) {
-                                        Toast.success(
-                                            'Shade ' + _ce + ' of ' + _te + ': ' + total + ' timesteps processed.',
-                                            3000
-                                        )
-                                    } else {
-                                        Toast.success(
-                                            'Sweep complete. ' + total + ' timesteps processed.',
-                                            4000
-                                        )
-                                    }
-                                    if (typeof onComplete === 'function') onComplete()
-                                } else {
-                                    processBatch(batchEnd)
                                 }
-                            })
-                        }
+                                if (minFrac > maxFrac) { minFrac = 0; maxFrac = 1 }
+                                currentStoreF.setSweepElField(activeElmId, 'minFrac', minFrac)
+                                currentStoreF.setSweepElField(activeElmId, 'maxFrac', maxFrac)
+                                currentStoreF.setSweepElField(activeElmId, 'heatmap', heatmap)
+                                currentStoreF.setSweepField('sweepViewMode', 'composite')
+                                ShadeTool.renderHeatmapToMap(data, heatmap, activeElmId)
+                            }
 
-                        processBatch(0)
+                            ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId)
+
+                            const _ce = currentStoreF.sweepCurrentElm || 1
+                            const _te = currentStoreF.sweepTotalElms || 1
+                            const _pf = _te > 1 ? ('Shade ' + _ce + ' of ' + _te + ': ') : ''
+                            const _overallDone = (_ce / _te) * 100
+                            currentStoreF.setSweepField('sweepProgress', _pf + 'Done (' + total + ' steps)')
+                            currentStoreF.setSweepField('sweepProgressPct', _overallDone)
+                            if (_te > 1) {
+                                Toast.success('Shade ' + _ce + ' of ' + _te + ': ' + total + ' timesteps processed.', 3000)
+                            } else {
+                                Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
+                            }
+                            if (typeof onComplete === 'function') onComplete()
+                        })
                     }
                 )
             },
