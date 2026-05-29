@@ -747,6 +747,18 @@
     padding: 2px 0;
 }
 
+#shadeTool .vstSweepCardSkyDome {
+    display: flex;
+    justify-content: center;
+    padding: 4px 0;
+}
+
+#shadeTool .vstSweepCardSkyDome canvas {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+}
+
 #shadeTool .vstSweepCardMiniIndicators {
     display: flex;
     gap: 6px;

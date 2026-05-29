@@ -117,6 +117,13 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
         ShadeTool.drawMiniRAEIndicators(azCanvasId, elCanvasId, currentResult)
     }, [mode, currentResult, azCanvasId, elCanvasId])
 
+    // Draw sky dome polar plot
+    const skyDomeId = `sweepSkyDome_${elmId}`
+    useEffect(() => {
+        if (mode !== 'playback' || !ed?.results || ed.results.length === 0) return
+        ShadeTool.drawSkyDome(skyDomeId, ed.results, sweepPlayIndex)
+    }, [mode, ed?.results, sweepPlayIndex, skyDomeId])
+
     // Drag from handle only — use mousedown on handle to allow next dragstart
     const handleHandleMouseDown = useCallback(() => {
         isDraggingRef.current = true
@@ -243,6 +250,11 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
                             <span className="vstOpacityValue">{Math.round(opacity * 100)}%</span>
                         </div>
                     </div>
+                    {ed?.results && ed.results.length > 0 && (
+                        <div className="vstSweepCardSkyDome">
+                            <canvas id={skyDomeId} width="140" height="140" />
+                        </div>
+                    )}
                     {currentResult && (
                         <div className="vstSweepCardMiniIndicators">
                             <div className="vstSweepCardMiniIndicator">

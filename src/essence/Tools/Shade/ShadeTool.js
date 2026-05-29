@@ -2196,6 +2196,232 @@ let ShadeTool = {
         }
     },
 
+    /**
+     * Draw a sky dome polar plot on a canvas.
+     * Center = zenith (90° el), edge = horizon (0° el).
+     * Azimuth runs clockwise from north (top).
+     * @param {string} canvasId - DOM id of the canvas element
+     * @param {Array} results - full sweep results array [{azimuth, elevation, ...}, ...]
+     * @param {number} currentIdx - index into results for the current frame
+     */
+    drawSkyDome(canvasId, results, currentIdx) {
+        const c = document.getElementById(canvasId)
+        if (!c) return
+
+        const size = 140
+        const pad = 16
+        const r = (size - pad * 2) / 2
+        const cx = size / 2
+        const cy = size / 2
+
+        c.width = size
+        c.height = size
+        const ctx = c.getContext('2d')
+        ctx.clearRect(0, 0, size, size)
+
+        // Helper: az/el → canvas x,y
+        // az: degrees clockwise from north, el: degrees above horizon
+        function azel2xy(az, el) {
+            const elClamped = Math.max(0, Math.min(90, el))
+            const dist = ((90 - elClamped) / 90) * r
+            const azRad = (az - 90) * (Math.PI / 180) // -90 so north=top
+            return {
+                x: cx + dist * Math.cos(azRad),
+                y: cy + dist * Math.sin(azRad),
+            }
+        }
+
+        // Sky gradient background (dark blue center/zenith, lighter at horizon)
+        const skyGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
+        skyGrad.addColorStop(0, 'rgba(8, 40, 80, 0.6)')
+        skyGrad.addColorStop(1, 'rgba(30, 80, 130, 0.3)')
+        ctx.beginPath()
+        ctx.arc(cx, cy, r, 0, 2 * Math.PI)
+        ctx.fillStyle = skyGrad
+        ctx.fill()
+
+        // Horizon circle
+        ctx.beginPath()
+        ctx.arc(cx, cy, r, 0, 2 * Math.PI)
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)'
+        ctx.lineWidth = 1
+        ctx.stroke()
+
+        // Elevation rings (30°, 60°)
+        for (const elDeg of [30, 60]) {
+            const ringR = ((90 - elDeg) / 90) * r
+            ctx.beginPath()
+            ctx.arc(cx, cy, ringR, 0, 2 * Math.PI)
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)'
+            ctx.lineWidth = 0.5
+            ctx.setLineDash([2, 3])
+            ctx.stroke()
+            ctx.setLineDash([])
+        }
+
+        // Cardinal direction lines (N-S, E-W)
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)'
+        ctx.lineWidth = 0.5
+        ctx.beginPath()
+        ctx.moveTo(cx, cy - r)
+        ctx.lineTo(cx, cy + r)
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.moveTo(cx - r, cy)
+        ctx.lineTo(cx + r, cy)
+        ctx.stroke()
+
+        // Cardinal labels
+        ctx.font = '9px Arial'
+        ctx.fillStyle = 'rgba(255,255,255,0.6)'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'bottom'
+        ctx.fillText('N', cx, cy - r - 1)
+        ctx.textBaseline = 'top'
+        ctx.fillText('S', cx, cy + r + 1)
+        ctx.textBaseline = 'middle'
+        ctx.textAlign = 'left'
+        ctx.fillText('E', cx + r + 2, cy)
+        ctx.textAlign = 'right'
+        ctx.fillText('W', cx - r - 2, cy)
+
+        // Elevation labels
+        ctx.font = '7px Arial'
+        ctx.fillStyle = 'rgba(255,255,255,0.35)'
+        ctx.textAlign = 'left'
+        ctx.textBaseline = 'middle'
+        for (const elDeg of [30, 60]) {
+            const ringR = ((90 - elDeg) / 90) * r
+            ctx.fillText(elDeg + '°', cx + 2, cy - ringR)
+        }
+
+        if (!results || results.length === 0) return
+
+        // Filter valid results (those with az/el data, el >= 0 means above horizon)
+        const validResults = results.filter(
+            (r) => r && r.azimuth != null && r.elevation != null
+        )
+        if (validResults.length === 0) return
+
+        // Draw the full sweep path
+        ctx.beginPath()
+        let first = true
+        for (let i = 0; i < results.length; i++) {
+            const pt = results[i]
+            if (!pt || pt.azimuth == null || pt.elevation == null) continue
+            const p = azel2xy(pt.azimuth, pt.elevation)
+            if (first) {
+                ctx.moveTo(p.x, p.y)
+                first = false
+            } else {
+                ctx.lineTo(p.x, p.y)
+            }
+        }
+        ctx.strokeStyle = 'rgba(219, 182, 88, 0.5)'
+        ctx.lineWidth = 1.5
+        ctx.stroke()
+
+        // Draw below-horizon portions with dashed style
+        ctx.beginPath()
+        first = true
+        for (let i = 0; i < results.length; i++) {
+            const pt = results[i]
+            if (!pt || pt.azimuth == null || pt.elevation == null) continue
+            if (pt.elevation < 0) {
+                const p = azel2xy(pt.azimuth, 0) // clamp to horizon
+                if (first) {
+                    ctx.moveTo(p.x, p.y)
+                    first = false
+                } else {
+                    ctx.lineTo(p.x, p.y)
+                }
+            } else {
+                first = true
+            }
+        }
+        if (!first) {
+            ctx.strokeStyle = 'rgba(219, 182, 88, 0.25)'
+            ctx.lineWidth = 1
+            ctx.setLineDash([2, 3])
+            ctx.stroke()
+            ctx.setLineDash([])
+        }
+
+        // Draw small dots along the path at intervals
+        const dotInterval = Math.max(1, Math.floor(results.length / 20))
+        for (let i = 0; i < results.length; i += dotInterval) {
+            const pt = results[i]
+            if (!pt || pt.azimuth == null || pt.elevation == null) continue
+            if (pt.elevation < 0) continue
+            const p = azel2xy(pt.azimuth, pt.elevation)
+            ctx.beginPath()
+            ctx.arc(p.x, p.y, 1.5, 0, 2 * Math.PI)
+            ctx.fillStyle = 'rgba(219, 182, 88, 0.4)'
+            ctx.fill()
+        }
+
+        // Start marker (small green circle)
+        const startPt = results[0]
+        if (startPt && startPt.azimuth != null && startPt.elevation != null && startPt.elevation >= 0) {
+            const sp = azel2xy(startPt.azimuth, startPt.elevation)
+            ctx.beginPath()
+            ctx.arc(sp.x, sp.y, 3, 0, 2 * Math.PI)
+            ctx.fillStyle = 'rgba(100, 220, 100, 0.8)'
+            ctx.fill()
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)'
+            ctx.lineWidth = 0.5
+            ctx.stroke()
+        }
+
+        // End marker (small red circle)
+        const endPt = results[results.length - 1]
+        if (endPt && endPt.azimuth != null && endPt.elevation != null && endPt.elevation >= 0) {
+            const ep = azel2xy(endPt.azimuth, endPt.elevation)
+            ctx.beginPath()
+            ctx.arc(ep.x, ep.y, 3, 0, 2 * Math.PI)
+            ctx.fillStyle = 'rgba(220, 100, 100, 0.8)'
+            ctx.fill()
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)'
+            ctx.lineWidth = 0.5
+            ctx.stroke()
+        }
+
+        // Current position (larger bright dot)
+        const cur = results[currentIdx]
+        if (cur && cur.azimuth != null && cur.elevation != null) {
+            const cp = azel2xy(cur.azimuth, cur.elevation)
+            // Glow effect
+            const glow = ctx.createRadialGradient(cp.x, cp.y, 0, cp.x, cp.y, 8)
+            glow.addColorStop(0, 'rgba(219, 182, 88, 0.6)')
+            glow.addColorStop(1, 'rgba(219, 182, 88, 0)')
+            ctx.beginPath()
+            ctx.arc(cp.x, cp.y, 8, 0, 2 * Math.PI)
+            ctx.fillStyle = glow
+            ctx.fill()
+
+            // Solid dot
+            ctx.beginPath()
+            ctx.arc(cp.x, cp.y, 4, 0, 2 * Math.PI)
+            ctx.fillStyle = '#dbb658'
+            ctx.fill()
+            ctx.strokeStyle = 'rgba(255,255,255,0.8)'
+            ctx.lineWidth = 1
+            ctx.stroke()
+
+            // Label with current az/el
+            if (cur.elevation >= 0) {
+                ctx.font = '8px Arial'
+                ctx.fillStyle = 'rgba(255,255,255,0.8)'
+                ctx.textAlign = 'left'
+                ctx.textBaseline = 'bottom'
+                ctx.fillText(
+                    cur.azimuth.toFixed(0) + '° / ' + cur.elevation.toFixed(0) + '°',
+                    cp.x + 6, cp.y - 2
+                )
+            }
+        }
+    },
+
     // === Utility ===
 
     parseToUTCTime(time, formatted) {
