@@ -40,6 +40,15 @@ let ShadeTool_Algorithm = {
 
         let grids = this.initializeGrids(d)
 
+        // Mark all interior nodata cells (initializeGrids only handles edges)
+        for (let y = 2; y < d.data.length - 2; y++) {
+            for (let x = 2; x < d.data[y].length - 2; x++) {
+                if (this.isNoData(d.data[y][x])) {
+                    grids.resultGrid[y][x] = 9
+                }
+            }
+        }
+
         //this.processFirst(d, grids)
         if (d.targetSource.altitude > 0) {
             this.processUp(d, grids)
@@ -522,7 +531,8 @@ let ShadeTool_Algorithm = {
                             (ang > minAz && ang < maxAz) ||
                             (ang + Math.PI * 2 > minAz &&
                                 ang + Math.PI * 2 < maxAz)
-                        )
+                        ) &&
+                        grids.resultGrid[y][x] !== 9
                     )
                         grids.resultGrid[y][x] = 0
                 }
