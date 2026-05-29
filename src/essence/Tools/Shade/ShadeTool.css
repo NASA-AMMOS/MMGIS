@@ -292,6 +292,30 @@
     margin-top: 0;
 }
 
+#shadeTool .vstGroupToggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    user-select: none;
+}
+#shadeTool .vstGroupToggle:hover {
+    color: var(--color-f);
+}
+
+#shadeTool .vstGroupChevron {
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+    font-size: 14px;
+}
+#shadeTool .vstGroupChevronOpen {
+    transform: rotate(90deg);
+}
+
+#shadeTool .vstGroupContent {
+    padding: 0 0 2px;
+}
+
 /* Regen icon on header row */
 #shadeTool .vstRegenIcon {
     color: var(--color-r6);

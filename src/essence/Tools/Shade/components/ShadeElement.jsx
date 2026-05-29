@@ -6,6 +6,7 @@ import L_ from '../../../Basics/Layers_/Layers_'
 import {
     Button,
     Checkbox,
+    Collapsible,
     IconButton,
     Dropdown,
     InputWithUnit,
@@ -111,6 +112,10 @@ export default function ShadeElement({ elmId }) {
     }, [elmId])
 
 
+    const [sourceOpen, setSourceOpen] = useState(true)
+    const [displayOpen, setDisplayOpen] = useState(false)
+    const [resultsOpen, setResultsOpen] = useState(false)
+
     const [colorPickerOpen, setColorPickerOpen] = useState(false)
     const colorPickerRef = useRef(null)
 
@@ -192,181 +197,208 @@ export default function ShadeElement({ elmId }) {
             </div>
             <div className="vstShadeBody">
                 {/* — Source — */}
-                <div className="vstGroupHeader">Source</div>
-                <div className="vstOptionRow">
-                    <div className="vstOptionLabel" title='Orbiter or body that is the source of "light".'>
-                        Entity
-                    </div>
-                    <Select
-                        value={String(el.sourceIndex)}
-                        onValueChange={(v) =>
-                            handleChange('sourceIndex', parseInt(v))
-                        }
-                        options={sourceOptions}
-                        className="vstSelect"
-                    />
-                </div>
-                {isCustom && (
-                    <>
-                        <div className="vstOptionRow">
-                            <div className="vstOptionLabel">Azimuth</div>
-                            <InputWithUnit
-                                unit="°"
-                                type="number"
-                                min="0"
-                                max="360"
-                                value={isNaN(el.customAz) ? '' : el.customAz}
-                                onChange={(e) =>
-                                    handleChange(
-                                        'customAz',
-                                        parseFloat(e.target.value)
-                                    )
-                                }
-                                className="vstFieldInput"
-                            />
+                <Collapsible open={sourceOpen} onOpenChange={setSourceOpen}>
+                    <Collapsible.Trigger className="vstGroupHeader vstGroupToggle">
+                        <i className={`mdi mdi-chevron-right mdi-14px vstGroupChevron ${sourceOpen ? 'vstGroupChevronOpen' : ''}`} />
+                        Source
+                    </Collapsible.Trigger>
+                    <Collapsible.Content>
+                        <div className="vstGroupContent">
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel" title='Orbiter or body that is the source of "light".'>
+                                    Entity
+                                </div>
+                                <Select
+                                    value={String(el.sourceIndex)}
+                                    onValueChange={(v) =>
+                                        handleChange('sourceIndex', parseInt(v))
+                                    }
+                                    options={sourceOptions}
+                                    className="vstSelect"
+                                />
+                            </div>
+                            {isCustom && (
+                                <>
+                                    <div className="vstOptionRow">
+                                        <div className="vstOptionLabel">Azimuth</div>
+                                        <InputWithUnit
+                                            unit="°"
+                                            type="number"
+                                            min="0"
+                                            max="360"
+                                            value={isNaN(el.customAz) ? '' : el.customAz}
+                                            onChange={(e) =>
+                                                handleChange(
+                                                    'customAz',
+                                                    parseFloat(e.target.value)
+                                                )
+                                            }
+                                            className="vstFieldInput"
+                                        />
+                                    </div>
+                                    <div className="vstOptionRow">
+                                        <div className="vstOptionLabel">Elevation</div>
+                                        <InputWithUnit
+                                            unit="°"
+                                            type="number"
+                                            min="-90"
+                                            max="90"
+                                            value={isNaN(el.customEl) ? '' : el.customEl}
+                                            onChange={(e) =>
+                                                handleChange(
+                                                    'customEl',
+                                                    parseFloat(e.target.value)
+                                                )
+                                            }
+                                            className="vstFieldInput"
+                                        />
+                                    </div>
+                                    <div className="vstOptionRow">
+                                        <div className="vstOptionLabel">Range</div>
+                                        <InputWithUnit
+                                            unit="km"
+                                            type="number"
+                                            value={
+                                                isNaN(el.customRange)
+                                                    ? ''
+                                                    : el.customRange
+                                            }
+                                            onChange={(e) =>
+                                                handleChange(
+                                                    'customRange',
+                                                    parseFloat(e.target.value)
+                                                )
+                                            }
+                                            className="vstFieldInput"
+                                        />
+                                    </div>
+                                </>
+                            )}
+                            {observerOptions.length > 0 && (
+                                <div className="vstOptionRow">
+                                    <div className="vstOptionLabel" title="Ground observer for time conversions">
+                                        Observer
+                                    </div>
+                                    <Select
+                                        value={el.observer || ''}
+                                        onValueChange={(v) =>
+                                            handleChange('observer', v)
+                                        }
+                                        options={observerOptions}
+                                        className="vstSelect"
+                                    />
+                                </div>
+                            )}
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel" title="Height above surface of source point.">
+                                    Height
+                                </div>
+                                <InputWithUnit
+                                    unit="m"
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={el.height}
+                                    onChange={(e) =>
+                                        handleChange(
+                                            'height',
+                                            parseFloat(e.target.value)
+                                        )
+                                    }
+                                    className="vstFieldInput"
+                                />
+                            </div>
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel" title="Dataset to shade.">
+                                    DEM
+                                </div>
+                                <Select
+                                    value={String(el.dataIndex)}
+                                    onValueChange={(v) =>
+                                        handleChange('dataIndex', parseInt(v))
+                                    }
+                                    options={dataOptions}
+                                    className="vstSelect"
+                                />
+                            </div>
                         </div>
-                        <div className="vstOptionRow">
-                            <div className="vstOptionLabel">Elevation</div>
-                            <InputWithUnit
-                                unit="°"
-                                type="number"
-                                min="-90"
-                                max="90"
-                                value={isNaN(el.customEl) ? '' : el.customEl}
-                                onChange={(e) =>
-                                    handleChange(
-                                        'customEl',
-                                        parseFloat(e.target.value)
-                                    )
-                                }
-                                className="vstFieldInput"
-                            />
-                        </div>
-                        <div className="vstOptionRow">
-                            <div className="vstOptionLabel">Range</div>
-                            <InputWithUnit
-                                unit="km"
-                                type="number"
-                                value={
-                                    isNaN(el.customRange)
-                                        ? ''
-                                        : el.customRange
-                                }
-                                onChange={(e) =>
-                                    handleChange(
-                                        'customRange',
-                                        parseFloat(e.target.value)
-                                    )
-                                }
-                                className="vstFieldInput"
-                            />
-                        </div>
-                    </>
-                )}
-                {observerOptions.length > 0 && (
-                    <div className="vstOptionRow">
-                        <div className="vstOptionLabel" title="Ground observer for time conversions">
-                            Observer
-                        </div>
-                        <Select
-                            value={el.observer || ''}
-                            onValueChange={(v) =>
-                                handleChange('observer', v)
-                            }
-                            options={observerOptions}
-                            className="vstSelect"
-                        />
-                    </div>
-                )}
-                <div className="vstOptionRow">
-                    <div className="vstOptionLabel" title="Height above surface of source point.">
-                        Height
-                    </div>
-                    <InputWithUnit
-                        unit="m"
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={el.height}
-                        onChange={(e) =>
-                            handleChange(
-                                'height',
-                                parseFloat(e.target.value)
-                            )
-                        }
-                        className="vstFieldInput"
-                    />
-                </div>
-                <div className="vstOptionRow">
-                    <div className="vstOptionLabel" title="Dataset to shade.">
-                        DEM
-                    </div>
-                    <Select
-                        value={String(el.dataIndex)}
-                        onValueChange={(v) =>
-                            handleChange('dataIndex', parseInt(v))
-                        }
-                        options={dataOptions}
-                        className="vstSelect"
-                    />
-                </div>
+                    </Collapsible.Content>
+                </Collapsible>
 
                 {/* — Display — */}
-                <div className="vstGroupHeader">Display</div>
-                <div className="vstOptionRow">
-                    <div className="vstOptionLabel">Color</div>
-                    <div className="vstColorSwatchWrap" ref={colorPickerRef}>
-                        <div
-                            className="vstColorSwatch"
-                            style={{ background: rgbStr(el.color) }}
-                            onClick={() => setColorPickerOpen(!colorPickerOpen)}
-                            title="Change color"
-                        />
-                        {colorPickerOpen && (
-                            <div className="vstColorPalette">
-                                {MULTI_SOURCE_COLORS.map((c, i) => (
+                <Collapsible open={displayOpen} onOpenChange={setDisplayOpen}>
+                    <Collapsible.Trigger className="vstGroupHeader vstGroupToggle">
+                        <i className={`mdi mdi-chevron-right mdi-14px vstGroupChevron ${displayOpen ? 'vstGroupChevronOpen' : ''}`} />
+                        Display
+                    </Collapsible.Trigger>
+                    <Collapsible.Content>
+                        <div className="vstGroupContent">
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel">Color</div>
+                                <div className="vstColorSwatchWrap" ref={colorPickerRef}>
                                     <div
-                                        key={i}
-                                        className="vstColorOption"
-                                        style={{ background: rgbStr(c) }}
-                                        onClick={() => handleColorSelect(c)}
+                                        className="vstColorSwatch"
+                                        style={{ background: rgbStr(el.color) }}
+                                        onClick={() => setColorPickerOpen(!colorPickerOpen)}
+                                        title="Change color"
                                     />
-                                ))}
+                                    {colorPickerOpen && (
+                                        <div className="vstColorPalette">
+                                            {MULTI_SOURCE_COLORS.map((c, i) => (
+                                                <div
+                                                    key={i}
+                                                    className="vstColorOption"
+                                                    style={{ background: rgbStr(c) }}
+                                                    onClick={() => handleColorSelect(c)}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        )}
-                    </div>
-                </div>
-                <div className="vstOptionRow">
-                    <div className="vstOptionLabel">Opacity</div>
-                    <div style={{ width: 145 }}>
-                        <Slider
-                            value={el.opacity}
-                            onValueChange={handleOpacityChange}
-                            min={0}
-                            max={1}
-                            step={0.01}
-                            suffix="%"
-                            formatValue={(v) => Math.round(v * 100)}
-                        />
-                    </div>
-                </div>
-                <div className="vstOptionRow">
-                    <div className="vstOptionLabel" title="High or Ultra disables auto-regeneration.">
-                        Resolution
-                    </div>
-                    <Select
-                        value={String(el.resolution)}
-                        onValueChange={(v) =>
-                            handleChange('resolution', parseInt(v))
-                        }
-                        options={resolutionOptions}
-                        className="vstSelect"
-                    />
-                </div>
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel">Opacity</div>
+                                <div style={{ width: 145 }}>
+                                    <Slider
+                                        value={el.opacity}
+                                        onValueChange={handleOpacityChange}
+                                        min={0}
+                                        max={1}
+                                        step={0.01}
+                                        suffix="%"
+                                        formatValue={(v) => Math.round(v * 100)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel" title="High or Ultra disables auto-regeneration.">
+                                    Resolution
+                                </div>
+                                <Select
+                                    value={String(el.resolution)}
+                                    onValueChange={(v) =>
+                                        handleChange('resolution', parseInt(v))
+                                    }
+                                    options={resolutionOptions}
+                                    className="vstSelect"
+                                />
+                            </div>
+                        </div>
+                    </Collapsible.Content>
+                </Collapsible>
 
                 {/* — Results — */}
-                <div className="vstGroupHeader">Results</div>
-                <ShadeResults elmId={elmId} />
+                <Collapsible open={resultsOpen} onOpenChange={setResultsOpen}>
+                    <Collapsible.Trigger className="vstGroupHeader vstGroupToggle">
+                        <i className={`mdi mdi-chevron-right mdi-14px vstGroupChevron ${resultsOpen ? 'vstGroupChevronOpen' : ''}`} />
+                        Results
+                    </Collapsible.Trigger>
+                    <Collapsible.Content>
+                        <div className="vstGroupContent">
+                            <ShadeResults elmId={elmId} />
+                        </div>
+                    </Collapsible.Content>
+                </Collapsible>
 
                 {/* — Actions — */}
                 <div className="vstShadeActions">
