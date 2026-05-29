@@ -505,6 +505,45 @@ let ShadeTool = {
         }
     },
 
+    // Show regular shade map layers, remove sweep layers from map
+    showShademapLayers: function () {
+        const store = useShadeStore.getState()
+        for (const id in store.elements) {
+            const el = store.elements[id]
+            if (el?.on && el?.lastData && el?.lastResultGrid) {
+                const options = store.getShadeOptions(parseInt(id))
+                options.color.a = 255
+                ShadeTool.renderResultToMap(el.lastData, el.lastResultGrid, options, parseInt(id))
+            }
+        }
+    },
+
+    // Show sweep layers (composite heatmaps), remove regular shade layers from map
+    showSweepLayers: function () {
+        const store = useShadeStore.getState()
+        // Remove all regular shade layers first
+        for (const id in store.elements) {
+            Map_.rmNotNull(L_.layers.layer['shade' + id])
+            L_.layers.layer['shade' + id] = null
+        }
+        // Render sweep heatmaps for all elements with data
+        for (const id in store.sweepElData) {
+            const ed = store.sweepElData[id]
+            if (ed?.heatmap && ed?.lastData) {
+                ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
+            }
+        }
+    },
+
+    // Remove all shade/sweep layers from the map
+    clearAllShadeLayers: function () {
+        const store = useShadeStore.getState()
+        for (const id in store.elements) {
+            Map_.rmNotNull(L_.layers.layer['shade' + id])
+            L_.layers.layer['shade' + id] = null
+        }
+    },
+
     deleteElement: function (elmId) {
         const store = useShadeStore.getState()
         Map_.rmNotNull(L_.layers.layer['shade' + elmId])
@@ -1395,6 +1434,10 @@ let ShadeTool = {
         const runId = ShadeTool._sweepRunId
         const store = useShadeStore.getState()
         store.setSweepField('sweepStale', false)
+
+        // Clear existing shade map layers and old sweep layers from the map
+        ShadeTool.clearAllShadeLayers()
+
         const activeIds = Object.keys(store.elements).filter(
             (id) => store.elements[id].on
         )

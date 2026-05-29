@@ -26,6 +26,15 @@ export default function ShadePanel() {
         Help.finalize(helpKey)
     }, [])
 
+    const handleTabChange = useCallback((tab) => {
+        setActiveTab(tab)
+        if (tab === 'shademaps') {
+            ShadeTool.showShademapLayers()
+        } else if (tab === 'sweep') {
+            ShadeTool.showSweepLayers()
+        }
+    }, [])
+
     const handleNew = useCallback(() => {
         const newId = addElement()
         setTimeout(() => ShadeTool.shade(null, newId), 0)
@@ -85,7 +94,7 @@ export default function ShadePanel() {
             </div>
             <Tabs
                 value={activeTab}
-                onValueChange={setActiveTab}
+                onValueChange={handleTabChange}
                 tabs={SHADE_TABS}
                 className="vstTabs"
             >
