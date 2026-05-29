@@ -927,67 +927,79 @@ let ShadeTool = {
         return v + 1
     },
 
-    buildSweepAtlas: function (data, sweepGrids, options, activeElmId) {
+    buildSweepAtlas: function (data, sweepGrids, options, activeElmId, onDone) {
         const res = data.tileResolution * Math.pow(2, data.resolution)
         const numFrames = sweepGrids.length
         const atlasCols = Math.ceil(Math.sqrt(numFrames))
         const atlasRows = Math.ceil(numFrames / atlasCols)
 
-        // Atlas dimensions must be power-of-two for WebGL1 mipmap support.
         const contentW = res * atlasCols
         const contentH = res * atlasRows
         const atlasW = ShadeTool._nextPow2(contentW)
         const atlasH = ShadeTool._nextPow2(contentH)
 
-        // Render each frame to tile canvases
+        // Render frames in chunks to avoid blocking the main thread
         const frameCanvases = []
-        for (let fi = 0; fi < numFrames; fi++) {
-            if (sweepGrids[fi] == null) {
-                frameCanvases.push(null)
-            } else {
-                const { dlc } = ShadeTool.renderResultToTileData(
-                    data, sweepGrids[fi], options
-                )
-                frameCanvases.push(dlc)
-            }
-        }
+        const ATLAS_CHUNK = 2
+        let fi = 0
 
-        // Build one atlas per tile coord
-        const atlasDl = {}
-        for (let j = 0; j <= data.outputTopLeftTile.h; j++) {
-            for (let i = 0; i <= data.outputTopLeftTile.w; i++) {
-                const z = data.outputTopLeftTile.z
-                const x = Math.floor(data.outputTopLeftTile.x + i)
-                const y = Math.floor(data.outputTopLeftTile.y + j)
-
-                const atlas = document.createElement('canvas')
-                atlas.width = atlasW
-                atlas.height = atlasH
-                const actx = atlas.getContext('2d')
-
-                for (let fi = 0; fi < numFrames; fi++) {
-                    const fc = frameCanvases[fi]
-                    if (!fc || !fc[z] || !fc[z][x] || !fc[z][x][y]) continue
-                    const col = fi % atlasCols
-                    const row = Math.floor(fi / atlasCols)
-                    actx.drawImage(fc[z][x][y], col * res, row * res)
+        function renderFrameChunk() {
+            const end = Math.min(fi + ATLAS_CHUNK, numFrames)
+            for (; fi < end; fi++) {
+                if (sweepGrids[fi] == null) {
+                    frameCanvases.push(null)
+                } else {
+                    const { dlc } = ShadeTool.renderResultToTileData(
+                        data, sweepGrids[fi], options
+                    )
+                    frameCanvases.push(dlc)
                 }
-
-                atlasDl[z] = atlasDl[z] || {}
-                atlasDl[z][x] = atlasDl[z][x] || {}
-                atlasDl[z][x][y] = atlas.toDataURL()
+            }
+            if (fi < numFrames) {
+                setTimeout(renderFrameChunk, 0)
+            } else {
+                setTimeout(assembleAtlas, 0)
             }
         }
 
-        // Store atlas data per-element for lazy layer creation on first play.
-        // atlasScaleS/T map the content region within the POT texture.
-        useShadeStore.getState().setSweepElField(activeElmId, 'atlas', {
-            dl: atlasDl,
-            atlasCols: atlasCols,
-            atlasRows: atlasRows,
-            atlasScaleS: contentW / atlasW,
-            atlasScaleT: contentH / atlasH,
-        })
+        function assembleAtlas() {
+            const atlasDl = {}
+            for (let j = 0; j <= data.outputTopLeftTile.h; j++) {
+                for (let i = 0; i <= data.outputTopLeftTile.w; i++) {
+                    const z = data.outputTopLeftTile.z
+                    const x = Math.floor(data.outputTopLeftTile.x + i)
+                    const y = Math.floor(data.outputTopLeftTile.y + j)
+
+                    const atlas = document.createElement('canvas')
+                    atlas.width = atlasW
+                    atlas.height = atlasH
+                    const actx = atlas.getContext('2d')
+
+                    for (let f = 0; f < numFrames; f++) {
+                        const fc = frameCanvases[f]
+                        if (!fc || !fc[z] || !fc[z][x] || !fc[z][x][y]) continue
+                        const col = f % atlasCols
+                        const row = Math.floor(f / atlasCols)
+                        actx.drawImage(fc[z][x][y], col * res, row * res)
+                    }
+
+                    atlasDl[z] = atlasDl[z] || {}
+                    atlasDl[z][x] = atlasDl[z][x] || {}
+                    atlasDl[z][x][y] = atlas.toDataURL()
+                }
+            }
+
+            useShadeStore.getState().setSweepElField(activeElmId, 'atlas', {
+                dl: atlasDl,
+                atlasCols: atlasCols,
+                atlasRows: atlasRows,
+                atlasScaleS: contentW / atlasW,
+                atlasScaleT: contentH / atlasH,
+            })
+            if (typeof onDone === 'function') onDone()
+        }
+
+        renderFrameChunk()
     },
 
     makeSweepLayer: function (atlasDl, activeElmId, atlasCols, atlasRows, atlasScaleS, atlasScaleT) {
@@ -1317,6 +1329,7 @@ let ShadeTool = {
                                 currentStoreF.setSweepElField(activeElmId, 'lastData', data)
                                 currentStoreF.setSweepElField(activeElmId, 'lastOptions', options)
 
+                                // Step 1: compute heatmap + render composite (yield after)
                                 if (sweepGrids.length > 0) {
                                     const heatmap = ShaderTool_Algorithm.cumulativeVisibility(sweepGrids)
                                     const border = 2
@@ -1339,20 +1352,27 @@ let ShadeTool = {
                                     ShadeTool.renderHeatmapToMap(data, heatmap, activeElmId)
                                 }
 
-                                ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId)
+                                // Step 2: build atlas asynchronously (chunked), then finish
+                                const curElmF = currentStoreF.sweepCurrentElm || 1
+                                const totElmsF = currentStoreF.sweepTotalElms || 1
+                                const prefixF = totElmsF > 1 ? ('Shade ' + curElmF + ' of ' + totElmsF + ': ') : ''
+                                currentStoreF.setSweepField('sweepProgress', prefixF + 'Building atlas...')
 
-                                const _ce = currentStoreF.sweepCurrentElm || 1
-                                const _te = currentStoreF.sweepTotalElms || 1
-                                const _pf = _te > 1 ? ('Shade ' + _ce + ' of ' + _te + ': ') : ''
-                                const _overallDone = (_ce / _te) * 100
-                                currentStoreF.setSweepField('sweepProgress', _pf + 'Done (' + total + ' steps)')
-                                currentStoreF.setSweepField('sweepProgressPct', _overallDone)
-                                if (_te > 1) {
-                                    Toast.success('Shade ' + _ce + ' of ' + _te + ': ' + total + ' timesteps processed.', 3000)
-                                } else {
-                                    Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
-                                }
-                                if (typeof onComplete === 'function') onComplete()
+                                ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
+                                    const s = useShadeStore.getState()
+                                    const _ce = s.sweepCurrentElm || 1
+                                    const _te = s.sweepTotalElms || 1
+                                    const _pf = _te > 1 ? ('Shade ' + _ce + ' of ' + _te + ': ') : ''
+                                    const _overallDone = (_ce / _te) * 100
+                                    s.setSweepField('sweepProgress', _pf + 'Done (' + total + ' steps)')
+                                    s.setSweepField('sweepProgressPct', _overallDone)
+                                    if (_te > 1) {
+                                        Toast.success('Shade ' + _ce + ' of ' + _te + ': ' + total + ' timesteps processed.', 3000)
+                                    } else {
+                                        Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
+                                    }
+                                    if (typeof onComplete === 'function') onComplete()
+                                })
                             }
 
                             processChunk()
