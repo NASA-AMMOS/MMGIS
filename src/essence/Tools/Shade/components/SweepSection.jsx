@@ -205,15 +205,27 @@ export default function SweepSection() {
                         className="vstSweepField"
                     />
                 </div>
-                <ProgressButton
-                    active={!!(sweepStart && sweepEnd && sweepStep) && (!sweepProgress || sweepProgress.startsWith('Done'))}
-                    loading={!!sweepProgress && !sweepProgress.startsWith('Done')}
-                    progress={sweepProgressPct || 0}
-                    onClick={handleSweep}
-                    className="vstSweepButton"
-                >
-                    Sweep
-                </ProgressButton>
+                <div className="vstSweepButtonRow">
+                    <ProgressButton
+                        active={!!(sweepStart && sweepEnd && sweepStep) && (!sweepProgress || sweepProgress.startsWith('Done'))}
+                        loading={!!sweepProgress && !sweepProgress.startsWith('Done')}
+                        progress={sweepProgressPct || 0}
+                        onClick={handleSweep}
+                        className="vstSweepButton"
+                    >
+                        Sweep
+                    </ProgressButton>
+                    {!!sweepProgress && !sweepProgress.startsWith('Done') && (
+                        <IconButton
+                            size="sm"
+                            title="Cancel sweep"
+                            onClick={() => ShadeTool.cancelSweep()}
+                            style={{ marginLeft: 6 }}
+                        >
+                            <i className="mdi mdi-close mdi-14px" />
+                        </IconButton>
+                    )}
+                </div>
                 {sweepProgress && (
                     <div className="vstSweepProgressLabel">{sweepProgress}</div>
                 )}

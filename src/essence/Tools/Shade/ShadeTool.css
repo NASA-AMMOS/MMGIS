@@ -488,8 +488,13 @@
     flex-shrink: 0;
 }
 
-#shadeTool .vstSweepButton {
+#shadeTool .vstSweepButtonRow {
+    display: flex;
+    align-items: center;
     margin-bottom: 6px;
+}
+#shadeTool .vstSweepButton {
+    flex: 1;
 }
 
 #shadeTool .vstOpacitySlider {

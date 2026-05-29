@@ -33,6 +33,7 @@ let ShadeTool = {
     width: 280,
     _root: null,
     _sweepPlayTimer: null,
+    _sweepRunId: 0,
 
     initialize: function () {
         const vars = L_.getToolVars('shade')
@@ -241,10 +242,8 @@ let ShadeTool = {
 
         if (source.lng == null || source.lat == null) return
 
-        options.color.a =
-            options.opacity != null
-                ? parseInt(options.opacity * 255)
-                : 192
+        // Always render pixels at full alpha; CSS setOpacity controls visual opacity
+        options.color.a = 255
 
         source.height =
             !isNaN(options.height) ? parseFloat(options.height) : 2
@@ -972,7 +971,16 @@ let ShadeTool = {
 
     // === Time-Range Sweep ===
 
+    cancelSweep: function () {
+        ShadeTool._sweepRunId++
+        const store = useShadeStore.getState()
+        store.setSweepField('sweepProgress', '')
+        store.setSweepField('sweepProgressPct', 0)
+        Toast.info('Sweep cancelled.', 3000)
+    },
+
     shadeSweep: function (startTime, endTime, stepMinutes, onComplete) {
+        const sweepRunId = ShadeTool._sweepRunId
         const store = useShadeStore.getState()
         const activeElmId = store.activeElmId
         if (activeElmId == null) return
@@ -1016,8 +1024,8 @@ let ShadeTool = {
             return
         }
 
-        options.color.a =
-            options.opacity != null ? parseInt(options.opacity * 255) : 192
+        // Always render pixels at full alpha; CSS setOpacity controls visual opacity
+        options.color.a = 255
         options.resolution = parseInt(options.resolution) || 0
 
         const mapRect = document.getElementById('map').getBoundingClientRect()
@@ -1259,6 +1267,7 @@ let ShadeTool = {
                             }
 
                             Promise.all(batchPromises).then((batchResults) => {
+                                if (sweepRunId !== ShadeTool._sweepRunId) return
                                 batchResults.forEach((r) => {
                                     sweepResults.push({
                                         time: r.time,
@@ -1382,6 +1391,8 @@ let ShadeTool = {
     },
 
     shadeSweepAll: function (startTime, endTime, stepMinutes) {
+        ShadeTool._sweepRunId++
+        const runId = ShadeTool._sweepRunId
         const store = useShadeStore.getState()
         store.setSweepField('sweepStale', false)
         const activeIds = Object.keys(store.elements).filter(
@@ -1405,6 +1416,7 @@ let ShadeTool = {
         // Serialize sweeps to avoid concurrent writes to shared sweep state
         let idx = 0
         function runNext() {
+            if (runId !== ShadeTool._sweepRunId) return
             if (idx >= activeIds.length) {
                 const s = useShadeStore.getState()
                 s.setSweepField('sweepProgress', 'Done (' + activeIds.length + ' shade maps)')
