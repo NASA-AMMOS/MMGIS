@@ -818,14 +818,17 @@ let ShadeTool = {
                             cData[p + 3] = 0
                         } else {
                             const colorFrac = fitToData && fracRange > 0
-                                ? (frac - elMinFrac) / fracRange
+                                ? Math.max(0, Math.min(1, (frac - elMinFrac) / fracRange))
                                 : frac
                             const cl = ShadeTool.evalColor(colors, colorFrac, discrete, bins)
                             cData[p] = Math.round(cl[0] * 255)
                             cData[p + 1] = Math.round(cl[1] * 255)
                             cData[p + 2] = Math.round(cl[2] * 255)
                             if (isShadowRamp) {
-                                cData[p + 3] = Math.round((1 - colorFrac) * 200 + 55)
+                                // When fitting, use full 0-255 alpha range
+                                cData[p + 3] = fitToData
+                                    ? Math.round((1 - colorFrac) * 255)
+                                    : Math.round((1 - frac) * 200 + 55)
                             } else {
                                 cData[p + 3] = 255
                             }

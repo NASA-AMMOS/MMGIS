@@ -581,17 +581,23 @@
     margin-bottom: 4px;
 }
 
-/* Global composite options (discrete/continuous + fit to data) */
+/* Global composite options (mode + range) */
 #shadeTool .vstSweepGlobalOptions {
     display: flex;
     flex-direction: column;
     gap: 4px;
     margin-bottom: 6px;
+    padding: 0 6px;
 }
 #shadeTool .vstSweepGlobalRow {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+}
+#shadeTool .vstSweepGlobalLabel {
+    font-size: 11px;
+    color: var(--color-f);
+    white-space: nowrap;
 }
 
 /* Composite heatmap settings */

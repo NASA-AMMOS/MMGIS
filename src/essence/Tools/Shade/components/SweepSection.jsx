@@ -4,7 +4,7 @@ import ShadeTool from '../ShadeTool'
 import SweepCard from './SweepCard'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import TimeUI from '../../../Basics/TimeControl_/TimeUI'
-import { Checkbox, IconButton, InputWithUnit, ProgressButton, RadioGroup, Slider } from '../../../../design-system/components'
+import { IconButton, InputWithUnit, ProgressButton, RadioGroup, Select, Slider } from '../../../../design-system/components'
 
 const SPEED_NORMAL = 500
 const SPEED_FAST = 150
@@ -23,6 +23,11 @@ const VIEW_MODE_OPTIONS = [
 const COLOR_MODE_OPTIONS = [
     { label: 'Continuous', value: 'continuous' },
     { label: 'Discrete', value: 'discrete' },
+]
+
+const FIT_MODE_OPTIONS = [
+    { label: 'Absolute (0–100%)', value: 'absolute' },
+    { label: 'Fit to data', value: 'fit' },
 ]
 
 function getTimeUIMode() {
@@ -114,14 +119,13 @@ export default function SweepSection() {
         ShadeTool.shadeSweepAll(sweepStart, sweepEnd, sweepStep)
     }, [sweepStart, sweepEnd, sweepStep])
 
-    const handleDiscreteChange = useCallback((modeVal) => {
-        const isDiscrete = modeVal === 'discrete'
-        setSweepField('sweepDiscrete', isDiscrete)
+    const handleDiscreteChange = useCallback((val) => {
+        setSweepField('sweepDiscrete', val === 'discrete')
         setTimeout(() => ShadeTool.refreshHeatmap(), 0)
     }, [setSweepField])
 
-    const handleFitToDataChange = useCallback((val) => {
-        setSweepField('sweepFitToData', val)
+    const handleFitModeChange = useCallback((val) => {
+        setSweepField('sweepFitToData', val === 'fit')
         setTimeout(() => ShadeTool.refreshHeatmap(), 0)
     }, [setSweepField])
 
@@ -268,19 +272,20 @@ export default function SweepSection() {
                 {hasSweepData && sweepViewMode === 'composite' && (
                     <div className="vstSweepGlobalOptions">
                         <div className="vstSweepGlobalRow">
-                            <RadioGroup
+                            <span className="vstSweepGlobalLabel">Mode</span>
+                            <Select
                                 value={sweepDiscrete ? 'discrete' : 'continuous'}
                                 onValueChange={handleDiscreteChange}
                                 options={COLOR_MODE_OPTIONS}
                             />
                         </div>
                         <div className="vstSweepGlobalRow">
-                            <Checkbox
-                                checked={sweepFitToData}
-                                onCheckedChange={handleFitToDataChange}
-                            >
-                                Fit to data range
-                            </Checkbox>
+                            <span className="vstSweepGlobalLabel">Range</span>
+                            <Select
+                                value={sweepFitToData ? 'fit' : 'absolute'}
+                                onValueChange={handleFitModeChange}
+                                options={FIT_MODE_OPTIONS}
+                            />
                         </div>
                     </div>
                 )}
