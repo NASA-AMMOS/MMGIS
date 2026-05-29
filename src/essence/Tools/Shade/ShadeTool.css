@@ -773,6 +773,18 @@
     padding: 0;
 }
 
+#shadeTool .vstSweepCardBody .vstOptionLabel {
+    color: var(--color-a6);
+}
+
+#shadeTool .vstSweepCardBody [class*="suffix"] {
+    color: var(--color-a6);
+}
+
+#shadeTool .vstSweepCardBody button[class*="trigger"] {
+    background: var(--color-a1);
+}
+
 #shadeTool .vstSweepCardRow {
     margin-bottom: 2px;
 }
