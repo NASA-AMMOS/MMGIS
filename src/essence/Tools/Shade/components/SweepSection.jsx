@@ -4,7 +4,7 @@ import ShadeTool from '../ShadeTool'
 import SweepCard from './SweepCard'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import TimeUI from '../../../Basics/TimeControl_/TimeUI'
-import { IconButton, InputWithUnit, ProgressButton, RadioGroup, Select, Slider } from '../../../../design-system/components'
+import { IconButton, InputWithUnit, ProgressButton, Select, Slider, Tabs } from '../../../../design-system/components'
 
 const SPEED_NORMAL = 500
 const SPEED_FAST = 150
@@ -15,7 +15,7 @@ function fmtUTC(t) {
     return t.replace(/\.\d{3}Z$/, 'Z').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z')
 }
 
-const VIEW_MODE_OPTIONS = [
+const VIEW_MODE_TABS = [
     { label: 'Composite', value: 'composite' },
     { label: 'Playback', value: 'playback' },
 ]
@@ -262,10 +262,11 @@ export default function SweepSection() {
                 {/* View mode toggle (only after sweep data exists) */}
                 {hasSweepData && (
                     <div className="vstSweepViewRow">
-                        <RadioGroup
+                        <Tabs
                             value={sweepViewMode}
                             onValueChange={handleViewModeChange}
-                            options={VIEW_MODE_OPTIONS}
+                            tabs={VIEW_MODE_TABS}
+                            size="sm"
                         />
                     </div>
                 )}

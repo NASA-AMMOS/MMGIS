@@ -762,7 +762,7 @@ let ShadeTool = {
         const ed = store.sweepElData[activeElmId]
         const rampName = ed?.colorRamp || 'shadow'
         const discrete = store.sweepDiscrete || false
-        const fitToData = store.sweepFitToData || false
+        const fitToData = store.sweepFitToData !== false
         const allRamps = ShadeTool.getSweepColorRamps()
         const rampDef = allRamps.find((r) => r.name === rampName) || allRamps[0]
         const colors = rampDef.colors

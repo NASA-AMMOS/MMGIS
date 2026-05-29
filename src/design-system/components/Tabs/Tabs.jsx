@@ -69,25 +69,27 @@ const Tabs = forwardRef(function Tabs(
                     }}
                 />
             </div>
-            <div className={styles.panels}>
-                <div
-                    className={styles.panelTrack}
-                    style={{
-                        transform: `translateX(${-activeIndex * 100}%)`,
-                    }}
-                >
-                    {tabs.map((tab, i) => (
-                        <div
-                            key={tab.value}
-                            className={styles.panel}
-                            role="tabpanel"
-                            aria-hidden={value !== tab.value}
-                        >
-                            {children?.[i] ?? null}
-                        </div>
-                    ))}
+            {children && (
+                <div className={styles.panels}>
+                    <div
+                        className={styles.panelTrack}
+                        style={{
+                            transform: `translateX(${-activeIndex * 100}%)`,
+                        }}
+                    >
+                        {tabs.map((tab, i) => (
+                            <div
+                                key={tab.value}
+                                className={styles.panel}
+                                role="tabpanel"
+                                aria-hidden={value !== tab.value}
+                            >
+                                {children?.[i] ?? null}
+                            </div>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     )
 })

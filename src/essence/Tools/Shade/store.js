@@ -82,7 +82,7 @@ const useShadeStore = create((set, get) => ({
     sweepStale: false,
     sweepCardOrder: [],
     sweepDiscrete: false,
-    sweepFitToData: false,
+    sweepFitToData: true,
 
     // Per-element sweep data: { [elmId]: { results, grids, heatmap, opacity, colorRamp, discrete, atlas, lastData, lastOptions } }
     sweepElData: {},
