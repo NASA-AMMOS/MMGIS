@@ -81,6 +81,8 @@ const useShadeStore = create((set, get) => ({
     hoverFrac: null,
     sweepStale: false,
     sweepCardOrder: [],
+    sweepDiscrete: false,
+    sweepFitToData: false,
 
     // Per-element sweep data: { [elmId]: { results, grids, heatmap, opacity, colorRamp, discrete, atlas, lastData, lastOptions } }
     sweepElData: {},
@@ -147,7 +149,7 @@ const useShadeStore = create((set, get) => ({
 
     setSweepField: (field, value) => set({ [field]: value }),
 
-    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: 1.0, colorRamp: 'shadow', discrete: false, atlas: null, lastData: null, lastOptions: null }),
+    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: 1.0, colorRamp: 'shadow', discrete: false, atlas: null, lastData: null, lastOptions: null, minFrac: 0, maxFrac: 1 }),
     getSweepElData: (elmId) => {
         return get().sweepElData[elmId] || null
     },

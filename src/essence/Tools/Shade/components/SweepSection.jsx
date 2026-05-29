@@ -4,7 +4,7 @@ import ShadeTool from '../ShadeTool'
 import SweepCard from './SweepCard'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import TimeUI from '../../../Basics/TimeControl_/TimeUI'
-import { IconButton, InputWithUnit, ProgressButton, RadioGroup, Slider } from '../../../../design-system/components'
+import { Checkbox, IconButton, InputWithUnit, ProgressButton, RadioGroup, Slider } from '../../../../design-system/components'
 
 const SPEED_NORMAL = 500
 const SPEED_FAST = 150
@@ -18,6 +18,11 @@ function fmtUTC(t) {
 const VIEW_MODE_OPTIONS = [
     { label: 'Composite', value: 'composite' },
     { label: 'Playback', value: 'playback' },
+]
+
+const COLOR_MODE_OPTIONS = [
+    { label: 'Continuous', value: 'continuous' },
+    { label: 'Discrete', value: 'discrete' },
 ]
 
 function getTimeUIMode() {
@@ -38,6 +43,8 @@ export default function SweepSection() {
     const sweepElData = useShadeStore((s) => s.sweepElData)
     const sweepCardOrder = useShadeStore((s) => s.sweepCardOrder)
     const elements = useShadeStore((s) => s.elements)
+    const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
+    const sweepFitToData = useShadeStore((s) => s.sweepFitToData)
     const setSweepField = useShadeStore((s) => s.setSweepField)
     const setSweepCardOrder = useShadeStore((s) => s.setSweepCardOrder)
 
@@ -106,6 +113,17 @@ export default function SweepSection() {
         if (!sweepStart || !sweepEnd || !sweepStep) return
         ShadeTool.shadeSweepAll(sweepStart, sweepEnd, sweepStep)
     }, [sweepStart, sweepEnd, sweepStep])
+
+    const handleDiscreteChange = useCallback((modeVal) => {
+        const isDiscrete = modeVal === 'discrete'
+        setSweepField('sweepDiscrete', isDiscrete)
+        setTimeout(() => ShadeTool.refreshHeatmap(), 0)
+    }, [setSweepField])
+
+    const handleFitToDataChange = useCallback((val) => {
+        setSweepField('sweepFitToData', val)
+        setTimeout(() => ShadeTool.refreshHeatmap(), 0)
+    }, [setSweepField])
 
     const handlePlayNormal = useCallback(() => {
         setSweepField('sweepPlaySpeed', SPEED_NORMAL)
@@ -245,6 +263,25 @@ export default function SweepSection() {
                             onValueChange={handleViewModeChange}
                             options={VIEW_MODE_OPTIONS}
                         />
+                    </div>
+                )}
+                {hasSweepData && sweepViewMode === 'composite' && (
+                    <div className="vstSweepGlobalOptions">
+                        <div className="vstSweepGlobalRow">
+                            <RadioGroup
+                                value={sweepDiscrete ? 'discrete' : 'continuous'}
+                                onValueChange={handleDiscreteChange}
+                                options={COLOR_MODE_OPTIONS}
+                            />
+                        </div>
+                        <div className="vstSweepGlobalRow">
+                            <Checkbox
+                                checked={sweepFitToData}
+                                onCheckedChange={handleFitToDataChange}
+                            >
+                                Fit to data range
+                            </Checkbox>
+                        </div>
                     </div>
                 )}
             </div>

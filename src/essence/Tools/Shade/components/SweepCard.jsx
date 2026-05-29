@@ -1,18 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react'
 import useShadeStore, { buildSourcesList } from '../store'
 import ShadeTool from '../ShadeTool'
-import { ColorRampPicker, RadioGroup, Slider } from '../../../../design-system/components'
-
-const COLOR_MODE_OPTIONS = [
-    { label: 'Continuous', value: 'continuous' },
-    { label: 'Discrete', value: 'discrete' },
-]
+import { ColorRampPicker, Slider } from '../../../../design-system/components'
 
 function rgbStr(c) {
     return `rgb(${c.r},${c.g},${c.b})`
 }
 
-function CardLegend({ rampName, discrete, visiblePct }) {
+function CardLegend({ rampName, discrete, visiblePct, fitToData, minFrac, maxFrac }) {
     const isShadowRamp = rampName === 'shadow'
     const allRamps = ShadeTool.getSweepColorRamps()
     const rampDef = allRamps.find((r) => r.name === rampName) || allRamps[0]
@@ -60,9 +55,9 @@ function CardLegend({ rampName, discrete, visiblePct }) {
                 )}
             </div>
             <div className="vstSweepLegendLabels">
-                <span>0%</span>
-                <span>% Visible</span>
-                <span>100%</span>
+                <span>{fitToData ? `${(minFrac * 100).toFixed(0)}%` : '0%'}</span>
+                <span>{fitToData ? '% Visible (fitted)' : '% Visible'}</span>
+                <span>{fitToData ? `${(maxFrac * 100).toFixed(0)}%` : '100%'}</span>
             </div>
         </div>
     )
@@ -94,9 +89,11 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
 
     const colorStr = useMemo(() => (el ? rgbStr(el.color) : '#000'), [el])
 
+    const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
+    const sweepFitToData = useShadeStore((s) => s.sweepFitToData)
     const opacity = ed?.opacity != null ? ed.opacity : 1
     const colorRamp = ed?.colorRamp || 'shadow'
-    const discrete = ed?.discrete || false
+    const discrete = sweepDiscrete || false
 
     const currentResult = useMemo(() => {
         if (mode !== 'playback' || !ed?.results) return null
@@ -162,16 +159,6 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
         }, 0)
     }, [elmId, setSweepElField])
 
-    const handleColorModeChange = useCallback((modeVal) => {
-        const isDiscrete = modeVal === 'discrete'
-        setSweepElField(elmId, 'discrete', isDiscrete)
-        setTimeout(() => {
-            const ed2 = useShadeStore.getState().sweepElData[elmId]
-            if (ed2?.heatmap && ed2?.lastData) {
-                ShadeTool.renderHeatmapToMap(ed2.lastData, ed2.heatmap, elmId)
-            }
-        }, 0)
-    }, [elmId, setSweepElField])
 
     if (!el || !ed) return null
 
@@ -211,14 +198,6 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
                         />
                     </div>
                     <div className="vstOptionRow vstSweepCardRow">
-                        <div className="vstOptionLabel">Mode</div>
-                        <RadioGroup
-                            value={discrete ? 'discrete' : 'continuous'}
-                            onValueChange={handleColorModeChange}
-                            options={COLOR_MODE_OPTIONS}
-                        />
-                    </div>
-                    <div className="vstOptionRow vstSweepCardRow">
                         <div className="vstOptionLabel">Opacity</div>
                         <div className="vstOpacitySlider">
                             <Slider
@@ -231,7 +210,7 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
                             <span className="vstOpacityValue">{Math.round(opacity * 100)}%</span>
                         </div>
                     </div>
-                    <CardLegend rampName={colorRamp} discrete={discrete} visiblePct={hoverPct} />
+                    <CardLegend rampName={colorRamp} discrete={discrete} visiblePct={hoverPct} fitToData={sweepFitToData} minFrac={ed?.minFrac ?? 0} maxFrac={ed?.maxFrac ?? 1} />
                 </div>
             )}
 

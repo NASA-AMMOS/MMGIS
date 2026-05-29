@@ -70,14 +70,35 @@ _Shades the ground when line-of-sights to an orbiting target are occluded._
 
 #### Time-Range Sweep
 
-The Time-Range Sweep section allows analyzing how shading changes over a time period:
+The Sweep tab allows analyzing how shading changes over a time period. Each enabled shade map is swept independently with shared time parameters.
 
 - _Start Time_: The beginning of the time range (ISO 8601 format, e.g. `2023-09-06T00:00:00Z`).
 - _End Time_: The end of the time range.
 - _Step (min)_: The interval between timesteps in minutes.
-- _Sweep_: Runs the analysis. DEM tiles are fetched once, then for each timestep the source position is recomputed and shading is recalculated. A progress indicator shows completion status.
-- _Cumulative Heatmap_: After the sweep completes, a cumulative visibility heatmap overlay is shown on the map. Red = always shadowed, green = always visible, with a gradient for intermediate values.
-- _Playback Controls_: After a sweep completes, use play/pause, step forward/back, and speed slider to animate through the individual timestep results. The current timestamp is displayed during playback.
+- _Sweep_: Runs the analysis for all enabled shade maps. DEM tiles are fetched once, then for each timestep the source position is recomputed and shading is recalculated. A progress indicator shows overall completion (e.g. "Shade 1 of 2: 45%"). Press the X button to cancel an in-progress sweep.
+- _Composite / Playback_: Toggle between view modes.
+
+##### Composite Mode
+
+Shows a cumulative visibility heatmap — each pixel's color indicates how often it was visible across all timesteps.
+
+- _Continuous / Discrete_: Controls whether the color ramp interpolates smoothly or snaps to distinct color bins. Applies to all shade maps.
+- _Fit to data range_: When off, the color ramp spans 0% → 100% visible. When on, the ramp is stretched to fit the actual min/max visibility values in the data, providing better visual contrast when the data range is narrow (e.g. 40%–80% visible).
+- _Sweep Cards_: Each shade map gets a draggable card showing its color ramp picker, opacity slider, and legend. Drag cards to reorder map layer draw order.
+
+##### Playback Mode
+
+Animates through individual timestep results frame by frame.
+
+- _Play / Fast Forward / Pause_: Control animation speed.
+- _Step Forward / Back_: Advance or rewind one frame at a time.
+- _Timeline Slider_: Scrub to any frame in the sweep.
+- _Sky Dome_: Polar plot showing the source's path across the sky over the sweep period, with the current position highlighted.
+- _Az/El Indicators_: Mini replicas of the Shademaps tab indicators showing current source direction.
+
+##### Tab Switching
+
+Switching between the Shademaps and Sweep tabs toggles which layers are visible on the map — only one set of layers (regular shade maps or sweep results) is shown at a time.
 
 ### Algorithm
 

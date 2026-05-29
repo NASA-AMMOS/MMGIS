@@ -761,12 +761,17 @@ let ShadeTool = {
         const store = useShadeStore.getState()
         const ed = store.sweepElData[activeElmId]
         const rampName = ed?.colorRamp || 'shadow'
-        const discrete = ed?.discrete || false
+        const discrete = store.sweepDiscrete || false
+        const fitToData = store.sweepFitToData || false
         const allRamps = ShadeTool.getSweepColorRamps()
         const rampDef = allRamps.find((r) => r.name === rampName) || allRamps[0]
         const colors = rampDef.colors
         const bins = rampDef.bins || colors.length
         const isShadowRamp = rampName === 'shadow'
+
+        const elMinFrac = ed?.minFrac != null ? ed.minFrac : 0
+        const elMaxFrac = ed?.maxFrac != null ? ed.maxFrac : 1
+        const fracRange = elMaxFrac - elMinFrac
 
         let c = document.createElement('canvas')
         const res = data.tileResolution * Math.pow(2, data.resolution)
@@ -805,22 +810,22 @@ let ShadeTool = {
                 for (let p = 0; p < cData.length; p += 4) {
                     const row = heatmap[tileRow + Math.floor(px / res)]
                     if (row != null) {
-                        const frac = row[tileCol + (px % res)]
+                        let frac = row[tileCol + (px % res)]
                         if (frac == null || frac < 0 || !Number.isFinite(frac)) {
                             cData[p] = 0
                             cData[p + 1] = 0
                             cData[p + 2] = 0
                             cData[p + 3] = 0
                         } else {
-                            // frac = visibility fraction (% of time the
-                            // body is visible from this cell). 1 = always
-                            // visible, 0 = never visible.
-                            const cl = ShadeTool.evalColor(colors, frac, discrete, bins)
+                            const colorFrac = fitToData && fracRange > 0
+                                ? (frac - elMinFrac) / fracRange
+                                : frac
+                            const cl = ShadeTool.evalColor(colors, colorFrac, discrete, bins)
                             cData[p] = Math.round(cl[0] * 255)
                             cData[p + 1] = Math.round(cl[1] * 255)
                             cData[p + 2] = Math.round(cl[2] * 255)
                             if (isShadowRamp) {
-                                cData[p + 3] = Math.round((1 - frac) * 200 + 55)
+                                cData[p + 3] = Math.round((1 - colorFrac) * 200 + 55)
                             } else {
                                 cData[p + 3] = 255
                             }
@@ -1359,6 +1364,21 @@ let ShadeTool = {
                                             ShaderTool_Algorithm.cumulativeVisibility(
                                                 sweepGrids
                                             )
+                                        // Compute actual data range for fit-to-data normalization
+                                        let minFrac = 1, maxFrac = 0
+                                        for (let r = 0; r < heatmap.length; r++) {
+                                            const row = heatmap[r]
+                                            if (!row) continue
+                                            for (let c = 0; c < row.length; c++) {
+                                                const f = row[c]
+                                                if (f == null || f < 0 || !Number.isFinite(f)) continue
+                                                if (f < minFrac) minFrac = f
+                                                if (f > maxFrac) maxFrac = f
+                                            }
+                                        }
+                                        if (minFrac > maxFrac) { minFrac = 0; maxFrac = 1 }
+                                        currentStore.setSweepElField(activeElmId, 'minFrac', minFrac)
+                                        currentStore.setSweepElField(activeElmId, 'maxFrac', maxFrac)
                                         currentStore.setSweepElField(
                                             activeElmId, 'heatmap', heatmap
                                         )
