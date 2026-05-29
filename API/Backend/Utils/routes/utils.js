@@ -418,7 +418,7 @@ router.post("/ll2aerll_bulk", function(req,res,next){(router._computeLimiter||fu
   if (req.body.times.length > MAX_TIMES) {
     return res.status(400).json({ error: true, message: "times array exceeds maximum of " + MAX_TIMES + " entries" });
   }
-  if (!req.body.lng || !req.body.lat || !req.body.target) {
+  if (req.body.lng == null || req.body.lat == null || !req.body.target) {
     return res.status(400).json({ error: true, message: "lng, lat, and target are required" });
   }
   const inputData = {
