@@ -1977,18 +1977,20 @@ let ShadeTool = {
                 -90 * (Math.PI / 180),
                 angle2 - 90 * (Math.PI / 180)
             )
-            ctx.lineWidth = 2
+            ctx.lineWidth = options.guideLineWidth || 2
             ctx.strokeStyle = '#eeeeee'
             ctx.stroke()
         }
 
+        const tipInset = options.tipInset || 10
+        const innerInset = options.innerInset || 20
         const endAzPt = F_.rotatePoint(
             {
                 x: origin.x,
                 y:
                     origin.y -
                     sizeInner / 2 +
-                    10 +
+                    tipInset +
                     (options.shortenPx || 0),
             },
             [origin.x, origin.y],
@@ -1999,7 +2001,7 @@ let ShadeTool = {
         ctx.beginPath()
         ctx.moveTo(origin.x, origin.y)
         ctx.lineTo(endAzPt.x, endAzPt.y)
-        ctx.lineWidth = 6
+        ctx.lineWidth = options.lineWidth || 6
         ctx.strokeStyle = options.color || 'yellow'
         ctx.stroke()
 
@@ -2009,7 +2011,7 @@ let ShadeTool = {
                 y:
                     origin.y -
                     sizeInner / 2 +
-                    20 +
+                    innerInset +
                     (options.shortenPx || 0),
             },
             [origin.x, origin.y],
@@ -2021,7 +2023,7 @@ let ShadeTool = {
             endAzPtInner.y,
             endAzPt.x,
             endAzPt.y,
-            4,
+            options.arrowSize || 4,
             options.color || 'yellow'
         )
     },
@@ -2042,7 +2044,7 @@ let ShadeTool = {
             }
             elev = -elev * (Math.PI / 180)
             ctx.arc(origin.x, origin.y, sizeInner / 4, startAngle, elev, ccw)
-            ctx.lineWidth = 2
+            ctx.lineWidth = options.guideLineWidth || 2
             ctx.strokeStyle = '#eeeeee'
             ctx.stroke()
         }
@@ -2054,12 +2056,14 @@ let ShadeTool = {
             offset = 180
         }
 
+        const tipInset = options.tipInset || 10
+        const innerInset = options.innerInset || 20
         const endElPt = F_.rotatePoint(
             {
                 x:
                     origin.x +
                     sizeInner / 2 -
-                    10 -
+                    tipInset -
                     (options.shortenPx || 0),
                 y: origin.y,
             },
@@ -2071,7 +2075,7 @@ let ShadeTool = {
         ctx.beginPath()
         ctx.moveTo(origin.x, origin.y)
         ctx.lineTo(endElPt.x, endElPt.y)
-        ctx.lineWidth = 6
+        ctx.lineWidth = options.lineWidth || 6
         ctx.strokeStyle = options.color || 'yellow'
         ctx.stroke()
 
@@ -2080,7 +2084,7 @@ let ShadeTool = {
                 x:
                     origin.x +
                     sizeInner / 2 -
-                    20 -
+                    innerInset -
                     (options.shortenPx || 0),
                 y: origin.y,
             },
@@ -2093,7 +2097,7 @@ let ShadeTool = {
             endElPtInner.y,
             endElPt.x,
             endElPt.y,
-            4,
+            options.arrowSize || 4,
             options.color || 'yellow'
         )
     },
@@ -2134,16 +2138,16 @@ let ShadeTool = {
             ctx.stroke()
 
             if (rae && rae.azimuth != null) {
-                ctx.font = '8px Arial'
-                ctx.fillStyle = 'rgba(255,255,255,0.7)'
+                ctx.font = '11px Arial'
+                ctx.fillStyle = 'rgba(255,255,255,0.8)'
                 ctx.textAlign = 'center'
-                ctx.fillText('N', size / 2, (size - sizeInner) * 1.2 + 1)
+                ctx.fillText('N', size / 2, (size - sizeInner) * 1.2 + 3)
 
                 ShadeTool.drawAzAngleGuideOnCanvas(
                     ctx, origin, sizeInner,
                     rae.azimuth,
                     rae.azimuth * (Math.PI / 180),
-                    { angleGuide: true, color: '#dbb658' }
+                    { angleGuide: true, color: '#dbb658', lineWidth: 2, arrowSize: 2, guideLineWidth: 1, tipInset: 5, innerInset: 12 }
                 )
             }
         }
@@ -2190,7 +2194,7 @@ let ShadeTool = {
                 ShadeTool.drawElAngleGuideOnCanvas(
                     ctx, origin, sizeInner,
                     rae.elevation,
-                    { azGreaterThan180, angleGuide: true, color: '#dbb658' }
+                    { azGreaterThan180, angleGuide: true, color: '#dbb658', lineWidth: 2, arrowSize: 2, guideLineWidth: 1, tipInset: 5, innerInset: 12 }
                 )
             }
         }
@@ -2272,8 +2276,8 @@ let ShadeTool = {
         ctx.stroke()
 
         // Cardinal labels
-        ctx.font = '9px Arial'
-        ctx.fillStyle = 'rgba(255,255,255,0.6)'
+        ctx.font = '11px Arial'
+        ctx.fillStyle = 'rgba(255,255,255,0.7)'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'bottom'
         ctx.fillText('N', cx, cy - r - 1)
@@ -2286,8 +2290,8 @@ let ShadeTool = {
         ctx.fillText('W', cx - r - 2, cy)
 
         // Elevation labels
-        ctx.font = '7px Arial'
-        ctx.fillStyle = 'rgba(255,255,255,0.35)'
+        ctx.font = '9px Arial'
+        ctx.fillStyle = 'rgba(255,255,255,0.45)'
         ctx.textAlign = 'left'
         ctx.textBaseline = 'middle'
         for (const elDeg of [30, 60]) {
@@ -2410,8 +2414,8 @@ let ShadeTool = {
 
             // Label with current az/el
             if (cur.elevation >= 0) {
-                ctx.font = '8px Arial'
-                ctx.fillStyle = 'rgba(255,255,255,0.8)'
+                ctx.font = '10px Arial'
+                ctx.fillStyle = 'rgba(255,255,255,0.9)'
                 ctx.textAlign = 'left'
                 ctx.textBaseline = 'bottom'
                 ctx.fillText(
