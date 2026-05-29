@@ -266,7 +266,7 @@ export default function SweepSection() {
                             value={sweepViewMode}
                             onValueChange={handleViewModeChange}
                             tabs={VIEW_MODE_TABS}
-                            size="sm"
+                            size="xs"
                         />
                     </div>
                 )}
@@ -274,19 +274,23 @@ export default function SweepSection() {
                     <div className="vstSweepGlobalOptions">
                         <div className="vstSweepGlobalRow">
                             <span className="vstSweepGlobalLabel">Mode</span>
-                            <Select
-                                value={sweepDiscrete ? 'discrete' : 'continuous'}
-                                onValueChange={handleDiscreteChange}
-                                options={COLOR_MODE_OPTIONS}
-                            />
+                            <div style={{ width: 145 }}>
+                                <Select
+                                    value={sweepDiscrete ? 'discrete' : 'continuous'}
+                                    onValueChange={handleDiscreteChange}
+                                    options={COLOR_MODE_OPTIONS}
+                                />
+                            </div>
                         </div>
                         <div className="vstSweepGlobalRow">
                             <span className="vstSweepGlobalLabel">Range</span>
-                            <Select
-                                value={sweepFitToData ? 'fit' : 'absolute'}
-                                onValueChange={handleFitModeChange}
-                                options={FIT_MODE_OPTIONS}
-                            />
+                            <div style={{ width: 145 }}>
+                                <Select
+                                    value={sweepFitToData ? 'fit' : 'absolute'}
+                                    onValueChange={handleFitModeChange}
+                                    options={FIT_MODE_OPTIONS}
+                                />
+                            </div>
                         </div>
                     </div>
                 )}

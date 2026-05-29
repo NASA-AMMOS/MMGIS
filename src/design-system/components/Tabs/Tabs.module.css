@@ -76,6 +76,17 @@
 }
 
 /* Sizes */
+.xs .tabBar {
+    padding: 2px;
+}
+.xs .tab {
+    padding: 3px 10px;
+    font-size: 10px;
+}
+.xs .indicator {
+    top: 2px;
+    bottom: 2px;
+}
 .sm .tab {
     padding: 6px 12px;
     font-size: 11px;
