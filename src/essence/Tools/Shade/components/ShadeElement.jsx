@@ -338,13 +338,15 @@ export default function ShadeElement({ elmId }) {
                 </div>
                 <div className="vstOptionRow">
                     <div className="vstOptionLabel">Opacity</div>
-                    <div className="vstSliderWrap">
+                    <div style={{ width: 145 }}>
                         <Slider
                             value={el.opacity}
                             onValueChange={handleOpacityChange}
                             min={0}
                             max={1}
                             step={0.01}
+                            suffix="%"
+                            formatValue={(v) => Math.round(v * 100)}
                         />
                     </div>
                 </div>

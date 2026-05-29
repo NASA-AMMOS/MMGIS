@@ -1,5 +1,13 @@
-.root {
+.wrapper {
+    display: flex;
+    align-items: center;
     width: 100%;
+    gap: 4px;
+}
+
+.root {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
 }
@@ -40,4 +48,13 @@
 .thumb:hover,
 .thumb:focus-visible {
     box-shadow: 0 0 0 3px var(--color-accent-active);
+}
+
+.suffix {
+    width: 32px;
+    flex-shrink: 0;
+    font-size: 10px;
+    color: var(--color-a5);
+    text-align: right;
+    white-space: nowrap;
 }

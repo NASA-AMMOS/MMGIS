@@ -3,10 +3,6 @@ import useShadeStore, { buildSourcesList } from '../store'
 import ShadeTool from '../ShadeTool'
 import { ColorRampPicker, Slider } from '../../../../design-system/components'
 
-function rgbStr(c) {
-    return `rgb(${c.r},${c.g},${c.b})`
-}
-
 function CardLegend({ rampName, discrete, visiblePct, fitToData, minFrac, maxFrac }) {
     const isShadowRamp = rampName === 'shadow'
     const allRamps = ShadeTool.getSweepColorRamps()
@@ -101,8 +97,6 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
         return obs ? obs.name : el.observer
     }, [el, vars])
 
-    const colorStr = useMemo(() => (el ? rgbStr(el.color) : '#000'), [el])
-
     const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
     const sweepFitToData = useShadeStore((s) => s.sweepFitToData)
     const opacity = ed?.opacity != null ? ed.opacity : 1
@@ -187,10 +181,8 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
             onDrop={(e) => onDrop(e, elmId)}
         >
             <div className="vstSweepCardHeader">
-                <div className="vstSweepCardColor" style={{ background: colorStr }} />
                 <div className="vstSweepCardIdentity">
-                    <span className="vstSweepCardSource">{sourceName}</span>
-                    {observerName && <span className="vstSweepCardObserver">{observerName}</span>}
+                    <span className="vstSweepCardSource">{sourceName}{observerName ? (' / ' + observerName) : ''}</span>
                 </div>
                 <div
                     ref={handleRef}
@@ -205,23 +197,26 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
                 <div className="vstSweepCardBody">
                     <div className="vstOptionRow vstSweepCardRow">
                         <div className="vstOptionLabel">Color Ramp</div>
-                        <ColorRampPicker
-                            value={colorRamp}
-                            onValueChange={handleColorRampChange}
-                            ramps={ShadeTool.getSweepColorRamps()}
-                        />
+                        <div style={{ width: 145 }}>
+                            <ColorRampPicker
+                                value={colorRamp}
+                                onValueChange={handleColorRampChange}
+                                ramps={ShadeTool.getSweepColorRamps()}
+                            />
+                        </div>
                     </div>
                     <div className="vstOptionRow vstSweepCardRow">
                         <div className="vstOptionLabel">Opacity</div>
-                        <div className="vstOpacitySlider">
+                        <div style={{ width: 145 }}>
                             <Slider
                                 value={opacity}
                                 onValueChange={handleOpacityChange}
                                 min={0}
                                 max={1}
                                 step={0.05}
+                                suffix="%"
+                                formatValue={(v) => Math.round(v * 100)}
                             />
-                            <span className="vstOpacityValue">{Math.round(opacity * 100)}%</span>
                         </div>
                     </div>
                     <CardLegend rampName={colorRamp} discrete={discrete} visiblePct={hoverPct} fitToData={sweepFitToData} minFrac={ed?.minFrac ?? 0} maxFrac={ed?.maxFrac ?? 1} />
@@ -232,15 +227,16 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
                 <div className="vstSweepCardBody">
                     <div className="vstOptionRow vstSweepCardRow">
                         <div className="vstOptionLabel">Opacity</div>
-                        <div className="vstOpacitySlider">
+                        <div style={{ width: 145 }}>
                             <Slider
                                 value={opacity}
                                 onValueChange={handleOpacityChange}
                                 min={0}
                                 max={1}
                                 step={0.05}
+                                suffix="%"
+                                formatValue={(v) => Math.round(v * 100)}
                             />
-                            <span className="vstOpacityValue">{Math.round(opacity * 100)}%</span>
                         </div>
                     </div>
                     {ed?.results && ed.results.length > 0 && (
