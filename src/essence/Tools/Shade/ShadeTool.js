@@ -1211,79 +1211,85 @@ let ShadeTool = {
                         Promise.all(targetBulkPromises).then((allTargetResults) => {
                             if (sweepRunId !== ShadeTool._sweepRunId) return
 
-                            // allTargetResults[tgtIdx][timeIdx] = position result
-                            for (let ti = 0; ti < total; ti++) {
+                            // Process timesteps in small batches, yielding to the
+                            // event loop between batches so the UI stays responsive
+                            const CHUNK = 4
+                            let ti = 0
+
+                            function processChunk() {
                                 if (sweepRunId !== ShadeTool._sweepRunId) return
-                                const ts = timestamps[ti]
+                                const chunkEnd = Math.min(ti + CHUNK, total)
+                                for (; ti < chunkEnd; ti++) {
+                                    const ts = timestamps[ti]
 
-                                const validTargets = []
-                                for (let tgtIdx = 0; tgtIdx < allTargetResults.length; tgtIdx++) {
-                                    const r = allTargetResults[tgtIdx][ti]
-                                    if (r && !r.error) validTargets.push(r)
-                                }
+                                    const validTargets = []
+                                    for (let tgtIdx = 0; tgtIdx < allTargetResults.length; tgtIdx++) {
+                                        const r = allTargetResults[tgtIdx][ti]
+                                        if (r && !r.error) validTargets.push(r)
+                                    }
 
-                                if (validTargets.length > 0) {
-                                    const grids = validTargets.map((s) =>
-                                        ShadeTool_Manager.computeShade(
-                                            shadeTag,
-                                            {
-                                                lat: s.latitude,
-                                                lng: s.longitude,
-                                                altitude: s.horizontal_altitude,
-                                                az: s.azimuth,
-                                                el: s.elevation,
-                                                range: s.range,
-                                            },
-                                            options
+                                    if (validTargets.length > 0) {
+                                        const grids = validTargets.map((s) =>
+                                            ShadeTool_Manager.computeShade(
+                                                shadeTag,
+                                                {
+                                                    lat: s.latitude,
+                                                    lng: s.longitude,
+                                                    altitude: s.horizontal_altitude,
+                                                    az: s.azimuth,
+                                                    el: s.elevation,
+                                                    range: s.range,
+                                                },
+                                                options
+                                            )
                                         )
-                                    )
-                                    const compositedGrid =
-                                        grids.length === 1
-                                            ? grids[0]
-                                            : ShaderTool_Algorithm.compositeResults(
-                                                  grids,
-                                                  options.compositeMode || 'or'
-                                              )
+                                        const compositedGrid =
+                                            grids.length === 1
+                                                ? grids[0]
+                                                : ShaderTool_Algorithm.compositeResults(
+                                                      grids,
+                                                      options.compositeMode || 'or'
+                                                  )
 
-                                    let visCount = 0
-                                    let totalCells = 0
-                                    for (let y = 0; y < compositedGrid.length; y++) {
-                                        for (let x = 0; x < compositedGrid[y].length; x++) {
-                                            if (compositedGrid[y][x] !== 9) {
-                                                totalCells++
-                                                if (compositedGrid[y][x] === 1 || compositedGrid[y][x] === 2)
-                                                    visCount++
+                                        let visCount = 0
+                                        let totalCells = 0
+                                        for (let y = 0; y < compositedGrid.length; y++) {
+                                            for (let x = 0; x < compositedGrid[y].length; x++) {
+                                                if (compositedGrid[y][x] !== 9) {
+                                                    totalCells++
+                                                    if (compositedGrid[y][x] === 1 || compositedGrid[y][x] === 2)
+                                                        visCount++
+                                                }
                                             }
                                         }
+                                        const primary = validTargets[0]
+                                        sweepResults.push({
+                                            time: ts,
+                                            visibilityPct: totalCells > 0
+                                                ? ((visCount / totalCells) * 100).toFixed(2)
+                                                : 0,
+                                            azimuth: primary.azimuth,
+                                            elevation: primary.elevation,
+                                            range: primary.range,
+                                        })
+                                        sweepGrids.push(compositedGrid)
+                                    } else {
+                                        sweepResults.push({
+                                            time: ts,
+                                            visibilityPct: 0,
+                                            azimuth: 0,
+                                            elevation: 0,
+                                            range: 0,
+                                        })
+                                        sweepGrids.push(null)
                                     }
-                                    const primary = validTargets[0]
-                                    sweepResults.push({
-                                        time: ts,
-                                        visibilityPct: totalCells > 0
-                                            ? ((visCount / totalCells) * 100).toFixed(2)
-                                            : 0,
-                                        azimuth: primary.azimuth,
-                                        elevation: primary.elevation,
-                                        range: primary.range,
-                                    })
-                                    sweepGrids.push(compositedGrid)
-                                } else {
-                                    sweepResults.push({
-                                        time: ts,
-                                        visibilityPct: 0,
-                                        azimuth: 0,
-                                        elevation: 0,
-                                        range: 0,
-                                    })
-                                    sweepGrids.push(null)
                                 }
 
-                                // Update progress
-                                const completed = ti + 1
+                                // Update progress after each chunk
                                 const currentStore = useShadeStore.getState()
                                 const curElm = currentStore.sweepCurrentElm || 1
                                 const totElms = currentStore.sweepTotalElms || 1
-                                const elmPct = (completed / total) * 100
+                                const elmPct = (ti / total) * 100
                                 const overallPct = ((curElm - 1) / totElms) * 100 + (elmPct / totElms)
                                 const prefix = totElms > 1 ? ('Shade ' + curElm + ' of ' + totElms + ': ') : ''
                                 currentStore.setSweepField(
@@ -1294,54 +1300,62 @@ let ShadeTool = {
                                     'sweepProgressPct',
                                     overallPct
                                 )
-                            }
 
-                            // All timesteps processed — store results
-                            const currentStoreF = useShadeStore.getState()
-                            currentStoreF.setSweepElField(activeElmId, 'results', sweepResults)
-                            currentStoreF.setSweepElField(activeElmId, 'grids', sweepGrids)
-                            currentStoreF.setSweepField('sweepPlayIndex', 0)
-                            currentStoreF.setSweepElField(activeElmId, 'lastData', data)
-                            currentStoreF.setSweepElField(activeElmId, 'lastOptions', options)
-
-                            if (sweepGrids.length > 0) {
-                                const heatmap = ShaderTool_Algorithm.cumulativeVisibility(sweepGrids)
-                                // Compute min/max excluding the 2px grid border
-                                // (border cells are forced visible, always frac=1.0)
-                                const border = 2
-                                let minFrac = 1, maxFrac = 0
-                                for (let r = border; r < heatmap.length - border; r++) {
-                                    const row = heatmap[r]
-                                    if (!row) continue
-                                    for (let c = border; c < row.length - border; c++) {
-                                        const f = row[c]
-                                        if (f == null || f < 0 || !Number.isFinite(f)) continue
-                                        if (f < minFrac) minFrac = f
-                                        if (f > maxFrac) maxFrac = f
-                                    }
+                                if (ti < total) {
+                                    setTimeout(processChunk, 0)
+                                    return
                                 }
-                                if (minFrac > maxFrac) { minFrac = 0; maxFrac = 1 }
-                                currentStoreF.setSweepElField(activeElmId, 'minFrac', minFrac)
-                                currentStoreF.setSweepElField(activeElmId, 'maxFrac', maxFrac)
-                                currentStoreF.setSweepElField(activeElmId, 'heatmap', heatmap)
-                                currentStoreF.setSweepField('sweepViewMode', 'composite')
-                                ShadeTool.renderHeatmapToMap(data, heatmap, activeElmId)
+
+                                finalizeSweep()
                             }
 
-                            ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId)
+                            function finalizeSweep() {
+                                const currentStoreF = useShadeStore.getState()
+                                currentStoreF.setSweepElField(activeElmId, 'results', sweepResults)
+                                currentStoreF.setSweepElField(activeElmId, 'grids', sweepGrids)
+                                currentStoreF.setSweepField('sweepPlayIndex', 0)
+                                currentStoreF.setSweepElField(activeElmId, 'lastData', data)
+                                currentStoreF.setSweepElField(activeElmId, 'lastOptions', options)
 
-                            const _ce = currentStoreF.sweepCurrentElm || 1
-                            const _te = currentStoreF.sweepTotalElms || 1
-                            const _pf = _te > 1 ? ('Shade ' + _ce + ' of ' + _te + ': ') : ''
-                            const _overallDone = (_ce / _te) * 100
-                            currentStoreF.setSweepField('sweepProgress', _pf + 'Done (' + total + ' steps)')
-                            currentStoreF.setSweepField('sweepProgressPct', _overallDone)
-                            if (_te > 1) {
-                                Toast.success('Shade ' + _ce + ' of ' + _te + ': ' + total + ' timesteps processed.', 3000)
-                            } else {
-                                Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
+                                if (sweepGrids.length > 0) {
+                                    const heatmap = ShaderTool_Algorithm.cumulativeVisibility(sweepGrids)
+                                    const border = 2
+                                    let minFrac = 1, maxFrac = 0
+                                    for (let r = border; r < heatmap.length - border; r++) {
+                                        const row = heatmap[r]
+                                        if (!row) continue
+                                        for (let c = border; c < row.length - border; c++) {
+                                            const f = row[c]
+                                            if (f == null || f < 0 || !Number.isFinite(f)) continue
+                                            if (f < minFrac) minFrac = f
+                                            if (f > maxFrac) maxFrac = f
+                                        }
+                                    }
+                                    if (minFrac > maxFrac) { minFrac = 0; maxFrac = 1 }
+                                    currentStoreF.setSweepElField(activeElmId, 'minFrac', minFrac)
+                                    currentStoreF.setSweepElField(activeElmId, 'maxFrac', maxFrac)
+                                    currentStoreF.setSweepElField(activeElmId, 'heatmap', heatmap)
+                                    currentStoreF.setSweepField('sweepViewMode', 'composite')
+                                    ShadeTool.renderHeatmapToMap(data, heatmap, activeElmId)
+                                }
+
+                                ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId)
+
+                                const _ce = currentStoreF.sweepCurrentElm || 1
+                                const _te = currentStoreF.sweepTotalElms || 1
+                                const _pf = _te > 1 ? ('Shade ' + _ce + ' of ' + _te + ': ') : ''
+                                const _overallDone = (_ce / _te) * 100
+                                currentStoreF.setSweepField('sweepProgress', _pf + 'Done (' + total + ' steps)')
+                                currentStoreF.setSweepField('sweepProgressPct', _overallDone)
+                                if (_te > 1) {
+                                    Toast.success('Shade ' + _ce + ' of ' + _te + ': ' + total + ' timesteps processed.', 3000)
+                                } else {
+                                    Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
+                                }
+                                if (typeof onComplete === 'function') onComplete()
                             }
-                            if (typeof onComplete === 'function') onComplete()
+
+                            processChunk()
                         })
                     }
                 )
