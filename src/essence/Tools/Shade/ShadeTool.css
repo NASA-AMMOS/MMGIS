@@ -796,8 +796,8 @@
 #shadeTool .vstSweepCardPlaybackInfo {
     display: flex;
     gap: 10px;
-    font-size: 10px;
-    color: var(--color-a6);
+    font-size: 11px;
+    color: var(--color-a7);
     padding: 2px 0;
 }
 
@@ -832,7 +832,7 @@
 }
 
 #shadeTool .vstSweepCardMiniLabel {
-    font-size: 11px;
-    color: var(--color-a6);
+    font-size: 12px;
+    color: var(--color-a7);
     margin-bottom: 2px;
 }
