@@ -1306,11 +1306,14 @@ let ShadeTool = {
 
                             if (sweepGrids.length > 0) {
                                 const heatmap = ShaderTool_Algorithm.cumulativeVisibility(sweepGrids)
+                                // Compute min/max excluding the 2px grid border
+                                // (border cells are forced visible, always frac=1.0)
+                                const border = 2
                                 let minFrac = 1, maxFrac = 0
-                                for (let r = 0; r < heatmap.length; r++) {
+                                for (let r = border; r < heatmap.length - border; r++) {
                                     const row = heatmap[r]
                                     if (!row) continue
-                                    for (let c = 0; c < row.length; c++) {
+                                    for (let c = border; c < row.length - border; c++) {
                                         const f = row[c]
                                         if (f == null || f < 0 || !Number.isFinite(f)) continue
                                         if (f < minFrac) minFrac = f
