@@ -240,7 +240,6 @@ export default function SweepSection() {
                 {/* View mode toggle (only after sweep data exists) */}
                 {hasSweepData && (
                     <div className="vstSweepViewRow">
-                        <div className="vstOptionLabel">View</div>
                         <RadioGroup
                             value={sweepViewMode}
                             onValueChange={handleViewModeChange}
@@ -248,9 +247,11 @@ export default function SweepSection() {
                         />
                     </div>
                 )}
+            </div>
 
-                {/* Per-element sweep cards */}
-                {hasSweepData && cardIds.length > 0 && (
+            {/* Scrollable sweep cards area */}
+            {hasSweepData && cardIds.length > 0 && (
+                <div className="vstSweepCardsScroll">
                     <div className="vstSweepCards">
                         {cardIds.map((id) => (
                             <SweepCard
@@ -263,13 +264,14 @@ export default function SweepSection() {
                             />
                         ))}
                     </div>
-                )}
+                </div>
+            )}
 
-                {/* Playback controls (only in playback mode) */}
-                {hasSweepData && sweepViewMode === 'playback' && (
-                    <div className="vstSweepControlsWrap">
-                        <div className="vstSweepPlaybarRow">
-                            <div className="vstSweepPlaybar">
+            {/* Playback controls (only in playback mode) — fixed at bottom */}
+            {hasSweepData && sweepViewMode === 'playback' && (
+                <div className="vstSweepControlsWrap">
+                    <div className="vstSweepPlaybarRow">
+                        <div className="vstSweepPlaybar">
                                 <IconButton
                                     size="sm"
                                     title="Step back"
@@ -324,11 +326,10 @@ export default function SweepSection() {
                                     max={Math.max(totalFrames - 1, 1)}
                                     step={1}
                                 />
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     )
 }
