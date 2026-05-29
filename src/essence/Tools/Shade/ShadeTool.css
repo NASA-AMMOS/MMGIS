@@ -785,7 +785,7 @@
 
 /* Drop indicator for drag-to-reorder */
 #shadeTool .vstDropTarget {
-    border-top: 2px solid var(--color-mmgis) !important;
+    border-bottom: 2px solid var(--color-mmgis) !important;
 }
 
 #shadeTool .vstSweepCardIdentity {
