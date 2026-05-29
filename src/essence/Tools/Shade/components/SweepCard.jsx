@@ -182,7 +182,8 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
         >
             <div className="vstSweepCardHeader">
                 <div className="vstSweepCardIdentity">
-                    <span className="vstSweepCardSource">{sourceName}{observerName ? (' / ' + observerName) : ''}</span>
+                    <span className="vstSweepCardSource">{sourceName}</span>
+                    {observerName && <span className="vstSweepCardObserver">{' / '}{observerName}</span>}
                 </div>
                 <div
                     ref={handleRef}

@@ -563,7 +563,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 6px 6px 2px;
+    padding: 2px 2px 2px;
 }
 
 /* Global composite options (mode + range) */
@@ -572,7 +572,7 @@
     flex-direction: column;
     gap: 4px;
     margin-bottom: 6px;
-    padding: 0 6px;
+    padding: 0px 9px;
 }
 #shadeTool .vstSweepGlobalRow {
     display: flex;
@@ -664,8 +664,8 @@
 #shadeTool .vstSweepLegendLabels {
     display: flex;
     justify-content: space-between;
-    font-size: 10px;
-    color: var(--color-a5);
+    font-size: 11px;
+    color: var(--color-a6);
     margin-top: 2px;
 }
 
@@ -707,7 +707,7 @@
 }
 
 #shadeTool .vstSweepCard {
-    background: var(--color-a1-5);
+    background: var(--color-a2);
     border-radius: 4px;
     overflow: hidden;
     border: 1px solid var(--color-a2);
@@ -723,6 +723,7 @@
     gap: 6px;
     padding: 5px 6px;
     background: var(--color-a2);
+    border-bottom: 2px solid var(--color-a3);
 }
 
 #shadeTool .vstSweepCardDragHandle {
@@ -732,6 +733,10 @@
     cursor: grab;
     flex-shrink: 0;
     padding: 2px;
+    transition: color 0.15s ease;
+}
+#shadeTool .vstSweepCardDragHandle:hover {
+    color: var(--color-a7);
 }
 #shadeTool .vstSweepCardDragHandle:active {
     cursor: grabbing;
@@ -747,14 +752,25 @@
 #shadeTool .vstSweepCardSource {
     font-size: 12px;
     color: var(--color-f);
-    font-weight: 500;
+    font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
+#shadeTool .vstSweepCardObserver {
+    font-size: 12px;
+    color: var(--color-a6);
+    font-weight: 400;
+    white-space: nowrap;
+}
+
 #shadeTool .vstSweepCardBody {
-    padding: 2px 8px 6px;
+    padding: 6px 8px 6px;
+}
+
+#shadeTool .vstSweepCardBody .vstOptionRow {
+    padding: 0;
 }
 
 #shadeTool .vstSweepCardRow {
@@ -769,7 +785,7 @@
     display: flex;
     gap: 10px;
     font-size: 10px;
-    color: var(--color-a5);
+    color: var(--color-a6);
     padding: 2px 0;
 }
 
@@ -805,6 +821,6 @@
 
 #shadeTool .vstSweepCardMiniLabel {
     font-size: 11px;
-    color: var(--color-a5);
+    color: var(--color-a6);
     margin-bottom: 2px;
 }
