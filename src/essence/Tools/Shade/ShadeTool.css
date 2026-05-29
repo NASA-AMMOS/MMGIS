@@ -414,9 +414,11 @@
 }
 
 #shadeTool .vstSweepBody {
-    padding: 0 8px 6px;
+    padding: 6px 8px;
     flex-shrink: 0;
     background: var(--color-a1-5);
+    margin: 4px 6px 0;
+    border-radius: 4px;
 }
 
 #shadeTool .vstSweepTimeRow {
@@ -561,7 +563,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 4px;
+    padding: 6px 6px 2px;
 }
 
 /* Global composite options (mode + range) */
@@ -681,6 +683,16 @@
 
 /* === Sweep Cards === */
 
+#shadeTool .vstSweepCardsSection {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    background: var(--color-a1-5);
+    margin: 4px 6px;
+    border-radius: 4px;
+    overflow: hidden;
+}
 #shadeTool .vstSweepCardsScroll {
     flex: 1;
     min-height: 0;

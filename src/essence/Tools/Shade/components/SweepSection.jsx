@@ -258,9 +258,11 @@ export default function SweepSection() {
                         <span>Viewport changed — re-run sweep to update results</span>
                     </div>
                 )}
+            </div>
 
-                {/* View mode toggle (only after sweep data exists) */}
-                {hasSweepData && (
+            {/* Cards section: view toggle + global options + scrollable cards */}
+            {hasSweepData && (
+                <div className="vstSweepCardsSection">
                     <div className="vstSweepViewRow">
                         <Tabs
                             value={sweepViewMode}
@@ -269,48 +271,46 @@ export default function SweepSection() {
                             size="xs"
                         />
                     </div>
-                )}
-                {hasSweepData && sweepViewMode === 'composite' && (
-                    <div className="vstSweepGlobalOptions">
-                        <div className="vstSweepGlobalRow">
-                            <span className="vstSweepGlobalLabel">Mode</span>
-                            <div style={{ width: 145 }}>
-                                <Select
-                                    value={sweepDiscrete ? 'discrete' : 'continuous'}
-                                    onValueChange={handleDiscreteChange}
-                                    options={COLOR_MODE_OPTIONS}
-                                />
+                    {sweepViewMode === 'composite' && (
+                        <div className="vstSweepGlobalOptions">
+                            <div className="vstSweepGlobalRow">
+                                <span className="vstSweepGlobalLabel">Mode</span>
+                                <div style={{ width: 145 }}>
+                                    <Select
+                                        value={sweepDiscrete ? 'discrete' : 'continuous'}
+                                        onValueChange={handleDiscreteChange}
+                                        options={COLOR_MODE_OPTIONS}
+                                    />
+                                </div>
+                            </div>
+                            <div className="vstSweepGlobalRow">
+                                <span className="vstSweepGlobalLabel">Range</span>
+                                <div style={{ width: 145 }}>
+                                    <Select
+                                        value={sweepFitToData ? 'fit' : 'absolute'}
+                                        onValueChange={handleFitModeChange}
+                                        options={FIT_MODE_OPTIONS}
+                                    />
+                                </div>
                             </div>
                         </div>
-                        <div className="vstSweepGlobalRow">
-                            <span className="vstSweepGlobalLabel">Range</span>
-                            <div style={{ width: 145 }}>
-                                <Select
-                                    value={sweepFitToData ? 'fit' : 'absolute'}
-                                    onValueChange={handleFitModeChange}
-                                    options={FIT_MODE_OPTIONS}
-                                />
+                    )}
+                    {cardIds.length > 0 && (
+                        <div className="vstSweepCardsScroll">
+                            <div className="vstSweepCards">
+                                {cardIds.map((id) => (
+                                    <SweepCard
+                                        key={id}
+                                        elmId={id}
+                                        mode={sweepViewMode}
+                                        onDragStart={handleDragStart}
+                                        onDragOver={handleDragOver}
+                                        onDrop={handleDrop}
+                                    />
+                                ))}
                             </div>
                         </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Scrollable sweep cards area */}
-            {hasSweepData && cardIds.length > 0 && (
-                <div className="vstSweepCardsScroll">
-                    <div className="vstSweepCards">
-                        {cardIds.map((id) => (
-                            <SweepCard
-                                key={id}
-                                elmId={id}
-                                mode={sweepViewMode}
-                                onDragStart={handleDragStart}
-                                onDragOver={handleDragOver}
-                                onDrop={handleDrop}
-                            />
-                        ))}
-                    </div>
+                    )}
                 </div>
             )}
 
