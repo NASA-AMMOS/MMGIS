@@ -183,6 +183,8 @@ const useShadeStore = create((set, get) => ({
     },
 
     setSweepCardOrder: (order) => set({ sweepCardOrder: order }),
+    elementOrder: [],
+    setElementOrder: (order) => set({ elementOrder: order }),
 
     getSelectedSources: (elmId) => {
         const { elements, vars } = get()

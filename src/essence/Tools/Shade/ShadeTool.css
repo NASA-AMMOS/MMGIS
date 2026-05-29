@@ -207,6 +207,22 @@
     align-items: center;
 }
 
+#shadeTool .vstShadeDragHandle {
+    color: var(--color-a4);
+    display: flex;
+    align-items: center;
+    cursor: grab;
+    flex-shrink: 0;
+    padding: 2px;
+    transition: color 0.15s ease;
+}
+#shadeTool .vstShadeDragHandle:hover {
+    color: var(--color-a7);
+}
+#shadeTool .vstShadeDragHandle:active {
+    cursor: grabbing;
+}
+
 #shadeTool .vstColorSwatchWrap {
     position: relative;
 }
@@ -765,6 +781,11 @@
 }
 #shadeTool .vstSweepCardDragHandle:active {
     cursor: grabbing;
+}
+
+/* Drop indicator for drag-to-reorder */
+#shadeTool .vstDropTarget {
+    border-top: 2px solid var(--color-mmgis) !important;
 }
 
 #shadeTool .vstSweepCardIdentity {

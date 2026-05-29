@@ -20,7 +20,7 @@ function rgbStr(c) {
     return `rgb(${c.r},${c.g},${c.b})`
 }
 
-export default function ShadeElement({ elmId }) {
+export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget }) {
     const el = useShadeStore((s) => s.elements[elmId])
     const vars = useShadeStore((s) => s.vars)
     const updateElement = useShadeStore((s) => s.updateElement)
@@ -112,6 +112,10 @@ export default function ShadeElement({ elmId }) {
     }, [elmId])
 
 
+    const cardRef = useRef(null)
+    const handleRef = useRef(null)
+    const isDraggingRef = useRef(false)
+
     const [sourceOpen, setSourceOpen] = useState(true)
     const [displayOpen, setDisplayOpen] = useState(false)
     const [resultsOpen, setResultsOpen] = useState(false)
@@ -144,6 +148,28 @@ export default function ShadeElement({ elmId }) {
         [elmId, updateElement]
     )
 
+    const handleHandleMouseDown = useCallback(() => {
+        isDraggingRef.current = true
+    }, [])
+
+    const handleCardDragStart = useCallback((e) => {
+        if (!isDraggingRef.current) {
+            e.preventDefault()
+            return
+        }
+        if (cardRef.current) {
+            const rect = cardRef.current.getBoundingClientRect()
+            e.dataTransfer.setDragImage(cardRef.current, rect.width / 2, 10)
+        }
+        e.dataTransfer.effectAllowed = 'move'
+        if (onDragStart) onDragStart(e, elmId)
+    }, [elmId, onDragStart])
+
+    const handleCardDragEnd = useCallback(() => {
+        isDraggingRef.current = false
+        if (onDragEnd) onDragEnd()
+    }, [onDragEnd])
+
     if (!el) return null
 
     const isCustom =
@@ -152,8 +178,24 @@ export default function ShadeElement({ elmId }) {
             sourcesList[el.sourceIndex].value === 'false')
 
     return (
-        <div className="vstShadeItem" data-shade-id={elmId}>
+        <div
+            ref={cardRef}
+            className={`vstShadeItem${isDropTarget ? ' vstDropTarget' : ''}`}
+            data-shade-id={elmId}
+            draggable
+            onDragStart={handleCardDragStart}
+            onDragEnd={handleCardDragEnd}
+            onDragOver={(e) => onDragOver && onDragOver(e, elmId)}
+            onDrop={(e) => onDrop && onDrop(e, elmId)}
+        >
             <div className="vstShadeHeader">
+                <div
+                    ref={handleRef}
+                    className="vstShadeDragHandle"
+                    onMouseDown={handleHandleMouseDown}
+                >
+                    <i className="mdi mdi-drag-vertical mdi-14px" />
+                </div>
                 <div className="vstShadeHeaderLeft">
                     <Checkbox
                         checked={el.on}

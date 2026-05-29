@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useShadeStore from '../store'
 import ShadeTool from '../ShadeTool'
 import SweepCard from './SweepCard'
@@ -54,6 +54,7 @@ export default function SweepSection() {
     const setSweepCardOrder = useShadeStore((s) => s.setSweepCardOrder)
 
     const dragItemRef = useRef(null)
+    const [dropTargetId, setDropTargetId] = useState(null)
 
     const totalFrames = useMemo(() => {
         for (const id in sweepElData) {
@@ -165,13 +166,21 @@ export default function SweepSection() {
         e.dataTransfer.effectAllowed = 'move'
     }, [])
 
-    const handleDragOver = useCallback((e) => {
+    const handleDragOver = useCallback((e, targetId) => {
         e.preventDefault()
         e.dataTransfer.dropEffect = 'move'
+        if (dragItemRef.current != null && targetId !== dragItemRef.current) {
+            setDropTargetId(targetId)
+        }
+    }, [])
+
+    const handleDragEnd = useCallback(() => {
+        setDropTargetId(null)
     }, [])
 
     const handleDrop = useCallback((e, targetId) => {
         e.preventDefault()
+        setDropTargetId(null)
         const draggedId = dragItemRef.current
         if (draggedId == null || draggedId === targetId) return
         const order = [...(useShadeStore.getState().sweepCardOrder || [])]
@@ -305,7 +314,9 @@ export default function SweepSection() {
                                         mode={sweepViewMode}
                                         onDragStart={handleDragStart}
                                         onDragOver={handleDragOver}
+                                        onDragEnd={handleDragEnd}
                                         onDrop={handleDrop}
+                                        isDropTarget={dropTargetId === id}
                                     />
                                 ))}
                             </div>

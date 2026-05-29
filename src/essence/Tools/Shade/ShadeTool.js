@@ -873,11 +873,23 @@ let ShadeTool = {
     },
 
     reorderSweepLayers: function (orderedIds) {
+        const len = orderedIds.length
         orderedIds.forEach((id, i) => {
             const layerName = 'shade' + id
             const layer = L_.layers.layer[layerName]
             if (layer && typeof layer.setZIndex === 'function') {
-                layer.setZIndex(1000 + i)
+                layer.setZIndex(1000 + (len - 1 - i))
+            }
+        })
+    },
+
+    reorderShadeLayers: function (orderedIds) {
+        const len = orderedIds.length
+        orderedIds.forEach((id, i) => {
+            const layerName = 'shade' + id
+            const layer = L_.layers.layer[layerName]
+            if (layer && typeof layer.setZIndex === 'function') {
+                layer.setZIndex(1000 + (len - 1 - i))
             }
         })
     },

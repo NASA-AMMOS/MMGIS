@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo, useState } from 'react'
+import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react'
 import useShadeStore from '../store'
 import ShadeElement from './ShadeElement'
 import SweepSection from './SweepSection'
@@ -20,7 +20,11 @@ export default function ShadePanel() {
     const elements = useShadeStore((s) => s.elements)
     const utcTime = useShadeStore((s) => s.utcTime)
     const addElement = useShadeStore((s) => s.addElement)
+    const elementOrder = useShadeStore((s) => s.elementOrder)
+    const setElementOrder = useShadeStore((s) => s.setElementOrder)
     const [activeTab, setActiveTab] = useState('shademaps')
+    const dragItemRef = useRef(null)
+    const [dropTargetId, setDropTargetId] = useState(null)
 
     useEffect(() => {
         Help.finalize(helpKey)
@@ -40,14 +44,47 @@ export default function ShadePanel() {
         setTimeout(() => ShadeTool.shade(null, newId), 0)
     }, [addElement])
 
-    const elementIds = useMemo(
-        () =>
-            Object.keys(elements).sort(
-                (a, b) => parseInt(a) - parseInt(b)
-            ),
-        [elements]
-    )
+    const elementIds = useMemo(() => {
+        const allIds = Object.keys(elements).map(Number)
+        const ordered = (elementOrder || []).filter((id) => allIds.includes(id))
+        allIds.forEach((id) => {
+            if (!ordered.includes(id)) ordered.push(id)
+        })
+        return ordered
+    }, [elements, elementOrder])
 
+    const handleElDragStart = useCallback((e, elmId) => {
+        dragItemRef.current = elmId
+        e.dataTransfer.effectAllowed = 'move'
+    }, [])
+
+    const handleElDragOver = useCallback((e, targetId) => {
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+        if (dragItemRef.current != null && targetId !== dragItemRef.current) {
+            setDropTargetId(targetId)
+        }
+    }, [])
+
+    const handleElDragEnd = useCallback(() => {
+        setDropTargetId(null)
+    }, [])
+
+    const handleElDrop = useCallback((e, targetId) => {
+        e.preventDefault()
+        setDropTargetId(null)
+        const draggedId = dragItemRef.current
+        if (draggedId == null || draggedId === targetId) return
+        const order = [...elementIds]
+        const fromIdx = order.indexOf(draggedId)
+        const toIdx = order.indexOf(targetId)
+        if (fromIdx < 0 || toIdx < 0) return
+        order.splice(fromIdx, 1)
+        order.splice(toIdx, 0, draggedId)
+        setElementOrder(order)
+        ShadeTool.reorderShadeLayers(order)
+        dragItemRef.current = null
+    }, [elementIds, setElementOrder])
 
     if (!TimeControl.enabled) {
         return (
@@ -108,7 +145,15 @@ export default function ShadePanel() {
                     </div>
                     <div className="vstContent">
                         {elementIds.map((id) => (
-                            <ShadeElement key={id} elmId={parseInt(id)} />
+                            <ShadeElement
+                                key={id}
+                                elmId={id}
+                                onDragStart={handleElDragStart}
+                                onDragOver={handleElDragOver}
+                                onDragEnd={handleElDragEnd}
+                                onDrop={handleElDrop}
+                                isDropTarget={dropTargetId === id}
+                            />
                         ))}
                         <div className="vstNewBtnWrap">
                             <Button

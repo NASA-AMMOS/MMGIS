@@ -73,7 +73,7 @@ function CardLegend({ rampName, discrete, visiblePct, fitToData, minFrac, maxFra
     )
 }
 
-export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop }) {
+export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget }) {
     const el = useShadeStore((s) => s.elements[elmId])
     const vars = useShadeStore((s) => s.vars)
     const ed = useShadeStore((s) => s.sweepElData[elmId])
@@ -150,7 +150,8 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
 
     const handleCardDragEnd = useCallback(() => {
         isDraggingRef.current = false
-    }, [])
+        if (onDragEnd) onDragEnd()
+    }, [onDragEnd])
 
     const handleOpacityChange = useCallback((val) => {
         setSweepElField(elmId, 'opacity', val)
@@ -173,24 +174,24 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrop
     return (
         <div
             ref={cardRef}
-            className="vstSweepCard"
+            className={`vstSweepCard${isDropTarget ? ' vstDropTarget' : ''}`}
             draggable
             onDragStart={handleCardDragStart}
             onDragEnd={handleCardDragEnd}
-            onDragOver={onDragOver}
+            onDragOver={(e) => onDragOver(e, elmId)}
             onDrop={(e) => onDrop(e, elmId)}
         >
             <div className="vstSweepCardHeader">
-                <div className="vstSweepCardIdentity">
-                    <span className="vstSweepCardSource">{sourceName}</span>
-                    {observerName && <span className="vstSweepCardObserver">{' / '}{observerName}</span>}
-                </div>
                 <div
                     ref={handleRef}
                     className="vstSweepCardDragHandle"
                     onMouseDown={handleHandleMouseDown}
                 >
                     <i className="mdi mdi-drag-vertical mdi-14px" />
+                </div>
+                <div className="vstSweepCardIdentity">
+                    <span className="vstSweepCardSource">{sourceName}</span>
+                    {observerName && <span className="vstSweepCardObserver">{' / '}{observerName}</span>}
                 </div>
             </div>
 
