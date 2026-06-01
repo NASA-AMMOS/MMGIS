@@ -568,6 +568,12 @@
     padding: 4px 6px;
     flex-shrink: 0;
 }
+#shadeTool .vstSweepControlsInline {
+    margin: 6px 0 0;
+    padding: 6px 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
 
 #shadeTool .vstSweepPlaybarRow {
     display: flex;

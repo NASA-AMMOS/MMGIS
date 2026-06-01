@@ -618,20 +618,6 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                             />
                                         </div>
                                     </div>
-                                    <div className="vstOptionRow vstSweepCardRow">
-                                        <div className="vstOptionLabel">Opacity</div>
-                                        <div style={{ width: 145 }}>
-                                            <Slider
-                                                value={sweepOpacity}
-                                                onValueChange={handleSweepOpacityChange}
-                                                min={0}
-                                                max={1}
-                                                step={0.05}
-                                                suffix="%"
-                                                formatValue={(v) => Math.round(v * 100)}
-                                            />
-                                        </div>
-                                    </div>
                                     <CardLegend
                                         rampName={sweepColorRamp}
                                         discrete={discrete}
@@ -645,21 +631,29 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
                             {shadeMode === 'playback' && ed && (
                                 <div className="vstSweepCardBody">
-                                    <div className="vstOptionRow vstSweepCardRow">
-                                        <div className="vstOptionLabel">Opacity</div>
-                                        <div style={{ width: 145 }}>
-                                            <Slider
-                                                value={sweepOpacity}
-                                                onValueChange={handleSweepOpacityChange}
-                                                min={0}
-                                                max={1}
-                                                step={0.05}
-                                                suffix="%"
-                                                formatValue={(v) => Math.round(v * 100)}
-                                            />
+                                    {ed?.results && ed.results.length > 0 && (
+                                        <div className="vstSweepCardSkyDome">
+                                            <canvas id={skyDomeId} width="140" height="140" />
                                         </div>
-                                    </div>
-                                    <div className="vstSweepControlsWrap">
+                                    )}
+                                    {currentResult && (
+                                        <div className="vstSweepCardMiniIndicators">
+                                            <div className="vstSweepCardMiniIndicator">
+                                                <div className="vstSweepCardMiniLabel">Az: {currentResult.azimuth?.toFixed(1)}°</div>
+                                                <canvas id={azCanvasId} width="80" height="80" />
+                                            </div>
+                                            <div className="vstSweepCardMiniIndicator">
+                                                <div className="vstSweepCardMiniLabel">El: {currentResult.elevation?.toFixed(1)}°</div>
+                                                <canvas id={elCanvasId} width="80" height="80" />
+                                            </div>
+                                        </div>
+                                    )}
+                                    {currentResult && (
+                                        <div className="vstSweepCardPlaybackInfo">
+                                            <span>Visible: {currentResult.visibilityPct}%</span>
+                                        </div>
+                                    )}
+                                    <div className="vstSweepControlsWrap vstSweepControlsInline">
                                         <div className="vstSweepPlaybarRow">
                                             <div className="vstSweepPlaybar">
                                                 <IconButton size="md" title="Step back" onClick={() => ShadeTool.sweepStepBack()}>
@@ -699,28 +693,6 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                             <span id={`vstSweepFrameLabel_${elmId}`} />
                                         </div>
                                     </div>
-                                    {ed?.results && ed.results.length > 0 && (
-                                        <div className="vstSweepCardSkyDome">
-                                            <canvas id={skyDomeId} width="140" height="140" />
-                                        </div>
-                                    )}
-                                    {currentResult && (
-                                        <div className="vstSweepCardMiniIndicators">
-                                            <div className="vstSweepCardMiniIndicator">
-                                                <div className="vstSweepCardMiniLabel">Az: {currentResult.azimuth?.toFixed(1)}°</div>
-                                                <canvas id={azCanvasId} width="80" height="80" />
-                                            </div>
-                                            <div className="vstSweepCardMiniIndicator">
-                                                <div className="vstSweepCardMiniLabel">El: {currentResult.elevation?.toFixed(1)}°</div>
-                                                <canvas id={elCanvasId} width="80" height="80" />
-                                            </div>
-                                        </div>
-                                    )}
-                                    {currentResult && (
-                                        <div className="vstSweepCardPlaybackInfo">
-                                            <span>Visible: {currentResult.visibilityPct}%</span>
-                                        </div>
-                                    )}
                                 </div>
                             )}
 
