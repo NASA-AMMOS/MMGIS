@@ -278,6 +278,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
             ref={cardRef}
             className={`vstShadeItem${isDropTarget ? ' vstDropTarget' : ''}`}
             data-shade-id={elmId}
+            style={{ borderLeft: `3px solid ${rgbStr(el.color)}` }}
             draggable
             onDragStart={handleCardDragStart}
             onDragEnd={handleCardDragEnd}
