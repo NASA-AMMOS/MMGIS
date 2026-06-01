@@ -1571,14 +1571,13 @@ let ShadeTool = {
                 ShadeTool.sweepShowFrame(parseInt(id))
             }
         }
-        // Show time label from first element with results
+        // Show time label per element
         const idx = store.sweepPlayIndex
         for (const id in store.sweepElData) {
             const ed = store.sweepElData[id]
             if (ed?.results?.[idx]?.time) {
-                const frameLabel = document.getElementById('vstSweepFrameLabel')
+                const frameLabel = document.getElementById('vstSweepFrameLabel_' + id)
                 if (frameLabel) frameLabel.textContent = ed.results[idx].time.replace(/\.\d{3}Z$/, 'Z')
-                break
             }
         }
     },
