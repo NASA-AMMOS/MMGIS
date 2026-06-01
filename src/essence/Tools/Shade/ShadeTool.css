@@ -710,9 +710,9 @@
     margin-top: 2px;
 }
 
-#shadeTool .vstTabs {
-    flex: 1;
-    min-height: 0;
+#shadeTool .vstModeRow {
+    padding: 6px 8px 2px;
+    border-top: 2px solid var(--color-a);
 }
 
 #shadeTool .vstSweepProgressLabel {

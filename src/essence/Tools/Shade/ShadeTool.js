@@ -162,14 +162,15 @@ let ShadeTool = {
 
     _onCompositeHover: function (e) {
         const store = useShadeStore.getState()
-        if (store.sweepStale || store.sweepViewMode !== 'composite') return
+        if (store.sweepStale) return
 
         const lat = e.latlng.lat
         const lng = e.latlng.lng
 
         for (const id in store.sweepElData) {
             const ed = store.sweepElData[id]
-            if (!ed?.heatmap || !ed?.lastData) continue
+            const el = store.elements[id]
+            if (!ed?.heatmap || !ed?.lastData || el?.shadeMode !== 'composite') continue
             const data = ed.lastData
             const heatmap = ed.heatmap
             const tileRes = data.tileResolution
@@ -505,6 +506,33 @@ let ShadeTool = {
             if (!Map_.map.hasLayer(layer)) Map_.map.addLayer(layer)
         } else {
             if (Map_.map.hasLayer(layer)) Map_.map.removeLayer(layer)
+        }
+    },
+
+    // Switch a single element between static/composite/playback display
+    switchElementMode: function (elmId, mode) {
+        const store = useShadeStore.getState()
+        const el = store.elements[elmId]
+        if (!el) return
+        // Remove current layer
+        Map_.rmNotNull(L_.layers.layer['shade' + elmId])
+        L_.layers.layer['shade' + elmId] = null
+        if (mode === 'static') {
+            if (el.lastData && el.lastResultGrid) {
+                const options = store.getShadeOptions(elmId)
+                options.color.a = 255
+                ShadeTool.renderResultToMap(el.lastData, el.lastResultGrid, options, elmId)
+            }
+        } else if (mode === 'composite') {
+            const ed = store.sweepElData[elmId]
+            if (ed?.heatmap && ed?.lastData) {
+                ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, elmId)
+            }
+        } else if (mode === 'playback') {
+            const ed = store.sweepElData[elmId]
+            if (ed?.grids?.length > 0) {
+                ShadeTool.sweepShowFrame(elmId)
+            }
         }
     },
 
@@ -1409,6 +1437,41 @@ let ShadeTool = {
         )
     },
 
+    // Single-element sweep triggered from an element's Generate button
+    shadeSweepElement: function (elmId) {
+        const store = useShadeStore.getState()
+        const startTime = store.sweepStart
+        const endTime = store.sweepEnd
+        const stepMinutes = store.sweepStep
+        if (!startTime || !endTime || !stepMinutes) {
+            Toast.warning('Set sweep Start Time, End Time and Step Size.', 6000)
+            return
+        }
+        ShadeTool._sweepRunId++
+        store.setSweepField('sweepStale', false)
+        store.setActiveElmId(elmId)
+        store.setSweepField('sweepTotalElms', 1)
+        store.setSweepField('sweepCurrentElm', 1)
+        // Initialize card order for this element
+        const existingOrder = store.sweepCardOrder || []
+        if (!existingOrder.includes(elmId)) {
+            store.setSweepCardOrder([...existingOrder, elmId])
+        }
+        // Remove existing shade layer for this element
+        Map_.rmNotNull(L_.layers.layer['shade' + elmId])
+        L_.layers.layer['shade' + elmId] = null
+        store.updateElement(elmId, { regenerating: true, loadingProgress: 0, sweepProgress: 'Starting...' })
+        ShadeTool.shadeSweep(startTime, endTime, stepMinutes, function () {
+            const s = useShadeStore.getState()
+            const el = s.elements[elmId]
+            s.updateElement(elmId, { regenerating: false, loadingProgress: 0, changed: false, sweepProgress: '' })
+            // Ensure the correct layer is shown based on the element's mode
+            if (el?.shadeMode === 'playback') {
+                ShadeTool.sweepShowAllFrames()
+            }
+        })
+    },
+
     shadeSweepAll: function (startTime, endTime, stepMinutes) {
         ShadeTool._sweepRunId++
         const runId = ShadeTool._sweepRunId
@@ -1503,7 +1566,8 @@ let ShadeTool = {
         store.setSweepField('sweepViewMode', 'playback')
         for (const id in store.sweepElData) {
             const ed = store.sweepElData[id]
-            if (ed?.grids?.length > 0) {
+            const el = store.elements[id]
+            if (ed?.grids?.length > 0 && el?.shadeMode === 'playback') {
                 ShadeTool.sweepShowFrame(parseInt(id))
             }
         }

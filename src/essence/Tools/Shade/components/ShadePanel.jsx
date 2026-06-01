@@ -1,18 +1,36 @@
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react'
 import useShadeStore from '../store'
 import ShadeElement from './ShadeElement'
-import SweepSection from './SweepSection'
 import ShadeTool from '../ShadeTool'
 import Help from '../../../Basics/UserInterface_/components/Help/Help'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
+import TimeUI from '../../../Basics/TimeControl_/TimeUI'
 import ToolController_ from '../../../Basics/ToolController_/ToolController_'
-import { Button, IconButton, Tabs } from '../../../../design-system/components'
+import { Button, IconButton, InputWithUnit, Select, Slider } from '../../../../design-system/components'
 
 const helpKey = 'ShadeTool'
 
-const SHADE_TABS = [
-    { value: 'shademaps', label: 'Shademaps', icon: 'mdi-layers-outline' },
-    { value: 'sweep', label: 'Sweep', icon: 'mdi-timelapse' },
+const SPEED_NORMAL = 500
+const SPEED_FAST = 150
+
+function fmtUTC(t) {
+    if (!t) return t
+    return t.replace(/\.\d{3}Z$/, 'Z').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z')
+}
+
+function getTimeUIMode() {
+    if (!TimeUI.modes) return 'Range'
+    return TimeUI.modes[TimeUI.modeIndex] || 'Range'
+}
+
+const COLOR_MODE_OPTIONS = [
+    { label: 'Continuous', value: 'continuous' },
+    { label: 'Discrete', value: 'discrete' },
+]
+
+const FIT_MODE_OPTIONS = [
+    { label: 'Absolute (0–100%)', value: 'absolute' },
+    { label: 'Fit to data', value: 'fit' },
 ]
 
 export default function ShadePanel() {
@@ -22,7 +40,17 @@ export default function ShadePanel() {
     const addElement = useShadeStore((s) => s.addElement)
     const elementOrder = useShadeStore((s) => s.elementOrder)
     const setElementOrder = useShadeStore((s) => s.setElementOrder)
-    const [activeTab, setActiveTab] = useState('shademaps')
+    const sweepStart = useShadeStore((s) => s.sweepStart)
+    const sweepEnd = useShadeStore((s) => s.sweepEnd)
+    const sweepStep = useShadeStore((s) => s.sweepStep)
+    const sweepPlaying = useShadeStore((s) => s.sweepPlaying)
+    const sweepPlayIndex = useShadeStore((s) => s.sweepPlayIndex)
+    const sweepElData = useShadeStore((s) => s.sweepElData)
+    const sweepStale = useShadeStore((s) => s.sweepStale)
+    const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
+    const sweepFitToData = useShadeStore((s) => s.sweepFitToData)
+    const setSweepField = useShadeStore((s) => s.setSweepField)
+
     const dragItemRef = useRef(null)
     const [dropTargetId, setDropTargetId] = useState(null)
 
@@ -30,14 +58,34 @@ export default function ShadePanel() {
         Help.finalize(helpKey)
     }, [])
 
-    const handleTabChange = useCallback((tab) => {
-        setActiveTab(tab)
-        if (tab === 'shademaps') {
-            ShadeTool.showShademapLayers()
-        } else if (tab === 'sweep') {
-            ShadeTool.showSweepLayers()
+    // Sync sweep times from TimeControl
+    useEffect(() => {
+        function syncFromTimeUI() {
+            const mode = getTimeUIMode()
+            const currentTime = TimeControl.getTime()
+            const startTime = TimeControl.getStartTime()
+            const endTime = TimeControl.getEndTime()
+            if (mode === 'Point') {
+                if (currentTime) setSweepField('sweepStart', fmtUTC(currentTime))
+            } else {
+                if (startTime) setSweepField('sweepStart', fmtUTC(startTime))
+                if (endTime) setSweepField('sweepEnd', fmtUTC(endTime))
+            }
         }
-    }, [])
+        syncFromTimeUI()
+        TimeControl.subscribe('ShadeTool_Sweep', (t) => {
+            const mode = getTimeUIMode()
+            if (mode === 'Point') {
+                if (t.currentTime) setSweepField('sweepStart', fmtUTC(t.currentTime))
+            } else {
+                if (t.startTime) setSweepField('sweepStart', fmtUTC(t.startTime))
+                if (t.endTime) setSweepField('sweepEnd', fmtUTC(t.endTime))
+            }
+        })
+        return () => {
+            TimeControl.unsubscribe('ShadeTool_Sweep')
+        }
+    }, [setSweepField])
 
     const handleNew = useCallback(() => {
         const newId = addElement()
@@ -53,6 +101,24 @@ export default function ShadePanel() {
         return ordered
     }, [elements, elementOrder])
 
+    // Check if at least one element has been swept
+    const hasSweepData = useMemo(() => {
+        return !sweepStale && Object.keys(sweepElData).some((id) => sweepElData[id]?.heatmap != null)
+    }, [sweepElData, sweepStale])
+
+    // Check if any element is in composite/playback mode (to show sweep time inputs)
+    const hasAnySweepMode = useMemo(() => {
+        return Object.values(elements).some((el) => el.shadeMode === 'composite' || el.shadeMode === 'playback')
+    }, [elements])
+
+    const totalFrames = useMemo(() => {
+        for (const id in sweepElData) {
+            if (sweepElData[id]?.grids?.length > 0) return sweepElData[id].grids.length
+        }
+        return 0
+    }, [sweepElData])
+
+    // Drag reorder
     const handleElDragStart = useCallback((e, elmId) => {
         dragItemRef.current = elmId
         e.dataTransfer.effectAllowed = 'move'
@@ -85,6 +151,39 @@ export default function ShadePanel() {
         ShadeTool.reorderShadeLayers(order)
         dragItemRef.current = null
     }, [elementIds, setElementOrder])
+
+    // Sweep discrete/fit handlers
+    const handleDiscreteChange = useCallback((val) => {
+        setSweepField('sweepDiscrete', val === 'discrete')
+        setTimeout(() => ShadeTool.refreshHeatmap(), 0)
+    }, [setSweepField])
+
+    const handleFitModeChange = useCallback((val) => {
+        setSweepField('sweepFitToData', val === 'fit')
+        setTimeout(() => ShadeTool.refreshHeatmap(), 0)
+    }, [setSweepField])
+
+    // Playback controls
+    const handlePlayNormal = useCallback(() => {
+        setSweepField('sweepPlaySpeed', SPEED_NORMAL)
+        ShadeTool.updateSweepSpeed(SPEED_NORMAL)
+        if (!useShadeStore.getState().sweepPlaying) ShadeTool.sweepPlay()
+    }, [setSweepField])
+
+    const handlePlayFast = useCallback(() => {
+        setSweepField('sweepPlaySpeed', SPEED_FAST)
+        ShadeTool.updateSweepSpeed(SPEED_FAST)
+        if (!useShadeStore.getState().sweepPlaying) ShadeTool.sweepPlay()
+    }, [setSweepField])
+
+    const handlePause = useCallback(() => {
+        if (useShadeStore.getState().sweepPlaying) ShadeTool.sweepPlay()
+    }, [])
+
+    const handleTimelineScrub = useCallback((v) => {
+        setSweepField('sweepPlayIndex', v)
+        ShadeTool.sweepShowAllFrames()
+    }, [setSweepField])
 
     if (!TimeControl.enabled) {
         return (
@@ -129,46 +228,167 @@ export default function ShadePanel() {
                     <span>Source Visible <span className="vstBinaryLegendMuted">Empty</span></span>
                 </div>
             </div>
-            <Tabs
-                value={activeTab}
-                onValueChange={handleTabChange}
-                tabs={SHADE_TABS}
-                className="vstTabs"
-            >
-                {/* Shademaps tab */}
-                <div>
-                    <div className="vstTime">
-                        <div className="vstClockIcon">
-                            <i className="mdi mdi-clock-outline mdi-14px" />
-                        </div>
-                        <span>{utcTime}</span>
+
+            {/* Time section — always shows UTC time, plus sweep params when any element uses sweep */}
+            <div className="vstTime">
+                <div className="vstClockIcon">
+                    <i className="mdi mdi-clock-outline mdi-14px" />
+                </div>
+                <span>{utcTime}</span>
+            </div>
+            {hasAnySweepMode && (
+                <div className="vstSweepBody">
+                    <div className="vstOptionRow">
+                        <div className="vstOptionLabel">Start Time</div>
+                        <input
+                            type="text"
+                            className="vstSweepInput"
+                            placeholder="YYYY-MM-DDTHH:MM:SSZ"
+                            value={sweepStart}
+                            onChange={(e) => setSweepField('sweepStart', e.target.value)}
+                        />
                     </div>
-                    <div className="vstContent">
-                        {elementIds.map((id) => (
-                            <ShadeElement
-                                key={id}
-                                elmId={id}
-                                onDragStart={handleElDragStart}
-                                onDragOver={handleElDragOver}
-                                onDragEnd={handleElDragEnd}
-                                onDrop={handleElDrop}
-                                isDropTarget={dropTargetId === id}
-                            />
-                        ))}
-                        <div className="vstNewBtnWrap">
-                            <Button
-                                className="vstNewBtn"
-                                onClick={handleNew}
-                            >
-                                <i className="mdi mdi-plus mdi-18px" />
-                                New
-                            </Button>
+                    <div className="vstOptionRow">
+                        <div className="vstOptionLabel">End Time</div>
+                        <input
+                            type="text"
+                            className="vstSweepInput"
+                            placeholder="YYYY-MM-DDTHH:MM:SSZ"
+                            value={sweepEnd}
+                            onChange={(e) => setSweepField('sweepEnd', e.target.value)}
+                        />
+                    </div>
+                    <div className="vstOptionRow">
+                        <div className="vstOptionLabel">Step Size</div>
+                        <InputWithUnit
+                            unit="min"
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={sweepStep || ''}
+                            onChange={(e) => {
+                                const v = parseFloat(e.target.value)
+                                setSweepField('sweepStep', Number.isFinite(v) ? v : '')
+                            }}
+                            className="vstSweepField"
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Element cards */}
+            <div className="vstContent">
+                {elementIds.map((id) => (
+                    <ShadeElement
+                        key={id}
+                        elmId={id}
+                        onDragStart={handleElDragStart}
+                        onDragOver={handleElDragOver}
+                        onDragEnd={handleElDragEnd}
+                        onDrop={handleElDrop}
+                        isDropTarget={dropTargetId === id}
+                    />
+                ))}
+                <div className="vstNewBtnWrap">
+                    <Button
+                        className="vstNewBtn"
+                        onClick={handleNew}
+                    >
+                        <i className="mdi mdi-plus mdi-18px" />
+                        New
+                    </Button>
+                </div>
+            </div>
+
+            {/* Sweep controls — only when at least one element has sweep data */}
+            {hasSweepData && (
+                <div className="vstSweepCardsSection">
+                    <div className="vstSweepGlobalOptions">
+                        <div className="vstSweepGlobalRow">
+                            <span className="vstSweepGlobalLabel">Mode</span>
+                            <div style={{ width: 145 }}>
+                                <Select
+                                    value={sweepDiscrete ? 'discrete' : 'continuous'}
+                                    onValueChange={handleDiscreteChange}
+                                    options={COLOR_MODE_OPTIONS}
+                                />
+                            </div>
+                        </div>
+                        <div className="vstSweepGlobalRow">
+                            <span className="vstSweepGlobalLabel">Range</span>
+                            <div style={{ width: 145 }}>
+                                <Select
+                                    value={sweepFitToData ? 'fit' : 'absolute'}
+                                    onValueChange={handleFitModeChange}
+                                    options={FIT_MODE_OPTIONS}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Playback controls */}
+                    <div className="vstSweepControlsWrap">
+                        <div className="vstSweepPlaybarRow">
+                            <div className="vstSweepPlaybar">
+                                <IconButton
+                                    size="md"
+                                    title="Step back"
+                                    onClick={() => ShadeTool.sweepStepBack()}
+                                >
+                                    <i className="mdi mdi-skip-previous mdi-18px" />
+                                </IconButton>
+                                {sweepPlaying ? (
+                                    <IconButton
+                                        size="md"
+                                        title="Pause"
+                                        onClick={handlePause}
+                                    >
+                                        <i className="mdi mdi-pause mdi-18px" />
+                                    </IconButton>
+                                ) : (
+                                    <>
+                                        <IconButton
+                                            size="md"
+                                            title="Play"
+                                            onClick={handlePlayNormal}
+                                        >
+                                            <i className="mdi mdi-play mdi-18px" />
+                                        </IconButton>
+                                        <IconButton
+                                            size="md"
+                                            title="Play fast"
+                                            onClick={handlePlayFast}
+                                        >
+                                            <i className="mdi mdi-fast-forward mdi-18px" />
+                                        </IconButton>
+                                    </>
+                                )}
+                                <IconButton
+                                    size="md"
+                                    title="Step forward"
+                                    onClick={() => ShadeTool.sweepStepForward()}
+                                >
+                                    <i className="mdi mdi-skip-next mdi-18px" />
+                                </IconButton>
+                            </div>
+                        </div>
+                        {totalFrames > 0 && (
+                            <div className="vstSweepTimeline">
+                                <Slider
+                                    value={sweepPlayIndex}
+                                    onValueChange={handleTimelineScrub}
+                                    min={0}
+                                    max={Math.max(totalFrames - 1, 1)}
+                                    step={1}
+                                />
+                            </div>
+                        )}
+                        <div className="vstSweepFrameLabel">
+                            <span id="vstSweepFrameLabel" />
                         </div>
                     </div>
                 </div>
-                {/* Sweep tab */}
-                <SweepSection />
-            </Tabs>
+            )}
         </div>
     )
 }

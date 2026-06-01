@@ -44,6 +44,8 @@ function makeDefaultElement(id, vars) {
         regenerating: false,
         changed: true,
         lastError: false,
+        shadeMode: 'static',
+        sweepProgress: '',
         raeResults: null,
         allResults: null,
     }

@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useShadeStore, { buildSourcesList, MULTI_SOURCE_COLORS } from '../store'
 import ShadeResults from './ShadeResults'
+import CardLegend from './CardLegend'
 import ShadeTool from '../ShadeTool'
 import L_ from '../../../Basics/Layers_/Layers_'
 import {
     Button,
     Checkbox,
     Collapsible,
+    ColorRampPicker,
     IconButton,
     Dropdown,
     InputWithUnit,
@@ -20,12 +22,23 @@ function rgbStr(c) {
     return `rgb(${c.r},${c.g},${c.b})`
 }
 
+const MODE_OPTIONS = [
+    { value: 'static', label: 'Static' },
+    { value: 'composite', label: 'Composite' },
+    { value: 'playback', label: 'Playback' },
+]
+
 export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget }) {
     const el = useShadeStore((s) => s.elements[elmId])
     const vars = useShadeStore((s) => s.vars)
     const updateElement = useShadeStore((s) => s.updateElement)
     const removeElement = useShadeStore((s) => s.removeElement)
     const setActiveElmId = useShadeStore((s) => s.setActiveElmId)
+    const ed = useShadeStore((s) => s.sweepElData[elmId])
+    const sweepPlayIndex = useShadeStore((s) => s.sweepPlayIndex)
+    const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
+    const sweepFitToData = useShadeStore((s) => s.sweepFitToData)
+    const setSweepElField = useShadeStore((s) => s.setSweepElField)
 
     const sourcesList = useMemo(() => buildSourcesList(vars), [vars])
 
@@ -66,6 +79,8 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         []
     )
 
+    const shadeMode = el?.shadeMode || 'static'
+
     const handleToggle = useCallback(() => {
         const newOn = !el?.on
         updateElement(elmId, { on: newOn })
@@ -79,6 +94,11 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         [elmId, updateElement]
     )
 
+    const handleModeChange = useCallback((mode) => {
+        updateElement(elmId, { shadeMode: mode })
+        ShadeTool.switchElementMode(elmId, mode)
+    }, [elmId, updateElement])
+
     const handleOpacityChange = useCallback(
         (value) => {
             updateElement(elmId, { opacity: value })
@@ -91,26 +111,32 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         [elmId, updateElement]
     )
 
-    // Auto-generate when settings change
+    // Auto-generate when settings change (static mode only)
     useEffect(() => {
+        if (shadeMode !== 'static') return
         if (!el?.changed || el?.regenerating || el?.lastError) return
         const timer = setTimeout(() => {
             setActiveElmId(elmId)
             ShadeTool.shade(null, elmId)
         }, 300)
         return () => clearTimeout(timer)
-    }, [elmId, el?.changed, el?.regenerating, el?.lastError, setActiveElmId])
+    }, [elmId, el?.changed, el?.regenerating, el?.lastError, shadeMode, setActiveElmId])
 
     const handleGenerate = useCallback(() => {
-        if (!el?.changed || el?.regenerating) return
-        setActiveElmId(elmId)
-        ShadeTool.shade(null, elmId)
-    }, [elmId, el?.changed, el?.regenerating, setActiveElmId])
+        if (el?.regenerating) return
+        if (shadeMode === 'static') {
+            if (!el?.changed) return
+            setActiveElmId(elmId)
+            ShadeTool.shade(null, elmId)
+        } else {
+            setActiveElmId(elmId)
+            ShadeTool.shadeSweepElement(elmId)
+        }
+    }, [elmId, el?.changed, el?.regenerating, shadeMode, setActiveElmId])
 
     const handleDelete = useCallback(() => {
         ShadeTool.deleteElement(elmId)
     }, [elmId])
-
 
     const cardRef = useRef(null)
     const handleRef = useRef(null)
@@ -170,12 +196,61 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         if (onDragEnd) onDragEnd()
     }, [onDragEnd])
 
+    // Sweep card handlers
+    const sweepOpacity = ed?.opacity != null ? ed.opacity : 1
+    const sweepColorRamp = ed?.colorRamp || 'shadow'
+    const discrete = sweepDiscrete || false
+
+    const handleSweepOpacityChange = useCallback((val) => {
+        setSweepElField(elmId, 'opacity', val)
+        ShadeTool.applySweepOpacity(elmId)
+    }, [elmId, setSweepElField])
+
+    const handleColorRampChange = useCallback((value) => {
+        setSweepElField(elmId, 'colorRamp', value)
+        setTimeout(() => {
+            const ed2 = useShadeStore.getState().sweepElData[elmId]
+            if (ed2?.heatmap && ed2?.lastData) {
+                ShadeTool.renderHeatmapToMap(ed2.lastData, ed2.heatmap, elmId)
+            }
+        }, 0)
+    }, [elmId, setSweepElField])
+
+    const hoverFrac = ed?.hoverFrac
+    const hoverPct = useMemo(() => {
+        if (hoverFrac == null || !Number.isFinite(hoverFrac)) return null
+        return hoverFrac * 100
+    }, [hoverFrac])
+
+    const currentResult = useMemo(() => {
+        if (shadeMode !== 'playback' || !ed?.results) return null
+        return ed.results[sweepPlayIndex] || null
+    }, [shadeMode, ed, sweepPlayIndex])
+
+    // Draw mini az/el canvases when playback result changes
+    const azCanvasId = `sweepMiniAz_${elmId}`
+    const elCanvasId = `sweepMiniEl_${elmId}`
+    useEffect(() => {
+        if (shadeMode !== 'playback' || !currentResult) return
+        ShadeTool.drawMiniRAEIndicators(azCanvasId, elCanvasId, currentResult)
+    }, [shadeMode, currentResult, azCanvasId, elCanvasId])
+
+    // Draw sky dome polar plot
+    const skyDomeId = `sweepSkyDome_${elmId}`
+    useEffect(() => {
+        if (shadeMode !== 'playback' || !ed?.results || ed.results.length === 0) return
+        ShadeTool.drawSkyDome(skyDomeId, ed.results, sweepPlayIndex)
+    }, [shadeMode, ed?.results, sweepPlayIndex, skyDomeId])
+
     if (!el) return null
 
     const isCustom =
         sourcesList[el.sourceIndex] &&
         (sourcesList[el.sourceIndex].value === false ||
             sourcesList[el.sourceIndex].value === 'false')
+
+    const generateActive = shadeMode === 'static' ? el.changed : true
+    const generateLabel = shadeMode === 'static' ? 'Generate' : 'Sweep'
 
     return (
         <div
@@ -429,7 +504,30 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                     </Collapsible.Content>
                 </Collapsible>
 
-                {/* — Results — */}
+                {/* — Mode — */}
+                <div className="vstOptionRow vstModeRow">
+                    <div className="vstOptionLabel">Mode</div>
+                    <Select
+                        value={shadeMode}
+                        onValueChange={handleModeChange}
+                        options={MODE_OPTIONS}
+                        className="vstSelect"
+                    />
+                </div>
+
+                {/* — Actions — */}
+                <div className="vstShadeActions">
+                    <ProgressButton
+                        active={generateActive}
+                        loading={el.regenerating}
+                        progress={el.loadingProgress || 0}
+                        onClick={handleGenerate}
+                    >
+                        {generateLabel}
+                    </ProgressButton>
+                </div>
+
+                {/* — Results (below Generate, mode-dependent) — */}
                 <Collapsible open={resultsOpen} onOpenChange={setResultsOpen}>
                     <Collapsible.Trigger className="vstGroupHeader vstGroupToggle">
                         <i className={`mdi mdi-chevron-right mdi-14px vstGroupChevron ${resultsOpen ? 'vstGroupChevronOpen' : ''}`} />
@@ -437,22 +535,98 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                     </Collapsible.Trigger>
                     <Collapsible.Content>
                         <div className="vstGroupContent">
-                            <ShadeResults elmId={elmId} />
+                            {shadeMode === 'static' && (
+                                <ShadeResults elmId={elmId} />
+                            )}
+
+                            {shadeMode === 'composite' && ed && (
+                                <div className="vstSweepCardBody">
+                                    <div className="vstOptionRow vstSweepCardRow">
+                                        <div className="vstOptionLabel">Color Ramp</div>
+                                        <div style={{ width: 145 }}>
+                                            <ColorRampPicker
+                                                value={sweepColorRamp}
+                                                onValueChange={handleColorRampChange}
+                                                ramps={ShadeTool.getSweepColorRamps()}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="vstOptionRow vstSweepCardRow">
+                                        <div className="vstOptionLabel">Opacity</div>
+                                        <div style={{ width: 145 }}>
+                                            <Slider
+                                                value={sweepOpacity}
+                                                onValueChange={handleSweepOpacityChange}
+                                                min={0}
+                                                max={1}
+                                                step={0.05}
+                                                suffix="%"
+                                                formatValue={(v) => Math.round(v * 100)}
+                                            />
+                                        </div>
+                                    </div>
+                                    <CardLegend
+                                        rampName={sweepColorRamp}
+                                        discrete={discrete}
+                                        visiblePct={hoverPct}
+                                        fitToData={sweepFitToData}
+                                        minFrac={ed?.minFrac ?? 0}
+                                        maxFrac={ed?.maxFrac ?? 1}
+                                    />
+                                </div>
+                            )}
+
+                            {shadeMode === 'playback' && ed && (
+                                <div className="vstSweepCardBody">
+                                    <div className="vstOptionRow vstSweepCardRow">
+                                        <div className="vstOptionLabel">Opacity</div>
+                                        <div style={{ width: 145 }}>
+                                            <Slider
+                                                value={sweepOpacity}
+                                                onValueChange={handleSweepOpacityChange}
+                                                min={0}
+                                                max={1}
+                                                step={0.05}
+                                                suffix="%"
+                                                formatValue={(v) => Math.round(v * 100)}
+                                            />
+                                        </div>
+                                    </div>
+                                    {ed?.results && ed.results.length > 0 && (
+                                        <div className="vstSweepCardSkyDome">
+                                            <canvas id={skyDomeId} width="140" height="140" />
+                                        </div>
+                                    )}
+                                    {currentResult && (
+                                        <div className="vstSweepCardMiniIndicators">
+                                            <div className="vstSweepCardMiniIndicator">
+                                                <div className="vstSweepCardMiniLabel">Az: {currentResult.azimuth?.toFixed(1)}°</div>
+                                                <canvas id={azCanvasId} width="80" height="80" />
+                                            </div>
+                                            <div className="vstSweepCardMiniIndicator">
+                                                <div className="vstSweepCardMiniLabel">El: {currentResult.elevation?.toFixed(1)}°</div>
+                                                <canvas id={elCanvasId} width="80" height="80" />
+                                            </div>
+                                        </div>
+                                    )}
+                                    {currentResult && (
+                                        <div className="vstSweepCardPlaybackInfo">
+                                            <span>Visible: {currentResult.visibilityPct}%</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {(shadeMode === 'composite' || shadeMode === 'playback') && !ed && (
+                                <div className="vstSweepCardBody">
+                                    <div className="vstSweepCardPlaybackInfo">
+                                        <span>No sweep data — click Sweep to generate</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </Collapsible.Content>
                 </Collapsible>
-
-                {/* — Actions — */}
-                <div className="vstShadeActions">
-                    <ProgressButton
-                        active={el.changed}
-                        loading={el.regenerating}
-                        progress={el.loadingProgress || 0}
-                        onClick={handleGenerate}
-                    >
-                        Generate
-                    </ProgressButton>
-                </div>
             </div>
         </div>
     )
