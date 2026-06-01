@@ -28,6 +28,16 @@ const MODE_OPTIONS = [
     { value: 'playback', label: 'Playback' },
 ]
 
+const COLOR_MODE_OPTIONS = [
+    { label: 'Continuous', value: 'continuous' },
+    { label: 'Discrete', value: 'discrete' },
+]
+
+const FIT_MODE_OPTIONS = [
+    { label: 'Absolute (0–100%)', value: 'absolute' },
+    { label: 'Fit to data', value: 'fit' },
+]
+
 export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget }) {
     const el = useShadeStore((s) => s.elements[elmId])
     const vars = useShadeStore((s) => s.vars)
@@ -39,6 +49,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
     const sweepFitToData = useShadeStore((s) => s.sweepFitToData)
     const setSweepElField = useShadeStore((s) => s.setSweepElField)
+    const setSweepField = useShadeStore((s) => s.setSweepField)
 
     const sourcesList = useMemo(() => buildSourcesList(vars), [vars])
 
@@ -215,6 +226,16 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
             }
         }, 0)
     }, [elmId, setSweepElField])
+
+    const handleDiscreteChange = useCallback((val) => {
+        setSweepField('sweepDiscrete', val === 'discrete')
+        setTimeout(() => ShadeTool.refreshHeatmap(), 0)
+    }, [setSweepField])
+
+    const handleFitModeChange = useCallback((val) => {
+        setSweepField('sweepFitToData', val === 'fit')
+        setTimeout(() => ShadeTool.refreshHeatmap(), 0)
+    }, [setSweepField])
 
     const hoverFrac = ed?.hoverFrac
     const hoverPct = useMemo(() => {
@@ -541,6 +562,26 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
                             {shadeMode === 'composite' && ed && (
                                 <div className="vstSweepCardBody">
+                                    <div className="vstOptionRow vstSweepCardRow">
+                                        <div className="vstOptionLabel">Mode</div>
+                                        <div style={{ width: 145 }}>
+                                            <Select
+                                                value={sweepDiscrete ? 'discrete' : 'continuous'}
+                                                onValueChange={handleDiscreteChange}
+                                                options={COLOR_MODE_OPTIONS}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="vstOptionRow vstSweepCardRow">
+                                        <div className="vstOptionLabel">Range</div>
+                                        <div style={{ width: 145 }}>
+                                            <Select
+                                                value={sweepFitToData ? 'fit' : 'absolute'}
+                                                onValueChange={handleFitModeChange}
+                                                options={FIT_MODE_OPTIONS}
+                                            />
+                                        </div>
+                                    </div>
                                     <div className="vstOptionRow vstSweepCardRow">
                                         <div className="vstOptionLabel">Color Ramp</div>
                                         <div style={{ width: 145 }}>

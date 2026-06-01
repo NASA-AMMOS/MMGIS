@@ -6,7 +6,7 @@ import Help from '../../../Basics/UserInterface_/components/Help/Help'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import TimeUI from '../../../Basics/TimeControl_/TimeUI'
 import ToolController_ from '../../../Basics/ToolController_/ToolController_'
-import { Button, IconButton, InputWithUnit, Select, Slider } from '../../../../design-system/components'
+import { Button, IconButton, InputWithUnit, Slider } from '../../../../design-system/components'
 
 const helpKey = 'ShadeTool'
 
@@ -23,16 +23,6 @@ function getTimeUIMode() {
     return TimeUI.modes[TimeUI.modeIndex] || 'Range'
 }
 
-const COLOR_MODE_OPTIONS = [
-    { label: 'Continuous', value: 'continuous' },
-    { label: 'Discrete', value: 'discrete' },
-]
-
-const FIT_MODE_OPTIONS = [
-    { label: 'Absolute (0–100%)', value: 'absolute' },
-    { label: 'Fit to data', value: 'fit' },
-]
-
 export default function ShadePanel() {
     const vars = useShadeStore((s) => s.vars)
     const elements = useShadeStore((s) => s.elements)
@@ -47,8 +37,6 @@ export default function ShadePanel() {
     const sweepPlayIndex = useShadeStore((s) => s.sweepPlayIndex)
     const sweepElData = useShadeStore((s) => s.sweepElData)
     const sweepStale = useShadeStore((s) => s.sweepStale)
-    const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
-    const sweepFitToData = useShadeStore((s) => s.sweepFitToData)
     const setSweepField = useShadeStore((s) => s.setSweepField)
 
     const dragItemRef = useRef(null)
@@ -151,17 +139,6 @@ export default function ShadePanel() {
         ShadeTool.reorderShadeLayers(order)
         dragItemRef.current = null
     }, [elementIds, setElementOrder])
-
-    // Sweep discrete/fit handlers
-    const handleDiscreteChange = useCallback((val) => {
-        setSweepField('sweepDiscrete', val === 'discrete')
-        setTimeout(() => ShadeTool.refreshHeatmap(), 0)
-    }, [setSweepField])
-
-    const handleFitModeChange = useCallback((val) => {
-        setSweepField('sweepFitToData', val === 'fit')
-        setTimeout(() => ShadeTool.refreshHeatmap(), 0)
-    }, [setSweepField])
 
     // Playback controls
     const handlePlayNormal = useCallback(() => {
@@ -303,30 +280,6 @@ export default function ShadePanel() {
             {/* Sweep controls — only when at least one element has sweep data */}
             {hasSweepData && (
                 <div className="vstSweepCardsSection">
-                    <div className="vstSweepGlobalOptions">
-                        <div className="vstSweepGlobalRow">
-                            <span className="vstSweepGlobalLabel">Mode</span>
-                            <div style={{ width: 145 }}>
-                                <Select
-                                    value={sweepDiscrete ? 'discrete' : 'continuous'}
-                                    onValueChange={handleDiscreteChange}
-                                    options={COLOR_MODE_OPTIONS}
-                                />
-                            </div>
-                        </div>
-                        <div className="vstSweepGlobalRow">
-                            <span className="vstSweepGlobalLabel">Range</span>
-                            <div style={{ width: 145 }}>
-                                <Select
-                                    value={sweepFitToData ? 'fit' : 'absolute'}
-                                    onValueChange={handleFitModeChange}
-                                    options={FIT_MODE_OPTIONS}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Playback controls */}
                     <div className="vstSweepControlsWrap">
                         <div className="vstSweepPlaybarRow">
                             <div className="vstSweepPlaybar">
