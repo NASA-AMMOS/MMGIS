@@ -325,27 +325,14 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                     />
                 </div>
                 <div className="vstShadeHeaderCenter">
-                    <Dropdown
-                        align="start"
-                        trigger={
-                            <IconButton size="sm" title="Export shade map">
-                                <i className="mdi mdi-download mdi-18px" />
-                            </IconButton>
+                    <Select
+                        value={String(el.sourceIndex)}
+                        onValueChange={(v) =>
+                            handleChange('sourceIndex', parseInt(v))
                         }
-                    >
-                        <Dropdown.Item onClick={() => ShadeTool.exportPNG(elmId)}>
-                            <i className="mdi mdi-image mdi-14px" /> Shade Map (PNG)
-                        </Dropdown.Item>
-                        <Dropdown.Item onClick={() => ShadeTool.exportCSV(elmId)}>
-                            <i className="mdi mdi-file-delimited mdi-14px" /> Sweep Results (CSV)
-                        </Dropdown.Item>
-                        <Dropdown.Item onClick={() => ShadeTool.exportGeoJSON(elmId)}>
-                            <i className="mdi mdi-map mdi-14px" /> Shade Map (GeoJSON)
-                        </Dropdown.Item>
-                        <Dropdown.Item onClick={() => ShadeTool.exportReport(elmId)}>
-                            <i className="mdi mdi-code-json mdi-14px" /> Report (JSON)
-                        </Dropdown.Item>
-                    </Dropdown>
+                        options={sourceOptions}
+                        className="vstSelect vstHeaderSourceSelect"
+                    />
                 </div>
                 <div className="vstShadeHeaderRight">
                     <Tooltip content="Remove shade map">
@@ -368,19 +355,6 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                     </Collapsible.Trigger>
                     <Collapsible.Content>
                         <div className="vstGroupContent">
-                            <div className="vstOptionRow">
-                                <div className="vstOptionLabel" title='Orbiter or body that is the source of "light".'>
-                                    Entity
-                                </div>
-                                <Select
-                                    value={String(el.sourceIndex)}
-                                    onValueChange={(v) =>
-                                        handleChange('sourceIndex', parseInt(v))
-                                    }
-                                    options={sourceOptions}
-                                    className="vstSelect"
-                                />
-                            </div>
                             {isCustom && (
                                 <>
                                     <div className="vstOptionRow">
@@ -703,6 +677,30 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                     </div>
                                 </div>
                             )}
+
+                            <div className="vstResultsExport">
+                                <Dropdown
+                                    align="start"
+                                    trigger={
+                                        <IconButton size="sm" title="Export shade map">
+                                            <i className="mdi mdi-download mdi-18px" />
+                                        </IconButton>
+                                    }
+                                >
+                                    <Dropdown.Item onClick={() => ShadeTool.exportPNG(elmId)}>
+                                        <i className="mdi mdi-image mdi-14px" /> Shade Map (PNG)
+                                    </Dropdown.Item>
+                                    <Dropdown.Item onClick={() => ShadeTool.exportCSV(elmId)}>
+                                        <i className="mdi mdi-file-delimited mdi-14px" /> Sweep Results (CSV)
+                                    </Dropdown.Item>
+                                    <Dropdown.Item onClick={() => ShadeTool.exportGeoJSON(elmId)}>
+                                        <i className="mdi mdi-map mdi-14px" /> Shade Map (GeoJSON)
+                                    </Dropdown.Item>
+                                    <Dropdown.Item onClick={() => ShadeTool.exportReport(elmId)}>
+                                        <i className="mdi mdi-code-json mdi-14px" /> Report (JSON)
+                                    </Dropdown.Item>
+                                </Dropdown>
+                            </div>
                         </div>
                     </Collapsible.Content>
                 </Collapsible>
