@@ -74,7 +74,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
     const handleChange = useCallback(
         (field, value) => {
-            updateElement(elmId, { [field]: value, changed: true })
+            updateElement(elmId, { [field]: value, changed: true, lastError: false })
         },
         [elmId, updateElement]
     )
@@ -93,13 +93,13 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
     // Auto-generate when settings change
     useEffect(() => {
-        if (!el?.changed || el?.regenerating) return
+        if (!el?.changed || el?.regenerating || el?.lastError) return
         const timer = setTimeout(() => {
             setActiveElmId(elmId)
             ShadeTool.shade(null, elmId)
         }, 300)
         return () => clearTimeout(timer)
-    }, [elmId, el?.changed, el?.regenerating, setActiveElmId])
+    }, [elmId, el?.changed, el?.regenerating, el?.lastError, setActiveElmId])
 
     const handleGenerate = useCallback(() => {
         if (!el?.changed || el?.regenerating) return
@@ -142,7 +142,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
     const handleColorSelect = useCallback(
         (color) => {
-            updateElement(elmId, { color: { ...color }, changed: true })
+            updateElement(elmId, { color: { ...color }, changed: true, lastError: false })
             setColorPickerOpen(false)
         },
         [elmId, updateElement]

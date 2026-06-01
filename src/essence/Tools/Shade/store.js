@@ -43,6 +43,7 @@ function makeDefaultElement(id, vars) {
         loadingProgress: 0,
         regenerating: false,
         changed: true,
+        lastError: false,
         raeResults: null,
         allResults: null,
     }

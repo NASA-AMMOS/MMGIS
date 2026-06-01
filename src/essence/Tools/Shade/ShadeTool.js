@@ -155,7 +155,7 @@ let ShadeTool = {
             if (el.resolution <= (store.vars?.dynamicUpdateResCutoff ?? 1)) {
                 ShadeTool.shade(null, parseInt(id))
             } else {
-                store.updateElement(parseInt(id), { changed: true })
+                store.updateElement(parseInt(id), { changed: true, lastError: false })
             }
         }
     },
@@ -209,7 +209,7 @@ let ShadeTool = {
             if (el.resolution <= 1) {
                 ShadeTool.shade(null, parseInt(id))
             } else {
-                store.updateElement(parseInt(id), { changed: true })
+                store.updateElement(parseInt(id), { changed: true, lastError: false })
             }
         }
     },
@@ -381,6 +381,7 @@ let ShadeTool = {
                                 .updateElement(activeElmId, {
                                     regenerating: false,
                                     loading: false,
+                                    lastError: true,
                                 })
                             return
                         }
@@ -417,6 +418,7 @@ let ShadeTool = {
                     useShadeStore.getState().updateElement(activeElmId, {
                         regenerating: false,
                         loading: false,
+                        lastError: true,
                     })
                 }
             },
@@ -427,6 +429,7 @@ let ShadeTool = {
                 useShadeStore.getState().updateElement(activeElmId, {
                     regenerating: false,
                     loading: false,
+                    lastError: true,
                 })
             }
         )
