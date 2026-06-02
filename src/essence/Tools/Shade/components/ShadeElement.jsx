@@ -14,6 +14,7 @@ import {
     ProgressButton,
     Select,
     Slider,
+    Tabs,
     Tooltip,
 } from '../../../../design-system/components'
 
@@ -21,7 +22,7 @@ function rgbStr(c) {
     return `rgb(${c.r},${c.g},${c.b})`
 }
 
-const MODE_OPTIONS = [
+const MODE_TABS = [
     { value: 'static', label: 'Static' },
     { value: 'composite', label: 'Composite' },
     { value: 'playback', label: 'Playback' },
@@ -671,13 +672,12 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                 </Collapsible>
 
                 {/* — Mode — */}
-                <div className="vstOptionRow vstModeRow">
-                    <div className="vstOptionLabel">Mode</div>
-                    <Select
+                <div className="vstModeRow">
+                    <Tabs
                         value={shadeMode}
                         onValueChange={handleModeChange}
-                        options={MODE_OPTIONS}
-                        className="vstSelect"
+                        tabs={MODE_TABS}
+                        size="xs"
                     />
                 </div>
 

@@ -212,7 +212,7 @@
 #shadeTool .vstResultsExport {
     border-top: 2px solid var(--color-a);
     margin-top: 2px;
-    height: 36px;
+    height: 36px !important;
 }
 #shadeTool .vstExportControls {
     display: flex;
@@ -744,8 +744,10 @@
 }
 
 #shadeTool .vstModeRow {
-    padding: 6px 8px 2px;
+    padding: 4px 8px 2px;
     border-top: 2px solid var(--color-a);
+    display: flex;
+    justify-content: center;
 }
 
 #shadeTool .vstSweepProgressLabel {

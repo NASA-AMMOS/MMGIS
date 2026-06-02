@@ -2443,7 +2443,7 @@ let ShadeTool = {
         ctx.beginPath()
         ctx.arc(cx, cy, r, 0, 2 * Math.PI)
         ctx.strokeStyle = 'rgba(255,255,255,0.5)'
-        ctx.lineWidth = 1
+        ctx.lineWidth = 2
         ctx.stroke()
 
         // Elevation rings (30°, 60°)
@@ -2452,15 +2452,15 @@ let ShadeTool = {
             ctx.beginPath()
             ctx.arc(cx, cy, ringR, 0, 2 * Math.PI)
             ctx.strokeStyle = 'rgba(255,255,255,0.15)'
-            ctx.lineWidth = 0.5
-            ctx.setLineDash([2, 3])
+            ctx.lineWidth = 1
+            ctx.setLineDash([4, 6])
             ctx.stroke()
             ctx.setLineDash([])
         }
 
         // Cardinal direction lines (N-S, E-W)
         ctx.strokeStyle = 'rgba(255,255,255,0.2)'
-        ctx.lineWidth = 0.5
+        ctx.lineWidth = 1
         ctx.beginPath()
         ctx.moveTo(cx, cy - r)
         ctx.lineTo(cx, cy + r)
@@ -2471,21 +2471,21 @@ let ShadeTool = {
         ctx.stroke()
 
         // Cardinal labels
-        ctx.font = '11px Arial'
+        ctx.font = '22px Arial'
         ctx.fillStyle = 'rgba(255,255,255,0.7)'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'bottom'
-        ctx.fillText('N', cx, cy - r - 1)
+        ctx.fillText('N', cx, cy - r - 3)
         ctx.textBaseline = 'top'
-        ctx.fillText('S', cx, cy + r + 1)
+        ctx.fillText('S', cx, cy + r + 3)
         ctx.textBaseline = 'middle'
         ctx.textAlign = 'left'
-        ctx.fillText('E', cx + r + 2, cy)
+        ctx.fillText('E', cx + r + 4, cy)
         ctx.textAlign = 'right'
-        ctx.fillText('W', cx - r - 2, cy)
+        ctx.fillText('W', cx - r - 4, cy)
 
         // Elevation labels
-        ctx.font = '9px Arial'
+        ctx.font = '18px Arial'
         ctx.fillStyle = 'rgba(255,255,255,0.45)'
         ctx.textAlign = 'left'
         ctx.textBaseline = 'middle'
@@ -2517,7 +2517,7 @@ let ShadeTool = {
             }
         }
         ctx.strokeStyle = 'rgba(219, 182, 88, 0.5)'
-        ctx.lineWidth = 1.5
+        ctx.lineWidth = 3
         ctx.stroke()
 
         // Draw below-horizon portions with dashed style
@@ -2540,8 +2540,8 @@ let ShadeTool = {
         }
         if (!first) {
             ctx.strokeStyle = 'rgba(219, 182, 88, 0.25)'
-            ctx.lineWidth = 1
-            ctx.setLineDash([2, 3])
+            ctx.lineWidth = 2
+            ctx.setLineDash([4, 6])
             ctx.stroke()
             ctx.setLineDash([])
         }
@@ -2554,7 +2554,7 @@ let ShadeTool = {
             if (pt.elevation < 0) continue
             const p = azel2xy(pt.azimuth, pt.elevation)
             ctx.beginPath()
-            ctx.arc(p.x, p.y, 1.5, 0, 2 * Math.PI)
+            ctx.arc(p.x, p.y, 3, 0, 2 * Math.PI)
             ctx.fillStyle = 'rgba(219, 182, 88, 0.4)'
             ctx.fill()
         }
@@ -2564,11 +2564,11 @@ let ShadeTool = {
         if (startPt && startPt.azimuth != null && startPt.elevation != null && startPt.elevation >= 0) {
             const sp = azel2xy(startPt.azimuth, startPt.elevation)
             ctx.beginPath()
-            ctx.arc(sp.x, sp.y, 3, 0, 2 * Math.PI)
+            ctx.arc(sp.x, sp.y, 6, 0, 2 * Math.PI)
             ctx.fillStyle = 'rgba(100, 220, 100, 0.8)'
             ctx.fill()
             ctx.strokeStyle = 'rgba(255,255,255,0.5)'
-            ctx.lineWidth = 0.5
+            ctx.lineWidth = 1
             ctx.stroke()
         }
 
@@ -2577,11 +2577,11 @@ let ShadeTool = {
         if (endPt && endPt.azimuth != null && endPt.elevation != null && endPt.elevation >= 0) {
             const ep = azel2xy(endPt.azimuth, endPt.elevation)
             ctx.beginPath()
-            ctx.arc(ep.x, ep.y, 3, 0, 2 * Math.PI)
+            ctx.arc(ep.x, ep.y, 6, 0, 2 * Math.PI)
             ctx.fillStyle = 'rgba(220, 100, 100, 0.8)'
             ctx.fill()
             ctx.strokeStyle = 'rgba(255,255,255,0.5)'
-            ctx.lineWidth = 0.5
+            ctx.lineWidth = 1
             ctx.stroke()
         }
 
@@ -2590,32 +2590,32 @@ let ShadeTool = {
         if (cur && cur.azimuth != null && cur.elevation != null) {
             const cp = azel2xy(cur.azimuth, cur.elevation)
             // Glow effect
-            const glow = ctx.createRadialGradient(cp.x, cp.y, 0, cp.x, cp.y, 8)
+            const glow = ctx.createRadialGradient(cp.x, cp.y, 0, cp.x, cp.y, 16)
             glow.addColorStop(0, 'rgba(219, 182, 88, 0.6)')
             glow.addColorStop(1, 'rgba(219, 182, 88, 0)')
             ctx.beginPath()
-            ctx.arc(cp.x, cp.y, 8, 0, 2 * Math.PI)
+            ctx.arc(cp.x, cp.y, 16, 0, 2 * Math.PI)
             ctx.fillStyle = glow
             ctx.fill()
 
             // Solid dot
             ctx.beginPath()
-            ctx.arc(cp.x, cp.y, 4, 0, 2 * Math.PI)
+            ctx.arc(cp.x, cp.y, 7, 0, 2 * Math.PI)
             ctx.fillStyle = '#dbb658'
             ctx.fill()
             ctx.strokeStyle = 'rgba(255,255,255,0.8)'
-            ctx.lineWidth = 1
+            ctx.lineWidth = 2
             ctx.stroke()
 
             // Label with current az/el
             if (cur.elevation >= 0) {
-                ctx.font = '10px Arial'
+                ctx.font = '20px Arial'
                 ctx.fillStyle = 'rgba(255,255,255,0.9)'
                 ctx.textAlign = 'left'
                 ctx.textBaseline = 'bottom'
                 ctx.fillText(
                     cur.azimuth.toFixed(0) + '° / ' + cur.elevation.toFixed(0) + '°',
-                    cp.x + 6, cp.y - 2
+                    cp.x + 12, cp.y - 4
                 )
             }
         }
