@@ -284,10 +284,10 @@ if __name__ == '__main__':
             lng = float(input_data['lng'])
             lat = float(input_data['lat'])
             height = float(input_data['height'])
-            target = unquote(input_data['target'])
+            target = input_data['target']
             times = input_data['times']
-            obsRefFrame = unquote(input_data.get('obsRefFrame', 'IAU_MARS'))
-            obsBody = unquote(input_data.get('obsBody', 'MARS'))
+            obsRefFrame = input_data.get('obsRefFrame', 'IAU_MARS')
+            obsBody = input_data.get('obsBody', 'MARS')
             includeSunEarth = input_data.get('includeSunEarth', 'false')
             isCustom = input_data.get('isCustom', 'false')
             customAz = input_data.get('customAz', 0)

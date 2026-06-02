@@ -421,16 +421,23 @@ router.post("/ll2aerll_bulk", function(req,res,next){(router._computeLimiter||fu
   if (req.body.lng == null || req.body.lat == null || req.body.height == null || !req.body.target) {
     return res.status(400).json({ error: true, message: "lng, lat, height, and target are required" });
   }
-  // Sanitize string fields that are used in filesystem path construction in Python
-  const safeStr = (v) => typeof v === 'string' ? encodeURIComponent(v) : String(v);
+  // Validate string fields used in filesystem path construction in Python.
+  // Only allow alphanumeric, underscore, hyphen (SPICE body/frame names).
+  const SAFE_NAME_RE = /^[A-Za-z0-9_-]+$/;
+  const target = String(req.body.target);
+  const obsRefFrame = String(req.body.obsRefFrame || "IAU_MARS");
+  const obsBody = String(req.body.obsBody || "MARS");
+  if (!SAFE_NAME_RE.test(target) || !SAFE_NAME_RE.test(obsRefFrame) || !SAFE_NAME_RE.test(obsBody)) {
+    return res.status(400).json({ error: true, message: "target, obsRefFrame, and obsBody must contain only alphanumeric, underscore, or hyphen characters" });
+  }
   const inputData = {
     lng: req.body.lng,
     lat: req.body.lat,
     height: req.body.height,
-    target: safeStr(req.body.target),
+    target: target,
     times: req.body.times,
-    obsRefFrame: safeStr(req.body.obsRefFrame || "IAU_MARS"),
-    obsBody: safeStr(req.body.obsBody || "MARS"),
+    obsRefFrame: obsRefFrame,
+    obsBody: obsBody,
     includeSunEarth: req.body.includeSunEarth || "false",
     isCustom: req.body.isCustom || "false",
     customAz: req.body.customAz || 0,
