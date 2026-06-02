@@ -1079,6 +1079,7 @@
     min-height: 0;
     border-bottom: 1px solid var(--color-a1);
     overflow: hidden;
+    position: relative;
 }
 .shadeGraphPanel:last-of-type {
     border-bottom: none;
@@ -1099,4 +1100,18 @@
     flex: 1;
     width: 100%;
     min-height: 0;
+    cursor: pointer;
+}
+
+/* ====== Horizon hover line ====== */
+
+.shadeHorizonHoverLine {
+    position: absolute;
+    top: 24px;
+    bottom: 0;
+    width: 0;
+    border-left: 1.5px dashed rgba(255,255,255,0.6);
+    pointer-events: none;
+    z-index: 5;
+    display: none;
 }

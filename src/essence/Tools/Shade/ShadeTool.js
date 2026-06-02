@@ -79,6 +79,11 @@ let ShadeTool = {
         // Add center crosshair overlay
         ShadeTool._addCenterCrosshair()
 
+        // Register graph scrub callback for bidirectional sync
+        ShadeTool_Graphs.registerScrubCallback(() => {
+            ShadeTool.sweepShowAllFrames()
+        })
+
         Map_.map.on('click', ShadeTool._onMapClick)
         Map_.map.on('moveend', ShadeTool._onPanEnd)
         Map_.map.on('mousemove', ShadeTool._onCompositeHover)

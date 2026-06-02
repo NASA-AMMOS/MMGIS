@@ -10,6 +10,7 @@ const GRAPH_CONTAINER_ID = 'shadeGraphContainer'
 const HORIZON_CANVAS_ID = 'shadeHorizonCanvas'
 const VISIBILITY_CANVAS_ID = 'shadeVisibilityCanvas'
 const AZIMUTH_LINE_ID = 'shadeAzimuthLineOverlay'
+const HOVER_LINE_ID = 'shadeHorizonHoverLine'
 
 let _horizonCache = null // { lat, lng, profile: [[az,el],...] }
 let _activeElmId = null
@@ -19,6 +20,10 @@ let _animFrameId = null
 // Layout state cached for mouse→azimuth conversion
 let _hPad = null
 let _hPlotW = 0
+// Callback registered by ShadeTool for bidirectional scrubbing
+let _onScrubCallback = null
+// Dragging state for time slider
+let _isDragging = false
 
 const ShadeTool_Graphs = {
     isOpen() {
@@ -175,6 +180,8 @@ const ShadeTool_Graphs = {
 
             canvas.addEventListener('mousemove', ShadeTool_Graphs._onHorizonMouseMove)
             canvas.addEventListener('mouseleave', ShadeTool_Graphs._onHorizonMouseLeave)
+            canvas.addEventListener('mousedown', ShadeTool_Graphs._onHorizonMouseDown)
+            canvas.addEventListener('mouseup', ShadeTool_Graphs._onHorizonMouseUp)
         } else {
             const panel = document.createElement('div')
             panel.className = 'shadeGraphPanel'
@@ -188,9 +195,24 @@ const ShadeTool_Graphs = {
             canvas.className = 'shadeGraphCanvas'
             panel.appendChild(canvas)
             container.appendChild(panel)
+
+            canvas.addEventListener('mousedown', ShadeTool_Graphs._onVisibilityMouseDown)
+            canvas.addEventListener('mousemove', ShadeTool_Graphs._onVisibilityMouseMove)
+            canvas.addEventListener('mouseup', ShadeTool_Graphs._onVisibilityMouseUp)
+            canvas.addEventListener('mouseleave', ShadeTool_Graphs._onVisibilityMouseLeave)
         }
 
         tools.appendChild(container)
+    },
+
+    registerScrubCallback(cb) {
+        _onScrubCallback = cb
+    },
+
+    _scrubToFrame(frameIndex) {
+        const store = useShadeStore.getState()
+        store.setSweepField('sweepPlayIndex', frameIndex)
+        if (_onScrubCallback) _onScrubCallback()
     },
 
     _onHorizonMouseMove(e) {
@@ -201,16 +223,123 @@ const ShadeTool_Graphs = {
         const frac = (mouseX - _hPad.left) / _hPlotW
         if (frac < 0 || frac > 1) {
             ShadeTool_Graphs.removeAzimuthLine()
+            ShadeTool_Graphs._hideHoverLine()
             return
         }
         const displayAz = -180 + frac * 360
         let trueAz = displayAz
         if (trueAz < 0) trueAz += 360
         ShadeTool_Graphs._showAzimuthLine(trueAz)
+        ShadeTool_Graphs._showHoverLine(mouseX)
+
+        // Drag scrubbing on horizon chart
+        if (_isDragging) {
+            ShadeTool_Graphs._scrubFromHorizonX(mouseX)
+        }
     },
 
     _onHorizonMouseLeave() {
         ShadeTool_Graphs.removeAzimuthLine()
+        ShadeTool_Graphs._hideHoverLine()
+        _isDragging = false
+    },
+
+    _onHorizonMouseDown(e) {
+        _isDragging = true
+        if (!_hPad || _hPlotW <= 0) return
+        const canvas = e.target
+        const rect = canvas.getBoundingClientRect()
+        const mouseX = e.clientX - rect.left
+        ShadeTool_Graphs._scrubFromHorizonX(mouseX)
+    },
+
+    _onHorizonMouseUp() {
+        _isDragging = false
+    },
+
+    _scrubFromHorizonX(mouseX) {
+        // Map mouse X on horizon chart to a frame index via azimuth matching
+        const store = useShadeStore.getState()
+        const ed = store.sweepElData[_activeElmId]
+        if (!ed?.results || ed.results.length === 0) return
+        const frac = (mouseX - _hPad.left) / _hPlotW
+        if (frac < 0 || frac > 1) return
+        const displayAz = -180 + frac * 360
+        let targetAz = displayAz
+        if (targetAz < 0) targetAz += 360
+
+        // Find nearest frame by azimuth
+        let bestIdx = 0
+        let bestDist = Infinity
+        for (let i = 0; i < ed.results.length; i++) {
+            const r = ed.results[i]
+            if (r.azimuth == null) continue
+            let diff = Math.abs(r.azimuth - targetAz)
+            if (diff > 180) diff = 360 - diff
+            if (diff < bestDist) {
+                bestDist = diff
+                bestIdx = i
+            }
+        }
+        ShadeTool_Graphs._scrubToFrame(bestIdx)
+    },
+
+    _showHoverLine(x) {
+        const canvas = document.getElementById(HORIZON_CANVAS_ID)
+        if (!canvas) return
+        let line = document.getElementById(HOVER_LINE_ID)
+        if (!line) {
+            line = document.createElement('div')
+            line.id = HOVER_LINE_ID
+            line.className = 'shadeHorizonHoverLine'
+            canvas.parentElement.appendChild(line)
+        }
+        line.style.left = x + 'px'
+        line.style.display = 'block'
+    },
+
+    _hideHoverLine() {
+        const line = document.getElementById(HOVER_LINE_ID)
+        if (line) line.style.display = 'none'
+    },
+
+    _onVisibilityMouseDown(e) {
+        _isDragging = true
+        ShadeTool_Graphs._scrubFromVisibilityX(e)
+    },
+
+    _onVisibilityMouseMove(e) {
+        if (_isDragging) {
+            ShadeTool_Graphs._scrubFromVisibilityX(e)
+        }
+    },
+
+    _onVisibilityMouseUp() {
+        _isDragging = false
+    },
+
+    _onVisibilityMouseLeave() {
+        _isDragging = false
+    },
+
+    _scrubFromVisibilityX(e) {
+        const canvas = document.getElementById(VISIBILITY_CANVAS_ID)
+        if (!canvas) return
+        const store = useShadeStore.getState()
+        const ed = store.sweepElData[_activeElmId]
+        if (!ed?.results || ed.results.length === 0) return
+
+        const rect = canvas.getBoundingClientRect()
+        const mouseX = e.clientX - rect.left
+        const w = Math.floor(rect.width)
+        const pad = { top: 16, right: 20, bottom: 36, left: 45 }
+        const plotW = w - pad.left - pad.right
+        if (plotW <= 0) return
+
+        const frac = (mouseX - pad.left) / plotW
+        if (frac < 0 || frac > 1) return
+        const frameIndex = Math.round(frac * (ed.results.length - 1))
+        ShadeTool_Graphs._scrubToFrame(Math.max(0, Math.min(frameIndex, ed.results.length - 1)))
     },
 
     fetchAndDrawHorizon(elmId) {
@@ -479,8 +608,30 @@ const ShadeTool_Graphs = {
             ctx.fill()
         }
 
-        // Current frame marker
+        // Red time slider line (full height)
         const cur = results[playIndex]
+        if (cur && cur.azimuth != null) {
+            const sliderX = _azToPlotX(cur.azimuth, pad, plotW)
+            ctx.save()
+            ctx.strokeStyle = '#e53935'
+            ctx.lineWidth = 2
+            ctx.setLineDash([])
+            ctx.beginPath()
+            ctx.moveTo(sliderX, pad.top)
+            ctx.lineTo(sliderX, pad.top + plotH)
+            ctx.stroke()
+            // Slider handle
+            ctx.fillStyle = '#e53935'
+            ctx.beginPath()
+            ctx.moveTo(sliderX - 5, pad.top)
+            ctx.lineTo(sliderX + 5, pad.top)
+            ctx.lineTo(sliderX, pad.top + 7)
+            ctx.closePath()
+            ctx.fill()
+            ctx.restore()
+        }
+
+        // Current frame marker
         if (cur && cur.azimuth != null && cur.elevation != null) {
             const x = _azToPlotX(cur.azimuth, pad, plotW)
             const y = pad.top + plotH - ((cur.elevation - minEl) / elRange) * plotH
@@ -663,20 +814,31 @@ const ShadeTool_Graphs = {
         ctx.fillStyle = 'rgba(255,255,255,0.6)'
         ctx.fillText('Occluded', pad.left + 84, h - 5)
 
-        // Playback cursor
+        // Red time slider
         if (playIndex >= 0 && playIndex < results.length) {
             const cx = pad.left + (playIndex + 0.5) * segW
-            ctx.strokeStyle = '#ffdd44'
+            ctx.save()
+            ctx.strokeStyle = '#e53935'
             ctx.lineWidth = 2
+            ctx.setLineDash([])
             ctx.beginPath()
             ctx.moveTo(cx, pad.top)
             ctx.lineTo(cx, pad.top + plotH)
             ctx.stroke()
+            // Slider handle (triangle at top)
+            ctx.fillStyle = '#e53935'
+            ctx.beginPath()
+            ctx.moveTo(cx - 5, pad.top)
+            ctx.lineTo(cx + 5, pad.top)
+            ctx.lineTo(cx, pad.top + 7)
+            ctx.closePath()
+            ctx.fill()
+            ctx.restore()
 
             // Cursor time label
             const curTime = results[playIndex].time
             if (curTime) {
-                ctx.fillStyle = '#ffdd44'
+                ctx.fillStyle = '#e53935'
                 ctx.font = '10px sans-serif'
                 ctx.textAlign = 'center'
                 ctx.fillText(
