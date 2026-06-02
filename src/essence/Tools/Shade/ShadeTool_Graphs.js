@@ -28,7 +28,7 @@ const ShadeTool_Graphs = {
         _activeElmId = elmId
         _graphOpen = true
 
-        useUIStore.getState().setToolHeight(250)
+        useUIStore.getState().setToolHeight(400)
 
         setTimeout(() => {
             ShadeTool_Graphs._buildContainer()
