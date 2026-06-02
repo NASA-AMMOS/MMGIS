@@ -65,7 +65,6 @@
 #shadeTool .vstTime {
     display: flex;
     flex-direction: column;
-    background: var(--color-p0);
     padding: 6px 8px;
     gap: 4px;
 }
@@ -77,7 +76,7 @@
     color: var(--color-a1-5);
 }
 #shadeTool .vstTimeLabel i {
-    color: var(--color-a1-5);
+    color: inherit;
 }
 
 #shadeTool .vstObsTimeLabel {
