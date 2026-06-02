@@ -671,7 +671,15 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                     </Collapsible.Content>
                 </Collapsible>
 
-                {/* — Mode — */}
+                {/* — Run section — */}
+                <Collapsible open={resultsOpen} onOpenChange={setResultsOpen}>
+                    <Collapsible.Trigger className="vstGroupHeader vstGroupToggle">
+                        <i className={`mdi mdi-chevron-right mdi-14px vstGroupChevron ${resultsOpen ? 'vstGroupChevronOpen' : ''}`} />
+                        Run
+                    </Collapsible.Trigger>
+                </Collapsible>
+
+                {/* — Mode (always visible) — */}
                 <div className="vstModeRow">
                     <Tabs
                         value={shadeMode}
@@ -681,7 +689,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                     />
                 </div>
 
-                {/* — Actions — */}
+                {/* — Actions (always visible) — */}
                 <div className="vstShadeActions">
                     <ProgressButton
                         active={generateActive}
@@ -693,13 +701,8 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                     </ProgressButton>
                 </div>
 
-                {/* — Results (below Generate, mode-dependent) — */}
-                <Collapsible open={resultsOpen} onOpenChange={setResultsOpen}>
-                    <Collapsible.Trigger className="vstGroupHeader vstGroupToggle">
-                        <i className={`mdi mdi-chevron-right mdi-14px vstGroupChevron ${resultsOpen ? 'vstGroupChevronOpen' : ''}`} />
-                        Results
-                    </Collapsible.Trigger>
-                    <Collapsible.Content>
+                {/* — Results (collapsible, controlled by Run header) — */}
+                {resultsOpen && (
                         <div className="vstGroupContent">
                             {shadeMode === 'static' && (
                                 <ShadeResults elmId={elmId} />
@@ -843,8 +846,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                 </div>
                             </div>
                         </div>
-                    </Collapsible.Content>
-                </Collapsible>
+                )}
             </div>
         </div>
     )
