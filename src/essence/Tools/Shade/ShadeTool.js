@@ -155,6 +155,8 @@ let ShadeTool = {
         for (const id in store.elements) {
             const el = store.elements[id]
             if (!el) continue
+            // Skip auto-regeneration for composite/playback — only re-enable sweep button
+            if (el.shadeMode === 'composite' || el.shadeMode === 'playback') continue
             if (el.resolution <= (store.vars?.dynamicUpdateResCutoff ?? 1)) {
                 ShadeTool.shade(null, parseInt(id))
             } else {

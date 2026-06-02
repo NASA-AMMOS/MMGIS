@@ -16,6 +16,7 @@ export default function CardLegend({ rampName, discrete, visiblePct, fitToData, 
     const colors = rampDef.colors
     const bins = rampDef.bins || colors.length
     const barRef = useRef(null)
+    const localStopsRef = useRef(null)
     const [draggingIdx, setDraggingIdx] = useState(null)
     const [localStops, setLocalStops] = useState(null)
 
@@ -63,8 +64,10 @@ export default function CardLegend({ rampName, discrete, visiblePct, fitToData, 
     const handleMouseDown = useCallback((e, idx) => {
         e.preventDefault()
         e.stopPropagation()
+        const initial = [...stops]
+        localStopsRef.current = initial
+        setLocalStops(initial)
         setDraggingIdx(idx)
-        setLocalStops([...stops])
     }, [stops])
 
     useEffect(() => {
@@ -80,15 +83,18 @@ export default function CardLegend({ rampName, discrete, visiblePct, fitToData, 
                 const lo = draggingIdx === 0 ? minGap : newStops[draggingIdx - 1] + minGap
                 const hi = draggingIdx === newStops.length - 1 ? 1 - minGap : newStops[draggingIdx + 1] - minGap
                 newStops[draggingIdx] = Math.max(lo, Math.min(hi, x))
+                localStopsRef.current = newStops
                 return newStops
             })
         }
         const handleUp = () => {
+            const finalStops = localStopsRef.current
             setDraggingIdx(null)
-            setLocalStops((final) => {
-                if (final && onColorStopsChange) onColorStopsChange(final)
-                return null
-            })
+            setLocalStops(null)
+            localStopsRef.current = null
+            if (finalStops && onColorStopsChange) {
+                setTimeout(() => onColorStopsChange(finalStops), 0)
+            }
         }
         document.addEventListener('mousemove', handleMove)
         document.addEventListener('mouseup', handleUp)
