@@ -56,7 +56,7 @@ const ShadeTool_Graphs = {
         _activeView = 'visibility'
         _graphOpen = true
 
-        useUIStore.getState().setToolHeight(250)
+        useUIStore.getState().setToolHeight(85)
 
         setTimeout(() => {
             ShadeTool_Graphs._buildContainer('visibility')
