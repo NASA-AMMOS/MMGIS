@@ -438,8 +438,8 @@ router.post("/ll2aerll_bulk", function(req,res,next){(router._computeLimiter||fu
     times: req.body.times,
     obsRefFrame: obsRefFrame,
     obsBody: obsBody,
-    includeSunEarth: req.body.includeSunEarth || "false",
-    isCustom: req.body.isCustom || "false",
+    includeSunEarth: String(req.body.includeSunEarth || "false"),
+    isCustom: String(req.body.isCustom || "false"),
     customAz: req.body.customAz || 0,
     customEl: req.body.customEl || 0,
     customRange: req.body.customRange || 0,
@@ -452,7 +452,7 @@ router.post("/ll2aerll_bulk", function(req,res,next){(router._computeLimiter||fu
   child.stderr.on("data", (data) => { stderr += data.toString(); });
   child.on("error", (err) => {
     logger("error", "ll2aerll_bulk spawn failure:", "server", null, err);
-    if (!res.headersSent) res.status(500).send(JSON.stringify({ error: true, message: "Failed to start Python process" }));
+    if (!res.headersSent) res.status(500).json({ error: true, message: "Failed to start Python process" });
   });
   child.on("close", (code) => {
     if (code !== 0) {
