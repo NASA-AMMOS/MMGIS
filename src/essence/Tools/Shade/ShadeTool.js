@@ -1387,6 +1387,7 @@ let ShadeTool = {
                                     'sweepProgressPct',
                                     overallPct
                                 )
+                                currentStore.updateElement(activeElmId, { loadingProgress: elmPct })
 
                                 if (ti < total) {
                                     setTimeout(processChunk, 0)
