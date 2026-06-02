@@ -644,64 +644,7 @@ const ShadeTool_Graphs = {
             ctx.stroke()
         }
 
-        // Sun trajectory (from ancillary if available)
-        ShadeTool_Graphs._drawAncillaryTrajectory(
-            ctx, results, 'sun_az', 'sun_el',
-            pad, plotW, plotH, minEl, elRange,
-            '#d2db58', playIndex
-        )
-        // Earth trajectory
-        ShadeTool_Graphs._drawAncillaryTrajectory(
-            ctx, results, 'earth_az', 'earth_el',
-            pad, plotW, plotH, minEl, elRange,
-            '#58dbb8', playIndex
-        )
-    },
 
-    _drawAncillaryTrajectory(
-        ctx, results, azKey, elKey,
-        pad, plotW, plotH, minEl, elRange,
-        color, playIndex
-    ) {
-        const hasAncillary = results.some(
-            (r) => r.ancillary && r.ancillary[azKey] != null
-        )
-        if (!hasAncillary) return
-
-        ctx.beginPath()
-        ctx.strokeStyle = color
-        ctx.globalAlpha = 0.5
-        ctx.lineWidth = 1.5
-        let started = false
-        for (let i = 0; i < results.length; i++) {
-            const anc = results[i].ancillary
-            if (!anc || anc[azKey] == null) continue
-            const x = _azToPlotX(anc[azKey], pad, plotW)
-            const el = anc[elKey]
-            const y = pad.top + plotH - ((el - minEl) / elRange) * plotH
-            if (!started) {
-                ctx.moveTo(x, y)
-                started = true
-            } else {
-                ctx.lineTo(x, y)
-            }
-        }
-        ctx.stroke()
-        ctx.globalAlpha = 1.0
-
-        // Current marker
-        const cur = results[playIndex]
-        if (cur?.ancillary && cur.ancillary[azKey] != null) {
-            const x = _azToPlotX(cur.ancillary[azKey], pad, plotW)
-            const el = cur.ancillary[elKey]
-            const y = pad.top + plotH - ((el - minEl) / elRange) * plotH
-            ctx.beginPath()
-            ctx.arc(x, y, 4, 0, Math.PI * 2)
-            ctx.fillStyle = color
-            ctx.globalAlpha = 0.8
-            ctx.fill()
-            ctx.globalAlpha = 1.0
-        }
     },
 
     drawVisibilityTimeline(elmId) {
