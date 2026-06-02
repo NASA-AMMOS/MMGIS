@@ -977,19 +977,20 @@
 .shadeCrosshairH,
 .shadeCrosshairV {
     position: absolute;
-    background: rgba(255, 255, 255, 0.7);
+    background: #fff;
+    box-shadow: 0 0 3px rgba(0,0,0,0.8);
 }
 .shadeCrosshairH {
-    width: 16px;
-    height: 2px;
-    top: -1px;
-    left: -8px;
+    width: 24px;
+    height: 3px;
+    top: -1.5px;
+    left: -12px;
 }
 .shadeCrosshairV {
-    width: 2px;
-    height: 16px;
-    top: -8px;
-    left: -1px;
+    width: 3px;
+    height: 24px;
+    top: -12px;
+    left: -1.5px;
 }
 
 /* ====== Azimuth Radial Line ====== */
@@ -1035,6 +1036,10 @@
     background: var(--color-a3);
     border-color: var(--color-mmgis);
 }
+#shadeTool .vstGraphBtnActive {
+    background: var(--color-a3);
+    border-color: var(--color-mmgis);
+}
 #shadeTool .vstGraphBtn i {
     font-size: 14px;
 }
@@ -1077,9 +1082,6 @@
 }
 .shadeGraphPanel:last-of-type {
     border-bottom: none;
-}
-.shadeGraphPanelTimeline {
-    flex: 0 0 80px;
 }
 
 .shadeGraphTitle {

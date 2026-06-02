@@ -14,6 +14,7 @@ const AZIMUTH_LINE_ID = 'shadeAzimuthLineOverlay'
 let _horizonCache = null // { lat, lng, profile: [[az,el],...] }
 let _activeElmId = null
 let _graphOpen = false
+let _activeView = null // 'horizon' | 'visibility'
 let _animFrameId = null
 // Layout state cached for mouse→azimuth conversion
 let _hPad = null
@@ -28,15 +29,32 @@ const ShadeTool_Graphs = {
         return _activeElmId
     },
 
-    open(elmId) {
+    getActiveView() {
+        return _activeView
+    },
+
+    openHorizon(elmId) {
         _activeElmId = elmId
+        _activeView = 'horizon'
         _graphOpen = true
 
-        useUIStore.getState().setToolHeight(400)
+        useUIStore.getState().setToolHeight(250)
 
         setTimeout(() => {
-            ShadeTool_Graphs._buildContainer()
+            ShadeTool_Graphs._buildContainer('horizon')
             ShadeTool_Graphs.fetchAndDrawHorizon(elmId)
+        }, 50)
+    },
+
+    openVisibility(elmId) {
+        _activeElmId = elmId
+        _activeView = 'visibility'
+        _graphOpen = true
+
+        useUIStore.getState().setToolHeight(250)
+
+        setTimeout(() => {
+            ShadeTool_Graphs._buildContainer('visibility')
             ShadeTool_Graphs.drawVisibilityTimeline(elmId)
         }, 50)
     },
@@ -44,6 +62,7 @@ const ShadeTool_Graphs = {
     close() {
         _graphOpen = false
         _activeElmId = null
+        _activeView = null
         _horizonCache = null
 
         if (_animFrameId) {
@@ -59,11 +78,19 @@ const ShadeTool_Graphs = {
         useUIStore.getState().setToolHeight(0)
     },
 
-    toggle(elmId) {
-        if (_graphOpen && _activeElmId === elmId) {
+    toggleHorizon(elmId) {
+        if (_graphOpen && _activeView === 'horizon' && _activeElmId === elmId) {
             ShadeTool_Graphs.close()
         } else {
-            ShadeTool_Graphs.open(elmId)
+            ShadeTool_Graphs.openHorizon(elmId)
+        }
+    },
+
+    toggleVisibility(elmId) {
+        if (_graphOpen && _activeView === 'visibility' && _activeElmId === elmId) {
+            ShadeTool_Graphs.close()
+        } else {
+            ShadeTool_Graphs.openVisibility(elmId)
         }
     },
 
@@ -85,7 +112,6 @@ const ShadeTool_Graphs = {
         const cx = mapRect.width / 2
         const cy = mapRect.height / 2
 
-        // If observer was dragged, adjust center
         let centerPx = { x: cx, y: cy }
         if (store.indicatorLastDragPoint) {
             const pt = Map_.map.latLngToContainerPoint(store.indicatorLastDragPoint)
@@ -112,11 +138,11 @@ const ShadeTool_Graphs = {
         overlay.innerHTML =
             `<svg viewBox="0 0 ${mapRect.width} ${mapRect.height}">` +
             `<line x1="${centerPx.x}" y1="${centerPx.y}" x2="${ex}" y2="${ey}" ` +
-            `stroke="rgba(255,221,68,0.6)" stroke-width="1.5" stroke-dasharray="6,4" />` +
+            `stroke="#ffdd44" stroke-width="2.5" stroke-dasharray="8,4" />` +
             `</svg>`
     },
 
-    _buildContainer() {
+    _buildContainer(view) {
         let container = document.getElementById(GRAPH_CONTAINER_ID)
         if (container) container.remove()
 
@@ -130,40 +156,39 @@ const ShadeTool_Graphs = {
         const closeBtn = document.createElement('div')
         closeBtn.className = 'shadeGraphClose'
         closeBtn.innerHTML = '<i class="mdi mdi-close mdi-18px"></i>'
-        closeBtn.title = 'Close graphs'
+        closeBtn.title = 'Close graph'
         closeBtn.onclick = () => ShadeTool_Graphs.close()
         container.appendChild(closeBtn)
 
-        // Horizon Profile panel
-        const hPanel = document.createElement('div')
-        hPanel.className = 'shadeGraphPanel'
-        const hTitle = document.createElement('div')
-        hTitle.className = 'shadeGraphTitle'
-        hTitle.textContent = 'Horizon Profile'
-        hPanel.appendChild(hTitle)
-        const hCanvas = document.createElement('canvas')
-        hCanvas.id = HORIZON_CANVAS_ID
-        hCanvas.className = 'shadeGraphCanvas'
-        hPanel.appendChild(hCanvas)
-        container.appendChild(hPanel)
+        if (view === 'horizon') {
+            const panel = document.createElement('div')
+            panel.className = 'shadeGraphPanel'
+            const title = document.createElement('div')
+            title.className = 'shadeGraphTitle'
+            title.textContent = 'Horizon Profile'
+            panel.appendChild(title)
+            const canvas = document.createElement('canvas')
+            canvas.id = HORIZON_CANVAS_ID
+            canvas.className = 'shadeGraphCanvas'
+            panel.appendChild(canvas)
+            container.appendChild(panel)
 
-        // Mouse hover on horizon canvas → radial azimuth line
-        hCanvas.addEventListener('mousemove', ShadeTool_Graphs._onHorizonMouseMove)
-        hCanvas.addEventListener('mouseleave', ShadeTool_Graphs._onHorizonMouseLeave)
-
-        // Visibility Timeline panel
-        const vPanel = document.createElement('div')
-        vPanel.className = 'shadeGraphPanel shadeGraphPanelTimeline'
-        const vTitle = document.createElement('div')
-        vTitle.className = 'shadeGraphTitle'
-        vTitle.id = 'shadeVisibilityTitle'
-        vTitle.textContent = 'Visibility Timeline'
-        vPanel.appendChild(vTitle)
-        const vCanvas = document.createElement('canvas')
-        vCanvas.id = VISIBILITY_CANVAS_ID
-        vCanvas.className = 'shadeGraphCanvas'
-        vPanel.appendChild(vCanvas)
-        container.appendChild(vPanel)
+            canvas.addEventListener('mousemove', ShadeTool_Graphs._onHorizonMouseMove)
+            canvas.addEventListener('mouseleave', ShadeTool_Graphs._onHorizonMouseLeave)
+        } else {
+            const panel = document.createElement('div')
+            panel.className = 'shadeGraphPanel'
+            const title = document.createElement('div')
+            title.className = 'shadeGraphTitle'
+            title.id = 'shadeVisibilityTitle'
+            title.textContent = 'Visibility Timeline'
+            panel.appendChild(title)
+            const canvas = document.createElement('canvas')
+            canvas.id = VISIBILITY_CANVAS_ID
+            canvas.className = 'shadeGraphCanvas'
+            panel.appendChild(canvas)
+            container.appendChild(panel)
+        }
 
         tools.appendChild(container)
     },
@@ -173,14 +198,12 @@ const ShadeTool_Graphs = {
         const canvas = e.target
         const rect = canvas.getBoundingClientRect()
         const mouseX = e.clientX - rect.left
-        // Convert pixel x to display azimuth (-180..+180)
         const frac = (mouseX - _hPad.left) / _hPlotW
         if (frac < 0 || frac > 1) {
             ShadeTool_Graphs.removeAzimuthLine()
             return
         }
         const displayAz = -180 + frac * 360
-        // Convert to true azimuth (0..360)
         let trueAz = displayAz
         if (trueAz < 0) trueAz += 360
         ShadeTool_Graphs._showAzimuthLine(trueAz)
@@ -258,7 +281,6 @@ const ShadeTool_Graphs = {
                 const profile = parsed.horizonProfile || []
                 _horizonCache = { lat, lng, profile }
                 ShadeTool_Graphs._drawHorizonCanvas(profile, elmId)
-                ShadeTool_Graphs.drawVisibilityTimeline(elmId)
             },
             function () {
                 Toast.error('Failed to fetch horizon profile.', 4000)
@@ -285,22 +307,27 @@ const ShadeTool_Graphs = {
         const plotW = w - pad.left - pad.right
         const plotH = h - pad.top - pad.bottom
 
-        // Cache layout for mouse conversion
         _hPad = pad
         _hPlotW = plotW
 
         if (plotW <= 0 || plotH <= 0) return
 
-        // Fixed elevation range: -90 to 90
-        const minEl = -90
-        const maxEl = 90
-        const elRange = 180
+        // Auto-fit elevation range to data
+        let minEl = 0, maxEl = 0
+        for (let i = 0; i < profile.length; i++) {
+            const el = profile[i][1]
+            if (el < minEl) minEl = el
+            if (el > maxEl) maxEl = el
+        }
+        maxEl = Math.max(maxEl + 5, 10)
+        minEl = Math.min(minEl - 2, -5)
+        const elRange = maxEl - minEl
 
         // Background
         ctx.fillStyle = 'rgba(0,0,0,0.3)'
         ctx.fillRect(0, 0, w, h)
 
-        // Grid — north-centered: display -180..+180, ticks at compass bearings
+        // Grid — north-centered: display -180..+180
         ctx.strokeStyle = 'rgba(255,255,255,0.1)'
         ctx.lineWidth = 1
         const azTicks = [-180, -135, -90, -45, 0, 45, 90, 135, 180]
@@ -342,8 +369,7 @@ const ShadeTool_Graphs = {
         ctx.stroke()
         ctx.setLineDash([])
 
-        // Reorder profile for north-centered display: indices 180..359 then 0..179
-        // (assuming profile[i][0] = i degrees, 0..359)
+        // Reorder profile for north-centered display
         const reordered = []
         for (let i = 0; i < profile.length; i++) {
             const az = profile[i][0]
@@ -558,7 +584,7 @@ const ShadeTool_Graphs = {
         const ctx = canvas.getContext('2d')
         ctx.scale(dpr, dpr)
 
-        const pad = { top: 20, right: 20, bottom: 40, left: 45 }
+        const pad = { top: 16, right: 20, bottom: 36, left: 45 }
         const plotW = w - pad.left - pad.right
         const plotH = h - pad.top - pad.bottom
 
@@ -589,7 +615,7 @@ const ShadeTool_Graphs = {
             segments.push(visible)
         }
 
-        const barH = Math.min(plotH * 0.4, 40)
+        const barH = Math.min(plotH * 0.5, 40)
         const barY = pad.top + (plotH - barH) / 2
 
         // Draw segments
@@ -669,13 +695,14 @@ const ShadeTool_Graphs = {
 
         if (_animFrameId) cancelAnimationFrame(_animFrameId)
         _animFrameId = requestAnimationFrame(() => {
-            if (_horizonCache) {
+            if (_activeView === 'horizon' && _horizonCache) {
                 ShadeTool_Graphs._drawHorizonCanvas(
                     _horizonCache.profile,
                     effectiveId
                 )
+            } else if (_activeView === 'visibility') {
+                ShadeTool_Graphs.drawVisibilityTimeline(effectiveId)
             }
-            ShadeTool_Graphs.drawVisibilityTimeline(effectiveId)
             _animFrameId = null
         })
     },

@@ -828,14 +828,20 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                     {ed?.results && ed.results.length > 0 && ed?.grids && (
                                         <div className="vstGraphButtons">
                                             <button
-                                                className="vstGraphBtn"
-                                                title="Open Horizon Profile and Visibility Timeline in the bottom bar"
-                                                onClick={() => ShadeTool_Graphs.toggle(elmId)}
+                                                className={`vstGraphBtn${ShadeTool_Graphs.isOpen() && ShadeTool_Graphs.getActiveView() === 'horizon' && ShadeTool_Graphs.getActiveElmId() === elmId ? ' vstGraphBtnActive' : ''}`}
+                                                title="Toggle Horizon Profile in the bottom bar"
+                                                onClick={() => ShadeTool_Graphs.toggleHorizon(elmId)}
                                             >
                                                 <i className="mdi mdi-chart-areaspline mdi-14px" />
-                                                {ShadeTool_Graphs.isOpen() && ShadeTool_Graphs.getActiveElmId() === elmId
-                                                    ? 'Close Graphs'
-                                                    : 'Open Horizon & Visibility'}
+                                                Horizon Profile
+                                            </button>
+                                            <button
+                                                className={`vstGraphBtn${ShadeTool_Graphs.isOpen() && ShadeTool_Graphs.getActiveView() === 'visibility' && ShadeTool_Graphs.getActiveElmId() === elmId ? ' vstGraphBtnActive' : ''}`}
+                                                title="Toggle Visibility Timeline in the bottom bar"
+                                                onClick={() => ShadeTool_Graphs.toggleVisibility(elmId)}
+                                            >
+                                                <i className="mdi mdi-chart-timeline-variant mdi-14px" />
+                                                Visibility Timeline
                                             </button>
                                         </div>
                                     )}
