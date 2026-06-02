@@ -15,14 +15,12 @@ export default function ShadeResults({ elmId }) {
         <div className="vstResults">
             <div id={`shadeTool_indicators_${elmId}`}>
                 <div>
-                    <div>Azimuth</div>
                     <canvas id={`shadeTool_az_${elmId}`} ref={azCanvasRef} />
-                    <div id={`shadeTool_azValue_${elmId}`} />
+                    <div id={`shadeTool_azValue_${elmId}`}>Az: {raeResults?.az || '--'}</div>
                 </div>
                 <div>
-                    <div>Elevation</div>
                     <canvas id={`shadeTool_el_${elmId}`} ref={elCanvasRef} />
-                    <div id={`shadeTool_elValue_${elmId}`} />
+                    <div id={`shadeTool_elValue_${elmId}`}>El: {raeResults?.el || '--'}</div>
                 </div>
             </div>
         </div>

@@ -408,9 +408,7 @@
     flex-direction: column;
     padding: 4px 0;
 }
-#shadeTool [id^="shadeTool_indicators"] > div:first-child {
-    border-right: 2px solid var(--color-a);
-}
+
 #shadeTool [id^="shadeTool_indicators"] > div > div {
     text-align: center;
     text-transform: uppercase;

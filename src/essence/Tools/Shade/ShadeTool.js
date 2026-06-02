@@ -1941,8 +1941,8 @@ let ShadeTool = {
         )
         if (azValueEl) {
             azValueEl.textContent = rae.error
-                ? 'Error'
-                : rae.azimuth.toFixed(2) + '\u00B0'
+                ? 'Az: Error'
+                : 'Az: ' + rae.azimuth.toFixed(2) + '\u00B0'
         }
         const cAz = document.getElementById(
             `shadeTool_az_${shadeId}`
@@ -2067,8 +2067,8 @@ let ShadeTool = {
         )
         if (elValueEl) {
             elValueEl.textContent = rae.error
-                ? 'Error'
-                : rae.elevation.toFixed(2) + '\u00B0'
+                ? 'El: Error'
+                : 'El: ' + rae.elevation.toFixed(2) + '\u00B0'
         }
         const cEl = document.getElementById(
             `shadeTool_el_${shadeId}`
