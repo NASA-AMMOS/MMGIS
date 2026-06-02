@@ -1170,9 +1170,9 @@ let ShadeTool = {
             timestamps.push(new Date(t).toISOString().replace(/\.\d{3}Z$/, 'Z'))
         }
 
-        if (timestamps.length > 256) {
+        if (timestamps.length > 512) {
             Toast.warning(
-                'Too many timesteps (max 256). Increase step size.',
+                'Too many timesteps (max 512). Increase step size.',
                 6000
             )
             if (onComplete) onComplete()
@@ -1447,7 +1447,9 @@ let ShadeTool = {
                                     }
                                 }
 
-                                // Mark sweep as complete
+                                // Mark sweep as complete — clear sweepStale in case
+                                // renderHeatmapToMap triggered a moveend event
+                                currentStoreF.setSweepField('sweepStale', false)
                                 const curElmF = currentStoreF.sweepCurrentElm || 1
                                 const totElmsF = currentStoreF.sweepTotalElms || 1
                                 const _overallDone = (curElmF / totElmsF) * 100

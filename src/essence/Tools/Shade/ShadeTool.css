@@ -859,9 +859,6 @@
     color: var(--color-a6);
 }
 
-#shadeTool .vstSweepCardBody button[class*="trigger"] {
-    background: none;
-}
 
 #shadeTool .vstSweepCardRow {
     margin-bottom: 2px;
