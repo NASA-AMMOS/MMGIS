@@ -172,7 +172,6 @@ let ShadeTool = {
 
     _onCompositeHover: function (e) {
         const store = useShadeStore.getState()
-        if (store.sweepStale) return
 
         const lat = e.latlng.lat
         const lng = e.latlng.lng

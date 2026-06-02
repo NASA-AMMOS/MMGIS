@@ -377,7 +377,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     }, [hoverFrac])
 
     const currentResult = useMemo(() => {
-        if (shadeMode !== 'playback' || !ed?.results) return null
+        if (shadeMode !== 'playback' || !ed?.results || !ed?.atlas) return null
         return ed.results[effectivePlayIndex] || null
     }, [shadeMode, ed, effectivePlayIndex])
 
@@ -392,9 +392,9 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     // Draw sky dome polar plot
     const skyDomeId = `sweepSkyDome_${elmId}`
     useEffect(() => {
-        if (shadeMode !== 'playback' || !ed?.results || ed.results.length === 0 || !resultsOpen) return
+        if (shadeMode !== 'playback' || !ed?.results || !ed?.atlas || ed.results.length === 0 || !resultsOpen) return
         ShadeTool.drawSkyDome(skyDomeId, ed.results, effectivePlayIndex)
-    }, [shadeMode, ed?.results, effectivePlayIndex, skyDomeId, resultsOpen])
+    }, [shadeMode, ed?.results, ed?.atlas, effectivePlayIndex, skyDomeId, resultsOpen])
 
     // Auto-open Results when sweep data arrives for non-static modes
     useEffect(() => {
