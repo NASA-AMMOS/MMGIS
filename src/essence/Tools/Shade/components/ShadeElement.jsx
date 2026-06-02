@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useShadeStore, { buildSourcesList, MULTI_SOURCE_COLORS } from '../store'
 import ShadeResults from './ShadeResults'
-import CardLegend from './CardLegend'
+import CardLegend, { getDefaultStops } from './CardLegend'
 import ShadeTool from '../ShadeTool'
 import L_ from '../../../Basics/Layers_/Layers_'
 import {
@@ -342,6 +342,29 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         setSweepField('sweepFitToData', val === 'fit')
         setTimeout(() => ShadeTool.refreshHeatmap(), 0)
     }, [setSweepField])
+
+    const handleColorStopsChange = useCallback((newStops) => {
+        setSweepElField(elmId, 'colorStops', newStops)
+        setTimeout(() => {
+            const ed2 = useShadeStore.getState().sweepElData[elmId]
+            if (ed2?.heatmap && ed2?.lastData) {
+                ShadeTool.renderHeatmapToMap(ed2.lastData, ed2.heatmap, elmId)
+            }
+        }, 0)
+    }, [elmId, setSweepElField])
+
+    const handleColorStopsReset = useCallback(() => {
+        const allRamps = ShadeTool.getSweepColorRamps()
+        const rampDef = allRamps.find((r) => r.name === (ed?.colorRamp || 'shadow')) || allRamps[0]
+        const bins = rampDef.bins || rampDef.colors.length
+        setSweepElField(elmId, 'colorStops', getDefaultStops(bins))
+        setTimeout(() => {
+            const ed2 = useShadeStore.getState().sweepElData[elmId]
+            if (ed2?.heatmap && ed2?.lastData) {
+                ShadeTool.renderHeatmapToMap(ed2.lastData, ed2.heatmap, elmId)
+            }
+        }, 0)
+    }, [elmId, setSweepElField, ed?.colorRamp])
 
     const hoverFrac = ed?.hoverFrac
     const hoverPct = useMemo(() => {
@@ -714,6 +737,9 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                         fitToData={sweepFitToData}
                                         minFrac={ed?.minFrac ?? 0}
                                         maxFrac={ed?.maxFrac ?? 1}
+                                        colorStops={ed?.colorStops}
+                                        onColorStopsChange={handleColorStopsChange}
+                                        onColorStopsReset={handleColorStopsReset}
                                     />
                                 </div>
                             )}

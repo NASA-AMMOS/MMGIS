@@ -790,6 +790,31 @@ let ShadeTool = {
         ]
     },
 
+    // Evaluate color in discrete mode using custom stops for bin boundaries.
+    // Falls back to equal-width bins if stops are null/invalid.
+    evalColorWithStops: function (colors, t, bins, stops) {
+        if (!colors || colors.length === 0) return [0, 0, 0]
+        const tc = Math.max(0, Math.min(1, t))
+        const n = colors.length - 1
+        const binIdx = ShadeTool.getBinForValue(tc, stops, bins)
+        const binCenter = (binIdx + 0.5) / bins
+        const ci = Math.min(Math.floor(binCenter * n), n)
+        return colors[ci]
+    },
+
+    // Find which bin a value t falls into given custom stops [s0, s1, ..., sN-2]
+    // Returns bin index 0..bins-1
+    getBinForValue: function (t, stops, bins) {
+        if (!stops || stops.length !== bins - 1) {
+            return Math.min(Math.floor(Math.max(0, Math.min(1, t)) * bins), bins - 1)
+        }
+        const tc = Math.max(0, Math.min(1, t))
+        for (let i = 0; i < stops.length; i++) {
+            if (tc < stops[i]) return i
+        }
+        return bins - 1
+    },
+
     renderHeatmapToMap: function (data, heatmap, activeElmId) {
         const store = useShadeStore.getState()
         const ed = store.sweepElData[activeElmId]
@@ -801,6 +826,7 @@ let ShadeTool = {
         const colors = rampDef.colors
         const bins = rampDef.bins || colors.length
         const isShadowRamp = rampName === 'shadow'
+        const colorStops = discrete ? (ed?.colorStops || null) : null
 
         const elMinFrac = ed?.minFrac != null ? ed.minFrac : 0
         const elMaxFrac = ed?.maxFrac != null ? ed.maxFrac : 1
@@ -853,13 +879,16 @@ let ShadeTool = {
                             const colorFrac = fitToData && fracRange > 0
                                 ? Math.max(0, Math.min(1, (frac - elMinFrac) / fracRange))
                                 : frac
-                            // In discrete mode, snap alpha to bin edges for crisp boundaries
+                            // In discrete mode, snap to bin using custom stops if provided
                             let alphaFrac = colorFrac
+                            let binIdx = 0
                             if (discrete && bins > 0) {
-                                const binIdx = Math.min(Math.floor(Math.max(0, Math.min(1, colorFrac)) * bins), bins - 1)
+                                binIdx = ShadeTool.getBinForValue(colorFrac, colorStops, bins)
                                 alphaFrac = bins > 1 ? binIdx / (bins - 1) : 0
                             }
-                            const cl = ShadeTool.evalColor(colors, colorFrac, discrete, bins)
+                            const cl = discrete
+                                ? ShadeTool.evalColorWithStops(colors, colorFrac, bins, colorStops)
+                                : ShadeTool.evalColor(colors, colorFrac, false, bins)
                             cData[p] = Math.round(cl[0] * 255)
                             cData[p + 1] = Math.round(cl[1] * 255)
                             cData[p + 2] = Math.round(cl[2] * 255)
