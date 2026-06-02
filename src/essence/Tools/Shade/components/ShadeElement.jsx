@@ -195,12 +195,12 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         if (!observer || !observerOptions.length) return
         if (sweepStart) {
             ShadeTool.convertUTCToObserver(sweepStart, observer, (result) => {
-                if (result) setObsStartTime(result)
+                setObsStartTime(result || sweepStart)
             })
         }
         if (sweepEnd) {
             ShadeTool.convertUTCToObserver(sweepEnd, observer, (result) => {
-                if (result) setObsEndTime(result)
+                setObsEndTime(result || sweepEnd)
             })
         }
     }, [sweepStart, sweepEnd, observer, observerOptions.length])

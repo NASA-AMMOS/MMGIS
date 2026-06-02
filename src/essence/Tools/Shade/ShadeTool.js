@@ -63,12 +63,7 @@ let ShadeTool = {
             'utcTime',
             ShadeTool.parseToUTCTime(TimeControl.getEndTime(), true)
         )
-        // Initialize sweep start/end from TimeControl
-        const fmtUTC = (s) => s ? s.replace(/\.\d{3}Z$/, 'Z').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z') : s
-        const startTime = TimeControl.getStartTime()
-        const endTime = TimeControl.getEndTime()
-        if (startTime) store.setSweepField('sweepStart', fmtUTC(startTime))
-        if (endTime) store.setSweepField('sweepEnd', fmtUTC(endTime))
+        // sweepStart/sweepEnd initialization is handled by ShadePanel's useEffect on mount
 
         if (Object.keys(store.elements).length === 0) {
             store.addElement()
@@ -93,10 +88,7 @@ let ShadeTool = {
                 'utcTime',
                 ShadeTool.parseToUTCTime(t.currentTime, true)
             )
-            // Keep sweep start/end in sync with TimeControl
-            const fmtUTC = (s) => s ? s.replace(/\.\d{3}Z$/, 'Z').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z') : s
-            if (t.startTime) store.setSweepField('sweepStart', fmtUTC(t.startTime))
-            if (t.endTime) store.setSweepField('sweepEnd', fmtUTC(t.endTime))
+            // sweepStart/sweepEnd sync is handled by ShadePanel's TimeControl subscription
             ShadeTool._onTimeChange(raw)
         })
     },

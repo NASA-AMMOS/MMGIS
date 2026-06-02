@@ -4,6 +4,7 @@ import ShadeElement from './ShadeElement'
 import ShadeTool from '../ShadeTool'
 import Help from '../../../Basics/UserInterface_/components/Help/Help'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
+import TimeUI from '../../../Basics/TimeControl_/TimeUI'
 import ToolController_ from '../../../Basics/ToolController_/ToolController_'
 import { Button, IconButton, InputWithUnit } from '../../../../design-system/components'
 
@@ -26,6 +27,43 @@ export default function ShadePanel() {
     useEffect(() => {
         Help.finalize(helpKey)
     }, [])
+
+    // Keep sweep start/end times in sync with TimeUI changes
+    useEffect(() => {
+        const fmtUTC = (s) =>
+            s ? s.replace(/\.\d{3}Z$/, 'Z').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z') : s
+        function getTimeUIMode() {
+            if (!TimeUI.modes) return 'Range'
+            return TimeUI.modes[TimeUI.modeIndex] || 'Range'
+        }
+
+        // Sync on mount
+        const mode = getTimeUIMode()
+        const startTime = TimeControl.getStartTime()
+        const endTime = TimeControl.getEndTime()
+        const currentTime = TimeControl.getTime()
+        if (mode === 'Point') {
+            if (currentTime) setSweepField('sweepStart', fmtUTC(currentTime))
+        } else {
+            if (startTime) setSweepField('sweepStart', fmtUTC(startTime))
+            if (endTime) setSweepField('sweepEnd', fmtUTC(endTime))
+        }
+
+        // Subscribe for ongoing changes
+        TimeControl.subscribe('ShadeTool_TimeSync', (t) => {
+            const m = getTimeUIMode()
+            if (m === 'Point') {
+                if (t.currentTime) setSweepField('sweepStart', fmtUTC(t.currentTime))
+            } else {
+                if (t.startTime) setSweepField('sweepStart', fmtUTC(t.startTime))
+                if (t.endTime) setSweepField('sweepEnd', fmtUTC(t.endTime))
+            }
+        })
+
+        return () => {
+            TimeControl.unsubscribe('ShadeTool_TimeSync')
+        }
+    }, [setSweepField])
 
     const handleNew = useCallback(() => {
         const newId = addElement()
