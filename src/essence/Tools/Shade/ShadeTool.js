@@ -145,8 +145,11 @@ let ShadeTool = {
                 ShadeTool._sweepPlayTimer = null
                 store.setSweepField('sweepPlaying', false)
             }
-            // Remove the heatmap/atlas layer from the map
+            // Remove the heatmap/atlas layer from the map for static elements only;
+            // composite/playback keep their (stale) layer visible until user re-sweeps
             for (const id in store.elements) {
+                const el = store.elements[id]
+                if (el && (el.shadeMode === 'composite' || el.shadeMode === 'playback')) continue
                 Map_.rmNotNull(L_.layers.layer['shade' + id])
                 L_.layers.layer['shade' + id] = null
             }
@@ -155,6 +158,8 @@ let ShadeTool = {
         for (const id in store.elements) {
             const el = store.elements[id]
             if (!el) continue
+            // Composite/playback: don't auto-regenerate — just re-enable sweep button
+            if (el.shadeMode === 'composite' || el.shadeMode === 'playback') continue
             if (el.resolution <= (store.vars?.dynamicUpdateResCutoff ?? 1)) {
                 ShadeTool.shade(null, parseInt(id))
             } else {
@@ -1385,8 +1390,6 @@ let ShadeTool = {
                                     'sweepProgressPct',
                                     overallPct
                                 )
-                                currentStore.updateElement(activeElmId, { loadingProgress: elmPct })
-
                                 if (ti < total) {
                                     setTimeout(processChunk, 0)
                                     return
