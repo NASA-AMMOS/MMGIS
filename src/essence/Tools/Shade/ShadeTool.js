@@ -1134,7 +1134,7 @@ let ShadeTool = {
         const sweepRunId = ShadeTool._sweepRunId
         const store = useShadeStore.getState()
         const activeElmId = store.activeElmId
-        if (activeElmId == null) return
+        if (activeElmId == null) { if (onComplete) onComplete(); return }
 
         if (ShadeTool._sweepPlayTimer) {
             clearInterval(ShadeTool._sweepPlayTimer)
@@ -1146,6 +1146,7 @@ let ShadeTool = {
         const selectedTargets = options.targets || []
         if (selectedTargets.length === 0) {
             Toast.warning('Select at least one source entity for sweep.', 6000)
+            if (onComplete) onComplete()
             return
         }
 
@@ -1153,11 +1154,13 @@ let ShadeTool = {
         const endMs = new Date(endTime).getTime()
         if (isNaN(startMs) || isNaN(endMs) || startMs > endMs) {
             Toast.warning('Invalid time range for sweep.', 6000)
+            if (onComplete) onComplete()
             return
         }
 
         if (stepMinutes <= 0) {
             Toast.warning('Step must be a positive number.', 6000)
+            if (onComplete) onComplete()
             return
         }
 
@@ -1172,6 +1175,7 @@ let ShadeTool = {
                 'Too many timesteps (max 256). Increase step size.',
                 6000
             )
+            if (onComplete) onComplete()
             return
         }
 
