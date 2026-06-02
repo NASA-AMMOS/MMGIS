@@ -135,7 +135,7 @@ export default function CardLegend({ rampName, discrete, visiblePct, fitToData, 
                         style={{ left: `${s * 100}%` }}
                         onMouseDown={(e) => handleMouseDown(e, idx)}
                     >
-                        <span className="vstSweepLegendStopLabel">{Math.round(s * 100)}%</span>
+                        <span className="vstSweepLegendStopLabel">{Math.round((fitToData && maxFrac > minFrac ? (minFrac + s * (maxFrac - minFrac)) : s) * 100)}%</span>
                     </div>
                 ))}
                 {hasPct && (
