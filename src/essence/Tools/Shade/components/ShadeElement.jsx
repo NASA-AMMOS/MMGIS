@@ -748,19 +748,19 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                 <div className="vstSweepCardBody">
                                     {ed?.results && ed.results.length > 0 && (
                                         <div className="vstSweepCardSkyDome">
-                                            <canvas id={skyDomeId} width="140" height="140" />
-                                        </div>
-                                    )}
-                                    {currentResult && (
-                                        <div className="vstSweepCardMiniIndicators">
-                                            <div className="vstSweepCardMiniIndicator">
-                                                <div className="vstSweepCardMiniLabel">Az: {currentResult.azimuth?.toFixed(1)}°</div>
-                                                <canvas id={azCanvasId} width="80" height="80" />
-                                            </div>
-                                            <div className="vstSweepCardMiniIndicator">
-                                                <div className="vstSweepCardMiniLabel">El: {currentResult.elevation?.toFixed(1)}°</div>
-                                                <canvas id={elCanvasId} width="80" height="80" />
-                                            </div>
+                                            <canvas id={skyDomeId} width="180" height="180" />
+                                            {currentResult && (
+                                                <div className="vstSweepCardMiniIndicators">
+                                                    <div className="vstSweepCardMiniIndicator">
+                                                        <div className="vstSweepCardMiniLabel">Az: {currentResult.azimuth?.toFixed(1)}°</div>
+                                                        <canvas id={azCanvasId} width="50" height="50" />
+                                                    </div>
+                                                    <div className="vstSweepCardMiniIndicator">
+                                                        <div className="vstSweepCardMiniLabel">El: {currentResult.elevation?.toFixed(1)}°</div>
+                                                        <canvas id={elCanvasId} width="50" height="50" />
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                     {currentResult && (

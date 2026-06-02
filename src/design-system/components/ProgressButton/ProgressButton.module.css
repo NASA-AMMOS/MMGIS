@@ -13,13 +13,12 @@
 }
 
 .active {
-    background: var(--color-accent-active);
-    color: var(--color-c);
+    background: var(--color-c);
+    color: var(--color-a);
     cursor: pointer;
 }
 .active:hover {
-    background: var(--color-c);
-    color: var(--color-a);
+    background: var(--color-d);
 }
 
 .loading {

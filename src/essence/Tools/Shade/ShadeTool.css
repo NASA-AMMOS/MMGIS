@@ -25,7 +25,7 @@
 
 #shadeTool .vstHeader {
     width: 100%;
-    border-bottom: 1px solid var(--color-e);
+    padding: 5px;
     flex-shrink: 0;
 }
 
@@ -67,6 +67,7 @@
     flex-direction: column;
     padding: 6px 8px;
     gap: 4px;
+    border-bottom: 1px solid var(--color-e);
 }
 
 #shadeTool .vstTimeLabel {
@@ -172,6 +173,7 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+    padding-top: 2px;
     padding-bottom: 5px;
 }
 
@@ -193,7 +195,6 @@
     height: 32px;
     padding: 0 6px;
     background: var(--color-a1);
-    border-bottom: 2px solid var(--color-a);
 }
 
 #shadeTool .vstShadeHeaderLeft {
@@ -209,7 +210,9 @@
     min-width: 0;
 }
 #shadeTool .vstResultsExport {
-    padding: 4px 0 0;
+    border-top: 2px solid var(--color-a);
+    margin-top: 2px;
+    height: 36px;
 }
 #shadeTool .vstExportControls {
     display: flex;
@@ -318,10 +321,7 @@
     margin-top: 2px;
     border-top: 2px solid var(--color-a);
 }
-#shadeTool .vstGroupHeader:first-child {
-    border-top: none;
-    margin-top: 0;
-}
+
 
 #shadeTool .vstGroupToggle {
     display: flex;
@@ -593,12 +593,12 @@
 #shadeTool .vstSweepPlaybarRow {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     width: 100%;
     box-sizing: border-box;
 }
 #shadeTool .vstSweepPlaybarLeft {
-    justify-content: flex-start;
+    justify-content: space-between;
     gap: 4px;
 }
 
@@ -862,7 +862,7 @@
 }
 
 #shadeTool .vstSweepCardBody button[class*="trigger"] {
-    background: var(--color-a1);
+    background: none;
 }
 
 #shadeTool .vstSweepCardRow {
@@ -870,7 +870,7 @@
 }
 
 #shadeTool .vstSweepCardLegend {
-    margin-top: 2px;
+    margin-top: 8px;
 }
 
 #shadeTool .vstSweepLegendStop {
@@ -931,19 +931,23 @@
     display: flex;
     justify-content: center;
     padding: 4px 0;
+    position: relative;
 }
 
 #shadeTool .vstSweepCardSkyDome canvas {
-    width: 140px;
-    height: 140px;
+    width: 180px;
+    height: 180px;
     border-radius: 50%;
 }
 
 #shadeTool .vstSweepCardMiniIndicators {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    right: 0;
     display: flex;
-    gap: 6px;
-    justify-content: center;
-    padding: 4px 0;
+    justify-content: space-between;
+    pointer-events: none;
 }
 
 #shadeTool .vstSweepCardMiniIndicator {
@@ -953,8 +957,8 @@
 }
 
 #shadeTool .vstSweepCardMiniIndicator canvas {
-    width: 80px;
-    height: 80px;
+    width: 50px;
+    height: 50px;
 }
 
 #shadeTool .vstSweepCardMiniLabel {
