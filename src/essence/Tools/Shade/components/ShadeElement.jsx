@@ -824,11 +824,6 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                 </div>
                             )}
 
-                            {(shadeMode === 'composite' || shadeMode === 'playback') && !ed && (
-                                <div className="vstSweepCardBody">
-                                    <span style={{ fontSize: '11px', color: 'var(--color-a6)' }}>No sweep data — click Sweep to generate</span>
-                                </div>
-                            )}
 
                             {((shadeMode === 'static' && el?.raeResults) || ((shadeMode === 'composite' || shadeMode === 'playback') && ed)) && (
                                 <div className="vstResultsExport vstOptionRow">

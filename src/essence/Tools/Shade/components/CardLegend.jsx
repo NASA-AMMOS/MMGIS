@@ -90,10 +90,16 @@ export default function CardLegend({ rampName, discrete, visiblePct, fitToData, 
         const handleUp = () => {
             const finalStops = localStopsRef.current
             setDraggingIdx(null)
-            setLocalStops(null)
             localStopsRef.current = null
             if (finalStops && onColorStopsChange) {
-                setTimeout(() => onColorStopsChange(finalStops), 0)
+                // Keep localStops visible until the store update propagates
+                // to avoid a flash back to the original position
+                setTimeout(() => {
+                    onColorStopsChange(finalStops)
+                    setLocalStops(null)
+                }, 0)
+            } else {
+                setLocalStops(null)
             }
         }
         document.addEventListener('mousemove', handleMove)

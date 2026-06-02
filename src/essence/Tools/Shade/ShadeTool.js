@@ -110,7 +110,8 @@ let ShadeTool = {
             ShadeTool._root = null
         }
 
-        // Clean up map layers
+        // Clean up map layers and caches
+        ShadeTool._cachedLayers = {}
         const store = useShadeStore.getState()
         for (const id in store.elements) {
             Map_.rmNotNull(L_.layers.layer['shade' + id])
@@ -133,9 +134,10 @@ let ShadeTool = {
     _onPanEnd: function () {
         const store = useShadeStore.getState()
 
-        // Invalidate sweep results when viewport changes
+        // Invalidate sweep results and layer cache when viewport changes
         if (store.hasSweepData() && !store.sweepStale) {
             store.setSweepField('sweepStale', true)
+            ShadeTool._cachedLayers = {}
             for (const id in store.sweepElData) {
                 store.setSweepElField(parseInt(id), 'hoverFrac', null)
             }
@@ -520,13 +522,34 @@ let ShadeTool = {
     },
 
     // Switch a single element between static/composite/playback display
+    // Per-element cached layers: { [elmId]: { composite: layer, playback: layer } }
+    _cachedLayers: {},
+
     switchElementMode: function (elmId, mode) {
         const store = useShadeStore.getState()
         const el = store.elements[elmId]
         if (!el) return
-        // Remove current layer
-        Map_.rmNotNull(L_.layers.layer['shade' + elmId])
-        L_.layers.layer['shade' + elmId] = null
+        const layerName = 'shade' + elmId
+        const prevMode = el.shadeMode || 'static'
+
+        // Cache the current layer before removing it
+        if (L_.layers.layer[layerName]) {
+            if (!ShadeTool._cachedLayers[elmId]) ShadeTool._cachedLayers[elmId] = {}
+            ShadeTool._cachedLayers[elmId][prevMode] = L_.layers.layer[layerName]
+            Map_.map.removeLayer(L_.layers.layer[layerName])
+            L_.layers.layer[layerName] = null
+        }
+
+        // Try to restore a cached layer for the target mode
+        const cached = ShadeTool._cachedLayers[elmId]?.[mode]
+        if (cached) {
+            L_.layers.layer[layerName] = cached
+            Map_.map.addLayer(cached)
+            if (el.opacity != null) cached.setOpacity(el.opacity)
+            return
+        }
+
+        // No cached layer — build from scratch
         if (mode === 'static') {
             if (el.lastData && el.lastResultGrid) {
                 const options = store.getShadeOptions(elmId)
@@ -588,6 +611,7 @@ let ShadeTool = {
         for (const id in store.elements) {
             Map_.rmNotNull(L_.layers.layer['shade' + id])
             L_.layers.layer['shade' + id] = null
+            delete ShadeTool._cachedLayers[id]
         }
     },
 
@@ -597,6 +621,7 @@ let ShadeTool = {
         Map_.rmNotNull(store.shedMarkers[elmId])
         delete store.canvases[elmId]
         delete store.tags[elmId]
+        delete ShadeTool._cachedLayers[elmId]
         store.removeElement(elmId)
     },
 
@@ -604,6 +629,12 @@ let ShadeTool = {
 
     makeDataLayer: function (layerUrl, activeElmId) {
         const layerName = 'shade' + activeElmId
+
+        // Invalidate cached layer for current mode since we're creating a new one
+        if (ShadeTool._cachedLayers[activeElmId]) {
+            const el = useShadeStore.getState().elements[activeElmId]
+            if (el) delete ShadeTool._cachedLayers[activeElmId][el.shadeMode]
+        }
 
         Map_.rmNotNull(L_.layers.layer[layerName])
 
@@ -1092,6 +1123,11 @@ let ShadeTool = {
     makeSweepLayer: function (atlasDl, activeElmId, atlasCols, atlasRows, atlasScaleS, atlasScaleT) {
         const layerName = 'shade' + activeElmId
 
+        // Invalidate cached playback layer since we're creating a new one
+        if (ShadeTool._cachedLayers[activeElmId]) {
+            delete ShadeTool._cachedLayers[activeElmId]['playback']
+        }
+
         Map_.rmNotNull(L_.layers.layer[layerName])
 
         L_.layers.layer[layerName] = L.tileLayer.gl({
@@ -1512,7 +1548,8 @@ let ShadeTool = {
         if (!existingOrder.includes(elmId)) {
             store.setSweepCardOrder([...existingOrder, elmId])
         }
-        // Remove existing shade layer for this element
+        // Remove existing shade layer and invalidate cached layers for this element
+        delete ShadeTool._cachedLayers[elmId]
         Map_.rmNotNull(L_.layers.layer['shade' + elmId])
         L_.layers.layer['shade' + elmId] = null
         store.updateElement(elmId, { regenerating: true, loadingProgress: 0, sweepProgress: 'Starting...' })
