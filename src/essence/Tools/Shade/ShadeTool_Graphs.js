@@ -9,11 +9,15 @@ import Toast from '../../../design-system/components/Toast/Toast'
 const GRAPH_CONTAINER_ID = 'shadeGraphContainer'
 const HORIZON_CANVAS_ID = 'shadeHorizonCanvas'
 const VISIBILITY_CANVAS_ID = 'shadeVisibilityCanvas'
+const AZIMUTH_LINE_ID = 'shadeAzimuthLineOverlay'
 
 let _horizonCache = null // { lat, lng, profile: [[az,el],...] }
 let _activeElmId = null
 let _graphOpen = false
 let _animFrameId = null
+// Layout state cached for mouse→azimuth conversion
+let _hPad = null
+let _hPlotW = 0
 
 const ShadeTool_Graphs = {
     isOpen() {
@@ -47,6 +51,8 @@ const ShadeTool_Graphs = {
             _animFrameId = null
         }
 
+        ShadeTool_Graphs.removeAzimuthLine()
+
         const container = document.getElementById(GRAPH_CONTAINER_ID)
         if (container) container.remove()
 
@@ -63,6 +69,51 @@ const ShadeTool_Graphs = {
 
     cleanup() {
         if (_graphOpen) ShadeTool_Graphs.close()
+    },
+
+    removeAzimuthLine() {
+        const el = document.getElementById(AZIMUTH_LINE_ID)
+        if (el) el.remove()
+    },
+
+    _showAzimuthLine(azDeg) {
+        const mapEl = document.getElementById('map')
+        if (!mapEl) return
+
+        const store = useShadeStore.getState()
+        const mapRect = mapEl.getBoundingClientRect()
+        const cx = mapRect.width / 2
+        const cy = mapRect.height / 2
+
+        // If observer was dragged, adjust center
+        let centerPx = { x: cx, y: cy }
+        if (store.indicatorLastDragPoint) {
+            const pt = Map_.map.latLngToContainerPoint(store.indicatorLastDragPoint)
+            centerPx = { x: pt.x, y: pt.y }
+        }
+
+        const lineLen = Math.max(mapRect.width, mapRect.height)
+        const rad = azDeg * (Math.PI / 180)
+        const ex = centerPx.x + Math.sin(rad) * lineLen
+        const ey = centerPx.y - Math.cos(rad) * lineLen
+
+        let overlay = document.getElementById(AZIMUTH_LINE_ID)
+        if (!overlay) {
+            overlay = document.createElement('div')
+            overlay.id = AZIMUTH_LINE_ID
+            overlay.className = 'shadeAzimuthLine'
+            overlay.style.width = mapRect.width + 'px'
+            overlay.style.height = mapRect.height + 'px'
+            overlay.style.top = '0'
+            overlay.style.left = '0'
+            mapEl.appendChild(overlay)
+        }
+
+        overlay.innerHTML =
+            `<svg viewBox="0 0 ${mapRect.width} ${mapRect.height}">` +
+            `<line x1="${centerPx.x}" y1="${centerPx.y}" x2="${ex}" y2="${ey}" ` +
+            `stroke="rgba(255,221,68,0.6)" stroke-width="1.5" stroke-dasharray="6,4" />` +
+            `</svg>`
     },
 
     _buildContainer() {
@@ -96,6 +147,10 @@ const ShadeTool_Graphs = {
         hPanel.appendChild(hCanvas)
         container.appendChild(hPanel)
 
+        // Mouse hover on horizon canvas → radial azimuth line
+        hCanvas.addEventListener('mousemove', ShadeTool_Graphs._onHorizonMouseMove)
+        hCanvas.addEventListener('mouseleave', ShadeTool_Graphs._onHorizonMouseLeave)
+
         // Visibility Timeline panel
         const vPanel = document.createElement('div')
         vPanel.className = 'shadeGraphPanel'
@@ -111,6 +166,28 @@ const ShadeTool_Graphs = {
         container.appendChild(vPanel)
 
         tools.appendChild(container)
+    },
+
+    _onHorizonMouseMove(e) {
+        if (!_hPad || _hPlotW <= 0) return
+        const canvas = e.target
+        const rect = canvas.getBoundingClientRect()
+        const mouseX = e.clientX - rect.left
+        // Convert pixel x to display azimuth (-180..+180)
+        const frac = (mouseX - _hPad.left) / _hPlotW
+        if (frac < 0 || frac > 1) {
+            ShadeTool_Graphs.removeAzimuthLine()
+            return
+        }
+        const displayAz = -180 + frac * 360
+        // Convert to true azimuth (0..360)
+        let trueAz = displayAz
+        if (trueAz < 0) trueAz += 360
+        ShadeTool_Graphs._showAzimuthLine(trueAz)
+    },
+
+    _onHorizonMouseLeave() {
+        ShadeTool_Graphs.removeAzimuthLine()
     },
 
     fetchAndDrawHorizon(elmId) {
@@ -208,6 +285,10 @@ const ShadeTool_Graphs = {
         const plotW = w - pad.left - pad.right
         const plotH = h - pad.top - pad.bottom
 
+        // Cache layout for mouse conversion
+        _hPad = pad
+        _hPlotW = plotW
+
         if (plotW <= 0 || plotH <= 0) return
 
         // Data ranges
@@ -225,17 +306,27 @@ const ShadeTool_Graphs = {
         ctx.fillStyle = 'rgba(0,0,0,0.3)'
         ctx.fillRect(0, 0, w, h)
 
-        // Grid
+        // Grid — north-centered: display -180..+180, ticks at compass bearings
         ctx.strokeStyle = 'rgba(255,255,255,0.1)'
         ctx.lineWidth = 1
-        const azTicks = [0, 45, 90, 135, 180, 225, 270, 315, 360]
+        const azTicks = [-180, -135, -90, -45, 0, 45, 90, 135, 180]
+        const azLabels = ['180°S', '225°SW', '270°W', '315°NW', '0°N', '45°NE', '90°E', '135°SE', '180°S']
         for (let i = 0; i < azTicks.length; i++) {
-            const x = pad.left + (azTicks[i] / 360) * plotW
+            const x = pad.left + ((azTicks[i] + 180) / 360) * plotW
             ctx.beginPath()
             ctx.moveTo(x, pad.top)
             ctx.lineTo(x, pad.top + plotH)
             ctx.stroke()
         }
+        // Center line (North) — slightly brighter
+        const northX = pad.left + 0.5 * plotW
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)'
+        ctx.beginPath()
+        ctx.moveTo(northX, pad.top)
+        ctx.lineTo(northX, pad.top + plotH)
+        ctx.stroke()
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)'
         const elStep = _niceStep(elRange, 5)
         let elTick = Math.ceil(minEl / elStep) * elStep
         while (elTick <= maxEl) {
@@ -257,15 +348,23 @@ const ShadeTool_Graphs = {
         ctx.stroke()
         ctx.setLineDash([])
 
+        // Reorder profile for north-centered display: indices 180..359 then 0..179
+        // (assuming profile[i][0] = i degrees, 0..359)
+        const reordered = []
+        for (let i = 0; i < profile.length; i++) {
+            const az = profile[i][0]
+            const displayAz = _azToDisplay(az)
+            reordered.push([displayAz, profile[i][1]])
+        }
+        reordered.sort((a, b) => a[0] - b[0])
+
         // Filled terrain silhouette
         ctx.beginPath()
         ctx.moveTo(pad.left, pad.top + plotH)
-        for (let i = 0; i < profile.length; i++) {
-            const x = pad.left + (profile[i][0] / 360) * plotW
-            const y =
-                pad.top + plotH - ((profile[i][1] - minEl) / elRange) * plotH
-            if (i === 0) ctx.lineTo(x, y)
-            else ctx.lineTo(x, y)
+        for (let i = 0; i < reordered.length; i++) {
+            const x = pad.left + ((reordered[i][0] + 180) / 360) * plotW
+            const y = pad.top + plotH - ((reordered[i][1] - minEl) / elRange) * plotH
+            ctx.lineTo(x, y)
         }
         ctx.lineTo(pad.left + plotW, pad.top + plotH)
         ctx.closePath()
@@ -274,10 +373,9 @@ const ShadeTool_Graphs = {
 
         // Horizon outline
         ctx.beginPath()
-        for (let i = 0; i < profile.length; i++) {
-            const x = pad.left + (profile[i][0] / 360) * plotW
-            const y =
-                pad.top + plotH - ((profile[i][1] - minEl) / elRange) * plotH
+        for (let i = 0; i < reordered.length; i++) {
+            const x = pad.left + ((reordered[i][0] + 180) / 360) * plotW
+            const y = pad.top + plotH - ((reordered[i][1] - minEl) / elRange) * plotH
             if (i === 0) ctx.moveTo(x, y)
             else ctx.lineTo(x, y)
         }
@@ -287,22 +385,16 @@ const ShadeTool_Graphs = {
 
         // Source trajectory overlay
         ShadeTool_Graphs._drawSourceTrajectory(
-            ctx,
-            elmId,
-            pad,
-            plotW,
-            plotH,
-            minEl,
-            elRange
+            ctx, elmId, pad, plotW, plotH, minEl, elRange
         )
 
-        // Axes labels
+        // Axis tick labels
         ctx.fillStyle = 'rgba(255,255,255,0.7)'
         ctx.font = '10px sans-serif'
         ctx.textAlign = 'center'
         for (let i = 0; i < azTicks.length; i++) {
-            const x = pad.left + (azTicks[i] / 360) * plotW
-            ctx.fillText(azTicks[i] + '°', x, h - 5)
+            const x = pad.left + ((azTicks[i] + 180) / 360) * plotW
+            ctx.fillText(azLabels[i], x, h - 5)
         }
         ctx.textAlign = 'right'
         elTick = Math.ceil(minEl / elStep) * elStep
@@ -312,7 +404,7 @@ const ShadeTool_Graphs = {
             elTick += elStep
         }
 
-        // Axis labels
+        // Axis titles
         ctx.fillStyle = 'rgba(255,255,255,0.5)'
         ctx.font = '11px sans-serif'
         ctx.textAlign = 'center'
@@ -343,7 +435,7 @@ const ShadeTool_Graphs = {
             const az = results[i].azimuth
             const el = results[i].elevation
             if (az == null || el == null) continue
-            const x = pad.left + ((az < 0 ? az + 360 : az) / 360) * plotW
+            const x = _azToPlotX(az, pad, plotW)
             const y = pad.top + plotH - ((el - minEl) / elRange) * plotH
             if (!started) {
                 ctx.moveTo(x, y)
@@ -360,7 +452,7 @@ const ShadeTool_Graphs = {
             const az = results[i].azimuth
             const el = results[i].elevation
             if (az == null || el == null) continue
-            const x = pad.left + ((az < 0 ? az + 360 : az) / 360) * plotW
+            const x = _azToPlotX(az, pad, plotW)
             const y = pad.top + plotH - ((el - minEl) / elRange) * plotH
             ctx.beginPath()
             ctx.arc(x, y, 2, 0, Math.PI * 2)
@@ -370,14 +462,8 @@ const ShadeTool_Graphs = {
         // Current frame marker
         const cur = results[playIndex]
         if (cur && cur.azimuth != null && cur.elevation != null) {
-            const x =
-                pad.left +
-                ((cur.azimuth < 0 ? cur.azimuth + 360 : cur.azimuth) / 360) *
-                    plotW
-            const y =
-                pad.top +
-                plotH -
-                ((cur.elevation - minEl) / elRange) * plotH
+            const x = _azToPlotX(cur.azimuth, pad, plotW)
+            const y = pad.top + plotH - ((cur.elevation - minEl) / elRange) * plotH
             ctx.beginPath()
             ctx.arc(x, y, 6, 0, Math.PI * 2)
             ctx.fillStyle = '#ffdd44'
@@ -419,10 +505,8 @@ const ShadeTool_Graphs = {
         for (let i = 0; i < results.length; i++) {
             const anc = results[i].ancillary
             if (!anc || anc[azKey] == null) continue
-            let az = anc[azKey]
-            if (az < 0) az += 360
+            const x = _azToPlotX(anc[azKey], pad, plotW)
             const el = anc[elKey]
-            const x = pad.left + (az / 360) * plotW
             const y = pad.top + plotH - ((el - minEl) / elRange) * plotH
             if (!started) {
                 ctx.moveTo(x, y)
@@ -437,10 +521,8 @@ const ShadeTool_Graphs = {
         // Current marker
         const cur = results[playIndex]
         if (cur?.ancillary && cur.ancillary[azKey] != null) {
-            let az = cur.ancillary[azKey]
-            if (az < 0) az += 360
+            const x = _azToPlotX(cur.ancillary[azKey], pad, plotW)
             const el = cur.ancillary[elKey]
-            const x = pad.left + (az / 360) * plotW
             const y = pad.top + plotH - ((el - minEl) / elRange) * plotH
             ctx.beginPath()
             ctx.arc(x, y, 4, 0, Math.PI * 2)
@@ -607,6 +689,19 @@ const ShadeTool_Graphs = {
     invalidateHorizonCache() {
         _horizonCache = null
     },
+}
+
+/** Convert true azimuth (0..360) to display azimuth (-180..+180) with 0° at center */
+function _azToDisplay(az) {
+    let a = az
+    if (a < 0) a += 360
+    return a > 180 ? a - 360 : a
+}
+
+/** Convert true azimuth to plot x position (north-centered) */
+function _azToPlotX(az, pad, plotW) {
+    const d = _azToDisplay(az)
+    return pad.left + ((d + 180) / 360) * plotW
 }
 
 function _interpolateHorizon(profile, azDeg) {

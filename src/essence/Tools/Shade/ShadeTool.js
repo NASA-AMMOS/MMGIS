@@ -76,6 +76,9 @@ let ShadeTool = {
         ShadeTool._root = createRoot(toolPanel)
         ShadeTool._root.render(<ShadePanel />)
 
+        // Add center crosshair overlay
+        ShadeTool._addCenterCrosshair()
+
         Map_.map.on('click', ShadeTool._onMapClick)
         Map_.map.on('moveend', ShadeTool._onPanEnd)
         Map_.map.on('mousemove', ShadeTool._onCompositeHover)
@@ -106,6 +109,9 @@ let ShadeTool = {
 
         TimeControl.unsubscribe('ShadeTool')
 
+        // Remove center crosshair
+        ShadeTool._removeCenterCrosshair()
+
         // Close bottom bar graphs
         ShadeTool_Graphs.cleanup()
 
@@ -121,6 +127,25 @@ let ShadeTool = {
             Map_.rmNotNull(L_.layers.layer['shade' + id])
             Map_.rmNotNull(store.shedMarkers[id])
         }
+    },
+
+    // === Center Crosshair ===
+
+    _addCenterCrosshair() {
+        if (document.getElementById('shadeCenterCrosshair')) return
+        const mapEl = document.getElementById('map')
+        if (!mapEl) return
+        const ch = document.createElement('div')
+        ch.id = 'shadeCenterCrosshair'
+        ch.className = 'shadeCenterCrosshair'
+        ch.innerHTML = '<div class="shadeCrosshairH"></div><div class="shadeCrosshairV"></div>'
+        mapEl.appendChild(ch)
+    },
+
+    _removeCenterCrosshair() {
+        const ch = document.getElementById('shadeCenterCrosshair')
+        if (ch) ch.remove()
+        ShadeTool_Graphs.removeAzimuthLine()
     },
 
     // === Map Event Handlers ===
