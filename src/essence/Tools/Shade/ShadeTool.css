@@ -745,7 +745,6 @@
 
 #shadeTool .vstModeRow {
     padding: 4px 8px 2px;
-    border-top: 2px solid var(--color-a);
     display: flex;
     justify-content: center;
 }
