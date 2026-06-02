@@ -680,7 +680,7 @@
 
 #shadeTool .vstSweepLegendBarWrap {
     position: relative;
-    margin-bottom: 14px;
+    margin-bottom: 5px;
 }
 
 #shadeTool .vstSweepLegendBar {
@@ -738,7 +738,8 @@
 #shadeTool .vstSweepLegendLabels {
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: 12px;
+    height: 15px;
     color: var(--color-a6);
     margin-top: 0;
 }
