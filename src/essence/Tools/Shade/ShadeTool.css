@@ -585,11 +585,23 @@
     width: 100%;
     box-sizing: border-box;
 }
+#shadeTool .vstSweepPlaybarLeft {
+    justify-content: flex-start;
+    gap: 4px;
+}
 
 #shadeTool .vstSweepPlaybar {
     display: flex;
     align-items: center;
     gap: 4px;
+}
+
+#shadeTool .vstLinkActive {
+    color: var(--color-mmgis);
+}
+#shadeTool .vstLinkInactive {
+    color: var(--color-a5);
+    opacity: 0.7;
 }
 
 #shadeTool .vstSweepTimeline {

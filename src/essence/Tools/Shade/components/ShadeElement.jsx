@@ -247,10 +247,35 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         if (useShadeStore.getState().sweepPlaying) ShadeTool.sweepPlay()
     }, [])
 
+    const playbackLinked = ed?.playbackLinked !== false
+    const localPlayIndex = ed?.localPlayIndex || 0
+    const effectivePlayIndex = playbackLinked ? sweepPlayIndex : localPlayIndex
+
     const handleTimelineScrub = useCallback((v) => {
-        setSweepField('sweepPlayIndex', v)
-        ShadeTool.sweepShowAllFrames()
-    }, [setSweepField])
+        const linked = useShadeStore.getState().sweepElData[elmId]?.playbackLinked !== false
+        if (linked) {
+            setSweepField('sweepPlayIndex', v)
+            ShadeTool.sweepShowAllFrames()
+        } else {
+            setSweepElField(elmId, 'localPlayIndex', v)
+            ShadeTool.sweepShowFrame(elmId)
+            // Update per-element frame label
+            const ed2 = useShadeStore.getState().sweepElData[elmId]
+            if (ed2?.results?.[v]?.time) {
+                const label = document.getElementById('vstSweepFrameLabel_' + elmId)
+                if (label) label.textContent = ed2.results[v].time.replace(/\.\d{3}Z$/, 'Z')
+            }
+        }
+    }, [elmId, setSweepField, setSweepElField])
+
+    const handleToggleLinked = useCallback(() => {
+        const current = useShadeStore.getState().sweepElData[elmId]?.playbackLinked !== false
+        if (current) {
+            // Unlinking: seed local index from global
+            setSweepElField(elmId, 'localPlayIndex', useShadeStore.getState().sweepPlayIndex)
+        }
+        setSweepElField(elmId, 'playbackLinked', !current)
+    }, [elmId, setSweepElField])
 
     const handleDiscreteChange = useCallback((val) => {
         setSweepField('sweepDiscrete', val === 'discrete')
@@ -270,8 +295,8 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
     const currentResult = useMemo(() => {
         if (shadeMode !== 'playback' || !ed?.results) return null
-        return ed.results[sweepPlayIndex] || null
-    }, [shadeMode, ed, sweepPlayIndex])
+        return ed.results[effectivePlayIndex] || null
+    }, [shadeMode, ed, effectivePlayIndex])
 
     // Draw mini az/el canvases when playback result changes
     const azCanvasId = `sweepMiniAz_${elmId}`
@@ -285,8 +310,8 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     const skyDomeId = `sweepSkyDome_${elmId}`
     useEffect(() => {
         if (shadeMode !== 'playback' || !ed?.results || ed.results.length === 0) return
-        ShadeTool.drawSkyDome(skyDomeId, ed.results, sweepPlayIndex)
-    }, [shadeMode, ed?.results, sweepPlayIndex, skyDomeId])
+        ShadeTool.drawSkyDome(skyDomeId, ed.results, effectivePlayIndex)
+    }, [shadeMode, ed?.results, effectivePlayIndex, skyDomeId])
 
     if (!el) return null
 
@@ -630,7 +655,15 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                         </div>
                                     )}
                                     <div className="vstSweepControlsWrap vstSweepControlsInline">
-                                        <div className="vstSweepPlaybarRow">
+                                        <div className="vstSweepPlaybarRow vstSweepPlaybarLeft">
+                                            <Tooltip content={playbackLinked
+                                                ? 'Linked — playback is synchronized with all other linked shade maps. Click to unlink and control this shade map independently.'
+                                                : 'Unlinked — this shade map has its own independent playback timeline. Click to re-link and sync with other shade maps.'
+                                            }>
+                                                <IconButton size="md" onClick={handleToggleLinked} className={playbackLinked ? 'vstLinkActive' : 'vstLinkInactive'}>
+                                                    <i className={`mdi ${playbackLinked ? 'mdi-link-variant' : 'mdi-link-variant-off'} mdi-18px`} />
+                                                </IconButton>
+                                            </Tooltip>
                                             <div className="vstSweepPlaybar">
                                                 <IconButton size="md" title="Step back" onClick={() => ShadeTool.sweepStepBack()}>
                                                     <i className="mdi mdi-skip-previous mdi-18px" />
@@ -657,7 +690,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                         {ed.grids && ed.grids.length > 0 && (
                                             <div className="vstSweepTimeline">
                                                 <Slider
-                                                    value={sweepPlayIndex}
+                                                    value={effectivePlayIndex}
                                                     onValueChange={handleTimelineScrub}
                                                     min={0}
                                                     max={Math.max(ed.grids.length - 1, 1)}
