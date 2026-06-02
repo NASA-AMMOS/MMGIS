@@ -1115,3 +1115,46 @@
     z-index: 5;
     display: none;
 }
+
+/* ====== Graph time controls bar ====== */
+
+.shadeGraphTimeControls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: var(--color-a1);
+    flex-shrink: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+.shadeGraphPlayBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--color-a2);
+    border: 1px solid var(--color-a3);
+    border-radius: 3px;
+    color: var(--color-f);
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+}
+.shadeGraphPlayBtn:hover {
+    background: var(--color-a3);
+}
+.shadeGraphTimeSlider {
+    flex: 1;
+    height: 4px;
+    cursor: pointer;
+    accent-color: #e53935;
+}
+.shadeGraphTimeLabel {
+    font-size: 10px;
+    color: var(--color-a6);
+    white-space: nowrap;
+    min-width: 50px;
+    text-align: right;
+}

@@ -178,10 +178,23 @@ const ShadeTool_Graphs = {
             panel.appendChild(canvas)
             container.appendChild(panel)
 
+            // Time controls bar below chart
+            const controls = document.createElement('div')
+            controls.className = 'shadeGraphTimeControls'
+            controls.innerHTML = `
+                <button class="shadeGraphPlayBtn" id="shadeGraphStepBack" title="Step back"><i class="mdi mdi-skip-previous mdi-14px"></i></button>
+                <button class="shadeGraphPlayBtn" id="shadeGraphPlayPause" title="Play/Pause"><i class="mdi mdi-play mdi-14px"></i></button>
+                <button class="shadeGraphPlayBtn" id="shadeGraphStepFwd" title="Step forward"><i class="mdi mdi-skip-next mdi-14px"></i></button>
+                <input type="range" class="shadeGraphTimeSlider" id="shadeGraphTimeSlider" min="0" max="1" step="1" value="0" />
+                <span class="shadeGraphTimeLabel" id="shadeGraphTimeLabel"></span>
+            `
+            container.appendChild(controls)
+
             canvas.addEventListener('mousemove', ShadeTool_Graphs._onHorizonMouseMove)
             canvas.addEventListener('mouseleave', ShadeTool_Graphs._onHorizonMouseLeave)
-            canvas.addEventListener('mousedown', ShadeTool_Graphs._onHorizonMouseDown)
-            canvas.addEventListener('mouseup', ShadeTool_Graphs._onHorizonMouseUp)
+
+            // Wire up time controls
+            setTimeout(() => ShadeTool_Graphs._initHorizonTimeControls(), 0)
         } else {
             const panel = document.createElement('div')
             panel.className = 'shadeGraphPanel'
@@ -231,57 +244,84 @@ const ShadeTool_Graphs = {
         if (trueAz < 0) trueAz += 360
         ShadeTool_Graphs._showAzimuthLine(trueAz)
         ShadeTool_Graphs._showHoverLine(mouseX)
-
-        // Drag scrubbing on horizon chart
-        if (_isDragging) {
-            ShadeTool_Graphs._scrubFromHorizonX(mouseX)
-        }
     },
 
     _onHorizonMouseLeave() {
         ShadeTool_Graphs.removeAzimuthLine()
         ShadeTool_Graphs._hideHoverLine()
-        _isDragging = false
     },
 
-    _onHorizonMouseDown(e) {
-        _isDragging = true
-        if (!_hPad || _hPlotW <= 0) return
-        const canvas = e.target
-        const rect = canvas.getBoundingClientRect()
-        const mouseX = e.clientX - rect.left
-        ShadeTool_Graphs._scrubFromHorizonX(mouseX)
-    },
-
-    _onHorizonMouseUp() {
-        _isDragging = false
-    },
-
-    _scrubFromHorizonX(mouseX) {
-        // Map mouse X on horizon chart to a frame index via azimuth matching
+    _initHorizonTimeControls() {
         const store = useShadeStore.getState()
         const ed = store.sweepElData[_activeElmId]
-        if (!ed?.results || ed.results.length === 0) return
-        const frac = (mouseX - _hPad.left) / _hPlotW
-        if (frac < 0 || frac > 1) return
-        const displayAz = -180 + frac * 360
-        let targetAz = displayAz
-        if (targetAz < 0) targetAz += 360
+        const frameCount = ed?.results?.length || 0
 
-        // Find nearest frame by azimuth
-        let bestIdx = 0
-        let bestDist = Infinity
-        for (let i = 0; i < ed.results.length; i++) {
-            const r = ed.results[i]
-            if (r.azimuth == null) continue
-            let diff = Math.abs(r.azimuth - targetAz)
-            if (diff > 180) diff = 360 - diff
-            if (diff < bestDist) {
-                bestDist = diff
-                bestIdx = i
+        const slider = document.getElementById('shadeGraphTimeSlider')
+        const label = document.getElementById('shadeGraphTimeLabel')
+        const playBtn = document.getElementById('shadeGraphPlayPause')
+        const stepBack = document.getElementById('shadeGraphStepBack')
+        const stepFwd = document.getElementById('shadeGraphStepFwd')
+
+        if (!slider) return
+
+        slider.max = Math.max(frameCount - 1, 0)
+        slider.value = store.sweepPlayIndex
+
+        // Update label
+        ShadeTool_Graphs._updateTimeLabel()
+
+        slider.addEventListener('input', (e) => {
+            const idx = parseInt(e.target.value)
+            ShadeTool_Graphs._scrubToFrame(idx)
+        })
+
+        stepBack.addEventListener('click', () => {
+            const s = useShadeStore.getState()
+            const fc = s.sweepElData[_activeElmId]?.results?.length || 0
+            if (fc === 0) return
+            const idx = (s.sweepPlayIndex - 1 + fc) % fc
+            ShadeTool_Graphs._scrubToFrame(idx)
+        })
+
+        stepFwd.addEventListener('click', () => {
+            const s = useShadeStore.getState()
+            const fc = s.sweepElData[_activeElmId]?.results?.length || 0
+            if (fc === 0) return
+            const idx = (s.sweepPlayIndex + 1) % fc
+            ShadeTool_Graphs._scrubToFrame(idx)
+        })
+
+        let playInterval = null
+        playBtn.addEventListener('click', () => {
+            if (playInterval) {
+                clearInterval(playInterval)
+                playInterval = null
+                playBtn.innerHTML = '<i class="mdi mdi-play mdi-14px"></i>'
+            } else {
+                playBtn.innerHTML = '<i class="mdi mdi-pause mdi-14px"></i>'
+                const speed = useShadeStore.getState().sweepPlaySpeed || 500
+                playInterval = setInterval(() => {
+                    const s = useShadeStore.getState()
+                    const fc = s.sweepElData[_activeElmId]?.results?.length || 0
+                    if (fc === 0) return
+                    const idx = (s.sweepPlayIndex + 1) % fc
+                    ShadeTool_Graphs._scrubToFrame(idx)
+                }, speed)
             }
-        }
-        ShadeTool_Graphs._scrubToFrame(bestIdx)
+        })
+    },
+
+    _updateTimeLabel() {
+        const label = document.getElementById('shadeGraphTimeLabel')
+        const slider = document.getElementById('shadeGraphTimeSlider')
+        if (!label || !slider) return
+        const store = useShadeStore.getState()
+        const ed = store.sweepElData[_activeElmId]
+        if (!ed?.results) return
+        const idx = store.sweepPlayIndex
+        slider.value = idx
+        const t = ed.results[idx]?.time
+        label.textContent = t ? _formatTimeLabel(t) : ''
     },
 
     _showHoverLine(x) {
@@ -608,30 +648,8 @@ const ShadeTool_Graphs = {
             ctx.fill()
         }
 
-        // Red time slider line (full height)
-        const cur = results[playIndex]
-        if (cur && cur.azimuth != null) {
-            const sliderX = _azToPlotX(cur.azimuth, pad, plotW)
-            ctx.save()
-            ctx.strokeStyle = '#e53935'
-            ctx.lineWidth = 2
-            ctx.setLineDash([])
-            ctx.beginPath()
-            ctx.moveTo(sliderX, pad.top)
-            ctx.lineTo(sliderX, pad.top + plotH)
-            ctx.stroke()
-            // Slider handle
-            ctx.fillStyle = '#e53935'
-            ctx.beginPath()
-            ctx.moveTo(sliderX - 5, pad.top)
-            ctx.lineTo(sliderX + 5, pad.top)
-            ctx.lineTo(sliderX, pad.top + 7)
-            ctx.closePath()
-            ctx.fill()
-            ctx.restore()
-        }
-
         // Current frame marker
+        const cur = results[playIndex]
         if (cur && cur.azimuth != null && cur.elevation != null) {
             const x = _azToPlotX(cur.azimuth, pad, plotW)
             const y = pad.top + plotH - ((cur.elevation - minEl) / elRange) * plotH
@@ -805,6 +823,7 @@ const ShadeTool_Graphs = {
                     _horizonCache.profile,
                     effectiveId
                 )
+                ShadeTool_Graphs._updateTimeLabel()
             } else if (_activeView === 'visibility') {
                 ShadeTool_Graphs.drawVisibilityTimeline(effectiveId)
             }
