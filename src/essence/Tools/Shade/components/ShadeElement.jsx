@@ -311,13 +311,6 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
             onDrop={(e) => onDrop && onDrop(e, elmId)}
         >
             <div className="vstShadeHeader">
-                <div
-                    ref={handleRef}
-                    className="vstShadeDragHandle"
-                    onMouseDown={handleHandleMouseDown}
-                >
-                    <i className="mdi mdi-drag-vertical mdi-14px" />
-                </div>
                 <div className="vstShadeHeaderLeft">
                     <Checkbox
                         checked={el.on}
@@ -325,16 +318,25 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                     />
                 </div>
                 <div className="vstShadeHeaderCenter">
-                    <Select
-                        value={String(el.sourceIndex)}
-                        onValueChange={(v) =>
-                            handleChange('sourceIndex', parseInt(v))
-                        }
-                        options={sourceOptions}
-                        className="vstSelect vstHeaderSourceSelect"
-                    />
+                    <div style={{ width: 145 }}>
+                        <Select
+                            value={String(el.sourceIndex)}
+                            onValueChange={(v) =>
+                                handleChange('sourceIndex', parseInt(v))
+                            }
+                            options={sourceOptions}
+                            className="vstSelect"
+                        />
+                    </div>
                 </div>
                 <div className="vstShadeHeaderRight">
+                    <div
+                        ref={handleRef}
+                        className="vstShadeDragHandle"
+                        onMouseDown={handleHandleMouseDown}
+                    >
+                        <i className="mdi mdi-drag-vertical mdi-14px" />
+                    </div>
                     <Tooltip content="Remove shade map">
                         <IconButton
                             size="sm"

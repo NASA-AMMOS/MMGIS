@@ -201,10 +201,6 @@
     flex: 1;
     min-width: 0;
 }
-#shadeTool .vstHeaderSourceSelect {
-    flex: 1;
-    min-width: 0;
-}
 #shadeTool .vstResultsExport {
     padding: 4px 0 0;
 }
