@@ -541,7 +541,14 @@ let ShadeTool = {
         } else if (mode === 'playback') {
             const ed = store.sweepElData[elmId]
             if (ed?.grids?.length > 0) {
-                ShadeTool.sweepShowFrame(elmId)
+                if (ed.atlas) {
+                    ShadeTool.sweepShowFrame(elmId)
+                } else if (ed.lastData && ed.lastOptions) {
+                    // Atlas not yet built (sweep was done in composite mode); build now
+                    ShadeTool.buildSweepAtlas(ed.lastData, ed.grids, ed.lastOptions, elmId, function () {
+                        ShadeTool.sweepShowAllFrames()
+                    })
+                }
             }
         }
     },
@@ -1020,7 +1027,7 @@ let ShadeTool = {
 
         // Render frames in chunks to avoid blocking the main thread
         const frameCanvases = []
-        const ATLAS_CHUNK = 2
+        const ATLAS_CHUNK = 16
         let fi = 0
 
         function renderFrameChunk() {
@@ -1160,9 +1167,9 @@ let ShadeTool = {
             timestamps.push(new Date(t).toISOString().replace(/\.\d{3}Z$/, 'Z'))
         }
 
-        if (timestamps.length > 500) {
+        if (timestamps.length > 256) {
             Toast.warning(
-                'Too many timesteps (max 500). Increase step size.',
+                'Too many timesteps (max 256). Increase step size.',
                 6000
             )
             return
@@ -1305,7 +1312,7 @@ let ShadeTool = {
 
                             // Process timesteps in small batches, yielding to the
                             // event loop between batches so the UI stays responsive
-                            const CHUNK = 4
+                            const CHUNK = 16
                             let ti = 0
 
                             function processChunk() {
@@ -1449,13 +1456,13 @@ let ShadeTool = {
                                 }
                                 if (typeof onComplete === 'function') onComplete()
 
-                                // Build atlas (needed for playback); show frames once ready
-                                ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
-                                    const activeElPost = useShadeStore.getState().elements[activeElmId]
-                                    if (activeElPost?.shadeMode === 'playback') {
+                                // Build atlas only for playback mode (expensive at high frame counts)
+                                const activeElAtlas = currentStoreF.elements[activeElmId]
+                                if (activeElAtlas?.shadeMode === 'playback') {
+                                    ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
                                         ShadeTool.sweepShowAllFrames()
-                                    }
-                                })
+                                    })
+                                }
                             }
 
                             processChunk()
