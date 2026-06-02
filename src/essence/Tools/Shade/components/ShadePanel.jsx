@@ -4,21 +4,10 @@ import ShadeElement from './ShadeElement'
 import ShadeTool from '../ShadeTool'
 import Help from '../../../Basics/UserInterface_/components/Help/Help'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
-import TimeUI from '../../../Basics/TimeControl_/TimeUI'
 import ToolController_ from '../../../Basics/ToolController_/ToolController_'
 import { Button, IconButton, InputWithUnit } from '../../../../design-system/components'
 
 const helpKey = 'ShadeTool'
-
-function fmtUTC(t) {
-    if (!t) return t
-    return t.replace(/\.\d{3}Z$/, 'Z').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z')
-}
-
-function getTimeUIMode() {
-    if (!TimeUI.modes) return 'Range'
-    return TimeUI.modes[TimeUI.modeIndex] || 'Range'
-}
 
 export default function ShadePanel() {
     const vars = useShadeStore((s) => s.vars)
@@ -37,35 +26,6 @@ export default function ShadePanel() {
     useEffect(() => {
         Help.finalize(helpKey)
     }, [])
-
-    // Sync sweep times from TimeControl
-    useEffect(() => {
-        function syncFromTimeUI() {
-            const mode = getTimeUIMode()
-            const currentTime = TimeControl.getTime()
-            const startTime = TimeControl.getStartTime()
-            const endTime = TimeControl.getEndTime()
-            if (mode === 'Point') {
-                if (currentTime) setSweepField('sweepStart', fmtUTC(currentTime))
-            } else {
-                if (startTime) setSweepField('sweepStart', fmtUTC(startTime))
-                if (endTime) setSweepField('sweepEnd', fmtUTC(endTime))
-            }
-        }
-        syncFromTimeUI()
-        TimeControl.subscribe('ShadeTool_Sweep', (t) => {
-            const mode = getTimeUIMode()
-            if (mode === 'Point') {
-                if (t.currentTime) setSweepField('sweepStart', fmtUTC(t.currentTime))
-            } else {
-                if (t.startTime) setSweepField('sweepStart', fmtUTC(t.startTime))
-                if (t.endTime) setSweepField('sweepEnd', fmtUTC(t.endTime))
-            }
-        })
-        return () => {
-            TimeControl.unsubscribe('ShadeTool_Sweep')
-        }
-    }, [setSweepField])
 
     const handleNew = useCallback(() => {
         const newId = addElement()
