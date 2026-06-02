@@ -46,6 +46,7 @@ const c = {
     ll2aerll_bulk: {
         type: 'POST',
         url: 'api/utils/ll2aerll_bulk',
+        json: true,
     },
     chronice: {
         type: 'POST',
@@ -183,17 +184,24 @@ function api(call, data, success, error) {
 
     if (window.mmgisglobal.test === true) data.test = true
 
-    $.ajax({
+    const ajaxOpts = {
         type: c[call].type,
         url: `${
             window.mmgisglobal.ROOT_PATH
                 ? window.mmgisglobal.ROOT_PATH + '/'
                 : ''
         }${c[call].url}`,
-        data: data,
+        data: c[call].json ? JSON.stringify(data) : data,
         xhrFields: {
             withCredentials: true,
         },
+    }
+    if (c[call].json) {
+        ajaxOpts.contentType = 'application/json'
+    }
+
+    $.ajax({
+        ...ajaxOpts,
         success: function (data) {
             if (
                 !data.hasOwnProperty('status') ||
