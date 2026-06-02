@@ -134,7 +134,7 @@ def ll2aerll(lng, lat, height, target, time, obsRefFrame, obsBody, includeSunEar
 
     # Unload kernels
     for k in kernels_to_load:
-        spiceypy.unload( os.path.join(package_dir + '/kernels/', k) )
+        spiceypy.unload( os.path.join(package_dir, k) )
 
     flat_range = distance_between_points((lng, lat), (target_lng, target_lat), "meters", radii[0])
     # Altitude above the tangential plane of the surface observer latlng
@@ -297,6 +297,7 @@ if __name__ == '__main__':
             print(json.dumps(results))
         except:
             print(json.dumps({"error": True, "message": 'Error: ' + str(sys.exc_info()[1])}))
+            sys.exit(1)
     else:
         # Single mode: CLI args
         lng = float(sys.argv[1])
