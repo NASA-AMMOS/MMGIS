@@ -405,6 +405,8 @@ let ShadeTool = {
                                     range:
                                         primary.range.toFixed(3) + 'km',
                                 },
+                                raeRaw: results[0],
+                                raeAllResults: results,
                                 allResults: results,
                             })
 
