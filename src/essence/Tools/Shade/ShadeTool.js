@@ -1406,7 +1406,7 @@ let ShadeTool = {
                                 currentStoreF.setSweepElField(activeElmId, 'lastData', data)
                                 currentStoreF.setSweepElField(activeElmId, 'lastOptions', options)
 
-                                // Step 1: compute heatmap + render composite (yield after)
+                                // Compute heatmap (used by composite mode and as data for playback)
                                 if (sweepGrids.length > 0) {
                                     const heatmap = ShaderTool_Algorithm.cumulativeVisibility(sweepGrids)
                                     const border = 2
@@ -1425,11 +1425,16 @@ let ShadeTool = {
                                     currentStoreF.setSweepElField(activeElmId, 'minFrac', minFrac)
                                     currentStoreF.setSweepElField(activeElmId, 'maxFrac', maxFrac)
                                     currentStoreF.setSweepElField(activeElmId, 'heatmap', heatmap)
-                                    currentStoreF.setSweepField('sweepViewMode', 'composite')
-                                    ShadeTool.renderHeatmapToMap(data, heatmap, activeElmId)
+
+                                    // Only render composite heatmap layer if element is in composite mode
+                                    const activeEl = currentStoreF.elements[activeElmId]
+                                    if (activeEl?.shadeMode === 'composite') {
+                                        currentStoreF.setSweepField('sweepViewMode', 'composite')
+                                        ShadeTool.renderHeatmapToMap(data, heatmap, activeElmId)
+                                    }
                                 }
 
-                                // Mark sweep as complete now (heatmap is already visible)
+                                // Mark sweep as complete
                                 const curElmF = currentStoreF.sweepCurrentElm || 1
                                 const totElmsF = currentStoreF.sweepTotalElms || 1
                                 const _overallDone = (curElmF / totElmsF) * 100
@@ -1442,8 +1447,13 @@ let ShadeTool = {
                                 }
                                 if (typeof onComplete === 'function') onComplete()
 
-                                // Build atlas in background for playback (non-blocking)
-                                ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {})
+                                // Build atlas (needed for playback); show frames once ready
+                                ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
+                                    const activeElPost = useShadeStore.getState().elements[activeElmId]
+                                    if (activeElPost?.shadeMode === 'playback') {
+                                        ShadeTool.sweepShowAllFrames()
+                                    }
+                                })
                             }
 
                             processChunk()
@@ -1493,12 +1503,7 @@ let ShadeTool = {
         store.updateElement(elmId, { regenerating: true, loadingProgress: 0, sweepProgress: 'Starting...' })
         ShadeTool.shadeSweep(startTime, endTime, stepMinutes, function () {
             const s = useShadeStore.getState()
-            const el = s.elements[elmId]
             s.updateElement(elmId, { regenerating: false, loadingProgress: 0, changed: false, sweepProgress: '' })
-            // Ensure the correct layer is shown based on the element's mode
-            if (el?.shadeMode === 'playback') {
-                ShadeTool.sweepShowAllFrames()
-            }
         })
     },
 

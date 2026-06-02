@@ -381,16 +381,23 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     const azCanvasId = `sweepMiniAz_${elmId}`
     const elCanvasId = `sweepMiniEl_${elmId}`
     useEffect(() => {
-        if (shadeMode !== 'playback' || !currentResult) return
+        if (shadeMode !== 'playback' || !currentResult || !resultsOpen) return
         ShadeTool.drawMiniRAEIndicators(azCanvasId, elCanvasId, currentResult)
-    }, [shadeMode, currentResult, azCanvasId, elCanvasId])
+    }, [shadeMode, currentResult, azCanvasId, elCanvasId, resultsOpen])
 
     // Draw sky dome polar plot
     const skyDomeId = `sweepSkyDome_${elmId}`
     useEffect(() => {
-        if (shadeMode !== 'playback' || !ed?.results || ed.results.length === 0) return
+        if (shadeMode !== 'playback' || !ed?.results || ed.results.length === 0 || !resultsOpen) return
         ShadeTool.drawSkyDome(skyDomeId, ed.results, effectivePlayIndex)
-    }, [shadeMode, ed?.results, effectivePlayIndex, skyDomeId])
+    }, [shadeMode, ed?.results, effectivePlayIndex, skyDomeId, resultsOpen])
+
+    // Auto-open Results when sweep data arrives for non-static modes
+    useEffect(() => {
+        if ((shadeMode === 'composite' || shadeMode === 'playback') && ed?.results && ed.results.length > 0 && !resultsOpen) {
+            setResultsOpen(true)
+        }
+    }, [shadeMode, ed?.results])
 
     if (!el) return null
 
