@@ -325,10 +325,15 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     }, [elmId, setSweepElField])
 
     const handleExport = useCallback((id, format) => {
-        switch (format) {
-            case 'png': ShadeTool.exportPNG(id); break
-            case 'csv': ShadeTool.exportCSV(id); break
-            case 'grid': ShadeTool.exportGrid(id); break
+        try {
+            switch (format) {
+                case 'png': ShadeTool.exportPNG(id); break
+                case 'csv': ShadeTool.exportCSV(id); break
+                case 'grid': ShadeTool.exportGrid(id); break
+                default: ShadeTool.exportPNG(id); break
+            }
+        } catch (e) {
+            console.error('Export failed:', e)
         }
     }, [])
 
