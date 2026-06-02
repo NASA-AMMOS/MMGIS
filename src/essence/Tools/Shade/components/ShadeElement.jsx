@@ -115,8 +115,8 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     )
 
     const handleModeChange = useCallback((mode) => {
-        updateElement(elmId, { shadeMode: mode })
         ShadeTool.switchElementMode(elmId, mode)
+        updateElement(elmId, { shadeMode: mode })
     }, [elmId, updateElement])
 
     const handleOpacityChange = useCallback(

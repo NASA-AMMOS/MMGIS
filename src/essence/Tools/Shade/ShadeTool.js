@@ -530,50 +530,14 @@ let ShadeTool = {
         const el = store.elements[elmId]
         if (!el) return
         const layerName = 'shade' + elmId
-        const prevMode = el.shadeMode || 'static'
 
-        // Cache the current layer before removing it
+        // Remove existing layer from the map (clear previous mode's render)
         if (L_.layers.layer[layerName]) {
-            if (!ShadeTool._cachedLayers[elmId]) ShadeTool._cachedLayers[elmId] = {}
-            ShadeTool._cachedLayers[elmId][prevMode] = L_.layers.layer[layerName]
             Map_.map.removeLayer(L_.layers.layer[layerName])
             L_.layers.layer[layerName] = null
         }
-
-        // Try to restore a cached layer for the target mode
-        const cached = ShadeTool._cachedLayers[elmId]?.[mode]
-        if (cached) {
-            L_.layers.layer[layerName] = cached
-            Map_.map.addLayer(cached)
-            if (el.opacity != null) cached.setOpacity(el.opacity)
-            return
-        }
-
-        // No cached layer — build from scratch
-        if (mode === 'static') {
-            if (el.lastData && el.lastResultGrid) {
-                const options = store.getShadeOptions(elmId)
-                options.color.a = 255
-                ShadeTool.renderResultToMap(el.lastData, el.lastResultGrid, options, elmId)
-            }
-        } else if (mode === 'composite') {
-            const ed = store.sweepElData[elmId]
-            if (ed?.heatmap && ed?.lastData) {
-                ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, elmId)
-            }
-        } else if (mode === 'playback') {
-            const ed = store.sweepElData[elmId]
-            if (ed?.grids?.length > 0) {
-                if (ed.atlas) {
-                    ShadeTool.sweepShowFrame(elmId)
-                } else if (ed.lastData && ed.lastOptions) {
-                    // Atlas not yet built (sweep was done in composite mode); build now
-                    ShadeTool.buildSweepAtlas(ed.lastData, ed.grids, ed.lastOptions, elmId, function () {
-                        ShadeTool.sweepShowAllFrames()
-                    })
-                }
-            }
-        }
+        // Also remove via Globe_ in case it was added as a litho layer
+        try { Globe_.litho.removeLayer(layerName) } catch (e) { /* ignore */ }
     },
 
     // Show regular shade map layers, remove sweep layers from map
