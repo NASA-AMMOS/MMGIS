@@ -421,14 +421,16 @@ router.post("/ll2aerll_bulk", function(req,res,next){(router._computeLimiter||fu
   if (req.body.lng == null || req.body.lat == null || req.body.height == null || !req.body.target) {
     return res.status(400).json({ error: true, message: "lng, lat, height, and target are required" });
   }
+  // Sanitize string fields that are used in filesystem path construction in Python
+  const safeStr = (v) => typeof v === 'string' ? encodeURIComponent(v) : String(v);
   const inputData = {
     lng: req.body.lng,
     lat: req.body.lat,
     height: req.body.height,
-    target: req.body.target,
+    target: safeStr(req.body.target),
     times: req.body.times,
-    obsRefFrame: req.body.obsRefFrame || "IAU_MARS",
-    obsBody: req.body.obsBody || "MARS",
+    obsRefFrame: safeStr(req.body.obsRefFrame || "IAU_MARS"),
+    obsBody: safeStr(req.body.obsBody || "MARS"),
     includeSunEarth: req.body.includeSunEarth || "false",
     isCustom: req.body.isCustom || "false",
     customAz: req.body.customAz || 0,
