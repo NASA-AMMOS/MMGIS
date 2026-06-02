@@ -755,7 +755,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                 <div className="vstSweepCardBody">
                                     {ed?.results && ed.results.length > 0 && (
                                         <div className="vstSweepCardSkyDome">
-                                            <canvas id={skyDomeId} width="180" height="180" />
+                                            <canvas id={skyDomeId} width="360" height="360" />
                                             {currentResult && (
                                                 <div className="vstSweepCardMiniIndicators">
                                                     <div className="vstSweepCardMiniIndicator">
@@ -768,11 +768,6 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                                     </div>
                                                 </div>
                                             )}
-                                        </div>
-                                    )}
-                                    {currentResult && (
-                                        <div className="vstSweepCardPlaybackInfo">
-                                            <span>Visible: {currentResult.visibilityPct}%</span>
                                         </div>
                                     )}
                                     <div className="vstSweepControlsWrap vstSweepControlsInline">
@@ -828,9 +823,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
                             {(shadeMode === 'composite' || shadeMode === 'playback') && !ed && (
                                 <div className="vstSweepCardBody">
-                                    <div className="vstSweepCardPlaybackInfo">
-                                        <span>No sweep data — click Sweep to generate</span>
-                                    </div>
+                                    <span style={{ fontSize: '11px', color: 'var(--color-a6)' }}>No sweep data — click Sweep to generate</span>
                                 </div>
                             )}
 

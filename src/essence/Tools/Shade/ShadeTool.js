@@ -2407,8 +2407,8 @@ let ShadeTool = {
         const c = document.getElementById(canvasId)
         if (!c) return
 
-        const size = 140
-        const pad = 16
+        const size = 360
+        const pad = 30
         const r = (size - pad * 2) / 2
         const cx = size / 2
         const cy = size / 2

@@ -322,4 +322,4 @@ if __name__ == '__main__':
         try:
             print(json.dumps(ll2aerll(lng, lat, height, target, time, obsRefFrame, obsBody, includeSunEarth, isCustom, customAz, customEl, customRange)))
         except:
-            print(json.dumps({"error": True, "message": 'Error: ' + str(sys.exc_info()[0])}))
+            print(json.dumps({"error": True, "message": 'Error: ' + str(sys.exc_info()[1])}))

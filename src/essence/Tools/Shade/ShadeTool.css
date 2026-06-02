@@ -919,13 +919,7 @@
     color: var(--color-mmgis);
 }
 
-#shadeTool .vstSweepCardPlaybackInfo {
-    display: flex;
-    gap: 10px;
-    font-size: 11px;
-    color: var(--color-a7);
-    padding: 2px 0;
-}
+
 
 #shadeTool .vstSweepCardSkyDome {
     display: flex;

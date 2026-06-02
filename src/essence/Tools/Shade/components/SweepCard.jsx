@@ -189,11 +189,7 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrag
                             </div>
                         </div>
                     )}
-                    {currentResult && (
-                        <div className="vstSweepCardPlaybackInfo">
-                            <span>Visible: {currentResult.visibilityPct}%</span>
-                        </div>
-                    )}
+
                 </div>
             )}
         </div>
