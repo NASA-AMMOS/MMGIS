@@ -1922,8 +1922,8 @@ let ShadeTool = {
     // === RAE Indicators (preserved exactly from ShadeTool) ===
 
     updateRAEIndicators(rae, shadeId, allResults) {
-        const size = 240
-        const sizeInner = 220
+        const size = 160
+        const sizeInner = 144
         const origin = { x: size / 2, y: size / 2 }
 
         const indicatorEl = document.getElementById(

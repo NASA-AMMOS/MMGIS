@@ -165,7 +165,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
     const [sourceOpen, setSourceOpen] = useState(true)
     const [displayOpen, setDisplayOpen] = useState(false)
-    const [resultsOpen, setResultsOpen] = useState(false)
+    const [resultsOpen, setResultsOpen] = useState(true)
 
     const [colorPickerOpen, setColorPickerOpen] = useState(false)
     const [exportFormat, setExportFormat] = useState('png')
@@ -830,21 +830,23 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                 </div>
                             )}
 
-                            <div className="vstResultsExport vstOptionRow">
-                                <div className="vstOptionLabel">Export</div>
-                                <div className="vstExportControls">
-                                    <div style={{ width: 145 }}>
-                                        <Select
-                                            value={exportFormat}
-                                            onValueChange={setExportFormat}
-                                            options={EXPORT_OPTIONS}
-                                        />
+                            {((shadeMode === 'static' && el?.raeResults) || ((shadeMode === 'composite' || shadeMode === 'playback') && ed)) && (
+                                <div className="vstResultsExport vstOptionRow">
+                                    <div className="vstOptionLabel">Export</div>
+                                    <div className="vstExportControls">
+                                        <div style={{ width: 145 }}>
+                                            <Select
+                                                value={exportFormat}
+                                                onValueChange={setExportFormat}
+                                                options={EXPORT_OPTIONS}
+                                            />
+                                        </div>
+                                        <IconButton size="sm" title="Download" onClick={() => handleExport(elmId, exportFormat)}>
+                                            <i className="mdi mdi-download mdi-18px" />
+                                        </IconButton>
                                     </div>
-                                    <IconButton size="sm" title="Download" onClick={() => handleExport(elmId, exportFormat)}>
-                                        <i className="mdi mdi-download mdi-18px" />
-                                    </IconButton>
                                 </div>
-                            </div>
+                            )}
                         </div>
                 )}
             </div>

@@ -7,29 +7,12 @@ export default function ShadeResults({ elmId }) {
     const elCanvasRef = useRef(null)
 
     const raeResults = el?.raeResults
+    const hasValues = raeResults && (raeResults.az || raeResults.el)
+
+    if (!hasValues) return null
 
     return (
         <div className="vstResults">
-            <div className="vstResultsOutputs">
-                <div className="vstOptionRow">
-                    <div className="vstOptionLabel">Azimuth</div>
-                    <span className="vstResultValue">
-                        {raeResults?.az || '--'}
-                    </span>
-                </div>
-                <div className="vstOptionRow">
-                    <div className="vstOptionLabel">Elevation</div>
-                    <span className="vstResultValue">
-                        {raeResults?.el || '--'}
-                    </span>
-                </div>
-                <div className="vstOptionRow">
-                    <div className="vstOptionLabel">Range</div>
-                    <span className="vstResultValue">
-                        {raeResults?.range || '--'}
-                    </span>
-                </div>
-            </div>
             <div id={`shadeTool_indicators_${elmId}`}>
                 <div>
                     <div>Azimuth</div>

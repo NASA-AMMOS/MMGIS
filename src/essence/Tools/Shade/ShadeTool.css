@@ -420,8 +420,8 @@
     padding: 4px 0px;
 }
 #shadeTool [id^="shadeTool_indicators"] canvas {
-    width: 116px;
-    height: 116px;
+    width: 70px;
+    height: 70px;
 }
 
 /* ====== Export dropdown ====== */
