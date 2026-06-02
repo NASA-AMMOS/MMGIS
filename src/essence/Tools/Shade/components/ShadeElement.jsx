@@ -57,6 +57,8 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     const sweepFitToData = useShadeStore((s) => s.sweepFitToData)
     const setSweepElField = useShadeStore((s) => s.setSweepElField)
     const setSweepField = useShadeStore((s) => s.setSweepField)
+    const sweepStart = useShadeStore((s) => s.sweepStart)
+    const sweepEnd = useShadeStore((s) => s.sweepEnd)
 
     const sourcesList = useMemo(() => buildSourcesList(vars), [vars])
 
@@ -166,6 +168,8 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
     const [colorPickerOpen, setColorPickerOpen] = useState(false)
     const [exportFormat, setExportFormat] = useState('png')
+    const [obsStartTime, setObsStartTime] = useState('')
+    const [obsEndTime, setObsEndTime] = useState('')
     const colorPickerRef = useRef(null)
 
     // Close color picker on outside click
@@ -184,6 +188,42 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
             document.removeEventListener('mousedown', handleOutsideClick, true)
         }
     }, [colorPickerOpen])
+
+    // Convert UTC sweep times to observer-local times when they change
+    const observer = el?.observer
+    useEffect(() => {
+        if (!observer || !observerOptions.length) return
+        if (sweepStart) {
+            ShadeTool.convertUTCToObserver(sweepStart, observer, (result) => {
+                if (result) setObsStartTime(result)
+            })
+        }
+        if (sweepEnd) {
+            ShadeTool.convertUTCToObserver(sweepEnd, observer, (result) => {
+                if (result) setObsEndTime(result)
+            })
+        }
+    }, [sweepStart, sweepEnd, observer, observerOptions.length])
+
+    const handleObsStartBlur = useCallback(() => {
+        if (!obsStartTime || !observer) return
+        ShadeTool.convertObserverToUTC(obsStartTime, observer, (result) => {
+            if (result) {
+                const utc = result.replace(' ', 'T').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z').replace(/\.\d{3}Z$/, 'Z')
+                setSweepField('sweepStart', utc)
+            }
+        })
+    }, [obsStartTime, observer, setSweepField])
+
+    const handleObsEndBlur = useCallback(() => {
+        if (!obsEndTime || !observer) return
+        ShadeTool.convertObserverToUTC(obsEndTime, observer, (result) => {
+            if (result) {
+                const utc = result.replace(' ', 'T').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z').replace(/\.\d{3}Z$/, 'Z')
+                setSweepField('sweepEnd', utc)
+            }
+        })
+    }, [obsEndTime, observer, setSweepField])
 
     const handleColorSelect = useCallback(
         (color) => {
@@ -456,19 +496,51 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                 </>
                             )}
                             {observerOptions.length > 0 && (
-                                <div className="vstOptionRow">
-                                    <div className="vstOptionLabel" title="Ground observer for time conversions">
-                                        Observer
+                                <>
+                                    <div className="vstOptionRow">
+                                        <div className="vstOptionLabel" title="Ground observer for time conversions">
+                                            Observer
+                                        </div>
+                                        <Select
+                                            value={el.observer || ''}
+                                            onValueChange={(v) =>
+                                                handleChange('observer', v)
+                                            }
+                                            options={observerOptions}
+                                            className="vstSelect"
+                                        />
                                     </div>
-                                    <Select
-                                        value={el.observer || ''}
-                                        onValueChange={(v) =>
-                                            handleChange('observer', v)
-                                        }
-                                        options={observerOptions}
-                                        className="vstSelect"
-                                    />
-                                </div>
+                                    {el.observer && (
+                                        <>
+                                            <div className="vstOptionRow">
+                                                <div className="vstOptionLabel vstObsTimeLabel" title="Observer local start time">
+                                                    <i className="mdi mdi-clock-outline mdi-14px" /> Start
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    className="vstSweepInput"
+                                                    placeholder={vars?.observerTimePlaceholder || ''}
+                                                    value={obsStartTime}
+                                                    onChange={(e) => setObsStartTime(e.target.value)}
+                                                    onBlur={handleObsStartBlur}
+                                                />
+                                            </div>
+                                            <div className="vstOptionRow">
+                                                <div className="vstOptionLabel vstObsTimeLabel" title="Observer local end time">
+                                                    <i className="mdi mdi-clock-outline mdi-14px" /> End
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    className="vstSweepInput"
+                                                    placeholder={vars?.observerTimePlaceholder || ''}
+                                                    value={obsEndTime}
+                                                    onChange={(e) => setObsEndTime(e.target.value)}
+                                                    onBlur={handleObsEndBlur}
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+                                </>
                             )}
                             <div className="vstOptionRow">
                                 <div className="vstOptionLabel" title="Height above surface of source point.">

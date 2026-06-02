@@ -1828,6 +1828,62 @@ let ShadeTool = {
         F_.downloadObject(report, 'shade_report', '.json')
     },
 
+    convertUTCToObserver: function (utcTime, observerValue, callback) {
+        const store = useShadeStore.getState()
+        const observers = store.vars?.observers || []
+        let body = null
+        for (let i = 0; i < observers.length; i++) {
+            if (observers[i].value === observerValue) {
+                body = observers[i].body
+                break
+            }
+        }
+        if (!body || !observerValue) {
+            if (callback) callback(null)
+            return
+        }
+        calls.api(
+            'chronice',
+            { body, target: observerValue, from: 'utc', time: utcTime },
+            function (s) {
+                if (s.error) {
+                    if (callback) callback(null)
+                } else {
+                    if (callback) callback(s.result)
+                }
+            },
+            function () { if (callback) callback(null) }
+        )
+    },
+
+    convertObserverToUTC: function (localTime, observerValue, callback) {
+        const store = useShadeStore.getState()
+        const observers = store.vars?.observers || []
+        let body = null
+        for (let i = 0; i < observers.length; i++) {
+            if (observers[i].value === observerValue) {
+                body = observers[i].body
+                break
+            }
+        }
+        if (!body || !observerValue) {
+            if (callback) callback(null)
+            return
+        }
+        calls.api(
+            'chronice',
+            { body, target: observerValue, from: 'lmst', time: localTime },
+            function (s) {
+                if (s.error) {
+                    if (callback) callback(null)
+                } else {
+                    if (callback) callback(s.result)
+                }
+            },
+            function () { if (callback) callback(null) }
+        )
+    },
+
     // === RAE Indicators (preserved exactly from ShadeTool) ===
 
     updateRAEIndicators(rae, shadeId, allResults) {

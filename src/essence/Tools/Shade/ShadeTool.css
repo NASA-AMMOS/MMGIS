@@ -64,23 +64,31 @@
 
 #shadeTool .vstTime {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
     background: var(--color-p0);
-    padding: 4px 8px;
-    gap: 6px;
+    padding: 6px 8px;
+    gap: 4px;
 }
 
-#shadeTool .vstTime .vstClockIcon {
-    color: var(--color-a1-5);
+#shadeTool .vstTimeLabel {
     display: flex;
     align-items: center;
+    gap: 4px;
+    color: var(--color-a1-5);
+}
+#shadeTool .vstTimeLabel i {
+    color: var(--color-a1-5);
 }
 
-#shadeTool .vstTime span {
-    color: var(--color-a1-5);
-    font-weight: bold;
-    font-size: 13px;
+#shadeTool .vstObsTimeLabel {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-a5);
+    font-style: italic;
+}
+#shadeTool .vstObsTimeLabel i {
+    color: var(--color-a5);
 }
 
 /* ====== Binary Legend ====== */
