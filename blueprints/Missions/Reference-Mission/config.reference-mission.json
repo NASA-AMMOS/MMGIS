@@ -3695,21 +3695,41 @@
         "data": [
           {
             "name": "USGS SF DEM (tileset required)",
-            "demtileurl": "Data/dem-tiles/{z}/{x}/{y}.png",
-            "minZoom": 8,
-            "maxNativeZoom": 18
+            "demtileurl": "Data/dem_rgba_tiles/{z}/{x}/{y}.png",
+            "minZoom": 10,
+            "maxNativeZoom": 14,
+            "boundingBox": [-122.50722222192965, 37.70980728349467, -122.41428489305366, 37.78111111121456]
           }
         ],
         "sources": [
           {
             "name": "Sun",
             "value": "SUN"
+          },
+          {
+            "name": "Moon",
+            "value": "MOON"
           }
         ],
-        "observers": [],
+        "observers": [
+          {
+            "name": "Earth (UTC)",
+            "value": "EARTH",
+            "frame": "IAU_EARTH",
+            "body": "EARTH"
+          }
+        ],
         "defaultHeight": 0,
         "observerTimePlaceholder": "YYYY-MM-DD HH:MM:SS",
-        "utcTimeFormat": "%Y-%m-%d %H:%M:%S"
+        "utcTimeFormat": "%Y-%m-%d %H:%M:%S",
+        "sweepColorRamps": [
+          { "name": "viridis", "label": "Viridis", "bins": 6 },
+          { "name": "plasma", "label": "Plasma", "bins": 6 },
+          { "name": "Greys", "label": "Greys", "bins": 5 },
+          { "name": "RdYlGn_r", "label": "Red-Yellow-Green", "bins": 5 },
+          { "name": "inferno", "label": "Inferno", "bins": 6 },
+          { "name": "Blues", "label": "Blues", "bins": 5 }
+        ]
       }
     },
     {

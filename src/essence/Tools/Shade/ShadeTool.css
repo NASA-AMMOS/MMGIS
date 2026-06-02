@@ -1,64 +1,57 @@
+/* ShadeTool CSS — ViewshedTool-style collapsible instances */
+
 #shadeTool {
     width: 100%;
     height: 100%;
-    color: white;
+    color: var(--color-f);
     display: flex;
     flex-flow: column;
     background: var(--color-k);
-    box-shadow: inset 2px 0px 10px 0px rgba(0, 0, 0, 0.2);
+    box-shadow: inset 2px 0px 10px 0px var(--color-shadow);
+    --color-accent-active: var(--color-a2);
 }
 
-#infoToolHeader {
-    display: flex;
-    height: 40px;
-    line-height: 18px;
-    color: #ccc;
-    background: var(--color-a);
-    justify-content: space-between;
-}
-#infoToolHeader > div {
-    display: flex;
+/* Time-disabled message */
+#shadeTool .vstTimeDisabled {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    text-align: center;
+    color: var(--color-h);
 }
 
-#infoToolTitle {
-    height: 40px;
-    line-height: 40px;
-    font-size: 16px;
-    padding-left: 6px;
-    font-family: 'lato-light';
-    text-transform: uppercase;
-    color: var(--color-l);
-}
+/* ====== Header ====== */
 
-#shadeTool #vstHeader {
+#shadeTool .vstHeader {
     width: 100%;
+    padding: 5px;
+    flex-shrink: 0;
 }
-#shadeTool #vstHeader > div:first-child {
+
+#shadeTool .vstHeaderTop {
     display: flex;
     height: 40px;
     line-height: 40px;
-    color: #ccc;
     background: var(--color-a);
     justify-content: space-between;
     align-items: center;
 }
-#shadeTool #vstHeader > div:first-child > div {
+
+#shadeTool .vstHeaderLeft {
     display: flex;
     align-items: center;
 }
-/*
-#shadeTool #vstHeader > div:last-child {
-    display: flex;
-    height: 30px;
-    line-height: 30px;
-    padding: 1px 6px;
-    background: var(--color-a1-5);
+
+#shadeTool .vstClose {
+    margin-right: 6px;
+    color: var(--color-a5);
 }
-*/
-#shadeTool #vstHeader .vstLabel {
-    font-size: 12px;
+#shadeTool .vstClose:hover {
+    color: var(--color-f);
 }
-#shadeTool #vstTitle {
+
+#shadeTool .vstTitle {
     height: 40px;
     line-height: 40px;
     font-size: 16px;
@@ -68,354 +61,354 @@
     text-transform: uppercase;
     color: var(--color-l);
 }
-#shadeTool #vstNew {
-    display: flex;
-    cursor: pointer;
-    height: 40px;
-    line-height: 40px;
-    font-size: 14px;
-    padding-right: 6px;
-    transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-#shadeTool #vstNew:hover {
-    color: var(--color-mmgis);
-}
 
-#shadeTool #vstContent {
-    height: calc(100% - 48px);
-    overflow-y: auto;
-    overflow-x: hidden;
-}
-
-#shadeTool #vstShades {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-    height: 100%;
-}
-#shadeTool #vstShades > li {
-    position: relative;
-    display: flex;
-    flex-flow: column;
-    justify-content: space-between;
-    height: 100%;
-}
-#shadeTool #vstShades > li > .vstShadeHeader {
-    display: flex;
-    justify-content: space-between;
-    height: 28px;
-    padding-right: 6px;
-    line-height: 28px;
-    background: var(--color-a2);
-}
-#shadeTool #vstShades > li > .vstShadeHeader > div {
-    display: flex;
-}
-#shadeTool #vstShades > li > .vstShadeHeader .vstShadeTune {
-    padding-left: 2px;
-    cursor: pointer;
-}
-#shadeTool #vstShades > li > .vstShadeHeader .vstShadeTune:hover {
-    color: var(--color-c);
-}
-#shadeTool #vstShades > li > .vstShadeHeader .vstShade3D {
-    cursor: pointer;
-    padding-left: 2px;
-    height: 24px;
-}
-#shadeTool #vstShades > li > .vstShadeHeader .vstShade3D:hover {
-    color: var(--color-c);
-}
-#shadeTool #vstShades > li > .vstShadeHeader .vstShadeClone {
-    cursor: pointer;
-    height: 24px;
-}
-#shadeTool #vstShades > li > .vstShadeHeader .vstShadeClone:hover {
-    color: white;
-}
-
-#shadeTool #vstShades > li > .vstShadeContents {
-    transition: height 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
-        opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-
-#shadeTool #vstShades > li > .vstShadeContents > div {
-    justify-content: space-between;
-    height: 28px;
-    display: flex;
-    line-height: 28px;
-    padding-left: 15px;
-    border-bottom: 1px solid var(--color-a1-5);
-}
-#shadeTool
-    #vstShades
-    > li
-    > .vstShadeContents
-    > div
-    > div:not(.vstRegen):first-child {
-    font-size: 13px;
-    color: var(--color-a5);
-}
-#shadeTool #vstShades > li > div > div {
-    font-size: 14px;
-    color: var(--color-a7);
-}
-
-#shadeTool .vstOptionColor > div:last-child {
-    width: 108px;
-    height: 29px;
-}
-
-#shadeTool .vstLoading {
-    width: 0%;
-    height: 28px;
-    pointer-events: none;
-    opacity: 0;
-    position: absolute;
-    top: 0;
-    box-sizing: border-box;
-    border-bottom: 2px solid var(--color-r6);
-    transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-#shadeTool .vstLoading.on {
-    opacity: 1;
-}
-
-#shadeTool .vstColorbox {
-    width: 6px;
-    height: 100%;
-    opacity: 0.6;
-}
-
-#shadeTool #vstShades > li .vstShadeBar {
-    margin-top: 4px;
-    padding-left: 0px !important;
-}
-#shadeTool #vstShades > li .vstShadeBar .vstRegen {
-    flex: 1;
-    text-align: center;
-    margin-left: 0px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-size: 12px;
-    pointer-events: none;
-    transition: all 0.2s ease-in-out;
-}
-#shadeTool #vstShades > li .vstShadeBar .vstRegen.changed {
-    pointer-events: all;
-}
-#shadeTool #vstShades > li .vstShadeBar .vstRegen.regening {
-    pointer-events: none !important;
-}
-#shadeTool #vstShades > li .vstShadeBar .vstRegen:hover {
-    background: var(--color-p3);
-    font-weight: bold;
-    color: black;
-}
-
-#shadeTool .vstDelete {
-    width: 28px;
-    text-align: center;
-    cursor: pointer;
-    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-#shadeTool .vstDelete:hover {
-    background: #be0e0e;
-}
-#shadeTool .vstDeleteSure {
-    position: absolute;
-    display: flex;
-    background: var(--color-g);
-    left: 6px;
-    width: calc(100% - 6px);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-#shadeTool .vstDeleteSure.on {
-    opacity: 1;
-    pointer-events: inherit;
-}
-#shadeTool .vstDeleteSure > div {
-    padding: 0px 4px;
-    margin-right: 3px;
-    height: 24px;
-    line-height: 26px;
-}
-#shadeTool .vstDeleteSure > div i {
-    line-height: 24px !important;
-}
-#shadeTool .vstDeleteSure > div span {
-    position: relative;
-    top: -2px;
-}
-#shadeTool .vstDeleteSure > div:first-child {
-    font-size: 12px;
-}
-#shadeTool .vstDeleteSureYes {
-    background: #be0e0e;
-    cursor: pointer;
-}
-#shadeTool .vstDeleteSureNo {
-    background: #0e75be;
-    cursor: pointer;
-}
-#shadeTool .vstSave {
-    width: 28px;
-    text-align: center;
-    cursor: pointer;
-    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-#shadeTool .vstSave:hover {
-    background: #0e6dbe;
-}
-#shadeTool .vstShadeClone {
-    width: 28px;
-    text-align: center;
-    cursor: pointer;
-    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-#shadeTool .vstShadeClone:hover {
-    background: #0e6dbe;
-}
-#shadeTool .vstRegen {
-    position: relative;
-    cursor: pointer;
-    background: var(--color-a1-5);
-    color: #848484;
-    font-size: 16px;
-    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-#shadeTool .vstRegen.changed {
-    pointer-events: inherit;
-    background: var(--color-f);
-    color: #000000;
-    cursor: pointer;
-}
-#shadeTool .vstRegen span {
-    width: 0%;
-    position: absolute;
-    height: 100%;
-    left: 0;
-    top: 0;
-    background: var(--color-r6);
-    mix-blend-mode: multiply;
-}
-
-#shadeTool .vstUnit {
-    width: 21px;
-    text-align: center;
-    background: var(--color-a1);
-    border-left: 1px solid var(--color-a1-5);
-    color: #bfbfbf;
-    font-size: 20px;
-}
-#shadeTool .vstUnit.smallFont {
-    font-size: 14px;
-}
-
-#shadeTool .dropdown {
-    background-color: var(--color-a1);
-    color: #ededed;
-    border: none;
-    width: 108px;
-    height: 27px;
-    font-size: 14px;
-    padding: 0px 3px;
-    border-left: 1px solid var(--color-a1-5);
-}
-
-#shadeTool .vstEditbox {
-    cursor: pointer;
-    width: 22px;
-    transition: border 0.2s ease-out,
-        background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-}
-#shadeTool .vstEditbox i {
-    position: absolute;
-    transition: opacity 0.2s ease-out;
-}
-#shadeTool .vstEditbox i.off {
-    opacity: 0.45;
-}
-#shadeTool .vstEditbox:hover i.off {
-    opacity: 0.65;
-}
-#shadeTool .vstEditbox i.on {
-    opacity: 0;
-}
-
-#shadeTool .vstEditbox.on i.off {
-    opacity: 0;
-}
-#shadeTool .vstEditbox.on:hover i.off {
-    opacity: 0;
-}
-#shadeTool .vstEditbox.on i.on {
-    opacity: 1;
-    color: rgb(0, 210, 0);
-}
-
-#shadeTool input[type='number'] {
-    border: none;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
-    padding: 0px 6px;
-    height: 28px;
-    width: 90px;
-    background: var(--color-a1);
-    text-align: right;
-    color: #ededed;
-    border-left: 1px solid var(--color-a1-5);
-}
-
-#shadeTool .vstShadeHeader input {
-    border: none;
-    height: 28px;
-    background: none;
-    color: white;
-    width: 136px;
-}
-
-#shadeTool .slider2 {
-    width: 100px !important;
-    height: 17px;
-    background: var(--color-a2);
-    opacity: 1 !important;
-    margin: 6px 6px;
-}
-
-#shadeTool .checkbox.on {
-    background: white;
-    border: 0px solid #777;
-}
-#shadeTool .checkbox {
-    margin: 6px;
-    width: 18px;
-    height: 18px;
-    border: 2px solid #777;
-    border-radius: 2px;
-    cursor: pointer;
-    transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
-        border 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-}
-
-#shadeTool_indicators {
-    display: flex;
-    justify-content: space-around;
-    padding-top: 4px;
-    padding-bottom: 4px;
-    padding-left: 0 !important;
-    background: var(--color-a-5);
-    height: 174px !important;
-}
-#shadeTool_indicators > div {
+#shadeTool .vstTime {
     display: flex;
     flex-direction: column;
+    padding: 6px 8px;
+    gap: 4px;
+    border-bottom: 1px solid var(--color-e);
 }
-#shadeTool_indicators > div:first-child {
-    border-right: 1px solid var(--color-a1-5);
+
+#shadeTool .vstTimeLabel {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-a1-5);
 }
-#shadeTool_indicators > div > div {
+#shadeTool .vstTimeLabel i {
+    color: inherit;
+}
+
+#shadeTool .vstObsTimeLabel {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-a5);
+    font-style: italic;
+}
+#shadeTool .vstObsTimeLabel i {
+    color: var(--color-a5);
+}
+
+/* ====== Binary Legend ====== */
+
+#shadeTool .vstBinaryLegend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 6px 10px;
+    background: var(--color-a);
+    border-bottom: 1px solid var(--color-e);
+    flex-shrink: 0;
+}
+
+#shadeTool .vstBinaryLegendItem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--color-f);
+}
+
+#shadeTool .vstBinaryLegendSwatch {
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--color-f);
+    border-radius: 2px;
+}
+
+#shadeTool .vstBinaryLegendInShadow {
+    background: var(--color-f);
+}
+
+#shadeTool .vstBinaryLegendNotVisible {
+    background: repeating-conic-gradient(
+        var(--color-f) 0% 25%,
+        transparent 0% 50%
+    ) 0 0 / 6px 6px;
+}
+
+#shadeTool .vstBinaryLegendMuted {
+    opacity: 0.5;
+}
+
+#shadeTool .vstNewBtnWrap {
+    display: flex;
+    justify-content: center;
+    padding: 0px 5px;
+}
+
+#shadeTool .vstNewBtn {
+    width: 100%;
+    justify-content: center;
+}
+
+#shadeTool .vstNewBtn i {
+    line-height: 14px;
+}
+
+#shadeTool .vstNewBtn.vstNewBtn {
+    background: none;
+    border: none;
+    color: var(--color-c);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+#shadeTool .vstNewBtn:hover {
+    color: var(--color-c2);
+    background: var(--color-a1-5);
+}
+
+/* ====== Content ====== */
+
+#shadeTool .vstContent {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-top: 2px;
+    padding-bottom: 5px;
+}
+
+/* ====== Shade item (instance) ====== */
+
+#shadeTool .vstShadeItem {
+    position: relative;
+    margin: 6px;
+    border-radius: 6px;
+    background: var(--color-a1-5);
+    overflow: hidden;
+}
+
+/* Instance header */
+#shadeTool .vstShadeHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 32px;
+    padding: 0 6px;
+    background: var(--color-a1);
+}
+
+#shadeTool .vstShadeHeaderLeft {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#shadeTool .vstShadeHeaderCenter {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+}
+#shadeTool .vstResultsExport {
+    border-top: 2px solid var(--color-a);
+    margin-top: 2px;
+    height: 36px !important;
+}
+#shadeTool .vstExportControls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#shadeTool .vstShadeHeaderRight {
+    display: flex;
+    align-items: center;
+}
+
+#shadeTool .vstShadeDragHandle {
+    color: var(--color-a4);
+    display: flex;
+    align-items: center;
+    cursor: grab;
+    flex-shrink: 0;
+    padding: 2px;
+    transition: color 0.15s ease;
+}
+#shadeTool .vstShadeDragHandle:hover {
+    color: var(--color-a7);
+}
+#shadeTool .vstShadeDragHandle:active {
+    cursor: grabbing;
+}
+
+#shadeTool .vstColorSwatchWrap {
+    position: relative;
+}
+
+#shadeTool .vstColorSwatch {
+    width: 145px;
+    height: 20px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid var(--color-a1);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+#shadeTool .vstColorSwatch:hover {
+    border-color: var(--color-a3);
+    box-shadow: 0 0 0 1px var(--color-a2);
+}
+
+#shadeTool .vstColorPalette {
+    position: absolute;
+    top: 18px;
+    left: 0;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+    padding: 4px;
+    background: var(--color-a);
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px var(--color-shadow);
+    z-index: 100;
+}
+
+#shadeTool .vstColorOption {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid var(--color-a1);
+}
+#shadeTool .vstColorOption:hover {
+    border-color: var(--color-f);
+    transform: scale(1.2);
+}
+
+/* shade names removed — header is icons only */
+
+/* ====== Collapsible body ====== */
+
+#shadeTool .vstShadeBody {
+    padding: 0;
+}
+
+/* ====== Shared row layout ====== */
+
+#shadeTool .vstOptionRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 28px;
+    padding: 0 8px;
+}
+
+#shadeTool .vstOptionLabel {
+    font-size: 12px;
+    color: var(--color-a5);
+    flex-shrink: 0;
+    margin-right: 8px;
+}
+
+/* Group headers inside expanded body */
+#shadeTool .vstGroupHeader {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--color-a7);
+    padding: 6px 8px 3px;
+    margin-top: 0;
+    border-top: 2px solid var(--color-a);
+}
+
+
+#shadeTool .vstGroupToggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    user-select: none;
+}
+#shadeTool .vstGroupToggle:hover {
+    color: var(--color-f);
+}
+
+#shadeTool .vstGroupChevron {
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+    font-size: 14px;
+}
+#shadeTool .vstGroupChevronOpen {
+    transform: rotate(90deg);
+}
+
+#shadeTool .vstGroupContent {
+    padding: 0 0 2px;
+}
+
+/* Regen icon on header row */
+#shadeTool .vstRegenIcon {
+    color: var(--color-r6);
+    animation: vstPulse 1.2s ease-in-out infinite;
+}
+@keyframes vstPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+#shadeTool .vstRegenProgress {
+    font-size: 10px;
+    color: var(--color-a5);
+    margin-right: 4px;
+}
+
+/* Delete button — red on hover */
+#shadeTool .vstDeleteBtn:hover {
+    color: var(--color-red2);
+}
+
+/* Select (design-system) overrides */
+#shadeTool .vstSelect {
+    width: 145px;
+    flex-shrink: 0;
+    min-width: 0;
+}
+#shadeTool .vstSelect [data-select-value] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+/* InputWithUnit field width */
+#shadeTool .vstFieldInput {
+    width: 145px;
+    flex-shrink: 0;
+}
+
+
+
+/* Result values */
+#shadeTool .vstResultValue {
+    font-size: 12px;
+    color: var(--color-f);
+}
+
+/* ====== Indicators — preserved exactly ====== */
+#shadeTool [id^="shadeTool_indicators"] {
+    display: flex;
+    justify-content: space-around;
+    background: var(--color-a1-5);
+    height: 100px;
+    border-top: 2px solid var(--color-a);
+}
+#shadeTool [id^="shadeTool_indicators"] > div {
+    display: flex;
+    flex-direction: column;
+    padding: 4px 0;
+}
+
+#shadeTool [id^="shadeTool_indicators"] > div > div {
     text-align: center;
     text-transform: uppercase;
     font-size: 12px;
@@ -423,121 +416,550 @@
     letter-spacing: 1px;
     padding: 4px 0px;
 }
-#shadeTool_indicators canvas {
-    width: 116px;
-    height: 116px;
+#shadeTool [id^="shadeTool_indicators"] canvas {
+    width: 70px;
+    height: 70px;
 }
 
-#shadeTool .vstOptionHeading {
-    width: 100%;
-    display: block !important;
-    text-transform: uppercase;
-    font-size: 11px !important;
-    padding-left: 7px !important;
-    color: var(--color-a7) !important;
-    letter-spacing: 1px;
-    border-bottom: none !important;
-    padding-top: 4px !important;
-}
-#shadeTool .vstOptionTime input {
-    width: 100%;
-    text-align: center;
-    background: var(--color-p0);
-    color: var(--color-a1-5);
-    font-weight: bold;
-    font-size: 14px;
-    padding: 5px 0px;
-    border: none;
-    border-bottom: 1px solid transparent;
-}
-#shadeTool .vstOptionTime input:focus {
-    border-bottom: 1px solid var(--color-c);
-}
-#shadeTool .vstOptionTimeSpecific {
-    width: 100%;
-}
-#shadeTool .vstOptionTimeSpecific > div {
-    width: 100%;
-}
-#shadeTool .vstOptionTimeSpecific input {
-    text-align: center;
-    background: linear-gradient(to left, var(--color-e), var(--color-a));
-    color: var(--color-f);
-    font-size: 12px;
-    padding: 5px 5px;
-    border: none;
-    width: 192px;
-    border-top: 1px solid Transparent;
-    border-bottom: 1px solid Transparent;
-}
-#shadeTool .vstOptionTimeSpecific input:focus {
-    border-bottom: 1px solid var(--color-mmgis);
-}
-#shadeTool .vstOptionData {
-    border-bottom: none !important;
-    padding-bottom: 4px;
-}
-
-#shadeTool #shadeTool_results {
-    display: flex;
-    flex-flow: column;
-}
-#shadeTool #shadeTool_results #shadeTool_results_title {
-    height: 28px;
-    width: 100%;
-    line-height: 28px;
-    padding-left: 7px;
-    text-transform: uppercase;
-    font-size: 11px;
-    letter-spacing: 1px;
-    color: var(--color-p0);
-}
-#shadeTool #shadeTool_results #shadeTool_results_outputs ul {
-    list-style-type: none;
-    margin: 0;
+/* ====== Export dropdown ====== */
+#shadeTool .vstOptionRow .vstExportMenu {
     padding: 0;
 }
 
-#shadeTool #shadeTool_results #shadeTool_results_outputs ul li {
+/* ====== Action bar (delete, clone, generate) ====== */
+#shadeTool .vstShadeActions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: 6px 8px;
+    border-top: 1px solid var(--color-a1-5);
+}
+
+/* Generate and Sweep use the ProgressButton design-system component */
+
+/* ====== Sweep section ====== */
+#shadeTool .vstSweepSection {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+}
+
+#shadeTool .vstSweepHeader {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-a7);
+    user-select: none;
+    transition: background 0.15s ease;
+}
+#shadeTool .vstSweepHeader:hover {
+    background: var(--color-a2);
+}
+
+#shadeTool .vstSweepBody {
+    padding: 6px 8px;
+    flex-shrink: 0;
+    background: var(--color-a1-5);
+    margin: 4px 6px 0;
+    border-radius: 4px;
+}
+
+#shadeTool .vstSweepTimeRow {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+#shadeTool .vstSweepTimeRowSingle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+#shadeTool .vstSweepTimeLabel {
+    font-size: 11px;
+    color: var(--color-a5);
+    min-width: 30px;
+    flex-shrink: 0;
+}
+
+#shadeTool .vstSweepInput {
+    width: 145px;
+    flex-shrink: 0;
     height: 26px;
-    line-height: 26px;
-    padding: 0px 7px 0px 15px;
+    background: var(--color-a);
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
+    color: var(--color-f);
+    font-size: 12px;
+    padding: 0 6px;
+    text-align: right;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+#shadeTool .vstSweepStepRow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+#shadeTool .vstSweepStepLabel {
+    font-size: 11px;
+    color: var(--color-a5);
+}
+
+#shadeTool .vstSweepStepInput {
+    width: 50px;
+    height: 24px;
+    background: var(--color-a1);
+    border: 1px solid var(--color-a1-5);
+    border-radius: 3px;
+    color: var(--color-f);
+    font-size: 11px;
+    padding: 0 4px;
+    text-align: right;
+}
+
+#shadeTool .vstSweepStepUnit {
+    font-size: 10px;
+    color: var(--color-a5);
+}
+
+#shadeTool .vstSweepField {
+    width: 145px;
+    flex-shrink: 0;
+}
+
+#shadeTool .vstSweepButtonRow {
+    display: flex;
+    align-items: center;
+    margin-top: 6px;
+    margin-bottom: 6px;
+}
+#shadeTool .vstSweepButton {
+    flex: 1;
+}
+
+#shadeTool .vstSweepStaleMsg {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    color: var(--color-yellow);
+    background: rgba(255, 193, 7, 0.08);
+    border-radius: 3px;
+    border: 1px solid rgba(255, 193, 7, 0.2);
+}
+
+#shadeTool .vstSweepProgress {
+    font-size: 10px;
+    color: var(--color-a5);
+    margin-left: auto;
+}
+
+#shadeTool .vstSweepControlsWrap {
+    background: var(--color-a);
+    border-radius: 4px;
+    margin: 0 8px 4px;
+    overflow: hidden;
+    padding: 4px 6px;
+    flex-shrink: 0;
+}
+#shadeTool .vstSweepControlsInline {
+    margin: 6px 0 0;
+    padding: 6px 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#shadeTool .vstSweepPlaybarRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    box-sizing: border-box;
+}
+#shadeTool .vstSweepPlaybarLeft {
+    justify-content: space-between;
+    gap: 4px;
+}
+
+#shadeTool .vstSweepPlaybar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#shadeTool .vstLinkActive {
+    color: var(--color-mmgis);
+}
+#shadeTool .vstLinkInactive {
+    color: var(--color-a5);
+    opacity: 0.7;
+}
+
+#shadeTool .vstSweepTimeline {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 2px 10px 0;
+    --color-mmgis: var(--color-red);
+    --color-c: var(--color-red2);
+}
+
+#shadeTool .vstSweepFrameLabel {
+    font-size: 12px;
+    color: var(--color-a6);
+    text-align: center;
+    white-space: nowrap;
+    padding: 2px 0;
+}
+
+/* View mode row */
+#shadeTool .vstSweepViewRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 2px 2px;
+}
+
+/* Global composite options (mode + range) */
+#shadeTool .vstSweepGlobalOptions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 6px;
+    padding: 0px 9px;
+}
+#shadeTool .vstSweepGlobalRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#shadeTool .vstSweepGlobalLabel {
+    font-size: 11px;
+    color: var(--color-f);
+    white-space: nowrap;
+}
+
+/* Composite heatmap settings */
+#shadeTool .vstSweepCompositeSettings {
+    background: var(--color-a);
+    border-radius: 4px;
+    padding: 6px 8px;
+    margin-bottom: 4px;
+}
+
+#shadeTool .vstSweepCompositeSettings .vstOptionRow {
+    margin-bottom: 4px;
+}
+
+#shadeTool .vstSweepSelect {
+    min-width: 100px;
+}
+
+/* Legend */
+#shadeTool .vstSweepLegend {
+    margin-top: 6px;
+}
+
+#shadeTool .vstSweepLegendBarWrap {
+    position: relative;
+    margin-bottom: 5px;
+}
+
+#shadeTool .vstSweepLegendBar {
+    height: 12px;
+    border: 1px solid var(--color-e);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+    background-image: linear-gradient(45deg, #555 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #555 75%),
+        linear-gradient(45deg, transparent 75%, #555 75%),
+        linear-gradient(45deg, #555 25%, #999 25%);
+    background-size: 8px 8px;
+    background-position: 0 0, 0 0, -4px -4px, 4px 4px;
+}
+
+#shadeTool .vstSweepLegendGradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+#shadeTool .vstSweepLegendIndicator {
+    position: absolute;
+    top: -2px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: left 0.15s ease-out;
+    z-index: 6;
+}
+
+#shadeTool .vstSweepLegendIndicatorLine {
+    width: 2px;
+    height: 16px;
+    background: var(--color-f);
+    box-shadow: 0 0 2px rgba(0,0,0,0.6);
+}
+
+#shadeTool .vstSweepLegendIndicatorLabel {
+    font-size: 11px;
+    color: var(--color-f);
+    white-space: nowrap;
+    margin-top: 1px;
+    font-weight: bold;
+    background: var(--color-c2);
+    padding: 0px 4px;
+    border-radius: 3px;
+}
+
+#shadeTool .vstSweepLegendLabels {
     display: flex;
     justify-content: space-between;
-    border-bottom: 1px solid var(--color-a1-5);
+    font-size: 12px;
+    height: 15px;
+    color: var(--color-a6);
+    margin-top: 0;
 }
-#shadeTool #shadeTool_results #shadeTool_results_outputs ul li div:first-child {
+
+#shadeTool .vstModeRow {
+    padding: 4px 8px 2px;
+    display: flex;
+    justify-content: center;
+}
+
+#shadeTool .vstSweepProgressLabel {
+    font-size: 10px;
     color: var(--color-a5);
-    font-size: 13px;
-}
-#shadeTool #shadeTool_results #shadeTool_results_outputs ul li div:last-child {
-    font-size: 13px;
+    text-align: center;
+    padding: 2px 0 8px;
 }
 
-#shadeTool #shadeTool_results input {
-    width: 120px;
-    height: 25px;
-    color: #ededed;
-    text-align: right;
-    background: var(--color-e);
-    border: none;
+/* === Sweep Cards === */
+
+#shadeTool .vstSweepCardsSection {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    background: var(--color-a1-5);
+    margin: 4px 6px;
+    border-radius: 4px;
+    overflow: hidden;
 }
-#shadeTool_results_outputs_range_input_wrap input,
-#shadeTool_results_outputs_range_input_wrap .vstUnit {
-    background: none !important;
-    color: #cfcfcf !important;
+#shadeTool .vstSweepCardsScroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 8px;
+}
+#shadeTool .vstSweepCards {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 4px;
 }
 
-#shadeTool .vstClockIcon {
+#shadeTool .vstSweepCard {
+    background: var(--color-a2);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--color-a2);
+    transition: box-shadow 0.15s ease;
+}
+#shadeTool .vstSweepCard:hover {
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+#shadeTool .vstSweepCardHeader {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 6px;
+    background: var(--color-a2);
+    border-bottom: 2px solid var(--color-a3);
+}
+
+#shadeTool .vstSweepCardDragHandle {
+    color: var(--color-a4);
+    display: flex;
+    align-items: center;
+    cursor: grab;
+    flex-shrink: 0;
+    padding: 2px;
+    transition: color 0.15s ease;
+}
+#shadeTool .vstSweepCardDragHandle:hover {
+    color: var(--color-a7);
+}
+#shadeTool .vstSweepCardDragHandle:active {
+    cursor: grabbing;
+}
+
+/* Drop indicator for drag-to-reorder */
+#shadeTool .vstDropTarget {
+    border-bottom: 2px solid var(--color-mmgis) !important;
+}
+
+#shadeTool .vstSweepCardIdentity {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+}
+
+#shadeTool .vstSweepCardSource {
+    font-size: 12px;
+    color: var(--color-f);
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#shadeTool .vstSweepCardObserver {
+    font-size: 12px;
+    color: var(--color-a6);
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+#shadeTool .vstSweepCardBody {
+    padding: 6px 8px 6px;
+}
+
+#shadeTool .vstSweepCardBody .vstOptionRow {
+    padding: 0;
+}
+
+#shadeTool .vstSweepCardBody .vstOptionLabel {
+    color: var(--color-a6);
+}
+
+#shadeTool .vstSweepCardBody [class*="suffix"] {
+    color: var(--color-a6);
+}
+
+
+#shadeTool .vstSweepCardRow {
+    margin-bottom: 2px;
+}
+
+#shadeTool .vstSweepCardLegend {
+    margin-top: 8px;
+}
+
+#shadeTool .vstSweepLegendStop {
     position: absolute;
+    top: -1px;
+    width: 6px;
+    height: 16px;
+    transform: translateX(-50%);
+    cursor: ew-resize;
+    border-radius: 2px;
+    background: var(--color-a8);
+    border: 1px solid var(--color-a4);
+    z-index: 5;
+    transition: background 0.1s;
+}
+#shadeTool .vstSweepLegendStop:hover,
+#shadeTool .vstSweepLegendStop.dragging {
+    background: var(--color-mmgis);
+    border-color: var(--color-mmgis);
+}
+#shadeTool .vstSweepLegendStopLabel {
+    position: absolute;
+    top: 17px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: var(--color-f);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    background: var(--color-c2);
+    padding: 0px 4px;
+    border-radius: 3px;
+    z-index: 6;
+}
+#shadeTool .vstSweepLegendStop:hover .vstSweepLegendStopLabel,
+#shadeTool .vstSweepLegendStop.dragging .vstSweepLegendStopLabel {
+    opacity: 1;
+}
+
+#shadeTool .vstSweepLegendReset {
+    margin-left: 4px;
+    cursor: pointer;
+    opacity: 0.6;
+    vertical-align: middle;
+}
+#shadeTool .vstSweepLegendReset:hover {
+    opacity: 1;
+    color: var(--color-mmgis);
+}
+
+
+
+#shadeTool .vstSweepCardSkyDome {
+    display: flex;
+    justify-content: center;
+    padding: 4px 0;
+    position: relative;
+}
+
+#shadeTool .vstSweepCardSkyDome canvas {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+}
+
+#shadeTool .vstSweepCardMiniIndicators {
+    position: absolute;
+    top: 4px;
+    left: 0;
     right: 0;
-    padding: 4px 8px;
-    color: var(--color-a1-5);
+    display: flex;
+    justify-content: space-between;
     pointer-events: none;
 }
-#shadeTool .vstClockIcon2 {
-    position: absolute;
-    right: 0;
-    padding: 0px 8px;
-    pointer-events: none;
+
+#shadeTool .vstSweepCardMiniIndicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#shadeTool .vstSweepCardMiniIndicator canvas {
+    width: 50px;
+    height: 50px;
+}
+
+#shadeTool .vstSweepCardMiniLabel {
+    font-size: 12px;
+    color: var(--color-a7);
+    margin-bottom: 2px;
 }

@@ -54,9 +54,12 @@ let ShadeTool_Manager = {
                     ? vars.curvature
                     : true,
                 hasDataCurved: false,
-                zoom: Math.min(
-                    Math.round(Map_.map.getZoom()) + resolution,
-                    dataLayer.maxNativeZoom
+                zoom: Math.max(
+                    dataLayer.minZoom || 0,
+                    Math.min(
+                        Math.round(Map_.map.getZoom()) + resolution,
+                        dataLayer.maxNativeZoom
+                    )
                 ),
                 options: options,
                 result: [],
@@ -89,6 +92,85 @@ let ShadeTool_Manager = {
         }
         return this.data[shadeId]
     },
+    // Fetches DEM tiles once and prepares data, without running the algorithm.
+    // Use computeShade() afterwards to run the algorithm with different targetSources.
+    gatherTiles: function (
+        shadeId,
+        dataLayer,
+        resolution,
+        source,
+        options,
+        vars,
+        progcb,
+        cb
+    ) {
+        if (this.existingTileTags.length > this.existingStoreMax) {
+            this.existingTileData = {}
+            this.existingTileTags = []
+        }
+
+        if (this.data[shadeId] == null) {
+            this.data[shadeId] = {
+                shadeId: shadeId,
+                dataLayer: dataLayer,
+                resolution: resolution,
+                source: source,
+                targetSource: null,
+                desiredTiles: [],
+                topLeftTile: {},
+                bottomLeftLatLng: {},
+                cellSize: 0,
+                outputTopLeftTile: {},
+                tileResolution: 32,
+                tiles: {},
+                data: [],
+                dataSource: {},
+                useCurvature: vars.hasOwnProperty('curvature')
+                    ? vars.curvature
+                    : true,
+                hasDataCurved: false,
+                zoom: Math.max(
+                    dataLayer.minZoom || 0,
+                    Math.min(
+                        Math.round(Map_.map.getZoom()) + resolution,
+                        dataLayer.maxNativeZoom
+                    )
+                ),
+                options: options,
+                result: [],
+            }
+            this.data[shadeId].resolution =
+                this.data[shadeId].zoom - Math.round(Map_.map.getZoom())
+
+            this.updateDesiredTiles(shadeId)
+            this.refreshData(shadeId)
+            this.queryDesiredTiles(shadeId, progcb, function (dv) {
+                ShadeTool_Manager.interpolateSeams(shadeId)
+                ShadeTool_Manager.finishUp(shadeId)
+                cb(dv)
+            })
+        } else {
+            this.data[shadeId].source = source
+            this.data[shadeId].options = options
+            cb(this.data[shadeId])
+        }
+    },
+    // Runs the shade algorithm on already-gathered tile data with a given targetSource.
+    // Returns the resultGrid. Does not mutate data[shadeId].result.
+    computeShade: function (shadeId, targetSource, options) {
+        const d = this.data[shadeId]
+        if (!d) return null
+        if (!d.data || d.data.length === 0) return []
+
+        d.targetSource = targetSource
+        d.options = options
+        this.locateSource(shadeId)
+
+        // curveData mutates d.data in-place; let it run on the first call
+        // and skip on subsequent calls (hasDataCurved will be true)
+        const result = ShadeTool_Algorithm.shade(d, options)
+        return result
+    },
     getData: function (shadeId) {
         return this.data[shadeId]
     },
@@ -105,6 +187,27 @@ let ShadeTool_Manager = {
 
         let min = minPx.divideBy(256).floor()
         let max = maxPx.divideBy(256).floor()
+
+        // Clamp to bounding box if the data source defines one
+        const rawBbox = this.data[shadeId].dataLayer.boundingBox
+        const bbox = Array.isArray(rawBbox)
+            ? rawBbox.map(Number)
+            : null
+        let bboxTileBounds = null
+        if (bbox && bbox.length === 4 && bbox.every((v) => !isNaN(v))) {
+            const bboxMinPx = Map_.map.project(L.latLng(bbox[1], bbox[0]), zoom)
+            const bboxMaxPx = Map_.map.project(L.latLng(bbox[3], bbox[2]), zoom)
+            bboxTileBounds = {
+                minX: Math.floor(bboxMinPx.x / 256),
+                minY: Math.floor(bboxMaxPx.y / 256),
+                maxX: Math.floor(bboxMaxPx.x / 256),
+                maxY: Math.floor(bboxMinPx.y / 256),
+            }
+            min.x = Math.max(min.x, bboxTileBounds.minX)
+            min.y = Math.max(min.y, bboxTileBounds.minY)
+            max.x = Math.min(max.x, bboxTileBounds.maxX)
+            max.y = Math.min(max.y, bboxTileBounds.maxY)
+        }
 
         let viewportDesiredTiles = []
         for (let i = min.x; i <= max.x; i++) {
@@ -123,6 +226,13 @@ let ShadeTool_Manager = {
             .divideBy(256)
             .floor()
         let sourceMax = sourceCenter.add(halfViewport).divideBy(256).floor()
+
+        if (bboxTileBounds) {
+            sourceMin.x = Math.max(sourceMin.x, bboxTileBounds.minX)
+            sourceMin.y = Math.max(sourceMin.y, bboxTileBounds.minY)
+            sourceMax.x = Math.min(sourceMax.x, bboxTileBounds.maxX)
+            sourceMax.y = Math.min(sourceMax.y, bboxTileBounds.maxY)
+        }
 
         let sourceDesiredTiles = []
         for (let i = sourceMin.x; i <= sourceMax.x; i++) {
@@ -164,6 +274,16 @@ let ShadeTool_Manager = {
         let tileTags = []
         let uniqueDesiredTiles = []
         for (let i = 0; i < fullDesiredTiles.length; i++) {
+            // Skip tiles outside the bounding box
+            if (bboxTileBounds) {
+                if (
+                    fullDesiredTiles[i].x < bboxTileBounds.minX ||
+                    fullDesiredTiles[i].x > bboxTileBounds.maxX ||
+                    fullDesiredTiles[i].y < bboxTileBounds.minY ||
+                    fullDesiredTiles[i].y > bboxTileBounds.maxY
+                )
+                    continue
+            }
             const t =
                 fullDesiredTiles[i].z +
                 '-' +
@@ -176,6 +296,26 @@ let ShadeTool_Manager = {
             }
         }
 
+        // Enforce tile limit — prioritize tiles nearest the source point
+        if (uniqueDesiredTiles.length > this.maxNumOfDataTiles) {
+            const srcTile = Map_.map
+                .project(this.data[shadeId].source, zoom)
+                .divideBy(256)
+            uniqueDesiredTiles.sort((a, b) => {
+                const da =
+                    Math.pow(a.x - srcTile.x, 2) +
+                    Math.pow(a.y - srcTile.y, 2)
+                const db =
+                    Math.pow(b.x - srcTile.x, 2) +
+                    Math.pow(b.y - srcTile.y, 2)
+                return da - db
+            })
+            uniqueDesiredTiles = uniqueDesiredTiles.slice(
+                0,
+                this.maxNumOfDataTiles
+            )
+        }
+
         this.data[shadeId].desiredTiles = uniqueDesiredTiles
     },
     // Restores the shade's data matrix to all 0s,
@@ -183,6 +323,7 @@ let ShadeTool_Manager = {
     // defines it top left tile
     refreshData: function (shadeId) {
         this.data[shadeId].data = []
+        if (this.data[shadeId].desiredTiles.length === 0) return
         let dataBounds = this.getTilesetBounds(this.data[shadeId].desiredTiles)
         let w =
             (dataBounds.maxX - dataBounds.minX + 1) *
@@ -192,7 +333,9 @@ let ShadeTool_Manager = {
             this.data[shadeId].tileResolution
 
         for (let i = 0; i < h; i++) {
-            this.data[shadeId].data.push(new Array(w).fill(0))
+            this.data[shadeId].data.push(
+                new Array(w).fill(this.internalNoDataValue)
+            )
         }
 
         this.data[shadeId].topLeftTile = {
@@ -250,6 +393,10 @@ let ShadeTool_Manager = {
         )
 
         let totalTiles = this.data[shadeId].desiredTiles.length
+        if (totalTiles === 0) {
+            cb(ShadeTool_Manager.data[shadeId])
+            return
+        }
         let tilesLoaded = 0
         let tilesQueried = 0
         let tilesPerStep = 8
@@ -403,7 +550,9 @@ let ShadeTool_Manager = {
     },
     interpolateSeams(shadeId) {
         const tileRes = this.data[shadeId].tileResolution
+        const noData = this.internalNoDataValue
         let d = this.data[shadeId].data
+        if (!d || d.length === 0) return
 
         // Vertical | |
         for (let y = 0; y < d.length; y++) {
@@ -411,6 +560,9 @@ let ShadeTool_Manager = {
                 if (x - 2 > 0 && x + 2 < d[y].length) {
                     const a = d[y][x - 2]
                     const b = d[y][x + 1]
+
+                    // Skip interpolation across noData boundaries
+                    if (a === noData || b === noData) continue
 
                     const inc = (a - b) / 3
 
@@ -426,6 +578,9 @@ let ShadeTool_Manager = {
                 if (d[y - 2] && d[y + 1]) {
                     const a = d[y - 2][x]
                     const b = d[y + 1][x]
+
+                    // Skip interpolation across noData boundaries
+                    if (a === noData || b === noData) continue
 
                     const inc = (a - b) / 3
 

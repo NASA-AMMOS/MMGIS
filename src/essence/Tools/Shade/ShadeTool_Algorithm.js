@@ -40,6 +40,15 @@ let ShadeTool_Algorithm = {
 
         let grids = this.initializeGrids(d)
 
+        // Mark all interior nodata cells (initializeGrids only handles edges)
+        for (let y = 2; y < d.data.length - 2; y++) {
+            for (let x = 2; x < d.data[y].length - 2; x++) {
+                if (this.isNoData(d.data[y][x])) {
+                    grids.resultGrid[y][x] = 9
+                }
+            }
+        }
+
         //this.processFirst(d, grids)
         if (d.targetSource.altitude > 0) {
             this.processUp(d, grids)
@@ -62,28 +71,61 @@ let ShadeTool_Algorithm = {
         }
 
         // We're going to say that all edges (2px thick) of the screen/data are visible
+        // but skip noData cells so they don't corrupt the shadow plane
 
         // Top and Bottom
         for (let x = 0; x < d.data[0].length; x++) {
-            refGrid[0][x] = d.data[0][x]
-            refGrid[1][x] = d.data[1][x]
-            resultGrid[0][x] = 1
-            resultGrid[1][x] = 1
-            refGrid[d.data.length - 1][x] = d.data[d.data.length - 1][x]
-            refGrid[d.data.length - 2][x] = d.data[d.data.length - 2][x]
-            resultGrid[d.data.length - 1][x] = 1
-            resultGrid[d.data.length - 2][x] = 1
+            if (!this.isNoData(d.data[0][x])) {
+                refGrid[0][x] = d.data[0][x]
+                resultGrid[0][x] = 1
+            } else {
+                resultGrid[0][x] = 9
+            }
+            if (!this.isNoData(d.data[1][x])) {
+                refGrid[1][x] = d.data[1][x]
+                resultGrid[1][x] = 1
+            } else {
+                resultGrid[1][x] = 9
+            }
+            if (!this.isNoData(d.data[d.data.length - 1][x])) {
+                refGrid[d.data.length - 1][x] = d.data[d.data.length - 1][x]
+                resultGrid[d.data.length - 1][x] = 1
+            } else {
+                resultGrid[d.data.length - 1][x] = 9
+            }
+            if (!this.isNoData(d.data[d.data.length - 2][x])) {
+                refGrid[d.data.length - 2][x] = d.data[d.data.length - 2][x]
+                resultGrid[d.data.length - 2][x] = 1
+            } else {
+                resultGrid[d.data.length - 2][x] = 9
+            }
         }
         // Right and Left
         for (let y = 0; y < d.data.length; y++) {
-            refGrid[y][0] = d.data[y][0]
-            refGrid[y][1] = d.data[y][1]
-            resultGrid[y][0] = 1
-            resultGrid[y][1] = 1
-            refGrid[y][d.data[0].length - 1] = d.data[y][d.data[0].length - 1]
-            refGrid[y][d.data[0].length - 2] = d.data[y][d.data[0].length - 2]
-            resultGrid[y][d.data[0].length - 1] = 1
-            resultGrid[y][d.data[0].length - 2] = 1
+            if (!this.isNoData(d.data[y][0])) {
+                refGrid[y][0] = d.data[y][0]
+                resultGrid[y][0] = 1
+            } else {
+                resultGrid[y][0] = 9
+            }
+            if (!this.isNoData(d.data[y][1])) {
+                refGrid[y][1] = d.data[y][1]
+                resultGrid[y][1] = 1
+            } else {
+                resultGrid[y][1] = 9
+            }
+            if (!this.isNoData(d.data[y][d.data[0].length - 1])) {
+                refGrid[y][d.data[0].length - 1] = d.data[y][d.data[0].length - 1]
+                resultGrid[y][d.data[0].length - 1] = 1
+            } else {
+                resultGrid[y][d.data[0].length - 1] = 9
+            }
+            if (!this.isNoData(d.data[y][d.data[0].length - 2])) {
+                refGrid[y][d.data[0].length - 2] = d.data[y][d.data[0].length - 2]
+                resultGrid[y][d.data[0].length - 2] = 1
+            } else {
+                resultGrid[y][d.data[0].length - 2] = 9
+            }
         }
 
         return { refGrid, resultGrid }
@@ -116,7 +158,9 @@ let ShadeTool_Algorithm = {
                 g.resultGrid[o.y][i] = 9
 
             // Set ref position to the greater: plane height or actual elevation
-            g.refGrid[o.y][i] = Math.max(g.refGrid[o.y][i], d.data[o.y][i])
+            // Skip noData cells to prevent corrupting the shadow plane
+            if (!ShadeTool_Algorithm.isNoData(d.data[o.y][i]))
+                g.refGrid[o.y][i] = Math.max(g.refGrid[o.y][i], d.data[o.y][i])
         }
 
         // Process Right
@@ -140,7 +184,9 @@ let ShadeTool_Algorithm = {
                 g.resultGrid[o.y][i] = 9
 
             // Set ref position to the greater: plane height or actual elevation
-            g.refGrid[o.y][i] = Math.max(g.refGrid[o.y][i], d.data[o.y][i])
+            // Skip noData cells to prevent corrupting the shadow plane
+            if (!ShadeTool_Algorithm.isNoData(d.data[o.y][i]))
+                g.refGrid[o.y][i] = Math.max(g.refGrid[o.y][i], d.data[o.y][i])
         }
 
         // Process Up
@@ -164,7 +210,9 @@ let ShadeTool_Algorithm = {
                 g.resultGrid[j][o.x] = 9
 
             // Set ref position to the greater: plane height or actual elevation
-            g.refGrid[j][o.x] = Math.max(g.refGrid[j][o.x], d.data[j][o.x])
+            // Skip noData cells to prevent corrupting the shadow plane
+            if (!ShadeTool_Algorithm.isNoData(d.data[j][o.x]))
+                g.refGrid[j][o.x] = Math.max(g.refGrid[j][o.x], d.data[j][o.x])
         }
 
         // Process Down
@@ -188,7 +236,9 @@ let ShadeTool_Algorithm = {
                 g.resultGrid[j][o.x] = 9
 
             // Set ref position to the greater: plane height or actual elevation
-            g.refGrid[j][o.x] = Math.max(g.refGrid[j][o.x], d.data[j][o.x])
+            // Skip noData cells to prevent corrupting the shadow plane
+            if (!ShadeTool_Algorithm.isNoData(d.data[j][o.x]))
+                g.refGrid[j][o.x] = Math.max(g.refGrid[j][o.x], d.data[j][o.x])
         }
     },
     processUp: function (d, g) {
@@ -249,7 +299,9 @@ let ShadeTool_Algorithm = {
                     g.resultGrid[j][i] = 9
 
                 // Set ref position to the greater: plane height or actual elevation
-                g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
+                // Skip noData cells to prevent corrupting the shadow plane
+                if (!ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                    g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
             }
 
             // Process Right
@@ -302,7 +354,9 @@ let ShadeTool_Algorithm = {
                     g.resultGrid[j][i] = 9
 
                 // Set ref position to the greater: plane height or actual elevation
-                g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
+                // Skip noData cells to prevent corrupting the shadow plane
+                if (!ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                    g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
             }
         }
     },
@@ -364,7 +418,9 @@ let ShadeTool_Algorithm = {
                     g.resultGrid[j][i] = 9
 
                 // Set ref position to the greater: plane height or actual elevation
-                g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
+                // Skip noData cells to prevent corrupting the shadow plane
+                if (!ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                    g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
             }
 
             // Process Right
@@ -417,7 +473,9 @@ let ShadeTool_Algorithm = {
                     g.resultGrid[j][i] = 9
 
                 // Set ref position to the greater: plane height or actual elevation
-                g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
+                // Skip noData cells to prevent corrupting the shadow plane
+                if (!ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                    g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
             }
         }
     },
@@ -473,7 +531,8 @@ let ShadeTool_Algorithm = {
                             (ang > minAz && ang < maxAz) ||
                             (ang + Math.PI * 2 > minAz &&
                                 ang + Math.PI * 2 < maxAz)
-                        )
+                        ) &&
+                        grids.resultGrid[y][x] !== 9
                     )
                         grids.resultGrid[y][x] = 0
                 }
@@ -530,6 +589,74 @@ let ShadeTool_Algorithm = {
         const r = F_.radiusOfPlanetMajor
         const a = (1 / r) * dist
         return height - r * (1 - Math.cos(a))
+    },
+    // Composites multiple result grids from different sources into one
+    // mode: 'or' = shadow if hidden from ANY source (union of shadows)
+    //        'and' = shadow only if hidden from ALL sources (intersection)
+    // Returns a new resultGrid
+    compositeResults: function (resultGrids, mode) {
+        if (!resultGrids || resultGrids.length === 0) return []
+        if (resultGrids.length === 1) return resultGrids[0]
+
+        const rows = resultGrids[0].length
+        if (rows === 0) return []
+        const cols = resultGrids[0][0].length
+        let composited = []
+
+        for (let y = 0; y < rows; y++) {
+            composited.push(new Array(cols).fill(0))
+            for (let x = 0; x < cols; x++) {
+                let noData = false
+                let values = []
+                for (let g = 0; g < resultGrids.length; g++) {
+                    const v = resultGrids[g][y][x]
+                    if (v === 9) {
+                        noData = true
+                        break
+                    }
+                    values.push(v)
+                }
+                if (noData) {
+                    composited[y][x] = 9
+                } else if (mode === 'and') {
+                    // Shadow only if hidden from ALL sources
+                    composited[y][x] = values.every((v) => v === 0) ? 0 : 1
+                } else {
+                    // 'or' default: shadow if hidden from ANY source
+                    composited[y][x] = values.some((v) => v === 0) ? 0 : 1
+                }
+            }
+        }
+        return composited
+    },
+    // Computes a cumulative visibility heatmap from multiple result grids
+    // (e.g. from a time sweep). Returns a 2D array of fractions [0.0..1.0]
+    // representing the fraction of timesteps where each cell was visible.
+    cumulativeVisibility: function (resultGrids) {
+        if (!resultGrids || resultGrids.length === 0) return []
+        // Filter out null grids (failed timesteps)
+        const validGrids = resultGrids.filter((g) => g != null)
+        if (validGrids.length === 0) return []
+        const rows = validGrids[0].length
+        if (rows === 0) return []
+        const cols = validGrids[0][0].length
+        let heatmap = []
+
+        for (let y = 0; y < rows; y++) {
+            heatmap.push(new Array(cols).fill(0))
+            for (let x = 0; x < cols; x++) {
+                let visCount = 0
+                let total = 0
+                for (let g = 0; g < validGrids.length; g++) {
+                    const v = validGrids[g][y][x]
+                    if (v === 9) continue
+                    total++
+                    if (v === 1 || v === 2) visCount++
+                }
+                heatmap[y][x] = total > 0 ? visCount / total : -1
+            }
+        }
+        return heatmap
     },
     calcHeightDiagonal2: function (i, j, Za, Ia, Ja, Zb, Ib, Jb, Zo) {
         const p = { x: 0, y: 0, z: Zo }

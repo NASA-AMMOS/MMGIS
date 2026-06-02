@@ -6,56 +6,92 @@ _Shades the ground when line-of-sights to an orbiting target are occluded._
 
 ### Interface
 
+Each shade item is an independent shade map with its own source, observer, display settings, and mode. Multiple shade items can exist simultaneously, each identified by a colored left border.
+
 - _Time_
-  - The desired datetime to query. Formatted as `YYYY MMM DD HH:MM:SS` and for example `2023 SEP 06 19:27:05`. Updating this time and pressing 'Enter' will set it as the current time for the ShadeTool and for all of MMGIS. It is both connected to the Observer's local time as well as MMGIS' timeline (expandable via the clock icon in the bottom left of the screen).
+  - The shared time section at the top of the tool. Shows **Start Time**, **End Time**, and **Step Size (min)**. Start and End times are in ISO 8601 format (e.g. `2023-09-06T00:00:00Z`). Step Size is the interval between timesteps in minutes (used for composite and playback sweeps). These fields are connected to the MMGIS timeline (expandable via the clock icon in the bottom left of the screen).
+
+#### Shade Item Header
+
+Each shade item's header contains:
+
+- _Checkbox_: Toggle the shade map layer visibility on/off.
+- _Name_: Editable name for the shade item.
+- _Source dropdown_ (145px): Select the source entity (spacecraft, orbiter, or celestial body) to compute shading against.
+- _Drag handle_: Reorder shade items by dragging.
+- _Close (X)_: Delete the shade item.
 
 #### Source
 
-- _Entity_
-  - Indicates which spacecraft, orbiter or celestial body to "look towards" and to "shine light back" upon the visible terrain.
-- _Include Sun + Earth_
-  - If true, the relative Sun and Earth positions will also be computed and their directional arrows will be rendered in the bottom azimuth and elevation indicators. In the azimuth and elevation indicators, the Sun is represented by a medium-length yellow arrow and the Earth is represented by a short-length blue-green arrow. These do **not** cast shadows on the visible terrain — only the source entity casts shadows.
-
-#### Observer
-
-- _Entity_
-  - Which observing spacecraft/orbiter to use. This is only used for formatting and converting the upcoming 'Time' parameter. The true observer position is always the visible map's center longitude and latitude value (represented by a green circle) and always facing north with zero tilt.
-- _Time_
-  - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
+- _Observer_
+  - Which observing spacecraft/orbiter to use. This is used for formatting and converting time parameters via the chronice API. The true observer position is always the visible map's center longitude and latitude value (represented by a green circle) and always facing north with zero tilt.
+- _Start Time / End Time_ (observer local)
+  - When an observer is selected, local time inputs appear showing the observer's local time (converted from UTC). Editing these and blurring converts back to UTC and updates the global sweep times.
 - _Height_
-  - Height in meters above the surface to use when calculating line-of-sight shading. For instance, a point on the surface (0m) may not be visible to a 'Source Entity', say the Mars Reconnaissance Orbiter (MRO), but 2m above that point may be. This value does not _only_ apply to the center longtitude and latitude but to all points on the visible terrain. Gradually increasing this value shows the shade map n-meters above the surface.
+  - Height in meters above the surface to use when calculating line-of-sight shading. This value applies to all points on the visible terrain. Gradually increasing this value shows the shade map n-meters above the surface.
+- _Elevation Map_
+  - Specifies the terrain dataset to use.
+- _Custom Az/El/Range_
+  - Override the SPICE-computed azimuth, elevation, and range with manual values.
 
-#### Shaded Region Options
+#### Display
 
 - _Color_
   - The color to shade the shadowed regions on the map.
 - _Opacity_
-  - The opaqueness to shade the shadowed regions on the map. A value of 0 is fully transparent and a value of 1 is fully opaque.
+  - The opaqueness of the shade map layer (0 = transparent, 1 = opaque).
 - _Resolution_
-  - MMGIS downloads terrain data needed for the shading algorithm. Increasing the resolution improves the quality of the shade map and the cost of download and render speed. Each higher option is 4x the resolution of the previous one (i.e. 'ultra' is 4x more terrain data than 'high' and 16x more data than 'medium'). To save on performance, if the resolution is 'high' or 'ultra', the Shade Tool will no longer regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
-  - The generated viewshed is zoom-dependent. If you are zoomed in far enough, all resolutions will behave the same. If you are zoomed out far enough, all resolutions will behave differently. For instance assuming a 50m data resolution, we'd have:
-    1. At ≤ 50m zoom scale, all four resolutions are the same.
-    2. At 100m zoom scale, Ultra, High, and Medium are all the same.
-    3. At 200m zoom scale, Ultra and High are the same.
-    4. At ≥ 400m zoom scale, all four resolutions result in different maps.
-- _Elevation Map_
-  - Specifies the terrain dataset to use.
-- _Generate/Regenerate_
-  - Submits a request to generate a shade map with the provided parameters. Note that if the resolution is 'high' or 'ultra', the Shade Tool will not regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
+  - Controls terrain data resolution. Each higher option is 4x the resolution of the previous one. Options: Low, Medium, High, Ultra. Higher resolutions disable auto-regeneration — the Generate button must be pressed manually.
 
-#### Results
+#### Run
 
-- _Azimuth_: The compass-angle in (0 -> 360) degrees clockwise from north of the direction of the 'Source Entity' as seen from the map's center longitude and latitude. 0 = North, 90 = East, 180 = South, 270 = West.
-- _Elevation_: The angular height (-90 -> 90) between the horizon and the 'Source Entity'. -90 = Straight Down, 0 = Level with the Horizon, 90 = Straight Overhead.
-- _Range_: The straight-line distance in kilometers between the map's center longitude, latitude and terrain elevation and the 'Source Entity'.
-- _Longitude_: The map's center longitude value used in the computation.
-- _Latitude_: The map's center latitude value used in the computation.
-- _Altitude_: The distance in kilometers above the map's center position's tangential plane and the 'Source Entity'. In other words, in a 3D cartesian coordinate-system where the Z-axis goes through both the center of the visible map and the center of the planet, this 'Altitude' is the Z distance between that center and the 'Source Entity'.
+The **Run** section contains the mode selector and generate controls. Clicking the "Run" header expands/collapses the results below, but the mode tabs and generate/sweep button are always visible.
 
-#### Indicators
+- _Mode Tabs_ (Static / Composite / Playback)
+  - Selects how shading is computed and displayed for this shade item. Switching modes clears the existing rendered layer from the map.
 
-- _Azimuth_: A top-down birds-eye view of the surface with north up. The long yellow-orange arrow visualizes the azimuthal direction towards the 'Source Entity'. If 'Include Sun + Earth' is on, shorter Sun and Earth arrows will also appear in the indicator with the respective yellow and green-blue colors.
-- _Elevation_: A horizontal and half-submerged side view of the surface. The long yellow-orange arrow visualizes the elevational direction towards the 'Source Entity'. If 'Include Sun + Earth' is on, shorter Sun and Earth arrows will also appear in the indicator with the respective yellow and green-blue colors. Note that elevation values only goes from -90 -> 90 but that the rendered elevation arrow can be drawn between 0 -> 360. This is because, while only half a circle is needed, the elevation arrow will choose whether to draw in the left or right half circle depending on which half-circle the azimuth value is in. Azimuth values from 0 -> 180 will result in an elevation arrow drawn in the right half-circle and azimuth values from 180 -> 360 will results in an elevation arrow drawn in the left half-circle. This is to aid in visualizing the 'Source Entity's 3D direction.
+- _Generate / Sweep button_
+  - **Static mode**: "Generate" computes a single-timestep shade map. Auto-generates when settings change (for Low/Medium resolution).
+  - **Composite/Playback mode**: "Sweep" runs the time-range analysis across all timesteps defined by Start Time, End Time, and Step Size. Maximum 256 frames per sweep.
+
+##### Static Mode Results
+
+Shows compact azimuth and elevation indicators beneath the generate button:
+
+- _Az indicator_: Top-down view showing the azimuthal direction toward the source entity. Labeled with the numeric value (e.g. "Az: 123.4°").
+- _El indicator_: Side view showing the elevational angle toward the source. Labeled with the numeric value (e.g. "El: 45.6°").
+
+##### Composite Mode Results
+
+Shows a cumulative visibility heatmap — each pixel's color indicates how often it was visible across all timesteps.
+
+- _Color Ramp Picker_: Select the color gradient used for the heatmap visualization.
+- _Continuous / Discrete_: Controls whether the color ramp interpolates smoothly or snaps to distinct color bins.
+- _Absolute / Fit to data_: When "Absolute", the color ramp spans 0%–100% visible. When "Fit to data", the ramp stretches to fit the actual min/max visibility values for better visual contrast.
+- _Legend_: Shows the color gradient with labeled endpoints. Hovering over the shade map on the Leaflet map shows an indicator on the legend at the hovered pixel's visibility value.
+- _Draggable color stops_ (discrete mode): In discrete mode, small handles appear at bin boundaries on the legend. Drag them to adjust relative bin widths. A reset icon (↻) restores even spacing.
+
+##### Playback Mode Results
+
+Animates through individual timestep results frame by frame. Playback indicators only appear once the atlas has been built (either by sweeping directly in playback mode, or switching from composite after a sweep triggers on-demand atlas building).
+
+- _Sky Dome_: Polar plot showing the source's path across the sky over the sweep period, with the current position highlighted.
+- _Mini Az/El Indicators_: Positioned in the top corners of the sky dome container, showing the current frame's source direction.
+- _Play / Pause / Step buttons_: Control animation. Step forward/back advances one frame at a time.
+- _Timeline Slider_: Scrub to any frame in the sweep. Shows the current frame's timestamp.
+- _Link/Unlink toggle_: Chain-link icon on the right side of the playback controls.
+  - **Linked** (default, accent color): Playback is synchronized across all linked shade maps — pressing play on any card advances all linked cards together.
+  - **Unlinked** (dimmed): Independent timeline — scrubbing/stepping only affects this shade map.
+
+#### Export
+
+Appears in the results section when there is data to export. Formatted as a row: `Export [format dropdown] [download icon]`.
+
+- _Shade Map (PNG)_: Exports the current shade map as a PNG image. All tile canvases are composited into a single image.
+- _Sweep Results (CSV)_: Exports time-range sweep results as a CSV file with columns: time, lat, lng, visibility_pct, azimuth, elevation, range. The lat/lng columns contain the observer (source point) coordinates. Only available after a sweep has been run.
+- _Shade Grid (TXT)_: Exports a 2D grid of shading values as a plain text file. Includes a metadata header (source, observer, time, sweep range, grid dimensions, value legend). For composite/playback mode, values are fractional visibility (0.0–1.0). For static mode, values are integer codes (0=shadowed, 1=visible from sun, 2=visible from earth, 8=no DEM data, 9=out of bounds).
+
+Export filenames encode context from the current settings (e.g. `shade_SUN_MSL-HAZCAM_2024-01-01T000000Z_sweep.csv`).
 
 ### Algorithm
 

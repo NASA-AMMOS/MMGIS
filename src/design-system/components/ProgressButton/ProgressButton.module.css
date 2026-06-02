@@ -1,0 +1,65 @@
+.root {
+    position: relative;
+    width: 100%;
+    height: 32px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: default;
+    background: var(--color-a1);
+    color: var(--color-a3);
+}
+
+.active {
+    background: var(--color-c2);
+    color: var(--color-a);
+    cursor: pointer;
+}
+.active:hover {
+    background: var(--color-c);
+}
+
+.loading {
+    background: var(--color-a1);
+    color: var(--color-l);
+    cursor: default;
+}
+
+.fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: var(--color-c);
+    transition: width 0.15s linear;
+    pointer-events: none;
+}
+.fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.18) 40%,
+        rgba(255, 255, 255, 0.18) 60%,
+        transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: progressShimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes progressShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.label {
+    position: relative;
+    z-index: 1;
+}

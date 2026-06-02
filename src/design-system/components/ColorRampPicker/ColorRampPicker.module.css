@@ -1,0 +1,84 @@
+.picker {
+    position: relative;
+    width: 100%;
+}
+
+.trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    height: 26px;
+    padding: 0 8px;
+    border-radius: 4px;
+    border: 1px solid var(--color-a1);
+    background: var(--color-a);
+    color: var(--color-a5);
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.12s;
+    box-sizing: border-box;
+}
+.trigger:hover {
+    border-color: var(--color-a2);
+}
+
+.swatchBar {
+    display: flex;
+    flex: 1;
+    height: 12px;
+    border-radius: 2px;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.swatchBlock {
+    height: 100%;
+}
+
+.popup {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10000;
+    margin-top: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 6px;
+    padding: 4px 0;
+    box-shadow: 0 8px 24px var(--color-shadow);
+    background: var(--color-a);
+    border: 1px solid var(--color-a1);
+    animation: crpFadeIn 0.1s ease-out;
+}
+
+@keyframes crpFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 4px 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.1s;
+    box-sizing: border-box;
+}
+.option:hover {
+    background: var(--color-a1);
+}
+.option.selected {
+    outline: 2px solid var(--color-mmgis);
+    outline-offset: -2px;
+    border-radius: 3px;
+}
+
+.option .swatchBar {
+    height: 16px;
+}

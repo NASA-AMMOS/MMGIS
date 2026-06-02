@@ -78,7 +78,7 @@ const authLimiter = rateLimit({
 
 const computeLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 30,
+  max: 200,
   message: { status: 'failure', message: 'Rate limit exceeded.' },
 });
 

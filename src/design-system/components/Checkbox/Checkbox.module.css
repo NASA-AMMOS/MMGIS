@@ -1,0 +1,42 @@
+.label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.root {
+    width: 20px;
+    height: 20px;
+    border-radius: 2px;
+    border: 1px solid var(--color-a3);
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+        border 0.1s cubic-bezier(0.39, 0.575, 0.565, 1),
+        border-radius 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
+    flex-shrink: 0;
+    padding: 0;
+}
+
+.root:hover {
+    background: var(--color-accent-hover);
+}
+
+.root[data-checked] {
+    background: var(--color-a7);
+    border: 0px solid transparent;
+}
+
+.indicator {
+    display: none;
+}
+
+.text {
+    font-size: 12px;
+    color: var(--color-a5);
+}
