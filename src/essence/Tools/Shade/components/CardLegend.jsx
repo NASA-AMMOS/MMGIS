@@ -17,10 +17,14 @@ export default function CardLegend({ rampName, discrete, visiblePct, fitToData, 
     const bins = rampDef.bins || colors.length
     const barRef = useRef(null)
     const [draggingIdx, setDraggingIdx] = useState(null)
+    const [localStops, setLocalStops] = useState(null)
 
-    const stops = discrete && colorStops && colorStops.length === bins - 1
+    const baseStops = discrete && colorStops && colorStops.length === bins - 1
         ? colorStops
         : getDefaultStops(bins)
+
+    // Use local stops during drag for visual preview, committed stops otherwise
+    const stops = localStops || baseStops
 
     const isCustom = discrete && colorStops && colorStops.length === bins - 1 &&
         JSON.stringify(colorStops.map(s => s.toFixed(4))) !== JSON.stringify(getDefaultStops(bins).map(s => s.toFixed(4)))
@@ -60,7 +64,8 @@ export default function CardLegend({ rampName, discrete, visiblePct, fitToData, 
         e.preventDefault()
         e.stopPropagation()
         setDraggingIdx(idx)
-    }, [])
+        setLocalStops([...stops])
+    }, [stops])
 
     useEffect(() => {
         if (draggingIdx == null) return
@@ -68,15 +73,22 @@ export default function CardLegend({ rampName, discrete, visiblePct, fitToData, 
             if (!barRef.current) return
             const rect = barRef.current.getBoundingClientRect()
             const x = (e.clientX - rect.left) / rect.width
-            const newStops = [...stops]
-            const minGap = 0.02
-            const lo = draggingIdx === 0 ? minGap : newStops[draggingIdx - 1] + minGap
-            const hi = draggingIdx === newStops.length - 1 ? 1 - minGap : newStops[draggingIdx + 1] - minGap
-            newStops[draggingIdx] = Math.max(lo, Math.min(hi, x))
-            if (onColorStopsChange) onColorStopsChange(newStops)
+            setLocalStops((prev) => {
+                if (!prev) return prev
+                const newStops = [...prev]
+                const minGap = 0.02
+                const lo = draggingIdx === 0 ? minGap : newStops[draggingIdx - 1] + minGap
+                const hi = draggingIdx === newStops.length - 1 ? 1 - minGap : newStops[draggingIdx + 1] - minGap
+                newStops[draggingIdx] = Math.max(lo, Math.min(hi, x))
+                return newStops
+            })
         }
         const handleUp = () => {
             setDraggingIdx(null)
+            setLocalStops((final) => {
+                if (final && onColorStopsChange) onColorStopsChange(final)
+                return null
+            })
         }
         document.addEventListener('mousemove', handleMove)
         document.addEventListener('mouseup', handleUp)
@@ -84,7 +96,7 @@ export default function CardLegend({ rampName, discrete, visiblePct, fitToData, 
             document.removeEventListener('mousemove', handleMove)
             document.removeEventListener('mouseup', handleUp)
         }
-    }, [draggingIdx, stops, onColorStopsChange])
+    }, [draggingIdx, onColorStopsChange])
 
     const hasPct = visiblePct != null && Number.isFinite(parseFloat(visiblePct))
     const pctVal = hasPct ? parseFloat(visiblePct) : 0
@@ -110,7 +122,9 @@ export default function CardLegend({ rampName, discrete, visiblePct, fitToData, 
                         className={`vstSweepLegendStop${draggingIdx === idx ? ' dragging' : ''}`}
                         style={{ left: `${s * 100}%` }}
                         onMouseDown={(e) => handleMouseDown(e, idx)}
-                    />
+                    >
+                        <span className="vstSweepLegendStopLabel">{Math.round(s * 100)}%</span>
+                    </div>
                 ))}
                 {hasPct && (
                     <div className="vstSweepLegendIndicator" style={{ left: `${indicatorPos}%` }}>

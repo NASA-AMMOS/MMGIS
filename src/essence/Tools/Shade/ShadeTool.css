@@ -892,6 +892,22 @@
     background: var(--color-mmgis);
     border-color: var(--color-mmgis);
 }
+#shadeTool .vstSweepLegendStopLabel {
+    position: absolute;
+    top: 17px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    color: var(--color-a6);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+#shadeTool .vstSweepLegendStop:hover .vstSweepLegendStopLabel,
+#shadeTool .vstSweepLegendStop.dragging .vstSweepLegendStopLabel {
+    opacity: 1;
+}
 
 #shadeTool .vstSweepLegendReset {
     margin-left: 4px;
