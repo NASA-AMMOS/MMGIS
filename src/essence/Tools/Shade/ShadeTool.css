@@ -963,3 +963,90 @@
     color: var(--color-a7);
     margin-bottom: 2px;
 }
+
+/* ====== Graph buttons (playback mode) ====== */
+
+#shadeTool .vstGraphButtons {
+    display: flex;
+    gap: 4px;
+    padding: 6px 4px 4px;
+    justify-content: center;
+}
+
+#shadeTool .vstGraphBtn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--color-a2);
+    border: 1px solid var(--color-a3);
+    border-radius: 4px;
+    color: var(--color-f);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    font-family: inherit;
+}
+#shadeTool .vstGraphBtn:hover {
+    background: var(--color-a3);
+    border-color: var(--color-mmgis);
+}
+#shadeTool .vstGraphBtn i {
+    font-size: 14px;
+}
+
+/* ====== Bottom bar graph container ====== */
+
+.shadeGraphContainer {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    background: var(--color-a);
+    position: relative;
+    box-sizing: border-box;
+}
+
+.shadeGraphClose {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    z-index: 10;
+    cursor: pointer;
+    color: var(--color-a5);
+    transition: color 0.15s ease;
+    line-height: 1;
+}
+.shadeGraphClose:hover {
+    color: var(--color-f);
+}
+
+.shadeGraphPanel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-right: 1px solid var(--color-a1);
+    overflow: hidden;
+}
+.shadeGraphPanel:last-of-type {
+    border-right: none;
+}
+
+.shadeGraphTitle {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-a6);
+    padding: 4px 8px;
+    flex-shrink: 0;
+    background: var(--color-a1);
+}
+
+.shadeGraphCanvas {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+}

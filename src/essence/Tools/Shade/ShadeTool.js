@@ -19,6 +19,7 @@ import {
 
 import ShadeTool_Manager from './ShadeTool_Manager'
 import ShaderTool_Algorithm from './ShadeTool_Algorithm'
+import ShadeTool_Graphs from './ShadeTool_Graphs'
 
 import useShadeStore, { MULTI_SOURCE_COLORS } from './store'
 import ShadePanel from './components/ShadePanel'
@@ -105,6 +106,9 @@ let ShadeTool = {
 
         TimeControl.unsubscribe('ShadeTool')
 
+        // Close bottom bar graphs
+        ShadeTool_Graphs.cleanup()
+
         if (ShadeTool._root) {
             ShadeTool._root.unmount()
             ShadeTool._root = null
@@ -133,6 +137,9 @@ let ShadeTool = {
 
     _onPanEnd: function () {
         const store = useShadeStore.getState()
+
+        // Invalidate horizon profile cache on pan
+        ShadeTool_Graphs.invalidateHorizonCache()
 
         // Invalidate sweep results and layer cache when viewport changes
         if (store.hasSweepData() && !store.sweepStale) {
@@ -1297,7 +1304,7 @@ let ShadeTool = {
                                             times: timeStrs,
                                             obsRefFrame,
                                             obsBody,
-                                            includeSunEarth: 'false',
+                                            includeSunEarth: store.elements[activeElmId]?.shadeMode === 'playback' ? 'true' : 'false',
                                             isCustom: 'false',
                                         },
                                         function (results) {
@@ -1373,6 +1380,7 @@ let ShadeTool = {
                                             azimuth: primary.azimuth,
                                             elevation: primary.elevation,
                                             range: primary.range,
+                                            ancillary: primary.ancillary || null,
                                         })
                                         sweepGrids.push(compositedGrid)
                                     } else {
@@ -1630,6 +1638,9 @@ let ShadeTool = {
                 if (frameLabel) frameLabel.textContent = ed.results[idx].time.replace(/\.\d{3}Z$/, 'Z')
             }
         }
+
+        // Update bottom bar graphs
+        ShadeTool_Graphs.updatePlaybackFrame(ShadeTool_Graphs.getActiveElmId())
     },
 
     sweepShowFrame: function (activeElmId) {

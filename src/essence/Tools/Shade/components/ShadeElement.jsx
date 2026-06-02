@@ -3,6 +3,7 @@ import useShadeStore, { buildSourcesList, MULTI_SOURCE_COLORS } from '../store'
 import ShadeResults from './ShadeResults'
 import CardLegend, { getDefaultStops } from './CardLegend'
 import ShadeTool from '../ShadeTool'
+import ShadeTool_Graphs from '../ShadeTool_Graphs'
 import L_ from '../../../Basics/Layers_/Layers_'
 import {
     Button,
@@ -824,6 +825,20 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                             <span id={`vstSweepFrameLabel_${elmId}`} />
                                         </div>
                                     </div>
+                                    {ed?.results && ed.results.length > 0 && ed?.grids && (
+                                        <div className="vstGraphButtons">
+                                            <button
+                                                className="vstGraphBtn"
+                                                title="Open Horizon Profile and Visibility Timeline in the bottom bar"
+                                                onClick={() => ShadeTool_Graphs.toggle(elmId)}
+                                            >
+                                                <i className="mdi mdi-chart-areaspline mdi-14px" />
+                                                {ShadeTool_Graphs.isOpen() && ShadeTool_Graphs.getActiveElmId() === elmId
+                                                    ? 'Close Graphs'
+                                                    : 'Open Horizon & Visibility'}
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

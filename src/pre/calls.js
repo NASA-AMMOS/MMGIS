@@ -168,6 +168,10 @@ const c = {
         type: 'GET',
         url: 'api/utils/queryTilesetTimes',
     },
+    gethorizonprofile: {
+        type: 'POST',
+        url: 'api/utils/gethorizonprofile',
+    },
 }
 
 function api(call, data, success, error) {

@@ -502,4 +502,35 @@ router.get("/proj42wkt", function(req,res,next){(router._computeLimiter||functio
   );
 });
 
+//utils gethorizonprofile
+router.post("/gethorizonprofile", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
+  const rasterPath = encodeURIComponent(req.body.path);
+  const lat = encodeURIComponent(req.body.lat);
+  const lng = encodeURIComponent(req.body.lng);
+  const observerHeight = encodeURIComponent(req.body.observerHeight || 0);
+  const numAzimuths = encodeURIComponent(req.body.numAzimuths || 360);
+  const maxRadius = encodeURIComponent(req.body.maxRadius || 5000);
+
+  execFile(
+    "python",
+    [
+      "private/api/HorizonProfile.py",
+      rasterPath,
+      lat,
+      lng,
+      observerHeight,
+      numAzimuths,
+      maxRadius,
+    ],
+    function (error, stdout, stderr) {
+      if (error) {
+        logger("error", "gethorizonprofile failure:", "server", null, error);
+        res.status(400).send();
+      } else {
+        res.send(stdout);
+      }
+    }
+  );
+});
+
 module.exports = router;
