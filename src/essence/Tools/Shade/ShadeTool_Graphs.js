@@ -153,7 +153,7 @@ const ShadeTool_Graphs = {
 
         // Visibility Timeline panel
         const vPanel = document.createElement('div')
-        vPanel.className = 'shadeGraphPanel'
+        vPanel.className = 'shadeGraphPanel shadeGraphPanelTimeline'
         const vTitle = document.createElement('div')
         vTitle.className = 'shadeGraphTitle'
         vTitle.id = 'shadeVisibilityTitle'
@@ -291,16 +291,10 @@ const ShadeTool_Graphs = {
 
         if (plotW <= 0 || plotH <= 0) return
 
-        // Data ranges
-        let minEl = 0, maxEl = 0
-        for (let i = 0; i < profile.length; i++) {
-            const el = profile[i][1]
-            if (el < minEl) minEl = el
-            if (el > maxEl) maxEl = el
-        }
-        maxEl = Math.max(maxEl + 5, 10)
-        minEl = Math.min(minEl - 2, -5)
-        const elRange = maxEl - minEl
+        // Fixed elevation range: -90 to 90
+        const minEl = -90
+        const maxEl = 90
+        const elRange = 180
 
         // Background
         ctx.fillStyle = 'rgba(0,0,0,0.3)'

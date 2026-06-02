@@ -1078,6 +1078,9 @@
 .shadeGraphPanel:last-of-type {
     border-bottom: none;
 }
+.shadeGraphPanelTimeline {
+    flex: 0 0 80px;
+}
 
 .shadeGraphTitle {
     font-size: 11px;
