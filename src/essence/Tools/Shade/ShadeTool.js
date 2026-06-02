@@ -1429,27 +1429,21 @@ let ShadeTool = {
                                     ShadeTool.renderHeatmapToMap(data, heatmap, activeElmId)
                                 }
 
-                                // Step 2: build atlas asynchronously (chunked), then finish
+                                // Mark sweep as complete now (heatmap is already visible)
                                 const curElmF = currentStoreF.sweepCurrentElm || 1
                                 const totElmsF = currentStoreF.sweepTotalElms || 1
-                                const prefixF = totElmsF > 1 ? ('Shade ' + curElmF + ' of ' + totElmsF + ': ') : ''
-                                currentStoreF.setSweepField('sweepProgress', prefixF + 'Building atlas...')
+                                const _overallDone = (curElmF / totElmsF) * 100
+                                currentStoreF.setSweepField('sweepProgress', '')
+                                currentStoreF.setSweepField('sweepProgressPct', _overallDone)
+                                if (totElmsF > 1) {
+                                    Toast.success('Shade ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
+                                } else {
+                                    Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
+                                }
+                                if (typeof onComplete === 'function') onComplete()
 
-                                ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
-                                    const s = useShadeStore.getState()
-                                    const _ce = s.sweepCurrentElm || 1
-                                    const _te = s.sweepTotalElms || 1
-                                    const _pf = _te > 1 ? ('Shade ' + _ce + ' of ' + _te + ': ') : ''
-                                    const _overallDone = (_ce / _te) * 100
-                                    s.setSweepField('sweepProgress', _pf + 'Done (' + total + ' steps)')
-                                    s.setSweepField('sweepProgressPct', _overallDone)
-                                    if (_te > 1) {
-                                        Toast.success('Shade ' + _ce + ' of ' + _te + ': ' + total + ' timesteps processed.', 3000)
-                                    } else {
-                                        Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
-                                    }
-                                    if (typeof onComplete === 'function') onComplete()
-                                })
+                                // Build atlas in background for playback (non-blocking)
+                                ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {})
                             }
 
                             processChunk()
