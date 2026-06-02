@@ -1728,6 +1728,18 @@ let ShadeTool = {
 
     // === Export ===
 
+    _buildExportName: function (elmId, suffix) {
+        const store = useShadeStore.getState()
+        const el = store.elements[elmId]
+        const options = store.getShadeOptions(elmId)
+        const parts = ['shade']
+        if (options?.targets?.[0]?.name) parts.push(options.targets[0].name.replace(/\s+/g, '-'))
+        if (el?.observer) parts.push(el.observer.replace(/\s+/g, '-'))
+        if (store.rawTime) parts.push(store.rawTime.replace(/[:\s]/g, '').replace(/\.\d{3}Z$/, 'Z'))
+        if (suffix) parts.push(suffix)
+        return parts.join('_').replace(/[^a-zA-Z0-9_\-\.]/g, '')
+    },
+
     exportPNG: function (elmId) {
         const dlc = useShadeStore.getState().canvases[elmId]
         if (!dlc) {
@@ -1774,10 +1786,11 @@ let ShadeTool = {
             )
         })
 
+        const fileName = ShadeTool._buildExportName(elmId, 'map') + '.png'
         compositeCanvas.toBlob(function (blob) {
             const url = URL.createObjectURL(blob)
             const link = document.createElement('a')
-            link.setAttribute('download', 'shade_map.png')
+            link.setAttribute('download', fileName)
             link.setAttribute('href', url)
             document.body.appendChild(link)
             link.click()
@@ -1788,7 +1801,7 @@ let ShadeTool = {
 
     exportCSV: function (elmId) {
         const store = useShadeStore.getState()
-        // Find sweep results: from specific element or first with data
+        const el = store.elements[elmId]
         let results = null
         if (elmId != null && store.sweepElData[elmId]?.results?.length > 0) {
             results = store.sweepElData[elmId].results
@@ -1807,8 +1820,20 @@ let ShadeTool = {
             )
             return
         }
+
+        // Get lat/lng of the source point
+        const mapRect = document.getElementById('map').getBoundingClientRect()
+        const wOffset = mapRect.width / 2
+        const hOffset = mapRect.height / 2
+        let centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
+        if (store.indicatorLastDragPoint) centerLatLng = store.indicatorLastDragPoint
+        const lat = parseFloat(centerLatLng.lat).toFixed(6)
+        const lng = parseFloat(centerLatLng.lng).toFixed(6)
+
         const headers = [
             'time',
+            'lat',
+            'lng',
             'visibility_pct',
             'azimuth',
             'elevation',
@@ -1816,103 +1841,79 @@ let ShadeTool = {
         ]
         const rows = results.map((r) => [
             r.time,
+            lat,
+            lng,
             r.visibilityPct,
             r.azimuth,
             r.elevation,
             r.range,
         ])
-        F_.downloadArrayAsCSV(headers, rows, 'shade_sweep_results')
+        const fileName = ShadeTool._buildExportName(elmId, 'sweep')
+        F_.downloadArrayAsCSV(headers, rows, fileName)
     },
 
-    exportGeoJSON: function (elmId) {
+    exportGrid: function (elmId) {
         const store = useShadeStore.getState()
         const el = store.elements[elmId]
-        const data = el?.lastData || store.lastData
-        const resultGrid = el?.lastResultGrid || store.lastResultGrid
-        if (!data || !resultGrid) {
-            Toast.warning(
-                'No shade results to export. Generate first.',
-                6000
-            )
+
+        // Use heatmap grid if available (composite/playback), else static grid
+        let grid = store.sweepElData[elmId]?.heatmap
+        let isHeatmap = true
+        if (!grid) {
+            grid = el?.lastResultGrid
+            isHeatmap = false
+        }
+        if (!grid || grid.length === 0) {
+            Toast.warning('No shade grid to export. Generate first.', 6000)
             return
         }
 
-        const features = []
-        const tileRes = data.tileResolution
-        const topLeft = data.topLeftTile
-        const zoom = topLeft.z
-
-        for (let y = 0; y < resultGrid.length; y++) {
-            for (let x = 0; x < resultGrid[y].length; x++) {
-                const val = resultGrid[y][x]
-                if (val === 9 || val === 8) continue
-
-                const tileX = topLeft.x + x / tileRes
-                const tileY = topLeft.y + y / tileRes
-                const ll = Globe_.litho.projection.tileXYZ2LatLng(
-                    tileX,
-                    tileY,
-                    zoom
-                )
-                const ll2 = Globe_.litho.projection.tileXYZ2LatLng(
-                    tileX + 1 / tileRes,
-                    tileY + 1 / tileRes,
-                    zoom
-                )
-
-                features.push({
-                    type: 'Feature',
-                    properties: {
-                        visibility:
-                            val === 1 || val === 2 ? 'visible' : 'shadowed',
-                        value: val,
-                    },
-                    geometry: {
-                        type: 'Polygon',
-                        coordinates: [
-                            [
-                                [ll.lng, ll.lat],
-                                [ll2.lng, ll.lat],
-                                [ll2.lng, ll2.lat],
-                                [ll.lng, ll2.lat],
-                                [ll.lng, ll.lat],
-                            ],
-                        ],
-                    },
-                })
-            }
+        // Build header with grid dimensions and metadata
+        const lines = []
+        lines.push('# Shade Grid Export')
+        lines.push('# Rows: ' + grid.length + ', Cols: ' + (grid[0]?.length || 0))
+        if (isHeatmap) {
+            lines.push('# Values: fractional visibility (0.0 = always shadowed, 1.0 = always visible)')
+        } else {
+            lines.push('# Values: 0=shadowed, 1=visible(sun), 2=visible(earth), 8=no-DEM, 9=out-of-bounds')
         }
-
-        F_.downloadObject(
-            { type: 'FeatureCollection', features },
-            'shade_map',
-            '.geojson'
-        )
-    },
-
-    exportReport: function (elmId) {
-        const store = useShadeStore.getState()
         const options = store.getShadeOptions(elmId)
-        const el = store.elements[elmId]
-        const report = {
-            parameters: {
-                sources: (options?.targets || []).map((t) => t.value),
-                compositeMode: options?.compositeMode,
-                time: options?.time,
-                observer: options?.observer,
-                resolution: options?.resolution,
-                height: options?.height,
-                dataIndex: options?.dataIndex,
-            },
-            results: {
-                azimuth: el?.raeResults?.az || '--',
-                elevation: el?.raeResults?.el || '--',
-                range: el?.raeResults?.range || '--',
-            },
-            sweep:
-                store.sweepElData[elmId]?.results?.length > 0 ? store.sweepElData[elmId].results : null,
+        if (options?.targets?.[0]?.name) lines.push('# Source: ' + options.targets[0].name)
+        if (el?.observer) lines.push('# Observer: ' + el.observer)
+        if (store.rawTime) lines.push('# Time: ' + store.rawTime)
+        if (store.sweepStart && store.sweepEnd) {
+            lines.push('# Sweep: ' + store.sweepStart + ' to ' + store.sweepEnd)
         }
-        F_.downloadObject(report, 'shade_report', '.json')
+        lines.push('')
+
+        // Write grid rows
+        for (let y = 0; y < grid.length; y++) {
+            const row = grid[y]
+            if (!row) {
+                lines.push('')
+                continue
+            }
+            const vals = []
+            for (let x = 0; x < row.length; x++) {
+                const v = row[x]
+                if (v == null) vals.push('-')
+                else if (isHeatmap) vals.push(v.toFixed(3))
+                else vals.push(String(v))
+            }
+            lines.push(vals.join(' '))
+        }
+
+        const text = lines.join('\n')
+        const fileName = ShadeTool._buildExportName(elmId, 'grid') + '.txt'
+        const blob = new Blob([text], { type: 'text/plain' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.setAttribute('download', fileName)
+        link.setAttribute('href', url)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        URL.revokeObjectURL(url)
     },
 
     convertUTCToObserver: function (utcTime, observerValue, callback) {

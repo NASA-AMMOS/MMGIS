@@ -41,8 +41,7 @@ const FIT_MODE_OPTIONS = [
 const EXPORT_OPTIONS = [
     { value: 'png', label: 'Shade Map (PNG)' },
     { value: 'csv', label: 'Sweep Results (CSV)' },
-    { value: 'geojson', label: 'Shade Map (GeoJSON)' },
-    { value: 'json', label: 'Report (JSON)' },
+    { value: 'grid', label: 'Shade Grid (TXT)' },
 ]
 
 export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget }) {
@@ -329,8 +328,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         switch (format) {
             case 'png': ShadeTool.exportPNG(id); break
             case 'csv': ShadeTool.exportCSV(id); break
-            case 'geojson': ShadeTool.exportGeoJSON(id); break
-            case 'json': ShadeTool.exportReport(id); break
+            case 'grid': ShadeTool.exportGrid(id); break
         }
     }, [])
 
