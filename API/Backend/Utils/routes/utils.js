@@ -448,7 +448,7 @@ router.post("/ll2aerll_bulk", function(req,res,next){(router._computeLimiter||fu
   child.on("close", (code) => {
     if (code !== 0) {
       logger("error", "ll2aerll_bulk failure:", "server", null, stderr || stdout);
-      if (!res.headersSent) res.status(500).json({ error: true, message: stderr || stdout || "Python process exited with code " + code });
+      if (!res.headersSent) res.status(500).json({ error: true, message: "Python process exited with code " + code });
       return;
     }
     if (!res.headersSent) res.send(stdout);
