@@ -204,6 +204,11 @@
 #shadeTool .vstResultsExport {
     padding: 4px 0 0;
 }
+#shadeTool .vstExportControls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
 
 #shadeTool .vstShadeHeaderRight {
     display: flex;

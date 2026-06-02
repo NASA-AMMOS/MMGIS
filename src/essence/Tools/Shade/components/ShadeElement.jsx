@@ -10,7 +10,6 @@ import {
     Collapsible,
     ColorRampPicker,
     IconButton,
-    Dropdown,
     InputWithUnit,
     ProgressButton,
     Select,
@@ -36,6 +35,13 @@ const COLOR_MODE_OPTIONS = [
 const FIT_MODE_OPTIONS = [
     { label: 'Absolute (0–100%)', value: 'absolute' },
     { label: 'Fit to data', value: 'fit' },
+]
+
+const EXPORT_OPTIONS = [
+    { value: 'png', label: 'Shade Map (PNG)' },
+    { value: 'csv', label: 'Sweep Results (CSV)' },
+    { value: 'geojson', label: 'Shade Map (GeoJSON)' },
+    { value: 'json', label: 'Report (JSON)' },
 ]
 
 export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget }) {
@@ -159,6 +165,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     const [resultsOpen, setResultsOpen] = useState(false)
 
     const [colorPickerOpen, setColorPickerOpen] = useState(false)
+    const [exportFormat, setExportFormat] = useState('png')
     const colorPickerRef = useRef(null)
 
     // Close color picker on outside click
@@ -276,6 +283,15 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         }
         setSweepElField(elmId, 'playbackLinked', !current)
     }, [elmId, setSweepElField])
+
+    const handleExport = useCallback((id, format) => {
+        switch (format) {
+            case 'png': ShadeTool.exportPNG(id); break
+            case 'csv': ShadeTool.exportCSV(id); break
+            case 'geojson': ShadeTool.exportGeoJSON(id); break
+            case 'json': ShadeTool.exportReport(id); break
+        }
+    }, [])
 
     const handleDiscreteChange = useCallback((val) => {
         setSweepField('sweepDiscrete', val === 'discrete')
@@ -656,14 +672,6 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                     )}
                                     <div className="vstSweepControlsWrap vstSweepControlsInline">
                                         <div className="vstSweepPlaybarRow vstSweepPlaybarLeft">
-                                            <Tooltip content={playbackLinked
-                                                ? 'Linked — playback is synchronized with all other linked shade maps. Click to unlink and control this shade map independently.'
-                                                : 'Unlinked — this shade map has its own independent playback timeline. Click to re-link and sync with other shade maps.'
-                                            }>
-                                                <IconButton size="md" onClick={handleToggleLinked} className={playbackLinked ? 'vstLinkActive' : 'vstLinkInactive'}>
-                                                    <i className={`mdi ${playbackLinked ? 'mdi-link-variant' : 'mdi-link-variant-off'} mdi-18px`} />
-                                                </IconButton>
-                                            </Tooltip>
                                             <div className="vstSweepPlaybar">
                                                 <IconButton size="md" title="Step back" onClick={() => ShadeTool.sweepStepBack()}>
                                                     <i className="mdi mdi-skip-previous mdi-18px" />
@@ -686,6 +694,14 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                                     <i className="mdi mdi-skip-next mdi-18px" />
                                                 </IconButton>
                                             </div>
+                                            <Tooltip content={playbackLinked
+                                                ? 'Linked — playback is synchronized with all other linked shade maps. Click to unlink and control this shade map independently.'
+                                                : 'Unlinked — this shade map has its own independent playback timeline. Click to re-link and sync with other shade maps.'
+                                            }>
+                                                <IconButton size="md" onClick={handleToggleLinked} className={playbackLinked ? 'vstLinkActive' : 'vstLinkInactive'}>
+                                                    <i className={`mdi ${playbackLinked ? 'mdi-link-variant' : 'mdi-link-variant-off'} mdi-18px`} />
+                                                </IconButton>
+                                            </Tooltip>
                                         </div>
                                         {ed.grids && ed.grids.length > 0 && (
                                             <div className="vstSweepTimeline">
@@ -713,28 +729,20 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                 </div>
                             )}
 
-                            <div className="vstResultsExport">
-                                <Dropdown
-                                    align="start"
-                                    trigger={
-                                        <IconButton size="sm" title="Export shade map">
-                                            <i className="mdi mdi-download mdi-18px" />
-                                        </IconButton>
-                                    }
-                                >
-                                    <Dropdown.Item onClick={() => ShadeTool.exportPNG(elmId)}>
-                                        <i className="mdi mdi-image mdi-14px" /> Shade Map (PNG)
-                                    </Dropdown.Item>
-                                    <Dropdown.Item onClick={() => ShadeTool.exportCSV(elmId)}>
-                                        <i className="mdi mdi-file-delimited mdi-14px" /> Sweep Results (CSV)
-                                    </Dropdown.Item>
-                                    <Dropdown.Item onClick={() => ShadeTool.exportGeoJSON(elmId)}>
-                                        <i className="mdi mdi-map mdi-14px" /> Shade Map (GeoJSON)
-                                    </Dropdown.Item>
-                                    <Dropdown.Item onClick={() => ShadeTool.exportReport(elmId)}>
-                                        <i className="mdi mdi-code-json mdi-14px" /> Report (JSON)
-                                    </Dropdown.Item>
-                                </Dropdown>
+                            <div className="vstResultsExport vstOptionRow">
+                                <div className="vstOptionLabel">Export</div>
+                                <div className="vstExportControls">
+                                    <div style={{ width: 145 }}>
+                                        <Select
+                                            value={exportFormat}
+                                            onValueChange={setExportFormat}
+                                            options={EXPORT_OPTIONS}
+                                        />
+                                    </div>
+                                    <IconButton size="sm" title="Download" onClick={() => handleExport(elmId, exportFormat)}>
+                                        <i className="mdi mdi-download mdi-18px" />
+                                    </IconButton>
+                                </div>
                             </div>
                         </div>
                     </Collapsible.Content>
