@@ -668,6 +668,11 @@ let ShadeTool = {
                 ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
             }
         }
+        // Re-apply z-ordering so earlier elements stay on top
+        const cardOrder = store.sweepCardOrder || []
+        if (cardOrder.length > 0) {
+            ShadeTool.reorderSweepLayers(cardOrder)
+        }
     },
 
     // Remove all shade/sweep layers from the map
@@ -1941,6 +1946,12 @@ let ShadeTool = {
                 ShadeTool.sweepShowFrame(parseInt(id))
             }
         }
+        // Re-apply z-ordering so earlier elements stay on top
+        const cardOrder = store.sweepCardOrder || []
+        if (cardOrder.length > 0) {
+            ShadeTool.reorderSweepLayers(cardOrder)
+        }
+
         // Show time label per element
         const idx = store.sweepPlayIndex
         for (const id in store.sweepElData) {
@@ -1997,6 +2008,11 @@ let ShadeTool = {
             if (ed?.heatmap && ed?.lastData) {
                 ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
             }
+        }
+        // Re-apply z-ordering so earlier elements stay on top
+        const cardOrder = store.sweepCardOrder || []
+        if (cardOrder.length > 0) {
+            ShadeTool.reorderSweepLayers(cardOrder)
         }
     },
 

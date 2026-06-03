@@ -1025,7 +1025,7 @@ function _formatSmartTimeLabel(timeStr, omitYear) {
     try {
         const d = new Date(timeStr)
         if (isNaN(d.getTime())) return timeStr
-        const mon = d.toLocaleString('en', { month: 'short' })
+        const mon = d.toLocaleString('en', { month: 'short', timeZone: 'UTC' })
         const day = d.getUTCDate()
         const hr = String(d.getUTCHours()).padStart(2, '0')
         const min = String(d.getUTCMinutes()).padStart(2, '0')
