@@ -140,6 +140,69 @@ _**utcTimeFormat**_ - Sets the placeholder information for when the observer tim
 - _Azimuth_: A top-down birds-eye view of the surface with north up. The long yellow-orange arrow visualizes the azimuthal direction towards the 'Source Entity'. If 'Include Sun + Earth' is on, shorter Sun and Earth arrows will also appear in the indicator with the respective yellow and green-blue colors.
 - _Elevation_: A horizontal and half-submerged side view of the surface. The long yellow-orange arrow visualizes the elevational direction towards the 'Source Entity'. If 'Include Sun + Earth' is on, shorter Sun and Earth arrows will also appear in the indicator with the respective yellow and green-blue colors. Note that elevation values only goes from -90 -> 90 but that the rendered elevation arrow can be drawn between 0 -> 360. This is because, while only half a circle is needed, the elevation arrow will choose whether to draw in the left or right half circle depending on which half-circle the azimuth value is in. Azimuth values from 0 -> 180 will result in an elevation arrow drawn in the right half-circle and azimuth values from 180 -> 360 will results in an elevation arrow drawn in the left half-circle. This is to aid in visualizing the 'Source Entity's 3D direction.
 
+### Shade Modes
+
+Each shade map item can be set to one of three modes:
+
+- **Static**: Generates a single shade map at the current time. The shade map regenerates when parameters change.
+- **Composite**: Sweeps through a time range and produces a cumulative heatmap showing how often each point on the ground is shaded across all time steps.
+- **Playback**: Sweeps through a time range and stores each frame. Users can play back the sweep as an animation, stepping through individual shade frames with time controls.
+
+Multiple shade maps can be created simultaneously (e.g., Sun + Moon). Each element tracks its own sweep progress independently — starting a sweep on one element does not cancel another.
+
+### Charts (Horizon Profile + Occultation Timeline)
+
+Clicking the **Charts** button on a shade map item opens a combined bottom panel with two visualizations:
+
+#### Horizon Profile
+
+A 360° terrain horizon profile centered on the observer (map center). The chart shows:
+
+- **Terrain silhouette** (brown fill) — computed by ray-casting from the observer across the DEM in all azimuth directions.
+- **Source trajectory arcs** — the path of each source entity (Sun, Moon, etc.) across the sky during the sweep time range.
+- **Current-frame marker** — a dot on the trajectory showing the source's current position.
+- **0° elevation line** (dashed) — the geometric horizon.
+- **Curvature correction** — when the tool's `curvature` option is enabled, the horizon profile accounts for planetary curvature by subtracting `d²/2R` from sampled terrain elevations (where `R` is the planet radius).
+- **Near-field skip** — DEM samples within 50m of the observer are ignored to reduce blockiness from close-in pixels.
+
+The chart is north-centered (0° N at center, ±180° at edges) and adapts to the current light/dark theme.
+
+#### Occultation Timeline
+
+A per-source horizontal bar showing when the source is visible vs. occluded over the sweep time range:
+
+- **Colored segments** indicate the source is occluded (terrain blocks line-of-sight), using the element's configured color.
+- **Gray/white segments** indicate the source is visible.
+- Visibility is computed using the same terrain horizon profile as the chart — the source is visible when its elevation exceeds the interpolated terrain elevation at that azimuth.
+- Transitions between visible/occluded states use a gradient fade.
+- A red slider indicator tracks the current playback frame position.
+- Time labels along the bottom show UTC timestamps spanning the full time range.
+
+#### Azimuth Lines on Map
+
+While the charts panel is open, colored dashed lines are drawn on the map for each shade element, showing the current azimuth direction toward each source entity. These update in real-time during playback.
+
+#### Time Controls
+
+The combined panel includes shared time controls:
+
+- **Play/Pause** — auto-advance through frames at the configured interval.
+- **Fast-forward** — 4× playback speed.
+- **Step forward/back** — advance or rewind one frame at a time.
+- **Time slider** — scrub to any frame in the sweep.
+- **Time display** — shows the current frame's UTC timestamp.
+
+### Sky Dome
+
+In playback mode, the results section includes a **Sky Dome** — a polar plot showing the full-sky trajectory of source entities. The dome maps azimuth (compass direction, clockwise from north) and elevation (0° at horizon, 90° at zenith) onto a circular projection:
+
+- Cardinal directions (N, S, E, W) are labeled around the perimeter.
+- Elevation rings at 30° and 60° are drawn as dashed circles.
+- Each source's trajectory is plotted as a colored arc; above-horizon points are dots, below-horizon points are smaller/dimmer.
+- The current-frame position is highlighted with a larger marker.
+
+The sky dome background uses a fixed dark color for legibility in both light and dark themes.
+
 ### Algorithm
 
 1. The following are taken and fed into SPICE:
