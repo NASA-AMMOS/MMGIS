@@ -10,6 +10,7 @@ import Toast from '../../../design-system/components/Toast/Toast'
 
 import DataShaders from '../../services/DataShaders'
 import TimeControl from '../../Basics/TimeControl_/TimeControl'
+import TimeUI from '../../Basics/TimeControl_/TimeUI'
 
 import calls from '../../../pre/calls'
 import {
@@ -130,6 +131,9 @@ let ShadeTool = {
 
         // Close bottom bar graphs
         ShadeTool_Graphs.cleanup()
+
+        // Remove TimeUI indicators
+        TimeUI.removeIndicator(null, 'shadetool')
 
         if (ShadeTool._root) {
             ShadeTool._root.unmount()
@@ -1300,7 +1304,7 @@ let ShadeTool = {
                         'Building atlas: ' + Math.round((doneWork / totalWork) * 100) + '%'
                     )
                     useShadeStore.getState().setSweepField('sweepProgressPct', pct)
-                    setTimeout(renderFramesForTile, 0)
+                    requestAnimationFrame(renderFramesForTile)
                 } else {
                     // All frames rendered for this tile — encode to dataURL
                     atlasDl[z] = atlasDl[z] || {}
@@ -1314,7 +1318,7 @@ let ShadeTool = {
                         'Building atlas: tile ' + tileIdx + '/' + tilesToProcess.length
                     )
                     useShadeStore.getState().setSweepField('sweepProgressPct', Math.min(pct, 95))
-                    setTimeout(processTile, 0)
+                    requestAnimationFrame(processTile)
                 }
             }
 
@@ -1659,7 +1663,7 @@ let ShadeTool = {
                                     overallPct
                                 )
                                 if (ti < total) {
-                                    setTimeout(processChunk, 0)
+                                    requestAnimationFrame(processChunk)
                                     return
                                 }
 
@@ -1906,6 +1910,9 @@ let ShadeTool = {
 
         // Update bottom bar graphs
         ShadeTool_Graphs.updatePlaybackFrame(ShadeTool_Graphs.getActiveElmId())
+
+        // Update TimeUI indicator for the current playback time
+        ShadeTool._updateTimeUIIndicator()
     },
 
     sweepShowFrame: function (activeElmId) {
@@ -1962,6 +1969,19 @@ let ShadeTool = {
                 s.setSweepField('sweepPlayIndex', nextIdx)
                 ShadeTool.sweepShowAllFrames()
             }, speed)
+        }
+    },
+
+    _updateTimeUIIndicator: function () {
+        const store = useShadeStore.getState()
+        const idx = store.sweepPlayIndex
+        // Find the first element with sweep results to get the current time
+        for (const id in store.sweepElData) {
+            const ed = store.sweepElData[id]
+            if (ed?.results?.[idx]?.time) {
+                TimeUI.addIndicator('shadetool-playback', 'shadetool', '#e53935', ed.results[idx].time)
+                return
+            }
         }
     },
 

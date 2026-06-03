@@ -537,7 +537,7 @@ const ShadeTool_Graphs = {
         const ctx = canvas.getContext('2d')
         ctx.scale(dpr, dpr)
 
-        const pad = { top: 20, right: 20, bottom: 30, left: 45 }
+        const pad = { top: 20, right: 20, bottom: 10, left: 45 }
         const plotW = w - pad.left - pad.right
         const plotH = h - pad.top - pad.bottom
 
@@ -647,14 +647,9 @@ const ShadeTool_Graphs = {
             ctx, elmId, pad, plotW, plotH, minEl, elRange, true
         )
 
-        // Axis tick labels
+        // Elevation tick labels only (no azimuth x-axis labels)
         ctx.fillStyle = 'rgba(255,255,255,0.7)'
         ctx.font = '10px sans-serif'
-        ctx.textAlign = 'center'
-        for (let i = 0; i < azTicks.length; i++) {
-            const x = pad.left + ((azTicks[i] + 180) / 360) * plotW
-            ctx.fillText(azLabels[i], x, h - 5)
-        }
         ctx.textAlign = 'right'
         elTick = Math.ceil(minEl / elStep) * elStep
         while (elTick <= maxEl) {
@@ -663,16 +658,30 @@ const ShadeTool_Graphs = {
             elTick += elStep
         }
 
-        // Axis titles
+        // Elevation axis title
         ctx.fillStyle = 'rgba(255,255,255,0.5)'
         ctx.font = '11px sans-serif'
         ctx.textAlign = 'center'
-        ctx.fillText('Azimuth', pad.left + plotW / 2, h - 0)
         ctx.save()
         ctx.translate(12, pad.top + plotH / 2)
         ctx.rotate(-Math.PI / 2)
         ctx.fillText('Elevation (°)', 0, 0)
         ctx.restore()
+
+        // North arrow at top center
+        const northArrowX = northX
+        const northArrowY = pad.top - 2
+        ctx.fillStyle = 'rgba(255,255,255,0.85)'
+        ctx.font = 'bold 11px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.fillText('N', northArrowX, northArrowY - 4)
+        // Small downward-pointing triangle
+        ctx.beginPath()
+        ctx.moveTo(northArrowX - 4, northArrowY)
+        ctx.lineTo(northArrowX + 4, northArrowY)
+        ctx.lineTo(northArrowX, northArrowY + 5)
+        ctx.closePath()
+        ctx.fill()
     },
 
     _drawSourceTrajectory(ctx, elmId, pad, plotW, plotH, minEl, elRange, markerOnly) {
@@ -944,10 +953,8 @@ function _interpolateHorizon(profile, azDeg) {
 
 function _formatTimeLabel(timeStr) {
     if (!timeStr) return ''
-    const cleaned = timeStr.replace(' UTC', '').replace(/\.\d{3}Z$/, 'Z')
-    const parts = cleaned.split('T')
-    if (parts.length === 2) return parts[1].replace('Z', '')
-    return cleaned
+    // Full ISO time (matching vstSweepFrameLabel format)
+    return timeStr.replace(/\.\d{3}Z$/, 'Z').replace(' UTC', '')
 }
 
 function _niceStep(range, targetTicks) {
