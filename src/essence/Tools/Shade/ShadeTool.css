@@ -1047,32 +1047,6 @@
     cursor: pointer;
 }
 
-/* ====== Panel-level legend (top-left of bottom panel) ====== */
-
-.shadeGraphLegend {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 3px 8px 2px 8px;
-    flex-shrink: 0;
-}
-.shadeGraphLegendItem {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    color: var(--color-a5);
-}
-.shadeGraphLegendSwatch {
-    display: inline-block;
-    width: 12px;
-    height: 8px;
-    border-radius: 1px;
-}
-.shadeGraphLegendShaded {
-    background: rgba(180, 150, 60, 0.85);
-}
-
 /* ====== Div-based Visibility Timeline ====== */
 
 .shadeVisWrap {
@@ -1094,7 +1068,7 @@
 }
 
 .shadeVisLabel {
-    width: 52px;
+    width: 90px;
     flex-shrink: 0;
     font-size: 10px;
     font-weight: 600;
@@ -1102,7 +1076,13 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    opacity: 0.85;
+    opacity: 1;
+    color: var(--color-a6);
+}
+.shadeVisLabelSuffix {
+    font-weight: 400;
+    opacity: 0.6;
+    font-size: 9px;
 }
 
 .shadeVisBar {
@@ -1145,7 +1125,7 @@
     position: relative;
     height: 24px;
     flex-shrink: 0;
-    margin-left: 60px;
+    margin-left: 94px;
     margin-right: 8px;
 }
 

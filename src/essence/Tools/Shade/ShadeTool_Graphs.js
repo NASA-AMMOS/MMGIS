@@ -175,15 +175,6 @@ const ShadeTool_Graphs = {
         closeBtn.onclick = () => ShadeTool_Graphs.close()
         container.appendChild(closeBtn)
 
-        // --- Legend bar at top of entire panel ---
-        const legend = document.createElement('div')
-        legend.className = 'shadeGraphLegend'
-        legend.innerHTML =
-            `<span class="shadeGraphLegendItem"><span class="shadeGraphLegendSwatch" style="background:rgba(255,255,255,0.85)"></span>Visible</span>` +
-            `<span class="shadeGraphLegendItem"><span class="shadeGraphLegendSwatch" style="background:rgba(120,80,50,0.7)"></span>Terrain</span>` +
-            `<span class="shadeGraphLegendItem"><span class="shadeGraphLegendSwatch shadeGraphLegendShaded"></span>Shaded</span>`
-        container.appendChild(legend)
-
         // --- Horizon panel ---
         const hPanel = document.createElement('div')
         hPanel.className = 'shadeGraphPanel'
@@ -429,7 +420,7 @@ const ShadeTool_Graphs = {
 
         const rect = wrap.getBoundingClientRect()
         // The bars start after the label column
-        const labelCol = 60
+        const labelCol = 94
         const barAreaW = rect.width - labelCol
         const mouseX = e.clientX - rect.left - labelCol
         if (barAreaW <= 0) return
@@ -813,9 +804,8 @@ const ShadeTool_Graphs = {
                 ? { r: Math.min(rawColor.r + 120, 255), g: Math.min(rawColor.g + 120, 255), b: Math.min(rawColor.b + 120, 255) }
                 : rawColor
             const colorStr = `rgb(${color.r},${color.g},${color.b})`
-            // Shaded segments use element color; visible segments are white
-            const shadedColor = `rgba(${color.r},${color.g},${color.b},0.85)`
-            const visibleColor = 'rgba(255,255,255,0.85)'
+            const visibleColor = `rgba(${Math.min(color.r + 40, 255)},${Math.min(color.g + 40, 255)},${Math.min(color.b + 40, 255)},0.85)`
+            const occludedColor = 'rgba(60,60,60,0.5)'
 
             // Compute visibility segments from actual shade grid center cell
             const segments = []
@@ -834,8 +824,8 @@ const ShadeTool_Graphs = {
             const label = document.createElement('div')
             label.className = 'shadeVisLabel'
             label.style.color = colorStr
-            label.textContent = srcName
-            label.title = srcName
+            label.innerHTML = `${srcName} <span class="shadeVisLabelSuffix">occluded</span>`
+            label.title = srcName + ' occluded'
             row.appendChild(label)
 
             const bar = document.createElement('div')
@@ -851,7 +841,7 @@ const ShadeTool_Graphs = {
                 const pctWidth = ((i - runStart) / frameCount) * 100
                 span.style.left = pctStart + '%'
                 span.style.width = pctWidth + '%'
-                span.style.background = segments[runStart] ? visibleColor : shadedColor
+                span.style.background = segments[runStart] ? visibleColor : occludedColor
                 bar.appendChild(span)
                 runStart = i
             }
@@ -862,22 +852,21 @@ const ShadeTool_Graphs = {
 
         // Red time slider overlay
         if (playIndex >= 0 && playIndex < frameCount) {
-            const pct = ((playIndex + 0.5) / frameCount) * 100
             let slider = document.getElementById('shadeVisSlider')
             if (!slider) {
                 slider = document.createElement('div')
                 slider.id = 'shadeVisSlider'
                 slider.className = 'shadeVisSlider'
             }
-            slider.style.left = `calc(60px + ${pct}% * (100% - 60px) / 100%)`
-            // Use the bar area for positioning
+            // Position using actual bar element bounds for exact alignment
             const firstBar = wrap.querySelector('.shadeVisBar')
             if (firstBar) {
                 const wrapRect = wrap.getBoundingClientRect()
                 const barRect = firstBar.getBoundingClientRect()
                 const barLeft = barRect.left - wrapRect.left
                 const barWidth = barRect.width
-                const px = barLeft + (playIndex + 0.5) / frameCount * barWidth
+                const frac = frameCount > 1 ? playIndex / (frameCount - 1) : 0.5
+                const px = barLeft + frac * barWidth
                 slider.style.left = px + 'px'
             }
             wrap.appendChild(slider)
