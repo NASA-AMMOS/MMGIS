@@ -2328,7 +2328,7 @@ let ShadeTool = {
 
         ctxAz.beginPath()
         ctxAz.arc(size / 2, size / 2, sizeInner / 2, 0, 2 * Math.PI)
-        ctxAz.fillStyle = '#000000'
+        ctxAz.fillStyle = '#0f1010'
         ctxAz.fill()
         ctxAz.strokeStyle = 'rgba(255,255,255,0.3)'
         ctxAz.lineWidth = 2
@@ -2454,7 +2454,7 @@ let ShadeTool = {
 
         ctxEl.beginPath()
         ctxEl.arc(size / 2, size / 2, sizeInner / 2, 0, 2 * Math.PI)
-        ctxEl.fillStyle = '#000000'
+        ctxEl.fillStyle = '#0f1010'
         ctxEl.fill()
         ctxEl.strokeStyle = 'rgba(255,255,255,0.3)'
         ctxEl.lineWidth = 2
@@ -2684,7 +2684,7 @@ let ShadeTool = {
 
             ctx.beginPath()
             ctx.arc(size / 2, size / 2, sizeInner / 2, 0, 2 * Math.PI)
-            ctx.fillStyle = '#000000'
+            ctx.fillStyle = '#0f1010'
             ctx.fill()
             ctx.strokeStyle = 'rgba(255,255,255,0.3)'
             ctx.lineWidth = 1
@@ -2729,7 +2729,7 @@ let ShadeTool = {
 
             ctx.beginPath()
             ctx.arc(size / 2, size / 2, sizeInner / 2, 0, 2 * Math.PI)
-            ctx.fillStyle = '#000000'
+            ctx.fillStyle = '#0f1010'
             ctx.fill()
             ctx.strokeStyle = 'rgba(255,255,255,0.3)'
             ctx.lineWidth = 1
@@ -2805,7 +2805,7 @@ let ShadeTool = {
         // Fixed dark base so the dome is legible in both light and dark themes
         ctx.beginPath()
         ctx.arc(cx, cy, r, 0, 2 * Math.PI)
-        ctx.fillStyle = '#000000'
+        ctx.fillStyle = '#0f1010'
         ctx.fill()
 
         // Sky gradient overlay (dark blue center/zenith, lighter at horizon)
