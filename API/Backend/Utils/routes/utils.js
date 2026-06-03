@@ -522,7 +522,7 @@ router.post("/gethorizonprofile", function(req,res,next){(router._computeLimiter
     "python",
     [
       "private/api/HorizonProfile.py",
-      pathResult.decoded,
+      pathResult.resolved,
       String(lat),
       String(lng),
       String(observerHeight),

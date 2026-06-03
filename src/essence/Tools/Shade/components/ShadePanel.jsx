@@ -7,6 +7,7 @@ import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import TimeUI from '../../../Basics/TimeControl_/TimeUI'
 import ToolController_ from '../../../Basics/ToolController_/ToolController_'
 import { Button, IconButton, InputWithUnit } from '../../../../design-system/components'
+import tippy from 'tippy.js'
 
 const helpKey = 'ShadeTool'
 
@@ -178,23 +179,25 @@ export default function ShadePanel() {
 
             {/* Time section — single row: [start] [step|min] [end] */}
             <div className="vstTime">
-                <span className="vstTimeReadonly" title={sweepStart || 'Start time (set via TimeUI)'}>
+                <span className="vstTimeReadonly" ref={(el) => { if (el && !el._tippy) tippy(el, { content: 'Start Time', placement: 'top', delay: [200, 0] }) }}>
                     {sweepStart ? sweepStart.replace(/:\d{2}Z$/, 'Z').replace(/:\d{2}\.\d+Z$/, 'Z') : 'Start'}
                 </span>
-                <InputWithUnit
-                    unit="min"
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={sweepStep || ''}
-                    onChange={(e) => {
-                        const v = parseFloat(e.target.value)
-                        setSweepField('sweepStep', Number.isFinite(v) ? v : '')
-                    }}
-                    className="vstSweepField vstTimeStep"
-                    placeholder="Step"
-                />
-                <span className="vstTimeReadonly" title={sweepEnd || 'End time (set via TimeUI)'}>
+                <span ref={(el) => { if (el && !el._tippy) tippy(el, { content: 'Step size (minutes) — used for playback and composite sweep intervals', placement: 'top', delay: [200, 0] }) }}>
+                    <InputWithUnit
+                        unit="min"
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={sweepStep || ''}
+                        onChange={(e) => {
+                            const v = parseFloat(e.target.value)
+                            setSweepField('sweepStep', Number.isFinite(v) ? v : '')
+                        }}
+                        className="vstSweepField vstTimeStep"
+                        placeholder="Step"
+                    />
+                </span>
+                <span className="vstTimeReadonly" ref={(el) => { if (el && !el._tippy) tippy(el, { content: 'End Time', placement: 'top', delay: [200, 0] }) }}>
                     {sweepEnd ? sweepEnd.replace(/:\d{2}Z$/, 'Z').replace(/:\d{2}\.\d+Z$/, 'Z') : 'End'}
                 </span>
             </div>
