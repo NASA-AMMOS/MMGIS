@@ -506,6 +506,8 @@ const ShadeTool_Graphs = {
                 const profile = parsed.horizonProfile || []
                 _horizonCache = { lat, lng, profile }
                 ShadeTool_Graphs._drawHorizonCanvas(profile, elmId)
+                // Redraw visibility timeline now that the horizon profile is available
+                ShadeTool_Graphs.drawVisibilityTimeline(elmId)
             },
             function () {
                 Toast.error('Failed to fetch horizon profile.', 4000)
@@ -843,7 +845,7 @@ const ShadeTool_Graphs = {
                 runStart = i
             }
 
-            // Render runs with gradient transitions at boundaries
+            // Render runs with gradient fade only on the trailing (right) edge
             for (let ri = 0; ri < runs.length; ri++) {
                 const run = runs[ri]
                 const span = document.createElement('div')
@@ -854,20 +856,11 @@ const ShadeTool_Graphs = {
                 span.style.width = pctWidth + '%'
 
                 const thisColor = run.visible ? occludedColor : visibleColor
-                const prevDiff = ri > 0 && runs[ri - 1].visible !== run.visible
                 const nextDiff = ri < runs.length - 1 && runs[ri + 1].visible !== run.visible
-                const prevColor = prevDiff
-                    ? (runs[ri - 1].visible ? occludedColor : visibleColor)
-                    : thisColor
-                const nextColor = nextDiff
-                    ? (runs[ri + 1].visible ? occludedColor : visibleColor)
-                    : thisColor
 
-                if (prevDiff || nextDiff) {
-                    // Gradient fade over ~20% of the segment at each transition edge
-                    const fadeIn = prevDiff ? 20 : 0
-                    const fadeOut = nextDiff ? 80 : 100
-                    span.style.background = `linear-gradient(to right, ${prevColor} 0%, ${thisColor} ${fadeIn}%, ${thisColor} ${fadeOut}%, ${nextColor} 100%)`
+                if (nextDiff) {
+                    const nextColor = runs[ri + 1].visible ? occludedColor : visibleColor
+                    span.style.background = `linear-gradient(to right, ${thisColor} 70%, ${nextColor} 100%)`
                 } else {
                     span.style.background = thisColor
                 }
