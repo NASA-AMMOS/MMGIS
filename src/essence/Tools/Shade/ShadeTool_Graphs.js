@@ -582,16 +582,23 @@ const ShadeTool_Graphs = {
             return
         }
 
+        const useCurvature = vars.hasOwnProperty('curvature') ? vars.curvature : true
+        const horizonParams = {
+            path: demUrl,
+            lat: lat,
+            lng: lng,
+            observerHeight: height,
+            numAzimuths: 360,
+            maxRadius: 5000,
+            minSkipRadius: 50,
+        }
+        if (useCurvature) {
+            horizonParams.planetRadius = F_.radiusOfPlanetMajor
+        }
+
         calls.api(
             'gethorizonprofile',
-            {
-                path: demUrl,
-                lat: lat,
-                lng: lng,
-                observerHeight: height,
-                numAzimuths: 360,
-                maxRadius: 5000,
-            },
+            horizonParams,
             function (data) {
                 let parsed = data
                 if (typeof data === 'string') {

@@ -510,6 +510,8 @@ router.post("/gethorizonprofile", function(req,res,next){(router._computeLimiter
   const observerHeight = encodeURIComponent(req.body.observerHeight || 0);
   const numAzimuths = encodeURIComponent(req.body.numAzimuths || 360);
   const maxRadius = encodeURIComponent(req.body.maxRadius || 5000);
+  const minSkipRadius = encodeURIComponent(req.body.minSkipRadius || 0);
+  const planetRadius = encodeURIComponent(req.body.planetRadius || 0);
 
   execFile(
     "python",
@@ -521,6 +523,8 @@ router.post("/gethorizonprofile", function(req,res,next){(router._computeLimiter
       observerHeight,
       numAzimuths,
       maxRadius,
+      minSkipRadius,
+      planetRadius,
     ],
     function (error, stdout, stderr) {
       if (error) {

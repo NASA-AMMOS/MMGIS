@@ -67,7 +67,8 @@ def getPixelScale(ds):
 
 
 def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
-                          num_azimuths, max_radius_m):
+                          num_azimuths, max_radius_m,
+                          min_skip_radius_m=0, planet_radius=0):
     pixel_scale = getPixelScale(ds)
     max_radius_px = max_radius_m / pixel_scale if pixel_scale > 0 else 500
 
@@ -102,6 +103,8 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
     obs_total = obs_elev + observer_height
 
     step_px = 1.0
+    min_skip_px = min_skip_radius_m / pixel_scale if (pixel_scale > 0 and min_skip_radius_m > 0) else 0
+    use_curvature = planet_radius > 0
     profile = []
 
     for ai in range(num_azimuths):
@@ -111,7 +114,7 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
         dy = -math.cos(az_rad)
 
         max_el_angle = -90.0
-        r = step_px
+        r = max(step_px, min_skip_px) if min_skip_px > 0 else step_px
         while r <= max_radius_px:
             sx = local_obs_x + dx * r
             sy = local_obs_y + dy * r
@@ -131,8 +134,14 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
                 r += step_px
                 continue
 
+            terrain_elev = float(sample)
+            # Subtract curvature drop so distant terrain dips below flat-earth
+            if use_curvature:
+                curvature_drop = (dist_m * dist_m) / (2.0 * planet_radius)
+                terrain_elev -= curvature_drop
+
             elev_angle = math.degrees(
-                math.atan2(float(sample) - obs_total, dist_m)
+                math.atan2(terrain_elev - obs_total, dist_m)
             )
             if elev_angle > max_el_angle:
                 max_el_angle = elev_angle
@@ -159,6 +168,8 @@ if __name__ == '__main__':
     observer_height = float(sys.argv[4])
     num_azimuths = int(sys.argv[5]) if len(sys.argv) > 5 else 360
     max_radius_m = float(sys.argv[6]) if len(sys.argv) > 6 else 5000.0
+    min_skip_radius_m = float(sys.argv[7]) if len(sys.argv) > 7 else 0
+    planet_radius = float(sys.argv[8]) if len(sys.argv) > 8 else 0
 
     ds = gdal.Open(raster_path, GA_ReadOnly)
     if ds is None:
@@ -169,7 +180,8 @@ if __name__ == '__main__':
     obs_px, obs_py = latLonToPixel(ds, lat, lng)
 
     profile = computeHorizonProfile(
-        ds, band, obs_px, obs_py, observer_height, num_azimuths, max_radius_m
+        ds, band, obs_px, obs_py, observer_height, num_azimuths, max_radius_m,
+        min_skip_radius_m, planet_radius
     )
 
     print(json.dumps({"horizonProfile": profile}))
