@@ -43,31 +43,20 @@ const ShadeTool_Graphs = {
         return _activeView
     },
 
-    openHorizon(elmId) {
+    open(elmId) {
         _activeElmId = elmId
-        _activeView = 'horizon'
+        _activeView = 'combined'
         _graphOpen = true
 
-        useUIStore.getState().setToolHeight(250)
-
-        setTimeout(() => {
-            ShadeTool_Graphs._buildContainer('horizon')
-            ShadeTool_Graphs.fetchAndDrawHorizon(elmId)
-        }, 50)
-    },
-
-    openVisibility(elmId) {
-        _activeElmId = elmId
-        _activeView = 'visibility'
-        _graphOpen = true
-
-        // Height depends on how many shade maps have results
+        // Height: horizon chart + visibility rows + time controls + padding
         const store = useShadeStore.getState()
-        const count = _getAllVisibilityElms(store).length
-        useUIStore.getState().setToolHeight(Math.max(85, 40 + count * 24 + 40))
+        const visCount = _getAllVisibilityElms(store).length
+        const visHeight = Math.max(40, visCount * 24 + 30)
+        useUIStore.getState().setToolHeight(250 + visHeight)
 
         setTimeout(() => {
-            ShadeTool_Graphs._buildContainer('visibility')
+            ShadeTool_Graphs._buildContainer()
+            ShadeTool_Graphs.fetchAndDrawHorizon(elmId)
             ShadeTool_Graphs.drawVisibilityTimeline(elmId)
         }, 50)
     },
@@ -107,19 +96,11 @@ const ShadeTool_Graphs = {
         useUIStore.getState().setToolHeight(0)
     },
 
-    toggleHorizon(elmId) {
-        if (_graphOpen && _activeView === 'horizon' && _activeElmId === elmId) {
+    toggle(elmId) {
+        if (_graphOpen && _activeElmId === elmId) {
             ShadeTool_Graphs.close()
         } else {
-            ShadeTool_Graphs.openHorizon(elmId)
-        }
-    },
-
-    toggleVisibility(elmId) {
-        if (_graphOpen && _activeView === 'visibility' && _activeElmId === elmId) {
-            ShadeTool_Graphs.close()
-        } else {
-            ShadeTool_Graphs.openVisibility(elmId)
+            ShadeTool_Graphs.open(elmId)
         }
     },
 
@@ -176,7 +157,7 @@ const ShadeTool_Graphs = {
             `</svg>`
     },
 
-    _buildContainer(view) {
+    _buildContainer() {
         let container = document.getElementById(GRAPH_CONTAINER_ID)
         if (container) container.remove()
 
@@ -194,76 +175,64 @@ const ShadeTool_Graphs = {
         closeBtn.onclick = () => ShadeTool_Graphs.close()
         container.appendChild(closeBtn)
 
-        if (view === 'horizon') {
-            const panel = document.createElement('div')
-            panel.className = 'shadeGraphPanel'
-            const title = document.createElement('div')
-            title.className = 'shadeGraphTitle'
-            title.textContent = 'Horizon Profile'
-            panel.appendChild(title)
-            const canvas = document.createElement('canvas')
-            canvas.id = HORIZON_CANVAS_ID
-            canvas.className = 'shadeGraphCanvas'
-            panel.appendChild(canvas)
-            container.appendChild(panel)
+        // --- Horizon panel ---
+        const hPanel = document.createElement('div')
+        hPanel.className = 'shadeGraphPanel'
+        hPanel.style.flex = '1 1 0'
+        hPanel.style.minHeight = '0'
+        const canvas = document.createElement('canvas')
+        canvas.id = HORIZON_CANVAS_ID
+        canvas.className = 'shadeGraphCanvas'
+        hPanel.appendChild(canvas)
+        container.appendChild(hPanel)
 
-            // Time controls bar below chart
-            const controls = document.createElement('div')
-            controls.className = 'shadeGraphTimeControls'
-            controls.innerHTML = `
-                <button class="shadeGraphPlayBtn" id="shadeGraphStepBack" title="Step back"><i class="mdi mdi-skip-previous mdi-18px"></i></button>
-                <button class="shadeGraphPlayBtn" id="shadeGraphPlayPause" title="Play/Pause"><i class="mdi mdi-play mdi-18px"></i></button>
-                <button class="shadeGraphPlayBtn" id="shadeGraphStepFwd" title="Step forward"><i class="mdi mdi-skip-next mdi-18px"></i></button>
-                <input type="range" class="shadeGraphTimeSlider" id="shadeGraphTimeSlider" min="0" max="1" step="1" value="0" />
-                <span class="shadeGraphTimeLabel" id="shadeGraphTimeLabel"></span>
-            `
-            container.appendChild(controls)
+        canvas.addEventListener('mousemove', ShadeTool_Graphs._onHorizonMouseMove)
+        canvas.addEventListener('mouseleave', ShadeTool_Graphs._onHorizonMouseLeave)
 
-            canvas.addEventListener('mousemove', ShadeTool_Graphs._onHorizonMouseMove)
-            canvas.addEventListener('mouseleave', ShadeTool_Graphs._onHorizonMouseLeave)
+        // --- Visibility panel ---
+        const vPanel = document.createElement('div')
+        vPanel.className = 'shadeGraphPanel shadeVisPanel'
+        const visWrap = document.createElement('div')
+        visWrap.id = 'shadeVisibilityWrap'
+        visWrap.className = 'shadeVisWrap'
+        vPanel.appendChild(visWrap)
+        const timeRow = document.createElement('div')
+        timeRow.id = 'shadeVisTimeLabels'
+        timeRow.className = 'shadeVisTimeLabels'
+        vPanel.appendChild(timeRow)
+        container.appendChild(vPanel)
 
-            // Wire up time controls
-            setTimeout(() => ShadeTool_Graphs._initHorizonTimeControls(), 0)
-        } else {
-            const panel = document.createElement('div')
-            panel.className = 'shadeGraphPanel'
-            const title = document.createElement('div')
-            title.className = 'shadeGraphTitle'
-            title.textContent = 'Visibility Timeline'
-            panel.appendChild(title)
+        visWrap.addEventListener('mousedown', ShadeTool_Graphs._onVisibilityMouseDown)
+        visWrap.addEventListener('mousemove', ShadeTool_Graphs._onVisibilityMouseMove)
+        visWrap.addEventListener('mouseup', ShadeTool_Graphs._onVisibilityMouseUp)
+        visWrap.addEventListener('mouseleave', ShadeTool_Graphs._onVisibilityMouseLeave)
 
-            // Div-based visibility container (replaces canvas)
-            const visWrap = document.createElement('div')
-            visWrap.id = 'shadeVisibilityWrap'
-            visWrap.className = 'shadeVisWrap'
-            panel.appendChild(visWrap)
-
-            // Time labels row
-            const timeRow = document.createElement('div')
-            timeRow.id = 'shadeVisTimeLabels'
-            timeRow.className = 'shadeVisTimeLabels'
-            panel.appendChild(timeRow)
-
-            container.appendChild(panel)
-
-            visWrap.addEventListener('mousedown', ShadeTool_Graphs._onVisibilityMouseDown)
-            visWrap.addEventListener('mousemove', ShadeTool_Graphs._onVisibilityMouseMove)
-            visWrap.addEventListener('mouseup', ShadeTool_Graphs._onVisibilityMouseUp)
-            visWrap.addEventListener('mouseleave', ShadeTool_Graphs._onVisibilityMouseLeave)
-        }
+        // --- Time controls bar ---
+        const controls = document.createElement('div')
+        controls.className = 'shadeGraphTimeControls'
+        controls.innerHTML = `
+            <button class="shadeGraphPlayBtn" id="shadeGraphStepBack" title="Step back"><i class="mdi mdi-skip-previous mdi-18px"></i></button>
+            <button class="shadeGraphPlayBtn" id="shadeGraphPlayPause" title="Play/Pause"><i class="mdi mdi-play mdi-18px"></i></button>
+            <button class="shadeGraphPlayBtn" id="shadeGraphStepFwd" title="Step forward"><i class="mdi mdi-skip-next mdi-18px"></i></button>
+            <input type="range" class="shadeGraphTimeSlider" id="shadeGraphTimeSlider" min="0" max="1" step="1" value="0" />
+            <span class="shadeGraphTimeLabel" id="shadeGraphTimeLabel"></span>
+        `
+        container.appendChild(controls)
 
         tools.appendChild(container)
+
+        // Wire up time controls
+        setTimeout(() => ShadeTool_Graphs._initHorizonTimeControls(), 0)
 
         // Redraw handler for resize events
         const _scheduleRedraw = () => {
             if (!_graphOpen || !_activeElmId) return
             if (_resizeTimeout) clearTimeout(_resizeTimeout)
             _resizeTimeout = setTimeout(() => {
-                if (_activeView === 'horizon' && _horizonCache) {
+                if (_horizonCache) {
                     ShadeTool_Graphs._drawHorizonCanvas(_horizonCache.profile, _activeElmId)
-                } else if (_activeView === 'visibility') {
-                    ShadeTool_Graphs.drawVisibilityTimeline(_activeElmId)
                 }
+                ShadeTool_Graphs.drawVisibilityTimeline(_activeElmId)
             }, 60)
         }
 
@@ -561,27 +530,24 @@ const ShadeTool_Graphs = {
 
         if (plotW <= 0 || plotH <= 0) return
 
-        // Auto-fit elevation range to terrain + all source trajectories
-        let minEl = 0, maxEl = 0
+        // Elevation range: bottom is exactly 5° below the min horizon point
+        let minHorizon = 0, maxEl = 0
         for (let i = 0; i < profile.length; i++) {
             const el = profile[i][1]
-            if (el < minEl) minEl = el
+            if (el < minHorizon) minHorizon = el
             if (el > maxEl) maxEl = el
         }
-        // Include all linked elements' trajectory elevations
+        // Include trajectory elevations only for the top bound
         const linkedElmsForRange = _getLinkedHorizonElms(store, elmId)
         for (const le of linkedElmsForRange) {
             const ed = store.sweepElData[le.id]
             if (!ed?.results) continue
             for (const r of ed.results) {
-                if (r.elevation != null) {
-                    if (r.elevation < minEl) minEl = r.elevation
-                    if (r.elevation > maxEl) maxEl = r.elevation
-                }
+                if (r.elevation != null && r.elevation > maxEl) maxEl = r.elevation
             }
         }
         maxEl = Math.max(maxEl + 5, 10)
-        minEl = Math.min(minEl - 2, -5)
+        const minEl = minHorizon - 5
         const elRange = maxEl - minEl
 
         // Background

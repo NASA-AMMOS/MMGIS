@@ -830,23 +830,13 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                         <div className="vstGraphButtons">
                                             <IconTextButton
                                                 size="sm"
-                                                active={ShadeTool_Graphs.isOpen() && ShadeTool_Graphs.getActiveView() === 'horizon' && ShadeTool_Graphs.getActiveElmId() === elmId}
-                                                title="Toggle Horizon Profile in the bottom bar"
-                                                onClick={() => ShadeTool_Graphs.toggleHorizon(elmId)}
+                                                active={ShadeTool_Graphs.isOpen() && ShadeTool_Graphs.getActiveElmId() === elmId}
+                                                title="Toggle Horizon + Visibility charts"
+                                                onClick={() => ShadeTool_Graphs.toggle(elmId)}
                                                 icon={<i className="mdi mdi-chart-areaspline" />}
-                                                style={{ width: '50%', justifyContent: 'center' }}
+                                                style={{ width: '100%', justifyContent: 'center' }}
                                             >
-                                                Horizon Profile
-                                            </IconTextButton>
-                                            <IconTextButton
-                                                size="sm"
-                                                active={ShadeTool_Graphs.isOpen() && ShadeTool_Graphs.getActiveView() === 'visibility' && ShadeTool_Graphs.getActiveElmId() === elmId}
-                                                title="Toggle Visibility Timeline in the bottom bar"
-                                                onClick={() => ShadeTool_Graphs.toggleVisibility(elmId)}
-                                                icon={<i className="mdi mdi-chart-timeline-variant" />}
-                                                style={{ width: '50%', justifyContent: 'center' }}
-                                            >
-                                                Visibility Timeline
+                                                Charts
                                             </IconTextButton>
                                         </div>
                                     )}

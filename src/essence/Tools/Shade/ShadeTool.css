@@ -1026,6 +1026,9 @@
 .shadeGraphPanel:last-of-type {
     border-bottom: none;
 }
+.shadeVisPanel {
+    flex: 0 0 auto;
+}
 
 .shadeGraphTitle {
     font-size: 11px;
