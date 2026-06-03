@@ -504,27 +504,55 @@ router.get("/proj42wkt", function(req,res,next){(router._computeLimiter||functio
 
 //utils gethorizonprofile
 router.post("/gethorizonprofile", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
-  const rasterPath = encodeURIComponent(req.body.path);
-  const lat = encodeURIComponent(req.body.lat);
-  const lng = encodeURIComponent(req.body.lng);
-  const observerHeight = encodeURIComponent(req.body.observerHeight || 0);
-  const numAzimuths = encodeURIComponent(req.body.numAzimuths || 360);
-  const maxRadius = encodeURIComponent(req.body.maxRadius || 5000);
-  const minSkipRadius = encodeURIComponent(req.body.minSkipRadius || 0);
-  const planetRadius = encodeURIComponent(req.body.planetRadius || 0);
+  // Validate required fields
+  if (req.body.path == null || req.body.lat == null || req.body.lng == null) {
+    return res.status(400).json({ error: true, message: "path, lat, and lng are required" });
+  }
+
+  // Path security: decode fully, block traversal, restrict to /Missions/
+  let decodedPath = String(req.body.path);
+  let prev = '';
+  while (decodedPath !== prev) {
+    prev = decodedPath;
+    try { decodedPath = decodeURIComponent(decodedPath); } catch (e) {
+      return res.status(400).json({ error: true, message: "Invalid URL encoding in path" });
+    }
+  }
+  if (!decodedPath.startsWith("/Missions")) {
+    return res.status(400).json({ error: true, message: "Only paths beginning with '/Missions' are supported" });
+  }
+  // Resolve and verify the path stays within /Missions (../ between missions is allowed)
+  const resolvedPath = path.resolve(path.join(rootDir, decodedPath));
+  const allowedBase = path.resolve(rootDir, 'Missions');
+  if (!resolvedPath.replace(/\\/g, '/').startsWith(allowedBase.replace(/\\/g, '/'))) {
+    return res.status(400).json({ error: true, message: "Invalid path: access denied" });
+  }
+
+  // Validate and cap numeric parameters
+  const lat = Number(req.body.lat);
+  const lng = Number(req.body.lng);
+  const observerHeight = Number(req.body.observerHeight || 0);
+  const numAzimuths = Math.min(Number(req.body.numAzimuths || 360), 3600);
+  const maxRadius = Math.min(Number(req.body.maxRadius || 5000), 100000);
+  const minSkipRadius = Number(req.body.minSkipRadius || 0);
+  const planetRadius = Number(req.body.planetRadius || 0);
+
+  if ([lat, lng, observerHeight, numAzimuths, maxRadius, minSkipRadius, planetRadius].some(v => !isFinite(v))) {
+    return res.status(400).json({ error: true, message: "All numeric parameters must be finite numbers" });
+  }
 
   execFile(
     "python",
     [
       "private/api/HorizonProfile.py",
-      rasterPath,
-      lat,
-      lng,
-      observerHeight,
-      numAzimuths,
-      maxRadius,
-      minSkipRadius,
-      planetRadius,
+      decodedPath,
+      String(lat),
+      String(lng),
+      String(observerHeight),
+      String(numAzimuths),
+      String(maxRadius),
+      String(minSkipRadius),
+      String(planetRadius),
     ],
     function (error, stdout, stderr) {
       if (error) {
