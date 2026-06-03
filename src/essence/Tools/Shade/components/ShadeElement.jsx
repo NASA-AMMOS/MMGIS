@@ -379,16 +379,21 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     // Auto-open Results when sweep completes for non-static modes.
     // Deps intentionally exclude shadeMode so that merely switching modes
     // (which doesn't change data) won't re-open the section with stale data.
+    // Composite sweeps store results in el.lastResultGrid (via updateElement),
+    // while playback sweeps store in sweepElData (ed.results/grids/atlas).
     useEffect(() => {
         if (el?.regenerating || resultsOpen) return
-        if (!ed?.results || ed.results.length === 0) return
-        if (shadeMode === 'playback' && ed?.grids && ed.grids.length > 0) {
-            setResultsOpen(true)
-        } else if (shadeMode === 'composite' && ed?.atlas) {
-            setResultsOpen(true)
+        if (shadeMode === 'playback') {
+            if (ed?.results?.length > 0 && ed?.grids?.length > 0) {
+                setResultsOpen(true)
+            }
+        } else if (shadeMode === 'composite') {
+            if (el?.lastResultGrid) {
+                setResultsOpen(true)
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ed?.results, ed?.grids, ed?.atlas, el?.regenerating])
+    }, [ed?.results, ed?.grids, ed?.atlas, el?.regenerating, el?.lastResultGrid])
 
     if (!el) return null
 

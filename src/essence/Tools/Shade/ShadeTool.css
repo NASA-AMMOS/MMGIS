@@ -1154,12 +1154,12 @@
 .shadeVisTimeTickLine {
     width: 1px;
     height: 6px;
-    background: rgba(255,255,255,0.3);
+    background: var(--color-a4);
 }
 
 .shadeVisTimeTickText {
     font-size: 9px;
-    color: rgba(255,255,255,0.5);
+    color: var(--color-a4);
     white-space: nowrap;
 }
 

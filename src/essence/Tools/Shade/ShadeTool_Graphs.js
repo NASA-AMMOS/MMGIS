@@ -674,8 +674,8 @@ const ShadeTool_Graphs = {
         const minEl = minHorizon - 5
         const elRange = maxEl - minEl
 
-        // Background
-        ctx.fillStyle = 'rgba(0,0,0,0.3)'
+        // Fixed dark background so chart is legible in both themes
+        ctx.fillStyle = '#1a1e22'
         ctx.fillRect(0, 0, w, h)
 
         // Grid — north-centered: display -180..+180
