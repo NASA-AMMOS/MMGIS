@@ -10,6 +10,7 @@ const GRAPH_CONTAINER_ID = 'shadeGraphContainer'
 const HORIZON_CANVAS_ID = 'shadeHorizonCanvas'
 // Visibility timeline is now div-based (no canvas)
 const AZIMUTH_LINE_ID = 'shadeAzimuthLineOverlay'
+const SOURCE_AZIMUTH_OVERLAY_ID = 'shadeSourceAzimuthOverlay'
 const HOVER_LINE_ID = 'shadeHorizonHoverLine'
 
 let _horizonCache = null // { lat, lng, profile: [[az,el],...] }
@@ -59,6 +60,7 @@ const ShadeTool_Graphs = {
             ShadeTool_Graphs._buildContainer()
             ShadeTool_Graphs.fetchAndDrawHorizon(elmId)
             ShadeTool_Graphs.drawVisibilityTimeline(elmId)
+            ShadeTool_Graphs._updateSourceAzimuthLines()
         }, 50)
     },
 
@@ -91,6 +93,7 @@ const ShadeTool_Graphs = {
         }
 
         ShadeTool_Graphs.removeAzimuthLine()
+        ShadeTool_Graphs._removeSourceAzimuthLines()
 
         const container = document.getElementById(GRAPH_CONTAINER_ID)
         if (container) container.remove()
@@ -157,6 +160,73 @@ const ShadeTool_Graphs = {
             `<line x1="${centerPx.x}" y1="${centerPx.y}" x2="${ex}" y2="${ey}" ` +
             `stroke="#ffdd44" stroke-width="2.5" stroke-dasharray="8,4" />` +
             `</svg>`
+    },
+
+    /** Draw persistent colored azimuth lines for each shade element at the current frame */
+    _updateSourceAzimuthLines() {
+        if (!_graphOpen || _activeElmId == null) {
+            ShadeTool_Graphs._removeSourceAzimuthLines()
+            return
+        }
+
+        const mapEl = document.getElementById('map')
+        if (!mapEl) return
+
+        const store = useShadeStore.getState()
+        const mapRect = mapEl.getBoundingClientRect()
+        const { included: elms } = _getFilteredVisibilityElms(store, _activeElmId)
+        if (elms.length === 0) return
+
+        const primaryEd = store.sweepElData[_activeElmId]
+        let centerPx
+        if (primaryEd?.sweepCenter) {
+            const pt = Map_.map.latLngToContainerPoint(primaryEd.sweepCenter)
+            centerPx = { x: pt.x, y: pt.y }
+        } else {
+            centerPx = { x: mapRect.width / 2, y: mapRect.height / 2 }
+        }
+
+        const lineLen = Math.max(mapRect.width, mapRect.height)
+        const playIndex = store.sweepPlayIndex
+
+        let lines = ''
+        for (const { id, el, ed } of elms) {
+            const r = ed.results?.[playIndex]
+            if (!r || r.azimuth == null) continue
+
+            const brightness = el.color.r + el.color.g + el.color.b
+            const c = brightness < 100
+                ? { r: Math.min(el.color.r + 120, 255), g: Math.min(el.color.g + 120, 255), b: Math.min(el.color.b + 120, 255) }
+                : el.color
+            const colorStr = `rgb(${c.r},${c.g},${c.b})`
+
+            const rad = r.azimuth * (Math.PI / 180)
+            const ex = centerPx.x + Math.sin(rad) * lineLen
+            const ey = centerPx.y - Math.cos(rad) * lineLen
+
+            lines += `<line x1="${centerPx.x}" y1="${centerPx.y}" x2="${ex}" y2="${ey}" ` +
+                `stroke="${colorStr}" stroke-width="2" stroke-dasharray="6,4" opacity="0.8" />`
+        }
+
+        let overlay = document.getElementById(SOURCE_AZIMUTH_OVERLAY_ID)
+        if (!overlay) {
+            overlay = document.createElement('div')
+            overlay.id = SOURCE_AZIMUTH_OVERLAY_ID
+            overlay.className = 'shadeAzimuthLine'
+            overlay.style.width = mapRect.width + 'px'
+            overlay.style.height = mapRect.height + 'px'
+            overlay.style.top = '0'
+            overlay.style.left = '0'
+            mapEl.appendChild(overlay)
+        }
+        overlay.style.width = mapRect.width + 'px'
+        overlay.style.height = mapRect.height + 'px'
+        overlay.innerHTML = `<svg viewBox="0 0 ${mapRect.width} ${mapRect.height}">${lines}</svg>`
+    },
+
+    _removeSourceAzimuthLines() {
+        const el = document.getElementById(SOURCE_AZIMUTH_OVERLAY_ID)
+        if (el) el.remove()
     },
 
     _buildContainer() {
@@ -284,6 +354,7 @@ const ShadeTool_Graphs = {
             ShadeTool_Graphs._drawHorizonCanvas(_horizonCache.profile, _activeElmId)
         }
         ShadeTool_Graphs.drawVisibilityTimeline(_activeElmId)
+        ShadeTool_Graphs._updateSourceAzimuthLines()
     },
 
     _onHorizonMouseMove(e) {
@@ -978,6 +1049,15 @@ const ShadeTool_Graphs = {
         const effectiveId = elmId != null ? elmId : _activeElmId
         if (effectiveId == null) return
 
+        // Re-sync the time slider max in case a new sweep changed the frame count
+        const slider = document.getElementById('shadeGraphTimeSlider')
+        if (slider) {
+            const store = useShadeStore.getState()
+            const ed = store.sweepElData[effectiveId]
+            const fc = ed?.results?.length || 0
+            slider.max = Math.max(fc - 1, 0)
+        }
+
         if (_animFrameId) cancelAnimationFrame(_animFrameId)
         _animFrameId = requestAnimationFrame(() => {
             if (_horizonCache) {
@@ -988,6 +1068,7 @@ const ShadeTool_Graphs = {
             }
             ShadeTool_Graphs.drawVisibilityTimeline(effectiveId)
             ShadeTool_Graphs._updateTimeLabel()
+            ShadeTool_Graphs._updateSourceAzimuthLines()
             _animFrameId = null
         })
     },

@@ -188,6 +188,7 @@ let ShadeTool = {
         if (ch) ch.remove()
         Map_.map.off('move', ShadeTool._updateCrosshairPosition)
         ShadeTool_Graphs.removeAzimuthLine()
+        ShadeTool_Graphs._removeSourceAzimuthLines()
     },
 
     _updateCrosshairPosition() {
