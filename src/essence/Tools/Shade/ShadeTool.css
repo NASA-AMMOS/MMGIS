@@ -1134,7 +1134,8 @@
     top: 0;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    transform: translateX(-50%);
 }
 
 .shadeVisTimeTickLine {
@@ -1147,7 +1148,6 @@
     font-size: 9px;
     color: rgba(255,255,255,0.5);
     white-space: nowrap;
-    transform: translateX(-25%);
 }
 
 /* ====== Horizon hover line ====== */
