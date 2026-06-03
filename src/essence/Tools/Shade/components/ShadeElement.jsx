@@ -119,6 +119,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     const handleModeChange = useCallback((mode) => {
         ShadeTool.switchElementMode(elmId, mode)
         updateElement(elmId, { shadeMode: mode })
+        setResultsOpen(false)
     }, [elmId, updateElement])
 
     const handleOpacityChange = useCallback(
@@ -377,10 +378,14 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
     // Auto-open Results when sweep completes for non-static modes
     useEffect(() => {
-        if ((shadeMode === 'composite' || shadeMode === 'playback') && ed?.results && ed.results.length > 0 && !el?.regenerating && !resultsOpen) {
+        if (el?.regenerating || resultsOpen) return
+        if (!ed?.results || ed.results.length === 0) return
+        if (shadeMode === 'playback' && ed?.grids && ed.grids.length > 0) {
+            setResultsOpen(true)
+        } else if (shadeMode === 'composite' && ed?.atlas) {
             setResultsOpen(true)
         }
-    }, [shadeMode, ed?.results, el?.regenerating])
+    }, [shadeMode, ed?.results, ed?.grids, ed?.atlas, el?.regenerating])
 
     if (!el) return null
 
