@@ -477,9 +477,10 @@
 #mmgisTimeUITimelineExtent {
     height: 100%;
     position: absolute;
-    background: rgb(96, 78, 26, 0.7);
+    background: rgba(96, 78, 26, 0.2);
     transition: opacity 0.2s ease-out;
-    z-index: -1;
+    z-index: 1;
+    pointer-events: none;
     max-width: 100%;
 }
 
