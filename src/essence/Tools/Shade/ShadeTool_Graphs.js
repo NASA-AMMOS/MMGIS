@@ -841,7 +841,7 @@ const ShadeTool_Graphs = {
                 const pctWidth = ((i - runStart) / frameCount) * 100
                 span.style.left = pctStart + '%'
                 span.style.width = pctWidth + '%'
-                span.style.background = segments[runStart] ? visibleColor : occludedColor
+                span.style.background = segments[runStart] ? occludedColor : visibleColor
                 bar.appendChild(span)
                 runStart = i
             }
