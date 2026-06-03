@@ -941,7 +941,19 @@ const ShadeTool_Graphs = {
                 : rawColor
             const colorStr = `rgb(${color.r},${color.g},${color.b})`
             const visibleColor = `rgba(${Math.min(color.r + 40, 255)},${Math.min(color.g + 40, 255)},${Math.min(color.b + 40, 255)},0.85)`
-            const occludedColor = 'rgba(60,60,60,0.5)'
+            // Detect light/dark theme for the "not occluded" gray
+            const visBg = getComputedStyle(document.documentElement).getPropertyValue('--color-a').trim() || '#1d1f20'
+            const visIsLight = (() => {
+                const c = visBg.replace('#', '')
+                if (c.length === 6) {
+                    const r = parseInt(c.substring(0, 2), 16)
+                    const g = parseInt(c.substring(2, 4), 16)
+                    const b = parseInt(c.substring(4, 6), 16)
+                    return (r + g + b) / 3 > 128
+                }
+                return false
+            })()
+            const occludedColor = visIsLight ? 'rgba(240,240,240,0.7)' : 'rgba(60,60,60,0.5)'
 
             // Compute visibility using the horizon profile (terrain-aware)
             const segments = []
