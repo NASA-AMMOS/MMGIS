@@ -834,19 +834,44 @@ const ShadeTool_Graphs = {
             const bar = document.createElement('div')
             bar.className = 'shadeVisBar'
 
-            // Group contiguous visible/occluded segments into span elements
+            // Collect contiguous runs
+            const runs = []
             let runStart = 0
             for (let i = 1; i <= segments.length; i++) {
                 if (i < segments.length && segments[i] === segments[runStart]) continue
+                runs.push({ start: runStart, end: i, visible: segments[runStart] })
+                runStart = i
+            }
+
+            // Render runs with gradient transitions at boundaries
+            for (let ri = 0; ri < runs.length; ri++) {
+                const run = runs[ri]
                 const span = document.createElement('div')
                 span.className = 'shadeVisSegment'
-                const pctStart = (runStart / frameCount) * 100
-                const pctWidth = ((i - runStart) / frameCount) * 100
+                const pctStart = (run.start / frameCount) * 100
+                const pctWidth = ((run.end - run.start) / frameCount) * 100
                 span.style.left = pctStart + '%'
                 span.style.width = pctWidth + '%'
-                span.style.background = segments[runStart] ? occludedColor : visibleColor
+
+                const thisColor = run.visible ? occludedColor : visibleColor
+                const prevDiff = ri > 0 && runs[ri - 1].visible !== run.visible
+                const nextDiff = ri < runs.length - 1 && runs[ri + 1].visible !== run.visible
+                const prevColor = prevDiff
+                    ? (runs[ri - 1].visible ? occludedColor : visibleColor)
+                    : thisColor
+                const nextColor = nextDiff
+                    ? (runs[ri + 1].visible ? occludedColor : visibleColor)
+                    : thisColor
+
+                if (prevDiff || nextDiff) {
+                    // Gradient fade over ~20% of the segment at each transition edge
+                    const fadeIn = prevDiff ? 20 : 0
+                    const fadeOut = nextDiff ? 80 : 100
+                    span.style.background = `linear-gradient(to right, ${prevColor} 0%, ${thisColor} ${fadeIn}%, ${thisColor} ${fadeOut}%, ${nextColor} 100%)`
+                } else {
+                    span.style.background = thisColor
+                }
                 bar.appendChild(span)
-                runStart = i
             }
 
             row.appendChild(bar)
