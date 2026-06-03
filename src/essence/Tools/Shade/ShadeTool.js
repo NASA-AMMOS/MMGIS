@@ -1524,6 +1524,9 @@ let ShadeTool = {
                         const te = s.sweepTotalElms || 1
                         const p = te > 1 ? ('Shade ' + ce + ' of ' + te + ': ') : ''
                         s.setSweepField('sweepProgress', p + 'Tiles: ' + parseInt(progress) + '%')
+                        // Tile loading is 0-5% of overall progress
+                        const tilePct = ((ce - 1) / te) * 100 + ((parseInt(progress) * 0.05) / te)
+                        s.setSweepField('sweepProgressPct', tilePct)
                     },
                     function (data) {
                         const sweepResults = []
@@ -1541,6 +1544,8 @@ let ShadeTool = {
                         const totElms0 = currentStore0.sweepTotalElms || 1
                         const prefix0 = totElms0 > 1 ? ('Shade ' + curElm0 + ' of ' + totElms0 + ': ') : ''
                         currentStore0.setSweepField('sweepProgress', prefix0 + 'Computing positions...')
+                        // Positions API call is 5-15% of overall progress
+                        currentStore0.setSweepField('sweepProgressPct', ((curElm0 - 1) / totElms0) * 100 + (5 / totElms0))
 
                         const targetBulkPromises = selectedTargets.map(
                             (tgt) =>
@@ -1647,12 +1652,13 @@ let ShadeTool = {
                                 }
 
                                 // Update progress after each chunk
-                                // processChunk is 0-50% of overall; atlas build is 50-100%
+                                // processChunk is 15-50% of overall
+                                // (0-5% tiles, 5-15% positions API, 15-50% shade, 50-55% heatmap, 55-95% atlas)
                                 const currentStore = useShadeStore.getState()
                                 const curElm = currentStore.sweepCurrentElm || 1
                                 const totElms = currentStore.sweepTotalElms || 1
-                                const elmPct = (ti / total) * 100
-                                const overallPct = ((curElm - 1) / totElms) * 100 + ((elmPct * 0.5) / totElms)
+                                const elmFrac = ti / total
+                                const overallPct = ((curElm - 1) / totElms) * 100 + ((15 + elmFrac * 35) / totElms)
                                 const prefix = totElms > 1 ? ('Shade ' + curElm + ' of ' + totElms + ': ') : ''
                                 currentStore.setSweepField(
                                     'sweepProgress',
@@ -1722,13 +1728,15 @@ let ShadeTool = {
                                     storeH.setSweepField('sweepStale', false)
                                     const curElmF = storeH.sweepCurrentElm || 1
                                     const totElmsF = storeH.sweepTotalElms || 1
-                                    if (typeof onComplete === 'function') onComplete()
 
                                     // Build atlas only for playback mode (expensive at high frame counts)
+                                    // onComplete is deferred until atlas finishes so
+                                    // the progress bar stays in loading state throughout
                                     const activeElAtlas = storeH.elements[activeElmId]
                                     if (activeElAtlas?.shadeMode === 'playback') {
                                         ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
                                             ShadeTool.sweepShowAllFrames()
+                                            if (typeof onComplete === 'function') onComplete()
                                             if (totElmsF > 1) {
                                                 Toast.success('Shade ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
                                             } else {
@@ -1736,6 +1744,7 @@ let ShadeTool = {
                                             }
                                         })
                                     } else {
+                                        if (typeof onComplete === 'function') onComplete()
                                         storeH.setSweepField('sweepProgress', '')
                                         storeH.setSweepField('sweepProgressPct', 100)
                                         if (totElmsF > 1) {

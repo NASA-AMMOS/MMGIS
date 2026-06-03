@@ -663,25 +663,25 @@ const ShadeTool_Graphs = {
         ctx.font = '11px sans-serif'
         ctx.textAlign = 'center'
         ctx.save()
-        ctx.translate(12, pad.top + plotH / 2)
+        ctx.translate(8, pad.top + plotH / 2)
         ctx.rotate(-Math.PI / 2)
         ctx.fillText('Elevation (°)', 0, 0)
         ctx.restore()
 
-        // North arrow at top center
+        // North arrow at top center (upward-pointing)
         const northArrowX = northX
         const northArrowY = pad.top - 2
         ctx.fillStyle = 'rgba(255,255,255,0.85)'
         ctx.font = 'bold 11px sans-serif'
         ctx.textAlign = 'center'
-        ctx.fillText('N', northArrowX, northArrowY - 4)
-        // Small downward-pointing triangle
+        // Upward-pointing triangle
         ctx.beginPath()
-        ctx.moveTo(northArrowX - 4, northArrowY)
-        ctx.lineTo(northArrowX + 4, northArrowY)
-        ctx.lineTo(northArrowX, northArrowY + 5)
+        ctx.moveTo(northArrowX, northArrowY - 14)
+        ctx.lineTo(northArrowX - 4, northArrowY - 8)
+        ctx.lineTo(northArrowX + 4, northArrowY - 8)
         ctx.closePath()
         ctx.fill()
+        ctx.fillText('N', northArrowX, northArrowY)
     },
 
     _drawSourceTrajectory(ctx, elmId, pad, plotW, plotH, minEl, elRange, markerOnly) {
