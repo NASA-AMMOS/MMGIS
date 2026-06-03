@@ -804,6 +804,94 @@ let ShadeTool = {
         ShadeTool.makeDataLayer(dl, activeElmId)
     },
 
+    // Lightweight version for atlas building — only returns canvas objects
+    // without calling toDataURL() or cloneCanvas() (avoids expensive PNG encoding)
+    _renderFrameCanvases: function (data, resultGrid, options) {
+        const res = data.tileResolution * Math.pow(2, data.resolution)
+        let c = document.createElement('canvas')
+        c.width = res
+        c.height = res
+        let ctx = c.getContext('2d')
+        let cImgData = ctx.createImageData(res, res)
+        let cData = cImgData.data
+
+        let canvases = {}
+
+        for (let j = 0; j <= data.outputTopLeftTile.h; j++) {
+            for (let i = 0; i <= data.outputTopLeftTile.w; i++) {
+                const z = data.outputTopLeftTile.z
+                const x = Math.floor(data.outputTopLeftTile.x + i)
+                const y = Math.floor(data.outputTopLeftTile.y + j)
+
+                canvases[z] = canvases[z] || {}
+                canvases[z][x] = canvases[z][x] || {}
+
+                const tileRow =
+                    (data.outputTopLeftTile.y + j -
+                        Math.floor(data.outputTopLeftTile.y) -
+                        (Math.abs(data.outputTopLeftTile.y) % 1) * 2) *
+                    res
+                const tileCol =
+                    (data.outputTopLeftTile.x + i -
+                        Math.floor(data.outputTopLeftTile.x) -
+                        (Math.abs(data.outputTopLeftTile.x) % 1) * 2) *
+                    res
+
+                let px = 0
+                let val = null
+                for (let p = 0; p < cData.length; p += 4) {
+                    val = resultGrid[tileRow + Math.floor(px / res)]
+                    if (val != null) {
+                        val = val[tileCol + (px % res)]
+                        let cl
+                        switch (val) {
+                            case 0:
+                                cl = options.invert == 0
+                                    ? { r: 0, g: 0, b: 0, a: 0 }
+                                    : options.color
+                                break
+                            case 1:
+                            case 2:
+                                cl = options.invert == 0
+                                    ? options.color
+                                    : { r: 0, g: 0, b: 0, a: 0 }
+                                break
+                            case 3:
+                                cl = { r: 0, g: 255, b: 0, a: 0 }
+                                break
+                            case 8:
+                                cl = { r: 0, g: 0, b: 0, a: 0 }
+                                break
+                            case 9:
+                                cl = { r: 255, g: 0, b: 0, a: 35 }
+                                break
+                            default:
+                                cl = { r: 0, g: 0, b: 0, a: 0 }
+                        }
+                        cData[p] = cl.r
+                        cData[p + 1] = cl.g
+                        cData[p + 2] = cl.b
+                        cData[p + 3] = cl.a
+                    } else {
+                        cData[p] = 0
+                        cData[p + 1] = 0
+                        cData[p + 2] = 0
+                        cData[p + 3] = 0
+                    }
+                    px++
+                }
+                ctx.putImageData(cImgData, 0, 0)
+                // Clone canvas without toDataURL — just copy pixel data
+                const clone = document.createElement('canvas')
+                clone.width = res
+                clone.height = res
+                clone.getContext('2d').drawImage(c, 0, 0)
+                canvases[z][x][y] = clone
+            }
+        }
+        return canvases
+    },
+
     // Returns the list of available sweep color ramp definitions.
     // Each entry: { name, label, colors (0-1 RGB arrays), reverse, bins }
     // 'shadow' is always present. Additional ramps come from the tool's
@@ -1098,9 +1186,10 @@ let ShadeTool = {
         const store = useShadeStore.getState()
         store.setSweepField('sweepProgress', 'Building atlas: rendering frames...')
 
-        // Render frames in smaller chunks to keep UI responsive
+        // Render frames in chunks — uses lightweight _renderFrameCanvases
+        // (skips toDataURL, only produces canvas objects for atlas composition)
         const frameCanvases = []
-        const ATLAS_CHUNK = 4
+        const ATLAS_CHUNK = 8
         let fi = 0
 
         function renderFrameChunk() {
@@ -1109,10 +1198,9 @@ let ShadeTool = {
                 if (sweepGrids[fi] == null) {
                     frameCanvases.push(null)
                 } else {
-                    const { dlc } = ShadeTool.renderResultToTileData(
-                        data, sweepGrids[fi], options
+                    frameCanvases.push(
+                        ShadeTool._renderFrameCanvases(data, sweepGrids[fi], options)
                     )
-                    frameCanvases.push(dlc)
                 }
             }
             if (fi < numFrames) {
