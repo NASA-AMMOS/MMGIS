@@ -47,6 +47,11 @@ function _flushSweepProgress(pct, msg, force) {
         const s = useShadeStore.getState()
         if (_pendingMsg !== null) { s.setSweepField('sweepProgress', _pendingMsg); _pendingMsg = null }
         s.setSweepField('sweepProgressPct', _pendingPct)
+        // Also update the active element's loadingProgress so the
+        // ShadeElement ProgressButton (which reads el.loadingProgress) re-renders
+        if (s.activeElmId != null) {
+            s.updateElement(s.activeElmId, { loadingProgress: _pendingPct })
+        }
     }
 }
 
