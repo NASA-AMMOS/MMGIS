@@ -178,8 +178,8 @@ export default function ShadePanel() {
 
             {/* Time section — single row: [start] [step|min] [end] */}
             <div className="vstTime">
-                <span className="vstTimeReadonly" title="Start time (set via TimeUI)">
-                    {sweepStart || 'Start'}
+                <span className="vstTimeReadonly" title={sweepStart || 'Start time (set via TimeUI)'}>
+                    {sweepStart ? sweepStart.replace(/:\d{2}Z$/, 'Z').replace(/:\d{2}\.\d+Z$/, 'Z') : 'Start'}
                 </span>
                 <InputWithUnit
                     unit="min"
@@ -194,8 +194,8 @@ export default function ShadePanel() {
                     className="vstSweepField vstTimeStep"
                     placeholder="Step"
                 />
-                <span className="vstTimeReadonly" title="End time (set via TimeUI)">
-                    {sweepEnd || 'End'}
+                <span className="vstTimeReadonly" title={sweepEnd || 'End time (set via TimeUI)'}>
+                    {sweepEnd ? sweepEnd.replace(/:\d{2}Z$/, 'Z').replace(/:\d{2}\.\d+Z$/, 'Z') : 'End'}
                 </span>
             </div>
 
