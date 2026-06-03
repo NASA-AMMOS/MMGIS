@@ -1093,7 +1093,6 @@
     color: var(--color-a6);
     padding: 4px 8px;
     flex-shrink: 0;
-    background: var(--color-a1);
 }
 
 .shadeGraphCanvas {
@@ -1123,7 +1122,6 @@
     align-items: center;
     gap: 4px;
     padding: 4px 8px;
-    background: var(--color-a1);
     flex-shrink: 0;
     width: 100%;
     box-sizing: border-box;

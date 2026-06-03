@@ -24,6 +24,8 @@ let _hPlotW = 0
 let _onScrubCallback = null
 // Dragging state for time slider
 let _isDragging = false
+let _resizeObserver = null
+let _resizeTimeout = null
 
 const ShadeTool_Graphs = {
     isOpen() {
@@ -73,6 +75,10 @@ const ShadeTool_Graphs = {
         if (_animFrameId) {
             cancelAnimationFrame(_animFrameId)
             _animFrameId = null
+        }
+        if (_resizeObserver) {
+            _resizeObserver.disconnect()
+            _resizeObserver = null
         }
 
         ShadeTool_Graphs.removeAzimuthLine()
@@ -216,6 +222,21 @@ const ShadeTool_Graphs = {
         }
 
         tools.appendChild(container)
+
+        // Observe container resize to redraw graphs responsively
+        if (_resizeObserver) _resizeObserver.disconnect()
+        _resizeObserver = new ResizeObserver(() => {
+            if (!_graphOpen || !_activeElmId) return
+            if (_resizeTimeout) clearTimeout(_resizeTimeout)
+            _resizeTimeout = setTimeout(() => {
+                if (_activeView === 'horizon' && _horizonCache) {
+                    ShadeTool_Graphs._drawHorizonCanvas(_horizonCache.profile, _activeElmId)
+                } else if (_activeView === 'visibility') {
+                    ShadeTool_Graphs.drawVisibilityTimeline(_activeElmId)
+                }
+            }, 50)
+        })
+        _resizeObserver.observe(container)
     },
 
     registerScrubCallback(cb) {
