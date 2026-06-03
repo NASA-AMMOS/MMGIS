@@ -419,10 +419,12 @@ const ShadeTool_Graphs = {
         if (frameCount === 0) return
 
         const rect = wrap.getBoundingClientRect()
-        // The bars start after the label column
-        const labelCol = 124
-        const barAreaW = rect.width - labelCol
-        const mouseX = e.clientX - rect.left - labelCol
+        // Measure the actual bar offset for responsive alignment
+        const firstBar = wrap.querySelector('.shadeVisBar')
+        if (!firstBar) return
+        const barLeft = firstBar.getBoundingClientRect().left - rect.left
+        const barAreaW = firstBar.getBoundingClientRect().width
+        const mouseX = e.clientX - rect.left - barLeft
         if (barAreaW <= 0) return
 
         const frac = mouseX / barAreaW
@@ -893,7 +895,14 @@ const ShadeTool_Graphs = {
             wrap.appendChild(slider)
         }
 
-        // Time labels
+        // Time labels — align margin to actual bar position
+        const timeContainer = document.getElementById('shadeVisTimeLabels')
+        const firstBarEl = wrap.querySelector('.shadeVisBar')
+        if (timeContainer && firstBarEl) {
+            const wrapRect = wrap.getBoundingClientRect()
+            const barLeftOffset = firstBarEl.getBoundingClientRect().left - wrapRect.left
+            timeContainer.style.marginLeft = barLeftOffset + 'px'
+        }
         ShadeTool_Graphs._drawVisTimeLabels(refResults)
     },
 
