@@ -376,7 +376,9 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         ShadeTool.drawSkyDome(skyDomeId, ed.results, effectivePlayIndex)
     }, [shadeMode, ed?.results, ed?.atlas, effectivePlayIndex, skyDomeId, resultsOpen])
 
-    // Auto-open Results when sweep completes for non-static modes
+    // Auto-open Results when sweep completes for non-static modes.
+    // Deps intentionally exclude shadeMode so that merely switching modes
+    // (which doesn't change data) won't re-open the section with stale data.
     useEffect(() => {
         if (el?.regenerating || resultsOpen) return
         if (!ed?.results || ed.results.length === 0) return
@@ -385,7 +387,8 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         } else if (shadeMode === 'composite' && ed?.atlas) {
             setResultsOpen(true)
         }
-    }, [shadeMode, ed?.results, ed?.grids, ed?.atlas, el?.regenerating])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [ed?.results, ed?.grids, ed?.atlas, el?.regenerating])
 
     if (!el) return null
 
