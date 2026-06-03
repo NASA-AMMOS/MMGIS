@@ -1064,36 +1064,24 @@ const ShadeTool_Graphs = {
         }
         const omitYear = years.size <= 1
 
-        // Calculate how many labels fit
+        // Place ticks at evenly-spaced visual positions (0%–100%) and map
+        // each position back to the nearest frame index for its time label.
+        // This avoids coordinate-system drift between ticks and bar segments.
         const rect = container.getBoundingClientRect()
         const labelW = 90 // approximate width per label
-        const maxLabels = Math.max(2, Math.floor(rect.width / labelW))
-        const n = results.length
-        const last = n - 1
-        const step = Math.max(1, Math.floor(last / (maxLabels - 1)))
+        const numTicks = Math.max(2, Math.floor(rect.width / labelW))
+        const last = results.length - 1
 
-        for (let i = 0; i <= last; i += step) {
-            // Always include the very last frame
-            if (i > last) i = last
-            const t = results[i].time
-            if (!t) continue
-            const pct = last > 0 ? (i / last) * 100 : 0
+        for (let t = 0; t < numTicks; t++) {
+            const pct = numTicks > 1 ? (t / (numTicks - 1)) * 100 : 0
+            const frameIdx = numTicks > 1 ? Math.round((t / (numTicks - 1)) * last) : 0
+            const time = results[frameIdx]?.time
+            if (!time) continue
             const tick = document.createElement('div')
             tick.className = 'shadeVisTimeTick'
             tick.style.left = pct + '%'
-            tick.innerHTML = `<div class="shadeVisTimeTickLine"></div><div class="shadeVisTimeTickText">${_formatSmartTimeLabel(t, omitYear)}</div>`
+            tick.innerHTML = `<div class="shadeVisTimeTickLine"></div><div class="shadeVisTimeTickText">${_formatSmartTimeLabel(time, omitYear)}</div>`
             container.appendChild(tick)
-        }
-        // Ensure the last tick is always present
-        if (last > 0 && last % step !== 0) {
-            const t = results[last].time
-            if (t) {
-                const tick = document.createElement('div')
-                tick.className = 'shadeVisTimeTick'
-                tick.style.left = '100%'
-                tick.innerHTML = `<div class="shadeVisTimeTickLine"></div><div class="shadeVisTimeTickText">${_formatSmartTimeLabel(t, omitYear)}</div>`
-                container.appendChild(tick)
-            }
         }
     },
 
