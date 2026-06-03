@@ -806,19 +806,12 @@ const ShadeTool_Graphs = {
             const visibleColor = `rgba(${Math.min(color.r + 40, 255)},${Math.min(color.g + 40, 255)},${Math.min(color.b + 40, 255)},0.85)`
             const occludedColor = 'rgba(60,60,60,0.5)'
 
-            // Compute visibility segments
+            // Compute visibility segments from actual shade computation results
             const segments = []
             for (let i = 0; i < results.length; i++) {
                 const r = results[i]
-                let visible = true
-                if (profile && r.azimuth != null && r.elevation != null) {
-                    let az = r.azimuth
-                    if (az < 0) az += 360
-                    const horizEl = _interpolateHorizon(profile, az)
-                    visible = r.elevation > horizEl
-                } else if (r.visibilityPct != null) {
-                    visible = parseFloat(r.visibilityPct) > 50
-                }
+                // Use visibilityPct from the shade API (the actual shadow computation)
+                const visible = r.visibilityPct != null && parseFloat(r.visibilityPct) > 0
                 segments.push(visible)
             }
 
