@@ -1184,7 +1184,8 @@ let ShadeTool = {
         const atlasH = ShadeTool._nextPow2(contentH)
 
         const store = useShadeStore.getState()
-        store.setSweepField('sweepProgress', 'Building atlas: rendering frames...')
+        store.setSweepField('sweepProgress', 'Building atlas...')
+        store.setSweepField('sweepProgressPct', 55)
 
         // Render frames in chunks — uses lightweight _renderFrameCanvases
         // (skips toDataURL, only produces canvas objects for atlas composition)
@@ -1204,17 +1205,20 @@ let ShadeTool = {
                 }
             }
             if (fi < numFrames) {
-                const pct = Math.round((fi / numFrames) * 80)
+                // Atlas render: 55% → 90% of overall progress
+                const pct = 55 + Math.round((fi / numFrames) * 35)
                 useShadeStore.getState().setSweepField(
                     'sweepProgress',
-                    'Building atlas: ' + pct + '%'
+                    'Building atlas: ' + Math.round((fi / numFrames) * 100) + '%'
                 )
+                useShadeStore.getState().setSweepField('sweepProgressPct', pct)
                 setTimeout(renderFrameChunk, 0)
             } else {
                 useShadeStore.getState().setSweepField(
                     'sweepProgress',
                     'Building atlas: assembling...'
                 )
+                useShadeStore.getState().setSweepField('sweepProgressPct', 90)
                 setTimeout(assembleAtlasChunked, 0)
             }
         }
@@ -1256,11 +1260,12 @@ let ShadeTool = {
                 atlasDl[z][x][y] = atlas.toDataURL()
             }
             if (ti < tilesToProcess.length) {
-                const pct = 80 + Math.round((ti / tilesToProcess.length) * 20)
+                const pct = 90 + Math.round((ti / tilesToProcess.length) * 10)
                 useShadeStore.getState().setSweepField(
                     'sweepProgress',
-                    'Building atlas: ' + pct + '%'
+                    'Building atlas: assembling...'
                 )
+                useShadeStore.getState().setSweepField('sweepProgressPct', pct)
                 setTimeout(assembleAtlasChunked, 0)
             } else {
                 finalizeAtlas()
@@ -1276,6 +1281,7 @@ let ShadeTool = {
                 atlasScaleT: contentH / atlasH,
             })
             useShadeStore.getState().setSweepField('sweepProgress', '')
+            useShadeStore.getState().setSweepField('sweepProgressPct', 100)
             if (typeof onDone === 'function') onDone()
         }
 
@@ -1588,15 +1594,16 @@ let ShadeTool = {
                                 }
 
                                 // Update progress after each chunk
+                                // processChunk is 0-50% of overall; atlas build is 50-100%
                                 const currentStore = useShadeStore.getState()
                                 const curElm = currentStore.sweepCurrentElm || 1
                                 const totElms = currentStore.sweepTotalElms || 1
                                 const elmPct = (ti / total) * 100
-                                const overallPct = ((curElm - 1) / totElms) * 100 + (elmPct / totElms)
+                                const overallPct = ((curElm - 1) / totElms) * 100 + ((elmPct * 0.5) / totElms)
                                 const prefix = totElms > 1 ? ('Shade ' + curElm + ' of ' + totElms + ': ') : ''
                                 currentStore.setSweepField(
                                     'sweepProgress',
-                                    prefix + parseInt(elmPct) + '%'
+                                    prefix + 'Shading: ' + parseInt(elmPct) + '%'
                                 )
                                 currentStore.setSweepField(
                                     'sweepProgressPct',
@@ -1622,62 +1629,69 @@ let ShadeTool = {
                                     lng: source.lng,
                                 })
 
-                                // Compute heatmap (used by composite mode and as data for playback)
-                                if (sweepGrids.length > 0) {
-                                    const heatmap = ShaderTool_Algorithm.cumulativeVisibility(sweepGrids)
-                                    const border = 2
-                                    let minFrac = 1, maxFrac = 0
-                                    for (let r = border; r < heatmap.length - border; r++) {
-                                        const row = heatmap[r]
-                                        if (!row) continue
-                                        for (let c = border; c < row.length - border; c++) {
-                                            const f = row[c]
-                                            if (f == null || f < 0 || !Number.isFinite(f)) continue
-                                            if (f < minFrac) minFrac = f
-                                            if (f > maxFrac) maxFrac = f
+                                currentStoreF.setSweepField('sweepProgress', 'Computing heatmap...')
+                                currentStoreF.setSweepField('sweepProgressPct', 50)
+
+                                // Yield to let progress update paint, then compute heatmap
+                                setTimeout(function () {
+                                    const storeH = useShadeStore.getState()
+
+                                    // Compute heatmap (used by composite mode and as data for playback)
+                                    if (sweepGrids.length > 0) {
+                                        const heatmap = ShaderTool_Algorithm.cumulativeVisibility(sweepGrids)
+                                        const border = 2
+                                        let minFrac = 1, maxFrac = 0
+                                        for (let r = border; r < heatmap.length - border; r++) {
+                                            const row = heatmap[r]
+                                            if (!row) continue
+                                            for (let c = border; c < row.length - border; c++) {
+                                                const f = row[c]
+                                                if (f == null || f < 0 || !Number.isFinite(f)) continue
+                                                if (f < minFrac) minFrac = f
+                                                if (f > maxFrac) maxFrac = f
+                                            }
+                                        }
+                                        if (minFrac > maxFrac) { minFrac = 0; maxFrac = 1 }
+                                        storeH.setSweepElField(activeElmId, 'minFrac', minFrac)
+                                        storeH.setSweepElField(activeElmId, 'maxFrac', maxFrac)
+                                        storeH.setSweepElField(activeElmId, 'heatmap', heatmap)
+
+                                        // Only render composite heatmap layer if element is in composite mode
+                                        const activeEl = storeH.elements[activeElmId]
+                                        if (activeEl?.shadeMode === 'composite') {
+                                            storeH.setSweepField('sweepViewMode', 'composite')
+                                            ShadeTool.renderHeatmapToMap(data, heatmap, activeElmId)
                                         }
                                     }
-                                    if (minFrac > maxFrac) { minFrac = 0; maxFrac = 1 }
-                                    currentStoreF.setSweepElField(activeElmId, 'minFrac', minFrac)
-                                    currentStoreF.setSweepElField(activeElmId, 'maxFrac', maxFrac)
-                                    currentStoreF.setSweepElField(activeElmId, 'heatmap', heatmap)
 
-                                    // Only render composite heatmap layer if element is in composite mode
-                                    const activeEl = currentStoreF.elements[activeElmId]
-                                    if (activeEl?.shadeMode === 'composite') {
-                                        currentStoreF.setSweepField('sweepViewMode', 'composite')
-                                        ShadeTool.renderHeatmapToMap(data, heatmap, activeElmId)
-                                    }
-                                }
+                                    // Mark sweep as complete — clear sweepStale in case
+                                    // renderHeatmapToMap triggered a moveend event
+                                    storeH.setSweepField('sweepStale', false)
+                                    const curElmF = storeH.sweepCurrentElm || 1
+                                    const totElmsF = storeH.sweepTotalElms || 1
+                                    if (typeof onComplete === 'function') onComplete()
 
-                                // Mark sweep as complete — clear sweepStale in case
-                                // renderHeatmapToMap triggered a moveend event
-                                currentStoreF.setSweepField('sweepStale', false)
-                                const curElmF = currentStoreF.sweepCurrentElm || 1
-                                const totElmsF = currentStoreF.sweepTotalElms || 1
-                                const _overallDone = (curElmF / totElmsF) * 100
-                                currentStoreF.setSweepField('sweepProgressPct', _overallDone)
-                                if (typeof onComplete === 'function') onComplete()
-
-                                // Build atlas only for playback mode (expensive at high frame counts)
-                                const activeElAtlas = currentStoreF.elements[activeElmId]
-                                if (activeElAtlas?.shadeMode === 'playback') {
-                                    ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
-                                        ShadeTool.sweepShowAllFrames()
+                                    // Build atlas only for playback mode (expensive at high frame counts)
+                                    const activeElAtlas = storeH.elements[activeElmId]
+                                    if (activeElAtlas?.shadeMode === 'playback') {
+                                        ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
+                                            ShadeTool.sweepShowAllFrames()
+                                            if (totElmsF > 1) {
+                                                Toast.success('Shade ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
+                                            } else {
+                                                Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
+                                            }
+                                        })
+                                    } else {
+                                        storeH.setSweepField('sweepProgress', '')
+                                        storeH.setSweepField('sweepProgressPct', 100)
                                         if (totElmsF > 1) {
                                             Toast.success('Shade ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
                                         } else {
                                             Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
                                         }
-                                    })
-                                } else {
-                                    currentStoreF.setSweepField('sweepProgress', '')
-                                    if (totElmsF > 1) {
-                                        Toast.success('Shade ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
-                                    } else {
-                                        Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
                                     }
-                                }
+                                }, 0)
                             }
 
                             processChunk()

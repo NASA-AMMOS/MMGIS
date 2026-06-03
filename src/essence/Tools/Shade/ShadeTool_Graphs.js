@@ -680,23 +680,31 @@ const ShadeTool_Graphs = {
             ? (ed.localPlayIndex || 0)
             : store.sweepPlayIndex
 
-        // Draw trajectory arc
+        // Draw trajectory arc (break line at azimuth wrap-around)
         ctx.beginPath()
         ctx.strokeStyle = '#dbb658'
         ctx.lineWidth = 2
         let started = false
+        let prevDisplayAz = null
         for (let i = 0; i < results.length; i++) {
             const az = results[i].azimuth
             const el = results[i].elevation
             if (az == null || el == null) continue
+            const displayAz = _azToDisplay(az)
             const x = _azToPlotX(az, pad, plotW)
             const y = pad.top + plotH - ((el - minEl) / elRange) * plotH
             if (!started) {
                 ctx.moveTo(x, y)
                 started = true
+            } else if (prevDisplayAz != null && Math.abs(displayAz - prevDisplayAz) > 180) {
+                // Azimuth crossed ±180° boundary — break the line
+                ctx.stroke()
+                ctx.beginPath()
+                ctx.moveTo(x, y)
             } else {
                 ctx.lineTo(x, y)
             }
+            prevDisplayAz = displayAz
         }
         ctx.stroke()
 
