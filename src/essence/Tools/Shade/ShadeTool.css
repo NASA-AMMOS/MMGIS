@@ -561,7 +561,7 @@
     box-sizing: border-box;
 }
 #shadeTool .vstSweepPlaybarLeft {
-    justify-content: space-between;
+    justify-content: center;
     gap: 4px;
 }
 
@@ -571,13 +571,7 @@
     gap: 4px;
 }
 
-#shadeTool .vstLinkActive {
-    color: var(--color-mmgis);
-}
-#shadeTool .vstLinkInactive {
-    color: var(--color-a5);
-    opacity: 0.7;
-}
+
 
 #shadeTool .vstSweepTimeline {
     width: 100%;
@@ -1011,6 +1005,23 @@
 }
 .shadeGraphClose:hover {
     color: var(--color-f);
+}
+
+.shadeGraphExcludedInfo {
+    position: absolute;
+    top: 4px;
+    left: 8px;
+    z-index: 10;
+    font-size: 11px;
+    color: var(--color-a5);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+}
+.shadeGraphExcludedInfo .mdi {
+    font-size: 14px;
+    color: var(--color-a4);
 }
 
 .shadeGraphPanel {

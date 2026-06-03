@@ -296,35 +296,12 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         if (useShadeStore.getState().sweepPlaying) ShadeTool.sweepPlay()
     }, [])
 
-    const playbackLinked = ed?.playbackLinked !== false
-    const localPlayIndex = ed?.localPlayIndex || 0
-    const effectivePlayIndex = playbackLinked ? sweepPlayIndex : localPlayIndex
+    const effectivePlayIndex = sweepPlayIndex
 
     const handleTimelineScrub = useCallback((v) => {
-        const linked = useShadeStore.getState().sweepElData[elmId]?.playbackLinked !== false
-        if (linked) {
-            setSweepField('sweepPlayIndex', v)
-            ShadeTool.sweepShowAllFrames()
-        } else {
-            setSweepElField(elmId, 'localPlayIndex', v)
-            ShadeTool.sweepShowFrame(elmId)
-            // Update per-element frame label
-            const ed2 = useShadeStore.getState().sweepElData[elmId]
-            if (ed2?.results?.[v]?.time) {
-                const label = document.getElementById('vstSweepFrameLabel_' + elmId)
-                if (label) label.textContent = ed2.results[v].time.replace(/\.\d{3}Z$/, 'Z')
-            }
-        }
-    }, [elmId, setSweepField, setSweepElField])
-
-    const handleToggleLinked = useCallback(() => {
-        const current = useShadeStore.getState().sweepElData[elmId]?.playbackLinked !== false
-        if (current) {
-            // Unlinking: seed local index from global
-            setSweepElField(elmId, 'localPlayIndex', useShadeStore.getState().sweepPlayIndex)
-        }
-        setSweepElField(elmId, 'playbackLinked', !current)
-    }, [elmId, setSweepElField])
+        setSweepField('sweepPlayIndex', v)
+        ShadeTool.sweepShowAllFrames()
+    }, [setSweepField])
 
     const handleExport = useCallback((id, format) => {
         try {
@@ -802,14 +779,6 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                                     <i className="mdi mdi-skip-next mdi-18px" />
                                                 </IconButton>
                                             </div>
-                                            <Tooltip content={playbackLinked
-                                                ? 'Linked — playback is synchronized with all other linked shade maps. Click to unlink and control this shade map independently.'
-                                                : 'Unlinked — this shade map has its own independent playback timeline. Click to re-link and sync with other shade maps.'
-                                            }>
-                                                <IconButton size="md" onClick={handleToggleLinked} className={playbackLinked ? 'vstLinkActive' : 'vstLinkInactive'}>
-                                                    <i className={`mdi ${playbackLinked ? 'mdi-link-variant' : 'mdi-link-variant-off'} mdi-18px`} />
-                                                </IconButton>
-                                            </Tooltip>
                                         </div>
                                         {ed.grids && ed.grids.length > 0 && (
                                             <div className="vstSweepTimeline">

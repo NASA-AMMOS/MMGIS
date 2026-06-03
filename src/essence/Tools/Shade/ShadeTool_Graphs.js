@@ -51,7 +51,7 @@ const ShadeTool_Graphs = {
 
         // Height: horizon chart + visibility rows + time controls + padding
         const store = useShadeStore.getState()
-        const visCount = _getAllVisibilityElms(store).length
+        const visCount = _getFilteredVisibilityElms(store, elmId).included.length
         const visHeight = Math.max(40, visCount * 24 + 30)
         useUIStore.getState().setToolHeight(250 + visHeight)
 
@@ -176,6 +176,13 @@ const ShadeTool_Graphs = {
         closeBtn.title = 'Close graph'
         closeBtn.onclick = () => ShadeTool_Graphs.close()
         container.appendChild(closeBtn)
+
+        // --- Info banner (hidden by default, shown when elements are excluded) ---
+        const infoBanner = document.createElement('div')
+        infoBanner.id = 'shadeGraphExcludedInfo'
+        infoBanner.className = 'shadeGraphExcludedInfo'
+        infoBanner.style.display = 'none'
+        container.appendChild(infoBanner)
 
         // --- Horizon panel ---
         const hPanel = document.createElement('div')
@@ -439,7 +446,7 @@ const ShadeTool_Graphs = {
         if (!wrap) return
         const store = useShadeStore.getState()
         // Use the first element with results to determine frame count
-        const elms = _getAllVisibilityElms(store)
+        const { included: elms } = _getFilteredVisibilityElms(store, _activeElmId)
         if (elms.length === 0) return
         const frameCount = elms[0].ed.results.length
         if (frameCount === 0) return
@@ -731,9 +738,7 @@ const ShadeTool_Graphs = {
         if (!ed?.results || ed.results.length === 0) return
 
         const results = ed.results
-        const playIndex = (ed.playbackLinked === false)
-            ? (ed.localPlayIndex || 0)
-            : store.sweepPlayIndex
+        const playIndex = store.sweepPlayIndex
 
         // If color is very dark (e.g. black for element 0), brighten for visibility
         const brightness = color.r + color.g + color.b
@@ -809,11 +814,14 @@ const ShadeTool_Graphs = {
         if (!wrap) return
 
         const store = useShadeStore.getState()
-        const elms = _getAllVisibilityElms(store)
+        const { included: elms, excludedCount } = _getFilteredVisibilityElms(store, elmId)
         if (elms.length === 0) return
 
         const profile = _horizonCache?.profile
         const playIndex = store.sweepPlayIndex
+
+        // Show/update info message if some elements are excluded
+        ShadeTool_Graphs._updateExcludedInfo(excludedCount)
 
         // Clear previous content
         wrap.innerHTML = ''
@@ -987,6 +995,17 @@ const ShadeTool_Graphs = {
     invalidateHorizonCache() {
         _horizonCache = null
     },
+
+    _updateExcludedInfo(excludedCount) {
+        const el = document.getElementById('shadeGraphExcludedInfo')
+        if (!el) return
+        if (excludedCount > 0) {
+            el.innerHTML = `<i class="mdi mdi-information-outline"></i> ${excludedCount} shade map${excludedCount > 1 ? 's' : ''} excluded (different center or time range)`
+            el.style.display = ''
+        } else {
+            el.style.display = 'none'
+        }
+    },
 }
 
 /** Convert true azimuth (0..360) to display azimuth (-180..+180) with 0° at center */
@@ -1067,8 +1086,6 @@ function _getLinkedHorizonElms(store, primaryElmId) {
             continue
         }
 
-        if (ed.playbackLinked === false) continue
-
         // Compare sweep center
         if (primaryCenter && ed.sweepCenter) {
             if (Math.abs(primaryCenter.lat - ed.sweepCenter.lat) > 0.0001 ||
@@ -1093,28 +1110,61 @@ function _getLinkedHorizonElms(store, primaryElmId) {
     return out
 }
 
-/** Gather all elements that have sweep results for the visibility timeline */
-function _getAllVisibilityElms(store) {
-    const out = []
-    const order = store.elementOrder || []
-    for (const id of order) {
-        const el = store.elements[id]
-        const ed = store.sweepElData[id]
-        if (el && ed?.results && ed.results.length > 0) {
-            out.push({ id, el, ed })
-        }
+/** Gather elements whose sweep matches the primary element's center + time range.
+ *  Returns { included: [...], excludedCount: number } */
+function _getFilteredVisibilityElms(store, primaryElmId) {
+    const primaryEd = store.sweepElData[primaryElmId]
+    const primaryEl = store.elements[primaryElmId]
+    const included = []
+    let excludedCount = 0
+
+    if (!primaryEd?.results || primaryEd.results.length === 0 || !primaryEl) {
+        return { included, excludedCount }
     }
-    // If no order, iterate keys
-    if (out.length === 0) {
-        for (const id in store.elements) {
-            const el = store.elements[id]
-            const ed = store.sweepElData[id]
-            if (el && ed?.results && ed.results.length > 0) {
-                out.push({ id: parseInt(id), el, ed })
+
+    const primaryCenter = primaryEd.sweepCenter
+    const primaryStart = primaryEd.results[0]?.time
+    const primaryStep = primaryEd.results.length > 1 ? primaryEd.results[1]?.time : null
+    const primaryLen = primaryEd.results.length
+
+    // Collect all elements with sweep results
+    const allIds = store.elementOrder?.length > 0
+        ? store.elementOrder
+        : Object.keys(store.elements).map(Number)
+
+    for (const id of allIds) {
+        const numId = typeof id === 'number' ? id : parseInt(id)
+        const el = store.elements[numId]
+        const ed = store.sweepElData[numId]
+        if (!el || !ed?.results || ed.results.length === 0) continue
+
+        // Primary always included
+        if (numId === primaryElmId) {
+            included.push({ id: numId, el, ed })
+            continue
+        }
+
+        // Check center match
+        if (primaryCenter && ed.sweepCenter) {
+            if (Math.abs(primaryCenter.lat - ed.sweepCenter.lat) > 0.0001 ||
+                Math.abs(primaryCenter.lng - ed.sweepCenter.lng) > 0.0001) {
+                excludedCount++
+                continue
             }
         }
+
+        // Check time range match
+        const otherStart = ed.results[0]?.time
+        const otherStep = ed.results.length > 1 ? ed.results[1]?.time : null
+        if (primaryStart !== otherStart || primaryStep !== otherStep || ed.results.length !== primaryLen) {
+            excludedCount++
+            continue
+        }
+
+        included.push({ id: numId, el, ed })
     }
-    return out
+
+    return { included, excludedCount }
 }
 
 function _niceStep(range, targetTicks) {

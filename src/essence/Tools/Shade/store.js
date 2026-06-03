@@ -152,7 +152,7 @@ const useShadeStore = create((set, get) => ({
 
     setSweepField: (field, value) => set({ [field]: value }),
 
-    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: 1.0, colorRamp: 'shadow', discrete: false, atlas: null, lastData: null, lastOptions: null, minFrac: 0, maxFrac: 1, playbackLinked: true, localPlayIndex: 0, colorStops: null }),
+    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: 1.0, colorRamp: 'shadow', discrete: false, atlas: null, lastData: null, lastOptions: null, minFrac: 0, maxFrac: 1, colorStops: null }),
     getSweepElData: (elmId) => {
         return get().sweepElData[elmId] || null
     },

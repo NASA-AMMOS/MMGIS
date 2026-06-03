@@ -1972,7 +1972,7 @@ let ShadeTool = {
     sweepShowFrame: function (activeElmId) {
         const store = useShadeStore.getState()
         const ed = store.sweepElData[activeElmId]
-        const idx = (ed?.playbackLinked === false) ? (ed?.localPlayIndex || 0) : store.sweepPlayIndex
+        const idx = store.sweepPlayIndex
         const layerName = 'shade' + activeElmId
         const layer = L_.layers.layer[layerName]
 
