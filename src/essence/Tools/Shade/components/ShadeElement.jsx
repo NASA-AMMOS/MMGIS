@@ -398,12 +398,12 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         ShadeTool.drawSkyDome(skyDomeId, ed.results, effectivePlayIndex)
     }, [shadeMode, ed?.results, ed?.atlas, effectivePlayIndex, skyDomeId, resultsOpen])
 
-    // Auto-open Results when sweep data arrives for non-static modes
+    // Auto-open Results when sweep completes for non-static modes
     useEffect(() => {
-        if ((shadeMode === 'composite' || shadeMode === 'playback') && ed?.results && ed.results.length > 0 && !resultsOpen) {
+        if ((shadeMode === 'composite' || shadeMode === 'playback') && ed?.results && ed.results.length > 0 && !el?.regenerating && !resultsOpen) {
             setResultsOpen(true)
         }
-    }, [shadeMode, ed?.results])
+    }, [shadeMode, ed?.results, el?.regenerating])
 
     if (!el) return null
 
