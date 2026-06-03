@@ -44,7 +44,9 @@ function validateMissionsPath(rawPath) {
   }
   const resolved = path.resolve(path.join(rootDir, decoded));
   const allowed = path.resolve(rootDir, 'Missions');
-  if (!resolved.replace(/\\/g, '/').startsWith(allowed.replace(/\\/g, '/'))) {
+  const normalizedResolved = resolved.replace(/\\/g, '/');
+  const normalizedAllowed = allowed.replace(/\\/g, '/');
+  if (normalizedResolved !== normalizedAllowed && !normalizedResolved.startsWith(normalizedAllowed + '/')) {
     return { error: 'Invalid path: access denied.' };
   }
   return { decoded, resolved };
