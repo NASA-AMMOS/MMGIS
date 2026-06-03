@@ -166,7 +166,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
     const [sourceOpen, setSourceOpen] = useState(false)
     const [displayOpen, setDisplayOpen] = useState(false)
-    const [resultsOpen, setResultsOpen] = useState(true)
+    const [resultsOpen, setResultsOpen] = useState(shadeMode === 'static')
 
     const [colorPickerOpen, setColorPickerOpen] = useState(false)
     const [exportFormat, setExportFormat] = useState('png')
@@ -707,7 +707,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                 </div>
 
                 {/* — Results (collapsible, controlled by Run header) — */}
-                {resultsOpen && (
+                {resultsOpen && !el.regenerating && (
                         <div className="vstGroupContent">
                             {shadeMode === 'static' && (
                                 <ShadeResults elmId={elmId} />
