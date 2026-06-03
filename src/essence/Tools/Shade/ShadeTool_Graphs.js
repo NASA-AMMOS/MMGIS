@@ -26,6 +26,9 @@ let _onScrubCallback = null
 let _isDragging = false
 let _resizeObserver = null
 let _resizeTimeout = null
+let _windowResizeHandler = null
+let _storeUnsubscribe = null
+let _graphPlayInterval = null
 
 const ShadeTool_Graphs = {
     isOpen() {
@@ -76,9 +79,21 @@ const ShadeTool_Graphs = {
             cancelAnimationFrame(_animFrameId)
             _animFrameId = null
         }
+        if (_graphPlayInterval) {
+            clearInterval(_graphPlayInterval)
+            _graphPlayInterval = null
+        }
         if (_resizeObserver) {
             _resizeObserver.disconnect()
             _resizeObserver = null
+        }
+        if (_windowResizeHandler) {
+            window.removeEventListener('resize', _windowResizeHandler)
+            _windowResizeHandler = null
+        }
+        if (_storeUnsubscribe) {
+            _storeUnsubscribe()
+            _storeUnsubscribe = null
         }
 
         ShadeTool_Graphs.removeAzimuthLine()
@@ -223,9 +238,8 @@ const ShadeTool_Graphs = {
 
         tools.appendChild(container)
 
-        // Observe container resize to redraw graphs responsively
-        if (_resizeObserver) _resizeObserver.disconnect()
-        _resizeObserver = new ResizeObserver(() => {
+        // Redraw handler for resize events
+        const _scheduleRedraw = () => {
             if (!_graphOpen || !_activeElmId) return
             if (_resizeTimeout) clearTimeout(_resizeTimeout)
             _resizeTimeout = setTimeout(() => {
@@ -234,9 +248,28 @@ const ShadeTool_Graphs = {
                 } else if (_activeView === 'visibility') {
                     ShadeTool_Graphs.drawVisibilityTimeline(_activeElmId)
                 }
-            }, 50)
-        })
+            }, 60)
+        }
+
+        // ResizeObserver on container
+        if (_resizeObserver) _resizeObserver.disconnect()
+        _resizeObserver = new ResizeObserver(_scheduleRedraw)
         _resizeObserver.observe(container)
+
+        // Window resize listener
+        if (_windowResizeHandler) window.removeEventListener('resize', _windowResizeHandler)
+        _windowResizeHandler = _scheduleRedraw
+        window.addEventListener('resize', _windowResizeHandler)
+
+        // Subscribe to uiStore pxIsTools changes (splitter drag)
+        if (_storeUnsubscribe) _storeUnsubscribe()
+        let _lastPxIsTools = useUIStore.getState().pxIsTools
+        _storeUnsubscribe = useUIStore.subscribe((state) => {
+            if (state.pxIsTools !== _lastPxIsTools) {
+                _lastPxIsTools = state.pxIsTools
+                _scheduleRedraw()
+            }
+        })
     },
 
     registerScrubCallback(cb) {
@@ -312,16 +345,15 @@ const ShadeTool_Graphs = {
             ShadeTool_Graphs._scrubToFrame(idx)
         })
 
-        let playInterval = null
         playBtn.addEventListener('click', () => {
-            if (playInterval) {
-                clearInterval(playInterval)
-                playInterval = null
+            if (_graphPlayInterval) {
+                clearInterval(_graphPlayInterval)
+                _graphPlayInterval = null
                 playBtn.innerHTML = '<i class="mdi mdi-play mdi-14px"></i>'
             } else {
                 playBtn.innerHTML = '<i class="mdi mdi-pause mdi-14px"></i>'
                 const speed = useShadeStore.getState().sweepPlaySpeed || 500
-                playInterval = setInterval(() => {
+                _graphPlayInterval = setInterval(() => {
                     const s = useShadeStore.getState()
                     const fc = s.sweepElData[_activeElmId]?.results?.length || 0
                     if (fc === 0) return

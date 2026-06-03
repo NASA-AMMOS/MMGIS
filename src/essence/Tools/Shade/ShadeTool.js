@@ -29,6 +29,9 @@ import './ShadeTool.css'
 const sunColor = '#d2db58'
 const earthColor = '#58dbb8'
 
+let _compositeHoverRaf = null
+let _timeChangeDebounce = null
+
 let ShadeTool = {
     height: 0,
     width: 280,
@@ -106,6 +109,14 @@ let ShadeTool = {
         if (ShadeTool._sweepPlayTimer) {
             clearInterval(ShadeTool._sweepPlayTimer)
             ShadeTool._sweepPlayTimer = null
+        }
+        if (_compositeHoverRaf) {
+            cancelAnimationFrame(_compositeHoverRaf)
+            _compositeHoverRaf = null
+        }
+        if (_timeChangeDebounce) {
+            clearTimeout(_timeChangeDebounce)
+            _timeChangeDebounce = null
         }
         Map_.map.off('click', ShadeTool._onMapClick)
         Map_.map.off('moveend', ShadeTool._onPanEnd)
@@ -208,37 +219,40 @@ let ShadeTool = {
     },
 
     _onCompositeHover: function (e) {
-        const store = useShadeStore.getState()
-
+        if (_compositeHoverRaf) return
         const lat = e.latlng.lat
         const lng = e.latlng.lng
+        _compositeHoverRaf = requestAnimationFrame(() => {
+            _compositeHoverRaf = null
+            const store = useShadeStore.getState()
 
-        for (const id in store.sweepElData) {
-            const ed = store.sweepElData[id]
-            const el = store.elements[id]
-            if (!ed?.heatmap || !ed?.lastData || el?.shadeMode !== 'composite') continue
-            const data = ed.lastData
-            const heatmap = ed.heatmap
-            const tileRes = data.tileResolution
-            const topLeft = data.topLeftTile
-            const zoom = topLeft.z
+            for (const id in store.sweepElData) {
+                const ed = store.sweepElData[id]
+                const el = store.elements[id]
+                if (!ed?.heatmap || !ed?.lastData || el?.shadeMode !== 'composite') continue
+                const data = ed.lastData
+                const heatmap = ed.heatmap
+                const tileRes = data.tileResolution
+                const topLeft = data.topLeftTile
+                const zoom = topLeft.z
 
-            const tile = Globe_.litho.projection.latLngZ2TileXYZ(lat, lng, zoom, true)
-            const col = Math.floor((tile.x - topLeft.x) * tileRes)
-            const row = Math.floor((tile.y - topLeft.y) * tileRes)
+                const tile = Globe_.litho.projection.latLngZ2TileXYZ(lat, lng, zoom, true)
+                const col = Math.floor((tile.x - topLeft.x) * tileRes)
+                const row = Math.floor((tile.y - topLeft.y) * tileRes)
 
-            if (row < 0 || col < 0 || row >= heatmap.length || !heatmap[row] || col >= heatmap[row].length) {
-                store.setSweepElField(parseInt(id), 'hoverFrac', null)
-                continue
+                if (row < 0 || col < 0 || row >= heatmap.length || !heatmap[row] || col >= heatmap[row].length) {
+                    store.setSweepElField(parseInt(id), 'hoverFrac', null)
+                    continue
+                }
+
+                const frac = heatmap[row][col]
+                if (frac == null || frac < 0 || !Number.isFinite(frac)) {
+                    store.setSweepElField(parseInt(id), 'hoverFrac', null)
+                } else {
+                    store.setSweepElField(parseInt(id), 'hoverFrac', frac)
+                }
             }
-
-            const frac = heatmap[row][col]
-            if (frac == null || frac < 0 || !Number.isFinite(frac)) {
-                store.setSweepElField(parseInt(id), 'hoverFrac', null)
-            } else {
-                store.setSweepElField(parseInt(id), 'hoverFrac', frac)
-            }
-        }
+        })
     },
 
     _onCompositeHoverEnd: function () {
@@ -249,16 +263,19 @@ let ShadeTool = {
     },
 
     _onTimeChange: function (rawTime) {
-        const store = useShadeStore.getState()
-        for (const id in store.elements) {
-            const el = store.elements[id]
-            if (!el) continue
-            if (el.resolution <= 1) {
-                ShadeTool.shade(null, parseInt(id))
-            } else {
-                store.updateElement(parseInt(id), { changed: true, lastError: false })
+        if (_timeChangeDebounce) clearTimeout(_timeChangeDebounce)
+        _timeChangeDebounce = setTimeout(() => {
+            const store = useShadeStore.getState()
+            for (const id in store.elements) {
+                const el = store.elements[id]
+                if (!el) continue
+                if (el.resolution <= 1) {
+                    ShadeTool.shade(null, parseInt(id))
+                } else {
+                    store.updateElement(parseInt(id), { changed: true, lastError: false })
+                }
             }
-        }
+        }, 300)
     },
 
     // === Core Shade Computation ===
