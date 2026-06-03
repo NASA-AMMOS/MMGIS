@@ -811,7 +811,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                                 title="Toggle Horizon + Visibility charts"
                                                 onClick={() => ShadeTool_Graphs.toggle(elmId)}
                                                 icon={<i className="mdi mdi-chart-areaspline" />}
-                                                style={{ width: '100%', justifyContent: 'center' }}
+                                                style={{ width: '100%', justifyContent: 'center', color: 'var(--color-a7)' }}
                                             >
                                                 Charts
                                             </IconTextButton>
