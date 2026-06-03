@@ -1068,17 +1068,32 @@ const ShadeTool_Graphs = {
         const rect = container.getBoundingClientRect()
         const labelW = 90 // approximate width per label
         const maxLabels = Math.max(2, Math.floor(rect.width / labelW))
-        const step = Math.max(1, Math.floor(results.length / maxLabels))
+        const n = results.length
+        const last = n - 1
+        const step = Math.max(1, Math.floor(last / (maxLabels - 1)))
 
-        for (let i = 0; i < results.length; i += step) {
+        for (let i = 0; i <= last; i += step) {
+            // Always include the very last frame
+            if (i > last) i = last
             const t = results[i].time
             if (!t) continue
-            const pct = (i / results.length) * 100
+            const pct = last > 0 ? (i / last) * 100 : 0
             const tick = document.createElement('div')
             tick.className = 'shadeVisTimeTick'
             tick.style.left = pct + '%'
             tick.innerHTML = `<div class="shadeVisTimeTickLine"></div><div class="shadeVisTimeTickText">${_formatSmartTimeLabel(t, omitYear)}</div>`
             container.appendChild(tick)
+        }
+        // Ensure the last tick is always present
+        if (last > 0 && last % step !== 0) {
+            const t = results[last].time
+            if (t) {
+                const tick = document.createElement('div')
+                tick.className = 'shadeVisTimeTick'
+                tick.style.left = '100%'
+                tick.innerHTML = `<div class="shadeVisTimeTickLine"></div><div class="shadeVisTimeTickText">${_formatSmartTimeLabel(t, omitYear)}</div>`
+                container.appendChild(tick)
+            }
         }
     },
 
