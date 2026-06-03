@@ -156,12 +156,34 @@ let ShadeTool = {
         ch.className = 'shadeCenterCrosshair'
         ch.innerHTML = '<div class="shadeCrosshairH"></div><div class="shadeCrosshairV"></div>'
         mapEl.appendChild(ch)
+        Map_.map.on('move', ShadeTool._updateCrosshairPosition)
     },
 
     _removeCenterCrosshair() {
         const ch = document.getElementById('shadeCenterCrosshair')
         if (ch) ch.remove()
+        Map_.map.off('move', ShadeTool._updateCrosshairPosition)
         ShadeTool_Graphs.removeAzimuthLine()
+    },
+
+    _updateCrosshairPosition() {
+        const ch = document.getElementById('shadeCenterCrosshair')
+        if (!ch) return
+        const store = useShadeStore.getState()
+        // Find sweep center from active element
+        const activeId = store.activeElmId
+        const ed = activeId != null ? store.sweepElData[activeId] : null
+        if (ed?.sweepCenter) {
+            const pt = Map_.map.latLngToContainerPoint(ed.sweepCenter)
+            ch.style.left = pt.x + 'px'
+            ch.style.top = pt.y + 'px'
+        } else {
+            const mapEl = document.getElementById('map')
+            if (mapEl) {
+                ch.style.left = '50%'
+                ch.style.top = '50%'
+            }
+        }
     },
 
     // === Map Event Handlers ===
@@ -1073,9 +1095,12 @@ let ShadeTool = {
         const atlasW = ShadeTool._nextPow2(contentW)
         const atlasH = ShadeTool._nextPow2(contentH)
 
-        // Render frames in chunks to avoid blocking the main thread
+        const store = useShadeStore.getState()
+        store.setSweepField('sweepProgress', 'Building atlas: rendering frames...')
+
+        // Render frames in smaller chunks to keep UI responsive
         const frameCanvases = []
-        const ATLAS_CHUNK = 16
+        const ATLAS_CHUNK = 4
         let fi = 0
 
         function renderFrameChunk() {
@@ -1091,39 +1116,70 @@ let ShadeTool = {
                 }
             }
             if (fi < numFrames) {
+                const pct = Math.round((fi / numFrames) * 80)
+                useShadeStore.getState().setSweepField(
+                    'sweepProgress',
+                    'Building atlas: ' + pct + '%'
+                )
                 setTimeout(renderFrameChunk, 0)
             } else {
-                setTimeout(assembleAtlas, 0)
+                useShadeStore.getState().setSweepField(
+                    'sweepProgress',
+                    'Building atlas: assembling...'
+                )
+                setTimeout(assembleAtlasChunked, 0)
             }
         }
 
-        function assembleAtlas() {
-            const atlasDl = {}
-            for (let j = 0; j <= data.outputTopLeftTile.h; j++) {
-                for (let i = 0; i <= data.outputTopLeftTile.w; i++) {
-                    const z = data.outputTopLeftTile.z
-                    const x = Math.floor(data.outputTopLeftTile.x + i)
-                    const y = Math.floor(data.outputTopLeftTile.y + j)
-
-                    const atlas = document.createElement('canvas')
-                    atlas.width = atlasW
-                    atlas.height = atlasH
-                    const actx = atlas.getContext('2d')
-
-                    for (let f = 0; f < numFrames; f++) {
-                        const fc = frameCanvases[f]
-                        if (!fc || !fc[z] || !fc[z][x] || !fc[z][x][y]) continue
-                        const col = f % atlasCols
-                        const row = Math.floor(f / atlasCols)
-                        actx.drawImage(fc[z][x][y], col * res, row * res)
-                    }
-
-                    atlasDl[z] = atlasDl[z] || {}
-                    atlasDl[z][x] = atlasDl[z][x] || {}
-                    atlasDl[z][x][y] = atlas.toDataURL()
-                }
+        // Build list of tiles to process, then assemble in chunks
+        const tilesToProcess = []
+        for (let j = 0; j <= data.outputTopLeftTile.h; j++) {
+            for (let i = 0; i <= data.outputTopLeftTile.w; i++) {
+                tilesToProcess.push({ i, j })
             }
+        }
+        const atlasDl = {}
+        let ti = 0
+        const TILE_CHUNK = 2
 
+        function assembleAtlasChunked() {
+            const end = Math.min(ti + TILE_CHUNK, tilesToProcess.length)
+            for (; ti < end; ti++) {
+                const { i, j } = tilesToProcess[ti]
+                const z = data.outputTopLeftTile.z
+                const x = Math.floor(data.outputTopLeftTile.x + i)
+                const y = Math.floor(data.outputTopLeftTile.y + j)
+
+                const atlas = document.createElement('canvas')
+                atlas.width = atlasW
+                atlas.height = atlasH
+                const actx = atlas.getContext('2d')
+
+                for (let f = 0; f < numFrames; f++) {
+                    const fc = frameCanvases[f]
+                    if (!fc || !fc[z] || !fc[z][x] || !fc[z][x][y]) continue
+                    const col = f % atlasCols
+                    const row = Math.floor(f / atlasCols)
+                    actx.drawImage(fc[z][x][y], col * res, row * res)
+                }
+
+                atlasDl[z] = atlasDl[z] || {}
+                atlasDl[z][x] = atlasDl[z][x] || {}
+                atlasDl[z][x][y] = atlas.toDataURL()
+            }
+            if (ti < tilesToProcess.length) {
+                const pct = 80 + Math.round((ti / tilesToProcess.length) * 20)
+                useShadeStore.getState().setSweepField(
+                    'sweepProgress',
+                    'Building atlas: ' + pct + '%'
+                )
+                setTimeout(assembleAtlasChunked, 0)
+            } else {
+                finalizeAtlas()
+            }
+        }
+
+        function finalizeAtlas() {
             useShadeStore.getState().setSweepElField(activeElmId, 'atlas', {
                 dl: atlasDl,
                 atlasCols: atlasCols,
@@ -1131,6 +1187,7 @@ let ShadeTool = {
                 atlasScaleS: contentW / atlasW,
                 atlasScaleT: contentH / atlasH,
             })
+            useShadeStore.getState().setSweepField('sweepProgress', '')
             if (typeof onDone === 'function') onDone()
         }
 
@@ -1472,6 +1529,10 @@ let ShadeTool = {
                                 currentStoreF.setSweepField('sweepPlayIndex', 0)
                                 currentStoreF.setSweepElField(activeElmId, 'lastData', data)
                                 currentStoreF.setSweepElField(activeElmId, 'lastOptions', options)
+                                currentStoreF.setSweepElField(activeElmId, 'sweepCenter', {
+                                    lat: source.lat,
+                                    lng: source.lng,
+                                })
 
                                 // Compute heatmap (used by composite mode and as data for playback)
                                 if (sweepGrids.length > 0) {
@@ -1507,13 +1568,7 @@ let ShadeTool = {
                                 const curElmF = currentStoreF.sweepCurrentElm || 1
                                 const totElmsF = currentStoreF.sweepTotalElms || 1
                                 const _overallDone = (curElmF / totElmsF) * 100
-                                currentStoreF.setSweepField('sweepProgress', '')
                                 currentStoreF.setSweepField('sweepProgressPct', _overallDone)
-                                if (totElmsF > 1) {
-                                    Toast.success('Shade ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
-                                } else {
-                                    Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
-                                }
                                 if (typeof onComplete === 'function') onComplete()
 
                                 // Build atlas only for playback mode (expensive at high frame counts)
@@ -1521,7 +1576,19 @@ let ShadeTool = {
                                 if (activeElAtlas?.shadeMode === 'playback') {
                                     ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
                                         ShadeTool.sweepShowAllFrames()
+                                        if (totElmsF > 1) {
+                                            Toast.success('Shade ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
+                                        } else {
+                                            Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
+                                        }
                                     })
+                                } else {
+                                    currentStoreF.setSweepField('sweepProgress', '')
+                                    if (totElmsF > 1) {
+                                        Toast.success('Shade ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
+                                    } else {
+                                        Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
+                                    }
                                 }
                             }
 

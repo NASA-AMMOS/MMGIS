@@ -135,13 +135,18 @@ const ShadeTool_Graphs = {
 
         const store = useShadeStore.getState()
         const mapRect = mapEl.getBoundingClientRect()
-        const cx = mapRect.width / 2
-        const cy = mapRect.height / 2
 
-        let centerPx = { x: cx, y: cy }
-        if (store.indicatorLastDragPoint) {
+        // Use sweep-time center if available
+        const ed = _activeElmId != null ? store.sweepElData[_activeElmId] : null
+        let centerPx
+        if (ed?.sweepCenter) {
+            const pt = Map_.map.latLngToContainerPoint(ed.sweepCenter)
+            centerPx = { x: pt.x, y: pt.y }
+        } else if (store.indicatorLastDragPoint) {
             const pt = Map_.map.latLngToContainerPoint(store.indicatorLastDragPoint)
             centerPx = { x: pt.x, y: pt.y }
+        } else {
+            centerPx = { x: mapRect.width / 2, y: mapRect.height / 2 }
         }
 
         const lineLen = Math.max(mapRect.width, mapRect.height)
@@ -449,15 +454,22 @@ const ShadeTool_Graphs = {
         let demUrl = vars.dem
         if (!F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
 
-        const mapRect = document.getElementById('map').getBoundingClientRect()
-        const wOffset = mapRect.width / 2
-        const hOffset = mapRect.height / 2
-        let centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
-        if (store.indicatorLastDragPoint)
-            centerLatLng = store.indicatorLastDragPoint
-
-        const lat = parseFloat(centerLatLng.lat)
-        const lng = parseFloat(centerLatLng.lng)
+        // Use the sweep-time observer center (not current map center)
+        const ed = store.sweepElData[elmId]
+        let lat, lng
+        if (ed?.sweepCenter) {
+            lat = ed.sweepCenter.lat
+            lng = ed.sweepCenter.lng
+        } else {
+            const mapRect = document.getElementById('map').getBoundingClientRect()
+            const wOffset = mapRect.width / 2
+            const hOffset = mapRect.height / 2
+            let centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
+            if (store.indicatorLastDragPoint)
+                centerLatLng = store.indicatorLastDragPoint
+            lat = parseFloat(centerLatLng.lat)
+            lng = parseFloat(centerLatLng.lng)
+        }
         const height = !isNaN(parseFloat(el.height)) ? parseFloat(el.height) : 2
 
         if (
