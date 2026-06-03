@@ -674,12 +674,31 @@ const ShadeTool_Graphs = {
         const minEl = minHorizon - 5
         const elRange = maxEl - minEl
 
-        // Fixed dark background so chart is legible in both themes
-        ctx.fillStyle = '#1a1e22'
+        // Theme-responsive colors
+        const rootStyle = getComputedStyle(document.documentElement)
+        const bgColor = rootStyle.getPropertyValue('--color-a').trim() || '#1d1f20'
+        const textColor = rootStyle.getPropertyValue('--color-f').trim() || '#e1e1e1'
+        const mutedColor = rootStyle.getPropertyValue('--color-a4').trim() || '#949a9e'
+        // Detect light mode: if background is light (rough heuristic)
+        const isLight = (() => {
+            const c = bgColor.replace('#', '')
+            if (c.length === 6) {
+                const r = parseInt(c.substring(0, 2), 16)
+                const g = parseInt(c.substring(2, 4), 16)
+                const b = parseInt(c.substring(4, 6), 16)
+                return (r + g + b) / 3 > 128
+            }
+            return false
+        })()
+        const gridAlpha = isLight ? 0.12 : 0.1
+        const gridBrightAlpha = isLight ? 0.3 : 0.25
+        const zeroLineAlpha = isLight ? 0.35 : 0.3
+
+        ctx.fillStyle = bgColor
         ctx.fillRect(0, 0, w, h)
 
         // Grid — north-centered: display -180..+180
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)'
+        ctx.strokeStyle = `rgba(${isLight ? '0,0,0' : '255,255,255'},${gridAlpha})`
         ctx.lineWidth = 1
         const azTicks = [-180, -135, -90, -45, 0, 45, 90, 135, 180]
         const azLabels = ['180°S', '225°SW', '270°W', '315°NW', '0°N', '45°NE', '90°E', '135°SE', '180°S']
@@ -692,13 +711,13 @@ const ShadeTool_Graphs = {
         }
         // Center line (North) — slightly brighter
         const northX = pad.left + 0.5 * plotW
-        ctx.strokeStyle = 'rgba(255,255,255,0.25)'
+        ctx.strokeStyle = `rgba(${isLight ? '0,0,0' : '255,255,255'},${gridBrightAlpha})`
         ctx.beginPath()
         ctx.moveTo(northX, pad.top)
         ctx.lineTo(northX, pad.top + plotH)
         ctx.stroke()
 
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)'
+        ctx.strokeStyle = `rgba(${isLight ? '0,0,0' : '255,255,255'},${gridAlpha})`
         const elStep = _niceStep(elRange, 5)
         let elTick = Math.ceil(minEl / elStep) * elStep
         while (elTick <= maxEl) {
@@ -712,7 +731,7 @@ const ShadeTool_Graphs = {
 
         // 0° elevation line
         const zeroY = pad.top + plotH - ((0 - minEl) / elRange) * plotH
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)'
+        ctx.strokeStyle = `rgba(${isLight ? '0,0,0' : '255,255,255'},${zeroLineAlpha})`
         ctx.setLineDash([4, 4])
         ctx.beginPath()
         ctx.moveTo(pad.left, zeroY)
@@ -751,7 +770,7 @@ const ShadeTool_Graphs = {
         }
         ctx.lineTo(pad.left + plotW, fillBottom)
         ctx.closePath()
-        ctx.fillStyle = 'rgba(90,62,35,0.8)'
+        ctx.fillStyle = isLight ? 'rgba(160,120,70,0.45)' : 'rgba(90,62,35,0.8)'
         ctx.fill()
 
         // Horizon outline
@@ -774,7 +793,7 @@ const ShadeTool_Graphs = {
         }
 
         // Elevation tick labels only (no azimuth x-axis labels)
-        ctx.fillStyle = 'rgba(255,255,255,0.7)'
+        ctx.fillStyle = mutedColor
         ctx.font = '10px sans-serif'
         ctx.textAlign = 'right'
         elTick = Math.ceil(minEl / elStep) * elStep
@@ -785,7 +804,7 @@ const ShadeTool_Graphs = {
         }
 
         // Elevation axis title
-        ctx.fillStyle = 'rgba(255,255,255,0.5)'
+        ctx.fillStyle = mutedColor
         ctx.font = '11px sans-serif'
         ctx.textAlign = 'center'
         ctx.save()
@@ -797,7 +816,7 @@ const ShadeTool_Graphs = {
         // North arrow at top center (upward-pointing)
         const northArrowX = northX
         const northArrowY = pad.top - 2
-        ctx.fillStyle = 'rgba(255,255,255,0.85)'
+        ctx.fillStyle = textColor
         ctx.font = 'bold 11px sans-serif'
         ctx.textAlign = 'center'
         // Upward-pointing triangle (more gap between triangle and N)
