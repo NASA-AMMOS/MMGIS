@@ -94,6 +94,9 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
     local_obs_x = obs_px - xoff
     local_obs_y = obs_py - yoff
 
+    if local_obs_x < 0 or local_obs_x >= regionW or local_obs_y < 0 or local_obs_y >= regionH:
+        return [[i * (360.0 / num_azimuths), 0.0] for i in range(num_azimuths)]
+
     obs_elev_val = region[local_obs_y, local_obs_x]
     if noData is not None and _isNoData(obs_elev_val, noData):
         obs_elev = 0.0
