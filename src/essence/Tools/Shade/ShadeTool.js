@@ -33,29 +33,24 @@ const earthColor = '#58dbb8'
 let _compositeHoverRaf = null
 let _timeChangeDebounce = null
 
-// Throttled sweep progress — only flushes to the Zustand store at most
-// every 50 ms so React can actually repaint between updates.
-let _lastProgressFlush = 0
-let _pendingPct = null
-let _pendingMsg = null
-let _highWaterPct = 0
-let _sweepingElmId = null
-function _flushSweepProgress(pct, msg, force) {
+// Per-element sweep run IDs and progress tracking so multiple sweeps can run simultaneously.
+const _sweepRunIds = {}     // elmId → runId
+const _highWaterPcts = {}   // elmId → highest pct seen
+const _lastFlushTimes = {}  // elmId → performance.now()
+function _flushSweepProgress(elmId, pct, msg, force) {
+    if (elmId == null) return
     // Monotonic: never let displayed percentage go backwards
-    if (pct < _highWaterPct && !force) pct = _highWaterPct
-    if (pct > _highWaterPct) _highWaterPct = pct
-    _pendingPct = pct
-    if (msg !== undefined) _pendingMsg = msg
+    const hw = _highWaterPcts[elmId] || 0
+    if (pct < hw && !force) pct = hw
+    if (pct > hw) _highWaterPcts[elmId] = pct
     const now = performance.now()
-    if (force || now - _lastProgressFlush >= 50) {
-        _lastProgressFlush = now
+    const lastFlush = _lastFlushTimes[elmId] || 0
+    if (force || now - lastFlush >= 50) {
+        _lastFlushTimes[elmId] = now
         const s = useShadeStore.getState()
-        if (_pendingMsg !== null) { s.setSweepField('sweepProgress', _pendingMsg); _pendingMsg = null }
-        s.setSweepField('sweepProgressPct', _pendingPct)
-        const targetElm = _sweepingElmId != null ? _sweepingElmId : s.activeElmId
-        if (targetElm != null) {
-            s.updateElement(targetElm, { loadingProgress: _pendingPct })
-        }
+        if (msg !== undefined && msg !== null) s.setSweepField('sweepProgress', msg)
+        s.setSweepField('sweepProgressPct', pct)
+        s.updateElement(elmId, { loadingProgress: pct })
     }
 }
 
@@ -64,7 +59,6 @@ let ShadeTool = {
     width: 300,
     _root: null,
     _sweepPlayTimer: null,
-    _sweepRunId: 0,
 
     initialize: function () {
         const vars = L_.getToolVars('shade')
@@ -1215,7 +1209,7 @@ let ShadeTool = {
 
         const store = useShadeStore.getState()
         store.setSweepField('sweepProgress', 'Building atlas...')
-        _flushSweepProgress(55, undefined, true)
+        _flushSweepProgress(activeElmId, 55, undefined, true)
 
         // Build list of tiles to process
         const tilesToProcess = []
@@ -1325,7 +1319,7 @@ let ShadeTool = {
                     const totalWork = tilesToProcess.length * numFrames
                     const doneWork = tileIdx * numFrames + frameIdx
                     const pct = 55 + Math.round((doneWork / totalWork) * 35)
-                    _flushSweepProgress(pct, 'Building atlas: ' + Math.round((doneWork / totalWork) * 100) + '%')
+                    _flushSweepProgress(activeElmId, pct, 'Building atlas: ' + Math.round((doneWork / totalWork) * 100) + '%')
                     requestAnimationFrame(renderFramesForTile)
                 } else {
                     // All frames rendered for this tile — encode to dataURL
@@ -1335,7 +1329,7 @@ let ShadeTool = {
 
                     tileIdx++
                     const pct = 55 + Math.round((tileIdx / tilesToProcess.length) * 40)
-                    _flushSweepProgress(Math.min(pct, 95), 'Building atlas: tile ' + tileIdx + '/' + tilesToProcess.length)
+                    _flushSweepProgress(activeElmId, Math.min(pct, 95), 'Building atlas: tile ' + tileIdx + '/' + tilesToProcess.length)
                     requestAnimationFrame(processTile)
                 }
             }
@@ -1352,7 +1346,7 @@ let ShadeTool = {
                 atlasScaleT: contentH / atlasH,
             })
             useShadeStore.getState().setSweepField('sweepProgress', '')
-            _flushSweepProgress(100, undefined, true)
+            _flushSweepProgress(activeElmId, 100, undefined, true)
             if (typeof onDone === 'function') onDone()
         }
 
@@ -1398,25 +1392,29 @@ let ShadeTool = {
     // === Time-Range Sweep ===
 
     cancelSweep: function () {
-        ShadeTool._sweepRunId++
+        // Cancel all in-flight sweeps
+        for (const id in _sweepRunIds) {
+            _sweepRunIds[id] = (_sweepRunIds[id] || 0) + 1
+        }
+        ShadeTool._sweepAllRunId = (ShadeTool._sweepAllRunId || 0) + 1
         const store = useShadeStore.getState()
         store.setSweepField('sweepProgress', '')
-        _flushSweepProgress(0, undefined, true)
         // Reset all elements stuck in regenerating state
         for (const id in store.elements) {
+            const numId = parseInt(id)
+            _flushSweepProgress(numId, 0, undefined, true)
             if (store.elements[id]?.regenerating) {
-                store.updateElement(parseInt(id), { regenerating: false, loading: false, loadingProgress: 0 })
+                store.updateElement(numId, { regenerating: false, loading: false, loadingProgress: 0 })
             }
         }
         Toast.info('Sweep cancelled.', 3000)
     },
 
-    shadeSweep: function (startTime, endTime, stepMinutes, onComplete) {
-        _highWaterPct = 0
-        const sweepRunId = ShadeTool._sweepRunId
+    shadeSweep: function (startTime, endTime, stepMinutes, activeElmId, onComplete) {
+        _highWaterPcts[activeElmId] = 0
+        _sweepRunIds[activeElmId] = (_sweepRunIds[activeElmId] || 0) + 1
+        const sweepRunId = _sweepRunIds[activeElmId]
         const store = useShadeStore.getState()
-        const activeElmId = store.activeElmId
-        _sweepingElmId = activeElmId
         if (activeElmId == null) { if (onComplete) onComplete(); return }
 
         if (ShadeTool._sweepPlayTimer) {
@@ -1519,7 +1517,7 @@ let ShadeTool = {
         const totElms = store.sweepTotalElms || 1
         const pfx = totElms > 1 ? ('Shade ' + curElm + ' of ' + totElms + ': ') : ''
         store.setSweepField('sweepProgress', pfx + 'Loading tiles...')
-        _flushSweepProgress(((curElm - 1) / totElms) * 100, undefined, true)
+        _flushSweepProgress(activeElmId, ((curElm - 1) / totElms) * 100, undefined, true)
 
         calls.api(
             'getbands',
@@ -1551,7 +1549,7 @@ let ShadeTool = {
                         const p = te > 1 ? ('Shade ' + ce + ' of ' + te + ': ') : ''
                         // Tile loading is 0-5% of overall progress
                         const tilePct = ((ce - 1) / te) * 100 + ((parseInt(progress) * 0.05) / te)
-                        _flushSweepProgress(tilePct, p + 'Tiles: ' + parseInt(progress) + '%')
+                        _flushSweepProgress(activeElmId, tilePct, p + 'Tiles: ' + parseInt(progress) + '%')
                     },
                     function (data) {
                         const sweepResults = []
@@ -1570,7 +1568,7 @@ let ShadeTool = {
                         const prefix0 = totElms0 > 1 ? ('Shade ' + curElm0 + ' of ' + totElms0 + ': ') : ''
                         currentStore0.setSweepField('sweepProgress', prefix0 + 'Computing positions...')
                         // Positions API call is 5-15% of overall progress
-                        _flushSweepProgress(((curElm0 - 1) / totElms0) * 100 + (5 / totElms0), undefined, true)
+                        _flushSweepProgress(activeElmId, ((curElm0 - 1) / totElms0) * 100 + (5 / totElms0), undefined, true)
 
                         const targetBulkPromises = selectedTargets.map(
                             (tgt) =>
@@ -1599,7 +1597,7 @@ let ShadeTool = {
                         )
 
                         Promise.all(targetBulkPromises).then((allTargetResults) => {
-                            if (sweepRunId !== ShadeTool._sweepRunId) return
+                            if (sweepRunId !== _sweepRunIds[activeElmId]) return
 
                             // Process timesteps in small batches, yielding to the
                             // event loop between batches so the UI stays responsive
@@ -1607,7 +1605,7 @@ let ShadeTool = {
                             let ti = 0
 
                             function processChunk() {
-                                if (sweepRunId !== ShadeTool._sweepRunId) return
+                                if (sweepRunId !== _sweepRunIds[activeElmId]) return
                                 const chunkEnd = Math.min(ti + CHUNK, total)
                                 for (; ti < chunkEnd; ti++) {
                                     const ts = timestamps[ti]
@@ -1685,7 +1683,7 @@ let ShadeTool = {
                                 const elmFrac = ti / total
                                 const overallPct = ((curElm - 1) / totElms) * 100 + ((15 + elmFrac * 35) / totElms)
                                 const prefix = totElms > 1 ? ('Shade ' + curElm + ' of ' + totElms + ': ') : ''
-                                _flushSweepProgress(overallPct, prefix + 'Computing shade ' + ti + '/' + total)
+                                _flushSweepProgress(activeElmId, overallPct, prefix + 'Computing shade ' + ti + '/' + total)
                                 if (ti < total) {
                                     requestAnimationFrame(processChunk)
                                     return
@@ -1707,7 +1705,7 @@ let ShadeTool = {
                                 })
 
                                 currentStoreF.setSweepField('sweepProgress', 'Computing heatmap...')
-                                _flushSweepProgress(50, undefined, true)
+                                _flushSweepProgress(activeElmId, 50, undefined, true)
 
                                 // Yield to let progress update paint, then compute heatmap
                                 setTimeout(function () {
@@ -1764,7 +1762,7 @@ let ShadeTool = {
                                     } else {
                                         if (typeof onComplete === 'function') onComplete()
                                         storeH.setSweepField('sweepProgress', '')
-                                        _flushSweepProgress(100, undefined, true)
+                                        _flushSweepProgress(activeElmId, 100, undefined, true)
                                         if (totElmsF > 1) {
                                             Toast.success('Shade ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
                                         } else {
@@ -1787,7 +1785,7 @@ let ShadeTool = {
                 useShadeStore
                     .getState()
                     .setSweepField('sweepProgress', '')
-                _flushSweepProgress(0, undefined, true)
+                _flushSweepProgress(activeElmId, 0, undefined, true)
                 if (typeof onComplete === 'function') onComplete()
             }
         )
@@ -1803,15 +1801,7 @@ let ShadeTool = {
             Toast.warning('Set sweep Start Time, End Time and Step Size.', 6000)
             return
         }
-        ShadeTool._sweepRunId++
         store.setSweepField('sweepStale', false)
-        // Reset any other elements stuck in regenerating state from a cancelled sweep
-        for (const id in store.elements) {
-            const numId = parseInt(id)
-            if (numId !== elmId && store.elements[numId]?.regenerating) {
-                store.updateElement(numId, { regenerating: false, loading: false, loadingProgress: 0 })
-            }
-        }
         store.setActiveElmId(elmId)
         store.setSweepField('sweepTotalElms', 1)
         store.setSweepField('sweepCurrentElm', 1)
@@ -1825,21 +1815,23 @@ let ShadeTool = {
         Map_.rmNotNull(L_.layers.layer['shade' + elmId])
         L_.layers.layer['shade' + elmId] = null
         store.updateElement(elmId, { regenerating: true, loadingProgress: 0, sweepProgress: 'Starting...' })
-        ShadeTool.shadeSweep(startTime, endTime, stepMinutes, function () {
+        ShadeTool.shadeSweep(startTime, endTime, stepMinutes, elmId, function () {
             const s = useShadeStore.getState()
             s.updateElement(elmId, { regenerating: false, loadingProgress: 0, changed: false, sweepProgress: '' })
         })
     },
 
     shadeSweepAll: function (startTime, endTime, stepMinutes) {
-        ShadeTool._sweepRunId++
-        const runId = ShadeTool._sweepRunId
+        ShadeTool._sweepAllRunId = (ShadeTool._sweepAllRunId || 0) + 1
+        const runId = ShadeTool._sweepAllRunId
         const store = useShadeStore.getState()
         store.setSweepField('sweepStale', false)
 
-        // Reset all elements' loading state from any previous (potentially cancelled) sweep
+        // Cancel and reset all elements' loading state from any previous sweep
         for (const id in store.elements) {
-            store.updateElement(parseInt(id), { loading: false, regenerating: false, loadingProgress: 0 })
+            const numId = parseInt(id)
+            _sweepRunIds[numId] = (_sweepRunIds[numId] || 0) + 1
+            store.updateElement(numId, { loading: false, regenerating: false, loadingProgress: 0 })
         }
 
         // Clear existing shade map layers and old sweep layers from the map
@@ -1866,11 +1858,10 @@ let ShadeTool = {
         // Serialize sweeps to avoid concurrent writes to shared sweep state
         let idx = 0
         function runNext() {
-            if (runId !== ShadeTool._sweepRunId) return
+            if (runId !== ShadeTool._sweepAllRunId) return
             if (idx >= activeIds.length) {
                 const s = useShadeStore.getState()
                 s.setSweepField('sweepProgress', 'Done (' + activeIds.length + ' shade maps)')
-                _flushSweepProgress(100, undefined, true)
                 return
             }
             const id = parseInt(activeIds[idx])
@@ -1878,7 +1869,12 @@ let ShadeTool = {
             const s = useShadeStore.getState()
             s.setSweepField('sweepCurrentElm', idx)
             s.setActiveElmId(id)
-            ShadeTool.shadeSweep(startTime, endTime, stepMinutes, runNext)
+            s.updateElement(id, { regenerating: true, loadingProgress: 0 })
+            ShadeTool.shadeSweep(startTime, endTime, stepMinutes, id, function () {
+                const s2 = useShadeStore.getState()
+                s2.updateElement(id, { regenerating: false, loadingProgress: 0 })
+                runNext()
+            })
         }
         runNext()
     },
