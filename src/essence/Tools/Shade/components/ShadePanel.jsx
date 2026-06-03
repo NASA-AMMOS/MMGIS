@@ -126,24 +126,25 @@ export default function ShadePanel() {
 
     return (
         <div id="shadeTool">
-            <div className="vstHeader">
-                <div className="vstHeaderTop">
-                    <div className="vstHeaderLeft">
-                        <div className="vstTitle">Shade</div>
+            <div className="mmgisToolHeader">
+                <div>
+                    <div>
+                        <div className="mmgisToolTitle">Shade</div>
                         <span
                             dangerouslySetInnerHTML={{
                                 __html: Help.getComponent(helpKey),
                             }}
                         />
                     </div>
-                    <IconButton
-                        size="sm"
-                        onClick={() => ToolController_.closeActiveTool()}
-                        title="Close"
-                        className="vstClose"
-                    >
-                        <i className="mdi mdi-close mdi-18px" />
-                    </IconButton>
+                    <div>
+                        <IconButton
+                            size="sm"
+                            onClick={() => ToolController_.closeActiveTool()}
+                            title="Close Tool"
+                        >
+                            <i className="mdi mdi-close mdi-18px" />
+                        </IconButton>
+                    </div>
                 </div>
             </div>
             <div className="vstBinaryLegend">
@@ -157,17 +158,11 @@ export default function ShadePanel() {
                 </div>
             </div>
 
-            {/* Time section — single row: [start] → [step|min] → [end] */}
+            {/* Time section — single row: [start] [step|min] [end] */}
             <div className="vstTime">
-                <input
-                    type="text"
-                    className="vstSweepInput vstTimeReadonly"
-                    value={sweepStart}
-                    readOnly
-                    title="Start time (set via TimeUI)"
-                    placeholder="Start"
-                />
-                <span className="vstTimeArrow">→</span>
+                <span className="vstTimeReadonly" title="Start time (set via TimeUI)">
+                    {sweepStart || 'Start'}
+                </span>
                 <InputWithUnit
                     unit="min"
                     type="number"
@@ -181,15 +176,9 @@ export default function ShadePanel() {
                     className="vstSweepField vstTimeStep"
                     placeholder="Step"
                 />
-                <span className="vstTimeArrow">→</span>
-                <input
-                    type="text"
-                    className="vstSweepInput vstTimeReadonly"
-                    value={sweepEnd}
-                    readOnly
-                    title="End time (set via TimeUI)"
-                    placeholder="End"
-                />
+                <span className="vstTimeReadonly" title="End time (set via TimeUI)">
+                    {sweepEnd || 'End'}
+                </span>
             </div>
 
             {/* Element cards */}

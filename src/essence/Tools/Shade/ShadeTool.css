@@ -21,69 +21,28 @@
     color: var(--color-h);
 }
 
-/* ====== Header ====== */
-
-#shadeTool .vstHeader {
-    width: 100%;
-    padding: 5px;
-    flex-shrink: 0;
-}
-
-#shadeTool .vstHeaderTop {
-    display: flex;
-    height: 40px;
-    line-height: 40px;
-    background: var(--color-a);
-    justify-content: space-between;
-    align-items: center;
-}
-
-#shadeTool .vstHeaderLeft {
-    display: flex;
-    align-items: center;
-}
-
-#shadeTool .vstClose {
-    margin-right: 6px;
-    color: var(--color-a5);
-}
-#shadeTool .vstClose:hover {
-    color: var(--color-f);
-}
-
-#shadeTool .vstTitle {
-    height: 40px;
-    line-height: 40px;
-    font-size: 16px;
-    font-weight: 600;
-    padding-left: 10px;
-    font-family: 'lato-light';
-    text-transform: uppercase;
-    color: var(--color-l);
-}
+/* ====== Header — matches mmgisToolHeader (DrawTool style) ====== */
 
 #shadeTool .vstTime {
     display: flex;
     flex-direction: row;
     align-items: center;
     padding: 6px 8px;
-    gap: 4px;
+    gap: 6px;
+    background: var(--color-a-5);
     border-bottom: 1px solid var(--color-e);
 }
 #shadeTool .vstTime .vstTimeReadonly {
     flex: 1;
     min-width: 0;
     opacity: 0.7;
-    cursor: default;
     font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 #shadeTool .vstTime .vstTimeStep {
     width: 70px;
-    flex: 0 0 auto;
-}
-#shadeTool .vstTimeArrow {
-    color: var(--color-a3);
-    font-size: 11px;
     flex: 0 0 auto;
 }
 
@@ -106,7 +65,7 @@
     justify-content: center;
     gap: 16px;
     padding: 6px 10px;
-    background: var(--color-a);
+    background: var(--color-a-5);
     border-bottom: 1px solid var(--color-e);
     flex-shrink: 0;
 }
@@ -1109,22 +1068,27 @@
     width: 100%;
     box-sizing: border-box;
 }
+
 .shadeGraphPlayBtn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    background: var(--color-a2);
-    border: 1px solid var(--color-a3);
-    border-radius: 3px;
-    color: var(--color-f);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--color-a5);
     cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-family: inherit;
+    line-height: 1;
     padding: 0;
     flex-shrink: 0;
 }
 .shadeGraphPlayBtn:hover {
-    background: var(--color-a3);
+    background: var(--color-a1);
+    color: var(--color-f);
 }
 .shadeGraphTimeSlider {
     flex: 1;
@@ -1133,7 +1097,7 @@
     accent-color: #e53935;
 }
 .shadeGraphTimeLabel {
-    font-size: 10px;
+    font-size: 14px;
     color: var(--color-a6);
     white-space: nowrap;
     min-width: 50px;

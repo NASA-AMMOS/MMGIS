@@ -59,7 +59,7 @@ function _flushSweepProgress(pct, msg, force) {
 
 let ShadeTool = {
     height: 0,
-    width: 280,
+    width: 300,
     _root: null,
     _sweepPlayTimer: null,
     _sweepRunId: 0,

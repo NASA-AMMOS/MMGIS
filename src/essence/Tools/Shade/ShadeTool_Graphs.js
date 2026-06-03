@@ -208,9 +208,9 @@ const ShadeTool_Graphs = {
             const controls = document.createElement('div')
             controls.className = 'shadeGraphTimeControls'
             controls.innerHTML = `
-                <button class="shadeGraphPlayBtn" id="shadeGraphStepBack" title="Step back"><i class="mdi mdi-skip-previous mdi-14px"></i></button>
-                <button class="shadeGraphPlayBtn" id="shadeGraphPlayPause" title="Play/Pause"><i class="mdi mdi-play mdi-14px"></i></button>
-                <button class="shadeGraphPlayBtn" id="shadeGraphStepFwd" title="Step forward"><i class="mdi mdi-skip-next mdi-14px"></i></button>
+                <button class="shadeGraphPlayBtn" id="shadeGraphStepBack" title="Step back"><i class="mdi mdi-skip-previous mdi-18px"></i></button>
+                <button class="shadeGraphPlayBtn" id="shadeGraphPlayPause" title="Play/Pause"><i class="mdi mdi-play mdi-18px"></i></button>
+                <button class="shadeGraphPlayBtn" id="shadeGraphStepFwd" title="Step forward"><i class="mdi mdi-skip-next mdi-18px"></i></button>
                 <input type="range" class="shadeGraphTimeSlider" id="shadeGraphTimeSlider" min="0" max="1" step="1" value="0" />
                 <span class="shadeGraphTimeLabel" id="shadeGraphTimeLabel"></span>
             `
