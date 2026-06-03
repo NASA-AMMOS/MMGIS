@@ -29,6 +29,7 @@ let _resizeTimeout = null
 let _windowResizeHandler = null
 let _storeUnsubscribe = null
 let _graphPlayInterval = null
+let _graphPlayFast = false
 
 const ShadeTool_Graphs = {
     isOpen() {
@@ -75,6 +76,7 @@ const ShadeTool_Graphs = {
             clearInterval(_graphPlayInterval)
             _graphPlayInterval = null
         }
+        _graphPlayFast = false
         if (_resizeObserver) {
             _resizeObserver.disconnect()
             _resizeObserver = null
@@ -214,6 +216,7 @@ const ShadeTool_Graphs = {
         controls.innerHTML = `
             <button class="shadeGraphPlayBtn" id="shadeGraphStepBack" title="Step back"><i class="mdi mdi-skip-previous mdi-18px"></i></button>
             <button class="shadeGraphPlayBtn" id="shadeGraphPlayPause" title="Play/Pause"><i class="mdi mdi-play mdi-18px"></i></button>
+            <button class="shadeGraphPlayBtn" id="shadeGraphPlayFast" title="Fast forward"><i class="mdi mdi-fast-forward mdi-18px"></i></button>
             <button class="shadeGraphPlayBtn" id="shadeGraphStepFwd" title="Step forward"><i class="mdi mdi-skip-next mdi-18px"></i></button>
             <input type="range" class="shadeGraphTimeSlider" id="shadeGraphTimeSlider" min="0" max="1" step="1" value="0" />
             <span class="shadeGraphTimeLabel" id="shadeGraphTimeLabel"></span>
@@ -306,6 +309,7 @@ const ShadeTool_Graphs = {
         const slider = document.getElementById('shadeGraphTimeSlider')
         const label = document.getElementById('shadeGraphTimeLabel')
         const playBtn = document.getElementById('shadeGraphPlayPause')
+        const fastBtn = document.getElementById('shadeGraphPlayFast')
         const stepBack = document.getElementById('shadeGraphStepBack')
         const stepFwd = document.getElementById('shadeGraphStepFwd')
 
@@ -338,21 +342,42 @@ const ShadeTool_Graphs = {
             ShadeTool_Graphs._scrubToFrame(idx)
         })
 
+        function _startPlayback() {
+            const speed = useShadeStore.getState().sweepPlaySpeed || 500
+            const interval = _graphPlayFast ? Math.max(speed / 4, 50) : speed
+            _graphPlayInterval = setInterval(() => {
+                const s = useShadeStore.getState()
+                const fc = s.sweepElData[_activeElmId]?.results?.length || 0
+                if (fc === 0) return
+                const idx = (s.sweepPlayIndex + 1) % fc
+                ShadeTool_Graphs._scrubToFrame(idx)
+            }, interval)
+        }
+
         playBtn.addEventListener('click', () => {
             if (_graphPlayInterval) {
                 clearInterval(_graphPlayInterval)
                 _graphPlayInterval = null
+                _graphPlayFast = false
                 playBtn.innerHTML = '<i class="mdi mdi-play mdi-18px"></i>'
+                fastBtn.classList.remove('shadeGraphPlayBtnActive')
             } else {
                 playBtn.innerHTML = '<i class="mdi mdi-pause mdi-18px"></i>'
-                const speed = useShadeStore.getState().sweepPlaySpeed || 500
-                _graphPlayInterval = setInterval(() => {
-                    const s = useShadeStore.getState()
-                    const fc = s.sweepElData[_activeElmId]?.results?.length || 0
-                    if (fc === 0) return
-                    const idx = (s.sweepPlayIndex + 1) % fc
-                    ShadeTool_Graphs._scrubToFrame(idx)
-                }, speed)
+                _startPlayback()
+            }
+        })
+
+        fastBtn.addEventListener('click', () => {
+            _graphPlayFast = !_graphPlayFast
+            fastBtn.classList.toggle('shadeGraphPlayBtnActive', _graphPlayFast)
+            // If currently playing, restart with new speed
+            if (_graphPlayInterval) {
+                clearInterval(_graphPlayInterval)
+                _startPlayback()
+            } else {
+                // Start playing fast
+                playBtn.innerHTML = '<i class="mdi mdi-pause mdi-18px"></i>'
+                _startPlayback()
             }
         })
     },

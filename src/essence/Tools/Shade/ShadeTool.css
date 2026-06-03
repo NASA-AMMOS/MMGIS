@@ -1195,6 +1195,10 @@
     background: var(--color-a1);
     color: var(--color-f);
 }
+.shadeGraphPlayBtnActive {
+    background: var(--color-a2);
+    color: var(--color-f);
+}
 .shadeGraphTimeSlider {
     flex: 1;
     height: 4px;
