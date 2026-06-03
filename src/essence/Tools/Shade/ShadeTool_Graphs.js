@@ -15,7 +15,7 @@ const HOVER_LINE_ID = 'shadeHorizonHoverLine'
 let _horizonCache = null // { lat, lng, profile: [[az,el],...] }
 let _activeElmId = null
 let _graphOpen = false
-let _activeView = null // 'horizon' | 'visibility'
+let _activeView = null // 'combined' | null
 let _animFrameId = null
 // Layout state cached for mouse→azimuth conversion
 let _hPad = null
@@ -265,6 +265,13 @@ const ShadeTool_Graphs = {
         const store = useShadeStore.getState()
         store.setSweepField('sweepPlayIndex', frameIndex)
         if (_onScrubCallback) _onScrubCallback()
+        // Update time label + slider position
+        ShadeTool_Graphs._updateTimeLabel()
+        // Redraw both charts to reflect new frame
+        if (_horizonCache) {
+            ShadeTool_Graphs._drawHorizonCanvas(_horizonCache.profile, _activeElmId)
+        }
+        ShadeTool_Graphs.drawVisibilityTimeline(_activeElmId)
     },
 
     _onHorizonMouseMove(e) {
@@ -913,15 +920,14 @@ const ShadeTool_Graphs = {
 
         if (_animFrameId) cancelAnimationFrame(_animFrameId)
         _animFrameId = requestAnimationFrame(() => {
-            if (_activeView === 'horizon' && _horizonCache) {
+            if (_horizonCache) {
                 ShadeTool_Graphs._drawHorizonCanvas(
                     _horizonCache.profile,
                     effectiveId
                 )
-                ShadeTool_Graphs._updateTimeLabel()
-            } else if (_activeView === 'visibility') {
-                ShadeTool_Graphs.drawVisibilityTimeline(effectiveId)
             }
+            ShadeTool_Graphs.drawVisibilityTimeline(effectiveId)
+            ShadeTool_Graphs._updateTimeLabel()
             _animFrameId = null
         })
     },
