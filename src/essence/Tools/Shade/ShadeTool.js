@@ -1402,6 +1402,12 @@ let ShadeTool = {
         const store = useShadeStore.getState()
         store.setSweepField('sweepProgress', '')
         _flushSweepProgress(0, undefined, true)
+        // Reset all elements stuck in regenerating state
+        for (const id in store.elements) {
+            if (store.elements[id]?.regenerating) {
+                store.updateElement(parseInt(id), { regenerating: false, loading: false, loadingProgress: 0 })
+            }
+        }
         Toast.info('Sweep cancelled.', 3000)
     },
 
@@ -1799,6 +1805,13 @@ let ShadeTool = {
         }
         ShadeTool._sweepRunId++
         store.setSweepField('sweepStale', false)
+        // Reset any other elements stuck in regenerating state from a cancelled sweep
+        for (const id in store.elements) {
+            const numId = parseInt(id)
+            if (numId !== elmId && store.elements[numId]?.regenerating) {
+                store.updateElement(numId, { regenerating: false, loading: false, loadingProgress: 0 })
+            }
+        }
         store.setActiveElmId(elmId)
         store.setSweepField('sweepTotalElms', 1)
         store.setSweepField('sweepCurrentElm', 1)
@@ -1824,9 +1837,9 @@ let ShadeTool = {
         const store = useShadeStore.getState()
         store.setSweepField('sweepStale', false)
 
-        // Reset all elements' loading state from any previous sweep
+        // Reset all elements' loading state from any previous (potentially cancelled) sweep
         for (const id in store.elements) {
-            store.updateElement(parseInt(id), { loading: false, loadingProgress: 0 })
+            store.updateElement(parseInt(id), { loading: false, regenerating: false, loadingProgress: 0 })
         }
 
         // Clear existing shade map layers and old sweep layers from the map

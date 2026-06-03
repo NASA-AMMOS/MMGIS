@@ -438,7 +438,7 @@ const ShadeTool_Graphs = {
         // Use the first element with results to determine frame count
         const elms = _getAllVisibilityElms(store)
         if (elms.length === 0) return
-        const frameCount = elms[0].results.length
+        const frameCount = elms[0].ed.results.length
         if (frameCount === 0) return
 
         const rect = wrap.getBoundingClientRect()
@@ -561,12 +561,24 @@ const ShadeTool_Graphs = {
 
         if (plotW <= 0 || plotH <= 0) return
 
-        // Auto-fit elevation range to data
+        // Auto-fit elevation range to terrain + all source trajectories
         let minEl = 0, maxEl = 0
         for (let i = 0; i < profile.length; i++) {
             const el = profile[i][1]
             if (el < minEl) minEl = el
             if (el > maxEl) maxEl = el
+        }
+        // Include all linked elements' trajectory elevations
+        const linkedElmsForRange = _getLinkedHorizonElms(store, elmId)
+        for (const le of linkedElmsForRange) {
+            const ed = store.sweepElData[le.id]
+            if (!ed?.results) continue
+            for (const r of ed.results) {
+                if (r.elevation != null) {
+                    if (r.elevation < minEl) minEl = r.elevation
+                    if (r.elevation > maxEl) maxEl = r.elevation
+                }
+            }
         }
         maxEl = Math.max(maxEl + 5, 10)
         minEl = Math.min(minEl - 2, -5)
@@ -638,14 +650,16 @@ const ShadeTool_Graphs = {
         }
 
         // Filled terrain silhouette (brown, fairly opaque to cover trajectory below horizon)
+        // Extend fill all the way to the bottom of the canvas so arcs below horizon are covered
+        const fillBottom = h
         ctx.beginPath()
-        ctx.moveTo(pad.left, pad.top + plotH)
+        ctx.moveTo(pad.left, fillBottom)
         for (let i = 0; i < reordered.length; i++) {
             const x = pad.left + ((reordered[i][0] + 180) / 360) * plotW
             const y = pad.top + plotH - ((reordered[i][1] - minEl) / elRange) * plotH
             ctx.lineTo(x, y)
         }
-        ctx.lineTo(pad.left + plotW, pad.top + plotH)
+        ctx.lineTo(pad.left + plotW, fillBottom)
         ctx.closePath()
         ctx.fillStyle = 'rgba(90,62,35,0.8)'
         ctx.fill()
