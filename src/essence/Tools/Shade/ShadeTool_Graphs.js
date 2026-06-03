@@ -663,7 +663,7 @@ const ShadeTool_Graphs = {
         ctx.font = '11px sans-serif'
         ctx.textAlign = 'center'
         ctx.save()
-        ctx.translate(8, pad.top + plotH / 2)
+        ctx.translate(4, pad.top + plotH / 2)
         ctx.rotate(-Math.PI / 2)
         ctx.fillText('Elevation (°)', 0, 0)
         ctx.restore()
@@ -674,11 +674,11 @@ const ShadeTool_Graphs = {
         ctx.fillStyle = 'rgba(255,255,255,0.85)'
         ctx.font = 'bold 11px sans-serif'
         ctx.textAlign = 'center'
-        // Upward-pointing triangle
+        // Upward-pointing triangle (more gap between triangle and N)
         ctx.beginPath()
-        ctx.moveTo(northArrowX, northArrowY - 14)
-        ctx.lineTo(northArrowX - 4, northArrowY - 8)
-        ctx.lineTo(northArrowX + 4, northArrowY - 8)
+        ctx.moveTo(northArrowX, northArrowY - 20)
+        ctx.lineTo(northArrowX - 4, northArrowY - 14)
+        ctx.lineTo(northArrowX + 4, northArrowY - 14)
         ctx.closePath()
         ctx.fill()
         ctx.fillText('N', northArrowX, northArrowY)
