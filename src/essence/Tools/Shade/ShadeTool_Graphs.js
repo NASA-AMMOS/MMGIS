@@ -529,7 +529,7 @@ const ShadeTool_Graphs = {
         const ctx = canvas.getContext('2d')
         ctx.scale(dpr, dpr)
 
-        const pad = { top: 20, right: 20, bottom: 10, left: 45 }
+        const pad = { top: 20, right: 0, bottom: 10, left: 45 }
         const plotW = w - pad.left - pad.right
         const plotH = h - pad.top - pad.bottom
 
@@ -673,7 +673,7 @@ const ShadeTool_Graphs = {
         ctx.font = '11px sans-serif'
         ctx.textAlign = 'center'
         ctx.save()
-        ctx.translate(4, pad.top + plotH / 2)
+        ctx.translate(19, pad.top + plotH / 2)
         ctx.rotate(-Math.PI / 2)
         ctx.fillText('Elevation (°)', 0, 0)
         ctx.restore()
