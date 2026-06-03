@@ -157,47 +157,39 @@ export default function ShadePanel() {
                 </div>
             </div>
 
-            {/* Time section — UTC start/end times + step size */}
+            {/* Time section — single row: [start] → [step|min] → [end] */}
             <div className="vstTime">
-                <div className="vstOptionRow">
-                    <div className="vstOptionLabel vstTimeLabel">
-                        <i className="mdi mdi-clock-outline mdi-14px" /> Start
-                    </div>
-                    <input
-                        type="text"
-                        className="vstSweepInput"
-                        placeholder="YYYY-MM-DDTHH:MM:SSZ"
-                        value={sweepStart}
-                        onChange={(e) => setSweepField('sweepStart', e.target.value)}
-                    />
-                </div>
-                <div className="vstOptionRow">
-                    <div className="vstOptionLabel vstTimeLabel">
-                        <i className="mdi mdi-clock-outline mdi-14px" /> End
-                    </div>
-                    <input
-                        type="text"
-                        className="vstSweepInput"
-                        placeholder="YYYY-MM-DDTHH:MM:SSZ"
-                        value={sweepEnd}
-                        onChange={(e) => setSweepField('sweepEnd', e.target.value)}
-                    />
-                </div>
-                <div className="vstOptionRow">
-                    <div className="vstOptionLabel vstTimeLabel">Step Size</div>
-                    <InputWithUnit
-                        unit="min"
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={sweepStep || ''}
-                        onChange={(e) => {
-                            const v = parseFloat(e.target.value)
-                            setSweepField('sweepStep', Number.isFinite(v) ? v : '')
-                        }}
-                        className="vstSweepField"
-                    />
-                </div>
+                <input
+                    type="text"
+                    className="vstSweepInput vstTimeReadonly"
+                    value={sweepStart}
+                    readOnly
+                    title="Start time (set via TimeUI)"
+                    placeholder="Start"
+                />
+                <span className="vstTimeArrow">→</span>
+                <InputWithUnit
+                    unit="min"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={sweepStep || ''}
+                    onChange={(e) => {
+                        const v = parseFloat(e.target.value)
+                        setSweepField('sweepStep', Number.isFinite(v) ? v : '')
+                    }}
+                    className="vstSweepField vstTimeStep"
+                    placeholder="Step"
+                />
+                <span className="vstTimeArrow">→</span>
+                <input
+                    type="text"
+                    className="vstSweepInput vstTimeReadonly"
+                    value={sweepEnd}
+                    readOnly
+                    title="End time (set via TimeUI)"
+                    placeholder="End"
+                />
             </div>
 
             {/* Element cards */}

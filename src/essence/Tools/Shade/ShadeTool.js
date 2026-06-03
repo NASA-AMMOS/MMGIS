@@ -38,7 +38,11 @@ let _timeChangeDebounce = null
 let _lastProgressFlush = 0
 let _pendingPct = null
 let _pendingMsg = null
+let _highWaterPct = 0
 function _flushSweepProgress(pct, msg, force) {
+    // Monotonic: never let displayed percentage go backwards
+    if (pct < _highWaterPct && !force) pct = _highWaterPct
+    if (pct > _highWaterPct) _highWaterPct = pct
     _pendingPct = pct
     if (msg !== undefined) _pendingMsg = msg
     const now = performance.now()
@@ -47,8 +51,6 @@ function _flushSweepProgress(pct, msg, force) {
         const s = useShadeStore.getState()
         if (_pendingMsg !== null) { s.setSweepField('sweepProgress', _pendingMsg); _pendingMsg = null }
         s.setSweepField('sweepProgressPct', _pendingPct)
-        // Also update the active element's loadingProgress so the
-        // ShadeElement ProgressButton (which reads el.loadingProgress) re-renders
         if (s.activeElmId != null) {
             s.updateElement(s.activeElmId, { loadingProgress: _pendingPct })
         }
@@ -1402,6 +1404,7 @@ let ShadeTool = {
     },
 
     shadeSweep: function (startTime, endTime, stepMinutes, onComplete) {
+        _highWaterPct = 0
         const sweepRunId = ShadeTool._sweepRunId
         const store = useShadeStore.getState()
         const activeElmId = store.activeElmId

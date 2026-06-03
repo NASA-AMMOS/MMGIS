@@ -64,20 +64,27 @@
 
 #shadeTool .vstTime {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
     padding: 6px 8px;
     gap: 4px;
     border-bottom: 1px solid var(--color-e);
 }
-
-#shadeTool .vstTimeLabel {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--color-a1-5);
+#shadeTool .vstTime .vstTimeReadonly {
+    flex: 1;
+    min-width: 0;
+    opacity: 0.7;
+    cursor: default;
+    font-size: 10px;
 }
-#shadeTool .vstTimeLabel i {
-    color: inherit;
+#shadeTool .vstTime .vstTimeStep {
+    width: 70px;
+    flex: 0 0 auto;
+}
+#shadeTool .vstTimeArrow {
+    color: var(--color-a3);
+    font-size: 11px;
+    flex: 0 0 auto;
 }
 
 #shadeTool .vstObsTimeLabel {
@@ -1018,32 +1025,7 @@
     justify-content: center;
 }
 
-#shadeTool .vstGraphBtn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background: var(--color-a2);
-    border: 1px solid var(--color-a3);
-    border-radius: 4px;
-    color: var(--color-f);
-    font-size: 11px;
-    font-weight: 600;
-    padding: 5px 10px;
-    cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease;
-    font-family: inherit;
-}
-#shadeTool .vstGraphBtn:hover {
-    background: var(--color-a3);
-    border-color: var(--color-mmgis);
-}
-#shadeTool .vstGraphBtnActive {
-    background: var(--color-a3);
-    border-color: var(--color-mmgis);
-}
-#shadeTool .vstGraphBtn i {
-    font-size: 14px;
-}
+
 
 /* ====== Bottom bar graph container ====== */
 

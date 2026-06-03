@@ -1,0 +1,56 @@
+.root {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--color-a2);
+    border: none;
+    border-radius: 4px;
+    color: var(--color-a5);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-family: inherit;
+    font-weight: normal;
+    line-height: 1;
+}
+
+.md {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+}
+
+.sm {
+    height: 22px;
+    padding: 0 8px;
+    font-size: 11px;
+}
+
+.lg {
+    height: 34px;
+    padding: 0 14px;
+    font-size: 13px;
+}
+
+.icon {
+    display: inline-flex;
+    align-items: center;
+    font-size: 1.15em;
+}
+
+.label {
+    white-space: nowrap;
+}
+
+.root:hover {
+    background: var(--color-a3);
+    color: var(--color-f);
+}
+
+.active {
+    background: var(--color-a3);
+    color: var(--color-f);
+}
+.active:hover {
+    background: var(--color-a3);
+    color: var(--color-f);
+}

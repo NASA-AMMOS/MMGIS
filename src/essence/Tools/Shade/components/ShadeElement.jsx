@@ -11,6 +11,7 @@ import {
     Collapsible,
     ColorRampPicker,
     IconButton,
+    IconTextButton,
     InputWithUnit,
     ProgressButton,
     Select,
@@ -827,22 +828,26 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                     </div>
                                     {ed?.results && ed.results.length > 0 && ed?.grids && (
                                         <div className="vstGraphButtons">
-                                            <button
-                                                className={`vstGraphBtn${ShadeTool_Graphs.isOpen() && ShadeTool_Graphs.getActiveView() === 'horizon' && ShadeTool_Graphs.getActiveElmId() === elmId ? ' vstGraphBtnActive' : ''}`}
+                                            <IconTextButton
+                                                size="sm"
+                                                active={ShadeTool_Graphs.isOpen() && ShadeTool_Graphs.getActiveView() === 'horizon' && ShadeTool_Graphs.getActiveElmId() === elmId}
                                                 title="Toggle Horizon Profile in the bottom bar"
                                                 onClick={() => ShadeTool_Graphs.toggleHorizon(elmId)}
+                                                icon={<i className="mdi mdi-chart-areaspline" />}
+                                                style={{ width: '50%', justifyContent: 'center' }}
                                             >
-                                                <i className="mdi mdi-chart-areaspline mdi-14px" />
                                                 Horizon Profile
-                                            </button>
-                                            <button
-                                                className={`vstGraphBtn${ShadeTool_Graphs.isOpen() && ShadeTool_Graphs.getActiveView() === 'visibility' && ShadeTool_Graphs.getActiveElmId() === elmId ? ' vstGraphBtnActive' : ''}`}
+                                            </IconTextButton>
+                                            <IconTextButton
+                                                size="sm"
+                                                active={ShadeTool_Graphs.isOpen() && ShadeTool_Graphs.getActiveView() === 'visibility' && ShadeTool_Graphs.getActiveElmId() === elmId}
                                                 title="Toggle Visibility Timeline in the bottom bar"
                                                 onClick={() => ShadeTool_Graphs.toggleVisibility(elmId)}
+                                                icon={<i className="mdi mdi-chart-timeline-variant" />}
+                                                style={{ width: '50%', justifyContent: 'center' }}
                                             >
-                                                <i className="mdi mdi-chart-timeline-variant mdi-14px" />
                                                 Visibility Timeline
-                                            </button>
+                                            </IconTextButton>
                                         </div>
                                     )}
                                 </div>
