@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react'
-import useShadeStore from '../store'
+import useShadeStore, { buildSourcesList } from '../store'
 import ShadeElement from './ShadeElement'
 import ShadeTool from '../ShadeTool'
 import Help from '../../../Basics/UserInterface_/components/Help/Help'
@@ -66,7 +66,25 @@ export default function ShadePanel() {
     }, [setSweepField])
 
     const handleNew = useCallback(() => {
-        const newId = addElement()
+        // Cycle through non-custom source entities for the new element
+        const store = useShadeStore.getState()
+        const sources = buildSourcesList(store.vars)
+        const nonCustomIndices = sources
+            .map((s, i) => ({ s, i }))
+            .filter(({ s }) => s.value !== false && s.value !== 'false')
+            .map(({ i }) => i)
+
+        let nextSourceIndex = 0
+        if (nonCustomIndices.length > 0) {
+            // Find what source indices existing elements already use
+            const usedIndices = Object.values(store.elements).map((el) => el.sourceIndex)
+            // Pick the next non-custom index that continues the cycle
+            const lastUsed = usedIndices.length > 0 ? usedIndices[usedIndices.length - 1] : -1
+            const posInCycle = nonCustomIndices.indexOf(lastUsed)
+            nextSourceIndex = nonCustomIndices[(posInCycle + 1) % nonCustomIndices.length]
+        }
+
+        const newId = addElement(undefined, { sourceIndex: nextSourceIndex })
         setTimeout(() => ShadeTool.shade(null, newId), 0)
     }, [addElement])
 

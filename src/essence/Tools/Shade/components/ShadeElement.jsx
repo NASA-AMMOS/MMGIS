@@ -164,7 +164,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     const handleRef = useRef(null)
     const isDraggingRef = useRef(false)
 
-    const [sourceOpen, setSourceOpen] = useState(true)
+    const [sourceOpen, setSourceOpen] = useState(false)
     const [displayOpen, setDisplayOpen] = useState(false)
     const [resultsOpen, setResultsOpen] = useState(true)
 
