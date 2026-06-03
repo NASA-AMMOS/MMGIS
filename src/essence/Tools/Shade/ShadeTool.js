@@ -1187,89 +1187,138 @@ let ShadeTool = {
         store.setSweepField('sweepProgress', 'Building atlas...')
         store.setSweepField('sweepProgressPct', 55)
 
-        // Render frames in chunks — uses lightweight _renderFrameCanvases
-        // (skips toDataURL, only produces canvas objects for atlas composition)
-        const frameCanvases = []
-        const ATLAS_CHUNK = 8
-        let fi = 0
-
-        function renderFrameChunk() {
-            const end = Math.min(fi + ATLAS_CHUNK, numFrames)
-            for (; fi < end; fi++) {
-                if (sweepGrids[fi] == null) {
-                    frameCanvases.push(null)
-                } else {
-                    frameCanvases.push(
-                        ShadeTool._renderFrameCanvases(data, sweepGrids[fi], options)
-                    )
-                }
-            }
-            if (fi < numFrames) {
-                // Atlas render: 55% → 90% of overall progress
-                const pct = 55 + Math.round((fi / numFrames) * 35)
-                useShadeStore.getState().setSweepField(
-                    'sweepProgress',
-                    'Building atlas: ' + Math.round((fi / numFrames) * 100) + '%'
-                )
-                useShadeStore.getState().setSweepField('sweepProgressPct', pct)
-                setTimeout(renderFrameChunk, 0)
-            } else {
-                useShadeStore.getState().setSweepField(
-                    'sweepProgress',
-                    'Building atlas: assembling...'
-                )
-                useShadeStore.getState().setSweepField('sweepProgressPct', 90)
-                setTimeout(assembleAtlasChunked, 0)
-            }
-        }
-
-        // Build list of tiles to process, then assemble in chunks
+        // Build list of tiles to process
         const tilesToProcess = []
         for (let j = 0; j <= data.outputTopLeftTile.h; j++) {
             for (let i = 0; i <= data.outputTopLeftTile.w; i++) {
                 tilesToProcess.push({ i, j })
             }
         }
+
+        // For each tile: render ALL frames directly into the atlas ImageData
+        // using putImageData at the correct offset. This avoids creating
+        // intermediate canvases (previously 512+ allocations + drawImage clones).
         const atlasDl = {}
-        let ti = 0
-        const TILE_CHUNK = 2
+        let tileIdx = 0
 
-        function assembleAtlasChunked() {
-            const end = Math.min(ti + TILE_CHUNK, tilesToProcess.length)
-            for (; ti < end; ti++) {
-                const { i, j } = tilesToProcess[ti]
-                const z = data.outputTopLeftTile.z
-                const x = Math.floor(data.outputTopLeftTile.x + i)
-                const y = Math.floor(data.outputTopLeftTile.y + j)
+        function processTile() {
+            if (tileIdx >= tilesToProcess.length) {
+                finalizeAtlas()
+                return
+            }
 
-                const atlas = document.createElement('canvas')
-                atlas.width = atlasW
-                atlas.height = atlasH
-                const actx = atlas.getContext('2d')
+            const { i, j } = tilesToProcess[tileIdx]
+            const z = data.outputTopLeftTile.z
+            const x = Math.floor(data.outputTopLeftTile.x + i)
+            const y = Math.floor(data.outputTopLeftTile.y + j)
 
-                for (let f = 0; f < numFrames; f++) {
-                    const fc = frameCanvases[f]
-                    if (!fc || !fc[z] || !fc[z][x] || !fc[z][x][y]) continue
-                    const col = f % atlasCols
-                    const row = Math.floor(f / atlasCols)
-                    actx.drawImage(fc[z][x][y], col * res, row * res)
+            const tileRow =
+                (data.outputTopLeftTile.y + j -
+                    Math.floor(data.outputTopLeftTile.y) -
+                    (Math.abs(data.outputTopLeftTile.y) % 1) * 2) * res
+            const tileCol =
+                (data.outputTopLeftTile.x + i -
+                    Math.floor(data.outputTopLeftTile.x) -
+                    (Math.abs(data.outputTopLeftTile.x) % 1) * 2) * res
+
+            const atlas = document.createElement('canvas')
+            atlas.width = atlasW
+            atlas.height = atlasH
+            const actx = atlas.getContext('2d')
+            // Reusable ImageData for putImageData (avoids per-frame allocation)
+            const tileImgData = actx.createImageData(res, res)
+            const tileImgBuf = tileImgData.data
+
+            // Process frames in chunks within this tile
+            let frameIdx = 0
+            const FRAME_CHUNK = 16
+
+            // Pre-compute color values to avoid object allocation in hot loop
+            const colorR = options.color ? options.color.r : 0
+            const colorG = options.color ? options.color.g : 0
+            const colorB = options.color ? options.color.b : 0
+            const colorA = options.color ? options.color.a : 0
+            const isInvert = options.invert == 0
+
+            function renderFramesForTile() {
+                const end = Math.min(frameIdx + FRAME_CHUNK, numFrames)
+                for (; frameIdx < end; frameIdx++) {
+                    const resultGrid = sweepGrids[frameIdx]
+                    if (resultGrid == null) continue
+
+                    // Render this frame's pixels for this tile directly
+                    // Optimized: no object allocation per pixel, inline color writes
+                    let px = 0
+                    const bufLen = tileImgBuf.length
+                    for (let p = 0; p < bufLen; p += 4) {
+                        const gridRow = resultGrid[tileRow + ((px / res) | 0)]
+                        const val = gridRow != null ? gridRow[tileCol + (px % res)] : null
+                        if (val === 1 || val === 2) {
+                            if (isInvert) {
+                                tileImgBuf[p] = colorR
+                                tileImgBuf[p + 1] = colorG
+                                tileImgBuf[p + 2] = colorB
+                                tileImgBuf[p + 3] = colorA
+                            } else {
+                                tileImgBuf[p] = 0; tileImgBuf[p + 1] = 0
+                                tileImgBuf[p + 2] = 0; tileImgBuf[p + 3] = 0
+                            }
+                        } else if (val === 0) {
+                            if (isInvert) {
+                                tileImgBuf[p] = 0; tileImgBuf[p + 1] = 0
+                                tileImgBuf[p + 2] = 0; tileImgBuf[p + 3] = 0
+                            } else {
+                                tileImgBuf[p] = colorR
+                                tileImgBuf[p + 1] = colorG
+                                tileImgBuf[p + 2] = colorB
+                                tileImgBuf[p + 3] = colorA
+                            }
+                        } else if (val === 9) {
+                            tileImgBuf[p] = 255; tileImgBuf[p + 1] = 0
+                            tileImgBuf[p + 2] = 0; tileImgBuf[p + 3] = 35
+                        } else {
+                            tileImgBuf[p] = 0; tileImgBuf[p + 1] = 0
+                            tileImgBuf[p + 2] = 0; tileImgBuf[p + 3] = 0
+                        }
+                        px++
+                    }
+
+                    // Place into atlas at correct frame position
+                    // putImageData copies — safe to reuse tileImgData
+                    const col = frameIdx % atlasCols
+                    const row2 = Math.floor(frameIdx / atlasCols)
+                    actx.putImageData(tileImgData, col * res, row2 * res)
                 }
 
-                atlasDl[z] = atlasDl[z] || {}
-                atlasDl[z][x] = atlasDl[z][x] || {}
-                atlasDl[z][x][y] = atlas.toDataURL()
+                if (frameIdx < numFrames) {
+                    // Yield between frame chunks — update progress
+                    const totalWork = tilesToProcess.length * numFrames
+                    const doneWork = tileIdx * numFrames + frameIdx
+                    const pct = 55 + Math.round((doneWork / totalWork) * 35)
+                    useShadeStore.getState().setSweepField(
+                        'sweepProgress',
+                        'Building atlas: ' + Math.round((doneWork / totalWork) * 100) + '%'
+                    )
+                    useShadeStore.getState().setSweepField('sweepProgressPct', pct)
+                    setTimeout(renderFramesForTile, 0)
+                } else {
+                    // All frames rendered for this tile — encode to dataURL
+                    atlasDl[z] = atlasDl[z] || {}
+                    atlasDl[z][x] = atlasDl[z][x] || {}
+                    atlasDl[z][x][y] = atlas.toDataURL()
+
+                    tileIdx++
+                    const pct = 55 + Math.round((tileIdx / tilesToProcess.length) * 40)
+                    useShadeStore.getState().setSweepField(
+                        'sweepProgress',
+                        'Building atlas: tile ' + tileIdx + '/' + tilesToProcess.length
+                    )
+                    useShadeStore.getState().setSweepField('sweepProgressPct', Math.min(pct, 95))
+                    setTimeout(processTile, 0)
+                }
             }
-            if (ti < tilesToProcess.length) {
-                const pct = 90 + Math.round((ti / tilesToProcess.length) * 10)
-                useShadeStore.getState().setSweepField(
-                    'sweepProgress',
-                    'Building atlas: assembling...'
-                )
-                useShadeStore.getState().setSweepField('sweepProgressPct', pct)
-                setTimeout(assembleAtlasChunked, 0)
-            } else {
-                finalizeAtlas()
-            }
+
+            renderFramesForTile()
         }
 
         function finalizeAtlas() {
@@ -1285,7 +1334,7 @@ let ShadeTool = {
             if (typeof onDone === 'function') onDone()
         }
 
-        renderFrameChunk()
+        processTile()
     },
 
     makeSweepLayer: function (atlasDl, activeElmId, atlasCols, atlasRows, atlasScaleS, atlasScaleT) {
@@ -1520,7 +1569,7 @@ let ShadeTool = {
 
                             // Process timesteps in small batches, yielding to the
                             // event loop between batches so the UI stays responsive
-                            const CHUNK = 16
+                            const CHUNK = 4
                             let ti = 0
 
                             function processChunk() {
@@ -1603,7 +1652,7 @@ let ShadeTool = {
                                 const prefix = totElms > 1 ? ('Shade ' + curElm + ' of ' + totElms + ': ') : ''
                                 currentStore.setSweepField(
                                     'sweepProgress',
-                                    prefix + 'Shading: ' + parseInt(elmPct) + '%'
+                                    prefix + 'Computing shade ' + ti + '/' + total
                                 )
                                 currentStore.setSweepField(
                                     'sweepProgressPct',

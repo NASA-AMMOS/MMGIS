@@ -612,7 +612,12 @@ const ShadeTool_Graphs = {
         }
         reordered.sort((a, b) => a[0] - b[0])
 
-        // Filled terrain silhouette
+        // Draw source trajectory BEHIND the terrain fill
+        ShadeTool_Graphs._drawSourceTrajectory(
+            ctx, elmId, pad, plotW, plotH, minEl, elRange, false
+        )
+
+        // Filled terrain silhouette (brown, fairly opaque to cover trajectory below horizon)
         ctx.beginPath()
         ctx.moveTo(pad.left, pad.top + plotH)
         for (let i = 0; i < reordered.length; i++) {
@@ -622,7 +627,7 @@ const ShadeTool_Graphs = {
         }
         ctx.lineTo(pad.left + plotW, pad.top + plotH)
         ctx.closePath()
-        ctx.fillStyle = 'rgba(139,119,101,0.5)'
+        ctx.fillStyle = 'rgba(90,62,35,0.8)'
         ctx.fill()
 
         // Horizon outline
@@ -637,9 +642,9 @@ const ShadeTool_Graphs = {
         ctx.lineWidth = 1.5
         ctx.stroke()
 
-        // Source trajectory overlay
+        // Draw current frame marker ON TOP of terrain
         ShadeTool_Graphs._drawSourceTrajectory(
-            ctx, elmId, pad, plotW, plotH, minEl, elRange
+            ctx, elmId, pad, plotW, plotH, minEl, elRange, true
         )
 
         // Axis tick labels
@@ -670,7 +675,7 @@ const ShadeTool_Graphs = {
         ctx.restore()
     },
 
-    _drawSourceTrajectory(ctx, elmId, pad, plotW, plotH, minEl, elRange) {
+    _drawSourceTrajectory(ctx, elmId, pad, plotW, plotH, minEl, elRange, markerOnly) {
         const store = useShadeStore.getState()
         const ed = store.sweepElData[elmId]
         if (!ed?.results || ed.results.length === 0) return
@@ -680,48 +685,50 @@ const ShadeTool_Graphs = {
             ? (ed.localPlayIndex || 0)
             : store.sweepPlayIndex
 
-        // Draw trajectory arc (break line at azimuth wrap-around)
-        ctx.beginPath()
-        ctx.strokeStyle = '#dbb658'
-        ctx.lineWidth = 2
-        let started = false
-        let prevDisplayAz = null
-        for (let i = 0; i < results.length; i++) {
-            const az = results[i].azimuth
-            const el = results[i].elevation
-            if (az == null || el == null) continue
-            const displayAz = _azToDisplay(az)
-            const x = _azToPlotX(az, pad, plotW)
-            const y = pad.top + plotH - ((el - minEl) / elRange) * plotH
-            if (!started) {
-                ctx.moveTo(x, y)
-                started = true
-            } else if (prevDisplayAz != null && Math.abs(displayAz - prevDisplayAz) > 180) {
-                // Azimuth crossed ±180° boundary — break the line
-                ctx.stroke()
-                ctx.beginPath()
-                ctx.moveTo(x, y)
-            } else {
-                ctx.lineTo(x, y)
-            }
-            prevDisplayAz = displayAz
-        }
-        ctx.stroke()
-
-        // Trajectory dots
-        ctx.fillStyle = 'rgba(219,182,88,0.4)'
-        for (let i = 0; i < results.length; i++) {
-            const az = results[i].azimuth
-            const el = results[i].elevation
-            if (az == null || el == null) continue
-            const x = _azToPlotX(az, pad, plotW)
-            const y = pad.top + plotH - ((el - minEl) / elRange) * plotH
+        if (!markerOnly) {
+            // Draw trajectory arc (break line at azimuth wrap-around)
             ctx.beginPath()
-            ctx.arc(x, y, 2, 0, Math.PI * 2)
-            ctx.fill()
+            ctx.strokeStyle = '#dbb658'
+            ctx.lineWidth = 2
+            let started = false
+            let prevDisplayAz = null
+            for (let i = 0; i < results.length; i++) {
+                const az = results[i].azimuth
+                const el = results[i].elevation
+                if (az == null || el == null) continue
+                const displayAz = _azToDisplay(az)
+                const x = _azToPlotX(az, pad, plotW)
+                const y = pad.top + plotH - ((el - minEl) / elRange) * plotH
+                if (!started) {
+                    ctx.moveTo(x, y)
+                    started = true
+                } else if (prevDisplayAz != null && Math.abs(displayAz - prevDisplayAz) > 180) {
+                    ctx.stroke()
+                    ctx.beginPath()
+                    ctx.moveTo(x, y)
+                } else {
+                    ctx.lineTo(x, y)
+                }
+                prevDisplayAz = displayAz
+            }
+            ctx.stroke()
+
+            // Trajectory dots
+            ctx.fillStyle = 'rgba(219,182,88,0.4)'
+            for (let i = 0; i < results.length; i++) {
+                const az = results[i].azimuth
+                const el = results[i].elevation
+                if (az == null || el == null) continue
+                const x = _azToPlotX(az, pad, plotW)
+                const y = pad.top + plotH - ((el - minEl) / elRange) * plotH
+                ctx.beginPath()
+                ctx.arc(x, y, 2, 0, Math.PI * 2)
+                ctx.fill()
+            }
+            return
         }
 
-        // Current frame marker
+        // Current frame marker (drawn on top of terrain)
         const cur = results[playIndex]
         if (cur && cur.azimuth != null && cur.elevation != null) {
             const x = _azToPlotX(cur.azimuth, pad, plotW)
