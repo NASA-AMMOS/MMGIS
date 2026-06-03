@@ -59,13 +59,13 @@ test.describe('Horizon Profile API', () => {
       expect(body.message).toContain('finite numbers');
     });
 
-    test('rejects Infinity in numeric parameters', async ({ request }) => {
+    test('rejects NaN string in numeric parameters', async ({ request }) => {
       const response = await request.post(endpoint, {
         data: {
           path: '/Missions/test/dem.tif',
           lat: 0,
           lng: 0,
-          maxRadius: Infinity,
+          observerHeight: 'NaN',
         },
       });
       expect(response.status()).toBe(400);
