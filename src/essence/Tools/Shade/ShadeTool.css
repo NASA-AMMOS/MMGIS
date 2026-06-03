@@ -683,13 +683,13 @@
 #shadeTool .vstSweepLegendIndicatorLine {
     width: 2px;
     height: 16px;
-    background: var(--color-f);
+    background: #fff;
     box-shadow: 0 0 2px rgba(0,0,0,0.6);
 }
 
 #shadeTool .vstSweepLegendIndicatorLabel {
     font-size: 11px;
-    color: var(--color-f);
+    color: #fff;
     white-space: nowrap;
     margin-top: 1px;
     font-weight: bold;
@@ -859,7 +859,7 @@
     left: 50%;
     transform: translateX(-50%);
     font-size: 11px;
-    color: var(--color-f);
+    color: #fff;
     white-space: nowrap;
     pointer-events: none;
     opacity: 0;
