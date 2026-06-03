@@ -2328,9 +2328,9 @@ let ShadeTool = {
 
         ctxAz.beginPath()
         ctxAz.arc(size / 2, size / 2, sizeInner / 2, 0, 2 * Math.PI)
-        ctxAz.fillStyle = 'rgba(255,255,255,0.1)'
+        ctxAz.fillStyle = '#2a3038'
         ctxAz.fill()
-        ctxAz.strokeStyle = 'black'
+        ctxAz.strokeStyle = 'rgba(255,255,255,0.3)'
         ctxAz.lineWidth = 2
         ctxAz.stroke()
 
@@ -2339,7 +2339,7 @@ let ShadeTool = {
         ctxAz.moveTo(origin.x, size - (size - sizeInner) / 2)
         ctxAz.lineTo(origin.x, (size - sizeInner) / 2)
         ctxAz.lineWidth = 1
-        ctxAz.strokeStyle = 'rgba(0,0,0,0.9)'
+        ctxAz.strokeStyle = 'rgba(255,255,255,0.2)'
         ctxAz.stroke()
 
         ctxAz.beginPath()
@@ -2347,7 +2347,7 @@ let ShadeTool = {
         ctxAz.moveTo(size - (size - sizeInner) / 2, origin.y)
         ctxAz.lineTo((size - sizeInner) / 2, origin.y)
         ctxAz.lineWidth = 1
-        ctxAz.strokeStyle = 'rgba(0,0,0,0.9)'
+        ctxAz.strokeStyle = 'rgba(255,255,255,0.2)'
         ctxAz.stroke()
 
         let azGreaterThan180
@@ -2454,9 +2454,9 @@ let ShadeTool = {
 
         ctxEl.beginPath()
         ctxEl.arc(size / 2, size / 2, sizeInner / 2, 0, 2 * Math.PI)
-        ctxEl.fillStyle = 'rgba(255,255,255,0.1)'
+        ctxEl.fillStyle = '#2a3038'
         ctxEl.fill()
-        ctxEl.strokeStyle = 'black'
+        ctxEl.strokeStyle = 'rgba(255,255,255,0.3)'
         ctxEl.lineWidth = 2
         ctxEl.stroke()
 
@@ -2484,7 +2484,7 @@ let ShadeTool = {
         ctxEl.moveTo(origin.x, size - (size - sizeInner) / 2)
         ctxEl.lineTo(origin.x, (size - sizeInner) / 2)
         ctxEl.lineWidth = 1
-        ctxEl.strokeStyle = 'rgba(0,0,0,0.9)'
+        ctxEl.strokeStyle = 'rgba(255,255,255,0.2)'
         ctxEl.stroke()
 
         if (rae.error != true) {
@@ -2684,7 +2684,7 @@ let ShadeTool = {
 
             ctx.beginPath()
             ctx.arc(size / 2, size / 2, sizeInner / 2, 0, 2 * Math.PI)
-            ctx.fillStyle = '#1a1e22'
+            ctx.fillStyle = '#2a3038'
             ctx.fill()
             ctx.strokeStyle = 'rgba(255,255,255,0.3)'
             ctx.lineWidth = 1
@@ -2729,7 +2729,7 @@ let ShadeTool = {
 
             ctx.beginPath()
             ctx.arc(size / 2, size / 2, sizeInner / 2, 0, 2 * Math.PI)
-            ctx.fillStyle = '#1a1e22'
+            ctx.fillStyle = '#2a3038'
             ctx.fill()
             ctx.strokeStyle = 'rgba(255,255,255,0.3)'
             ctx.lineWidth = 1
@@ -2848,9 +2848,10 @@ let ShadeTool = {
         ctx.lineTo(cx + r, cy)
         ctx.stroke()
 
-        // Cardinal labels
+        // Cardinal labels — use theme-aware color (labels sit outside dome in transparent area)
+        const cardinalColor = getComputedStyle(document.documentElement).getPropertyValue('--color-f').trim() || 'rgba(255,255,255,0.7)'
         ctx.font = '22px Arial'
-        ctx.fillStyle = 'rgba(255,255,255,0.7)'
+        ctx.fillStyle = cardinalColor
         ctx.textAlign = 'center'
         ctx.textBaseline = 'bottom'
         ctx.fillText('N', cx, cy - r - 3)
