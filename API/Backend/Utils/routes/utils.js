@@ -37,6 +37,8 @@ function validateMissionsPath(rawPath) {
       return { error: 'Invalid URL encoding in path.' };
     }
   }
+  // Normalise: accept both "Missions/…" and "/Missions/…"
+  if (!decoded.startsWith('/')) decoded = '/' + decoded;
   if (!decoded.startsWith('/Missions')) {
     return { error: "Only paths beginning with '/Missions' are supported." };
   }
