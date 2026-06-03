@@ -807,14 +807,17 @@ const ShadeTool_Graphs = {
             const visibleColor = `rgba(${Math.min(color.r + 40, 255)},${Math.min(color.g + 40, 255)},${Math.min(color.b + 40, 255)},0.85)`
             const occludedColor = 'rgba(60,60,60,0.5)'
 
-            // Compute visibility segments from actual shade grid center cell
+            // Compute visibility using the horizon profile (terrain-aware)
             const segments = []
             for (let i = 0; i < results.length; i++) {
                 const r = results[i]
-                // Use centerVisible (observer-point visibility from the shade grid)
-                // Falls back to visibilityPct > 0 for older data without centerVisible
-                const visible = r.centerVisible != null ? r.centerVisible
-                    : (r.visibilityPct != null && parseFloat(r.visibilityPct) > 0)
+                let visible = false
+                if (profile && r.azimuth != null && r.elevation != null) {
+                    let az = r.azimuth
+                    if (az < 0) az += 360
+                    const horizEl = _interpolateHorizon(profile, az)
+                    visible = r.elevation > horizEl
+                }
                 segments.push(visible)
             }
 
