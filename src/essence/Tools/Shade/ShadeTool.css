@@ -1068,9 +1068,9 @@
 }
 
 .shadeVisLabel {
-    width: 90px;
+    width: 120px;
     flex-shrink: 0;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     text-align: right;
     white-space: nowrap;
@@ -1081,8 +1081,8 @@
 }
 .shadeVisLabelSuffix {
     font-weight: 400;
-    opacity: 0.6;
-    font-size: 9px;
+    opacity: 1;
+    font-size: 12px;
 }
 
 .shadeVisBar {
@@ -1125,7 +1125,7 @@
     position: relative;
     height: 24px;
     flex-shrink: 0;
-    margin-left: 94px;
+    margin-left: 124px;
     margin-right: 8px;
 }
 

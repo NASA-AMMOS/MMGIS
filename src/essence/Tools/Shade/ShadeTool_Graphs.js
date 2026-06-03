@@ -420,7 +420,7 @@ const ShadeTool_Graphs = {
 
         const rect = wrap.getBoundingClientRect()
         // The bars start after the label column
-        const labelCol = 94
+        const labelCol = 124
         const barAreaW = rect.width - labelCol
         const mouseX = e.clientX - rect.left - labelCol
         if (barAreaW <= 0) return
@@ -824,8 +824,8 @@ const ShadeTool_Graphs = {
             const label = document.createElement('div')
             label.className = 'shadeVisLabel'
             label.style.color = colorStr
-            label.innerHTML = `${srcName} <span class="shadeVisLabelSuffix">occluded</span>`
-            label.title = srcName + ' occluded'
+            label.innerHTML = `${srcName} <span class="shadeVisLabelSuffix">Occultations</span>`
+            label.title = srcName + ' Occultations'
             row.appendChild(label)
 
             const bar = document.createElement('div')
