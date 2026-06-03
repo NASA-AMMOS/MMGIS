@@ -233,10 +233,11 @@ const ShadeTool_Graphs = {
             if (!_graphOpen || !_activeElmId) return
             if (_resizeTimeout) clearTimeout(_resizeTimeout)
             _resizeTimeout = setTimeout(() => {
-                if (_horizonCache) {
-                    ShadeTool_Graphs._drawHorizonCanvas(_horizonCache.profile, _activeElmId)
-                }
-                ShadeTool_Graphs.drawVisibilityTimeline(_activeElmId)
+                // Use fetchAndDrawHorizon which handles both cached and
+                // uncached (e.g. invalidated by moveend) cases.
+                // It also redraws the visibility timeline after the
+                // profile is available.
+                ShadeTool_Graphs.fetchAndDrawHorizon(_activeElmId)
             }, 60)
         }
 
@@ -499,6 +500,7 @@ const ShadeTool_Graphs = {
                 _horizonCache.profile,
                 elmId
             )
+            ShadeTool_Graphs.drawVisibilityTimeline(elmId)
             return
         }
 
