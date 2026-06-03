@@ -39,6 +39,7 @@ let _lastProgressFlush = 0
 let _pendingPct = null
 let _pendingMsg = null
 let _highWaterPct = 0
+let _sweepingElmId = null
 function _flushSweepProgress(pct, msg, force) {
     // Monotonic: never let displayed percentage go backwards
     if (pct < _highWaterPct && !force) pct = _highWaterPct
@@ -51,8 +52,9 @@ function _flushSweepProgress(pct, msg, force) {
         const s = useShadeStore.getState()
         if (_pendingMsg !== null) { s.setSweepField('sweepProgress', _pendingMsg); _pendingMsg = null }
         s.setSweepField('sweepProgressPct', _pendingPct)
-        if (s.activeElmId != null) {
-            s.updateElement(s.activeElmId, { loadingProgress: _pendingPct })
+        const targetElm = _sweepingElmId != null ? _sweepingElmId : s.activeElmId
+        if (targetElm != null) {
+            s.updateElement(targetElm, { loadingProgress: _pendingPct })
         }
     }
 }
@@ -1408,6 +1410,7 @@ let ShadeTool = {
         const sweepRunId = ShadeTool._sweepRunId
         const store = useShadeStore.getState()
         const activeElmId = store.activeElmId
+        _sweepingElmId = activeElmId
         if (activeElmId == null) { if (onComplete) onComplete(); return }
 
         if (ShadeTool._sweepPlayTimer) {
@@ -1820,6 +1823,11 @@ let ShadeTool = {
         const runId = ShadeTool._sweepRunId
         const store = useShadeStore.getState()
         store.setSweepField('sweepStale', false)
+
+        // Reset all elements' loading state from any previous sweep
+        for (const id in store.elements) {
+            store.updateElement(parseInt(id), { loading: false, loadingProgress: 0 })
+        }
 
         // Clear existing shade map layers and old sweep layers from the map
         ShadeTool.clearAllShadeLayers()

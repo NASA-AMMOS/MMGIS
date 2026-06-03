@@ -540,6 +540,7 @@ const ShadeTool_Graphs = {
         const canvas = document.getElementById(HORIZON_CANVAS_ID)
         if (!canvas) return
 
+        const store = useShadeStore.getState()
         const dpr = window.devicePixelRatio || 1
         const rect = canvas.parentElement.getBoundingClientRect()
         const w = Math.floor(rect.width)
@@ -799,7 +800,7 @@ const ShadeTool_Graphs = {
         wrap.innerHTML = ''
 
         // Reference results for frame count / time labels (use first element)
-        const refResults = elms[0].results
+        const refResults = elms[0].ed.results
         const frameCount = refResults.length
         if (frameCount === 0) return
 
