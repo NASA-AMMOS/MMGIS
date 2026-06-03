@@ -175,6 +175,15 @@ const ShadeTool_Graphs = {
         closeBtn.onclick = () => ShadeTool_Graphs.close()
         container.appendChild(closeBtn)
 
+        // --- Legend bar at top of entire panel ---
+        const legend = document.createElement('div')
+        legend.className = 'shadeGraphLegend'
+        legend.innerHTML =
+            `<span class="shadeGraphLegendItem"><span class="shadeGraphLegendSwatch" style="background:rgba(255,255,255,0.85)"></span>Visible</span>` +
+            `<span class="shadeGraphLegendItem"><span class="shadeGraphLegendSwatch" style="background:rgba(120,80,50,0.7)"></span>Terrain</span>` +
+            `<span class="shadeGraphLegendItem"><span class="shadeGraphLegendSwatch shadeGraphLegendShaded"></span>Shaded</span>`
+        container.appendChild(legend)
+
         // --- Horizon panel ---
         const hPanel = document.createElement('div')
         hPanel.className = 'shadeGraphPanel'
@@ -192,16 +201,6 @@ const ShadeTool_Graphs = {
         // --- Visibility panel ---
         const vPanel = document.createElement('div')
         vPanel.className = 'shadeGraphPanel shadeVisPanel'
-
-        // Header bar with title + legend
-        const visHeader = document.createElement('div')
-        visHeader.className = 'shadeVisHeader'
-        visHeader.innerHTML = `<span class="shadeVisHeaderTitle">Visibility Timeline</span>` +
-            `<span class="shadeVisLegend">` +
-            `<span class="shadeVisLegendItem"><span class="shadeVisLegendSwatch shadeVisLegendVisible"></span>Visible</span>` +
-            `<span class="shadeVisLegendItem"><span class="shadeVisLegendSwatch shadeVisLegendOccluded"></span>Occluded</span>` +
-            `</span>`
-        vPanel.appendChild(visHeader)
 
         const visWrap = document.createElement('div')
         visWrap.id = 'shadeVisibilityWrap'
@@ -814,8 +813,9 @@ const ShadeTool_Graphs = {
                 ? { r: Math.min(rawColor.r + 120, 255), g: Math.min(rawColor.g + 120, 255), b: Math.min(rawColor.b + 120, 255) }
                 : rawColor
             const colorStr = `rgb(${color.r},${color.g},${color.b})`
-            const visibleColor = `rgba(${Math.min(color.r + 40, 255)},${Math.min(color.g + 40, 255)},${Math.min(color.b + 40, 255)},0.85)`
-            const occludedColor = 'rgba(60,60,60,0.5)'
+            // Shaded segments use element color; visible segments are white
+            const shadedColor = `rgba(${color.r},${color.g},${color.b},0.85)`
+            const visibleColor = 'rgba(255,255,255,0.85)'
 
             // Compute visibility segments from actual shade grid center cell
             const segments = []
@@ -851,7 +851,7 @@ const ShadeTool_Graphs = {
                 const pctWidth = ((i - runStart) / frameCount) * 100
                 span.style.left = pctStart + '%'
                 span.style.width = pctWidth + '%'
-                span.style.background = segments[runStart] ? visibleColor : occludedColor
+                span.style.background = segments[runStart] ? visibleColor : shadedColor
                 bar.appendChild(span)
                 runStart = i
             }
