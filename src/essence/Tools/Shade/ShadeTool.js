@@ -315,6 +315,8 @@ let ShadeTool = {
             for (const id in store.elements) {
                 const el = store.elements[id]
                 if (!el) continue
+                // Don't regenerate static shade for composite/playback elements
+                if (el.shadeMode === 'composite' || el.shadeMode === 'playback') continue
                 if (el.resolution <= 1) {
                     ShadeTool.shade(null, parseInt(id))
                 } else {
