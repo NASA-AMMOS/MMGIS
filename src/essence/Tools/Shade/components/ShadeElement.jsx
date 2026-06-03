@@ -798,7 +798,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                     {ed?.results && ed.results.length > 0 && ed?.grids && (
                                         <div className="vstGraphButtons">
                                             <IconTextButton
-                                                size="sm"
+                                                size="md"
                                                 active={ShadeTool_Graphs.isOpen() && ShadeTool_Graphs.getActiveElmId() === elmId}
                                                 title="Toggle Horizon + Visibility charts"
                                                 onClick={() => ShadeTool_Graphs.toggle(elmId)}
