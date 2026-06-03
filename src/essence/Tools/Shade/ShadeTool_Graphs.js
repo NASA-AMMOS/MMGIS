@@ -192,6 +192,17 @@ const ShadeTool_Graphs = {
         // --- Visibility panel ---
         const vPanel = document.createElement('div')
         vPanel.className = 'shadeGraphPanel shadeVisPanel'
+
+        // Header bar with title + legend
+        const visHeader = document.createElement('div')
+        visHeader.className = 'shadeVisHeader'
+        visHeader.innerHTML = `<span class="shadeVisHeaderTitle">Visibility Timeline</span>` +
+            `<span class="shadeVisLegend">` +
+            `<span class="shadeVisLegendItem"><span class="shadeVisLegendSwatch shadeVisLegendVisible"></span>Visible</span>` +
+            `<span class="shadeVisLegendItem"><span class="shadeVisLegendSwatch shadeVisLegendOccluded"></span>Occluded</span>` +
+            `</span>`
+        vPanel.appendChild(visHeader)
+
         const visWrap = document.createElement('div')
         visWrap.id = 'shadeVisibilityWrap'
         visWrap.className = 'shadeVisWrap'
@@ -806,12 +817,14 @@ const ShadeTool_Graphs = {
             const visibleColor = `rgba(${Math.min(color.r + 40, 255)},${Math.min(color.g + 40, 255)},${Math.min(color.b + 40, 255)},0.85)`
             const occludedColor = 'rgba(60,60,60,0.5)'
 
-            // Compute visibility segments from actual shade computation results
+            // Compute visibility segments from actual shade grid center cell
             const segments = []
             for (let i = 0; i < results.length; i++) {
                 const r = results[i]
-                // Use visibilityPct from the shade API (the actual shadow computation)
-                const visible = r.visibilityPct != null && parseFloat(r.visibilityPct) > 0
+                // Use centerVisible (observer-point visibility from the shade grid)
+                // Falls back to visibilityPct > 0 for older data without centerVisible
+                const visible = r.centerVisible != null ? r.centerVisible
+                    : (r.visibilityPct != null && parseFloat(r.visibilityPct) > 0)
                 segments.push(visible)
             }
 

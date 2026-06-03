@@ -1650,12 +1650,19 @@ let ShadeTool = {
                                                 }
                                             }
                                         }
+                                        // Check the center cell for observer-point visibility
+                                        const cy = Math.floor(compositedGrid.length / 2)
+                                        const cx = compositedGrid[cy] ? Math.floor(compositedGrid[cy].length / 2) : 0
+                                        const centerVal = compositedGrid[cy]?.[cx]
+                                        const centerVisible = centerVal === 1 || centerVal === 2
+
                                         const primary = validTargets[0]
                                         sweepResults.push({
                                             time: ts,
                                             visibilityPct: totalCells > 0
                                                 ? ((visCount / totalCells) * 100).toFixed(2)
                                                 : 0,
+                                            centerVisible,
                                             azimuth: primary.azimuth,
                                             elevation: primary.elevation,
                                             range: primary.range,
@@ -1666,6 +1673,7 @@ let ShadeTool = {
                                         sweepResults.push({
                                             time: ts,
                                             visibilityPct: 0,
+                                            centerVisible: false,
                                             azimuth: 0,
                                             elevation: 0,
                                             range: 0,
