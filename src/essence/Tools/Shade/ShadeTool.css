@@ -1044,6 +1044,103 @@
     cursor: pointer;
 }
 
+/* ====== Div-based Visibility Timeline ====== */
+
+.shadeVisWrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 8px;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.shadeVisRow {
+    display: flex;
+    align-items: center;
+    height: 18px;
+    gap: 4px;
+}
+
+.shadeVisLabel {
+    width: 52px;
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.85;
+}
+
+.shadeVisBar {
+    flex: 1;
+    height: 14px;
+    position: relative;
+    background: rgba(40,40,40,0.3);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.shadeVisSegment {
+    position: absolute;
+    top: 0;
+    height: 100%;
+}
+
+.shadeVisSlider {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e53935;
+    pointer-events: none;
+    z-index: 10;
+}
+.shadeVisSlider::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -4px;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid #e53935;
+}
+
+.shadeVisTimeLabels {
+    position: relative;
+    height: 24px;
+    flex-shrink: 0;
+    margin-left: 60px;
+    margin-right: 8px;
+}
+
+.shadeVisTimeTick {
+    position: absolute;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.shadeVisTimeTickLine {
+    width: 1px;
+    height: 6px;
+    background: rgba(255,255,255,0.3);
+}
+
+.shadeVisTimeTickText {
+    font-size: 9px;
+    color: rgba(255,255,255,0.5);
+    white-space: nowrap;
+    transform: translateX(-25%);
+}
+
 /* ====== Horizon hover line ====== */
 
 .shadeHorizonHoverLine {

@@ -8,7 +8,7 @@ import Toast from '../../../design-system/components/Toast/Toast'
 
 const GRAPH_CONTAINER_ID = 'shadeGraphContainer'
 const HORIZON_CANVAS_ID = 'shadeHorizonCanvas'
-const VISIBILITY_CANVAS_ID = 'shadeVisibilityCanvas'
+// Visibility timeline is now div-based (no canvas)
 const AZIMUTH_LINE_ID = 'shadeAzimuthLineOverlay'
 const HOVER_LINE_ID = 'shadeHorizonHoverLine'
 
@@ -61,7 +61,10 @@ const ShadeTool_Graphs = {
         _activeView = 'visibility'
         _graphOpen = true
 
-        useUIStore.getState().setToolHeight(85)
+        // Height depends on how many shade maps have results
+        const store = useShadeStore.getState()
+        const count = _getAllVisibilityElms(store).length
+        useUIStore.getState().setToolHeight(Math.max(85, 40 + count * 24 + 40))
 
         setTimeout(() => {
             ShadeTool_Graphs._buildContainer('visibility')
@@ -226,19 +229,27 @@ const ShadeTool_Graphs = {
             panel.className = 'shadeGraphPanel'
             const title = document.createElement('div')
             title.className = 'shadeGraphTitle'
-            title.id = 'shadeVisibilityTitle'
             title.textContent = 'Visibility Timeline'
             panel.appendChild(title)
-            const canvas = document.createElement('canvas')
-            canvas.id = VISIBILITY_CANVAS_ID
-            canvas.className = 'shadeGraphCanvas'
-            panel.appendChild(canvas)
+
+            // Div-based visibility container (replaces canvas)
+            const visWrap = document.createElement('div')
+            visWrap.id = 'shadeVisibilityWrap'
+            visWrap.className = 'shadeVisWrap'
+            panel.appendChild(visWrap)
+
+            // Time labels row
+            const timeRow = document.createElement('div')
+            timeRow.id = 'shadeVisTimeLabels'
+            timeRow.className = 'shadeVisTimeLabels'
+            panel.appendChild(timeRow)
+
             container.appendChild(panel)
 
-            canvas.addEventListener('mousedown', ShadeTool_Graphs._onVisibilityMouseDown)
-            canvas.addEventListener('mousemove', ShadeTool_Graphs._onVisibilityMouseMove)
-            canvas.addEventListener('mouseup', ShadeTool_Graphs._onVisibilityMouseUp)
-            canvas.addEventListener('mouseleave', ShadeTool_Graphs._onVisibilityMouseLeave)
+            visWrap.addEventListener('mousedown', ShadeTool_Graphs._onVisibilityMouseDown)
+            visWrap.addEventListener('mousemove', ShadeTool_Graphs._onVisibilityMouseMove)
+            visWrap.addEventListener('mouseup', ShadeTool_Graphs._onVisibilityMouseUp)
+            visWrap.addEventListener('mouseleave', ShadeTool_Graphs._onVisibilityMouseLeave)
         }
 
         tools.appendChild(container)
@@ -354,9 +365,9 @@ const ShadeTool_Graphs = {
             if (_graphPlayInterval) {
                 clearInterval(_graphPlayInterval)
                 _graphPlayInterval = null
-                playBtn.innerHTML = '<i class="mdi mdi-play mdi-14px"></i>'
+                playBtn.innerHTML = '<i class="mdi mdi-play mdi-18px"></i>'
             } else {
-                playBtn.innerHTML = '<i class="mdi mdi-pause mdi-14px"></i>'
+                playBtn.innerHTML = '<i class="mdi mdi-pause mdi-18px"></i>'
                 const speed = useShadeStore.getState().sweepPlaySpeed || 500
                 _graphPlayInterval = setInterval(() => {
                     const s = useShadeStore.getState()
@@ -421,23 +432,26 @@ const ShadeTool_Graphs = {
     },
 
     _scrubFromVisibilityX(e) {
-        const canvas = document.getElementById(VISIBILITY_CANVAS_ID)
-        if (!canvas) return
+        const wrap = document.getElementById('shadeVisibilityWrap')
+        if (!wrap) return
         const store = useShadeStore.getState()
-        const ed = store.sweepElData[_activeElmId]
-        if (!ed?.results || ed.results.length === 0) return
+        // Use the first element with results to determine frame count
+        const elms = _getAllVisibilityElms(store)
+        if (elms.length === 0) return
+        const frameCount = elms[0].results.length
+        if (frameCount === 0) return
 
-        const rect = canvas.getBoundingClientRect()
-        const mouseX = e.clientX - rect.left
-        const w = Math.floor(rect.width)
-        const pad = { top: 16, right: 20, bottom: 36, left: 45 }
-        const plotW = w - pad.left - pad.right
-        if (plotW <= 0) return
+        const rect = wrap.getBoundingClientRect()
+        // The bars start after the label column
+        const labelCol = 60
+        const barAreaW = rect.width - labelCol
+        const mouseX = e.clientX - rect.left - labelCol
+        if (barAreaW <= 0) return
 
-        const frac = (mouseX - pad.left) / plotW
+        const frac = mouseX / barAreaW
         if (frac < 0 || frac > 1) return
-        const frameIndex = Math.round(frac * (ed.results.length - 1))
-        ShadeTool_Graphs._scrubToFrame(Math.max(0, Math.min(frameIndex, ed.results.length - 1)))
+        const frameIndex = Math.round(frac * (frameCount - 1))
+        ShadeTool_Graphs._scrubToFrame(Math.max(0, Math.min(frameIndex, frameCount - 1)))
     },
 
     fetchAndDrawHorizon(elmId) {
@@ -612,10 +626,15 @@ const ShadeTool_Graphs = {
         }
         reordered.sort((a, b) => a[0] - b[0])
 
-        // Draw source trajectory BEHIND the terrain fill
-        ShadeTool_Graphs._drawSourceTrajectory(
-            ctx, elmId, pad, plotW, plotH, minEl, elRange, false
-        )
+        // Gather all linked elements that share center/time/step for multi-arc display
+        const linkedElms = _getLinkedHorizonElms(store, elmId)
+
+        // Draw ALL source trajectories BEHIND the terrain fill
+        for (const le of linkedElms) {
+            ShadeTool_Graphs._drawSourceTrajectory(
+                ctx, le.id, le.color, pad, plotW, plotH, minEl, elRange, false
+            )
+        }
 
         // Filled terrain silhouette (brown, fairly opaque to cover trajectory below horizon)
         ctx.beginPath()
@@ -642,10 +661,12 @@ const ShadeTool_Graphs = {
         ctx.lineWidth = 1.5
         ctx.stroke()
 
-        // Draw current frame marker ON TOP of terrain
-        ShadeTool_Graphs._drawSourceTrajectory(
-            ctx, elmId, pad, plotW, plotH, minEl, elRange, true
-        )
+        // Draw current frame markers ON TOP of terrain for all linked elements
+        for (const le of linkedElms) {
+            ShadeTool_Graphs._drawSourceTrajectory(
+                ctx, le.id, le.color, pad, plotW, plotH, minEl, elRange, true
+            )
+        }
 
         // Elevation tick labels only (no azimuth x-axis labels)
         ctx.fillStyle = 'rgba(255,255,255,0.7)'
@@ -684,7 +705,7 @@ const ShadeTool_Graphs = {
         ctx.fillText('N', northArrowX, northArrowY)
     },
 
-    _drawSourceTrajectory(ctx, elmId, pad, plotW, plotH, minEl, elRange, markerOnly) {
+    _drawSourceTrajectory(ctx, elmId, color, pad, plotW, plotH, minEl, elRange, markerOnly) {
         const store = useShadeStore.getState()
         const ed = store.sweepElData[elmId]
         if (!ed?.results || ed.results.length === 0) return
@@ -694,10 +715,19 @@ const ShadeTool_Graphs = {
             ? (ed.localPlayIndex || 0)
             : store.sweepPlayIndex
 
+        // If color is very dark (e.g. black for element 0), brighten for visibility
+        const brightness = color.r + color.g + color.b
+        const c = brightness < 100
+            ? { r: Math.min(color.r + 120, 255), g: Math.min(color.g + 120, 255), b: Math.min(color.b + 120, 255) }
+            : color
+        const lineColor = `rgb(${c.r},${c.g},${c.b})`
+        const dotColor = `rgba(${c.r},${c.g},${c.b},0.4)`
+        const markerColor = `rgb(${Math.min(c.r + 60, 255)},${Math.min(c.g + 60, 255)},${Math.min(c.b + 60, 255)})`
+
         if (!markerOnly) {
             // Draw trajectory arc (break line at azimuth wrap-around)
             ctx.beginPath()
-            ctx.strokeStyle = '#dbb658'
+            ctx.strokeStyle = lineColor
             ctx.lineWidth = 2
             let started = false
             let prevDisplayAz = null
@@ -723,7 +753,7 @@ const ShadeTool_Graphs = {
             ctx.stroke()
 
             // Trajectory dots
-            ctx.fillStyle = 'rgba(219,182,88,0.4)'
+            ctx.fillStyle = dotColor
             for (let i = 0; i < results.length; i++) {
                 const az = results[i].azimuth
                 const el = results[i].elevation
@@ -744,7 +774,7 @@ const ShadeTool_Graphs = {
             const y = pad.top + plotH - ((cur.elevation - minEl) / elRange) * plotH
             ctx.beginPath()
             ctx.arc(x, y, 6, 0, Math.PI * 2)
-            ctx.fillStyle = '#ffdd44'
+            ctx.fillStyle = markerColor
             ctx.fill()
             ctx.strokeStyle = '#000'
             ctx.lineWidth = 1.5
@@ -755,148 +785,143 @@ const ShadeTool_Graphs = {
     },
 
     drawVisibilityTimeline(elmId) {
-        const canvas = document.getElementById(VISIBILITY_CANVAS_ID)
-        if (!canvas) return
+        const wrap = document.getElementById('shadeVisibilityWrap')
+        if (!wrap) return
 
         const store = useShadeStore.getState()
-        const ed = store.sweepElData[elmId]
-        if (!ed?.results || ed.results.length === 0) return
+        const elms = _getAllVisibilityElms(store)
+        if (elms.length === 0) return
 
-        // Update title with source name
-        const el = store.elements[elmId]
-        const titleEl = document.getElementById('shadeVisibilityTitle')
-        if (titleEl && el) {
-            const sources = store.getSelectedSources(elmId)
-            const srcName = sources?.[0]?.name || 'Source'
-            titleEl.textContent = srcName + ' Visibility Timeline'
-        }
-
-        const results = ed.results
         const profile = _horizonCache?.profile
+        const playIndex = store.sweepPlayIndex
 
-        const dpr = window.devicePixelRatio || 1
-        const rect = canvas.parentElement.getBoundingClientRect()
-        const w = Math.floor(rect.width)
-        const h = Math.floor(rect.height - 24)
-        canvas.width = w * dpr
-        canvas.height = h * dpr
-        canvas.style.width = w + 'px'
-        canvas.style.height = h + 'px'
-        const ctx = canvas.getContext('2d')
-        ctx.scale(dpr, dpr)
+        // Clear previous content
+        wrap.innerHTML = ''
 
-        const pad = { top: 16, right: 20, bottom: 36, left: 45 }
-        const plotW = w - pad.left - pad.right
-        const plotH = h - pad.top - pad.bottom
+        // Reference results for frame count / time labels (use first element)
+        const refResults = elms[0].results
+        const frameCount = refResults.length
+        if (frameCount === 0) return
 
-        if (plotW <= 0 || plotH <= 0) return
+        // Build a row for each shade element
+        elms.forEach(({ id, el, ed }) => {
+            const results = ed.results
+            const sources = store.getSelectedSources(id)
+            const srcName = sources?.[0]?.name || el.name || 'Source'
+            const rawColor = el.color
+            // Brighten dark colors for visibility on dark backgrounds
+            const brightness = rawColor.r + rawColor.g + rawColor.b
+            const color = brightness < 100
+                ? { r: Math.min(rawColor.r + 120, 255), g: Math.min(rawColor.g + 120, 255), b: Math.min(rawColor.b + 120, 255) }
+                : rawColor
+            const colorStr = `rgb(${color.r},${color.g},${color.b})`
+            const visibleColor = `rgba(${Math.min(color.r + 40, 255)},${Math.min(color.g + 40, 255)},${Math.min(color.b + 40, 255)},0.85)`
+            const occludedColor = 'rgba(60,60,60,0.5)'
 
-        // Background
-        ctx.fillStyle = 'rgba(0,0,0,0.3)'
-        ctx.fillRect(0, 0, w, h)
-
-        const playIndex = (ed.playbackLinked === false)
-            ? (ed.localPlayIndex || 0)
-            : store.sweepPlayIndex
-
-        // Compute visibility segments
-        const segments = []
-        for (let i = 0; i < results.length; i++) {
-            const r = results[i]
-            let visible = true
-
-            if (profile && r.azimuth != null && r.elevation != null) {
-                let az = r.azimuth
-                if (az < 0) az += 360
-                const horizEl = _interpolateHorizon(profile, az)
-                visible = r.elevation > horizEl
-            } else if (r.visibilityPct != null) {
-                visible = parseFloat(r.visibilityPct) > 50
+            // Compute visibility segments
+            const segments = []
+            for (let i = 0; i < results.length; i++) {
+                const r = results[i]
+                let visible = true
+                if (profile && r.azimuth != null && r.elevation != null) {
+                    let az = r.azimuth
+                    if (az < 0) az += 360
+                    const horizEl = _interpolateHorizon(profile, az)
+                    visible = r.elevation > horizEl
+                } else if (r.visibilityPct != null) {
+                    visible = parseFloat(r.visibilityPct) > 50
+                }
+                segments.push(visible)
             }
-            segments.push(visible)
+
+            const row = document.createElement('div')
+            row.className = 'shadeVisRow'
+
+            const label = document.createElement('div')
+            label.className = 'shadeVisLabel'
+            label.style.color = colorStr
+            label.textContent = srcName
+            label.title = srcName
+            row.appendChild(label)
+
+            const bar = document.createElement('div')
+            bar.className = 'shadeVisBar'
+
+            // Group contiguous visible/occluded segments into span elements
+            let runStart = 0
+            for (let i = 1; i <= segments.length; i++) {
+                if (i < segments.length && segments[i] === segments[runStart]) continue
+                const span = document.createElement('div')
+                span.className = 'shadeVisSegment'
+                const pctStart = (runStart / frameCount) * 100
+                const pctWidth = ((i - runStart) / frameCount) * 100
+                span.style.left = pctStart + '%'
+                span.style.width = pctWidth + '%'
+                span.style.background = segments[runStart] ? visibleColor : occludedColor
+                bar.appendChild(span)
+                runStart = i
+            }
+
+            row.appendChild(bar)
+            wrap.appendChild(row)
+        })
+
+        // Red time slider overlay
+        if (playIndex >= 0 && playIndex < frameCount) {
+            const pct = ((playIndex + 0.5) / frameCount) * 100
+            let slider = document.getElementById('shadeVisSlider')
+            if (!slider) {
+                slider = document.createElement('div')
+                slider.id = 'shadeVisSlider'
+                slider.className = 'shadeVisSlider'
+            }
+            slider.style.left = `calc(60px + ${pct}% * (100% - 60px) / 100%)`
+            // Use the bar area for positioning
+            const firstBar = wrap.querySelector('.shadeVisBar')
+            if (firstBar) {
+                const wrapRect = wrap.getBoundingClientRect()
+                const barRect = firstBar.getBoundingClientRect()
+                const barLeft = barRect.left - wrapRect.left
+                const barWidth = barRect.width
+                const px = barLeft + (playIndex + 0.5) / frameCount * barWidth
+                slider.style.left = px + 'px'
+            }
+            wrap.appendChild(slider)
         }
-
-        const barH = Math.min(plotH * 0.5, 40)
-        const barY = pad.top + (plotH - barH) / 2
-
-        // Draw segments
-        const segW = plotW / results.length
-        for (let i = 0; i < segments.length; i++) {
-            const x = pad.left + i * segW
-            ctx.fillStyle = segments[i]
-                ? 'rgba(76,175,80,0.85)'
-                : 'rgba(60,60,60,0.85)'
-            ctx.fillRect(x, barY, Math.ceil(segW) + 1, barH)
-        }
-
-        // Bar border
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)'
-        ctx.lineWidth = 1
-        ctx.strokeRect(pad.left, barY, plotW, barH)
 
         // Time labels
-        ctx.fillStyle = 'rgba(255,255,255,0.6)'
-        ctx.font = '9px sans-serif'
-        ctx.textAlign = 'center'
-        const labelCount = Math.min(results.length, Math.floor(plotW / 80))
-        const labelStep = Math.max(1, Math.floor(results.length / labelCount))
-        for (let i = 0; i < results.length; i += labelStep) {
+        ShadeTool_Graphs._drawVisTimeLabels(refResults)
+    },
+
+    _drawVisTimeLabels(results) {
+        const container = document.getElementById('shadeVisTimeLabels')
+        if (!container || !results || results.length === 0) return
+        container.innerHTML = ''
+
+        // Determine if year is constant
+        const years = new Set()
+        for (const r of results) {
+            if (r.time) {
+                try { years.add(new Date(r.time).getUTCFullYear()) } catch {}
+            }
+        }
+        const omitYear = years.size <= 1
+
+        // Calculate how many labels fit
+        const rect = container.getBoundingClientRect()
+        const labelW = 90 // approximate width per label
+        const maxLabels = Math.max(2, Math.floor(rect.width / labelW))
+        const step = Math.max(1, Math.floor(results.length / maxLabels))
+
+        for (let i = 0; i < results.length; i += step) {
             const t = results[i].time
             if (!t) continue
-            const x = pad.left + (i + 0.5) * segW
-            const label = _formatTimeLabel(t)
-            ctx.save()
-            ctx.translate(x, barY + barH + 12)
-            ctx.rotate(-Math.PI / 6)
-            ctx.fillText(label, 0, 0)
-            ctx.restore()
-        }
-
-        // Legend
-        ctx.font = '10px sans-serif'
-        ctx.textAlign = 'left'
-        ctx.fillStyle = 'rgba(76,175,80,0.85)'
-        ctx.fillRect(pad.left, h - 14, 10, 10)
-        ctx.fillStyle = 'rgba(255,255,255,0.6)'
-        ctx.fillText('Visible', pad.left + 14, h - 5)
-        ctx.fillStyle = 'rgba(60,60,60,0.85)'
-        ctx.fillRect(pad.left + 70, h - 14, 10, 10)
-        ctx.fillStyle = 'rgba(255,255,255,0.6)'
-        ctx.fillText('Occluded', pad.left + 84, h - 5)
-
-        // Red time slider
-        if (playIndex >= 0 && playIndex < results.length) {
-            const cx = pad.left + (playIndex + 0.5) * segW
-            ctx.save()
-            ctx.strokeStyle = '#e53935'
-            ctx.lineWidth = 2
-            ctx.setLineDash([])
-            ctx.beginPath()
-            ctx.moveTo(cx, pad.top)
-            ctx.lineTo(cx, pad.top + plotH)
-            ctx.stroke()
-            // Slider handle (triangle at top)
-            ctx.fillStyle = '#e53935'
-            ctx.beginPath()
-            ctx.moveTo(cx - 5, pad.top)
-            ctx.lineTo(cx + 5, pad.top)
-            ctx.lineTo(cx, pad.top + 7)
-            ctx.closePath()
-            ctx.fill()
-            ctx.restore()
-
-            // Cursor time label
-            const curTime = results[playIndex].time
-            if (curTime) {
-                ctx.fillStyle = '#e53935'
-                ctx.font = '10px sans-serif'
-                ctx.textAlign = 'center'
-                ctx.fillText(
-                    _formatTimeLabel(curTime),
-                    cx,
-                    pad.top - 4
-                )
-            }
+            const pct = (i / results.length) * 100
+            const tick = document.createElement('div')
+            tick.className = 'shadeVisTimeTick'
+            tick.style.left = pct + '%'
+            tick.innerHTML = `<div class="shadeVisTimeTickLine"></div><div class="shadeVisTimeTickText">${_formatSmartTimeLabel(t, omitYear)}</div>`
+            container.appendChild(tick)
         }
     },
 
@@ -955,6 +980,102 @@ function _formatTimeLabel(timeStr) {
     if (!timeStr) return ''
     // Full ISO time (matching vstSweepFrameLabel format)
     return timeStr.replace(/\.\d{3}Z$/, 'Z').replace(' UTC', '')
+}
+
+/** Smart time label: omit year if constant across all times, omit seconds/microseconds */
+function _formatSmartTimeLabel(timeStr, omitYear) {
+    if (!timeStr) return ''
+    try {
+        const d = new Date(timeStr)
+        if (isNaN(d.getTime())) return timeStr
+        const mon = d.toLocaleString('en', { month: 'short' })
+        const day = d.getUTCDate()
+        const hr = String(d.getUTCHours()).padStart(2, '0')
+        const min = String(d.getUTCMinutes()).padStart(2, '0')
+        if (omitYear) {
+            return `${mon} ${day} ${hr}:${min}`
+        }
+        return `${mon} ${day}, ${d.getUTCFullYear()} ${hr}:${min}`
+    } catch {
+        return timeStr
+    }
+}
+
+/** Gather linked elements that share same center/time/step for multi-arc horizon display */
+function _getLinkedHorizonElms(store, primaryElmId) {
+    const primaryEd = store.sweepElData[primaryElmId]
+    const primaryEl = store.elements[primaryElmId]
+    if (!primaryEd?.results || !primaryEl) {
+        return [{ id: primaryElmId, color: primaryEl?.color || { r: 219, g: 182, b: 88 } }]
+    }
+
+    const out = []
+    const primaryCenter = primaryEd.sweepCenter
+    const primaryStart = primaryEd.results[0]?.time
+    const primaryStep = primaryEd.results.length > 1
+        ? primaryEd.results[1]?.time
+        : null
+
+    for (const id in store.elements) {
+        const numId = parseInt(id)
+        const el = store.elements[numId]
+        const ed = store.sweepElData[numId]
+        if (!el || !ed?.results || ed.results.length === 0) continue
+
+        // Check if linked and sharing center/time/step
+        if (numId === primaryElmId) {
+            out.push({ id: numId, color: el.color })
+            continue
+        }
+
+        if (ed.playbackLinked === false) continue
+
+        // Compare sweep center
+        if (primaryCenter && ed.sweepCenter) {
+            if (Math.abs(primaryCenter.lat - ed.sweepCenter.lat) > 0.0001 ||
+                Math.abs(primaryCenter.lng - ed.sweepCenter.lng) > 0.0001) continue
+        }
+
+        // Compare start time and step
+        const otherStart = ed.results[0]?.time
+        const otherStep = ed.results.length > 1 ? ed.results[1]?.time : null
+        if (primaryStart !== otherStart) continue
+        if (primaryStep !== otherStep) continue
+        if (ed.results.length !== primaryEd.results.length) continue
+
+        out.push({ id: numId, color: el.color })
+    }
+
+    // If only the primary was found, ensure it's returned with a distinctive color
+    if (out.length === 0) {
+        out.push({ id: primaryElmId, color: primaryEl.color })
+    }
+
+    return out
+}
+
+/** Gather all elements that have sweep results for the visibility timeline */
+function _getAllVisibilityElms(store) {
+    const out = []
+    const order = store.elementOrder || []
+    for (const id of order) {
+        const el = store.elements[id]
+        const ed = store.sweepElData[id]
+        if (el && ed?.results && ed.results.length > 0) {
+            out.push({ id, el, ed })
+        }
+    }
+    // If no order, iterate keys
+    if (out.length === 0) {
+        for (const id in store.elements) {
+            const el = store.elements[id]
+            const ed = store.sweepElData[id]
+            if (el && ed?.results && ed.results.length > 0) {
+                out.push({ id: parseInt(id), el, ed })
+            }
+        }
+    }
+    return out
 }
 
 function _niceStep(range, targetTicks) {
