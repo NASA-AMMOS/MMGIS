@@ -3688,7 +3688,7 @@
     },
     {
       "name": "Shade",
-      "icon": "sun-angle-outline",
+      "icon": "brightness-4",
       "js": "ShadeTool",
       "variables": {
         "dem": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",

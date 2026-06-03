@@ -1,5 +1,5 @@
 {
-    "defaultIcon": "sun-angle-outline",
+    "defaultIcon": "brightness-4",
     "description": "Realtime user generated sun and orbiter masks (React).",
     "descriptionFull": {
         "title": "Shades the ground when line-of-sights to an orbiting target are occluded.",
