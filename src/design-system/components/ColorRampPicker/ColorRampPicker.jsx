@@ -4,7 +4,7 @@ import styles from './ColorRampPicker.module.css'
 // Build a CSS linear-gradient string from a color ramp.
 // For the shadow ramp, alpha goes from 1 (left / 0% visible) to 0 (right / 100% visible)
 // to match the legend direction.
-function buildGradient(colors, bins, isShadow, hasAlpha) {
+function buildGradient(colors, isShadow, hasAlpha) {
     if (!colors || colors.length === 0) return 'transparent'
     const n = colors.length - 1
     const steps = 32
@@ -63,7 +63,7 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
             const hasAlpha = !!r.hasAlpha || isShadow
             return {
                 name: r.name,
-                gradient: buildGradient(r.colors, r.bins, isShadow, hasAlpha),
+                gradient: buildGradient(r.colors, isShadow, hasAlpha),
                 hasAlpha,
             }
         })

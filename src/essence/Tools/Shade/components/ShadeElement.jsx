@@ -232,6 +232,12 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         (color) => {
             updateElement(elmId, { color: { ...color }, changed: true, lastError: false })
             setColorPickerOpen(false)
+            setTimeout(() => {
+                const ed2 = useShadeStore.getState().sweepElData[elmId]
+                if (ed2?.heatmap && ed2?.lastData) {
+                    ShadeTool.renderHeatmapToMap(ed2.lastData, ed2.heatmap, elmId)
+                }
+            }, 0)
         },
         [elmId, updateElement]
     )
