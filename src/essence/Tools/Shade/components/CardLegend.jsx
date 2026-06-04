@@ -42,7 +42,7 @@ export default function CardLegend({ rampName, discrete, visiblePct, fitToData, 
             const r = Math.round(cl[0] * 255)
             const g = Math.round(cl[1] * 255)
             const b = Math.round(cl[2] * 255)
-            const a = isShadowRamp ? (1 - alphaFrac) : 1
+            const a = isShadowRamp ? (1 - alphaFrac) : cl.length > 3 ? cl[3] : 1
             gradientStops.push(`rgba(${r},${g},${b},${a.toFixed(2)}) ${(tStart * 100).toFixed(1)}%`)
             gradientStops.push(`rgba(${r},${g},${b},${a.toFixed(2)}) ${(tEnd * 100).toFixed(1)}%`)
         }
@@ -56,7 +56,7 @@ export default function CardLegend({ rampName, discrete, visiblePct, fitToData, 
             const b = Math.round(cl[2] * 255)
             const a = isShadowRamp
                 ? (useFullAlpha ? (1 - t) : ((1 - t) * 200 + 55) / 255)
-                : 1
+                : cl.length > 3 ? cl[3] : 1
             gradientStops.push(`rgba(${r},${g},${b},${a.toFixed(2)}) ${(t * 100).toFixed(1)}%`)
         }
     }

@@ -946,39 +946,23 @@ let ShadeTool = {
             bins: 2,
         }]
 
-        // Element-color-based ramps
+        // Element-color-based ramps (RGBA — 4th component = alpha)
         if (elmColor) {
             const cr = elmColor.r / 255
             const cg = elmColor.g / 255
             const cb = elmColor.b / 255
-            const clr = [cr, cg, cb]
-            const trn = [0, 0, 0] // transparent (alpha handled by shadow ramp logic)
-            // [transparent, color, transparent]
-            const tctColors = []
-            for (let i = 0; i < 64; i++) {
-                const t = i / 63
-                if (t < 0.5) {
-                    const f = t * 2
-                    tctColors.push([trn[0] + (clr[0] - trn[0]) * f, trn[1] + (clr[1] - trn[1]) * f, trn[2] + (clr[2] - trn[2]) * f])
-                } else {
-                    const f = (t - 0.5) * 2
-                    tctColors.push([clr[0] + (trn[0] - clr[0]) * f, clr[1] + (trn[1] - clr[1]) * f, clr[2] + (trn[2] - clr[2]) * f])
-                }
-            }
-            ramps.push({ name: '_tct', label: '◇ Fade', colors: tctColors, reverse: false, bins: 6 })
-            // [color, transparent, color]
-            const ctcColors = []
-            for (let i = 0; i < 64; i++) {
-                const t = i / 63
-                if (t < 0.5) {
-                    const f = t * 2
-                    ctcColors.push([clr[0] + (trn[0] - clr[0]) * f, clr[1] + (trn[1] - clr[1]) * f, clr[2] + (trn[2] - clr[2]) * f])
-                } else {
-                    const f = (t - 0.5) * 2
-                    ctcColors.push([trn[0] + (clr[0] - trn[0]) * f, trn[1] + (clr[1] - trn[1]) * f, trn[2] + (clr[2] - trn[2]) * f])
-                }
-            }
-            ramps.push({ name: '_ctc', label: '◆ Edges', colors: ctcColors, reverse: false, bins: 6 })
+            // [transparent, color, transparent] — 3 stops
+            ramps.push({
+                name: '_tct', label: '◇ Fade', hasAlpha: true,
+                colors: [[cr, cg, cb, 0], [cr, cg, cb, 1], [cr, cg, cb, 0]],
+                reverse: false, bins: 3,
+            })
+            // [color, transparent, color] — 3 stops
+            ramps.push({
+                name: '_ctc', label: '◆ Edges', hasAlpha: true,
+                colors: [[cr, cg, cb, 1], [cr, cg, cb, 0], [cr, cg, cb, 1]],
+                reverse: false, bins: 3,
+            })
         }
 
         for (const cfg of configured) {
@@ -1009,6 +993,7 @@ let ShadeTool = {
 
     // Evaluate a color from a ramp at position t [0..1].
     // In discrete mode, snaps to one of `bins` equal-width bins.
+    // Returns [r, g, b] or [r, g, b, a] if colors have a 4th component.
     evalColor: function (colors, t, discrete, bins) {
         if (!colors || colors.length === 0) return [0, 0, 0]
         const tc = Math.max(0, Math.min(1, t))
@@ -1023,11 +1008,15 @@ let ShadeTool = {
         const lo = Math.min(Math.floor(scaled), n)
         const hi = Math.min(lo + 1, n)
         const f = scaled - lo
-        return [
+        const result = [
             colors[lo][0] + (colors[hi][0] - colors[lo][0]) * f,
             colors[lo][1] + (colors[hi][1] - colors[lo][1]) * f,
             colors[lo][2] + (colors[hi][2] - colors[lo][2]) * f,
         ]
+        if (colors[lo].length > 3) {
+            result.push(colors[lo][3] + (colors[hi][3] - colors[lo][3]) * f)
+        }
+        return result
     },
 
     // Evaluate color in discrete mode using custom stops for bin boundaries.
@@ -1137,6 +1126,8 @@ let ShadeTool = {
                                 cData[p + 3] = (fitToData || discrete)
                                     ? Math.round((1 - alphaFrac) * 255)
                                     : Math.round((1 - alphaFrac) * 200 + 55)
+                            } else if (cl.length > 3) {
+                                cData[p + 3] = Math.round(cl[3] * 255)
                             } else {
                                 cData[p + 3] = 255
                             }
