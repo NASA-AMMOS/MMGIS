@@ -572,7 +572,8 @@ const ShadeTool_Graphs = {
         if (
             _horizonCache &&
             _horizonCache.lat === lat &&
-            _horizonCache.lng === lng
+            _horizonCache.lng === lng &&
+            _horizonCache.height === height
         ) {
             ShadeTool_Graphs._drawHorizonCanvas(
                 _horizonCache.profile,
@@ -618,7 +619,7 @@ const ShadeTool_Graphs = {
                     return
                 }
                 const profile = parsed.horizonProfile || []
-                _horizonCache = { lat, lng, profile }
+                _horizonCache = { lat, lng, height, profile }
                 ShadeTool_Graphs._drawHorizonCanvas(profile, elmId)
                 // Redraw visibility timeline now that the horizon profile is available
                 ShadeTool_Graphs.drawVisibilityTimeline(elmId)
