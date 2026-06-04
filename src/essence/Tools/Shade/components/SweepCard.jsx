@@ -134,7 +134,7 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrag
                             <ColorRampPicker
                                 value={colorRamp}
                                 onValueChange={handleColorRampChange}
-                                ramps={ShadeTool.getSweepColorRamps()}
+                                ramps={ShadeTool.getSweepColorRamps(el?.color)}
                             />
                         </div>
                     </div>
@@ -152,7 +152,7 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrag
                             />
                         </div>
                     </div>
-                    <CardLegend rampName={colorRamp} discrete={discrete} visiblePct={hoverPct} fitToData={sweepFitToData} minFrac={ed?.minFrac ?? 0} maxFrac={ed?.maxFrac ?? 1} />
+                    <CardLegend rampName={colorRamp} discrete={discrete} visiblePct={hoverPct} fitToData={sweepFitToData} minFrac={ed?.minFrac ?? 0} maxFrac={ed?.maxFrac ?? 1} elmColor={el?.color} />
                 </div>
             )}
 

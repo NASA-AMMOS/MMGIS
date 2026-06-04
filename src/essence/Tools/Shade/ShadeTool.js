@@ -801,7 +801,7 @@ let ShadeTool = {
                                 cl = { r: 0, g: 0, b: 0, a: 0 }
                                 break
                             case 9:
-                                cl = { r: 255, g: 0, b: 0, a: 35 }
+                                cl = { r: 0, g: 0, b: 0, a: 0 }
                                 break
                             default:
                                 cl = { r: 0, g: 0, b: 0, a: 0 }
@@ -895,7 +895,7 @@ let ShadeTool = {
                                 cl = { r: 0, g: 0, b: 0, a: 0 }
                                 break
                             case 9:
-                                cl = { r: 255, g: 0, b: 0, a: 35 }
+                                cl = { r: 0, g: 0, b: 0, a: 0 }
                                 break
                             default:
                                 cl = { r: 0, g: 0, b: 0, a: 0 }
@@ -928,7 +928,8 @@ let ShadeTool = {
     // Each entry: { name, label, colors (0-1 RGB arrays), reverse, bins }
     // 'shadow' is always present. Additional ramps come from the tool's
     // config variable "sweepColorRamps" which references js-colormaps names.
-    getSweepColorRamps: function () {
+    // Optional elmColor {r,g,b} adds element-color-based ramps.
+    getSweepColorRamps: function (elmColor) {
         const vars = useShadeStore.getState().vars || {}
         const configured = vars.sweepColorRamps || [
             { name: 'viridis' },
@@ -944,6 +945,41 @@ let ShadeTool = {
             reverse: false,
             bins: 2,
         }]
+
+        // Element-color-based ramps
+        if (elmColor) {
+            const cr = elmColor.r / 255
+            const cg = elmColor.g / 255
+            const cb = elmColor.b / 255
+            const clr = [cr, cg, cb]
+            const trn = [0, 0, 0] // transparent (alpha handled by shadow ramp logic)
+            // [transparent, color, transparent]
+            const tctColors = []
+            for (let i = 0; i < 64; i++) {
+                const t = i / 63
+                if (t < 0.5) {
+                    const f = t * 2
+                    tctColors.push([trn[0] + (clr[0] - trn[0]) * f, trn[1] + (clr[1] - trn[1]) * f, trn[2] + (clr[2] - trn[2]) * f])
+                } else {
+                    const f = (t - 0.5) * 2
+                    tctColors.push([clr[0] + (trn[0] - clr[0]) * f, clr[1] + (trn[1] - clr[1]) * f, clr[2] + (trn[2] - clr[2]) * f])
+                }
+            }
+            ramps.push({ name: '_tct', label: '◇ Fade', colors: tctColors, reverse: false, bins: 6 })
+            // [color, transparent, color]
+            const ctcColors = []
+            for (let i = 0; i < 64; i++) {
+                const t = i / 63
+                if (t < 0.5) {
+                    const f = t * 2
+                    ctcColors.push([clr[0] + (trn[0] - clr[0]) * f, clr[1] + (trn[1] - clr[1]) * f, clr[2] + (trn[2] - clr[2]) * f])
+                } else {
+                    const f = (t - 0.5) * 2
+                    ctcColors.push([trn[0] + (clr[0] - trn[0]) * f, trn[1] + (clr[1] - trn[1]) * f, trn[2] + (clr[2] - trn[2]) * f])
+                }
+            }
+            ramps.push({ name: '_ctc', label: '◆ Edges', colors: ctcColors, reverse: false, bins: 6 })
+        }
 
         for (const cfg of configured) {
             const rawName = cfg.name || cfg
@@ -1022,10 +1058,11 @@ let ShadeTool = {
     renderHeatmapToMap: function (data, heatmap, activeElmId) {
         const store = useShadeStore.getState()
         const ed = store.sweepElData[activeElmId]
+        const el = store.elements[activeElmId]
         const rampName = ed?.colorRamp || 'shadow'
         const discrete = store.sweepDiscrete || false
         const fitToData = store.sweepFitToData !== false
-        const allRamps = ShadeTool.getSweepColorRamps()
+        const allRamps = ShadeTool.getSweepColorRamps(el?.color)
         const rampDef = allRamps.find((r) => r.name === rampName) || allRamps[0]
         const colors = rampDef.colors
         const bins = rampDef.bins || colors.length
@@ -1306,8 +1343,8 @@ let ShadeTool = {
                                 tileImgBuf[p + 3] = colorA
                             }
                         } else if (val === 9) {
-                            tileImgBuf[p] = 255; tileImgBuf[p + 1] = 0
-                            tileImgBuf[p + 2] = 0; tileImgBuf[p + 3] = 35
+                            tileImgBuf[p] = 0; tileImgBuf[p + 1] = 0
+                            tileImgBuf[p + 2] = 0; tileImgBuf[p + 3] = 0
                         } else {
                             tileImgBuf[p] = 0; tileImgBuf[p + 1] = 0
                             tileImgBuf[p + 2] = 0; tileImgBuf[p + 3] = 0
@@ -2121,18 +2158,12 @@ let ShadeTool = {
     exportCSV: function (elmId) {
         const store = useShadeStore.getState()
         const el = store.elements[elmId]
-        let results = null
-        if (elmId != null && store.sweepElData[elmId]?.results?.length > 0) {
-            results = store.sweepElData[elmId].results
-        } else {
-            for (const id in store.sweepElData) {
-                if (store.sweepElData[id]?.results?.length > 0) {
-                    results = store.sweepElData[id].results
-                    break
-                }
-            }
-        }
-        if (!results || results.length === 0) {
+        const ed = store.sweepElData[elmId]
+        const heatmap = ed?.heatmap
+        const data = ed?.lastData || el?.lastData || store.lastData
+        const mode = el?.shadeMode
+
+        if (!heatmap || !data?.bottomLeftLatLng || !data?.cellSize) {
             Toast.warning(
                 'No sweep results to export. Run a time sweep first.',
                 6000
@@ -2140,33 +2171,34 @@ let ShadeTool = {
             return
         }
 
-        // Get lat/lng of the source point
-        const mapRect = document.getElementById('map').getBoundingClientRect()
-        const wOffset = mapRect.width / 2
-        const hOffset = mapRect.height / 2
-        let centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
-        if (store.indicatorLastDragPoint) centerLatLng = store.indicatorLastDragPoint
-        const lat = parseFloat(centerLatLng.lat).toFixed(6)
-        const lng = parseFloat(centerLatLng.lng).toFixed(6)
+        const entityName = store.getShadeOptions(elmId)?.targets?.[0]?.name || el?.name || 'shade'
+        const blLat = data.bottomLeftLatLng.lat
+        const blLng = data.bottomLeftLatLng.lng
+        const cellSize = data.cellSize
+        const totalRows = heatmap.length
+        const isPlayback = mode === 'playback'
 
-        const headers = [
-            'time',
-            'lat',
-            'lng',
-            'visibility_pct',
-            'azimuth',
-            'elevation',
-            'range',
-        ]
-        const rows = results.map((r) => [
-            r.time,
-            lat,
-            lng,
-            r.visibilityPct,
-            r.azimuth,
-            r.elevation,
-            r.range,
-        ])
+        const timeRange = (store.sweepStart && store.sweepEnd)
+            ? store.sweepStart + ' to ' + store.sweepEnd
+            : ''
+
+        const headers = isPlayback
+            ? ['entity', 'time', 'lat', 'lng', 'percent_visible']
+            : ['entity', 'time_range', 'lat', 'lng', 'percent_visible']
+
+        const rows = []
+        for (let r = 0; r < totalRows; r++) {
+            const row = heatmap[r]
+            if (!row) continue
+            const pixelLat = (blLat + (totalRows - 1 - r) * cellSize).toFixed(8)
+            for (let c = 0; c < row.length; c++) {
+                const frac = row[c]
+                if (frac == null || !Number.isFinite(frac)) continue
+                const pixelLng = (blLng + c * cellSize).toFixed(8)
+                const pct = (frac * 100).toFixed(2)
+                rows.push([entityName, timeRange, pixelLat, pixelLng, pct])
+            }
+        }
         const fileName = ShadeTool._buildExportName(elmId, 'sweep')
         F_.downloadArrayAsCSV(headers, rows, fileName)
     },
@@ -2187,6 +2219,9 @@ let ShadeTool = {
             return
         }
 
+        // Resolve geo-referencing data from sweep or static
+        const data = store.sweepElData[elmId]?.lastData || el?.lastData || store.lastData
+
         // Build header with grid dimensions and metadata
         const lines = []
         lines.push('# Shade Grid Export')
@@ -2202,6 +2237,28 @@ let ShadeTool = {
         if (store.rawTime) lines.push('# Time: ' + store.rawTime)
         if (store.sweepStart && store.sweepEnd) {
             lines.push('# Sweep: ' + store.sweepStart + ' to ' + store.sweepEnd)
+        }
+
+        // Bounding box (degrees + meters) and projection
+        if (data?.bottomLeftLatLng && data?.cellSize) {
+            const cols = grid[0]?.length || 0
+            const rows = grid.length
+            const blLat = data.bottomLeftLatLng.lat
+            const blLng = data.bottomLeftLatLng.lng
+            const trLat = blLat + rows * data.cellSize
+            const trLng = blLng + cols * data.cellSize
+            lines.push('# Bounding Box (degrees): SW(' + blLat.toFixed(8) + ', ' + blLng.toFixed(8) + ') NE(' + trLat.toFixed(8) + ', ' + trLng.toFixed(8) + ')')
+            const widthM = F_.degreesToMeters(trLng - blLng)
+            const heightM = F_.degreesToMeters(trLat - blLat)
+            const cellM = F_.degreesToMeters(data.cellSize)
+            lines.push('# Bounding Box (meters): width=' + widthM.toFixed(2) + ' height=' + heightM.toFixed(2) + ' cell=' + cellM.toFixed(2))
+        }
+        const proj = L_.configData?.projection
+        if (proj) {
+            const projDesc = proj.custom ? (proj.proj || 'custom') : 'EPSG:4326 (default)'
+            lines.push('# Projection: ' + projDesc)
+        } else {
+            lines.push('# Projection: EPSG:4326 (default)')
         }
         lines.push('')
 

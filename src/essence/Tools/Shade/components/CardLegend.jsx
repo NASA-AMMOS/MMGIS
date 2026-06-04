@@ -9,9 +9,9 @@ function getDefaultStops(bins) {
     return stops
 }
 
-export default function CardLegend({ rampName, discrete, visiblePct, fitToData, minFrac, maxFrac, colorStops, onColorStopsChange, onColorStopsReset }) {
+export default function CardLegend({ rampName, discrete, visiblePct, fitToData, minFrac, maxFrac, colorStops, onColorStopsChange, onColorStopsReset, elmColor }) {
     const isShadowRamp = rampName === 'shadow'
-    const allRamps = ShadeTool.getSweepColorRamps()
+    const allRamps = ShadeTool.getSweepColorRamps(elmColor)
     const rampDef = allRamps.find((r) => r.name === rampName) || allRamps[0]
     const colors = rampDef.colors
     const bins = rampDef.bins || colors.length

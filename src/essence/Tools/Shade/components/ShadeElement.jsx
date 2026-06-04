@@ -338,7 +338,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     }, [elmId, setSweepElField])
 
     const handleColorStopsReset = useCallback(() => {
-        const allRamps = ShadeTool.getSweepColorRamps()
+        const allRamps = ShadeTool.getSweepColorRamps(el?.color)
         const rampDef = allRamps.find((r) => r.name === (ed?.colorRamp || 'shadow')) || allRamps[0]
         const bins = rampDef.bins || rampDef.colors.length
         setSweepElField(elmId, 'colorStops', getDefaultStops(bins))
@@ -731,7 +731,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                             <ColorRampPicker
                                                 value={sweepColorRamp}
                                                 onValueChange={handleColorRampChange}
-                                                ramps={ShadeTool.getSweepColorRamps()}
+                                                ramps={ShadeTool.getSweepColorRamps(el?.color)}
                                             />
                                         </div>
                                     </div>
@@ -745,6 +745,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                         colorStops={ed?.colorStops}
                                         onColorStopsChange={handleColorStopsChange}
                                         onColorStopsReset={handleColorStopsReset}
+                                        elmColor={el?.color}
                                     />
                                 </div>
                             )}

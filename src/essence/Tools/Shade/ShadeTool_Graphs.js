@@ -205,7 +205,7 @@ const ShadeTool_Graphs = {
             const ey = centerPx.y - Math.cos(rad) * lineLen
 
             lines += `<line x1="${centerPx.x}" y1="${centerPx.y}" x2="${ex}" y2="${ey}" ` +
-                `stroke="${colorStr}" stroke-width="2" stroke-dasharray="6,4" opacity="0.8" />`
+                `stroke="${colorStr}" stroke-width="3.5" stroke-dasharray="8,5" opacity="0.85" />`
         }
 
         let overlay = document.getElementById(SOURCE_AZIMUTH_OVERLAY_ID)
