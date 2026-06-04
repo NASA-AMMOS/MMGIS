@@ -2168,14 +2168,14 @@ let ShadeTool = {
         const cellSize = data.cellSize
         const totalRows = heatmap.length
         const isPlayback = mode === 'playback'
-
-        const timeRange = (store.sweepStart && store.sweepEnd)
+        const compositeEntityName = String(entityName).toLowerCase()
+        const playbackTime = (store.sweepStart && store.sweepEnd)
             ? store.sweepStart + ' to ' + store.sweepEnd
             : ''
 
         const headers = isPlayback
             ? ['entity', 'time', 'lat', 'lng', 'percent_visible']
-            : ['entity', 'time_range', 'lat', 'lng', 'percent_visible']
+            : ['entity', 'start_time', 'end_time', 'lat', 'lng', 'percent_visible']
 
         const rows = []
         for (let r = 0; r < totalRows; r++) {
@@ -2187,7 +2187,9 @@ let ShadeTool = {
                 if (frac == null || !Number.isFinite(frac)) continue
                 const pixelLng = (blLng + c * cellSize).toFixed(8)
                 const pct = (frac * 100).toFixed(2)
-                rows.push([entityName, timeRange, pixelLat, pixelLng, pct])
+                rows.push(isPlayback
+                    ? [entityName, playbackTime, pixelLat, pixelLng, pct]
+                    : [compositeEntityName, store.sweepStart || '', store.sweepEnd || '', pixelLat, pixelLng, pct])
             }
         }
         const fileName = ShadeTool._buildExportName(elmId, 'sweep')
