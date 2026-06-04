@@ -31,6 +31,7 @@
     border-radius: 2px;
     overflow: hidden;
     min-width: 0;
+    position: relative;
 }
 
 .swatchBlock {
