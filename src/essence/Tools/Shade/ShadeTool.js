@@ -2239,8 +2239,9 @@ let ShadeTool = {
             lines.push('# Sweep: ' + store.sweepStart + ' to ' + store.sweepEnd)
         }
 
-        // Bounding box (degrees + meters) and projection
-        if (data?.bottomLeftLatLng && data?.cellSize) {
+        // Bounding box in projected meters via CRS project/unproject
+        const crs = window.mmgisglobal?.customCRS
+        if (data?.bottomLeftLatLng && data?.cellSize && crs) {
             const cols = grid[0]?.length || 0
             const rows = grid.length
             const blLat = data.bottomLeftLatLng.lat
@@ -2248,18 +2249,20 @@ let ShadeTool = {
             const trLat = blLat + rows * data.cellSize
             const trLng = blLng + cols * data.cellSize
             lines.push('# Bounding Box (degrees): SW(' + blLat.toFixed(8) + ', ' + blLng.toFixed(8) + ') NE(' + trLat.toFixed(8) + ', ' + trLng.toFixed(8) + ')')
-            const widthM = F_.degreesToMeters(trLng - blLng)
-            const heightM = F_.degreesToMeters(trLat - blLat)
-            const cellM = F_.degreesToMeters(data.cellSize)
-            lines.push('# Bounding Box (meters): width=' + widthM.toFixed(2) + ' height=' + heightM.toFixed(2) + ' cell=' + cellM.toFixed(2))
+            const swProj = crs.project({ lng: blLng, lat: blLat })
+            const neProj = crs.project({ lng: trLng, lat: trLat })
+            lines.push('# Bounding Box (projected meters): SW(' + swProj.x.toFixed(4) + ', ' + swProj.y.toFixed(4) + ') NE(' + neProj.x.toFixed(4) + ', ' + neProj.y.toFixed(4) + ')')
+            lines.push('# Cell Size (projected meters): x=' + ((neProj.x - swProj.x) / cols).toFixed(4) + ' y=' + ((neProj.y - swProj.y) / rows).toFixed(4))
         }
+        const projString = crs?.projString || ''
         const proj = L_.configData?.projection
         if (proj) {
-            const projDesc = proj.custom ? (proj.proj || 'custom') : 'EPSG:4326 (default)'
+            const projDesc = proj.custom ? (proj.proj || 'custom') : 'EPSG:3857'
             lines.push('# Projection: ' + projDesc)
         } else {
-            lines.push('# Projection: EPSG:4326 (default)')
+            lines.push('# Projection: EPSG:3857')
         }
+        if (projString) lines.push('# Proj4: ' + projString)
         lines.push('')
 
         // Write grid rows
