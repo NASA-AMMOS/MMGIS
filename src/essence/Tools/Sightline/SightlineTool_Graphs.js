@@ -2,16 +2,16 @@ import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import useUIStore from '../../Basics/UserInterface_/store/uiStore'
-import useShadeStore from './store'
+import useSightlineStore from './store'
 import calls from '../../../pre/calls'
 import Toast from '../../../design-system/components/Toast/Toast'
 
-const GRAPH_CONTAINER_ID = 'shadeGraphContainer'
-const HORIZON_CANVAS_ID = 'shadeHorizonCanvas'
+const GRAPH_CONTAINER_ID = 'sightlineGraphContainer'
+const HORIZON_CANVAS_ID = 'sightlineHorizonCanvas'
 // Visibility timeline is now div-based (no canvas)
-const AZIMUTH_LINE_ID = 'shadeAzimuthLineOverlay'
-const SOURCE_AZIMUTH_OVERLAY_ID = 'shadeSourceAzimuthOverlay'
-const HOVER_LINE_ID = 'shadeHorizonHoverLine'
+const AZIMUTH_LINE_ID = 'sightlineAzimuthLineOverlay'
+const SOURCE_AZIMUTH_OVERLAY_ID = 'sightlineSourceAzimuthOverlay'
+const HOVER_LINE_ID = 'sightlineHorizonHoverLine'
 
 let _horizonCache = null // { lat, lng, profile: [[az,el],...] }
 let _activeElmId = null
@@ -21,7 +21,7 @@ let _animFrameId = null
 // Layout state cached for mouse→azimuth conversion
 let _hPad = null
 let _hPlotW = 0
-// Callback registered by ShadeTool for bidirectional scrubbing
+// Callback registered by SightlineTool for bidirectional scrubbing
 let _onScrubCallback = null
 // Dragging state for time slider
 let _isDragging = false
@@ -32,7 +32,7 @@ let _storeUnsubscribe = null
 let _graphPlayInterval = null
 let _graphPlayFast = false
 
-const ShadeTool_Graphs = {
+const SightlineTool_Graphs = {
     isOpen() {
         return _graphOpen
     },
@@ -51,16 +51,16 @@ const ShadeTool_Graphs = {
         _graphOpen = true
 
         // Height: horizon chart + visibility rows + time controls + padding
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const visCount = _getFilteredVisibilityElms(store, elmId).included.length
         const visHeight = Math.max(40, visCount * 24 + 30)
         useUIStore.getState().setToolHeight(250 + visHeight)
 
         setTimeout(() => {
-            ShadeTool_Graphs._buildContainer()
-            ShadeTool_Graphs.fetchAndDrawHorizon(elmId)
-            ShadeTool_Graphs.drawVisibilityTimeline(elmId)
-            ShadeTool_Graphs._updateSourceAzimuthLines()
+            SightlineTool_Graphs._buildContainer()
+            SightlineTool_Graphs.fetchAndDrawHorizon(elmId)
+            SightlineTool_Graphs.drawVisibilityTimeline(elmId)
+            SightlineTool_Graphs._updateSourceAzimuthLines()
         }, 50)
     },
 
@@ -92,8 +92,8 @@ const ShadeTool_Graphs = {
             _storeUnsubscribe = null
         }
 
-        ShadeTool_Graphs.removeAzimuthLine()
-        ShadeTool_Graphs._removeSourceAzimuthLines()
+        SightlineTool_Graphs.removeAzimuthLine()
+        SightlineTool_Graphs._removeSourceAzimuthLines()
 
         const container = document.getElementById(GRAPH_CONTAINER_ID)
         if (container) container.remove()
@@ -103,14 +103,14 @@ const ShadeTool_Graphs = {
 
     toggle(elmId) {
         if (_graphOpen && _activeElmId === elmId) {
-            ShadeTool_Graphs.close()
+            SightlineTool_Graphs.close()
         } else {
-            ShadeTool_Graphs.open(elmId)
+            SightlineTool_Graphs.open(elmId)
         }
     },
 
     cleanup() {
-        if (_graphOpen) ShadeTool_Graphs.close()
+        if (_graphOpen) SightlineTool_Graphs.close()
     },
 
     removeAzimuthLine() {
@@ -122,7 +122,7 @@ const ShadeTool_Graphs = {
         const mapEl = document.getElementById('map')
         if (!mapEl) return
 
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const mapRect = mapEl.getBoundingClientRect()
 
         // Use sweep-time center if available
@@ -147,7 +147,7 @@ const ShadeTool_Graphs = {
         if (!overlay) {
             overlay = document.createElement('div')
             overlay.id = AZIMUTH_LINE_ID
-            overlay.className = 'shadeAzimuthLine'
+            overlay.className = 'sightlineAzimuthLine'
             overlay.style.width = mapRect.width + 'px'
             overlay.style.height = mapRect.height + 'px'
             overlay.style.top = '0'
@@ -162,17 +162,17 @@ const ShadeTool_Graphs = {
             `</svg>`
     },
 
-    /** Draw persistent colored azimuth lines for each shade element at the current frame */
+    /** Draw persistent colored azimuth lines for each sightline element at the current frame */
     _updateSourceAzimuthLines() {
         if (!_graphOpen || _activeElmId == null) {
-            ShadeTool_Graphs._removeSourceAzimuthLines()
+            SightlineTool_Graphs._removeSourceAzimuthLines()
             return
         }
 
         const mapEl = document.getElementById('map')
         if (!mapEl) return
 
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const mapRect = mapEl.getBoundingClientRect()
         const { included: elms } = _getFilteredVisibilityElms(store, _activeElmId)
         if (elms.length === 0) return
@@ -212,7 +212,7 @@ const ShadeTool_Graphs = {
         if (!overlay) {
             overlay = document.createElement('div')
             overlay.id = SOURCE_AZIMUTH_OVERLAY_ID
-            overlay.className = 'shadeAzimuthLine'
+            overlay.className = 'sightlineAzimuthLine'
             overlay.style.width = mapRect.width + 'px'
             overlay.style.height = mapRect.height + 'px'
             overlay.style.top = '0'
@@ -238,72 +238,72 @@ const ShadeTool_Graphs = {
 
         container = document.createElement('div')
         container.id = GRAPH_CONTAINER_ID
-        container.className = 'shadeGraphContainer'
+        container.className = 'sightlineGraphContainer'
 
         const closeBtn = document.createElement('div')
-        closeBtn.className = 'shadeGraphClose'
+        closeBtn.className = 'sightlineGraphClose'
         closeBtn.innerHTML = '<i class="mdi mdi-close mdi-18px"></i>'
         closeBtn.title = 'Close graph'
-        closeBtn.onclick = () => ShadeTool_Graphs.close()
+        closeBtn.onclick = () => SightlineTool_Graphs.close()
         container.appendChild(closeBtn)
 
         // --- Info banner (hidden by default, shown when elements are excluded) ---
         const infoBanner = document.createElement('div')
-        infoBanner.id = 'shadeGraphExcludedInfo'
-        infoBanner.className = 'shadeGraphExcludedInfo'
+        infoBanner.id = 'sightlineGraphExcludedInfo'
+        infoBanner.className = 'sightlineGraphExcludedInfo'
         infoBanner.style.display = 'none'
         container.appendChild(infoBanner)
 
         // --- Horizon panel ---
         const hPanel = document.createElement('div')
-        hPanel.className = 'shadeGraphPanel'
+        hPanel.className = 'sightlineGraphPanel'
         hPanel.style.flex = '1 1 0'
         hPanel.style.minHeight = '0'
         const canvas = document.createElement('canvas')
         canvas.id = HORIZON_CANVAS_ID
-        canvas.className = 'shadeGraphCanvas'
+        canvas.className = 'sightlineGraphCanvas'
         hPanel.appendChild(canvas)
         container.appendChild(hPanel)
 
-        canvas.addEventListener('mousemove', ShadeTool_Graphs._onHorizonMouseMove)
-        canvas.addEventListener('mouseleave', ShadeTool_Graphs._onHorizonMouseLeave)
+        canvas.addEventListener('mousemove', SightlineTool_Graphs._onHorizonMouseMove)
+        canvas.addEventListener('mouseleave', SightlineTool_Graphs._onHorizonMouseLeave)
 
         // --- Visibility panel ---
         const vPanel = document.createElement('div')
-        vPanel.className = 'shadeGraphPanel shadeVisPanel'
+        vPanel.className = 'sightlineGraphPanel sightlineVisPanel'
 
         const visWrap = document.createElement('div')
-        visWrap.id = 'shadeVisibilityWrap'
-        visWrap.className = 'shadeVisWrap'
+        visWrap.id = 'sightlineVisibilityWrap'
+        visWrap.className = 'sightlineVisWrap'
         vPanel.appendChild(visWrap)
         const timeRow = document.createElement('div')
-        timeRow.id = 'shadeVisTimeLabels'
-        timeRow.className = 'shadeVisTimeLabels'
+        timeRow.id = 'sightlineVisTimeLabels'
+        timeRow.className = 'sightlineVisTimeLabels'
         vPanel.appendChild(timeRow)
         container.appendChild(vPanel)
 
-        visWrap.addEventListener('mousedown', ShadeTool_Graphs._onVisibilityMouseDown)
-        visWrap.addEventListener('mousemove', ShadeTool_Graphs._onVisibilityMouseMove)
-        visWrap.addEventListener('mouseup', ShadeTool_Graphs._onVisibilityMouseUp)
-        visWrap.addEventListener('mouseleave', ShadeTool_Graphs._onVisibilityMouseLeave)
+        visWrap.addEventListener('mousedown', SightlineTool_Graphs._onVisibilityMouseDown)
+        visWrap.addEventListener('mousemove', SightlineTool_Graphs._onVisibilityMouseMove)
+        visWrap.addEventListener('mouseup', SightlineTool_Graphs._onVisibilityMouseUp)
+        visWrap.addEventListener('mouseleave', SightlineTool_Graphs._onVisibilityMouseLeave)
 
         // --- Time controls bar ---
         const controls = document.createElement('div')
-        controls.className = 'shadeGraphTimeControls'
+        controls.className = 'sightlineGraphTimeControls'
         controls.innerHTML = `
-            <button class="shadeGraphPlayBtn" id="shadeGraphStepBack" title="Step back"><i class="mdi mdi-skip-previous mdi-18px"></i></button>
-            <button class="shadeGraphPlayBtn" id="shadeGraphPlayPause" title="Play/Pause"><i class="mdi mdi-play mdi-18px"></i></button>
-            <button class="shadeGraphPlayBtn" id="shadeGraphPlayFast" title="Fast forward"><i class="mdi mdi-fast-forward mdi-18px"></i></button>
-            <button class="shadeGraphPlayBtn" id="shadeGraphStepFwd" title="Step forward"><i class="mdi mdi-skip-next mdi-18px"></i></button>
-            <input type="range" class="shadeGraphTimeSlider" id="shadeGraphTimeSlider" min="0" max="1" step="1" value="0" />
-            <span class="shadeGraphTimeLabel" id="shadeGraphTimeLabel"></span>
+            <button class="sightlineGraphPlayBtn" id="sightlineGraphStepBack" title="Step back"><i class="mdi mdi-skip-previous mdi-18px"></i></button>
+            <button class="sightlineGraphPlayBtn" id="sightlineGraphPlayPause" title="Play/Pause"><i class="mdi mdi-play mdi-18px"></i></button>
+            <button class="sightlineGraphPlayBtn" id="sightlineGraphPlayFast" title="Fast forward"><i class="mdi mdi-fast-forward mdi-18px"></i></button>
+            <button class="sightlineGraphPlayBtn" id="sightlineGraphStepFwd" title="Step forward"><i class="mdi mdi-skip-next mdi-18px"></i></button>
+            <input type="range" class="sightlineGraphTimeSlider" id="sightlineGraphTimeSlider" min="0" max="1" step="1" value="0" />
+            <span class="sightlineGraphTimeLabel" id="sightlineGraphTimeLabel"></span>
         `
         container.appendChild(controls)
 
         tools.appendChild(container)
 
         // Wire up time controls
-        setTimeout(() => ShadeTool_Graphs._initHorizonTimeControls(), 0)
+        setTimeout(() => SightlineTool_Graphs._initHorizonTimeControls(), 0)
 
         // Redraw handler for resize events
         const _scheduleRedraw = () => {
@@ -314,7 +314,7 @@ const ShadeTool_Graphs = {
                 // uncached (e.g. invalidated by moveend) cases.
                 // It also redraws the visibility timeline after the
                 // profile is available.
-                ShadeTool_Graphs.fetchAndDrawHorizon(_activeElmId)
+                SightlineTool_Graphs.fetchAndDrawHorizon(_activeElmId)
             }, 60)
         }
 
@@ -344,17 +344,17 @@ const ShadeTool_Graphs = {
     },
 
     _scrubToFrame(frameIndex) {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         store.setSweepField('sweepPlayIndex', frameIndex)
         if (_onScrubCallback) _onScrubCallback()
         // Update time label + slider position
-        ShadeTool_Graphs._updateTimeLabel()
+        SightlineTool_Graphs._updateTimeLabel()
         // Redraw both charts to reflect new frame
         if (_horizonCache) {
-            ShadeTool_Graphs._drawHorizonCanvas(_horizonCache.profile, _activeElmId)
+            SightlineTool_Graphs._drawHorizonCanvas(_horizonCache.profile, _activeElmId)
         }
-        ShadeTool_Graphs.drawVisibilityTimeline(_activeElmId)
-        ShadeTool_Graphs._updateSourceAzimuthLines()
+        SightlineTool_Graphs.drawVisibilityTimeline(_activeElmId)
+        SightlineTool_Graphs._updateSourceAzimuthLines()
     },
 
     _onHorizonMouseMove(e) {
@@ -364,33 +364,33 @@ const ShadeTool_Graphs = {
         const mouseX = e.clientX - rect.left
         const frac = (mouseX - _hPad.left) / _hPlotW
         if (frac < 0 || frac > 1) {
-            ShadeTool_Graphs.removeAzimuthLine()
-            ShadeTool_Graphs._hideHoverLine()
+            SightlineTool_Graphs.removeAzimuthLine()
+            SightlineTool_Graphs._hideHoverLine()
             return
         }
         const displayAz = -180 + frac * 360
         let trueAz = displayAz
         if (trueAz < 0) trueAz += 360
-        ShadeTool_Graphs._showAzimuthLine(trueAz)
-        ShadeTool_Graphs._showHoverLine(mouseX)
+        SightlineTool_Graphs._showAzimuthLine(trueAz)
+        SightlineTool_Graphs._showHoverLine(mouseX)
     },
 
     _onHorizonMouseLeave() {
-        ShadeTool_Graphs.removeAzimuthLine()
-        ShadeTool_Graphs._hideHoverLine()
+        SightlineTool_Graphs.removeAzimuthLine()
+        SightlineTool_Graphs._hideHoverLine()
     },
 
     _initHorizonTimeControls() {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const ed = store.sweepElData[_activeElmId]
         const frameCount = ed?.results?.length || 0
 
-        const slider = document.getElementById('shadeGraphTimeSlider')
-        const label = document.getElementById('shadeGraphTimeLabel')
-        const playBtn = document.getElementById('shadeGraphPlayPause')
-        const fastBtn = document.getElementById('shadeGraphPlayFast')
-        const stepBack = document.getElementById('shadeGraphStepBack')
-        const stepFwd = document.getElementById('shadeGraphStepFwd')
+        const slider = document.getElementById('sightlineGraphTimeSlider')
+        const label = document.getElementById('sightlineGraphTimeLabel')
+        const playBtn = document.getElementById('sightlineGraphPlayPause')
+        const fastBtn = document.getElementById('sightlineGraphPlayFast')
+        const stepBack = document.getElementById('sightlineGraphStepBack')
+        const stepFwd = document.getElementById('sightlineGraphStepFwd')
 
         if (!slider) return
 
@@ -398,38 +398,38 @@ const ShadeTool_Graphs = {
         slider.value = store.sweepPlayIndex
 
         // Update label
-        ShadeTool_Graphs._updateTimeLabel()
+        SightlineTool_Graphs._updateTimeLabel()
 
         slider.addEventListener('input', (e) => {
             const idx = parseInt(e.target.value)
-            ShadeTool_Graphs._scrubToFrame(idx)
+            SightlineTool_Graphs._scrubToFrame(idx)
         })
 
         stepBack.addEventListener('click', () => {
-            const s = useShadeStore.getState()
+            const s = useSightlineStore.getState()
             const fc = s.sweepElData[_activeElmId]?.results?.length || 0
             if (fc === 0) return
             const idx = (s.sweepPlayIndex - 1 + fc) % fc
-            ShadeTool_Graphs._scrubToFrame(idx)
+            SightlineTool_Graphs._scrubToFrame(idx)
         })
 
         stepFwd.addEventListener('click', () => {
-            const s = useShadeStore.getState()
+            const s = useSightlineStore.getState()
             const fc = s.sweepElData[_activeElmId]?.results?.length || 0
             if (fc === 0) return
             const idx = (s.sweepPlayIndex + 1) % fc
-            ShadeTool_Graphs._scrubToFrame(idx)
+            SightlineTool_Graphs._scrubToFrame(idx)
         })
 
         function _startPlayback() {
-            const speed = useShadeStore.getState().sweepPlaySpeed || 500
+            const speed = useSightlineStore.getState().sweepPlaySpeed || 500
             const interval = _graphPlayFast ? Math.max(speed / 4, 50) : speed
             _graphPlayInterval = setInterval(() => {
-                const s = useShadeStore.getState()
+                const s = useSightlineStore.getState()
                 const fc = s.sweepElData[_activeElmId]?.results?.length || 0
                 if (fc === 0) return
                 const idx = (s.sweepPlayIndex + 1) % fc
-                ShadeTool_Graphs._scrubToFrame(idx)
+                SightlineTool_Graphs._scrubToFrame(idx)
             }, interval)
         }
 
@@ -439,7 +439,7 @@ const ShadeTool_Graphs = {
                 _graphPlayInterval = null
                 _graphPlayFast = false
                 playBtn.innerHTML = '<i class="mdi mdi-play mdi-18px"></i>'
-                fastBtn.classList.remove('shadeGraphPlayBtnActive')
+                fastBtn.classList.remove('sightlineGraphPlayBtnActive')
             } else {
                 playBtn.innerHTML = '<i class="mdi mdi-pause mdi-18px"></i>'
                 _startPlayback()
@@ -448,7 +448,7 @@ const ShadeTool_Graphs = {
 
         fastBtn.addEventListener('click', () => {
             _graphPlayFast = !_graphPlayFast
-            fastBtn.classList.toggle('shadeGraphPlayBtnActive', _graphPlayFast)
+            fastBtn.classList.toggle('sightlineGraphPlayBtnActive', _graphPlayFast)
             // If currently playing, restart with new speed
             if (_graphPlayInterval) {
                 clearInterval(_graphPlayInterval)
@@ -462,10 +462,10 @@ const ShadeTool_Graphs = {
     },
 
     _updateTimeLabel() {
-        const label = document.getElementById('shadeGraphTimeLabel')
-        const slider = document.getElementById('shadeGraphTimeSlider')
+        const label = document.getElementById('sightlineGraphTimeLabel')
+        const slider = document.getElementById('sightlineGraphTimeSlider')
         if (!label || !slider) return
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const ed = store.sweepElData[_activeElmId]
         if (!ed?.results) return
         const idx = store.sweepPlayIndex
@@ -481,7 +481,7 @@ const ShadeTool_Graphs = {
         if (!line) {
             line = document.createElement('div')
             line.id = HOVER_LINE_ID
-            line.className = 'shadeHorizonHoverLine'
+            line.className = 'sightlineHorizonHoverLine'
             canvas.parentElement.appendChild(line)
         }
         line.style.left = x + 'px'
@@ -495,12 +495,12 @@ const ShadeTool_Graphs = {
 
     _onVisibilityMouseDown(e) {
         _isDragging = true
-        ShadeTool_Graphs._scrubFromVisibilityX(e)
+        SightlineTool_Graphs._scrubFromVisibilityX(e)
     },
 
     _onVisibilityMouseMove(e) {
         if (_isDragging) {
-            ShadeTool_Graphs._scrubFromVisibilityX(e)
+            SightlineTool_Graphs._scrubFromVisibilityX(e)
         }
     },
 
@@ -513,9 +513,9 @@ const ShadeTool_Graphs = {
     },
 
     _scrubFromVisibilityX(e) {
-        const wrap = document.getElementById('shadeVisibilityWrap')
+        const wrap = document.getElementById('sightlineVisibilityWrap')
         if (!wrap) return
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         // Use the first element with results to determine frame count
         const { included: elms } = _getFilteredVisibilityElms(store, _activeElmId)
         if (elms.length === 0) return
@@ -524,7 +524,7 @@ const ShadeTool_Graphs = {
 
         const rect = wrap.getBoundingClientRect()
         // Measure the actual bar offset for responsive alignment
-        const firstBar = wrap.querySelector('.shadeVisBar')
+        const firstBar = wrap.querySelector('.sightlineVisBar')
         if (!firstBar) return
         const barLeft = firstBar.getBoundingClientRect().left - rect.left
         const barAreaW = firstBar.getBoundingClientRect().width
@@ -534,11 +534,11 @@ const ShadeTool_Graphs = {
         const frac = mouseX / barAreaW
         if (frac < 0 || frac > 1) return
         const frameIndex = Math.round(frac * (frameCount - 1))
-        ShadeTool_Graphs._scrubToFrame(Math.max(0, Math.min(frameIndex, frameCount - 1)))
+        SightlineTool_Graphs._scrubToFrame(Math.max(0, Math.min(frameIndex, frameCount - 1)))
     },
 
     fetchAndDrawHorizon(elmId) {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const el = store.elements[elmId]
         if (!el) return
 
@@ -575,11 +575,11 @@ const ShadeTool_Graphs = {
             _horizonCache.lng === lng &&
             _horizonCache.height === height
         ) {
-            ShadeTool_Graphs._drawHorizonCanvas(
+            SightlineTool_Graphs._drawHorizonCanvas(
                 _horizonCache.profile,
                 elmId
             )
-            ShadeTool_Graphs.drawVisibilityTimeline(elmId)
+            SightlineTool_Graphs.drawVisibilityTimeline(elmId)
             return
         }
 
@@ -620,9 +620,9 @@ const ShadeTool_Graphs = {
                 }
                 const profile = parsed.horizonProfile || []
                 _horizonCache = { lat, lng, height, profile }
-                ShadeTool_Graphs._drawHorizonCanvas(profile, elmId)
+                SightlineTool_Graphs._drawHorizonCanvas(profile, elmId)
                 // Redraw visibility timeline now that the horizon profile is available
-                ShadeTool_Graphs.drawVisibilityTimeline(elmId)
+                SightlineTool_Graphs.drawVisibilityTimeline(elmId)
             },
             function () {
                 Toast.error('Failed to fetch horizon profile.', 4000)
@@ -634,7 +634,7 @@ const ShadeTool_Graphs = {
         const canvas = document.getElementById(HORIZON_CANVAS_ID)
         if (!canvas) return
 
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const dpr = window.devicePixelRatio || 1
         const rect = canvas.parentElement.getBoundingClientRect()
         const w = Math.floor(rect.width)
@@ -754,7 +754,7 @@ const ShadeTool_Graphs = {
 
         // Draw ALL source trajectories BEHIND the terrain fill
         for (const le of linkedElms) {
-            ShadeTool_Graphs._drawSourceTrajectory(
+            SightlineTool_Graphs._drawSourceTrajectory(
                 ctx, le.id, le.color, pad, plotW, plotH, minEl, elRange, false
             )
         }
@@ -788,7 +788,7 @@ const ShadeTool_Graphs = {
 
         // Draw current frame markers ON TOP of terrain for all linked elements
         for (const le of linkedElms) {
-            ShadeTool_Graphs._drawSourceTrajectory(
+            SightlineTool_Graphs._drawSourceTrajectory(
                 ctx, le.id, le.color, pad, plotW, plotH, minEl, elRange, true
             )
         }
@@ -831,7 +831,7 @@ const ShadeTool_Graphs = {
     },
 
     _drawSourceTrajectory(ctx, elmId, color, pad, plotW, plotH, minEl, elRange, markerOnly) {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const ed = store.sweepElData[elmId]
         if (!ed?.results || ed.results.length === 0) return
 
@@ -908,10 +908,10 @@ const ShadeTool_Graphs = {
     },
 
     drawVisibilityTimeline(elmId) {
-        const wrap = document.getElementById('shadeVisibilityWrap')
+        const wrap = document.getElementById('sightlineVisibilityWrap')
         if (!wrap) return
 
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const { included: elms, excludedCount } = _getFilteredVisibilityElms(store, elmId)
         if (elms.length === 0) return
 
@@ -919,7 +919,7 @@ const ShadeTool_Graphs = {
         const playIndex = store.sweepPlayIndex
 
         // Show/update info message if some elements are excluded
-        ShadeTool_Graphs._updateExcludedInfo(excludedCount)
+        SightlineTool_Graphs._updateExcludedInfo(excludedCount)
 
         // Clear previous content
         wrap.innerHTML = ''
@@ -929,7 +929,7 @@ const ShadeTool_Graphs = {
         const frameCount = refResults.length
         if (frameCount === 0) return
 
-        // Build a row for each shade element
+        // Build a row for each sightline element
         elms.forEach(({ id, el, ed }) => {
             const results = ed.results
             const sources = store.getSelectedSources(id)
@@ -971,17 +971,17 @@ const ShadeTool_Graphs = {
             }
 
             const row = document.createElement('div')
-            row.className = 'shadeVisRow'
+            row.className = 'sightlineVisRow'
 
             const label = document.createElement('div')
-            label.className = 'shadeVisLabel'
+            label.className = 'sightlineVisLabel'
             label.style.color = colorStr
-            label.innerHTML = `${srcName} <span class="shadeVisLabelSuffix">Occultations</span>`
-            label.title = srcName + ' Occultations'
+            label.innerHTML = `${srcName} <span class="sightlineVisLabelSuffix">Visibility</span>`
+            label.title = srcName + ' Visibility'
             row.appendChild(label)
 
             const bar = document.createElement('div')
-            bar.className = 'shadeVisBar'
+            bar.className = 'sightlineVisBar'
 
             // Collect contiguous runs
             const runs = []
@@ -996,17 +996,17 @@ const ShadeTool_Graphs = {
             for (let ri = 0; ri < runs.length; ri++) {
                 const run = runs[ri]
                 const span = document.createElement('div')
-                span.className = 'shadeVisSegment'
+                span.className = 'sightlineVisSegment'
                 const pctStart = (run.start / frameCount) * 100
                 const pctWidth = ((run.end - run.start) / frameCount) * 100
                 span.style.left = pctStart + '%'
                 span.style.width = pctWidth + '%'
 
-                const thisColor = run.visible ? occludedColor : visibleColor
+                const thisColor = run.visible ? visibleColor : occludedColor
                 const nextDiff = ri < runs.length - 1 && runs[ri + 1].visible !== run.visible
 
                 if (nextDiff) {
-                    const nextColor = runs[ri + 1].visible ? occludedColor : visibleColor
+                    const nextColor = runs[ri + 1].visible ? visibleColor : occludedColor
                     span.style.background = `linear-gradient(to right, ${thisColor} 70%, ${nextColor} 100%)`
                 } else {
                     span.style.background = thisColor
@@ -1020,14 +1020,14 @@ const ShadeTool_Graphs = {
 
         // Red time slider overlay
         if (playIndex >= 0 && playIndex < frameCount) {
-            let slider = document.getElementById('shadeVisSlider')
+            let slider = document.getElementById('sightlineVisSlider')
             if (!slider) {
                 slider = document.createElement('div')
-                slider.id = 'shadeVisSlider'
-                slider.className = 'shadeVisSlider'
+                slider.id = 'sightlineVisSlider'
+                slider.className = 'sightlineVisSlider'
             }
             // Position using actual bar element bounds for exact alignment
-            const firstBar = wrap.querySelector('.shadeVisBar')
+            const firstBar = wrap.querySelector('.sightlineVisBar')
             if (firstBar) {
                 const wrapRect = wrap.getBoundingClientRect()
                 const barRect = firstBar.getBoundingClientRect()
@@ -1041,18 +1041,18 @@ const ShadeTool_Graphs = {
         }
 
         // Time labels — align margin to actual bar position
-        const timeContainer = document.getElementById('shadeVisTimeLabels')
-        const firstBarEl = wrap.querySelector('.shadeVisBar')
+        const timeContainer = document.getElementById('sightlineVisTimeLabels')
+        const firstBarEl = wrap.querySelector('.sightlineVisBar')
         if (timeContainer && firstBarEl) {
             const wrapRect = wrap.getBoundingClientRect()
             const barLeftOffset = firstBarEl.getBoundingClientRect().left - wrapRect.left
             timeContainer.style.marginLeft = barLeftOffset + 'px'
         }
-        ShadeTool_Graphs._drawVisTimeLabels(refResults)
+        SightlineTool_Graphs._drawVisTimeLabels(refResults)
     },
 
     _drawVisTimeLabels(results) {
-        const container = document.getElementById('shadeVisTimeLabels')
+        const container = document.getElementById('sightlineVisTimeLabels')
         if (!container || !results || results.length === 0) return
         container.innerHTML = ''
 
@@ -1079,9 +1079,9 @@ const ShadeTool_Graphs = {
             const time = results[frameIdx]?.time
             if (!time) continue
             const tick = document.createElement('div')
-            tick.className = 'shadeVisTimeTick'
+            tick.className = 'sightlineVisTimeTick'
             tick.style.left = pct + '%'
-            tick.innerHTML = `<div class="shadeVisTimeTickLine"></div><div class="shadeVisTimeTickText">${_formatSmartTimeLabel(time, omitYear)}</div>`
+            tick.innerHTML = `<div class="sightlineVisTimeTickLine"></div><div class="sightlineVisTimeTickText">${_formatSmartTimeLabel(time, omitYear)}</div>`
             container.appendChild(tick)
         }
     },
@@ -1092,9 +1092,9 @@ const ShadeTool_Graphs = {
         if (effectiveId == null) return
 
         // Re-sync the time slider max in case a new sweep changed the frame count
-        const slider = document.getElementById('shadeGraphTimeSlider')
+        const slider = document.getElementById('sightlineGraphTimeSlider')
         if (slider) {
-            const store = useShadeStore.getState()
+            const store = useSightlineStore.getState()
             const ed = store.sweepElData[effectiveId]
             const fc = ed?.results?.length || 0
             slider.max = Math.max(fc - 1, 0)
@@ -1103,14 +1103,14 @@ const ShadeTool_Graphs = {
         if (_animFrameId) cancelAnimationFrame(_animFrameId)
         _animFrameId = requestAnimationFrame(() => {
             if (_horizonCache) {
-                ShadeTool_Graphs._drawHorizonCanvas(
+                SightlineTool_Graphs._drawHorizonCanvas(
                     _horizonCache.profile,
                     effectiveId
                 )
             }
-            ShadeTool_Graphs.drawVisibilityTimeline(effectiveId)
-            ShadeTool_Graphs._updateTimeLabel()
-            ShadeTool_Graphs._updateSourceAzimuthLines()
+            SightlineTool_Graphs.drawVisibilityTimeline(effectiveId)
+            SightlineTool_Graphs._updateTimeLabel()
+            SightlineTool_Graphs._updateSourceAzimuthLines()
             _animFrameId = null
         })
     },
@@ -1120,10 +1120,10 @@ const ShadeTool_Graphs = {
     },
 
     _updateExcludedInfo(excludedCount) {
-        const el = document.getElementById('shadeGraphExcludedInfo')
+        const el = document.getElementById('sightlineGraphExcludedInfo')
         if (!el) return
         if (excludedCount > 0) {
-            el.innerHTML = `<i class="mdi mdi-information-outline"></i> ${excludedCount} shade map${excludedCount > 1 ? 's' : ''} excluded (different center or time range)`
+            el.innerHTML = `<i class="mdi mdi-information-outline"></i> ${excludedCount} sightline map${excludedCount > 1 ? 's' : ''} excluded (different center or time range)`
             el.style.display = ''
         } else {
             el.style.display = 'none'
@@ -1302,4 +1302,4 @@ function _niceStep(range, targetTicks) {
     return nice * mag
 }
 
-export default ShadeTool_Graphs
+export default SightlineTool_Graphs

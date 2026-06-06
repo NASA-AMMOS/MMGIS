@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
  *
  * The Reference Mission does not include a dedicated Search tool in its
  * tools array (Identifier, Layers, Legend, Info, Sites, Draw, Measure,
- * Viewshed, Isochrone, Shade, Chemistry, Curtain, Animation).
+ * Viewshed, Isochrone, Sightline, Chemistry, Curtain, Animation).
  *
  * However, MMGIS has a top-bar search input (#auto_search) that is
  * rendered when the topbar is enabled.  These tests exercise that

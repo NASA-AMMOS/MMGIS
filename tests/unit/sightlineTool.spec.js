@@ -1,25 +1,25 @@
 import { test, expect } from '@playwright/test'
 
 /**
- * ShadeTool Unit Tests
+ * SightlineTool Unit Tests
  *
- * Since ShadeTool_Algorithm has browser-dependent imports (window.L, Globe_),
+ * Since SightlineTool_Algorithm has browser-dependent imports (window.L, Globe_),
  * we inline the pure algorithm logic here for unit testing.
  *
  * Test categories:
  *   1. Algorithm math primitives (calcHeightLine, calcHeightDiagonal, isNoData)
  *   2. Grid initialization (initializeGrids with noData handling)
- *   3. Shadow computation (processUp, processDown, full shade integration)
+ *   3. Shadow computation (processUp, processDown, full sightline integration)
  *   4. noData propagation (critical: noData must not corrupt shadow plane)
  *   5. Composite & cumulative (compositeResults, cumulativeVisibility)
  *   6. Time-range iteration
- *   7. State management (source selection, shade options)
+ *   7. State management (source selection, sightline options)
  *   8. Export serialization (GeoJSON, CSV, JSON report)
  *   9. UI state logic (source toggling, custom az/el)
  */
 
 // ============================================================
-// Inlined pure functions from ShadeTool_Algorithm
+// Inlined pure functions from SightlineTool_Algorithm
 // ============================================================
 
 function isNoData(data) {
@@ -110,7 +110,7 @@ function initializeGrids(d) {
 
 // Simplified shade that runs processUp and processDown without curvature or FOV
 // (curvature and FOV depend on Globe_ which is browser-only)
-function shadeSimple(d) {
+function sightlineSimple(d) {
     let grids = initializeGrids(d)
     if (d.targetSource.altitude > 0) {
         processUp(d, grids)
@@ -258,7 +258,7 @@ function hexToRgb(hex) {
     }
 }
 
-// Simulates the source state store that ShadeToolNew will use
+// Simulates the source state store that SightlineToolNew will use
 function createSourceStore(sourcesList) {
     return sourcesList.map((s, i) => ({
         value: String(s.value),
@@ -280,7 +280,7 @@ function getSelectedSources(sources) {
         }))
 }
 
-function getShadeOptions(sources, elmId) {
+function getSightlineOptions(sources, elmId) {
     const selected = getSelectedSources(sources)
     const primaryColor = selected.length > 0 ? selected[0].color : { r: 0, g: 0, b: 0 }
     const primaryOpacity = selected.length > 0 ? selected[0].opacity : 0.75
@@ -520,12 +520,12 @@ test.describe('initializeGrids', () => {
 // 3. Shadow Computation (Integration)
 // ============================================================
 
-test.describe('shade (simplified integration)', () => {
+test.describe('sightline (simplified integration)', () => {
     test('flat terrain with high observer: everything visible', () => {
         // Use a 10x10 grid so there are clear interior cells.
         // Observer at x=5 (center-ish). Edge border = 2px on each side.
         // processDown scans left of o.x and right of o.x but skips column o.x itself
-        // (that's handled by processFirst which we don't include in the simplified shade).
+        // (that's handled by processFirst which we don't include in the simplified sightline).
         const size = 10
         const data = Array.from({ length: size }, () => new Array(size).fill(0))
         const d = {
@@ -534,7 +534,7 @@ test.describe('shade (simplified integration)', () => {
             targetSource: { altitude: 10000 },
             options: { targetHeight: 0, FOVAzimuth: 360, FOVElevation: 180 },
         }
-        const result = shadeSimple(d)
+        const result = sightlineSimple(d)
         // Interior cells NOT on the observer column should be visible
         // (shadow plane from 10000m altitude descends slowly over flat terrain)
         for (let y = 2; y < size - 2; y++) {
@@ -566,7 +566,7 @@ test.describe('shade (simplified integration)', () => {
             targetSource: { altitude: 600 },
             options: { targetHeight: 0, FOVAzimuth: 360, FOVElevation: 180 },
         }
-        const result = shadeSimple(d)
+        const result = sightlineSimple(d)
         // The hill cells (row 3-4, col 4-5) should be visible
         expect(result[3][4]).toBe(1)
         expect(result[3][5]).toBe(1)
@@ -596,7 +596,7 @@ test.describe('shade (simplified integration)', () => {
             targetSource: { altitude: 0 },
             options: { targetHeight: 0, FOVAzimuth: 360, FOVElevation: 180 },
         }
-        const result = shadeSimple(d)
+        const result = sightlineSimple(d)
         // With altitude 0, processUp/processDown skip; only edges get initialized
         // Truly interior cells (rows 2-3, cols 2-3) remain at default 0
         // But column 3 = observer column, so check col 2
@@ -616,7 +616,7 @@ test.describe('shade (simplified integration)', () => {
             targetSource: { altitude: -100 },
             options: { targetHeight: 0, FOVAzimuth: 360, FOVElevation: 180 },
         }
-        const result = shadeSimple(d)
+        const result = sightlineSimple(d)
         // Should not crash; all cells either edge (1) or interior default (0)
         expect(result.length).toBe(4)
     })
@@ -642,7 +642,7 @@ test.describe('noData propagation', () => {
             targetSource: { altitude: 5000 },
             options: { targetHeight: 0, FOVAzimuth: 360, FOVElevation: 180 },
         }
-        const result = shadeSimple(d)
+        const result = sightlineSimple(d)
         // noData cells should be 9
         expect(result[0][4]).toBe(9)
         expect(result[2][4]).toBe(9)
@@ -668,7 +668,7 @@ test.describe('noData propagation', () => {
             targetSource: { altitude: 5000 },
             options: { targetHeight: 0, FOVAzimuth: 360, FOVElevation: 180 },
         }
-        const result = shadeSimple(d)
+        const result = sightlineSimple(d)
         expect(result.length).toBe(4)
         // All cells should be 9 (noData)
         for (let y = 0; y < 4; y++) {
@@ -713,7 +713,7 @@ test.describe('noData propagation', () => {
             targetSource: { altitude: 1000 },
             options: { targetHeight: 0, FOVAzimuth: 360, FOVElevation: 180 },
         }
-        const result = shadeSimple(d)
+        const result = sightlineSimple(d)
         // noData region should be 9
         expect(result[4][5]).toBe(9)
         expect(result[5][5]).toBe(9)
@@ -973,24 +973,24 @@ test.describe('Source state management', () => {
         expect(getSelectedSources(store)).toEqual([])
     })
 
-    test('getShadeOptions uses primary source color', () => {
+    test('getSightlineOptions uses primary source color', () => {
         const store = createSourceStore(sourcesList)
         store[0].color = '#ff0000'
-        const opts = getShadeOptions(store, 0)
+        const opts = getSightlineOptions(store, 0)
         expect(opts.color).toEqual({ r: 255, g: 0, b: 0 })
     })
 
-    test('getShadeOptions uses primary source opacity', () => {
+    test('getSightlineOptions uses primary source opacity', () => {
         const store = createSourceStore(sourcesList)
         store[0].opacity = 0.3
-        const opts = getShadeOptions(store, 0)
+        const opts = getSightlineOptions(store, 0)
         expect(opts.opacity).toBe(0.3)
     })
 
-    test('getShadeOptions with no selection returns defaults', () => {
+    test('getSightlineOptions with no selection returns defaults', () => {
         const store = createSourceStore(sourcesList)
         store[0].checked = false
-        const opts = getShadeOptions(store, 0)
+        const opts = getSightlineOptions(store, 0)
         expect(opts.color).toEqual({ r: 0, g: 0, b: 0 })
         expect(opts.target).toBe('false')
     })

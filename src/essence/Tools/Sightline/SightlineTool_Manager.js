@@ -1,14 +1,14 @@
-// See https://www.asprs.org/wp-content/uploads/pers/2000journal/january/2000_jan_87-90.pdf for shadeding algorithm
+// See https://www.asprs.org/wp-content/uploads/pers/2000journal/january/2000_jan_87-90.pdf for sightline algorithm
 
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import G_ from '../../Basics/Globe_/Globe_'
 
-import ShadeTool_Algorithm from './ShadeTool_Algorithm'
+import SightlineTool_Algorithm from './SightlineTool_Algorithm'
 
-let ShadeTool_Manager = {
-    //Never query more than maxNumOfDataTiles for a single shade
+let SightlineTool_Manager = {
+    //Never query more than maxNumOfDataTiles for a single sightline
     maxNumOfDataTiles: 100,
     internalNoDataValue: 1010101,
     data: {},
@@ -17,7 +17,7 @@ let ShadeTool_Manager = {
     existingStoreMax: 10000,
     //resolution: 0 (lowest), 1, 2, 3 (highest)
     gather: function (
-        shadeId,
+        sightlineId,
         dataLayer,
         resolution,
         source,
@@ -34,9 +34,9 @@ let ShadeTool_Manager = {
             this.existingTileTags = []
         }
 
-        if (this.data[shadeId] == null) {
-            this.data[shadeId] = {
-                shadeId: shadeId,
+        if (this.data[sightlineId] == null) {
+            this.data[sightlineId] = {
+                sightlineId: sightlineId,
                 dataLayer: dataLayer,
                 resolution: resolution,
                 source: source,
@@ -64,38 +64,38 @@ let ShadeTool_Manager = {
                 options: options,
                 result: [],
             }
-            this.data[shadeId].resolution =
-                this.data[shadeId].zoom - Math.round(Map_.map.getZoom())
+            this.data[sightlineId].resolution =
+                this.data[sightlineId].zoom - Math.round(Map_.map.getZoom())
 
-            this.updateDesiredTiles(shadeId)
-            this.refreshData(shadeId)
-            this.locateSource(shadeId)
-            this.queryDesiredTiles(shadeId, progcb, function (dv) {
-                ShadeTool_Manager.interpolateSeams(shadeId)
-                ShadeTool_Manager.finishUp(shadeId)
-                ShadeTool_Manager.data[shadeId].result =
-                    ShadeTool_Algorithm.shade(
-                        ShadeTool_Manager.data[shadeId],
+            this.updateDesiredTiles(sightlineId)
+            this.refreshData(sightlineId)
+            this.locateSource(sightlineId)
+            this.queryDesiredTiles(sightlineId, progcb, function (dv) {
+                SightlineTool_Manager.interpolateSeams(sightlineId)
+                SightlineTool_Manager.finishUp(sightlineId)
+                SightlineTool_Manager.data[sightlineId].result =
+                    SightlineTool_Algorithm.sightline(
+                        SightlineTool_Manager.data[sightlineId],
                         options
                     )
                 cb(dv)
             })
         } else {
-            this.data[shadeId].source = source
-            this.data[shadeId].options = options
-            this.locateSource(shadeId)
-            ShadeTool_Manager.data[shadeId].result = ShadeTool_Algorithm.shade(
-                ShadeTool_Manager.data[shadeId],
+            this.data[sightlineId].source = source
+            this.data[sightlineId].options = options
+            this.locateSource(sightlineId)
+            SightlineTool_Manager.data[sightlineId].result = SightlineTool_Algorithm.sightline(
+                SightlineTool_Manager.data[sightlineId],
                 options
             )
-            cb(this.data[shadeId])
+            cb(this.data[sightlineId])
         }
-        return this.data[shadeId]
+        return this.data[sightlineId]
     },
     // Fetches DEM tiles once and prepares data, without running the algorithm.
     // Use computeShade() afterwards to run the algorithm with different targetSources.
     gatherTiles: function (
-        shadeId,
+        sightlineId,
         dataLayer,
         resolution,
         source,
@@ -109,9 +109,9 @@ let ShadeTool_Manager = {
             this.existingTileTags = []
         }
 
-        if (this.data[shadeId] == null) {
-            this.data[shadeId] = {
-                shadeId: shadeId,
+        if (this.data[sightlineId] == null) {
+            this.data[sightlineId] = {
+                sightlineId: sightlineId,
                 dataLayer: dataLayer,
                 resolution: resolution,
                 source: source,
@@ -139,47 +139,47 @@ let ShadeTool_Manager = {
                 options: options,
                 result: [],
             }
-            this.data[shadeId].resolution =
-                this.data[shadeId].zoom - Math.round(Map_.map.getZoom())
+            this.data[sightlineId].resolution =
+                this.data[sightlineId].zoom - Math.round(Map_.map.getZoom())
 
-            this.updateDesiredTiles(shadeId)
-            this.refreshData(shadeId)
-            this.queryDesiredTiles(shadeId, progcb, function (dv) {
-                ShadeTool_Manager.interpolateSeams(shadeId)
-                ShadeTool_Manager.finishUp(shadeId)
+            this.updateDesiredTiles(sightlineId)
+            this.refreshData(sightlineId)
+            this.queryDesiredTiles(sightlineId, progcb, function (dv) {
+                SightlineTool_Manager.interpolateSeams(sightlineId)
+                SightlineTool_Manager.finishUp(sightlineId)
                 cb(dv)
             })
         } else {
-            this.data[shadeId].source = source
-            this.data[shadeId].options = options
-            cb(this.data[shadeId])
+            this.data[sightlineId].source = source
+            this.data[sightlineId].options = options
+            cb(this.data[sightlineId])
         }
     },
-    // Runs the shade algorithm on already-gathered tile data with a given targetSource.
-    // Returns the resultGrid. Does not mutate data[shadeId].result.
-    computeShade: function (shadeId, targetSource, options) {
-        const d = this.data[shadeId]
+    // Runs the sightline algorithm on already-gathered tile data with a given targetSource.
+    // Returns the resultGrid. Does not mutate data[sightlineId].result.
+    computeShade: function (sightlineId, targetSource, options) {
+        const d = this.data[sightlineId]
         if (!d) return null
         if (!d.data || d.data.length === 0) return []
 
         d.targetSource = targetSource
         d.options = options
-        this.locateSource(shadeId)
+        this.locateSource(sightlineId)
 
         // curveData mutates d.data in-place; let it run on the first call
         // and skip on subsequent calls (hasDataCurved will be true)
-        const result = ShadeTool_Algorithm.shade(d, options)
+        const result = SightlineTool_Algorithm.sightline(d, options)
         return result
     },
-    getData: function (shadeId) {
-        return this.data[shadeId]
+    getData: function (sightlineId) {
+        return this.data[sightlineId]
     },
-    updateDesiredTiles: function (shadeId) {
+    updateDesiredTiles: function (sightlineId) {
         // Find all tiles between the bounds of the viewport and the bounds of the source point
 
         //viewport
         let viewBounds = Map_.map.getPixelBounds()
-        let zoom = this.data[shadeId].zoom
+        let zoom = this.data[sightlineId].zoom
         let boundsNW = Map_.map.unproject(viewBounds.getTopLeft())
         let boundsSE = Map_.map.unproject(viewBounds.getBottomRight())
         let minPx = Map_.map.project(boundsNW, zoom)
@@ -189,7 +189,7 @@ let ShadeTool_Manager = {
         let max = maxPx.divideBy(256).floor()
 
         // Clamp to bounding box if the data source defines one
-        const rawBbox = this.data[shadeId].dataLayer.boundingBox
+        const rawBbox = this.data[sightlineId].dataLayer.boundingBox
         const bbox = Array.isArray(rawBbox)
             ? rawBbox.map(Number)
             : null
@@ -220,7 +220,7 @@ let ShadeTool_Manager = {
 
         //source
         let halfViewport = L.bounds(minPx, maxPx).getSize().divideBy(2)
-        let sourceCenter = Map_.map.project(this.data[shadeId].source, zoom)
+        let sourceCenter = Map_.map.project(this.data[sightlineId].source, zoom)
         let sourceMin = sourceCenter
             .subtract(halfViewport)
             .divideBy(256)
@@ -299,7 +299,7 @@ let ShadeTool_Manager = {
         // Enforce tile limit — prioritize tiles nearest the source point
         if (uniqueDesiredTiles.length > this.maxNumOfDataTiles) {
             const srcTile = Map_.map
-                .project(this.data[shadeId].source, zoom)
+                .project(this.data[sightlineId].source, zoom)
                 .divideBy(256)
             uniqueDesiredTiles.sort((a, b) => {
                 const da =
@@ -316,56 +316,56 @@ let ShadeTool_Manager = {
             )
         }
 
-        this.data[shadeId].desiredTiles = uniqueDesiredTiles
+        this.data[sightlineId].desiredTiles = uniqueDesiredTiles
     },
-    // Restores the shade's data matrix to all 0s,
+    // Restores the sightline's data matrix to all 0s,
     // fits it to a box around the desired tiles
     // defines it top left tile
-    refreshData: function (shadeId) {
-        this.data[shadeId].data = []
-        if (this.data[shadeId].desiredTiles.length === 0) return
-        let dataBounds = this.getTilesetBounds(this.data[shadeId].desiredTiles)
+    refreshData: function (sightlineId) {
+        this.data[sightlineId].data = []
+        if (this.data[sightlineId].desiredTiles.length === 0) return
+        let dataBounds = this.getTilesetBounds(this.data[sightlineId].desiredTiles)
         let w =
             (dataBounds.maxX - dataBounds.minX + 1) *
-            this.data[shadeId].tileResolution
+            this.data[sightlineId].tileResolution
         let h =
             (dataBounds.maxY - dataBounds.minY + 1) *
-            this.data[shadeId].tileResolution
+            this.data[sightlineId].tileResolution
 
         for (let i = 0; i < h; i++) {
-            this.data[shadeId].data.push(
+            this.data[sightlineId].data.push(
                 new Array(w).fill(this.internalNoDataValue)
             )
         }
 
-        this.data[shadeId].topLeftTile = {
+        this.data[sightlineId].topLeftTile = {
             x: dataBounds.minX,
             y: dataBounds.minY,
-            z: this.data[shadeId].zoom,
-            w: w / this.data[shadeId].tileResolution,
-            h: h / this.data[shadeId].tileResolution,
+            z: this.data[sightlineId].zoom,
+            w: w / this.data[sightlineId].tileResolution,
+            h: h / this.data[sightlineId].tileResolution,
         }
 
-        this.data[shadeId].bottomLeftLatLng =
+        this.data[sightlineId].bottomLeftLatLng =
             G_.litho.projection.tileXYZ2LatLng(
-                this.data[shadeId].topLeftTile.x,
-                this.data[shadeId].topLeftTile.y +
-                    this.data[shadeId].topLeftTile.h,
-                this.data[shadeId].topLeftTile.z
+                this.data[sightlineId].topLeftTile.x,
+                this.data[sightlineId].topLeftTile.y +
+                    this.data[sightlineId].topLeftTile.h,
+                this.data[sightlineId].topLeftTile.z
             )
 
-        this.data[shadeId].cellSize =
+        this.data[sightlineId].cellSize =
             G_.litho.projection.tileXYZ2LatLng(
-                this.data[shadeId].topLeftTile.x +
-                    1 / this.data[shadeId].tileResolution,
-                this.data[shadeId].topLeftTile.y +
-                    this.data[shadeId].topLeftTile.h,
-                this.data[shadeId].topLeftTile.z
-            ).lng - this.data[shadeId].bottomLeftLatLng.lng
+                this.data[sightlineId].topLeftTile.x +
+                    1 / this.data[sightlineId].tileResolution,
+                this.data[sightlineId].topLeftTile.y +
+                    this.data[sightlineId].topLeftTile.h,
+                this.data[sightlineId].topLeftTile.z
+            ).lng - this.data[sightlineId].bottomLeftLatLng.lng
     },
-    locateSource: function (shadeId) {
+    locateSource: function (sightlineId) {
         // Locate source
-        let dv = this.data[shadeId]
+        let dv = this.data[sightlineId]
 
         let topLeftTile = new L.Point(dv.topLeftTile.x, dv.topLeftTile.y)
         let sourcePoint = Map_.map
@@ -383,18 +383,18 @@ let ShadeTool_Manager = {
         if (source.y < -tilePixelsAcross / 2) source.y += tilePixelsAcross
         if (source.y > tilePixelsAcross / 2) source.y -= tilePixelsAcross
 
-        this.data[shadeId].dataSource = source
+        this.data[sightlineId].dataSource = source
     },
-    queryDesiredTiles: function (shadeId, progcb, cb) {
+    queryDesiredTiles: function (sightlineId, progcb, cb) {
         let url = L_.getUrl(
-            this.data[shadeId].dataLayer.type,
-            this.data[shadeId].dataLayer.demtileurl,
-            this.data[shadeId].dataLayer
+            this.data[sightlineId].dataLayer.type,
+            this.data[sightlineId].dataLayer.demtileurl,
+            this.data[sightlineId].dataLayer
         )
 
-        let totalTiles = this.data[shadeId].desiredTiles.length
+        let totalTiles = this.data[sightlineId].desiredTiles.length
         if (totalTiles === 0) {
-            cb(ShadeTool_Manager.data[shadeId])
+            cb(SightlineTool_Manager.data[sightlineId])
             return
         }
         let tilesLoaded = 0
@@ -409,40 +409,40 @@ let ShadeTool_Manager = {
             }
 
             const tileResolution =
-                ShadeTool_Manager.data[shadeId].tileResolution
+                SightlineTool_Manager.data[sightlineId].tileResolution
 
-            let desired = ShadeTool_Manager.data[shadeId].desiredTiles[d]
+            let desired = SightlineTool_Manager.data[sightlineId].desiredTiles[d]
             let startingX =
-                (desired.x - ShadeTool_Manager.data[shadeId].topLeftTile.x) *
+                (desired.x - SightlineTool_Manager.data[sightlineId].topLeftTile.x) *
                 tileResolution
             let startingY =
-                (desired.y - ShadeTool_Manager.data[shadeId].topLeftTile.y) *
+                (desired.y - SightlineTool_Manager.data[sightlineId].topLeftTile.y) *
                 tileResolution
 
             // Store directly for later
             let tTag = desired.z + '_' + desired.x + '_' + desired.y
 
-            if (ShadeTool_Manager.existingTileTags.indexOf(tTag) == -1) {
-                let dlname = ShadeTool_Manager.data[shadeId].dataLayer.name
-                ShadeTool_Manager.existingTileData[dlname] =
-                    ShadeTool_Manager.existingTileData[dlname] || {}
-                ShadeTool_Manager.existingTileData[dlname][desired.z] =
-                    ShadeTool_Manager.existingTileData[dlname][desired.z] || {}
-                ShadeTool_Manager.existingTileData[dlname][desired.z][
+            if (SightlineTool_Manager.existingTileTags.indexOf(tTag) == -1) {
+                let dlname = SightlineTool_Manager.data[sightlineId].dataLayer.name
+                SightlineTool_Manager.existingTileData[dlname] =
+                    SightlineTool_Manager.existingTileData[dlname] || {}
+                SightlineTool_Manager.existingTileData[dlname][desired.z] =
+                    SightlineTool_Manager.existingTileData[dlname][desired.z] || {}
+                SightlineTool_Manager.existingTileData[dlname][desired.z][
                     desired.x
                 ] =
-                    ShadeTool_Manager.existingTileData[dlname][desired.z][
+                    SightlineTool_Manager.existingTileData[dlname][desired.z][
                         desired.x
                     ] || {}
-                ShadeTool_Manager.existingTileData[dlname][desired.z][
+                SightlineTool_Manager.existingTileData[dlname][desired.z][
                     desired.x
                 ][desired.y] = heights.slice()
-                ShadeTool_Manager.existingTileTags.push(tTag)
+                SightlineTool_Manager.existingTileTags.push(tTag)
             }
 
             // Add to data
             for (let i = 0; i < tileResolution; i++) {
-                ShadeTool_Manager.data[shadeId].data[startingY + i].splice(
+                SightlineTool_Manager.data[sightlineId].data[startingY + i].splice(
                     startingX,
                     tileResolution,
                     ...heights.slice(
@@ -453,7 +453,7 @@ let ShadeTool_Manager = {
             }
 
             if (tilesLoaded >= totalTiles) {
-                cb(ShadeTool_Manager.data[shadeId])
+                cb(SightlineTool_Manager.data[sightlineId])
             } else if (d == start + tilesPerStep - 1) {
                 query()
             }
@@ -468,17 +468,17 @@ let ShadeTool_Manager = {
             ) {
                 tilesQueried++
 
-                let desired = ShadeTool_Manager.data[shadeId].desiredTiles[d]
-                let dlname = ShadeTool_Manager.data[shadeId].dataLayer.name
+                let desired = SightlineTool_Manager.data[sightlineId].desiredTiles[d]
+                let dlname = SightlineTool_Manager.data[sightlineId].dataLayer.name
                 let existingHeights = F_.getIn(
-                    ShadeTool_Manager.existingTileData,
+                    SightlineTool_Manager.existingTileData,
                     [dlname, desired.z, desired.x, desired.y]
                 )
 
                 if (existingHeights) {
                     eachTile(d, start, existingHeights)
                 } else {
-                    const tile = this.data[shadeId].desiredTiles[d]
+                    const tile = this.data[sightlineId].desiredTiles[d]
                     const pxWorldBound = Map_.map.getPixelWorldBounds(tile.z)
                     const yTileWorldBound =
                         Math.ceil(pxWorldBound.max.y / 256) - 1
@@ -494,10 +494,10 @@ let ShadeTool_Manager = {
                         (function (d) {
                             return function (img) {
                                 const tileResolution =
-                                    ShadeTool_Manager.data[shadeId]
+                                    SightlineTool_Manager.data[sightlineId]
                                         .tileResolution
                                 const trueTileResolution =
-                                    ShadeTool_Manager.data[shadeId]
+                                    SightlineTool_Manager.data[sightlineId]
                                         .tileResolution
 
                                 let rgbaArr = null
@@ -508,7 +508,7 @@ let ShadeTool_Manager = {
                                 if (rgbaArr == null) {
                                     tilesLoaded++
                                     if (tilesLoaded >= totalTiles) {
-                                        cb(ShadeTool_Manager.data[shadeId])
+                                        cb(SightlineTool_Manager.data[sightlineId])
                                     } else if (d == start + tilesPerStep - 1) {
                                         query()
                                     }
@@ -529,7 +529,7 @@ let ShadeTool_Manager = {
                                             b: rgbaArr[cnt + 2],
                                             a: rgbaArr[cnt + 3],
                                         }) ||
-                                        ShadeTool_Manager.internalNoDataValue
+                                        SightlineTool_Manager.internalNoDataValue
                                     cnt +=
                                         4 *
                                         parseInt(
@@ -548,10 +548,10 @@ let ShadeTool_Manager = {
 
         query(tilesLoaded)
     },
-    interpolateSeams(shadeId) {
-        const tileRes = this.data[shadeId].tileResolution
+    interpolateSeams(sightlineId) {
+        const tileRes = this.data[sightlineId].tileResolution
         const noData = this.internalNoDataValue
-        let d = this.data[shadeId].data
+        let d = this.data[sightlineId].data
         if (!d || d.length === 0) return
 
         // Vertical | |
@@ -590,20 +590,20 @@ let ShadeTool_Manager = {
             }
         }
     },
-    finishUp(shadeId) {
+    finishUp(sightlineId) {
         const outputZoom = Math.round(Map_.map.getZoom())
-        const zoom = this.data[shadeId].zoom
+        const zoom = this.data[sightlineId].zoom
 
         const dif = zoom - outputZoom
 
         const difDim = Math.pow(2, dif)
 
-        this.data[shadeId].outputTopLeftTile = {
-            x: this.data[shadeId].topLeftTile.x / difDim,
-            y: this.data[shadeId].topLeftTile.y / difDim,
+        this.data[sightlineId].outputTopLeftTile = {
+            x: this.data[sightlineId].topLeftTile.x / difDim,
+            y: this.data[sightlineId].topLeftTile.y / difDim,
             z: outputZoom,
-            w: Math.ceil(this.data[shadeId].topLeftTile.w / difDim),
-            h: Math.ceil(this.data[shadeId].topLeftTile.h / difDim),
+            w: Math.ceil(this.data[sightlineId].topLeftTile.w / difDim),
+            h: Math.ceil(this.data[sightlineId].topLeftTile.h / difDim),
         }
     },
     getGreatestTile: function (tiles) {
@@ -631,8 +631,8 @@ let ShadeTool_Manager = {
         }
         return bounds
     },
-    cleanupSeams: function (shadeId, result) {
-        const tileRes = this.data[shadeId].tileResolution
+    cleanupSeams: function (sightlineId, result) {
+        const tileRes = this.data[sightlineId].tileResolution
 
         // Vertical fill | |
         for (let y = 0; y < result.length; y++) {
@@ -662,4 +662,4 @@ let ShadeTool_Manager = {
         return result
     },
 }
-export default ShadeTool_Manager
+export default SightlineTool_Manager

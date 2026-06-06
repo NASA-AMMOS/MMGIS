@@ -1,25 +1,25 @@
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react'
-import useShadeStore, { buildSourcesList } from '../store'
-import ShadeElement from './ShadeElement'
-import ShadeTool from '../ShadeTool'
+import useSightlineStore, { buildSourcesList } from '../store'
+import SightlineElement from './SightlineElement'
+import SightlineTool from '../SightlineTool'
 import Help from '../../../Basics/UserInterface_/components/Help/Help'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import TimeUI from '../../../Basics/TimeControl_/TimeUI'
 import ToolController_ from '../../../Basics/ToolController_/ToolController_'
 import { Button, IconButton, InputWithUnit, Tooltip } from '../../../../design-system/components'
 
-const helpKey = 'ShadeTool'
+const helpKey = 'SightlineTool'
 
-export default function ShadePanel() {
-    const vars = useShadeStore((s) => s.vars)
-    const elements = useShadeStore((s) => s.elements)
-    const addElement = useShadeStore((s) => s.addElement)
-    const elementOrder = useShadeStore((s) => s.elementOrder)
-    const setElementOrder = useShadeStore((s) => s.setElementOrder)
-    const sweepStart = useShadeStore((s) => s.sweepStart)
-    const sweepEnd = useShadeStore((s) => s.sweepEnd)
-    const sweepStep = useShadeStore((s) => s.sweepStep)
-    const setSweepField = useShadeStore((s) => s.setSweepField)
+export default function SightlinePanel() {
+    const vars = useSightlineStore((s) => s.vars)
+    const elements = useSightlineStore((s) => s.elements)
+    const addElement = useSightlineStore((s) => s.addElement)
+    const elementOrder = useSightlineStore((s) => s.elementOrder)
+    const setElementOrder = useSightlineStore((s) => s.setElementOrder)
+    const sweepStart = useSightlineStore((s) => s.sweepStart)
+    const sweepEnd = useSightlineStore((s) => s.sweepEnd)
+    const sweepStep = useSightlineStore((s) => s.sweepStep)
+    const setSweepField = useSightlineStore((s) => s.setSweepField)
 
     const dragItemRef = useRef(null)
     const [dropTargetId, setDropTargetId] = useState(null)
@@ -50,7 +50,7 @@ export default function ShadePanel() {
         }
 
         // Subscribe for ongoing changes
-        TimeControl.subscribe('ShadeTool_TimeSync', (t) => {
+        TimeControl.subscribe('SightlineTool_TimeSync', (t) => {
             const m = getTimeUIMode()
             if (m === 'Point') {
                 if (t.currentTime) setSweepField('sweepStart', fmtUTC(t.currentTime))
@@ -61,13 +61,13 @@ export default function ShadePanel() {
         })
 
         return () => {
-            TimeControl.unsubscribe('ShadeTool_TimeSync')
+            TimeControl.unsubscribe('SightlineTool_TimeSync')
         }
     }, [setSweepField])
 
     const handleNew = useCallback(() => {
         // Cycle through non-custom source entities for the new element
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const sources = buildSourcesList(store.vars)
         const nonCustomIndices = sources
             .map((s, i) => ({ s, i }))
@@ -85,7 +85,7 @@ export default function ShadePanel() {
         }
 
         const newId = addElement(undefined, { sourceIndex: nextSourceIndex })
-        setTimeout(() => ShadeTool.shade(null, newId), 0)
+        setTimeout(() => SightlineTool.sightline(null, newId), 0)
     }, [addElement])
 
     const elementIds = useMemo(() => {
@@ -127,13 +127,13 @@ export default function ShadePanel() {
         order.splice(fromIdx, 1)
         order.splice(toIdx, 0, draggedId)
         setElementOrder(order)
-        ShadeTool.reorderShadeLayers(order)
+        SightlineTool.reorderShadeLayers(order)
         dragItemRef.current = null
     }, [elementIds, setElementOrder])
 
     if (!TimeControl.enabled) {
         return (
-            <div id="shadeTool">
+            <div id="sightlineTool">
                 <div className="vstTimeDisabled">
                     The Shade Tool requires that Time be enabled by the
                     administrators.
@@ -143,7 +143,7 @@ export default function ShadePanel() {
     }
 
     return (
-        <div id="shadeTool">
+        <div id="sightlineTool">
             <div className="mmgisToolHeader">
                 <div>
                     <div>
@@ -210,7 +210,7 @@ export default function ShadePanel() {
             {/* Element cards */}
             <div className="vstContent">
                 {elementIds.map((id) => (
-                    <ShadeElement
+                    <SightlineElement
                         key={id}
                         elmId={id}
                         onDragStart={handleElDragStart}

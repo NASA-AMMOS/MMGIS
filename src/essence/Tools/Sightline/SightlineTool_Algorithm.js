@@ -1,18 +1,18 @@
-// See https://www.asprs.org/wp-content/uploads/pers/2000journal/january/2000_jan_87-90.pdf for shadeding algorithm
+// See https://www.asprs.org/wp-content/uploads/pers/2000journal/january/2000_jan_87-90.pdf for sightline algorithm
 import $ from 'jquery'
 import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import G_ from '../../Basics/Globe_/Globe_'
 
-let ShadeTool_Algorithm = {
-    // Returns a shade grid where
+let SightlineTool_Algorithm = {
+    // Returns a sightline grid where
     // 0: hidden
     // 1: visible
     // 2: observer
     // 8: visible but not within elevation bounds
     // 9: no data
     perOctant: false,
-    shade: function (d) {
+    sightline: function (d) {
         this.curveData(d)
         /*
             console.log(d)
@@ -154,12 +154,12 @@ let ShadeTool_Algorithm = {
             }
 
             // Check if NoData
-            if (ShadeTool_Algorithm.isNoData(d.data[o.y][i]))
+            if (SightlineTool_Algorithm.isNoData(d.data[o.y][i]))
                 g.resultGrid[o.y][i] = 9
 
             // Set ref position to the greater: plane height or actual elevation
             // Skip noData cells to prevent corrupting the shadow plane
-            if (!ShadeTool_Algorithm.isNoData(d.data[o.y][i]))
+            if (!SightlineTool_Algorithm.isNoData(d.data[o.y][i]))
                 g.refGrid[o.y][i] = Math.max(g.refGrid[o.y][i], d.data[o.y][i])
         }
 
@@ -180,12 +180,12 @@ let ShadeTool_Algorithm = {
             }
 
             // Check if NoData
-            if (ShadeTool_Algorithm.isNoData(d.data[o.y][i]))
+            if (SightlineTool_Algorithm.isNoData(d.data[o.y][i]))
                 g.resultGrid[o.y][i] = 9
 
             // Set ref position to the greater: plane height or actual elevation
             // Skip noData cells to prevent corrupting the shadow plane
-            if (!ShadeTool_Algorithm.isNoData(d.data[o.y][i]))
+            if (!SightlineTool_Algorithm.isNoData(d.data[o.y][i]))
                 g.refGrid[o.y][i] = Math.max(g.refGrid[o.y][i], d.data[o.y][i])
         }
 
@@ -206,12 +206,12 @@ let ShadeTool_Algorithm = {
             }
 
             // Check if NoData
-            if (ShadeTool_Algorithm.isNoData(d.data[j][o.x]))
+            if (SightlineTool_Algorithm.isNoData(d.data[j][o.x]))
                 g.resultGrid[j][o.x] = 9
 
             // Set ref position to the greater: plane height or actual elevation
             // Skip noData cells to prevent corrupting the shadow plane
-            if (!ShadeTool_Algorithm.isNoData(d.data[j][o.x]))
+            if (!SightlineTool_Algorithm.isNoData(d.data[j][o.x]))
                 g.refGrid[j][o.x] = Math.max(g.refGrid[j][o.x], d.data[j][o.x])
         }
 
@@ -232,12 +232,12 @@ let ShadeTool_Algorithm = {
             }
 
             // Check if NoData
-            if (ShadeTool_Algorithm.isNoData(d.data[j][o.x]))
+            if (SightlineTool_Algorithm.isNoData(d.data[j][o.x]))
                 g.resultGrid[j][o.x] = 9
 
             // Set ref position to the greater: plane height or actual elevation
             // Skip noData cells to prevent corrupting the shadow plane
-            if (!ShadeTool_Algorithm.isNoData(d.data[j][o.x]))
+            if (!SightlineTool_Algorithm.isNoData(d.data[j][o.x]))
                 g.refGrid[j][o.x] = Math.max(g.refGrid[j][o.x], d.data[j][o.x])
         }
     },
@@ -251,7 +251,7 @@ let ShadeTool_Algorithm = {
         for (let j = Math.min(d.data.length - 2, o.y - 1); j >= 0; j--) {
             // Process Left
             for (let i = Math.min(d.data[0].length - 2, o.x - 1); i >= 0; i--) {
-                if (ShadeTool_Algorithm.perOctant) {
+                if (SightlineTool_Algorithm.perOctant) {
                     g.refGrid[j][i] =
                         i - o.x < j - o.y
                             ? this.calcHeightDiagonal2(
@@ -295,18 +295,18 @@ let ShadeTool_Algorithm = {
                 }
 
                 // Check if NoData
-                if (ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                if (SightlineTool_Algorithm.isNoData(d.data[j][i]))
                     g.resultGrid[j][i] = 9
 
                 // Set ref position to the greater: plane height or actual elevation
                 // Skip noData cells to prevent corrupting the shadow plane
-                if (!ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                if (!SightlineTool_Algorithm.isNoData(d.data[j][i]))
                     g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
             }
 
             // Process Right
             for (let i = Math.max(1, o.x + 1); i < d.data[0].length; i++) {
-                if (ShadeTool_Algorithm.perOctant) {
+                if (SightlineTool_Algorithm.perOctant) {
                     g.refGrid[j][i] =
                         i - o.x > Math.abs(j - o.y)
                             ? this.calcHeightDiagonal2(
@@ -350,12 +350,12 @@ let ShadeTool_Algorithm = {
                 }
 
                 // Check if NoData
-                if (ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                if (SightlineTool_Algorithm.isNoData(d.data[j][i]))
                     g.resultGrid[j][i] = 9
 
                 // Set ref position to the greater: plane height or actual elevation
                 // Skip noData cells to prevent corrupting the shadow plane
-                if (!ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                if (!SightlineTool_Algorithm.isNoData(d.data[j][i]))
                     g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
             }
         }
@@ -370,7 +370,7 @@ let ShadeTool_Algorithm = {
         for (let j = Math.max(1, o.y + 1); j < d.data.length; j++) {
             // Process Left
             for (let i = Math.min(d.data[0].length - 2, o.x - 1); i >= 0; i--) {
-                if (ShadeTool_Algorithm.perOctant) {
+                if (SightlineTool_Algorithm.perOctant) {
                     g.refGrid[j][i] =
                         Math.abs(i - o.x) > j - o.y
                             ? this.calcHeightDiagonal2(
@@ -414,18 +414,18 @@ let ShadeTool_Algorithm = {
                 }
 
                 // Check if NoData
-                if (ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                if (SightlineTool_Algorithm.isNoData(d.data[j][i]))
                     g.resultGrid[j][i] = 9
 
                 // Set ref position to the greater: plane height or actual elevation
                 // Skip noData cells to prevent corrupting the shadow plane
-                if (!ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                if (!SightlineTool_Algorithm.isNoData(d.data[j][i]))
                     g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
             }
 
             // Process Right
             for (let i = Math.max(1, o.x + 1); i < d.data[0].length; i++) {
-                if (ShadeTool_Algorithm.perOctant) {
+                if (SightlineTool_Algorithm.perOctant) {
                     g.refGrid[j][i] =
                         i - o.x > j - o.y
                             ? this.calcHeightDiagonal2(
@@ -469,12 +469,12 @@ let ShadeTool_Algorithm = {
                 }
 
                 // Check if NoData
-                if (ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                if (SightlineTool_Algorithm.isNoData(d.data[j][i]))
                     g.resultGrid[j][i] = 9
 
                 // Set ref position to the greater: plane height or actual elevation
                 // Skip noData cells to prevent corrupting the shadow plane
-                if (!ShadeTool_Algorithm.isNoData(d.data[j][i]))
+                if (!SightlineTool_Algorithm.isNoData(d.data[j][i]))
                     g.refGrid[j][i] = Math.max(g.refGrid[j][i], d.data[j][i])
             }
         }
@@ -687,4 +687,4 @@ let ShadeTool_Algorithm = {
     },
 }
 
-export default ShadeTool_Algorithm
+export default SightlineTool_Algorithm

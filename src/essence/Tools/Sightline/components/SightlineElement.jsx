@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import useShadeStore, { buildSourcesList, MULTI_SOURCE_COLORS } from '../store'
-import ShadeResults from './ShadeResults'
+import useSightlineStore, { buildSourcesList, MULTI_SOURCE_COLORS } from '../store'
+import SightlineResults from './SightlineResults'
 import CardLegend, { getDefaultStops } from './CardLegend'
-import ShadeTool from '../ShadeTool'
-import ShadeTool_Graphs from '../ShadeTool_Graphs'
+import SightlineTool from '../SightlineTool'
+import SightlineTool_Graphs from '../SightlineTool_Graphs'
 import L_ from '../../../Basics/Layers_/Layers_'
 import {
     Button,
@@ -46,21 +46,21 @@ const EXPORT_OPTIONS = [
     { value: 'grid', label: 'Shade Grid (TXT)' },
 ]
 
-export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget }) {
-    const el = useShadeStore((s) => s.elements[elmId])
-    const vars = useShadeStore((s) => s.vars)
-    const updateElement = useShadeStore((s) => s.updateElement)
-    const removeElement = useShadeStore((s) => s.removeElement)
-    const setActiveElmId = useShadeStore((s) => s.setActiveElmId)
-    const ed = useShadeStore((s) => s.sweepElData[elmId])
-    const sweepPlayIndex = useShadeStore((s) => s.sweepPlayIndex)
-    const sweepPlaying = useShadeStore((s) => s.sweepPlaying)
-    const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
-    const sweepFitToData = useShadeStore((s) => s.sweepFitToData)
-    const setSweepElField = useShadeStore((s) => s.setSweepElField)
-    const setSweepField = useShadeStore((s) => s.setSweepField)
-    const sweepStart = useShadeStore((s) => s.sweepStart)
-    const sweepEnd = useShadeStore((s) => s.sweepEnd)
+export default function SightlineElement({ elmId, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget }) {
+    const el = useSightlineStore((s) => s.elements[elmId])
+    const vars = useSightlineStore((s) => s.vars)
+    const updateElement = useSightlineStore((s) => s.updateElement)
+    const removeElement = useSightlineStore((s) => s.removeElement)
+    const setActiveElmId = useSightlineStore((s) => s.setActiveElmId)
+    const ed = useSightlineStore((s) => s.sweepElData[elmId])
+    const sweepPlayIndex = useSightlineStore((s) => s.sweepPlayIndex)
+    const sweepPlaying = useSightlineStore((s) => s.sweepPlaying)
+    const sweepDiscrete = useSightlineStore((s) => s.sweepDiscrete)
+    const sweepFitToData = useSightlineStore((s) => s.sweepFitToData)
+    const setSweepElField = useSightlineStore((s) => s.setSweepElField)
+    const setSweepField = useSightlineStore((s) => s.setSweepField)
+    const sweepStart = useSightlineStore((s) => s.sweepStart)
+    const sweepEnd = useSightlineStore((s) => s.sweepEnd)
 
     const sourcesList = useMemo(() => buildSourcesList(vars), [vars])
 
@@ -101,12 +101,12 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         []
     )
 
-    const shadeMode = el?.shadeMode || 'static'
+    const sightlineMode = el?.sightlineMode || 'static'
 
     const handleToggle = useCallback(() => {
         const newOn = !el?.on
         updateElement(elmId, { on: newOn })
-        ShadeTool.toggleElementVisibility(elmId, newOn)
+        SightlineTool.toggleElementVisibility(elmId, newOn)
     }, [elmId, el?.on, updateElement])
 
     const handleChange = useCallback(
@@ -117,15 +117,15 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     )
 
     const handleModeChange = useCallback((mode) => {
-        ShadeTool.switchElementMode(elmId, mode)
-        updateElement(elmId, { shadeMode: mode })
+        SightlineTool.switchElementMode(elmId, mode)
+        updateElement(elmId, { sightlineMode: mode })
         setResultsOpen(false)
     }, [elmId, updateElement])
 
     const handleOpacityChange = useCallback(
         (value) => {
             updateElement(elmId, { opacity: value })
-            const layerName = 'shade' + elmId
+            const layerName = 'sightline' + elmId
             const layer = L_.layers.layer[layerName]
             if (layer && typeof layer.setOpacity === 'function') {
                 layer.setOpacity(value)
@@ -136,29 +136,29 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
     // Auto-generate when settings change (static mode only)
     useEffect(() => {
-        if (shadeMode !== 'static') return
+        if (sightlineMode !== 'static') return
         if (!el?.changed || el?.regenerating || el?.lastError) return
         const timer = setTimeout(() => {
             setActiveElmId(elmId)
-            ShadeTool.shade(null, elmId)
+            SightlineTool.sightline(null, elmId)
         }, 300)
         return () => clearTimeout(timer)
-    }, [elmId, el?.changed, el?.regenerating, el?.lastError, shadeMode, setActiveElmId])
+    }, [elmId, el?.changed, el?.regenerating, el?.lastError, sightlineMode, setActiveElmId])
 
     const handleGenerate = useCallback(() => {
         if (el?.regenerating) return
-        if (shadeMode === 'static') {
+        if (sightlineMode === 'static') {
             if (!el?.changed) return
             setActiveElmId(elmId)
-            ShadeTool.shade(null, elmId)
+            SightlineTool.sightline(null, elmId)
         } else {
             setActiveElmId(elmId)
-            ShadeTool.shadeSweepElement(elmId)
+            SightlineTool.sightlineSweepElement(elmId)
         }
-    }, [elmId, el?.changed, el?.regenerating, shadeMode, setActiveElmId])
+    }, [elmId, el?.changed, el?.regenerating, sightlineMode, setActiveElmId])
 
     const handleDelete = useCallback(() => {
-        ShadeTool.deleteElement(elmId)
+        SightlineTool.deleteElement(elmId)
     }, [elmId])
 
     const cardRef = useRef(null)
@@ -167,7 +167,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
     const [sourceOpen, setSourceOpen] = useState(false)
     const [displayOpen, setDisplayOpen] = useState(false)
-    const [resultsOpen, setResultsOpen] = useState(shadeMode === 'static')
+    const [resultsOpen, setResultsOpen] = useState(sightlineMode === 'static')
 
     const [colorPickerOpen, setColorPickerOpen] = useState(false)
     const [exportFormat, setExportFormat] = useState('png')
@@ -197,12 +197,12 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     useEffect(() => {
         if (!observer || !observerOptions.length) return
         if (sweepStart) {
-            ShadeTool.convertUTCToObserver(sweepStart, observer, (result) => {
+            SightlineTool.convertUTCToObserver(sweepStart, observer, (result) => {
                 setObsStartTime(result || sweepStart)
             })
         }
         if (sweepEnd) {
-            ShadeTool.convertUTCToObserver(sweepEnd, observer, (result) => {
+            SightlineTool.convertUTCToObserver(sweepEnd, observer, (result) => {
                 setObsEndTime(result || sweepEnd)
             })
         }
@@ -210,7 +210,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
     const handleObsStartBlur = useCallback(() => {
         if (!obsStartTime || !observer) return
-        ShadeTool.convertObserverToUTC(obsStartTime, observer, (result) => {
+        SightlineTool.convertObserverToUTC(obsStartTime, observer, (result) => {
             if (result) {
                 const utc = result.replace(' ', 'T').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z').replace(/\.\d{3}Z$/, 'Z')
                 setSweepField('sweepStart', utc)
@@ -220,7 +220,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
     const handleObsEndBlur = useCallback(() => {
         if (!obsEndTime || !observer) return
-        ShadeTool.convertObserverToUTC(obsEndTime, observer, (result) => {
+        SightlineTool.convertObserverToUTC(obsEndTime, observer, (result) => {
             if (result) {
                 const utc = result.replace(' ', 'T').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z').replace(/\.\d{3}Z$/, 'Z')
                 setSweepField('sweepEnd', utc)
@@ -233,9 +233,9 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
             updateElement(elmId, { color: { ...color }, changed: true, lastError: false })
             setColorPickerOpen(false)
             setTimeout(() => {
-                const ed2 = useShadeStore.getState().sweepElData[elmId]
+                const ed2 = useSightlineStore.getState().sweepElData[elmId]
                 if (ed2?.heatmap && ed2?.lastData) {
-                    ShadeTool.renderHeatmapToMap(ed2.lastData, ed2.heatmap, elmId)
+                    SightlineTool.renderHeatmapToMap(ed2.lastData, ed2.heatmap, elmId)
                 }
             }, 0)
         },
@@ -266,20 +266,20 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
     // Sweep card handlers
     const sweepOpacity = ed?.opacity != null ? ed.opacity : 1
-    const sweepColorRamp = ed?.colorRamp || 'shadow'
+    const sweepColorRamp = ed?.colorRamp || 'sightline'
     const discrete = sweepDiscrete || false
 
     const handleSweepOpacityChange = useCallback((val) => {
         setSweepElField(elmId, 'opacity', val)
-        ShadeTool.applySweepOpacity(elmId)
+        SightlineTool.applySweepOpacity(elmId)
     }, [elmId, setSweepElField])
 
     const handleColorRampChange = useCallback((value) => {
         setSweepElField(elmId, 'colorRamp', value)
         setTimeout(() => {
-            const ed2 = useShadeStore.getState().sweepElData[elmId]
+            const ed2 = useSightlineStore.getState().sweepElData[elmId]
             if (ed2?.heatmap && ed2?.lastData) {
-                ShadeTool.renderHeatmapToMap(ed2.lastData, ed2.heatmap, elmId)
+                SightlineTool.renderHeatmapToMap(ed2.lastData, ed2.heatmap, elmId)
             }
         }, 0)
     }, [elmId, setSweepElField])
@@ -289,34 +289,34 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
     const handlePlayNormal = useCallback(() => {
         setSweepField('sweepPlaySpeed', SPEED_NORMAL)
-        ShadeTool.updateSweepSpeed(SPEED_NORMAL)
-        if (!useShadeStore.getState().sweepPlaying) ShadeTool.sweepPlay()
+        SightlineTool.updateSweepSpeed(SPEED_NORMAL)
+        if (!useSightlineStore.getState().sweepPlaying) SightlineTool.sweepPlay()
     }, [setSweepField])
 
     const handlePlayFast = useCallback(() => {
         setSweepField('sweepPlaySpeed', SPEED_FAST)
-        ShadeTool.updateSweepSpeed(SPEED_FAST)
-        if (!useShadeStore.getState().sweepPlaying) ShadeTool.sweepPlay()
+        SightlineTool.updateSweepSpeed(SPEED_FAST)
+        if (!useSightlineStore.getState().sweepPlaying) SightlineTool.sweepPlay()
     }, [setSweepField])
 
     const handlePause = useCallback(() => {
-        if (useShadeStore.getState().sweepPlaying) ShadeTool.sweepPlay()
+        if (useSightlineStore.getState().sweepPlaying) SightlineTool.sweepPlay()
     }, [])
 
     const effectivePlayIndex = sweepPlayIndex
 
     const handleTimelineScrub = useCallback((v) => {
         setSweepField('sweepPlayIndex', v)
-        ShadeTool.sweepShowAllFrames()
+        SightlineTool.sweepShowAllFrames()
     }, [setSweepField])
 
     const handleExport = useCallback((id, format) => {
         try {
             switch (format) {
-                case 'png': ShadeTool.exportPNG(id); break
-                case 'csv': ShadeTool.exportCSV(id); break
-                case 'grid': ShadeTool.exportGrid(id); break
-                default: ShadeTool.exportPNG(id); break
+                case 'png': SightlineTool.exportPNG(id); break
+                case 'csv': SightlineTool.exportCSV(id); break
+                case 'grid': SightlineTool.exportGrid(id); break
+                default: SightlineTool.exportPNG(id); break
             }
         } catch (e) {
             console.error('Export failed:', e)
@@ -325,33 +325,33 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
 
     const handleDiscreteChange = useCallback((val) => {
         setSweepField('sweepDiscrete', val === 'discrete')
-        setTimeout(() => ShadeTool.refreshHeatmap(), 0)
+        setTimeout(() => SightlineTool.refreshHeatmap(), 0)
     }, [setSweepField])
 
     const handleFitModeChange = useCallback((val) => {
         setSweepField('sweepFitToData', val === 'fit')
-        setTimeout(() => ShadeTool.refreshHeatmap(), 0)
+        setTimeout(() => SightlineTool.refreshHeatmap(), 0)
     }, [setSweepField])
 
     const handleColorStopsChange = useCallback((newStops) => {
         setSweepElField(elmId, 'colorStops', newStops)
         setTimeout(() => {
-            const ed2 = useShadeStore.getState().sweepElData[elmId]
+            const ed2 = useSightlineStore.getState().sweepElData[elmId]
             if (ed2?.heatmap && ed2?.lastData) {
-                ShadeTool.renderHeatmapToMap(ed2.lastData, ed2.heatmap, elmId)
+                SightlineTool.renderHeatmapToMap(ed2.lastData, ed2.heatmap, elmId)
             }
         }, 0)
     }, [elmId, setSweepElField])
 
     const handleColorStopsReset = useCallback(() => {
-        const allRamps = ShadeTool.getSweepColorRamps(el?.color)
-        const rampDef = allRamps.find((r) => r.name === (ed?.colorRamp || 'shadow')) || allRamps[0]
+        const allRamps = SightlineTool.getSweepColorRamps(el?.color)
+        const rampDef = allRamps.find((r) => r.name === (ed?.colorRamp || 'sightline')) || allRamps[0]
         const bins = rampDef.bins || rampDef.colors.length
         setSweepElField(elmId, 'colorStops', getDefaultStops(bins))
         setTimeout(() => {
-            const ed2 = useShadeStore.getState().sweepElData[elmId]
+            const ed2 = useSightlineStore.getState().sweepElData[elmId]
             if (ed2?.heatmap && ed2?.lastData) {
-                ShadeTool.renderHeatmapToMap(ed2.lastData, ed2.heatmap, elmId)
+                SightlineTool.renderHeatmapToMap(ed2.lastData, ed2.heatmap, elmId)
             }
         }, 0)
     }, [elmId, setSweepElField, ed?.colorRamp])
@@ -363,37 +363,37 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
     }, [hoverFrac])
 
     const currentResult = useMemo(() => {
-        if (shadeMode !== 'playback' || !ed?.results || !ed?.atlas) return null
+        if (sightlineMode !== 'playback' || !ed?.results || !ed?.atlas) return null
         return ed.results[effectivePlayIndex] || null
-    }, [shadeMode, ed, effectivePlayIndex])
+    }, [sightlineMode, ed, effectivePlayIndex])
 
     // Draw mini az/el canvases when playback result changes
     const azCanvasId = `sweepMiniAz_${elmId}`
     const elCanvasId = `sweepMiniEl_${elmId}`
     useEffect(() => {
-        if (shadeMode !== 'playback' || !currentResult || !resultsOpen) return
-        ShadeTool.drawMiniRAEIndicators(azCanvasId, elCanvasId, currentResult)
-    }, [shadeMode, currentResult, azCanvasId, elCanvasId, resultsOpen])
+        if (sightlineMode !== 'playback' || !currentResult || !resultsOpen) return
+        SightlineTool.drawMiniRAEIndicators(azCanvasId, elCanvasId, currentResult)
+    }, [sightlineMode, currentResult, azCanvasId, elCanvasId, resultsOpen])
 
     // Draw sky dome polar plot
     const skyDomeId = `sweepSkyDome_${elmId}`
     useEffect(() => {
-        if (shadeMode !== 'playback' || !ed?.results || !ed?.atlas || ed.results.length === 0 || !resultsOpen) return
-        ShadeTool.drawSkyDome(skyDomeId, ed.results, effectivePlayIndex)
-    }, [shadeMode, ed?.results, ed?.atlas, effectivePlayIndex, skyDomeId, resultsOpen])
+        if (sightlineMode !== 'playback' || !ed?.results || !ed?.atlas || ed.results.length === 0 || !resultsOpen) return
+        SightlineTool.drawSkyDome(skyDomeId, ed.results, effectivePlayIndex)
+    }, [sightlineMode, ed?.results, ed?.atlas, effectivePlayIndex, skyDomeId, resultsOpen])
 
     // Auto-open Results when sweep completes for non-static modes.
-    // Deps intentionally exclude shadeMode so that merely switching modes
+    // Deps intentionally exclude sightlineMode so that merely switching modes
     // (which doesn't change data) won't re-open the section with stale data.
     // Composite sweeps store results in el.lastResultGrid (via updateElement),
     // while playback sweeps store in sweepElData (ed.results/grids/atlas).
     useEffect(() => {
         if (el?.regenerating || resultsOpen) return
-        if (shadeMode === 'playback') {
+        if (sightlineMode === 'playback') {
             if (ed?.results?.length > 0 && ed?.grids?.length > 0) {
                 setResultsOpen(true)
             }
-        } else if (shadeMode === 'composite') {
+        } else if (sightlineMode === 'composite') {
             if (el?.lastResultGrid) {
                 setResultsOpen(true)
             }
@@ -408,14 +408,14 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
         (sourcesList[el.sourceIndex].value === false ||
             sourcesList[el.sourceIndex].value === 'false')
 
-    const generateActive = shadeMode === 'static' ? el.changed : true
-    const generateLabel = shadeMode === 'static' ? 'Generate' : 'Sweep'
+    const generateActive = sightlineMode === 'static' ? el.changed : true
+    const generateLabel = sightlineMode === 'static' ? 'Generate' : 'Sweep'
 
     return (
         <div
             ref={cardRef}
-            className={`vstShadeItem${isDropTarget ? ' vstDropTarget' : ''}`}
-            data-shade-id={elmId}
+            className={`vstSightlineItem${isDropTarget ? ' vstDropTarget' : ''}`}
+            data-sightline-id={elmId}
             style={{ borderLeft: `3px solid ${rgbStr(el.color)}` }}
             draggable
             onDragStart={handleCardDragStart}
@@ -423,14 +423,14 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
             onDragOver={(e) => onDragOver && onDragOver(e, elmId)}
             onDrop={(e) => onDrop && onDrop(e, elmId)}
         >
-            <div className="vstShadeHeader">
-                <div className="vstShadeHeaderLeft">
+            <div className="vstSightlineHeader">
+                <div className="vstSightlineHeaderLeft">
                     <Checkbox
                         checked={el.on}
                         onCheckedChange={handleToggle}
                     />
                 </div>
-                <div className="vstShadeHeaderCenter">
+                <div className="vstSightlineHeaderCenter">
                     <div style={{ width: 145 }}>
                         <Select
                             value={String(el.sourceIndex)}
@@ -442,15 +442,15 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                         />
                     </div>
                 </div>
-                <div className="vstShadeHeaderRight">
+                <div className="vstSightlineHeaderRight">
                     <div
                         ref={handleRef}
-                        className="vstShadeDragHandle"
+                        className="vstSightlineDragHandle"
                         onMouseDown={handleHandleMouseDown}
                     >
                         <i className="mdi mdi-drag-vertical mdi-14px" />
                     </div>
-                    <Tooltip content="Remove shade map">
+                    <Tooltip content="Remove sightline map">
                         <IconButton
                             size="sm"
                             onClick={handleDelete}
@@ -461,7 +461,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                     </Tooltip>
                 </div>
             </div>
-            <div className="vstShadeBody">
+            <div className="vstSightlineBody">
                 {/* — Source — */}
                 <Collapsible open={sourceOpen} onOpenChange={setSourceOpen}>
                     <Collapsible.Trigger className="vstGroupHeader vstGroupToggle">
@@ -594,7 +594,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                 />
                             </div>
                             <div className="vstOptionRow">
-                                <div className="vstOptionLabel" title="Dataset to shade.">
+                                <div className="vstOptionLabel" title="Dataset to analyze.">
                                     DEM
                                 </div>
                                 <Select
@@ -683,7 +683,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                 {/* — Mode (always visible) — */}
                 <div className="vstModeRow">
                     <Tabs
-                        value={shadeMode}
+                        value={sightlineMode}
                         onValueChange={handleModeChange}
                         tabs={MODE_TABS}
                         size="xs"
@@ -691,7 +691,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                 </div>
 
                 {/* — Actions (always visible) — */}
-                <div className="vstShadeActions">
+                <div className="vstSightlineActions">
                     <ProgressButton
                         active={generateActive}
                         loading={el.regenerating}
@@ -705,11 +705,11 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                 {/* — Results (collapsible, controlled by Run header) — */}
                 {resultsOpen && !el.regenerating && (
                         <div className="vstGroupContent">
-                            {shadeMode === 'static' && (
-                                <ShadeResults elmId={elmId} />
+                            {sightlineMode === 'static' && (
+                                <SightlineResults elmId={elmId} />
                             )}
 
-                            {shadeMode === 'composite' && ed && (
+                            {sightlineMode === 'composite' && ed && (
                                 <div className="vstSweepCardBody">
                                     <div className="vstOptionRow vstSweepCardRow">
                                         <div className="vstOptionLabel">Mode</div>
@@ -737,7 +737,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                             <ColorRampPicker
                                                 value={sweepColorRamp}
                                                 onValueChange={handleColorRampChange}
-                                                ramps={ShadeTool.getSweepColorRamps(el?.color)}
+                                                ramps={SightlineTool.getSweepColorRamps(el?.color)}
                                             />
                                         </div>
                                     </div>
@@ -756,7 +756,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                 </div>
                             )}
 
-                            {shadeMode === 'playback' && ed && (
+                            {sightlineMode === 'playback' && ed && (
                                 <div className="vstSweepCardBody">
                                     {ed?.results && ed.results.length > 0 && (
                                         <div className="vstSweepCardSkyDome">
@@ -778,7 +778,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                     <div className="vstSweepControlsWrap vstSweepControlsInline">
                                         <div className="vstSweepPlaybarRow vstSweepPlaybarLeft">
                                             <div className="vstSweepPlaybar">
-                                                <IconButton size="md" title="Step back" onClick={() => ShadeTool.sweepStepBack()}>
+                                                <IconButton size="md" title="Step back" onClick={() => SightlineTool.sweepStepBack()}>
                                                     <i className="mdi mdi-skip-previous mdi-18px" />
                                                 </IconButton>
                                                 {sweepPlaying ? (
@@ -795,7 +795,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                                         </IconButton>
                                                     </>
                                                 )}
-                                                <IconButton size="md" title="Step forward" onClick={() => ShadeTool.sweepStepForward()}>
+                                                <IconButton size="md" title="Step forward" onClick={() => SightlineTool.sweepStepForward()}>
                                                     <i className="mdi mdi-skip-next mdi-18px" />
                                                 </IconButton>
                                             </div>
@@ -819,9 +819,9 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                                         <div className="vstGraphButtons">
                                             <IconTextButton
                                                 size="md"
-                                                active={ShadeTool_Graphs.isOpen() && ShadeTool_Graphs.getActiveElmId() === elmId}
+                                                active={SightlineTool_Graphs.isOpen() && SightlineTool_Graphs.getActiveElmId() === elmId}
                                                 title="Toggle Horizon + Visibility charts"
-                                                onClick={() => ShadeTool_Graphs.toggle(elmId)}
+                                                onClick={() => SightlineTool_Graphs.toggle(elmId)}
                                                 icon={<i className="mdi mdi-chart-areaspline" />}
                                                 style={{ width: '100%', justifyContent: 'center', color: 'var(--color-a7)' }}
                                             >
@@ -833,7 +833,7 @@ export default function ShadeElement({ elmId, onDragStart, onDragOver, onDragEnd
                             )}
 
 
-                            {((shadeMode === 'static' && el?.raeResults) || ((shadeMode === 'composite' || shadeMode === 'playback') && ed)) && (
+                            {((sightlineMode === 'static' && el?.raeResults) || ((sightlineMode === 'composite' || sightlineMode === 'playback') && ed)) && (
                                 <div className="vstResultsExport vstOptionRow">
                                     <div className="vstOptionLabel">Export</div>
                                     <div className="vstExportControls">

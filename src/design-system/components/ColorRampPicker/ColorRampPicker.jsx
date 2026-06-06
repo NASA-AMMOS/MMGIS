@@ -2,9 +2,9 @@ import React, { forwardRef, useMemo, useRef, useState, useEffect } from 'react'
 import styles from './ColorRampPicker.module.css'
 
 // Build a CSS linear-gradient string from a color ramp.
-// For the shadow ramp, alpha goes from 1 (left / 0% visible) to 0 (right / 100% visible)
-// to match the legend direction.
-function buildGradient(colors, isShadow, hasAlpha) {
+// For the sightline ramp, alpha goes from 0 (left / 0% visible) to 1 (right / 100% visible)
+// so prominent color denotes line-of-sight.
+function buildGradient(colors, isSightline, hasAlpha) {
     if (!colors || colors.length === 0) return 'transparent'
     const n = colors.length - 1
     const steps = 32
@@ -20,8 +20,8 @@ function buildGradient(colors, isShadow, hasAlpha) {
         const g = Math.round((colors[lo][1] + (colors[hi][1] - colors[lo][1]) * f) * 255)
         const b = Math.round((colors[lo][2] + (colors[hi][2] - colors[lo][2]) * f) * 255)
         let a = 1
-        if (isShadow) {
-            a = 1 - t
+        if (isSightline) {
+            a = t
         } else if (hasAlpha && colors[lo].length > 3) {
             const aLo = colors[lo][3] != null ? colors[lo][3] : 1
             const aHi = colors[hi][3] != null ? colors[hi][3] : 1
@@ -59,11 +59,11 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
     const rampEntries = useMemo(() => {
         if (!ramps) return []
         return ramps.map((r) => {
-            const isShadow = r.name === 'shadow'
-            const hasAlpha = !!r.hasAlpha || isShadow
+            const isSightline = r.name === 'sightline'
+            const hasAlpha = !!r.hasAlpha || isSightline
             return {
                 name: r.name,
-                gradient: buildGradient(r.colors, isShadow, hasAlpha),
+                gradient: buildGradient(r.colors, isSightline, hasAlpha),
                 hasAlpha,
             }
         })

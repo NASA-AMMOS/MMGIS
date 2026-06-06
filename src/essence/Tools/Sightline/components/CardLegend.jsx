@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react'
-import ShadeTool from '../ShadeTool'
+import SightlineTool from '../SightlineTool'
 
 function getDefaultStops(bins) {
     const stops = []
@@ -10,8 +10,8 @@ function getDefaultStops(bins) {
 }
 
 export default function CardLegend({ rampName, discrete, visiblePct, fitToData, minFrac, maxFrac, colorStops, onColorStopsChange, onColorStopsReset, elmColor }) {
-    const isShadowRamp = rampName === 'shadow'
-    const allRamps = ShadeTool.getSweepColorRamps(elmColor)
+    const isSightlineRamp = rampName === 'sightline'
+    const allRamps = SightlineTool.getSweepColorRamps(elmColor)
     const rampDef = allRamps.find((r) => r.name === rampName) || allRamps[0]
     const colors = rampDef.colors
     const bins = rampDef.bins || colors.length
@@ -38,11 +38,11 @@ export default function CardLegend({ rampName, discrete, visiblePct, fitToData, 
             const tEnd = i === bins - 1 ? 1 : stops[i]
             const binCenter = (tStart + tEnd) / 2
             const alphaFrac = bins > 1 ? i / (bins - 1) : 0
-            const cl = ShadeTool.evalColor(colors, binCenter, true, bins)
+            const cl = SightlineTool.evalColor(colors, binCenter, true, bins)
             const r = Math.round(cl[0] * 255)
             const g = Math.round(cl[1] * 255)
             const b = Math.round(cl[2] * 255)
-            const a = isShadowRamp ? (1 - alphaFrac) : cl.length > 3 ? cl[3] : 1
+            const a = isSightlineRamp ? alphaFrac : cl.length > 3 ? cl[3] : 1
             gradientStops.push(`rgba(${r},${g},${b},${a.toFixed(2)}) ${(tStart * 100).toFixed(1)}%`)
             gradientStops.push(`rgba(${r},${g},${b},${a.toFixed(2)}) ${(tEnd * 100).toFixed(1)}%`)
         }
@@ -50,12 +50,12 @@ export default function CardLegend({ rampName, discrete, visiblePct, fitToData, 
         const steps = 64
         for (let i = 0; i <= steps; i++) {
             const t = i / steps
-            const cl = ShadeTool.evalColor(colors, t, false, bins)
+            const cl = SightlineTool.evalColor(colors, t, false, bins)
             const r = Math.round(cl[0] * 255)
             const g = Math.round(cl[1] * 255)
             const b = Math.round(cl[2] * 255)
-            const a = isShadowRamp
-                ? (useFullAlpha ? (1 - t) : ((1 - t) * 200 + 55) / 255)
+            const a = isSightlineRamp
+                ? (useFullAlpha ? t : (t * 200 + 55) / 255)
                 : cl.length > 3 ? cl[3] : 1
             gradientStops.push(`rgba(${r},${g},${b},${a.toFixed(2)}) ${(t * 100).toFixed(1)}%`)
         }

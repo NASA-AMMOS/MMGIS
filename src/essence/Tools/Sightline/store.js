@@ -44,14 +44,14 @@ function makeDefaultElement(id, vars) {
         regenerating: false,
         changed: true,
         lastError: false,
-        shadeMode: 'static',
+        sightlineMode: 'static',
         sweepProgress: '',
         raeResults: null,
         allResults: null,
     }
 }
 
-const useShadeStore = create((set, get) => ({
+const useSightlineStore = create((set, get) => ({
     vars: null,
     activeElmId: 0,
     elements: {},
@@ -152,7 +152,7 @@ const useShadeStore = create((set, get) => ({
 
     setSweepField: (field, value) => set({ [field]: value }),
 
-    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: 1.0, colorRamp: 'shadow', discrete: false, atlas: null, lastData: null, lastOptions: null, minFrac: 0, maxFrac: 1, colorStops: null }),
+    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: 1.0, colorRamp: 'sightline', discrete: false, atlas: null, lastData: null, lastOptions: null, minFrac: 0, maxFrac: 1, colorStops: null }),
     getSweepElData: (elmId) => {
         return get().sweepElData[elmId] || null
     },
@@ -206,7 +206,7 @@ const useShadeStore = create((set, get) => ({
         ]
     },
 
-    getShadeOptions: (elmId) => {
+    getSightlineOptions: (elmId) => {
         const state = get()
         const el = state.elements[elmId]
         if (!el) return null
@@ -218,7 +218,7 @@ const useShadeStore = create((set, get) => ({
             color: { ...el.color },
             opacity: el.opacity,
             resolution: el.resolution,
-            invert: 1,
+            invert: 0,
             target: targets.length > 0 ? targets[0].value : 'false',
             targets,
             compositeMode: 'or',
@@ -230,4 +230,4 @@ const useShadeStore = create((set, get) => ({
     },
 }))
 
-export default useShadeStore
+export default useSightlineStore

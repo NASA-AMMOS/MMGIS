@@ -18,14 +18,14 @@ import {
     evaluate_cmap,
 } from '../../../external/js-colormaps/js-colormaps.js'
 
-import ShadeTool_Manager from './ShadeTool_Manager'
-import ShaderTool_Algorithm from './ShadeTool_Algorithm'
-import ShadeTool_Graphs from './ShadeTool_Graphs'
+import SightlineTool_Manager from './SightlineTool_Manager'
+import ShaderTool_Algorithm from './SightlineTool_Algorithm'
+import SightlineTool_Graphs from './SightlineTool_Graphs'
 
-import useShadeStore, { MULTI_SOURCE_COLORS } from './store'
-import ShadePanel from './components/ShadePanel'
+import useSightlineStore, { MULTI_SOURCE_COLORS } from './store'
+import SightlinePanel from './components/SightlinePanel'
 
-import './ShadeTool.css'
+import './SightlineTool.css'
 
 const sunColor = '#d2db58'
 const earthColor = '#58dbb8'
@@ -47,48 +47,48 @@ function _flushSweepProgress(elmId, pct, msg, force) {
     const lastFlush = _lastFlushTimes[elmId] || 0
     if (force || now - lastFlush >= 50) {
         _lastFlushTimes[elmId] = now
-        const s = useShadeStore.getState()
+        const s = useSightlineStore.getState()
         if (msg !== undefined && msg !== null) s.setSweepField('sweepProgress', msg)
         s.setSweepField('sweepProgressPct', pct)
         s.updateElement(elmId, { loadingProgress: pct })
     }
 }
 
-let ShadeTool = {
+let SightlineTool = {
     height: 0,
     width: 300,
     _root: null,
     _sweepPlayTimer: null,
 
     initialize: function () {
-        const vars = L_.getToolVars('shade')
-        useShadeStore.getState().setVars(vars)
+        const vars = L_.getToolVars('sightline')
+        useSightlineStore.getState().setVars(vars)
 
         if (vars && vars.__noVars !== true) {
             if (vars.data == null)
                 console.warn(
-                    'ShadeTool: variables object does not contain key "data"!'
+                    'SightlineTool: variables object does not contain key "data"!'
                 )
             else if (vars.data.length == null)
                 console.warn(
-                    'ShadeTool: variables object "data" is not an array!'
+                    'SightlineTool: variables object "data" is not an array!'
                 )
             else if (vars.data.length == 0)
-                console.warn('ShadeTool: variables object "data" is empty!')
+                console.warn('SightlineTool: variables object "data" is empty!')
         }
     },
 
     make: function () {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const vars = store.vars
 
-        const rawTime = ShadeTool.parseToUTCTime(TimeControl.getEndTime())
+        const rawTime = SightlineTool.parseToUTCTime(TimeControl.getEndTime())
         store.setSweepField('rawTime', rawTime)
         store.setSweepField(
             'utcTime',
-            ShadeTool.parseToUTCTime(TimeControl.getEndTime(), true)
+            SightlineTool.parseToUTCTime(TimeControl.getEndTime(), true)
         )
-        // sweepStart/sweepEnd initialization is handled by ShadePanel's useEffect on mount
+        // sweepStart/sweepEnd initialization is handled by SightlinePanel's useEffect on mount
 
         if (Object.keys(store.elements).length === 0) {
             store.addElement()
@@ -97,39 +97,39 @@ let ShadeTool = {
         const toolPanel = document.getElementById('toolPanel')
         if (toolPanel) toolPanel.innerHTML = ''
 
-        ShadeTool._root = createRoot(toolPanel)
-        ShadeTool._root.render(<ShadePanel />)
+        SightlineTool._root = createRoot(toolPanel)
+        SightlineTool._root.render(<SightlinePanel />)
 
         // Add center crosshair overlay
-        ShadeTool._addCenterCrosshair()
+        SightlineTool._addCenterCrosshair()
 
         // Register graph scrub callback for bidirectional sync
-        ShadeTool_Graphs.registerScrubCallback(() => {
-            ShadeTool.sweepShowAllFrames()
+        SightlineTool_Graphs.registerScrubCallback(() => {
+            SightlineTool.sweepShowAllFrames()
         })
 
-        Map_.map.on('click', ShadeTool._onMapClick)
-        Map_.map.on('moveend', ShadeTool._onPanEnd)
-        Map_.map.on('mousemove', ShadeTool._onCompositeHover)
-        Map_.map.on('mouseout', ShadeTool._onCompositeHoverEnd)
+        Map_.map.on('click', SightlineTool._onMapClick)
+        Map_.map.on('moveend', SightlineTool._onPanEnd)
+        Map_.map.on('mousemove', SightlineTool._onCompositeHover)
+        Map_.map.on('mouseout', SightlineTool._onCompositeHoverEnd)
 
-        TimeControl.subscribe('ShadeTool', (t) => {
-            const raw = ShadeTool.parseToUTCTime(t.currentTime)
-            const store = useShadeStore.getState()
+        TimeControl.subscribe('SightlineTool', (t) => {
+            const raw = SightlineTool.parseToUTCTime(t.currentTime)
+            const store = useSightlineStore.getState()
             store.setSweepField('rawTime', raw)
             store.setSweepField(
                 'utcTime',
-                ShadeTool.parseToUTCTime(t.currentTime, true)
+                SightlineTool.parseToUTCTime(t.currentTime, true)
             )
-            // sweepStart/sweepEnd sync is handled by ShadePanel's TimeControl subscription
-            ShadeTool._onTimeChange(raw)
+            // sweepStart/sweepEnd sync is handled by SightlinePanel's TimeControl subscription
+            SightlineTool._onTimeChange(raw)
         })
     },
 
     destroy: function () {
-        if (ShadeTool._sweepPlayTimer) {
-            clearInterval(ShadeTool._sweepPlayTimer)
-            ShadeTool._sweepPlayTimer = null
+        if (SightlineTool._sweepPlayTimer) {
+            clearInterval(SightlineTool._sweepPlayTimer)
+            SightlineTool._sweepPlayTimer = null
         }
         if (_compositeHoverRaf) {
             cancelAnimationFrame(_compositeHoverRaf)
@@ -139,32 +139,32 @@ let ShadeTool = {
             clearTimeout(_timeChangeDebounce)
             _timeChangeDebounce = null
         }
-        Map_.map.off('click', ShadeTool._onMapClick)
-        Map_.map.off('moveend', ShadeTool._onPanEnd)
-        Map_.map.off('mousemove', ShadeTool._onCompositeHover)
-        Map_.map.off('mouseout', ShadeTool._onCompositeHoverEnd)
+        Map_.map.off('click', SightlineTool._onMapClick)
+        Map_.map.off('moveend', SightlineTool._onPanEnd)
+        Map_.map.off('mousemove', SightlineTool._onCompositeHover)
+        Map_.map.off('mouseout', SightlineTool._onCompositeHoverEnd)
 
-        TimeControl.unsubscribe('ShadeTool')
+        TimeControl.unsubscribe('SightlineTool')
 
         // Remove center crosshair
-        ShadeTool._removeCenterCrosshair()
+        SightlineTool._removeCenterCrosshair()
 
         // Close bottom bar graphs
-        ShadeTool_Graphs.cleanup()
+        SightlineTool_Graphs.cleanup()
 
         // Remove TimeUI indicators
-        TimeUI.removeIndicator(null, 'shadetool')
+        TimeUI.removeIndicator(null, 'sightlinetool')
 
-        if (ShadeTool._root) {
-            ShadeTool._root.unmount()
-            ShadeTool._root = null
+        if (SightlineTool._root) {
+            SightlineTool._root.unmount()
+            SightlineTool._root = null
         }
 
         // Clean up map layers and caches
-        ShadeTool._cachedLayers = {}
-        const store = useShadeStore.getState()
+        SightlineTool._cachedLayers = {}
+        const store = useSightlineStore.getState()
         for (const id in store.elements) {
-            Map_.rmNotNull(L_.layers.layer['shade' + id])
+            Map_.rmNotNull(L_.layers.layer['sightline' + id])
             Map_.rmNotNull(store.shedMarkers[id])
         }
     },
@@ -172,29 +172,29 @@ let ShadeTool = {
     // === Center Crosshair ===
 
     _addCenterCrosshair() {
-        if (document.getElementById('shadeCenterCrosshair')) return
+        if (document.getElementById('sightlineCenterCrosshair')) return
         const mapEl = document.getElementById('map')
         if (!mapEl) return
         const ch = document.createElement('div')
-        ch.id = 'shadeCenterCrosshair'
-        ch.className = 'shadeCenterCrosshair'
-        ch.innerHTML = '<div class="shadeCrosshairH"></div><div class="shadeCrosshairV"></div>'
+        ch.id = 'sightlineCenterCrosshair'
+        ch.className = 'sightlineCenterCrosshair'
+        ch.innerHTML = '<div class="sightlineCrosshairH"></div><div class="sightlineCrosshairV"></div>'
         mapEl.appendChild(ch)
-        Map_.map.on('move', ShadeTool._updateCrosshairPosition)
+        Map_.map.on('move', SightlineTool._updateCrosshairPosition)
     },
 
     _removeCenterCrosshair() {
-        const ch = document.getElementById('shadeCenterCrosshair')
+        const ch = document.getElementById('sightlineCenterCrosshair')
         if (ch) ch.remove()
-        Map_.map.off('move', ShadeTool._updateCrosshairPosition)
-        ShadeTool_Graphs.removeAzimuthLine()
-        ShadeTool_Graphs._removeSourceAzimuthLines()
+        Map_.map.off('move', SightlineTool._updateCrosshairPosition)
+        SightlineTool_Graphs.removeAzimuthLine()
+        SightlineTool_Graphs._removeSourceAzimuthLines()
     },
 
     _updateCrosshairPosition() {
-        const ch = document.getElementById('shadeCenterCrosshair')
+        const ch = document.getElementById('sightlineCenterCrosshair')
         if (!ch) return
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         // Find sweep center from active element
         const activeId = store.activeElmId
         const ed = activeId != null ? store.sweepElData[activeId] : null
@@ -215,8 +215,8 @@ let ShadeTool = {
 
     _onMapClick: function (e) {
         if (e && e.latlng) {
-            const store = useShadeStore.getState()
-            ShadeTool.shade(
+            const store = useSightlineStore.getState()
+            SightlineTool.sightline(
                 { lng: e.latlng.lng, lat: e.latlng.lat },
                 store.activeElmId
             )
@@ -224,31 +224,31 @@ let ShadeTool = {
     },
 
     _onPanEnd: function () {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
 
         // Invalidate horizon profile cache on pan
-        ShadeTool_Graphs.invalidateHorizonCache()
+        SightlineTool_Graphs.invalidateHorizonCache()
 
         // Invalidate sweep results and layer cache when viewport changes
         if (store.hasSweepData() && !store.sweepStale) {
             store.setSweepField('sweepStale', true)
-            ShadeTool._cachedLayers = {}
+            SightlineTool._cachedLayers = {}
             for (const id in store.sweepElData) {
                 store.setSweepElField(parseInt(id), 'hoverFrac', null)
             }
             // Stop playback if running
-            if (ShadeTool._sweepPlayTimer) {
-                clearInterval(ShadeTool._sweepPlayTimer)
-                ShadeTool._sweepPlayTimer = null
+            if (SightlineTool._sweepPlayTimer) {
+                clearInterval(SightlineTool._sweepPlayTimer)
+                SightlineTool._sweepPlayTimer = null
                 store.setSweepField('sweepPlaying', false)
             }
             // Remove the heatmap/atlas layer from the map for static elements only;
             // composite/playback keep their (stale) layer visible until user re-sweeps
             for (const id in store.elements) {
                 const el = store.elements[id]
-                if (el && (el.shadeMode === 'composite' || el.shadeMode === 'playback')) continue
-                Map_.rmNotNull(L_.layers.layer['shade' + id])
-                L_.layers.layer['shade' + id] = null
+                if (el && (el.sightlineMode === 'composite' || el.sightlineMode === 'playback')) continue
+                Map_.rmNotNull(L_.layers.layer['sightline' + id])
+                L_.layers.layer['sightline' + id] = null
             }
         }
 
@@ -256,9 +256,9 @@ let ShadeTool = {
             const el = store.elements[id]
             if (!el) continue
             // Composite/playback: don't auto-regenerate — just re-enable sweep button
-            if (el.shadeMode === 'composite' || el.shadeMode === 'playback') continue
+            if (el.sightlineMode === 'composite' || el.sightlineMode === 'playback') continue
             if (el.resolution <= (store.vars?.dynamicUpdateResCutoff ?? 1)) {
-                ShadeTool.shade(null, parseInt(id))
+                SightlineTool.sightline(null, parseInt(id))
             } else {
                 store.updateElement(parseInt(id), { changed: true, lastError: false })
             }
@@ -271,12 +271,12 @@ let ShadeTool = {
         const lng = e.latlng.lng
         _compositeHoverRaf = requestAnimationFrame(() => {
             _compositeHoverRaf = null
-            const store = useShadeStore.getState()
+            const store = useSightlineStore.getState()
 
             for (const id in store.sweepElData) {
                 const ed = store.sweepElData[id]
                 const el = store.elements[id]
-                if (!ed?.heatmap || !ed?.lastData || el?.shadeMode !== 'composite') continue
+                if (!ed?.heatmap || !ed?.lastData || el?.sightlineMode !== 'composite') continue
                 const data = ed.lastData
                 const heatmap = ed.heatmap
                 const tileRes = data.tileResolution
@@ -303,7 +303,7 @@ let ShadeTool = {
     },
 
     _onCompositeHoverEnd: function () {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         for (const id in store.sweepElData) {
             store.setSweepElField(parseInt(id), 'hoverFrac', null)
         }
@@ -312,14 +312,14 @@ let ShadeTool = {
     _onTimeChange: function (rawTime) {
         if (_timeChangeDebounce) clearTimeout(_timeChangeDebounce)
         _timeChangeDebounce = setTimeout(() => {
-            const store = useShadeStore.getState()
+            const store = useSightlineStore.getState()
             for (const id in store.elements) {
                 const el = store.elements[id]
                 if (!el) continue
-                // Don't regenerate static shade for composite/playback elements
-                if (el.shadeMode === 'composite' || el.shadeMode === 'playback') continue
+                // Don't regenerate static sightline for composite/playback elements
+                if (el.sightlineMode === 'composite' || el.sightlineMode === 'playback') continue
                 if (el.resolution <= 1) {
-                    ShadeTool.shade(null, parseInt(id))
+                    SightlineTool.sightline(null, parseInt(id))
                 } else {
                     store.updateElement(parseInt(id), { changed: true, lastError: false })
                 }
@@ -329,14 +329,14 @@ let ShadeTool = {
 
     // === Core Shade Computation ===
 
-    shade: function (source, activeElmId, ignoreMarker, initObj) {
+    sightline: function (source, activeElmId, ignoreMarker, initObj) {
         if (activeElmId == null) return
 
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const el = store.elements[activeElmId]
         if (!el) return
 
-        let options = initObj || store.getShadeOptions(activeElmId)
+        let options = initObj || store.getSightlineOptions(activeElmId)
         if (!options) return
 
         // Find center of map
@@ -388,7 +388,7 @@ let ShadeTool = {
         }
 
         const targetKeys = selectedTargets.map((t) => t.value).join('_')
-        const shadeTag =
+        const sightlineTag =
             activeElmId +
             'd' + dataLayer.name.replace(/ /g, '_') +
             'r' + options.resolution +
@@ -401,9 +401,9 @@ let ShadeTool = {
 
         if (hasCustom) {
             store.tags[activeElmId] =
-                shadeTag + `A${customAz}E${customEl}R${customRange}`
+                sightlineTag + `A${customAz}E${customEl}R${customRange}`
         } else {
-            store.tags[activeElmId] = shadeTag
+            store.tags[activeElmId] = sightlineTag
         }
 
         let obsRefFrame, obsBody
@@ -476,7 +476,7 @@ let ShadeTool = {
                     })
 
                     Promise.all(ll2aerllPromises).then((results) => {
-                        ShadeTool.updateRAEIndicators(
+                        SightlineTool.updateRAEIndicators(
                             results[0],
                             activeElmId,
                             results
@@ -489,7 +489,7 @@ let ShadeTool = {
                                     ? 'Insufficient SPICE kernels for this source entity and time period.'
                                     : 'LatLng to AzEl Error'
                             Toast.error(msg, 6000)
-                            useShadeStore
+                            useSightlineStore
                                 .getState()
                                 .updateElement(activeElmId, {
                                     regenerating: false,
@@ -500,7 +500,7 @@ let ShadeTool = {
                         }
 
                         const primary = validResults[0]
-                        useShadeStore
+                        useSightlineStore
                             .getState()
                             .updateElement(activeElmId, {
                                 raeResults: {
@@ -528,9 +528,9 @@ let ShadeTool = {
                     })
                 } else {
                     console.warn(
-                        'ShadeTool: getbands returned null elevation data.'
+                        'SightlineTool: getbands returned null elevation data.'
                     )
-                    useShadeStore.getState().updateElement(activeElmId, {
+                    useSightlineStore.getState().updateElement(activeElmId, {
                         regenerating: false,
                         loading: false,
                         lastError: true,
@@ -539,9 +539,9 @@ let ShadeTool = {
             },
             function () {
                 console.warn(
-                    'ShadeTool: Failed to query center elevation.'
+                    'SightlineTool: Failed to query center elevation.'
                 )
-                useShadeStore.getState().updateElement(activeElmId, {
+                useSightlineStore.getState().updateElement(activeElmId, {
                     regenerating: false,
                     loading: false,
                     lastError: true,
@@ -550,9 +550,9 @@ let ShadeTool = {
         )
 
         function keepGoing(targetSources) {
-            const currentTag = useShadeStore.getState().tags[activeElmId]
+            const currentTag = useSightlineStore.getState().tags[activeElmId]
 
-            ShadeTool_Manager.gatherTiles(
+            SightlineTool_Manager.gatherTiles(
                 currentTag,
                 dataLayer,
                 options.resolution,
@@ -560,14 +560,14 @@ let ShadeTool = {
                 options,
                 vars,
                 function (progress) {
-                    useShadeStore.getState().updateElement(activeElmId, {
+                    useSightlineStore.getState().updateElement(activeElmId, {
                         loadingProgress: progress,
                         loading: true,
                     })
                 },
                 function (data) {
                     const resultGrids = targetSources.map((ts) =>
-                        ShadeTool_Manager.computeShade(
+                        SightlineTool_Manager.computeShade(
                             currentTag,
                             ts,
                             options
@@ -584,14 +584,14 @@ let ShadeTool = {
 
                     data.result = compositedResult
 
-                    ShadeTool.renderResultToMap(
+                    SightlineTool.renderResultToMap(
                         data,
                         compositedResult,
                         options,
                         activeElmId
                     )
 
-                    const currentStore = useShadeStore.getState()
+                    const currentStore = useSightlineStore.getState()
                     currentStore.lastData = data
                     currentStore.lastResultGrid = compositedResult
                     currentStore.lastOptions = options
@@ -613,7 +613,7 @@ let ShadeTool = {
     },
 
     toggleElementVisibility: function (elmId, on) {
-        const layerName = 'shade' + elmId
+        const layerName = 'sightline' + elmId
         const layer = L_.layers.layer[layerName]
         if (!layer) return
         if (on) {
@@ -628,10 +628,10 @@ let ShadeTool = {
     _cachedLayers: {},
 
     switchElementMode: function (elmId, mode) {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const el = store.elements[elmId]
         if (!el) return
-        const layerName = 'shade' + elmId
+        const layerName = 'sightline' + elmId
 
         // Remove existing layer from the map (clear previous mode's render)
         if (L_.layers.layer[layerName]) {
@@ -642,69 +642,69 @@ let ShadeTool = {
         try { Globe_.litho.removeLayer(layerName) } catch (e) { /* ignore */ }
     },
 
-    // Show regular shade map layers, remove sweep layers from map
+    // Show regular sightline map layers, remove sweep layers from map
     showShademapLayers: function () {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         for (const id in store.elements) {
             const el = store.elements[id]
             if (el?.on && el?.lastData && el?.lastResultGrid) {
-                const options = store.getShadeOptions(parseInt(id))
+                const options = store.getSightlineOptions(parseInt(id))
                 options.color.a = 255
-                ShadeTool.renderResultToMap(el.lastData, el.lastResultGrid, options, parseInt(id))
+                SightlineTool.renderResultToMap(el.lastData, el.lastResultGrid, options, parseInt(id))
             }
         }
     },
 
-    // Show sweep layers (composite heatmaps), remove regular shade layers from map
+    // Show sweep layers (composite heatmaps), remove regular sightline layers from map
     showSweepLayers: function () {
-        const store = useShadeStore.getState()
-        // Remove all regular shade layers first
+        const store = useSightlineStore.getState()
+        // Remove all regular sightline layers first
         for (const id in store.elements) {
-            Map_.rmNotNull(L_.layers.layer['shade' + id])
-            L_.layers.layer['shade' + id] = null
+            Map_.rmNotNull(L_.layers.layer['sightline' + id])
+            L_.layers.layer['sightline' + id] = null
         }
         for (const id in store.sweepElData) {
             const ed = store.sweepElData[id]
             if (ed?.heatmap && ed?.lastData) {
-                ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
+                SightlineTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
             }
         }
         // Re-apply z-ordering so earlier elements stay on top
         const cardOrder = store.sweepCardOrder || []
         if (cardOrder.length > 0) {
-            ShadeTool.reorderSweepLayers(cardOrder)
+            SightlineTool.reorderSweepLayers(cardOrder)
         }
     },
 
     // Remove all shade/sweep layers from the map
     clearAllShadeLayers: function () {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         for (const id in store.elements) {
-            Map_.rmNotNull(L_.layers.layer['shade' + id])
-            L_.layers.layer['shade' + id] = null
-            delete ShadeTool._cachedLayers[id]
+            Map_.rmNotNull(L_.layers.layer['sightline' + id])
+            L_.layers.layer['sightline' + id] = null
+            delete SightlineTool._cachedLayers[id]
         }
     },
 
     deleteElement: function (elmId) {
-        const store = useShadeStore.getState()
-        Map_.rmNotNull(L_.layers.layer['shade' + elmId])
+        const store = useSightlineStore.getState()
+        Map_.rmNotNull(L_.layers.layer['sightline' + elmId])
         Map_.rmNotNull(store.shedMarkers[elmId])
         delete store.canvases[elmId]
         delete store.tags[elmId]
-        delete ShadeTool._cachedLayers[elmId]
+        delete SightlineTool._cachedLayers[elmId]
         store.removeElement(elmId)
     },
 
     // === Rendering ===
 
     makeDataLayer: function (layerUrl, activeElmId) {
-        const layerName = 'shade' + activeElmId
+        const layerName = 'sightline' + activeElmId
 
         // Invalidate cached layer for current mode since we're creating a new one
-        if (ShadeTool._cachedLayers[activeElmId]) {
-            const el = useShadeStore.getState().elements[activeElmId]
-            if (el) delete ShadeTool._cachedLayers[activeElmId][el.shadeMode]
+        if (SightlineTool._cachedLayers[activeElmId]) {
+            const el = useSightlineStore.getState().elements[activeElmId]
+            if (el) delete SightlineTool._cachedLayers[activeElmId][el.sightlineMode]
         }
 
         Map_.rmNotNull(L_.layers.layer[layerName])
@@ -724,7 +724,7 @@ let ShadeTool = {
         L_.layers.layer[layerName]._noFade = true
         L_.layers.layer[layerName].setZIndex(1000)
         Map_.map.addLayer(L_.layers.layer[layerName])
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         store.updateElement(activeElmId, { on: true })
         const el = store.elements[activeElmId]
         if (el && el.opacity != null) {
@@ -827,13 +827,13 @@ let ShadeTool = {
     },
 
     renderResultToMap: function (data, resultGrid, options, activeElmId) {
-        const { dl, dlc } = ShadeTool.renderResultToTileData(
+        const { dl, dlc } = SightlineTool.renderResultToTileData(
             data,
             resultGrid,
             options
         )
-        useShadeStore.getState().canvases[activeElmId] = dlc
-        ShadeTool.makeDataLayer(dl, activeElmId)
+        useSightlineStore.getState().canvases[activeElmId] = dlc
+        SightlineTool.makeDataLayer(dl, activeElmId)
     },
 
     // Lightweight version for atlas building — only returns canvas objects
@@ -930,7 +930,7 @@ let ShadeTool = {
     // config variable "sweepColorRamps" which references js-colormaps names.
     // Optional elmColor {r,g,b} adds element-color-based ramps.
     getSweepColorRamps: function (elmColor) {
-        const vars = useShadeStore.getState().vars || {}
+        const vars = useSightlineStore.getState().vars || {}
         const configured = vars.sweepColorRamps || [
             { name: 'viridis' },
             { name: 'plasma' },
@@ -939,8 +939,8 @@ let ShadeTool = {
         ]
 
         const ramps = [{
-            name: 'shadow',
-            label: 'Shadow',
+            name: 'sightline',
+            label: 'Sightline',
             colors: Array.from({ length: 64 }, () => [0.0, 0.0, 0.0]),
             reverse: false,
             bins: 2,
@@ -1025,7 +1025,7 @@ let ShadeTool = {
         if (!colors || colors.length === 0) return [0, 0, 0]
         const tc = Math.max(0, Math.min(1, t))
         const n = colors.length - 1
-        const binIdx = ShadeTool.getBinForValue(tc, stops, bins)
+        const binIdx = SightlineTool.getBinForValue(tc, stops, bins)
         const binCenter = (binIdx + 0.5) / bins
         const ci = Math.min(Math.floor(binCenter * n), n)
         return colors[ci]
@@ -1045,17 +1045,17 @@ let ShadeTool = {
     },
 
     renderHeatmapToMap: function (data, heatmap, activeElmId) {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const ed = store.sweepElData[activeElmId]
         const el = store.elements[activeElmId]
-        const rampName = ed?.colorRamp || 'shadow'
+        const rampName = ed?.colorRamp || 'sightline'
         const discrete = store.sweepDiscrete || false
         const fitToData = store.sweepFitToData !== false
-        const allRamps = ShadeTool.getSweepColorRamps(el?.color)
+        const allRamps = SightlineTool.getSweepColorRamps(el?.color)
         const rampDef = allRamps.find((r) => r.name === rampName) || allRamps[0]
         const colors = rampDef.colors
         const bins = rampDef.bins || colors.length
-        const isShadowRamp = rampName === 'shadow'
+        const isSightlineRamp = rampName === 'sightline'
         const colorStops = discrete ? (ed?.colorStops || null) : null
 
         const elMinFrac = ed?.minFrac != null ? ed.minFrac : 0
@@ -1113,19 +1113,19 @@ let ShadeTool = {
                             let alphaFrac = colorFrac
                             let binIdx = 0
                             if (discrete && bins > 0) {
-                                binIdx = ShadeTool.getBinForValue(colorFrac, colorStops, bins)
+                                binIdx = SightlineTool.getBinForValue(colorFrac, colorStops, bins)
                                 alphaFrac = bins > 1 ? binIdx / (bins - 1) : 0
                             }
                             const cl = discrete
-                                ? ShadeTool.evalColorWithStops(colors, colorFrac, bins, colorStops)
-                                : ShadeTool.evalColor(colors, colorFrac, false, bins)
+                                ? SightlineTool.evalColorWithStops(colors, colorFrac, bins, colorStops)
+                                : SightlineTool.evalColor(colors, colorFrac, false, bins)
                             cData[p] = Math.round(cl[0] * 255)
                             cData[p + 1] = Math.round(cl[1] * 255)
                             cData[p + 2] = Math.round(cl[2] * 255)
-                            if (isShadowRamp) {
+                            if (isSightlineRamp) {
                                 cData[p + 3] = (fitToData || discrete)
-                                    ? Math.round((1 - alphaFrac) * 255)
-                                    : Math.round((1 - alphaFrac) * 200 + 55)
+                                    ? Math.round(alphaFrac * 255)
+                                    : Math.round(alphaFrac * 200 + 55)
                             } else if (cl.length > 3) {
                                 cData[p + 3] = Math.round(cl[3] * 255)
                             } else {
@@ -1145,23 +1145,23 @@ let ShadeTool = {
                 dlc[z][Math.floor(x)][Math.floor(y)] = F_.cloneCanvas(c)
             }
         }
-        useShadeStore.getState().canvases[activeElmId] = dlc
-        ShadeTool.makeDataLayer(dl, activeElmId)
-        ShadeTool.applySweepOpacity(activeElmId)
+        useSightlineStore.getState().canvases[activeElmId] = dlc
+        SightlineTool.makeDataLayer(dl, activeElmId)
+        SightlineTool.applySweepOpacity(activeElmId)
     },
 
     refreshHeatmap: function (activeElmId) {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         if (activeElmId != null) {
             const ed = store.sweepElData[activeElmId]
             if (ed?.heatmap && ed?.lastData) {
-                ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, activeElmId)
+                SightlineTool.renderHeatmapToMap(ed.lastData, ed.heatmap, activeElmId)
             }
         } else {
             for (const id in store.sweepElData) {
                 const ed = store.sweepElData[id]
                 if (ed?.heatmap && ed?.lastData) {
-                    ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
+                    SightlineTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
                 }
             }
         }
@@ -1170,7 +1170,7 @@ let ShadeTool = {
     reorderSweepLayers: function (orderedIds) {
         const len = orderedIds.length
         orderedIds.forEach((id, i) => {
-            const layerName = 'shade' + id
+            const layerName = 'sightline' + id
             const layer = L_.layers.layer[layerName]
             if (layer && typeof layer.setZIndex === 'function') {
                 layer.setZIndex(1000 + (len - 1 - i))
@@ -1181,7 +1181,7 @@ let ShadeTool = {
     reorderShadeLayers: function (orderedIds) {
         const len = orderedIds.length
         orderedIds.forEach((id, i) => {
-            const layerName = 'shade' + id
+            const layerName = 'sightline' + id
             const layer = L_.layers.layer[layerName]
             if (layer && typeof layer.setZIndex === 'function') {
                 layer.setZIndex(1000 + (len - 1 - i))
@@ -1190,20 +1190,20 @@ let ShadeTool = {
     },
 
     refreshAllHeatmaps: function () {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         for (const id in store.sweepElData) {
             const ed = store.sweepElData[id]
             if (ed?.heatmap && ed?.lastData) {
-                ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
+                SightlineTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
             }
         }
     },
 
     applySweepOpacity: function (activeElmId) {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const ed = store.sweepElData[activeElmId]
         const opacity = ed?.opacity != null ? ed.opacity : 1
-        const layerName = 'shade' + activeElmId
+        const layerName = 'sightline' + activeElmId
         const layer = L_.layers.layer[layerName]
         if (layer && typeof layer.setOpacity === 'function') {
             layer.setOpacity(opacity)
@@ -1240,10 +1240,10 @@ let ShadeTool = {
 
         const contentW = res * atlasCols
         const contentH = res * atlasRows
-        const atlasW = ShadeTool._nextPow2(contentW)
-        const atlasH = ShadeTool._nextPow2(contentH)
+        const atlasW = SightlineTool._nextPow2(contentW)
+        const atlasH = SightlineTool._nextPow2(contentH)
 
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         store.setSweepField('sweepProgress', 'Building atlas...')
         _flushSweepProgress(activeElmId, 55, undefined, true)
 
@@ -1374,14 +1374,14 @@ let ShadeTool = {
         }
 
         function finalizeAtlas() {
-            useShadeStore.getState().setSweepElField(activeElmId, 'atlas', {
+            useSightlineStore.getState().setSweepElField(activeElmId, 'atlas', {
                 dl: atlasDl,
                 atlasCols: atlasCols,
                 atlasRows: atlasRows,
                 atlasScaleS: contentW / atlasW,
                 atlasScaleT: contentH / atlasH,
             })
-            useShadeStore.getState().setSweepField('sweepProgress', '')
+            useSightlineStore.getState().setSweepField('sweepProgress', '')
             _flushSweepProgress(activeElmId, 100, undefined, true)
             if (typeof onDone === 'function') onDone()
         }
@@ -1390,11 +1390,11 @@ let ShadeTool = {
     },
 
     makeSweepLayer: function (atlasDl, activeElmId, atlasCols, atlasRows, atlasScaleS, atlasScaleT) {
-        const layerName = 'shade' + activeElmId
+        const layerName = 'sightline' + activeElmId
 
         // Invalidate cached playback layer since we're creating a new one
-        if (ShadeTool._cachedLayers[activeElmId]) {
-            delete ShadeTool._cachedLayers[activeElmId]['playback']
+        if (SightlineTool._cachedLayers[activeElmId]) {
+            delete SightlineTool._cachedLayers[activeElmId]['playback']
         }
 
         Map_.rmNotNull(L_.layers.layer[layerName])
@@ -1406,7 +1406,7 @@ let ShadeTool = {
                 maxNativeZoom: Map_.map.getZoom(),
                 maxZoom: 30,
             },
-            fragmentShader: ShadeTool._sweepAtlasShader,
+            fragmentShader: SightlineTool._sweepAtlasShader,
             tileUrls: [atlasDl],
             uniforms: {
                 frameIndex: 0,
@@ -1420,7 +1420,7 @@ let ShadeTool = {
         L_.layers.layer[layerName]._noFade = true
         L_.layers.layer[layerName].setZIndex(1000)
         Map_.map.addLayer(L_.layers.layer[layerName])
-        useShadeStore.getState().updateElement(activeElmId, { on: true })
+        useSightlineStore.getState().updateElement(activeElmId, { on: true })
 
         Globe_.litho.removeLayer(layerName)
     },
@@ -1432,8 +1432,8 @@ let ShadeTool = {
         for (const id in _sweepRunIds) {
             _sweepRunIds[id] = (_sweepRunIds[id] || 0) + 1
         }
-        ShadeTool._sweepAllRunId = (ShadeTool._sweepAllRunId || 0) + 1
-        const store = useShadeStore.getState()
+        SightlineTool._sweepAllRunId = (SightlineTool._sweepAllRunId || 0) + 1
+        const store = useSightlineStore.getState()
         store.setSweepField('sweepProgress', '')
         // Reset all elements stuck in regenerating state
         for (const id in store.elements) {
@@ -1446,20 +1446,20 @@ let ShadeTool = {
         Toast.info('Sweep cancelled.', 3000)
     },
 
-    shadeSweep: function (startTime, endTime, stepMinutes, activeElmId, onComplete) {
+    sightlineSweep: function (startTime, endTime, stepMinutes, activeElmId, onComplete) {
         _highWaterPcts[activeElmId] = 0
         _sweepRunIds[activeElmId] = (_sweepRunIds[activeElmId] || 0) + 1
         const sweepRunId = _sweepRunIds[activeElmId]
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         if (activeElmId == null) { if (onComplete) onComplete(); return }
 
-        if (ShadeTool._sweepPlayTimer) {
-            clearInterval(ShadeTool._sweepPlayTimer)
-            ShadeTool._sweepPlayTimer = null
+        if (SightlineTool._sweepPlayTimer) {
+            clearInterval(SightlineTool._sweepPlayTimer)
+            SightlineTool._sweepPlayTimer = null
             store.setSweepField('sweepPlaying', false)
         }
 
-        const options = store.getShadeOptions(activeElmId)
+        const options = store.getSightlineOptions(activeElmId)
         const selectedTargets = options.targets || []
         if (selectedTargets.length === 0) {
             Toast.warning('Select at least one source entity for sweep.', 6000)
@@ -1519,7 +1519,7 @@ let ShadeTool = {
         const vars = store.vars
         const dataLayer = vars.data[options.dataIndex]
 
-        const shadeTag =
+        const sightlineTag =
             activeElmId +
             'd' + dataLayer.name.replace(/ /g, '_') +
             'r' + options.resolution +
@@ -1529,7 +1529,7 @@ let ShadeTool = {
             'w' + b._southWest.lng +
             'sweep_' + startMs + '_' + endMs
 
-        ShadeTool_Manager.data[shadeTag] = null
+        SightlineTool_Manager.data[sightlineTag] = null
 
         let obsRefFrame, obsBody
         if (vars?.observers) {
@@ -1571,15 +1571,15 @@ let ShadeTool = {
                         ? bandData[0][1]
                         : source.height
 
-                ShadeTool_Manager.gatherTiles(
-                    shadeTag,
+                SightlineTool_Manager.gatherTiles(
+                    sightlineTag,
                     dataLayer,
                     options.resolution,
                     source,
                     options,
                     vars,
                     function (progress) {
-                        const s = useShadeStore.getState()
+                        const s = useSightlineStore.getState()
                         const ce = s.sweepCurrentElm || 1
                         const te = s.sweepTotalElms || 1
                         const p = te > 1 ? ('Shade ' + ce + ' of ' + te + ': ') : ''
@@ -1594,11 +1594,11 @@ let ShadeTool = {
 
                         // Build UTC time strings for all timestamps
                         const timeStrs = timestamps.map((ts) =>
-                            ShadeTool.parseToUTCTime(ts) + ' UTC'
+                            SightlineTool.parseToUTCTime(ts) + ' UTC'
                         )
 
                         // Fetch all target positions in bulk (one call per target, all times)
-                        const currentStore0 = useShadeStore.getState()
+                        const currentStore0 = useSightlineStore.getState()
                         const curElm0 = currentStore0.sweepCurrentElm || 1
                         const totElms0 = currentStore0.sweepTotalElms || 1
                         const prefix0 = totElms0 > 1 ? ('Shade ' + curElm0 + ' of ' + totElms0 + ': ') : ''
@@ -1619,7 +1619,7 @@ let ShadeTool = {
                                             times: timeStrs,
                                             obsRefFrame,
                                             obsBody,
-                                            includeSunEarth: store.elements[activeElmId]?.shadeMode === 'playback' ? 'true' : 'false',
+                                            includeSunEarth: store.elements[activeElmId]?.sightlineMode === 'playback' ? 'true' : 'false',
                                             isCustom: 'false',
                                         },
                                         function (results) {
@@ -1654,8 +1654,8 @@ let ShadeTool = {
 
                                     if (validTargets.length > 0) {
                                         const grids = validTargets.map((s) =>
-                                            ShadeTool_Manager.computeShade(
-                                                shadeTag,
+                                            SightlineTool_Manager.computeShade(
+                                                sightlineTag,
                                                 {
                                                     lat: s.latitude,
                                                     lng: s.longitude,
@@ -1721,13 +1721,13 @@ let ShadeTool = {
                                 // Update progress after each chunk
                                 // processChunk is 15-50% of overall
                                 // (0-5% tiles, 5-15% positions API, 15-50% shade, 50-55% heatmap, 55-95% atlas)
-                                const currentStore = useShadeStore.getState()
+                                const currentStore = useSightlineStore.getState()
                                 const curElm = currentStore.sweepCurrentElm || 1
                                 const totElms = currentStore.sweepTotalElms || 1
                                 const elmFrac = ti / total
                                 const overallPct = ((curElm - 1) / totElms) * 100 + ((15 + elmFrac * 35) / totElms)
                                 const prefix = totElms > 1 ? ('Shade ' + curElm + ' of ' + totElms + ': ') : ''
-                                _flushSweepProgress(activeElmId, overallPct, prefix + 'Computing shade ' + ti + '/' + total)
+                                _flushSweepProgress(activeElmId, overallPct, prefix + 'Computing sightline ' + ti + '/' + total)
                                 if (ti < total) {
                                     requestAnimationFrame(processChunk)
                                     return
@@ -1737,7 +1737,7 @@ let ShadeTool = {
                             }
 
                             function finalizeSweep() {
-                                const currentStoreF = useShadeStore.getState()
+                                const currentStoreF = useSightlineStore.getState()
                                 currentStoreF.setSweepElField(activeElmId, 'results', sweepResults)
                                 currentStoreF.setSweepElField(activeElmId, 'grids', sweepGrids)
                                 currentStoreF.setSweepField('sweepPlayIndex', 0)
@@ -1753,7 +1753,7 @@ let ShadeTool = {
 
                                 // Yield to let progress update paint, then compute heatmap
                                 setTimeout(function () {
-                                    const storeH = useShadeStore.getState()
+                                    const storeH = useSightlineStore.getState()
 
                                     // Compute heatmap (used by composite mode and as data for playback)
                                     if (sweepGrids.length > 0) {
@@ -1777,9 +1777,9 @@ let ShadeTool = {
 
                                         // Only render composite heatmap layer if element is in composite mode
                                         const activeEl = storeH.elements[activeElmId]
-                                        if (activeEl?.shadeMode === 'composite') {
+                                        if (activeEl?.sightlineMode === 'composite') {
                                             storeH.setSweepField('sweepViewMode', 'composite')
-                                            ShadeTool.renderHeatmapToMap(data, heatmap, activeElmId)
+                                            SightlineTool.renderHeatmapToMap(data, heatmap, activeElmId)
                                         }
                                     }
 
@@ -1793,9 +1793,9 @@ let ShadeTool = {
                                     // onComplete is deferred until atlas finishes so
                                     // the progress bar stays in loading state throughout
                                     const activeElAtlas = storeH.elements[activeElmId]
-                                    if (activeElAtlas?.shadeMode === 'playback') {
-                                        ShadeTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
-                                            ShadeTool.sweepShowAllFrames()
+                                    if (activeElAtlas?.sightlineMode === 'playback') {
+                                        SightlineTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
+                                            SightlineTool.sweepShowAllFrames()
                                             if (typeof onComplete === 'function') onComplete()
                                             if (totElmsF > 1) {
                                                 Toast.success('Shade ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
@@ -1826,7 +1826,7 @@ let ShadeTool = {
                     'Failed to query terrain elevation for sweep.',
                     6000
                 )
-                useShadeStore
+                useSightlineStore
                     .getState()
                     .setSweepField('sweepProgress', '')
                 _flushSweepProgress(activeElmId, 0, undefined, true)
@@ -1836,8 +1836,8 @@ let ShadeTool = {
     },
 
     // Single-element sweep triggered from an element's Generate button
-    shadeSweepElement: function (elmId) {
-        const store = useShadeStore.getState()
+    sightlineSweepElement: function (elmId) {
+        const store = useSightlineStore.getState()
         const startTime = store.sweepStart
         const endTime = store.sweepEnd
         const stepMinutes = store.sweepStep
@@ -1855,20 +1855,20 @@ let ShadeTool = {
             store.setSweepCardOrder([...existingOrder, elmId])
         }
         // Remove existing shade layer and invalidate cached layers for this element
-        delete ShadeTool._cachedLayers[elmId]
-        Map_.rmNotNull(L_.layers.layer['shade' + elmId])
-        L_.layers.layer['shade' + elmId] = null
+        delete SightlineTool._cachedLayers[elmId]
+        Map_.rmNotNull(L_.layers.layer['sightline' + elmId])
+        L_.layers.layer['sightline' + elmId] = null
         store.updateElement(elmId, { regenerating: true, loadingProgress: 0, sweepProgress: 'Starting...' })
-        ShadeTool.shadeSweep(startTime, endTime, stepMinutes, elmId, function () {
-            const s = useShadeStore.getState()
+        SightlineTool.sightlineSweep(startTime, endTime, stepMinutes, elmId, function () {
+            const s = useSightlineStore.getState()
             s.updateElement(elmId, { regenerating: false, loadingProgress: 0, changed: false, sweepProgress: '' })
         })
     },
 
-    shadeSweepAll: function (startTime, endTime, stepMinutes) {
-        ShadeTool._sweepAllRunId = (ShadeTool._sweepAllRunId || 0) + 1
-        const runId = ShadeTool._sweepAllRunId
-        const store = useShadeStore.getState()
+    sightlineSweepAll: function (startTime, endTime, stepMinutes) {
+        SightlineTool._sweepAllRunId = (SightlineTool._sweepAllRunId || 0) + 1
+        const runId = SightlineTool._sweepAllRunId
+        const store = useSightlineStore.getState()
         store.setSweepField('sweepStale', false)
 
         // Cancel and reset all elements' loading state from any previous sweep
@@ -1878,14 +1878,14 @@ let ShadeTool = {
             store.updateElement(numId, { loading: false, regenerating: false, loadingProgress: 0 })
         }
 
-        // Clear existing shade map layers and old sweep layers from the map
-        ShadeTool.clearAllShadeLayers()
+        // Clear existing sightline map layers and old sweep layers from the map
+        SightlineTool.clearAllShadeLayers()
 
         const activeIds = Object.keys(store.elements).filter(
             (id) => store.elements[id].on
         )
         if (activeIds.length === 0) {
-            Toast.warning('Enable at least one shade map for sweep.', 6000)
+            Toast.warning('Enable at least one sightline map for sweep.', 6000)
             return
         }
         // Initialize card order — preserve existing order for known ids, append new ones
@@ -1902,20 +1902,20 @@ let ShadeTool = {
         // Serialize sweeps to avoid concurrent writes to shared sweep state
         let idx = 0
         function runNext() {
-            if (runId !== ShadeTool._sweepAllRunId) return
+            if (runId !== SightlineTool._sweepAllRunId) return
             if (idx >= activeIds.length) {
-                const s = useShadeStore.getState()
-                s.setSweepField('sweepProgress', 'Done (' + activeIds.length + ' shade maps)')
+                const s = useSightlineStore.getState()
+                s.setSweepField('sweepProgress', 'Done (' + activeIds.length + ' sightline maps)')
                 return
             }
             const id = parseInt(activeIds[idx])
             idx++
-            const s = useShadeStore.getState()
+            const s = useSightlineStore.getState()
             s.setSweepField('sweepCurrentElm', idx)
             s.setActiveElmId(id)
             s.updateElement(id, { regenerating: true, loadingProgress: 0 })
-            ShadeTool.shadeSweep(startTime, endTime, stepMinutes, id, function () {
-                const s2 = useShadeStore.getState()
+            SightlineTool.sightlineSweep(startTime, endTime, stepMinutes, id, function () {
+                const s2 = useSightlineStore.getState()
                 s2.updateElement(id, { regenerating: false, loadingProgress: 0 })
                 runNext()
             })
@@ -1926,59 +1926,59 @@ let ShadeTool = {
     // === Sweep Playback ===
 
     sweepPlay: function () {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const frameCount = store.getSweepFrameCount()
         if (frameCount === 0) return
 
         if (store.sweepPlaying) {
-            clearInterval(ShadeTool._sweepPlayTimer)
-            ShadeTool._sweepPlayTimer = null
+            clearInterval(SightlineTool._sweepPlayTimer)
+            SightlineTool._sweepPlayTimer = null
             store.setSweepField('sweepPlaying', false)
         } else {
             store.setSweepField('sweepPlaying', true)
-            ShadeTool._sweepPlayTimer = setInterval(function () {
-                const s = useShadeStore.getState()
+            SightlineTool._sweepPlayTimer = setInterval(function () {
+                const s = useSightlineStore.getState()
                 const fc = s.getSweepFrameCount()
                 if (fc === 0) return
                 const nextIdx = (s.sweepPlayIndex + 1) % fc
                 s.setSweepField('sweepPlayIndex', nextIdx)
-                ShadeTool.sweepShowAllFrames()
+                SightlineTool.sweepShowAllFrames()
             }, store.sweepPlaySpeed)
         }
     },
 
     sweepStepForward: function () {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const frameCount = store.getSweepFrameCount()
         if (frameCount === 0) return
         const nextIdx = (store.sweepPlayIndex + 1) % frameCount
         store.setSweepField('sweepPlayIndex', nextIdx)
-        ShadeTool.sweepShowAllFrames()
+        SightlineTool.sweepShowAllFrames()
     },
 
     sweepStepBack: function () {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const frameCount = store.getSweepFrameCount()
         if (frameCount === 0) return
         const nextIdx = (store.sweepPlayIndex - 1 + frameCount) % frameCount
         store.setSweepField('sweepPlayIndex', nextIdx)
-        ShadeTool.sweepShowAllFrames()
+        SightlineTool.sweepShowAllFrames()
     },
 
     sweepShowAllFrames: function () {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         store.setSweepField('sweepViewMode', 'playback')
         for (const id in store.sweepElData) {
             const ed = store.sweepElData[id]
             const el = store.elements[id]
-            if (ed?.grids?.length > 0 && el?.shadeMode === 'playback') {
-                ShadeTool.sweepShowFrame(parseInt(id))
+            if (ed?.grids?.length > 0 && el?.sightlineMode === 'playback') {
+                SightlineTool.sweepShowFrame(parseInt(id))
             }
         }
         // Re-apply z-ordering so earlier elements stay on top
         const cardOrder = store.sweepCardOrder || []
         if (cardOrder.length > 0) {
-            ShadeTool.reorderSweepLayers(cardOrder)
+            SightlineTool.reorderSweepLayers(cardOrder)
         }
 
         // Show time label per element
@@ -1992,17 +1992,17 @@ let ShadeTool = {
         }
 
         // Update bottom bar graphs
-        ShadeTool_Graphs.updatePlaybackFrame(ShadeTool_Graphs.getActiveElmId())
+        SightlineTool_Graphs.updatePlaybackFrame(SightlineTool_Graphs.getActiveElmId())
 
         // Update TimeUI indicator for the current playback time
-        ShadeTool._updateTimeUIIndicator()
+        SightlineTool._updateTimeUIIndicator()
     },
 
     sweepShowFrame: function (activeElmId) {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const ed = store.sweepElData[activeElmId]
         const idx = store.sweepPlayIndex
-        const layerName = 'shade' + activeElmId
+        const layerName = 'sightline' + activeElmId
         const layer = L_.layers.layer[layerName]
 
         if (!ed?.atlas) return
@@ -2010,7 +2010,7 @@ let ShadeTool = {
         // Lazy-create the atlas layer on first playback frame.
         if (!layer || !layer._uniformLocations || !layer._uniformLocations.frameIndex) {
             const atlas = ed.atlas
-            ShadeTool.makeSweepLayer(
+            SightlineTool.makeSweepLayer(
                 atlas.dl, activeElmId, atlas.atlasCols, atlas.atlasRows,
                 atlas.atlasScaleS, atlas.atlasScaleT
             )
@@ -2020,7 +2020,7 @@ let ShadeTool = {
                 newLayer.once('load', function () {
                     newLayer.reRender()
                 })
-                ShadeTool.applySweepOpacity(activeElmId)
+                SightlineTool.applySweepOpacity(activeElmId)
             }
         } else {
             layer.setUniform('frameIndex', idx)
@@ -2029,45 +2029,45 @@ let ShadeTool = {
     },
 
     sweepShowComposite: function (activeElmId) {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         store.setSweepField('sweepViewMode', 'composite')
         // Render composite heatmap for ALL elements with sweep data
         for (const id in store.sweepElData) {
             const ed = store.sweepElData[id]
             if (ed?.heatmap && ed?.lastData) {
-                ShadeTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
+                SightlineTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
             }
         }
         // Re-apply z-ordering so earlier elements stay on top
         const cardOrder = store.sweepCardOrder || []
         if (cardOrder.length > 0) {
-            ShadeTool.reorderSweepLayers(cardOrder)
+            SightlineTool.reorderSweepLayers(cardOrder)
         }
     },
 
     updateSweepSpeed: function (speed) {
-        const store = useShadeStore.getState()
-        if (store.sweepPlaying && ShadeTool._sweepPlayTimer) {
-            clearInterval(ShadeTool._sweepPlayTimer)
-            ShadeTool._sweepPlayTimer = setInterval(function () {
-                const s = useShadeStore.getState()
+        const store = useSightlineStore.getState()
+        if (store.sweepPlaying && SightlineTool._sweepPlayTimer) {
+            clearInterval(SightlineTool._sweepPlayTimer)
+            SightlineTool._sweepPlayTimer = setInterval(function () {
+                const s = useSightlineStore.getState()
                 const fc = s.getSweepFrameCount()
                 if (fc === 0) return
                 const nextIdx = (s.sweepPlayIndex + 1) % fc
                 s.setSweepField('sweepPlayIndex', nextIdx)
-                ShadeTool.sweepShowAllFrames()
+                SightlineTool.sweepShowAllFrames()
             }, speed)
         }
     },
 
     _updateTimeUIIndicator: function () {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const idx = store.sweepPlayIndex
         // Find the first element with sweep results to get the current time
         for (const id in store.sweepElData) {
             const ed = store.sweepElData[id]
             if (ed?.results?.[idx]?.time) {
-                TimeUI.addIndicator('shadetool-playback', 'shadetool', '#e53935', ed.results[idx].time)
+                TimeUI.addIndicator('sightlinetool-playback', 'sightlinetool', '#e53935', ed.results[idx].time)
                 return
             }
         }
@@ -2076,10 +2076,10 @@ let ShadeTool = {
     // === Export ===
 
     _buildExportName: function (elmId, suffix) {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const el = store.elements[elmId]
-        const options = store.getShadeOptions(elmId)
-        const parts = ['shade']
+        const options = store.getSightlineOptions(elmId)
+        const parts = ['sightline']
         if (options?.targets?.[0]?.name) parts.push(options.targets[0].name.replace(/\s+/g, '-'))
         if (el?.observer) parts.push(el.observer.replace(/\s+/g, '-'))
         if (store.rawTime) parts.push(store.rawTime.replace(/[:\s]/g, '').replace(/\.\d{3}Z$/, 'Z'))
@@ -2088,9 +2088,9 @@ let ShadeTool = {
     },
 
     exportPNG: function (elmId) {
-        const dlc = useShadeStore.getState().canvases[elmId]
+        const dlc = useSightlineStore.getState().canvases[elmId]
         if (!dlc) {
-            Toast.warning('No shade map to export. Generate first.', 6000)
+            Toast.warning('No sightline map to export. Generate first.', 6000)
             return
         }
         let allCanvases = []
@@ -2133,7 +2133,7 @@ let ShadeTool = {
             )
         })
 
-        const fileName = ShadeTool._buildExportName(elmId, 'map') + '.png'
+        const fileName = SightlineTool._buildExportName(elmId, 'map') + '.png'
         compositeCanvas.toBlob(function (blob) {
             const url = URL.createObjectURL(blob)
             const link = document.createElement('a')
@@ -2147,12 +2147,12 @@ let ShadeTool = {
     },
 
     exportCSV: function (elmId) {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const el = store.elements[elmId]
         const ed = store.sweepElData[elmId]
         const heatmap = ed?.heatmap
         const data = ed?.lastData || el?.lastData || store.lastData
-        const mode = el?.shadeMode
+        const mode = el?.sightlineMode
 
         if (!heatmap || !data?.bottomLeftLatLng || !data?.cellSize) {
             Toast.warning(
@@ -2162,7 +2162,7 @@ let ShadeTool = {
             return
         }
 
-        const entityName = store.getShadeOptions(elmId)?.targets?.[0]?.name || el?.name || 'shade'
+        const entityName = store.getSightlineOptions(elmId)?.targets?.[0]?.name || el?.name || 'sightline'
         const blLat = data.bottomLeftLatLng.lat
         const blLng = data.bottomLeftLatLng.lng
         const cellSize = data.cellSize
@@ -2192,12 +2192,12 @@ let ShadeTool = {
                     : [compositeEntityName, store.sweepStart || '', store.sweepEnd || '', pixelLat, pixelLng, pct])
             }
         }
-        const fileName = ShadeTool._buildExportName(elmId, 'sweep')
+        const fileName = SightlineTool._buildExportName(elmId, 'sweep')
         F_.downloadArrayAsCSV(headers, rows, fileName)
     },
 
     exportGrid: function (elmId) {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const el = store.elements[elmId]
 
         // Use heatmap grid if available (composite/playback), else static grid
@@ -2208,7 +2208,7 @@ let ShadeTool = {
             isHeatmap = false
         }
         if (!grid || grid.length === 0) {
-            Toast.warning('No shade grid to export. Generate first.', 6000)
+            Toast.warning('No sightline grid to export. Generate first.', 6000)
             return
         }
 
@@ -2224,7 +2224,7 @@ let ShadeTool = {
         } else {
             lines.push('# Values: 0=shadowed, 1=visible(sun), 2=visible(earth), 8=no-DEM, 9=out-of-bounds')
         }
-        const options = store.getShadeOptions(elmId)
+        const options = store.getSightlineOptions(elmId)
         if (options?.targets?.[0]?.name) lines.push('# Source: ' + options.targets[0].name)
         if (el?.observer) lines.push('# Observer: ' + el.observer)
         if (store.rawTime) lines.push('# Time: ' + store.rawTime)
@@ -2276,7 +2276,7 @@ let ShadeTool = {
         }
 
         const text = lines.join('\n')
-        const fileName = ShadeTool._buildExportName(elmId, 'grid') + '.txt'
+        const fileName = SightlineTool._buildExportName(elmId, 'grid') + '.txt'
         const blob = new Blob([text], { type: 'text/plain' })
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
@@ -2289,7 +2289,7 @@ let ShadeTool = {
     },
 
     convertUTCToObserver: function (utcTime, observerValue, callback) {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const observers = store.vars?.observers || []
         let body = null
         for (let i = 0; i < observers.length; i++) {
@@ -2317,7 +2317,7 @@ let ShadeTool = {
     },
 
     convertObserverToUTC: function (localTime, observerValue, callback) {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         const observers = store.vars?.observers || []
         let body = null
         for (let i = 0; i < observers.length; i++) {
@@ -2344,15 +2344,15 @@ let ShadeTool = {
         )
     },
 
-    // === RAE Indicators (preserved exactly from ShadeTool) ===
+    // === RAE Indicators (preserved exactly from SightlineTool) ===
 
-    updateRAEIndicators(rae, shadeId, allResults) {
+    updateRAEIndicators(rae, sightlineId, allResults) {
         const size = 160
         const sizeInner = 144
         const origin = { x: size / 2, y: size / 2 }
 
         const indicatorEl = document.getElementById(
-            `shadeTool_indicators_${shadeId}`
+            `sightlineTool_indicators_${sightlineId}`
         )
         if (indicatorEl) {
             indicatorEl.style.borderBottom = rae.error
@@ -2362,7 +2362,7 @@ let ShadeTool = {
 
         // Azimuth
         const azValueEl = document.getElementById(
-            `shadeTool_azValue_${shadeId}`
+            `sightlineTool_azValue_${sightlineId}`
         )
         if (azValueEl) {
             azValueEl.textContent = rae.error
@@ -2370,7 +2370,7 @@ let ShadeTool = {
                 : 'Az: ' + rae.azimuth.toFixed(2) + '\u00B0'
         }
         const cAz = document.getElementById(
-            `shadeTool_az_${shadeId}`
+            `sightlineTool_az_${sightlineId}`
         )
         if (!cAz) return
         cAz.width = size
@@ -2417,7 +2417,7 @@ let ShadeTool = {
                 if (azim < 0) azim += 360
                 sunAzGreaterThan180 = azim > 180
                 azim = azim * (Math.PI / 180)
-                ShadeTool.drawAzAngleGuideOnCanvas(
+                SightlineTool.drawAzAngleGuideOnCanvas(
                     ctxAz,
                     origin,
                     sizeInner,
@@ -2431,7 +2431,7 @@ let ShadeTool = {
                 if (azim < 0) azim += 360
                 earthAzGreaterThan180 = azim > 180
                 azim = azim * (Math.PI / 180)
-                ShadeTool.drawAzAngleGuideOnCanvas(
+                SightlineTool.drawAzAngleGuideOnCanvas(
                     ctxAz,
                     origin,
                     sizeInner,
@@ -2444,7 +2444,7 @@ let ShadeTool = {
             if (azim < 0) azim += 360
             azGreaterThan180 = azim > 180
             azim = azim * (Math.PI / 180)
-            ShadeTool.drawAzAngleGuideOnCanvas(
+            SightlineTool.drawAzAngleGuideOnCanvas(
                 ctxAz,
                 origin,
                 sizeInner,
@@ -2471,7 +2471,7 @@ let ShadeTool = {
                             (sr._sourceTarget?.index || si) %
                                 MULTI_SOURCE_COLORS.length
                         ]
-                    ShadeTool.drawAzAngleGuideOnCanvas(
+                    SightlineTool.drawAzAngleGuideOnCanvas(
                         ctxAz,
                         origin,
                         sizeInner,
@@ -2488,7 +2488,7 @@ let ShadeTool = {
 
         // Elevation
         const elValueEl = document.getElementById(
-            `shadeTool_elValue_${shadeId}`
+            `sightlineTool_elValue_${sightlineId}`
         )
         if (elValueEl) {
             elValueEl.textContent = rae.error
@@ -2496,7 +2496,7 @@ let ShadeTool = {
                 : 'El: ' + rae.elevation.toFixed(2) + '\u00B0'
         }
         const cEl = document.getElementById(
-            `shadeTool_el_${shadeId}`
+            `sightlineTool_el_${sightlineId}`
         )
         if (!cEl) return
         cEl.width = size
@@ -2542,7 +2542,7 @@ let ShadeTool = {
 
         if (rae.error != true) {
             if (rae.ancillary?.sun_el) {
-                ShadeTool.drawElAngleGuideOnCanvas(
+                SightlineTool.drawElAngleGuideOnCanvas(
                     ctxEl,
                     origin,
                     sizeInner,
@@ -2555,7 +2555,7 @@ let ShadeTool = {
                 )
             }
             if (rae.ancillary?.earth_el) {
-                ShadeTool.drawElAngleGuideOnCanvas(
+                SightlineTool.drawElAngleGuideOnCanvas(
                     ctxEl,
                     origin,
                     sizeInner,
@@ -2568,7 +2568,7 @@ let ShadeTool = {
                 )
             }
 
-            ShadeTool.drawElAngleGuideOnCanvas(
+            SightlineTool.drawElAngleGuideOnCanvas(
                 ctxEl,
                 origin,
                 sizeInner,
@@ -2763,7 +2763,7 @@ let ShadeTool = {
                 ctx.textAlign = 'center'
                 ctx.fillText('N', size / 2, (size - sizeInner) * 1.2 + 3)
 
-                ShadeTool.drawAzAngleGuideOnCanvas(
+                SightlineTool.drawAzAngleGuideOnCanvas(
                     ctx, origin, sizeInner,
                     rae.azimuth,
                     rae.azimuth * (Math.PI / 180),
@@ -2811,7 +2811,7 @@ let ShadeTool = {
                     if (az < 0) az += 360
                     azGreaterThan180 = az > 180
                 }
-                ShadeTool.drawElAngleGuideOnCanvas(
+                SightlineTool.drawElAngleGuideOnCanvas(
                     ctx, origin, sizeInner,
                     rae.elevation,
                     { azGreaterThan180, angleGuide: true, color: '#dbb658', lineWidth: 2, arrowSize: 2, guideLineWidth: 1, tipInset: 5, innerInset: 12 }
@@ -3056,7 +3056,7 @@ let ShadeTool = {
     // === Utility ===
 
     parseToUTCTime(time, formatted) {
-        const vars = useShadeStore.getState().vars
+        const vars = useSightlineStore.getState().vars
         if (formatted && vars?.utcTimeFormat) {
             const tF = utcFormat(vars.utcTimeFormat)
             return tF(Date.parse(time))
@@ -3075,9 +3075,9 @@ let ShadeTool = {
     },
 
     // Imperative getters for backward compatibility
-    getShadeOptions: (elmId) => useShadeStore.getState().getShadeOptions(elmId),
+    getSightlineOptions: (elmId) => useSightlineStore.getState().getSightlineOptions(elmId),
     getSelectedSources: (elmId) =>
-        useShadeStore.getState().getSelectedSources(elmId),
+        useSightlineStore.getState().getSelectedSources(elmId),
 }
 
-export default ShadeTool
+export default SightlineTool
