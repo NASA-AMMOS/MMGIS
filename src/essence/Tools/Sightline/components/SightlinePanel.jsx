@@ -165,17 +165,6 @@ export default function SightlinePanel() {
                     </div>
                 </div>
             </div>
-            <div className="vstBinaryLegend">
-                <div className="vstBinaryLegendItem">
-                    <div className="vstBinaryLegendSwatch vstBinaryLegendInShadow" />
-                    <span>In Shadow <span className="vstBinaryLegendMuted">Filled</span></span>
-                </div>
-                <div className="vstBinaryLegendItem">
-                    <div className="vstBinaryLegendSwatch vstBinaryLegendNotVisible" />
-                    <span>Source Visible <span className="vstBinaryLegendMuted">Empty</span></span>
-                </div>
-            </div>
-
             {/* Time section — single row: [start] [step|min] [end] */}
             <div className="vstTime">
                 <Tooltip content="Start Time" placement="top">

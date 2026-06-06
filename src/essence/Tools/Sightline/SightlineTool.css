@@ -64,49 +64,6 @@
     color: var(--color-a5);
 }
 
-/* ====== Binary Legend ====== */
-
-#sightlineTool .vstBinaryLegend {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    padding: 6px 10px;
-    background: var(--color-a-5);
-    border-bottom: 1px solid var(--color-e);
-    flex-shrink: 0;
-}
-
-#sightlineTool .vstBinaryLegendItem {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: var(--color-f);
-}
-
-#sightlineTool .vstBinaryLegendSwatch {
-    width: 14px;
-    height: 14px;
-    border: 1px solid var(--color-f);
-    border-radius: 2px;
-}
-
-#sightlineTool .vstBinaryLegendInShadow {
-    background: var(--color-f);
-}
-
-#sightlineTool .vstBinaryLegendNotVisible {
-    background: repeating-conic-gradient(
-        var(--color-f) 0% 25%,
-        transparent 0% 50%
-    ) 0 0 / 6px 6px;
-}
-
-#sightlineTool .vstBinaryLegendMuted {
-    opacity: 0.5;
-}
-
 #sightlineTool .vstNewBtnWrap {
     display: flex;
     justify-content: center;
