@@ -31,7 +31,7 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrag
     const sweepDiscrete = useSightlineStore((s) => s.sweepDiscrete)
     const sweepFitToData = useSightlineStore((s) => s.sweepFitToData)
     const opacity = ed?.opacity != null ? ed.opacity : 1
-    const colorRamp = ed?.colorRamp || 'shadow'
+    const colorRamp = ed?.colorRamp || 'sightline'
     const discrete = sweepDiscrete || false
 
     const currentResult = useMemo(() => {

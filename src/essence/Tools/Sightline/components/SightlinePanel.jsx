@@ -127,7 +127,7 @@ export default function SightlinePanel() {
         order.splice(fromIdx, 1)
         order.splice(toIdx, 0, draggedId)
         setElementOrder(order)
-        SightlineTool.reorderShadeLayers(order)
+        SightlineTool.reorderSightlineLayers(order)
         dragItemRef.current = null
     }, [elementIds, setElementOrder])
 
@@ -147,7 +147,7 @@ export default function SightlinePanel() {
             <div className="mmgisToolHeader">
                 <div>
                     <div>
-                        <div className="mmgisToolTitle">Shade</div>
+                        <div className="mmgisToolTitle">Sightline</div>
                         <span
                             dangerouslySetInnerHTML={{
                                 __html: Help.getComponent(helpKey),

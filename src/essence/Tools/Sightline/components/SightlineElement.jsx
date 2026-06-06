@@ -41,9 +41,9 @@ const FIT_MODE_OPTIONS = [
 ]
 
 const EXPORT_OPTIONS = [
-    { value: 'png', label: 'Shade Map (PNG)' },
+    { value: 'png', label: 'Sightline Map (PNG)' },
     { value: 'csv', label: 'Sweep Results (CSV)' },
-    { value: 'grid', label: 'Shade Grid (TXT)' },
+    { value: 'grid', label: 'Sightline Grid (TXT)' },
 ]
 
 export default function SightlineElement({ elmId, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget }) {

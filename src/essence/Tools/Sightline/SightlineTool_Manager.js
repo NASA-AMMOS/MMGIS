@@ -93,7 +93,7 @@ let SightlineTool_Manager = {
         return this.data[sightlineId]
     },
     // Fetches DEM tiles once and prepares data, without running the algorithm.
-    // Use computeShade() afterwards to run the algorithm with different targetSources.
+    // Use computeSightline() afterwards to run the algorithm with different targetSources.
     gatherTiles: function (
         sightlineId,
         dataLayer,
@@ -157,7 +157,7 @@ let SightlineTool_Manager = {
     },
     // Runs the sightline algorithm on already-gathered tile data with a given targetSource.
     // Returns the resultGrid. Does not mutate data[sightlineId].result.
-    computeShade: function (sightlineId, targetSource, options) {
+    computeSightline: function (sightlineId, targetSource, options) {
         const d = this.data[sightlineId]
         if (!d) return null
         if (!d.data || d.data.length === 0) return []

@@ -19,7 +19,7 @@ import {
 } from '../../../external/js-colormaps/js-colormaps.js'
 
 import SightlineTool_Manager from './SightlineTool_Manager'
-import ShaderTool_Algorithm from './SightlineTool_Algorithm'
+import SightlineTool_Algorithm from './SightlineTool_Algorithm'
 import SightlineTool_Graphs from './SightlineTool_Graphs'
 
 import useSightlineStore, { MULTI_SOURCE_COLORS } from './store'
@@ -327,7 +327,7 @@ let SightlineTool = {
         }, 300)
     },
 
-    // === Core Shade Computation ===
+    // === Core Sightline Computation ===
 
     sightline: function (source, activeElmId, ignoreMarker, initObj) {
         if (activeElmId == null) return
@@ -567,7 +567,7 @@ let SightlineTool = {
                 },
                 function (data) {
                     const resultGrids = targetSources.map((ts) =>
-                        SightlineTool_Manager.computeShade(
+                        SightlineTool_Manager.computeSightline(
                             currentTag,
                             ts,
                             options
@@ -577,7 +577,7 @@ let SightlineTool = {
                     const compositedResult =
                         resultGrids.length === 1
                             ? resultGrids[0]
-                            : ShaderTool_Algorithm.compositeResults(
+                            : SightlineTool_Algorithm.compositeResults(
                                   resultGrids,
                                   options.compositeMode || 'or'
                               )
@@ -643,7 +643,7 @@ let SightlineTool = {
     },
 
     // Show regular sightline map layers, remove sweep layers from map
-    showShademapLayers: function () {
+    showSightlinemapLayers: function () {
         const store = useSightlineStore.getState()
         for (const id in store.elements) {
             const el = store.elements[id]
@@ -676,8 +676,8 @@ let SightlineTool = {
         }
     },
 
-    // Remove all shade/sweep layers from the map
-    clearAllShadeLayers: function () {
+    // Remove all sightline/sweep layers from the map
+    clearAllSightlineLayers: function () {
         const store = useSightlineStore.getState()
         for (const id in store.elements) {
             Map_.rmNotNull(L_.layers.layer['sightline' + id])
@@ -1178,7 +1178,7 @@ let SightlineTool = {
         })
     },
 
-    reorderShadeLayers: function (orderedIds) {
+    reorderSightlineLayers: function (orderedIds) {
         const len = orderedIds.length
         orderedIds.forEach((id, i) => {
             const layerName = 'sightline' + id
@@ -1551,7 +1551,7 @@ let SightlineTool = {
 
         const curElm = store.sweepCurrentElm || 1
         const totElms = store.sweepTotalElms || 1
-        const pfx = totElms > 1 ? ('Shade ' + curElm + ' of ' + totElms + ': ') : ''
+        const pfx = totElms > 1 ? ('Sightline ' + curElm + ' of ' + totElms + ': ') : ''
         store.setSweepField('sweepProgress', pfx + 'Loading tiles...')
         _flushSweepProgress(activeElmId, ((curElm - 1) / totElms) * 100, undefined, true)
 
@@ -1582,7 +1582,7 @@ let SightlineTool = {
                         const s = useSightlineStore.getState()
                         const ce = s.sweepCurrentElm || 1
                         const te = s.sweepTotalElms || 1
-                        const p = te > 1 ? ('Shade ' + ce + ' of ' + te + ': ') : ''
+                        const p = te > 1 ? ('Sightline ' + ce + ' of ' + te + ': ') : ''
                         // Tile loading is 0-5% of overall progress
                         const tilePct = ((ce - 1) / te) * 100 + ((parseInt(progress) * 0.05) / te)
                         _flushSweepProgress(activeElmId, tilePct, p + 'Tiles: ' + parseInt(progress) + '%')
@@ -1601,7 +1601,7 @@ let SightlineTool = {
                         const currentStore0 = useSightlineStore.getState()
                         const curElm0 = currentStore0.sweepCurrentElm || 1
                         const totElms0 = currentStore0.sweepTotalElms || 1
-                        const prefix0 = totElms0 > 1 ? ('Shade ' + curElm0 + ' of ' + totElms0 + ': ') : ''
+                        const prefix0 = totElms0 > 1 ? ('Sightline ' + curElm0 + ' of ' + totElms0 + ': ') : ''
                         currentStore0.setSweepField('sweepProgress', prefix0 + 'Computing positions...')
                         // Positions API call is 5-15% of overall progress
                         _flushSweepProgress(activeElmId, ((curElm0 - 1) / totElms0) * 100 + (5 / totElms0), undefined, true)
@@ -1654,7 +1654,7 @@ let SightlineTool = {
 
                                     if (validTargets.length > 0) {
                                         const grids = validTargets.map((s) =>
-                                            SightlineTool_Manager.computeShade(
+                                            SightlineTool_Manager.computeSightline(
                                                 sightlineTag,
                                                 {
                                                     lat: s.latitude,
@@ -1670,7 +1670,7 @@ let SightlineTool = {
                                         const compositedGrid =
                                             grids.length === 1
                                                 ? grids[0]
-                                                : ShaderTool_Algorithm.compositeResults(
+                                                : SightlineTool_Algorithm.compositeResults(
                                                       grids,
                                                       options.compositeMode || 'or'
                                                   )
@@ -1720,13 +1720,13 @@ let SightlineTool = {
 
                                 // Update progress after each chunk
                                 // processChunk is 15-50% of overall
-                                // (0-5% tiles, 5-15% positions API, 15-50% shade, 50-55% heatmap, 55-95% atlas)
+                                // (0-5% tiles, 5-15% positions API, 15-50% sightline, 50-55% heatmap, 55-95% atlas)
                                 const currentStore = useSightlineStore.getState()
                                 const curElm = currentStore.sweepCurrentElm || 1
                                 const totElms = currentStore.sweepTotalElms || 1
                                 const elmFrac = ti / total
                                 const overallPct = ((curElm - 1) / totElms) * 100 + ((15 + elmFrac * 35) / totElms)
-                                const prefix = totElms > 1 ? ('Shade ' + curElm + ' of ' + totElms + ': ') : ''
+                                const prefix = totElms > 1 ? ('Sightline ' + curElm + ' of ' + totElms + ': ') : ''
                                 _flushSweepProgress(activeElmId, overallPct, prefix + 'Computing sightline ' + ti + '/' + total)
                                 if (ti < total) {
                                     requestAnimationFrame(processChunk)
@@ -1757,7 +1757,7 @@ let SightlineTool = {
 
                                     // Compute heatmap (used by composite mode and as data for playback)
                                     if (sweepGrids.length > 0) {
-                                        const heatmap = ShaderTool_Algorithm.cumulativeVisibility(sweepGrids)
+                                        const heatmap = SightlineTool_Algorithm.cumulativeVisibility(sweepGrids)
                                         const border = 2
                                         let minFrac = 1, maxFrac = 0
                                         for (let r = border; r < heatmap.length - border; r++) {
@@ -1798,7 +1798,7 @@ let SightlineTool = {
                                             SightlineTool.sweepShowAllFrames()
                                             if (typeof onComplete === 'function') onComplete()
                                             if (totElmsF > 1) {
-                                                Toast.success('Shade ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
+                                                Toast.success('Sightline ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
                                             } else {
                                                 Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
                                             }
@@ -1808,7 +1808,7 @@ let SightlineTool = {
                                         storeH.setSweepField('sweepProgress', '')
                                         _flushSweepProgress(activeElmId, 100, undefined, true)
                                         if (totElmsF > 1) {
-                                            Toast.success('Shade ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
+                                            Toast.success('Sightline ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
                                         } else {
                                             Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
                                         }
@@ -1854,7 +1854,7 @@ let SightlineTool = {
         if (!existingOrder.includes(elmId)) {
             store.setSweepCardOrder([...existingOrder, elmId])
         }
-        // Remove existing shade layer and invalidate cached layers for this element
+        // Remove existing sightline layer and invalidate cached layers for this element
         delete SightlineTool._cachedLayers[elmId]
         Map_.rmNotNull(L_.layers.layer['sightline' + elmId])
         L_.layers.layer['sightline' + elmId] = null
@@ -1879,7 +1879,7 @@ let SightlineTool = {
         }
 
         // Clear existing sightline map layers and old sweep layers from the map
-        SightlineTool.clearAllShadeLayers()
+        SightlineTool.clearAllSightlineLayers()
 
         const activeIds = Object.keys(store.elements).filter(
             (id) => store.elements[id].on
@@ -2217,7 +2217,7 @@ let SightlineTool = {
 
         // Build header with grid dimensions and metadata
         const lines = []
-        lines.push('# Shade Grid Export')
+        lines.push('# Sightline Grid Export')
         lines.push('# Rows: ' + grid.length + ', Cols: ' + (grid[0]?.length || 0))
         if (isHeatmap) {
             lines.push('# Values: fractional visibility (0.0 = always shadowed, 1.0 = always visible)')
