@@ -938,19 +938,19 @@ let SightlineTool = {
             { name: 'RdYlGn_r' },
         ]
 
+        const cr = elmColor ? elmColor.r / 255 : 1.0
+        const cg = elmColor ? elmColor.g / 255 : 0.7
+        const cb = elmColor ? elmColor.b / 255 : 0.15
         const ramps = [{
             name: 'sightline',
             label: 'Sightline',
-            colors: Array.from({ length: 64 }, () => [0.0, 0.0, 0.0]),
+            colors: Array.from({ length: 64 }, () => [cr, cg, cb]),
             reverse: false,
             bins: 2,
         }]
 
         // Element-color-based ramps (RGBA — 4th component = alpha)
         if (elmColor) {
-            const cr = elmColor.r / 255
-            const cg = elmColor.g / 255
-            const cb = elmColor.b / 255
             // [transparent, color, transparent] — 3 stops
             ramps.push({
                 name: '_tct', label: '◇ Fade', hasAlpha: true,
