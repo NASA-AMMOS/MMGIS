@@ -66,6 +66,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     const setSweepField = useSightlineStore((s) => s.setSweepField)
     const sweepStart = useSightlineStore((s) => s.sweepStart)
     const sweepEnd = useSightlineStore((s) => s.sweepEnd)
+    const exportProgress = useSightlineStore((s) => s.exportProgress)
 
     const sourcesList = useMemo(() => buildSourcesList(vars), [vars])
 
@@ -849,9 +850,13 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                                 options={sightlineMode === 'playback' ? EXPORT_OPTIONS_PLAYBACK : EXPORT_OPTIONS_STATIC}
                                             />
                                         </div>
-                                        <IconButton size="sm" title="Download" onClick={() => handleExport(elmId, exportFormat)}>
-                                            <i className="mdi mdi-download mdi-18px" />
-                                        </IconButton>
+                                        {exportProgress != null ? (
+                                            <span style={{ fontSize: 11, color: '#4fc3f7', minWidth: 36, textAlign: 'center' }}>{exportProgress}%</span>
+                                        ) : (
+                                            <IconButton size="sm" title="Download" onClick={() => handleExport(elmId, exportFormat)}>
+                                                <i className="mdi mdi-download mdi-18px" />
+                                            </IconButton>
+                                        )}
                                     </div>
                                 </div>
                             )}

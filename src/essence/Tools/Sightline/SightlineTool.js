@@ -2223,7 +2223,7 @@ let SightlineTool = {
 
         // Determine output dimensions (scale down for smaller file size)
         const mapRect = mapEl.getBoundingClientRect()
-        const GIF_MAX_WIDTH = 480
+        const GIF_MAX_WIDTH = 720
         let fullW = (basemapCanvas && basemapCanvas.width > 0) ? basemapCanvas.width : Math.round(mapRect.width)
         let fullH = (basemapCanvas && basemapCanvas.height > 0) ? basemapCanvas.height : Math.round(mapRect.height)
         // Invalidate basemap if it came back empty
@@ -2260,6 +2260,7 @@ let SightlineTool = {
         const overlayH = (brPoint.y - tlPoint.y) * scaleFactor
 
         let processedCount = 0
+        useSightlineStore.getState().setSweepField('exportProgress', 0)
         for (let f = 0; f < ed.grids.length; f++) {
             const grid = ed.grids[f]
             if (!grid) continue
@@ -2317,16 +2318,15 @@ let SightlineTool = {
             outCtx.fillStyle = '#ffffff'
             outCtx.fillText(timeLabel, pad * 2, pad * 2)
 
-            // Draw progress bar at bottom
-            const barH = 3
-            const progress = (processedCount + 1) / totalFrames
-            outCtx.fillStyle = 'rgba(0,0,0,0.4)'
-            outCtx.fillRect(0, outH - barH, outW, barH)
-            outCtx.fillStyle = '#4fc3f7'
-            outCtx.fillRect(0, outH - barH, Math.round(outW * progress), barH)
-
             frameImages.push(outCanvas.toDataURL('image/png'))
             processedCount++
+
+            // Update UI progress and yield to event loop for re-render
+            const pct = Math.round((processedCount / totalFrames) * 100)
+            useSightlineStore.getState().setSweepField('exportProgress', pct)
+            if (processedCount % 3 === 0) {
+                await new Promise((r) => setTimeout(r, 0))
+            }
         }
 
         if (frameImages.length === 0) {
@@ -2368,9 +2368,11 @@ let SightlineTool = {
                     link.remove()
                     setTimeout(() => URL.revokeObjectURL(url), 10000)
                     Toast.success('GIF exported successfully!', 3000)
+                    useSightlineStore.getState().setSweepField('exportProgress', null)
                 } else {
                     console.error('GIF export failed:', obj.errorMsg)
                     Toast.error('GIF export failed. Try with fewer frames.', 6000)
+                    useSightlineStore.getState().setSweepField('exportProgress', null)
                 }
             }
         )
