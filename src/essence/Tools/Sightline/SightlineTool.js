@@ -2189,27 +2189,38 @@ let SightlineTool = {
 
         Toast.info('Generating GIF... this may take a moment.', 4000)
 
-        // 1. Capture basemap from tile pane
+        // 1. Capture basemap from the map container
         const mapEl = document.getElementById('map')
-        const tilePane = mapEl?.querySelector('.leaflet-tile-pane')
         let basemapCanvas = null
-        if (tilePane) {
+        if (mapEl) {
+            // Temporarily hide the sightline overlay layer so it's not in the basemap capture
+            const layerName = 'sightline' + elmId
+            const sightlineLayer = L_.layers.layer[layerName]
+            const container = sightlineLayer?._container || sightlineLayer?.getContainer?.()
+            if (container) container.style.display = 'none'
             try {
-                basemapCanvas = await HTML2Canvas(tilePane, {
+                basemapCanvas = await HTML2Canvas(mapEl, {
                     useCORS: true,
                     allowTaint: true,
-                    backgroundColor: null,
+                    backgroundColor: '#1a1a2e',
                     logging: false,
+                    width: mapEl.offsetWidth,
+                    height: mapEl.offsetHeight,
                 })
             } catch (e) {
                 console.warn('Could not capture basemap for GIF:', e)
             }
+            if (container) container.style.display = ''
         }
 
-        // Determine output dimensions from basemap or map container
+        // Determine output dimensions
         const mapRect = mapEl.getBoundingClientRect()
-        const outW = basemapCanvas ? basemapCanvas.width : Math.round(mapRect.width)
-        const outH = basemapCanvas ? basemapCanvas.height : Math.round(mapRect.height)
+        const outW = (basemapCanvas && basemapCanvas.width > 0) ? basemapCanvas.width : Math.round(mapRect.width)
+        const outH = (basemapCanvas && basemapCanvas.height > 0) ? basemapCanvas.height : Math.round(mapRect.height)
+        // Invalidate basemap if it came back empty
+        if (basemapCanvas && (basemapCanvas.width === 0 || basemapCanvas.height === 0)) {
+            basemapCanvas = null
+        }
 
         // 2. For each frame, render sightline grid and composite over basemap
         const frameImages = []
