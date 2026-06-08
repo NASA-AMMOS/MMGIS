@@ -2321,8 +2321,8 @@ let SightlineTool = {
             frameImages.push(outCanvas.toDataURL('image/png'))
             processedCount++
 
-            // Update UI progress and yield to event loop for re-render
-            const pct = Math.round((processedCount / totalFrames) * 100)
+            // Update UI progress (cap at 90% — encoding takes the rest)
+            const pct = Math.round((processedCount / totalFrames) * 90)
             useSightlineStore.getState().setSweepField('exportProgress', pct)
             if (processedCount % 3 === 0) {
                 await new Promise((r) => setTimeout(r, 0))
@@ -2334,7 +2334,7 @@ let SightlineTool = {
             return
         }
 
-        Toast.info('Encoding GIF...', 4000)
+        useSightlineStore.getState().setSweepField('exportProgress', 90)
 
         // 3. Create animated GIF
         const interval = (store.sweepPlaySpeed || 300) / 1000
@@ -2368,7 +2368,8 @@ let SightlineTool = {
                     link.remove()
                     setTimeout(() => URL.revokeObjectURL(url), 10000)
                     Toast.success('GIF exported successfully!', 3000)
-                    useSightlineStore.getState().setSweepField('exportProgress', null)
+                    useSightlineStore.getState().setSweepField('exportProgress', 100)
+                    setTimeout(() => useSightlineStore.getState().setSweepField('exportProgress', null), 500)
                 } else {
                     console.error('GIF export failed:', obj.errorMsg)
                     Toast.error('GIF export failed. Try with fewer frames.', 6000)
