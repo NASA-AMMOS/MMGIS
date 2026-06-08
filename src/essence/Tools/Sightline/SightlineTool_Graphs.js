@@ -128,10 +128,13 @@ const SightlineTool_Graphs = {
         // Use sweep-time center if available
         const ed = _activeElmId != null ? store.sweepElData[_activeElmId] : null
         let centerPx
+        let centerLatLng = null
         if (ed?.sweepCenter) {
+            centerLatLng = ed.sweepCenter
             const pt = Map_.map.latLngToContainerPoint(ed.sweepCenter)
             centerPx = { x: pt.x, y: pt.y }
         } else if (store.indicatorLastDragPoint) {
+            centerLatLng = store.indicatorLastDragPoint
             const pt = Map_.map.latLngToContainerPoint(store.indicatorLastDragPoint)
             centerPx = { x: pt.x, y: pt.y }
         } else {
@@ -139,7 +142,10 @@ const SightlineTool_Graphs = {
         }
 
         const lineLen = Math.max(mapRect.width, mapRect.height)
-        const rad = azDeg * (Math.PI / 180)
+        // Rotate azimuth by the local north offset so the line points in
+        // the correct geographic direction in any map projection.
+        const northOffset = centerLatLng ? _localNorthAngle(centerLatLng) : 0
+        const rad = azDeg * (Math.PI / 180) + northOffset
         const ex = centerPx.x + Math.sin(rad) * lineLen
         const ey = centerPx.y - Math.cos(rad) * lineLen
 
@@ -179,7 +185,9 @@ const SightlineTool_Graphs = {
 
         const primaryEd = store.sweepElData[_activeElmId]
         let centerPx
+        let centerLatLng = null
         if (primaryEd?.sweepCenter) {
+            centerLatLng = primaryEd.sweepCenter
             const pt = Map_.map.latLngToContainerPoint(primaryEd.sweepCenter)
             centerPx = { x: pt.x, y: pt.y }
         } else {
@@ -187,6 +195,7 @@ const SightlineTool_Graphs = {
         }
 
         const lineLen = Math.max(mapRect.width, mapRect.height)
+        const northOffset = centerLatLng ? _localNorthAngle(centerLatLng) : 0
         const playIndex = store.sweepPlayIndex
 
         let lines = ''
@@ -200,7 +209,7 @@ const SightlineTool_Graphs = {
                 : el.color
             const colorStr = `rgb(${c.r},${c.g},${c.b})`
 
-            const rad = r.azimuth * (Math.PI / 180)
+            const rad = r.azimuth * (Math.PI / 180) + northOffset
             const ex = centerPx.x + Math.sin(rad) * lineLen
             const ey = centerPx.y - Math.cos(rad) * lineLen
 
@@ -1136,6 +1145,25 @@ function _azToDisplay(az) {
     let a = az
     if (a < 0) a += 360
     return a > 180 ? a - 360 : a
+}
+
+/**
+ * Compute the screen-space angle of geographic north at a given lat/lng.
+ * Returns radians clockwise from screen-up (+y). For equirectangular /
+ * Mercator this is 0; for polar stereographic it varies with longitude.
+ */
+function _localNorthAngle(latLng) {
+    const eps = 0.001 // small latitude offset in degrees
+    const lat = latLng.lat
+    const lng = latLng.lng
+    // Point slightly north of center (higher latitude)
+    const northLat = Math.min(lat + eps, 89.999)
+    const pCenter = Map_.map.latLngToContainerPoint([lat, lng])
+    const pNorth = Map_.map.latLngToContainerPoint([northLat, lng])
+    const dx = pNorth.x - pCenter.x
+    const dy = pNorth.y - pCenter.y
+    // atan2(dx, -dy) gives clockwise angle from screen-up
+    return Math.atan2(dx, -dy)
 }
 
 /** Convert true azimuth to plot x position (north-centered) */

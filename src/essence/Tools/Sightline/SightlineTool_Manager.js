@@ -399,11 +399,23 @@ let SightlineTool_Manager = {
             .multiplyBy(dv.tileResolution)
             .floor()
 
-        // Wrap to find nearest point
-        if (source.x < -tilePixelsAcross / 2) source.x += tilePixelsAcross
-        if (source.x > tilePixelsAcross / 2) source.x -= tilePixelsAcross
-        if (source.y < -tilePixelsAcross / 2) source.y += tilePixelsAcross
-        if (source.y > tilePixelsAcross / 2) source.y -= tilePixelsAcross
+        // Wrap to find nearest point — only for projections that actually
+        // wrap (default equirectangular / Mercator).  Non-wrapping
+        // projections (e.g. polar stereographic) must keep the unwrapped
+        // position so that distant sources produce nearly-parallel rays.
+        const isCustomCRS =
+            L_.configData.projection &&
+            L_.configData.projection.custom === true
+        if (!isCustomCRS) {
+            if (source.x < -tilePixelsAcross / 2)
+                source.x += tilePixelsAcross
+            if (source.x > tilePixelsAcross / 2)
+                source.x -= tilePixelsAcross
+            if (source.y < -tilePixelsAcross / 2)
+                source.y += tilePixelsAcross
+            if (source.y > tilePixelsAcross / 2)
+                source.y -= tilePixelsAcross
+        }
 
         this.data[sightlineId].dataSource = source
     },
