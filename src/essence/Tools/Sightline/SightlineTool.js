@@ -178,7 +178,7 @@ let SightlineTool = {
         const ch = document.createElement('div')
         ch.id = 'sightlineCenterCrosshair'
         ch.className = 'sightlineCenterCrosshair'
-        ch.innerHTML = '<div class="sightlineCrosshairH"></div><div class="sightlineCrosshairV"></div>'
+        ch.innerHTML = '<div class="sightlineCrosshairCircle"></div><div class="sightlineCrosshairN"></div><div class="sightlineCrosshairS"></div><div class="sightlineCrosshairE"></div><div class="sightlineCrosshairW"></div>'
         mapEl.appendChild(ch)
         Map_.map.on('move', SightlineTool._updateCrosshairPosition)
     },
