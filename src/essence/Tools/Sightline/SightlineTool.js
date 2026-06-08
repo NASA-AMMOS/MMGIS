@@ -2169,13 +2169,13 @@ let SightlineTool = {
                 Toast.warning('No results to export. Generate first.', 6000)
                 return
             }
-            const entityName = store.getSightlineOptions(elmId)?.targets?.[0]?.name || el?.name || 'sightline'
+            const entityName = (store.getSightlineOptions(elmId)?.targets?.[0]?.name || el?.name || 'sightline').toLowerCase()
             const blLat = data.bottomLeftLatLng.lat
             const blLng = data.bottomLeftLatLng.lng
             const cellSize = data.cellSize
             const totalRows = grid.length
             const headers = ['entity', 'time', 'lat', 'lng', 'visible']
-            const timeStr = store.rawTime || ''
+            const timeStr = store.sweepStart || ''
             const rows = []
             for (let r = 0; r < totalRows; r++) {
                 const row = grid[r]
@@ -2203,19 +2203,17 @@ let SightlineTool = {
             return
         }
 
-        const entityName = store.getSightlineOptions(elmId)?.targets?.[0]?.name || el?.name || 'sightline'
+        const entityName = (store.getSightlineOptions(elmId)?.targets?.[0]?.name || el?.name || 'sightline').toLowerCase()
         const blLat = data.bottomLeftLatLng.lat
         const blLng = data.bottomLeftLatLng.lng
         const cellSize = data.cellSize
         const totalRows = heatmap.length
         const isPlayback = mode === 'playback'
-        const compositeEntityName = String(entityName).toLowerCase()
-        const playbackTime = (store.sweepStart && store.sweepEnd)
-            ? store.sweepStart + ' to ' + store.sweepEnd
-            : ''
+        const startTime = store.sweepStart || ''
+        const endTime = store.sweepEnd || ''
 
         const headers = isPlayback
-            ? ['entity', 'time', 'lat', 'lng', 'percent_visible']
+            ? ['entity', 'start_time', 'end_time', 'lat', 'lng', 'percent_visible']
             : ['entity', 'start_time', 'end_time', 'lat', 'lng', 'percent_visible']
 
         const rows = []
@@ -2228,9 +2226,7 @@ let SightlineTool = {
                 if (frac == null || !Number.isFinite(frac)) continue
                 const pixelLng = (blLng + c * cellSize).toFixed(8)
                 const pct = (frac * 100).toFixed(2)
-                rows.push(isPlayback
-                    ? [entityName, playbackTime, pixelLat, pixelLng, pct]
-                    : [compositeEntityName, store.sweepStart || '', store.sweepEnd || '', pixelLat, pixelLng, pct])
+                rows.push([entityName, startTime, endTime, pixelLat, pixelLng, pct])
             }
         }
         const fileName = SightlineTool._buildExportName(elmId, 'results')
@@ -2274,9 +2270,12 @@ let SightlineTool = {
         const options = store.getSightlineOptions(elmId)
         if (options?.targets?.[0]?.name) lines.push('# Source: ' + options.targets[0].name)
         if (el?.observer) lines.push('# Observer: ' + el.observer)
-        if (store.rawTime) lines.push('# Time: ' + store.rawTime)
-        if (store.sweepStart && store.sweepEnd) {
-            lines.push('# Sweep: ' + store.sweepStart + ' to ' + store.sweepEnd)
+        if (mode === 'static') {
+            if (store.sweepStart) lines.push('# Time: ' + store.sweepStart)
+        } else {
+            if (store.sweepStart && store.sweepEnd) {
+                lines.push('# Sweep: ' + store.sweepStart + ' to ' + store.sweepEnd)
+            }
         }
 
         // Bounding box in projected meters via CRS project/unproject
