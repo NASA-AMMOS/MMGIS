@@ -22,7 +22,7 @@
 }
 
 #sightlineTool .mmgisToolHeader > div > div:last-child {
-    margin-right: -6px;
+    margin-right: 6px;
 }
 
 /* ====== Header — matches mmgisToolHeader (DrawTool style) ====== */
