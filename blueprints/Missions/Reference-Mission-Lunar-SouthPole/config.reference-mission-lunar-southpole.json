@@ -62,6 +62,19 @@
     "helpurl": "",
     "aboutModalContent": ""
   },
+  "time": {
+    "enabled": true,
+    "visible": true,
+    "initiallyOpen": true,
+    "startInPointMode": false,
+    "format": "%Y-%m-%dT%H:%M:%SZ",
+    "initialstart": "2027-01-01T00:00:00Z",
+    "initialend": "2027-01-15T00:00:00Z",
+    "loop": false,
+    "loopDelay": 0,
+    "step": 3600,
+    "relativeto": null
+  },
   "panels": {
     "viewer": true,
     "map": true,
@@ -192,6 +205,50 @@
       "variables": {
         "onlyShowDemIfLayerOn": false,
         "defaultMode": "segment"
+      }
+    },
+    {
+      "name": "Sightline",
+      "icon": "brightness-4",
+      "js": "SightlineTool",
+      "variables": {
+        "dem": "Layers/SPole_100m/lunar_southpole_dem.tif",
+        "data": [
+          {
+            "name": "Lunar South Pole 100m DEM",
+            "demtileurl": "Layers/SPole_100m/{z}/{x}/{y}.png",
+            "minZoom": 0,
+            "maxNativeZoom": 2,
+            "boundingBox": [-180, -90, 180, -60]
+          }
+        ],
+        "sources": [
+          {
+            "name": "Sun",
+            "value": "SUN"
+          },
+          {
+            "name": "Earth",
+            "value": "EARTH"
+          }
+        ],
+        "observers": [
+          {
+            "name": "Moon (UTC)",
+            "value": "MOON",
+            "frame": "IAU_MOON",
+            "body": "MOON"
+          }
+        ],
+        "defaultHeight": 0,
+        "observerTimePlaceholder": "YYYY-MM-DDTHH:MM:SSZ",
+        "utcTimeFormat": "%Y-%m-%dT%H:%M:%SZ",
+        "sweepColorRamps": [
+          { "name": "viridis", "label": "Viridis", "bins": 6 },
+          { "name": "plasma", "label": "Plasma", "bins": 6 },
+          { "name": "Greys", "label": "Greys", "bins": 5 },
+          { "name": "inferno", "label": "Inferno", "bins": 6 }
+        ]
       }
     }
   ]
