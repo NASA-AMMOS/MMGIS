@@ -48,7 +48,6 @@ const EXPORT_OPTIONS_STATIC = [
 const EXPORT_OPTIONS_PLAYBACK = [
     { value: 'png', label: 'Sightline Map (GIF)' },
     { value: 'csv', label: 'Results (CSV)' },
-    { value: 'grid', label: 'Sightline Grid (TXT)' },
 ]
 
 export default function SightlineElement({ elmId, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget }) {

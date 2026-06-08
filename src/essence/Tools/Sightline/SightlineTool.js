@@ -2384,8 +2384,9 @@ let SightlineTool = {
         const el = store.elements[elmId]
         const ed = store.sweepElData[elmId]
         const mode = el?.sightlineMode
+        const entityName = (store.getSightlineOptions(elmId)?.targets?.[0]?.name || el?.name || 'sightline').toLowerCase()
 
-        // Static mode: export binary grid as CSV
+        // === Static mode: one grid, one time, binary visibility ===
         if (mode === 'static') {
             const grid = el?.lastResultGrid
             const data = el?.lastData || store.lastData
@@ -2393,13 +2394,12 @@ let SightlineTool = {
                 Toast.warning('No results to export. Generate first.', 6000)
                 return
             }
-            const entityName = (store.getSightlineOptions(elmId)?.targets?.[0]?.name || el?.name || 'sightline').toLowerCase()
             const blLat = data.bottomLeftLatLng.lat
             const blLng = data.bottomLeftLatLng.lng
             const cellSize = data.cellSize
             const totalRows = grid.length
-            const headers = ['entity', 'time', 'lat', 'lng', 'visible']
             const timeStr = store.sweepStart || ''
+            const headers = ['entity', 'time', 'lat', 'lng', 'visible']
             const rows = []
             for (let r = 0; r < totalRows; r++) {
                 const row = grid[r]
@@ -2413,33 +2413,62 @@ let SightlineTool = {
                     rows.push([entityName, timeStr, pixelLat, pixelLng, visible])
                 }
             }
-            const fileName = SightlineTool._buildExportName(elmId, 'results')
-            F_.downloadArrayAsCSV(headers, rows, fileName)
+            F_.downloadArrayAsCSV(headers, rows, SightlineTool._buildExportName(elmId, 'results'))
             return
         }
 
-        // Composite/Playback mode: export heatmap as CSV
+        // === Playback mode: per-pixel per-frame with individual timestamps ===
+        if (mode === 'playback') {
+            const grids = ed?.grids
+            const results = ed?.results
+            const data = ed?.lastData || el?.lastData || store.lastData
+            if (!grids || grids.length === 0 || !data?.bottomLeftLatLng || !data?.cellSize) {
+                Toast.warning('No results to export. Run a sweep first.', 6000)
+                return
+            }
+            const blLat = data.bottomLeftLatLng.lat
+            const blLng = data.bottomLeftLatLng.lng
+            const cellSize = data.cellSize
+            const headers = ['entity', 'time', 'lat', 'lng', 'visible']
+            const rows = []
+            for (let f = 0; f < grids.length; f++) {
+                const grid = grids[f]
+                if (!grid) continue
+                const frameTime = results?.[f]?.time
+                    ? results[f].time.replace(/\.\d{3}Z$/, 'Z')
+                    : ''
+                const totalRows = grid.length
+                for (let r = 0; r < totalRows; r++) {
+                    const row = grid[r]
+                    if (!row) continue
+                    const pixelLat = (blLat + (totalRows - 1 - r) * cellSize).toFixed(8)
+                    for (let c = 0; c < row.length; c++) {
+                        const val = row[c]
+                        if (val == null) continue
+                        const pixelLng = (blLng + c * cellSize).toFixed(8)
+                        const visible = (val === 1 || val === 2) ? 1 : 0
+                        rows.push([entityName, frameTime, pixelLat, pixelLng, visible])
+                    }
+                }
+            }
+            F_.downloadArrayAsCSV(headers, rows, SightlineTool._buildExportName(elmId, 'results'))
+            return
+        }
+
+        // === Composite mode: heatmap with time range ===
         const heatmap = ed?.heatmap
         const data = ed?.lastData || el?.lastData || store.lastData
-
         if (!heatmap || !data?.bottomLeftLatLng || !data?.cellSize) {
             Toast.warning('No results to export. Run a sweep first.', 6000)
             return
         }
-
-        const entityName = (store.getSightlineOptions(elmId)?.targets?.[0]?.name || el?.name || 'sightline').toLowerCase()
         const blLat = data.bottomLeftLatLng.lat
         const blLng = data.bottomLeftLatLng.lng
         const cellSize = data.cellSize
         const totalRows = heatmap.length
-        const isPlayback = mode === 'playback'
         const startTime = store.sweepStart || ''
         const endTime = store.sweepEnd || ''
-
-        const headers = isPlayback
-            ? ['entity', 'start_time', 'end_time', 'lat', 'lng', 'percent_visible']
-            : ['entity', 'start_time', 'end_time', 'lat', 'lng', 'percent_visible']
-
+        const headers = ['entity', 'start_time', 'end_time', 'lat', 'lng', 'percent_visible']
         const rows = []
         for (let r = 0; r < totalRows; r++) {
             const row = heatmap[r]
@@ -2453,8 +2482,7 @@ let SightlineTool = {
                 rows.push([entityName, startTime, endTime, pixelLat, pixelLng, pct])
             }
         }
-        const fileName = SightlineTool._buildExportName(elmId, 'results')
-        F_.downloadArrayAsCSV(headers, rows, fileName)
+        F_.downloadArrayAsCSV(headers, rows, SightlineTool._buildExportName(elmId, 'results'))
     },
 
     exportGrid: function (elmId) {
