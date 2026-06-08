@@ -568,6 +568,24 @@ let SightlineTool_Algorithm = {
     curveData: function (d) {
         if (d.hasDataCurved) return
         d.hasDataCurved = true
+
+        // When the ray source is far outside the grid (e.g. Sun), observer-
+        // centric curvature creates a circular visibility artifact because the
+        // terrain bowl is centered on the observer, not aligned with the
+        // incoming ray direction.  Skip the correction for distant sources;
+        // the shadow-plane propagation already handles the parallel-ray
+        // geometry correctly on the flat grid.
+        const rows = d.data.length
+        const cols = d.data[0] ? d.data[0].length : 0
+        const src = d.dataSource
+        if (
+            src &&
+            (src.x < -cols || src.x >= 2 * cols ||
+             src.y < -rows || src.y >= 2 * rows)
+        ) {
+            return
+        }
+
         for (let j = 0; j < d.data.length; j++) {
             for (let i = 0; i < d.data[j].length; i++) {
                 d.data[j][i] = this.curve(i, j, d.data[j][i], d)
