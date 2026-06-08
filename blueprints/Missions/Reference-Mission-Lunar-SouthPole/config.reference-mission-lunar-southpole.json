@@ -124,6 +124,31 @@
       "uuid": "1d9926e5-2bac-4de8-996f-f70dfd39eb76",
       "sublayers": [
         {
+          "name": "Elevation - RGBA Tiles",
+          "uuid": "e3f7a2b1-6c4d-4e8f-a9b0-1d2c3e4f5a6b",
+          "type": "data",
+          "visibility": false,
+          "demSourceType": "url",
+          "demtileurl": "Layers/dem_rgba_tiles/{z}/{x}/{y}.png",
+          "demparser": "rgba",
+          "tileformat": "tms",
+          "minZoom": 0,
+          "maxNativeZoom": 6,
+          "maxZoom": 9,
+          "boundingBox": [
+            -180,
+            -90,
+            180,
+            -60
+          ],
+          "controlled": false,
+          "description": "Lunar south pole 100m DEM encoded as RGBA PNG tiles (100km x 100km centered on pole).",
+          "initialOpacity": 1,
+          "style": {
+            "className": "elevation-rgbatiles"
+          }
+        },
+        {
           "name": "South Pole 100m",
           "uuid": "a4c8e1f2-7b3d-4e5a-9f6c-2d1e0b8a7c3f",
           "type": "tile",
@@ -158,22 +183,6 @@
             "legendOrientation": "vertical"
           },
           "description": "Lunar south pole 100m/pixel basemap tiles."
-        },
-        {
-          "name": "Elevation - RGBA Tiles",
-          "uuid": "e3f7a2b1-6c4d-4e8f-a9b0-1d2c3e4f5a6b",
-          "type": "data",
-          "visibility": false,
-          "demSourceType": "url",
-          "demtileurl": "Layers/dem_rgba_tiles/{z}/{x}/{y}.png",
-          "demparser": "rgba",
-          "tileformat": "tms",
-          "minZoom": 0,
-          "maxNativeZoom": 6,
-          "maxZoom": 9,
-          "boundingBox": [-180, -90, 180, -60],
-          "controlled": false,
-          "description": "Lunar south pole 100m DEM encoded as RGBA PNG tiles (100km x 100km centered on pole)."
         }
       ],
       "expanded": true,
@@ -240,8 +249,13 @@
             "name": "Lunar South Pole 100m DEM",
             "demtileurl": "Layers/dem_rgba_tiles/{z}/{x}/{y}.png",
             "minZoom": 0,
-            "maxNativeZoom": 6,
-            "boundingBox": [-180, -90, 180, -60]
+            "maxNativeZoom": 5,
+            "boundingBox": [
+              -180,
+              -90,
+              180,
+              -60
+            ]
           }
         ],
         "sources": [
@@ -266,10 +280,26 @@
         "observerTimePlaceholder": "YYYY-MM-DDTHH:MM:SSZ",
         "utcTimeFormat": "%Y-%m-%dT%H:%M:%SZ",
         "sweepColorRamps": [
-          { "name": "viridis", "label": "Viridis", "bins": 6 },
-          { "name": "plasma", "label": "Plasma", "bins": 6 },
-          { "name": "Greys", "label": "Greys", "bins": 5 },
-          { "name": "inferno", "label": "Inferno", "bins": 6 }
+          {
+            "name": "viridis",
+            "label": "Viridis",
+            "bins": 6
+          },
+          {
+            "name": "plasma",
+            "label": "Plasma",
+            "bins": 6
+          },
+          {
+            "name": "Greys",
+            "label": "Greys",
+            "bins": 5
+          },
+          {
+            "name": "inferno",
+            "label": "Inferno",
+            "bins": 6
+          }
         ]
       }
     }
