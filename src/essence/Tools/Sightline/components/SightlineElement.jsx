@@ -176,6 +176,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
 
     const [colorPickerOpen, setColorPickerOpen] = useState(false)
     const [exportFormat, setExportFormat] = useState('png')
+    useEffect(() => { setExportFormat('png') }, [sightlineMode])
     const [obsStartTime, setObsStartTime] = useState('')
     const [obsEndTime, setObsEndTime] = useState('')
     const colorPickerRef = useRef(null)
