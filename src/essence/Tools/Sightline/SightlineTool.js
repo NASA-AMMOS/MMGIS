@@ -2187,17 +2187,22 @@ let SightlineTool = {
         }
         options.color.a = 255
 
-        Toast.info('Generating GIF... this may take a moment.', 4000)
+        const totalFrames = ed.grids.filter((g) => g != null).length
+        Toast.info('Generating GIF (' + totalFrames + ' frames)...', 6000)
 
-        // 1. Capture basemap from the map container
+        // 1. Capture basemap — hide UI controls and sightline overlay
         const mapEl = document.getElementById('map')
         let basemapCanvas = null
         if (mapEl) {
-            // Temporarily hide the sightline overlay layer so it's not in the basemap capture
             const layerName = 'sightline' + elmId
             const sightlineLayer = L_.layers.layer[layerName]
-            const container = sightlineLayer?._container || sightlineLayer?.getContainer?.()
-            if (container) container.style.display = 'none'
+            const slContainer = sightlineLayer?._container || sightlineLayer?.getContainer?.()
+            const controlContainer = mapEl.querySelector('.leaflet-control-container')
+
+            // Hide sightline overlay and all map UI controls
+            if (slContainer) slContainer.style.display = 'none'
+            if (controlContainer) controlContainer.style.display = 'none'
+
             try {
                 basemapCanvas = await HTML2Canvas(mapEl, {
                     useCORS: true,
@@ -2210,17 +2215,26 @@ let SightlineTool = {
             } catch (e) {
                 console.warn('Could not capture basemap for GIF:', e)
             }
-            if (container) container.style.display = ''
+
+            // Restore visibility
+            if (slContainer) slContainer.style.display = ''
+            if (controlContainer) controlContainer.style.display = ''
         }
 
-        // Determine output dimensions
+        // Determine output dimensions (scale down for smaller file size)
         const mapRect = mapEl.getBoundingClientRect()
-        const outW = (basemapCanvas && basemapCanvas.width > 0) ? basemapCanvas.width : Math.round(mapRect.width)
-        const outH = (basemapCanvas && basemapCanvas.height > 0) ? basemapCanvas.height : Math.round(mapRect.height)
+        const GIF_MAX_WIDTH = 480
+        let fullW = (basemapCanvas && basemapCanvas.width > 0) ? basemapCanvas.width : Math.round(mapRect.width)
+        let fullH = (basemapCanvas && basemapCanvas.height > 0) ? basemapCanvas.height : Math.round(mapRect.height)
         // Invalidate basemap if it came back empty
         if (basemapCanvas && (basemapCanvas.width === 0 || basemapCanvas.height === 0)) {
             basemapCanvas = null
+            fullW = Math.round(mapRect.width)
+            fullH = Math.round(mapRect.height)
         }
+        const scaleFactor = Math.min(1, GIF_MAX_WIDTH / fullW)
+        const outW = Math.round(fullW * scaleFactor)
+        const outH = Math.round(fullH * scaleFactor)
 
         // 2. For each frame, render sightline grid and composite over basemap
         const frameImages = []
@@ -2240,11 +2254,12 @@ let SightlineTool = {
         )
         const tlPoint = map.latLngToContainerPoint([topLeftTileLatLng.lat, topLeftTileLatLng.lng])
         const brPoint = map.latLngToContainerPoint([bottomRightTileLatLng.lat, bottomRightTileLatLng.lng])
-        const overlayX = tlPoint.x
-        const overlayY = tlPoint.y
-        const overlayW = brPoint.x - tlPoint.x
-        const overlayH = brPoint.y - tlPoint.y
+        const overlayX = tlPoint.x * scaleFactor
+        const overlayY = tlPoint.y * scaleFactor
+        const overlayW = (brPoint.x - tlPoint.x) * scaleFactor
+        const overlayH = (brPoint.y - tlPoint.y) * scaleFactor
 
+        let processedCount = 0
         for (let f = 0; f < ed.grids.length; f++) {
             const grid = ed.grids[f]
             if (!grid) continue
@@ -2267,15 +2282,15 @@ let SightlineTool = {
                 }
             }
 
-            // Composite: basemap + sightline overlay
+            // Composite: basemap + sightline overlay at reduced resolution
             const outCanvas = document.createElement('canvas')
             outCanvas.width = outW
             outCanvas.height = outH
             const outCtx = outCanvas.getContext('2d')
 
-            // Draw basemap
+            // Draw basemap (scaled down)
             if (basemapCanvas) {
-                outCtx.drawImage(basemapCanvas, 0, 0)
+                outCtx.drawImage(basemapCanvas, 0, 0, outW, outH)
             } else {
                 outCtx.fillStyle = '#1a1a2e'
                 outCtx.fillRect(0, 0, outW, outH)
@@ -2288,13 +2303,38 @@ let SightlineTool = {
             outCtx.drawImage(frameCanvas, overlayX, overlayY, overlayW, overlayH)
             outCtx.globalAlpha = 1.0
 
+            // Draw timestamp label
+            const timeLabel = ed.results?.[f]?.time
+                ? ed.results[f].time.replace(/\.\d{3}Z$/, 'Z')
+                : 'Frame ' + (f + 1)
+            const fontSize = Math.max(11, Math.round(outH * 0.03))
+            outCtx.font = 'bold ' + fontSize + 'px sans-serif'
+            outCtx.textBaseline = 'top'
+            const textMetrics = outCtx.measureText(timeLabel)
+            const pad = 4
+            outCtx.fillStyle = 'rgba(0,0,0,0.6)'
+            outCtx.fillRect(pad, pad, textMetrics.width + pad * 2, fontSize + pad * 2)
+            outCtx.fillStyle = '#ffffff'
+            outCtx.fillText(timeLabel, pad * 2, pad * 2)
+
+            // Draw progress bar at bottom
+            const barH = 3
+            const progress = (processedCount + 1) / totalFrames
+            outCtx.fillStyle = 'rgba(0,0,0,0.4)'
+            outCtx.fillRect(0, outH - barH, outW, barH)
+            outCtx.fillStyle = '#4fc3f7'
+            outCtx.fillRect(0, outH - barH, Math.round(outW * progress), barH)
+
             frameImages.push(outCanvas.toDataURL('image/png'))
+            processedCount++
         }
 
         if (frameImages.length === 0) {
             Toast.warning('No valid frames to export.', 6000)
             return
         }
+
+        Toast.info('Encoding GIF...', 4000)
 
         // 3. Create animated GIF
         const interval = (store.sweepPlaySpeed || 300) / 1000
