@@ -40,8 +40,13 @@ const FIT_MODE_OPTIONS = [
     { label: 'Fit to data', value: 'fit' },
 ]
 
-const EXPORT_OPTIONS = [
+const EXPORT_OPTIONS_STATIC = [
     { value: 'png', label: 'Sightline Map (PNG)' },
+    { value: 'csv', label: 'Results (CSV)' },
+    { value: 'grid', label: 'Sightline Grid (TXT)' },
+]
+const EXPORT_OPTIONS_PLAYBACK = [
+    { value: 'png', label: 'Sightline Map (GIF)' },
     { value: 'csv', label: 'Results (CSV)' },
     { value: 'grid', label: 'Sightline Grid (TXT)' },
 ]
@@ -841,7 +846,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                             <Select
                                                 value={exportFormat}
                                                 onValueChange={setExportFormat}
-                                                options={EXPORT_OPTIONS}
+                                                options={sightlineMode === 'playback' ? EXPORT_OPTIONS_PLAYBACK : EXPORT_OPTIONS_STATIC}
                                             />
                                         </div>
                                         <IconButton size="sm" title="Download" onClick={() => handleExport(elmId, exportFormat)}>

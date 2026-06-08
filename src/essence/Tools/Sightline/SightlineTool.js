@@ -18,6 +18,9 @@ import {
     evaluate_cmap,
 } from '../../../external/js-colormaps/js-colormaps.js'
 
+import HTML2Canvas from 'html2canvas'
+import gifshot from 'gifshot'
+
 import SightlineTool_Manager from './SightlineTool_Manager'
 import SightlineTool_Algorithm from './SightlineTool_Algorithm'
 import SightlineTool_Graphs from './SightlineTool_Graphs'
@@ -2088,7 +2091,18 @@ let SightlineTool = {
     },
 
     exportPNG: function (elmId) {
-        const dlc = useSightlineStore.getState().canvases[elmId]
+        const store = useSightlineStore.getState()
+        const el = store.elements[elmId]
+        const mode = el?.sightlineMode
+
+        // Playback mode: export animated GIF with basemap
+        if (mode === 'playback') {
+            SightlineTool._exportPlaybackGIF(elmId)
+            return
+        }
+
+        // Static/Composite: export PNG
+        const dlc = store.canvases[elmId]
         if (!dlc) {
             Toast.warning('No sightline map to export. Generate first.', 6000)
             return
@@ -2153,6 +2167,162 @@ let SightlineTool = {
             link.remove()
             URL.revokeObjectURL(url)
         })
+    },
+
+    _exportPlaybackGIF: async function (elmId) {
+        const store = useSightlineStore.getState()
+        const ed = store.sweepElData[elmId]
+        const el = store.elements[elmId]
+
+        if (!ed?.grids || ed.grids.length === 0) {
+            Toast.warning('No playback frames to export. Run a sweep first.', 6000)
+            return
+        }
+
+        const data = ed.lastData
+        const options = store.getSightlineOptions(elmId)
+        if (!data || !options) {
+            Toast.warning('Missing sweep data for export.', 6000)
+            return
+        }
+        options.color.a = 255
+
+        Toast.info('Generating GIF... this may take a moment.', 4000)
+
+        // 1. Capture basemap from tile pane
+        const mapEl = document.getElementById('map')
+        const tilePane = mapEl?.querySelector('.leaflet-tile-pane')
+        let basemapCanvas = null
+        if (tilePane) {
+            try {
+                basemapCanvas = await HTML2Canvas(tilePane, {
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: null,
+                    logging: false,
+                })
+            } catch (e) {
+                console.warn('Could not capture basemap for GIF:', e)
+            }
+        }
+
+        // Determine output dimensions from basemap or map container
+        const mapRect = mapEl.getBoundingClientRect()
+        const outW = basemapCanvas ? basemapCanvas.width : Math.round(mapRect.width)
+        const outH = basemapCanvas ? basemapCanvas.height : Math.round(mapRect.height)
+
+        // 2. For each frame, render sightline grid and composite over basemap
+        const frameImages = []
+        const res = data.tileResolution * Math.pow(2, data.resolution)
+        const tileW = data.outputTopLeftTile.w + 1
+        const tileH = data.outputTopLeftTile.h + 1
+        const sightlineW = tileW * res
+        const sightlineH = tileH * res
+
+        // Compute where the sightline overlay sits within the map viewport
+        const map = Map_.map
+        const topLeftTileLatLng = Globe_.litho.projection.tileXYZ2LatLng(
+            data.outputTopLeftTile.x, data.outputTopLeftTile.y, data.outputTopLeftTile.z
+        )
+        const bottomRightTileLatLng = Globe_.litho.projection.tileXYZ2LatLng(
+            data.outputTopLeftTile.x + tileW, data.outputTopLeftTile.y + tileH, data.outputTopLeftTile.z
+        )
+        const tlPoint = map.latLngToContainerPoint([topLeftTileLatLng.lat, topLeftTileLatLng.lng])
+        const brPoint = map.latLngToContainerPoint([bottomRightTileLatLng.lat, bottomRightTileLatLng.lng])
+        const overlayX = tlPoint.x
+        const overlayY = tlPoint.y
+        const overlayW = brPoint.x - tlPoint.x
+        const overlayH = brPoint.y - tlPoint.y
+
+        for (let f = 0; f < ed.grids.length; f++) {
+            const grid = ed.grids[f]
+            if (!grid) continue
+
+            // Render this frame's sightline grid to a small canvas
+            const frameCanvases = SightlineTool._renderFrameCanvases(data, grid, options)
+
+            // Stitch frame tiles into one canvas
+            const frameCanvas = document.createElement('canvas')
+            frameCanvas.width = sightlineW
+            frameCanvas.height = sightlineH
+            const frameCtx = frameCanvas.getContext('2d')
+            for (let z in frameCanvases) {
+                for (let x in frameCanvases[z]) {
+                    for (let y in frameCanvases[z][x]) {
+                        const tx = parseInt(x) - Math.floor(data.outputTopLeftTile.x)
+                        const ty = parseInt(y) - Math.floor(data.outputTopLeftTile.y)
+                        frameCtx.drawImage(frameCanvases[z][x][y], tx * res, ty * res)
+                    }
+                }
+            }
+
+            // Composite: basemap + sightline overlay
+            const outCanvas = document.createElement('canvas')
+            outCanvas.width = outW
+            outCanvas.height = outH
+            const outCtx = outCanvas.getContext('2d')
+
+            // Draw basemap
+            if (basemapCanvas) {
+                outCtx.drawImage(basemapCanvas, 0, 0)
+            } else {
+                outCtx.fillStyle = '#1a1a2e'
+                outCtx.fillRect(0, 0, outW, outH)
+            }
+
+            // Draw sightline overlay scaled to viewport position
+            outCtx.imageSmoothingEnabled = false
+            const opacity = el?.opacity != null ? el.opacity : 0.5
+            outCtx.globalAlpha = opacity
+            outCtx.drawImage(frameCanvas, overlayX, overlayY, overlayW, overlayH)
+            outCtx.globalAlpha = 1.0
+
+            frameImages.push(outCanvas.toDataURL('image/png'))
+        }
+
+        if (frameImages.length === 0) {
+            Toast.warning('No valid frames to export.', 6000)
+            return
+        }
+
+        // 3. Create animated GIF
+        const interval = (store.sweepPlaySpeed || 300) / 1000
+        gifshot.createGIF(
+            {
+                images: frameImages,
+                gifWidth: outW,
+                gifHeight: outH,
+                interval: interval,
+                numFrames: frameImages.length,
+                frameDuration: interval,
+                sampleInterval: 10,
+                numWorkers: 2,
+            },
+            function (obj) {
+                if (!obj.error) {
+                    const byteCharacters = atob(obj.image.split(',')[1])
+                    const byteNumbers = new Array(byteCharacters.length)
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i)
+                    }
+                    const byteArray = new Uint8Array(byteNumbers)
+                    const blob = new Blob([byteArray], { type: 'image/gif' })
+                    const url = URL.createObjectURL(blob)
+                    const link = document.createElement('a')
+                    const fileName = SightlineTool._buildExportName(elmId, 'playback') + '.gif'
+                    link.setAttribute('download', fileName)
+                    link.setAttribute('href', url)
+                    document.body.appendChild(link)
+                    link.click()
+                    link.remove()
+                    setTimeout(() => URL.revokeObjectURL(url), 10000)
+                    Toast.success('GIF exported successfully!', 3000)
+                } else {
+                    console.error('GIF export failed:', obj.errorMsg)
+                    Toast.error('GIF export failed. Try with fewer frames.', 6000)
+                }
+            }
+        )
     },
 
     exportCSV: function (elmId) {
