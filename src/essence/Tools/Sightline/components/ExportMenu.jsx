@@ -28,7 +28,7 @@ export default function ExportMenu({ elmId }) {
                 variant="ghost"
                 size="sm"
                 onClick={handleCSV}
-                title="Export sweep results as CSV"
+                title="Export results as CSV"
             >
                 <i className="mdi mdi-file-delimited mdi-12px" /> CSV
             </Button>

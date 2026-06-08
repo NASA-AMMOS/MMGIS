@@ -2120,16 +2120,25 @@ let SightlineTool = {
 
         const cols = maxX - minX + 1
         const rows = maxY - minY + 1
+
+        // Scale up to full map tile size (256px per tile) with pixelated rendering
+        const MAP_TILE_PX = 256
+        const scale = Math.max(1, Math.round(MAP_TILE_PX / tileSize))
+        const outTileSize = tileSize * scale
+
         const compositeCanvas = document.createElement('canvas')
-        compositeCanvas.width = cols * tileSize
-        compositeCanvas.height = rows * tileSize
+        compositeCanvas.width = cols * outTileSize
+        compositeCanvas.height = rows * outTileSize
         const compositeCtx = compositeCanvas.getContext('2d')
+        compositeCtx.imageSmoothingEnabled = false
 
         allCanvases.forEach((tc) => {
             compositeCtx.drawImage(
                 tc.canvas,
-                (tc.x - minX) * tileSize,
-                (tc.y - minY) * tileSize
+                (tc.x - minX) * outTileSize,
+                (tc.y - minY) * outTileSize,
+                outTileSize,
+                outTileSize
             )
         })
 
@@ -2150,15 +2159,47 @@ let SightlineTool = {
         const store = useSightlineStore.getState()
         const el = store.elements[elmId]
         const ed = store.sweepElData[elmId]
-        const heatmap = ed?.heatmap
-        const data = ed?.lastData || el?.lastData || store.lastData
         const mode = el?.sightlineMode
 
+        // Static mode: export binary grid as CSV
+        if (mode === 'static') {
+            const grid = el?.lastResultGrid
+            const data = el?.lastData || store.lastData
+            if (!grid || !data?.bottomLeftLatLng || !data?.cellSize) {
+                Toast.warning('No results to export. Generate first.', 6000)
+                return
+            }
+            const entityName = store.getSightlineOptions(elmId)?.targets?.[0]?.name || el?.name || 'sightline'
+            const blLat = data.bottomLeftLatLng.lat
+            const blLng = data.bottomLeftLatLng.lng
+            const cellSize = data.cellSize
+            const totalRows = grid.length
+            const headers = ['entity', 'time', 'lat', 'lng', 'visible']
+            const timeStr = store.rawTime || ''
+            const rows = []
+            for (let r = 0; r < totalRows; r++) {
+                const row = grid[r]
+                if (!row) continue
+                const pixelLat = (blLat + (totalRows - 1 - r) * cellSize).toFixed(8)
+                for (let c = 0; c < row.length; c++) {
+                    const val = row[c]
+                    if (val == null) continue
+                    const pixelLng = (blLng + c * cellSize).toFixed(8)
+                    const visible = (val === 1 || val === 2) ? 1 : 0
+                    rows.push([entityName, timeStr, pixelLat, pixelLng, visible])
+                }
+            }
+            const fileName = SightlineTool._buildExportName(elmId, 'results')
+            F_.downloadArrayAsCSV(headers, rows, fileName)
+            return
+        }
+
+        // Composite/Playback mode: export heatmap as CSV
+        const heatmap = ed?.heatmap
+        const data = ed?.lastData || el?.lastData || store.lastData
+
         if (!heatmap || !data?.bottomLeftLatLng || !data?.cellSize) {
-            Toast.warning(
-                'No sweep results to export. Run a time sweep first.',
-                6000
-            )
+            Toast.warning('No results to export. Run a sweep first.', 6000)
             return
         }
 
@@ -2192,28 +2233,34 @@ let SightlineTool = {
                     : [compositeEntityName, store.sweepStart || '', store.sweepEnd || '', pixelLat, pixelLng, pct])
             }
         }
-        const fileName = SightlineTool._buildExportName(elmId, 'sweep')
+        const fileName = SightlineTool._buildExportName(elmId, 'results')
         F_.downloadArrayAsCSV(headers, rows, fileName)
     },
 
     exportGrid: function (elmId) {
         const store = useSightlineStore.getState()
         const el = store.elements[elmId]
+        const mode = el?.sightlineMode
 
-        // Use heatmap grid if available (composite/playback), else static grid
-        let grid = store.sweepElData[elmId]?.heatmap
-        let isHeatmap = true
-        if (!grid) {
+        // Select grid based on current mode
+        let grid, isHeatmap, data
+        if (mode === 'static') {
             grid = el?.lastResultGrid
             isHeatmap = false
+            data = el?.lastData || store.lastData
+        } else {
+            grid = store.sweepElData[elmId]?.heatmap
+            isHeatmap = true
+            data = store.sweepElData[elmId]?.lastData || el?.lastData || store.lastData
+            if (!grid) {
+                grid = el?.lastResultGrid
+                isHeatmap = false
+            }
         }
         if (!grid || grid.length === 0) {
             Toast.warning('No sightline grid to export. Generate first.', 6000)
             return
         }
-
-        // Resolve geo-referencing data from sweep or static
-        const data = store.sweepElData[elmId]?.lastData || el?.lastData || store.lastData
 
         // Build header with grid dimensions and metadata
         const lines = []

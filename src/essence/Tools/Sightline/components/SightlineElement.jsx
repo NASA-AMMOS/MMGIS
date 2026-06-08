@@ -42,7 +42,7 @@ const FIT_MODE_OPTIONS = [
 
 const EXPORT_OPTIONS = [
     { value: 'png', label: 'Sightline Map (PNG)' },
-    { value: 'csv', label: 'Sweep Results (CSV)' },
+    { value: 'csv', label: 'Results (CSV)' },
     { value: 'grid', label: 'Sightline Grid (TXT)' },
 ]
 
