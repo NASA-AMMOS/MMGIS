@@ -1,23 +1,35 @@
 import React, { forwardRef, useMemo, useRef, useState, useEffect } from 'react'
 import styles from './ColorRampPicker.module.css'
 
-function buildDiscreteBlocks(colors, bins) {
-    if (!colors || colors.length === 0) return []
+// Build a CSS linear-gradient string from a color ramp.
+// For the sightline ramp, alpha goes from 0 (left / 0% visible) to 1 (right / 100% visible)
+// so prominent color denotes line-of-sight.
+function buildGradient(colors, isSightline, hasAlpha) {
+    if (!colors || colors.length === 0) return 'transparent'
     const n = colors.length - 1
-    const count = bins || colors.length
-    const blocks = []
-    for (let i = 0; i < count; i++) {
-        const t = count === 1 ? 0.5 : (i + 0.5) / count
-        const ci = Math.min(Math.floor(t * n), n)
-        const c = colors[ci]
-        if (!c) continue
-        const r = Math.round(c[0] * 255)
-        const g = Math.round(c[1] * 255)
-        const b = Math.round(c[2] * 255)
-        const isBlack = r === 0 && g === 0 && b === 0
-        blocks.push({ r, g, b, isBlack })
+    const steps = 32
+    const stops = []
+    for (let i = 0; i <= steps; i++) {
+        const t = i / steps
+        // Interpolate color
+        const scaled = t * n
+        const lo = Math.min(Math.floor(scaled), n)
+        const hi = Math.min(lo + 1, n)
+        const f = scaled - lo
+        const r = Math.round((colors[lo][0] + (colors[hi][0] - colors[lo][0]) * f) * 255)
+        const g = Math.round((colors[lo][1] + (colors[hi][1] - colors[lo][1]) * f) * 255)
+        const b = Math.round((colors[lo][2] + (colors[hi][2] - colors[lo][2]) * f) * 255)
+        let a = 1
+        if (isSightline) {
+            a = t
+        } else if (hasAlpha && colors[lo].length > 3) {
+            const aLo = colors[lo][3] != null ? colors[lo][3] : 1
+            const aHi = colors[hi][3] != null ? colors[hi][3] : 1
+            a = aLo + (aHi - aLo) * f
+        }
+        stops.push(`rgba(${r},${g},${b},${a.toFixed(2)}) ${(t * 100).toFixed(1)}%`)
     }
-    return blocks
+    return `linear-gradient(to right, ${stops.join(', ')})`
 }
 
 const CHECKERBOARD_BG =
@@ -46,11 +58,15 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
 
     const rampEntries = useMemo(() => {
         if (!ramps) return []
-        return ramps.map((r) => ({
-            name: r.name,
-            blocks: buildDiscreteBlocks(r.colors, r.bins),
-            isTransparentRamp: r.name === 'shadow',
-        }))
+        return ramps.map((r) => {
+            const isSightline = r.name === 'sightline'
+            const hasAlpha = !!r.hasAlpha || isSightline
+            return {
+                name: r.name,
+                gradient: buildGradient(r.colors, isSightline, hasAlpha),
+                hasAlpha,
+            }
+        })
     }, [ramps])
 
     const selected = rampEntries.find((r) => r.name === value) || rampEntries[0]
@@ -70,7 +86,7 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
                 className={styles.trigger}
                 onClick={() => setOpen(!open)}
             >
-                <SwatchBar blocks={selected?.blocks} isTransparent={selected?.isTransparentRamp} />
+                <SwatchBar gradient={selected?.gradient} hasAlpha={selected?.hasAlpha} />
                 <i className="mdi mdi-chevron-down mdi-14px" style={{ flexShrink: 0, color: 'var(--color-a3)' }} />
             </button>
             {open && (
@@ -85,7 +101,7 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
                                 setOpen(false)
                             }}
                         >
-                            <SwatchBar blocks={r.blocks} isTransparent={r.isTransparentRamp} />
+                            <SwatchBar gradient={r.gradient} hasAlpha={r.hasAlpha} />
                         </button>
                     ))}
                 </div>
@@ -94,32 +110,30 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
     )
 })
 
-function SwatchBar({ blocks, isTransparent }) {
-    if (!blocks || blocks.length === 0) return null
-    const displayBlocks = isTransparent ? [blocks[blocks.length - 1]] : blocks
+function SwatchBar({ gradient, hasAlpha }) {
+    if (!gradient) return null
     return (
         <div className={styles.swatchBar}>
-            {isTransparent && (
+            {hasAlpha && (
                 <div
                     className={styles.swatchBlock}
                     style={{
                         backgroundImage: CHECKERBOARD_BG,
                         backgroundSize: '8px 8px',
                         backgroundPosition: '0 0, 0 0, -4px -4px, 4px 4px',
-                        flex: 1,
+                        position: 'absolute',
+                        inset: 0,
                     }}
                 />
             )}
-            {displayBlocks.map((b, i) => (
-                <div
-                    key={i}
-                    className={styles.swatchBlock}
-                    style={{
-                        background: `rgb(${b.r},${b.g},${b.b})`,
-                        flex: 1,
-                    }}
-                />
-            ))}
+            <div
+                className={styles.swatchBlock}
+                style={{
+                    backgroundImage: gradient,
+                    position: hasAlpha ? 'relative' : undefined,
+                    flex: 1,
+                }}
+            />
         </div>
     )
 }

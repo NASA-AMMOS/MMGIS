@@ -1,15 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react'
-import useShadeStore, { buildSourcesList } from '../store'
-import ShadeTool from '../ShadeTool'
+import useSightlineStore, { buildSourcesList } from '../store'
+import SightlineTool from '../SightlineTool'
 import CardLegend from './CardLegend'
 import { ColorRampPicker, Slider } from '../../../../design-system/components'
 
 export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget }) {
-    const el = useShadeStore((s) => s.elements[elmId])
-    const vars = useShadeStore((s) => s.vars)
-    const ed = useShadeStore((s) => s.sweepElData[elmId])
-    const sweepPlayIndex = useShadeStore((s) => s.sweepPlayIndex)
-    const setSweepElField = useShadeStore((s) => s.setSweepElField)
+    const el = useSightlineStore((s) => s.elements[elmId])
+    const vars = useSightlineStore((s) => s.vars)
+    const ed = useSightlineStore((s) => s.sweepElData[elmId])
+    const sweepPlayIndex = useSightlineStore((s) => s.sweepPlayIndex)
+    const setSweepElField = useSightlineStore((s) => s.setSweepElField)
     const cardRef = useRef(null)
     const handleRef = useRef(null)
     const isDraggingRef = useRef(false)
@@ -28,10 +28,10 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrag
         return obs ? obs.name : el.observer
     }, [el, vars])
 
-    const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
-    const sweepFitToData = useShadeStore((s) => s.sweepFitToData)
+    const sweepDiscrete = useSightlineStore((s) => s.sweepDiscrete)
+    const sweepFitToData = useSightlineStore((s) => s.sweepFitToData)
     const opacity = ed?.opacity != null ? ed.opacity : 1
-    const colorRamp = ed?.colorRamp || 'shadow'
+    const colorRamp = ed?.colorRamp || 'sightline'
     const discrete = sweepDiscrete || false
 
     const currentResult = useMemo(() => {
@@ -50,14 +50,14 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrag
     const elCanvasId = `sweepMiniEl_${elmId}`
     useEffect(() => {
         if (mode !== 'playback' || !currentResult) return
-        ShadeTool.drawMiniRAEIndicators(azCanvasId, elCanvasId, currentResult)
+        SightlineTool.drawMiniRAEIndicators(azCanvasId, elCanvasId, currentResult)
     }, [mode, currentResult, azCanvasId, elCanvasId])
 
     // Draw sky dome polar plot
     const skyDomeId = `sweepSkyDome_${elmId}`
     useEffect(() => {
         if (mode !== 'playback' || !ed?.results || ed.results.length === 0) return
-        ShadeTool.drawSkyDome(skyDomeId, ed.results, sweepPlayIndex)
+        SightlineTool.drawSkyDome(skyDomeId, ed.results, sweepPlayIndex)
     }, [mode, ed?.results, sweepPlayIndex, skyDomeId])
 
     // Drag from handle only — use mousedown on handle to allow next dragstart
@@ -86,15 +86,15 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrag
 
     const handleOpacityChange = useCallback((val) => {
         setSweepElField(elmId, 'opacity', val)
-        ShadeTool.applySweepOpacity(elmId)
+        SightlineTool.applySweepOpacity(elmId)
     }, [elmId, setSweepElField])
 
     const handleColorRampChange = useCallback((value) => {
         setSweepElField(elmId, 'colorRamp', value)
         setTimeout(() => {
-            const ed2 = useShadeStore.getState().sweepElData[elmId]
+            const ed2 = useSightlineStore.getState().sweepElData[elmId]
             if (ed2?.heatmap && ed2?.lastData) {
-                ShadeTool.renderHeatmapToMap(ed2.lastData, ed2.heatmap, elmId)
+                SightlineTool.renderHeatmapToMap(ed2.lastData, ed2.heatmap, elmId)
             }
         }, 0)
     }, [elmId, setSweepElField])
@@ -134,7 +134,7 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrag
                             <ColorRampPicker
                                 value={colorRamp}
                                 onValueChange={handleColorRampChange}
-                                ramps={ShadeTool.getSweepColorRamps()}
+                                ramps={SightlineTool.getSweepColorRamps(el?.color)}
                             />
                         </div>
                     </div>
@@ -152,7 +152,7 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrag
                             />
                         </div>
                     </div>
-                    <CardLegend rampName={colorRamp} discrete={discrete} visiblePct={hoverPct} fitToData={sweepFitToData} minFrac={ed?.minFrac ?? 0} maxFrac={ed?.maxFrac ?? 1} />
+                    <CardLegend rampName={colorRamp} discrete={discrete} visiblePct={hoverPct} fitToData={sweepFitToData} minFrac={ed?.minFrac ?? 0} maxFrac={ed?.maxFrac ?? 1} elmColor={el?.color} />
                 </div>
             )}
 

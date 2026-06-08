@@ -1,6 +1,6 @@
-/* ShadeTool CSS — ViewshedTool-style collapsible instances */
+/* SightlineTool CSS — ViewshedTool-style collapsible instances */
 
-#shadeTool {
+#sightlineTool {
     width: 100%;
     height: 100%;
     color: var(--color-f);
@@ -12,7 +12,7 @@
 }
 
 /* Time-disabled message */
-#shadeTool .vstTimeDisabled {
+#sightlineTool .vstTimeDisabled {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -21,135 +21,65 @@
     color: var(--color-h);
 }
 
-/* ====== Header ====== */
-
-#shadeTool .vstHeader {
-    width: 100%;
-    padding: 5px;
-    flex-shrink: 0;
-}
-
-#shadeTool .vstHeaderTop {
-    display: flex;
-    height: 40px;
-    line-height: 40px;
-    background: var(--color-a);
-    justify-content: space-between;
-    align-items: center;
-}
-
-#shadeTool .vstHeaderLeft {
-    display: flex;
-    align-items: center;
-}
-
-#shadeTool .vstClose {
+#sightlineTool .mmgisToolHeader > div > div:last-child {
     margin-right: 6px;
-    color: var(--color-a5);
-}
-#shadeTool .vstClose:hover {
-    color: var(--color-f);
 }
 
-#shadeTool .vstTitle {
-    height: 40px;
-    line-height: 40px;
-    font-size: 16px;
-    font-weight: 600;
-    padding-left: 10px;
-    font-family: 'lato-light';
-    text-transform: uppercase;
-    color: var(--color-l);
-}
+/* ====== Header — matches mmgisToolHeader (DrawTool style) ====== */
 
-#shadeTool .vstTime {
+#sightlineTool .vstTime {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
     padding: 6px 8px;
-    gap: 4px;
+    gap: 6px;
+    background: var(--color-a-5);
     border-bottom: 1px solid var(--color-e);
 }
-
-#shadeTool .vstTimeLabel {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--color-a1-5);
+#sightlineTool .vstTime .vstTimeReadonly {
+    flex: 1;
+    min-width: 0;
+    opacity: 0.8;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-#shadeTool .vstTimeLabel i {
-    color: inherit;
+#sightlineTool .vstTime .vstTimeReadonly:first-child {
+    text-align: right;
+}
+#sightlineTool .vstTime .vstTimeStep {
+    width: 70px;
+    flex: 0 0 auto;
 }
 
-#shadeTool .vstObsTimeLabel {
+#sightlineTool .vstObsTimeLabel {
     display: flex;
     align-items: center;
     gap: 4px;
     color: var(--color-a5);
     font-style: italic;
 }
-#shadeTool .vstObsTimeLabel i {
+#sightlineTool .vstObsTimeLabel i {
     color: var(--color-a5);
 }
 
-/* ====== Binary Legend ====== */
-
-#shadeTool .vstBinaryLegend {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    padding: 6px 10px;
-    background: var(--color-a);
-    border-bottom: 1px solid var(--color-e);
-    flex-shrink: 0;
-}
-
-#shadeTool .vstBinaryLegendItem {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: var(--color-f);
-}
-
-#shadeTool .vstBinaryLegendSwatch {
-    width: 14px;
-    height: 14px;
-    border: 1px solid var(--color-f);
-    border-radius: 2px;
-}
-
-#shadeTool .vstBinaryLegendInShadow {
-    background: var(--color-f);
-}
-
-#shadeTool .vstBinaryLegendNotVisible {
-    background: repeating-conic-gradient(
-        var(--color-f) 0% 25%,
-        transparent 0% 50%
-    ) 0 0 / 6px 6px;
-}
-
-#shadeTool .vstBinaryLegendMuted {
-    opacity: 0.5;
-}
-
-#shadeTool .vstNewBtnWrap {
+#sightlineTool .vstNewBtnWrap {
     display: flex;
     justify-content: center;
     padding: 0px 5px;
 }
 
-#shadeTool .vstNewBtn {
+#sightlineTool .vstNewBtn {
     width: 100%;
     justify-content: center;
 }
 
-#shadeTool .vstNewBtn i {
+#sightlineTool .vstNewBtn i {
     line-height: 14px;
 }
 
-#shadeTool .vstNewBtn.vstNewBtn {
+#sightlineTool .vstNewBtn.vstNewBtn {
     background: none;
     border: none;
     color: var(--color-c);
@@ -162,14 +92,14 @@
     padding: 4px 8px;
     transition: background 0.15s ease, color 0.15s ease;
 }
-#shadeTool .vstNewBtn:hover {
+#sightlineTool .vstNewBtn:hover {
     color: var(--color-c2);
     background: var(--color-a1-5);
 }
 
 /* ====== Content ====== */
 
-#shadeTool .vstContent {
+#sightlineTool .vstContent {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
@@ -177,9 +107,9 @@
     padding-bottom: 5px;
 }
 
-/* ====== Shade item (instance) ====== */
+/* ====== Sightline item (instance) ====== */
 
-#shadeTool .vstShadeItem {
+#sightlineTool .vstSightlineItem {
     position: relative;
     margin: 6px;
     border-radius: 6px;
@@ -188,7 +118,7 @@
 }
 
 /* Instance header */
-#shadeTool .vstShadeHeader {
+#sightlineTool .vstSightlineHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -197,35 +127,35 @@
     background: var(--color-a1);
 }
 
-#shadeTool .vstShadeHeaderLeft {
+#sightlineTool .vstSightlineHeaderLeft {
     display: flex;
     align-items: center;
     gap: 4px;
 }
 
-#shadeTool .vstShadeHeaderCenter {
+#sightlineTool .vstSightlineHeaderCenter {
     display: flex;
     align-items: center;
     flex: 1;
     min-width: 0;
 }
-#shadeTool .vstResultsExport {
+#sightlineTool .vstResultsExport {
     border-top: 2px solid var(--color-a);
     margin-top: 2px;
     height: 36px !important;
 }
-#shadeTool .vstExportControls {
+#sightlineTool .vstExportControls {
     display: flex;
     align-items: center;
     gap: 4px;
 }
 
-#shadeTool .vstShadeHeaderRight {
+#sightlineTool .vstSightlineHeaderRight {
     display: flex;
     align-items: center;
 }
 
-#shadeTool .vstShadeDragHandle {
+#sightlineTool .vstSightlineDragHandle {
     color: var(--color-a4);
     display: flex;
     align-items: center;
@@ -234,18 +164,18 @@
     padding: 2px;
     transition: color 0.15s ease;
 }
-#shadeTool .vstShadeDragHandle:hover {
+#sightlineTool .vstSightlineDragHandle:hover {
     color: var(--color-a7);
 }
-#shadeTool .vstShadeDragHandle:active {
+#sightlineTool .vstSightlineDragHandle:active {
     cursor: grabbing;
 }
 
-#shadeTool .vstColorSwatchWrap {
+#sightlineTool .vstColorSwatchWrap {
     position: relative;
 }
 
-#shadeTool .vstColorSwatch {
+#sightlineTool .vstColorSwatch {
     width: 145px;
     height: 20px;
     border-radius: 3px;
@@ -253,12 +183,12 @@
     border: 1px solid var(--color-a1);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-#shadeTool .vstColorSwatch:hover {
+#sightlineTool .vstColorSwatch:hover {
     border-color: var(--color-a3);
     box-shadow: 0 0 0 1px var(--color-a2);
 }
 
-#shadeTool .vstColorPalette {
+#sightlineTool .vstColorPalette {
     position: absolute;
     top: 18px;
     left: 0;
@@ -273,29 +203,29 @@
     z-index: 100;
 }
 
-#shadeTool .vstColorOption {
+#sightlineTool .vstColorOption {
     width: 16px;
     height: 16px;
     border-radius: 3px;
     cursor: pointer;
     border: 1px solid var(--color-a1);
 }
-#shadeTool .vstColorOption:hover {
+#sightlineTool .vstColorOption:hover {
     border-color: var(--color-f);
     transform: scale(1.2);
 }
 
-/* shade names removed — header is icons only */
+/* sightline names removed — header is icons only */
 
 /* ====== Collapsible body ====== */
 
-#shadeTool .vstShadeBody {
+#sightlineTool .vstSightlineBody {
     padding: 0;
 }
 
 /* ====== Shared row layout ====== */
 
-#shadeTool .vstOptionRow {
+#sightlineTool .vstOptionRow {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -303,7 +233,7 @@
     padding: 0 8px;
 }
 
-#shadeTool .vstOptionLabel {
+#sightlineTool .vstOptionLabel {
     font-size: 12px;
     color: var(--color-a5);
     flex-shrink: 0;
@@ -311,7 +241,7 @@
 }
 
 /* Group headers inside expanded body */
-#shadeTool .vstGroupHeader {
+#sightlineTool .vstGroupHeader {
     font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
@@ -323,32 +253,32 @@
 }
 
 
-#shadeTool .vstGroupToggle {
+#sightlineTool .vstGroupToggle {
     display: flex;
     align-items: center;
     gap: 4px;
     cursor: pointer;
     user-select: none;
 }
-#shadeTool .vstGroupToggle:hover {
+#sightlineTool .vstGroupToggle:hover {
     color: var(--color-f);
 }
 
-#shadeTool .vstGroupChevron {
+#sightlineTool .vstGroupChevron {
     transition: transform 0.15s ease;
     flex-shrink: 0;
     font-size: 14px;
 }
-#shadeTool .vstGroupChevronOpen {
+#sightlineTool .vstGroupChevronOpen {
     transform: rotate(90deg);
 }
 
-#shadeTool .vstGroupContent {
+#sightlineTool .vstGroupContent {
     padding: 0 0 2px;
 }
 
 /* Regen icon on header row */
-#shadeTool .vstRegenIcon {
+#sightlineTool .vstRegenIcon {
     color: var(--color-r6);
     animation: vstPulse 1.2s ease-in-out infinite;
 }
@@ -356,24 +286,24 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
 }
-#shadeTool .vstRegenProgress {
+#sightlineTool .vstRegenProgress {
     font-size: 10px;
     color: var(--color-a5);
     margin-right: 4px;
 }
 
 /* Delete button — red on hover */
-#shadeTool .vstDeleteBtn:hover {
+#sightlineTool .vstDeleteBtn:hover {
     color: var(--color-red2);
 }
 
 /* Select (design-system) overrides */
-#shadeTool .vstSelect {
+#sightlineTool .vstSelect {
     width: 145px;
     flex-shrink: 0;
     min-width: 0;
 }
-#shadeTool .vstSelect [data-select-value] {
+#sightlineTool .vstSelect [data-select-value] {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -381,7 +311,7 @@
 }
 
 /* InputWithUnit field width */
-#shadeTool .vstFieldInput {
+#sightlineTool .vstFieldInput {
     width: 145px;
     flex-shrink: 0;
 }
@@ -389,26 +319,26 @@
 
 
 /* Result values */
-#shadeTool .vstResultValue {
+#sightlineTool .vstResultValue {
     font-size: 12px;
     color: var(--color-f);
 }
 
 /* ====== Indicators — preserved exactly ====== */
-#shadeTool [id^="shadeTool_indicators"] {
+#sightlineTool [id^="sightlineTool_indicators"] {
     display: flex;
     justify-content: space-around;
     background: var(--color-a1-5);
     height: 100px;
     border-top: 2px solid var(--color-a);
 }
-#shadeTool [id^="shadeTool_indicators"] > div {
+#sightlineTool [id^="sightlineTool_indicators"] > div {
     display: flex;
     flex-direction: column;
     padding: 4px 0;
 }
 
-#shadeTool [id^="shadeTool_indicators"] > div > div {
+#sightlineTool [id^="sightlineTool_indicators"] > div > div {
     text-align: center;
     text-transform: uppercase;
     font-size: 12px;
@@ -416,18 +346,18 @@
     letter-spacing: 1px;
     padding: 4px 0px;
 }
-#shadeTool [id^="shadeTool_indicators"] canvas {
+#sightlineTool [id^="sightlineTool_indicators"] canvas {
     width: 70px;
     height: 70px;
 }
 
 /* ====== Export dropdown ====== */
-#shadeTool .vstOptionRow .vstExportMenu {
+#sightlineTool .vstOptionRow .vstExportMenu {
     padding: 0;
 }
 
 /* ====== Action bar (delete, clone, generate) ====== */
-#shadeTool .vstShadeActions {
+#sightlineTool .vstSightlineActions {
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -439,7 +369,7 @@
 /* Generate and Sweep use the ProgressButton design-system component */
 
 /* ====== Sweep section ====== */
-#shadeTool .vstSweepSection {
+#sightlineTool .vstSweepSection {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -447,7 +377,7 @@
     overflow: hidden;
 }
 
-#shadeTool .vstSweepHeader {
+#sightlineTool .vstSweepHeader {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -461,11 +391,11 @@
     user-select: none;
     transition: background 0.15s ease;
 }
-#shadeTool .vstSweepHeader:hover {
+#sightlineTool .vstSweepHeader:hover {
     background: var(--color-a2);
 }
 
-#shadeTool .vstSweepBody {
+#sightlineTool .vstSweepBody {
     padding: 6px 8px;
     flex-shrink: 0;
     background: var(--color-a1-5);
@@ -473,27 +403,27 @@
     border-radius: 4px;
 }
 
-#shadeTool .vstSweepTimeRow {
+#sightlineTool .vstSweepTimeRow {
     display: flex;
     gap: 4px;
     margin-bottom: 4px;
 }
 
-#shadeTool .vstSweepTimeRowSingle {
+#sightlineTool .vstSweepTimeRowSingle {
     display: flex;
     align-items: center;
     gap: 6px;
     margin-bottom: 4px;
 }
 
-#shadeTool .vstSweepTimeLabel {
+#sightlineTool .vstSweepTimeLabel {
     font-size: 11px;
     color: var(--color-a5);
     min-width: 30px;
     flex-shrink: 0;
 }
 
-#shadeTool .vstSweepInput {
+#sightlineTool .vstSweepInput {
     width: 145px;
     flex-shrink: 0;
     height: 26px;
@@ -509,19 +439,19 @@
     box-sizing: border-box;
 }
 
-#shadeTool .vstSweepStepRow {
+#sightlineTool .vstSweepStepRow {
     display: flex;
     align-items: center;
     gap: 6px;
     margin-bottom: 6px;
 }
 
-#shadeTool .vstSweepStepLabel {
+#sightlineTool .vstSweepStepLabel {
     font-size: 11px;
     color: var(--color-a5);
 }
 
-#shadeTool .vstSweepStepInput {
+#sightlineTool .vstSweepStepInput {
     width: 50px;
     height: 24px;
     background: var(--color-a1);
@@ -533,27 +463,27 @@
     text-align: right;
 }
 
-#shadeTool .vstSweepStepUnit {
+#sightlineTool .vstSweepStepUnit {
     font-size: 10px;
     color: var(--color-a5);
 }
 
-#shadeTool .vstSweepField {
+#sightlineTool .vstSweepField {
     width: 145px;
     flex-shrink: 0;
 }
 
-#shadeTool .vstSweepButtonRow {
+#sightlineTool .vstSweepButtonRow {
     display: flex;
     align-items: center;
     margin-top: 6px;
     margin-bottom: 6px;
 }
-#shadeTool .vstSweepButton {
+#sightlineTool .vstSweepButton {
     flex: 1;
 }
 
-#shadeTool .vstSweepStaleMsg {
+#sightlineTool .vstSweepStaleMsg {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -566,13 +496,13 @@
     border: 1px solid rgba(255, 193, 7, 0.2);
 }
 
-#shadeTool .vstSweepProgress {
+#sightlineTool .vstSweepProgress {
     font-size: 10px;
     color: var(--color-a5);
     margin-left: auto;
 }
 
-#shadeTool .vstSweepControlsWrap {
+#sightlineTool .vstSweepControlsWrap {
     background: var(--color-a);
     border-radius: 4px;
     margin: 0 8px 4px;
@@ -580,40 +510,34 @@
     padding: 4px 6px;
     flex-shrink: 0;
 }
-#shadeTool .vstSweepControlsInline {
+#sightlineTool .vstSweepControlsInline {
     margin: 6px 0 0;
     padding: 6px 4px;
     width: 100%;
     box-sizing: border-box;
 }
 
-#shadeTool .vstSweepPlaybarRow {
+#sightlineTool .vstSweepPlaybarRow {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
     box-sizing: border-box;
 }
-#shadeTool .vstSweepPlaybarLeft {
-    justify-content: space-between;
+#sightlineTool .vstSweepPlaybarLeft {
+    justify-content: center;
     gap: 4px;
 }
 
-#shadeTool .vstSweepPlaybar {
+#sightlineTool .vstSweepPlaybar {
     display: flex;
     align-items: center;
     gap: 4px;
 }
 
-#shadeTool .vstLinkActive {
-    color: var(--color-mmgis);
-}
-#shadeTool .vstLinkInactive {
-    color: var(--color-a5);
-    opacity: 0.7;
-}
 
-#shadeTool .vstSweepTimeline {
+
+#sightlineTool .vstSweepTimeline {
     width: 100%;
     box-sizing: border-box;
     padding: 2px 10px 0;
@@ -621,7 +545,7 @@
     --color-c: var(--color-red2);
 }
 
-#shadeTool .vstSweepFrameLabel {
+#sightlineTool .vstSweepFrameLabel {
     font-size: 12px;
     color: var(--color-a6);
     text-align: center;
@@ -630,7 +554,7 @@
 }
 
 /* View mode row */
-#shadeTool .vstSweepViewRow {
+#sightlineTool .vstSweepViewRow {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -638,52 +562,52 @@
 }
 
 /* Global composite options (mode + range) */
-#shadeTool .vstSweepGlobalOptions {
+#sightlineTool .vstSweepGlobalOptions {
     display: flex;
     flex-direction: column;
     gap: 4px;
     margin-bottom: 6px;
     padding: 0px 9px;
 }
-#shadeTool .vstSweepGlobalRow {
+#sightlineTool .vstSweepGlobalRow {
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
 
-#shadeTool .vstSweepGlobalLabel {
+#sightlineTool .vstSweepGlobalLabel {
     font-size: 11px;
     color: var(--color-f);
     white-space: nowrap;
 }
 
 /* Composite heatmap settings */
-#shadeTool .vstSweepCompositeSettings {
+#sightlineTool .vstSweepCompositeSettings {
     background: var(--color-a);
     border-radius: 4px;
     padding: 6px 8px;
     margin-bottom: 4px;
 }
 
-#shadeTool .vstSweepCompositeSettings .vstOptionRow {
+#sightlineTool .vstSweepCompositeSettings .vstOptionRow {
     margin-bottom: 4px;
 }
 
-#shadeTool .vstSweepSelect {
+#sightlineTool .vstSweepSelect {
     min-width: 100px;
 }
 
 /* Legend */
-#shadeTool .vstSweepLegend {
+#sightlineTool .vstSweepLegend {
     margin-top: 6px;
 }
 
-#shadeTool .vstSweepLegendBarWrap {
+#sightlineTool .vstSweepLegendBarWrap {
     position: relative;
     margin-bottom: 5px;
 }
 
-#shadeTool .vstSweepLegendBar {
+#sightlineTool .vstSweepLegendBar {
     height: 12px;
     border: 1px solid var(--color-e);
     border-radius: 2px;
@@ -697,7 +621,7 @@
     background-position: 0 0, 0 0, -4px -4px, 4px 4px;
 }
 
-#shadeTool .vstSweepLegendGradient {
+#sightlineTool .vstSweepLegendGradient {
     position: absolute;
     top: 0;
     left: 0;
@@ -705,7 +629,7 @@
     bottom: 0;
 }
 
-#shadeTool .vstSweepLegendIndicator {
+#sightlineTool .vstSweepLegendIndicator {
     position: absolute;
     top: -2px;
     transform: translateX(-50%);
@@ -717,16 +641,16 @@
     z-index: 6;
 }
 
-#shadeTool .vstSweepLegendIndicatorLine {
+#sightlineTool .vstSweepLegendIndicatorLine {
     width: 2px;
     height: 16px;
-    background: var(--color-f);
+    background: #fff;
     box-shadow: 0 0 2px rgba(0,0,0,0.6);
 }
 
-#shadeTool .vstSweepLegendIndicatorLabel {
+#sightlineTool .vstSweepLegendIndicatorLabel {
     font-size: 11px;
-    color: var(--color-f);
+    color: #fff;
     white-space: nowrap;
     margin-top: 1px;
     font-weight: bold;
@@ -735,7 +659,7 @@
     border-radius: 3px;
 }
 
-#shadeTool .vstSweepLegendLabels {
+#sightlineTool .vstSweepLegendLabels {
     display: flex;
     justify-content: space-between;
     font-size: 12px;
@@ -744,13 +668,13 @@
     margin-top: 0;
 }
 
-#shadeTool .vstModeRow {
+#sightlineTool .vstModeRow {
     padding: 4px 8px 2px;
     display: flex;
     justify-content: center;
 }
 
-#shadeTool .vstSweepProgressLabel {
+#sightlineTool .vstSweepProgressLabel {
     font-size: 10px;
     color: var(--color-a5);
     text-align: center;
@@ -759,7 +683,7 @@
 
 /* === Sweep Cards === */
 
-#shadeTool .vstSweepCardsSection {
+#sightlineTool .vstSweepCardsSection {
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -769,31 +693,31 @@
     border-radius: 4px;
     overflow: hidden;
 }
-#shadeTool .vstSweepCardsScroll {
+#sightlineTool .vstSweepCardsScroll {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     padding: 0 8px;
 }
-#shadeTool .vstSweepCards {
+#sightlineTool .vstSweepCards {
     display: flex;
     flex-direction: column;
     gap: 4px;
     padding-bottom: 4px;
 }
 
-#shadeTool .vstSweepCard {
+#sightlineTool .vstSweepCard {
     background: var(--color-a2);
     border-radius: 4px;
     overflow: hidden;
     border: 1px solid var(--color-a2);
     transition: box-shadow 0.15s ease;
 }
-#shadeTool .vstSweepCard:hover {
+#sightlineTool .vstSweepCard:hover {
     box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 
-#shadeTool .vstSweepCardHeader {
+#sightlineTool .vstSweepCardHeader {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -802,7 +726,7 @@
     border-bottom: 2px solid var(--color-a3);
 }
 
-#shadeTool .vstSweepCardDragHandle {
+#sightlineTool .vstSweepCardDragHandle {
     color: var(--color-a4);
     display: flex;
     align-items: center;
@@ -811,19 +735,19 @@
     padding: 2px;
     transition: color 0.15s ease;
 }
-#shadeTool .vstSweepCardDragHandle:hover {
+#sightlineTool .vstSweepCardDragHandle:hover {
     color: var(--color-a7);
 }
-#shadeTool .vstSweepCardDragHandle:active {
+#sightlineTool .vstSweepCardDragHandle:active {
     cursor: grabbing;
 }
 
 /* Drop indicator for drag-to-reorder */
-#shadeTool .vstDropTarget {
+#sightlineTool .vstDropTarget {
     border-bottom: 2px solid var(--color-mmgis) !important;
 }
 
-#shadeTool .vstSweepCardIdentity {
+#sightlineTool .vstSweepCardIdentity {
     display: flex;
     align-items: center;
     gap: 3px;
@@ -831,7 +755,7 @@
     flex: 1;
 }
 
-#shadeTool .vstSweepCardSource {
+#sightlineTool .vstSweepCardSource {
     font-size: 12px;
     color: var(--color-f);
     font-weight: 700;
@@ -840,39 +764,39 @@
     text-overflow: ellipsis;
 }
 
-#shadeTool .vstSweepCardObserver {
+#sightlineTool .vstSweepCardObserver {
     font-size: 12px;
     color: var(--color-a6);
     font-weight: 400;
     white-space: nowrap;
 }
 
-#shadeTool .vstSweepCardBody {
+#sightlineTool .vstSweepCardBody {
     padding: 6px 8px 6px;
 }
 
-#shadeTool .vstSweepCardBody .vstOptionRow {
+#sightlineTool .vstSweepCardBody .vstOptionRow {
     padding: 0;
 }
 
-#shadeTool .vstSweepCardBody .vstOptionLabel {
+#sightlineTool .vstSweepCardBody .vstOptionLabel {
     color: var(--color-a6);
 }
 
-#shadeTool .vstSweepCardBody [class*="suffix"] {
+#sightlineTool .vstSweepCardBody [class*="suffix"] {
     color: var(--color-a6);
 }
 
 
-#shadeTool .vstSweepCardRow {
+#sightlineTool .vstSweepCardRow {
     margin-bottom: 2px;
 }
 
-#shadeTool .vstSweepCardLegend {
+#sightlineTool .vstSweepCardLegend {
     margin-top: 8px;
 }
 
-#shadeTool .vstSweepLegendStop {
+#sightlineTool .vstSweepLegendStop {
     position: absolute;
     top: -1px;
     width: 6px;
@@ -885,18 +809,18 @@
     z-index: 5;
     transition: background 0.1s;
 }
-#shadeTool .vstSweepLegendStop:hover,
-#shadeTool .vstSweepLegendStop.dragging {
+#sightlineTool .vstSweepLegendStop:hover,
+#sightlineTool .vstSweepLegendStop.dragging {
     background: var(--color-mmgis);
     border-color: var(--color-mmgis);
 }
-#shadeTool .vstSweepLegendStopLabel {
+#sightlineTool .vstSweepLegendStopLabel {
     position: absolute;
     top: 17px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 11px;
-    color: var(--color-f);
+    color: #fff;
     white-space: nowrap;
     pointer-events: none;
     opacity: 0;
@@ -906,38 +830,38 @@
     border-radius: 3px;
     z-index: 6;
 }
-#shadeTool .vstSweepLegendStop:hover .vstSweepLegendStopLabel,
-#shadeTool .vstSweepLegendStop.dragging .vstSweepLegendStopLabel {
+#sightlineTool .vstSweepLegendStop:hover .vstSweepLegendStopLabel,
+#sightlineTool .vstSweepLegendStop.dragging .vstSweepLegendStopLabel {
     opacity: 1;
 }
 
-#shadeTool .vstSweepLegendReset {
+#sightlineTool .vstSweepLegendReset {
     margin-left: 4px;
     cursor: pointer;
     opacity: 0.6;
     vertical-align: middle;
 }
-#shadeTool .vstSweepLegendReset:hover {
+#sightlineTool .vstSweepLegendReset:hover {
     opacity: 1;
     color: var(--color-mmgis);
 }
 
 
 
-#shadeTool .vstSweepCardSkyDome {
+#sightlineTool .vstSweepCardSkyDome {
     display: flex;
     justify-content: center;
     padding: 4px 0;
     position: relative;
 }
 
-#shadeTool .vstSweepCardSkyDome canvas {
+#sightlineTool .vstSweepCardSkyDome canvas {
     width: 180px;
     height: 180px;
     border-radius: 50%;
 }
 
-#shadeTool .vstSweepCardMiniIndicators {
+#sightlineTool .vstSweepCardMiniIndicators {
     position: absolute;
     top: 4px;
     left: 0;
@@ -947,19 +871,342 @@
     pointer-events: none;
 }
 
-#shadeTool .vstSweepCardMiniIndicator {
+#sightlineTool .vstSweepCardMiniIndicator {
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
-#shadeTool .vstSweepCardMiniIndicator canvas {
+#sightlineTool .vstSweepCardMiniIndicator canvas {
     width: 50px;
     height: 50px;
 }
 
-#shadeTool .vstSweepCardMiniLabel {
+#sightlineTool .vstSweepCardMiniLabel {
     font-size: 12px;
     color: var(--color-a7);
     margin-bottom: 2px;
+}
+
+/* ====== Center Crosshair ====== */
+
+.sightlineCenterCrosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 800;
+}
+.sightlineCrosshairCircle {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    top: -7px;
+    left: -7px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 3px rgba(0,0,0,0.7), inset 0 0 3px rgba(0,0,0,0.7);
+}
+.sightlineCrosshairN,
+.sightlineCrosshairS,
+.sightlineCrosshairE,
+.sightlineCrosshairW {
+    position: absolute;
+    background: #fff;
+    box-shadow: 0 0 3px rgba(0,0,0,0.7);
+}
+.sightlineCrosshairN,
+.sightlineCrosshairS {
+    width: 2px;
+    height: 7px;
+    left: -1px;
+}
+.sightlineCrosshairN {
+    top: -16px;
+}
+.sightlineCrosshairS {
+    top: 9px;
+}
+.sightlineCrosshairE,
+.sightlineCrosshairW {
+    height: 2px;
+    width: 7px;
+    top: -1px;
+}
+.sightlineCrosshairE {
+    left: 9px;
+}
+.sightlineCrosshairW {
+    left: -16px;
+}
+
+/* ====== Azimuth Radial Line ====== */
+
+.sightlineAzimuthLine {
+    position: absolute;
+    pointer-events: none;
+    z-index: 799;
+}
+.sightlineAzimuthLine svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* ====== Graph buttons (playback mode) ====== */
+
+#sightlineTool .vstGraphButtons {
+    display: flex;
+    gap: 4px;
+    padding: 6px 4px 4px;
+    justify-content: center;
+}
+
+
+
+/* ====== Bottom bar graph container ====== */
+
+.sightlineGraphContainer {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background: var(--color-a);
+    position: relative;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.sightlineGraphClose {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    z-index: 10;
+    cursor: pointer;
+    color: var(--color-a5);
+    transition: color 0.15s ease;
+    line-height: 1;
+}
+.sightlineGraphClose:hover {
+    color: var(--color-f);
+}
+
+.sightlineGraphExcludedInfo {
+    position: absolute;
+    top: 4px;
+    left: 8px;
+    z-index: 10;
+    font-size: 11px;
+    color: var(--color-a5);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+}
+.sightlineGraphExcludedInfo .mdi {
+    font-size: 14px;
+    color: var(--color-a4);
+}
+
+.sightlineGraphPanel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    border-bottom: 1px solid var(--color-a1);
+    overflow: hidden;
+    position: relative;
+}
+.sightlineGraphPanel:last-of-type {
+    border-bottom: none;
+}
+.sightlineVisPanel {
+    flex: 0 0 auto;
+}
+
+.sightlineGraphTitle {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-a6);
+    padding: 4px 8px;
+    flex-shrink: 0;
+}
+
+.sightlineGraphCanvas {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    cursor: pointer;
+}
+
+/* ====== Div-based Visibility Timeline ====== */
+
+.sightlineVisWrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 8px;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.sightlineVisRow {
+    display: flex;
+    align-items: center;
+    height: 18px;
+    gap: 4px;
+}
+
+.sightlineVisLabel {
+    width: 120px;
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 1;
+    color: var(--color-a6);
+}
+.sightlineVisLabelSuffix {
+    font-weight: 400;
+    opacity: 1;
+    font-size: 12px;
+}
+
+.sightlineVisBar {
+    flex: 1;
+    height: 14px;
+    position: relative;
+    background: rgba(40,40,40,0.3);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.sightlineVisSegment {
+    position: absolute;
+    top: 0;
+    height: 100%;
+}
+
+.sightlineVisSlider {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e53935;
+    pointer-events: none;
+    z-index: 10;
+}
+.sightlineVisSlider::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -4px;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid #e53935;
+}
+
+.sightlineVisTimeLabels {
+    position: relative;
+    height: 24px;
+    flex-shrink: 0;
+    margin-right: 8px;
+}
+
+.sightlineVisTimeTick {
+    position: absolute;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translateX(-50%);
+}
+
+.sightlineVisTimeTickLine {
+    width: 1px;
+    height: 6px;
+    background: var(--color-a4);
+}
+
+.sightlineVisTimeTickText {
+    font-size: 9px;
+    color: var(--color-a4);
+    white-space: nowrap;
+}
+
+/* ====== Horizon hover line ====== */
+
+.sightlineHorizonHoverLine {
+    position: absolute;
+    top: 24px;
+    bottom: 0;
+    width: 0;
+    border-left: 1.5px dashed rgba(255,255,255,0.6);
+    pointer-events: none;
+    z-index: 5;
+    display: none;
+}
+
+/* ====== Graph time controls bar ====== */
+
+.sightlineGraphTimeControls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    flex-shrink: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sightlineGraphPlayBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--color-a5);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-family: inherit;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+}
+.sightlineGraphPlayBtn:hover {
+    background: var(--color-a1);
+    color: var(--color-f);
+}
+.sightlineGraphPlayBtnActive {
+    background: var(--color-a2);
+    color: var(--color-f);
+}
+.sightlineGraphTimeSlider {
+    flex: 1;
+    height: 4px;
+    cursor: pointer;
+    accent-color: #e53935;
+}
+.sightlineGraphTimeLabel {
+    font-size: 14px;
+    color: var(--color-a6);
+    white-space: nowrap;
+    min-width: 50px;
+    text-align: right;
 }

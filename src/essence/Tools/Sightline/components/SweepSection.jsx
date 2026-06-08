@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import useShadeStore from '../store'
-import ShadeTool from '../ShadeTool'
+import useSightlineStore from '../store'
+import SightlineTool from '../SightlineTool'
 import SweepCard from './SweepCard'
 import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import TimeUI from '../../../Basics/TimeControl_/TimeUI'
@@ -36,22 +36,22 @@ function getTimeUIMode() {
 }
 
 export default function SweepSection() {
-    const sweepStart = useShadeStore((s) => s.sweepStart)
-    const sweepEnd = useShadeStore((s) => s.sweepEnd)
-    const sweepStep = useShadeStore((s) => s.sweepStep)
-    const sweepProgress = useShadeStore((s) => s.sweepProgress)
-    const sweepProgressPct = useShadeStore((s) => s.sweepProgressPct)
-    const sweepPlaying = useShadeStore((s) => s.sweepPlaying)
-    const sweepPlayIndex = useShadeStore((s) => s.sweepPlayIndex)
-    const sweepViewMode = useShadeStore((s) => s.sweepViewMode)
-    const sweepStale = useShadeStore((s) => s.sweepStale)
-    const sweepElData = useShadeStore((s) => s.sweepElData)
-    const sweepCardOrder = useShadeStore((s) => s.sweepCardOrder)
-    const elements = useShadeStore((s) => s.elements)
-    const sweepDiscrete = useShadeStore((s) => s.sweepDiscrete)
-    const sweepFitToData = useShadeStore((s) => s.sweepFitToData)
-    const setSweepField = useShadeStore((s) => s.setSweepField)
-    const setSweepCardOrder = useShadeStore((s) => s.setSweepCardOrder)
+    const sweepStart = useSightlineStore((s) => s.sweepStart)
+    const sweepEnd = useSightlineStore((s) => s.sweepEnd)
+    const sweepStep = useSightlineStore((s) => s.sweepStep)
+    const sweepProgress = useSightlineStore((s) => s.sweepProgress)
+    const sweepProgressPct = useSightlineStore((s) => s.sweepProgressPct)
+    const sweepPlaying = useSightlineStore((s) => s.sweepPlaying)
+    const sweepPlayIndex = useSightlineStore((s) => s.sweepPlayIndex)
+    const sweepViewMode = useSightlineStore((s) => s.sweepViewMode)
+    const sweepStale = useSightlineStore((s) => s.sweepStale)
+    const sweepElData = useSightlineStore((s) => s.sweepElData)
+    const sweepCardOrder = useSightlineStore((s) => s.sweepCardOrder)
+    const elements = useSightlineStore((s) => s.elements)
+    const sweepDiscrete = useSightlineStore((s) => s.sweepDiscrete)
+    const sweepFitToData = useSightlineStore((s) => s.sweepFitToData)
+    const setSweepField = useSightlineStore((s) => s.setSweepField)
+    const setSweepCardOrder = useSightlineStore((s) => s.setSweepCardOrder)
 
     const dragItemRef = useRef(null)
     const [dropTargetId, setDropTargetId] = useState(null)
@@ -100,7 +100,7 @@ export default function SweepSection() {
 
         syncFromTimeUI()
 
-        TimeControl.subscribe('ShadeTool_Sweep', (t) => {
+        TimeControl.subscribe('SightlineTool_Sweep', (t) => {
             const mode = getTimeUIMode()
             if (mode === 'Point') {
                 if (t.currentTime) setSweepField('sweepStart', fmtUTC(t.currentTime))
@@ -111,52 +111,52 @@ export default function SweepSection() {
         })
 
         return () => {
-            TimeControl.unsubscribe('ShadeTool_Sweep')
+            TimeControl.unsubscribe('SightlineTool_Sweep')
         }
     }, [setSweepField])
 
     const handleSweep = useCallback(() => {
         if (!sweepStart || !sweepEnd || !sweepStep) return
-        ShadeTool.shadeSweepAll(sweepStart, sweepEnd, sweepStep)
+        SightlineTool.sightlineSweepAll(sweepStart, sweepEnd, sweepStep)
     }, [sweepStart, sweepEnd, sweepStep])
 
     const handleDiscreteChange = useCallback((val) => {
         setSweepField('sweepDiscrete', val === 'discrete')
-        setTimeout(() => ShadeTool.refreshHeatmap(), 0)
+        setTimeout(() => SightlineTool.refreshHeatmap(), 0)
     }, [setSweepField])
 
     const handleFitModeChange = useCallback((val) => {
         setSweepField('sweepFitToData', val === 'fit')
-        setTimeout(() => ShadeTool.refreshHeatmap(), 0)
+        setTimeout(() => SightlineTool.refreshHeatmap(), 0)
     }, [setSweepField])
 
     const handlePlayNormal = useCallback(() => {
         setSweepField('sweepPlaySpeed', SPEED_NORMAL)
-        ShadeTool.updateSweepSpeed(SPEED_NORMAL)
-        if (!useShadeStore.getState().sweepPlaying) ShadeTool.sweepPlay()
+        SightlineTool.updateSweepSpeed(SPEED_NORMAL)
+        if (!useSightlineStore.getState().sweepPlaying) SightlineTool.sweepPlay()
     }, [setSweepField])
 
     const handlePlayFast = useCallback(() => {
         setSweepField('sweepPlaySpeed', SPEED_FAST)
-        ShadeTool.updateSweepSpeed(SPEED_FAST)
-        if (!useShadeStore.getState().sweepPlaying) ShadeTool.sweepPlay()
+        SightlineTool.updateSweepSpeed(SPEED_FAST)
+        if (!useSightlineStore.getState().sweepPlaying) SightlineTool.sweepPlay()
     }, [setSweepField])
 
     const handlePause = useCallback(() => {
-        if (useShadeStore.getState().sweepPlaying) ShadeTool.sweepPlay()
+        if (useSightlineStore.getState().sweepPlaying) SightlineTool.sweepPlay()
     }, [])
 
     const handleTimelineScrub = useCallback((v) => {
         setSweepField('sweepPlayIndex', v)
-        ShadeTool.sweepShowAllFrames()
+        SightlineTool.sweepShowAllFrames()
     }, [setSweepField])
 
     const handleViewModeChange = useCallback((mode) => {
-        const store = useShadeStore.getState()
+        const store = useSightlineStore.getState()
         if (mode === 'playback') {
-            ShadeTool.sweepShowAllFrames()
+            SightlineTool.sweepShowAllFrames()
         } else {
-            ShadeTool.sweepShowComposite(store.activeElmId)
+            SightlineTool.sweepShowComposite(store.activeElmId)
         }
     }, [])
 
@@ -183,14 +183,14 @@ export default function SweepSection() {
         setDropTargetId(null)
         const draggedId = dragItemRef.current
         if (draggedId == null || draggedId === targetId) return
-        const order = [...(useShadeStore.getState().sweepCardOrder || [])]
+        const order = [...(useSightlineStore.getState().sweepCardOrder || [])]
         const fromIdx = order.indexOf(draggedId)
         const toIdx = order.indexOf(targetId)
         if (fromIdx < 0 || toIdx < 0) return
         order.splice(fromIdx, 1)
         order.splice(toIdx, 0, draggedId)
         setSweepCardOrder(order)
-        ShadeTool.reorderSweepLayers(order)
+        SightlineTool.reorderSweepLayers(order)
         dragItemRef.current = null
     }, [setSweepCardOrder])
 
@@ -250,7 +250,7 @@ export default function SweepSection() {
                         <IconButton
                             size="sm"
                             title="Cancel sweep"
-                            onClick={() => ShadeTool.cancelSweep()}
+                            onClick={() => SightlineTool.cancelSweep()}
                             style={{ marginLeft: 6 }}
                         >
                             <i className="mdi mdi-close mdi-14px" />
@@ -333,7 +333,7 @@ export default function SweepSection() {
                             <IconButton
                                 size="md"
                                 title="Step back"
-                                onClick={() => ShadeTool.sweepStepBack()}
+                                onClick={() => SightlineTool.sweepStepBack()}
                             >
                                 <i className="mdi mdi-skip-previous mdi-18px" />
                             </IconButton>
@@ -366,7 +366,7 @@ export default function SweepSection() {
                             <IconButton
                                 size="md"
                                 title="Step forward"
-                                onClick={() => ShadeTool.sweepStepForward()}
+                                onClick={() => SightlineTool.sweepStepForward()}
                             >
                                 <i className="mdi mdi-skip-next mdi-18px" />
                             </IconButton>

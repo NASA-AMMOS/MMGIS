@@ -1,8 +1,8 @@
 {
-    "defaultIcon": "sun-angle-outline",
-    "description": "Realtime user generated sun and orbiter masks (React).",
+    "defaultIcon": "brightness-4",
+    "description": "Line-of-sight visibility analysis for SPICE bodies over terrain (React).",
     "descriptionFull": {
-        "title": "Shades the ground when line-of-sights to an orbiting target are occluded.",
+        "title": "Computes and visualizes line-of-sight visibility to orbiting or celestial targets over terrain.",
         "example": {
             "dem": "Data/missionDEM.tif",
             "data": [
@@ -38,12 +38,12 @@
         }
     },
     "hasVars": true,
-    "name": "Shade",
+    "name": "Sightline",
     "toolbarPriority": 102,
     "paths": {
-        "ShadeTool": "essence/Tools/Shade/ShadeTool",
-        "ShadeTool_Manager": "essence/Tools/Shade/ShadeTool_Manager",
-        "ShadeTool_Algorithm": "essence/Tools/Shade/ShadeTool_Algorithm"
+        "SightlineTool": "essence/Tools/Sightline/SightlineTool",
+        "SightlineTool_Manager": "essence/Tools/Sightline/SightlineTool_Manager",
+        "SightlineTool_Algorithm": "essence/Tools/Sightline/SightlineTool_Algorithm"
     },
     "expandable": true,
     "config": {
@@ -64,7 +64,7 @@
                     {
                         "field": "variables.data",
                         "name": "Layer specific DEMs",
-                        "description": "At minimum, the Shade tool requires at least one 'data' source.",
+                        "description": "At minimum, the Sightline tool requires at least one 'data' source.",
                         "type": "objectarray",
                         "width": 12,
                         "object": [
@@ -116,7 +116,7 @@
                     {
                         "field": "variables.sources",
                         "name": "Sources",
-                        "description": "SPICE bodies that cast shadows.",
+                        "description": "SPICE bodies to compute line-of-sight visibility for.",
                         "type": "objectarray",
                         "width": 12,
                         "object": [

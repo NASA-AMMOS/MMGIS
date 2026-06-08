@@ -103,7 +103,7 @@ export const MISSION_TOOLS = [
   'Measure',
   'Viewshed',
   'Isochrone',
-  'Shade',
+  'Sightline',
   'Chemistry',
   'Curtain',
   'Animation',

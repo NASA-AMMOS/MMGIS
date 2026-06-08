@@ -1,13 +1,13 @@
 ---
 layout: page
-title: Shade
-permalink: /tools/shade
+title: Sightline
+permalink: /tools/sightline
 parent: Tools
 ---
 
-# Shade
+# Sightline
 
-_Shades the ground when line-of-sights to an orbiting target are occluded._
+_Computes and visualizes line-of-sight visibility to orbiting or celestial targets over terrain._
 
 ## SPICE
 
@@ -17,7 +17,7 @@ There are two SPICE python scripts that require these backend kernel setups:
 
 - `/private/api/spice/chronos.py`
   - Converts between time systems.
-  - Looks for `/private/api/spice/chronosSetups/chronos-{target}.setup` where `{target}` here is filled in as a lowercased ShadeTool variables `"observers"`s `"value"`.
+  - Looks for `/private/api/spice/chronosSetups/chronos-{target}.setup` where `{target}` here is filled in as a lowercased SightlineTool variables `"observers"`s `"value"`.
 - `/private/api/spice/ll2aer11.py`
   - Turns a lnglat and target into a directional azimuth, elevation, range, and lntlat
   - Reads in all kernels `/private/api/spice/kernels`.
@@ -74,7 +74,7 @@ There are two SPICE python scripts that require these backend kernel setups:
 
 _**dem**_ - A path to a DEM.tif. This is used to get the current center elevation. This can/should be the same file used for the Measure Tool and the Coordinate's elevation.
 
-_**data**_ - At minimum, the Shade tool requires at least one "data" source. A data source describes a DEM tileset (see /auxiliary/gdal2customtiles or /auxiliary/1bto4b) and allows users to select it by name to generate shade maps over.
+_**data**_ - At minimum, the Sightline tool requires at least one "data" source. A data source describes a DEM tileset (see /auxiliary/gdal2customtiles or /auxiliary/1bto4b) and allows users to select it by name to generate sightline maps over.
 
 _**source**_ - An array of objects with the properties "name" and "value". "name" is the display name for the Source Entity dropdown. "value" is the SPICE spacecraft ID that gets passed to the backend `ll2aerll.py` script. Ensure the right kernels for the configured source entities/targets exist in `/private/api/spice/kernels`.
 
@@ -93,7 +93,7 @@ _**utcTimeFormat**_ - Sets the placeholder information for when the observer tim
 ### Interface
 
 - _Time_
-  - The desired datetime to query. Formatted as `YYYY MMM DD HH:MM:SS` and for example `2023 SEP 06 19:27:05` (or based on `utcTimeFormat`). Updating this time and pressing 'Enter' will set it as the current time for the ShadeTool and for all of MMGIS. It is both connected to the Observer's local time as well as MMGIS' timeline (expandable via the clock icon in the bottom left of the screen).
+  - The desired datetime to query. Formatted as `YYYY MMM DD HH:MM:SS` and for example `2023 SEP 06 19:27:05` (or based on `utcTimeFormat`). Updating this time and pressing 'Enter' will set it as the current time for the SightlineTool and for all of MMGIS. It is both connected to the Observer's local time as well as MMGIS' timeline (expandable via the clock icon in the bottom left of the screen).
 
 #### Source
 
@@ -109,22 +109,22 @@ _**utcTimeFormat**_ - Sets the placeholder information for when the observer tim
 - _Time_
   - Offers the ability to set the current working time using a mission/spacecraft's custom date type.
 - _Height_
-  - Height in meters above the surface to use when calculating line-of-sight shading. For instance, a point on the surface (0m) may not be visible to a 'Source Entity', say the Mars Reconnaissance Orbiter (MRO), but 2m above that point may be. This value does not _only_ apply to the center longitude and latitude but to all points on the visible terrain. Gradually increasing this value shows the shade map n-meters above the surface.
+  - Height in meters above the surface to use when calculating line-of-sight shading. For instance, a point on the surface (0m) may not be visible to a 'Source Entity', say the Mars Reconnaissance Orbiter (MRO), but 2m above that point may be. This value does not _only_ apply to the center longitude and latitude but to all points on the visible terrain. Gradually increasing this value shows the sightline map n-meters above the surface.
 
-#### Shaded Region Options
+#### Visibility Region Options
 
 - _Color_
-  - The color to shade the shadowed regions on the map.
+  - The color to highlight the visible regions on the map.
 - _Opacity_
-  - The opaqueness to shade the shadowed regions on the map. A value of 0 is fully transparent and a value of 1 is fully opaque.
+  - The opaqueness of the visible regions on the map. A value of 0 is fully transparent and a value of 1 is fully opaque.
 - _Resolution_
-  - MMGIS downloads terrain data needed for the shading algorithm. Increasing the resolution improves the quality of the shade map and the cost of download and render speed. Each higher option is 4x the resolution of the previous one (i.e. 'ultra' is 4x more terrain data than 'high' and 16x more data than 'medium'). To save on performance, if the resolution is 'high' or 'ultra', the Shade Tool will no longer regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
+  - MMGIS downloads terrain data needed for the visibility algorithm. Increasing the resolution improves the quality of the sightline map and the cost of download and render speed. Each higher option is 4x the resolution of the previous one (i.e. 'ultra' is 4x more terrain data than 'high' and 16x more data than 'medium'). To save on performance, if the resolution is 'high' or 'ultra', the Sightline Tool will no longer regenerate the visibility map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
 - _Elevation Map_
 
   - Specifies the terrain dataset to use.
 
 - _Generate/Regenerate_
-  - Submits a request to generate a shade map with the provided parameters. Note that if the resolution is 'high' or 'ultra', the Shade Tool will not regenerate the shaded map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
+  - Submits a request to generate a sightline map with the provided parameters. Note that if the resolution is 'high' or 'ultra', the Sightline Tool will not regenerate the visibility map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
 
 #### Results
 
@@ -139,6 +139,69 @@ _**utcTimeFormat**_ - Sets the placeholder information for when the observer tim
 
 - _Azimuth_: A top-down birds-eye view of the surface with north up. The long yellow-orange arrow visualizes the azimuthal direction towards the 'Source Entity'. If 'Include Sun + Earth' is on, shorter Sun and Earth arrows will also appear in the indicator with the respective yellow and green-blue colors.
 - _Elevation_: A horizontal and half-submerged side view of the surface. The long yellow-orange arrow visualizes the elevational direction towards the 'Source Entity'. If 'Include Sun + Earth' is on, shorter Sun and Earth arrows will also appear in the indicator with the respective yellow and green-blue colors. Note that elevation values only goes from -90 -> 90 but that the rendered elevation arrow can be drawn between 0 -> 360. This is because, while only half a circle is needed, the elevation arrow will choose whether to draw in the left or right half circle depending on which half-circle the azimuth value is in. Azimuth values from 0 -> 180 will result in an elevation arrow drawn in the right half-circle and azimuth values from 180 -> 360 will results in an elevation arrow drawn in the left half-circle. This is to aid in visualizing the 'Source Entity's 3D direction.
+
+### Sightline Modes
+
+Each sightline map item can be set to one of three modes:
+
+- **Static**: Generates a single sightline map at the current time. The sightline map regenerates when parameters change.
+- **Composite**: Sweeps through a time range and produces a cumulative heatmap showing how often each point on the ground has line-of-sight across all time steps.
+- **Playback**: Sweeps through a time range and stores each frame. Users can play back the sweep as an animation, stepping through individual sightline frames with time controls.
+
+Multiple sightline maps can be created simultaneously (e.g., Sun + Moon). Each element tracks its own sweep progress independently — starting a sweep on one element does not cancel another.
+
+### Charts (Horizon Profile + Visibility Timeline)
+
+Clicking the **Charts** button on a sightline map item opens a combined bottom panel with two visualizations:
+
+#### Horizon Profile
+
+A 360° terrain horizon profile centered on the observer (map center). The chart shows:
+
+- **Terrain silhouette** (brown fill) — computed by ray-casting from the observer across the DEM in all azimuth directions.
+- **Source trajectory arcs** — the path of each source entity (Sun, Moon, etc.) across the sky during the sweep time range.
+- **Current-frame marker** — a dot on the trajectory showing the source's current position.
+- **0° elevation line** (dashed) — the geometric horizon.
+- **Curvature correction** — when the tool's `curvature` option is enabled, the horizon profile accounts for planetary curvature by subtracting `d²/2R` from sampled terrain elevations (where `R` is the planet radius).
+- **Near-field skip** — DEM samples within 50m of the observer are ignored to reduce blockiness from close-in pixels.
+
+The chart is north-centered (0° N at center, ±180° at edges) and adapts to the current light/dark theme.
+
+#### Visibility Timeline
+
+A per-source horizontal bar showing when the source is visible vs. occluded over the sweep time range:
+
+- **Colored segments indicate the source is visible (line-of-sight above horizon), using the element's configured color.
+- **Gray/white segments indicate the source is occluded.
+- Visibility is computed using the same terrain horizon profile as the chart — the source is visible when its elevation exceeds the interpolated terrain elevation at that azimuth.
+- Transitions between visible/occluded states use a gradient fade.
+- A red slider indicator tracks the current playback frame position.
+- Time labels along the bottom show UTC timestamps spanning the full time range.
+
+#### Azimuth Lines on Map
+
+While the charts panel is open, colored dashed lines are drawn on the map for each sightline element, showing the current azimuth direction toward each source entity. These update in real-time during playback.
+
+#### Time Controls
+
+The combined panel includes shared time controls:
+
+- **Play/Pause** — auto-advance through frames at the configured interval.
+- **Fast-forward** — 4× playback speed.
+- **Step forward/back** — advance or rewind one frame at a time.
+- **Time slider** — scrub to any frame in the sweep.
+- **Time display** — shows the current frame's UTC timestamp.
+
+### Sky Dome
+
+In playback mode, the results section includes a **Sky Dome** — a polar plot showing the full-sky trajectory of source entities. The dome maps azimuth (compass direction, clockwise from north) and elevation (0° at horizon, 90° at zenith) onto a circular projection:
+
+- Cardinal directions (N, S, E, W) are labeled around the perimeter.
+- Elevation rings at 30° and 60° are drawn as dashed circles.
+- Each source's trajectory is plotted as a colored arc; above-horizon points are dots, below-horizon points are smaller/dimmer.
+- The current-frame position is highlighted with a larger marker.
+
+The sky dome background uses a fixed dark color for legibility in both light and dark themes.
 
 ### Algorithm
 

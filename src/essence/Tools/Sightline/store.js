@@ -1,16 +1,16 @@
 import { create } from 'zustand'
 
 export const MULTI_SOURCE_COLORS = [
-    { r: 0, g: 0, b: 0 },
-    { r: 180, g: 40, b: 40 },
-    { r: 40, g: 40, b: 180 },
-    { r: 40, g: 160, b: 40 },
-    { r: 180, g: 120, b: 0 },
-    { r: 120, g: 40, b: 180 },
-    { r: 0, g: 160, b: 160 },
-    { r: 180, g: 0, b: 180 },
-    { r: 100, g: 100, b: 100 },
-    { r: 200, g: 160, b: 60 },
+    { r: 255, g: 180, b: 40 },
+    { r: 230, g: 75, b: 75 },
+    { r: 80, g: 140, b: 255 },
+    { r: 80, g: 210, b: 80 },
+    { r: 255, g: 120, b: 200 },
+    { r: 170, g: 100, b: 255 },
+    { r: 50, g: 210, b: 210 },
+    { r: 255, g: 160, b: 60 },
+    { r: 180, g: 220, b: 80 },
+    { r: 255, g: 210, b: 100 },
 ]
 
 export function buildSourcesList(vars) {
@@ -26,12 +26,12 @@ function makeDefaultElement(id, vars) {
     const color = MULTI_SOURCE_COLORS[id % MULTI_SOURCE_COLORS.length]
     return {
         id,
-        name: `Shade ${id}`,
+        name: `Sightline ${id}`,
         on: true,
         expanded: false,
         dataIndex: 0,
         color: { ...color },
-        opacity: 1.0,
+        opacity: 0.5,
         resolution: 1,
         height: vars?.defaultHeight || 0,
         observer: vars?.observers?.[0]?.value || null,
@@ -44,14 +44,14 @@ function makeDefaultElement(id, vars) {
         regenerating: false,
         changed: true,
         lastError: false,
-        shadeMode: 'static',
+        sightlineMode: 'static',
         sweepProgress: '',
         raeResults: null,
         allResults: null,
     }
 }
 
-const useShadeStore = create((set, get) => ({
+const useSightlineStore = create((set, get) => ({
     vars: null,
     activeElmId: 0,
     elements: {},
@@ -152,7 +152,7 @@ const useShadeStore = create((set, get) => ({
 
     setSweepField: (field, value) => set({ [field]: value }),
 
-    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: 1.0, colorRamp: 'shadow', discrete: false, atlas: null, lastData: null, lastOptions: null, minFrac: 0, maxFrac: 1, playbackLinked: true, localPlayIndex: 0, colorStops: null }),
+    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: 1.0, colorRamp: 'sightline', discrete: false, atlas: null, lastData: null, lastOptions: null, minFrac: 0, maxFrac: 1, colorStops: null }),
     getSweepElData: (elmId) => {
         return get().sweepElData[elmId] || null
     },
@@ -206,7 +206,7 @@ const useShadeStore = create((set, get) => ({
         ]
     },
 
-    getShadeOptions: (elmId) => {
+    getSightlineOptions: (elmId) => {
         const state = get()
         const el = state.elements[elmId]
         if (!el) return null
@@ -218,7 +218,7 @@ const useShadeStore = create((set, get) => ({
             color: { ...el.color },
             opacity: el.opacity,
             resolution: el.resolution,
-            invert: 1,
+            invert: 0,
             target: targets.length > 0 ? targets[0].value : 'false',
             targets,
             compositeMode: 'or',
@@ -230,4 +230,4 @@ const useShadeStore = create((set, get) => ({
     },
 }))
 
-export default useShadeStore
+export default useSightlineStore

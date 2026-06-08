@@ -84,7 +84,7 @@ test.describe('Reference Mission Demo Mission - Smoke Tests', () => {
       'Measure',
       'Viewshed',
       'Isochrone',
-      'Shade',
+      'Sightline',
       'Chemistry',
       'Curtain',
       'Animation'
