@@ -1,4 +1,10 @@
 {
+  "coordinates": {
+    "coordll": true,
+    "coorden": true,
+    "coordelev": true,
+    "coordelevurl": "Data/DEMs/LRO_LOLA_DEM_4000m.tif"
+  },
   "msv": {
     "mission": "Reference-Mission-Lunar-SouthPole",
     "missionFolderName": "Reference-Mission-Lunar-SouthPole",
@@ -152,6 +158,22 @@
             "legendOrientation": "vertical"
           },
           "description": "Lunar south pole 100m/pixel basemap tiles."
+        },
+        {
+          "name": "Elevation - RGBA Tiles",
+          "uuid": "e3f7a2b1-6c4d-4e8f-a9b0-1d2c3e4f5a6b",
+          "type": "data",
+          "visibility": false,
+          "demSourceType": "url",
+          "demtileurl": "Layers/dem_rgba_tiles/{z}/{x}/{y}.png",
+          "demparser": "rgba",
+          "tileformat": "tms",
+          "minZoom": 0,
+          "maxNativeZoom": 6,
+          "maxZoom": 9,
+          "boundingBox": [-180, -90, 180, -60],
+          "controlled": false,
+          "description": "Lunar south pole 100m DEM encoded as RGBA PNG tiles (100km x 100km centered on pole)."
         }
       ],
       "expanded": true,
@@ -212,13 +234,13 @@
       "icon": "brightness-4",
       "js": "SightlineTool",
       "variables": {
-        "dem": "Layers/SPole_100m/lunar_southpole_dem.tif",
+        "dem": "Data/DEMs/LRO_LOLA_DEM_4000m.tif",
         "data": [
           {
             "name": "Lunar South Pole 100m DEM",
-            "demtileurl": "Layers/SPole_100m/{z}/{x}/{y}.png",
+            "demtileurl": "Layers/dem_rgba_tiles/{z}/{x}/{y}.png",
             "minZoom": 0,
-            "maxNativeZoom": 2,
+            "maxNativeZoom": 6,
             "boundingBox": [-180, -90, 180, -60]
           }
         ],
