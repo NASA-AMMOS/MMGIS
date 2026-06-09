@@ -659,8 +659,16 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
     }
 
 
-# Module-level shared state for multiprocessing workers (set before fork)
+# Module-level shared state for multiprocessing workers.
+# On Linux (fork) this is inherited; on Windows/macOS (spawn) it is
+# populated by _init_pool_worker which receives the dict via initializer args.
 _mp_shared = {}
+
+
+def _init_pool_worker(shared_dict):
+    """Pool initializer: copy shared data into the worker's module global."""
+    global _mp_shared
+    _mp_shared = shared_dict
 
 
 def _batch_worker(task):
@@ -755,8 +763,9 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
 
     ds = None  # close DEM before forking
 
-    # Store shared read-only data for workers (inherited via fork COW)
-    _mp_shared = {
+    # Shared read-only data for workers.
+    # Passed via Pool initializer so it works on all platforms (spawn & fork).
+    shared = {
         'dem_f64': dem_f64,
         'px_flat': px_grid.ravel().astype(np.float64),
         'py_flat': py_grid.ravel().astype(np.float64),
@@ -775,12 +784,17 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     use_mp = ncpu > 1 and len(tasks) > 1
 
     if use_mp:
-        with multiprocessing.Pool(ncpu) as pool:
+        # initializer copies shared dict into each worker's module global
+        with multiprocessing.Pool(
+            ncpu, initializer=_init_pool_worker, initargs=(shared,)
+        ) as pool:
             raw_results = pool.map(_batch_worker, tasks)
     else:
+        # Sequential fallback — set module global directly
+        global _mp_shared
+        _mp_shared = shared
         raw_results = [_batch_worker(t) for t in tasks]
-
-    _mp_shared = {}  # release shared memory
+        _mp_shared = {}
 
     results = []
     for i, (grid, az, el) in enumerate(raw_results):
