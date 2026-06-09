@@ -601,7 +601,7 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
   let stdout = '';
   let stderr = '';
   child.stdout.on('data', (data) => { stdout += data; });
-  child.stderr.on('data', (data) => { stderr += data; });
+  child.stderr.on('data', (data) => { stderr += data; process.stderr.write(data); });
   child.stdin.write(payload);
   child.stdin.end();
 
