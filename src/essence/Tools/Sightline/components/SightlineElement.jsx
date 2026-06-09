@@ -96,16 +96,6 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
         [vars]
     )
 
-    const resolutionOptions = useMemo(
-        () => [
-            { value: '0', label: 'Low' },
-            { value: '1', label: 'Medium' },
-            { value: '2', label: 'High' },
-            { value: '3', label: 'Ultra' },
-        ],
-        []
-    )
-
     const sightlineMode = el?.sightlineMode || 'static'
 
     const handleToggle = useCallback(() => {
@@ -661,19 +651,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     />
                                 </div>
                             </div>
-                            <div className="vstOptionRow">
-                                <div className="vstOptionLabel" title="High or Ultra disables auto-regeneration.">
-                                    Resolution
-                                </div>
-                                <Select
-                                    value={String(el.resolution)}
-                                    onValueChange={(v) =>
-                                        handleChange('resolution', parseInt(v))
-                                    }
-                                    options={resolutionOptions}
-                                    className="vstSelect"
-                                />
-                            </div>
+
                         </div>
                     </Collapsible.Content>
                 </Collapsible>

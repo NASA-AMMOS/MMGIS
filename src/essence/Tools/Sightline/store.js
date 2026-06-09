@@ -32,7 +32,7 @@ function makeDefaultElement(id, vars) {
         dataIndex: 0,
         color: { ...color },
         opacity: 0.5,
-        resolution: 1,
+        resolution: 3,
         height: vars?.defaultHeight || 0,
         observer: vars?.observers?.[0]?.value || null,
         sourceIndex: 0,

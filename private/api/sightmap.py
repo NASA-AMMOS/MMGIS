@@ -18,7 +18,6 @@ import sys
 import json
 import math
 import os
-import multiprocessing
 
 import numpy as np
 import numba
@@ -778,52 +777,20 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
     }
 
 
-# Module-level shared state for multiprocessing workers.
-# On Linux (fork) this is inherited; on Windows/macOS (spawn) it is
-# populated by _init_pool_worker which receives the dict via initializer args.
-_mp_shared = {}
-
-
-def _init_pool_worker(shared_dict):
-    """Pool initializer: copy shared data into the worker's module global."""
-    global _mp_shared
-    _mp_shared = shared_dict
-
-
-def _batch_worker(task):
-    """Multiprocessing worker: run Numba kernel for one timestamp."""
-    (dx_flat, dy_flat, el_flat, obs_az, obs_el) = task
-    s = _mp_shared
-    result_flat = np.zeros(s['n_cells'], dtype=np.int8)
-    _numba_march_kernel(
-        result_flat, s['dem_f64'],
-        s['px_flat'], s['py_flat'], dx_flat, dy_flat,
-        s['heights_flat'], el_flat, s['nodata_flat'],
-        s['dem_rows'], s['dem_cols'], s['pixel_scale'],
-        s['planet_radius'], s['march_step'], s['max_march'],
-        s['nd_lo'], s['nd_hi'], s['has_nd']
-    )
-    return (result_flat.reshape(s['out_rows'], s['out_cols']), obs_az, obs_el)
-
-
 def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
                            target, times, obs_ref_frame, obs_body,
                            planet_radius, max_output_dim=400,
                            is_custom='false', custom_az=0, custom_el=0):
     """
     Compute sightmap grids for multiple timestamps in one call.
-    DEM and SPICE kernels loaded once.  Uses multiprocessing to
-    parallelize the Numba march kernel across timestamps.
+    DEM and SPICE kernels loaded once; timestamps processed sequentially.
     """
-    global _mp_shared
-
     package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
     kernels = load_kernels(package_dir, obs_body, target, is_custom)
 
     radii_km = spiceypy.bodvrd(obs_body, "RADII", 3)[1]
     flattening = (radii_km[0] - radii_km[2]) / radii_km[0]
 
-    # Pre-compute SPICE positions for all timestamps (kernels loaded once)
     time_positions = []
     for t_str in times:
         if is_custom == 'true':
@@ -846,7 +813,6 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     for k in kernels:
         spiceypy.unload(os.path.join(package_dir, k))
 
-    # Working DEM: 2× output grid for terrain detail, min 500px.
     working_dim = max(max_output_dim * 2, 500)
     ds, dem, nodata, gt, srs = open_dem(dem_path, max_working_dim=working_dim)
     dem_rows, dem_cols = dem.shape
@@ -858,70 +824,47 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
 
     march_step = max(2.0, float(step))
     max_march = max(dem_rows, dem_cols) * 1.5
+    n_cells = out_rows * out_cols
 
-    # Pre-compute shared grid arrays (timestamp-independent)
     (px_grid, py_grid, cell_heights, nodata_mask,
      nd_lo, nd_hi, has_nd) = _precompute_grid_arrays(
         dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
         step, out_rows, out_cols, obs_height)
 
     dem_f64 = dem.astype(np.float64) if dem.dtype != np.float64 else dem
+    px_flat = px_grid.ravel().astype(np.float64)
+    py_flat = py_grid.ravel().astype(np.float64)
+    heights_flat = cell_heights.ravel().astype(np.float64)
+    nodata_flat = nodata_mask.ravel()
 
-    # Pre-compute per-timestamp arrays (need GDAL for coordinate transforms)
-    tasks = []
-    for tp in time_positions:
+    ds = None
+
+    results = []
+    for i, tp in enumerate(time_positions):
         cell_az, cell_el = _compute_sun_grid(
             tp['sun_vec_km'], tp['obs_az'], tp['obs_el'],
             radii_km, flattening, gt, srs, step, out_rows, out_cols,
             dem_rows, dem_cols)
         dx, dy = _compute_directions(gt, srs, cell_az, px_grid, py_grid)
-        tasks.append((
+
+        result_flat = np.zeros(n_cells, dtype=np.int8)
+        _numba_march_kernel(
+            result_flat, dem_f64,
+            px_flat, py_flat,
             dx.ravel().astype(np.float64),
             dy.ravel().astype(np.float64),
+            heights_flat,
             cell_el.ravel().astype(np.float64),
-            tp['obs_az'], tp['obs_el'],
-        ))
+            nodata_flat,
+            dem_rows, dem_cols, pixel_scale,
+            planet_radius, march_step, max_march,
+            nd_lo, nd_hi, has_nd
+        )
 
-    ds = None  # close DEM before forking
-
-    # Shared read-only data for workers.
-    # Passed via Pool initializer so it works on all platforms (spawn & fork).
-    shared = {
-        'dem_f64': dem_f64,
-        'px_flat': px_grid.ravel().astype(np.float64),
-        'py_flat': py_grid.ravel().astype(np.float64),
-        'heights_flat': cell_heights.ravel().astype(np.float64),
-        'nodata_flat': nodata_mask.ravel(),
-        'dem_rows': dem_rows, 'dem_cols': dem_cols,
-        'pixel_scale': pixel_scale, 'planet_radius': planet_radius,
-        'march_step': march_step, 'max_march': max_march,
-        'nd_lo': nd_lo, 'nd_hi': nd_hi, 'has_nd': has_nd,
-        'out_rows': out_rows, 'out_cols': out_cols,
-        'n_cells': out_rows * out_cols,
-    }
-
-    # Run grids sequentially (multiprocessing disabled for now)
-    use_mp = False
-
-    if use_mp:
-        # initializer copies shared dict into each worker's module global
-        with multiprocessing.Pool(
-            ncpu, initializer=_init_pool_worker, initargs=(shared,)
-        ) as pool:
-            raw_results = pool.map(_batch_worker, tasks)
-    else:
-        # Sequential fallback — set module global directly
-        global _mp_shared
-        _mp_shared = shared
-        raw_results = [_batch_worker(t) for t in tasks]
-        _mp_shared = {}
-
-    results = []
-    for i, (grid, az, el) in enumerate(raw_results):
         results.append({
-            "grid": grid.tolist(),
-            "az": round(az, 4),
-            "el": round(el, 4),
+            "grid": result_flat.reshape(out_rows, out_cols).tolist(),
+            "az": round(tp['obs_az'], 4),
+            "el": round(tp['obs_el'], 4),
             "rows": out_rows,
             "cols": out_cols,
             **bounds_info,

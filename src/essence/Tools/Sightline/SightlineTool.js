@@ -252,11 +252,7 @@ let SightlineTool = {
             if (!el) continue
             // Composite/playback: don't auto-regenerate — just re-enable sweep button
             if (el.sightlineMode === 'composite' || el.sightlineMode === 'playback') continue
-            if (el.resolution <= (store.vars?.dynamicUpdateResCutoff ?? 1)) {
-                SightlineTool.sightline(null, parseInt(id))
-            } else {
-                store.updateElement(parseInt(id), { changed: true, lastError: false })
-            }
+            SightlineTool.sightline(null, parseInt(id))
         }
     },
 
@@ -314,11 +310,7 @@ let SightlineTool = {
                 if (!el) continue
                 // Don't regenerate static sightline for composite/playback elements
                 if (el.sightlineMode === 'composite' || el.sightlineMode === 'playback') continue
-                if (el.resolution <= 1) {
-                    SightlineTool.sightline(null, parseInt(id))
-                } else {
-                    store.updateElement(parseInt(id), { changed: true, lastError: false })
-                }
+                SightlineTool.sightline(null, parseInt(id))
             }
         }, 300)
     },
@@ -356,8 +348,6 @@ let SightlineTool = {
 
         source.height =
             !isNaN(options.height) ? parseFloat(options.height) : 2
-
-        options.resolution = parseInt(options.resolution) || 0
 
         const vars = store.vars
 
@@ -422,7 +412,7 @@ let SightlineTool = {
                 obsRefFrame,
                 obsBody,
                 planetRadius: F_.radiusOfPlanetMajor,
-                maxOutputDim: SightlineTool._resolutionToMaxDim(options.resolution, false),
+                maxOutputDim: SightlineTool._resolutionToMaxDim(false),
                 isCustom: primaryIsCustom ? 'true' : 'false',
                 customAz: primaryIsCustom ? customAz : 0,
                 customEl: primaryIsCustom ? customEl : 0,
@@ -1152,8 +1142,6 @@ let SightlineTool = {
 
         // Always render pixels at full alpha; CSS setOpacity controls visual opacity
         options.color.a = 255
-        options.resolution = parseInt(options.resolution) || 0
-
         const mapRect = document.getElementById('map').getBoundingClientRect()
         const wOffset = mapRect.width / 2
         const hOffset = mapRect.height / 2
@@ -1205,7 +1193,7 @@ let SightlineTool = {
             SightlineTool.parseToUTCTime(ts) + ' UTC'
         )
 
-        const sweepMaxDim = SightlineTool._resolutionToMaxDim(options.resolution, true)
+        const sweepMaxDim = SightlineTool._resolutionToMaxDim(true)
 
         calls.api(
             'sightmap',
@@ -2913,17 +2901,12 @@ let SightlineTool = {
 
     // === Utility ===
 
-    /** Map the UI resolution setting (0=Low..3=Ultra) to maxOutputDim pixels.
-     *  @param {number} res - resolution index from the dropdown
-     *  @param {boolean} isSweep - true for sweep/batch (uses smaller defaults)
-     *  @returns {number} maxOutputDim to send to the sightmap backend
+    /** Get maxOutputDim pixels for the sightmap backend.
+     *  @param {boolean} isSweep - true for sweep/batch (uses smaller default)
+     *  @returns {number} maxOutputDim
      */
-    _resolutionToMaxDim(res, isSweep) {
-        if (isSweep) {
-            // sweep: many frames, keep per-frame cost low
-            return [50, 100, 200, 400][res] || 100
-        }
-        return [100, 200, 400, 800][res] || 200
+    _resolutionToMaxDim(isSweep) {
+        return isSweep ? 400 : 800
     },
 
     parseToUTCTime(time, formatted) {
