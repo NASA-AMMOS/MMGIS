@@ -14,14 +14,10 @@
 #   "bounds": [west, south, east, north]   geographic degrees
 # }
 
-import time as _time_boot
-_t_module_start = _time_boot.monotonic()
-
 import sys
 import json
 import math
 import os
-import time as _time
 
 import numpy as np
 import numba
@@ -30,8 +26,6 @@ from osgeo.gdalconst import GA_ReadOnly
 from osgeo import __version__ as osgeoversion
 
 import spiceypy
-
-_t_import_end = _time.monotonic()
 
 # Ensure PROJ can find its data files when running under a conda/mamba env
 _prefix = os.path.dirname(os.path.dirname(sys.executable))
@@ -597,7 +591,6 @@ _numba_march_kernel(
     0.0, 0.0, False,
 )
 del _warmup_dem, _warmup_res
-_t_warmup_end = _time.monotonic()
 
 
 # ---------------------------------------------------------------------------
@@ -707,31 +700,23 @@ def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
     - Adaptive march step size
     - Elevation-based early cutoff
     """
-    _sub = {}
     march_step = max(2.0, float(step))
     max_march = max(dem_rows, dem_cols) * 1.5
 
-    _t = _time.monotonic()
     (px_grid, py_grid, cell_heights, nodata_mask,
      nd_lo, nd_hi, has_nd) = _precompute_grid_arrays(
         dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
         step, out_rows, out_cols, obs_height)
-    _sub['precompute_grid'] = round(_time.monotonic() - _t, 4)
 
-    _t = _time.monotonic()
     cell_az, cell_el = _compute_sun_grid(
         sun_vec_km, obs_az, obs_el, radii_km, flattening,
         gt, srs, step, out_rows, out_cols, dem_rows, dem_cols)
-    _sub['compute_sun_grid'] = round(_time.monotonic() - _t, 4)
 
-    _t = _time.monotonic()
     dx, dy = _compute_directions(gt, srs, cell_az, px_grid, py_grid)
-    _sub['compute_directions'] = round(_time.monotonic() - _t, 4)
 
     dem_f64 = dem.astype(np.float64) if dem.dtype != np.float64 else dem
     result_flat = np.zeros(out_rows * out_cols, dtype=np.int8)
 
-    _t = _time.monotonic()
     _numba_march_kernel(
         result_flat, dem_f64,
         px_grid.ravel().astype(np.float64),
@@ -745,9 +730,8 @@ def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
         planet_radius, march_step, max_march,
         nd_lo, nd_hi, has_nd
     )
-    _sub['numba_march'] = round(_time.monotonic() - _t, 4)
 
-    return result_flat.reshape(out_rows, out_cols), obs_az, obs_el, _sub
+    return result_flat.reshape(out_rows, out_cols), obs_az, obs_el
 
 
 def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
@@ -757,17 +741,9 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
     """
     Compute the sightmap grid for a single timestamp.
     """
-    _timings = {
-        'imports': round(_t_import_end - _t_module_start, 3),
-        'numba_warmup': round(_t_warmup_end - _t_import_end, 3),
-    }
-
-    _t0 = _time.monotonic()
     package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
     kernels = load_kernels(package_dir, obs_body, target, is_custom)
-    _timings['load_kernels'] = round(_time.monotonic() - _t0, 3)
 
-    _t0 = _time.monotonic()
     if is_custom == 'true':
         obs_az = float(custom_az)
         obs_el = float(custom_el)
@@ -780,40 +756,26 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
                 obs_lng, obs_lat, obs_height, target, time_str,
                 obs_ref_frame, obs_body
             )
-    _timings['spice_azel'] = round(_time.monotonic() - _t0, 3)
 
     # Skip kernel unloading — process exits immediately after response
 
     # Working DEM: 2× output grid for terrain detail, min 500px.
     working_dim = max(max_output_dim * 2, 500)
-    _t0 = _time.monotonic()
     ds, dem, nodata, gt, srs = open_dem(dem_path, max_working_dim=working_dim)
-    _timings['open_dem'] = round(_time.monotonic() - _t0, 3)
     dem_rows, dem_cols = dem.shape
     pixel_scale = get_pixel_scale(ds, gt, srs)
     step = max(1, max(dem_rows, dem_cols) // max_output_dim)
     out_rows = (dem_rows + step - 1) // step
     out_cols = (dem_cols + step - 1) // step
-    _timings['open_dem_info'] = (
-        "working_dim=%d actual=%dx%d maxOutputDim=%d"
-        % (working_dim, dem_cols, dem_rows, max_output_dim))
-    _timings['grid_params'] = (
-        "step=%d out=%dx%d pixel_scale=%.2f"
-        % (step, out_cols, out_rows, pixel_scale))
 
-    _t0 = _time.monotonic()
-    result, obs_az, obs_el, march_detail = _ray_march_grid(
+    result, obs_az, obs_el = _ray_march_grid(
         dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
         step, out_rows, out_cols, obs_height, sun_vec_km,
         obs_az, obs_el, radii_km, flattening, planet_radius
     )
-    _timings['ray_march_grid'] = round(_time.monotonic() - _t0, 3)
-    _timings['march_detail'] = march_detail
 
     bounds_info = _compute_bounds(ds, gt, srs, dem_rows, dem_cols)
     ds = None
-
-    _timings['total'] = round(_time.monotonic() - _t_module_start, 3)
 
     return {
         "grid": result.tolist(),
@@ -822,7 +784,6 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
         "rows": out_rows,
         "cols": out_cols,
         **bounds_info,
-        "_debug_timing": _timings,
     }
 
 
