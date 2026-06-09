@@ -45,12 +45,6 @@ gdal.UseExceptions()
 
 NODATA_SENTINEL = -1100101
 
-# Module-level DEM cache: avoids re-reading the same file at the same
-# working resolution on repeated calls (sweep timestamps, re-generate).
-# Key = (dem_path, max_working_dim), value = (arr, nodata, gt, srs).
-_dem_cache = {}
-_DEM_CACHE_MAX = 4  # evict oldest when this many entries are cached
-
 
 # ---------------------------------------------------------------------------
 # SPICE helpers
@@ -123,41 +117,39 @@ def get_sun_vector_and_azel(lng, lat, height, target, time_str,
 # DEM / coordinate helpers
 # ---------------------------------------------------------------------------
 
-def _disk_cache_path(dem_path, max_working_dim):
-    """Return path for the .npy disk cache of a decimated DEM."""
-    base = os.path.splitext(dem_path)[0]
-    return "%s._sightcache_%d.npy" % (base, max_working_dim)
-
-
-def _disk_cache_meta_path(dem_path, max_working_dim):
-    """Return path for the JSON metadata of a cached decimated DEM."""
-    base = os.path.splitext(dem_path)[0]
-    return "%s._sightcache_%d.json" % (base, max_working_dim)
+def _is_cog(ds):
+    """Check if a GDAL dataset is a Cloud Optimized GeoTIFF."""
+    driver = ds.GetDriver()
+    if driver is None or driver.ShortName != 'GTiff':
+        return False
+    md = ds.GetMetadata('IMAGE_STRUCTURE') or {}
+    layout = md.get('LAYOUT', '').upper()
+    if layout == 'COG':
+        return True
+    # Also accept tiled TIFFs with overviews (effectively COG-like)
+    band = ds.GetRasterBand(1)
+    block_w, block_h = band.GetBlockSize()
+    has_tiling = (block_w < ds.RasterXSize or block_h < ds.RasterYSize)
+    has_overviews = band.GetOverviewCount() > 0
+    return has_tiling and has_overviews
 
 
 def open_dem(dem_path, max_working_dim=None):
     """Open DEM and return (ds, band_array, nodata, geotransform, srs).
 
     If *max_working_dim* is given and the DEM's largest dimension exceeds it,
-    the raster is decimated.  A disk-based .npy cache is kept next to the DEM
-    so that subsequent Python process invocations skip the slow GDAL
-    read+decimate step entirely (~0.01s vs ~12s for large DEMs).
+    the raster is decimated using GDAL overview bands (requires the DEM to be
+    a COG or tiled GeoTIFF with overviews).
 
-    Cache invalidation: the cache is rebuilt if the source DEM file is newer
-    than the cache file.
+    Raises RuntimeError if the DEM is not a COG and decimation is needed.
+    Small DEMs that don't need decimation are read directly regardless of format.
     """
-    global _dem_cache
-
-    cache_key = (dem_path, max_working_dim)
-    if cache_key in _dem_cache:
-        arr, nodata, gt, srs = _dem_cache[cache_key]
-        ds = gdal.Open(dem_path, GA_ReadOnly)
-        return ds, arr, nodata, gt, srs
-
     ds = gdal.Open(dem_path, GA_ReadOnly)
     if ds is None:
         raise RuntimeError("Could not open DEM: " + dem_path)
-
+    band = ds.GetRasterBand(1)
+    nodata = band.GetNoDataValue()
+    gt = list(ds.GetGeoTransform())
     srs = osr.SpatialReference()
     if int(osgeoversion[0]) >= 3:
         srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
@@ -166,31 +158,23 @@ def open_dem(dem_path, max_working_dim=None):
     native_cols = ds.RasterXSize
     native_rows = ds.RasterYSize
     max_native = max(native_rows, native_cols)
-    needs_decimate = (max_working_dim is not None and max_native > max_working_dim)
 
-    # Try loading from disk cache (persists across process invocations)
-    if needs_decimate:
-        npy_path = _disk_cache_path(dem_path, max_working_dim)
-        meta_path = _disk_cache_meta_path(dem_path, max_working_dim)
-        arr, gt, nodata = _load_disk_cache(dem_path, npy_path, meta_path)
-        if arr is not None:
-            gt = tuple(gt)
-            if len(_dem_cache) >= _DEM_CACHE_MAX:
-                del _dem_cache[next(iter(_dem_cache))]
-            _dem_cache[cache_key] = (arr, nodata, gt, srs)
-            return ds, arr, nodata, gt, srs
-
-    band = ds.GetRasterBand(1)
-    nodata = band.GetNoDataValue()
-    gt = list(ds.GetGeoTransform())
-
-    if needs_decimate:
-        # Try GDAL overview band first (fast for COGs)
+    if max_working_dim is not None and max_native > max_working_dim:
+        if not _is_cog(ds):
+            raise RuntimeError(
+                "DEM '%s' (%dx%d) is not a Cloud Optimized GeoTIFF (COG). "
+                "Large DEMs must be COGs for acceptable performance. "
+                "Convert with: gdal_translate %s %s -of COG"
+                % (dem_path, native_cols, native_rows,
+                   dem_path, dem_path.replace('.tif', '_cog.tif'))
+            )
+        # Read from overview band at the target resolution
         arr = _read_via_overview(band, native_cols, native_rows,
                                  max_working_dim)
         if arr is not None:
             buf_rows, buf_cols = arr.shape
         else:
+            # COG but no suitable overview — decimate from full res
             scale = max_working_dim / max_native
             buf_cols = max(1, int(round(native_cols * scale)))
             buf_rows = max(1, int(round(native_rows * scale)))
@@ -198,48 +182,15 @@ def open_dem(dem_path, max_working_dim=None):
         gt[1] = gt[1] * native_cols / buf_cols   # pixel width
         gt[5] = gt[5] * native_rows / buf_rows   # pixel height
         gt = tuple(gt)
-
-        # Save to disk cache for future process invocations
-        _save_disk_cache(npy_path, meta_path, arr, gt, nodata)
     else:
         arr = band.ReadAsArray()
         gt = tuple(gt)
 
-    if len(_dem_cache) >= _DEM_CACHE_MAX:
-        del _dem_cache[next(iter(_dem_cache))]
-    _dem_cache[cache_key] = (arr, nodata, gt, srs)
-
     return ds, arr, nodata, gt, srs
 
 
-def _load_disk_cache(dem_path, npy_path, meta_path):
-    """Load decimated DEM from disk cache. Returns (arr, gt, nodata) or (None, None, None)."""
-    try:
-        if not os.path.exists(npy_path) or not os.path.exists(meta_path):
-            return None, None, None
-        # Invalidate if source DEM is newer than cache
-        if os.path.getmtime(dem_path) > os.path.getmtime(npy_path):
-            return None, None, None
-        with open(meta_path, 'r') as f:
-            meta = json.load(f)
-        arr = np.load(npy_path)
-        return arr, meta['gt'], meta['nodata']
-    except Exception:
-        return None, None, None
-
-
-def _save_disk_cache(npy_path, meta_path, arr, gt, nodata):
-    """Save decimated DEM to disk cache."""
-    try:
-        np.save(npy_path, arr)
-        with open(meta_path, 'w') as f:
-            json.dump({'gt': list(gt), 'nodata': nodata}, f)
-    except Exception:
-        pass  # non-fatal — just skip caching
-
-
 def _read_via_overview(band, native_cols, native_rows, max_working_dim):
-    """Try to read from a GDAL overview band that is close to max_working_dim.
+    """Read from the best GDAL overview band near max_working_dim.
 
     Returns the decimated numpy array, or None if no suitable overview exists.
     """
@@ -247,15 +198,12 @@ def _read_via_overview(band, native_cols, native_rows, max_working_dim):
     if n_overviews == 0:
         return None
 
-    max_native = max(native_rows, native_cols)
     best_ovr = None
     best_dim = None
 
     for i in range(n_overviews):
         ovr = band.GetOverview(i)
         ovr_max = max(ovr.XSize, ovr.YSize)
-        # Pick the smallest overview that is >= max_working_dim, or the
-        # largest overview if all are smaller (still faster than full res).
         if best_ovr is None:
             best_ovr, best_dim = ovr, ovr_max
         elif ovr_max >= max_working_dim:
@@ -267,11 +215,9 @@ def _read_via_overview(band, native_cols, native_rows, max_working_dim):
     if best_ovr is None:
         return None
 
-    # Read the overview, optionally decimating further to hit max_working_dim
     ovr_cols, ovr_rows = best_ovr.XSize, best_ovr.YSize
     ovr_max = max(ovr_rows, ovr_cols)
     if ovr_max > max_working_dim * 1.5:
-        # Decimate the overview to target size
         scale = max_working_dim / ovr_max
         buf_cols = max(1, int(round(ovr_cols * scale)))
         buf_rows = max(1, int(round(ovr_rows * scale)))
