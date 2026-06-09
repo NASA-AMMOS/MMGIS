@@ -155,11 +155,7 @@ def open_dem(dem_path, max_working_dim=None):
     if max_working_dim is not None and max_native > max_working_dim:
         if not _is_cog(ds):
             raise RuntimeError(
-                "DEM '%s' (%dx%d) is not a Cloud Optimized GeoTIFF (COG). "
-                "Large DEMs must be COGs for acceptable performance. "
-                "Convert with: gdal_translate %s %s -of COG"
-                % (dem_path, native_cols, native_rows,
-                   dem_path, dem_path.replace('.tif', '_cog.tif'))
+                "sightmap error: DEM is not a Cloud Optimized GeoTIFF (COG)."
             )
         # Read from overview band at the target resolution
         arr = _read_via_overview(band, native_cols, native_rows,
