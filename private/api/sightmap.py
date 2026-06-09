@@ -354,7 +354,7 @@ def sun_azel_at_cell(cell_lat, cell_lng, sun_vec_km, radii_km, flattening):
 # Vectorized helpers (numpy)
 # ---------------------------------------------------------------------------
 
-COARSE_AZEL_STEP = 10  # compute Sun az/el every N output cells
+COARSE_AZEL_STEP = 50  # compute Sun az/el every N output cells
 
 
 def _vectorized_is_nodata(values, nodata):
@@ -782,10 +782,7 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
             )
     _timings['spice_azel'] = round(_time.monotonic() - _t0, 3)
 
-    _t0 = _time.monotonic()
-    for k in kernels:
-        spiceypy.unload(os.path.join(package_dir, k))
-    _timings['unload_kernels'] = round(_time.monotonic() - _t0, 3)
+    # Skip kernel unloading — process exits immediately after response
 
     # Working DEM: 2× output grid for terrain detail, min 500px.
     working_dim = max(max_output_dim * 2, 500)
@@ -862,8 +859,7 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
                 'obs_el': obs_el,
             })
 
-    for k in kernels:
-        spiceypy.unload(os.path.join(package_dir, k))
+    # Skip kernel unloading — process exits immediately after response
 
     working_dim = max(max_output_dim * 2, 500)
     ds, dem, nodata, gt, srs = open_dem(dem_path, max_working_dim=working_dim)
