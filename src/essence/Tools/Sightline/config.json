@@ -5,15 +5,6 @@
         "title": "Computes and visualizes line-of-sight visibility to orbiting or celestial targets over terrain.",
         "example": {
             "dem": "Data/missionDEM.tif",
-            "data": [
-                {
-                    "name": "User-friendly name for DEM",
-                    "demtileurl": "pathToDEMTiles/{z}/{x}/{y}.png",
-                    "minZoom": 8,
-                    "maxNativeZoom": 18,
-                    "boundingBox": [-122.51, 37.71, -122.41, 37.78]
-                }
-            ],
             "sources": [
                 {
                     "name": "User-friendly name for orbiter or body that 'casts shadows'",
@@ -42,7 +33,6 @@
     "toolbarPriority": 102,
     "paths": {
         "SightlineTool": "essence/Tools/Sightline/SightlineTool",
-        "SightlineTool_Manager": "essence/Tools/Sightline/SightlineTool_Manager",
         "SightlineTool_Algorithm": "essence/Tools/Sightline/SightlineTool_Algorithm"
     },
     "expandable": true,
@@ -56,58 +46,6 @@
                         "description": "A path to a DEM.tif. This is used to get the current center elevation.",
                         "type": "text",
                         "width": 12
-                    }
-                ]
-            },
-            {
-                "components": [
-                    {
-                        "field": "variables.data",
-                        "name": "Layer specific DEMs",
-                        "description": "At minimum, the Sightline tool requires at least one 'data' source.",
-                        "type": "objectarray",
-                        "width": 12,
-                        "object": [
-                            {
-                                "field": "name",
-                                "name": "Name",
-                                "description": "User-friendly name for DEM",
-                                "type": "text",
-                                "width": 2
-                            },
-                            {
-                                "field": "demtileurl",
-                                "name": "DEM Path",
-                                "description": "",
-                                "type": "text",
-                                "width": 8
-                            },
-                            {
-                                "field": "minZoom",
-                                "name": "Minimum Zoom",
-                                "description": "",
-                                "type": "number",
-                                "min": 0,
-                                "step": 1,
-                                "width": 1
-                            },
-                            {
-                                "field": "maxNativeZoom",
-                                "name": "Maximum Native Zoom",
-                                "description": "",
-                                "type": "number",
-                                "min": 0,
-                                "step": 1,
-                                "width": 1
-                            },
-                            {
-                                "field": "boundingBox",
-                                "name": "Bounding Box",
-                                "description": "west,south,east,north in EPSG:4326. Clamps tile requests to this extent.",
-                                "type": "textarray",
-                                "width": 4
-                            }
-                        ]
                     }
                 ]
             },

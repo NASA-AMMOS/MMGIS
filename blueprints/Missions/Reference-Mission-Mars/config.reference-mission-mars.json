@@ -89,15 +89,6 @@
       "js": "SightlineTool",
       "variables": {
         "dem": "Data/DEMs/mars_dem.tif",
-        "data": [
-          {
-            "name": "Mars DEM",
-            "demtileurl": "Data/dem_rgba_tiles/{z}/{x}/{y}.png",
-            "minZoom": 0,
-            "maxNativeZoom": 6,
-            "boundingBox": [-180, -90, 180, 90]
-          }
-        ],
         "sources": [
           {
             "name": "Sun",

@@ -244,20 +244,6 @@
       "js": "SightlineTool",
       "variables": {
         "dem": "Data/DEMs/LRO_LOLA_DEM_4000m.tif",
-        "data": [
-          {
-            "name": "Lunar South Pole 100m DEM",
-            "demtileurl": "Layers/dem_rgba_tiles/{z}/{x}/{y}.png",
-            "minZoom": 0,
-            "maxNativeZoom": 5,
-            "boundingBox": [
-              -180,
-              -90,
-              180,
-              -60
-            ]
-          }
-        ],
         "sources": [
           {
             "name": "Sun",

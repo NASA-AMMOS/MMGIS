@@ -66,16 +66,10 @@ let SightlineTool = {
         useSightlineStore.getState().setVars(vars)
 
         if (vars && vars.__noVars !== true) {
-            if (vars.data == null)
+            if (!vars.dem)
                 console.warn(
-                    'SightlineTool: variables object does not contain key "data"!'
+                    'SightlineTool: variables object does not contain key "dem"!'
                 )
-            else if (vars.data.length == null)
-                console.warn(
-                    'SightlineTool: variables object "data" is not an array!'
-                )
-            else if (vars.data.length == 0)
-                console.warn('SightlineTool: variables object "data" is empty!')
         }
     },
 
