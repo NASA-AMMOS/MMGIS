@@ -84,6 +84,30 @@ function _getViewportProjBounds() {
     return [xmin, ymin, xmax, ymax]
 }
 
+// Creates an L.imageOverlay positioned via projected NW/SE corners.
+// In polar/rotated CRS, L.latLngBounds normalises by min/max lat/lng,
+// which shuffles corners and mispositions the overlay.  This helper
+// overrides _reset so pixel position is computed from the projected
+// NW (xmin, ymax) and SE (xmax, ymin) directly.
+function _projImageOverlay(url, projBounds, options) {
+    const crs = Map_.map.options.crs
+    const nwLL = crs.unproject(L.point(projBounds[0], projBounds[3]))
+    const seLL = crs.unproject(L.point(projBounds[2], projBounds[1]))
+    const overlay = L.imageOverlay(url, L.latLngBounds(nwLL, seLL), options)
+    overlay._reset = function () {
+        const img = this._image
+        if (!img || !this._map) return
+        const nw = this._map.latLngToLayerPoint(nwLL)
+        const se = this._map.latLngToLayerPoint(seLL)
+        const b = new L.Bounds(nw, se)
+        const sz = b.getSize()
+        L.DomUtil.setPosition(img, b.min)
+        img.style.width = sz.x + 'px'
+        img.style.height = sz.y + 'px'
+    }
+    return overlay
+}
+
 let SightlineTool = {
     height: 0,
     width: 300,
@@ -706,29 +730,20 @@ let SightlineTool = {
         }
         ctx.putImageData(imgData, 0, 0)
 
-        let leafletBounds
+        const overlayOpts = { className: 'nofade sightmap-pixelated', interactive: false }
         if (projBounds && Map_.map.options.crs && Map_.map.options.crs.unproject) {
-            // Use projected bounds for correct positioning in custom CRS
-            // projBounds: [xMin, yMin, xMax, yMax] (easting/northing)
-            const sw = Map_.map.options.crs.unproject(
-                L.point(projBounds[0], projBounds[1])
+            L_.layers.layer[layerName] = _projImageOverlay(
+                c.toDataURL(), projBounds, overlayOpts
             )
-            const ne = Map_.map.options.crs.unproject(
-                L.point(projBounds[2], projBounds[3])
-            )
-            leafletBounds = L.latLngBounds(sw, ne)
         } else {
-            // Geographic bounds fallback: [west, south, east, north]
-            leafletBounds = [
+            const leafletBounds = [
                 [bounds[1], bounds[0]], // SW
                 [bounds[3], bounds[2]], // NE
             ]
+            L_.layers.layer[layerName] = L.imageOverlay(
+                c.toDataURL(), leafletBounds, overlayOpts
+            )
         }
-
-        L_.layers.layer[layerName] = L.imageOverlay(c.toDataURL(), leafletBounds, {
-            className: 'nofade sightmap-pixelated',
-            interactive: false,
-        })
         L_.layers.layer[layerName].setZIndex(1000)
         Map_.map.addLayer(L_.layers.layer[layerName])
 
@@ -939,21 +954,20 @@ let SightlineTool = {
 
         const bounds = data._bounds
         const projBounds = data._projBounds
-        let leafletBounds
+        const heatOpts = { className: 'nofade sightmap-pixelated', interactive: false }
         if (projBounds && Map_.map.options.crs && Map_.map.options.crs.unproject) {
-            const sw = Map_.map.options.crs.unproject(L.point(projBounds[0], projBounds[1]))
-            const ne = Map_.map.options.crs.unproject(L.point(projBounds[2], projBounds[3]))
-            leafletBounds = L.latLngBounds(sw, ne)
+            L_.layers.layer[layerName] = _projImageOverlay(
+                c.toDataURL(), projBounds, heatOpts
+            )
         } else if (bounds) {
-            leafletBounds = [[bounds[1], bounds[0]], [bounds[3], bounds[2]]]
+            L_.layers.layer[layerName] = L.imageOverlay(
+                c.toDataURL(),
+                [[bounds[1], bounds[0]], [bounds[3], bounds[2]]],
+                heatOpts
+            )
         } else {
             return
         }
-
-        L_.layers.layer[layerName] = L.imageOverlay(c.toDataURL(), leafletBounds, {
-            className: 'nofade sightmap-pixelated',
-            interactive: false,
-        })
         L_.layers.layer[layerName].addTo(Map_.map)
         SightlineTool.applySweepOpacity(activeElmId)
     },
@@ -1589,26 +1603,26 @@ let SightlineTool = {
 
         const bounds = data._bounds
         const projBounds = data._projBounds
-        let leafletBounds
-        if (projBounds && Map_.map.options.crs && Map_.map.options.crs.unproject) {
-            const sw = Map_.map.options.crs.unproject(L.point(projBounds[0], projBounds[1]))
-            const ne = Map_.map.options.crs.unproject(L.point(projBounds[2], projBounds[3]))
-            leafletBounds = L.latLngBounds(sw, ne)
-        } else if (bounds) {
-            leafletBounds = [[bounds[1], bounds[0]], [bounds[3], bounds[2]]]
-        } else {
-            return
-        }
+        const frameOpts = { className: 'nofade sightmap-pixelated', interactive: false }
 
         const layer = L_.layers.layer[layerName]
         if (layer && layer instanceof L.ImageOverlay) {
             layer.setUrl(imgUrl)
         } else {
             Map_.rmNotNull(layer)
-            L_.layers.layer[layerName] = L.imageOverlay(imgUrl, leafletBounds, {
-                className: 'nofade sightmap-pixelated',
-                interactive: false,
-            })
+            if (projBounds && Map_.map.options.crs && Map_.map.options.crs.unproject) {
+                L_.layers.layer[layerName] = _projImageOverlay(
+                    imgUrl, projBounds, frameOpts
+                )
+            } else if (bounds) {
+                L_.layers.layer[layerName] = L.imageOverlay(
+                    imgUrl,
+                    [[bounds[1], bounds[0]], [bounds[3], bounds[2]]],
+                    frameOpts
+                )
+            } else {
+                return
+            }
             L_.layers.layer[layerName].addTo(Map_.map)
             const st = useSightlineStore.getState()
             st.updateElement(activeElmId, { on: true })
