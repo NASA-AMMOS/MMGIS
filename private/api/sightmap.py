@@ -1000,9 +1000,9 @@ if __name__ == '__main__':
         print(json.dumps(result))
     except Exception:
         import traceback
+        traceback.print_exc(file=sys.stderr)
         print(json.dumps({
             "error": True,
             "message": "sightmap error: " + str(sys.exc_info()[1]),
-            "traceback": traceback.format_exc(),
         }))
         sys.exit(1)
