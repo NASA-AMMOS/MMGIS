@@ -126,12 +126,49 @@ def _is_cog(ds):
     return has_tiling and has_overviews
 
 
-def open_dem(dem_path, max_working_dim=None):
+def _proj_bounds_to_pixel_window(gt, native_cols, native_rows, viewport_bounds):
+    """Convert projected viewport bounds [xmin,ymin,xmax,ymax] to pixel window.
+
+    Returns (xoff, yoff, win_cols, win_rows) clipped to the DEM extent,
+    or None if the viewport doesn't overlap the DEM.
+    """
+    xmin, ymin, xmax, ymax = viewport_bounds
+    # Inverse geotransform: pixel = (proj - origin) / pixel_size
+    # gt[2] and gt[4] are typically 0 for north-up rasters
+    col_min = (xmin - gt[0]) / gt[1]
+    col_max = (xmax - gt[0]) / gt[1]
+    if gt[5] < 0:
+        row_min = (ymax - gt[3]) / gt[5]  # ymax → smaller row
+        row_max = (ymin - gt[3]) / gt[5]
+    else:
+        row_min = (ymin - gt[3]) / gt[5]
+        row_max = (ymax - gt[3]) / gt[5]
+    # Ensure min < max
+    if col_min > col_max:
+        col_min, col_max = col_max, col_min
+    if row_min > row_max:
+        row_min, row_max = row_max, row_min
+    # Clamp to raster extent
+    col_min = max(0, int(math.floor(col_min)))
+    col_max = min(native_cols, int(math.ceil(col_max)))
+    row_min = max(0, int(math.floor(row_min)))
+    row_max = min(native_rows, int(math.ceil(row_max)))
+    win_cols = col_max - col_min
+    win_rows = row_max - row_min
+    if win_cols <= 0 or win_rows <= 0:
+        return None
+    return (col_min, row_min, win_cols, win_rows)
+
+
+def open_dem(dem_path, max_working_dim=None, viewport_bounds=None):
     """Open DEM and return (ds, band_array, nodata, geotransform, srs).
 
-    If *max_working_dim* is given and the DEM's largest dimension exceeds it,
-    the raster is decimated using GDAL overview bands (requires the DEM to be
-    a COG or tiled GeoTIFF with overviews).
+    If *viewport_bounds* is [xmin,ymin,xmax,ymax] in projected coords,
+    only the intersecting region is read (at native resolution, capped
+    at max_working_dim).
+
+    If *max_working_dim* is given and the region exceeds it, the raster
+    is decimated using GDAL overview bands (requires COG).
 
     Raises RuntimeError if the DEM is not a COG and decimation is needed.
     Small DEMs that don't need decimation are read directly regardless of format.
@@ -149,30 +186,59 @@ def open_dem(dem_path, max_working_dim=None):
 
     native_cols = ds.RasterXSize
     native_rows = ds.RasterYSize
-    max_native = max(native_rows, native_cols)
 
-    if max_working_dim is not None and max_native > max_working_dim:
-        if not _is_cog(ds):
-            raise RuntimeError(
-                "DEM is not a Cloud Optimized GeoTIFF (COG)."
-            )
-        # Read from overview band at the target resolution
-        arr = _read_via_overview(band, native_cols, native_rows,
-                                 max_working_dim)
-        if arr is not None:
-            buf_rows, buf_cols = arr.shape
+    # Determine pixel window from viewport bounds
+    win = None
+    if viewport_bounds is not None:
+        win = _proj_bounds_to_pixel_window(gt, native_cols, native_rows,
+                                           viewport_bounds)
+
+    if win is not None:
+        xoff, yoff, win_cols, win_rows = win
+        max_win = max(win_rows, win_cols)
+        # Adjust geotransform origin to window top-left
+        gt[0] = gt[0] + xoff * gt[1] + yoff * gt[2]
+        gt[3] = gt[3] + xoff * gt[4] + yoff * gt[5]
+
+        if max_working_dim is not None and max_win > max_working_dim:
+            if not _is_cog(ds):
+                raise RuntimeError(
+                    "DEM is not a Cloud Optimized GeoTIFF (COG)."
+                )
+            scale = max_working_dim / max_win
+            buf_cols = max(1, int(round(win_cols * scale)))
+            buf_rows = max(1, int(round(win_rows * scale)))
+            arr = band.ReadAsArray(xoff=xoff, yoff=yoff,
+                                   win_xsize=win_cols, win_ysize=win_rows,
+                                   buf_xsize=buf_cols, buf_ysize=buf_rows)
+            gt[1] = gt[1] * win_cols / buf_cols
+            gt[5] = gt[5] * win_rows / buf_rows
         else:
-            # COG but no suitable overview — decimate from full res
-            scale = max_working_dim / max_native
-            buf_cols = max(1, int(round(native_cols * scale)))
-            buf_rows = max(1, int(round(native_rows * scale)))
-            arr = band.ReadAsArray(buf_xsize=buf_cols, buf_ysize=buf_rows)
-        gt[1] = gt[1] * native_cols / buf_cols   # pixel width
-        gt[5] = gt[5] * native_rows / buf_rows   # pixel height
+            arr = band.ReadAsArray(xoff=xoff, yoff=yoff,
+                                   win_xsize=win_cols, win_ysize=win_rows)
         gt = tuple(gt)
     else:
-        arr = band.ReadAsArray()
-        gt = tuple(gt)
+        max_native = max(native_rows, native_cols)
+        if max_working_dim is not None and max_native > max_working_dim:
+            if not _is_cog(ds):
+                raise RuntimeError(
+                    "DEM is not a Cloud Optimized GeoTIFF (COG)."
+                )
+            arr = _read_via_overview(band, native_cols, native_rows,
+                                     max_working_dim)
+            if arr is not None:
+                buf_rows, buf_cols = arr.shape
+            else:
+                scale = max_working_dim / max_native
+                buf_cols = max(1, int(round(native_cols * scale)))
+                buf_rows = max(1, int(round(native_rows * scale)))
+                arr = band.ReadAsArray(buf_xsize=buf_cols, buf_ysize=buf_rows)
+            gt[1] = gt[1] * native_cols / buf_cols
+            gt[5] = gt[5] * native_rows / buf_rows
+            gt = tuple(gt)
+        else:
+            arr = band.ReadAsArray()
+            gt = tuple(gt)
 
     return ds, arr, nodata, gt, srs
 
@@ -744,9 +810,14 @@ def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
 def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
                      target, time_str, obs_ref_frame, obs_body,
                      planet_radius, max_output_dim=400,
-                     is_custom='false', custom_az=0, custom_el=0):
+                     is_custom='false', custom_az=0, custom_el=0,
+                     viewport_bounds=None):
     """
     Compute the sightmap grid for a single timestamp.
+
+    If *viewport_bounds* is [xmin,ymin,xmax,ymax] in projected coords,
+    only the visible DEM region is read — at native resolution when the
+    window fits within max_output_dim, otherwise decimated.
     """
     package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
     kernels = load_kernels(package_dir, obs_body, target, is_custom)
@@ -768,7 +839,9 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
 
     # Working DEM: 2× output grid for terrain detail, min 500px.
     working_dim = max(max_output_dim * 2, 500)
-    ds, dem, nodata, gt, srs = open_dem(dem_path, max_working_dim=working_dim)
+    ds, dem, nodata, gt, srs = open_dem(dem_path,
+                                        max_working_dim=working_dim,
+                                        viewport_bounds=viewport_bounds)
     dem_rows, dem_cols = dem.shape
     pixel_scale = get_pixel_scale(ds, gt, srs)
     step = max(1, max(dem_rows, dem_cols) // max_output_dim)
@@ -938,6 +1011,17 @@ if __name__ == '__main__':
         custom_az = float(input_data.get('customAz', 0))
         custom_el = float(input_data.get('customEl', 0))
 
+        # Parse optional viewport bounds (projected coords: xmin,ymin,xmax,ymax)
+        vp_raw = input_data.get('viewportBounds', None)
+        viewport_bounds = None
+        if vp_raw:
+            try:
+                parts = [float(v) for v in str(vp_raw).split(',')]
+                if len(parts) == 4:
+                    viewport_bounds = parts
+            except (ValueError, TypeError):
+                pass
+
         # Batch mode: multiple timestamps in one call
         times = input_data.get('times', None)
         if times and isinstance(times, list) and len(times) > 0:
@@ -954,6 +1038,7 @@ if __name__ == '__main__':
                 target, time_str, obs_ref_frame, obs_body,
                 planet_radius, max_output_dim,
                 is_custom, custom_az, custom_el,
+                viewport_bounds=viewport_bounds,
             )
         print(json.dumps(result))
     except Exception:

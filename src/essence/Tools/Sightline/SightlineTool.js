@@ -55,6 +55,23 @@ function _flushSweepProgress(elmId, pct, msg, force) {
     }
 }
 
+// Returns [xmin, ymin, xmax, ymax] in projected CRS coordinates, or null
+function _getViewportProjBounds() {
+    const map = Map_.map
+    if (!map) return null
+    const crs = map.options.crs || window.mmgisglobal?.customCRS
+    if (!crs || typeof crs.project !== 'function') return null
+    const bounds = map.getBounds()
+    const sw = crs.project(bounds.getSouthWest())
+    const ne = crs.project(bounds.getNorthEast())
+    // Normalize: ensure min < max
+    const xmin = Math.min(sw.x, ne.x)
+    const ymin = Math.min(sw.y, ne.y)
+    const xmax = Math.max(sw.x, ne.x)
+    const ymax = Math.max(sw.y, ne.y)
+    return [xmin, ymin, xmax, ymax]
+}
+
 let SightlineTool = {
     height: 0,
     width: 300,
@@ -400,6 +417,8 @@ let SightlineTool = {
         const primaryIsCustom =
             primary.value === false || primary.value === 'false'
 
+        const viewportBounds = _getViewportProjBounds()
+
         calls.api(
             'sightmap',
             {
@@ -416,6 +435,7 @@ let SightlineTool = {
                 isCustom: primaryIsCustom ? 'true' : 'false',
                 customAz: primaryIsCustom ? customAz : 0,
                 customEl: primaryIsCustom ? customEl : 0,
+                viewportBounds: viewportBounds ? viewportBounds.join(',') : undefined,
             },
             function (result) {
                 if (result.error) {

@@ -588,6 +588,9 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
   } else {
     payloadObj.time = String(req.body.time);
   }
+  if (req.body.viewportBounds) {
+    payloadObj.viewportBounds = String(req.body.viewportBounds);
+  }
   const payload = JSON.stringify(payloadObj);
 
   // Batch mode may take much longer (N timestamps × ~10s each)
