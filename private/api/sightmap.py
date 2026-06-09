@@ -255,112 +255,263 @@ def sun_azel_at_cell(cell_lat, cell_lng, sun_vec_km, radii_km, flattening):
 
 
 # ---------------------------------------------------------------------------
-# Core sightmap algorithm
+# Vectorized helpers (numpy)
+# ---------------------------------------------------------------------------
+
+COARSE_AZEL_STEP = 10  # compute Sun az/el every N output cells
+
+
+def _vectorized_is_nodata(values, nodata):
+    """Vectorized equivalent of is_nodata()."""
+    mask = np.zeros(values.shape, dtype=bool)
+    if nodata is not None:
+        nd = float(nodata)
+        dec = 10.0 if abs(nd) > 1e9 else 1.0
+        abs_vals = np.abs(values)
+        mask |= (abs_vals >= abs(nd / dec)) & (abs_vals <= abs(nd * dec))
+    mask |= (values > 35000) | (values < -35000)
+    mask |= (values == 1010101)
+    return mask
+
+
+def _pixels_to_geo_batch(gt, srs, px_arr, py_arr):
+    """Convert 2D arrays of pixel (col, row) to geographic (lng, lat)."""
+    proj_x = gt[0] + px_arr * gt[1] + py_arr * gt[2]
+    proj_y = gt[3] + px_arr * gt[4] + py_arr * gt[5]
+    if srs.IsProjected():
+        srs_geo = srs.CloneGeogCS()
+        ct = osr.CoordinateTransformation(srs, srs_geo)
+        shape = proj_x.shape
+        pts = list(zip(proj_x.ravel().tolist(),
+                       proj_y.ravel().tolist(),
+                       [0.0] * int(proj_x.size)))
+        out = np.array(ct.TransformPoints(pts))
+        return out[:, 0].reshape(shape), out[:, 1].reshape(shape)
+    return proj_x.copy(), proj_y.copy()
+
+
+def _sun_azel_batch(lat_arr, lng_arr, sun_vec_km, radii_km, flattening):
+    """
+    Vectorized Sun az/el for 2D arrays of lat/lng (degrees).
+    Pure-numpy equivalent of sun_azel_at_cell().
+    """
+    rpd = math.pi / 180.0
+    a, c = float(radii_km[0]), float(radii_km[2])
+    e2 = 1.0 - (c / a) ** 2
+
+    lat_r = lat_arr * rpd
+    lng_r = lng_arr * rpd
+    cos_lat = np.cos(lat_r)
+    sin_lat = np.sin(lat_r)
+    cos_lng = np.cos(lng_r)
+    sin_lng = np.sin(lng_r)
+
+    # Cell position on ellipsoid (km) — vectorized georec
+    N = a / np.sqrt(1.0 - e2 * sin_lat ** 2)
+    cx = N * cos_lat * cos_lng
+    cy = N * cos_lat * sin_lng
+    cz = N * (1.0 - e2) * sin_lat
+
+    # Direction from cell to Sun
+    tx = sun_vec_km[0] - cx
+    ty = sun_vec_km[1] - cy
+    tz = sun_vec_km[2] - cz
+    t_len = np.maximum(np.sqrt(tx ** 2 + ty ** 2 + tz ** 2), 1e-12)
+    tx /= t_len; ty /= t_len; tz /= t_len
+
+    # Surface normal (ellipsoid gradient)
+    a2, c2 = a ** 2, c ** 2
+    nx = cx / a2; ny = cy / a2; nz = cz / c2
+    n_len = np.maximum(np.sqrt(nx ** 2 + ny ** 2 + nz ** 2), 1e-12)
+    nx /= n_len; ny /= n_len; nz /= n_len
+
+    # Elevation = arcsin(dot(to_sun, normal))
+    sin_el = np.clip(tx * nx + ty * ny + tz * nz, -1.0, 1.0)
+    el = np.degrees(np.arcsin(sin_el))
+
+    # North direction in body-fixed — d(georec)/d(lat)
+    nnx = -a * sin_lat * cos_lng
+    nny = -a * sin_lat * sin_lng
+    nnz = c * cos_lat
+    # Project onto tangent plane
+    dot = nnx * nx + nny * ny + nnz * nz
+    nnx -= dot * nx; nny -= dot * ny; nnz -= dot * nz
+    nn_len = np.sqrt(nnx ** 2 + nny ** 2 + nnz ** 2)
+    safe = nn_len > 1e-12
+    nn_len = np.maximum(nn_len, 1e-12)
+    nnx /= nn_len; nny /= nn_len; nnz /= nn_len
+
+    # East = normal × north
+    ex = ny * nnz - nz * nny
+    ey = nz * nnx - nx * nnz
+    ez = nx * nny - ny * nnx
+    e_len = np.maximum(np.sqrt(ex ** 2 + ey ** 2 + ez ** 2), 1e-12)
+    ex /= e_len; ey /= e_len; ez /= e_len
+
+    # Azimuth = atan2(dot(to_sun, east), dot(to_sun, north))
+    sun_n = tx * nnx + ty * nny + tz * nnz
+    sun_e = tx * ex + ty * ey + tz * ez
+    az = np.degrees(np.arctan2(sun_e, sun_n))
+    az = np.where(az < 0, az + 360.0, az)
+    az = np.where(safe, az, 0.0)
+
+    return az, el
+
+
+def _bilinear_interp_2d(coarse_data, coarse_rows, coarse_cols,
+                         out_rows, out_cols):
+    """Pure-numpy 2D bilinear interpolation on a non-uniform coarse grid."""
+    fy = np.arange(out_rows, dtype=np.float64)
+    fx = np.arange(out_cols, dtype=np.float64)
+    cr = coarse_rows.astype(np.float64)
+    cc = coarse_cols.astype(np.float64)
+
+    iy = np.clip(np.searchsorted(cr, fy, side='right') - 1, 0, len(cr) - 2)
+    ix = np.clip(np.searchsorted(cc, fx, side='right') - 1, 0, len(cc) - 2)
+
+    y0 = cr[iy]; y1 = cr[iy + 1]
+    x0 = cc[ix]; x1 = cc[ix + 1]
+    ty = np.where(y1 != y0, (fy - y0) / (y1 - y0), 0.0)
+    tx = np.where(x1 != x0, (fx - x0) / (x1 - x0), 0.0)
+
+    TY, TX = np.meshgrid(ty, tx, indexing='ij')
+    IY, IX = np.meshgrid(iy, ix, indexing='ij')
+
+    v00 = coarse_data[IY, IX]
+    v01 = coarse_data[IY, IX + 1]
+    v10 = coarse_data[IY + 1, IX]
+    v11 = coarse_data[IY + 1, IX + 1]
+
+    return (v00 * (1 - TY) * (1 - TX) + v10 * TY * (1 - TX) +
+            v01 * (1 - TY) * TX + v11 * TY * TX)
+
+
+# ---------------------------------------------------------------------------
+# Core sightmap algorithm (vectorized)
 # ---------------------------------------------------------------------------
 
 def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
                     step, out_rows, out_cols, obs_height, sun_vec_km,
                     obs_az, obs_el, radii_km, flattening, planet_radius):
     """
-    Compute a single visibility grid by ray-marching each cell toward the Sun.
-    Returns (result_array, obs_az, obs_el).
+    Vectorized visibility grid: all cells processed simultaneously per march
+    step.  Uses a coarse subgrid (#4) for Sun az/el to avoid per-cell SPICE
+    calls, and numpy array ops (#1) instead of Python loops.
     """
     result = np.full((out_rows, out_cols), 0, dtype=np.int8)
-    march_step = max(2.0, step)
+    march_step = max(2.0, float(step))
     max_march = max(dem_rows, dem_cols) * 1.5
 
-    for oy in range(out_rows):
-        py = oy * step
-        if py >= dem_rows:
-            py = dem_rows - 1
-        for ox in range(out_cols):
-            px = ox * step
-            if px >= dem_cols:
-                px = dem_cols - 1
+    # Output cell pixel coordinates
+    oy_arr = np.arange(out_rows)
+    ox_arr = np.arange(out_cols)
+    oy_grid, ox_grid = np.meshgrid(oy_arr, ox_arr, indexing='ij')
+    py_grid = np.minimum(oy_grid * step, dem_rows - 1).astype(np.float64)
+    px_grid = np.minimum(ox_grid * step, dem_cols - 1).astype(np.float64)
 
-            cell_val = float(dem[py, px])
-            if is_nodata(cell_val, nodata):
-                result[oy, ox] = 9
-                continue
+    # Sample DEM heights at cell positions
+    cell_vals = dem[py_grid.astype(int), px_grid.astype(int)].astype(np.float64)
+    nodata_mask = _vectorized_is_nodata(cell_vals, nodata)
+    result[nodata_mask] = 9
+    cell_heights = cell_vals + obs_height
 
-            cell_height = cell_val + obs_height
+    # ---- #4: Coarse Sun az/el subgrid with bilinear interpolation ----
+    if sun_vec_km is not None:
+        cs = COARSE_AZEL_STEP
+        c_rows = np.arange(0, out_rows, cs)
+        c_cols = np.arange(0, out_cols, cs)
+        if c_rows[-1] != out_rows - 1:
+            c_rows = np.append(c_rows, out_rows - 1)
+        if c_cols[-1] != out_cols - 1:
+            c_cols = np.append(c_cols, out_cols - 1)
 
-            # Compute Sun az/el at this cell
-            if sun_vec_km is not None:
-                cell_lng, cell_lat = pixel_to_geo(gt, srs, px, py)
-                cell_az, cell_el = sun_azel_at_cell(
-                    cell_lat, cell_lng, sun_vec_km, radii_km, flattening
-                )
-            else:
-                cell_az = obs_az
-                cell_el = obs_el
+        cr_g, cc_g = np.meshgrid(c_rows, c_cols, indexing='ij')
+        c_py = np.minimum(cr_g * step, dem_rows - 1).astype(np.float64)
+        c_px = np.minimum(cc_g * step, dem_cols - 1).astype(np.float64)
+        c_lng, c_lat = _pixels_to_geo_batch(gt, srs, c_px, c_py)
+        c_az, c_el = _sun_azel_batch(c_lat, c_lng, sun_vec_km, radii_km,
+                                      flattening)
 
-            # If source is below the horizon at this cell, it's in shadow
-            if cell_el <= 0:
-                result[oy, ox] = 0
-                continue
+        cell_az = _bilinear_interp_2d(c_az, c_rows, c_cols, out_rows, out_cols)
+        cell_el = _bilinear_interp_2d(c_el, c_rows, c_cols, out_rows, out_cols)
+    else:
+        cell_az = np.full((out_rows, out_cols), obs_az)
+        cell_el = np.full((out_rows, out_cols), obs_el)
 
-            # Ray-march in DEM pixel space toward the Sun
-            if srs.IsProjected():
-                az_rad = math.radians(cell_az)
-                dx = math.sin(az_rad)
-                dy = -math.cos(az_rad)
-                if gt[5] < 0:
-                    dy = math.cos(az_rad)
-            else:
-                cell_lng_here, cell_lat_here = pixel_to_geo(gt, srs, px, py)
-                cos_lat = math.cos(math.radians(cell_lat_here))
-                az_rad = math.radians(cell_az)
-                dx_geo = math.sin(az_rad) / max(cos_lat, 0.01)
-                dy_geo = math.cos(az_rad)
-                if gt[5] < 0:
-                    dy_geo = -dy_geo
-                mag = math.sqrt(dx_geo ** 2 + dy_geo ** 2)
-                if mag > 0:
-                    dx = dx_geo / mag
-                    dy = dy_geo / mag
-                else:
-                    dx, dy = 0.0, 1.0
+    # Below-horizon → shadow
+    below = cell_el <= 0
+    result[below & ~nodata_mask] = 0
 
-            # March
-            max_el_angle = -90.0
-            r = march_step
-            while r < max_march:
-                sx = px + dx * r
-                sy = py + dy * r
-                ix = int(round(sx))
-                iy = int(round(sy))
+    # Active mask: not nodata and above horizon
+    active = ~nodata_mask & ~below
 
-                if ix < 0 or ix >= dem_cols or iy < 0 or iy >= dem_rows:
-                    break
+    # ---- Ray direction per cell (pixel space) ----
+    is_proj = bool(srs.IsProjected())
+    az_rad = np.radians(cell_az)
+    if is_proj:
+        dx = np.sin(az_rad)
+        dy = np.cos(az_rad) if gt[5] < 0 else -np.cos(az_rad)
+    else:
+        lng_all, lat_all = _pixels_to_geo_batch(gt, srs, px_grid, py_grid)
+        cos_lat = np.maximum(np.cos(np.radians(lat_all)), 0.01)
+        dx_geo = np.sin(az_rad) / cos_lat
+        dy_geo = np.cos(az_rad)
+        if gt[5] < 0:
+            dy_geo = -dy_geo
+        mag = np.maximum(np.sqrt(dx_geo ** 2 + dy_geo ** 2), 1e-12)
+        dx = dx_geo / mag
+        dy = dy_geo / mag
 
-                sample = float(dem[iy, ix])
-                if is_nodata(sample, nodata):
-                    r += march_step
-                    continue
+    # ---- Vectorized ray march ----
+    max_el_ang = np.full((out_rows, out_cols), -90.0)
+    still_active = active.copy()
 
-                dist_m = r * pixel_scale
-                if dist_m < 0.001:
-                    r += march_step
-                    continue
+    r = march_step
+    while r < max_march and np.any(still_active):
+        sx = px_grid + dx * r
+        sy = py_grid + dy * r
+        ix = np.round(sx).astype(np.intp)
+        iy = np.round(sy).astype(np.intp)
 
-                terrain_h = sample
-                if planet_radius > 0:
-                    curvature_drop = (dist_m * dist_m) / (2.0 * planet_radius)
-                    terrain_h -= curvature_drop
+        # Out-of-bounds → resolve cell (no more terrain to check)
+        oob = still_active & (
+            (ix < 0) | (ix >= dem_cols) | (iy < 0) | (iy >= dem_rows))
+        result[oob] = np.where(
+            cell_el[oob] > max_el_ang[oob], 1, 0).astype(np.int8)
+        still_active[oob] = False
 
-                el_angle = math.degrees(
-                    math.atan2(terrain_h - cell_height, dist_m)
-                )
-                if el_angle > max_el_angle:
-                    max_el_angle = el_angle
+        if not np.any(still_active):
+            break
 
-                if max_el_angle >= cell_el:
-                    break
+        # Sample DEM (clamp indices for safety; inactive cells don't matter)
+        ix_s = np.clip(ix, 0, dem_cols - 1)
+        iy_s = np.clip(iy, 0, dem_rows - 1)
+        sample = dem[iy_s, ix_s].astype(np.float64)
+        sample_nd = _vectorized_is_nodata(sample, nodata)
 
-                r += march_step
+        dist_m = r * pixel_scale
+        terrain_h = sample.copy()
+        if planet_radius > 0:
+            terrain_h -= (dist_m * dist_m) / (2.0 * planet_radius)
 
-            result[oy, ox] = 1 if cell_el > max_el_angle else 0
+        el_angle = np.degrees(np.arctan2(terrain_h - cell_heights, dist_m))
+
+        # Update max elevation angle for active, non-nodata samples
+        updatable = still_active & ~sample_nd
+        max_el_ang[updatable] = np.maximum(
+            max_el_ang[updatable], el_angle[updatable])
+
+        # Terrain blocks Sun → shadow
+        blocked = updatable & (max_el_ang >= cell_el)
+        result[blocked] = 0
+        still_active[blocked] = False
+
+        r += march_step
+
+    # Remaining active cells: illuminated if Sun above max terrain angle
+    result[still_active] = np.where(
+        cell_el[still_active] > max_el_ang[still_active], 1, 0
+    ).astype(np.int8)
 
     return result, obs_az, obs_el
 
