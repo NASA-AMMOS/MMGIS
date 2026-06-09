@@ -1250,6 +1250,7 @@ let SightlineTool = {
         )
 
         const sweepMaxDim = SightlineTool._resolutionToMaxDim(true)
+        const sweepViewportBounds = _getViewportProjBounds()
 
         calls.api(
             'sightmap',
@@ -1267,6 +1268,7 @@ let SightlineTool = {
                 isCustom: primaryIsCustom ? 'true' : 'false',
                 customAz: primaryIsCustom ? (el.customAz || 0) : 0,
                 customEl: primaryIsCustom ? (el.customEl || 0) : 0,
+                viewportBounds: sweepViewportBounds ? sweepViewportBounds.join(',') : undefined,
             },
             function (batchResults) {
                 if (sweepRunId !== _sweepRunIds[activeElmId]) return

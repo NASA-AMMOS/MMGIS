@@ -870,7 +870,8 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
 def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
                            target, times, obs_ref_frame, obs_body,
                            planet_radius, max_output_dim=400,
-                           is_custom='false', custom_az=0, custom_el=0):
+                           is_custom='false', custom_az=0, custom_el=0,
+                           viewport_bounds=None):
     """
     Compute sightmap grids for multiple timestamps in one call.
     DEM and SPICE kernels loaded once; timestamps processed sequentially.
@@ -903,7 +904,9 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     # Skip kernel unloading — process exits immediately after response
 
     working_dim = max(max_output_dim * 2, 500)
-    ds, dem, nodata, gt, srs = open_dem(dem_path, max_working_dim=working_dim)
+    ds, dem, nodata, gt, srs = open_dem(dem_path,
+                                        max_working_dim=working_dim,
+                                        viewport_bounds=viewport_bounds)
     dem_rows, dem_cols = dem.shape
     pixel_scale = get_pixel_scale(ds, gt, srs)
     step = max(1, max(dem_rows, dem_cols) // max_output_dim)
@@ -1030,6 +1033,7 @@ if __name__ == '__main__':
                 target, times, obs_ref_frame, obs_body,
                 planet_radius, max_output_dim,
                 is_custom, custom_az, custom_el,
+                viewport_bounds=viewport_bounds,
             )
         else:
             time_str = input_data['time']
