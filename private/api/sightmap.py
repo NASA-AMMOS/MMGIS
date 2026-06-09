@@ -480,7 +480,7 @@ def _bilinear_interp_2d(coarse_data, coarse_rows, coarse_cols,
 # Numba JIT march kernel
 # ---------------------------------------------------------------------------
 
-# @numba.njit(cache=True)  # temporarily disabled for benchmarking
+@numba.njit(cache=True)
 def _numba_march_kernel(result_flat, dem, px_flat, py_flat, dx_flat, dy_flat,
                         heights_flat, el_flat, nodata_flat,
                         dem_rows, dem_cols, pixel_scale,
@@ -577,19 +577,20 @@ def _numba_march_kernel(result_flat, dem, px_flat, py_flat, dx_flat, dy_flat,
             result_flat[i] = 0
 
 
-# Numba warmup disabled for benchmarking
-# _warmup_dem = np.zeros((2, 2), dtype=np.float64)
-# _warmup_res = np.zeros(1, dtype=np.int8)
-# _numba_march_kernel(
-#     _warmup_res, _warmup_dem,
-#     np.array([0.0]), np.array([0.0]),
-#     np.array([1.0]), np.array([0.0]),
-#     np.array([0.0]), np.array([10.0]),
-#     np.array([False]),
-#     2, 2, 100.0, 1737400.0, 1.0, 3.0,
-#     0.0, 0.0, False,
-# )
-# del _warmup_dem, _warmup_res
+# Warm up Numba JIT so the compilation happens at module load, not during
+# the first real sightmap call.  Uses a tiny 2×2 dummy array.
+_warmup_dem = np.zeros((2, 2), dtype=np.float64)
+_warmup_res = np.zeros(1, dtype=np.int8)
+_numba_march_kernel(
+    _warmup_res, _warmup_dem,
+    np.array([0.0]), np.array([0.0]),
+    np.array([1.0]), np.array([0.0]),
+    np.array([0.0]), np.array([10.0]),
+    np.array([False]),
+    2, 2, 100.0, 1737400.0, 1.0, 3.0,
+    0.0, 0.0, False,
+)
+del _warmup_dem, _warmup_res
 
 
 # ---------------------------------------------------------------------------
