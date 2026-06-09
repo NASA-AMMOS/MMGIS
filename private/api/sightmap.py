@@ -155,7 +155,7 @@ def open_dem(dem_path, max_working_dim=None):
     if max_working_dim is not None and max_native > max_working_dim:
         if not _is_cog(ds):
             raise RuntimeError(
-                "sightmap error: DEM is not a Cloud Optimized GeoTIFF (COG)."
+                "DEM is not a Cloud Optimized GeoTIFF (COG)."
             )
         # Read from overview band at the target resolution
         arr = _read_via_overview(band, native_cols, native_rows,
@@ -1003,6 +1003,6 @@ if __name__ == '__main__':
         traceback.print_exc(file=sys.stderr)
         print(json.dumps({
             "error": True,
-            "message": "sightmap error: " + str(sys.exc_info()[1]),
+            "message": str(sys.exc_info()[1]),
         }))
         sys.exit(1)
