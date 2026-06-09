@@ -900,9 +900,8 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
         'n_cells': out_rows * out_cols,
     }
 
-    # Run grids — use multiprocessing if multiple timestamps and CPUs
-    ncpu = min(multiprocessing.cpu_count(), len(tasks), 8)
-    use_mp = ncpu > 1 and len(tasks) > 1
+    # Run grids sequentially (multiprocessing disabled for now)
+    use_mp = False
 
     if use_mp:
         # initializer copies shared dict into each worker's module global
