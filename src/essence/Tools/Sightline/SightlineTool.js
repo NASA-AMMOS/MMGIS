@@ -55,20 +55,32 @@ function _flushSweepProgress(elmId, pct, msg, force) {
     }
 }
 
-// Returns [xmin, ymin, xmax, ymax] in projected CRS coordinates, or null
+// Returns [xmin, ymin, xmax, ymax] in projected CRS coordinates, or null.
+// Samples all 4 container corners so polar/rotated CRS get a correct
+// projected-space envelope (getBounds lat/lng box is wrong for those).
 function _getViewportProjBounds() {
     const map = Map_.map
     if (!map) return null
     const crs = map.options.crs || window.mmgisglobal?.customCRS
     if (!crs || typeof crs.project !== 'function') return null
-    const bounds = map.getBounds()
-    const sw = crs.project(bounds.getSouthWest())
-    const ne = crs.project(bounds.getNorthEast())
-    // Normalize: ensure min < max
-    const xmin = Math.min(sw.x, ne.x)
-    const ymin = Math.min(sw.y, ne.y)
-    const xmax = Math.max(sw.x, ne.x)
-    const ymax = Math.max(sw.y, ne.y)
+    const size = map.getSize()
+    const corners = [
+        [0, 0],
+        [size.x, 0],
+        [size.x, size.y],
+        [0, size.y],
+    ]
+    let xmin = Infinity, ymin = Infinity, xmax = -Infinity, ymax = -Infinity
+    for (const [cx, cy] of corners) {
+        const ll = map.containerPointToLatLng([cx, cy])
+        const p = crs.project(ll)
+        if (p.x < xmin) xmin = p.x
+        if (p.y < ymin) ymin = p.y
+        if (p.x > xmax) xmax = p.x
+        if (p.y > ymax) ymax = p.y
+    }
+    if (!isFinite(xmin) || !isFinite(ymin) || !isFinite(xmax) || !isFinite(ymax))
+        return null
     return [xmin, ymin, xmax, ymax]
 }
 
