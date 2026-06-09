@@ -683,7 +683,14 @@ def _compute_sun_grid(sun_vec_km, obs_az, obs_el, radii_km, flattening,
         c_lng, c_lat = _pixels_to_geo_batch(gt, srs, c_px, c_py)
         c_az, c_el = _sun_azel_batch(c_lat, c_lng, sun_vec_km, radii_km,
                                       flattening)
-        cell_az = _bilinear_interp_2d(c_az, c_rows, c_cols, out_rows, out_cols)
+        # Interpolate az in sin/cos space to avoid 360°/0° wrap artifacts
+        c_az_rad = np.radians(c_az)
+        interp_sin = _bilinear_interp_2d(np.sin(c_az_rad), c_rows, c_cols,
+                                         out_rows, out_cols)
+        interp_cos = _bilinear_interp_2d(np.cos(c_az_rad), c_rows, c_cols,
+                                         out_rows, out_cols)
+        cell_az = np.degrees(np.arctan2(interp_sin, interp_cos))
+        cell_az = np.where(cell_az < 0, cell_az + 360.0, cell_az)
         cell_el = _bilinear_interp_2d(c_el, c_rows, c_cols, out_rows, out_cols)
     else:
         cell_az = np.full((out_rows, out_cols), obs_az)
