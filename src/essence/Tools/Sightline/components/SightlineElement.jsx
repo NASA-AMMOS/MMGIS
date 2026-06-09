@@ -369,7 +369,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     }, [hoverFrac])
 
     const currentResult = useMemo(() => {
-        if (sightlineMode !== 'playback' || !ed?.results || !ed?.atlas) return null
+        if (sightlineMode !== 'playback' || !ed?.results || !ed?.frameImages) return null
         return ed.results[effectivePlayIndex] || null
     }, [sightlineMode, ed, effectivePlayIndex])
 
@@ -384,9 +384,9 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     // Draw sky dome polar plot
     const skyDomeId = `sweepSkyDome_${elmId}`
     useEffect(() => {
-        if (sightlineMode !== 'playback' || !ed?.results || !ed?.atlas || ed.results.length === 0 || !resultsOpen) return
+        if (sightlineMode !== 'playback' || !ed?.results || !ed?.frameImages || ed.results.length === 0 || !resultsOpen) return
         SightlineTool.drawSkyDome(skyDomeId, ed.results, effectivePlayIndex)
-    }, [sightlineMode, ed?.results, ed?.atlas, effectivePlayIndex, skyDomeId, resultsOpen])
+    }, [sightlineMode, ed?.results, ed?.frameImages, effectivePlayIndex, skyDomeId, resultsOpen])
 
     // Auto-open Results when sweep completes for non-static modes.
     // Deps intentionally exclude sightlineMode so that merely switching modes
@@ -405,7 +405,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ed?.results, ed?.grids, ed?.atlas, el?.regenerating, el?.lastResultGrid])
+    }, [ed?.results, ed?.grids, ed?.frameImages, el?.regenerating, el?.lastResultGrid])
 
     if (!el) return null
 

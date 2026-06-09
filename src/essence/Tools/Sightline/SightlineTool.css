@@ -1212,6 +1212,7 @@
 }
 
 /* Backend sightmap overlay — crisp pixel grid, no interpolation */
+img.sightmap-pixelated,
 .sightmap-pixelated img {
     image-rendering: pixelated;
 }
