@@ -191,6 +191,10 @@ const SightlineTool_Graphs = {
             centerLatLng = primaryEd.sweepCenter
             const pt = Map_.map.latLngToContainerPoint(primaryEd.sweepCenter)
             centerPx = { x: pt.x, y: pt.y }
+        } else if (store.indicatorLastDragPoint) {
+            centerLatLng = store.indicatorLastDragPoint
+            const pt = Map_.map.latLngToContainerPoint(store.indicatorLastDragPoint)
+            centerPx = { x: pt.x, y: pt.y }
         } else {
             centerPx = { x: mapRect.width / 2, y: mapRect.height / 2 }
             centerLatLng = Map_.map.containerPointToLatLng([centerPx.x, centerPx.y])

@@ -497,6 +497,13 @@ let SightlineTool = {
                 currentStore.lastData = data
                 currentStore.lastResultGrid = grid
                 currentStore.lastOptions = options
+                // Store the observer position so azimuth indicator lines
+                // compute _localNorthAngle from the correct location
+                // (not the map center, which may be at the pole).
+                currentStore.setSweepElField(activeElmId, 'sweepCenter', {
+                    lat: source.lat,
+                    lng: source.lng,
+                })
                 currentStore.updateElement(activeElmId, {
                     lastData: data,
                     lastResultGrid: grid,
