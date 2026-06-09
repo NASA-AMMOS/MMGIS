@@ -608,6 +608,13 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
   child.on('close', (code) => {
     if (code !== 0) {
       logger("error", "sightmap failure:", "server", null, stderr || stdout);
+      // Try to parse the JSON error from stdout (Python prints structured errors)
+      try {
+        const parsed = JSON.parse(stdout);
+        if (parsed.error) {
+          return res.status(400).json(parsed);
+        }
+      } catch (_) { /* not valid JSON — fall through */ }
       return res.status(400).json({ error: true, message: "sightmap computation failed" });
     }
     try {
