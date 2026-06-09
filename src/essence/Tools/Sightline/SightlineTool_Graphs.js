@@ -1020,9 +1020,12 @@ const SightlineTool_Graphs = {
                 const thisColor = run.visible ? visibleColor : occludedColor
                 const nextDiff = ri < runs.length - 1 && runs[ri + 1].visible !== run.visible
 
-                if (nextDiff) {
+                if (nextDiff && pctWidth > 0) {
                     const nextColor = runs[ri + 1].visible ? visibleColor : occludedColor
-                    span.style.background = `linear-gradient(to right, ${thisColor} 70%, ${nextColor} 100%)`
+                    // Fixed-width fade: ~2% of the total bar regardless of segment size
+                    const fadePct = Math.min(100, (2.0 / pctWidth) * 100)
+                    const solidStop = Math.max(0, 100 - fadePct)
+                    span.style.background = `linear-gradient(to right, ${thisColor} ${solidStop}%, ${nextColor} 100%)`
                 } else {
                     span.style.background = thisColor
                 }
