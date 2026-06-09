@@ -66,6 +66,22 @@ def getPixelScale(ds):
         return ((pixelWidth + pixelHeight) / 2.0) * deg2m
 
 
+def _grid_convergence(ds, obs_px, obs_py):
+    """Angle (radians) from pixel-up (grid north) to true north, CW positive.
+    Returns 0 for geographic (unprojected) CRS."""
+    srs = osr.SpatialReference()
+    srs.ImportFromWkt(ds.GetProjection())
+    if not srs.IsProjected():
+        return 0.0
+    gt = ds.GetGeoTransform()
+    # Observer projected coordinates
+    x = gt[0] + obs_px * gt[1] + obs_py * gt[2]
+    y = gt[3] + obs_px * gt[4] + obs_py * gt[5]
+    fe = srs.GetProjParm('false_easting', 0.0)
+    fn = srs.GetProjParm('false_northing', 0.0)
+    return math.atan2(x - fe, -(y - fn))
+
+
 def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
                           num_azimuths, max_radius_m,
                           min_skip_radius_m=0, planet_radius=0):
@@ -105,6 +121,9 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
 
     obs_total = obs_elev + observer_height
 
+    # Grid convergence: rotate geographic azimuth → pixel march direction
+    convergence = _grid_convergence(ds, obs_px, obs_py)
+
     step_px = 1.0
     min_skip_px = min_skip_radius_m / pixel_scale if (pixel_scale > 0 and min_skip_radius_m > 0) else 0
     use_curvature = planet_radius > 0
@@ -112,7 +131,7 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
 
     for ai in range(num_azimuths):
         az_deg = ai * (360.0 / num_azimuths)
-        az_rad = math.radians(az_deg)
+        az_rad = math.radians(az_deg) - convergence
         dx = math.sin(az_rad)
         dy = -math.cos(az_rad)
 
