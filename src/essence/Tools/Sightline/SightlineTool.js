@@ -428,7 +428,7 @@ let SightlineTool = {
                 obsRefFrame,
                 obsBody,
                 planetRadius: F_.radiusOfPlanetMajor,
-                maxOutputDim: 200,
+                maxOutputDim: SightlineTool._resolutionToMaxDim(options.resolution, false),
                 isCustom: primaryIsCustom ? 'true' : 'false',
                 customAz: primaryIsCustom ? customAz : 0,
                 customEl: primaryIsCustom ? customEl : 0,
@@ -1210,8 +1210,7 @@ let SightlineTool = {
             SightlineTool.parseToUTCTime(ts) + ' UTC'
         )
 
-        // Use lower resolution for sweep (faster per-frame computation)
-        const sweepMaxDim = 100
+        const sweepMaxDim = SightlineTool._resolutionToMaxDim(options.resolution, true)
 
         calls.api(
             'sightmap',
@@ -1811,9 +1810,10 @@ let SightlineTool = {
             const rows = grid.length
             const cols = grid[0] ? grid[0].length : 0
             const frameCanvas = document.createElement('canvas')
+            frameCanvas.setAttribute('willReadFrequently', 'true')
             frameCanvas.width = cols
             frameCanvas.height = rows
-            const frameCtx = frameCanvas.getContext('2d')
+            const frameCtx = frameCanvas.getContext('2d', { willReadFrequently: true })
             const imgData = frameCtx.createImageData(cols, rows)
             const px = imgData.data
             const colorR = options.color ? options.color.r : 0
@@ -1849,7 +1849,7 @@ let SightlineTool = {
             const outCanvas = document.createElement('canvas')
             outCanvas.width = outW
             outCanvas.height = outH
-            const outCtx = outCanvas.getContext('2d')
+            const outCtx = outCanvas.getContext('2d', { willReadFrequently: true })
 
             // Draw basemap (scaled down)
             if (basemapCanvas) {
@@ -1910,6 +1910,11 @@ let SightlineTool = {
                 frameDuration: interval,
                 sampleInterval: 10,
                 numWorkers: 2,
+                progressCallback: function (pct) {
+                    // pct is 0..1 during GIF encoding; map to 90..100%
+                    const uiPct = 90 + Math.round(pct * 10)
+                    useSightlineStore.getState().setSweepField('exportProgress', uiPct)
+                },
             },
             function (obj) {
                 if (!obj.error) {
@@ -2914,6 +2919,19 @@ let SightlineTool = {
     },
 
     // === Utility ===
+
+    /** Map the UI resolution setting (0=Low..3=Ultra) to maxOutputDim pixels.
+     *  @param {number} res - resolution index from the dropdown
+     *  @param {boolean} isSweep - true for sweep/batch (uses smaller defaults)
+     *  @returns {number} maxOutputDim to send to the sightmap backend
+     */
+    _resolutionToMaxDim(res, isSweep) {
+        if (isSweep) {
+            // sweep: many frames, keep per-frame cost low
+            return [50, 100, 200, 400][res] || 100
+        }
+        return [100, 200, 400, 800][res] || 200
+    },
 
     parseToUTCTime(time, formatted) {
         const vars = useSightlineStore.getState().vars
