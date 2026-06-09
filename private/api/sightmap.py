@@ -38,6 +38,12 @@ gdal.UseExceptions()
 
 NODATA_SENTINEL = -1100101
 
+# Module-level DEM cache: avoids re-reading the same file at the same
+# working resolution on repeated calls (sweep timestamps, re-generate).
+# Key = (dem_path, max_working_dim), value = (arr, nodata, gt, srs).
+_dem_cache = {}
+_DEM_CACHE_MAX = 4  # evict oldest when this many entries are cached
+
 
 # ---------------------------------------------------------------------------
 # SPICE helpers
@@ -114,11 +120,25 @@ def open_dem(dem_path, max_working_dim=None):
     """Open DEM and return (ds, band_array, nodata, geotransform, srs).
 
     If *max_working_dim* is given and the DEM's largest dimension exceeds it,
-    the raster is decimated at read time using GDAL (bilinear resampling) and
-    the geotransform is adjusted so that pixel coordinates still map to the
-    correct geographic positions.  This avoids reading huge DEMs into memory
-    when only a coarser working grid is needed.
+    the raster is decimated at read time.  Strategy:
+
+    1. If GDAL overview bands exist at a suitable resolution, read from the
+       overview directly — this is very fast for COGs / tiled GeoTIFFs.
+    2. Otherwise fall back to ReadAsArray(buf_xsize, buf_ysize) which
+       requires reading the full raster but resamples in memory.
+
+    Results are cached in ``_dem_cache`` so repeat calls (sweep, re-generate)
+    skip disk I/O entirely.
     """
+    global _dem_cache
+
+    cache_key = (dem_path, max_working_dim)
+    if cache_key in _dem_cache:
+        arr, nodata, gt, srs = _dem_cache[cache_key]
+        # Re-open ds (lightweight) so callers can use it for bounds, then close
+        ds = gdal.Open(dem_path, GA_ReadOnly)
+        return ds, arr, nodata, gt, srs
+
     ds = gdal.Open(dem_path, GA_ReadOnly)
     if ds is None:
         raise RuntimeError("Could not open DEM: " + dem_path)
@@ -135,10 +155,17 @@ def open_dem(dem_path, max_working_dim=None):
     max_native = max(native_rows, native_cols)
 
     if max_working_dim is not None and max_native > max_working_dim:
-        scale = max_working_dim / max_native
-        buf_cols = max(1, int(round(native_cols * scale)))
-        buf_rows = max(1, int(round(native_rows * scale)))
-        arr = band.ReadAsArray(buf_xsize=buf_cols, buf_ysize=buf_rows)
+        # Try to use a pre-computed GDAL overview band (fast for COGs)
+        arr = _read_via_overview(band, native_cols, native_rows,
+                                 max_working_dim)
+        if arr is not None:
+            buf_rows, buf_cols = arr.shape
+        else:
+            # Fallback: GDAL resamples the full raster in memory
+            scale = max_working_dim / max_native
+            buf_cols = max(1, int(round(native_cols * scale)))
+            buf_rows = max(1, int(round(native_rows * scale)))
+            arr = band.ReadAsArray(buf_xsize=buf_cols, buf_ysize=buf_rows)
         # Adjust geotransform to match the resampled pixel grid
         gt[1] = gt[1] * native_cols / buf_cols   # pixel width
         gt[5] = gt[5] * native_rows / buf_rows   # pixel height
@@ -147,7 +174,55 @@ def open_dem(dem_path, max_working_dim=None):
         arr = band.ReadAsArray()
         gt = tuple(gt)
 
+    # Cache the result (evict oldest if cache is full)
+    if len(_dem_cache) >= _DEM_CACHE_MAX:
+        oldest_key = next(iter(_dem_cache))
+        del _dem_cache[oldest_key]
+    _dem_cache[cache_key] = (arr, nodata, gt, srs)
+
     return ds, arr, nodata, gt, srs
+
+
+def _read_via_overview(band, native_cols, native_rows, max_working_dim):
+    """Try to read from a GDAL overview band that is close to max_working_dim.
+
+    Returns the decimated numpy array, or None if no suitable overview exists.
+    """
+    n_overviews = band.GetOverviewCount()
+    if n_overviews == 0:
+        return None
+
+    max_native = max(native_rows, native_cols)
+    best_ovr = None
+    best_dim = None
+
+    for i in range(n_overviews):
+        ovr = band.GetOverview(i)
+        ovr_max = max(ovr.XSize, ovr.YSize)
+        # Pick the smallest overview that is >= max_working_dim, or the
+        # largest overview if all are smaller (still faster than full res).
+        if best_ovr is None:
+            best_ovr, best_dim = ovr, ovr_max
+        elif ovr_max >= max_working_dim:
+            if best_dim < max_working_dim or ovr_max < best_dim:
+                best_ovr, best_dim = ovr, ovr_max
+        elif ovr_max > best_dim:
+            best_ovr, best_dim = ovr, ovr_max
+
+    if best_ovr is None:
+        return None
+
+    # Read the overview, optionally decimating further to hit max_working_dim
+    ovr_cols, ovr_rows = best_ovr.XSize, best_ovr.YSize
+    ovr_max = max(ovr_rows, ovr_cols)
+    if ovr_max > max_working_dim * 1.5:
+        # Decimate the overview to target size
+        scale = max_working_dim / ovr_max
+        buf_cols = max(1, int(round(ovr_cols * scale)))
+        buf_rows = max(1, int(round(ovr_rows * scale)))
+        return best_ovr.ReadAsArray(buf_xsize=buf_cols, buf_ysize=buf_rows)
+    else:
+        return best_ovr.ReadAsArray()
 
 
 def pixel_to_geo(gt, srs, px, py):
@@ -513,6 +588,22 @@ def _numba_march_kernel(result_flat, dem, px_flat, py_flat, dx_flat, dy_flat,
             result_flat[i] = 0
 
 
+# Warm up Numba JIT so the compilation happens at module load, not during
+# the first real sightmap call.  Uses a tiny 2×2 dummy array.
+_warmup_dem = np.zeros((2, 2), dtype=np.float64)
+_warmup_res = np.zeros(1, dtype=np.int8)
+_numba_march_kernel(
+    _warmup_res, _warmup_dem,
+    np.array([0.0]), np.array([0.0]),
+    np.array([1.0]), np.array([0.0]),
+    np.array([0.0]), np.array([10.0]),
+    np.array([False]),
+    2, 2, 100.0, 1737400.0, 1.0, 3.0,
+    0.0, 0.0, False,
+)
+del _warmup_dem, _warmup_res
+
+
 # ---------------------------------------------------------------------------
 # Core sightmap algorithm (numpy pre-compute + Numba march)
 # ---------------------------------------------------------------------------
@@ -670,9 +761,8 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
     for k in kernels:
         spiceypy.unload(os.path.join(package_dir, k))
 
-    # Limit working DEM size: 4× the output grid (for terrain detail in ray
-    # march) but no smaller than 1000 pixels and no larger than the native DEM.
-    working_dim = max(max_output_dim * 4, 1000)
+    # Working DEM: 2× output grid for terrain detail, min 500px.
+    working_dim = max(max_output_dim * 2, 500)
     ds, dem, nodata, gt, srs = open_dem(dem_path, max_working_dim=working_dim)
     dem_rows, dem_cols = dem.shape
     pixel_scale = get_pixel_scale(ds, gt, srs)
@@ -767,8 +857,8 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     for k in kernels:
         spiceypy.unload(os.path.join(package_dir, k))
 
-    # Open DEM once, limiting working resolution to avoid huge arrays
-    working_dim = max(max_output_dim * 4, 1000)
+    # Working DEM: 2× output grid for terrain detail, min 500px.
+    working_dim = max(max_output_dim * 2, 500)
     ds, dem, nodata, gt, srs = open_dem(dem_path, max_working_dim=working_dim)
     dem_rows, dem_cols = dem.shape
     pixel_scale = get_pixel_scale(ds, gt, srs)
