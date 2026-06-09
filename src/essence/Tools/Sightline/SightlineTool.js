@@ -460,11 +460,6 @@ let SightlineTool = {
                     elevation: result.el,
                     range: 0,
                 }
-                SightlineTool.updateRAEIndicators(
-                    syntheticRae,
-                    activeElmId,
-                    [syntheticRae]
-                )
 
                 useSightlineStore.getState().updateElement(activeElmId, {
                     raeResults: {
@@ -472,6 +467,8 @@ let SightlineTool = {
                         el: result.el.toFixed(3) + '\u00B0',
                         range: '',
                     },
+                    raeRaw: syntheticRae,
+                    raeAllResults: [syntheticRae],
                 })
 
                 const data = {
