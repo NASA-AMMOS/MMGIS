@@ -282,6 +282,7 @@ let SightlineTool = {
                 const heatmap = ed.heatmap
                 const tileRes = data.tileResolution
                 const topLeft = data.topLeftTile
+                if (!topLeft) continue
                 const zoom = topLeft.z
 
                 const tile = Globe_.litho.projection.latLngZ2TileXYZ(lat, lng, zoom, true)
@@ -546,6 +547,17 @@ let SightlineTool = {
         }
         // Also remove via Globe_ in case it was added as a litho layer
         try { Globe_.litho.removeLayer(layerName) } catch (e) { /* ignore */ }
+
+        // Switching back to static: re-render cached result or mark for regen
+        if (mode === 'static') {
+            if (el.lastData && el.lastResultGrid) {
+                const options = store.getSightlineOptions(elmId)
+                options.color.a = 255
+                SightlineTool.renderResultToMap(el.lastData, el.lastResultGrid, options, elmId)
+            } else {
+                store.updateElement(elmId, { changed: true })
+            }
+        }
     },
 
     // Show regular sightline map layers, remove sweep layers from map
@@ -974,7 +986,8 @@ let SightlineTool = {
     applySweepOpacity: function (activeElmId) {
         const store = useSightlineStore.getState()
         const ed = store.sweepElData[activeElmId]
-        const opacity = ed?.opacity != null ? ed.opacity : 1
+        const el = store.elements[activeElmId]
+        const opacity = ed?.opacity != null ? ed.opacity : (el?.opacity != null ? el.opacity : 1)
         const layerName = 'sightline' + activeElmId
         const layer = L_.layers.layer[layerName]
         if (layer && typeof layer.setOpacity === 'function') {
@@ -1578,7 +1591,13 @@ let SightlineTool = {
                 interactive: false,
             })
             L_.layers.layer[layerName].addTo(Map_.map)
-            useSightlineStore.getState().updateElement(activeElmId, { on: true })
+            const st = useSightlineStore.getState()
+            st.updateElement(activeElmId, { on: true })
+            // Inherit static-mode opacity as sweep default if not yet set
+            const el = st.elements[activeElmId]
+            if (ed.opacity == null && el?.opacity != null) {
+                st.setSweepElField(activeElmId, 'opacity', el.opacity)
+            }
         }
         SightlineTool.applySweepOpacity(activeElmId)
     },

@@ -271,7 +271,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     }, [onDragEnd])
 
     // Sweep card handlers
-    const sweepOpacity = ed?.opacity != null ? ed.opacity : 1
+    const sweepOpacity = ed?.opacity != null ? ed.opacity : (el?.opacity != null ? el.opacity : 1)
     const sweepColorRamp = ed?.colorRamp || 'sightline'
     const discrete = sweepDiscrete || false
 

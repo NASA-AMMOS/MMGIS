@@ -539,7 +539,7 @@ def _compute_directions(gt, srs, cell_az, px_grid, py_grid):
 
 
 def _compute_sun_grid(sun_vec_km, obs_az, obs_el, radii_km, flattening,
-                      gt, srs, step, out_rows, out_cols, dem_rows):
+                      gt, srs, step, out_rows, out_cols, dem_rows, dem_cols):
     """Compute per-cell Sun az/el via coarse subgrid interpolation."""
     if sun_vec_km is not None:
         cs = COARSE_AZEL_STEP
@@ -552,7 +552,7 @@ def _compute_sun_grid(sun_vec_km, obs_az, obs_el, radii_km, flattening,
 
         cr_g, cc_g = np.meshgrid(c_rows, c_cols, indexing='ij')
         c_py = np.minimum(cr_g * step, dem_rows - 1).astype(np.float64)
-        c_px = np.minimum(cc_g * step, dem_rows - 1).astype(np.float64)
+        c_px = np.minimum(cc_g * step, dem_cols - 1).astype(np.float64)
         c_lng, c_lat = _pixels_to_geo_batch(gt, srs, c_px, c_py)
         c_az, c_el = _sun_azel_batch(c_lat, c_lng, sun_vec_km, radii_km,
                                       flattening)
@@ -583,7 +583,7 @@ def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
 
     cell_az, cell_el = _compute_sun_grid(
         sun_vec_km, obs_az, obs_el, radii_km, flattening,
-        gt, srs, step, out_rows, out_cols, dem_rows)
+        gt, srs, step, out_rows, out_cols, dem_rows, dem_cols)
 
     dx, dy = _compute_directions(gt, srs, cell_az, px_grid, py_grid)
 
@@ -752,7 +752,8 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     for tp in time_positions:
         cell_az, cell_el = _compute_sun_grid(
             tp['sun_vec_km'], tp['obs_az'], tp['obs_el'],
-            radii_km, flattening, gt, srs, step, out_rows, out_cols, dem_rows)
+            radii_km, flattening, gt, srs, step, out_rows, out_cols,
+            dem_rows, dem_cols)
         dx, dy = _compute_directions(gt, srs, cell_az, px_grid, py_grid)
         tasks.append((
             dx.ravel().astype(np.float64),
