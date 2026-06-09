@@ -39,7 +39,7 @@ const ProgressButton = forwardRef(function ProgressButton(
                 {loading
                     ? isIndeterminate
                         ? children
-                        : `${Math.round(progress)}%`
+                        : `${children} ${Math.round(progress)}%`
                     : children}
             </span>
         </button>

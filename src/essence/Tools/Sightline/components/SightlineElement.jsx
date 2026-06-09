@@ -405,7 +405,9 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
             sourcesList[el.sourceIndex].value === 'false')
 
     const generateActive = sightlineMode === 'static' ? el.changed : true
-    const generateLabel = sightlineMode === 'static' ? 'Generate' : 'Sweep'
+    const generateLabel = sightlineMode === 'static'
+        ? (el.regenerating ? 'Generating' : 'Generate')
+        : (el.regenerating ? 'Sweeping' : 'Sweep')
 
     return (
         <div
