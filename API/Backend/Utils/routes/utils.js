@@ -544,10 +544,14 @@ router.post("/gethorizonprofile", function(req,res,next){(router._computeLimiter
   );
 });
 
-//utils sightmap
+//utils sightmap — single or batch (pass `times` array for batch)
 router.post("/sightmap", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
-  if (req.body.dem == null || req.body.lat == null || req.body.lng == null || req.body.target == null || req.body.time == null) {
-    return res.status(400).json({ error: true, message: "dem, lat, lng, target, and time are required" });
+  const isBatch = Array.isArray(req.body.times) && req.body.times.length > 0;
+  if (req.body.dem == null || req.body.lat == null || req.body.lng == null || req.body.target == null) {
+    return res.status(400).json({ error: true, message: "dem, lat, lng, and target are required" });
+  }
+  if (!isBatch && req.body.time == null) {
+    return res.status(400).json({ error: true, message: "time (or times array) is required" });
   }
 
   const pathResult = validateMissionsPath(req.body.dem);
@@ -565,13 +569,12 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
     return res.status(400).json({ error: true, message: "All numeric parameters must be finite numbers" });
   }
 
-  const payload = JSON.stringify({
+  const payloadObj = {
     dem: pathResult.resolved,
     lat: lat,
     lng: lng,
     height: height,
     target: String(req.body.target),
-    time: String(req.body.time),
     obsRefFrame: String(req.body.obsRefFrame || 'IAU_MOON'),
     obsBody: String(req.body.obsBody || 'MOON'),
     planetRadius: planetRadius,
@@ -579,11 +582,20 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
     isCustom: String(req.body.isCustom || 'false'),
     customAz: Number(req.body.customAz || 0),
     customEl: Number(req.body.customEl || 0),
-  });
+  };
+  if (isBatch) {
+    payloadObj.times = req.body.times.map(String);
+  } else {
+    payloadObj.time = String(req.body.time);
+  }
+  const payload = JSON.stringify(payloadObj);
+
+  // Batch mode may take much longer (N timestamps × ~10s each)
+  const timeoutMs = isBatch ? Math.min(req.body.times.length * 30000, 1800000) : 120000;
 
   const child = spawn("python", ["private/api/sightmap.py"], {
     cwd: rootDir,
-    timeout: 120000,
+    timeout: timeoutMs,
   });
 
   let stdout = '';

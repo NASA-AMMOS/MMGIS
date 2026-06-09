@@ -258,59 +258,15 @@ def sun_azel_at_cell(cell_lat, cell_lng, sun_vec_km, radii_km, flattening):
 # Core sightmap algorithm
 # ---------------------------------------------------------------------------
 
-def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
-                     target, time_str, obs_ref_frame, obs_body,
-                     planet_radius, max_output_dim=400,
-                     is_custom='false', custom_az=0, custom_el=0):
+def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
+                    step, out_rows, out_cols, obs_height, sun_vec_km,
+                    obs_az, obs_el, radii_km, flattening, planet_radius):
     """
-    Compute the sightmap grid.
-
-    For each cell in the DEM (downsampled to max_output_dim), ray-march
-    from the cell toward the source along the geographic bearing.  If any
-    terrain along the path has a higher elevation angle (with curvature
-    correction) than the source elevation, the cell is in shadow.
+    Compute a single visibility grid by ray-marching each cell toward the Sun.
+    Returns (result_array, obs_az, obs_el).
     """
-    package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
-
-    # --- Load SPICE and compute source position --------------------------
-    kernels = load_kernels(package_dir, obs_body, target, is_custom)
-
-    if is_custom == 'true':
-        obs_az = float(custom_az)
-        obs_el = float(custom_el)
-        sun_vec_km = None
-        radii_km = spiceypy.bodvrd(obs_body, "RADII", 3)[1]
-        flattening = (radii_km[0] - radii_km[2]) / radii_km[0]
-    else:
-        sun_vec_km, obs_az, obs_el, radii_km, flattening = \
-            get_sun_vector_and_azel(
-                obs_lng, obs_lat, obs_height, target, time_str,
-                obs_ref_frame, obs_body
-            )
-
-    for k in kernels:
-        spiceypy.unload(os.path.join(package_dir, k))
-
-    # --- Open DEM --------------------------------------------------------
-    ds, dem, nodata, gt, srs = open_dem(dem_path)
-    dem_rows, dem_cols = dem.shape
-    pixel_scale = get_pixel_scale(ds, gt, srs)
-
-    # --- Determine output grid (downsample if large) ---------------------
-    step = max(1, max(dem_rows, dem_cols) // max_output_dim)
-    out_rows = (dem_rows + step - 1) // step
-    out_cols = (dem_cols + step - 1) // step
-
     result = np.full((out_rows, out_cols), 0, dtype=np.int8)
-
-    # --- Precompute pixel-space Sun direction per output cell ------------
-    # For conformal projections (polar stereo), grid azimuth ≈ geographic
-    # azimuth at the projection centre.  For non-conformal or geographic
-    # CRSs, we compute per-cell.
-    use_per_cell_azel = True  # always correct; cost is small
-
-    # March parameters
-    march_step = max(2.0, step)  # pixels — larger steps for speed
+    march_step = max(2.0, step)
     max_march = max(dem_rows, dem_cols) * 1.5
 
     for oy in range(out_rows):
@@ -330,7 +286,7 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
             cell_height = cell_val + obs_height
 
             # Compute Sun az/el at this cell
-            if use_per_cell_azel and sun_vec_km is not None:
+            if sun_vec_km is not None:
                 cell_lng, cell_lat = pixel_to_geo(gt, srs, px, py)
                 cell_az, cell_el = sun_azel_at_cell(
                     cell_lat, cell_lng, sun_vec_km, radii_km, flattening
@@ -345,28 +301,18 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
                 continue
 
             # Ray-march in DEM pixel space toward the Sun
-            # Convert geographic azimuth to pixel-space direction
             if srs.IsProjected():
-                # For projected CRS, the pixel axes are easting/northing.
-                # Azimuth is clockwise from north → dx=sin(az), dy=-cos(az)
-                # But pixel Y increases downward, so dy = cos(az) in pixel space
                 az_rad = math.radians(cell_az)
                 dx = math.sin(az_rad)
-                dy = -math.cos(az_rad)  # pixel y increases downward in most DEM conventions
-                # Check: if gt[5] < 0 (origin at top, y increases south), negate dy
+                dy = -math.cos(az_rad)
                 if gt[5] < 0:
                     dy = math.cos(az_rad)
             else:
-                # Geographic CRS: pixel x = longitude, pixel y = latitude
-                # Need to account for convergence of meridians
                 cell_lng_here, cell_lat_here = pixel_to_geo(gt, srs, px, py)
                 cos_lat = math.cos(math.radians(cell_lat_here))
                 az_rad = math.radians(cell_az)
-                # In geographic pixel space: dx ∝ sin(az)/cos(lat), dy ∝ cos(az)
                 dx_geo = math.sin(az_rad) / max(cos_lat, 0.01)
                 dy_geo = math.cos(az_rad)
-                # Adjust for pixel direction (gt[5] < 0 means y increases upward
-                # in geo but pixel row increases downward)
                 if gt[5] < 0:
                     dy_geo = -dy_geo
                 mag = math.sqrt(dx_geo ** 2 + dy_geo ** 2)
@@ -399,7 +345,6 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
                     continue
 
                 terrain_h = sample
-                # Curvature correction: distant terrain drops below tangent plane
                 if planet_radius > 0:
                     curvature_drop = (dist_m * dist_m) / (2.0 * planet_radius)
                     terrain_h -= curvature_drop
@@ -410,7 +355,6 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
                 if el_angle > max_el_angle:
                     max_el_angle = el_angle
 
-                # Early exit: if max_el_angle already exceeds source el, shadowed
                 if max_el_angle >= cell_el:
                     break
 
@@ -418,29 +362,50 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
 
             result[oy, ox] = 1 if cell_el > max_el_angle else 0
 
-    # --- Compute bounds of the output grid --------------------------------
-    is_projected = bool(srs.IsProjected())
+    return result, obs_az, obs_el
 
-    if is_projected:
-        # Return projected bounds (easting / northing) so the frontend can
-        # use CRS.unproject() to position the overlay correctly.
-        proj_x_min = gt[0]
-        proj_y_max = gt[3]
-        proj_x_max = gt[0] + gt[1] * dem_cols
-        proj_y_min = gt[3] + gt[5] * dem_rows
-        bounds_proj = [proj_x_min, proj_y_min, proj_x_max, proj_y_max]
+
+def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
+                     target, time_str, obs_ref_frame, obs_body,
+                     planet_radius, max_output_dim=400,
+                     is_custom='false', custom_az=0, custom_el=0):
+    """
+    Compute the sightmap grid for a single timestamp.
+    """
+    package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
+    kernels = load_kernels(package_dir, obs_body, target, is_custom)
+
+    if is_custom == 'true':
+        obs_az = float(custom_az)
+        obs_el = float(custom_el)
+        sun_vec_km = None
+        radii_km = spiceypy.bodvrd(obs_body, "RADII", 3)[1]
+        flattening = (radii_km[0] - radii_km[2]) / radii_km[0]
     else:
-        bounds_proj = None
+        sun_vec_km, obs_az, obs_el, radii_km, flattening = \
+            get_sun_vector_and_azel(
+                obs_lng, obs_lat, obs_height, target, time_str,
+                obs_ref_frame, obs_body
+            )
 
-    # Geographic bounds (for non-projected CRS or as fallback)
-    west, north = pixel_to_geo(gt, srs, 0, 0)
-    east, south = pixel_to_geo(gt, srs, dem_cols - 1, dem_rows - 1)
-    if west > east:
-        west, east = east, west
-    if south > north:
-        south, north = north, south
+    for k in kernels:
+        spiceypy.unload(os.path.join(package_dir, k))
 
-    ds = None  # close GDAL dataset
+    ds, dem, nodata, gt, srs = open_dem(dem_path)
+    dem_rows, dem_cols = dem.shape
+    pixel_scale = get_pixel_scale(ds, gt, srs)
+    step = max(1, max(dem_rows, dem_cols) // max_output_dim)
+    out_rows = (dem_rows + step - 1) // step
+    out_cols = (dem_cols + step - 1) // step
+
+    result, obs_az, obs_el = _ray_march_grid(
+        dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
+        step, out_rows, out_cols, obs_height, sun_vec_km,
+        obs_az, obs_el, radii_km, flattening, planet_radius
+    )
+
+    bounds_info = _compute_bounds(ds, gt, srs, dem_rows, dem_cols)
+    ds = None
 
     return {
         "grid": result.tolist(),
@@ -448,6 +413,100 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
         "el": round(obs_el, 4),
         "rows": out_rows,
         "cols": out_cols,
+        **bounds_info,
+    }
+
+
+def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
+                           target, times, obs_ref_frame, obs_body,
+                           planet_radius, max_output_dim=400,
+                           is_custom='false', custom_az=0, custom_el=0):
+    """
+    Compute sightmap grids for multiple timestamps in one call.
+    The DEM and SPICE kernels are loaded once and reused.
+    Returns a list of result dicts (one per timestamp).
+    """
+    package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
+    kernels = load_kernels(package_dir, obs_body, target, is_custom)
+
+    radii_km = spiceypy.bodvrd(obs_body, "RADII", 3)[1]
+    flattening = (radii_km[0] - radii_km[2]) / radii_km[0]
+
+    # Pre-compute SPICE positions for all timestamps (kernels loaded once)
+    time_positions = []
+    for t_str in times:
+        if is_custom == 'true':
+            time_positions.append({
+                'sun_vec_km': None,
+                'obs_az': float(custom_az),
+                'obs_el': float(custom_el),
+            })
+        else:
+            sun_vec_km, obs_az, obs_el, _, _ = get_sun_vector_and_azel(
+                obs_lng, obs_lat, obs_height, target, t_str,
+                obs_ref_frame, obs_body
+            )
+            time_positions.append({
+                'sun_vec_km': sun_vec_km,
+                'obs_az': obs_az,
+                'obs_el': obs_el,
+            })
+
+    for k in kernels:
+        spiceypy.unload(os.path.join(package_dir, k))
+
+    # Open DEM once
+    ds, dem, nodata, gt, srs = open_dem(dem_path)
+    dem_rows, dem_cols = dem.shape
+    pixel_scale = get_pixel_scale(ds, gt, srs)
+    step = max(1, max(dem_rows, dem_cols) // max_output_dim)
+    out_rows = (dem_rows + step - 1) // step
+    out_cols = (dem_cols + step - 1) // step
+    bounds_info = _compute_bounds(ds, gt, srs, dem_rows, dem_cols)
+
+    # Compute grid for each timestamp
+    results = []
+    for i, tp in enumerate(time_positions):
+        grid, az, el = _ray_march_grid(
+            dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
+            step, out_rows, out_cols, obs_height, tp['sun_vec_km'],
+            tp['obs_az'], tp['obs_el'], radii_km, flattening, planet_radius
+        )
+        results.append({
+            "grid": grid.tolist(),
+            "az": round(az, 4),
+            "el": round(el, 4),
+            "rows": out_rows,
+            "cols": out_cols,
+            **bounds_info,
+        })
+        # Print progress to stderr for the caller to track
+        sys.stderr.write(json.dumps({"progress": i + 1, "total": len(times)}) + "\n")
+        sys.stderr.flush()
+
+    ds = None
+    return results
+
+
+def _compute_bounds(ds, gt, srs, dem_rows, dem_cols):
+    """Compute geographic and projected bounds from a DEM dataset."""
+    is_projected = bool(srs.IsProjected())
+    bounds_proj = None
+    if is_projected:
+        proj_x_min = gt[0]
+        proj_y_max = gt[3]
+        proj_x_max = gt[0] + gt[1] * dem_cols
+        proj_y_min = gt[3] + gt[5] * dem_rows
+        bounds_proj = [proj_x_min, proj_y_min, proj_x_max, proj_y_max]
+
+    west, north = pixel_to_geo(gt, srs, 0, 0)
+    east, south = pixel_to_geo(gt, srs, dem_cols - 1, dem_rows - 1)
+    if west > east:
+        west, east = east, west
+    if south > north:
+        south, north = north, south
+
+    return {
         "bounds": [round(west, 6), round(south, 6),
                    round(east, 6), round(north, 6)],
         "projBounds": [round(v, 2) for v in bounds_proj] if bounds_proj else None,
@@ -468,7 +527,6 @@ if __name__ == '__main__':
         obs_lng = float(input_data['lng'])
         obs_height = float(input_data.get('height', 0))
         target = input_data['target']
-        time_str = input_data['time']
         obs_ref_frame = input_data.get('obsRefFrame', 'IAU_MOON')
         obs_body = input_data.get('obsBody', 'MOON')
         planet_radius = float(input_data.get('planetRadius', 0))
@@ -477,12 +535,23 @@ if __name__ == '__main__':
         custom_az = float(input_data.get('customAz', 0))
         custom_el = float(input_data.get('customEl', 0))
 
-        result = compute_sightmap(
-            dem_path, obs_lat, obs_lng, obs_height,
-            target, time_str, obs_ref_frame, obs_body,
-            planet_radius, max_output_dim,
-            is_custom, custom_az, custom_el,
-        )
+        # Batch mode: multiple timestamps in one call
+        times = input_data.get('times', None)
+        if times and isinstance(times, list) and len(times) > 0:
+            result = compute_sightmap_batch(
+                dem_path, obs_lat, obs_lng, obs_height,
+                target, times, obs_ref_frame, obs_body,
+                planet_radius, max_output_dim,
+                is_custom, custom_az, custom_el,
+            )
+        else:
+            time_str = input_data['time']
+            result = compute_sightmap(
+                dem_path, obs_lat, obs_lng, obs_height,
+                target, time_str, obs_ref_frame, obs_body,
+                planet_radius, max_output_dim,
+                is_custom, custom_az, custom_el,
+            )
         print(json.dumps(result))
     except Exception:
         import traceback
