@@ -2214,6 +2214,13 @@ let SightlineTool = {
         const store = useSightlineStore.getState()
         const pt = store.indicatorLastDragPoint
         if (pt) return parseFloat(pt.lng)
+        // Fall back to map center if no drag point set
+        const mapEl = document.getElementById('map')
+        if (mapEl && Map_.map) {
+            const rect = mapEl.getBoundingClientRect()
+            const center = Map_.map.containerPointToLatLng([rect.width / 2, rect.height / 2])
+            return parseFloat(center.lng)
+        }
         return null
     },
 

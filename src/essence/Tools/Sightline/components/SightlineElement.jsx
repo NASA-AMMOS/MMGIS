@@ -600,19 +600,21 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     className="vstFieldInput"
                                 />
                             </div>
-                            <div className="vstOptionRow">
-                                <div className="vstOptionLabel" title="Dataset to analyze.">
-                                    DEM
+                            {dataOptions.length > 0 && (
+                                <div className="vstOptionRow">
+                                    <div className="vstOptionLabel" title="Dataset to analyze.">
+                                        DEM
+                                    </div>
+                                    <Select
+                                        value={String(el.dataIndex)}
+                                        onValueChange={(v) =>
+                                            handleChange('dataIndex', parseInt(v))
+                                        }
+                                        options={dataOptions}
+                                        className="vstSelect"
+                                    />
                                 </div>
-                                <Select
-                                    value={String(el.dataIndex)}
-                                    onValueChange={(v) =>
-                                        handleChange('dataIndex', parseInt(v))
-                                    }
-                                    options={dataOptions}
-                                    className="vstSelect"
-                                />
-                            </div>
+                            )}
                         </div>
                     </Collapsible.Content>
                 </Collapsible>
