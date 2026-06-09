@@ -139,6 +139,7 @@ const SightlineTool_Graphs = {
             centerPx = { x: pt.x, y: pt.y }
         } else {
             centerPx = { x: mapRect.width / 2, y: mapRect.height / 2 }
+            centerLatLng = Map_.map.containerPointToLatLng([centerPx.x, centerPx.y])
         }
 
         const lineLen = Math.max(mapRect.width, mapRect.height)
@@ -192,6 +193,7 @@ const SightlineTool_Graphs = {
             centerPx = { x: pt.x, y: pt.y }
         } else {
             centerPx = { x: mapRect.width / 2, y: mapRect.height / 2 }
+            centerLatLng = Map_.map.containerPointToLatLng([centerPx.x, centerPx.y])
         }
 
         const lineLen = Math.max(mapRect.width, mapRect.height)

@@ -519,13 +519,26 @@ def _precompute_grid_arrays(dem, nodata, gt, srs, pixel_scale, dem_rows,
 
 
 def _compute_directions(gt, srs, cell_az, px_grid, py_grid):
-    """Compute per-cell ray direction in pixel space."""
+    """Compute per-cell ray direction in pixel space.
+
+    For projected CRS (e.g. polar stereographic), geographic north at
+    each cell is rotated from grid north by the grid convergence angle,
+    which equals the cell's longitude for polar stereographic.  We must
+    apply this rotation so the ray marches in the correct geographic
+    bearing direction in pixel space.
+    """
     is_proj = bool(srs.IsProjected())
-    az_rad = np.radians(cell_az)
     if is_proj:
+        # Get each cell's longitude to compute grid convergence
+        lng_all, _ = _pixels_to_geo_batch(gt, srs, px_grid, py_grid)
+        # Grid azimuth = geographic azimuth + convergence (= longitude)
+        grid_az = cell_az + lng_all
+        az_rad = np.radians(grid_az)
         dx = np.sin(az_rad)
-        dy = np.cos(az_rad) if gt[5] < 0 else -np.cos(az_rad)
+        # gt[5]<0 ⇒ pixel-y increases southward, so negate cos for north
+        dy = -np.cos(az_rad) if gt[5] < 0 else np.cos(az_rad)
     else:
+        az_rad = np.radians(cell_az)
         lng_all, lat_all = _pixels_to_geo_batch(gt, srs, px_grid, py_grid)
         cos_lat = np.maximum(np.cos(np.radians(lat_all)), 0.01)
         dx_geo = np.sin(az_rad) / cos_lat
