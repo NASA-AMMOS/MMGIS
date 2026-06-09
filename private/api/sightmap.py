@@ -110,19 +110,43 @@ def get_sun_vector_and_azel(lng, lat, height, target, time_str,
 # DEM / coordinate helpers
 # ---------------------------------------------------------------------------
 
-def open_dem(dem_path):
-    """Open DEM and return (ds, band_array, nodata, geotransform, srs)."""
+def open_dem(dem_path, max_working_dim=None):
+    """Open DEM and return (ds, band_array, nodata, geotransform, srs).
+
+    If *max_working_dim* is given and the DEM's largest dimension exceeds it,
+    the raster is decimated at read time using GDAL (bilinear resampling) and
+    the geotransform is adjusted so that pixel coordinates still map to the
+    correct geographic positions.  This avoids reading huge DEMs into memory
+    when only a coarser working grid is needed.
+    """
     ds = gdal.Open(dem_path, GA_ReadOnly)
     if ds is None:
         raise RuntimeError("Could not open DEM: " + dem_path)
     band = ds.GetRasterBand(1)
-    arr = band.ReadAsArray()
     nodata = band.GetNoDataValue()
-    gt = ds.GetGeoTransform()
+    gt = list(ds.GetGeoTransform())
     srs = osr.SpatialReference()
     if int(osgeoversion[0]) >= 3:
         srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
     srs.ImportFromWkt(ds.GetProjection())
+
+    native_cols = ds.RasterXSize
+    native_rows = ds.RasterYSize
+    max_native = max(native_rows, native_cols)
+
+    if max_working_dim is not None and max_native > max_working_dim:
+        scale = max_working_dim / max_native
+        buf_cols = max(1, int(round(native_cols * scale)))
+        buf_rows = max(1, int(round(native_rows * scale)))
+        arr = band.ReadAsArray(buf_xsize=buf_cols, buf_ysize=buf_rows)
+        # Adjust geotransform to match the resampled pixel grid
+        gt[1] = gt[1] * native_cols / buf_cols   # pixel width
+        gt[5] = gt[5] * native_rows / buf_rows   # pixel height
+        gt = tuple(gt)
+    else:
+        arr = band.ReadAsArray()
+        gt = tuple(gt)
+
     return ds, arr, nodata, gt, srs
 
 
@@ -646,7 +670,10 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
     for k in kernels:
         spiceypy.unload(os.path.join(package_dir, k))
 
-    ds, dem, nodata, gt, srs = open_dem(dem_path)
+    # Limit working DEM size: 4× the output grid (for terrain detail in ray
+    # march) but no smaller than 1000 pixels and no larger than the native DEM.
+    working_dim = max(max_output_dim * 4, 1000)
+    ds, dem, nodata, gt, srs = open_dem(dem_path, max_working_dim=working_dim)
     dem_rows, dem_cols = dem.shape
     pixel_scale = get_pixel_scale(ds, gt, srs)
     step = max(1, max(dem_rows, dem_cols) // max_output_dim)
@@ -740,8 +767,9 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     for k in kernels:
         spiceypy.unload(os.path.join(package_dir, k))
 
-    # Open DEM once
-    ds, dem, nodata, gt, srs = open_dem(dem_path)
+    # Open DEM once, limiting working resolution to avoid huge arrays
+    working_dim = max(max_output_dim * 4, 1000)
+    ds, dem, nodata, gt, srs = open_dem(dem_path, max_working_dim=working_dim)
     dem_rows, dem_cols = dem.shape
     pixel_scale = get_pixel_scale(ds, gt, srs)
     step = max(1, max(dem_rows, dem_cols) // max_output_dim)
