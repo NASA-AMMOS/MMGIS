@@ -509,8 +509,9 @@ let SightlineTool = {
                     loadingProgress: 0,
                 })
             },
-            function () {
-                Toast.error('Sightmap request failed.', 6000)
+            function (err) {
+                const msg = (err && err.message) ? err.message : 'Sightmap request failed.'
+                Toast.error(msg, 6000)
                 useSightlineStore.getState().updateElement(activeElmId, {
                     regenerating: false,
                     loading: false,
@@ -1379,11 +1380,9 @@ let SightlineTool = {
                     }
                 }, 0)
             },
-            function () {
-                Toast.error(
-                    'Sightmap sweep request failed.',
-                    6000
-                )
+            function (err) {
+                const msg = (err && err.message) ? err.message : 'Sightmap sweep request failed.'
+                Toast.error(msg, 6000)
                 useSightlineStore
                     .getState()
                     .setSweepField('sweepProgress', '')
