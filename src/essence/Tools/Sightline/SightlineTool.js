@@ -2963,8 +2963,8 @@ let SightlineTool = {
      *  @param {boolean} isSweep - true for sweep/batch (uses smaller default)
      *  @returns {number} maxOutputDim
      */
-    _resolutionToMaxDim(isSweep) {
-        return isSweep ? 400 : 800
+    _resolutionToMaxDim() {
+        return 800
     },
 
     parseToUTCTime(time, formatted) {
