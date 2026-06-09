@@ -67,19 +67,25 @@ def getPixelScale(ds):
 
 
 def _grid_convergence(ds, obs_px, obs_py):
-    """Angle (radians) from pixel-up (grid north) to true north, CW positive.
-    Returns 0 for geographic (unprojected) CRS."""
+    """Grid convergence (radians) at observer position.
+
+    For south-pole stereo the pole is at the origin and north is
+    *away* from the pole (positive y), so north_sign = +1.
+    For north-pole stereo, north is toward negative y, north_sign = -1.
+    Returns 0 for geographic (unprojected) CRS.
+    """
     srs = osr.SpatialReference()
     srs.ImportFromWkt(ds.GetProjection())
     if not srs.IsProjected():
         return 0.0
     gt = ds.GetGeoTransform()
-    # Observer projected coordinates
     x = gt[0] + obs_px * gt[1] + obs_py * gt[2]
     y = gt[3] + obs_px * gt[4] + obs_py * gt[5]
     fe = srs.GetProjParm('false_easting', 0.0)
     fn = srs.GetProjParm('false_northing', 0.0)
-    return math.atan2(x - fe, -(y - fn))
+    lat_origin = srs.GetProjParm('latitude_of_origin', 0.0)
+    north_sign = -1.0 if lat_origin > 0 else 1.0
+    return math.atan2(x - fe, north_sign * (y - fn))
 
 
 def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
@@ -131,7 +137,7 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
 
     for ai in range(num_azimuths):
         az_deg = ai * (360.0 / num_azimuths)
-        az_rad = math.radians(az_deg) - convergence
+        az_rad = math.radians(az_deg) + convergence
         dx = math.sin(az_rad)
         dy = -math.cos(az_rad)
 
