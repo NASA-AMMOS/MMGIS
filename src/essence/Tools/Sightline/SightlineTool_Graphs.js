@@ -367,8 +367,12 @@ const SightlineTool_Graphs = {
         // Redraw both charts to reflect new frame
         if (_horizonCache) {
             SightlineTool_Graphs._drawHorizonCanvas(_horizonCache.profile, _activeElmId)
+            SightlineTool_Graphs.drawVisibilityTimeline(_activeElmId)
+        } else if (_activeElmId != null) {
+            // Cache was invalidated (e.g. by pan) — re-fetch, which
+            // redraws both horizon + visibility once the profile arrives.
+            SightlineTool_Graphs.fetchAndDrawHorizon(_activeElmId)
         }
-        SightlineTool_Graphs.drawVisibilityTimeline(_activeElmId)
         SightlineTool_Graphs._updateSourceAzimuthLines()
     },
 
@@ -1125,8 +1129,11 @@ const SightlineTool_Graphs = {
                     _horizonCache.profile,
                     effectiveId
                 )
+                SightlineTool_Graphs.drawVisibilityTimeline(effectiveId)
+            } else {
+                // Cache invalidated by pan — re-fetch (redraws both on completion)
+                SightlineTool_Graphs.fetchAndDrawHorizon(effectiveId)
             }
-            SightlineTool_Graphs.drawVisibilityTimeline(effectiveId)
             SightlineTool_Graphs._updateTimeLabel()
             SightlineTool_Graphs._updateSourceAzimuthLines()
             _animFrameId = null
@@ -1135,6 +1142,13 @@ const SightlineTool_Graphs = {
 
     invalidateHorizonCache() {
         _horizonCache = null
+    },
+
+    invalidateAndRefetch() {
+        _horizonCache = null
+        if (_graphOpen && _activeElmId != null) {
+            SightlineTool_Graphs.fetchAndDrawHorizon(_activeElmId)
+        }
     },
 
     _updateExcludedInfo(excludedCount) {

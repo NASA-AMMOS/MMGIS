@@ -284,8 +284,9 @@ let SightlineTool = {
     _onPanEnd: function () {
         const store = useSightlineStore.getState()
 
-        // Invalidate horizon profile cache on pan
-        SightlineTool_Graphs.invalidateHorizonCache()
+        // Invalidate and re-fetch horizon profile on pan so the
+        // visibility timeline and horizon chart stay correct.
+        SightlineTool_Graphs.invalidateAndRefetch()
 
         // Invalidate sweep results and layer cache when viewport changes
         if (store.hasSweepData() && !store.sweepStale) {
