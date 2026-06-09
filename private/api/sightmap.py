@@ -633,25 +633,35 @@ def _compute_directions(gt, srs, cell_az, px_grid, py_grid):
     """Compute per-cell ray direction in pixel space.
 
     For projected CRS (e.g. polar stereographic), geographic north at
-    each cell is rotated from grid north by the grid convergence angle,
-    which equals the cell's longitude for polar stereographic.  We must
-    apply this rotation so the ray marches in the correct geographic
-    bearing direction in pixel space.
+    each cell is rotated from grid north by the grid convergence angle.
+    We compute this analytically from projected coordinates (no GDAL
+    coordinate transform needed) using atan2(easting, northing_sign * northing)
+    relative to the projection origin.
     """
     is_proj = bool(srs.IsProjected())
     if is_proj:
-        # Get each cell's longitude to compute grid convergence
-        lng_all, _ = _pixels_to_geo_batch(gt, srs, px_grid, py_grid)
-        # Grid azimuth = geographic azimuth + convergence (= longitude)
-        grid_az = cell_az + lng_all
+        # Projected (x, y) from the geotransform — pure numpy, no GDAL
+        proj_x = gt[0] + px_grid * gt[1] + py_grid * gt[2]
+        proj_y = gt[3] + px_grid * gt[4] + py_grid * gt[5]
+        # Grid convergence = atan2(x - false_easting, sign*(y - false_northing))
+        # For south-pole stereo the pole is at the origin and north
+        # is *away* from the pole (positive y), so sign = +1.
+        # For north-pole stereo, north is toward negative y, sign = -1.
+        fe = srs.GetProjParm('false_easting', 0.0)
+        fn = srs.GetProjParm('false_northing', 0.0)
+        lat_origin = srs.GetProjParm('latitude_of_origin', 0.0)
+        north_sign = -1.0 if lat_origin > 0 else 1.0
+        convergence = np.degrees(np.arctan2(proj_x - fe,
+                                            north_sign * (proj_y - fn)))
+        grid_az = cell_az + convergence
         az_rad = np.radians(grid_az)
         dx = np.sin(az_rad)
-        # gt[5]<0 ⇒ pixel-y increases southward, so negate cos for north
         dy = -np.cos(az_rad) if gt[5] < 0 else np.cos(az_rad)
     else:
-        az_rad = np.radians(cell_az)
-        lng_all, lat_all = _pixels_to_geo_batch(gt, srs, px_grid, py_grid)
+        # Geographic CRS: geotransform gives lng/lat directly
+        lat_all = gt[3] + px_grid * gt[4] + py_grid * gt[5]
         cos_lat = np.maximum(np.cos(np.radians(lat_all)), 0.01)
+        az_rad = np.radians(cell_az)
         dx_geo = np.sin(az_rad) / cos_lat
         dy_geo = np.cos(az_rad)
         if gt[5] < 0:
