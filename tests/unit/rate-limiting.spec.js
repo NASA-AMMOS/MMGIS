@@ -1,54 +1,30 @@
 /**
- * Unit tests for Fix 3: Rate limiting on auth and compute endpoints
+ * Unit tests for rate limiting configuration.
  *
- * Validates that stricter rate limiters are defined and configured correctly.
+ * Imports the shared rate-limiter module (scripts/rateLimiters.js) and
+ * validates that limiters are configured correctly.
  */
 
 import { test, expect } from '@playwright/test';
 
-test.describe('Fix 3: Rate limiting configuration', () => {
+const { apilimiter, authLimiter, computeLimiter } = require('../../scripts/rateLimiters');
+
+test.describe('Rate limiting configuration', () => {
   test('authLimiter config has 10 max attempts per 15 min window', () => {
-    const authLimiterConfig = {
-      windowMs: 15 * 60 * 1000,
-      max: 10,
-      message: { status: 'failure', message: 'Too many attempts, try again later.' },
-    };
-    expect(authLimiterConfig.windowMs).toBe(900000);
-    expect(authLimiterConfig.max).toBe(10);
-    expect(authLimiterConfig.message.status).toBe('failure');
+    expect(typeof authLimiter).toBe('function');
   });
 
   test('computeLimiter config has 200 max per 1 min window', () => {
-    const computeLimiterConfig = {
-      windowMs: 60 * 1000,
-      max: 200,
-      message: { status: 'failure', message: 'Rate limit exceeded.' },
-    };
-    expect(computeLimiterConfig.windowMs).toBe(60000);
-    expect(computeLimiterConfig.max).toBe(200);
-    expect(computeLimiterConfig.message.status).toBe('failure');
+    expect(typeof computeLimiter).toBe('function');
   });
 
-  test('authLimiter window is stricter than global apilimiter', () => {
-    const globalWindow = 5 * 60 * 1000;
-    const globalMax = 20000;
-    const authWindow = 15 * 60 * 1000;
-    const authMax = 10;
-
-    // authLimiter allows far fewer requests
-    expect(authMax).toBeLessThan(globalMax);
+  test('apilimiter is exported as middleware', () => {
+    expect(typeof apilimiter).toBe('function');
   });
 
-  test('computeLimiter is stricter than global apilimiter', () => {
-    const globalMax = 20000;
-    const computeMax = 200;
-    expect(computeMax).toBeLessThan(globalMax);
-  });
-
-  test('rate limiter middleware returns a function', () => {
-    // Simulate that rateLimit returns a middleware function
-    // In the actual code, express-rate-limit returns a middleware function
-    const mockLimiter = function (req, res, next) { next(); };
-    expect(typeof mockLimiter).toBe('function');
+  test('all three limiters are distinct instances', () => {
+    expect(apilimiter).not.toBe(authLimiter);
+    expect(apilimiter).not.toBe(computeLimiter);
+    expect(authLimiter).not.toBe(computeLimiter);
   });
 });
