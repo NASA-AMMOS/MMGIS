@@ -33,6 +33,11 @@ import './SightlineTool.css'
 const sunColor = '#d2db58'
 const earthColor = '#58dbb8'
 
+// When true, sightmap grids are computed server-side (Python SPICE + DEM
+// ray-march) instead of fetching tiles and running the JS shadow-plane
+// algorithm.  Set to false to revert to the old client-side approach.
+const USE_BACKEND_SIGHTMAP = true
+
 let _compositeHoverRaf = null
 let _timeChangeDebounce = null
 
@@ -553,6 +558,10 @@ let SightlineTool = {
         )
 
         function keepGoing(targetSources) {
+            if (USE_BACKEND_SIGHTMAP) {
+                keepGoingBackend(targetSources)
+                return
+            }
             const currentTag = useSightlineStore.getState().tags[activeElmId]
 
             SightlineTool_Manager.gatherTiles(
@@ -609,6 +618,105 @@ let SightlineTool = {
                         loading: false,
                         changed: false,
                         loadingProgress: 0,
+                    })
+                }
+            )
+        }
+
+        // Backend sightmap path: single API call returns the full grid
+        function keepGoingBackend(targetSources) {
+            useSightlineStore.getState().updateElement(activeElmId, {
+                loadingProgress: 10,
+                loading: true,
+            })
+
+            const primary = targetSources[0]
+            const tgtIsCustom =
+                primary._sourceTarget &&
+                (primary._sourceTarget.value === false ||
+                    primary._sourceTarget.value === 'false')
+
+            calls.api(
+                'sightmap',
+                {
+                    dem: demUrl,
+                    lat: source.lat,
+                    lng: source.lng,
+                    height: options.height || 0,
+                    target: tgtIsCustom ? 'CUSTOM' : primary._sourceTarget.value,
+                    time: options.time + ' UTC',
+                    obsRefFrame,
+                    obsBody,
+                    planetRadius: F_.radiusOfPlanetMajor,
+                    maxOutputDim: 200,
+                    isCustom: tgtIsCustom ? 'true' : 'false',
+                    customAz: tgtIsCustom ? primary.az : 0,
+                    customEl: tgtIsCustom ? primary.el : 0,
+                },
+                function (result) {
+                    if (result.error) {
+                        Toast.error(
+                            'Sightmap error: ' + (result.message || 'Unknown'),
+                            6000
+                        )
+                        useSightlineStore
+                            .getState()
+                            .updateElement(activeElmId, {
+                                regenerating: false,
+                                loading: false,
+                                lastError: true,
+                            })
+                        return
+                    }
+
+                    const grid = result.grid
+                    const bounds = result.bounds
+                    const projBounds = result.projBounds || null
+
+                    // Synthetic data object for downstream compatibility
+                    const data = {
+                        _isBackendSightmap: true,
+                        _bounds: bounds,
+                        _projBounds: projBounds,
+                        result: grid,
+                        bottomLeftLatLng: {
+                            lat: bounds[1],
+                            lng: bounds[0],
+                        },
+                        cellSize:
+                            grid[0] && grid[0].length > 1
+                                ? (bounds[2] - bounds[0]) / grid[0].length
+                                : 0,
+                    }
+
+                    SightlineTool.renderResultToMap(
+                        data,
+                        grid,
+                        options,
+                        activeElmId
+                    )
+
+                    const currentStore = useSightlineStore.getState()
+                    currentStore.lastData = data
+                    currentStore.lastResultGrid = grid
+                    currentStore.lastOptions = options
+                    currentStore.updateElement(activeElmId, {
+                        lastData: data,
+                        lastResultGrid: grid,
+                    })
+                    currentStore.updateElement(activeElmId, {
+                        regenerating: false,
+                        loading: false,
+                        changed: false,
+                        loadingProgress: 0,
+                    })
+                },
+                function () {
+                    Toast.error('Sightmap request failed.', 6000)
+                    useSightlineStore.getState().updateElement(activeElmId, {
+                        regenerating: false,
+                        loading: false,
+                        lastError: true,
                     })
                 }
             )
@@ -830,6 +938,16 @@ let SightlineTool = {
     },
 
     renderResultToMap: function (data, resultGrid, options, activeElmId) {
+        if (data._isBackendSightmap) {
+            SightlineTool.renderBackendSightmapToMap(
+                resultGrid,
+                data._bounds,
+                data._projBounds,
+                options,
+                activeElmId
+            )
+            return
+        }
         const { dl, dlc } = SightlineTool.renderResultToTileData(
             data,
             resultGrid,
@@ -837,6 +955,99 @@ let SightlineTool = {
         )
         useSightlineStore.getState().canvases[activeElmId] = dlc
         SightlineTool.makeDataLayer(dl, activeElmId)
+    },
+
+    // Render a backend-computed sightmap grid as an L.imageOverlay
+    renderBackendSightmapToMap: function (
+        grid, bounds, projBounds, options, activeElmId
+    ) {
+        const layerName = 'sightline' + activeElmId
+        const rows = grid.length
+        const cols = grid[0] ? grid[0].length : 0
+        if (rows === 0 || cols === 0) return
+
+        // Invalidate cached layer for current mode
+        if (SightlineTool._cachedLayers[activeElmId]) {
+            const el = useSightlineStore.getState().elements[activeElmId]
+            if (el)
+                delete SightlineTool._cachedLayers[activeElmId][
+                    el.sightlineMode
+                ]
+        }
+
+        Map_.rmNotNull(L_.layers.layer[layerName])
+
+        const c = document.createElement('canvas')
+        c.width = cols
+        c.height = rows
+        const ctx = c.getContext('2d')
+        const imgData = ctx.createImageData(cols, rows)
+        const px = imgData.data
+
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                const idx = (y * cols + x) * 4
+                const val = grid[y][x]
+                let cl
+                switch (val) {
+                    case 0:
+                        cl =
+                            options.invert == 0
+                                ? { r: 0, g: 0, b: 0, a: 0 }
+                                : options.color
+                        break
+                    case 1:
+                    case 2:
+                        cl =
+                            options.invert == 0
+                                ? options.color
+                                : { r: 0, g: 0, b: 0, a: 0 }
+                        break
+                    default:
+                        cl = { r: 0, g: 0, b: 0, a: 0 }
+                }
+                px[idx] = cl.r
+                px[idx + 1] = cl.g
+                px[idx + 2] = cl.b
+                px[idx + 3] = cl.a
+            }
+        }
+        ctx.putImageData(imgData, 0, 0)
+
+        let leafletBounds
+        if (projBounds && Map_.map.options.crs && Map_.map.options.crs.unproject) {
+            // Use projected bounds for correct positioning in custom CRS
+            // projBounds: [xMin, yMin, xMax, yMax] (easting/northing)
+            const sw = Map_.map.options.crs.unproject(
+                L.point(projBounds[0], projBounds[1])
+            )
+            const ne = Map_.map.options.crs.unproject(
+                L.point(projBounds[2], projBounds[3])
+            )
+            leafletBounds = L.latLngBounds(sw, ne)
+        } else {
+            // Geographic bounds fallback: [west, south, east, north]
+            leafletBounds = [
+                [bounds[1], bounds[0]], // SW
+                [bounds[3], bounds[2]], // NE
+            ]
+        }
+
+        L_.layers.layer[layerName] = L.imageOverlay(c.toDataURL(), leafletBounds, {
+            className: 'nofade sightmap-pixelated',
+            interactive: false,
+        })
+        L_.layers.layer[layerName].setZIndex(1000)
+        Map_.map.addLayer(L_.layers.layer[layerName])
+
+        const store = useSightlineStore.getState()
+        store.updateElement(activeElmId, { on: true })
+        const el = store.elements[activeElmId]
+        if (el && el.opacity != null) {
+            L_.layers.layer[layerName].setOpacity(el.opacity)
+        }
+
+        Globe_.litho.removeLayer(layerName)
     },
 
     // Lightweight version for atlas building — only returns canvas objects

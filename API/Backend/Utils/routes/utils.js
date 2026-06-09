@@ -544,4 +544,72 @@ router.post("/gethorizonprofile", function(req,res,next){(router._computeLimiter
   );
 });
 
+//utils sightmap
+router.post("/sightmap", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
+  if (req.body.dem == null || req.body.lat == null || req.body.lng == null || req.body.target == null || req.body.time == null) {
+    return res.status(400).json({ error: true, message: "dem, lat, lng, target, and time are required" });
+  }
+
+  const pathResult = validateMissionsPath(req.body.dem);
+  if (pathResult.error) {
+    return res.status(400).json({ error: true, message: pathResult.error });
+  }
+
+  const lat = Number(req.body.lat);
+  const lng = Number(req.body.lng);
+  const height = Number(req.body.height || 0);
+  const planetRadius = Number(req.body.planetRadius || 0);
+  const maxOutputDim = Math.min(Number(req.body.maxOutputDim || 400), 800);
+
+  if ([lat, lng, height, planetRadius, maxOutputDim].some(v => !isFinite(v))) {
+    return res.status(400).json({ error: true, message: "All numeric parameters must be finite numbers" });
+  }
+
+  const payload = JSON.stringify({
+    dem: pathResult.resolved,
+    lat: lat,
+    lng: lng,
+    height: height,
+    target: String(req.body.target),
+    time: String(req.body.time),
+    obsRefFrame: String(req.body.obsRefFrame || 'IAU_MOON'),
+    obsBody: String(req.body.obsBody || 'MOON'),
+    planetRadius: planetRadius,
+    maxOutputDim: maxOutputDim,
+    isCustom: String(req.body.isCustom || 'false'),
+    customAz: Number(req.body.customAz || 0),
+    customEl: Number(req.body.customEl || 0),
+  });
+
+  const child = spawn("python", ["private/api/sightmap.py"], {
+    cwd: rootDir,
+    timeout: 120000,
+  });
+
+  let stdout = '';
+  let stderr = '';
+  child.stdout.on('data', (data) => { stdout += data; });
+  child.stderr.on('data', (data) => { stderr += data; });
+  child.stdin.write(payload);
+  child.stdin.end();
+
+  child.on('close', (code) => {
+    if (code !== 0) {
+      logger("error", "sightmap failure:", "server", null, stderr || stdout);
+      return res.status(400).json({ error: true, message: "sightmap computation failed" });
+    }
+    try {
+      const parsed = JSON.parse(stdout);
+      if (parsed.error) {
+        logger("error", "sightmap error:", "server", null, parsed.message);
+        return res.status(400).json(parsed);
+      }
+      res.json(parsed);
+    } catch (e) {
+      logger("error", "sightmap parse error:", "server", null, stdout.substring(0, 500));
+      res.status(500).json({ error: true, message: "Failed to parse sightmap result" });
+    }
+  });
+});
+
 module.exports = router;

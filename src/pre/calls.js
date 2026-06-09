@@ -172,6 +172,10 @@ const c = {
         type: 'POST',
         url: 'api/utils/gethorizonprofile',
     },
+    sightmap: {
+        type: 'POST',
+        url: 'api/utils/sightmap',
+    },
 }
 
 function api(call, data, success, error) {

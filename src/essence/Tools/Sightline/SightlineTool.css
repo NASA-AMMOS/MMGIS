@@ -1210,3 +1210,8 @@
     min-width: 50px;
     text-align: right;
 }
+
+/* Backend sightmap overlay — crisp pixel grid, no interpolation */
+.sightmap-pixelated img {
+    image-rendering: pixelated;
+}
