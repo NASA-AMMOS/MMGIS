@@ -105,6 +105,16 @@ function _projImageOverlay(url, projBounds, options) {
         img.style.width = sz.x + 'px'
         img.style.height = sz.y + 'px'
     }
+    // Override zoom animation to use the same projected corners,
+    // otherwise the default _animateZoom reads the normalised
+    // L.latLngBounds and the overlay jumps during zoom transitions.
+    overlay._animateZoom = function (e) {
+        const img = this._image
+        if (!img || !this._map) return
+        const scale = this._map.getZoomScale(e.zoom)
+        const nw = this._map._latLngToNewLayerPoint(nwLL, e.zoom, e.center)
+        L.DomUtil.setTransform(img, nw, scale)
+    }
     return overlay
 }
 
