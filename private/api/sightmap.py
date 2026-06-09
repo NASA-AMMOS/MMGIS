@@ -18,8 +18,10 @@ import sys
 import json
 import math
 import os
+import multiprocessing
 
 import numpy as np
+import numba
 from osgeo import gdal, osr
 from osgeo.gdalconst import GA_ReadOnly
 from osgeo import __version__ as osgeoversion
@@ -387,65 +389,137 @@ def _bilinear_interp_2d(coarse_data, coarse_rows, coarse_cols,
 
 
 # ---------------------------------------------------------------------------
-# Core sightmap algorithm (vectorized)
+# Numba JIT march kernel
 # ---------------------------------------------------------------------------
 
-def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
-                    step, out_rows, out_cols, obs_height, sun_vec_km,
-                    obs_az, obs_el, radii_km, flattening, planet_radius):
+@numba.njit(cache=True)
+def _numba_march_kernel(result_flat, dem, px_flat, py_flat, dx_flat, dy_flat,
+                        heights_flat, el_flat, nodata_flat,
+                        dem_rows, dem_cols, pixel_scale,
+                        planet_radius, march_step, max_march,
+                        nd_lo, nd_hi, has_nd):
     """
-    Vectorized visibility grid: all cells processed simultaneously per march
-    step.  Uses a coarse subgrid (#4) for Sun az/el to avoid per-cell SPICE
-    calls, and numpy array ops (#1) instead of Python loops.
+    Numba-JIT compiled per-cell ray-march kernel.
+    Includes adaptive stepping and elevation-based early cutoff.
     """
-    result = np.full((out_rows, out_cols), 0, dtype=np.int8)
-    march_step = max(2.0, float(step))
-    max_march = max(dem_rows, dem_cols) * 1.5
+    DEG2RAD = 0.017453292519943295
+    RAD2DEG = 57.29577951308232
+    MAX_TERRAIN_H = 10000.0  # conservative max terrain relief (meters)
+    n = result_flat.shape[0]
 
-    # Output cell pixel coordinates
+    for i in range(n):
+        if nodata_flat[i]:
+            result_flat[i] = 9
+            continue
+
+        cell_el = el_flat[i]
+        if cell_el <= 0.0:
+            result_flat[i] = 0
+            continue
+
+        cell_h = heights_flat[i]
+        cpx = px_flat[i]
+        cpy = py_flat[i]
+        cdx = dx_flat[i]
+        cdy = dy_flat[i]
+
+        # Early cutoff: shadow cannot extend beyond MAX_TERRAIN_H / tan(el)
+        el_rad = cell_el * DEG2RAD
+        tan_el = math.tan(el_rad)
+        if tan_el > 0.001:
+            cutoff = min(max_march, MAX_TERRAIN_H / (tan_el * pixel_scale) + 10.0)
+        else:
+            cutoff = max_march
+
+        max_el_angle = -90.0
+        r = march_step
+        cur_step = march_step
+        blocked = False
+
+        while r < cutoff:
+            sx = cpx + cdx * r
+            sy = cpy + cdy * r
+            ix = int(sx + 0.5) if sx >= 0 else int(sx - 0.5)
+            iy = int(sy + 0.5) if sy >= 0 else int(sy - 0.5)
+
+            if ix < 0 or ix >= dem_cols or iy < 0 or iy >= dem_rows:
+                break
+
+            sample = float(dem[iy, ix])
+
+            abs_s = abs(sample)
+            if has_nd and abs_s >= nd_lo and abs_s <= nd_hi:
+                r += cur_step
+                continue
+            if abs_s > 35000.0 or sample == 1010101.0:
+                r += cur_step
+                continue
+
+            dist_m = r * pixel_scale
+            terrain_h = sample
+            if planet_radius > 0.0:
+                terrain_h -= (dist_m * dist_m) / (2.0 * planet_radius)
+
+            dh = terrain_h - cell_h
+            el_angle = math.atan2(dh, dist_m) * RAD2DEG
+
+            if el_angle > max_el_angle:
+                max_el_angle = el_angle
+
+            if max_el_angle >= cell_el:
+                blocked = True
+                break
+
+            # Adaptive step: larger steps when far from shadow threshold
+            margin = cell_el - max_el_angle
+            if margin > 5.0:
+                cur_step = march_step * 4.0
+            elif margin > 2.0:
+                cur_step = march_step * 2.0
+            else:
+                cur_step = march_step
+
+            r += cur_step
+
+        if blocked:
+            result_flat[i] = 0
+        elif cell_el > max_el_angle:
+            result_flat[i] = 1
+        else:
+            result_flat[i] = 0
+
+
+# ---------------------------------------------------------------------------
+# Core sightmap algorithm (numpy pre-compute + Numba march)
+# ---------------------------------------------------------------------------
+
+def _precompute_grid_arrays(dem, nodata, gt, srs, pixel_scale, dem_rows,
+                            dem_cols, step, out_rows, out_cols, obs_height):
+    """Pre-compute shared arrays that don't depend on the timestamp."""
     oy_arr = np.arange(out_rows)
     ox_arr = np.arange(out_cols)
     oy_grid, ox_grid = np.meshgrid(oy_arr, ox_arr, indexing='ij')
     py_grid = np.minimum(oy_grid * step, dem_rows - 1).astype(np.float64)
     px_grid = np.minimum(ox_grid * step, dem_cols - 1).astype(np.float64)
 
-    # Sample DEM heights at cell positions
     cell_vals = dem[py_grid.astype(int), px_grid.astype(int)].astype(np.float64)
     nodata_mask = _vectorized_is_nodata(cell_vals, nodata)
-    result[nodata_mask] = 9
     cell_heights = cell_vals + obs_height
 
-    # ---- #4: Coarse Sun az/el subgrid with bilinear interpolation ----
-    if sun_vec_km is not None:
-        cs = COARSE_AZEL_STEP
-        c_rows = np.arange(0, out_rows, cs)
-        c_cols = np.arange(0, out_cols, cs)
-        if c_rows[-1] != out_rows - 1:
-            c_rows = np.append(c_rows, out_rows - 1)
-        if c_cols[-1] != out_cols - 1:
-            c_cols = np.append(c_cols, out_cols - 1)
-
-        cr_g, cc_g = np.meshgrid(c_rows, c_cols, indexing='ij')
-        c_py = np.minimum(cr_g * step, dem_rows - 1).astype(np.float64)
-        c_px = np.minimum(cc_g * step, dem_cols - 1).astype(np.float64)
-        c_lng, c_lat = _pixels_to_geo_batch(gt, srs, c_px, c_py)
-        c_az, c_el = _sun_azel_batch(c_lat, c_lng, sun_vec_km, radii_km,
-                                      flattening)
-
-        cell_az = _bilinear_interp_2d(c_az, c_rows, c_cols, out_rows, out_cols)
-        cell_el = _bilinear_interp_2d(c_el, c_rows, c_cols, out_rows, out_cols)
+    if nodata is not None:
+        nd = float(nodata)
+        dec = 10.0 if abs(nd) > 1e9 else 1.0
+        nd_lo = abs(nd / dec)
+        nd_hi = abs(nd * dec)
+        has_nd = True
     else:
-        cell_az = np.full((out_rows, out_cols), obs_az)
-        cell_el = np.full((out_rows, out_cols), obs_el)
+        nd_lo, nd_hi, has_nd = 0.0, 0.0, False
 
-    # Below-horizon → shadow
-    below = cell_el <= 0
-    result[below & ~nodata_mask] = 0
+    return (px_grid, py_grid, cell_heights, nodata_mask, nd_lo, nd_hi, has_nd)
 
-    # Active mask: not nodata and above horizon
-    active = ~nodata_mask & ~below
 
-    # ---- Ray direction per cell (pixel space) ----
+def _compute_directions(gt, srs, cell_az, px_grid, py_grid):
+    """Compute per-cell ray direction in pixel space."""
     is_proj = bool(srs.IsProjected())
     az_rad = np.radians(cell_az)
     if is_proj:
@@ -461,59 +535,76 @@ def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
         mag = np.maximum(np.sqrt(dx_geo ** 2 + dy_geo ** 2), 1e-12)
         dx = dx_geo / mag
         dy = dy_geo / mag
+    return dx, dy
 
-    # ---- Vectorized ray march ----
-    max_el_ang = np.full((out_rows, out_cols), -90.0)
-    still_active = active.copy()
 
-    r = march_step
-    while r < max_march and np.any(still_active):
-        sx = px_grid + dx * r
-        sy = py_grid + dy * r
-        ix = np.round(sx).astype(np.intp)
-        iy = np.round(sy).astype(np.intp)
+def _compute_sun_grid(sun_vec_km, obs_az, obs_el, radii_km, flattening,
+                      gt, srs, step, out_rows, out_cols, dem_rows):
+    """Compute per-cell Sun az/el via coarse subgrid interpolation."""
+    if sun_vec_km is not None:
+        cs = COARSE_AZEL_STEP
+        c_rows = np.arange(0, out_rows, cs)
+        c_cols = np.arange(0, out_cols, cs)
+        if c_rows[-1] != out_rows - 1:
+            c_rows = np.append(c_rows, out_rows - 1)
+        if c_cols[-1] != out_cols - 1:
+            c_cols = np.append(c_cols, out_cols - 1)
 
-        # Out-of-bounds → resolve cell (no more terrain to check)
-        oob = still_active & (
-            (ix < 0) | (ix >= dem_cols) | (iy < 0) | (iy >= dem_rows))
-        result[oob] = np.where(
-            cell_el[oob] > max_el_ang[oob], 1, 0).astype(np.int8)
-        still_active[oob] = False
+        cr_g, cc_g = np.meshgrid(c_rows, c_cols, indexing='ij')
+        c_py = np.minimum(cr_g * step, dem_rows - 1).astype(np.float64)
+        c_px = np.minimum(cc_g * step, dem_rows - 1).astype(np.float64)
+        c_lng, c_lat = _pixels_to_geo_batch(gt, srs, c_px, c_py)
+        c_az, c_el = _sun_azel_batch(c_lat, c_lng, sun_vec_km, radii_km,
+                                      flattening)
+        cell_az = _bilinear_interp_2d(c_az, c_rows, c_cols, out_rows, out_cols)
+        cell_el = _bilinear_interp_2d(c_el, c_rows, c_cols, out_rows, out_cols)
+    else:
+        cell_az = np.full((out_rows, out_cols), obs_az)
+        cell_el = np.full((out_rows, out_cols), obs_el)
+    return cell_az, cell_el
 
-        if not np.any(still_active):
-            break
 
-        # Sample DEM (clamp indices for safety; inactive cells don't matter)
-        ix_s = np.clip(ix, 0, dem_cols - 1)
-        iy_s = np.clip(iy, 0, dem_rows - 1)
-        sample = dem[iy_s, ix_s].astype(np.float64)
-        sample_nd = _vectorized_is_nodata(sample, nodata)
+def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
+                    step, out_rows, out_cols, obs_height, sun_vec_km,
+                    obs_az, obs_el, radii_km, flattening, planet_radius):
+    """
+    Compute visibility grid using Numba JIT march kernel with:
+    - Coarse Sun az/el subgrid interpolation
+    - Adaptive march step size
+    - Elevation-based early cutoff
+    """
+    march_step = max(2.0, float(step))
+    max_march = max(dem_rows, dem_cols) * 1.5
 
-        dist_m = r * pixel_scale
-        terrain_h = sample.copy()
-        if planet_radius > 0:
-            terrain_h -= (dist_m * dist_m) / (2.0 * planet_radius)
+    (px_grid, py_grid, cell_heights, nodata_mask,
+     nd_lo, nd_hi, has_nd) = _precompute_grid_arrays(
+        dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
+        step, out_rows, out_cols, obs_height)
 
-        el_angle = np.degrees(np.arctan2(terrain_h - cell_heights, dist_m))
+    cell_az, cell_el = _compute_sun_grid(
+        sun_vec_km, obs_az, obs_el, radii_km, flattening,
+        gt, srs, step, out_rows, out_cols, dem_rows)
 
-        # Update max elevation angle for active, non-nodata samples
-        updatable = still_active & ~sample_nd
-        max_el_ang[updatable] = np.maximum(
-            max_el_ang[updatable], el_angle[updatable])
+    dx, dy = _compute_directions(gt, srs, cell_az, px_grid, py_grid)
 
-        # Terrain blocks Sun → shadow
-        blocked = updatable & (max_el_ang >= cell_el)
-        result[blocked] = 0
-        still_active[blocked] = False
+    dem_f64 = dem.astype(np.float64) if dem.dtype != np.float64 else dem
+    result_flat = np.zeros(out_rows * out_cols, dtype=np.int8)
 
-        r += march_step
+    _numba_march_kernel(
+        result_flat, dem_f64,
+        px_grid.ravel().astype(np.float64),
+        py_grid.ravel().astype(np.float64),
+        dx.ravel().astype(np.float64),
+        dy.ravel().astype(np.float64),
+        cell_heights.ravel().astype(np.float64),
+        cell_el.ravel().astype(np.float64),
+        nodata_mask.ravel(),
+        dem_rows, dem_cols, pixel_scale,
+        planet_radius, march_step, max_march,
+        nd_lo, nd_hi, has_nd
+    )
 
-    # Remaining active cells: illuminated if Sun above max terrain angle
-    result[still_active] = np.where(
-        cell_el[still_active] > max_el_ang[still_active], 1, 0
-    ).astype(np.int8)
-
-    return result, obs_az, obs_el
+    return result_flat.reshape(out_rows, out_cols), obs_az, obs_el
 
 
 def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
@@ -568,15 +659,37 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
     }
 
 
+# Module-level shared state for multiprocessing workers (set before fork)
+_mp_shared = {}
+
+
+def _batch_worker(task):
+    """Multiprocessing worker: run Numba kernel for one timestamp."""
+    (dx_flat, dy_flat, el_flat, obs_az, obs_el) = task
+    s = _mp_shared
+    result_flat = np.zeros(s['n_cells'], dtype=np.int8)
+    _numba_march_kernel(
+        result_flat, s['dem_f64'],
+        s['px_flat'], s['py_flat'], dx_flat, dy_flat,
+        s['heights_flat'], el_flat, s['nodata_flat'],
+        s['dem_rows'], s['dem_cols'], s['pixel_scale'],
+        s['planet_radius'], s['march_step'], s['max_march'],
+        s['nd_lo'], s['nd_hi'], s['has_nd']
+    )
+    return (result_flat.reshape(s['out_rows'], s['out_cols']), obs_az, obs_el)
+
+
 def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
                            target, times, obs_ref_frame, obs_body,
                            planet_radius, max_output_dim=400,
                            is_custom='false', custom_az=0, custom_el=0):
     """
     Compute sightmap grids for multiple timestamps in one call.
-    The DEM and SPICE kernels are loaded once and reused.
-    Returns a list of result dicts (one per timestamp).
+    DEM and SPICE kernels loaded once.  Uses multiprocessing to
+    parallelize the Numba march kernel across timestamps.
     """
+    global _mp_shared
+
     package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
     kernels = load_kernels(package_dir, obs_body, target, is_custom)
 
@@ -615,14 +728,62 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     out_cols = (dem_cols + step - 1) // step
     bounds_info = _compute_bounds(ds, gt, srs, dem_rows, dem_cols)
 
-    # Compute grid for each timestamp
+    march_step = max(2.0, float(step))
+    max_march = max(dem_rows, dem_cols) * 1.5
+
+    # Pre-compute shared grid arrays (timestamp-independent)
+    (px_grid, py_grid, cell_heights, nodata_mask,
+     nd_lo, nd_hi, has_nd) = _precompute_grid_arrays(
+        dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
+        step, out_rows, out_cols, obs_height)
+
+    dem_f64 = dem.astype(np.float64) if dem.dtype != np.float64 else dem
+
+    # Pre-compute per-timestamp arrays (need GDAL for coordinate transforms)
+    tasks = []
+    for tp in time_positions:
+        cell_az, cell_el = _compute_sun_grid(
+            tp['sun_vec_km'], tp['obs_az'], tp['obs_el'],
+            radii_km, flattening, gt, srs, step, out_rows, out_cols, dem_rows)
+        dx, dy = _compute_directions(gt, srs, cell_az, px_grid, py_grid)
+        tasks.append((
+            dx.ravel().astype(np.float64),
+            dy.ravel().astype(np.float64),
+            cell_el.ravel().astype(np.float64),
+            tp['obs_az'], tp['obs_el'],
+        ))
+
+    ds = None  # close DEM before forking
+
+    # Store shared read-only data for workers (inherited via fork COW)
+    _mp_shared = {
+        'dem_f64': dem_f64,
+        'px_flat': px_grid.ravel().astype(np.float64),
+        'py_flat': py_grid.ravel().astype(np.float64),
+        'heights_flat': cell_heights.ravel().astype(np.float64),
+        'nodata_flat': nodata_mask.ravel(),
+        'dem_rows': dem_rows, 'dem_cols': dem_cols,
+        'pixel_scale': pixel_scale, 'planet_radius': planet_radius,
+        'march_step': march_step, 'max_march': max_march,
+        'nd_lo': nd_lo, 'nd_hi': nd_hi, 'has_nd': has_nd,
+        'out_rows': out_rows, 'out_cols': out_cols,
+        'n_cells': out_rows * out_cols,
+    }
+
+    # Run grids — use multiprocessing if multiple timestamps and CPUs
+    ncpu = min(multiprocessing.cpu_count(), len(tasks), 8)
+    use_mp = ncpu > 1 and len(tasks) > 1
+
+    if use_mp:
+        with multiprocessing.Pool(ncpu) as pool:
+            raw_results = pool.map(_batch_worker, tasks)
+    else:
+        raw_results = [_batch_worker(t) for t in tasks]
+
+    _mp_shared = {}  # release shared memory
+
     results = []
-    for i, tp in enumerate(time_positions):
-        grid, az, el = _ray_march_grid(
-            dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
-            step, out_rows, out_cols, obs_height, tp['sun_vec_km'],
-            tp['obs_az'], tp['obs_el'], radii_km, flattening, planet_radius
-        )
+    for i, (grid, az, el) in enumerate(raw_results):
         results.append({
             "grid": grid.tolist(),
             "az": round(az, 4),
@@ -631,11 +792,9 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
             "cols": out_cols,
             **bounds_info,
         })
-        # Print progress to stderr for the caller to track
         sys.stderr.write(json.dumps({"progress": i + 1, "total": len(times)}) + "\n")
         sys.stderr.flush()
 
-    ds = None
     return results
 
 
