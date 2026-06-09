@@ -301,6 +301,7 @@ let SightlineTool = {
                 SightlineTool._sweepPlayTimer = null
                 store.setSweepField('sweepPlaying', false)
             }
+            TimeUI.removeIndicator(null, 'sightlinetool')
             // Remove the heatmap/atlas layer from the map for static elements only;
             // composite/playback keep their (stale) layer visible until user re-sweeps
             for (const id in store.elements) {
@@ -606,6 +607,9 @@ let SightlineTool = {
         }
         // Also remove via Globe_ in case it was added as a litho layer
         try { Globe_.litho.removeLayer(layerName) } catch (e) { /* ignore */ }
+
+        // Clear the TimeUI playback indicator when leaving playback mode
+        TimeUI.removeIndicator(null, 'sightlinetool')
 
         // Switching back to static: re-render cached result or mark for regen
         if (mode === 'static') {
@@ -1144,6 +1148,8 @@ let SightlineTool = {
                 store.updateElement(numId, { regenerating: false, loading: false, loadingProgress: 0 })
             }
         }
+        // Remove TimeUI playback indicator
+        TimeUI.removeIndicator(null, 'sightlinetool')
         Toast.info('Sweep cancelled.', 3000)
     },
 
@@ -1159,6 +1165,8 @@ let SightlineTool = {
             SightlineTool._sweepPlayTimer = null
             store.setSweepField('sweepPlaying', false)
         }
+        // Clear stale TimeUI indicator from previous sweep
+        TimeUI.removeIndicator(null, 'sightlinetool')
 
         const options = store.getSightlineOptions(activeElmId)
         const selectedTargets = options.targets || []
@@ -2193,23 +2201,36 @@ let SightlineTool = {
         URL.revokeObjectURL(url)
     },
 
-    convertUTCToObserver: function (utcTime, observerValue, callback) {
+    _getObserverDef: function (observerValue) {
         const store = useSightlineStore.getState()
         const observers = store.vars?.observers || []
-        let body = null
         for (let i = 0; i < observers.length; i++) {
-            if (observers[i].value === observerValue) {
-                body = observers[i].body
-                break
-            }
+            if (observers[i].value === observerValue) return observers[i]
         }
-        if (!body || !observerValue) {
+        return null
+    },
+
+    _getObserverLng: function () {
+        const store = useSightlineStore.getState()
+        const pt = store.indicatorLastDragPoint
+        if (pt) return parseFloat(pt.lng)
+        return null
+    },
+
+    convertUTCToObserver: function (utcTime, observerValue, callback) {
+        const obs = SightlineTool._getObserverDef(observerValue)
+        if (!obs?.body || !observerValue) {
             if (callback) callback(null)
             return
         }
+        const params = { body: obs.body, target: observerValue, from: 'utc', time: utcTime }
+        if (obs.type === 'lsmt') {
+            const lng = SightlineTool._getObserverLng()
+            if (lng != null) params.lng = lng
+        }
         calls.api(
             'chronice',
-            { body, target: observerValue, from: 'utc', time: utcTime },
+            params,
             function (s) {
                 if (s.error) {
                     if (callback) callback(null)
@@ -2222,22 +2243,19 @@ let SightlineTool = {
     },
 
     convertObserverToUTC: function (localTime, observerValue, callback) {
-        const store = useSightlineStore.getState()
-        const observers = store.vars?.observers || []
-        let body = null
-        for (let i = 0; i < observers.length; i++) {
-            if (observers[i].value === observerValue) {
-                body = observers[i].body
-                break
-            }
-        }
-        if (!body || !observerValue) {
+        const obs = SightlineTool._getObserverDef(observerValue)
+        if (!obs?.body || !observerValue) {
             if (callback) callback(null)
             return
         }
+        const params = { body: obs.body, target: observerValue, from: 'lmst', time: localTime }
+        if (obs.type === 'lsmt') {
+            const lng = SightlineTool._getObserverLng()
+            if (lng != null) params.lng = lng
+        }
         calls.api(
             'chronice',
-            { body, target: observerValue, from: 'lmst', time: localTime },
+            params,
             function (s) {
                 if (s.error) {
                     if (callback) callback(null)

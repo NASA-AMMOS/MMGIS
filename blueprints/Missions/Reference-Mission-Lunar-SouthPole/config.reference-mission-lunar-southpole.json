@@ -260,10 +260,17 @@
             "value": "MOON",
             "frame": "IAU_MOON",
             "body": "MOON"
+          },
+          {
+            "name": "Moon (LSMT)",
+            "value": "MOON_LSMT",
+            "frame": "IAU_MOON",
+            "body": "MOON",
+            "type": "lsmt"
           }
         ],
         "defaultHeight": 0,
-        "observerTimePlaceholder": "YYYY-MM-DDTHH:MM:SSZ",
+        "observerTimePlaceholder": "LDAY-NNNNNLHH:MM:SS",
         "utcTimeFormat": "%Y-%m-%dT%H:%M:%SZ",
         "sweepColorRamps": [
           {

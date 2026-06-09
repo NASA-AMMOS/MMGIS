@@ -470,9 +470,14 @@ router.post("/chronice", function(req,res,next){(router._computeLimiter||functio
     .replace(/%20/g, " ")
     .replace(/%3A/g, ":");
 
+  const args = ["private/api/chronice.py", body, target, fromFormat, time];
+  if (req.body.lng != null) {
+    args.push(String(req.body.lng));
+  }
+
   execFile(
     "python",
-    ["private/api/chronice.py", body, target, fromFormat, time],
+    args,
     function (error, stdout, stderr) {
       if (error) logger("error", "chronice failure:", "server", null, error);
       res.send(stdout);

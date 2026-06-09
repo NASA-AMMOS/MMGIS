@@ -5,6 +5,7 @@ import CardLegend, { getDefaultStops } from './CardLegend'
 import SightlineTool from '../SightlineTool'
 import SightlineTool_Graphs from '../SightlineTool_Graphs'
 import L_ from '../../../Basics/Layers_/Layers_'
+import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import {
     Button,
     Checkbox,
@@ -210,6 +211,9 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
             if (result) {
                 const utc = result.replace(' ', 'T').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z').replace(/\.\d{3}Z$/, 'Z')
                 setSweepField('sweepStart', utc)
+                // Also update global TimeControl so the TimeUI slider reflects the new start
+                const endUtc = useSightlineStore.getState().sweepEnd || TimeControl.getEndTime()
+                if (endUtc) TimeControl.setTime(utc, endUtc, false)
             }
         })
     }, [obsStartTime, observer, setSweepField])
@@ -220,6 +224,9 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
             if (result) {
                 const utc = result.replace(' ', 'T').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z').replace(/\.\d{3}Z$/, 'Z')
                 setSweepField('sweepEnd', utc)
+                // Also update global TimeControl so the TimeUI slider reflects the new end
+                const startUtc = useSightlineStore.getState().sweepStart || TimeControl.getStartTime()
+                if (startUtc) TimeControl.setTime(startUtc, utc, false)
             }
         })
     }, [obsEndTime, observer, setSweepField])
@@ -553,6 +560,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                                     value={obsStartTime}
                                                     onChange={(e) => setObsStartTime(e.target.value)}
                                                     onBlur={handleObsStartBlur}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter') handleObsStartBlur() }}
                                                 />
                                             </div>
                                             <div className="vstOptionRow">
@@ -566,6 +574,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                                     value={obsEndTime}
                                                     onChange={(e) => setObsEndTime(e.target.value)}
                                                     onBlur={handleObsEndBlur}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter') handleObsEndBlur() }}
                                                 />
                                             </div>
                                         </>
