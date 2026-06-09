@@ -343,10 +343,10 @@ def _sun_azel_batch(lat_arr, lng_arr, sun_vec_km, radii_km, flattening):
     nn_len = np.maximum(nn_len, 1e-12)
     nnx /= nn_len; nny /= nn_len; nnz /= nn_len
 
-    # East = normal × north
-    ex = ny * nnz - nz * nny
-    ey = nz * nnx - nx * nnz
-    ez = nx * nny - ny * nnx
+    # East = north × normal  (right-hand rule: N×Up = E, CW azimuth)
+    ex = nny * nz - nnz * ny
+    ey = nnz * nx - nnx * nz
+    ez = nnx * ny - nny * nx
     e_len = np.maximum(np.sqrt(ex ** 2 + ey ** 2 + ez ** 2), 1e-12)
     ex /= e_len; ey /= e_len; ez /= e_len
 
