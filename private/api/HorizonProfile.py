@@ -69,14 +69,19 @@ def getPixelScale(ds):
 def _grid_convergence(ds, obs_px, obs_py):
     """Grid convergence (radians) at observer position.
 
-    For south-pole stereo the pole is at the origin and north is
-    *away* from the pole (positive y), so north_sign = +1.
-    For north-pole stereo, north is toward negative y, north_sign = -1.
+    Only applies to azimuthal projections (stereographic, gnomonic) where
+    meridians converge at the pole. For cylindrical projections (Equidistant
+    Cylindrical, Mercator, etc.), grid north = geographic north so returns 0.
     Returns 0 for geographic (unprojected) CRS.
     """
     srs = osr.SpatialReference()
     srs.ImportFromWkt(ds.GetProjection())
     if not srs.IsProjected():
+        return 0.0
+    proj_name = (srs.GetAttrValue('PROJECTION', 0) or '').lower()
+    is_azimuthal = ('stereo' in proj_name or 'azimuthal' in proj_name
+                    or 'gnomonic' in proj_name)
+    if not is_azimuthal:
         return 0.0
     gt = ds.GetGeoTransform()
     x = gt[0] + obs_px * gt[1] + obs_py * gt[2]

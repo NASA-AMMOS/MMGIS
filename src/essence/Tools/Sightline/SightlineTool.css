@@ -1084,6 +1084,8 @@
     position: relative;
     cursor: pointer;
     overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .sightlineVisRow {
