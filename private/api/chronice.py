@@ -82,9 +82,13 @@ def _lunar_utc_to_lsmt(utc_time, lon_deg):
 
 
 def _lunar_lsmt_to_utc(lsmt_str, lon_deg):
-    """Convert Lunar LSMT string back to UTC via iterative refinement."""
-    # Parse LDAY-NNNNNLHH:MM:SS
-    # Strip the "LDAY-" prefix, then split on 'L' to separate day from time
+    """Convert Lunar LSMT string back to UTC via coarse iteration + binary search.
+
+    et2lst returns integer (hr, mn, sc), so one lunar second spans ~29.18 ET
+    seconds.  The coarse loop lands inside the correct h:m:s window, then a
+    binary search narrows to the exact ET boundary where the second ticks
+    over, giving sub-second UTC precision.
+    """
     stripped = lsmt_str.strip()
     if stripped.upper().startswith('LDAY-'):
         stripped = stripped[5:]
@@ -101,12 +105,11 @@ def _lunar_lsmt_to_utc(lsmt_str, lon_deg):
     # Initial estimate: day_num * synodic_period + time offset
     et = day_num * _LUNAR_SYNODIC_SEC + target_hr * _LUNAR_HOUR_SEC + target_mn * _LUNAR_MIN_SEC + target_sc * _LUNAR_SEC_SEC
 
-    # Iterative refinement using et2lst
+    # Coarse iterative refinement to land in the correct h:m:s window
     for _ in range(50):
         h, m, sc, _, _ = spiceypy.et2lst(et, 301, lon_rad, 'PLANETOCENTRIC')
         current_secs = h * 3600 + m * 60 + sc
         diff = target_secs - current_secs
-        # Handle day wrap
         if diff > 43200:
             diff -= 86400
         elif diff < -43200:
@@ -114,6 +117,28 @@ def _lunar_lsmt_to_utc(lsmt_str, lon_deg):
         if abs(diff) <= 1:
             break
         et += diff * _LUNAR_SEC_SEC
+
+    # Binary search for the start of this lunar second (±0.5 ET second)
+    lo = et - _LUNAR_SEC_SEC
+    hi = et + _LUNAR_SEC_SEC
+    for _ in range(40):
+        mid = (lo + hi) / 2.0
+        h2, m2, s2, _, _ = spiceypy.et2lst(mid, 301, lon_rad, 'PLANETOCENTRIC')
+        mid_secs = h2 * 3600 + m2 * 60 + s2
+        d = mid_secs - target_secs
+        if d > 43200:
+            d -= 86400
+        elif d < -43200:
+            d += 86400
+        if d < 0:
+            lo = mid
+        else:
+            hi = mid
+        if hi - lo < 0.5:
+            break
+
+    # hi is the start of this lunar second; add half a lunar second
+    et = hi + _LUNAR_SEC_SEC / 2.0
 
     return spiceypy.et2utc(et, "ISOC", 3)
 
