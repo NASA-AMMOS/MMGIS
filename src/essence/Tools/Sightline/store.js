@@ -26,7 +26,7 @@ function makeDefaultElement(id, vars) {
     const color = MULTI_SOURCE_COLORS[id % MULTI_SOURCE_COLORS.length]
     return {
         id,
-        name: `Sightline ${id}`,
+        name: '',
         on: true,
         expanded: false,
         dataIndex: 0,
