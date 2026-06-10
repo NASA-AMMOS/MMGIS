@@ -312,7 +312,7 @@ def geo_to_pixel(gt, srs, lng, lat):
     return col, row
 
 
-def get_pixel_scale(ds, gt, srs):
+def get_pixel_scale(dem_rows, gt, srs):
     """Return approximate meters per pixel."""
     pw = abs(gt[1])
     ph = abs(gt[5])
@@ -320,7 +320,7 @@ def get_pixel_scale(ds, gt, srs):
         linear_unit = srs.GetLinearUnits()
         return ((pw + ph) / 2.0) * linear_unit
     else:
-        mid_lat = gt[3] + (ds.RasterYSize / 2.0) * gt[5]
+        mid_lat = gt[3] + (dem_rows / 2.0) * gt[5]
         deg2m = 111320.0 * math.cos(math.radians(mid_lat))
         return ((pw + ph) / 2.0) * deg2m
 
@@ -850,7 +850,7 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
                                         max_working_dim=working_dim,
                                         viewport_bounds=viewport_bounds)
     dem_rows, dem_cols = dem.shape
-    pixel_scale = get_pixel_scale(ds, gt, srs)
+    pixel_scale = get_pixel_scale(dem_rows, gt, srs)
     step = max(1, max(dem_rows, dem_cols) // max_output_dim)
     out_rows = (dem_rows + step - 1) // step
     out_cols = (dem_cols + step - 1) // step
@@ -915,7 +915,7 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
                                         max_working_dim=working_dim,
                                         viewport_bounds=viewport_bounds)
     dem_rows, dem_cols = dem.shape
-    pixel_scale = get_pixel_scale(ds, gt, srs)
+    pixel_scale = get_pixel_scale(dem_rows, gt, srs)
     step = max(1, max(dem_rows, dem_cols) // max_output_dim)
     out_rows = (dem_rows + step - 1) // step
     out_cols = (dem_cols + step - 1) // step

@@ -472,7 +472,7 @@ router.post("/chronice", function(req,res,next){(router._computeLimiter||functio
 
   const args = ["private/api/chronice.py", body, target, fromFormat, time];
   if (req.body.lng != null) {
-    args.push(String(req.body.lng));
+    args.push(encodeURIComponent(String(req.body.lng)));
   }
 
   execFile(
