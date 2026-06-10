@@ -172,6 +172,7 @@ let SightlineTool = {
 
         // Add center crosshair overlay
         SightlineTool._addCenterCrosshair()
+        SightlineTool._addCenterDot()
 
         // Register graph scrub callback for bidirectional sync
         SightlineTool_Graphs.registerScrubCallback(() => {
@@ -216,8 +217,9 @@ let SightlineTool = {
 
         TimeControl.unsubscribe('SightlineTool')
 
-        // Remove center crosshair
+        // Remove center crosshair and dot
         SightlineTool._removeCenterCrosshair()
+        SightlineTool._removeCenterDot()
 
         // Close bottom bar graphs
         SightlineTool_Graphs.cleanup()
@@ -280,6 +282,23 @@ let SightlineTool = {
         } else {
             SightlineTool._crosshairMarker.setLatLng(Map_.map.getCenter())
         }
+    },
+
+    // === Center Dot (always at visible map center) ===
+
+    _addCenterDot() {
+        if (document.getElementById('sightlineCenterDot')) return
+        const mapEl = document.getElementById('map')
+        if (!mapEl) return
+        const dot = document.createElement('div')
+        dot.id = 'sightlineCenterDot'
+        dot.className = 'sightlineCenterDot'
+        mapEl.appendChild(dot)
+    },
+
+    _removeCenterDot() {
+        const dot = document.getElementById('sightlineCenterDot')
+        if (dot) dot.remove()
     },
 
     // === Map Event Handlers ===
