@@ -1157,25 +1157,6 @@ function _azToDisplay(az) {
 }
 
 /**
- * Compute the screen-space angle of geographic north at a given lat/lng.
- * Returns radians clockwise from screen-up (+y). For equirectangular /
- * Mercator this is 0; for polar stereographic it varies with longitude.
- */
-function _localNorthAngle(latLng) {
-    const eps = 0.001 // small latitude offset in degrees
-    const lat = latLng.lat
-    const lng = latLng.lng
-    // Point slightly north of center (higher latitude)
-    const northLat = Math.min(lat + eps, 89.999)
-    const pCenter = Map_.map.latLngToContainerPoint([lat, lng])
-    const pNorth = Map_.map.latLngToContainerPoint([northLat, lng])
-    const dx = pNorth.x - pCenter.x
-    const dy = pNorth.y - pCenter.y
-    // atan2(dx, -dy) gives clockwise angle from screen-up
-    return Math.atan2(dx, -dy)
-}
-
-/**
  * Forward geodesic on a sphere: from (lat, lng) move along geographic
  * azimuth `azDeg` (CW from north) by `distDeg` angular degrees.
  * Returns { lat, lng } in degrees.

@@ -661,40 +661,6 @@ let SightlineTool = {
         }
     },
 
-    // Show regular sightline map layers, remove sweep layers from map
-    showSightlinemapLayers: function () {
-        const store = useSightlineStore.getState()
-        for (const id in store.elements) {
-            const el = store.elements[id]
-            if (el?.on && el?.lastData && el?.lastResultGrid) {
-                const options = store.getSightlineOptions(parseInt(id))
-                options.color.a = 255
-                SightlineTool.renderResultToMap(el.lastData, el.lastResultGrid, options, parseInt(id))
-            }
-        }
-    },
-
-    // Show sweep layers (composite heatmaps), remove regular sightline layers from map
-    showSweepLayers: function () {
-        const store = useSightlineStore.getState()
-        // Remove all regular sightline layers first
-        for (const id in store.elements) {
-            Map_.rmNotNull(L_.layers.layer['sightline' + id])
-            L_.layers.layer['sightline' + id] = null
-        }
-        for (const id in store.sweepElData) {
-            const ed = store.sweepElData[id]
-            if (ed?.heatmap && ed?.lastData) {
-                SightlineTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
-            }
-        }
-        // Re-apply z-ordering so earlier elements stay on top
-        const cardOrder = store.sweepCardOrder || []
-        if (cardOrder.length > 0) {
-            SightlineTool.reorderSweepLayers(cardOrder)
-        }
-    },
-
     // Remove all sightline/sweep layers from the map
     clearAllSightlineLayers: function () {
         const store = useSightlineStore.getState()
@@ -1064,16 +1030,6 @@ let SightlineTool = {
         })
     },
 
-    refreshAllHeatmaps: function () {
-        const store = useSightlineStore.getState()
-        for (const id in store.sweepElData) {
-            const ed = store.sweepElData[id]
-            if (ed?.heatmap && ed?.lastData) {
-                SightlineTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
-            }
-        }
-    },
-
     applySweepOpacity: function (activeElmId) {
         const store = useSightlineStore.getState()
         const ed = store.sweepElData[activeElmId]
@@ -1084,13 +1040,6 @@ let SightlineTool = {
         if (layer && typeof layer.setOpacity === 'function') {
             layer.setOpacity(opacity)
         }
-    },
-
-    _nextPow2: function (v) {
-        v--
-        v |= v >> 1; v |= v >> 2; v |= v >> 4
-        v |= v >> 8; v |= v >> 16
-        return v + 1
     },
 
     buildSweepAtlas: function (data, sweepGrids, options, activeElmId, onDone) {
