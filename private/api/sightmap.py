@@ -691,28 +691,35 @@ def _precompute_grid_arrays(dem, nodata, gt, srs, pixel_scale, dem_rows,
 def _compute_directions(gt, srs, cell_az, px_grid, py_grid):
     """Compute per-cell ray direction in pixel space.
 
-    For projected CRS (e.g. polar stereographic), geographic north at
-    each cell is rotated from grid north by the grid convergence angle.
-    We compute this analytically from projected coordinates (no GDAL
-    coordinate transform needed) using atan2(easting, northing_sign * northing)
-    relative to the projection origin.
+    For azimuthal projected CRS (e.g. polar stereographic), geographic north
+    at each cell is rotated from grid north by the grid convergence angle.
+    For cylindrical projections (Equidistant Cylindrical, Mercator, etc.),
+    grid north equals geographic north so convergence is 0.
     """
     is_proj = bool(srs.IsProjected())
     if is_proj:
-        # Projected (x, y) from the geotransform — pure numpy, no GDAL
-        proj_x = gt[0] + px_grid * gt[1] + py_grid * gt[2]
-        proj_y = gt[3] + px_grid * gt[4] + py_grid * gt[5]
-        # Grid convergence = atan2(x - false_easting, sign*(y - false_northing))
-        # For south-pole stereo the pole is at the origin and north
-        # is *away* from the pole (positive y), so sign = +1.
-        # For north-pole stereo, north is toward negative y, sign = -1.
-        fe = srs.GetProjParm('false_easting', 0.0)
-        fn = srs.GetProjParm('false_northing', 0.0)
-        lat_origin = srs.GetProjParm('latitude_of_origin', 0.0)
-        north_sign = -1.0 if lat_origin > 0 else 1.0
-        convergence = np.degrees(np.arctan2(proj_x - fe,
-                                            north_sign * (proj_y - fn)))
-        grid_az = cell_az + convergence
+        # Determine if the projection is azimuthal (stereo/gnomonic/etc.)
+        # vs cylindrical where grid convergence = 0
+        proj_name = (srs.GetAttrValue('PROJECTION', 0) or '').lower()
+        is_azimuthal = ('stereo' in proj_name or 'azimuthal' in proj_name
+                        or 'gnomonic' in proj_name)
+        if is_azimuthal:
+            # Projected (x, y) from the geotransform — pure numpy, no GDAL
+            proj_x = gt[0] + px_grid * gt[1] + py_grid * gt[2]
+            proj_y = gt[3] + px_grid * gt[4] + py_grid * gt[5]
+            # Grid convergence = atan2(x - FE, sign*(y - FN))
+            # For south-pole stereo: north is away from pole (+y), sign = +1
+            # For north-pole stereo: north is toward -y, sign = -1
+            fe = srs.GetProjParm('false_easting', 0.0)
+            fn = srs.GetProjParm('false_northing', 0.0)
+            lat_origin = srs.GetProjParm('latitude_of_origin', 0.0)
+            north_sign = -1.0 if lat_origin > 0 else 1.0
+            convergence = np.degrees(np.arctan2(proj_x - fe,
+                                                north_sign * (proj_y - fn)))
+            grid_az = cell_az + convergence
+        else:
+            # Cylindrical/conic projections: grid north = geographic north
+            grid_az = cell_az
         az_rad = np.radians(grid_az)
         dx = np.sin(az_rad)
         dy = -np.cos(az_rad) if gt[5] < 0 else np.cos(az_rad)

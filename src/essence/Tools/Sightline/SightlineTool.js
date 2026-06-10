@@ -378,7 +378,12 @@ let SightlineTool = {
         }
     },
 
+    _lastGeneratedTime: null,
+
     _onTimeChange: function (rawTime) {
+        // Skip regeneration if the time hasn't actually changed
+        if (rawTime === SightlineTool._lastGeneratedTime) return
+        SightlineTool._lastGeneratedTime = rawTime
         if (_timeChangeDebounce) clearTimeout(_timeChangeDebounce)
         _timeChangeDebounce = setTimeout(() => {
             const store = useSightlineStore.getState()
@@ -2236,13 +2241,23 @@ let SightlineTool = {
         return null
     },
 
+    // Preserved sub-second precision from last observer→UTC conversion
+    // so that UTC→observer round-trips don't lose a second.
+    _lastConvertedMs: '000',
+
     convertUTCToObserver: function (utcTime, observerValue, callback) {
         const obs = SightlineTool._getObserverDef(observerValue)
         if (!obs?.body || !observerValue) {
             if (callback) callback(null)
             return
         }
-        const params = { body: obs.body, target: observerValue, from: 'utc', time: utcTime }
+        // Re-attach saved ms precision for exact round-trip
+        let time = utcTime
+        if (SightlineTool._lastConvertedMs !== '000' && time) {
+            time = time.replace('.000Z', '.' + SightlineTool._lastConvertedMs + 'Z')
+                       .replace(/(\d{2}:\d{2}:\d{2})Z$/, '$1.' + SightlineTool._lastConvertedMs + 'Z')
+        }
+        const params = { body: obs.body, target: observerValue, from: 'utc', time: time }
         if (obs.type === 'lsmt') {
             const lng = SightlineTool._getObserverLng()
             if (lng != null) params.lng = lng

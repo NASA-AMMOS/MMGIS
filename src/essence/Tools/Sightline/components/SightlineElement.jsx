@@ -209,10 +209,10 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
         if (!obsStartTime || !observer) return
         SightlineTool.convertObserverToUTC(obsStartTime, observer, (result) => {
             if (result) {
-                // Chronice returns UTC without Z suffix — append it and strip ms
+                // Save ms for exact round-trip, then strip for TimeControl
+                SightlineTool._lastConvertedMs = (result.split('.')[1] || '000').replace(/[^0-9]/g, '') || '000'
                 const utc = (result.replace(' ', 'T').replace(/\.\d+$/, '') + 'Z').replace(/ZZ$/, 'Z')
                 setSweepField('sweepStart', utc)
-                // Also update global TimeControl so the TimeUI slider reflects the new start
                 const endUtc = useSightlineStore.getState().sweepEnd || TimeControl.getEndTime()
                 if (endUtc) TimeControl.setTime(utc, endUtc, false)
             }
@@ -223,10 +223,10 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
         if (!obsEndTime || !observer) return
         SightlineTool.convertObserverToUTC(obsEndTime, observer, (result) => {
             if (result) {
-                // Chronice returns UTC without Z suffix — append it and strip ms
+                // Save ms for exact round-trip, then strip for TimeControl
+                SightlineTool._lastConvertedMs = (result.split('.')[1] || '000').replace(/[^0-9]/g, '') || '000'
                 const utc = (result.replace(' ', 'T').replace(/\.\d+$/, '') + 'Z').replace(/ZZ$/, 'Z')
                 setSweepField('sweepEnd', utc)
-                // Also update global TimeControl so the TimeUI slider reflects the new end
                 const startUtc = useSightlineStore.getState().sweepStart || TimeControl.getStartTime()
                 if (startUtc) TimeControl.setTime(startUtc, utc, false)
             }

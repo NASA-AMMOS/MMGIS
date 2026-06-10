@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react'
+import { utcFormat, utcParse } from 'd3-time-format'
 import useSightlineStore, { buildSourcesList } from '../store'
 import SightlineElement from './SightlineElement'
 import SightlineTool from '../SightlineTool'
@@ -23,6 +24,8 @@ export default function SightlinePanel() {
 
     const dragItemRef = useRef(null)
     const [dropTargetId, setDropTargetId] = useState(null)
+    const [editableTime, setEditableTime] = useState('')
+    const [rawTime, setRawTime] = useState('')
 
     useEffect(() => {
         Help.finalize(helpKey)
@@ -36,6 +39,11 @@ export default function SightlinePanel() {
             if (!TimeUI.modes) return 'Range'
             return TimeUI.modes[TimeUI.modeIndex] || 'Range'
         }
+        function updateEditableTime(time) {
+            if (!time) return
+            setRawTime(time)
+            setEditableTime(SightlineTool.parseToUTCTime(time, true))
+        }
 
         // Sync on mount
         const mode = getTimeUIMode()
@@ -44,9 +52,11 @@ export default function SightlinePanel() {
         const currentTime = TimeControl.getTime()
         if (mode === 'Point') {
             if (currentTime) setSweepField('sweepStart', fmtUTC(currentTime))
+            updateEditableTime(currentTime)
         } else {
             if (startTime) setSweepField('sweepStart', fmtUTC(startTime))
             if (endTime) setSweepField('sweepEnd', fmtUTC(endTime))
+            updateEditableTime(endTime)
         }
 
         // Subscribe for ongoing changes
@@ -54,9 +64,11 @@ export default function SightlinePanel() {
             const m = getTimeUIMode()
             if (m === 'Point') {
                 if (t.currentTime) setSweepField('sweepStart', fmtUTC(t.currentTime))
+                updateEditableTime(t.currentTime)
             } else {
                 if (t.startTime) setSweepField('sweepStart', fmtUTC(t.startTime))
                 if (t.endTime) setSweepField('sweepEnd', fmtUTC(t.endTime))
+                updateEditableTime(t.endTime)
             }
         })
 
@@ -164,6 +176,37 @@ export default function SightlinePanel() {
                         </IconButton>
                     </div>
                 </div>
+            </div>
+            {/* Editable current time field */}
+            <div className="vstOptionTime">
+                <div className="vstClockIcon"><i className="mdi mdi-clock-outline mdi-18px" /></div>
+                <input
+                    type="text"
+                    value={editableTime}
+                    title={rawTime}
+                    onChange={(e) => setEditableTime(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur() }}
+                    onBlur={() => {
+                        let time = editableTime
+                        if (vars?.utcTimeFormat) {
+                            const parseTime = utcParse(vars.utcTimeFormat)
+                            const parsed = parseTime(time)
+                            if (parsed) {
+                                time = parsed.toISOString()
+                            } else {
+                                return
+                            }
+                        } else {
+                            if (!time.endsWith('Z')) time += 'Z'
+                        }
+                        try {
+                            new Date(time).toISOString()
+                        } catch {
+                            return
+                        }
+                        TimeControl.setTime(TimeControl.getStartTime(), time)
+                    }}
+                />
             </div>
             {/* Time section — single row: [start] [step|min] [end] */}
             <div className="vstTime">
