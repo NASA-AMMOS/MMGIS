@@ -593,6 +593,7 @@ let SightlineTool = {
                     lat: source.lat,
                     lng: source.lng,
                 })
+                SightlineTool._updateCrosshairPosition()
                 currentStore.updateElement(activeElmId, {
                     lastData: data,
                     lastResultGrid: grid,
@@ -1411,6 +1412,7 @@ let SightlineTool = {
                     lat: source.lat,
                     lng: source.lng,
                 })
+                SightlineTool._updateCrosshairPosition()
 
                 currentStoreF.setSweepField('sweepProgress', 'Computing heatmap...')
                 _flushSweepProgress(activeElmId, 50, undefined, true)
