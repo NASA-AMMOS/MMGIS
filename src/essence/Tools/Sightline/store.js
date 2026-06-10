@@ -2,8 +2,8 @@ import { create } from 'zustand'
 
 export const MULTI_SOURCE_COLORS = [
     { r: 255, g: 180, b: 40 },
-    { r: 230, g: 75, b: 75 },
     { r: 80, g: 140, b: 255 },
+    { r: 230, g: 75, b: 75 },
     { r: 80, g: 210, b: 80 },
     { r: 255, g: 120, b: 200 },
     { r: 170, g: 100, b: 255 },

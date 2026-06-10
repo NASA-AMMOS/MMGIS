@@ -142,7 +142,6 @@
     margin: 6px;
     border-radius: 6px;
     background: var(--color-a1-5);
-    overflow: hidden;
 }
 
 /* Instance header */
@@ -153,6 +152,7 @@
     height: 32px;
     padding: 0 6px;
     background: var(--color-a1);
+    border-radius: 6px 6px 0 0;
 }
 
 #sightlineTool .vstSightlineHeaderLeft {
@@ -228,7 +228,7 @@
     border: 1px solid var(--color-a1);
     border-radius: 4px;
     box-shadow: 0 4px 12px var(--color-shadow);
-    z-index: 100;
+    z-index: 10000;
 }
 
 #sightlineTool .vstColorOption {
@@ -719,7 +719,6 @@
     background: var(--color-a1-5);
     margin: 4px 6px;
     border-radius: 4px;
-    overflow: hidden;
 }
 #sightlineTool .vstSweepCardsScroll {
     flex: 1;
@@ -737,7 +736,6 @@
 #sightlineTool .vstSweepCard {
     background: var(--color-a2);
     border-radius: 4px;
-    overflow: hidden;
     border: 1px solid var(--color-a2);
     transition: box-shadow 0.15s ease;
 }
@@ -752,6 +750,7 @@
     padding: 5px 6px;
     background: var(--color-a2);
     border-bottom: 2px solid var(--color-a3);
+    border-radius: 4px 4px 0 0;
 }
 
 #sightlineTool .vstSweepCardDragHandle {
