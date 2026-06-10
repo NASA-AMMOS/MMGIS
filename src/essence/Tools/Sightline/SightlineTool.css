@@ -25,33 +25,32 @@
     margin-right: 6px;
 }
 
-/* Editable time field */
-#sightlineTool .vstOptionTime {
-    display: flex;
-    align-items: center;
-    padding: 4px 8px;
-    gap: 6px;
-    background: var(--color-a-5);
-    border-bottom: 1px solid var(--color-e);
+/* Editable time field — matches old ShadeTool vstOptionTime */
+#sightlineTool .vstOptionTime .flexbetween {
+    position: relative;
+    width: 100%;
 }
 #sightlineTool .vstOptionTime .vstClockIcon {
-    display: flex;
-    align-items: center;
-    color: var(--color-a5);
+    position: absolute;
+    right: 0;
+    padding: 4px 8px;
+    color: var(--color-a1-5);
+    pointer-events: none;
 }
 #sightlineTool .vstOptionTime input {
-    flex: 1;
-    min-width: 0;
-    background: var(--color-a);
-    border: 1px solid var(--color-a3);
-    border-radius: 3px;
-    color: var(--color-f);
-    font-size: 12px;
-    padding: 3px 6px;
+    width: 100%;
+    text-align: center;
+    background: var(--color-p0);
+    color: var(--color-a1-5);
+    font-weight: bold;
+    font-size: 14px;
+    padding: 5px 0px;
+    border: none;
+    border-bottom: 1px solid transparent;
     outline: none;
 }
 #sightlineTool .vstOptionTime input:focus {
-    border-color: var(--color-a5);
+    border-bottom: 1px solid var(--color-c);
 }
 
 /* ====== Header — matches mmgisToolHeader (DrawTool style) ====== */

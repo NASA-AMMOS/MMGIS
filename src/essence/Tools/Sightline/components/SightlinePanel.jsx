@@ -177,36 +177,38 @@ export default function SightlinePanel() {
                     </div>
                 </div>
             </div>
-            {/* Editable current time field */}
+            {/* Editable current time field — matches old ShadeTool vstOptionTime */}
             <div className="vstOptionTime">
-                <div className="vstClockIcon"><i className="mdi mdi-clock-outline mdi-18px" /></div>
-                <input
-                    type="text"
-                    value={editableTime}
-                    title={rawTime}
-                    onChange={(e) => setEditableTime(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur() }}
-                    onBlur={() => {
-                        let time = editableTime
-                        if (vars?.utcTimeFormat) {
-                            const parseTime = utcParse(vars.utcTimeFormat)
-                            const parsed = parseTime(time)
-                            if (parsed) {
-                                time = parsed.toISOString()
+                <div className="flexbetween">
+                    <div className="vstClockIcon"><i className="mdi mdi-clock-outline mdi-18px" /></div>
+                    <input
+                        type="text"
+                        value={editableTime}
+                        title={rawTime}
+                        onChange={(e) => setEditableTime(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur() }}
+                        onBlur={() => {
+                            let time = editableTime
+                            if (vars?.utcTimeFormat) {
+                                const parseTime = utcParse(vars.utcTimeFormat)
+                                const parsed = parseTime(time)
+                                if (parsed) {
+                                    time = parsed.toISOString()
+                                } else {
+                                    return
+                                }
                             } else {
+                                if (!time.endsWith('Z')) time += 'Z'
+                            }
+                            try {
+                                new Date(time).toISOString()
+                            } catch {
                                 return
                             }
-                        } else {
-                            if (!time.endsWith('Z')) time += 'Z'
-                        }
-                        try {
-                            new Date(time).toISOString()
-                        } catch {
-                            return
-                        }
-                        TimeControl.setTime(TimeControl.getStartTime(), time)
-                    }}
-                />
+                            TimeControl.setTime(TimeControl.getStartTime(), time)
+                        }}
+                    />
+                </div>
             </div>
             {/* Time section — single row: [start] [step|min] [end] */}
             <div className="vstTime">

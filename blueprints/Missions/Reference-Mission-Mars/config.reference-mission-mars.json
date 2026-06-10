@@ -200,7 +200,7 @@
         ],
         "defaultHeight": 0,
         "observerTimePlaceholder": "SOL-ddddMhh:mm:ss",
-        "utcTimeFormat": "%Y-%m-%dT%H:%M:%SZ",
+        "utcTimeFormat": "%Y-%j %H:%M:%S",
         "sweepColorRamps": [
           {
             "name": "viridis",
