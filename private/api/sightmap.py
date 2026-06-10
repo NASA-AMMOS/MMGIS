@@ -240,7 +240,7 @@ def open_dem(dem_path, max_working_dim=None, viewport_bounds=None):
             arr = band.ReadAsArray()
             gt = tuple(gt)
 
-    return ds, arr, nodata, gt, srs
+    return arr, nodata, gt, srs
 
 
 def _read_via_overview(band, native_cols, native_rows, max_working_dim):
@@ -294,24 +294,6 @@ def pixel_to_geo(gt, srs, px, py):
     return lng, lat
 
 
-def geo_to_pixel(gt, srs, lng, lat):
-    """Convert geographic (lng, lat) degrees to pixel (col, row) float."""
-    if srs.IsProjected():
-        srs_geo = srs.CloneGeogCS()
-        ct = osr.CoordinateTransformation(srs_geo, srs)
-        proj_x, proj_y, _ = ct.TransformPoint(lng, lat)
-    else:
-        proj_x, proj_y = lng, lat
-
-    # Invert the geotransform
-    det = gt[1] * gt[5] - gt[2] * gt[4]
-    if abs(det) < 1e-15:
-        return 0.0, 0.0
-    col = (gt[5] * (proj_x - gt[0]) - gt[2] * (proj_y - gt[3])) / det
-    row = (-gt[4] * (proj_x - gt[0]) + gt[1] * (proj_y - gt[3])) / det
-    return col, row
-
-
 def get_pixel_scale(dem_rows, gt, srs):
     """Return approximate meters per pixel."""
     pw = abs(gt[1])
@@ -325,91 +307,6 @@ def get_pixel_scale(dem_rows, gt, srs):
         return ((pw + ph) / 2.0) * deg2m
 
 
-def is_nodata(value, nodata):
-    """Check if a DEM value is nodata."""
-    if nodata is not None:
-        nd = float(nodata)
-        dec = 10 if abs(nd) > 1e9 else 1
-        if abs(float(value)) >= abs(nd / dec) and abs(float(value)) <= abs(nd * dec):
-            return True
-    # Also catch extreme values
-    if float(value) > 35000 or float(value) < -35000:
-        return True
-    if float(value) == 1010101:
-        return True
-    return False
-
-
-# ---------------------------------------------------------------------------
-# Per-cell Sun az/el via body-fixed Sun vector
-# ---------------------------------------------------------------------------
-
-def sun_azel_at_cell(cell_lat, cell_lng, sun_vec_km, radii_km, flattening):
-    """
-    Compute Sun azimuth and elevation at a surface cell.
-
-    cell_lat, cell_lng: degrees
-    sun_vec_km: Sun position in body-fixed frame (km)
-    radii_km: [equatorial, equatorial, polar] radii in km
-    flattening: (a-c)/a
-
-    Returns (az_deg, el_deg).
-    """
-    # Cell position on the ellipsoid surface (km)
-    cell_pos = np.array(spiceypy.georec(
-        cell_lng * spiceypy.rpd(), cell_lat * spiceypy.rpd(),
-        0.0, radii_km[0], flattening
-    ))
-
-    # Direction from cell to Sun
-    to_sun = sun_vec_km - cell_pos
-    to_sun_norm = to_sun / np.linalg.norm(to_sun)
-
-    # Surface normal (outward) — for an ellipsoid, the geodetic normal
-    # For a sphere approximation: cell_pos / |cell_pos|
-    # For the ellipsoid: use the gradient of the ellipsoid equation
-    a2 = radii_km[0] ** 2
-    c2 = radii_km[2] ** 2
-    normal = np.array([cell_pos[0] / a2, cell_pos[1] / a2, cell_pos[2] / c2])
-    normal = normal / np.linalg.norm(normal)
-
-    # Elevation = angle above the horizon plane
-    sin_el = np.dot(to_sun_norm, normal)
-    sin_el = np.clip(sin_el, -1.0, 1.0)
-    el_deg = math.degrees(math.asin(sin_el))
-
-    # For azimuth: project to_sun onto the local tangent plane and compute
-    # bearing relative to local north
-    # Local north = d(pos)/d(lat) direction
-    lat_r = cell_lat * spiceypy.rpd()
-    lng_r = cell_lng * spiceypy.rpd()
-    # North direction in body-fixed (derivative of georec w.r.t. lat)
-    north = np.array([
-        -radii_km[0] * math.sin(lat_r) * math.cos(lng_r),
-        -radii_km[0] * math.sin(lat_r) * math.sin(lng_r),
-        radii_km[2] * math.cos(lat_r),
-    ])
-    # Make it perpendicular to normal and normalise
-    north = north - np.dot(north, normal) * normal
-    n_len = np.linalg.norm(north)
-    if n_len < 1e-12:
-        return 0.0, el_deg
-    north = north / n_len
-
-    # East = north × normal  (right-hand rule: N×Up = E, CW azimuth)
-    east = np.cross(north, normal)
-    east = east / np.linalg.norm(east)
-
-    # Project Sun direction onto tangent plane
-    sun_n = np.dot(to_sun_norm, north)
-    sun_e = np.dot(to_sun_norm, east)
-    az_deg = math.degrees(math.atan2(sun_e, sun_n))
-    if az_deg < 0:
-        az_deg += 360.0
-
-    return az_deg, el_deg
-
-
 # ---------------------------------------------------------------------------
 # Vectorized helpers (numpy)
 # ---------------------------------------------------------------------------
@@ -418,7 +315,7 @@ COARSE_AZEL_STEP = 50  # compute Sun az/el every N output cells
 
 
 def _vectorized_is_nodata(values, nodata):
-    """Vectorized equivalent of is_nodata()."""
+    """Check which DEM values are nodata (vectorized)."""
     mask = np.zeros(values.shape, dtype=bool)
     if nodata is not None:
         nd = float(nodata)
@@ -447,10 +344,7 @@ def _pixels_to_geo_batch(gt, srs, px_arr, py_arr):
 
 
 def _sun_azel_batch(lat_arr, lng_arr, sun_vec_km, radii_km, flattening):
-    """
-    Vectorized Sun az/el for 2D arrays of lat/lng (degrees).
-    Pure-numpy equivalent of sun_azel_at_cell().
-    """
+    """Vectorized Sun az/el for 2D arrays of lat/lng (degrees)."""
     rpd = math.pi / 180.0
     a, c = float(radii_km[0]), float(radii_km[2])
     e2 = 1.0 - (c / a) ** 2
@@ -846,9 +740,9 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
 
     # Working DEM: 2× output grid for terrain detail, min 500px.
     working_dim = max(max_output_dim * 2, 500)
-    ds, dem, nodata, gt, srs = open_dem(dem_path,
-                                        max_working_dim=working_dim,
-                                        viewport_bounds=viewport_bounds)
+    dem, nodata, gt, srs = open_dem(dem_path,
+                                    max_working_dim=working_dim,
+                                    viewport_bounds=viewport_bounds)
     dem_rows, dem_cols = dem.shape
     pixel_scale = get_pixel_scale(dem_rows, gt, srs)
     step = max(1, max(dem_rows, dem_cols) // max_output_dim)
@@ -861,8 +755,7 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
         obs_az, obs_el, radii_km, flattening, planet_radius
     )
 
-    bounds_info = _compute_bounds(ds, gt, srs, dem_rows, dem_cols)
-    ds = None
+    bounds_info = _compute_bounds(gt, srs, dem_rows, dem_cols)
 
     return {
         "grid": result.tolist(),
@@ -911,15 +804,15 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     # Skip kernel unloading — process exits immediately after response
 
     working_dim = max(max_output_dim * 2, 500)
-    ds, dem, nodata, gt, srs = open_dem(dem_path,
-                                        max_working_dim=working_dim,
-                                        viewport_bounds=viewport_bounds)
+    dem, nodata, gt, srs = open_dem(dem_path,
+                                    max_working_dim=working_dim,
+                                    viewport_bounds=viewport_bounds)
     dem_rows, dem_cols = dem.shape
     pixel_scale = get_pixel_scale(dem_rows, gt, srs)
     step = max(1, max(dem_rows, dem_cols) // max_output_dim)
     out_rows = (dem_rows + step - 1) // step
     out_cols = (dem_cols + step - 1) // step
-    bounds_info = _compute_bounds(ds, gt, srs, dem_rows, dem_cols)
+    bounds_info = _compute_bounds(gt, srs, dem_rows, dem_cols)
 
     march_step = max(2.0, float(step))
     max_march = max(dem_rows, dem_cols) * 1.5
@@ -935,8 +828,6 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     py_flat = py_grid.ravel().astype(np.float64)
     heights_flat = cell_heights.ravel().astype(np.float64)
     nodata_flat = nodata_mask.ravel()
-
-    ds = None
 
     results = []
     for i, tp in enumerate(time_positions):
@@ -974,7 +865,7 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     return results
 
 
-def _compute_bounds(ds, gt, srs, dem_rows, dem_cols):
+def _compute_bounds(gt, srs, dem_rows, dem_cols):
     """Compute geographic and projected bounds from a DEM dataset."""
     is_projected = bool(srs.IsProjected())
     bounds_proj = None
