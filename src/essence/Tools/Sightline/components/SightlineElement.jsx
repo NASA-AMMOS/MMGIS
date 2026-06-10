@@ -166,13 +166,11 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     const [resultsOpen, setResultsOpen] = useState(sightlineMode === 'static')
 
     const [colorPickerOpen, setColorPickerOpen] = useState(false)
-    const [palettePos, setPalettePos] = useState(null)
     const [exportFormat, setExportFormat] = useState('png')
     useEffect(() => { setExportFormat('png') }, [sightlineMode])
     const [obsStartTime, setObsStartTime] = useState('')
     const [obsEndTime, setObsEndTime] = useState('')
     const colorPickerRef = useRef(null)
-    const swatchRef = useRef(null)
 
     // Close color picker on outside click
     useEffect(() => {
@@ -637,20 +635,13 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                 <div className="vstOptionLabel">Color</div>
                                 <div className="vstColorSwatchWrap" ref={colorPickerRef}>
                                     <div
-                                        ref={swatchRef}
                                         className="vstColorSwatch"
                                         style={{ background: rgbStr(el.color) }}
-                                        onClick={() => {
-                                            if (!colorPickerOpen && swatchRef.current) {
-                                                const r = swatchRef.current.getBoundingClientRect()
-                                                setPalettePos({ top: r.bottom, left: r.left })
-                                            }
-                                            setColorPickerOpen(!colorPickerOpen)
-                                        }}
+                                        onClick={() => setColorPickerOpen(!colorPickerOpen)}
                                         title="Change color"
                                     />
-                                    {colorPickerOpen && palettePos && (
-                                        <div className="vstColorPalette" style={{ top: palettePos.top, left: palettePos.left }}>
+                                    {colorPickerOpen && (
+                                        <div className="vstColorPalette">
                                             {MULTI_SOURCE_COLORS.map((c, i) => (
                                                 <div
                                                     key={i}

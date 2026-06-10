@@ -217,7 +217,9 @@
 }
 
 #sightlineTool .vstColorPalette {
-    position: fixed;
+    position: absolute;
+    top: 22px;
+    left: 0;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 3px;
@@ -244,6 +246,11 @@
 /* sightline names removed — header is icons only */
 
 /* ====== Collapsible body ====== */
+
+/* Allow dropdowns inside open collapsible panels to overflow */
+#sightlineTool [data-open] {
+    overflow: visible !important;
+}
 
 #sightlineTool .vstSightlineBody {
     padding: 0;
