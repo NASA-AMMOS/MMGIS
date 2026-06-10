@@ -623,6 +623,13 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
   let stderr = '';
   child.stdout.on('data', (data) => { stdout += data; });
   child.stderr.on('data', (data) => { stderr += data; });
+  child.on('error', (err) => {
+    logger("error", "sightmap spawn failure:", "server", null, err);
+    if (!res.headersSent) res.status(500).json({ error: true, message: "Failed to start Python process" });
+  });
+  child.stdin.on('error', (err) => {
+    logger("error", "sightmap stdin error:", "server", null, err);
+  });
   child.stdin.write(payload);
   child.stdin.end();
 
@@ -633,21 +640,24 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
       try {
         const parsed = JSON.parse(stdout);
         if (parsed.error) {
-          return res.status(400).json(parsed);
+          if (!res.headersSent) return res.status(400).json(parsed);
+          return;
         }
       } catch (_) { /* not valid JSON — fall through */ }
-      return res.status(400).json({ error: true, message: "sightmap computation failed" });
+      if (!res.headersSent) return res.status(400).json({ error: true, message: "sightmap computation failed" });
+      return;
     }
     try {
       const parsed = JSON.parse(stdout);
       if (parsed.error) {
         logger("error", "sightmap error:", "server", null, parsed.message);
-        return res.status(400).json(parsed);
+        if (!res.headersSent) return res.status(400).json(parsed);
+        return;
       }
-      res.json(parsed);
+      if (!res.headersSent) res.json(parsed);
     } catch (e) {
       logger("error", "sightmap parse error:", "server", null, stdout.substring(0, 500));
-      res.status(500).json({ error: true, message: "Failed to parse sightmap result" });
+      if (!res.headersSent) res.status(500).json({ error: true, message: "Failed to parse sightmap result" });
     }
   });
 });
