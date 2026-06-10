@@ -551,23 +551,25 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     </div>
                                     {el.observer && (
                                         <>
-                                            <div className="vstOptionRow">
-                                                <div className="vstOptionLabel vstObsTimeLabel" title="Observer local start time">
-                                                    <i className="mdi mdi-clock-outline mdi-14px" /> Start
+                                            {sightlineMode !== 'static' && (
+                                                <div className="vstOptionRow">
+                                                    <div className="vstOptionLabel vstObsTimeLabel" title="Observer local start time">
+                                                        <i className="mdi mdi-clock-outline mdi-14px" /> Start
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        className="vstSweepInput"
+                                                        placeholder={vars?.observerTimePlaceholder || ''}
+                                                        value={obsStartTime}
+                                                        onChange={(e) => setObsStartTime(e.target.value)}
+                                                        onBlur={handleObsStartBlur}
+                                                        onKeyDown={(e) => { if (e.key === 'Enter') handleObsStartBlur() }}
+                                                    />
                                                 </div>
-                                                <input
-                                                    type="text"
-                                                    className="vstSweepInput"
-                                                    placeholder={vars?.observerTimePlaceholder || ''}
-                                                    value={obsStartTime}
-                                                    onChange={(e) => setObsStartTime(e.target.value)}
-                                                    onBlur={handleObsStartBlur}
-                                                    onKeyDown={(e) => { if (e.key === 'Enter') handleObsStartBlur() }}
-                                                />
-                                            </div>
+                                            )}
                                             <div className="vstOptionRow">
                                                 <div className="vstOptionLabel vstObsTimeLabel" title="Observer local end time">
-                                                    <i className="mdi mdi-clock-outline mdi-14px" /> End
+                                                    <i className="mdi mdi-clock-outline mdi-14px" /> {sightlineMode === 'static' ? 'Time' : 'End'}
                                                 </div>
                                                 <input
                                                     type="text"
