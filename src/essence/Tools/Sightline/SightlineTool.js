@@ -55,10 +55,22 @@ function _flushSweepProgress(elmId, pct, msg, force) {
     }
 }
 
+// Returns true if the mission uses a custom projected CRS (polar stereo, etc.)
+// so that the map CRS matches the DEM CRS.
+function _isCustomProjectedCRS() {
+    return (
+        L_.configData &&
+        L_.configData.projection &&
+        L_.configData.projection.custom === true
+    )
+}
+
 // Returns [xmin, ymin, xmax, ymax] in projected CRS coordinates, or null.
 // Samples all 4 container corners so polar/rotated CRS get a correct
 // projected-space envelope (getBounds lat/lng box is wrong for those).
+// Only returns bounds when the map uses a custom projected CRS matching the DEM.
 function _getViewportProjBounds() {
+    if (!_isCustomProjectedCRS()) return null
     const map = Map_.map
     if (!map) return null
     const crs = map.options.crs || window.mmgisglobal?.customCRS
@@ -746,7 +758,7 @@ let SightlineTool = {
         ctx.putImageData(imgData, 0, 0)
 
         const overlayOpts = { className: 'nofade sightmap-pixelated', interactive: false }
-        if (projBounds && Map_.map.options.crs && Map_.map.options.crs.unproject) {
+        if (projBounds && _isCustomProjectedCRS() && Map_.map.options.crs && Map_.map.options.crs.unproject) {
             L_.layers.layer[layerName] = _projImageOverlay(
                 c.toDataURL(), projBounds, overlayOpts
             )
@@ -970,7 +982,7 @@ let SightlineTool = {
         const bounds = data._bounds
         const projBounds = data._projBounds
         const heatOpts = { className: 'nofade sightmap-pixelated', interactive: false }
-        if (projBounds && Map_.map.options.crs && Map_.map.options.crs.unproject) {
+        if (projBounds && _isCustomProjectedCRS() && Map_.map.options.crs && Map_.map.options.crs.unproject) {
             L_.layers.layer[layerName] = _projImageOverlay(
                 c.toDataURL(), projBounds, heatOpts
             )
@@ -1631,7 +1643,7 @@ let SightlineTool = {
             layer.setUrl(imgUrl)
         } else {
             Map_.rmNotNull(layer)
-            if (projBounds && Map_.map.options.crs && Map_.map.options.crs.unproject) {
+            if (projBounds && _isCustomProjectedCRS() && Map_.map.options.crs && Map_.map.options.crs.unproject) {
                 L_.layers.layer[layerName] = _projImageOverlay(
                     imgUrl, projBounds, frameOpts
                 )

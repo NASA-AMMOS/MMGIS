@@ -5,9 +5,18 @@
         "title": "Computes and visualizes line-of-sight visibility to orbiting or celestial targets over terrain.",
         "example": {
             "dem": "Data/missionDEM.tif",
+            "data": [
+                {
+                    "name": "User-friendly name for DEM",
+                    "demtileurl": "pathToDEMTiles/{z}/{x}/{y}.png",
+                    "minZoom": 8,
+                    "maxNativeZoom": 18,
+                    "boundingBox": [-122.51, 37.71, -122.41, 37.78]
+                }
+            ],
             "sources": [
                 {
-                    "name": "User-friendly name for orbiter or body that 'casts shadows'",
+                    "name": "User-friendly name for orbiter or body",
                     "value": "NAIF SPICE Spacecraft name or ID"
                 },
                 {
@@ -20,12 +29,20 @@
                     "name": "User-friendly name for observer for spacecraft time computations. Set to null to turn off time converting.",
                     "value": "SPICE Spacecraft name or ID",
                     "frame": "SPICE reference frame. i.e. IAU_MARS",
-                    "body": "SPICE planet body. i.e. MARS"
+                    "body": "SPICE planet body. i.e. MARS",
+                    "type": "Optional. 'lsmt' for lunar local solar mean time."
                 }
             ],
             "defaultHeight": 0,
-            "observerTimePlaceholder": null,
-            "utcTimeFormat": null
+            "observerTimePlaceholder": "SOL-ddddMhh:mm:ss",
+            "utcTimeFormat": "%Y-%m-%dT%H:%M:%SZ",
+            "sweepColorRamps": [
+                {
+                    "name": "viridis",
+                    "label": "Viridis",
+                    "bins": 6
+                }
+            ]
         }
     },
     "hasVars": true,
@@ -43,7 +60,7 @@
                     {
                         "field": "variables.dem",
                         "name": "DEM path",
-                        "description": "A path to a DEM.tif. This is used to get the current center elevation.",
+                        "description": "A path to a Cloud Optimized GeoTIFF (COG) DEM. Used to compute terrain occlusion and elevation profiles.",
                         "type": "text",
                         "width": 12
                     }
@@ -52,9 +69,61 @@
             {
                 "components": [
                     {
+                        "field": "variables.data",
+                        "name": "Layer-specific DEMs",
+                        "description": "Optional additional DEM sources selectable by the user. Each entry provides a named DEM with tile URL and extent.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "User-friendly name for this DEM",
+                                "type": "text",
+                                "width": 2
+                            },
+                            {
+                                "field": "demtileurl",
+                                "name": "DEM Tile URL",
+                                "description": "Path to DEM RGB-encoded tiles: {z}/{x}/{y}.png",
+                                "type": "text",
+                                "width": 6
+                            },
+                            {
+                                "field": "minZoom",
+                                "name": "Min Zoom",
+                                "description": "Minimum zoom level for tiles",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 1
+                            },
+                            {
+                                "field": "maxNativeZoom",
+                                "name": "Max Native Zoom",
+                                "description": "Maximum native zoom level",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 1
+                            },
+                            {
+                                "field": "boundingBox",
+                                "name": "Bounding Box",
+                                "description": "west,south,east,north. Clamps tile requests to this extent.",
+                                "type": "textarray",
+                                "width": 2
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
                         "field": "variables.sources",
                         "name": "Sources",
-                        "description": "SPICE bodies to compute line-of-sight visibility for.",
+                        "description": "SPICE bodies to compute line-of-sight visibility for (e.g. Sun, orbiters, relay satellites).",
                         "type": "objectarray",
                         "width": 12,
                         "object": [
@@ -81,21 +150,21 @@
                     {
                         "field": "variables.observers",
                         "name": "Observers",
-                        "description": "Ground observers for time conversions.",
+                        "description": "Ground observers for spacecraft clock and local time conversions (e.g. MSL Sol, Mars 2020 Sol, LSMT).",
                         "type": "objectarray",
                         "width": 12,
                         "object": [
                             {
                                 "field": "name",
                                 "name": "Name",
-                                "description": "",
+                                "description": "User-friendly display name for this observer",
                                 "type": "text",
                                 "width": 3
                             },
                             {
                                 "field": "value",
                                 "name": "SPICE Value",
-                                "description": "",
+                                "description": "SPICE spacecraft name or ID (e.g. MSL, MARS2020)",
                                 "type": "text",
                                 "width": 3
                             },
@@ -131,7 +200,7 @@
                     {
                         "field": "variables.observerTimePlaceholder",
                         "name": "Observer Time Placeholder",
-                        "description": "",
+                        "description": "Placeholder text shown in observer time inputs (e.g. SOL-ddddMhh:mm:ss, LDAY-NNNNNLHH:MM:SS)",
                         "type": "text",
                         "width": 6
                     }
