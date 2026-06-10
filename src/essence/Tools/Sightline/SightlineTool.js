@@ -241,43 +241,44 @@ let SightlineTool = {
 
     // === Center Crosshair ===
 
+    _crosshairMarker: null,
+
     _addCenterCrosshair() {
-        if (document.getElementById('sightlineCenterCrosshair')) return
-        const mapEl = document.getElementById('map')
-        if (!mapEl) return
-        const ch = document.createElement('div')
-        ch.id = 'sightlineCenterCrosshair'
-        ch.className = 'sightlineCenterCrosshair'
-        ch.innerHTML = '<div class="sightlineCrosshairCircle"></div><div class="sightlineCrosshairN"></div><div class="sightlineCrosshairS"></div><div class="sightlineCrosshairE"></div><div class="sightlineCrosshairW"></div>'
-        mapEl.appendChild(ch)
+        if (SightlineTool._crosshairMarker) return
+        const icon = L.divIcon({
+            className: 'sightlineCenterCrosshair',
+            html: '<div class="sightlineCrosshairCircle"></div><div class="sightlineCrosshairN"></div><div class="sightlineCrosshairS"></div><div class="sightlineCrosshairE"></div><div class="sightlineCrosshairW"></div>',
+            iconSize: [0, 0],
+            iconAnchor: [0, 0]
+        })
+        SightlineTool._crosshairMarker = L.marker(Map_.map.getCenter(), {
+            icon: icon,
+            interactive: false,
+            zIndexOffset: 10000
+        }).addTo(Map_.map)
         Map_.map.on('move', SightlineTool._updateCrosshairPosition)
+        SightlineTool._updateCrosshairPosition()
     },
 
     _removeCenterCrosshair() {
-        const ch = document.getElementById('sightlineCenterCrosshair')
-        if (ch) ch.remove()
+        if (SightlineTool._crosshairMarker) {
+            Map_.map.removeLayer(SightlineTool._crosshairMarker)
+            SightlineTool._crosshairMarker = null
+        }
         Map_.map.off('move', SightlineTool._updateCrosshairPosition)
         SightlineTool_Graphs.removeAzimuthLine()
         SightlineTool_Graphs._removeSourceAzimuthLines()
     },
 
     _updateCrosshairPosition() {
-        const ch = document.getElementById('sightlineCenterCrosshair')
-        if (!ch) return
+        if (!SightlineTool._crosshairMarker) return
         const store = useSightlineStore.getState()
-        // Find sweep center from active element
         const activeId = store.activeElmId
         const ed = activeId != null ? store.sweepElData[activeId] : null
         if (ed?.sweepCenter) {
-            const pt = Map_.map.latLngToContainerPoint(ed.sweepCenter)
-            ch.style.left = pt.x + 'px'
-            ch.style.top = pt.y + 'px'
+            SightlineTool._crosshairMarker.setLatLng(ed.sweepCenter)
         } else {
-            const mapEl = document.getElementById('map')
-            if (mapEl) {
-                ch.style.left = '50%'
-                ch.style.top = '50%'
-            }
+            SightlineTool._crosshairMarker.setLatLng(Map_.map.getCenter())
         }
     },
 

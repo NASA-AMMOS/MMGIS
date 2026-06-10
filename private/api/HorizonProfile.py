@@ -99,6 +99,20 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
     pixel_scale = getPixelScale(ds)
     max_radius_px = max_radius_m / pixel_scale if pixel_scale > 0 else 500
 
+    # Per-axis physical scale (m/pixel) for correct march direction & distance.
+    # Geographic CRS pixels are non-square: 1° lon < 1° lat at non-zero lat.
+    srs = osr.SpatialReference()
+    srs.ImportFromWkt(ds.GetProjection())
+    gt = ds.GetGeoTransform()
+    if srs.IsProjected():
+        lu = srs.GetLinearUnits()
+        px_scale_x = abs(gt[1]) * lu
+        px_scale_y = abs(gt[5]) * lu
+    else:
+        obs_lat = gt[3] + obs_py * gt[5]
+        px_scale_x = abs(gt[1]) * 111320.0 * math.cos(math.radians(obs_lat))
+        px_scale_y = abs(gt[5]) * 111320.0
+
     xSize = ds.RasterXSize
     ySize = ds.RasterYSize
 
@@ -143,8 +157,15 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
     for ai in range(num_azimuths):
         az_deg = ai * (360.0 / num_azimuths)
         az_rad = math.radians(az_deg) + convergence
-        dx = math.sin(az_rad)
-        dy = -math.cos(az_rad)
+        # March direction in pixel space, accounting for non-square pixels
+        raw_dx = math.sin(az_rad) / px_scale_x
+        raw_dy = -math.cos(az_rad) / px_scale_y
+        step_len = math.sqrt(raw_dx * raw_dx + raw_dy * raw_dy)
+        if step_len < 1e-12:
+            step_len = 1e-12
+        dx = raw_dx / step_len
+        dy = raw_dy / step_len
+        m_per_step = 1.0 / step_len  # physical metres per 1-pixel step
 
         max_el_angle = -90.0
         r = max(step_px, min_skip_px) if min_skip_px > 0 else step_px
@@ -162,7 +183,7 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
                 r += step_px
                 continue
 
-            dist_m = r * pixel_scale
+            dist_m = r * m_per_step
             if dist_m < 0.001:
                 r += step_px
                 continue

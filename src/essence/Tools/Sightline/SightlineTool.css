@@ -919,54 +919,50 @@
 /* ====== Center Crosshair ====== */
 
 .sightlineCenterCrosshair {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-    z-index: 800;
+    pointer-events: none !important;
+    z-index: 10000;
 }
 .sightlineCrosshairCircle {
     position: absolute;
-    width: 14px;
-    height: 14px;
-    top: -7px;
-    left: -7px;
-    border: 2px solid #fff;
+    width: 8px;
+    height: 8px;
+    top: -4px;
+    left: -4px;
+    border: 1.5px solid limegreen;
     border-radius: 50%;
-    box-shadow: 0 0 3px rgba(0,0,0,0.7), inset 0 0 3px rgba(0,0,0,0.7);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.85);
 }
 .sightlineCrosshairN,
 .sightlineCrosshairS,
 .sightlineCrosshairE,
 .sightlineCrosshairW {
     position: absolute;
-    background: #fff;
-    box-shadow: 0 0 3px rgba(0,0,0,0.7);
+    background: limegreen;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.85);
 }
 .sightlineCrosshairN,
 .sightlineCrosshairS {
-    width: 2px;
-    height: 7px;
-    left: -1px;
+    width: 1.5px;
+    height: 5px;
+    left: -0.75px;
 }
 .sightlineCrosshairN {
-    top: -16px;
+    top: -11px;
 }
 .sightlineCrosshairS {
-    top: 9px;
+    top: 6px;
 }
 .sightlineCrosshairE,
 .sightlineCrosshairW {
-    height: 2px;
-    width: 7px;
-    top: -1px;
+    height: 1.5px;
+    width: 5px;
+    top: -0.75px;
 }
 .sightlineCrosshairE {
-    left: 9px;
+    left: 6px;
 }
 .sightlineCrosshairW {
-    left: -16px;
+    left: -11px;
 }
 
 /* ====== Azimuth Radial Line ====== */
