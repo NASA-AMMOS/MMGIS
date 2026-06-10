@@ -1,19 +1,25 @@
 {
+  "coordinates": {
+    "coordll": true,
+    "coorden": true,
+    "coordelev": true,
+    "coordelevurl": "Data/DEMs/missionDEM_20m_COG.tif"
+  },
   "msv": {
     "mission": "Reference-Mission-Mars",
     "missionFolderName": "Reference-Mission-Mars",
     "site": "Mars",
     "masterdb": false,
     "view": [
-      -4.5,
-      137.4,
-      6
+      -4.71,
+      137.39,
+      14
     ],
     "radius": {
       "major": "3396190",
       "minor": "3376200"
     },
-    "mapscale": "6"
+    "mapscale": "5"
   },
   "projection": {
     "custom": false,
@@ -21,8 +27,16 @@
     "proj": "+proj=longlat +a=3396190 +b=3376200 +no_defs",
     "globeproj": "",
     "xmlpath": "",
-    "bounds": ["", "", "", ""],
-    "origin": ["", ""],
+    "bounds": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "origin": [
+      "",
+      ""
+    ],
     "reszoomlevel": "",
     "resunitsperpixel": ""
   },
@@ -76,7 +90,60 @@
       "globe": 0
     }
   },
-  "layers": [],
+  "layers": [
+    {
+      "name": "Basemap",
+      "type": "header",
+      "uuid": "a2f4c8e1-3b7d-4e9a-b0f6-1c2d3e4f5a6b",
+      "sublayers": [
+        {
+          "name": "Gale HiRISE Color",
+          "uuid": "a87fa987-b99f-409a-82b9-218a2bc581d3",
+          "type": "tile",
+          "visibility": true,
+          "sourceType": "url",
+          "url": "https://mars.nasa.gov/mmgis-maps/MSL/Layers/MSL_Gale_HiRISE-LRGB_78quads/{z}/{x}/{y}.png",
+          "tileformat": "tms",
+          "controlled": false,
+          "initialOpacity": 1,
+          "minZoom": 10,
+          "maxNativeZoom": 18,
+          "maxZoom": 28,
+          "demtileurl": "Layers/dem_rgba_tiles/{z}/{x}/{y}.png",
+          "demparser": "rgba",
+          "boundingBox": [
+            "137.32672354505786",
+            "-4.87560429259321",
+            "137.4785574965306",
+            "-4.55506331169111"
+          ],
+          "throughTileServer": false,
+          "cogResampling": "nearest",
+          "cogExpressionEditable": false,
+          "cogTransform": false,
+          "cogColormap": "Accent",
+          "style": {
+            "brightness": 1,
+            "contrast": 1,
+            "saturation": 1,
+            "blend": "none"
+          },
+          "time": {
+            "enabled": false,
+            "type": "requery",
+            "compositeTile": false,
+            "refreshIntervalEnabled": false
+          },
+          "variables": {
+            "legendOrientation": "vertical"
+          },
+          "description": "Mars 20m/pixel hillshade basemap tiles."
+        }
+      ],
+      "expanded": true,
+      "description": ""
+    }
+  ],
   "tools": [
     {
       "name": "Layers",
@@ -84,11 +151,21 @@
       "js": "LayersTool"
     },
     {
+      "name": "Measure",
+      "icon": "tape-measure",
+      "js": "MeasureTool",
+      "variables": {
+        "dem": "Data/DEMs/missionDEM_20m_COG.tif",
+        "onlyShowDemIfLayerOn": false,
+        "defaultMode": "segment"
+      }
+    },
+    {
       "name": "Sightline",
       "icon": "brightness-4",
       "js": "SightlineTool",
       "variables": {
-        "dem": "Data/DEMs/mars_dem.tif",
+        "dem": "Data/DEMs/missionDEM_20m_COG.tif",
         "sources": [
           {
             "name": "Sun",
@@ -97,6 +174,14 @@
           {
             "name": "Earth",
             "value": "EARTH"
+          },
+          {
+            "name": "ODY",
+            "value": "-53"
+          },
+          {
+            "name": "TGO",
+            "value": "-143"
           }
         ],
         "observers": [
@@ -114,12 +199,24 @@
           }
         ],
         "defaultHeight": 0,
-        "observerTimePlaceholder": "SOL-XXXXXMHH:MM:SS",
+        "observerTimePlaceholder": "SOL-ddddMhh:mm:ss",
         "utcTimeFormat": "%Y-%m-%dT%H:%M:%SZ",
         "sweepColorRamps": [
-          { "name": "viridis", "label": "Viridis", "bins": 6 },
-          { "name": "plasma", "label": "Plasma", "bins": 6 },
-          { "name": "inferno", "label": "Inferno", "bins": 6 }
+          {
+            "name": "viridis",
+            "label": "Viridis",
+            "bins": 6
+          },
+          {
+            "name": "plasma",
+            "label": "Plasma",
+            "bins": 6
+          },
+          {
+            "name": "inferno",
+            "label": "Inferno",
+            "bins": 6
+          }
         ]
       }
     }
