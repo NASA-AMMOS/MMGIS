@@ -551,12 +551,25 @@ router.post("/gethorizonprofile", function(req,res,next){(router._computeLimiter
 
 //utils sightmap — single or batch (pass `times` array for batch)
 router.post("/sightmap", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
+  const MAX_TIMES = 200;
   const isBatch = Array.isArray(req.body.times) && req.body.times.length > 0;
   if (req.body.dem == null || req.body.lat == null || req.body.lng == null || req.body.target == null) {
     return res.status(400).json({ error: true, message: "dem, lat, lng, and target are required" });
   }
   if (!isBatch && req.body.time == null) {
     return res.status(400).json({ error: true, message: "time (or times array) is required" });
+  }
+  if (isBatch && req.body.times.length > MAX_TIMES) {
+    return res.status(400).json({ error: true, message: "times array exceeds maximum of " + MAX_TIMES + " entries" });
+  }
+
+  // Validate string fields used in filesystem path construction in Python.
+  const SAFE_NAME_RE = /^[A-Za-z0-9_-]+$/;
+  const target = String(req.body.target);
+  const obsRefFrame = String(req.body.obsRefFrame || 'IAU_MOON');
+  const obsBody = String(req.body.obsBody || 'MOON');
+  if (!SAFE_NAME_RE.test(target) || !SAFE_NAME_RE.test(obsRefFrame) || !SAFE_NAME_RE.test(obsBody)) {
+    return res.status(400).json({ error: true, message: "target, obsRefFrame, and obsBody must contain only alphanumeric, underscore, or hyphen characters" });
   }
 
   const pathResult = validateMissionsPath(req.body.dem);
@@ -579,9 +592,9 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
     lat: lat,
     lng: lng,
     height: height,
-    target: String(req.body.target),
-    obsRefFrame: String(req.body.obsRefFrame || 'IAU_MOON'),
-    obsBody: String(req.body.obsBody || 'MOON'),
+    target: target,
+    obsRefFrame: obsRefFrame,
+    obsBody: obsBody,
     planetRadius: planetRadius,
     maxOutputDim: maxOutputDim,
     isCustom: String(req.body.isCustom || 'false'),

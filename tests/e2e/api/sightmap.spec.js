@@ -486,16 +486,14 @@ test.describe('Sightmap API', () => {
       }
 
       expect(response.ok()).toBeTruthy();
-      expect(body.error).toBeFalsy();
 
-      // Batch response has a results array
-      expect(body.results).toBeDefined();
-      expect(Array.isArray(body.results)).toBe(true);
-      expect(body.results.length).toBe(times.length);
+      // Batch response is a raw JSON array (not wrapped in { results: [...] })
+      expect(Array.isArray(body)).toBe(true);
+      expect(body.length).toBe(times.length);
 
       // Each result should have grid, az, el, bounds
-      for (let i = 0; i < body.results.length; i++) {
-        const r = body.results[i];
+      for (let i = 0; i < body.length; i++) {
+        const r = body[i];
         expect(r.grid).toBeDefined();
         expect(Array.isArray(r.grid)).toBe(true);
         expect(typeof r.az).toBe('number');
@@ -506,7 +504,7 @@ test.describe('Sightmap API', () => {
 
       // Az values should differ across 6-hour intervals
       // (Sun moves ~0.5°/hour in az at the Moon)
-      const azimuths = body.results.map((r) => r.az);
+      const azimuths = body.map((r) => r.az);
       const azRange = Math.max(...azimuths) - Math.min(...azimuths);
       expect(azRange).toBeGreaterThan(1);
     });
@@ -549,8 +547,8 @@ test.describe('Sightmap API', () => {
       expect(single.response.ok()).toBeTruthy();
       expect(batch.response.ok()).toBeTruthy();
 
-      // Az/el should match
-      const batchResult = batch.body.results[0];
+      // Az/el should match (batch response is a raw array)
+      const batchResult = batch.body[0];
       expect(single.body.az).toBeCloseTo(batchResult.az, 2);
       expect(single.body.el).toBeCloseTo(batchResult.el, 2);
 
