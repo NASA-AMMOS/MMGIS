@@ -217,9 +217,7 @@
 }
 
 #sightlineTool .vstColorPalette {
-    position: absolute;
-    top: 18px;
-    left: 0;
+    position: fixed;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 3px;
