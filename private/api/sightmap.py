@@ -396,8 +396,8 @@ def sun_azel_at_cell(cell_lat, cell_lng, sun_vec_km, radii_km, flattening):
         return 0.0, el_deg
     north = north / n_len
 
-    # East = normal × north
-    east = np.cross(normal, north)
+    # East = north × normal  (right-hand rule: N×Up = E, CW azimuth)
+    east = np.cross(north, normal)
     east = east / np.linalg.norm(east)
 
     # Project Sun direction onto tangent plane
