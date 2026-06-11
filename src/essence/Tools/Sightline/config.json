@@ -5,18 +5,9 @@
         "title": "Computes and visualizes line-of-sight visibility to orbiting or celestial targets over terrain.",
         "example": {
             "dem": "Data/missionDEM.tif",
-            "data": [
-                {
-                    "name": "User-friendly name for DEM",
-                    "demtileurl": "pathToDEMTiles/{z}/{x}/{y}.png",
-                    "minZoom": 8,
-                    "maxNativeZoom": 18,
-                    "boundingBox": [-122.51, 37.71, -122.41, 37.78]
-                }
-            ],
             "sources": [
                 {
-                    "name": "User-friendly name for orbiter or body that 'casts shadows'",
+                    "name": "User-friendly name for orbiter or body",
                     "value": "NAIF SPICE Spacecraft name or ID"
                 },
                 {
@@ -29,12 +20,20 @@
                     "name": "User-friendly name for observer for spacecraft time computations. Set to null to turn off time converting.",
                     "value": "SPICE Spacecraft name or ID",
                     "frame": "SPICE reference frame. i.e. IAU_MARS",
-                    "body": "SPICE planet body. i.e. MARS"
+                    "body": "SPICE planet body. i.e. MARS",
+                    "type": "Optional. 'lsmt' for lunar local solar mean time."
                 }
             ],
             "defaultHeight": 0,
-            "observerTimePlaceholder": null,
-            "utcTimeFormat": null
+            "observerTimePlaceholder": "SOL-ddddMhh:mm:ss",
+            "utcTimeFormat": "%Y-%m-%dT%H:%M:%SZ",
+            "sweepColorRamps": [
+                {
+                    "name": "viridis",
+                    "label": "Viridis",
+                    "bins": 6
+                }
+            ]
         }
     },
     "hasVars": true,
@@ -42,7 +41,6 @@
     "toolbarPriority": 102,
     "paths": {
         "SightlineTool": "essence/Tools/Sightline/SightlineTool",
-        "SightlineTool_Manager": "essence/Tools/Sightline/SightlineTool_Manager",
         "SightlineTool_Algorithm": "essence/Tools/Sightline/SightlineTool_Algorithm"
     },
     "expandable": true,
@@ -53,7 +51,7 @@
                     {
                         "field": "variables.dem",
                         "name": "DEM path",
-                        "description": "A path to a DEM.tif. This is used to get the current center elevation.",
+                        "description": "A path to a Cloud Optimized GeoTIFF (COG) DEM relative to the mission directory. Used to compute terrain occlusion and elevation profiles. Large DEMs must be COGs for acceptable performance.",
                         "type": "text",
                         "width": 12
                     }
@@ -62,75 +60,23 @@
             {
                 "components": [
                     {
-                        "field": "variables.data",
-                        "name": "Layer specific DEMs",
-                        "description": "At minimum, the Sightline tool requires at least one 'data' source.",
-                        "type": "objectarray",
-                        "width": 12,
-                        "object": [
-                            {
-                                "field": "name",
-                                "name": "Name",
-                                "description": "User-friendly name for DEM",
-                                "type": "text",
-                                "width": 2
-                            },
-                            {
-                                "field": "demtileurl",
-                                "name": "DEM Path",
-                                "description": "",
-                                "type": "text",
-                                "width": 8
-                            },
-                            {
-                                "field": "minZoom",
-                                "name": "Minimum Zoom",
-                                "description": "",
-                                "type": "number",
-                                "min": 0,
-                                "step": 1,
-                                "width": 1
-                            },
-                            {
-                                "field": "maxNativeZoom",
-                                "name": "Maximum Native Zoom",
-                                "description": "",
-                                "type": "number",
-                                "min": 0,
-                                "step": 1,
-                                "width": 1
-                            },
-                            {
-                                "field": "boundingBox",
-                                "name": "Bounding Box",
-                                "description": "west,south,east,north in EPSG:4326. Clamps tile requests to this extent.",
-                                "type": "textarray",
-                                "width": 4
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "components": [
-                    {
                         "field": "variables.sources",
                         "name": "Sources",
-                        "description": "SPICE bodies to compute line-of-sight visibility for.",
+                        "description": "An array of objects with the properties 'name' and 'value'. 'name' is the display name for the Source Entity dropdown. 'value' is the SPICE spacecraft ID that gets passed to the backend sightmap.py script. Ensure the right kernels for the configured source entities/targets exist in /private/api/spice/kernels.",
                         "type": "objectarray",
                         "width": 12,
                         "object": [
                             {
                                 "field": "name",
                                 "name": "Name",
-                                "description": "User-friendly name",
+                                "description": "Display name for the Source Entity dropdown.",
                                 "type": "text",
                                 "width": 6
                             },
                             {
                                 "field": "value",
                                 "name": "SPICE Value",
-                                "description": "NAIF SPICE Spacecraft name or ID",
+                                "description": "NAIF SPICE Spacecraft name or ID passed to the backend.",
                                 "type": "text",
                                 "width": 6
                             }
@@ -143,35 +89,35 @@
                     {
                         "field": "variables.observers",
                         "name": "Observers",
-                        "description": "Ground observers for time conversions.",
+                        "description": "An array of objects with the properties 'name', 'value', 'frame', and 'body'. 'name' is the display name for the Observer dropdown. 'value' is the SPICE spacecraft ID that gets passed to the backend chronice time conversion scripts. Ensure the right kernels for the configured observers exist in /private/api/spice/kernels and that there is a proper chronos setup file for each observer's value at private/api/spice/chronosSetups/chronos-{lowercased_observer_value}.setup.",
                         "type": "objectarray",
                         "width": 12,
                         "object": [
                             {
                                 "field": "name",
                                 "name": "Name",
-                                "description": "",
+                                "description": "Display name for the Observer dropdown.",
                                 "type": "text",
                                 "width": 3
                             },
                             {
                                 "field": "value",
                                 "name": "SPICE Value",
-                                "description": "",
+                                "description": "SPICE spacecraft ID passed to the backend chronice scripts.",
                                 "type": "text",
                                 "width": 3
                             },
                             {
                                 "field": "frame",
                                 "name": "Reference Frame",
-                                "description": "e.g. IAU_MARS",
+                                "description": "SPICE reference frame. i.e. 'IAU_MARS'",
                                 "type": "text",
                                 "width": 3
                             },
                             {
                                 "field": "body",
                                 "name": "Planet Body",
-                                "description": "e.g. MARS",
+                                "description": "SPICE planet body. i.e. 'MARS'",
                                 "type": "text",
                                 "width": 3
                             }
@@ -184,7 +130,7 @@
                     {
                         "field": "variables.defaultHeight",
                         "name": "Default Height (m)",
-                        "description": "Default height above surface.",
+                        "description": "Sets a default for the 'Height' parameter. Height in meters above the surface to use when calculating line-of-sight visibility. For instance, a point on the surface (0m) may not be visible to a 'Source Entity', say the Mars Reconnaissance Orbiter (MRO), but 2m above that point may be. This value does not only apply to the center longitude and latitude but to all points on the visible terrain. Gradually increasing this value shows the sightmap n-meters above the surface. The regular default is 0 meters.",
                         "type": "number",
                         "min": 0,
                         "step": 1,
@@ -193,7 +139,7 @@
                     {
                         "field": "variables.observerTimePlaceholder",
                         "name": "Observer Time Placeholder",
-                        "description": "",
+                        "description": "Placeholder text shown in observer time inputs. Use a format string that matches the observer's time system (e.g. SOL-ddddMhh:mm:ss for Mars sols, LDAY-NNNNNLHH:MM:SS for lunar local solar time).",
                         "type": "text",
                         "width": 6
                     }

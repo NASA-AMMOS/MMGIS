@@ -3692,15 +3692,6 @@
       "js": "SightlineTool",
       "variables": {
         "dem": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
-        "data": [
-          {
-            "name": "USGS SF DEM (tileset required)",
-            "demtileurl": "Data/dem_rgba_tiles/{z}/{x}/{y}.png",
-            "minZoom": 10,
-            "maxNativeZoom": 14,
-            "boundingBox": [-122.50722222192965, 37.70980728349467, -122.41428489305366, 37.78111111121456]
-          }
-        ],
         "sources": [
           {
             "name": "Sun",

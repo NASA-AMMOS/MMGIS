@@ -66,11 +66,52 @@ def getPixelScale(ds):
         return ((pixelWidth + pixelHeight) / 2.0) * deg2m
 
 
+def _grid_convergence(ds, obs_px, obs_py):
+    """Grid convergence (radians) at observer position.
+
+    Only applies to azimuthal projections (stereographic, gnomonic) where
+    meridians converge at the pole. For cylindrical projections (Equidistant
+    Cylindrical, Mercator, etc.), grid north = geographic north so returns 0.
+    Returns 0 for geographic (unprojected) CRS.
+    """
+    srs = osr.SpatialReference()
+    srs.ImportFromWkt(ds.GetProjection())
+    if not srs.IsProjected():
+        return 0.0
+    proj_name = (srs.GetAttrValue('PROJECTION', 0) or '').lower()
+    is_azimuthal = ('stereo' in proj_name or 'azimuthal' in proj_name
+                    or 'gnomonic' in proj_name)
+    if not is_azimuthal:
+        return 0.0
+    gt = ds.GetGeoTransform()
+    x = gt[0] + obs_px * gt[1] + obs_py * gt[2]
+    y = gt[3] + obs_px * gt[4] + obs_py * gt[5]
+    fe = srs.GetProjParm('false_easting', 0.0)
+    fn = srs.GetProjParm('false_northing', 0.0)
+    lat_origin = srs.GetProjParm('latitude_of_origin', 0.0)
+    north_sign = -1.0 if lat_origin > 0 else 1.0
+    return math.atan2(x - fe, north_sign * (y - fn))
+
+
 def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
                           num_azimuths, max_radius_m,
                           min_skip_radius_m=0, planet_radius=0):
     pixel_scale = getPixelScale(ds)
     max_radius_px = max_radius_m / pixel_scale if pixel_scale > 0 else 500
+
+    # Per-axis physical scale (m/pixel) for correct march direction & distance.
+    # Geographic CRS pixels are non-square: 1° lon < 1° lat at non-zero lat.
+    srs = osr.SpatialReference()
+    srs.ImportFromWkt(ds.GetProjection())
+    gt = ds.GetGeoTransform()
+    if srs.IsProjected():
+        lu = srs.GetLinearUnits()
+        px_scale_x = abs(gt[1]) * lu
+        px_scale_y = abs(gt[5]) * lu
+    else:
+        obs_lat = gt[3] + obs_py * gt[5]
+        px_scale_x = abs(gt[1]) * 111320.0 * math.cos(math.radians(obs_lat))
+        px_scale_y = abs(gt[5]) * 111320.0
 
     xSize = ds.RasterXSize
     ySize = ds.RasterYSize
@@ -105,6 +146,9 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
 
     obs_total = obs_elev + observer_height
 
+    # Grid convergence: rotate geographic azimuth → pixel march direction
+    convergence = _grid_convergence(ds, obs_px, obs_py)
+
     step_px = 1.0
     min_skip_px = min_skip_radius_m / pixel_scale if (pixel_scale > 0 and min_skip_radius_m > 0) else 0
     use_curvature = planet_radius > 0
@@ -112,9 +156,16 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
 
     for ai in range(num_azimuths):
         az_deg = ai * (360.0 / num_azimuths)
-        az_rad = math.radians(az_deg)
-        dx = math.sin(az_rad)
-        dy = -math.cos(az_rad)
+        az_rad = math.radians(az_deg) + convergence
+        # March direction in pixel space, accounting for non-square pixels
+        raw_dx = math.sin(az_rad) / px_scale_x
+        raw_dy = -math.cos(az_rad) / px_scale_y
+        step_len = math.sqrt(raw_dx * raw_dx + raw_dy * raw_dy)
+        if step_len < 1e-12:
+            step_len = 1e-12
+        dx = raw_dx / step_len
+        dy = raw_dy / step_len
+        m_per_step = 1.0 / step_len  # physical metres per 1-pixel step
 
         max_el_angle = -90.0
         r = max(step_px, min_skip_px) if min_skip_px > 0 else step_px
@@ -132,7 +183,7 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
                 r += step_px
                 continue
 
-            dist_m = r * pixel_scale
+            dist_m = r * m_per_step
             if dist_m < 0.001:
                 r += step_px
                 continue

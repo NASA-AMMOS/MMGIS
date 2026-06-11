@@ -19,6 +19,7 @@ dependencies:
   - pip:
       - rasterio>=1.5.0
       - numpy>=2.0.0
+      - numba>=0.60.0
       - requests==2.33.0
       - rio_stac>=0.12.0
       - spiceypy==5.1.2

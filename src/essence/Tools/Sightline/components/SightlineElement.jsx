@@ -5,6 +5,7 @@ import CardLegend, { getDefaultStops } from './CardLegend'
 import SightlineTool from '../SightlineTool'
 import SightlineTool_Graphs from '../SightlineTool_Graphs'
 import L_ from '../../../Basics/Layers_/Layers_'
+import TimeControl from '../../../Basics/TimeControl_/TimeControl'
 import {
     Button,
     Checkbox,
@@ -94,16 +95,6 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                 label: o.name,
             })),
         [vars]
-    )
-
-    const resolutionOptions = useMemo(
-        () => [
-            { value: '0', label: 'Low' },
-            { value: '1', label: 'Medium' },
-            { value: '2', label: 'High' },
-            { value: '3', label: 'Ultra' },
-        ],
-        []
     )
 
     const sightlineMode = el?.sightlineMode || 'static'
@@ -218,8 +209,12 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
         if (!obsStartTime || !observer) return
         SightlineTool.convertObserverToUTC(obsStartTime, observer, (result) => {
             if (result) {
-                const utc = result.replace(' ', 'T').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z').replace(/\.\d{3}Z$/, 'Z')
+                // Save ms for exact round-trip, then strip for TimeControl
+                SightlineTool._lastConvertedMs = (result.split('.')[1] || '000').replace(/[^0-9]/g, '') || '000'
+                const utc = (result.replace(' ', 'T').replace(/\.\d+$/, '') + 'Z').replace(/ZZ$/, 'Z')
                 setSweepField('sweepStart', utc)
+                const endUtc = useSightlineStore.getState().sweepEnd || TimeControl.getEndTime()
+                if (endUtc) TimeControl.setTime(utc, endUtc, false)
             }
         })
     }, [obsStartTime, observer, setSweepField])
@@ -228,8 +223,12 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
         if (!obsEndTime || !observer) return
         SightlineTool.convertObserverToUTC(obsEndTime, observer, (result) => {
             if (result) {
-                const utc = result.replace(' ', 'T').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z').replace(/\.\d{3}Z$/, 'Z')
+                // Save ms for exact round-trip, then strip for TimeControl
+                SightlineTool._lastConvertedMs = (result.split('.')[1] || '000').replace(/[^0-9]/g, '') || '000'
+                const utc = (result.replace(' ', 'T').replace(/\.\d+$/, '') + 'Z').replace(/ZZ$/, 'Z')
                 setSweepField('sweepEnd', utc)
+                const startUtc = useSightlineStore.getState().sweepStart || TimeControl.getStartTime()
+                if (startUtc) TimeControl.setTime(startUtc, utc, false)
             }
         })
     }, [obsEndTime, observer, setSweepField])
@@ -271,7 +270,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     }, [onDragEnd])
 
     // Sweep card handlers
-    const sweepOpacity = ed?.opacity != null ? ed.opacity : 1
+    const sweepOpacity = ed?.opacity != null ? ed.opacity : (el?.opacity != null ? el.opacity : 1)
     const sweepColorRamp = ed?.colorRamp || 'sightline'
     const discrete = sweepDiscrete || false
 
@@ -369,7 +368,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     }, [hoverFrac])
 
     const currentResult = useMemo(() => {
-        if (sightlineMode !== 'playback' || !ed?.results || !ed?.atlas) return null
+        if (sightlineMode !== 'playback' || !ed?.results || !ed?.frameImages) return null
         return ed.results[effectivePlayIndex] || null
     }, [sightlineMode, ed, effectivePlayIndex])
 
@@ -384,9 +383,9 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     // Draw sky dome polar plot
     const skyDomeId = `sweepSkyDome_${elmId}`
     useEffect(() => {
-        if (sightlineMode !== 'playback' || !ed?.results || !ed?.atlas || ed.results.length === 0 || !resultsOpen) return
+        if (sightlineMode !== 'playback' || !ed?.results || !ed?.frameImages || ed.results.length === 0 || !resultsOpen) return
         SightlineTool.drawSkyDome(skyDomeId, ed.results, effectivePlayIndex)
-    }, [sightlineMode, ed?.results, ed?.atlas, effectivePlayIndex, skyDomeId, resultsOpen])
+    }, [sightlineMode, ed?.results, ed?.frameImages, effectivePlayIndex, skyDomeId, resultsOpen])
 
     // Auto-open Results when sweep completes for non-static modes.
     // Deps intentionally exclude sightlineMode so that merely switching modes
@@ -405,7 +404,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ed?.results, ed?.grids, ed?.atlas, el?.regenerating, el?.lastResultGrid])
+    }, [ed?.results, ed?.grids, ed?.frameImages, el?.regenerating, el?.lastResultGrid])
 
     if (!el) return null
 
@@ -415,7 +414,9 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
             sourcesList[el.sourceIndex].value === 'false')
 
     const generateActive = sightlineMode === 'static' ? el.changed : true
-    const generateLabel = sightlineMode === 'static' ? 'Generate' : 'Sweep'
+    const generateLabel = sightlineMode === 'static'
+        ? (el.regenerating ? 'Generating' : 'Generate')
+        : (el.regenerating ? 'Sweeping' : 'Sweep')
 
     return (
         <div
@@ -550,22 +551,25 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     </div>
                                     {el.observer && (
                                         <>
-                                            <div className="vstOptionRow">
-                                                <div className="vstOptionLabel vstObsTimeLabel" title="Observer local start time">
-                                                    <i className="mdi mdi-clock-outline mdi-14px" /> Start
+                                            {sightlineMode !== 'static' && (
+                                                <div className="vstOptionRow">
+                                                    <div className="vstOptionLabel vstObsTimeLabel" title="Observer local start time">
+                                                        <i className="mdi mdi-clock-outline mdi-14px" /> Start
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        className="vstSweepInput"
+                                                        placeholder={vars?.observerTimePlaceholder || ''}
+                                                        value={obsStartTime}
+                                                        onChange={(e) => setObsStartTime(e.target.value)}
+                                                        onBlur={handleObsStartBlur}
+                                                        onKeyDown={(e) => { if (e.key === 'Enter') handleObsStartBlur() }}
+                                                    />
                                                 </div>
-                                                <input
-                                                    type="text"
-                                                    className="vstSweepInput"
-                                                    placeholder={vars?.observerTimePlaceholder || ''}
-                                                    value={obsStartTime}
-                                                    onChange={(e) => setObsStartTime(e.target.value)}
-                                                    onBlur={handleObsStartBlur}
-                                                />
-                                            </div>
+                                            )}
                                             <div className="vstOptionRow">
                                                 <div className="vstOptionLabel vstObsTimeLabel" title="Observer local end time">
-                                                    <i className="mdi mdi-clock-outline mdi-14px" /> End
+                                                    <i className="mdi mdi-clock-outline mdi-14px" /> {sightlineMode === 'static' ? 'Time' : 'End'}
                                                 </div>
                                                 <input
                                                     type="text"
@@ -574,6 +578,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                                     value={obsEndTime}
                                                     onChange={(e) => setObsEndTime(e.target.value)}
                                                     onBlur={handleObsEndBlur}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter') handleObsEndBlur() }}
                                                 />
                                             </div>
                                         </>
@@ -599,19 +604,21 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     className="vstFieldInput"
                                 />
                             </div>
-                            <div className="vstOptionRow">
-                                <div className="vstOptionLabel" title="Dataset to analyze.">
-                                    DEM
+                            {dataOptions.length > 0 && (
+                                <div className="vstOptionRow">
+                                    <div className="vstOptionLabel" title="Dataset to analyze.">
+                                        DEM
+                                    </div>
+                                    <Select
+                                        value={String(el.dataIndex)}
+                                        onValueChange={(v) =>
+                                            handleChange('dataIndex', parseInt(v))
+                                        }
+                                        options={dataOptions}
+                                        className="vstSelect"
+                                    />
                                 </div>
-                                <Select
-                                    value={String(el.dataIndex)}
-                                    onValueChange={(v) =>
-                                        handleChange('dataIndex', parseInt(v))
-                                    }
-                                    options={dataOptions}
-                                    className="vstSelect"
-                                />
-                            </div>
+                            )}
                         </div>
                     </Collapsible.Content>
                 </Collapsible>
@@ -661,19 +668,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     />
                                 </div>
                             </div>
-                            <div className="vstOptionRow">
-                                <div className="vstOptionLabel" title="High or Ultra disables auto-regeneration.">
-                                    Resolution
-                                </div>
-                                <Select
-                                    value={String(el.resolution)}
-                                    onValueChange={(v) =>
-                                        handleChange('resolution', parseInt(v))
-                                    }
-                                    options={resolutionOptions}
-                                    className="vstSelect"
-                                />
-                            </div>
+
                         </div>
                     </Collapsible.Content>
                 </Collapsible>

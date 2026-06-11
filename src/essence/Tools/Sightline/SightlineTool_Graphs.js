@@ -127,21 +127,20 @@ const SightlineTool_Graphs = {
 
         // Use sweep-time center if available
         const ed = _activeElmId != null ? store.sweepElData[_activeElmId] : null
-        let centerPx
+        let centerLatLng = null
         if (ed?.sweepCenter) {
-            const pt = Map_.map.latLngToContainerPoint(ed.sweepCenter)
-            centerPx = { x: pt.x, y: pt.y }
+            centerLatLng = ed.sweepCenter
         } else if (store.indicatorLastDragPoint) {
-            const pt = Map_.map.latLngToContainerPoint(store.indicatorLastDragPoint)
-            centerPx = { x: pt.x, y: pt.y }
+            centerLatLng = store.indicatorLastDragPoint
         } else {
-            centerPx = { x: mapRect.width / 2, y: mapRect.height / 2 }
+            centerLatLng = Map_.map.containerPointToLatLng(
+                [mapRect.width / 2, mapRect.height / 2]
+            )
         }
 
-        const lineLen = Math.max(mapRect.width, mapRect.height)
-        const rad = azDeg * (Math.PI / 180)
-        const ex = centerPx.x + Math.sin(rad) * lineLen
-        const ey = centerPx.y - Math.cos(rad) * lineLen
+        const centerPt = Map_.map.latLngToContainerPoint(centerLatLng)
+        const end = _azimuthEndpoint(centerLatLng, centerPt, azDeg, mapRect)
+        if (!end) return
 
         let overlay = document.getElementById(AZIMUTH_LINE_ID)
         if (!overlay) {
@@ -157,7 +156,7 @@ const SightlineTool_Graphs = {
 
         overlay.innerHTML =
             `<svg viewBox="0 0 ${mapRect.width} ${mapRect.height}">` +
-            `<line x1="${centerPx.x}" y1="${centerPx.y}" x2="${ex}" y2="${ey}" ` +
+            `<line x1="${centerPt.x}" y1="${centerPt.y}" x2="${end.x}" y2="${end.y}" ` +
             `stroke="#ffdd44" stroke-width="2.5" stroke-dasharray="8,4" />` +
             `</svg>`
     },
@@ -178,15 +177,18 @@ const SightlineTool_Graphs = {
         if (elms.length === 0) return
 
         const primaryEd = store.sweepElData[_activeElmId]
-        let centerPx
+        let centerLatLng = null
         if (primaryEd?.sweepCenter) {
-            const pt = Map_.map.latLngToContainerPoint(primaryEd.sweepCenter)
-            centerPx = { x: pt.x, y: pt.y }
+            centerLatLng = primaryEd.sweepCenter
+        } else if (store.indicatorLastDragPoint) {
+            centerLatLng = store.indicatorLastDragPoint
         } else {
-            centerPx = { x: mapRect.width / 2, y: mapRect.height / 2 }
+            centerLatLng = Map_.map.containerPointToLatLng(
+                [mapRect.width / 2, mapRect.height / 2]
+            )
         }
 
-        const lineLen = Math.max(mapRect.width, mapRect.height)
+        const centerPt = Map_.map.latLngToContainerPoint(centerLatLng)
         const playIndex = store.sweepPlayIndex
 
         let lines = ''
@@ -200,11 +202,10 @@ const SightlineTool_Graphs = {
                 : el.color
             const colorStr = `rgb(${c.r},${c.g},${c.b})`
 
-            const rad = r.azimuth * (Math.PI / 180)
-            const ex = centerPx.x + Math.sin(rad) * lineLen
-            const ey = centerPx.y - Math.cos(rad) * lineLen
+            const end = _azimuthEndpoint(centerLatLng, centerPt, r.azimuth, mapRect)
+            if (!end) continue
 
-            lines += `<line x1="${centerPx.x}" y1="${centerPx.y}" x2="${ex}" y2="${ey}" ` +
+            lines += `<line x1="${centerPt.x}" y1="${centerPt.y}" x2="${end.x}" y2="${end.y}" ` +
                 `stroke="${colorStr}" stroke-width="3.5" stroke-dasharray="8,5" opacity="0.85" />`
         }
 
@@ -352,8 +353,12 @@ const SightlineTool_Graphs = {
         // Redraw both charts to reflect new frame
         if (_horizonCache) {
             SightlineTool_Graphs._drawHorizonCanvas(_horizonCache.profile, _activeElmId)
+            SightlineTool_Graphs.drawVisibilityTimeline(_activeElmId)
+        } else if (_activeElmId != null) {
+            // Cache was invalidated (e.g. by pan) — re-fetch, which
+            // redraws both horizon + visibility once the profile arrives.
+            SightlineTool_Graphs.fetchAndDrawHorizon(_activeElmId)
         }
-        SightlineTool_Graphs.drawVisibilityTimeline(_activeElmId)
         SightlineTool_Graphs._updateSourceAzimuthLines()
     },
 
@@ -1005,9 +1010,12 @@ const SightlineTool_Graphs = {
                 const thisColor = run.visible ? visibleColor : occludedColor
                 const nextDiff = ri < runs.length - 1 && runs[ri + 1].visible !== run.visible
 
-                if (nextDiff) {
+                if (nextDiff && pctWidth > 0) {
                     const nextColor = runs[ri + 1].visible ? visibleColor : occludedColor
-                    span.style.background = `linear-gradient(to right, ${thisColor} 70%, ${nextColor} 100%)`
+                    // Fixed-width fade: ~2% of the total bar regardless of segment size
+                    const fadePct = Math.min(100, (2.0 / pctWidth) * 100)
+                    const solidStop = Math.max(0, 100 - fadePct)
+                    span.style.background = `linear-gradient(to right, ${thisColor} ${solidStop}%, ${nextColor} 100%)`
                 } else {
                     span.style.background = thisColor
                 }
@@ -1107,8 +1115,11 @@ const SightlineTool_Graphs = {
                     _horizonCache.profile,
                     effectiveId
                 )
+                SightlineTool_Graphs.drawVisibilityTimeline(effectiveId)
+            } else {
+                // Cache invalidated by pan — re-fetch (redraws both on completion)
+                SightlineTool_Graphs.fetchAndDrawHorizon(effectiveId)
             }
-            SightlineTool_Graphs.drawVisibilityTimeline(effectiveId)
             SightlineTool_Graphs._updateTimeLabel()
             SightlineTool_Graphs._updateSourceAzimuthLines()
             _animFrameId = null
@@ -1117,6 +1128,13 @@ const SightlineTool_Graphs = {
 
     invalidateHorizonCache() {
         _horizonCache = null
+    },
+
+    invalidateAndRefetch() {
+        _horizonCache = null
+        if (_graphOpen && _activeElmId != null) {
+            SightlineTool_Graphs.fetchAndDrawHorizon(_activeElmId)
+        }
     },
 
     _updateExcludedInfo(excludedCount) {
@@ -1136,6 +1154,48 @@ function _azToDisplay(az) {
     let a = az
     if (a < 0) a += 360
     return a > 180 ? a - 360 : a
+}
+
+/**
+ * Forward geodesic on a sphere: from (lat, lng) move along geographic
+ * azimuth `azDeg` (CW from north) by `distDeg` angular degrees.
+ * Returns { lat, lng } in degrees.
+ */
+function _destinationPoint(lat, lng, azDeg, distDeg) {
+    const toRad = Math.PI / 180
+    const toDeg = 180 / Math.PI
+    const lat1 = lat * toRad
+    const lng1 = lng * toRad
+    const az = azDeg * toRad
+    const d = distDeg * toRad
+    const sinLat1 = Math.sin(lat1)
+    const cosLat1 = Math.cos(lat1)
+    const sinD = Math.sin(d)
+    const cosD = Math.cos(d)
+    const lat2 = Math.asin(sinLat1 * cosD + cosLat1 * sinD * Math.cos(az))
+    const lng2 = lng1 + Math.atan2(
+        Math.sin(az) * sinD * cosLat1,
+        cosD - sinLat1 * Math.sin(lat2)
+    )
+    return { lat: lat2 * toDeg, lng: lng2 * toDeg }
+}
+
+/**
+ * Compute the screen endpoint for an azimuth line from `centerLatLng`.
+ * Projects a destination point along `azDeg` and extends to the map edge.
+ */
+function _azimuthEndpoint(centerLatLng, centerPt, azDeg, mapRect) {
+    const dest = _destinationPoint(
+        centerLatLng.lat, centerLatLng.lng, azDeg, 1.0
+    )
+    const destPt = Map_.map.latLngToContainerPoint(dest)
+    const dx = destPt.x - centerPt.x
+    const dy = destPt.y - centerPt.y
+    const len = Math.sqrt(dx * dx + dy * dy)
+    if (len < 0.5) return null
+    const lineLen = Math.max(mapRect.width, mapRect.height)
+    return { x: centerPt.x + (dx / len) * lineLen,
+             y: centerPt.y + (dy / len) * lineLen }
 }
 
 /** Convert true azimuth to plot x position (north-centered) */

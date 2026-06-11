@@ -172,6 +172,10 @@ const c = {
         type: 'POST',
         url: 'api/utils/gethorizonprofile',
     },
+    sightmap: {
+        type: 'POST',
+        url: 'api/utils/sightmap',
+    },
 }
 
 function api(call, data, success, error) {
@@ -218,9 +222,11 @@ function api(call, data, success, error) {
                 else if (typeof error === 'function') error(data)
             }
         },
-        error: function () {
+        error: function (jqXHR) {
             console.warn('error')
-            if (typeof error === 'function') error()
+            let parsed
+            try { parsed = JSON.parse(jqXHR.responseText) } catch (_) {}
+            if (typeof error === 'function') error(parsed || {})
         },
     })
 }
