@@ -619,6 +619,7 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
   // Batch mode may take much longer (N timestamps × ~10s each)
   const timeoutMs = isBatch ? Math.min(req.body.times.length * 30000, 1800000) : 120000;
 
+  const spawnStart = Date.now();
   const child = spawn("python", ["private/api/sightmap.py"], {
     cwd: rootDir,
     timeout: timeoutMs,
@@ -653,7 +654,11 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
       return;
     }
     try {
+      const parseStart = Date.now();
       const parsed = JSON.parse(stdout);
+      const parseMs = Date.now() - parseStart;
+      const totalMs = Date.now() - spawnStart;
+      logger("info", `sightmap completed: total=${totalMs}ms, json_parse=${parseMs}ms, stdout_size=${(stdout.length/1024).toFixed(1)}KB`, "server");
       if (parsed.error) {
         logger("error", "sightmap error:", "server", null, parsed.message);
         if (!res.headersSent) return res.status(400).json(parsed);

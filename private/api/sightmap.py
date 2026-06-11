@@ -83,6 +83,7 @@ import sys
 import json
 import math
 import os
+import time
 
 import numpy as np
 import numba
@@ -806,9 +807,15 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
     only the visible DEM region is read — at native resolution when the
     window fits within max_output_dim, otherwise decimated.
     """
-    package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
-    kernels = load_kernels(package_dir, obs_body, target, is_custom)
+    t_start = time.perf_counter()
+    timing = {}
 
+    package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
+    t0 = time.perf_counter()
+    kernels = load_kernels(package_dir, obs_body, target, is_custom)
+    timing['load_kernels_ms'] = round((time.perf_counter() - t0) * 1000, 1)
+
+    t0 = time.perf_counter()
     if is_custom == 'true':
         obs_az = float(custom_az)
         obs_el = float(custom_el)
@@ -821,28 +828,37 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
                 obs_lng, obs_lat, obs_height, target, time_str,
                 obs_ref_frame, obs_body
             )
+    timing['spice_azel_ms'] = round((time.perf_counter() - t0) * 1000, 1)
 
     # Skip kernel unloading — process exits immediately after response
 
     # Working DEM: 2× output grid for terrain detail, min 500px.
     working_dim = max(max_output_dim * 2, 500)
+    t0 = time.perf_counter()
     dem, nodata, gt, srs = open_dem(dem_path,
                                     max_working_dim=working_dim,
                                     viewport_bounds=viewport_bounds)
+    timing['open_dem_ms'] = round((time.perf_counter() - t0) * 1000, 1)
+
     dem_rows, dem_cols = dem.shape
     pixel_scale = get_pixel_scale(dem_rows, gt, srs)
     step = max(1, max(dem_rows, dem_cols) // max_output_dim)
     out_rows = (dem_rows + step - 1) // step
     out_cols = (dem_cols + step - 1) // step
+    timing['dem_size'] = f"{dem_rows}x{dem_cols}"
+    timing['output_size'] = f"{out_rows}x{out_cols}"
 
+    t0 = time.perf_counter()
     result, obs_az, obs_el = _ray_march_grid(
         dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
         step, out_rows, out_cols, obs_height, sun_vec_km,
         obs_az, obs_el, radii_km, flattening, planet_radius,
         min_distance=min_distance, max_distance=max_distance,
     )
+    timing['ray_march_ms'] = round((time.perf_counter() - t0) * 1000, 1)
 
     bounds_info = _compute_bounds(gt, srs, dem_rows, dem_cols)
+    timing['total_ms'] = round((time.perf_counter() - t_start) * 1000, 1)
 
     return {
         "grid": result.tolist(),
@@ -850,6 +866,7 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
         "el": round(obs_el, 4),
         "rows": out_rows,
         "cols": out_cols,
+        "_timing": timing,
         **bounds_info,
     }
 
@@ -864,12 +881,18 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     Compute sightmap grids for multiple timestamps in one call.
     DEM and SPICE kernels loaded once; timestamps processed sequentially.
     """
+    t_batch_start = time.perf_counter()
+    timing = {}
+
     package_dir = os.path.dirname(os.path.abspath(__file__)).replace('\\', '/')
+    t0 = time.perf_counter()
     kernels = load_kernels(package_dir, obs_body, target, is_custom)
+    timing['load_kernels_ms'] = round((time.perf_counter() - t0) * 1000, 1)
 
     radii_km = spiceypy.bodvrd(obs_body, "RADII", 3)[1]
     flattening = (radii_km[0] - radii_km[2]) / radii_km[0]
 
+    t0 = time.perf_counter()
     time_positions = []
     for t_str in times:
         if is_custom == 'true':
@@ -888,24 +911,32 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
                 'obs_az': obs_az,
                 'obs_el': obs_el,
             })
+    timing['spice_all_times_ms'] = round((time.perf_counter() - t0) * 1000, 1)
+    timing['num_times'] = len(times)
 
     # Skip kernel unloading — process exits immediately after response
 
+    t0 = time.perf_counter()
     working_dim = max(max_output_dim * 2, 500)
     dem, nodata, gt, srs = open_dem(dem_path,
                                     max_working_dim=working_dim,
                                     viewport_bounds=viewport_bounds)
+    timing['open_dem_ms'] = round((time.perf_counter() - t0) * 1000, 1)
+
     dem_rows, dem_cols = dem.shape
     pixel_scale = get_pixel_scale(dem_rows, gt, srs)
     step = max(1, max(dem_rows, dem_cols) // max_output_dim)
     out_rows = (dem_rows + step - 1) // step
     out_cols = (dem_cols + step - 1) // step
     bounds_info = _compute_bounds(gt, srs, dem_rows, dem_cols)
+    timing['dem_size'] = f"{dem_rows}x{dem_cols}"
+    timing['output_size'] = f"{out_rows}x{out_cols}"
 
     march_step = max(2.0, float(step))
     max_march = max(dem_rows, dem_cols) * 1.5
     n_cells = out_rows * out_cols
 
+    t0 = time.perf_counter()
     (px_grid, py_grid, cell_heights, nodata_mask,
      nd_lo, nd_hi, has_nd) = _precompute_grid_arrays(
         dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
@@ -916,16 +947,23 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     py_flat = py_grid.ravel().astype(np.float64)
     heights_flat = cell_heights.ravel().astype(np.float64)
     nodata_flat = nodata_mask.ravel()
+    timing['precompute_grids_ms'] = round((time.perf_counter() - t0) * 1000, 1)
 
     results = []
+    march_times_ms = []
+    sun_grid_times_ms = []
+    tolist_times_ms = []
     for i, tp in enumerate(time_positions):
+        t0 = time.perf_counter()
         cell_az, cell_el = _compute_sun_grid(
             tp['sun_vec_km'], tp['obs_az'], tp['obs_el'],
             radii_km, flattening, gt, srs, step, out_rows, out_cols,
             dem_rows, dem_cols)
         dx, dy = _compute_directions(gt, srs, cell_az, px_grid, py_grid)
+        sun_grid_times_ms.append(round((time.perf_counter() - t0) * 1000, 1))
 
         result_flat = np.zeros(n_cells, dtype=np.int8)
+        t0 = time.perf_counter()
         _numba_march_kernel(
             result_flat, dem_f64,
             px_flat, py_flat,
@@ -939,9 +977,14 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
             nd_lo, nd_hi, has_nd,
             float(min_distance), float(max_distance),
         )
+        march_times_ms.append(round((time.perf_counter() - t0) * 1000, 1))
+
+        t0 = time.perf_counter()
+        grid_list = result_flat.reshape(out_rows, out_cols).tolist()
+        tolist_times_ms.append(round((time.perf_counter() - t0) * 1000, 1))
 
         results.append({
-            "grid": result_flat.reshape(out_rows, out_cols).tolist(),
+            "grid": grid_list,
             "az": round(tp['obs_az'], 4),
             "el": round(tp['obs_el'], 4),
             "rows": out_rows,
@@ -951,7 +994,18 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
         sys.stderr.write(json.dumps({"progress": i + 1, "total": len(times)}) + "\n")
         sys.stderr.flush()
 
-    return results
+    timing['sun_grid_per_frame_ms'] = sun_grid_times_ms
+    timing['march_per_frame_ms'] = march_times_ms
+    timing['tolist_per_frame_ms'] = tolist_times_ms
+    timing['march_total_ms'] = round(sum(march_times_ms), 1)
+    timing['sun_grid_total_ms'] = round(sum(sun_grid_times_ms), 1)
+    timing['tolist_total_ms'] = round(sum(tolist_times_ms), 1)
+
+    t0 = time.perf_counter()
+    timing['total_ms'] = round((time.perf_counter() - t_batch_start) * 1000, 1)
+
+    # Attach timing to the batch response as a separate top-level key
+    return {"results": results, "_timing": timing}
 
 
 def _compute_bounds(gt, srs, dem_rows, dem_cols):
@@ -1039,7 +1093,17 @@ if __name__ == '__main__':
                 min_distance=min_distance,
                 max_distance=max_distance,
             )
-        print(json.dumps(result))
+        t0 = time.perf_counter()
+        json_str = json.dumps(result)
+        json_ms = round((time.perf_counter() - t0) * 1000, 1)
+        # Inject serialization timing into the _timing block
+        if isinstance(result, dict) and '_timing' in result:
+            result['_timing']['json_dumps_ms'] = json_ms
+            result['_timing']['json_size_kb'] = round(len(json_str) / 1024, 1)
+            json_str = json.dumps(result)
+        sys.stderr.write(f"[sightmap] json.dumps: {json_ms}ms, size: {round(len(json_str)/1024, 1)}KB\n")
+        sys.stderr.flush()
+        print(json_str)
     except Exception:
         import traceback
         traceback.print_exc(file=sys.stderr)
