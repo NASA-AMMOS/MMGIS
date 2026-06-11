@@ -551,7 +551,6 @@ router.post("/gethorizonprofile", function(req,res,next){(router._computeLimiter
 
 //utils sightmap — single or batch (pass `times` array for batch)
 router.post("/sightmap", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
-  const MAX_TIMES = 200;
   const isBatch = Array.isArray(req.body.times) && req.body.times.length > 0;
   if (req.body.dem == null || req.body.lat == null || req.body.lng == null || req.body.target == null) {
     return res.status(400).json({ error: true, message: "dem, lat, lng, and target are required" });
@@ -559,8 +558,11 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
   if (!isBatch && req.body.time == null) {
     return res.status(400).json({ error: true, message: "time (or times array) is required" });
   }
+  // Frame limit scales inversely with resolution: fewer cells/frame → more frames allowed
+  const maxDim = Number(req.body.maxOutputDim || 400);
+  const MAX_TIMES = maxDim >= 800 ? 256 : maxDim >= 400 ? 512 : maxDim >= 200 ? 1024 : 2048;
   if (isBatch && req.body.times.length > MAX_TIMES) {
-    return res.status(400).json({ error: true, message: "times array exceeds maximum of " + MAX_TIMES + " entries" });
+    return res.status(400).json({ error: true, message: "times array exceeds maximum of " + MAX_TIMES + " entries at this resolution" });
   }
 
   // Validate string fields used in filesystem path construction in Python.
