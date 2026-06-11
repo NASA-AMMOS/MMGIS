@@ -556,19 +556,20 @@ const SightlineTool_Graphs = {
         let demUrl = vars.dem
         if (!F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
 
-        // Use the sweep-time observer center (not current map center)
+        // Prefer user-dragged crosshair position; fall back to sweep center, then map center
         const ed = store.sweepElData[elmId]
         let lat, lng
-        if (ed?.sweepCenter) {
+        if (store.indicatorLastDragPoint) {
+            lat = parseFloat(store.indicatorLastDragPoint.lat)
+            lng = parseFloat(store.indicatorLastDragPoint.lng)
+        } else if (ed?.sweepCenter) {
             lat = ed.sweepCenter.lat
             lng = ed.sweepCenter.lng
         } else {
             const mapRect = document.getElementById('map').getBoundingClientRect()
             const wOffset = mapRect.width / 2
             const hOffset = mapRect.height / 2
-            let centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
-            if (store.indicatorLastDragPoint)
-                centerLatLng = store.indicatorLastDragPoint
+            const centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
             lat = parseFloat(centerLatLng.lat)
             lng = parseFloat(centerLatLng.lng)
         }
@@ -589,14 +590,16 @@ const SightlineTool_Graphs = {
         }
 
         const useCurvature = vars.hasOwnProperty('curvature') ? vars.curvature : true
+        const elMaxDist = parseFloat(el.maxDistance)
+        const elMinDist = parseFloat(el.minDistance)
         const horizonParams = {
             path: demUrl,
             lat: lat,
             lng: lng,
             observerHeight: height,
             numAzimuths: 360,
-            maxRadius: 5000,
-            minSkipRadius: 50,
+            maxRadius: (elMaxDist > 0) ? elMaxDist : 5000,
+            minSkipRadius: (elMinDist > 0) ? elMinDist : 50,
         }
         if (useCurvature) {
             horizonParams.planetRadius = F_.radiusOfPlanetMajor
@@ -1007,18 +1010,9 @@ const SightlineTool_Graphs = {
                 span.style.left = pctStart + '%'
                 span.style.width = pctWidth + '%'
 
+                // Conservative: no gradient transitions — uncertain regions are occluded
                 const thisColor = run.visible ? visibleColor : occludedColor
-                const nextDiff = ri < runs.length - 1 && runs[ri + 1].visible !== run.visible
-
-                if (nextDiff && pctWidth > 0) {
-                    const nextColor = runs[ri + 1].visible ? visibleColor : occludedColor
-                    // Fixed-width fade: ~2% of the total bar regardless of segment size
-                    const fadePct = Math.min(100, (2.0 / pctWidth) * 100)
-                    const solidStop = Math.max(0, 100 - fadePct)
-                    span.style.background = `linear-gradient(to right, ${thisColor} ${solidStop}%, ${nextColor} 100%)`
-                } else {
-                    span.style.background = thisColor
-                }
+                span.style.background = thisColor
                 bar.appendChild(span)
             }
 

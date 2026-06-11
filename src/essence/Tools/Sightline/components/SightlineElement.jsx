@@ -604,6 +604,46 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     className="vstFieldInput"
                                 />
                             </div>
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel" title="Minimum ray-march distance (meters). Terrain closer than this is ignored.">
+                                    Min Dist
+                                </div>
+                                <InputWithUnit
+                                    unit="m"
+                                    type="number"
+                                    min="0"
+                                    step="10"
+                                    placeholder="0"
+                                    value={el.minDistance}
+                                    onChange={(e) =>
+                                        handleChange(
+                                            'minDistance',
+                                            e.target.value
+                                        )
+                                    }
+                                    className="vstFieldInput"
+                                />
+                            </div>
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel" title="Maximum ray-march distance (meters). Terrain beyond this is ignored.">
+                                    Max Dist
+                                </div>
+                                <InputWithUnit
+                                    unit="m"
+                                    type="number"
+                                    min="0"
+                                    step="100"
+                                    placeholder="∞"
+                                    value={el.maxDistance}
+                                    onChange={(e) =>
+                                        handleChange(
+                                            'maxDistance',
+                                            e.target.value
+                                        )
+                                    }
+                                    className="vstFieldInput"
+                                />
+                            </div>
                             {dataOptions.length > 0 && (
                                 <div className="vstOptionRow">
                                     <div className="vstOptionLabel" title="Dataset to analyze.">

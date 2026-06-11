@@ -1,7 +1,51 @@
 # HorizonProfile.py
-# Usage: python HorizonProfile.py <raster_path> <lat> <lng> <observer_height> <num_azimuths> <max_radius_m>
 #
-# Returns JSON: {"horizonProfile": [[azimuth_deg, horizon_elevation_deg], ...]}
+# ============================================================================
+# ALGORITHM DOCUMENTATION
+# ============================================================================
+#
+# Overview
+# --------
+# Computes a 360° horizon silhouette (elevation profile) as seen from a single
+# observer location on a DEM.  The result is an array of
+# [azimuth_deg, max_horizon_elevation_deg] pairs — one per azimuth ray.
+#
+# Method: Radial Ray-March with Maximum Elevation Angle Tracking
+# ---------------------------------------------------------------
+# For each of N azimuth directions (0° .. 360°, step = 360/N):
+#   1. March outward from the observer along that azimuth, sampling the DEM
+#      at regular pixel-scale intervals.
+#   2. At each sample compute the elevation angle from the observer to the
+#      terrain sample:
+#        el_angle = atan2(terrain_elev - observer_elev, dist_m)
+#   3. Track the running maximum elevation angle along the ray.
+#   4. After the march completes (either reaching max_radius_m or leaving
+#      the DEM bounds), record [azimuth, max_elevation_angle] as the horizon
+#      value for that direction.
+#
+# Parameters
+# ----------
+# - min_skip_radius_m : Ignore terrain within this distance (meters) from the
+#   observer.  Useful for excluding the immediate surroundings (e.g. a lander
+#   or instrument platform).
+# - max_radius_m : Stop marching beyond this distance (meters).  Controls the
+#   analysis footprint and performance.
+# - planet_radius : If > 0, apply curvature correction to terrain elevations.
+# - num_azimuths : Number of azimuth directions to sample (default 360).
+#
+# Curvature Correction
+# --------------------
+# When planet_radius > 0, terrain elevation at distance d is adjusted:
+#   terrain_elev -= d² / (2 * planet_radius)
+# This accounts for the apparent drop of distant terrain on a spherical body.
+#
+# Output
+# ------
+# JSON: {"horizonProfile": [[azimuth_deg, max_horizon_elevation_deg], ...]}
+#
+# Usage: python HorizonProfile.py <raster_path> <lat> <lng> <observer_height>
+#        <num_azimuths> <max_radius_m>
+# ============================================================================
 
 import sys
 import json

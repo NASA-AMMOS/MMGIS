@@ -1,5 +1,69 @@
 # sightmap.py — Per-cell ray-march solar illumination / sightmap computation
 #
+# ============================================================================
+# ALGORITHM DOCUMENTATION
+# ============================================================================
+#
+# Overview
+# --------
+# Determines cast-shadow visibility for each cell of a Digital Elevation Model
+# (DEM) with respect to a light/signal source (typically the Sun, but may be
+# any SPICE-trackable body or a user-supplied custom azimuth/elevation).
+#
+# Method: Maximum Horizon Angle Ray-Casting
+# ------------------------------------------
+# For every DEM cell:
+#   1. Compute the source azimuth and elevation at that cell.  For SPICE
+#      bodies the position is computed via spiceypy; for custom sources the
+#      az/el is supplied directly.  Because the DEM may span a large area,
+#      az/el is interpolated on a coarse sub-grid (grid convergence correction)
+#      to account for azimuthal projection distortions across the tile.
+#   2. March along the DEM in the source's azimuth direction, sampling terrain
+#      elevation at each step.
+#   3. At each sample compute the elevation angle from the cell to the terrain:
+#        el_angle = atan2(terrain_h - cell_h, dist_m)
+#      Track the running maximum elevation angle (max_el_angle).
+#   4. If max_el_angle >= source_elevation, the cell is in shadow (value 0).
+#      Otherwise the cell is illuminated (value 1).  NoData cells are marked 9.
+#
+# Curvature Correction
+# --------------------
+# At distance d (meters) from the cell, terrain elevation is adjusted by
+# subtracting the planetary curvature drop:
+#   terrain_h -= d² / (2 * planet_radius)
+# This accounts for the fact that on a spherical body distant terrain appears
+# lower than on a flat plane.
+#
+# Optimizations
+# -------------
+# - Adaptive step size: when the margin between source elevation and the
+#   current max elevation angle is large (>5°), the march step is multiplied
+#   by 4; when moderate (>2°), by 2.  This dramatically reduces iterations for
+#   cells far from the shadow boundary.
+# - Early cutoff: the march is limited to MAX_TERRAIN_H / tan(source_el)
+#   pixels, beyond which no terrain could possibly occlude the source.
+# - Curvature-based early termination: beyond a distance where the curvature
+#   drop exceeds MAX_TERRAIN_H, no terrain can reach the source, so the march
+#   stops.
+# - Configurable min/max distance: samples within minDistance (meters) are
+#   skipped; the march stops beyond maxDistance (meters).
+#
+# Batch Mode
+# ----------
+# compute_sightmap_batch() processes multiple timestamps in a single call.
+# DEM and SPICE kernels are loaded once; each timestamp only recomputes the
+# sun vector and runs the ray-march kernel.
+#
+# Differences from ViewshedTool
+# -----------------------------
+# This module performs *cast shadow* analysis (is terrain shadowed by other
+# terrain w.r.t. a distant source).  The separate ViewshedTool uses the
+# reference-plane viewshed algorithm from Wang, Robinson, and White (2000)
+# "Generating Viewsheds without Using Sightlines" for *observer viewshed*
+# analysis (what terrain is visible from a point).
+#
+# I/O
+# ---
 # Reads JSON from stdin, computes a visibility grid for each cell of the DEM
 # by ray-marching toward the Sun (or other SPICE body) and checking if any
 # terrain along the path has a higher elevation angle than the source.
@@ -13,6 +77,7 @@
 #   "cols": <int>,
 #   "bounds": [west, south, east, north]   geographic degrees
 # }
+# ============================================================================
 
 import sys
 import json
@@ -445,15 +510,21 @@ def _numba_march_kernel(result_flat, dem, px_flat, py_flat, dx_flat, dy_flat,
                         heights_flat, el_flat, nodata_flat,
                         dem_rows, dem_cols, pixel_scale,
                         planet_radius, march_step, max_march,
-                        nd_lo, nd_hi, has_nd):
+                        nd_lo, nd_hi, has_nd,
+                        min_distance_m, max_distance_m):
     """
     Numba-JIT compiled per-cell ray-march kernel.
-    Includes adaptive stepping and elevation-based early cutoff.
+    Includes adaptive stepping, elevation-based early cutoff,
+    and configurable min/max distance limits.
     """
     DEG2RAD = 0.017453292519943295
     RAD2DEG = 57.29577951308232
     MAX_TERRAIN_H = 10000.0  # conservative max terrain relief (meters)
     n = result_flat.shape[0]
+
+    # Convert distance limits from meters to pixels
+    min_march_px = min_distance_m / pixel_scale if min_distance_m > 0.0 else 0.0
+    max_march_px = max_distance_m / pixel_scale if max_distance_m > 0.0 else max_march
 
     for i in range(n):
         if nodata_flat[i]:
@@ -475,12 +546,22 @@ def _numba_march_kernel(result_flat, dem, px_flat, py_flat, dx_flat, dy_flat,
         el_rad = cell_el * DEG2RAD
         tan_el = math.tan(el_rad)
         if tan_el > 0.001:
-            cutoff = min(max_march, MAX_TERRAIN_H / (tan_el * pixel_scale) + 10.0)
+            cutoff = min(max_march_px, MAX_TERRAIN_H / (tan_el * pixel_scale) + 10.0)
         else:
-            cutoff = max_march
+            cutoff = max_march_px
+
+        # Curvature-based early termination: beyond a certain distance,
+        # curvature drop exceeds possible terrain height advantage
+        if planet_radius > 0.0 and tan_el > 0.001:
+            # At distance d, curvature drops terrain by d²/(2R).
+            # If curvature_drop > MAX_TERRAIN_H, no terrain can occlude.
+            max_curv_dist = math.sqrt(2.0 * planet_radius * MAX_TERRAIN_H)
+            curv_cutoff = max_curv_dist / pixel_scale
+            if curv_cutoff < cutoff:
+                cutoff = curv_cutoff
 
         max_el_angle = -90.0
-        r = march_step
+        r = max(march_step, min_march_px) if min_march_px > 0.0 else march_step
         cur_step = march_step
         blocked = False
 
@@ -549,6 +630,7 @@ _numba_march_kernel(
     np.array([False]),
     2, 2, 100.0, 1737400.0, 1.0, 3.0,
     0.0, 0.0, False,
+    0.0, 0.0,
 )
 del _warmup_dem, _warmup_res
 
@@ -667,12 +749,14 @@ def _compute_sun_grid(sun_vec_km, obs_az, obs_el, radii_km, flattening,
 
 def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
                     step, out_rows, out_cols, obs_height, sun_vec_km,
-                    obs_az, obs_el, radii_km, flattening, planet_radius):
+                    obs_az, obs_el, radii_km, flattening, planet_radius,
+                    min_distance=0.0, max_distance=0.0):
     """
     Compute visibility grid using Numba JIT march kernel with:
     - Coarse Sun az/el subgrid interpolation
     - Adaptive march step size
     - Elevation-based early cutoff
+    - Configurable min/max distance limits (meters)
     """
     march_step = max(2.0, float(step))
     max_march = max(dem_rows, dem_cols) * 1.5
@@ -702,7 +786,8 @@ def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
         nodata_mask.ravel(),
         dem_rows, dem_cols, pixel_scale,
         planet_radius, march_step, max_march,
-        nd_lo, nd_hi, has_nd
+        nd_lo, nd_hi, has_nd,
+        float(min_distance), float(max_distance),
     )
 
     return result_flat.reshape(out_rows, out_cols), obs_az, obs_el
@@ -712,7 +797,8 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
                      target, time_str, obs_ref_frame, obs_body,
                      planet_radius, max_output_dim=400,
                      is_custom='false', custom_az=0, custom_el=0,
-                     viewport_bounds=None):
+                     viewport_bounds=None,
+                     min_distance=0.0, max_distance=0.0):
     """
     Compute the sightmap grid for a single timestamp.
 
@@ -752,7 +838,8 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
     result, obs_az, obs_el = _ray_march_grid(
         dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
         step, out_rows, out_cols, obs_height, sun_vec_km,
-        obs_az, obs_el, radii_km, flattening, planet_radius
+        obs_az, obs_el, radii_km, flattening, planet_radius,
+        min_distance=min_distance, max_distance=max_distance,
     )
 
     bounds_info = _compute_bounds(gt, srs, dem_rows, dem_cols)
@@ -771,7 +858,8 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
                            target, times, obs_ref_frame, obs_body,
                            planet_radius, max_output_dim=400,
                            is_custom='false', custom_az=0, custom_el=0,
-                           viewport_bounds=None):
+                           viewport_bounds=None,
+                           min_distance=0.0, max_distance=0.0):
     """
     Compute sightmap grids for multiple timestamps in one call.
     DEM and SPICE kernels loaded once; timestamps processed sequentially.
@@ -848,7 +936,8 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
             nodata_flat,
             dem_rows, dem_cols, pixel_scale,
             planet_radius, march_step, max_march,
-            nd_lo, nd_hi, has_nd
+            nd_lo, nd_hi, has_nd,
+            float(min_distance), float(max_distance),
         )
 
         results.append({
@@ -912,6 +1001,10 @@ if __name__ == '__main__':
         custom_az = float(input_data.get('customAz', 0))
         custom_el = float(input_data.get('customEl', 0))
 
+        # Distance limits (meters)
+        min_distance = float(input_data.get('minDistance', 0))
+        max_distance = float(input_data.get('maxDistance', 0))
+
         # Parse optional viewport bounds (projected coords: xmin,ymin,xmax,ymax)
         vp_raw = input_data.get('viewportBounds', None)
         viewport_bounds = None
@@ -932,6 +1025,8 @@ if __name__ == '__main__':
                 planet_radius, max_output_dim,
                 is_custom, custom_az, custom_el,
                 viewport_bounds=viewport_bounds,
+                min_distance=min_distance,
+                max_distance=max_distance,
             )
         else:
             time_str = input_data['time']
@@ -941,6 +1036,8 @@ if __name__ == '__main__':
                 planet_radius, max_output_dim,
                 is_custom, custom_az, custom_el,
                 viewport_bounds=viewport_bounds,
+                min_distance=min_distance,
+                max_distance=max_distance,
             )
         print(json.dumps(result))
     except Exception:

@@ -255,9 +255,18 @@ let SightlineTool = {
         })
         SightlineTool._crosshairMarker = L.marker(Map_.map.getCenter(), {
             icon: icon,
-            interactive: false,
+            interactive: true,
+            draggable: true,
             zIndexOffset: 10000
         }).addTo(Map_.map)
+        SightlineTool._crosshairMarker.on('dragend', function () {
+            const latlng = SightlineTool._crosshairMarker.getLatLng()
+            const store = useSightlineStore.getState()
+            store.setSweepField('indicatorLastDragPoint', latlng)
+            SightlineTool_Graphs.fetchAndDrawHorizon(
+                SightlineTool_Graphs.getActiveElmId()
+            )
+        })
         Map_.map.on('move', SightlineTool._updateCrosshairPosition)
         SightlineTool._updateCrosshairPosition()
     },
@@ -275,6 +284,11 @@ let SightlineTool = {
     _updateCrosshairPosition() {
         if (!SightlineTool._crosshairMarker) return
         const store = useSightlineStore.getState()
+        // Prefer the user-dragged position when set
+        if (store.indicatorLastDragPoint) {
+            SightlineTool._crosshairMarker.setLatLng(store.indicatorLastDragPoint)
+            return
+        }
         const activeId = store.activeElmId
         const ed = activeId != null ? store.sweepElData[activeId] : null
         if (ed?.sweepCenter) {
@@ -521,6 +535,8 @@ let SightlineTool = {
                 customAz: primaryIsCustom ? customAz : 0,
                 customEl: primaryIsCustom ? customEl : 0,
                 viewportBounds: viewportBounds ? viewportBounds.join(',') : undefined,
+                minDistance: parseFloat(options.minDistance) || 0,
+                maxDistance: parseFloat(options.maxDistance) || 0,
             },
             function (result) {
                 if (result.error) {
@@ -593,6 +609,8 @@ let SightlineTool = {
                     lat: source.lat,
                     lng: source.lng,
                 })
+                // Reset dragged crosshair on new sightline computation
+                currentStore.setSweepField('indicatorLastDragPoint', null)
                 SightlineTool._updateCrosshairPosition()
                 currentStore.updateElement(activeElmId, {
                     lastData: data,
@@ -657,6 +675,23 @@ let SightlineTool = {
                 SightlineTool.renderResultToMap(el.lastData, el.lastResultGrid, options, elmId)
             } else {
                 store.updateElement(elmId, { changed: true })
+            }
+        }
+
+        // Switch to composite: render cached heatmap if available (no re-sweep)
+        if (mode === 'composite') {
+            const ed = store.sweepElData[elmId]
+            if (ed?.heatmap && ed?.lastData) {
+                store.setSweepField('sweepViewMode', 'composite')
+                SightlineTool.renderHeatmapToMap(ed.lastData, ed.heatmap, elmId)
+            }
+        }
+
+        // Switch to playback: render cached frames if available (no re-sweep)
+        if (mode === 'playback') {
+            const ed = store.sweepElData[elmId]
+            if (ed?.frameImages && ed.frameImages.length > 0) {
+                SightlineTool.sweepShowAllFrames()
             }
         }
     },
@@ -784,10 +819,10 @@ let SightlineTool = {
     getSweepColorRamps: function (elmColor) {
         const vars = useSightlineStore.getState().vars || {}
         const configured = vars.sweepColorRamps || [
-            { name: 'viridis' },
-            { name: 'plasma' },
-            { name: 'Greys' },
             { name: 'RdYlGn_r' },
+            { name: 'plasma' },
+            { name: 'viridis' },
+            { name: 'Greys' },
         ]
 
         const cr = elmColor ? elmColor.r / 255 : 1.0
@@ -853,7 +888,7 @@ let SightlineTool = {
         if (discrete && bins > 0) {
             const binIdx = Math.min(Math.floor(tc * bins), bins - 1)
             const binCenter = (binIdx + 0.5) / bins
-            const ci = Math.min(Math.floor(binCenter * n), n)
+            const ci = Math.min(Math.round(binCenter * n), n)
             return colors[ci]
         }
         const scaled = tc * n
@@ -879,7 +914,7 @@ let SightlineTool = {
         const n = colors.length - 1
         const binIdx = SightlineTool.getBinForValue(tc, stops, bins)
         const binCenter = (binIdx + 0.5) / bins
-        const ci = Math.min(Math.floor(binCenter * n), n)
+        const ci = Math.min(Math.round(binCenter * n), n)
         return colors[ci]
     },
 
@@ -1265,6 +1300,8 @@ let SightlineTool = {
                 customAz: primaryIsCustom ? (el.customAz || 0) : 0,
                 customEl: primaryIsCustom ? (el.customEl || 0) : 0,
                 viewportBounds: sweepViewportBounds ? sweepViewportBounds.join(',') : undefined,
+                minDistance: parseFloat(options.minDistance) || 0,
+                maxDistance: parseFloat(options.maxDistance) || 0,
             },
             function (batchResults) {
                 if (sweepRunId !== _sweepRunIds[activeElmId]) return
@@ -1361,6 +1398,8 @@ let SightlineTool = {
                     lat: source.lat,
                     lng: source.lng,
                 })
+                // Reset dragged crosshair on new sweep so it snaps to sweep center
+                currentStoreF.setSweepField('indicatorLastDragPoint', null)
                 SightlineTool._updateCrosshairPosition()
 
                 currentStoreF.setSweepField('sweepProgress', 'Computing heatmap...')
@@ -1400,18 +1439,13 @@ let SightlineTool = {
                     const curElmF = storeH.sweepCurrentElm || 1
                     const totElmsF = storeH.sweepTotalElms || 1
 
-                    const activeElAtlas = storeH.elements[activeElmId]
-                    if (activeElAtlas?.sightlineMode === 'playback') {
-                        SightlineTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
+                    // Always build the atlas (frame images) regardless of mode,
+                    // so switching between playback and composite is instantaneous.
+                    SightlineTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
+                        const currentMode = useSightlineStore.getState().elements[activeElmId]?.sightlineMode
+                        if (currentMode === 'playback') {
                             SightlineTool.sweepShowAllFrames()
-                            if (typeof onComplete === 'function') onComplete()
-                            if (totElmsF > 1) {
-                                Toast.success('Sightline ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
-                            } else {
-                                Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
-                            }
-                        })
-                    } else {
+                        }
                         if (typeof onComplete === 'function') onComplete()
                         storeH.setSweepField('sweepProgress', '')
                         _flushSweepProgress(activeElmId, 100, undefined, true)
@@ -1420,7 +1454,7 @@ let SightlineTool = {
                         } else {
                             Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
                         }
-                    }
+                    })
                 }, 0)
             },
             function (err) {

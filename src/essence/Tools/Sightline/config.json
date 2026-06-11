@@ -144,6 +144,37 @@
                         "width": 6
                     }
                 ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.sweepColorRamps",
+                        "name": "Sweep Color Ramps",
+                        "description": "Custom color ramps available in the sweep heatmap color picker. Each entry needs 'name' (colormap identifier), 'label' (display name), and 'bins' (number of discrete bins).",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "label",
+                                "name": "Label",
+                                "type": "text",
+                                "width": 4
+                            },
+                            {
+                                "field": "bins",
+                                "name": "Bins",
+                                "type": "number",
+                                "width": 4
+                            }
+                        ]
+                    }
+                ]
             }
         ]
     }
