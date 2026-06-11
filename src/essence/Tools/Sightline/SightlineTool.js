@@ -1204,9 +1204,11 @@ let SightlineTool = {
             timestamps.push(new Date(t).toISOString().replace(/\.\d{3}Z$/, 'Z'))
         }
 
-        if (timestamps.length > 512) {
+        const stepSeconds = stepMinutes * 60
+
+        if (timestamps.length > 2048) {
             Toast.warning(
-                'Too many timesteps (max 512). Increase step size.',
+                'Too many timesteps (max 2048). Increase step size.',
                 6000
             )
             if (onComplete) onComplete()
@@ -1259,14 +1261,13 @@ let SightlineTool = {
         const primaryIsCustom =
             primary.value === false || primary.value === 'false'
 
-        // Build UTC time strings for all timestamps
-        const timeStrs = timestamps.map((ts) =>
-            SightlineTool.parseToUTCTime(ts) + ' UTC'
-        )
-
         const sweepMaxDim = SightlineTool._resolutionToMaxDim(activeElmId)
         const sweepViewportBounds = _getViewportProjBounds()
         const _sweepApiStart = performance.now()
+
+        // Send start/end/step instead of full timestamps array
+        const batchStartTime = timestamps[0]
+        const batchEndTime = timestamps[timestamps.length - 1]
 
         calls.api(
             'sightmap',
@@ -1276,7 +1277,9 @@ let SightlineTool = {
                 lng: source.lng,
                 height: options.height || 0,
                 target: primaryIsCustom ? 'CUSTOM' : primary.value,
-                times: timeStrs,
+                startTime: batchStartTime,
+                endTime: batchEndTime,
+                stepSeconds: stepSeconds,
                 obsRefFrame,
                 obsBody,
                 planetRadius: F_.radiusOfPlanetMajor,

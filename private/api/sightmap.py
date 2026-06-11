@@ -1289,9 +1289,23 @@ if __name__ == '__main__':
             except (ValueError, TypeError):
                 pass
 
-        # Batch mode: multiple timestamps in one call
-        times = input_data.get('times', None)
-        if times and isinstance(times, list) and len(times) > 0:
+        # Batch mode: start/end/step → generate timestamps internally
+        start_time = input_data.get('startTime', None)
+        end_time = input_data.get('endTime', None)
+        step_seconds = input_data.get('stepSeconds', None)
+        if start_time and end_time and step_seconds:
+            from datetime import datetime, timedelta, timezone
+            # ISO format: "2026-06-11T19:53:00Z"
+            st = str(start_time).replace('Z', '+00:00')
+            et = str(end_time).replace('Z', '+00:00')
+            dt_start = datetime.fromisoformat(st)
+            dt_end = datetime.fromisoformat(et)
+            step_td = timedelta(seconds=float(step_seconds))
+            times = []
+            dt = dt_start
+            while dt <= dt_end:
+                times.append(dt.strftime('%Y-%m-%d %H:%M:%S') + ' UTC')
+                dt += step_td
             result = compute_sightmap_batch(
                 dem_path, obs_lat, obs_lng, obs_height,
                 target, times, obs_ref_frame, obs_body,

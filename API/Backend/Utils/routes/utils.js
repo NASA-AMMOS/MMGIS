@@ -551,18 +551,30 @@ router.post("/gethorizonprofile", function(req,res,next){(router._computeLimiter
 
 //utils sightmap — single or batch (pass `times` array for batch)
 router.post("/sightmap", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
-  const isBatch = Array.isArray(req.body.times) && req.body.times.length > 0;
+  const isBatch = req.body.startTime != null && req.body.endTime != null && req.body.stepSeconds != null;
   if (req.body.dem == null || req.body.lat == null || req.body.lng == null || req.body.target == null) {
     return res.status(400).json({ error: true, message: "dem, lat, lng, and target are required" });
   }
   if (!isBatch && req.body.time == null) {
-    return res.status(400).json({ error: true, message: "time (or times array) is required" });
+    return res.status(400).json({ error: true, message: "time (or startTime/endTime/stepSeconds) is required" });
   }
   // Frame limit scales inversely with resolution: fewer cells/frame → more frames allowed
   const maxDim = Number(req.body.maxOutputDim || 400);
   const MAX_TIMES = maxDim >= 800 ? 256 : maxDim >= 400 ? 512 : maxDim >= 200 ? 1024 : 2048;
-  if (isBatch && req.body.times.length > MAX_TIMES) {
-    return res.status(400).json({ error: true, message: "times array exceeds maximum of " + MAX_TIMES + " entries at this resolution" });
+  if (isBatch) {
+    const stepSec = Number(req.body.stepSeconds);
+    if (!isFinite(stepSec) || stepSec <= 0) {
+      return res.status(400).json({ error: true, message: "stepSeconds must be a positive number" });
+    }
+    const startMs = new Date(String(req.body.startTime)).getTime();
+    const endMs = new Date(String(req.body.endTime)).getTime();
+    if (isNaN(startMs) || isNaN(endMs) || startMs > endMs) {
+      return res.status(400).json({ error: true, message: "Invalid startTime/endTime range" });
+    }
+    const frameCount = Math.floor((endMs - startMs) / (stepSec * 1000)) + 1;
+    if (frameCount > MAX_TIMES) {
+      return res.status(400).json({ error: true, message: "Computed " + frameCount + " frames exceeds maximum of " + MAX_TIMES + " at this resolution" });
+    }
   }
 
   // Validate string fields used in filesystem path construction in Python.
@@ -609,7 +621,9 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
     maxDistance: maxDistance,
   };
   if (isBatch) {
-    payloadObj.times = req.body.times.map(String);
+    payloadObj.startTime = String(req.body.startTime);
+    payloadObj.endTime = String(req.body.endTime);
+    payloadObj.stepSeconds = Number(req.body.stepSeconds);
   } else {
     payloadObj.time = String(req.body.time);
   }
@@ -619,7 +633,14 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
   const payload = JSON.stringify(payloadObj);
 
   // Batch mode may take much longer (N timestamps × ~10s each)
-  const timeoutMs = isBatch ? Math.min(req.body.times.length * 30000, 1800000) : 120000;
+  let timeoutMs = 120000;
+  if (isBatch) {
+    const stepSec = Number(req.body.stepSeconds);
+    const startMs = new Date(String(req.body.startTime)).getTime();
+    const endMs = new Date(String(req.body.endTime)).getTime();
+    const frameCount = Math.floor((endMs - startMs) / (stepSec * 1000)) + 1;
+    timeoutMs = Math.min(frameCount * 30000, 1800000);
+  }
 
   const spawnStart = Date.now();
   const child = spawn("python", ["private/api/sightmap.py"], {
