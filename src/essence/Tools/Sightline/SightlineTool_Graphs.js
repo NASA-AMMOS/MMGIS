@@ -125,9 +125,15 @@ const SightlineTool_Graphs = {
         const store = useSightlineStore.getState()
         const mapRect = mapEl.getBoundingClientRect()
 
-        let centerLatLng = Map_.map.containerPointToLatLng(
-            [mapRect.width / 2, mapRect.height / 2]
-        )
+        const ed = _activeElmId != null ? store.sweepElData[_activeElmId] : null
+        let centerLatLng
+        if (ed?.sweepCenter) {
+            centerLatLng = ed.sweepCenter
+        } else {
+            centerLatLng = Map_.map.containerPointToLatLng(
+                [mapRect.width / 2, mapRect.height / 2]
+            )
+        }
 
         const centerPt = Map_.map.latLngToContainerPoint(centerLatLng)
         const end = _azimuthEndpoint(centerLatLng, centerPt, azDeg, mapRect)
@@ -167,9 +173,15 @@ const SightlineTool_Graphs = {
         const { included: elms } = _getFilteredVisibilityElms(store, _activeElmId)
         if (elms.length === 0) return
 
-        let centerLatLng = Map_.map.containerPointToLatLng(
-            [mapRect.width / 2, mapRect.height / 2]
-        )
+        const primaryEd = store.sweepElData[_activeElmId]
+        let centerLatLng
+        if (primaryEd?.sweepCenter) {
+            centerLatLng = primaryEd.sweepCenter
+        } else {
+            centerLatLng = Map_.map.containerPointToLatLng(
+                [mapRect.width / 2, mapRect.height / 2]
+            )
+        }
 
         const centerPt = Map_.map.latLngToContainerPoint(centerLatLng)
         const playIndex = store.sweepPlayIndex
@@ -539,13 +551,20 @@ const SightlineTool_Graphs = {
         let demUrl = vars.dem
         if (!F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
 
-        // Always use the current map center for the horizon profile
-        const mapRect = document.getElementById('map').getBoundingClientRect()
-        const wOffset = mapRect.width / 2
-        const hOffset = mapRect.height / 2
-        const centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
-        let lat = parseFloat(centerLatLng.lat)
-        let lng = parseFloat(centerLatLng.lng)
+        // Prefer sweep center when available; fall back to map center
+        const ed = store.sweepElData[elmId]
+        let lat, lng
+        if (ed?.sweepCenter) {
+            lat = ed.sweepCenter.lat
+            lng = ed.sweepCenter.lng
+        } else {
+            const mapRect = document.getElementById('map').getBoundingClientRect()
+            const wOffset = mapRect.width / 2
+            const hOffset = mapRect.height / 2
+            const centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
+            lat = parseFloat(centerLatLng.lat)
+            lng = parseFloat(centerLatLng.lng)
+        }
         const height = !isNaN(parseFloat(el.height)) ? parseFloat(el.height) : 2
         const elMaxDist = parseFloat(el.maxDistance) || 0
         const elMinDist = parseFloat(el.minDistance) || 0

@@ -319,9 +319,12 @@ let SightlineTool = {
     _onPanEnd: function () {
         const store = useSightlineStore.getState()
 
-        // Invalidate and re-fetch horizon profile on pan so the
-        // visibility timeline and horizon chart stay correct.
-        SightlineTool_Graphs.invalidateAndRefetch()
+        // Invalidate and re-fetch horizon profile on pan — but only when
+        // no sweep center is set (horizon is anchored to map center).
+        const activeEd = store.activeElmId != null ? store.sweepElData[store.activeElmId] : null
+        if (!activeEd?.sweepCenter) {
+            SightlineTool_Graphs.invalidateAndRefetch()
+        }
 
         // Invalidate sweep results and layer cache when viewport changes
         if (store.hasSweepData() && !store.sweepStale) {
@@ -2209,6 +2212,9 @@ let SightlineTool = {
     },
 
     _getObserverLng: function () {
+        const store = useSightlineStore.getState()
+        const ed = store.activeElmId != null ? store.sweepElData[store.activeElmId] : null
+        if (ed?.sweepCenter) return parseFloat(ed.sweepCenter.lng)
         const mapEl = document.getElementById('map')
         if (mapEl && Map_.map) {
             const rect = mapEl.getBoundingClientRect()
