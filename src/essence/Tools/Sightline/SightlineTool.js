@@ -800,6 +800,12 @@ let SightlineTool = {
             L_.layers.layer[layerName].setOpacity(el.opacity)
         }
 
+        // Re-apply z-order so elements respect the panel drag order
+        const allIds = Object.keys(store.elements).map(Number)
+        const ordered = (store.elementOrder || []).filter((id) => allIds.includes(id))
+        allIds.forEach((id) => { if (!ordered.includes(id)) ordered.push(id) })
+        SightlineTool.reorderSightlineLayers(ordered)
+
         Globe_.litho.removeLayer(layerName)
     },
 
