@@ -255,26 +255,15 @@ let SightlineTool = {
         })
         SightlineTool._crosshairMarker = L.marker(Map_.map.getCenter(), {
             icon: icon,
-            interactive: true,
+            interactive: false,
             zIndexOffset: 10000
         }).addTo(Map_.map)
-        // Use Leaflet.Editable for dragging (map has editable: true)
-        SightlineTool._crosshairMarker.enableEdit()
-        SightlineTool._crosshairMarker.on('editable:dragend', function () {
-            const latlng = SightlineTool._crosshairMarker.getLatLng()
-            const store = useSightlineStore.getState()
-            store.setSweepField('indicatorLastDragPoint', latlng)
-            SightlineTool_Graphs.fetchAndDrawHorizon(
-                SightlineTool_Graphs.getActiveElmId()
-            )
-        })
         Map_.map.on('move', SightlineTool._updateCrosshairPosition)
         SightlineTool._updateCrosshairPosition()
     },
 
     _removeCenterCrosshair() {
         if (SightlineTool._crosshairMarker) {
-            SightlineTool._crosshairMarker.disableEdit()
             Map_.map.removeLayer(SightlineTool._crosshairMarker)
             SightlineTool._crosshairMarker = null
         }
@@ -286,11 +275,6 @@ let SightlineTool = {
     _updateCrosshairPosition() {
         if (!SightlineTool._crosshairMarker) return
         const store = useSightlineStore.getState()
-        // Prefer the user-dragged position when set
-        if (store.indicatorLastDragPoint) {
-            SightlineTool._crosshairMarker.setLatLng(store.indicatorLastDragPoint)
-            return
-        }
         const activeId = store.activeElmId
         const ed = activeId != null ? store.sweepElData[activeId] : null
         if (ed?.sweepCenter) {
@@ -454,9 +438,6 @@ let SightlineTool = {
         const hOffset = mapRect.height / 2
         let centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
 
-        if (store.indicatorLastDragPoint)
-            centerLatLng = store.indicatorLastDragPoint
-
         source = {
             lng: parseFloat(centerLatLng.lng),
             lat: parseFloat(centerLatLng.lat),
@@ -614,8 +595,6 @@ let SightlineTool = {
                     lat: source.lat,
                     lng: source.lng,
                 })
-                // Reset dragged crosshair on new sightline computation
-                currentStore.setSweepField('indicatorLastDragPoint', null)
                 SightlineTool._updateCrosshairPosition()
                 currentStore.updateElement(activeElmId, {
                     lastData: data,
@@ -819,71 +798,64 @@ let SightlineTool = {
         Globe_.litho.removeLayer(layerName)
     },
 
-    // Returns the list of available sweep color ramp definitions.
-    // Each entry: { name, label, colors (0-1 RGB arrays), reverse, bins }
-    // 'shadow' is always present. Additional ramps come from the tool's
-    // config variable "sweepColorRamps" which references js-colormaps names.
-    // Optional elmColor {r,g,b} adds element-color-based ramps.
+    // Returns the hardcoded list of available sweep color ramp definitions.
+    // Each entry: { name, label, colors (0-1 RGB arrays), reverse, bins, hasAlpha? }
+    // elmColor {r,g,b} is used for the element-color-based ramps.
     getSweepColorRamps: function (elmColor) {
-        const vars = useSightlineStore.getState().vars || {}
-        const configured = vars.sweepColorRamps || [
-            { name: 'inferno' },
-            { name: 'viridis' },
-            { name: 'RdYlGn_r' },
-            { name: 'plasma' },
-            { name: 'Greys' },
-        ]
-
         const cr = elmColor ? elmColor.r / 255 : 1.0
         const cg = elmColor ? elmColor.g / 255 : 0.7
         const cb = elmColor ? elmColor.b / 255 : 0.15
-        const ramps = [{
-            name: 'sightline',
-            label: 'Sightline',
-            colors: Array.from({ length: 64 }, () => [cr, cg, cb]),
-            reverse: false,
-            bins: 2,
-        }]
 
-        // Element-color-based ramps (RGBA — 4th component = alpha)
-        if (elmColor) {
-            // [transparent, color, transparent] — 3 stops
-            ramps.push({
-                name: '_tct', label: '◇ Fade', hasAlpha: true,
-                colors: [[cr, cg, cb, 0], [cr, cg, cb, 1], [cr, cg, cb, 0]],
-                reverse: false, bins: 3,
-            })
-            // [color, transparent, color] — 3 stops
-            ramps.push({
-                name: '_ctc', label: '◆ Edges', hasAlpha: true,
-                colors: [[cr, cg, cb, 1], [cr, cg, cb, 0], [cr, cg, cb, 1]],
-                reverse: false, bins: 3,
-            })
-        }
+        const ramps = []
 
-        for (const cfg of configured) {
-            const rawName = cfg.name || cfg
-            let cmapName = rawName
-            let reverse = false
-            if (cmapName.toLowerCase().endsWith('_r')) {
-                cmapName = cmapName.substring(0, cmapName.length - 2)
-                reverse = true
-            }
-            const cmapKey = Object.keys(colormapData).find(
-                (k) => k.toLowerCase() === cmapName.toLowerCase()
-            )
-            if (!cmapKey) continue
-            const entry = colormapData[cmapKey]
-            let colors = entry.colors
-            if (reverse) colors = [...colors].reverse()
-            ramps.push({
-                name: rawName,
-                label: cfg.label || rawName,
-                colors: colors,
-                reverse: false,
-                bins: Math.min(cfg.bins || 6, 12),
-            })
-        }
+        // 1. [transparent, color]
+        ramps.push({
+            name: '_tc', label: 'Color',
+            hasAlpha: true,
+            colors: [[cr, cg, cb, 0], [cr, cg, cb, 1]],
+            reverse: false, bins: 2,
+        })
+
+        // 2. [transparent, color, transparent]
+        ramps.push({
+            name: '_tct', label: 'Color Fade',
+            hasAlpha: true,
+            colors: [[cr, cg, cb, 0], [cr, cg, cb, 1], [cr, cg, cb, 0]],
+            reverse: false, bins: 3,
+        })
+
+        // 3. Inferno
+        const infernoColors = colormapData['inferno'] ? colormapData['inferno'].colors : []
+        ramps.push({
+            name: 'inferno', label: 'Inferno',
+            colors: infernoColors,
+            reverse: false, bins: 6,
+        })
+
+        // 4. Viridis
+        const viridisColors = colormapData['viridis'] ? colormapData['viridis'].colors : []
+        ramps.push({
+            name: 'viridis', label: 'Viridis',
+            colors: viridisColors,
+            reverse: false, bins: 6,
+        })
+
+        // 5. Red to Green (through yellow) — RdYlGn
+        const rdylgnColors = colormapData['RdYlGn'] ? colormapData['RdYlGn'].colors : []
+        ramps.push({
+            name: 'RdYlGn', label: 'Red → Green',
+            colors: rdylgnColors,
+            reverse: false, bins: 6,
+        })
+
+        // 6. Black to White (Greys)
+        const greysColors = colormapData['Greys'] ? colormapData['Greys'].colors : []
+        ramps.push({
+            name: 'Greys', label: 'Black → White',
+            colors: greysColors,
+            reverse: false, bins: 6,
+        })
+
         return ramps
     },
 
@@ -1242,8 +1214,6 @@ let SightlineTool = {
         const wOffset = mapRect.width / 2
         const hOffset = mapRect.height / 2
         let centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
-        if (store.indicatorLastDragPoint)
-            centerLatLng = store.indicatorLastDragPoint
 
         const source = {
             lng: parseFloat(centerLatLng.lng),
@@ -1407,8 +1377,6 @@ let SightlineTool = {
                     lat: source.lat,
                     lng: source.lng,
                 })
-                // Reset dragged crosshair on new sweep so it snaps to sweep center
-                currentStoreF.setSweepField('indicatorLastDragPoint', null)
                 SightlineTool._updateCrosshairPosition()
 
                 currentStoreF.setSweepField('sweepProgress', 'Computing heatmap...')
@@ -2242,10 +2210,6 @@ let SightlineTool = {
     },
 
     _getObserverLng: function () {
-        const store = useSightlineStore.getState()
-        const pt = store.indicatorLastDragPoint
-        if (pt) return parseFloat(pt.lng)
-        // Fall back to map center if no drag point set
         const mapEl = document.getElementById('map')
         if (mapEl && Map_.map) {
             const rect = mapEl.getBoundingClientRect()

@@ -62,7 +62,6 @@ const useSightlineStore = create((set, get) => ({
     utcTime: '',
     rawTime: '',
     lastConvertedMs: '000',
-    indicatorLastDragPoint: null,
 
     canvases: {},
     tags: {},
