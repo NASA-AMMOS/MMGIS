@@ -70,6 +70,7 @@ if (entries.length === 0) {
 // places.
 const ROOT_PKG = path.join(REPO_ROOT, "package.json");
 let rootDeps = {};
+let rootOverriddenNames = new Set();
 try {
     const rootPkg = JSON.parse(fs.readFileSync(ROOT_PKG, "utf8"));
     rootDeps = Object.assign(
@@ -78,13 +79,23 @@ try {
         rootPkg.devDependencies || {},
         rootPkg.optionalDependencies || {}
     );
+    // Collect package names covered by root overrides (keys may be bare names
+    // like "ajv" or versioned selectors like "ajv@^8" — extract the name part).
+    for (const key of Object.keys(rootPkg.overrides || {})) {
+        rootOverriddenNames.add(key.split("@")[0] || key);
+    }
 } catch {
     // Fall through with empty rootDeps — we'll install everything.
 }
 
-const filtered = entries.filter(
-    ([name, version]) => rootDeps[name] !== version
-);
+const filtered = entries.filter(([name, version]) => {
+    // Skip if already a direct dep with the same specifier.
+    if (rootDeps[name] === version) return false;
+    // Skip if the root package.json already has an override for this package —
+    // installing it as a direct dep would conflict with that override.
+    if (rootOverriddenNames.has(name)) return false;
+    return true;
+});
 const skipped = entries.length - filtered.length;
 
 if (filtered.length === 0) {
@@ -130,6 +141,8 @@ const result = spawnSync(
         // --ignore-scripts already prevents the inner install from
         // re-entering postinstall.
         env: process.env,
+        // On Windows, .cmd files require shell:true to be invocable via spawnSync.
+        shell: process.platform === "win32",
     }
 );
 

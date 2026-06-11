@@ -84,13 +84,7 @@ COPY . .
 RUN node scripts/resolve-plugin-deps.js
 
 RUN --mount=type=cache,target=/root/.npm \
-    if [ -s plugin-package.json ] && node -e "process.exit(Object.keys(require('./plugin-package.json').dependencies || {}).length ? 0 : 1)"; then \
-        echo "Installing plugin npm dependencies..." && \
-        node -e "const d=require('./plugin-package.json').dependencies||{};console.log(Object.entries(d).map(([k,v])=>k+'@'+v).join(' '))" \
-            | xargs -r npm install --no-save --no-package-lock --ignore-scripts; \
-    else \
-        echo "No plugin npm dependencies to install."; \
-    fi
+    node scripts/install-plugin-deps.js
 
 RUN if [ -s plugin-python-requirements.txt ] && grep -qv '^#' plugin-python-requirements.txt; then \
         echo "Installing plugin pip dependencies..." && \
@@ -149,14 +143,9 @@ RUN --mount=type=cache,target=/root/.npm \
 # this step. (Frontend plugin deps are unaffected because webpack
 # bundled them into `./build` during the builder stage.)
 COPY --from=builder /usr/src/app/plugin-package.json ./plugin-package.json
+COPY --from=builder /usr/src/app/scripts/install-plugin-deps.js ./scripts/install-plugin-deps.js
 RUN --mount=type=cache,target=/root/.npm \
-    if [ -s plugin-package.json ] && node -e "process.exit(Object.keys(require('./plugin-package.json').dependencies || {}).length ? 0 : 1)"; then \
-        echo "Installing plugin npm dependencies into runtime image..." && \
-        node -e "const d=require('./plugin-package.json').dependencies||{};console.log(Object.entries(d).map(([k,v])=>k+'@'+v).join(' '))" \
-            | xargs -r npm install --no-save --no-package-lock --ignore-scripts; \
-    else \
-        echo "No plugin npm dependencies to install in runtime image."; \
-    fi
+    node scripts/install-plugin-deps.js
 
 # Copy built artifacts from builder
 COPY --from=builder /usr/src/app/build ./build
