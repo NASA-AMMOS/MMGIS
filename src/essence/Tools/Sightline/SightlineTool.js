@@ -217,10 +217,9 @@ let SightlineTool = {
 
         TimeControl.unsubscribe('SightlineTool')
 
-        // Remove center crosshair, dot, and range circles
+        // Remove center crosshair and dot
         SightlineTool._removeCenterCrosshair()
         SightlineTool._removeCenterDot()
-        SightlineTool._removeRangeCircles()
 
         // Close bottom bar graphs
         SightlineTool_Graphs.cleanup()
@@ -285,76 +284,7 @@ let SightlineTool = {
         }
     },
 
-    // === Range Circles ===
 
-    _rangeCircles: { min: null, max: null },
-
-    _makeProjectedCircle(center, radiusMeters, color) {
-        const crs = Map_.map.options.crs
-        if (!crs || typeof crs.project !== 'function') return null
-        const cp = crs.project(center)
-        const N = 64
-        const pts = []
-        for (let i = 0; i < N; i++) {
-            const a = (2 * Math.PI * i) / N
-            const px = cp.x + radiusMeters * Math.cos(a)
-            const py = cp.y + radiusMeters * Math.sin(a)
-            pts.push(crs.unproject(L.point(px, py)))
-        }
-        return L.polygon(pts, {
-            fill: false,
-            weight: 1.5,
-            dashArray: '6,4',
-            interactive: false,
-            color: color,
-        })
-    },
-
-    updateRangeCircles(elmId) {
-        const store = useSightlineStore.getState()
-        const el = elmId != null ? store.elements[elmId] : store.elements[store.activeElmId]
-        const minD = parseFloat(el?.minDistance) || 0
-        const maxD = parseFloat(el?.maxDistance) || 0
-
-        // Get center: sweep center if available, otherwise map center
-        const activeId = elmId != null ? elmId : store.activeElmId
-        const ed = activeId != null ? store.sweepElData[activeId] : null
-        const center = ed?.sweepCenter || Map_.map.getCenter()
-
-        // Remove existing circles
-        if (SightlineTool._rangeCircles.min) {
-            Map_.map.removeLayer(SightlineTool._rangeCircles.min)
-            SightlineTool._rangeCircles.min = null
-        }
-        if (SightlineTool._rangeCircles.max) {
-            Map_.map.removeLayer(SightlineTool._rangeCircles.max)
-            SightlineTool._rangeCircles.max = null
-        }
-
-        if (minD > 0) {
-            const c = SightlineTool._makeProjectedCircle(center, minD, '#ff6644')
-            if (c) {
-                SightlineTool._rangeCircles.min = c.addTo(Map_.map)
-            }
-        }
-        if (maxD > 0) {
-            const c = SightlineTool._makeProjectedCircle(center, maxD, '#4488ff')
-            if (c) {
-                SightlineTool._rangeCircles.max = c.addTo(Map_.map)
-            }
-        }
-    },
-
-    _removeRangeCircles() {
-        if (SightlineTool._rangeCircles.min) {
-            Map_.map.removeLayer(SightlineTool._rangeCircles.min)
-            SightlineTool._rangeCircles.min = null
-        }
-        if (SightlineTool._rangeCircles.max) {
-            Map_.map.removeLayer(SightlineTool._rangeCircles.max)
-            SightlineTool._rangeCircles.max = null
-        }
-    },
 
     // === Center Dot (always at visible map center) ===
 
@@ -596,8 +526,8 @@ let SightlineTool = {
                 customAz: primaryIsCustom ? customAz : 0,
                 customEl: primaryIsCustom ? customEl : 0,
                 viewportBounds: viewportBounds ? viewportBounds.join(',') : undefined,
-                minDistance: parseFloat(options.minDistance) || 0,
-                maxDistance: el.maxDistInfinity ? -1 : (parseFloat(options.maxDistance) || 0),
+                minDistance: 0,
+                maxDistance: el.demExtent === 'full' ? -1 : 0,
             },
             function (result) {
                 if (result._timing) {
@@ -1360,8 +1290,8 @@ let SightlineTool = {
                 customAz: primaryIsCustom ? (el.customAz || 0) : 0,
                 customEl: primaryIsCustom ? (el.customEl || 0) : 0,
                 viewportBounds: sweepViewportBounds ? sweepViewportBounds.join(',') : undefined,
-                minDistance: parseFloat(options.minDistance) || 0,
-                maxDistance: el.maxDistInfinity ? -1 : (parseFloat(options.maxDistance) || 0),
+                minDistance: 0,
+                maxDistance: el.demExtent === 'full' ? -1 : 0,
             },
             function (batchResponse) {
                 if (sweepRunId !== _sweepRunIds[activeElmId]) return
