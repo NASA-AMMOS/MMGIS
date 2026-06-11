@@ -41,6 +41,13 @@ const FIT_MODE_OPTIONS = [
     { label: 'Fit to data', value: 'fit' },
 ]
 
+const RESOLUTION_OPTIONS = [
+    { value: '1', label: '1× (Native)' },
+    { value: '0.5', label: '0.5×' },
+    { value: '0.25', label: '0.25× (Default)' },
+    { value: '0.125', label: '0.125×' },
+]
+
 const EXPORT_OPTIONS_STATIC = [
     { value: 'png', label: 'Sightline Map (PNG)' },
     { value: 'csv', label: 'Results (CSV)' },
@@ -711,6 +718,17 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                         formatValue={(v) => Math.round(v * 100)}
                                     />
                                 </div>
+                            </div>
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel" title="Resolution scale relative to viewport DEM extent. Lower = faster, coarser.">Resolution</div>
+                                <Select
+                                    value={String(el.resolution)}
+                                    onValueChange={(v) =>
+                                        handleChange('resolution', parseFloat(v))
+                                    }
+                                    options={RESOLUTION_OPTIONS}
+                                    className="vstSelect"
+                                />
                             </div>
 
                         </div>

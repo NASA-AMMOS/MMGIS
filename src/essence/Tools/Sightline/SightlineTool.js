@@ -519,7 +519,7 @@ let SightlineTool = {
                 obsRefFrame,
                 obsBody,
                 planetRadius: F_.radiusOfPlanetMajor,
-                maxOutputDim: SightlineTool._resolutionToMaxDim(false),
+                maxOutputDim: SightlineTool._resolutionToMaxDim(activeElmId),
                 isCustom: primaryIsCustom ? 'true' : 'false',
                 customAz: primaryIsCustom ? customAz : 0,
                 customEl: primaryIsCustom ? customEl : 0,
@@ -1264,7 +1264,7 @@ let SightlineTool = {
             SightlineTool.parseToUTCTime(ts) + ' UTC'
         )
 
-        const sweepMaxDim = SightlineTool._resolutionToMaxDim(true)
+        const sweepMaxDim = SightlineTool._resolutionToMaxDim(activeElmId)
         const sweepViewportBounds = _getViewportProjBounds()
         const _sweepApiStart = performance.now()
 
@@ -3020,12 +3020,23 @@ let SightlineTool = {
 
     // === Utility ===
 
-    /** Get maxOutputDim pixels for the sightmap backend.
-     *  @param {boolean} isSweep - true for sweep/batch (uses smaller default)
+    /** Compute maxOutputDim from the active element's resolution scale
+     *  and the current map viewport pixel dimensions.
+     *  resolution=1 → native (maxOutputDim = viewport longest dim)
+     *  resolution=0.5 → half, etc.
+     *  @param {number} [elmId] - element id to read resolution from; falls back to activeElmId
      *  @returns {number} maxOutputDim
      */
-    _resolutionToMaxDim() {
-        return 800
+    _resolutionToMaxDim(elmId) {
+        const store = useSightlineStore.getState()
+        const id = elmId != null ? elmId : store.activeElmId
+        const el = store.elements[id]
+        const scale = el?.resolution || 0.25
+        const map = Map_.map
+        if (!map) return Math.max(Math.round(800 * scale), 50)
+        const size = map.getSize()
+        const longestDim = Math.max(size.x || 800, size.y || 800)
+        return Math.max(Math.round(longestDim * scale), 50)
     },
 
     parseToUTCTime(time, formatted) {

@@ -1077,7 +1077,7 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
     timing['total_ms'] = round((time.perf_counter() - t_start) * 1000, 1)
 
     return {
-        "grid": [],  # TEMP: stripped for timing debug
+        "grid": result.tolist(),
         "az": round(obs_az, 4),
         "el": round(obs_el, 4),
         "rows": out_rows,
@@ -1204,7 +1204,7 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
         tolist_times_ms.append(round((time.perf_counter() - t0) * 1000, 1))
 
         results.append({
-            "grid": [],  # TEMP: stripped for timing debug
+            "grid": grid_list,
             "az": round(tp['obs_az'], 4),
             "el": round(tp['obs_el'], 4),
             "rows": out_rows,

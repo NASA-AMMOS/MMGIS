@@ -581,7 +581,7 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
   const lng = Number(req.body.lng);
   const height = Number(req.body.height || 0);
   const planetRadius = Number(req.body.planetRadius || 0);
-  const maxOutputDim = Math.min(Number(req.body.maxOutputDim || 400), 800);
+  const maxOutputDim = Math.min(Number(req.body.maxOutputDim || 400), 4096);
 
   if ([lat, lng, height, planetRadius, maxOutputDim].some(v => !isFinite(v))) {
     return res.status(400).json({ error: true, message: "All numeric parameters must be finite numbers" });
