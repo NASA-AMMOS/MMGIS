@@ -477,6 +477,12 @@ def _sun_azel_batch(lat_arr, lng_arr, sun_vec_km, radii_km, flattening):
 def _bilinear_interp_2d(coarse_data, coarse_rows, coarse_cols,
                          out_rows, out_cols):
     """Pure-numpy 2D bilinear interpolation on a non-uniform coarse grid."""
+    weights = _bilinear_weights(coarse_rows, coarse_cols, out_rows, out_cols)
+    return _bilinear_apply(coarse_data, weights)
+
+
+def _bilinear_weights(coarse_rows, coarse_cols, out_rows, out_cols):
+    """Pre-compute interpolation indices and weights (frame-invariant)."""
     fy = np.arange(out_rows, dtype=np.float64)
     fx = np.arange(out_cols, dtype=np.float64)
     cr = coarse_rows.astype(np.float64)
@@ -493,13 +499,22 @@ def _bilinear_interp_2d(coarse_data, coarse_rows, coarse_cols,
     TY, TX = np.meshgrid(ty, tx, indexing='ij')
     IY, IX = np.meshgrid(iy, ix, indexing='ij')
 
-    v00 = coarse_data[IY, IX]
-    v01 = coarse_data[IY, IX + 1]
-    v10 = coarse_data[IY + 1, IX]
-    v11 = coarse_data[IY + 1, IX + 1]
+    return {
+        'IY': IY, 'IX': IX,
+        'w00': (1 - TY) * (1 - TX),
+        'w10': TY * (1 - TX),
+        'w01': (1 - TY) * TX,
+        'w11': TY * TX,
+    }
 
-    return (v00 * (1 - TY) * (1 - TX) + v10 * TY * (1 - TX) +
-            v01 * (1 - TY) * TX + v11 * TY * TX)
+
+def _bilinear_apply(coarse_data, weights):
+    """Apply pre-computed bilinear weights to coarse data."""
+    IY = weights['IY']; IX = weights['IX']
+    return (coarse_data[IY, IX] * weights['w00'] +
+            coarse_data[IY + 1, IX] * weights['w10'] +
+            coarse_data[IY, IX + 1] * weights['w01'] +
+            coarse_data[IY + 1, IX + 1] * weights['w11'])
 
 
 # ---------------------------------------------------------------------------
@@ -717,7 +732,7 @@ def _compute_directions(gt, srs, cell_az, px_grid, py_grid):
 
 def _compute_sun_grid(sun_vec_km, obs_az, obs_el, radii_km, flattening,
                       gt, srs, step, out_rows, out_cols, dem_rows, dem_cols):
-    """Compute per-cell Sun az/el via coarse subgrid interpolation."""
+    """Compute per-cell source az/el via coarse subgrid interpolation."""
     if sun_vec_km is not None:
         cs = COARSE_AZEL_STEP
         c_rows = np.arange(0, out_rows, cs)
@@ -746,6 +761,181 @@ def _compute_sun_grid(sun_vec_km, obs_az, obs_el, radii_km, flattening,
         cell_az = np.full((out_rows, out_cols), obs_az)
         cell_el = np.full((out_rows, out_cols), obs_el)
     return cell_az, cell_el
+
+
+# ---------------------------------------------------------------------------
+# Batch-optimized: pre-compute frame-invariant data once
+# ---------------------------------------------------------------------------
+
+def _precompute_batch_grid_context(gt, srs, step, out_rows, out_cols,
+                                   dem_rows, dem_cols, radii_km, flattening,
+                                   px_grid, py_grid):
+    """Pre-compute everything that doesn't change between frames.
+
+    Returns a context dict with cached coarse-grid lat/lng, bilinear
+    interpolation weights, and direction-computation invariants.
+    """
+    ctx = {}
+
+    # --- Coarse subgrid for az/el interpolation ---
+    cs = COARSE_AZEL_STEP
+    c_rows = np.arange(0, out_rows, cs)
+    c_cols = np.arange(0, out_cols, cs)
+    if c_rows[-1] != out_rows - 1:
+        c_rows = np.append(c_rows, out_rows - 1)
+    if c_cols[-1] != out_cols - 1:
+        c_cols = np.append(c_cols, out_cols - 1)
+
+    cr_g, cc_g = np.meshgrid(c_rows, c_cols, indexing='ij')
+    c_py = np.minimum(cr_g * step, dem_rows - 1).astype(np.float64)
+    c_px = np.minimum(cc_g * step, dem_cols - 1).astype(np.float64)
+
+    # Coordinate transform — done ONCE instead of per-frame
+    c_lng, c_lat = _pixels_to_geo_batch(gt, srs, c_px, c_py)
+
+    ctx['c_rows'] = c_rows
+    ctx['c_cols'] = c_cols
+    ctx['c_lat'] = c_lat
+    ctx['c_lng'] = c_lng
+    ctx['radii_km'] = radii_km
+    ctx['flattening'] = flattening
+
+    # Pre-compute bilinear interpolation weights (same for sin, cos, el)
+    ctx['bweights'] = _bilinear_weights(c_rows, c_cols, out_rows, out_cols)
+
+    # --- Pre-compute _sun_azel_batch invariants (ellipsoid geometry) ---
+    rpd = math.pi / 180.0
+    a, c = float(radii_km[0]), float(radii_km[2])
+    e2 = 1.0 - (c / a) ** 2
+
+    lat_r = c_lat * rpd
+    lng_r = c_lng * rpd
+    cos_lat = np.cos(lat_r)
+    sin_lat = np.sin(lat_r)
+    cos_lng = np.cos(lng_r)
+    sin_lng = np.sin(lng_r)
+
+    N = a / np.sqrt(1.0 - e2 * sin_lat ** 2)
+    cx_pos = N * cos_lat * cos_lng
+    cy_pos = N * cos_lat * sin_lng
+    cz_pos = N * (1.0 - e2) * sin_lat
+
+    a2, c2 = a ** 2, c ** 2
+    nx = cx_pos / a2; ny = cy_pos / a2; nz = cz_pos / c2
+    n_len = np.maximum(np.sqrt(nx ** 2 + ny ** 2 + nz ** 2), 1e-12)
+    nx /= n_len; ny /= n_len; nz /= n_len
+
+    nnx = -a * sin_lat * cos_lng
+    nny = -a * sin_lat * sin_lng
+    nnz = c * cos_lat
+    dot = nnx * nx + nny * ny + nnz * nz
+    nnx -= dot * nx; nny -= dot * ny; nnz -= dot * nz
+    nn_len = np.sqrt(nnx ** 2 + nny ** 2 + nnz ** 2)
+    safe = nn_len > 1e-12
+    nn_len = np.maximum(nn_len, 1e-12)
+    nnx /= nn_len; nny /= nn_len; nnz /= nn_len
+
+    ex = nny * nz - nnz * ny
+    ey = nnz * nx - nnx * nz
+    ez = nnx * ny - nny * nx
+    e_len = np.maximum(np.sqrt(ex ** 2 + ey ** 2 + ez ** 2), 1e-12)
+    ex /= e_len; ey /= e_len; ez /= e_len
+
+    ctx['cell_pos'] = (cx_pos, cy_pos, cz_pos)
+    ctx['normal'] = (nx, ny, nz)
+    ctx['north'] = (nnx, nny, nnz, safe)
+    ctx['east'] = (ex, ey, ez)
+
+    # --- Pre-compute direction invariants ---
+    is_proj = bool(srs.IsProjected())
+    ctx['is_proj'] = is_proj
+    ctx['gt'] = gt
+    if is_proj:
+        proj_name = (srs.GetAttrValue('PROJECTION', 0) or '').lower()
+        is_azimuthal = ('stereo' in proj_name or 'azimuthal' in proj_name
+                        or 'gnomonic' in proj_name)
+        ctx['is_azimuthal'] = is_azimuthal
+        if is_azimuthal:
+            proj_x = gt[0] + px_grid * gt[1] + py_grid * gt[2]
+            proj_y = gt[3] + px_grid * gt[4] + py_grid * gt[5]
+            fe = srs.GetProjParm('false_easting', 0.0)
+            fn = srs.GetProjParm('false_northing', 0.0)
+            lat_origin = srs.GetProjParm('latitude_of_origin', 0.0)
+            north_sign = -1.0 if lat_origin > 0 else 1.0
+            ctx['convergence'] = np.degrees(np.arctan2(
+                proj_x - fe, north_sign * (proj_y - fn)))
+    else:
+        lat_all = gt[3] + px_grid * gt[4] + py_grid * gt[5]
+        ctx['cos_lat_full'] = np.maximum(np.cos(np.radians(lat_all)), 0.01)
+
+    return ctx
+
+
+def _fast_source_grid(source_vec_km, obs_az, obs_el, ctx):
+    """Compute per-cell source az/el + direction using cached context.
+
+    ~10x faster than _compute_sun_grid + _compute_directions for batch
+    because coordinate transforms, bilinear weights, and direction
+    invariants are pre-computed.
+    """
+    if source_vec_km is not None:
+        # --- Fast az/el on coarse grid using pre-computed ellipsoid geometry ---
+        cx_pos, cy_pos, cz_pos = ctx['cell_pos']
+        nx, ny, nz = ctx['normal']
+        nnx, nny, nnz, safe = ctx['north']
+        ex, ey, ez = ctx['east']
+
+        tx = source_vec_km[0] - cx_pos
+        ty = source_vec_km[1] - cy_pos
+        tz = source_vec_km[2] - cz_pos
+        t_len = np.maximum(np.sqrt(tx ** 2 + ty ** 2 + tz ** 2), 1e-12)
+        tx /= t_len; ty /= t_len; tz /= t_len
+
+        sin_el = np.clip(tx * nx + ty * ny + tz * nz, -1.0, 1.0)
+        c_el = np.degrees(np.arcsin(sin_el))
+
+        source_n = tx * nnx + ty * nny + tz * nnz
+        source_e = tx * ex + ty * ey + tz * ez
+        c_az = np.degrees(np.arctan2(source_e, source_n))
+        c_az = np.where(c_az < 0, c_az + 360.0, c_az)
+        c_az = np.where(safe, c_az, 0.0)
+
+        # --- Fast bilinear interpolation using pre-computed weights ---
+        c_az_rad = np.radians(c_az)
+        bw = ctx['bweights']
+        interp_sin = _bilinear_apply(np.sin(c_az_rad), bw)
+        interp_cos = _bilinear_apply(np.cos(c_az_rad), bw)
+        cell_az = np.degrees(np.arctan2(interp_sin, interp_cos))
+        cell_az = np.where(cell_az < 0, cell_az + 360.0, cell_az)
+        cell_el = _bilinear_apply(c_el, bw)
+    else:
+        out_rows = ctx['bweights']['IY'].shape[0]
+        out_cols = ctx['bweights']['IY'].shape[1]
+        cell_az = np.full((out_rows, out_cols), obs_az)
+        cell_el = np.full((out_rows, out_cols), obs_el)
+
+    # --- Fast direction computation using cached invariants ---
+    gt = ctx['gt']
+    if ctx['is_proj']:
+        if ctx.get('is_azimuthal'):
+            grid_az = cell_az + ctx['convergence']
+        else:
+            grid_az = cell_az
+        az_rad = np.radians(grid_az)
+        dx = np.sin(az_rad)
+        dy = -np.cos(az_rad) if gt[5] < 0 else np.cos(az_rad)
+    else:
+        cos_lat = ctx['cos_lat_full']
+        az_rad = np.radians(cell_az)
+        dx_geo = np.sin(az_rad) / cos_lat
+        dy_geo = np.cos(az_rad)
+        if gt[5] < 0:
+            dy_geo = -dy_geo
+        mag = np.maximum(np.sqrt(dx_geo ** 2 + dy_geo ** 2), 1e-12)
+        dx = dx_geo / mag
+        dy = dy_geo / mag
+
+    return cell_az, cell_el, dx, dy
 
 
 def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
@@ -949,18 +1139,22 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     nodata_flat = nodata_mask.ravel()
     timing['precompute_grids_ms'] = round((time.perf_counter() - t0) * 1000, 1)
 
+    # Pre-compute frame-invariant data for fast per-frame source grid
+    t0 = time.perf_counter()
+    batch_ctx = _precompute_batch_grid_context(
+        gt, srs, step, out_rows, out_cols, dem_rows, dem_cols,
+        radii_km, flattening, px_grid, py_grid)
+    timing['precompute_batch_ctx_ms'] = round((time.perf_counter() - t0) * 1000, 1)
+
     results = []
     march_times_ms = []
-    sun_grid_times_ms = []
+    source_grid_times_ms = []
     tolist_times_ms = []
     for i, tp in enumerate(time_positions):
         t0 = time.perf_counter()
-        cell_az, cell_el = _compute_sun_grid(
-            tp['sun_vec_km'], tp['obs_az'], tp['obs_el'],
-            radii_km, flattening, gt, srs, step, out_rows, out_cols,
-            dem_rows, dem_cols)
-        dx, dy = _compute_directions(gt, srs, cell_az, px_grid, py_grid)
-        sun_grid_times_ms.append(round((time.perf_counter() - t0) * 1000, 1))
+        cell_az, cell_el, dx, dy = _fast_source_grid(
+            tp['sun_vec_km'], tp['obs_az'], tp['obs_el'], batch_ctx)
+        source_grid_times_ms.append(round((time.perf_counter() - t0) * 1000, 1))
 
         result_flat = np.zeros(n_cells, dtype=np.int8)
         t0 = time.perf_counter()
@@ -994,14 +1188,13 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
         sys.stderr.write(json.dumps({"progress": i + 1, "total": len(times)}) + "\n")
         sys.stderr.flush()
 
-    timing['sun_grid_per_frame_ms'] = sun_grid_times_ms
+    timing['source_grid_per_frame_ms'] = source_grid_times_ms
     timing['march_per_frame_ms'] = march_times_ms
     timing['tolist_per_frame_ms'] = tolist_times_ms
     timing['march_total_ms'] = round(sum(march_times_ms), 1)
-    timing['sun_grid_total_ms'] = round(sum(sun_grid_times_ms), 1)
+    timing['source_grid_total_ms'] = round(sum(source_grid_times_ms), 1)
     timing['tolist_total_ms'] = round(sum(tolist_times_ms), 1)
 
-    t0 = time.perf_counter()
     timing['total_ms'] = round((time.perf_counter() - t_batch_start) * 1000, 1)
 
     # Attach timing to the batch response as a separate top-level key
