@@ -58,7 +58,7 @@ const EXPORT_OPTIONS_PLAYBACK = [
     { value: 'csv', label: 'Results (CSV)' },
 ]
 
-export default function SightlineElement({ elmId, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget }) {
+export default function SightlineElement({ elmId, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget, dropPosition }) {
     const el = useSightlineStore((s) => s.elements[elmId])
     const vars = useSightlineStore((s) => s.vars)
     const updateElement = useSightlineStore((s) => s.updateElement)
@@ -432,7 +432,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     return (
         <div
             ref={cardRef}
-            className={`vstSightlineItem${isDropTarget ? ' vstDropTarget' : ''}`}
+            className={`vstSightlineItem${isDropTarget ? (dropPosition === 'below' ? ' vstDropTargetBelow' : ' vstDropTargetAbove') : ''}`}
             data-sightline-id={elmId}
             style={{ borderLeft: `3px solid ${rgbStr(el.color)}` }}
             draggable

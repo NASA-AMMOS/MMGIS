@@ -775,8 +775,11 @@
 }
 
 /* Drop indicator for drag-to-reorder */
-#sightlineTool .vstDropTarget {
+#sightlineTool .vstDropTargetAbove {
     border-top: 2px solid var(--color-mmgis) !important;
+}
+#sightlineTool .vstDropTargetBelow {
+    border-bottom: 2px solid var(--color-mmgis) !important;
 }
 
 #sightlineTool .vstSweepCardIdentity {

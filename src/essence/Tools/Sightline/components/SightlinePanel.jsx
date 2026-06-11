@@ -24,6 +24,7 @@ export default function SightlinePanel() {
 
     const dragItemRef = useRef(null)
     const [dropTargetId, setDropTargetId] = useState(null)
+    const [dropPosition, setDropPosition] = useState('above')
     const [editableTime, setEditableTime] = useState('')
     const [rawTime, setRawTime] = useState('')
 
@@ -120,28 +121,37 @@ export default function SightlinePanel() {
         e.dataTransfer.dropEffect = 'move'
         if (dragItemRef.current != null && targetId !== dragItemRef.current) {
             setDropTargetId(targetId)
+            const rect = e.currentTarget.getBoundingClientRect()
+            const midY = rect.top + rect.height / 2
+            setDropPosition(e.clientY < midY ? 'above' : 'below')
         }
     }, [])
 
     const handleElDragEnd = useCallback(() => {
         setDropTargetId(null)
+        setDropPosition('above')
     }, [])
 
     const handleElDrop = useCallback((e, targetId) => {
         e.preventDefault()
+        const pos = dropPosition
         setDropTargetId(null)
+        setDropPosition('above')
         const draggedId = dragItemRef.current
         if (draggedId == null || draggedId === targetId) return
         const order = [...elementIds]
         const fromIdx = order.indexOf(draggedId)
-        const toIdx = order.indexOf(targetId)
+        let toIdx = order.indexOf(targetId)
         if (fromIdx < 0 || toIdx < 0) return
         order.splice(fromIdx, 1)
+        // Recalculate toIdx after removal
+        toIdx = order.indexOf(targetId)
+        if (pos === 'below') toIdx += 1
         order.splice(toIdx, 0, draggedId)
         setElementOrder(order)
         SightlineTool.reorderSightlineLayers(order)
         dragItemRef.current = null
-    }, [elementIds, setElementOrder])
+    }, [elementIds, setElementOrder, dropPosition])
 
     if (!TimeControl.enabled) {
         return (
@@ -252,6 +262,7 @@ export default function SightlinePanel() {
                         onDragEnd={handleElDragEnd}
                         onDrop={handleElDrop}
                         isDropTarget={dropTargetId === id}
+                        dropPosition={dropTargetId === id ? dropPosition : null}
                     />
                 ))}
                 <div className="vstNewBtnWrap">

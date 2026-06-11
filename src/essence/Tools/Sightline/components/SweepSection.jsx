@@ -55,6 +55,7 @@ export default function SweepSection() {
 
     const dragItemRef = useRef(null)
     const [dropTargetId, setDropTargetId] = useState(null)
+    const [dropPosition, setDropPosition] = useState('above')
 
     const totalFrames = useMemo(() => {
         for (const id in sweepElData) {
@@ -171,28 +172,36 @@ export default function SweepSection() {
         e.dataTransfer.dropEffect = 'move'
         if (dragItemRef.current != null && targetId !== dragItemRef.current) {
             setDropTargetId(targetId)
+            const rect = e.currentTarget.getBoundingClientRect()
+            const midY = rect.top + rect.height / 2
+            setDropPosition(e.clientY < midY ? 'above' : 'below')
         }
     }, [])
 
     const handleDragEnd = useCallback(() => {
         setDropTargetId(null)
+        setDropPosition('above')
     }, [])
 
     const handleDrop = useCallback((e, targetId) => {
         e.preventDefault()
+        const pos = dropPosition
         setDropTargetId(null)
+        setDropPosition('above')
         const draggedId = dragItemRef.current
         if (draggedId == null || draggedId === targetId) return
         const order = [...(useSightlineStore.getState().sweepCardOrder || [])]
         const fromIdx = order.indexOf(draggedId)
-        const toIdx = order.indexOf(targetId)
+        let toIdx = order.indexOf(targetId)
         if (fromIdx < 0 || toIdx < 0) return
         order.splice(fromIdx, 1)
+        toIdx = order.indexOf(targetId)
+        if (pos === 'below') toIdx += 1
         order.splice(toIdx, 0, draggedId)
         setSweepCardOrder(order)
         SightlineTool.reorderSweepLayers(order)
         dragItemRef.current = null
-    }, [setSweepCardOrder])
+    }, [setSweepCardOrder, dropPosition])
 
     return (
         <div className="vstSweepSection">
@@ -317,6 +326,7 @@ export default function SweepSection() {
                                         onDragEnd={handleDragEnd}
                                         onDrop={handleDrop}
                                         isDropTarget={dropTargetId === id}
+                                        dropPosition={dropTargetId === id ? dropPosition : null}
                                     />
                                 ))}
                             </div>
