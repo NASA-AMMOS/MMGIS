@@ -566,16 +566,12 @@ const SightlineTool_Graphs = {
             lng = parseFloat(centerLatLng.lng)
         }
         const height = !isNaN(parseFloat(el.height)) ? parseFloat(el.height) : 2
-        const elMaxDist = parseFloat(el.maxDistance) || 0
-        const elMinDist = parseFloat(el.minDistance) || 0
 
         if (
             _horizonCache &&
             _horizonCache.lat === lat &&
             _horizonCache.lng === lng &&
-            _horizonCache.height === height &&
-            (_horizonCache.maxDist || 0) === elMaxDist &&
-            (_horizonCache.minDist || 0) === elMinDist
+            _horizonCache.height === height
         ) {
             SightlineTool_Graphs._drawHorizonCanvas(
                 _horizonCache.profile,
@@ -592,8 +588,8 @@ const SightlineTool_Graphs = {
             lng: lng,
             observerHeight: height,
             numAzimuths: 360,
-            maxRadius: (elMaxDist > 0) ? elMaxDist : 5000,
-            minSkipRadius: (elMinDist > 0) ? elMinDist : 50,
+            maxRadius: 5000,
+            minSkipRadius: 50,
         }
         if (useCurvature) {
             horizonParams.planetRadius = F_.radiusOfPlanetMajor
@@ -621,7 +617,7 @@ const SightlineTool_Graphs = {
                     return
                 }
                 const profile = parsed.horizonProfile || []
-                _horizonCache = { lat, lng, height, profile, maxDist: elMaxDist, minDist: elMinDist }
+                _horizonCache = { lat, lng, height, profile }
                 SightlineTool_Graphs._drawHorizonCanvas(profile, elmId)
                 // Redraw visibility timeline now that the horizon profile is available
                 SightlineTool_Graphs.drawVisibilityTimeline(elmId)

@@ -309,6 +309,104 @@ def open_dem(dem_path, max_working_dim=None, viewport_bounds=None):
     return arr, nodata, gt, srs
 
 
+def open_dem_composite(dem_path, max_working_dim, viewport_bounds,
+                       shadow_reach_m):
+    """Read viewport DEM at full resolution with a low-res border for shadows.
+
+    Returns (composite_dem, nodata, gt, srs, vp_offset_row, vp_offset_col,
+             vp_rows, vp_cols) where the composite array has the viewport
+    region embedded at full resolution and the surrounding shadow-reach
+    border read from a coarser COG overview.  *gt* corresponds to the
+    composite array.  vp_offset_row/col give the pixel position of the
+    viewport within the composite so the output grid can be sized to the
+    viewport portion only.
+    """
+    # --- 1. Read viewport at normal resolution (same as current pipeline) ---
+    vp_dem, nodata, vp_gt, srs = open_dem(
+        dem_path, max_working_dim=max_working_dim,
+        viewport_bounds=viewport_bounds)
+    vp_rows, vp_cols = vp_dem.shape
+    vp_px_x = vp_gt[1]   # pixel width  in projected units
+    vp_px_y = vp_gt[5]   # pixel height in projected units (negative for north-up)
+
+    # --- 2. Compute padded bounds ---
+    xmin, ymin, xmax, ymax = viewport_bounds
+    pad_bounds = [
+        xmin - shadow_reach_m,
+        ymin - shadow_reach_m,
+        xmax + shadow_reach_m,
+        ymax + shadow_reach_m,
+    ]
+
+    # How many viewport-scale pixels the padded region would be
+    pad_extent_x = (pad_bounds[2] - pad_bounds[0])
+    pad_extent_y = (pad_bounds[3] - pad_bounds[1])
+    pad_full_cols = max(1, int(round(abs(pad_extent_x / vp_px_x))))
+    pad_full_rows = max(1, int(round(abs(pad_extent_y / vp_px_y))))
+
+    # Cap the *border* read at a low resolution — roughly 1/4 of
+    # max_working_dim so it doesn't dominate memory/compute.
+    border_working_dim = max(200, max_working_dim // 4)
+
+    # --- 3. Read padded extent at coarse resolution ---
+    pad_dem, _, pad_gt, _ = open_dem(
+        dem_path, max_working_dim=border_working_dim,
+        viewport_bounds=pad_bounds)
+    pad_rows, pad_cols = pad_dem.shape
+
+    # --- 4. Build composite at viewport pixel scale ---
+    # Composite dimensions in viewport pixels
+    comp_cols = pad_full_cols
+    comp_rows = pad_full_rows
+    composite = np.full((comp_rows, comp_cols), nodata if nodata is not None else 0,
+                        dtype=vp_dem.dtype)
+
+    # Upsample the coarse border read to fill the composite (numpy-only)
+    if pad_rows != comp_rows or pad_cols != comp_cols:
+        row_idx = np.linspace(0, pad_rows - 1, comp_rows)
+        col_idx = np.linspace(0, pad_cols - 1, comp_cols)
+        r0 = np.floor(row_idx).astype(int)
+        r1 = np.minimum(r0 + 1, pad_rows - 1)
+        ry = (row_idx - r0).astype(np.float64)
+        c0 = np.floor(col_idx).astype(int)
+        c1 = np.minimum(c0 + 1, pad_cols - 1)
+        cx = (col_idx - c0).astype(np.float64)
+        pad_f = pad_dem.astype(np.float64)
+        top = pad_f[r0[:, None], c0[None, :]] * (1 - cx[None, :]) + \
+              pad_f[r0[:, None], c1[None, :]] * cx[None, :]
+        bot = pad_f[r1[:, None], c0[None, :]] * (1 - cx[None, :]) + \
+              pad_f[r1[:, None], c1[None, :]] * cx[None, :]
+        upsampled = (top * (1 - ry[:, None]) + bot * ry[:, None]).astype(vp_dem.dtype)
+        composite[:, :] = upsampled[:comp_rows, :comp_cols]
+    else:
+        composite[:pad_rows, :pad_cols] = pad_dem
+
+    # --- 5. Place viewport read on top at correct position ---
+    # Viewport origin in composite pixel coords
+    vp_origin_x = (viewport_bounds[0] - pad_bounds[0])
+    vp_origin_y = (pad_bounds[3] - viewport_bounds[3]) if vp_px_y < 0 else (viewport_bounds[1] - pad_bounds[1])
+    vp_off_col = max(0, int(round(abs(vp_origin_x / vp_px_x))))
+    vp_off_row = max(0, int(round(abs(vp_origin_y / vp_px_y))))
+
+    # Clamp to avoid out-of-bounds
+    end_row = min(vp_off_row + vp_rows, comp_rows)
+    end_col = min(vp_off_col + vp_cols, comp_cols)
+    copy_rows = end_row - vp_off_row
+    copy_cols = end_col - vp_off_col
+    composite[vp_off_row:end_row, vp_off_col:end_col] = vp_dem[:copy_rows, :copy_cols]
+
+    # --- 6. Build geotransform for the composite ---
+    if vp_px_y < 0:
+        comp_gt = (pad_bounds[0], vp_px_x, 0.0,
+                   pad_bounds[3], 0.0, vp_px_y)
+    else:
+        comp_gt = (pad_bounds[0], vp_px_x, 0.0,
+                   pad_bounds[1], 0.0, vp_px_y)
+
+    return (composite, nodata, comp_gt, srs,
+            vp_off_row, vp_off_col, vp_rows, vp_cols)
+
+
 def _read_via_overview(band, native_cols, native_rows, max_working_dim):
     """Read from the best GDAL overview band near max_working_dim.
 
@@ -656,13 +754,18 @@ del _warmup_dem, _warmup_res
 # ---------------------------------------------------------------------------
 
 def _precompute_grid_arrays(dem, nodata, gt, srs, pixel_scale, dem_rows,
-                            dem_cols, step, out_rows, out_cols, obs_height):
-    """Pre-compute shared arrays that don't depend on the timestamp."""
+                            dem_cols, step, out_rows, out_cols, obs_height,
+                            output_offset_row=0, output_offset_col=0):
+    """Pre-compute shared arrays that don't depend on the timestamp.
+
+    When *output_offset_row/col* are non-zero the output grid is a
+    sub-window of the full DEM (e.g. viewport inside a composite DEM).
+    """
     oy_arr = np.arange(out_rows)
     ox_arr = np.arange(out_cols)
     oy_grid, ox_grid = np.meshgrid(oy_arr, ox_arr, indexing='ij')
-    py_grid = np.minimum(oy_grid * step, dem_rows - 1).astype(np.float64)
-    px_grid = np.minimum(ox_grid * step, dem_cols - 1).astype(np.float64)
+    py_grid = np.minimum(oy_grid * step + output_offset_row, dem_rows - 1).astype(np.float64)
+    px_grid = np.minimum(ox_grid * step + output_offset_col, dem_cols - 1).astype(np.float64)
 
     cell_vals = dem[py_grid.astype(int), px_grid.astype(int)].astype(np.float64)
     nodata_mask = _vectorized_is_nodata(cell_vals, nodata)
@@ -731,7 +834,8 @@ def _compute_directions(gt, srs, cell_az, px_grid, py_grid):
 
 
 def _compute_sun_grid(sun_vec_km, obs_az, obs_el, radii_km, flattening,
-                      gt, srs, step, out_rows, out_cols, dem_rows, dem_cols):
+                      gt, srs, step, out_rows, out_cols, dem_rows, dem_cols,
+                      output_offset_row=0, output_offset_col=0):
     """Compute per-cell source az/el via coarse subgrid interpolation."""
     if sun_vec_km is not None:
         cs = COARSE_AZEL_STEP
@@ -743,8 +847,8 @@ def _compute_sun_grid(sun_vec_km, obs_az, obs_el, radii_km, flattening,
             c_cols = np.append(c_cols, out_cols - 1)
 
         cr_g, cc_g = np.meshgrid(c_rows, c_cols, indexing='ij')
-        c_py = np.minimum(cr_g * step, dem_rows - 1).astype(np.float64)
-        c_px = np.minimum(cc_g * step, dem_cols - 1).astype(np.float64)
+        c_py = np.minimum(cr_g * step + output_offset_row, dem_rows - 1).astype(np.float64)
+        c_px = np.minimum(cc_g * step + output_offset_col, dem_cols - 1).astype(np.float64)
         c_lng, c_lat = _pixels_to_geo_batch(gt, srs, c_px, c_py)
         c_az, c_el = _sun_azel_batch(c_lat, c_lng, sun_vec_km, radii_km,
                                       flattening)
@@ -769,7 +873,8 @@ def _compute_sun_grid(sun_vec_km, obs_az, obs_el, radii_km, flattening,
 
 def _precompute_batch_grid_context(gt, srs, step, out_rows, out_cols,
                                    dem_rows, dem_cols, radii_km, flattening,
-                                   px_grid, py_grid):
+                                   px_grid, py_grid,
+                                   output_offset_row=0, output_offset_col=0):
     """Pre-compute everything that doesn't change between frames.
 
     Returns a context dict with cached coarse-grid lat/lng, bilinear
@@ -787,8 +892,8 @@ def _precompute_batch_grid_context(gt, srs, step, out_rows, out_cols,
         c_cols = np.append(c_cols, out_cols - 1)
 
     cr_g, cc_g = np.meshgrid(c_rows, c_cols, indexing='ij')
-    c_py = np.minimum(cr_g * step, dem_rows - 1).astype(np.float64)
-    c_px = np.minimum(cc_g * step, dem_cols - 1).astype(np.float64)
+    c_py = np.minimum(cr_g * step + output_offset_row, dem_rows - 1).astype(np.float64)
+    c_px = np.minimum(cc_g * step + output_offset_col, dem_cols - 1).astype(np.float64)
 
     # Coordinate transform — done ONCE instead of per-frame
     c_lng, c_lat = _pixels_to_geo_batch(gt, srs, c_px, c_py)
@@ -967,13 +1072,16 @@ def _fast_source_grid(source_vec_km, obs_az, obs_el, ctx):
 def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
                     step, out_rows, out_cols, obs_height, sun_vec_km,
                     obs_az, obs_el, radii_km, flattening, planet_radius,
-                    min_distance=0.0, max_distance=0.0):
+                    output_offset_row=0, output_offset_col=0):
     """
     Compute visibility grid using Numba JIT march kernel with:
     - Coarse Sun az/el subgrid interpolation
     - Adaptive march step size
     - Elevation-based early cutoff
-    - Configurable min/max distance limits (meters)
+
+    When *output_offset_row/col* are non-zero, the output grid is a
+    sub-window of the full DEM (e.g. viewport inside a composite).
+    Rays still march through the entire DEM array.
     """
     march_step = max(2.0, float(step))
     max_march = max(dem_rows, dem_cols) * 1.5
@@ -981,11 +1089,15 @@ def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
     (px_grid, py_grid, cell_heights, nodata_mask,
      nd_lo, nd_hi, has_nd) = _precompute_grid_arrays(
         dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
-        step, out_rows, out_cols, obs_height)
+        step, out_rows, out_cols, obs_height,
+        output_offset_row=output_offset_row,
+        output_offset_col=output_offset_col)
 
     cell_az, cell_el = _compute_sun_grid(
         sun_vec_km, obs_az, obs_el, radii_km, flattening,
-        gt, srs, step, out_rows, out_cols, dem_rows, dem_cols)
+        gt, srs, step, out_rows, out_cols, dem_rows, dem_cols,
+        output_offset_row=output_offset_row,
+        output_offset_col=output_offset_col)
 
     dx, dy = _compute_directions(gt, srs, cell_az, px_grid, py_grid)
 
@@ -1004,7 +1116,7 @@ def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
         dem_rows, dem_cols, pixel_scale,
         planet_radius, march_step, max_march,
         nd_lo, nd_hi, has_nd,
-        float(min_distance), float(max_distance),
+        0.0, 0.0,
     )
 
     return result_flat.reshape(out_rows, out_cols), obs_az, obs_el
@@ -1014,14 +1126,17 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
                      target, time_str, obs_ref_frame, obs_body,
                      planet_radius, max_output_dim=400,
                      is_custom='false', custom_az=0, custom_el=0,
-                     viewport_bounds=None,
-                     min_distance=0.0, max_distance=0.0):
+                     viewport_bounds=None, shadow_reach=0.0):
     """
     Compute the sightmap grid for a single timestamp.
 
     If *viewport_bounds* is [xmin,ymin,xmax,ymax] in projected coords,
     only the visible DEM region is read — at native resolution when the
     window fits within max_output_dim, otherwise decimated.
+
+    If *shadow_reach* > 0 (meters), the DEM is read as a composite:
+    viewport at full resolution with a low-res border extending
+    shadow_reach meters in all directions for distant shadow casting.
     """
     t_start = time.perf_counter()
     timing = {}
@@ -1051,16 +1166,30 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
     # Working DEM: 2× output grid for terrain detail, min 500px.
     working_dim = max(max_output_dim * 2, 500)
     t0 = time.perf_counter()
-    dem, nodata, gt, srs = open_dem(dem_path,
-                                    max_working_dim=working_dim,
-                                    viewport_bounds=viewport_bounds)
+    vp_off_row = 0
+    vp_off_col = 0
+    if shadow_reach > 0 and viewport_bounds is not None:
+        (dem, nodata, gt, srs,
+         vp_off_row, vp_off_col, vp_rows, vp_cols) = open_dem_composite(
+            dem_path, working_dim, viewport_bounds, shadow_reach)
+    else:
+        dem, nodata, gt, srs = open_dem(dem_path,
+                                        max_working_dim=working_dim,
+                                        viewport_bounds=viewport_bounds)
     timing['open_dem_ms'] = round((time.perf_counter() - t0) * 1000, 1)
 
     dem_rows, dem_cols = dem.shape
     pixel_scale = get_pixel_scale(dem_rows, gt, srs)
-    step = max(1, max(dem_rows, dem_cols) // max_output_dim)
-    out_rows = (dem_rows + step - 1) // step
-    out_cols = (dem_cols + step - 1) // step
+
+    # Output grid covers only the viewport portion
+    if shadow_reach > 0 and viewport_bounds is not None:
+        step = max(1, max(vp_rows, vp_cols) // max_output_dim)
+        out_rows = (vp_rows + step - 1) // step
+        out_cols = (vp_cols + step - 1) // step
+    else:
+        step = max(1, max(dem_rows, dem_cols) // max_output_dim)
+        out_rows = (dem_rows + step - 1) // step
+        out_cols = (dem_cols + step - 1) // step
     timing['dem_size'] = f"{dem_rows}x{dem_cols}"
     timing['output_size'] = f"{out_rows}x{out_cols}"
 
@@ -1069,11 +1198,14 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
         dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
         step, out_rows, out_cols, obs_height, sun_vec_km,
         obs_az, obs_el, radii_km, flattening, planet_radius,
-        min_distance=min_distance, max_distance=max_distance,
+        output_offset_row=vp_off_row, output_offset_col=vp_off_col,
     )
     timing['ray_march_ms'] = round((time.perf_counter() - t0) * 1000, 1)
 
     bounds_info = _compute_bounds(gt, srs, dem_rows, dem_cols)
+    # When using composite, report viewport bounds instead
+    if shadow_reach > 0 and viewport_bounds is not None:
+        bounds_info = _compute_bounds_from_viewport(viewport_bounds, srs)
     timing['total_ms'] = round((time.perf_counter() - t_start) * 1000, 1)
 
     return {
@@ -1091,8 +1223,7 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
                            target, times, obs_ref_frame, obs_body,
                            planet_radius, max_output_dim=400,
                            is_custom='false', custom_az=0, custom_el=0,
-                           viewport_bounds=None,
-                           min_distance=0.0, max_distance=0.0):
+                           viewport_bounds=None, shadow_reach=0.0):
     """
     Compute sightmap grids for multiple timestamps in one call.
     DEM and SPICE kernels loaded once; timestamps processed sequentially.
@@ -1134,17 +1265,31 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
 
     t0 = time.perf_counter()
     working_dim = max(max_output_dim * 2, 500)
-    dem, nodata, gt, srs = open_dem(dem_path,
-                                    max_working_dim=working_dim,
-                                    viewport_bounds=viewport_bounds)
+    vp_off_row = 0
+    vp_off_col = 0
+    if shadow_reach > 0 and viewport_bounds is not None:
+        (dem, nodata, gt, srs,
+         vp_off_row, vp_off_col, vp_rows, vp_cols) = open_dem_composite(
+            dem_path, working_dim, viewport_bounds, shadow_reach)
+    else:
+        dem, nodata, gt, srs = open_dem(dem_path,
+                                        max_working_dim=working_dim,
+                                        viewport_bounds=viewport_bounds)
     timing['open_dem_ms'] = round((time.perf_counter() - t0) * 1000, 1)
 
     dem_rows, dem_cols = dem.shape
     pixel_scale = get_pixel_scale(dem_rows, gt, srs)
-    step = max(1, max(dem_rows, dem_cols) // max_output_dim)
-    out_rows = (dem_rows + step - 1) // step
-    out_cols = (dem_cols + step - 1) // step
-    bounds_info = _compute_bounds(gt, srs, dem_rows, dem_cols)
+
+    if shadow_reach > 0 and viewport_bounds is not None:
+        step = max(1, max(vp_rows, vp_cols) // max_output_dim)
+        out_rows = (vp_rows + step - 1) // step
+        out_cols = (vp_cols + step - 1) // step
+        bounds_info = _compute_bounds_from_viewport(viewport_bounds, srs)
+    else:
+        step = max(1, max(dem_rows, dem_cols) // max_output_dim)
+        out_rows = (dem_rows + step - 1) // step
+        out_cols = (dem_cols + step - 1) // step
+        bounds_info = _compute_bounds(gt, srs, dem_rows, dem_cols)
     timing['dem_size'] = f"{dem_rows}x{dem_cols}"
     timing['output_size'] = f"{out_rows}x{out_cols}"
 
@@ -1156,7 +1301,8 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     (px_grid, py_grid, cell_heights, nodata_mask,
      nd_lo, nd_hi, has_nd) = _precompute_grid_arrays(
         dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
-        step, out_rows, out_cols, obs_height)
+        step, out_rows, out_cols, obs_height,
+        output_offset_row=vp_off_row, output_offset_col=vp_off_col)
 
     dem_f64 = dem.astype(np.float64) if dem.dtype != np.float64 else dem
     px_flat = px_grid.ravel().astype(np.float64)
@@ -1169,7 +1315,8 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     t0 = time.perf_counter()
     batch_ctx = _precompute_batch_grid_context(
         gt, srs, step, out_rows, out_cols, dem_rows, dem_cols,
-        radii_km, flattening, px_grid, py_grid)
+        radii_km, flattening, px_grid, py_grid,
+        output_offset_row=vp_off_row, output_offset_col=vp_off_col)
     timing['precompute_batch_ctx_ms'] = round((time.perf_counter() - t0) * 1000, 1)
 
     results = []
@@ -1195,7 +1342,7 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
             dem_rows, dem_cols, pixel_scale,
             planet_radius, march_step, max_march,
             nd_lo, nd_hi, has_nd,
-            float(min_distance), float(max_distance),
+            0.0, 0.0,
         )
         march_times_ms.append(round((time.perf_counter() - t0) * 1000, 1))
 
@@ -1253,6 +1400,33 @@ def _compute_bounds(gt, srs, dem_rows, dem_cols):
     }
 
 
+def _compute_bounds_from_viewport(viewport_bounds, srs):
+    """Compute geographic and projected bounds from viewport projected bounds."""
+    is_projected = bool(srs.IsProjected())
+    xmin, ymin, xmax, ymax = viewport_bounds
+    bounds_proj = [xmin, ymin, xmax, ymax]
+
+    if is_projected:
+        ct = osr.CoordinateTransformation(srs, srs.CloneGeogCS())
+        west_lng, south_lat, _ = ct.TransformPoint(xmin, ymin)
+        east_lng, north_lat, _ = ct.TransformPoint(xmax, ymax)
+        if west_lng > east_lng:
+            west_lng, east_lng = east_lng, west_lng
+        if south_lat > north_lat:
+            south_lat, north_lat = north_lat, south_lat
+        geo_bounds = [round(west_lng, 6), round(south_lat, 6),
+                      round(east_lng, 6), round(north_lat, 6)]
+    else:
+        geo_bounds = [round(xmin, 6), round(ymin, 6),
+                      round(xmax, 6), round(ymax, 6)]
+
+    return {
+        "bounds": geo_bounds,
+        "projBounds": [round(v, 2) for v in bounds_proj] if is_projected else None,
+        "isProjected": is_projected,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Entry point — reads JSON from stdin
 # ---------------------------------------------------------------------------
@@ -1274,9 +1448,8 @@ if __name__ == '__main__':
         custom_az = float(input_data.get('customAz', 0))
         custom_el = float(input_data.get('customEl', 0))
 
-        # Distance limits (meters)
-        min_distance = float(input_data.get('minDistance', 0))
-        max_distance = float(input_data.get('maxDistance', 0))
+        # Shadow reach (km → meters)
+        shadow_reach = float(input_data.get('shadowReach', 0)) * 1000.0
 
         # Parse optional viewport bounds (projected coords: xmin,ymin,xmax,ymax)
         vp_raw = input_data.get('viewportBounds', None)
@@ -1312,8 +1485,7 @@ if __name__ == '__main__':
                 planet_radius, max_output_dim,
                 is_custom, custom_az, custom_el,
                 viewport_bounds=viewport_bounds,
-                min_distance=min_distance,
-                max_distance=max_distance,
+                shadow_reach=shadow_reach,
             )
         else:
             time_str = input_data['time']
@@ -1323,8 +1495,7 @@ if __name__ == '__main__':
                 planet_radius, max_output_dim,
                 is_custom, custom_az, custom_el,
                 viewport_bounds=viewport_bounds,
-                min_distance=min_distance,
-                max_distance=max_distance,
+                shadow_reach=shadow_reach,
             )
         t0 = time.perf_counter()
         json_str = json.dumps(result)

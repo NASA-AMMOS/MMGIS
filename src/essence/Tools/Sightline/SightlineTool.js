@@ -524,8 +524,7 @@ let SightlineTool = {
                 customAz: primaryIsCustom ? customAz : 0,
                 customEl: primaryIsCustom ? customEl : 0,
                 viewportBounds: viewportBounds ? viewportBounds.join(',') : undefined,
-                minDistance: parseFloat(options.minDistance) || 0,
-                maxDistance: parseFloat(options.maxDistance) || 0,
+                shadowReach: parseFloat(options.shadowReach) || 0,
             },
             function (result) {
                 if (result._timing) {
@@ -1288,8 +1287,7 @@ let SightlineTool = {
                 customAz: primaryIsCustom ? (el.customAz || 0) : 0,
                 customEl: primaryIsCustom ? (el.customEl || 0) : 0,
                 viewportBounds: sweepViewportBounds ? sweepViewportBounds.join(',') : undefined,
-                minDistance: parseFloat(options.minDistance) || 0,
-                maxDistance: parseFloat(options.maxDistance) || 0,
+                shadowReach: parseFloat(options.shadowReach) || 0,
             },
             function (batchResponse) {
                 if (sweepRunId !== _sweepRunIds[activeElmId]) return
