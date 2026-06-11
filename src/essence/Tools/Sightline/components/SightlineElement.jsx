@@ -48,11 +48,6 @@ const RESOLUTION_OPTIONS = [
     { value: '0.125', label: '0.125×' },
 ]
 
-const DEM_EXTENT_OPTIONS = [
-    { value: 'viewport', label: 'Viewport' },
-    { value: 'full', label: 'Full DEM' },
-]
-
 const EXPORT_OPTIONS_STATIC = [
     { value: 'png', label: 'Sightline Map (PNG)' },
     { value: 'csv', label: 'Results (CSV)' },
@@ -123,6 +118,11 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
         },
         [elmId, updateElement]
     )
+
+    // Update range circles when min/max distance changes
+    useEffect(() => {
+        SightlineTool.updateRangeCircles(elmId)
+    }, [elmId, el?.minDistance, el?.maxDistance])
 
     const handleModeChange = useCallback((mode) => {
         SightlineTool.switchElementMode(elmId, mode)
@@ -620,7 +620,64 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     className="vstFieldInput"
                                 />
                             </div>
-
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel" title="Minimum ray-march distance (meters). Terrain closer than this is ignored.">
+                                    Min Dist
+                                </div>
+                                <InputWithUnit
+                                    unit="m"
+                                    type="number"
+                                    min="0"
+                                    step="10"
+                                    placeholder="0"
+                                    value={el.minDistance}
+                                    onChange={(e) =>
+                                        handleChange(
+                                            'minDistance',
+                                            e.target.value
+                                        )
+                                    }
+                                    className="vstFieldInput"
+                                />
+                            </div>
+                            <div className="vstOptionRow">
+                                <Tooltip content="When set, loads DEM within this radius for shadow computation. When ∞, uses the full DEM up to the edge in the entity direction or until planetary curvature makes further terrain irrelevant.">
+                                    <div className="vstOptionLabel" style={{ cursor: 'help' }}>
+                                        Max Dist
+                                    </div>
+                                </Tooltip>
+                                {el.maxDistInfinity ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <span style={{ opacity: 0.6, fontSize: 12 }}>∞ (full DEM)</span>
+                                    </div>
+                                ) : (
+                                    <InputWithUnit
+                                        unit="m"
+                                        type="number"
+                                        min="0"
+                                        step="100"
+                                        placeholder="viewport"
+                                        value={el.maxDistance}
+                                        onChange={(e) =>
+                                            handleChange(
+                                                'maxDistance',
+                                                e.target.value
+                                            )
+                                        }
+                                        className="vstFieldInput"
+                                    />
+                                )}
+                                <Tooltip content={el.maxDistInfinity ? 'Use full DEM (slower, accurate distant shadows)' : 'Limited to viewport or set distance'}>
+                                    <div
+                                        className={'vstInfinityToggle' + (el.maxDistInfinity ? ' active' : '')}
+                                        onClick={() => handleChange('maxDistInfinity', !el.maxDistInfinity)}
+                                        style={{ cursor: 'pointer', padding: '2px 5px', fontSize: 14, fontWeight: 'bold', opacity: el.maxDistInfinity ? 1 : 0.4 }}
+                                        title="Toggle infinity (full DEM)"
+                                    >
+                                        ∞
+                                    </div>
+                                </Tooltip>
+                            </div>
                             {dataOptions.length > 0 && (
                                 <div className="vstOptionRow">
                                     <div className="vstOptionLabel" title="Dataset to analyze.">
@@ -693,19 +750,6 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                         handleChange('resolution', parseFloat(v))
                                     }
                                     options={RESOLUTION_OPTIONS}
-                                    className="vstSelect"
-                                />
-                            </div>
-                            <div className="vstOptionRow">
-                                <Tooltip content="Viewport: uses only the DEM visible on screen (fast). Full DEM: reads the entire raster for distant shadow casting (slower).">
-                                    <div className="vstOptionLabel" style={{ cursor: 'help' }} title="DEM area used for shadow computation.">DEM Extent</div>
-                                </Tooltip>
-                                <Select
-                                    value={el.demExtent || 'viewport'}
-                                    onValueChange={(v) =>
-                                        handleChange('demExtent', v)
-                                    }
-                                    options={DEM_EXTENT_OPTIONS}
                                     className="vstSelect"
                                 />
                             </div>

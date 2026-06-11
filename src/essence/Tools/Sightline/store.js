@@ -39,7 +39,9 @@ function makeDefaultElement(id, vars) {
         customAz: NaN,
         customEl: NaN,
         customRange: NaN,
-        demExtent: 'viewport',
+        minDistance: '',
+        maxDistance: '',
+        maxDistInfinity: false,
         loading: false,
         loadingProgress: 0,
         regenerating: false,
@@ -226,7 +228,8 @@ const useSightlineStore = create((set, get) => ({
             observer: el.observer,
             height: el.height,
             time: state.rawTime,
-            demExtent: el.demExtent || 'viewport',
+            minDistance: el.minDistance,
+            maxDistance: el.maxDistance,
         }
     },
 }))
