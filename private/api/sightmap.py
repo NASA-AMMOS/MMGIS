@@ -656,13 +656,19 @@ del _warmup_dem, _warmup_res
 # ---------------------------------------------------------------------------
 
 def _precompute_grid_arrays(dem, nodata, gt, srs, pixel_scale, dem_rows,
-                            dem_cols, step, out_rows, out_cols, obs_height):
-    """Pre-compute shared arrays that don't depend on the timestamp."""
+                            dem_cols, step, out_rows, out_cols, obs_height,
+                            output_offset_row=0, output_offset_col=0):
+    """Pre-compute shared arrays that don't depend on the timestamp.
+
+    *output_offset_row/col*: pixel offset within the loaded DEM for the
+    output grid origin. When the DEM is larger than the viewport (e.g.,
+    padded for shadow tracing), output cells start from this offset.
+    """
     oy_arr = np.arange(out_rows)
     ox_arr = np.arange(out_cols)
     oy_grid, ox_grid = np.meshgrid(oy_arr, ox_arr, indexing='ij')
-    py_grid = np.minimum(oy_grid * step, dem_rows - 1).astype(np.float64)
-    px_grid = np.minimum(ox_grid * step, dem_cols - 1).astype(np.float64)
+    py_grid = np.minimum(oy_grid * step + output_offset_row, dem_rows - 1).astype(np.float64)
+    px_grid = np.minimum(ox_grid * step + output_offset_col, dem_cols - 1).astype(np.float64)
 
     cell_vals = dem[py_grid.astype(int), px_grid.astype(int)].astype(np.float64)
     nodata_mask = _vectorized_is_nodata(cell_vals, nodata)
@@ -731,7 +737,8 @@ def _compute_directions(gt, srs, cell_az, px_grid, py_grid):
 
 
 def _compute_sun_grid(sun_vec_km, obs_az, obs_el, radii_km, flattening,
-                      gt, srs, step, out_rows, out_cols, dem_rows, dem_cols):
+                      gt, srs, step, out_rows, out_cols, dem_rows, dem_cols,
+                      output_offset_row=0, output_offset_col=0):
     """Compute per-cell source az/el via coarse subgrid interpolation."""
     if sun_vec_km is not None:
         cs = COARSE_AZEL_STEP
@@ -743,8 +750,8 @@ def _compute_sun_grid(sun_vec_km, obs_az, obs_el, radii_km, flattening,
             c_cols = np.append(c_cols, out_cols - 1)
 
         cr_g, cc_g = np.meshgrid(c_rows, c_cols, indexing='ij')
-        c_py = np.minimum(cr_g * step, dem_rows - 1).astype(np.float64)
-        c_px = np.minimum(cc_g * step, dem_cols - 1).astype(np.float64)
+        c_py = np.minimum(cr_g * step + output_offset_row, dem_rows - 1).astype(np.float64)
+        c_px = np.minimum(cc_g * step + output_offset_col, dem_cols - 1).astype(np.float64)
         c_lng, c_lat = _pixels_to_geo_batch(gt, srs, c_px, c_py)
         c_az, c_el = _sun_azel_batch(c_lat, c_lng, sun_vec_km, radii_km,
                                       flattening)
@@ -769,7 +776,8 @@ def _compute_sun_grid(sun_vec_km, obs_az, obs_el, radii_km, flattening,
 
 def _precompute_batch_grid_context(gt, srs, step, out_rows, out_cols,
                                    dem_rows, dem_cols, radii_km, flattening,
-                                   px_grid, py_grid):
+                                   px_grid, py_grid,
+                                   output_offset_row=0, output_offset_col=0):
     """Pre-compute everything that doesn't change between frames.
 
     Returns a context dict with cached coarse-grid lat/lng, bilinear
@@ -787,8 +795,8 @@ def _precompute_batch_grid_context(gt, srs, step, out_rows, out_cols,
         c_cols = np.append(c_cols, out_cols - 1)
 
     cr_g, cc_g = np.meshgrid(c_rows, c_cols, indexing='ij')
-    c_py = np.minimum(cr_g * step, dem_rows - 1).astype(np.float64)
-    c_px = np.minimum(cc_g * step, dem_cols - 1).astype(np.float64)
+    c_py = np.minimum(cr_g * step + output_offset_row, dem_rows - 1).astype(np.float64)
+    c_px = np.minimum(cc_g * step + output_offset_col, dem_cols - 1).astype(np.float64)
 
     # Coordinate transform — done ONCE instead of per-frame
     c_lng, c_lat = _pixels_to_geo_batch(gt, srs, c_px, c_py)
@@ -967,7 +975,8 @@ def _fast_source_grid(source_vec_km, obs_az, obs_el, ctx):
 def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
                     step, out_rows, out_cols, obs_height, sun_vec_km,
                     obs_az, obs_el, radii_km, flattening, planet_radius,
-                    min_distance=0.0, max_distance=0.0):
+                    min_distance=0.0, max_distance=0.0,
+                    output_offset_row=0, output_offset_col=0):
     """
     Compute visibility grid using Numba JIT march kernel with:
     - Coarse Sun az/el subgrid interpolation
@@ -981,11 +990,15 @@ def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
     (px_grid, py_grid, cell_heights, nodata_mask,
      nd_lo, nd_hi, has_nd) = _precompute_grid_arrays(
         dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
-        step, out_rows, out_cols, obs_height)
+        step, out_rows, out_cols, obs_height,
+        output_offset_row=output_offset_row,
+        output_offset_col=output_offset_col)
 
     cell_az, cell_el = _compute_sun_grid(
         sun_vec_km, obs_az, obs_el, radii_km, flattening,
-        gt, srs, step, out_rows, out_cols, dem_rows, dem_cols)
+        gt, srs, step, out_rows, out_cols, dem_rows, dem_cols,
+        output_offset_row=output_offset_row,
+        output_offset_col=output_offset_col)
 
     dx, dy = _compute_directions(gt, srs, cell_az, px_grid, py_grid)
 
@@ -1014,14 +1027,14 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
                      target, time_str, obs_ref_frame, obs_body,
                      planet_radius, max_output_dim=400,
                      is_custom='false', custom_az=0, custom_el=0,
-                     viewport_bounds=None,
+                     viewport_bounds=None, dem_read_bounds=None,
                      min_distance=0.0, max_distance=0.0):
     """
     Compute the sightmap grid for a single timestamp.
 
-    If *viewport_bounds* is [xmin,ymin,xmax,ymax] in projected coords,
-    only the visible DEM region is read — at native resolution when the
-    window fits within max_output_dim, otherwise decimated.
+    *viewport_bounds*: [xmin,ymin,xmax,ymax] defining the output grid extent.
+    *dem_read_bounds*: bounds for DEM read (may be larger for shadow tracing).
+                       If None and viewport_bounds is set, full DEM is read.
     """
     t_start = time.perf_counter()
     timing = {}
@@ -1050,17 +1063,37 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
 
     # Working DEM: 2× output grid for terrain detail, min 500px.
     working_dim = max(max_output_dim * 2, 500)
+
+    # dem_read_bounds controls what region of the DEM to load:
+    #   - dem_read_bounds = [padded bounds] → padded viewport for shadow tracing
+    #   - dem_read_bounds = None → full DEM (infinity mode or no viewport)
+    # viewport_bounds (original, unpadded) controls the output grid extent.
     t0 = time.perf_counter()
     dem, nodata, gt, srs = open_dem(dem_path,
                                     max_working_dim=working_dim,
-                                    viewport_bounds=viewport_bounds)
+                                    viewport_bounds=dem_read_bounds)
     timing['open_dem_ms'] = round((time.perf_counter() - t0) * 1000, 1)
 
     dem_rows, dem_cols = dem.shape
     pixel_scale = get_pixel_scale(dem_rows, gt, srs)
-    step = max(1, max(dem_rows, dem_cols) // max_output_dim)
-    out_rows = (dem_rows + step - 1) // step
-    out_cols = (dem_cols + step - 1) // step
+
+    # If DEM is larger than viewport (padded/full), compute output grid
+    # only for the viewport subset
+    vp_offset_row = 0
+    vp_offset_col = 0
+    vp_dem_rows = dem_rows
+    vp_dem_cols = dem_cols
+    dem_is_wider = (viewport_bounds is not None and
+                    (dem_read_bounds is None or dem_read_bounds != viewport_bounds))
+    if dem_is_wider:
+        vp_win = _proj_bounds_to_pixel_window(gt, dem_cols, dem_rows, viewport_bounds)
+        if vp_win:
+            vp_offset_col, vp_offset_row, vp_dem_cols, vp_dem_rows = vp_win
+
+    # Step and output size based on viewport extent (not full DEM)
+    step = max(1, max(vp_dem_rows, vp_dem_cols) // max_output_dim)
+    out_rows = (vp_dem_rows + step - 1) // step
+    out_cols = (vp_dem_cols + step - 1) // step
     timing['dem_size'] = f"{dem_rows}x{dem_cols}"
     timing['output_size'] = f"{out_rows}x{out_cols}"
 
@@ -1070,10 +1103,15 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
         step, out_rows, out_cols, obs_height, sun_vec_km,
         obs_az, obs_el, radii_km, flattening, planet_radius,
         min_distance=min_distance, max_distance=max_distance,
+        output_offset_row=vp_offset_row, output_offset_col=vp_offset_col,
     )
     timing['ray_march_ms'] = round((time.perf_counter() - t0) * 1000, 1)
 
-    bounds_info = _compute_bounds(gt, srs, dem_rows, dem_cols)
+    # Bounds info should reflect viewport, not full DEM
+    if dem_is_wider:
+        bounds_info = _compute_bounds_from_proj(viewport_bounds, gt, srs)
+    else:
+        bounds_info = _compute_bounds(gt, srs, dem_rows, dem_cols)
     timing['total_ms'] = round((time.perf_counter() - t_start) * 1000, 1)
 
     return {
@@ -1091,11 +1129,15 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
                            target, times, obs_ref_frame, obs_body,
                            planet_radius, max_output_dim=400,
                            is_custom='false', custom_az=0, custom_el=0,
-                           viewport_bounds=None,
+                           viewport_bounds=None, dem_read_bounds=None,
                            min_distance=0.0, max_distance=0.0):
     """
     Compute sightmap grids for multiple timestamps in one call.
     DEM and SPICE kernels loaded once; timestamps processed sequentially.
+
+    *viewport_bounds*: [xmin,ymin,xmax,ymax] defining the output grid extent.
+    *dem_read_bounds*: bounds for DEM read (may be larger for shadow tracing).
+                       If None and viewport_bounds is set, full DEM is read.
     """
     t_batch_start = time.perf_counter()
     timing = {}
@@ -1136,15 +1178,32 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     working_dim = max(max_output_dim * 2, 500)
     dem, nodata, gt, srs = open_dem(dem_path,
                                     max_working_dim=working_dim,
-                                    viewport_bounds=viewport_bounds)
+                                    viewport_bounds=dem_read_bounds)
     timing['open_dem_ms'] = round((time.perf_counter() - t0) * 1000, 1)
 
     dem_rows, dem_cols = dem.shape
     pixel_scale = get_pixel_scale(dem_rows, gt, srs)
-    step = max(1, max(dem_rows, dem_cols) // max_output_dim)
-    out_rows = (dem_rows + step - 1) // step
-    out_cols = (dem_cols + step - 1) // step
-    bounds_info = _compute_bounds(gt, srs, dem_rows, dem_cols)
+
+    # If DEM is larger than viewport (padded/full), compute output grid
+    # only for the viewport subset
+    vp_offset_row = 0
+    vp_offset_col = 0
+    vp_dem_rows = dem_rows
+    vp_dem_cols = dem_cols
+    dem_is_wider = (viewport_bounds is not None and
+                    (dem_read_bounds is None or dem_read_bounds != viewport_bounds))
+    if dem_is_wider:
+        vp_win = _proj_bounds_to_pixel_window(gt, dem_cols, dem_rows, viewport_bounds)
+        if vp_win:
+            vp_offset_col, vp_offset_row, vp_dem_cols, vp_dem_rows = vp_win
+
+    step = max(1, max(vp_dem_rows, vp_dem_cols) // max_output_dim)
+    out_rows = (vp_dem_rows + step - 1) // step
+    out_cols = (vp_dem_cols + step - 1) // step
+    if dem_is_wider:
+        bounds_info = _compute_bounds_from_proj(viewport_bounds, gt, srs)
+    else:
+        bounds_info = _compute_bounds(gt, srs, dem_rows, dem_cols)
     timing['dem_size'] = f"{dem_rows}x{dem_cols}"
     timing['output_size'] = f"{out_rows}x{out_cols}"
 
@@ -1156,7 +1215,9 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     (px_grid, py_grid, cell_heights, nodata_mask,
      nd_lo, nd_hi, has_nd) = _precompute_grid_arrays(
         dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
-        step, out_rows, out_cols, obs_height)
+        step, out_rows, out_cols, obs_height,
+        output_offset_row=vp_offset_row,
+        output_offset_col=vp_offset_col)
 
     dem_f64 = dem.astype(np.float64) if dem.dtype != np.float64 else dem
     px_flat = px_grid.ravel().astype(np.float64)
@@ -1169,7 +1230,9 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     t0 = time.perf_counter()
     batch_ctx = _precompute_batch_grid_context(
         gt, srs, step, out_rows, out_cols, dem_rows, dem_cols,
-        radii_km, flattening, px_grid, py_grid)
+        radii_km, flattening, px_grid, py_grid,
+        output_offset_row=vp_offset_row,
+        output_offset_col=vp_offset_col)
     timing['precompute_batch_ctx_ms'] = round((time.perf_counter() - t0) * 1000, 1)
 
     results = []
@@ -1253,6 +1316,35 @@ def _compute_bounds(gt, srs, dem_rows, dem_cols):
     }
 
 
+def _compute_bounds_from_proj(viewport_bounds, gt, srs):
+    """Compute geographic bounds from projected viewport bounds."""
+    xmin, ymin, xmax, ymax = viewport_bounds
+    is_projected = bool(srs.IsProjected())
+    if is_projected:
+        ct = osr.CoordinateTransformation(srs, srs.CloneGeogCS())
+        sw = ct.TransformPoint(xmin, ymin)
+        ne = ct.TransformPoint(xmax, ymax)
+        west, south = sw[0], sw[1]
+        east, north = ne[0], ne[1]
+        if west > east:
+            west, east = east, west
+        if south > north:
+            south, north = north, south
+        return {
+            "bounds": [round(west, 6), round(south, 6),
+                       round(east, 6), round(north, 6)],
+            "projBounds": [round(v, 2) for v in [xmin, ymin, xmax, ymax]],
+            "isProjected": True,
+        }
+    # Not projected — viewport_bounds are already geographic
+    return {
+        "bounds": [round(xmin, 6), round(ymin, 6),
+                   round(xmax, 6), round(ymax, 6)],
+        "projBounds": None,
+        "isProjected": False,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Entry point — reads JSON from stdin
 # ---------------------------------------------------------------------------
@@ -1280,24 +1372,32 @@ if __name__ == '__main__':
 
         # Parse optional viewport bounds (projected coords: xmin,ymin,xmax,ymax)
         vp_raw = input_data.get('viewportBounds', None)
-        viewport_bounds = None
-        if max_distance == -1:
-            # Infinity mode: skip viewport crop, use full DEM
-            viewport_bounds = None
-            max_distance = 0.0  # no march limit either (full DEM)
-        elif vp_raw:
+        viewport_bounds = None   # bounds for the output grid
+        dem_read_bounds = None   # bounds for DEM read (may be larger)
+        if vp_raw:
             try:
                 parts = [float(v) for v in str(vp_raw).split(',')]
                 if len(parts) == 4:
-                    # Pad viewport bounds by maxDistance (in projected units)
-                    if max_distance > 0:
-                        parts[0] -= max_distance  # xmin
-                        parts[1] -= max_distance  # ymin
-                        parts[2] += max_distance  # xmax
-                        parts[3] += max_distance  # ymax
-                    viewport_bounds = parts
+                    viewport_bounds = list(parts)
+                    if max_distance == -1:
+                        # Infinity: read full DEM, output viewport only
+                        dem_read_bounds = None
+                        max_distance = 0.0
+                    elif max_distance > 0:
+                        # Pad DEM read by maxDistance so shadow rays
+                        # can trace beyond the visible area
+                        dem_read_bounds = [
+                            parts[0] - max_distance,
+                            parts[1] - max_distance,
+                            parts[2] + max_distance,
+                            parts[3] + max_distance,
+                        ]
+                    else:
+                        dem_read_bounds = list(parts)
             except (ValueError, TypeError):
                 pass
+        elif max_distance == -1:
+            max_distance = 0.0
 
         # Batch mode: start/end/step → generate timestamps internally
         start_time = input_data.get('startTime', None)
@@ -1322,6 +1422,7 @@ if __name__ == '__main__':
                 planet_radius, max_output_dim,
                 is_custom, custom_az, custom_el,
                 viewport_bounds=viewport_bounds,
+                dem_read_bounds=dem_read_bounds,
                 min_distance=min_distance,
                 max_distance=max_distance,
             )
@@ -1333,6 +1434,7 @@ if __name__ == '__main__':
                 planet_radius, max_output_dim,
                 is_custom, custom_az, custom_el,
                 viewport_bounds=viewport_bounds,
+                dem_read_bounds=dem_read_bounds,
                 min_distance=min_distance,
                 max_distance=max_distance,
             )

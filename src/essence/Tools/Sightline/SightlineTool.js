@@ -289,6 +289,27 @@ let SightlineTool = {
 
     _rangeCircles: { min: null, max: null },
 
+    _makeProjectedCircle(center, radiusMeters, color) {
+        const crs = Map_.map.options.crs
+        if (!crs || typeof crs.project !== 'function') return null
+        const cp = crs.project(center)
+        const N = 64
+        const pts = []
+        for (let i = 0; i < N; i++) {
+            const a = (2 * Math.PI * i) / N
+            const px = cp.x + radiusMeters * Math.cos(a)
+            const py = cp.y + radiusMeters * Math.sin(a)
+            pts.push(crs.unproject(L.point(px, py)))
+        }
+        return L.polygon(pts, {
+            fill: false,
+            weight: 1.5,
+            dashArray: '6,4',
+            interactive: false,
+            color: color,
+        })
+    },
+
     updateRangeCircles(elmId) {
         const store = useSightlineStore.getState()
         const el = elmId != null ? store.elements[elmId] : store.elements[store.activeElmId]
@@ -300,13 +321,6 @@ let SightlineTool = {
         const ed = activeId != null ? store.sweepElData[activeId] : null
         const center = ed?.sweepCenter || Map_.map.getCenter()
 
-        const circleStyle = {
-            fill: false,
-            weight: 1.5,
-            dashArray: '6,4',
-            interactive: false,
-        }
-
         // Remove existing circles
         if (SightlineTool._rangeCircles.min) {
             Map_.map.removeLayer(SightlineTool._rangeCircles.min)
@@ -317,22 +331,17 @@ let SightlineTool = {
             SightlineTool._rangeCircles.max = null
         }
 
-        // Add min distance circle
         if (minD > 0) {
-            SightlineTool._rangeCircles.min = L.circle(center, {
-                radius: minD,
-                color: '#ff6644',
-                ...circleStyle,
-            }).addTo(Map_.map)
+            const c = SightlineTool._makeProjectedCircle(center, minD, '#ff6644')
+            if (c) {
+                SightlineTool._rangeCircles.min = c.addTo(Map_.map)
+            }
         }
-
-        // Add max distance circle
         if (maxD > 0) {
-            SightlineTool._rangeCircles.max = L.circle(center, {
-                radius: maxD,
-                color: '#4488ff',
-                ...circleStyle,
-            }).addTo(Map_.map)
+            const c = SightlineTool._makeProjectedCircle(center, maxD, '#4488ff')
+            if (c) {
+                SightlineTool._rangeCircles.max = c.addTo(Map_.map)
+            }
         }
     },
 
