@@ -862,8 +862,10 @@ def _precompute_batch_grid_context(gt, srs, step, out_rows, out_cols,
             fn = srs.GetProjParm('false_northing', 0.0)
             lat_origin = srs.GetProjParm('latitude_of_origin', 0.0)
             north_sign = -1.0 if lat_origin > 0 else 1.0
-            ctx['convergence'] = np.degrees(np.arctan2(
-                proj_x - fe, north_sign * (proj_y - fn)))
+            conv_rad = np.arctan2(proj_x - fe,
+                                  north_sign * (proj_y - fn))
+            ctx['sin_conv'] = np.sin(conv_rad)
+            ctx['cos_conv'] = np.cos(conv_rad)
     else:
         lat_all = gt[3] + px_grid * gt[4] + py_grid * gt[5]
         ctx['cos_lat_full'] = np.maximum(np.cos(np.radians(lat_all)), 0.01)
@@ -872,12 +874,15 @@ def _precompute_batch_grid_context(gt, srs, step, out_rows, out_cols,
 
 
 def _fast_source_grid(source_vec_km, obs_az, obs_el, ctx):
-    """Compute per-cell source az/el + direction using cached context.
+    """Compute per-cell direction + elevation using cached context.
 
-    ~10x faster than _compute_sun_grid + _compute_directions for batch
-    because coordinate transforms, bilinear weights, and direction
-    invariants are pre-computed.
+    Optimized to avoid arctan2/radians/sin/cos on the full output grid.
+    Instead uses angle addition formula: sin(az+conv) = sin(az)*cos(conv) + cos(az)*sin(conv)
+    to go directly from interpolated sin/cos to direction vectors.
     """
+    bw = ctx['bweights']
+    gt = ctx['gt']
+
     if source_vec_km is not None:
         # --- Fast az/el on coarse grid using pre-computed ellipsoid geometry ---
         cx_pos, cy_pos, cz_pos = ctx['cell_pos']
@@ -894,48 +899,69 @@ def _fast_source_grid(source_vec_km, obs_az, obs_el, ctx):
         sin_el = np.clip(tx * nx + ty * ny + tz * nz, -1.0, 1.0)
         c_el = np.degrees(np.arcsin(sin_el))
 
+        # Coarse az as sin/cos components (skip degrees conversion)
         source_n = tx * nnx + ty * nny + tz * nnz
         source_e = tx * ex + ty * ey + tz * ez
-        c_az = np.degrees(np.arctan2(source_e, source_n))
-        c_az = np.where(c_az < 0, c_az + 360.0, c_az)
-        c_az = np.where(safe, c_az, 0.0)
+        # Normalize to get sin(az), cos(az) on coarse grid
+        coarse_mag = np.maximum(np.sqrt(source_e ** 2 + source_n ** 2), 1e-12)
+        c_sin_az = np.where(safe, source_e / coarse_mag, 0.0)
+        c_cos_az = np.where(safe, source_n / coarse_mag, 1.0)
 
-        # --- Fast bilinear interpolation using pre-computed weights ---
-        c_az_rad = np.radians(c_az)
-        bw = ctx['bweights']
-        interp_sin = _bilinear_apply(np.sin(c_az_rad), bw)
-        interp_cos = _bilinear_apply(np.cos(c_az_rad), bw)
-        cell_az = np.degrees(np.arctan2(interp_sin, interp_cos))
-        cell_az = np.where(cell_az < 0, cell_az + 360.0, cell_az)
+        # --- Bilinear interpolation to full grid ---
+        interp_sin = _bilinear_apply(c_sin_az, bw)
+        interp_cos = _bilinear_apply(c_cos_az, bw)
         cell_el = _bilinear_apply(c_el, bw)
-    else:
-        out_rows = ctx['bweights']['IY'].shape[0]
-        out_cols = ctx['bweights']['IY'].shape[1]
-        cell_az = np.full((out_rows, out_cols), obs_az)
-        cell_el = np.full((out_rows, out_cols), obs_el)
 
-    # --- Fast direction computation using cached invariants ---
-    gt = ctx['gt']
-    if ctx['is_proj']:
-        if ctx.get('is_azimuthal'):
-            grid_az = cell_az + ctx['convergence']
+        # --- Direction vectors via angle addition (no arctan2/radians/sin/cos) ---
+        if ctx['is_proj']:
+            if ctx.get('is_azimuthal'):
+                # sin(az + conv) = sin(az)*cos(conv) + cos(az)*sin(conv)
+                # cos(az + conv) = cos(az)*cos(conv) - sin(az)*sin(conv)
+                sin_conv = ctx['sin_conv']
+                cos_conv = ctx['cos_conv']
+                dx = interp_sin * cos_conv + interp_cos * sin_conv
+                dy_raw = interp_cos * cos_conv - interp_sin * sin_conv
+                dy = -dy_raw if gt[5] < 0 else dy_raw
+            else:
+                dx = interp_sin
+                dy = -interp_cos if gt[5] < 0 else interp_cos
         else:
-            grid_az = cell_az
-        az_rad = np.radians(grid_az)
-        dx = np.sin(az_rad)
-        dy = -np.cos(az_rad) if gt[5] < 0 else np.cos(az_rad)
+            cos_lat = ctx['cos_lat_full']
+            dx_geo = interp_sin / cos_lat
+            dy_geo = interp_cos
+            if gt[5] < 0:
+                dy_geo = -dy_geo
+            mag = np.maximum(np.sqrt(dx_geo ** 2 + dy_geo ** 2), 1e-12)
+            dx = dx_geo / mag
+            dy = dy_geo / mag
     else:
-        cos_lat = ctx['cos_lat_full']
-        az_rad = np.radians(cell_az)
-        dx_geo = np.sin(az_rad) / cos_lat
-        dy_geo = np.cos(az_rad)
-        if gt[5] < 0:
-            dy_geo = -dy_geo
-        mag = np.maximum(np.sqrt(dx_geo ** 2 + dy_geo ** 2), 1e-12)
-        dx = dx_geo / mag
-        dy = dy_geo / mag
+        out_rows = bw['IY'].shape[0]
+        out_cols = bw['IY'].shape[1]
+        cell_el = np.full((out_rows, out_cols), obs_el)
+        az_rad = math.radians(obs_az)
+        if ctx['is_proj']:
+            if ctx.get('is_azimuthal'):
+                sin_conv = ctx['sin_conv']
+                cos_conv = ctx['cos_conv']
+                s_az = math.sin(az_rad)
+                c_az = math.cos(az_rad)
+                dx = s_az * cos_conv + c_az * sin_conv
+                dy_raw = c_az * cos_conv - s_az * sin_conv
+                dy = -dy_raw if gt[5] < 0 else dy_raw
+            else:
+                dx = np.full((out_rows, out_cols), math.sin(az_rad))
+                dy_val = -math.cos(az_rad) if gt[5] < 0 else math.cos(az_rad)
+                dy = np.full((out_rows, out_cols), dy_val)
+        else:
+            cos_lat = ctx['cos_lat_full']
+            dx_geo = math.sin(az_rad) / cos_lat
+            c_val = math.cos(az_rad)
+            dy_geo = -c_val if gt[5] < 0 else c_val
+            mag = np.maximum(np.sqrt(dx_geo ** 2 + dy_geo ** 2), 1e-12)
+            dx = dx_geo / mag
+            dy = np.full((out_rows, out_cols), dy_geo) / mag
 
-    return cell_az, cell_el, dx, dy
+    return cell_el, dx, dy
 
 
 def _ray_march_grid(dem, nodata, gt, srs, pixel_scale, dem_rows, dem_cols,
@@ -1152,7 +1178,7 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
     tolist_times_ms = []
     for i, tp in enumerate(time_positions):
         t0 = time.perf_counter()
-        cell_az, cell_el, dx, dy = _fast_source_grid(
+        cell_el, dx, dy = _fast_source_grid(
             tp['sun_vec_km'], tp['obs_az'], tp['obs_el'], batch_ctx)
         source_grid_times_ms.append(round((time.perf_counter() - t0) * 1000, 1))
 
