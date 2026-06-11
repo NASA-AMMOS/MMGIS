@@ -311,25 +311,19 @@ def open_dem(dem_path, max_working_dim=None, viewport_bounds=None):
 
 def open_dem_composite(dem_path, max_working_dim, viewport_bounds,
                        shadow_reach_m):
-    """Read viewport DEM at full resolution with a low-res border for shadows.
+    """Read the padded (viewport + shadow reach) DEM at a single resolution.
 
-    Returns (composite_dem, nodata, gt, srs, vp_offset_row, vp_offset_col,
-             vp_rows, vp_cols) where the composite array has the viewport
-    region embedded at full resolution and the surrounding shadow-reach
-    border read from a coarser COG overview.  *gt* corresponds to the
-    composite array.  vp_offset_row/col give the pixel position of the
-    viewport within the composite so the output grid can be sized to the
-    viewport portion only.
+    The composite is the *padded* region read at a resolution that keeps
+    the viewport portion at roughly max_working_dim pixels on its longest
+    side.  This avoids the OOM problem of building a huge array at viewport
+    pixel scale — the entire composite (including border) is one
+    moderately-sized array.
+
+    Returns (dem, nodata, gt, srs, vp_offset_row, vp_offset_col,
+             vp_rows, vp_cols).  *gt* covers the full composite.
+    vp_offset_row/col locate the viewport sub-window so the output grid
+    can be restricted to the viewport portion.
     """
-    # --- 1. Read viewport at normal resolution (same as current pipeline) ---
-    vp_dem, nodata, vp_gt, srs = open_dem(
-        dem_path, max_working_dim=max_working_dim,
-        viewport_bounds=viewport_bounds)
-    vp_rows, vp_cols = vp_dem.shape
-    vp_px_x = vp_gt[1]   # pixel width  in projected units
-    vp_px_y = vp_gt[5]   # pixel height in projected units (negative for north-up)
-
-    # --- 2. Compute padded bounds ---
     xmin, ymin, xmax, ymax = viewport_bounds
     pad_bounds = [
         xmin - shadow_reach_m,
@@ -338,72 +332,46 @@ def open_dem_composite(dem_path, max_working_dim, viewport_bounds,
         ymax + shadow_reach_m,
     ]
 
-    # How many viewport-scale pixels the padded region would be
-    pad_extent_x = (pad_bounds[2] - pad_bounds[0])
-    pad_extent_y = (pad_bounds[3] - pad_bounds[1])
-    pad_full_cols = max(1, int(round(abs(pad_extent_x / vp_px_x))))
-    pad_full_rows = max(1, int(round(abs(pad_extent_y / vp_px_y))))
+    # Choose a working dim that keeps the composite manageable.
+    # The viewport extent / padded extent ratio tells us how much of
+    # the composite is viewport vs border.  We scale up working dim
+    # so that the viewport portion still gets ~max_working_dim pixels.
+    vp_extent = max(abs(xmax - xmin), abs(ymax - ymin))
+    pad_extent = max(abs(pad_bounds[2] - pad_bounds[0]),
+                     abs(pad_bounds[3] - pad_bounds[1]))
+    if vp_extent > 0 and pad_extent > 0:
+        ratio = pad_extent / vp_extent
+        # Scale up so viewport portion ≈ max_working_dim, but cap total
+        composite_working_dim = min(int(max_working_dim * ratio),
+                                    max_working_dim * 4)
+        composite_working_dim = max(composite_working_dim, max_working_dim)
+    else:
+        composite_working_dim = max_working_dim
 
-    # Cap the *border* read at a low resolution — roughly 1/4 of
-    # max_working_dim so it doesn't dominate memory/compute.
-    border_working_dim = max(200, max_working_dim // 4)
-
-    # --- 3. Read padded extent at coarse resolution ---
-    pad_dem, _, pad_gt, _ = open_dem(
-        dem_path, max_working_dim=border_working_dim,
+    # Read the padded extent as one DEM
+    dem, nodata, gt, srs = open_dem(
+        dem_path, max_working_dim=composite_working_dim,
         viewport_bounds=pad_bounds)
-    pad_rows, pad_cols = pad_dem.shape
+    dem_rows, dem_cols = dem.shape
+    px_x = gt[1]
+    px_y = gt[5]
 
-    # --- 4. Build composite at viewport pixel scale ---
-    # Composite dimensions in viewport pixels
-    comp_cols = pad_full_cols
-    comp_rows = pad_full_rows
-    composite = np.full((comp_rows, comp_cols), nodata if nodata is not None else 0,
-                        dtype=vp_dem.dtype)
-
-    # Upsample the coarse border read to fill the composite (numpy-only)
-    if pad_rows != comp_rows or pad_cols != comp_cols:
-        row_idx = np.linspace(0, pad_rows - 1, comp_rows)
-        col_idx = np.linspace(0, pad_cols - 1, comp_cols)
-        r0 = np.floor(row_idx).astype(int)
-        r1 = np.minimum(r0 + 1, pad_rows - 1)
-        ry = (row_idx - r0).astype(np.float64)
-        c0 = np.floor(col_idx).astype(int)
-        c1 = np.minimum(c0 + 1, pad_cols - 1)
-        cx = (col_idx - c0).astype(np.float64)
-        pad_f = pad_dem.astype(np.float64)
-        top = pad_f[r0[:, None], c0[None, :]] * (1 - cx[None, :]) + \
-              pad_f[r0[:, None], c1[None, :]] * cx[None, :]
-        bot = pad_f[r1[:, None], c0[None, :]] * (1 - cx[None, :]) + \
-              pad_f[r1[:, None], c1[None, :]] * cx[None, :]
-        upsampled = (top * (1 - ry[:, None]) + bot * ry[:, None]).astype(vp_dem.dtype)
-        composite[:, :] = upsampled[:comp_rows, :comp_cols]
-    else:
-        composite[:pad_rows, :pad_cols] = pad_dem
-
-    # --- 5. Place viewport read on top at correct position ---
-    # Viewport origin in composite pixel coords
+    # Find the viewport sub-window within the composite
     vp_origin_x = (viewport_bounds[0] - pad_bounds[0])
-    vp_origin_y = (pad_bounds[3] - viewport_bounds[3]) if vp_px_y < 0 else (viewport_bounds[1] - pad_bounds[1])
-    vp_off_col = max(0, int(round(abs(vp_origin_x / vp_px_x))))
-    vp_off_row = max(0, int(round(abs(vp_origin_y / vp_px_y))))
-
-    # Clamp to avoid out-of-bounds
-    end_row = min(vp_off_row + vp_rows, comp_rows)
-    end_col = min(vp_off_col + vp_cols, comp_cols)
-    copy_rows = end_row - vp_off_row
-    copy_cols = end_col - vp_off_col
-    composite[vp_off_row:end_row, vp_off_col:end_col] = vp_dem[:copy_rows, :copy_cols]
-
-    # --- 6. Build geotransform for the composite ---
-    if vp_px_y < 0:
-        comp_gt = (pad_bounds[0], vp_px_x, 0.0,
-                   pad_bounds[3], 0.0, vp_px_y)
+    if px_y < 0:
+        vp_origin_y = (pad_bounds[3] - viewport_bounds[3])
     else:
-        comp_gt = (pad_bounds[0], vp_px_x, 0.0,
-                   pad_bounds[1], 0.0, vp_px_y)
+        vp_origin_y = (viewport_bounds[1] - pad_bounds[1])
+    vp_off_col = max(0, int(round(abs(vp_origin_x / px_x))))
+    vp_off_row = max(0, int(round(abs(vp_origin_y / px_y))))
 
-    return (composite, nodata, comp_gt, srs,
+    vp_cols = max(1, int(round(abs((xmax - xmin) / px_x))))
+    vp_rows = max(1, int(round(abs((ymax - ymin) / px_y))))
+    # Clamp to DEM extent
+    vp_cols = min(vp_cols, dem_cols - vp_off_col)
+    vp_rows = min(vp_rows, dem_rows - vp_off_row)
+
+    return (dem, nodata, gt, srs,
             vp_off_row, vp_off_col, vp_rows, vp_cols)
 
 
@@ -1448,8 +1416,14 @@ if __name__ == '__main__':
         custom_az = float(input_data.get('customAz', 0))
         custom_el = float(input_data.get('customEl', 0))
 
-        # Shadow reach (km → meters)
+        # Shadow reach (km → meters), clamped to planetary curvature limit
         shadow_reach = float(input_data.get('shadowReach', 0)) * 1000.0
+        if shadow_reach > 0 and planet_radius > 0:
+            # Max shadow distance = geometric horizon from a tall peak
+            # √(2 * R * h_max) with h_max = 10 km (conservative terrain height)
+            max_terrain_height = 10000.0  # meters
+            curvature_limit = math.sqrt(2.0 * planet_radius * max_terrain_height)
+            shadow_reach = min(shadow_reach, curvature_limit)
 
         # Parse optional viewport bounds (projected coords: xmin,ymin,xmax,ymax)
         vp_raw = input_data.get('viewportBounds', None)

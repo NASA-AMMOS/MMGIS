@@ -703,10 +703,15 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     placeholder="0"
                                     value={el.shadowReach || ''}
                                     onChange={(e) =>
-                                        handleChange(
-                                            'shadowReach',
-                                            e.target.value
-                                        )
+                                        updateElement(elmId, {
+                                            shadowReach: e.target.value,
+                                        })
+                                    }
+                                    onBlur={() =>
+                                        updateElement(elmId, {
+                                            changed: true,
+                                            lastError: false,
+                                        })
                                     }
                                     className="vstFieldInput"
                                 />
