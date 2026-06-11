@@ -587,6 +587,9 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
     return res.status(400).json({ error: true, message: "All numeric parameters must be finite numbers" });
   }
 
+  const minDistance = Number(req.body.minDistance || 0);
+  const maxDistance = Number(req.body.maxDistance || 0);
+
   const payloadObj = {
     dem: pathResult.resolved,
     lat: lat,
@@ -600,6 +603,8 @@ router.post("/sightmap", function(req,res,next){(router._computeLimiter||functio
     isCustom: String(req.body.isCustom || 'false'),
     customAz: Number(req.body.customAz || 0),
     customEl: Number(req.body.customEl || 0),
+    minDistance: minDistance,
+    maxDistance: maxDistance,
   };
   if (isBatch) {
     payloadObj.times = req.body.times.map(String);

@@ -271,29 +271,7 @@
         ],
         "defaultHeight": 0,
         "observerTimePlaceholder": "LDAY-NNNNNLHH:MM:SS",
-        "utcTimeFormat": "%Y-%m-%dT%H:%M:%SZ",
-        "sweepColorRamps": [
-          {
-            "name": "viridis",
-            "label": "Viridis",
-            "bins": 6
-          },
-          {
-            "name": "plasma",
-            "label": "Plasma",
-            "bins": 6
-          },
-          {
-            "name": "Greys",
-            "label": "Greys",
-            "bins": 5
-          },
-          {
-            "name": "inferno",
-            "label": "Inferno",
-            "bins": 6
-          }
-        ]
+        "utcTimeFormat": "%Y-%m-%dT%H:%M:%SZ"
       }
     }
   ]

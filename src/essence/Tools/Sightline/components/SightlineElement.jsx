@@ -115,7 +115,11 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     const handleModeChange = useCallback((mode) => {
         SightlineTool.switchElementMode(elmId, mode)
         updateElement(elmId, { sightlineMode: mode })
-        setResultsOpen(false)
+        // Keep results open if sweep data exists (switching modes shouldn't collapse)
+        const ed = useSightlineStore.getState().sweepElData[elmId]
+        if (!ed?.grids?.length && !ed?.heatmap) {
+            setResultsOpen(false)
+        }
     }, [elmId, updateElement])
 
     const handleOpacityChange = useCallback(

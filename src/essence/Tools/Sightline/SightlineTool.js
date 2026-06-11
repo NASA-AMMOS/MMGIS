@@ -256,10 +256,11 @@ let SightlineTool = {
         SightlineTool._crosshairMarker = L.marker(Map_.map.getCenter(), {
             icon: icon,
             interactive: true,
-            draggable: true,
             zIndexOffset: 10000
         }).addTo(Map_.map)
-        SightlineTool._crosshairMarker.on('dragend', function () {
+        // Use Leaflet.Editable for dragging (map has editable: true)
+        SightlineTool._crosshairMarker.enableEdit()
+        SightlineTool._crosshairMarker.on('editable:dragend', function () {
             const latlng = SightlineTool._crosshairMarker.getLatLng()
             const store = useSightlineStore.getState()
             store.setSweepField('indicatorLastDragPoint', latlng)
@@ -273,6 +274,7 @@ let SightlineTool = {
 
     _removeCenterCrosshair() {
         if (SightlineTool._crosshairMarker) {
+            SightlineTool._crosshairMarker.disableEdit()
             Map_.map.removeLayer(SightlineTool._crosshairMarker)
             SightlineTool._crosshairMarker = null
         }
@@ -320,6 +322,9 @@ let SightlineTool = {
     _onMapClick: function (e) {
         if (e && e.latlng) {
             const store = useSightlineStore.getState()
+            const el = store.elements[store.activeElmId]
+            // Only run static sightline on click when in static mode
+            if (el?.sightlineMode && el.sightlineMode !== 'static') return
             SightlineTool.sightline(
                 { lng: e.latlng.lng, lat: e.latlng.lat },
                 store.activeElmId
@@ -691,9 +696,10 @@ let SightlineTool = {
         if (mode === 'playback') {
             // Ensure sightlineMode is set before sweepShowAllFrames checks it
             store.updateElement(elmId, { sightlineMode: 'playback' })
+            store.setSweepField('sweepViewMode', 'playback')
             const ed = store.sweepElData[elmId]
             if (ed?.frameImages && ed.frameImages.length > 0) {
-                SightlineTool.sweepShowAllFrames()
+                SightlineTool.sweepShowFrame(elmId)
             }
         }
     },
@@ -821,9 +827,10 @@ let SightlineTool = {
     getSweepColorRamps: function (elmColor) {
         const vars = useSightlineStore.getState().vars || {}
         const configured = vars.sweepColorRamps || [
+            { name: 'inferno' },
+            { name: 'viridis' },
             { name: 'RdYlGn_r' },
             { name: 'plasma' },
-            { name: 'viridis' },
             { name: 'Greys' },
         ]
 
