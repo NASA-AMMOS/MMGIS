@@ -848,12 +848,11 @@ let SightlineTool = {
             reverse: false, bins: 6,
         })
 
-        // 6. Black to White (Greys)
-        const greysColors = colormapData['Greys'] ? colormapData['Greys'].colors : []
+        // 6. White to Black (single gradient)
         ramps.push({
-            name: 'Greys', label: 'Black → White',
-            colors: greysColors,
-            reverse: false, bins: 6,
+            name: 'WhiteBlack', label: 'White → Black',
+            colors: [[1, 1, 1], [0, 0, 0]],
+            reverse: false, bins: 1,
         })
 
         return ramps
