@@ -713,6 +713,11 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                             lastError: false,
                                         })
                                     }
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.target.blur()
+                                        }
+                                    }}
                                     className="vstFieldInput"
                                 />
                             </div>
