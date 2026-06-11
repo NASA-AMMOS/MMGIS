@@ -574,12 +574,16 @@ const SightlineTool_Graphs = {
             lng = parseFloat(centerLatLng.lng)
         }
         const height = !isNaN(parseFloat(el.height)) ? parseFloat(el.height) : 2
+        const elMaxDist = parseFloat(el.maxDistance) || 0
+        const elMinDist = parseFloat(el.minDistance) || 0
 
         if (
             _horizonCache &&
             _horizonCache.lat === lat &&
             _horizonCache.lng === lng &&
-            _horizonCache.height === height
+            _horizonCache.height === height &&
+            (_horizonCache.maxDist || 0) === elMaxDist &&
+            (_horizonCache.minDist || 0) === elMinDist
         ) {
             SightlineTool_Graphs._drawHorizonCanvas(
                 _horizonCache.profile,
@@ -590,8 +594,6 @@ const SightlineTool_Graphs = {
         }
 
         const useCurvature = vars.hasOwnProperty('curvature') ? vars.curvature : true
-        const elMaxDist = parseFloat(el.maxDistance)
-        const elMinDist = parseFloat(el.minDistance)
         const horizonParams = {
             path: demUrl,
             lat: lat,
@@ -627,7 +629,7 @@ const SightlineTool_Graphs = {
                     return
                 }
                 const profile = parsed.horizonProfile || []
-                _horizonCache = { lat, lng, height, profile }
+                _horizonCache = { lat, lng, height, profile, maxDist: elMaxDist, minDist: elMinDist }
                 SightlineTool_Graphs._drawHorizonCanvas(profile, elmId)
                 // Redraw visibility timeline now that the horizon profile is available
                 SightlineTool_Graphs.drawVisibilityTimeline(elmId)

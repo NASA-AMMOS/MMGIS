@@ -689,6 +689,8 @@ let SightlineTool = {
 
         // Switch to playback: render cached frames if available (no re-sweep)
         if (mode === 'playback') {
+            // Ensure sightlineMode is set before sweepShowAllFrames checks it
+            store.updateElement(elmId, { sightlineMode: 'playback' })
             const ed = store.sweepElData[elmId]
             if (ed?.frameImages && ed.frameImages.length > 0) {
                 SightlineTool.sweepShowAllFrames()
