@@ -1,12 +1,8 @@
 # MMGIS Changelog
 
-## Unreleased
-
-_June 11, 2026_
-
 ## 5.0.15
 
-_May 1, 2026_
+_June 11, 2026_
 
 #### Summary
 
