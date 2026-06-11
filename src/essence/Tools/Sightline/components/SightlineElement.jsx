@@ -119,11 +119,6 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
         [elmId, updateElement]
     )
 
-    // Update range circles when min/max distance changes
-    useEffect(() => {
-        SightlineTool.updateRangeCircles(elmId)
-    }, [elmId, el?.minDistance, el?.maxDistance])
-
     const handleModeChange = useCallback((mode) => {
         SightlineTool.switchElementMode(elmId, mode)
         updateElement(elmId, { sightlineMode: mode })
@@ -641,42 +636,24 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                 />
                             </div>
                             <div className="vstOptionRow">
-                                <Tooltip content="When set, loads DEM within this radius for shadow computation. When ∞, uses the full DEM up to the edge in the entity direction or until planetary curvature makes further terrain irrelevant.">
-                                    <div className="vstOptionLabel" style={{ cursor: 'help' }}>
-                                        Max Dist
-                                    </div>
-                                </Tooltip>
-                                {el.maxDistInfinity ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                        <span style={{ opacity: 0.6, fontSize: 12 }}>∞ (full DEM)</span>
-                                    </div>
-                                ) : (
-                                    <InputWithUnit
-                                        unit="m"
-                                        type="number"
-                                        min="0"
-                                        step="100"
-                                        placeholder="viewport"
-                                        value={el.maxDistance}
-                                        onChange={(e) =>
-                                            handleChange(
-                                                'maxDistance',
-                                                e.target.value
-                                            )
-                                        }
-                                        className="vstFieldInput"
-                                    />
-                                )}
-                                <Tooltip content={el.maxDistInfinity ? 'Use full DEM (slower, accurate distant shadows)' : 'Limited to viewport or set distance'}>
-                                    <div
-                                        className={'vstInfinityToggle' + (el.maxDistInfinity ? ' active' : '')}
-                                        onClick={() => handleChange('maxDistInfinity', !el.maxDistInfinity)}
-                                        style={{ cursor: 'pointer', padding: '2px 5px', fontSize: 14, fontWeight: 'bold', opacity: el.maxDistInfinity ? 1 : 0.4 }}
-                                        title="Toggle infinity (full DEM)"
-                                    >
-                                        ∞
-                                    </div>
-                                </Tooltip>
+                                <div className="vstOptionLabel" title="Maximum ray-march distance (meters). Terrain beyond this is ignored.">
+                                    Max Dist
+                                </div>
+                                <InputWithUnit
+                                    unit="m"
+                                    type="number"
+                                    min="0"
+                                    step="100"
+                                    placeholder="∞"
+                                    value={el.maxDistance}
+                                    onChange={(e) =>
+                                        handleChange(
+                                            'maxDistance',
+                                            e.target.value
+                                        )
+                                    }
+                                    className="vstFieldInput"
+                                />
                             </div>
                             {dataOptions.length > 0 && (
                                 <div className="vstOptionRow">

@@ -1281,20 +1281,10 @@ if __name__ == '__main__':
         # Parse optional viewport bounds (projected coords: xmin,ymin,xmax,ymax)
         vp_raw = input_data.get('viewportBounds', None)
         viewport_bounds = None
-        if max_distance == -1:
-            # Infinity mode: skip viewport crop, use full DEM
-            viewport_bounds = None
-            max_distance = 0.0  # no march limit either (full DEM)
-        elif vp_raw:
+        if vp_raw:
             try:
                 parts = [float(v) for v in str(vp_raw).split(',')]
                 if len(parts) == 4:
-                    # Pad viewport bounds by maxDistance (in projected units)
-                    if max_distance > 0:
-                        parts[0] -= max_distance  # xmin
-                        parts[1] -= max_distance  # ymin
-                        parts[2] += max_distance  # xmax
-                        parts[3] += max_distance  # ymax
                     viewport_bounds = parts
             except (ValueError, TypeError):
                 pass

@@ -217,10 +217,9 @@ let SightlineTool = {
 
         TimeControl.unsubscribe('SightlineTool')
 
-        // Remove center crosshair, dot, and range circles
+        // Remove center crosshair and dot
         SightlineTool._removeCenterCrosshair()
         SightlineTool._removeCenterDot()
-        SightlineTool._removeRangeCircles()
 
         // Close bottom bar graphs
         SightlineTool_Graphs.cleanup()
@@ -282,68 +281,6 @@ let SightlineTool = {
             SightlineTool._crosshairMarker.setLatLng(ed.sweepCenter)
         } else {
             SightlineTool._crosshairMarker.setLatLng(Map_.map.getCenter())
-        }
-    },
-
-    // === Range Circles ===
-
-    _rangeCircles: { min: null, max: null },
-
-    updateRangeCircles(elmId) {
-        const store = useSightlineStore.getState()
-        const el = elmId != null ? store.elements[elmId] : store.elements[store.activeElmId]
-        const minD = parseFloat(el?.minDistance) || 0
-        const maxD = parseFloat(el?.maxDistance) || 0
-
-        // Get center: sweep center if available, otherwise map center
-        const activeId = elmId != null ? elmId : store.activeElmId
-        const ed = activeId != null ? store.sweepElData[activeId] : null
-        const center = ed?.sweepCenter || Map_.map.getCenter()
-
-        const circleStyle = {
-            fill: false,
-            weight: 1.5,
-            dashArray: '6,4',
-            interactive: false,
-        }
-
-        // Remove existing circles
-        if (SightlineTool._rangeCircles.min) {
-            Map_.map.removeLayer(SightlineTool._rangeCircles.min)
-            SightlineTool._rangeCircles.min = null
-        }
-        if (SightlineTool._rangeCircles.max) {
-            Map_.map.removeLayer(SightlineTool._rangeCircles.max)
-            SightlineTool._rangeCircles.max = null
-        }
-
-        // Add min distance circle
-        if (minD > 0) {
-            SightlineTool._rangeCircles.min = L.circle(center, {
-                radius: minD,
-                color: '#ff6644',
-                ...circleStyle,
-            }).addTo(Map_.map)
-        }
-
-        // Add max distance circle
-        if (maxD > 0) {
-            SightlineTool._rangeCircles.max = L.circle(center, {
-                radius: maxD,
-                color: '#4488ff',
-                ...circleStyle,
-            }).addTo(Map_.map)
-        }
-    },
-
-    _removeRangeCircles() {
-        if (SightlineTool._rangeCircles.min) {
-            Map_.map.removeLayer(SightlineTool._rangeCircles.min)
-            SightlineTool._rangeCircles.min = null
-        }
-        if (SightlineTool._rangeCircles.max) {
-            Map_.map.removeLayer(SightlineTool._rangeCircles.max)
-            SightlineTool._rangeCircles.max = null
         }
     },
 
@@ -588,7 +525,7 @@ let SightlineTool = {
                 customEl: primaryIsCustom ? customEl : 0,
                 viewportBounds: viewportBounds ? viewportBounds.join(',') : undefined,
                 minDistance: parseFloat(options.minDistance) || 0,
-                maxDistance: el.maxDistInfinity ? -1 : (parseFloat(options.maxDistance) || 0),
+                maxDistance: parseFloat(options.maxDistance) || 0,
             },
             function (result) {
                 if (result._timing) {
@@ -1352,7 +1289,7 @@ let SightlineTool = {
                 customEl: primaryIsCustom ? (el.customEl || 0) : 0,
                 viewportBounds: sweepViewportBounds ? sweepViewportBounds.join(',') : undefined,
                 minDistance: parseFloat(options.minDistance) || 0,
-                maxDistance: el.maxDistInfinity ? -1 : (parseFloat(options.maxDistance) || 0),
+                maxDistance: parseFloat(options.maxDistance) || 0,
             },
             function (batchResponse) {
                 if (sweepRunId !== _sweepRunIds[activeElmId]) return

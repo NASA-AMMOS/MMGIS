@@ -41,7 +41,6 @@ function makeDefaultElement(id, vars) {
         customRange: NaN,
         minDistance: '',
         maxDistance: '',
-        maxDistInfinity: false,
         loading: false,
         loadingProgress: 0,
         regenerating: false,
