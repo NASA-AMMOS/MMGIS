@@ -1248,21 +1248,16 @@ const SightlineTool_Graphs = {
         }
         const omitYear = years.size <= 1
 
-        // Place ticks at evenly-spaced visual positions (0%–100%) and map
-        // each position back to the nearest frame index for its time label.
-        // This avoids coordinate-system drift between ticks and bar segments.
+        // Place ticks aligned to exact frame positions using the same
+        // fraction formula as the red time slider: frameIdx / (frameCount - 1).
         const rect = container.getBoundingClientRect()
         const labelW = 90 // approximate width per label
-        const numTicks = Math.max(2, Math.floor(rect.width / labelW))
+        const numTicks = Math.min(Math.max(2, Math.floor(rect.width / labelW)), results.length)
         const last = results.length - 1
 
-        let prevFrameIdx = -1
         for (let t = 0; t < numTicks; t++) {
-            const pct = numTicks > 1 ? (t / (numTicks - 1)) * 100 : 0
             const frameIdx = numTicks > 1 ? Math.round((t / (numTicks - 1)) * last) : 0
-            // Skip duplicate frame indices to avoid repeated labels
-            if (frameIdx === prevFrameIdx) continue
-            prevFrameIdx = frameIdx
+            const pct = last > 0 ? (frameIdx / last) * 100 : 0
             const time = results[frameIdx]?.time
             if (!time) continue
             const tick = document.createElement('div')
