@@ -727,11 +727,12 @@ const SightlineTool_Graphs = {
         ctx.setLineDash([])
 
         // Reorder profile for north-centered display
+        // Each entry: [displayAz, elevation, distanceMeters]
         const reordered = []
         for (let i = 0; i < profile.length; i++) {
             const az = profile[i][0]
             const displayAz = _azToDisplay(az)
-            reordered.push([displayAz, profile[i][1]])
+            reordered.push([displayAz, profile[i][1], profile[i][2] || 0])
         }
         reordered.sort((a, b) => a[0] - b[0])
 
@@ -745,20 +746,58 @@ const SightlineTool_Graphs = {
             )
         }
 
-        // Filled terrain silhouette (brown, fairly opaque to cover trajectory below horizon)
-        // Extend fill all the way to the bottom of the canvas so arcs below horizon are covered
+        // Filled terrain silhouette with distance-based fog
+        // Closer horizon = more opaque, farther = more transparent (log scale)
         const fillBottom = h
-        ctx.beginPath()
-        ctx.moveTo(pad.left, fillBottom)
+        const maxOpacity = isLight ? 0.45 : 0.8
+        const minOpacity = isLight ? 0.08 : 0.12
+        const fillR = isLight ? 160 : 90
+        const fillG = isLight ? 120 : 62
+        const fillB = isLight ? 70 : 35
+        // Find max distance for normalization (log scale)
+        let maxDist = 0
         for (let i = 0; i < reordered.length; i++) {
-            const x = pad.left + ((reordered[i][0] + 180) / 360) * plotW
-            const y = pad.top + plotH - ((reordered[i][1] - minEl) / elRange) * plotH
-            ctx.lineTo(x, y)
+            if (reordered[i][2] > maxDist) maxDist = reordered[i][2]
         }
-        ctx.lineTo(pad.left + plotW, fillBottom)
-        ctx.closePath()
-        ctx.fillStyle = isLight ? 'rgba(160,120,70,0.45)' : 'rgba(90,62,35,0.8)'
-        ctx.fill()
+        const hasDistData = maxDist > 0
+        if (!hasDistData) {
+            // No distance data — fall back to uniform fill
+            ctx.beginPath()
+            ctx.moveTo(pad.left, fillBottom)
+            for (let i = 0; i < reordered.length; i++) {
+                const x = pad.left + ((reordered[i][0] + 180) / 360) * plotW
+                const y = pad.top + plotH - ((reordered[i][1] - minEl) / elRange) * plotH
+                ctx.lineTo(x, y)
+            }
+            ctx.lineTo(pad.left + plotW, fillBottom)
+            ctx.closePath()
+            ctx.fillStyle = `rgba(${fillR},${fillG},${fillB},${maxOpacity})`
+            ctx.fill()
+        } else {
+            // Draw per-strip fills with distance-based opacity
+            const logMax = Math.log(maxDist + 1)
+            for (let i = 0; i < reordered.length; i++) {
+                const x0 = pad.left + ((reordered[i][0] + 180) / 360) * plotW
+                const yTop = pad.top + plotH - ((reordered[i][1] - minEl) / elRange) * plotH
+                // Strip extends to the next point (or edge)
+                let x1
+                if (i < reordered.length - 1) {
+                    x1 = pad.left + ((reordered[i + 1][0] + 180) / 360) * plotW
+                } else {
+                    x1 = pad.left + plotW
+                }
+                const stripW = x1 - x0
+                if (stripW <= 0) continue
+
+                const dist = reordered[i][2]
+                // Log-scale: close=1.0, far=0.0
+                const t = dist > 0 ? Math.log(dist + 1) / logMax : 0
+                const opacity = maxOpacity - t * (maxOpacity - minOpacity)
+
+                ctx.fillStyle = `rgba(${fillR},${fillG},${fillB},${opacity.toFixed(3)})`
+                ctx.fillRect(x0, yTop, stripW, fillBottom - yTop)
+            }
+        }
 
         // Horizon outline
         ctx.beginPath()

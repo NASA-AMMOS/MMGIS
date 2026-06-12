@@ -41,7 +41,8 @@
 #
 # Output
 # ------
-# JSON: {"horizonProfile": [[azimuth_deg, max_horizon_elevation_deg], ...]}
+# JSON: {"horizonProfile": [[azimuth_deg, max_horizon_elevation_deg, distance_m], ...]}
+# distance_m is the distance from the observer to the horizon point (meters).
 #
 # Usage: python HorizonProfile.py <raster_path> <lat> <lng> <observer_height>
 #        <num_azimuths> <max_radius_m>
@@ -169,18 +170,18 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
     regionH = yend - yoff
 
     if regionW <= 0 or regionH <= 0:
-        return [[i * (360.0 / num_azimuths), 0.0] for i in range(num_azimuths)]
+        return [[i * (360.0 / num_azimuths), 0.0, 0.0] for i in range(num_azimuths)]
 
     region = band.ReadAsArray(xoff, yoff, regionW, regionH)
     if region is None:
-        return [[i * (360.0 / num_azimuths), 0.0] for i in range(num_azimuths)]
+        return [[i * (360.0 / num_azimuths), 0.0, 0.0] for i in range(num_azimuths)]
 
     noData = band.GetNoDataValue()
     local_obs_x = obs_px - xoff
     local_obs_y = obs_py - yoff
 
     if local_obs_x < 0 or local_obs_x >= regionW or local_obs_y < 0 or local_obs_y >= regionH:
-        return [[i * (360.0 / num_azimuths), 0.0] for i in range(num_azimuths)]
+        return [[i * (360.0 / num_azimuths), 0.0, 0.0] for i in range(num_azimuths)]
 
     obs_elev_val = region[local_obs_y, local_obs_x]
     if noData is not None and _isNoData(obs_elev_val, noData):
@@ -212,6 +213,7 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
         m_per_step = 1.0 / step_len  # physical metres per 1-pixel step
 
         max_el_angle = -90.0
+        max_el_dist = 0.0
         r = max(step_px, min_skip_px) if min_skip_px > 0 else step_px
         while r <= max_radius_px:
             sx = local_obs_x + dx * r
@@ -243,10 +245,12 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
             )
             if elev_angle > max_el_angle:
                 max_el_angle = elev_angle
+                max_el_dist = dist_m
 
             r += step_px
 
-        profile.append([round(az_deg, 2), round(max_el_angle, 2)])
+        profile.append([round(az_deg, 2), round(max_el_angle, 2),
+                        round(max_el_dist, 1)])
 
     return profile
 
