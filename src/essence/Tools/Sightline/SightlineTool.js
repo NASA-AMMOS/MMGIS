@@ -527,9 +527,6 @@ let SightlineTool = {
                 shadowReach: parseFloat(options.shadowReach) || 0,
             },
             function (result) {
-                if (result._timing) {
-                    console.log('[Sightmap Timing]', result._timing)
-                }
                 if (result.error) {
                     const msg =
                         (result.message || '').indexOf('INSUFFDATA') >= 0
@@ -1268,7 +1265,6 @@ let SightlineTool = {
 
         const sweepMaxDim = SightlineTool._resolutionToMaxDim(activeElmId)
         const sweepViewportBounds = _getViewportProjBounds()
-        const _sweepApiStart = performance.now()
 
         // Send start/end/step instead of full timestamps array
         const batchStartTime = timestamps[0]
@@ -1298,13 +1294,10 @@ let SightlineTool = {
             function (batchResponse) {
                 if (sweepRunId !== _sweepRunIds[activeElmId]) return
 
-                // Unwrap batch response: may be {results, _timing} or raw array
+                // Unwrap batch response: may be {results} or raw array
                 let batchResults = batchResponse
                 if (batchResponse && !Array.isArray(batchResponse) && batchResponse.results) {
                     batchResults = batchResponse.results
-                    if (batchResponse._timing) {
-                        console.log('[Sightmap Batch Timing]', batchResponse._timing)
-                    }
                 }
 
                 if (!Array.isArray(batchResults) || batchResults.length === 0) {
@@ -1314,10 +1307,6 @@ let SightlineTool = {
                     if (typeof onComplete === 'function') onComplete()
                     return
                 }
-
-                const _apiElapsed = performance.now() - _sweepApiStart
-                console.log('[Sightmap Sweep] API round-trip: ' + _apiElapsed.toFixed(0) + 'ms')
-                const _processStart = performance.now()
 
                 const sweepResults = []
                 const sweepGrids = []
@@ -1413,8 +1402,6 @@ let SightlineTool = {
                     sweepGrids.push(grid)
                 }
 
-                console.log('[Sightmap Sweep] Grid parsing: ' + (performance.now() - _processStart).toFixed(0) + 'ms')
-
                 // Update progress
                 const currentStore = useSightlineStore.getState()
                 const curElm2 = currentStore.sweepCurrentElm || 1
@@ -1440,7 +1427,6 @@ let SightlineTool = {
                 // Yield to let progress update paint, then compute heatmap
                 setTimeout(function () {
                     const storeH = useSightlineStore.getState()
-                    const _heatmapStart = performance.now()
 
                     if (sweepGrids.length > 0) {
                         const heatmap = SightlineTool_Algorithm.cumulativeVisibility(sweepGrids)
@@ -1472,14 +1458,9 @@ let SightlineTool = {
                     const curElmF = storeH.sweepCurrentElm || 1
                     const totElmsF = storeH.sweepTotalElms || 1
 
-                    console.log('[Sightmap Sweep] Heatmap compute: ' + (performance.now() - _heatmapStart).toFixed(0) + 'ms')
-                    const _atlasStart = performance.now()
-
                     // Always build the atlas (frame images) regardless of mode,
                     // so switching between playback and composite is instantaneous.
                     SightlineTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
-                        console.log('[Sightmap Sweep] Atlas build: ' + (performance.now() - _atlasStart).toFixed(0) + 'ms')
-                        console.log('[Sightmap Sweep] Total frontend processing: ' + (performance.now() - _processStart).toFixed(0) + 'ms')
                         const currentMode = useSightlineStore.getState().elements[activeElmId]?.sightlineMode
                         if (currentMode === 'playback') {
                             SightlineTool.sweepShowAllFrames()

@@ -343,18 +343,6 @@ const SightlineTool_Graphs = {
         const store = useSightlineStore.getState()
         store.setSweepField('sweepPlayIndex', frameIndex)
         if (_onScrubCallback) _onScrubCallback()
-        // Update time label + slider position
-        SightlineTool_Graphs._updateTimeLabel()
-        // Redraw both charts to reflect new frame
-        if (_horizonCache) {
-            SightlineTool_Graphs._drawHorizonCanvas(_horizonCache.profile, _activeElmId)
-            SightlineTool_Graphs.drawVisibilityTimeline(_activeElmId)
-        } else if (_activeElmId != null) {
-            // Cache was invalidated (e.g. by pan) — re-fetch, which
-            // redraws both horizon + visibility once the profile arrives.
-            SightlineTool_Graphs.fetchAndDrawHorizon(_activeElmId)
-        }
-        SightlineTool_Graphs._updateSourceAzimuthLines()
     },
 
     _onHorizonMouseMove(e) {
