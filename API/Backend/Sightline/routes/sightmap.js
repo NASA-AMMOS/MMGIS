@@ -63,6 +63,9 @@ router.post("/sightmap", function (req, res, next) {
   }
 
   const shadowReach = Math.max(0, Number(req.body.shadowReach || 0));
+  if (!isFinite(shadowReach)) {
+    return res.status(400).json({ error: true, message: "shadowReach must be a finite number" });
+  }
 
   const payloadObj = {
     dem: pathResult.resolved,
