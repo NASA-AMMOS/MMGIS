@@ -1339,6 +1339,32 @@ let SightlineTool = {
                             : 0,
                 }
 
+                // Compute observer pixel position in the grid
+                // Use projected coords when available, otherwise geographic
+                let obsPixelRow = null
+                let obsPixelCol = null
+                const refGrid = firstResult.grid
+                if (refGrid && refGrid.length > 0) {
+                    const gridRows = refGrid.length
+                    const gridCols = refGrid[0] ? refGrid[0].length : 0
+                    const pb = firstResult.projBounds
+                    const gb = firstResult.bounds
+                    if (pb && _isCustomProjectedCRS()) {
+                        const crs = Map_.map?.options?.crs
+                        if (crs && typeof crs.project === 'function') {
+                            const obsProj = crs.project({ lng: source.lng, lat: source.lat })
+                            obsPixelCol = Math.round(((obsProj.x - pb[0]) / (pb[2] - pb[0])) * (gridCols - 1))
+                            obsPixelRow = Math.round(((pb[3] - obsProj.y) / (pb[3] - pb[1])) * (gridRows - 1))
+                        }
+                    } else if (gb) {
+                        obsPixelCol = Math.round(((source.lng - gb[0]) / (gb[2] - gb[0])) * (gridCols - 1))
+                        obsPixelRow = Math.round(((gb[3] - source.lat) / (gb[3] - gb[1])) * (gridRows - 1))
+                    }
+                    // Clamp to grid bounds
+                    if (obsPixelRow != null) obsPixelRow = Math.max(0, Math.min(obsPixelRow, gridRows - 1))
+                    if (obsPixelCol != null) obsPixelCol = Math.max(0, Math.min(obsPixelCol, gridCols - 1))
+                }
+
                 for (let ti = 0; ti < total; ti++) {
                     const ts = timestamps[ti]
                     const r = batchResults[ti]
@@ -1368,10 +1394,11 @@ let SightlineTool = {
                             }
                         }
                     }
-                    const cy = Math.floor(grid.length / 2)
-                    const cx = grid[cy] ? Math.floor(grid[cy].length / 2) : 0
-                    const centerVal = grid[cy]?.[cx]
-                    const centerVisible = centerVal === 1 || centerVal === 2
+                    // Observer pixel in the grid (computed from projected position)
+                    const oy = obsPixelRow != null ? obsPixelRow : Math.floor(grid.length / 2)
+                    const ox = obsPixelCol != null ? obsPixelCol : (grid[0] ? Math.floor(grid[0].length / 2) : 0)
+                    const obsVal = grid[oy]?.[ox]
+                    const centerVisible = obsVal === 1 || obsVal === 2
 
                     sweepResults.push({
                         time: ts,

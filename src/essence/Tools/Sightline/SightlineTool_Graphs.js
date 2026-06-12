@@ -954,18 +954,10 @@ const SightlineTool_Graphs = {
             })()
             const occludedColor = visIsLight ? 'rgba(240,240,240,0.7)' : 'rgba(60,60,60,0.5)'
 
-            // Compute visibility using the horizon profile (terrain-aware)
+            // Compute visibility from sightmap grid center pixel
             const segments = []
             for (let i = 0; i < results.length; i++) {
-                const r = results[i]
-                let visible = false
-                if (profile && r.azimuth != null && r.elevation != null) {
-                    let az = r.azimuth
-                    if (az < 0) az += 360
-                    const horizEl = _interpolateHorizon(profile, az)
-                    visible = r.elevation > horizEl
-                }
-                segments.push(visible)
+                segments.push(!!results[i].centerVisible)
             }
 
             const row = document.createElement('div')
