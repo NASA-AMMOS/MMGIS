@@ -1256,9 +1256,13 @@ const SightlineTool_Graphs = {
         const numTicks = Math.max(2, Math.floor(rect.width / labelW))
         const last = results.length - 1
 
+        let prevFrameIdx = -1
         for (let t = 0; t < numTicks; t++) {
             const pct = numTicks > 1 ? (t / (numTicks - 1)) * 100 : 0
             const frameIdx = numTicks > 1 ? Math.round((t / (numTicks - 1)) * last) : 0
+            // Skip duplicate frame indices to avoid repeated labels
+            if (frameIdx === prevFrameIdx) continue
+            prevFrameIdx = frameIdx
             const time = results[frameIdx]?.time
             if (!time) continue
             const tick = document.createElement('div')
