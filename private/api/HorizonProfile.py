@@ -199,6 +199,10 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
     use_curvature = planet_radius > 0
     profile = []
 
+    # Early termination: max plausible terrain height above observer (meters).
+    # If even a peak this tall at the current distance can't beat max_el_angle, stop.
+    max_terrain_relief = 10000.0  # 10km — conservative upper bound
+
     for ai in range(num_azimuths):
         az_deg = ai * (360.0 / num_azimuths)
         az_rad = math.radians(az_deg) + convergence
@@ -226,12 +230,12 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
 
             sample = region[iy, ix]
             if noData is not None and _isNoData(float(sample), noData):
-                r += step_px
+                r += max(1.0, math.log2(r + 1))
                 continue
 
             dist_m = r * m_per_step
             if dist_m < 0.001:
-                r += step_px
+                r += max(1.0, math.log2(r + 1))
                 continue
 
             terrain_elev = float(sample)
@@ -247,7 +251,20 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
                 max_el_angle = elev_angle
                 max_el_dist = dist_m
 
-            r += step_px
+            # Early termination: if even the tallest possible peak at this
+            # distance (after curvature) can't beat current max, stop marching.
+            if max_el_angle > -90.0 and dist_m > 1000.0:
+                best_possible_elev = max_terrain_relief
+                if use_curvature:
+                    best_possible_elev -= (dist_m * dist_m) / (2.0 * planet_radius)
+                best_possible_angle = math.degrees(
+                    math.atan2(best_possible_elev - obs_total, dist_m)
+                )
+                if best_possible_angle <= max_el_angle:
+                    break
+
+            # Logarithmic step: 1px near observer, increasing with distance
+            r += max(1.0, math.log2(r + 1))
 
         profile.append([round(az_deg, 2), round(max_el_angle, 2),
                         round(max_el_dist, 1)])
