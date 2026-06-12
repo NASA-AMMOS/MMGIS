@@ -1028,23 +1028,96 @@
     overflow: hidden;
 }
 
+/* ====== Graph header bar ====== */
+
+.sightlineGraphHeader {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    gap: 12px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--color-a2);
+}
+
+.sightlineGraphTitle {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-a7);
+    white-space: nowrap;
+}
+
 .sightlineGraphClose {
-    position: absolute;
-    top: 4px;
-    right: 6px;
-    z-index: 10;
     cursor: pointer;
     color: var(--color-a5);
     transition: color 0.15s ease;
     line-height: 1;
+    margin-left: auto;
 }
 .sightlineGraphClose:hover {
     color: var(--color-f);
 }
 
+/* ====== Horizon distance range slider ====== */
+
+.sightlineHorizonRangeWrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.sightlineHorizonRangeLabel {
+    font-size: 11px;
+    color: var(--color-a5);
+    white-space: nowrap;
+}
+
+.sightlineHorizonRangeValue {
+    font-size: 10px;
+    color: var(--color-a6);
+    white-space: nowrap;
+    min-width: 32px;
+    text-align: center;
+}
+
+.sightlineHorizonRangeTrack {
+    position: relative;
+    flex: 1;
+    height: 4px;
+    background: var(--color-a2);
+    border-radius: 2px;
+    min-width: 60px;
+}
+
+.sightlineHorizonRangeFill {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: var(--color-a4);
+    border-radius: 2px;
+}
+
+.sightlineHorizonRangeHandle {
+    position: absolute;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    background: var(--color-f);
+    border: 1.5px solid var(--color-a4);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    cursor: ew-resize;
+    z-index: 2;
+}
+.sightlineHorizonRangeHandle:hover {
+    background: #fff;
+    border-color: var(--color-a6);
+}
+
 .sightlineGraphExcludedInfo {
     position: absolute;
-    top: 4px;
+    top: 30px;
     left: 8px;
     z-index: 10;
     font-size: 11px;

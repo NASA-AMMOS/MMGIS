@@ -236,12 +236,41 @@ const SightlineTool_Graphs = {
         container.id = GRAPH_CONTAINER_ID
         container.className = 'sightlineGraphContainer'
 
+        // --- Header bar with title and horizon range slider ---
+        const header = document.createElement('div')
+        header.className = 'sightlineGraphHeader'
+
+        const title = document.createElement('span')
+        title.className = 'sightlineGraphTitle'
+        title.textContent = 'Sightline Graphs'
+        header.appendChild(title)
+
+        // Dual-handle log-scale range slider for horizon lookup distance
+        const rangeWrap = document.createElement('div')
+        rangeWrap.className = 'sightlineHorizonRangeWrap'
+        rangeWrap.innerHTML = `
+            <span class="sightlineHorizonRangeLabel">Horizon:</span>
+            <span class="sightlineHorizonRangeValue" id="sightlineHorizonMinLabel">100m</span>
+            <div class="sightlineHorizonRangeTrack" id="sightlineHorizonRangeTrack">
+                <div class="sightlineHorizonRangeFill" id="sightlineHorizonRangeFill"></div>
+                <div class="sightlineHorizonRangeHandle" id="sightlineHorizonMinHandle" data-handle="min"></div>
+                <div class="sightlineHorizonRangeHandle" id="sightlineHorizonMaxHandle" data-handle="max"></div>
+            </div>
+            <span class="sightlineHorizonRangeValue" id="sightlineHorizonMaxLabel">250km</span>
+        `
+        header.appendChild(rangeWrap)
+
         const closeBtn = document.createElement('div')
         closeBtn.className = 'sightlineGraphClose'
         closeBtn.innerHTML = '<i class="mdi mdi-close mdi-18px"></i>'
         closeBtn.title = 'Close graph'
         closeBtn.onclick = () => SightlineTool_Graphs.close()
-        container.appendChild(closeBtn)
+        header.appendChild(closeBtn)
+
+        container.appendChild(header)
+
+        // Initialize range slider logic
+        setTimeout(() => SightlineTool_Graphs._initHorizonRangeSlider(), 0)
 
         // --- Info banner (hidden by default, shown when elements are excluded) ---
         const infoBanner = document.createElement('div')
@@ -522,6 +551,90 @@ const SightlineTool_Graphs = {
         if (tip) tip.style.display = 'none'
     },
 
+    // --- Dual-handle log-scale range slider for horizon distance ---
+    // Log scale: min range 1m–1000m, max range 5000m–250000m
+    _HORIZON_LOG_MIN: Math.log(1),       // ln(1) = 0
+    _HORIZON_LOG_MAX: Math.log(250000),  // ln(250000) ≈ 12.43
+    _horizonMinDist: 100,    // default 100m
+    _horizonMaxDist: 250000, // default 250km
+
+    _logToMeters(frac) {
+        const logMin = SightlineTool_Graphs._HORIZON_LOG_MIN
+        const logMax = SightlineTool_Graphs._HORIZON_LOG_MAX
+        return Math.exp(logMin + frac * (logMax - logMin))
+    },
+
+    _metersToFrac(meters) {
+        const logMin = SightlineTool_Graphs._HORIZON_LOG_MIN
+        const logMax = SightlineTool_Graphs._HORIZON_LOG_MAX
+        return (Math.log(meters) - logMin) / (logMax - logMin)
+    },
+
+    _formatDist(m) {
+        if (m >= 1000) return (m / 1000).toFixed(m >= 10000 ? 0 : 1) + 'km'
+        return Math.round(m) + 'm'
+    },
+
+    _initHorizonRangeSlider() {
+        const track = document.getElementById('sightlineHorizonRangeTrack')
+        if (!track) return
+
+        const minHandle = document.getElementById('sightlineHorizonMinHandle')
+        const maxHandle = document.getElementById('sightlineHorizonMaxHandle')
+        const fill = document.getElementById('sightlineHorizonRangeFill')
+        const minLabel = document.getElementById('sightlineHorizonMinLabel')
+        const maxLabel = document.getElementById('sightlineHorizonMaxLabel')
+
+        let dragging = null
+
+        const updatePositions = () => {
+            const minFrac = SightlineTool_Graphs._metersToFrac(SightlineTool_Graphs._horizonMinDist)
+            const maxFrac = SightlineTool_Graphs._metersToFrac(SightlineTool_Graphs._horizonMaxDist)
+            minHandle.style.left = (minFrac * 100) + '%'
+            maxHandle.style.left = (maxFrac * 100) + '%'
+            fill.style.left = (minFrac * 100) + '%'
+            fill.style.width = ((maxFrac - minFrac) * 100) + '%'
+            minLabel.textContent = SightlineTool_Graphs._formatDist(SightlineTool_Graphs._horizonMinDist)
+            maxLabel.textContent = SightlineTool_Graphs._formatDist(SightlineTool_Graphs._horizonMaxDist)
+        }
+
+        const onMove = (e) => {
+            if (!dragging) return
+            const rect = track.getBoundingClientRect()
+            let frac = (e.clientX - rect.left) / rect.width
+            frac = Math.max(0, Math.min(1, frac))
+            const meters = SightlineTool_Graphs._logToMeters(frac)
+
+            if (dragging === 'min') {
+                SightlineTool_Graphs._horizonMinDist = Math.min(meters, SightlineTool_Graphs._horizonMaxDist * 0.5)
+            } else {
+                SightlineTool_Graphs._horizonMaxDist = Math.max(meters, SightlineTool_Graphs._horizonMinDist * 2)
+            }
+            updatePositions()
+        }
+
+        const onUp = () => {
+            if (!dragging) return
+            dragging = null
+            document.removeEventListener('mousemove', onMove)
+            document.removeEventListener('mouseup', onUp)
+            // Invalidate and refetch with new distances
+            SightlineTool_Graphs.invalidateAndRefetch()
+        }
+
+        const onDown = (e) => {
+            dragging = e.target.dataset.handle
+            document.addEventListener('mousemove', onMove)
+            document.addEventListener('mouseup', onUp)
+            e.preventDefault()
+        }
+
+        minHandle.addEventListener('mousedown', onDown)
+        maxHandle.addEventListener('mousedown', onDown)
+
+        updatePositions()
+    },
+
     _onVisibilityMouseDown(e) {
         _isDragging = true
         SightlineTool_Graphs._scrubFromVisibilityX(e)
@@ -600,7 +713,9 @@ const SightlineTool_Graphs = {
             _horizonCache &&
             _horizonCache.lat === lat &&
             _horizonCache.lng === lng &&
-            _horizonCache.height === height
+            _horizonCache.height === height &&
+            _horizonCache.minDist === SightlineTool_Graphs._horizonMinDist &&
+            _horizonCache.maxDist === SightlineTool_Graphs._horizonMaxDist
         ) {
             SightlineTool_Graphs._drawHorizonCanvas(
                 _horizonCache.profile,
@@ -617,8 +732,8 @@ const SightlineTool_Graphs = {
             lng: lng,
             observerHeight: height,
             numAzimuths: 360,
-            maxRadius: 250000,
-            minSkipRadius: 50,
+            maxRadius: SightlineTool_Graphs._horizonMaxDist,
+            minSkipRadius: SightlineTool_Graphs._horizonMinDist,
         }
         if (useCurvature) {
             horizonParams.planetRadius = F_.radiusOfPlanetMajor
@@ -646,7 +761,11 @@ const SightlineTool_Graphs = {
                     return
                 }
                 const profile = parsed.horizonProfile || []
-                _horizonCache = { lat, lng, height, profile }
+                _horizonCache = {
+                    lat, lng, height, profile,
+                    minDist: SightlineTool_Graphs._horizonMinDist,
+                    maxDist: SightlineTool_Graphs._horizonMaxDist
+                }
                 SightlineTool_Graphs._drawHorizonCanvas(profile, elmId)
                 // Redraw visibility timeline now that the horizon profile is available
                 SightlineTool_Graphs.drawVisibilityTimeline(elmId)
