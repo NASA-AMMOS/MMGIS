@@ -170,11 +170,11 @@ const c = {
     },
     gethorizonprofile: {
         type: 'POST',
-        url: 'api/utils/gethorizonprofile',
+        url: 'api/sightline/horizonprofile',
     },
     sightmap: {
         type: 'POST',
-        url: 'api/utils/sightmap',
+        url: 'api/sightline/sightmap',
     },
 }
 

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * E2E tests for the POST /api/utils/sightmap endpoint.
+ * E2E tests for the POST /api/sightline/sightmap endpoint.
  *
  * Covers:
  *   - Input validation (missing required fields, non-finite numerics)
@@ -25,7 +25,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Sightmap API', () => {
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
-  const endpoint = `${baseURL}/api/utils/sightmap`;
+  const endpoint = `${baseURL}/api/sightline/sightmap`;
 
   // Valid Lunar South Pole DEM path (relative, resolved by server)
   const LUNAR_DEM =
