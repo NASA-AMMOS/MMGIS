@@ -749,8 +749,8 @@ const SightlineTool_Graphs = {
         // Filled terrain silhouette with distance-based fog
         // Closer horizon = more opaque, farther = more transparent (log scale)
         const fillBottom = h
-        const maxOpacity = isLight ? 0.45 : 0.8
-        const minOpacity = isLight ? 0.08 : 0.12
+        const maxOpacity = isLight ? 0.7 : 0.95
+        const minOpacity = isLight ? 0.03 : 0.05
         const fillR = isLight ? 160 : 90
         const fillG = isLight ? 120 : 62
         const fillB = isLight ? 70 : 35
