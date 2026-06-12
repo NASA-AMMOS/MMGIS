@@ -929,10 +929,10 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 6px;
-    height: 6px;
-    margin-left: -3px;
-    margin-top: -3px;
+    width: 8px;
+    height: 8px;
+    margin-left: -4px;
+    margin-top: -4px;
     background: limegreen;
     border: 1px solid black;
     border-radius: 50%;
@@ -948,10 +948,10 @@
 }
 .sightlineCrosshairCircle {
     position: absolute;
-    width: 8px;
-    height: 8px;
-    top: -4px;
-    left: -4px;
+    width: 10px;
+    height: 10px;
+    top: -5px;
+    left: -5px;
     border: 1.5px solid limegreen;
     border-radius: 50%;
     box-shadow: 0 0 0 1px rgba(0,0,0,0.85);
