@@ -350,10 +350,12 @@ const SightlineTool_Graphs = {
         const canvas = e.target
         const rect = canvas.getBoundingClientRect()
         const mouseX = e.clientX - rect.left
+        const mouseY = e.clientY - rect.top
         const frac = (mouseX - _hPad.left) / _hPlotW
         if (frac < 0 || frac > 1) {
             SightlineTool_Graphs.removeAzimuthLine()
             SightlineTool_Graphs._hideHoverLine()
+            SightlineTool_Graphs._hideHorizonTooltip()
             return
         }
         const displayAz = -180 + frac * 360
@@ -361,11 +363,13 @@ const SightlineTool_Graphs = {
         if (trueAz < 0) trueAz += 360
         SightlineTool_Graphs._showAzimuthLine(trueAz)
         SightlineTool_Graphs._showHoverLine(mouseX)
+        SightlineTool_Graphs._showHorizonTooltip(trueAz, mouseX, mouseY)
     },
 
     _onHorizonMouseLeave() {
         SightlineTool_Graphs.removeAzimuthLine()
         SightlineTool_Graphs._hideHoverLine()
+        SightlineTool_Graphs._hideHorizonTooltip()
     },
 
     _initHorizonTimeControls() {
@@ -479,6 +483,43 @@ const SightlineTool_Graphs = {
     _hideHoverLine() {
         const line = document.getElementById(HOVER_LINE_ID)
         if (line) line.style.display = 'none'
+    },
+
+    _showHorizonTooltip(trueAz, mouseX, mouseY) {
+        const profile = _horizonCache?.profile
+        if (!profile || profile.length === 0) return
+        // Find closest azimuth in profile
+        const step = 360.0 / profile.length
+        let idx = Math.round(trueAz / step) % profile.length
+        if (idx < 0) idx += profile.length
+        const el = profile[idx][1]
+        const dist = profile[idx][2] || 0
+        // Format distance
+        let distStr
+        if (dist >= 1000) distStr = (dist / 1000).toFixed(2) + ' km'
+        else distStr = Math.round(dist) + ' m'
+        const azStr = trueAz.toFixed(1) + '°'
+        const elStr = el.toFixed(1) + '°'
+
+        const canvas = document.getElementById(HORIZON_CANVAS_ID)
+        if (!canvas) return
+        let tip = document.getElementById('sightlineHorizonTooltip')
+        if (!tip) {
+            tip = document.createElement('div')
+            tip.id = 'sightlineHorizonTooltip'
+            tip.className = 'sightlineHorizonTooltip'
+            canvas.parentElement.appendChild(tip)
+        }
+        tip.textContent = `Az: ${azStr}  El: ${elStr}  Dist: ${distStr}`
+        // Position above cursor
+        tip.style.left = mouseX + 'px'
+        tip.style.top = (mouseY - 28) + 'px'
+        tip.style.display = 'block'
+    },
+
+    _hideHorizonTooltip() {
+        const tip = document.getElementById('sightlineHorizonTooltip')
+        if (tip) tip.style.display = 'none'
     },
 
     _onVisibilityMouseDown(e) {

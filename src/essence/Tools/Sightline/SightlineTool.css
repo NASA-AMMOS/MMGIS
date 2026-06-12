@@ -1210,6 +1210,22 @@
     display: none;
 }
 
+/* ====== Horizon tooltip ====== */
+
+.sightlineHorizonTooltip {
+    position: absolute;
+    pointer-events: none;
+    z-index: 10;
+    display: none;
+    background: rgba(0, 0, 0, 0.8);
+    color: #eee;
+    font-size: 11px;
+    padding: 3px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    transform: translateX(-50%);
+}
+
 /* ====== Graph time controls bar ====== */
 
 .sightlineGraphTimeControls {
