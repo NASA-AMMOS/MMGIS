@@ -5,6 +5,7 @@ import useUIStore from '../../Basics/UserInterface_/store/uiStore'
 import useSightlineStore from './store'
 import calls from '../../../pre/calls'
 import Toast from '../../../design-system/components/Toast/Toast'
+import tippy from 'tippy.js'
 
 const GRAPH_CONTAINER_ID = 'sightlineGraphContainer'
 const HORIZON_CANVAS_ID = 'sightlineHorizonCanvas'
@@ -249,8 +250,8 @@ const SightlineTool_Graphs = {
         const rangeWrap = document.createElement('div')
         rangeWrap.className = 'sightlineHorizonRangeWrap'
         rangeWrap.innerHTML = `
-            <span class="sightlineHorizonRangeLabel">Horizon:</span>
-            <span class="sightlineHorizonRangeValue" id="sightlineHorizonMinLabel">100m</span>
+            <span class="sightlineHorizonRangeLabel" id="sightlineHorizonRangeLabel">Horizon:</span>
+            <span class="sightlineHorizonRangeValue" id="sightlineHorizonMinLabel">1m</span>
             <div class="sightlineHorizonRangeTrack" id="sightlineHorizonRangeTrack">
                 <div class="sightlineHorizonRangeFill" id="sightlineHorizonRangeFill"></div>
                 <div class="sightlineHorizonRangeHandle" id="sightlineHorizonMinHandle" data-handle="min"></div>
@@ -555,7 +556,7 @@ const SightlineTool_Graphs = {
     // Log scale: min range 1m–1000m, max range 5000m–250000m
     _HORIZON_LOG_MIN: Math.log(1),       // ln(1) = 0
     _HORIZON_LOG_MAX: Math.log(250000),  // ln(250000) ≈ 12.43
-    _horizonMinDist: 100,    // default 100m
+    _horizonMinDist: 1,      // default 1m
     _horizonMaxDist: 250000, // default 250km
 
     _logToMeters(frac) {
@@ -633,6 +634,17 @@ const SightlineTool_Graphs = {
         maxHandle.addEventListener('mousedown', onDown)
 
         updatePositions()
+
+        // Tippy tooltip on the "Horizon:" label
+        const label = document.getElementById('sightlineHorizonRangeLabel')
+        if (label) {
+            tippy(label, {
+                content: 'Min/max distance for the horizon profile ray march. The left handle sets how close terrain is sampled (skip nearby clutter) and the right handle sets how far rays search for the skyline.',
+                placement: 'bottom',
+                theme: 'blue',
+                maxWidth: 260,
+            })
+        }
     },
 
     _onVisibilityMouseDown(e) {
