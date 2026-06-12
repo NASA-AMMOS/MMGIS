@@ -109,7 +109,7 @@ NODATA_SENTINEL = -1100101
 
 def load_kernels(package_dir, obs_body, target, is_custom):
     """Load all SPICE kernels, return list of loaded paths."""
-    PATH_TO_KERNELS = '../../spice/kernels/'
+    PATH_TO_KERNELS = '../../../../spice/kernels/'
     kernels = []
 
     for subdir in [
