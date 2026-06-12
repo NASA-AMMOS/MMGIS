@@ -93,16 +93,80 @@ Appears in the results section when there is data to export. Formatted as a row:
 
 Export filenames encode context from the current settings (e.g. `sightline_SUN_MSL-HAZCAM_2024-01-01T000000Z_sweep.csv`).
 
-### Algorithm
+### Algorithms
 
-1. The following are taken and fed into SPICE:
-   - The longitude, latitude, and elevation location at the center of the map (the observer)
-   - The current date
-   - The target/source-entity (which may be an orbiter, the Sun, etc.)
-2. The following are returned
-   - The azimuth, elevation, and range from that location to the target
-     - Source location is assumed to be facing north with no tilt
-   - The longitude, latitude on the map directly under the target and its elevation
-3. All elevation values from the current screen extent and queried
-4. The target's longitude, latitude, elevation are projected onto a plane tangential to the observer
-5. The screen elevation values are placed in an xy grid and the, from the previous values, the target's respective x,y,elev is computed and run through a modified version of [_Generating Viewsheds without Using Sightlines_](https://www.asprs.org/wp-content/uploads/pers/2000journal/january/2000_jan_87-90.pdf) by _Jianjun Wang, Gary J. Robinson, and Kevin White_
+#### Sightmap (Viewshed)
+
+**Endpoint:** `POST /api/sightline/sightmap`
+
+The sightmap computes a 2D visibility grid showing which terrain cells have direct line-of-sight to a source entity.
+
+**Core Algorithm:**
+
+1. **Source position** — SPICE computes the azimuth, elevation, and range from the observer (map center lat/lng/height) to the target entity at the given time. For custom sources, user-supplied az/el is used directly.
+2. **DEM composite** — A terrain raster is read from the configured DEM, padded by `shadowReach` in all directions beyond the viewport to capture shadows cast by off-screen terrain. Resolution is managed (working dim ≤ 4× max) to prevent memory exhaustion.
+3. **Tangent-plane projection** — The observer position and source vector are projected onto a local tangent plane. The source's effective position is expressed as (x, y, z) in a grid-aligned coordinate system.
+4. **Ray-march viewshed** — From each grid cell, a ray is cast toward the source. The algorithm (a modified version of [_Generating Viewsheds without Using Sightlines_](https://www.asprs.org/wp-content/uploads/pers/2000journal/january/2000_jan_87-90.pdf) by _Jianjun Wang, Gary J. Robinson, and Kevin White_) checks if any intervening terrain along the ray exceeds the line-of-sight slope from that cell to the source. If so, the cell is shadowed; otherwise it is visible.
+5. **Output** — A 2D integer grid: `0` = shadowed, `1` = visible from target, `2` = also visible from secondary source (Earth), `8` = no DEM data, `9` = out of bounds.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `dem` | string | — | Path to DEM raster (under `/Missions/`) |
+| `lat`, `lng` | number | — | Observer latitude/longitude |
+| `height` | number | 0 | Observer height above terrain (meters) |
+| `target` | string | — | SPICE target name (e.g. `SUN`, `MRO`) |
+| `time` | string | — | ISO 8601 UTC time (single mode) |
+| `startTime`, `endTime`, `stepSeconds` | string/number | — | Batch sweep parameters |
+| `obsRefFrame` | string | `IAU_MOON` | SPICE observer reference frame |
+| `obsBody` | string | `MOON` | SPICE observer body name |
+| `planetRadius` | number | 0 | Planet radius in meters (curvature correction) |
+| `maxOutputDim` | number | 400 | Max grid dimension (capped at 4096) |
+| `shadowReach` | number | 0 | Extra DEM padding in meters for off-screen shadow casting |
+| `isCustom` | string | `'false'` | If `'true'`, use `customAz`/`customEl` instead of SPICE |
+| `customAz`, `customEl` | number | 0 | Custom source azimuth/elevation (degrees) |
+
+**Performance:**
+
+- **Managed resolution** — Composite DEM working dimension capped at 4× max to prevent OOM on large shadow reach.
+- **Curvature clamp** — Shadow reach is clamped to `√(2 × planetRadius × 10km)`.
+- **Batch streaming** — DEM and SPICE kernels loaded once; each frame only recomputes the source vector. Progress reported per-frame.
+- **Frame limits** — Scale inversely with resolution: 2048 frames at low res, 256 at ultra.
+
+---
+
+#### Horizon Profile
+
+**Endpoint:** `POST /api/sightline/horizonprofile`
+
+The horizon profile computes the terrain skyline as seen from the observer in all azimuth directions.
+
+**Core Algorithm:**
+
+For each azimuth (default 360 directions at 1° intervals):
+
+1. **Ray initialization** — A ray is cast outward from the observer pixel in the DEM. The step direction accounts for non-square pixels.
+2. **Sample terrain** — At each step, terrain elevation is bilinearly interpolated from the DEM grid.
+3. **Curvature correction** — If a planet radius is provided, sampled elevation is reduced by `d² / (2R)` (where `d` = horizontal distance, `R` = planet radius).
+4. **Elevation angle** — `el = atan2(terrain_elev - observer_elev, horizontal_distance)`.
+5. **Track maximum** — The highest elevation angle encountered along the ray is recorded as "the horizon" for that azimuth. The distance to this point is also recorded.
+6. **Output** — An array of `[azimuth_deg, max_elevation_angle_deg, distance_meters]` per azimuth.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `path` | string | — | Path to DEM raster (under `/Missions/`) |
+| `lat`, `lng` | number | — | Observer latitude/longitude |
+| `observerHeight` | number | 0 | Observer height above terrain (meters) |
+| `numAzimuths` | number | 360 | Number of azimuth directions (capped at 3600) |
+| `maxRadius` | number | 5000 | Maximum ray march distance in meters (capped at 500km) |
+| `minSkipRadius` | number | 0 | Skip terrain within this distance (meters) |
+| `planetRadius` | number | 0 | Planet radius in meters (curvature correction; 0 = flat) |
+
+**Performance:**
+
+- **Logarithmic stepping** — Step size: `step = max(1, log₂(r + 1))` pixels. Near the observer steps 1px; at 1000px steps ~10px. Preserves accuracy close-in (where per-pixel angle change is large) while skipping redundant far samples. Reduces ~2500 samples/ray to ~600 at 250km.
+- **Early termination** — After each sample beyond 1km, checks: "Could the tallest plausible terrain (10km relief, minus curvature drop) at this distance beat the current max angle?" If not, the ray stops. Most rays terminate at 50–200 samples.
+- **Combined speedup** — 4–8× fewer samples per ray compared to naïve per-pixel stepping.
