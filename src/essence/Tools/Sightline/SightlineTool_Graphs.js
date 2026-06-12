@@ -1113,16 +1113,9 @@ const SightlineTool_Graphs = {
 
         if (_animFrameId) cancelAnimationFrame(_animFrameId)
         _animFrameId = requestAnimationFrame(() => {
-            if (_horizonCache) {
-                SightlineTool_Graphs._drawHorizonCanvas(
-                    _horizonCache.profile,
-                    effectiveId
-                )
-                SightlineTool_Graphs.drawVisibilityTimeline(effectiveId)
-            } else {
-                // Cache invalidated by pan — re-fetch (redraws both on completion)
-                SightlineTool_Graphs.fetchAndDrawHorizon(effectiveId)
-            }
+            // Always route through fetchAndDrawHorizon — it validates the
+            // cache against the current sweep center and refetches if stale.
+            SightlineTool_Graphs.fetchAndDrawHorizon(effectiveId)
             SightlineTool_Graphs._updateTimeLabel()
             SightlineTool_Graphs._updateSourceAzimuthLines()
             _animFrameId = null
