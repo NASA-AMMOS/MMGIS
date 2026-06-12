@@ -617,7 +617,7 @@ const SightlineTool_Graphs = {
             lng: lng,
             observerHeight: height,
             numAzimuths: 360,
-            maxRadius: 50000,
+            maxRadius: 250000,
             minSkipRadius: 50,
         }
         if (useCurvature) {

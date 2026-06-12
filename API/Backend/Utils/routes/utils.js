@@ -517,7 +517,7 @@ router.post("/gethorizonprofile", function(req,res,next){(router._computeLimiter
   const lng = Number(req.body.lng);
   const observerHeight = Number(req.body.observerHeight || 0);
   const numAzimuths = Math.min(Number(req.body.numAzimuths || 360), 3600);
-  const maxRadius = Math.min(Number(req.body.maxRadius || 5000), 100000);
+  const maxRadius = Math.min(Number(req.body.maxRadius || 5000), 500000);
   const minSkipRadius = Number(req.body.minSkipRadius || 0);
   const planetRadius = Number(req.body.planetRadius || 0);
 
