@@ -109,10 +109,27 @@ router.post("/sightmap", function (req, res, next) {
     timeout: timeoutMs,
   });
 
+  const MAX_STDOUT = 256 * 1024 * 1024; // 256 MB safety cap
   let stdout = '';
   let stderr = '';
-  child.stdout.on('data', (data) => { stdout += data; });
-  child.stderr.on('data', (data) => { stderr += data; });
+  let stdoutOverflow = false;
+  child.stdout.on('data', (data) => {
+    if (stdoutOverflow) return;
+    if (stdout.length + data.length > MAX_STDOUT) {
+      stdoutOverflow = true;
+      child.kill();
+      logger("error", "sightmap output exceeded 256 MB limit — killed process", "server");
+      return;
+    }
+    try { stdout += data; } catch (_) {
+      stdoutOverflow = true;
+      child.kill();
+      logger("error", "sightmap output string allocation failed — killed process", "server");
+    }
+  });
+  child.stderr.on('data', (data) => {
+    if (stderr.length < 1024 * 1024) stderr += data;
+  });
   child.on('error', (err) => {
     logger("error", "sightmap spawn failure:", "server", null, err);
     if (!res.headersSent) res.status(500).json({ error: true, message: "Failed to start Python process" });
@@ -124,6 +141,10 @@ router.post("/sightmap", function (req, res, next) {
   child.stdin.end();
 
   child.on('close', (code) => {
+    if (stdoutOverflow) {
+      if (!res.headersSent) res.status(413).json({ error: true, message: "Sightmap output too large — reduce resolution or area" });
+      return;
+    }
     if (code !== 0) {
       logger("error", "sightmap failure:", "server", null, stderr || stdout);
       // Try to parse the JSON error from stdout (Python prints structured errors)
