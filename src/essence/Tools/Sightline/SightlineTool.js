@@ -1891,8 +1891,8 @@ let SightlineTool = {
         SightlineTool_Export._exportPlaybackGIF(elmId)
     },
 
-    exportCSV: function (elmId) {
-        SightlineTool_Export.exportCSV(elmId)
+    exportGeoTIFF: function (elmId) {
+        SightlineTool_Export.exportGeoTIFF(elmId)
     },
 
     exportGrid: function (elmId) {
