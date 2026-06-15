@@ -12,6 +12,7 @@ const HOVER_LINE_ID = 'sightlineHorizonHoverLine'
 let _hPad = null
 let _hPlotW = 0
 let _horizonCache = null
+let _horizonPolygon = null
 
 const SightlineTool_Horizon = {
     getCache() {
@@ -28,6 +29,60 @@ const SightlineTool_Horizon = {
 
     getLayoutPlotW() {
         return _hPlotW
+    },
+
+    removePolygon() {
+        if (_horizonPolygon) {
+            Map_.map.removeLayer(_horizonPolygon)
+            _horizonPolygon = null
+        }
+    },
+
+    _updatePolygon(profile) {
+        SightlineTool_Horizon.removePolygon()
+
+        if (!profile || profile.length === 0 || !_horizonCache) return
+
+        const R = F_.radiusOfPlanetMajor
+        if (!R || R <= 0) return
+
+        const cLat = _horizonCache.lat
+        const cLng = _horizonCache.lng
+        const toRad = Math.PI / 180
+        const toDeg = 180 / Math.PI
+
+        const latlngs = []
+        for (let i = 0; i < profile.length; i++) {
+            const az = profile[i][0]
+            const dist = profile[i][2] || 0
+            if (dist <= 0) continue
+            const distDeg = (dist / R) * toDeg
+            const lat1 = cLat * toRad
+            const lng1 = cLng * toRad
+            const azRad = az * toRad
+            const d = distDeg * toRad
+            const sinLat1 = Math.sin(lat1)
+            const cosLat1 = Math.cos(lat1)
+            const sinD = Math.sin(d)
+            const cosD = Math.cos(d)
+            const lat2 = Math.asin(sinLat1 * cosD + cosLat1 * sinD * Math.cos(azRad))
+            const lng2 = lng1 + Math.atan2(
+                Math.sin(azRad) * sinD * cosLat1,
+                cosD - sinLat1 * Math.sin(lat2)
+            )
+            latlngs.push([lat2 * toDeg, lng2 * toDeg])
+        }
+
+        if (latlngs.length < 3) return
+
+        _horizonPolygon = L.polygon(latlngs, {
+            color: 'rgba(255, 255, 255, 0.35)',
+            weight: 1,
+            fillColor: 'rgba(255, 255, 255, 0.06)',
+            fillOpacity: 1,
+            interactive: false,
+        })
+        Map_.map.addLayer(_horizonPolygon)
     },
 
     onMouseMove(e, opts) {
@@ -203,6 +258,8 @@ const SightlineTool_Horizon = {
     draw(profile, elmId) {
         const canvas = document.getElementById(HORIZON_CANVAS_ID)
         if (!canvas) return
+
+        SightlineTool_Horizon._updatePolygon(profile)
 
         const store = useSightlineStore.getState()
         const dpr = window.devicePixelRatio || 1

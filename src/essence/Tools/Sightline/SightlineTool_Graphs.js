@@ -98,6 +98,7 @@ const SightlineTool_Graphs = {
 
         SightlineTool_Graphs.removeAzimuthLine()
         SightlineTool_Graphs._removeSourceAzimuthLines()
+        SightlineTool_Horizon.removePolygon()
 
         const container = document.getElementById(GRAPH_CONTAINER_ID)
         if (container) container.remove()

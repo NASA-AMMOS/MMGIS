@@ -858,10 +858,10 @@ let SightlineTool = {
             reverse: false, bins: 6,
         })
 
-        // 6. White to Black (single gradient)
+        // 6. Black to White (single gradient)
         ramps.push({
-            name: 'WhiteBlack', label: 'White → Black',
-            colors: [[1, 1, 1], [0, 0, 0]],
+            name: 'BlackWhite', label: 'Black → White',
+            colors: [[0, 0, 0], [1, 1, 1]],
             reverse: false, bins: 1,
         })
 
