@@ -44,9 +44,13 @@
 #   the log step is further multiplied by 3; when moderate (>2°) by 1.5.
 # - Early cutoff: the march is limited to MAX_TERRAIN_H / tan(source_el)
 #   pixels, beyond which no terrain could possibly occlude the source.
-# - Curvature-based early termination: beyond a distance where the curvature
-#   drop exceeds MAX_TERRAIN_H, no terrain can reach the source, so the march
-#   stops.
+# - Curvature-based pre-march cutoff: the max march distance is capped where
+#   curvature drop exceeds MAX_TERRAIN_H.
+# - In-march early termination: at each sample, checks if the best-case
+#   terrain angle (MAX_TERRAIN_H minus curvature drop at current distance)
+#   is below the source elevation — if so, no further terrain can block
+#   and the ray stops immediately.  This is especially effective for high-
+#   elevation sources where nearby terrain quickly rules out distant occlusion.
 # - Configurable min/max distance: samples within minDistance (meters) are
 #   skipped; the march stops beyond maxDistance (meters).
 #
@@ -681,6 +685,19 @@ def _numba_march_kernel(result_flat, dem, px_flat, py_flat, dx_flat, dy_flat,
                 blocked = True
                 break
 
+            # Early termination: if no terrain beyond this distance
+            # could possibly reach the source elevation, cell is lit.
+            # Best-case angle from distance r: atan2(MAX_H - curv_drop, dist)
+            if planet_radius > 0.0:
+                curv_drop = (dist_m * dist_m) / (2.0 * planet_radius)
+                best_h = MAX_TERRAIN_H - curv_drop
+            else:
+                best_h = MAX_TERRAIN_H
+            if best_h > 0.0:
+                best_angle = math.atan2(best_h - cell_h, dist_m) * RAD2DEG
+                if best_angle < cell_el:
+                    break
+
             # Progressive step: combine distance-based log scaling with
             # margin-based acceleration.  Near the observer every pixel
             # matters; far away, terrain must be very tall to matter.
@@ -1126,8 +1143,9 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
                 obs_ref_frame, obs_body
             )
 
-    # Working DEM: 2× output grid for terrain detail, min 500px.
-    working_dim = max(max_output_dim * 2, 500)
+    # Working DEM: match output resolution — rays march through this array,
+    # so smaller = fewer samples per ray.  The output grid step becomes 1.
+    working_dim = max(max_output_dim, 256)
     vp_off_row = 0
     vp_off_col = 0
     if shadow_reach > 0 and viewport_bounds is not None:
@@ -1208,7 +1226,7 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
                 'obs_el': obs_el,
             })
 
-    working_dim = max(max_output_dim * 2, 500)
+    working_dim = max(max_output_dim, 256)
     vp_off_row = 0
     vp_off_col = 0
     if shadow_reach > 0 and viewport_bounds is not None:
