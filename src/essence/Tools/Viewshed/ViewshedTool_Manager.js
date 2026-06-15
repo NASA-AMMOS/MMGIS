@@ -104,20 +104,42 @@ let ViewshedTool_Manager = {
         let min = minPx.divideBy(256).floor()
         let max = maxPx.divideBy(256).floor()
 
-        // Clamp to bounding box if the data source defines one
+        // Clamp to bounding box if the data source defines one.
+        // Sample multiple points around the bbox perimeter so that
+        // non-equirectangular projections (e.g. polar stereographic)
+        // produce a correct pixel-space envelope.
         const rawBbox = this.data[viewshedId].dataLayer.boundingBox
         const bbox = Array.isArray(rawBbox)
             ? rawBbox.map(Number)
             : null
         let bboxTileBounds = null
         if (bbox && bbox.length === 4 && bbox.every((v) => !isNaN(v))) {
-            const bboxMinPx = Map_.map.project(L.latLng(bbox[1], bbox[0]), zoom)
-            const bboxMaxPx = Map_.map.project(L.latLng(bbox[3], bbox[2]), zoom)
+            const samples = 8
+            let pxMinX = Infinity
+            let pxMinY = Infinity
+            let pxMaxX = -Infinity
+            let pxMaxY = -Infinity
+            for (let s = 0; s <= samples; s++) {
+                const t = s / samples
+                const pts = [
+                    L.latLng(bbox[1], bbox[0] + t * (bbox[2] - bbox[0])),
+                    L.latLng(bbox[3], bbox[0] + t * (bbox[2] - bbox[0])),
+                    L.latLng(bbox[1] + t * (bbox[3] - bbox[1]), bbox[0]),
+                    L.latLng(bbox[1] + t * (bbox[3] - bbox[1]), bbox[2]),
+                ]
+                for (let p = 0; p < pts.length; p++) {
+                    const px = Map_.map.project(pts[p], zoom)
+                    if (px.x < pxMinX) pxMinX = px.x
+                    if (px.y < pxMinY) pxMinY = px.y
+                    if (px.x > pxMaxX) pxMaxX = px.x
+                    if (px.y > pxMaxY) pxMaxY = px.y
+                }
+            }
             bboxTileBounds = {
-                minX: Math.floor(bboxMinPx.x / 256),
-                minY: Math.floor(bboxMaxPx.y / 256),
-                maxX: Math.ceil(bboxMaxPx.x / 256) - 1,
-                maxY: Math.ceil(bboxMinPx.y / 256) - 1,
+                minX: Math.floor(pxMinX / 256),
+                minY: Math.floor(pxMinY / 256),
+                maxX: Math.floor(pxMaxX / 256),
+                maxY: Math.floor(pxMaxY / 256),
             }
             min.x = Math.max(min.x, bboxTileBounds.minX)
             min.y = Math.max(min.y, bboxTileBounds.minY)

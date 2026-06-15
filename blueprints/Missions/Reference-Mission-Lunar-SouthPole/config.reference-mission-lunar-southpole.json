@@ -1,4 +1,10 @@
 {
+  "coordinates": {
+    "coordll": true,
+    "coorden": true,
+    "coordelev": true,
+    "coordelevurl": "Data/DEMs/LRO_LOLA_DEM_4000m.tif"
+  },
   "msv": {
     "mission": "Reference-Mission-Lunar-SouthPole",
     "missionFolderName": "Reference-Mission-Lunar-SouthPole",
@@ -62,6 +68,19 @@
     "helpurl": "",
     "aboutModalContent": ""
   },
+  "time": {
+    "enabled": true,
+    "visible": true,
+    "initiallyOpen": true,
+    "startInPointMode": false,
+    "format": "%Y-%m-%dT%H:%M:%SZ",
+    "initialstart": "2027-01-01T00:00:00Z",
+    "initialend": "2027-01-15T00:00:00Z",
+    "loop": false,
+    "loopDelay": 0,
+    "step": 3600,
+    "relativeto": null
+  },
   "panels": {
     "viewer": true,
     "map": true,
@@ -104,6 +123,31 @@
       "type": "header",
       "uuid": "1d9926e5-2bac-4de8-996f-f70dfd39eb76",
       "sublayers": [
+        {
+          "name": "Elevation - RGBA Tiles",
+          "uuid": "e3f7a2b1-6c4d-4e8f-a9b0-1d2c3e4f5a6b",
+          "type": "data",
+          "visibility": false,
+          "demSourceType": "url",
+          "demtileurl": "Layers/dem_rgba_tiles/{z}/{x}/{y}.png",
+          "demparser": "rgba",
+          "tileformat": "tms",
+          "minZoom": 0,
+          "maxNativeZoom": 6,
+          "maxZoom": 9,
+          "boundingBox": [
+            -180,
+            -90,
+            180,
+            -60
+          ],
+          "controlled": false,
+          "description": "Lunar south pole 100m DEM encoded as RGBA PNG tiles (100km x 100km centered on pole).",
+          "initialOpacity": 1,
+          "style": {
+            "className": "elevation-rgbatiles"
+          }
+        },
         {
           "name": "South Pole 100m",
           "uuid": "a4c8e1f2-7b3d-4e5a-9f6c-2d1e0b8a7c3f",
@@ -192,6 +236,42 @@
       "variables": {
         "onlyShowDemIfLayerOn": false,
         "defaultMode": "segment"
+      }
+    },
+    {
+      "name": "Sightline",
+      "icon": "brightness-4",
+      "js": "SightlineTool",
+      "variables": {
+        "dem": "Data/DEMs/LRO_LOLA_DEM_4000m.tif",
+        "sources": [
+          {
+            "name": "Sun",
+            "value": "SUN"
+          },
+          {
+            "name": "Earth",
+            "value": "EARTH"
+          }
+        ],
+        "observers": [
+          {
+            "name": "Moon (UTC)",
+            "value": "MOON",
+            "frame": "IAU_MOON",
+            "body": "MOON"
+          },
+          {
+            "name": "Moon (LSMT)",
+            "value": "MOON_LSMT",
+            "frame": "IAU_MOON",
+            "body": "MOON",
+            "type": "lsmt"
+          }
+        ],
+        "defaultHeight": 0,
+        "observerTimePlaceholder": "LDAY-NNNNNLHH:MM:SS",
+        "utcTimeFormat": "%Y-%m-%dT%H:%M:%SZ"
       }
     }
   ]

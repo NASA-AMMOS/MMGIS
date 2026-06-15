@@ -28,6 +28,7 @@ import DeleteConfigModal from "./Modals/DeleteConfigModal/DeleteConfigModal";
 const REFERENCE_MISSION_NAMES = new Set([
   "Reference-Mission",
   "Reference-Mission-Lunar-SouthPole",
+  "Reference-Mission-Mars",
 ]);
 
 const useStyles = makeStyles((theme) => ({

@@ -1,6 +1,6 @@
 {
   "name": "mmgis",
-  "version": "5.0.21-20260603",
+  "version": "5.1.1-20260615",
   "description": "A web-based mapping and localization solution for science operation on planetary missions.",
   "homepage": "build",
   "repository": {
@@ -71,9 +71,6 @@
     "start:test": "cross-env NODE_ENV=test PORT=18888 DB_NAME=mmgis-test HIDE_CONFIG=false node scripts/server.js"
   },
   "dependencies": {
-    "@azure/ai-agents": "^1.0.0-beta.1",
-    "@azure/core-auth": "^1.7.2",
-    "@azure/identity": "^4.4.0",
     "@babel/runtime": "^7.23.1",
     "@base-ui/react": "^1.5.0",
     "@eonasdan/tempus-dominus": "^6.2.6",

@@ -59,6 +59,28 @@
     100% { background-position: -200% 0; }
 }
 
+.indeterminate {
+    background: var(--color-a1);
+    color: var(--color-l);
+    cursor: default;
+}
+
+.indeterminateFill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 40%;
+    background: var(--color-c);
+    pointer-events: none;
+    animation: indeterminateSlide 1.4s ease-in-out infinite;
+}
+
+@keyframes indeterminateSlide {
+    0% { left: -40%; }
+    100% { left: 100%; }
+}
+
 .label {
     position: relative;
     z-index: 1;

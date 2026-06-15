@@ -6,7 +6,7 @@ import F_ from '../Formulae_/Formulae_'
  * Native MMGIS projection utility.
  *
  * Replicates the tile ↔ lat/lng conversions from LithoSphere's Projection
- * class so that tools like Viewshed and Shade work regardless of the active
+ * class so that tools like Viewshed and Sightline work regardless of the active
  * 3D renderer (LithoSphere *or* Cesium).
  *
  * Two code-paths:
