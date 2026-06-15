@@ -36,10 +36,12 @@
 #
 # Optimizations
 # -------------
-# - Adaptive step size: when the margin between source elevation and the
-#   current max elevation angle is large (>5°), the march step is multiplied
-#   by 4; when moderate (>2°), by 2.  This dramatically reduces iterations for
-#   cells far from the shadow boundary.
+# - Progressive log₂ stepping: step size scales as max(1, log₂(r+1)) × base,
+#   where r is the current distance in pixels.  Near the observer (r < 2) every
+#   pixel is sampled; at r = 1000 the step grows to ~10× base; at r = 25000
+#   it reaches ~15× base.  This is combined with margin-based acceleration:
+#   when the margin between source elevation and max_el_angle is large (>5°)
+#   the log step is further multiplied by 3; when moderate (>2°) by 1.5.
 # - Early cutoff: the march is limited to MAX_TERRAIN_H / tan(source_el)
 #   pixels, beyond which no terrain could possibly occlude the source.
 # - Curvature-based early termination: beyond a distance where the curvature
@@ -643,7 +645,6 @@ def _numba_march_kernel(result_flat, dem, px_flat, py_flat, dx_flat, dy_flat,
 
         max_el_angle = -90.0
         r = max(march_step, min_march_px) if min_march_px > 0.0 else march_step
-        cur_step = march_step
         blocked = False
 
         while r < cutoff:
@@ -659,10 +660,10 @@ def _numba_march_kernel(result_flat, dem, px_flat, py_flat, dx_flat, dy_flat,
 
             abs_s = abs(sample)
             if has_nd and abs_s >= nd_lo and abs_s <= nd_hi:
-                r += cur_step
+                r += march_step
                 continue
             if abs_s > 35000.0 or sample == 1010101.0:
-                r += cur_step
+                r += march_step
                 continue
 
             dist_m = r * pixel_scale
@@ -680,14 +681,18 @@ def _numba_march_kernel(result_flat, dem, px_flat, py_flat, dx_flat, dy_flat,
                 blocked = True
                 break
 
-            # Adaptive step: larger steps when far from shadow threshold
+            # Progressive step: combine distance-based log scaling with
+            # margin-based acceleration.  Near the observer every pixel
+            # matters; far away, terrain must be very tall to matter.
+            # log2(r+1) grows from 1 at r=1 to ~11 at r=1000 to ~15 at r=25000
+            log_step = march_step * max(1.0, math.log2(r + 1.0))
             margin = cell_el - max_el_angle
             if margin > 5.0:
-                cur_step = march_step * 4.0
+                cur_step = log_step * 3.0
             elif margin > 2.0:
-                cur_step = march_step * 2.0
+                cur_step = log_step * 1.5
             else:
-                cur_step = march_step
+                cur_step = log_step
 
             r += cur_step
 
