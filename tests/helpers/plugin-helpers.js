@@ -3,8 +3,8 @@
  * directory and cleaning them up afterwards.
  *
  * Plugins live under `plugins/<containerName>/<type>/<PluginName>/`.
- * The unified discovery scans `plugins/*/tools/`, `plugins/*/backend/`,
- * and `plugins/*/components/`.
+ * The unified discovery scans plugins/{container}/tools/,
+ * plugins/{container}/backend/, and plugins/{container}/components/.
  *
  * These helpers are designed for **unit and E2E tests only** — they
  * physically copy directories into the plugins tree, so tests that use
