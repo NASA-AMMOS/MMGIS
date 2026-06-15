@@ -368,6 +368,7 @@ let SightlineTool = {
         _compositeHoverRaf = requestAnimationFrame(() => {
             _compositeHoverRaf = null
             const store = useSightlineStore.getState()
+            const isProj = _isCustomProjectedCRS()
 
             for (const id in store.sweepElData) {
                 const ed = store.sweepElData[id]
@@ -375,7 +376,9 @@ let SightlineTool = {
                 if (!ed?.heatmap || !ed?.lastData || el?.sightlineMode !== 'composite') continue
                 const data = ed.lastData
                 const heatmap = ed.heatmap
-                const bounds = data._bounds
+
+                // Use projected bounds when in a projected CRS, geographic otherwise
+                const bounds = isProj && data._projBounds ? data._projBounds : data._bounds
                 if (!bounds || bounds.length < 4) {
                     store.setSweepElField(parseInt(id), 'hoverFrac', null)
                     continue
