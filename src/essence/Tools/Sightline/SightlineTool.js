@@ -363,12 +363,22 @@ let SightlineTool = {
 
     _onCompositeHover: function (e) {
         if (_compositeHoverRaf) return
-        const lat = e.latlng.lat
-        const lng = e.latlng.lng
+        const latlng = e.latlng
         _compositeHoverRaf = requestAnimationFrame(() => {
             _compositeHoverRaf = null
             const store = useSightlineStore.getState()
             const isProj = _isCustomProjectedCRS()
+
+            // In projected CRS, convert geographic latlng to projected coords
+            let mouseX, mouseY
+            if (isProj && Map_.map.options.crs && typeof Map_.map.options.crs.project === 'function') {
+                const pt = Map_.map.options.crs.project(latlng)
+                mouseX = pt.x
+                mouseY = pt.y
+            } else {
+                mouseX = latlng.lng
+                mouseY = latlng.lat
+            }
 
             for (const id in store.sweepElData) {
                 const ed = store.sweepElData[id]
@@ -377,7 +387,6 @@ let SightlineTool = {
                 const data = ed.lastData
                 const heatmap = ed.heatmap
 
-                // Use projected bounds when in a projected CRS, geographic otherwise
                 const bounds = isProj && data._projBounds ? data._projBounds : data._bounds
                 if (!bounds || bounds.length < 4) {
                     store.setSweepElField(parseInt(id), 'hoverFrac', null)
@@ -392,8 +401,8 @@ let SightlineTool = {
                     continue
                 }
 
-                const col = Math.floor(((lng - west) / (east - west)) * cols)
-                const row = Math.floor(((north - lat) / (north - south)) * rows)
+                const col = Math.floor(((mouseX - west) / (east - west)) * cols)
+                const row = Math.floor(((north - mouseY) / (north - south)) * rows)
 
                 if (row < 0 || col < 0 || row >= rows || !heatmap[row] || col >= cols) {
                     store.setSweepElField(parseInt(id), 'hoverFrac', null)
