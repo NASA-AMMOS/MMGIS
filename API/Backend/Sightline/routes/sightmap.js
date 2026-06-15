@@ -95,14 +95,15 @@ router.post("/sightmap", function (req, res, next) {
   }
   const payload = JSON.stringify(payloadObj);
 
-  // Batch mode may take much longer (N timestamps × ~10s each)
-  let timeoutMs = 120000;
+  // 3-minute timeout for single-frame; batch scales with frame count (up to 30 min).
+  // Python has no internal timeout — Node is the sole timeout authority.
+  let timeoutMs = 180000;
   if (isBatch) {
     const stepSec = Number(req.body.stepSeconds);
     const startMs = new Date(String(req.body.startTime)).getTime();
     const endMs = new Date(String(req.body.endTime)).getTime();
     const frameCount = Math.floor((endMs - startMs) / (stepSec * 1000)) + 1;
-    timeoutMs = Math.min(frameCount * 30000, 1800000);
+    timeoutMs = Math.max(180000, Math.min(frameCount * 30000, 1800000));
   }
 
   const child = spawn("python", [path.join(scriptsDir, "sightmap.py")], {
