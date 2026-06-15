@@ -43,6 +43,11 @@ const c = {
         type: 'POST',
         url: 'api/utils/ll2aerll',
     },
+    ll2aerll_bulk: {
+        type: 'POST',
+        url: 'api/utils/ll2aerll_bulk',
+        json: true,
+    },
     chronice: {
         type: 'POST',
         url: 'api/utils/chronice',
@@ -163,6 +168,14 @@ const c = {
         type: 'GET',
         url: 'api/utils/queryTilesetTimes',
     },
+    gethorizonprofile: {
+        type: 'POST',
+        url: 'api/sightline/horizonprofile',
+    },
+    sightmap: {
+        type: 'POST',
+        url: 'api/sightline/sightmap',
+    },
 }
 
 function api(call, data, success, error) {
@@ -179,17 +192,24 @@ function api(call, data, success, error) {
 
     if (window.mmgisglobal.test === true) data.test = true
 
-    $.ajax({
+    const ajaxOpts = {
         type: c[call].type,
         url: `${
             window.mmgisglobal.ROOT_PATH
                 ? window.mmgisglobal.ROOT_PATH + '/'
                 : ''
         }${c[call].url}`,
-        data: data,
+        data: c[call].json ? JSON.stringify(data) : data,
         xhrFields: {
             withCredentials: true,
         },
+    }
+    if (c[call].json) {
+        ajaxOpts.contentType = 'application/json'
+    }
+
+    $.ajax({
+        ...ajaxOpts,
         success: function (data) {
             if (
                 !data.hasOwnProperty('status') ||
@@ -202,9 +222,11 @@ function api(call, data, success, error) {
                 else if (typeof error === 'function') error(data)
             }
         },
-        error: function () {
+        error: function (jqXHR) {
             console.warn('error')
-            if (typeof error === 'function') error()
+            let parsed
+            try { parsed = JSON.parse(jqXHR.responseText) } catch (_) {}
+            if (typeof error === 'function') error(parsed || {})
         },
     })
 }

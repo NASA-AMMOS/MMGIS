@@ -5161,7 +5161,7 @@ function interfaceWithMMGIS(fromInit) {
         AnalysisTool.updateGenerateButtonState()
     }
 
-    // Subscribe to TimeControl changes like ShadeTool does
+    // Subscribe to TimeControl changes like SightlineTool does
     TimeControl.subscribe('AnalysisTool', (t) => {
         AnalysisTool.timeChange()
     })

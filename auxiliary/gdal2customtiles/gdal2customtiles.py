@@ -4927,7 +4927,7 @@ def single_threaded_tiling(
     if options.verbose:
         print("Begin tiles details calc")
     conf, tile_details = worker_tile_details(
-        input_file, output_folder, options)
+        input_file, output_folder, options, None)
 
     if options.base_every_zoom:
         sys.exit('Done!')

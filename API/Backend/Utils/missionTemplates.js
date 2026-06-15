@@ -25,6 +25,13 @@ const REFERENCE_MISSION_VARIANTS = {
         label: 'Lunar South Pole',
         description: 'South polar stereographic mission (IAU2000:30120)',
     },
+    Mars: {
+        missionName: 'Reference-Mission-Mars',
+        blueprintDir: 'Reference-Mission-Mars',
+        configFile: 'config.reference-mission-mars.json',
+        label: 'Mars',
+        description: 'Mars mission stub with SightlineTool (Sol observers)',
+    },
 };
 
 /**

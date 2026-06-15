@@ -187,6 +187,17 @@
     text-transform: capitalize;
     color: var(--color-a5);
 }
+/* Tool-added indicator lines on the timeline */
+.mmgisTimeUIIndicatorLine {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 2px solid red;
+    pointer-events: none;
+    z-index: 4;
+}
+
 /* Start/End wrappers intentionally left for future styling hooks */
 #mmgisTimeUIActionsLeft,
 #mmgisTimeUIActionsRight {
@@ -466,9 +477,10 @@
 #mmgisTimeUITimelineExtent {
     height: 100%;
     position: absolute;
-    background: rgb(96, 78, 26, 0.7);
+    background: rgba(96, 78, 26, 0.2);
     transition: opacity 0.2s ease-out;
-    z-index: -1;
+    z-index: 1;
+    pointer-events: none;
     max-width: 100%;
 }
 

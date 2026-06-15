@@ -1,0 +1,36 @@
+.group {
+    display: inline-flex;
+    gap: 0;
+}
+
+.option {
+    background: var(--color-a);
+    color: var(--color-a5);
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+    transition: color 0.12s, border-color 0.12s;
+    white-space: nowrap;
+}
+.option:hover {
+    color: var(--color-f);
+}
+.option.active {
+    color: var(--color-f);
+    font-weight: 600;
+    border-bottom-color: var(--color-mmgis);
+}
+
+/* Sizes */
+.sm .option {
+    padding: 2px 8px;
+    font-size: 11px;
+}
+.md .option {
+    padding: 3px 12px;
+    font-size: 12px;
+}

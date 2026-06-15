@@ -1,0 +1,207 @@
+{
+  "coordinates": {
+    "coordll": true,
+    "coorden": true,
+    "coordelev": true,
+    "coordelevurl": "Data/DEMs/missionDEM_20m_COG.tif"
+  },
+  "msv": {
+    "mission": "Reference-Mission-Mars",
+    "missionFolderName": "Reference-Mission-Mars",
+    "site": "Mars",
+    "masterdb": false,
+    "view": [
+      -4.71,
+      137.39,
+      14
+    ],
+    "radius": {
+      "major": "3396190",
+      "minor": "3376200"
+    },
+    "mapscale": "5"
+  },
+  "projection": {
+    "custom": false,
+    "epsg": "IAU2000:49900",
+    "proj": "+proj=longlat +a=3396190 +b=3376200 +no_defs",
+    "globeproj": "",
+    "xmlpath": "",
+    "bounds": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "origin": [
+      "",
+      ""
+    ],
+    "reszoomlevel": "",
+    "resunitsperpixel": ""
+  },
+  "look": {
+    "pagename": "Reference-Mission-Mars",
+    "missionname": "Reference-Mission-Mars",
+    "minimalist": false,
+    "topbar": true,
+    "toolbar": true,
+    "scalebar": true,
+    "noscalebar": false,
+    "coordinates": true,
+    "zoomcontrol": true,
+    "graticule": false,
+    "miscellaneous": true,
+    "timestamp": false,
+    "radiusdivs": false,
+    "bodycolor": "",
+    "topbarcolor": "",
+    "toolbarcolor": "",
+    "mapcolor": "",
+    "swap": true,
+    "copylink": true,
+    "screenshot": true,
+    "fullscreen": true,
+    "help": true,
+    "logourl": "",
+    "helpurl": "",
+    "aboutModalContent": ""
+  },
+  "time": {
+    "enabled": true,
+    "visible": true,
+    "initiallyOpen": true,
+    "startInPointMode": false,
+    "format": "%Y-%m-%dT%H:%M:%SZ",
+    "initialstart": "2024-01-01T00:00:00Z",
+    "initialend": "2024-01-20T00:00:00Z",
+    "loop": false,
+    "loopDelay": 0,
+    "step": 3600,
+    "relativeto": null
+  },
+  "panels": {
+    "viewer": false,
+    "map": true,
+    "globe": false,
+    "defaultWidths": {
+      "viewer": 0,
+      "map": 100,
+      "globe": 0
+    }
+  },
+  "layers": [
+    {
+      "name": "Basemap",
+      "type": "header",
+      "uuid": "a2f4c8e1-3b7d-4e9a-b0f6-1c2d3e4f5a6b",
+      "sublayers": [
+        {
+          "name": "Gale HiRISE Color",
+          "uuid": "a87fa987-b99f-409a-82b9-218a2bc581d3",
+          "type": "tile",
+          "visibility": true,
+          "sourceType": "url",
+          "url": "https://mars.nasa.gov/mmgis-maps/MSL/Layers/MSL_Gale_HiRISE-LRGB_78quads/{z}/{x}/{y}.png",
+          "tileformat": "tms",
+          "controlled": false,
+          "initialOpacity": 1,
+          "minZoom": 10,
+          "maxNativeZoom": 18,
+          "maxZoom": 28,
+          "demtileurl": "Layers/dem_rgba_tiles/{z}/{x}/{y}.png",
+          "demparser": "rgba",
+          "boundingBox": [
+            "137.32672354505786",
+            "-4.87560429259321",
+            "137.4785574965306",
+            "-4.55506331169111"
+          ],
+          "throughTileServer": false,
+          "cogResampling": "nearest",
+          "cogExpressionEditable": false,
+          "cogTransform": false,
+          "cogColormap": "Accent",
+          "style": {
+            "brightness": 1,
+            "contrast": 1,
+            "saturation": 1,
+            "blend": "none"
+          },
+          "time": {
+            "enabled": false,
+            "type": "requery",
+            "compositeTile": false,
+            "refreshIntervalEnabled": false
+          },
+          "variables": {
+            "legendOrientation": "vertical"
+          },
+          "description": "Mars 20m/pixel hillshade basemap tiles."
+        }
+      ],
+      "expanded": true,
+      "description": ""
+    }
+  ],
+  "tools": [
+    {
+      "name": "Layers",
+      "icon": "layers",
+      "js": "LayersTool"
+    },
+    {
+      "name": "Measure",
+      "icon": "tape-measure",
+      "js": "MeasureTool",
+      "variables": {
+        "dem": "Data/DEMs/missionDEM_20m_COG.tif",
+        "onlyShowDemIfLayerOn": false,
+        "defaultMode": "segment"
+      }
+    },
+    {
+      "name": "Sightline",
+      "icon": "brightness-4",
+      "js": "SightlineTool",
+      "variables": {
+        "dem": "Data/DEMs/missionDEM_20m_COG.tif",
+        "sources": [
+          {
+            "name": "Sun",
+            "value": "SUN"
+          },
+          {
+            "name": "Earth",
+            "value": "EARTH"
+          },
+          {
+            "name": "ODY",
+            "value": "-53"
+          },
+          {
+            "name": "TGO",
+            "value": "-143"
+          }
+        ],
+        "observers": [
+          {
+            "name": "MSL (Sol)",
+            "value": "MSL",
+            "frame": "IAU_MARS",
+            "body": "MARS"
+          },
+          {
+            "name": "Mars 2020 (Sol)",
+            "value": "MARS2020",
+            "frame": "IAU_MARS",
+            "body": "MARS"
+          }
+        ],
+        "defaultHeight": 0,
+        "observerTimePlaceholder": "SOL-ddddMhh:mm:ss",
+        "utcTimeFormat": "%Y-%j %H:%M:%S"
+      }
+    }
+  ]
+}

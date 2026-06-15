@@ -178,7 +178,7 @@ class GlobeRenderer {
             link: {},
         }
 
-        // Build a real projection so tools (Viewshed, Shade) work with any CRS
+        // Build a real projection so tools (Viewshed, Sightline) work with any CRS
         this.projection = Projection_.buildFromConfig(this.config)
         this._ = {}
         this.options = {}

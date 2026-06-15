@@ -3687,26 +3687,29 @@
       }
     },
     {
-      "name": "Shade",
-      "icon": "sun-angle-outline",
-      "js": "ShadeTool",
+      "name": "Sightline",
+      "icon": "brightness-4",
+      "js": "SightlineTool",
       "variables": {
         "dem": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
-        "data": [
-          {
-            "name": "USGS SF DEM (tileset required)",
-            "demtileurl": "Data/dem-tiles/{z}/{x}/{y}.png",
-            "minZoom": 8,
-            "maxNativeZoom": 18
-          }
-        ],
         "sources": [
           {
             "name": "Sun",
             "value": "SUN"
+          },
+          {
+            "name": "Moon",
+            "value": "MOON"
           }
         ],
-        "observers": [],
+        "observers": [
+          {
+            "name": "Earth (UTC)",
+            "value": "EARTH",
+            "frame": "IAU_EARTH",
+            "body": "EARTH"
+          }
+        ],
         "defaultHeight": 0,
         "observerTimePlaceholder": "YYYY-MM-DD HH:MM:SS",
         "utcTimeFormat": "%Y-%m-%d %H:%M:%S"

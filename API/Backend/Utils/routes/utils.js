@@ -6,12 +6,13 @@ const express = require("express");
 const router = express.Router();
 const fs = require("fs");
 const path = require("path");
-const exec = require("child_process").exec;
 const execFile = require("child_process").execFile;
+const spawn = require("child_process").spawn;
 
 const Sequelize = require("sequelize");
 const { sequelizeSTAC } = require("../../../connection");
 const logger = require("../../../logger");
+const validateMissionsPath = require("../../../validateMissionsPath");
 
 const rootDir = `${__dirname}/../../../..`;
 
@@ -46,41 +47,15 @@ function getDirsInRange(prepath, starttime, endtime) {
   }
 */
 function queryTilesetTimesDir(req, res) {
-  const originalUrl = req.query.path;
-
-  // Security: Decode URL encoding to catch encoded path traversal attempts
-  // Handle multiple levels of encoding
-  let decodedUrl = originalUrl;
-  let previousUrl = '';
-  while (decodedUrl !== previousUrl) {
-    previousUrl = decodedUrl;
-    try {
-      decodedUrl = decodeURIComponent(decodedUrl);
-    } catch (e) {
-      // Invalid URL encoding, reject
-      res.send({
-        status: "failure",
-        message: "Invalid URL encoding in path.",
-      });
-      return;
-    }
-  }
-
-  if (!decodedUrl.startsWith("/Missions")) {
-    res.send({
-      status: "failure",
-      message: "Only paths beginning with '/Missions' are supported.",
-    });
+  const pathResult = validateMissionsPath(req.query.path);
+  if (pathResult.error) {
+    res.send({ status: "failure", message: pathResult.error });
     return;
   }
-  // Security: Block path traversal sequences (after decoding)
-  if (decodedUrl.includes('..')) {
-    res.send({
-      status: "failure",
-      message: "Invalid path: traversal sequences not allowed.",
-    });
-    return;
-  }
+  const decodedUrl = pathResult.decoded;
+  const resolvedPath = pathResult.resolved;
+  const allowedBase = path.resolve(rootDir, 'Missions');
+
   if (
     req.query.starttime == null ||
     req.query.endtime == null ||
@@ -95,24 +70,6 @@ function queryTilesetTimesDir(req, res) {
   }
 
   const relUrl = decodedUrl.replace("/Missions", "");
-
-  // Security: Validate resolved path stays within allowed directory
-  // This prevents path traversal via URL encoding or other techniques
-  const targetPath = path.join(rootDir, decodedUrl);
-  const resolvedPath = path.resolve(targetPath);
-  const allowedBase = path.resolve(rootDir, 'Missions');
-
-  // Normalize paths for comparison (handle Windows/Unix differences)
-  const normalizedResolved = resolvedPath.replace(/\\/g, '/');
-  const normalizedBase = allowedBase.replace(/\\/g, '/');
-
-  if (!normalizedResolved.startsWith(normalizedBase)) {
-    res.send({
-      status: "failure",
-      message: "Invalid path: access denied.",
-    });
-    return;
-  }
 
   if (decodedUrl.indexOf("_time_") > -1) {
     // Find _time_ marker only after the allowedBase prefix, so any
@@ -407,6 +364,67 @@ router.post("/ll2aerll", function(req,res,next){(router._computeLimiter||functio
   );
 });
 
+
+//utils ll2aerll_bulk (batch time queries, kernels loaded once)
+router.post("/ll2aerll_bulk", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
+  const MAX_TIMES = 1000;
+  if (!Array.isArray(req.body.times) || req.body.times.length === 0) {
+    return res.status(400).json({ error: true, message: "times must be a non-empty array" });
+  }
+  if (req.body.times.length > MAX_TIMES) {
+    return res.status(400).json({ error: true, message: "times array exceeds maximum of " + MAX_TIMES + " entries" });
+  }
+  if (req.body.lng == null || req.body.lat == null || req.body.height == null || !req.body.target) {
+    return res.status(400).json({ error: true, message: "lng, lat, height, and target are required" });
+  }
+  // Validate string fields used in filesystem path construction in Python.
+  // Only allow alphanumeric, underscore, hyphen (SPICE body/frame names).
+  const SAFE_NAME_RE = /^[A-Za-z0-9_-]+$/;
+  const target = String(req.body.target);
+  const obsRefFrame = String(req.body.obsRefFrame || "IAU_MARS");
+  const obsBody = String(req.body.obsBody || "MARS");
+  if (!SAFE_NAME_RE.test(target) || !SAFE_NAME_RE.test(obsRefFrame) || !SAFE_NAME_RE.test(obsBody)) {
+    return res.status(400).json({ error: true, message: "target, obsRefFrame, and obsBody must contain only alphanumeric, underscore, or hyphen characters" });
+  }
+  const inputData = {
+    lng: req.body.lng,
+    lat: req.body.lat,
+    height: req.body.height,
+    target: target,
+    times: req.body.times,
+    obsRefFrame: obsRefFrame,
+    obsBody: obsBody,
+    includeSunEarth: String(req.body.includeSunEarth || "false"),
+    isCustom: String(req.body.isCustom || "false"),
+    customAz: req.body.customAz || 0,
+    customEl: req.body.customEl || 0,
+    customRange: req.body.customRange || 0,
+  };
+
+  const child = spawn("python", ["private/api/ll2aerll.py", "--bulk"]);
+  let stdout = "";
+  let stderr = "";
+  child.stdout.on("data", (data) => { stdout += data.toString(); });
+  child.stderr.on("data", (data) => { stderr += data.toString(); });
+  child.on("error", (err) => {
+    logger("error", "ll2aerll_bulk spawn failure:", "server", null, err);
+    if (!res.headersSent) res.status(500).json({ error: true, message: "Failed to start Python process" });
+  });
+  child.on("close", (code) => {
+    if (code !== 0) {
+      logger("error", "ll2aerll_bulk failure:", "server", null, stderr || stdout);
+      if (!res.headersSent) res.status(500).json({ error: true, message: "Python process exited with code " + code });
+      return;
+    }
+    if (!res.headersSent) res.send(stdout);
+  });
+  child.stdin.on("error", (err) => {
+    logger("error", "ll2aerll_bulk stdin error:", "server", null, err);
+  });
+  child.stdin.write(JSON.stringify(inputData));
+  child.stdin.end();
+});
+
 //utils chronos (spice time converter)
 router.post("/chronice", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
   const body = encodeURIComponent(req.body.body);
@@ -416,9 +434,14 @@ router.post("/chronice", function(req,res,next){(router._computeLimiter||functio
     .replace(/%20/g, " ")
     .replace(/%3A/g, ":");
 
+  const args = ["private/api/chronice.py", body, target, fromFormat, time];
+  if (req.body.lng != null) {
+    args.push(encodeURIComponent(String(req.body.lng)));
+  }
+
   execFile(
     "python",
-    ["private/api/chronice.py", body, target, fromFormat, time],
+    args,
     function (error, stdout, stderr) {
       if (error) logger("error", "chronice failure:", "server", null, error);
       res.send(stdout);
@@ -439,5 +462,7 @@ router.get("/proj42wkt", function(req,res,next){(router._computeLimiter||functio
     }
   );
 });
+
+
 
 module.exports = router;
