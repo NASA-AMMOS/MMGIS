@@ -70,25 +70,30 @@
 #
 # I/O
 # ---
-# Reads JSON from stdin, computes a visibility grid for each cell of the DEM
-# by ray-marching toward the Sun (or other SPICE body) and checking if any
-# terrain along the path has a higher elevation angle than the source.
+# Reads JSON from stdin.  Single-frame returns one JSON object; batch mode
+# streams one NDJSON line per frame (newline-delimited JSON).
 #
-# Returns JSON:
+# Single-frame response:
 # {
-#   "grid": [[0|1|9, ...], ...],   0=shadow, 1=illuminated, 9=nodata
-#   "az": <float>,                  source azimuth at observer (degrees)
-#   "el": <float>,                  source elevation at observer (degrees)
+#   "gridB64z": "<base64(zlib(uint8[]))>",  grid as compressed binary
+#   "az": <float>,          source azimuth at observer (degrees)
+#   "el": <float>,          source elevation at observer (degrees)
 #   "rows": <int>,
 #   "cols": <int>,
 #   "bounds": [west, south, east, north]   geographic degrees
 # }
+#
+# Batch NDJSON — first line has "gridB64z" (full grid), subsequent lines
+# have "deltaB64z" (XOR delta vs previous frame, zlib-compressed).
+# Grid values: 0=shadow, 1=illuminated, 9=nodata (uint8).
 # ============================================================================
 
 import sys
 import json
 import math
 import os
+import zlib
+import base64
 
 import numpy as np
 import numba
@@ -107,6 +112,32 @@ if os.path.isdir(_proj_share) and "PROJ_DATA" not in os.environ:
 gdal.UseExceptions()
 
 NODATA_SENTINEL = -1100101
+
+
+# ---------------------------------------------------------------------------
+# Binary grid encoding
+# ---------------------------------------------------------------------------
+
+def _encode_grid(grid_2d):
+    """Encode a 2D list/array of int8 values as zlib-compressed base64.
+
+    Values 0 (shadow), 1 (lit), 9 (nodata) are stored as uint8.
+    Returns a base64 string.
+    """
+    arr = np.asarray(grid_2d, dtype=np.uint8)
+    raw = arr.tobytes()
+    compressed = zlib.compress(raw, level=6)
+    return base64.b64encode(compressed).decode('ascii')
+
+
+def _encode_grid_delta(prev_flat, cur_flat):
+    """Encode the XOR delta between two flat uint8 arrays as zlib base64.
+
+    Identical regions compress to near-zero.  Returns base64 string.
+    """
+    delta = np.bitwise_xor(prev_flat, cur_flat)
+    compressed = zlib.compress(delta.tobytes(), level=6)
+    return base64.b64encode(compressed).decode('ascii')
 
 
 # ---------------------------------------------------------------------------
@@ -1183,7 +1214,7 @@ def compute_sightmap(dem_path, obs_lat, obs_lng, obs_height,
         bounds_info = _compute_bounds_from_viewport(viewport_bounds, srs)
 
     return {
-        "grid": result.tolist(),
+        "gridB64z": _encode_grid(result),
         "az": round(obs_az, 4),
         "el": round(obs_el, 4),
         "rows": out_rows,
@@ -1274,7 +1305,9 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
         radii_km, flattening, px_grid, py_grid,
         output_offset_row=vp_off_row, output_offset_col=vp_off_col)
 
-    results = []
+    # Stream each frame as a separate NDJSON line to stdout.
+    # First frame: full grid.  Subsequent frames: XOR delta vs previous.
+    prev_flat = None
     for i, tp in enumerate(time_positions):
         cell_el, dx, dy = _fast_source_grid(
             tp['sun_vec_km'], tp['obs_az'], tp['obs_el'], batch_ctx)
@@ -1294,20 +1327,27 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
             0.0, 0.0,
         )
 
-        grid_list = result_flat.reshape(out_rows, out_cols).tolist()
-
-        results.append({
-            "grid": grid_list,
+        cur_u8 = result_flat.astype(np.uint8)
+        frame = {
             "az": round(tp['obs_az'], 4),
             "el": round(tp['obs_el'], 4),
             "rows": out_rows,
             "cols": out_cols,
             **bounds_info,
-        })
+        }
+        if prev_flat is None:
+            frame["gridB64z"] = _encode_grid(cur_u8.reshape(out_rows, out_cols))
+        else:
+            frame["deltaB64z"] = _encode_grid_delta(prev_flat, cur_u8)
+
+        prev_flat = cur_u8.copy()
+
+        sys.stdout.write(json.dumps(frame) + "\n")
+        sys.stdout.flush()
         sys.stderr.write(json.dumps({"progress": i + 1, "total": len(times)}) + "\n")
         sys.stderr.flush()
 
-    return {"results": results}
+    return None  # already streamed
 
 
 def _compute_bounds(gt, srs, dem_rows, dem_cols):
@@ -1463,7 +1503,9 @@ if __name__ == '__main__':
                 viewport_bounds=viewport_bounds,
                 shadow_reach=shadow_reach,
             )
-        print(json.dumps(result))
+        # Single-frame result is printed here; batch already streamed NDJSON
+        if result is not None:
+            print(json.dumps(result))
 
         # Cancel timeout on success
         try:

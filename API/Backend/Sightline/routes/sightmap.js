@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { spawn } = require("child_process");
 const path = require("path");
+const zlib = require("zlib");
 
 const logger = require("../../../logger");
 const validateMissionsPath = require("../../../validateMissionsPath");
@@ -109,24 +110,7 @@ router.post("/sightmap", function (req, res, next) {
     timeout: timeoutMs,
   });
 
-  const MAX_STDOUT = 256 * 1024 * 1024; // 256 MB safety cap
-  let stdout = '';
   let stderr = '';
-  let stdoutOverflow = false;
-  child.stdout.on('data', (data) => {
-    if (stdoutOverflow) return;
-    if (stdout.length + data.length > MAX_STDOUT) {
-      stdoutOverflow = true;
-      child.kill();
-      logger("error", "sightmap output exceeded 256 MB limit — killed process", "server");
-      return;
-    }
-    try { stdout += data; } catch (_) {
-      stdoutOverflow = true;
-      child.kill();
-      logger("error", "sightmap output string allocation failed — killed process", "server");
-    }
-  });
   child.stderr.on('data', (data) => {
     if (stderr.length < 1024 * 1024) stderr += data;
   });
@@ -140,37 +124,101 @@ router.post("/sightmap", function (req, res, next) {
   child.stdin.write(payload);
   child.stdin.end();
 
-  child.on('close', (code) => {
-    if (stdoutOverflow) {
-      if (!res.headersSent) res.status(413).json({ error: true, message: "Sightmap output too large — reduce resolution or area" });
-      return;
+  if (isBatch) {
+    // Batch: stream NDJSON lines with optional gzip
+    const acceptGzip = (req.headers['accept-encoding'] || '').includes('gzip');
+    res.setHeader('Content-Type', 'application/x-ndjson');
+    res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('Cache-Control', 'no-cache');
+
+    let gzStream = null;
+    if (acceptGzip) {
+      res.setHeader('Content-Encoding', 'gzip');
+      gzStream = zlib.createGzip();
+      gzStream.pipe(res);
     }
-    if (code !== 0) {
-      logger("error", "sightmap failure:", "server", null, stderr || stdout);
-      // Try to parse the JSON error from stdout (Python prints structured errors)
+    const writer = gzStream || res;
+
+    let errored = false;
+    child.stdout.on('data', (chunk) => {
+      if (errored) return;
+      try { writer.write(chunk); } catch (_) { /* client disconnected */ }
+    });
+    child.on('close', (code) => {
+      if (code !== 0 && !res.headersSent) {
+        logger("error", "sightmap batch failure:", "server", null, stderr);
+        res.status(400).json({ error: true, message: "sightmap batch computation failed" });
+        return;
+      }
+      if (code !== 0 && res.headersSent) {
+        // Error mid-stream — try to write an error line
+        try { writer.write(JSON.stringify({ error: true, message: stderr.substring(0, 500) }) + "\n"); } catch (_) { }
+      }
+      try { if (gzStream) gzStream.end(); else res.end(); } catch (_) { }
+    });
+    res.on('close', () => { errored = true; child.kill(); });
+  } else {
+    // Single-frame: buffer stdout, send as JSON with gzip
+    const MAX_STDOUT = 256 * 1024 * 1024;
+    let stdout = '';
+    let stdoutOverflow = false;
+    child.stdout.on('data', (data) => {
+      if (stdoutOverflow) return;
+      if (stdout.length + data.length > MAX_STDOUT) {
+        stdoutOverflow = true;
+        child.kill();
+        logger("error", "sightmap output exceeded 256 MB limit — killed process", "server");
+        return;
+      }
+      try { stdout += data; } catch (_) {
+        stdoutOverflow = true;
+        child.kill();
+        logger("error", "sightmap output string allocation failed — killed process", "server");
+      }
+    });
+    child.on('close', (code) => {
+      if (stdoutOverflow) {
+        if (!res.headersSent) res.status(413).json({ error: true, message: "Sightmap output too large — reduce resolution or area" });
+        return;
+      }
+      if (code !== 0) {
+        logger("error", "sightmap failure:", "server", null, stderr || stdout);
+        try {
+          const parsed = JSON.parse(stdout);
+          if (parsed.error) {
+            if (!res.headersSent) return res.status(400).json(parsed);
+            return;
+          }
+        } catch (_) { }
+        if (!res.headersSent) return res.status(400).json({ error: true, message: "sightmap computation failed" });
+        return;
+      }
       try {
         const parsed = JSON.parse(stdout);
         if (parsed.error) {
+          logger("error", "sightmap error:", "server", null, parsed.message);
           if (!res.headersSent) return res.status(400).json(parsed);
           return;
         }
-      } catch (_) { /* not valid JSON — fall through */ }
-      if (!res.headersSent) return res.status(400).json({ error: true, message: "sightmap computation failed" });
-      return;
-    }
-    try {
-      const parsed = JSON.parse(stdout);
-      if (parsed.error) {
-        logger("error", "sightmap error:", "server", null, parsed.message);
-        if (!res.headersSent) return res.status(400).json(parsed);
-        return;
+        // Gzip the JSON response if client supports it
+        const acceptGzip = (req.headers['accept-encoding'] || '').includes('gzip');
+        const body = JSON.stringify(parsed);
+        if (acceptGzip) {
+          zlib.gzip(Buffer.from(body), (err, compressed) => {
+            if (err || res.headersSent) { if (!res.headersSent) res.json(parsed); return; }
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Content-Encoding', 'gzip');
+            res.send(compressed);
+          });
+        } else {
+          if (!res.headersSent) res.json(parsed);
+        }
+      } catch (e) {
+        logger("error", "sightmap parse error:", "server", null, stdout.substring(0, 500));
+        if (!res.headersSent) res.status(500).json({ error: true, message: "Failed to parse sightmap result" });
       }
-      if (!res.headersSent) res.json(parsed);
-    } catch (e) {
-      logger("error", "sightmap parse error:", "server", null, stdout.substring(0, 500));
-      if (!res.headersSent) res.status(500).json({ error: true, message: "Failed to parse sightmap result" });
-    }
-  });
+    });
+  }
 });
 
 module.exports = router;
