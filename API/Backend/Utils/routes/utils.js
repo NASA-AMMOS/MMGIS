@@ -6,51 +6,15 @@ const express = require("express");
 const router = express.Router();
 const fs = require("fs");
 const path = require("path");
-const exec = require("child_process").exec;
 const execFile = require("child_process").execFile;
 const spawn = require("child_process").spawn;
 
 const Sequelize = require("sequelize");
 const { sequelizeSTAC } = require("../../../connection");
 const logger = require("../../../logger");
+const validateMissionsPath = require("../../../validateMissionsPath");
 
 const rootDir = `${__dirname}/../../../..`;
-
-/**
- * Validate and decode a path intended to access files under /Missions/.
- * Handles multiple levels of URL encoding, verifies the resolved path
- * stays within the Missions directory (cross-mission ../ is allowed).
- *
- * @param {string} rawPath - The raw path string from the request.
- * @returns {{ error: string }|{ decoded: string, resolved: string }} 
- *   On failure: `{ error }` with a user-facing message.
- *   On success: `{ decoded, resolved }` — the fully decoded path and its absolute resolved form.
- */
-function validateMissionsPath(rawPath) {
-  let decoded = String(rawPath);
-  let prev = '';
-  while (decoded !== prev) {
-    prev = decoded;
-    try {
-      decoded = decodeURIComponent(decoded);
-    } catch (e) {
-      return { error: 'Invalid URL encoding in path.' };
-    }
-  }
-  // Normalise: accept both "Missions/…" and "/Missions/…"
-  if (!decoded.startsWith('/')) decoded = '/' + decoded;
-  if (!decoded.startsWith('/Missions')) {
-    return { error: "Only paths beginning with '/Missions' are supported." };
-  }
-  const resolved = path.resolve(path.join(rootDir, decoded));
-  const allowed = path.resolve(rootDir, 'Missions');
-  const normalizedResolved = resolved.replace(/\\/g, '/');
-  const normalizedAllowed = allowed.replace(/\\/g, '/');
-  if (normalizedResolved !== normalizedAllowed && !normalizedResolved.startsWith(normalizedAllowed + '/')) {
-    return { error: 'Invalid path: access denied.' };
-  }
-  return { decoded, resolved };
-}
 
 const dirStore = {};
 const DIR_STORE_MAX_AGE = 3600000 / 2; // 1hours / 2
@@ -499,167 +463,6 @@ router.get("/proj42wkt", function(req,res,next){(router._computeLimiter||functio
   );
 });
 
-//utils gethorizonprofile
-router.post("/gethorizonprofile", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
-  // Validate required fields
-  if (req.body.path == null || req.body.lat == null || req.body.lng == null) {
-    return res.status(400).json({ error: true, message: "path, lat, and lng are required" });
-  }
 
-  // Path security via shared helper
-  const pathResult = validateMissionsPath(req.body.path);
-  if (pathResult.error) {
-    return res.status(400).json({ error: true, message: pathResult.error });
-  }
-
-  // Validate and cap numeric parameters
-  const lat = Number(req.body.lat);
-  const lng = Number(req.body.lng);
-  const observerHeight = Number(req.body.observerHeight || 0);
-  const numAzimuths = Math.min(Number(req.body.numAzimuths || 360), 3600);
-  const maxRadius = Math.min(Number(req.body.maxRadius || 5000), 100000);
-  const minSkipRadius = Number(req.body.minSkipRadius || 0);
-  const planetRadius = Number(req.body.planetRadius || 0);
-
-  if ([lat, lng, observerHeight, numAzimuths, maxRadius, minSkipRadius, planetRadius].some(v => !isFinite(v))) {
-    return res.status(400).json({ error: true, message: "All numeric parameters must be finite numbers" });
-  }
-
-  execFile(
-    "python",
-    [
-      "private/api/HorizonProfile.py",
-      pathResult.resolved,
-      String(lat),
-      String(lng),
-      String(observerHeight),
-      String(numAzimuths),
-      String(maxRadius),
-      String(minSkipRadius),
-      String(planetRadius),
-    ],
-    function (error, stdout, stderr) {
-      if (error) {
-        logger("error", "gethorizonprofile failure:", "server", null, error);
-        res.status(400).send();
-      } else {
-        res.send(stdout);
-      }
-    }
-  );
-});
-
-//utils sightmap — single or batch (pass `times` array for batch)
-router.post("/sightmap", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
-  const MAX_TIMES = 200;
-  const isBatch = Array.isArray(req.body.times) && req.body.times.length > 0;
-  if (req.body.dem == null || req.body.lat == null || req.body.lng == null || req.body.target == null) {
-    return res.status(400).json({ error: true, message: "dem, lat, lng, and target are required" });
-  }
-  if (!isBatch && req.body.time == null) {
-    return res.status(400).json({ error: true, message: "time (or times array) is required" });
-  }
-  if (isBatch && req.body.times.length > MAX_TIMES) {
-    return res.status(400).json({ error: true, message: "times array exceeds maximum of " + MAX_TIMES + " entries" });
-  }
-
-  // Validate string fields used in filesystem path construction in Python.
-  const SAFE_NAME_RE = /^[A-Za-z0-9_-]+$/;
-  const target = String(req.body.target);
-  const obsRefFrame = String(req.body.obsRefFrame || 'IAU_MOON');
-  const obsBody = String(req.body.obsBody || 'MOON');
-  if (!SAFE_NAME_RE.test(target) || !SAFE_NAME_RE.test(obsRefFrame) || !SAFE_NAME_RE.test(obsBody)) {
-    return res.status(400).json({ error: true, message: "target, obsRefFrame, and obsBody must contain only alphanumeric, underscore, or hyphen characters" });
-  }
-
-  const pathResult = validateMissionsPath(req.body.dem);
-  if (pathResult.error) {
-    return res.status(400).json({ error: true, message: pathResult.error });
-  }
-
-  const lat = Number(req.body.lat);
-  const lng = Number(req.body.lng);
-  const height = Number(req.body.height || 0);
-  const planetRadius = Number(req.body.planetRadius || 0);
-  const maxOutputDim = Math.min(Number(req.body.maxOutputDim || 400), 800);
-
-  if ([lat, lng, height, planetRadius, maxOutputDim].some(v => !isFinite(v))) {
-    return res.status(400).json({ error: true, message: "All numeric parameters must be finite numbers" });
-  }
-
-  const payloadObj = {
-    dem: pathResult.resolved,
-    lat: lat,
-    lng: lng,
-    height: height,
-    target: target,
-    obsRefFrame: obsRefFrame,
-    obsBody: obsBody,
-    planetRadius: planetRadius,
-    maxOutputDim: maxOutputDim,
-    isCustom: String(req.body.isCustom || 'false'),
-    customAz: Number(req.body.customAz || 0),
-    customEl: Number(req.body.customEl || 0),
-  };
-  if (isBatch) {
-    payloadObj.times = req.body.times.map(String);
-  } else {
-    payloadObj.time = String(req.body.time);
-  }
-  if (req.body.viewportBounds) {
-    payloadObj.viewportBounds = String(req.body.viewportBounds);
-  }
-  const payload = JSON.stringify(payloadObj);
-
-  // Batch mode may take much longer (N timestamps × ~10s each)
-  const timeoutMs = isBatch ? Math.min(req.body.times.length * 30000, 1800000) : 120000;
-
-  const child = spawn("python", ["private/api/sightmap.py"], {
-    cwd: rootDir,
-    timeout: timeoutMs,
-  });
-
-  let stdout = '';
-  let stderr = '';
-  child.stdout.on('data', (data) => { stdout += data; });
-  child.stderr.on('data', (data) => { stderr += data; });
-  child.on('error', (err) => {
-    logger("error", "sightmap spawn failure:", "server", null, err);
-    if (!res.headersSent) res.status(500).json({ error: true, message: "Failed to start Python process" });
-  });
-  child.stdin.on('error', (err) => {
-    logger("error", "sightmap stdin error:", "server", null, err);
-  });
-  child.stdin.write(payload);
-  child.stdin.end();
-
-  child.on('close', (code) => {
-    if (code !== 0) {
-      logger("error", "sightmap failure:", "server", null, stderr || stdout);
-      // Try to parse the JSON error from stdout (Python prints structured errors)
-      try {
-        const parsed = JSON.parse(stdout);
-        if (parsed.error) {
-          if (!res.headersSent) return res.status(400).json(parsed);
-          return;
-        }
-      } catch (_) { /* not valid JSON — fall through */ }
-      if (!res.headersSent) return res.status(400).json({ error: true, message: "sightmap computation failed" });
-      return;
-    }
-    try {
-      const parsed = JSON.parse(stdout);
-      if (parsed.error) {
-        logger("error", "sightmap error:", "server", null, parsed.message);
-        if (!res.headersSent) return res.status(400).json(parsed);
-        return;
-      }
-      if (!res.headersSent) res.json(parsed);
-    } catch (e) {
-      logger("error", "sightmap parse error:", "server", null, stdout.substring(0, 500));
-      if (!res.headersSent) res.status(500).json({ error: true, message: "Failed to parse sightmap result" });
-    }
-  });
-});
 
 module.exports = router;

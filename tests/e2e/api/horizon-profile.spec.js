@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * E2E tests for the /api/utils/gethorizonprofile endpoint.
+ * E2E tests for the /api/sightline/horizonprofile endpoint.
  *
  * Covers:
  *   - Input validation (missing required fields)
@@ -16,7 +16,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Horizon Profile API', () => {
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
-  const endpoint = `${baseURL}/api/utils/gethorizonprofile`;
+  const endpoint = `${baseURL}/api/sightline/horizonprofile`;
 
   /**
    * Post to the endpoint and parse the JSON response.

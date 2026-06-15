@@ -200,24 +200,7 @@
         ],
         "defaultHeight": 0,
         "observerTimePlaceholder": "SOL-ddddMhh:mm:ss",
-        "utcTimeFormat": "%Y-%j %H:%M:%S",
-        "sweepColorRamps": [
-          {
-            "name": "viridis",
-            "label": "Viridis",
-            "bins": 6
-          },
-          {
-            "name": "plasma",
-            "label": "Plasma",
-            "bins": 6
-          },
-          {
-            "name": "inferno",
-            "label": "Inferno",
-            "bins": 6
-          }
-        ]
+        "utcTimeFormat": "%Y-%j %H:%M:%S"
       }
     }
   ]

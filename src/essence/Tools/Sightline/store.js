@@ -32,13 +32,14 @@ function makeDefaultElement(id, vars) {
         dataIndex: 0,
         color: { ...color },
         opacity: 0.5,
-        resolution: 3,
+        resolution: 0.25,
         height: vars?.defaultHeight || 0,
         observer: vars?.observers?.[0]?.value || null,
         sourceIndex: 0,
         customAz: NaN,
         customEl: NaN,
         customRange: NaN,
+        shadowReach: 0,
         loading: false,
         loadingProgress: 0,
         regenerating: false,
@@ -60,7 +61,6 @@ const useSightlineStore = create((set, get) => ({
     utcTime: '',
     rawTime: '',
     lastConvertedMs: '000',
-    indicatorLastDragPoint: null,
 
     canvases: {},
     tags: {},
@@ -226,6 +226,7 @@ const useSightlineStore = create((set, get) => ({
             observer: el.observer,
             height: el.height,
             time: state.rawTime,
+            shadowReach: parseFloat(el.shadowReach) || 0,
         }
     },
 }))

@@ -41,6 +41,13 @@ const FIT_MODE_OPTIONS = [
     { label: 'Fit to data', value: 'fit' },
 ]
 
+const RESOLUTION_OPTIONS = [
+    { value: '1', label: '1× (Native)' },
+    { value: '0.5', label: '0.5×' },
+    { value: '0.25', label: '0.25× (Default)' },
+    { value: '0.125', label: '0.125×' },
+]
+
 const EXPORT_OPTIONS_STATIC = [
     { value: 'png', label: 'Sightline Map (PNG)' },
     { value: 'csv', label: 'Results (CSV)' },
@@ -48,10 +55,9 @@ const EXPORT_OPTIONS_STATIC = [
 ]
 const EXPORT_OPTIONS_PLAYBACK = [
     { value: 'png', label: 'Sightline Map (GIF)' },
-    { value: 'csv', label: 'Results (CSV)' },
 ]
 
-export default function SightlineElement({ elmId, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget }) {
+export default function SightlineElement({ elmId, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget, dropPosition }) {
     const el = useSightlineStore((s) => s.elements[elmId])
     const vars = useSightlineStore((s) => s.vars)
     const updateElement = useSightlineStore((s) => s.updateElement)
@@ -115,7 +121,11 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     const handleModeChange = useCallback((mode) => {
         SightlineTool.switchElementMode(elmId, mode)
         updateElement(elmId, { sightlineMode: mode })
-        setResultsOpen(false)
+        // Keep results open if sweep data exists (switching modes shouldn't collapse)
+        const ed = useSightlineStore.getState().sweepElData[elmId]
+        if (!ed?.grids?.length && !ed?.heatmap) {
+            setResultsOpen(false)
+        }
     }, [elmId, updateElement])
 
     const handleOpacityChange = useCallback(
@@ -421,7 +431,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     return (
         <div
             ref={cardRef}
-            className={`vstSightlineItem${isDropTarget ? ' vstDropTarget' : ''}`}
+            className={`vstSightlineItem${isDropTarget ? (dropPosition === 'below' ? ' vstDropTargetBelow' : ' vstDropTargetAbove') : ''}`}
             data-sightline-id={elmId}
             style={{ borderLeft: `3px solid ${rgbStr(el.color)}` }}
             draggable
@@ -604,6 +614,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     className="vstFieldInput"
                                 />
                             </div>
+
                             {dataOptions.length > 0 && (
                                 <div className="vstOptionRow">
                                     <div className="vstOptionLabel" title="Dataset to analyze.">
@@ -667,6 +678,47 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                         formatValue={(v) => Math.round(v * 100)}
                                     />
                                 </div>
+                            </div>
+                            <div className="vstOptionRow">
+                                <div className="vstOptionLabel" title="Resolution scale relative to viewport DEM extent. Lower = faster, coarser.">Resolution</div>
+                                <Select
+                                    value={String(el.resolution)}
+                                    onValueChange={(v) =>
+                                        handleChange('resolution', parseFloat(v))
+                                    }
+                                    options={RESOLUTION_OPTIONS}
+                                    className="vstSelect"
+                                />
+                            </div>
+                            <div className="vstOptionRow">
+                                <Tooltip content="Extends the terrain loaded for shadow computation beyond the visible map area. Terrain within this radius is read at a lower resolution so that distant features (ridges, crater rims) can cast shadows into the viewport without slowing down the full-resolution computation. Set to 0 to use only the viewport extent.">
+                                    <div className="vstOptionLabel" style={{ cursor: 'help' }}>Shadow Reach</div>
+                                </Tooltip>
+                                <InputWithUnit
+                                    unit="km"
+                                    type="number"
+                                    min="0"
+                                    step="5"
+                                    placeholder="0"
+                                    value={el.shadowReach || ''}
+                                    onChange={(e) =>
+                                        updateElement(elmId, {
+                                            shadowReach: e.target.value,
+                                        })
+                                    }
+                                    onBlur={() =>
+                                        updateElement(elmId, {
+                                            changed: true,
+                                            lastError: false,
+                                        })
+                                    }
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.target.blur()
+                                        }
+                                    }}
+                                    className="vstFieldInput"
+                                />
                             </div>
 
                         </div>

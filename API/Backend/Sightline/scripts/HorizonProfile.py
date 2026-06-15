@@ -1,7 +1,52 @@
 # HorizonProfile.py
-# Usage: python HorizonProfile.py <raster_path> <lat> <lng> <observer_height> <num_azimuths> <max_radius_m>
 #
-# Returns JSON: {"horizonProfile": [[azimuth_deg, horizon_elevation_deg], ...]}
+# ============================================================================
+# ALGORITHM DOCUMENTATION
+# ============================================================================
+#
+# Overview
+# --------
+# Computes a 360° horizon silhouette (elevation profile) as seen from a single
+# observer location on a DEM.  The result is an array of
+# [azimuth_deg, max_horizon_elevation_deg] pairs — one per azimuth ray.
+#
+# Method: Radial Ray-March with Maximum Elevation Angle Tracking
+# ---------------------------------------------------------------
+# For each of N azimuth directions (0° .. 360°, step = 360/N):
+#   1. March outward from the observer along that azimuth, sampling the DEM
+#      at regular pixel-scale intervals.
+#   2. At each sample compute the elevation angle from the observer to the
+#      terrain sample:
+#        el_angle = atan2(terrain_elev - observer_elev, dist_m)
+#   3. Track the running maximum elevation angle along the ray.
+#   4. After the march completes (either reaching max_radius_m or leaving
+#      the DEM bounds), record [azimuth, max_elevation_angle] as the horizon
+#      value for that direction.
+#
+# Parameters
+# ----------
+# - min_skip_radius_m : Ignore terrain within this distance (meters) from the
+#   observer.  Useful for excluding the immediate surroundings (e.g. a lander
+#   or instrument platform).
+# - max_radius_m : Stop marching beyond this distance (meters).  Controls the
+#   analysis footprint and performance.
+# - planet_radius : If > 0, apply curvature correction to terrain elevations.
+# - num_azimuths : Number of azimuth directions to sample (default 360).
+#
+# Curvature Correction
+# --------------------
+# When planet_radius > 0, terrain elevation at distance d is adjusted:
+#   terrain_elev -= d² / (2 * planet_radius)
+# This accounts for the apparent drop of distant terrain on a spherical body.
+#
+# Output
+# ------
+# JSON: {"horizonProfile": [[azimuth_deg, max_horizon_elevation_deg, distance_m], ...]}
+# distance_m is the distance from the observer to the horizon point (meters).
+#
+# Usage: python HorizonProfile.py <raster_path> <lat> <lng> <observer_height>
+#        <num_azimuths> <max_radius_m>
+# ============================================================================
 
 import sys
 import json
@@ -125,18 +170,18 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
     regionH = yend - yoff
 
     if regionW <= 0 or regionH <= 0:
-        return [[i * (360.0 / num_azimuths), 0.0] for i in range(num_azimuths)]
+        return [[i * (360.0 / num_azimuths), 0.0, 0.0] for i in range(num_azimuths)]
 
     region = band.ReadAsArray(xoff, yoff, regionW, regionH)
     if region is None:
-        return [[i * (360.0 / num_azimuths), 0.0] for i in range(num_azimuths)]
+        return [[i * (360.0 / num_azimuths), 0.0, 0.0] for i in range(num_azimuths)]
 
     noData = band.GetNoDataValue()
     local_obs_x = obs_px - xoff
     local_obs_y = obs_py - yoff
 
     if local_obs_x < 0 or local_obs_x >= regionW or local_obs_y < 0 or local_obs_y >= regionH:
-        return [[i * (360.0 / num_azimuths), 0.0] for i in range(num_azimuths)]
+        return [[i * (360.0 / num_azimuths), 0.0, 0.0] for i in range(num_azimuths)]
 
     obs_elev_val = region[local_obs_y, local_obs_x]
     if noData is not None and _isNoData(obs_elev_val, noData):
@@ -154,6 +199,10 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
     use_curvature = planet_radius > 0
     profile = []
 
+    # Early termination: max plausible terrain height above observer (meters).
+    # If even a peak this tall at the current distance can't beat max_el_angle, stop.
+    max_terrain_relief = 10000.0  # 10km — conservative upper bound
+
     for ai in range(num_azimuths):
         az_deg = ai * (360.0 / num_azimuths)
         az_rad = math.radians(az_deg) + convergence
@@ -168,6 +217,7 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
         m_per_step = 1.0 / step_len  # physical metres per 1-pixel step
 
         max_el_angle = -90.0
+        max_el_dist = 0.0
         r = max(step_px, min_skip_px) if min_skip_px > 0 else step_px
         while r <= max_radius_px:
             sx = local_obs_x + dx * r
@@ -180,12 +230,12 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
 
             sample = region[iy, ix]
             if noData is not None and _isNoData(float(sample), noData):
-                r += step_px
+                r += max(1.0, math.log2(r + 1))
                 continue
 
             dist_m = r * m_per_step
             if dist_m < 0.001:
-                r += step_px
+                r += max(1.0, math.log2(r + 1))
                 continue
 
             terrain_elev = float(sample)
@@ -199,10 +249,25 @@ def computeHorizonProfile(ds, band, obs_px, obs_py, observer_height,
             )
             if elev_angle > max_el_angle:
                 max_el_angle = elev_angle
+                max_el_dist = dist_m
 
-            r += step_px
+            # Early termination: if even the tallest possible peak at this
+            # distance (after curvature) can't beat current max, stop marching.
+            if max_el_angle > -90.0 and dist_m > 1000.0:
+                best_possible_elev = max_terrain_relief
+                if use_curvature:
+                    best_possible_elev -= (dist_m * dist_m) / (2.0 * planet_radius)
+                best_possible_angle = math.degrees(
+                    math.atan2(best_possible_elev - obs_total, dist_m)
+                )
+                if best_possible_angle <= max_el_angle:
+                    break
 
-        profile.append([round(az_deg, 2), round(max_el_angle, 2)])
+            # Logarithmic step: 1px near observer, increasing with distance
+            r += max(1.0, math.log2(r + 1))
+
+        profile.append([round(az_deg, 2), round(max_el_angle, 2),
+                        round(max_el_dist, 1)])
 
     return profile
 
