@@ -375,16 +375,24 @@ let SightlineTool = {
                 if (!ed?.heatmap || !ed?.lastData || el?.sightlineMode !== 'composite') continue
                 const data = ed.lastData
                 const heatmap = ed.heatmap
-                const tileRes = data.tileResolution
-                const topLeft = data.topLeftTile
-                if (!topLeft) continue
-                const zoom = topLeft.z
+                const bounds = data._bounds
+                if (!bounds || bounds.length < 4) {
+                    store.setSweepElField(parseInt(id), 'hoverFrac', null)
+                    continue
+                }
 
-                const tile = Globe_.litho.projection.latLngZ2TileXYZ(lat, lng, zoom, true)
-                const col = Math.floor((tile.x - topLeft.x) * tileRes)
-                const row = Math.floor((tile.y - topLeft.y) * tileRes)
+                const west = bounds[0], south = bounds[1], east = bounds[2], north = bounds[3]
+                const rows = heatmap.length
+                const cols = heatmap[0] ? heatmap[0].length : 0
+                if (rows === 0 || cols === 0) {
+                    store.setSweepElField(parseInt(id), 'hoverFrac', null)
+                    continue
+                }
 
-                if (row < 0 || col < 0 || row >= heatmap.length || !heatmap[row] || col >= heatmap[row].length) {
+                const col = Math.floor(((lng - west) / (east - west)) * cols)
+                const row = Math.floor(((north - lat) / (north - south)) * rows)
+
+                if (row < 0 || col < 0 || row >= rows || !heatmap[row] || col >= cols) {
                     store.setSweepElField(parseInt(id), 'hoverFrac', null)
                     continue
                 }
