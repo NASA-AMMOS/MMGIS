@@ -35,6 +35,7 @@ let _windowResizeHandler = null
 let _storeUnsubscribe = null
 let _graphPlayInterval = null
 let _graphPlayFast = false
+let _mapMoveHandler = null
 
 const SightlineTool_Graphs = {
     isOpen() {
@@ -66,6 +67,11 @@ const SightlineTool_Graphs = {
             SightlineTool_Graphs.drawVisibilityTimeline(elmId)
             SightlineTool_Graphs._updateSourceAzimuthLines()
         }, 50)
+
+        if (!_mapMoveHandler) {
+            _mapMoveHandler = () => { SightlineTool_Graphs._updateSourceAzimuthLines() }
+            Map_.map.on('move', _mapMoveHandler)
+        }
     },
 
     close() {
@@ -94,6 +100,10 @@ const SightlineTool_Graphs = {
         if (_storeUnsubscribe) {
             _storeUnsubscribe()
             _storeUnsubscribe = null
+        }
+        if (_mapMoveHandler) {
+            Map_.map.off('move', _mapMoveHandler)
+            _mapMoveHandler = null
         }
 
         SightlineTool_Graphs.removeAzimuthLine()
