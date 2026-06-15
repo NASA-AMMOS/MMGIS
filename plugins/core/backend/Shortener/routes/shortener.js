@@ -5,7 +5,7 @@
 const express = require("express");
 const router = express.Router();
 
-const logger = require("../../../logger");
+const logger = require("../../../../../API/logger");
 const us = require("../models/url_shortener");
 const UrlShortener = us.UrlShortener;
 const UrlShortener_s = us.sequelize;

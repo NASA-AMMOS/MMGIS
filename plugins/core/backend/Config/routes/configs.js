@@ -7,11 +7,11 @@ const express = require("express");
 const router = express.Router();
 const execFile = require("child_process").execFile;
 const Sequelize = require("sequelize");
-const { sequelize } = require("../../../connection");
+const { sequelize } = require("../../../../../API/connection");
 
-const logger = require("../../../logger");
+const logger = require("../../../../../API/logger");
 const Config = require("../models/config");
-const config_template = require("../../../templates/config_template");
+const config_template = require("../../../../../API/templates/config_template");
 const userModel = require("../../Users/models/user");
 const User = userModel.User;
 const missionTemplates = require("../../Utils/missionTemplates");
@@ -41,9 +41,9 @@ const GeneralOptions = require("../../GeneralOptions/models/generaloptions");
 
 const validate = require("../validate");
 const populateUUIDs = require("../uuids");
-const Utils = require("../../../utils.js");
+const Utils = require("../../../../../API/utils.js");
 
-const websocket = require("../../../websocket.js");
+const websocket = require("../../../../../API/websocket.js");
 const WebSocket = require("isomorphic-ws");
 
 const fs = require("fs");

@@ -5,7 +5,7 @@
 const express = require("express");
 const router = express.Router();
 
-const logger = require("../../../logger");
+const logger = require("../../../../../API/logger");
 const Webhooks = require("../models/webhooks");
 
 const webhookutils = require("./webhookutils.js");

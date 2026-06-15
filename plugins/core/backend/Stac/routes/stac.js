@@ -6,10 +6,10 @@ const express = require("express");
 const router = express.Router();
 
 const fetch = require("node-fetch");
-const { sequelize } = require("../../../connection");
+const { sequelize } = require("../../../../../API/connection");
 
-const logger = require("../../../logger");
-const Utils = require("../../../utils.js");
+const logger = require("../../../../../API/logger");
+const Utils = require("../../../../../API/utils.js");
 
 // Wraps /stac/collections to include occurrences
 router.get("/collections", function (req, res, next) {

@@ -6,9 +6,9 @@ const express = require("express");
 const router = express.Router();
 const crypto = require("crypto");
 
-const { sequelize } = require("../../../connection");
+const { sequelize } = require("../../../../../API/connection");
 
-const logger = require("../../../logger");
+const logger = require("../../../../../API/logger");
 const LongTermTokens = require("../models/longtermtokens").LongTermTokens;  
 
 router.get("/get", function (req, res, next) {

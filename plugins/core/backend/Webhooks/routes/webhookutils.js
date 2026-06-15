@@ -2,7 +2,7 @@
  * JavaScript syntax format: ES5/ES6 - ECMAScript 2015
  * Loading all required dependencies, libraries and packages
  **********************************************************/
-const logger = require("../../../logger");
+const logger = require("../../../../../API/logger");
 const Webhooks = require("../models/webhooks");
 
 function entries(req, res, next) {

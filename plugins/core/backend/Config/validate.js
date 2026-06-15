@@ -1,4 +1,4 @@
-const Utils = require("../../utils.js");
+const Utils = require("../../../../API/utils.js");
 
 const validate = (config) => {
   let errs = [];

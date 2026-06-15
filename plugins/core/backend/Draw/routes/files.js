@@ -1,8 +1,8 @@
 const express = require("express");
-const logger = require("../../../logger");
-const database = require("../../../database");
+const logger = require("../../../../../API/logger");
+const database = require("../../../../../API/database");
 const Sequelize = require("sequelize");
-const { sequelize } = require("../../../connection");
+const { sequelize } = require("../../../../../API/connection");
 const fhistories = require("../models/filehistories");
 const Filehistories = fhistories.Filehistories;
 const FilehistoriesTEST = fhistories.FilehistoriesTEST;
@@ -22,7 +22,7 @@ const draw = require("./draw");
 const filesutils = require("./filesutils");
 const getfile = filesutils.getfile;
 const triggerWebhooks = require("../../Webhooks/processes/triggerwebhooks");
-const Utils = require("../../../utils");
+const Utils = require("../../../../../API/utils");
 
 const router = express.Router();
 const db = database.db;

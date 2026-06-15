@@ -1,10 +1,10 @@
 const fs = require('fs').promises;
 const path = require('path');
-const logger = require('../../logger');
+const logger = require('../../../../API/logger');
 const { v4: uuidv4 } = require('uuid');
 const { Geodatasets, makeNewGeodatasetTable } = require('../Geodatasets/models/geodatasets');
-const { sequelize } = require('../../connection');
-const Utils = require('../../utils.js');
+const { sequelize } = require('../../../../API/connection');
+const Utils = require('../../../../API/utils.js');
 
 /**
  * Registry of Reference Mission variants.

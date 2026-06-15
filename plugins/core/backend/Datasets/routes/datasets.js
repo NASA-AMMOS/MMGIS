@@ -8,10 +8,10 @@ const router = express.Router();
 const Busboy = require("busboy");
 const inspect = require("util").inspect;
 
-const { sequelize } = require("../../../connection");
+const { sequelize } = require("../../../../../API/connection");
 
-const Utils = require("../../../utils.js");
-const logger = require("../../../logger");
+const Utils = require("../../../../../API/utils.js");
+const logger = require("../../../../../API/logger");
 const datasets = require("../models/datasets");
 const csvtojson = require("csvtojson");
 const Datasets = datasets.Datasets;

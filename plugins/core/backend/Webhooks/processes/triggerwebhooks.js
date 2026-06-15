@@ -1,4 +1,4 @@
-const logger = require("../../../logger");
+const logger = require("../../../../../API/logger");
 const fetch = require("node-fetch");
 
 const filesutils = require("../../Draw/routes/filesutils.js");

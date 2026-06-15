@@ -10,10 +10,10 @@ const execFile = require("child_process").execFile;
 const spawn = require("child_process").spawn;
 
 const Sequelize = require("sequelize");
-const { sequelizeSTAC } = require("../../../connection");
-const logger = require("../../../logger");
-const { computeLimiter } = require("../../../../scripts/rateLimiters");
-const validateMissionsPath = require("../../../validateMissionsPath");
+const { sequelizeSTAC } = require("../../../../../API/connection");
+const logger = require("../../../../../API/logger");
+const { computeLimiter } = require("../../../../../scripts/rateLimiters");
+const validateMissionsPath = require("../../../../../API/validateMissionsPath");
 
 const rootDir = `${__dirname}/../../../..`;
 

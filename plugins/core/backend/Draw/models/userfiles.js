@@ -24,8 +24,8 @@ ALTER TABLE user_files
  * Loading all required dependencies, libraries and packages
  **********************************************************/
 const Sequelize = require("sequelize");
-const { sequelize } = require("../../../connection");
-const logger = require("../../../logger");
+const { sequelize } = require("../../../../../API/connection");
+const logger = require("../../../../../API/logger");
 require("dotenv").config();
 
 const intents = ["roi", "campaign", "campsite", "trail", "signpost", "all"];

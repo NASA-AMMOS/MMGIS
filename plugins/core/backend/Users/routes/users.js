@@ -8,8 +8,8 @@ const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const buf = crypto.randomBytes(128);
 
-const logger = require("../../../logger");
-const { authLimiter } = require("../../../../scripts/rateLimiters");
+const logger = require("../../../../../API/logger");
+const { authLimiter } = require("../../../../../scripts/rateLimiters");
 const userModel = require("../models/user");
 const User = userModel.User;
 

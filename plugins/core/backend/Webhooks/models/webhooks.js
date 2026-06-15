@@ -2,7 +2,7 @@
  * Loading all required dependencies, libraries and packages
  **********************************************************/
 const Sequelize = require("sequelize");
-const { sequelize } = require("../../../connection");
+const { sequelize } = require("../../../../../API/connection");
 
 // setup Webhooks model and its fields.
 var Webhooks = sequelize.define(

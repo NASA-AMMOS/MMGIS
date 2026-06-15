@@ -1,8 +1,8 @@
 const express = require("express");
-const logger = require("../../../logger");
-const Utils = require("../../../utils.js");
+const logger = require("../../../../../API/logger");
+const Utils = require("../../../../../API/utils.js");
 const Sequelize = require("sequelize");
-const { sequelize } = require("../../../connection");
+const { sequelize } = require("../../../../../API/connection");
 const fhistories = require("../models/filehistories");
 const Filehistories = fhistories.Filehistories;
 const FilehistoriesTEST = fhistories.FilehistoriesTEST;

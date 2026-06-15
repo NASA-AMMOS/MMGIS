@@ -2,9 +2,9 @@
  * Loading all required dependencies, libraries and packages
  **********************************************************/
 const Sequelize = require("sequelize");
-const { sequelize } = require("../../../connection");
+const { sequelize } = require("../../../../../API/connection");
 const bcrypt = require("bcryptjs");
-const logger = require("../../../logger");
+const logger = require("../../../../../API/logger");
 
 // setup User model and its fields.
 var User = sequelize.define(

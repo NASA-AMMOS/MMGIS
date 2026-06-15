@@ -3,9 +3,9 @@ const router = express.Router();
 const { execFile } = require("child_process");
 const path = require("path");
 
-const logger = require("../../../logger");
-const { computeLimiter } = require("../../../../scripts/rateLimiters");
-const validateMissionsPath = require("../../../validateMissionsPath");
+const logger = require("../../../../../API/logger");
+const { computeLimiter } = require("../../../../../scripts/rateLimiters");
+const validateMissionsPath = require("../../../../../API/validateMissionsPath");
 
 const scriptsDir = path.join(__dirname, "..", "scripts");
 

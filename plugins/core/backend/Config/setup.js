@@ -1,6 +1,6 @@
 const router = require("./routes/configs");
 const triggerWebhooks = require("../Webhooks/processes/triggerwebhooks.js");
-const configurePackageJson = require("../../../configure/package.json");
+const configurePackageJson = require("../../../../configure/package.json");
 
 let setup = {
   //Once the app initializes

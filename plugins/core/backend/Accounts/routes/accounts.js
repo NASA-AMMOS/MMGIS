@@ -6,7 +6,7 @@ const express = require("express");
 const router = express.Router();
 const crypto = require("crypto");
 
-const logger = require("../../../logger");
+const logger = require("../../../../../API/logger");
 const userModel = require("../../Users/models/user");
 const User = userModel.User;
 

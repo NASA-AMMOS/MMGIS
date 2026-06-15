@@ -5,10 +5,10 @@
 const express = require("express");
 const router = express.Router();
 
-const { sequelize } = require("../../../connection");
+const { sequelize } = require("../../../../../API/connection");
 
-const logger = require("../../../logger");
-const Utils = require("../../../utils.js");
+const logger = require("../../../../../API/logger");
+const Utils = require("../../../../../API/utils.js");
 const geodatasets = require("../models/geodatasets");
 const Geodatasets = geodatasets.Geodatasets;
 const makeNewGeodatasetTable = geodatasets.makeNewGeodatasetTable;

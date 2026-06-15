@@ -1,6 +1,6 @@
 const express = require("express");
-const logger = require("../../../logger");
-const database = require("../../../database");
+const logger = require("../../../../../API/logger");
+const database = require("../../../../../API/database");
 const Sequelize = require("sequelize");
 const { v4: uuidv4 } = require("uuid");
 const fhistories = require("../models/filehistories");
@@ -16,7 +16,7 @@ const UserfeaturesTEST = uf.UserfeaturesTEST;
 const filesutils = require("./filesutils");
 const getfile = filesutils.getfile;
 
-const { sequelize } = require("../../../connection");
+const { sequelize } = require("../../../../../API/connection");
 
 const router = express.Router();
 const db = database.db;

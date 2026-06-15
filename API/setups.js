@@ -9,7 +9,7 @@ const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
 /**
  * Discover and load all backend setup modules.
  *
- * Backend plugins live under `plugins/*/backend/<name>/setup.js`.
+ * Backend plugins live under plugins/{container}/backend/{name}/setup.js.
  *
  * Each `setup.js` is `require()`d at discovery time and may export
  * lifecycle callbacks (`onceInit`, `onceStarted`, `onceSynced`),

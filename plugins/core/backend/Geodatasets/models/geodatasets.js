@@ -2,9 +2,9 @@
  * Loading all required dependencies, libraries and packages
  **********************************************************/
 const Sequelize = require("sequelize");
-const { sequelize } = require("../../../connection");
-const logger = require("../../../logger");
-const Utils = require("../../../utils.js");
+const { sequelize } = require("../../../../../API/connection");
+const logger = require("../../../../../API/logger");
+const Utils = require("../../../../../API/utils.js");
 
 const attributes = {
   name: {
