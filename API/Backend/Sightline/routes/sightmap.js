@@ -95,7 +95,7 @@ router.post("/sightmap", function (req, res, next) {
   }
   const payload = JSON.stringify(payloadObj);
 
-  // 3-minute timeout for single-frame; batch scales with frame count (up to 30 min).
+  // 3-minute timeout for single-frame; batch scales with frame count (up to 5 min).
   // Python has no internal timeout — Node is the sole timeout authority.
   let timeoutMs = 180000;
   if (isBatch) {
