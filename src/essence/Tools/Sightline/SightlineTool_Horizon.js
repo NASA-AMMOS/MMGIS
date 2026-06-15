@@ -90,7 +90,7 @@ const SightlineTool_Horizon = {
 
         _horizonPolygon = L.polygon(latlngs, {
             color: 'rgba(255, 255, 255, 0.6)',
-            weight: 1.5,
+            weight: 3,
             fillColor: 'rgba(255, 255, 255, 0.12)',
             fillOpacity: 1,
             interactive: false,

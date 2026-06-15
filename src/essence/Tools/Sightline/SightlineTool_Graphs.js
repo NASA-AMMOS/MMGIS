@@ -281,6 +281,15 @@ const SightlineTool_Graphs = {
                     SightlineTool_Horizon.setPolygonEnabled(cb.checked)
                 })
             }
+            const polyLabel = polygonWrap.querySelector('.sightlineHorizonPolygonLabel')
+            if (polyLabel) {
+                tippy(polyLabel, {
+                    content: 'Toggle a polygon overlay on the 2D map showing the horizon profile outline at each azimuth\'s distance from the observer.',
+                    placement: 'bottom',
+                    theme: 'blue',
+                    maxWidth: 260,
+                })
+            }
         }, 0)
 
         const closeBtn = document.createElement('div')
