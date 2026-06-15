@@ -98,6 +98,7 @@ const SightlineTool_Graphs = {
 
         SightlineTool_Graphs.removeAzimuthLine()
         SightlineTool_Graphs._removeSourceAzimuthLines()
+        SightlineTool_Horizon.setPolygonEnabled(false)
         SightlineTool_Horizon.removePolygon()
 
         const container = document.getElementById(GRAPH_CONTAINER_ID)
@@ -264,6 +265,23 @@ const SightlineTool_Graphs = {
             <span class="sightlineHorizonRangeValue" id="sightlineHorizonMaxLabel">250km</span>
         `
         header.appendChild(rangeWrap)
+
+        const polygonWrap = document.createElement('div')
+        polygonWrap.className = 'sightlineHorizonPolygonToggle'
+        polygonWrap.innerHTML = `
+            <span class="sightlineHorizonPolygonLabel">Polygon:</span>
+            <div class="mmgis-checkbox"><input type="checkbox" id="sightlineHorizonPolygonCb"/><label for="sightlineHorizonPolygonCb"></label></div>
+        `
+        header.appendChild(polygonWrap)
+        setTimeout(() => {
+            const cb = document.getElementById('sightlineHorizonPolygonCb')
+            if (cb) {
+                cb.checked = false
+                cb.addEventListener('change', () => {
+                    SightlineTool_Horizon.setPolygonEnabled(cb.checked)
+                })
+            }
+        }, 0)
 
         const closeBtn = document.createElement('div')
         closeBtn.className = 'sightlineGraphClose'

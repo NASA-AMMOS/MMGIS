@@ -13,6 +13,8 @@ let _hPad = null
 let _hPlotW = 0
 let _horizonCache = null
 let _horizonPolygon = null
+let _polygonEnabled = false
+let _pendingProfile = null
 
 const SightlineTool_Horizon = {
     getCache() {
@@ -38,9 +40,20 @@ const SightlineTool_Horizon = {
         }
     },
 
+    setPolygonEnabled(enabled) {
+        _polygonEnabled = enabled
+        if (enabled && _pendingProfile) {
+            SightlineTool_Horizon._updatePolygon(_pendingProfile)
+        } else if (!enabled) {
+            SightlineTool_Horizon.removePolygon()
+        }
+    },
+
     _updatePolygon(profile) {
+        _pendingProfile = profile
         SightlineTool_Horizon.removePolygon()
 
+        if (!_polygonEnabled) return
         if (!profile || profile.length === 0 || !_horizonCache) return
 
         const R = F_.radiusOfPlanetMajor
@@ -76,9 +89,9 @@ const SightlineTool_Horizon = {
         if (latlngs.length < 3) return
 
         _horizonPolygon = L.polygon(latlngs, {
-            color: 'rgba(255, 255, 255, 0.35)',
-            weight: 1,
-            fillColor: 'rgba(255, 255, 255, 0.06)',
+            color: 'rgba(255, 255, 255, 0.6)',
+            weight: 1.5,
+            fillColor: 'rgba(255, 255, 255, 0.12)',
             fillOpacity: 1,
             interactive: false,
         })

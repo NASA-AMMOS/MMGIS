@@ -1115,6 +1115,21 @@
     border-color: var(--color-a6);
 }
 
+.sightlineHorizonPolygonToggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 10px;
+}
+.sightlineHorizonPolygonLabel {
+    font-size: 11px;
+    color: var(--color-a5);
+    white-space: nowrap;
+}
+.sightlineHorizonPolygonToggle .mmgis-checkbox {
+    transform: scale(0.8);
+}
+
 .sightlineGraphExcludedInfo {
     position: absolute;
     top: 30px;
