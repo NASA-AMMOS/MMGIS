@@ -338,13 +338,14 @@ const SightlineTool_Export = {
             const cols = grid[0]?.length || 0
             const meta = _geoTiffMeta(data, rows, cols, false)
             if (!meta) { Toast.error('Missing bounds for GeoTIFF export.', 6000); return }
+            // writeArrayBuffer flat path: pass flat TypedArray + height/width in metadata
             const flat = new Uint8Array(rows * cols)
             for (let r = 0; r < rows; r++) {
                 const row = grid[r]
                 const base = r * cols
                 for (let c = 0; c < cols; c++) flat[base + c] = row?.[c] ?? 9
             }
-            const arrayBuffer = writeArrayBuffer([flat], meta)
+            const arrayBuffer = writeArrayBuffer(flat, meta)
             _downloadBlob(new Blob([arrayBuffer], { type: 'image/tiff' }),
                 SightlineTool_Export._buildExportName(elmId, 'sightmap') + '.tif')
             Toast.success('GeoTIFF exported.', 3000)
@@ -364,20 +365,22 @@ const SightlineTool_Export = {
             if (!meta) { Toast.error('Missing bounds for GeoTIFF export.', 6000); return }
             meta.BitsPerSample = grids.map(() => 8)
             meta.SampleFormat = grids.map(() => 1)
+            // writeArrayBuffer 3D path: [band][row][col] native arrays
             const bands = []
             for (let f = 0; f < grids.length; f++) {
                 const grid = grids[f]
-                const flat = new Uint8Array(rows * cols)
                 if (grid) {
-                    for (let r = 0; r < rows; r++) {
-                        const row = grid[r]
-                        const base = r * cols
-                        for (let c = 0; c < cols; c++) flat[base + c] = row?.[c] ?? 9
-                    }
+                    // grid is already [row][col] — use directly
+                    bands.push(grid)
                 } else {
-                    flat.fill(9)
+                    const emptyBand = []
+                    for (let r = 0; r < rows; r++) {
+                        const row = new Array(cols)
+                        for (let c = 0; c < cols; c++) row[c] = 9
+                        emptyBand.push(row)
+                    }
+                    bands.push(emptyBand)
                 }
-                bands.push(flat)
             }
             const arrayBuffer = writeArrayBuffer(bands, meta)
             _downloadBlob(new Blob([arrayBuffer], { type: 'image/tiff' }),
@@ -397,6 +400,7 @@ const SightlineTool_Export = {
         const cols = heatmap[0]?.length || 0
         const meta = _geoTiffMeta(data, rows, cols, true)
         if (!meta) { Toast.error('Missing bounds for GeoTIFF export.', 6000); return }
+        // writeArrayBuffer flat path for float32
         const flat = new Float32Array(rows * cols)
         for (let r = 0; r < rows; r++) {
             const row = heatmap[r]
@@ -406,7 +410,7 @@ const SightlineTool_Export = {
                 flat[base + c] = (v != null && Number.isFinite(v)) ? v : -1
             }
         }
-        const arrayBuffer = writeArrayBuffer([flat], meta)
+        const arrayBuffer = writeArrayBuffer(flat, meta)
         _downloadBlob(new Blob([arrayBuffer], { type: 'image/tiff' }),
             SightlineTool_Export._buildExportName(elmId, 'composite') + '.tif')
         Toast.success('GeoTIFF exported.', 3000)
