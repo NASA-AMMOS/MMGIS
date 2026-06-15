@@ -4,13 +4,12 @@ const { execFile } = require("child_process");
 const path = require("path");
 
 const logger = require("../../../logger");
+const { computeLimiter } = require("../../../../scripts/rateLimiters");
 const validateMissionsPath = require("../../../validateMissionsPath");
 
 const scriptsDir = path.join(__dirname, "..", "scripts");
 
-router.post("/horizonprofile", function (req, res, next) {
-  (router._computeLimiter || function (r, s, n) { n(); })(req, res, next);
-}, function (req, res) {
+router.post("/horizonprofile", computeLimiter, function (req, res) {
   // Validate required fields
   if (req.body.path == null || req.body.lat == null || req.body.lng == null) {
     return res.status(400).json({ error: true, message: "path, lat, and lng are required" });

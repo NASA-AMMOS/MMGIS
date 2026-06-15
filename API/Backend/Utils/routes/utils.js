@@ -12,6 +12,7 @@ const spawn = require("child_process").spawn;
 const Sequelize = require("sequelize");
 const { sequelizeSTAC } = require("../../../connection");
 const logger = require("../../../logger");
+const { computeLimiter } = require("../../../../scripts/rateLimiters");
 const validateMissionsPath = require("../../../validateMissionsPath");
 
 const rootDir = `${__dirname}/../../../..`;
@@ -247,7 +248,7 @@ router.get("/healthcheck", function (req, res) {
 // TODO: Remove or move to Setup structure. Some are definitely still used.
 
 //utils getprofile
-router.post("/getprofile", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
+router.post("/getprofile", computeLimiter, function (req, res) {
   const path = encodeURIComponent(req.body.path);
   const lat1 = encodeURIComponent(req.body.lat1);
   const lon1 = encodeURIComponent(req.body.lon1);
@@ -281,7 +282,7 @@ router.post("/getprofile", function(req,res,next){(router._computeLimiter||funct
 });
 
 //utils getbands
-router.post("/getbands", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
+router.post("/getbands", computeLimiter, function (req, res) {
   const path = encodeURIComponent(req.body.path);
   const x = encodeURIComponent(req.body.x);
   const y = encodeURIComponent(req.body.y);
@@ -303,7 +304,7 @@ router.post("/getbands", function(req,res,next){(router._computeLimiter||functio
 });
 
 //utils getminmax
-router.post("/getminmax", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
+router.post("/getminmax", computeLimiter, function (req, res) {
   const path = encodeURIComponent(req.body.path);
   const bands = encodeURIComponent(req.body.bands);
 
@@ -322,7 +323,7 @@ router.post("/getminmax", function(req,res,next){(router._computeLimiter||functi
 });
 
 //utils ll2aerll
-router.post("/ll2aerll", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
+router.post("/ll2aerll", computeLimiter, function (req, res) {
   const lng = encodeURIComponent(req.body.lng);
   const lat = encodeURIComponent(req.body.lat);
   const height = encodeURIComponent(req.body.height);
@@ -366,7 +367,7 @@ router.post("/ll2aerll", function(req,res,next){(router._computeLimiter||functio
 
 
 //utils ll2aerll_bulk (batch time queries, kernels loaded once)
-router.post("/ll2aerll_bulk", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
+router.post("/ll2aerll_bulk", computeLimiter, function (req, res) {
   const MAX_TIMES = 1000;
   if (!Array.isArray(req.body.times) || req.body.times.length === 0) {
     return res.status(400).json({ error: true, message: "times must be a non-empty array" });
@@ -426,7 +427,7 @@ router.post("/ll2aerll_bulk", function(req,res,next){(router._computeLimiter||fu
 });
 
 //utils chronos (spice time converter)
-router.post("/chronice", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
+router.post("/chronice", computeLimiter, function (req, res) {
   const body = encodeURIComponent(req.body.body);
   const target = encodeURIComponent(req.body.target);
   const fromFormat = encodeURIComponent(req.body.from);
@@ -450,7 +451,7 @@ router.post("/chronice", function(req,res,next){(router._computeLimiter||functio
 });
 
 //utils chronos (spice time converter)
-router.get("/proj42wkt", function(req,res,next){(router._computeLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
+router.get("/proj42wkt", computeLimiter, function (req, res) {
   const proj4 = encodeURIComponent(req.query.proj4);
 
   execFile(
@@ -462,6 +463,7 @@ router.get("/proj42wkt", function(req,res,next){(router._computeLimiter||functio
     }
   );
 });
+
 
 
 
