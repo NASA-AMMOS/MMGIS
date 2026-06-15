@@ -1070,6 +1070,7 @@
 .sightlineHorizonRangeLabel {
     font-size: 11px;
     color: var(--color-a5);
+    user-select: none;
     white-space: nowrap;
 }
 
@@ -1125,6 +1126,7 @@
     font-size: 11px;
     color: var(--color-a5);
     white-space: nowrap;
+    user-select: none;
 }
 .sightlineHorizonPolygonToggle .mmgis-checkbox {
     transform: scale(0.8);

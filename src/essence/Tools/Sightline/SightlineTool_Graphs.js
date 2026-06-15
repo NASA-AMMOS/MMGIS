@@ -294,7 +294,7 @@ const SightlineTool_Graphs = {
             const polyLabel = polygonWrap.querySelector('.sightlineHorizonPolygonLabel')
             if (polyLabel) {
                 tippy(polyLabel, {
-                    content: 'Toggle a polygon overlay on the 2D map showing the horizon profile outline at each azimuth\'s distance from the observer.',
+                    content: 'Toggle a polygon on the map showing the horizon profile outline',
                     placement: 'bottom',
                     theme: 'blue',
                     maxWidth: 260,
