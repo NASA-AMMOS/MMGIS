@@ -103,7 +103,7 @@ router.post("/sightmap", function (req, res, next) {
     const startMs = new Date(String(req.body.startTime)).getTime();
     const endMs = new Date(String(req.body.endTime)).getTime();
     const frameCount = Math.floor((endMs - startMs) / (stepSec * 1000)) + 1;
-    timeoutMs = Math.max(180000, Math.min(frameCount * 30000, 1800000));
+    timeoutMs = Math.max(180000, Math.min(frameCount * 30000, 300000));
   }
 
   const child = spawn("python", [path.join(scriptsDir, "sightmap.py")], {
