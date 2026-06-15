@@ -2,15 +2,14 @@
  * Shared plugin-discovery utility used by `API/updateTools.js`,
  * `API/setups.js`, and `scripts/resolve-plugin-deps.js`.
  *
- * MMGIS keeps tool, component, and backend plugins under "container"
- * directories whose names match a pattern (e.g. `*Plugin-Tools*`,
- * `*Private-Backend*`). Each container holds one or more plugin
- * subdirectories which expose a manifest file (typically `config.json`,
- * but `setup.js` for backends).
+ * MMGIS supports two discovery mechanisms:
  *
- * `discoverPlugins()` consolidates the duplicated scanning logic so all
- * three consumers share the same skip rules (underscore-prefixed,
- * dot-prefixed, non-directories), error handling, and return shape.
+ * 1. `discoverPlugins()` — legacy two-level scan (container → plugin).
+ *    Retained for backward compatibility during the transition.
+ *
+ * 2. `discoverPluginsUnified()` — three-level scan under `/plugins/`:
+ *    `plugins/<repoDir>/<type>/<PluginName>/<configFile>`.
+ *    This is the canonical mechanism going forward.
  */
 
 const fs = require("fs");
@@ -203,4 +202,143 @@ function discoverPlugins(basePath, patterns, configFile = "config.json", opts = 
     return out;
 }
 
-module.exports = { discoverPlugins };
+/**
+ * Unified three-level plugin discovery for the `/plugins/` directory.
+ *
+ * Directory layout:
+ *
+ *   <pluginsRoot>/
+ *     core/               ← repo container (always scanned first)
+ *       tools/            ← type subdirectory (matches `type` param)
+ *         DrawTool/       ← plugin
+ *           config.json   ← manifest (matches `configFile`)
+ *     alice-spectral/     ← external repo container
+ *       tools/
+ *         SpectralTool/
+ *           config.json
+ *
+ * Scan order: `core` is always first, then remaining containers in
+ * alphabetical order. This ensures deterministic plugin ordering and
+ * that external plugins can override core plugins (last scanned wins
+ * at the caller level).
+ *
+ * @param {string} pluginsRoot  Absolute path to the `plugins/` directory.
+ * @param {string} type  Plugin type subdirectory to look for inside each
+ *   container (e.g. `"tools"`, `"backend"`, `"components"`).
+ * @param {string} [configFile="config.json"]  Manifest filename.
+ * @param {object} [opts]  Additional options.
+ * @param {("parse"|"require"|"none")} [opts.loader="parse"]  How to
+ *   load the manifest (same semantics as `discoverPlugins`).
+ * @param {string} [opts.loggerCategory="PluginDiscovery"]  Logger category.
+ * @returns {Array<{name:string, container:string, pluginPath:string, manifestPath:string, manifest:any}>}
+ */
+function discoverPluginsUnified(pluginsRoot, type, configFile = "config.json", opts = {}) {
+    const {
+        loader = "parse",
+        loggerCategory = "PluginDiscovery",
+    } = opts;
+
+    const out = [];
+
+    let repoDirs = [];
+    try {
+        repoDirs = fs.readdirSync(pluginsRoot, { withFileTypes: true });
+    } catch (err) {
+        logger(
+            "warn",
+            `Could not read plugins root directory: ${pluginsRoot}`,
+            loggerCategory,
+            null,
+            err
+        );
+        return out;
+    }
+
+    // Sort: `core` first, then alphabetical for deterministic order.
+    const sorted = repoDirs
+        .filter((d) => {
+            try {
+                return d.isDirectory() && d.name[0] !== "_" && d.name[0] !== ".";
+            } catch {
+                return false;
+            }
+        })
+        .sort((a, b) => {
+            if (a.name === "core") return -1;
+            if (b.name === "core") return 1;
+            return a.name.localeCompare(b.name);
+        });
+
+    for (const repoEntry of sorted) {
+        const typePath = path.join(pluginsRoot, repoEntry.name, type);
+
+        let pluginEntries = [];
+        try {
+            pluginEntries = fs.readdirSync(typePath, { withFileTypes: true });
+        } catch {
+            // Type subdirectory doesn't exist in this container — skip silently.
+            continue;
+        }
+
+        for (const pluginEntry of pluginEntries) {
+            let pIsDir = false;
+            try {
+                pIsDir = pluginEntry.isDirectory();
+            } catch {
+                continue;
+            }
+            if (!pIsDir) continue;
+            if (pluginEntry.name[0] === "_" || pluginEntry.name[0] === ".") continue;
+
+            const pluginPath = path.join(typePath, pluginEntry.name);
+            const manifestPath = path.join(pluginPath, configFile);
+
+            if (!fs.existsSync(manifestPath)) {
+                continue;
+            }
+
+            let manifest = null;
+            if (loader === "parse") {
+                try {
+                    const raw = fs.readFileSync(manifestPath, "utf8");
+                    manifest = JSON.parse(raw);
+                } catch (err) {
+                    logger(
+                        "error",
+                        `Failed to parse ${configFile} for plugin ${pluginEntry.name} in ${repoEntry.name}/${type}`,
+                        loggerCategory,
+                        null,
+                        err
+                    );
+                    continue;
+                }
+            } else if (loader === "require") {
+                try {
+                    delete require.cache[require.resolve(manifestPath)];
+                    manifest = require(manifestPath);
+                } catch (err) {
+                    logger(
+                        "error",
+                        `Failed to require ${configFile} for plugin ${pluginEntry.name} in ${repoEntry.name}/${type}`,
+                        loggerCategory,
+                        null,
+                        err
+                    );
+                    continue;
+                }
+            }
+
+            out.push({
+                name: pluginEntry.name,
+                container: repoEntry.name,
+                pluginPath,
+                manifestPath,
+                manifest,
+            });
+        }
+    }
+
+    return out;
+}
+
+module.exports = { discoverPlugins, discoverPluginsUnified };

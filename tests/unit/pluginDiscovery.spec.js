@@ -1,9 +1,9 @@
 /**
- * Unit tests for discoverPlugins() from API/pluginDiscovery.js.
+ * Unit tests for discoverPlugins() and discoverPluginsUnified()
+ * from API/pluginDiscovery.js.
  *
- * Tests build a temporary directory tree under tests/.tmp-discovery and
- * use it as the base path for discoverPlugins. Each test cleans up the
- * tree afterwards.
+ * Tests build a temporary directory tree and use it as the base path
+ * for the discovery functions. Each test cleans up the tree afterwards.
  */
 
 import { test, expect } from '@playwright/test';
@@ -12,7 +12,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { discoverPlugins } = require('../../API/pluginDiscovery');
+const { discoverPlugins, discoverPluginsUnified } = require('../../API/pluginDiscovery');
 
 function makeTmpDir() {
     const tmp = fs.mkdtempSync(
@@ -270,6 +270,126 @@ test.describe('discoverPlugins', () => {
             const sorted = out.sort((a, b) => a.name.localeCompare(b.name));
             expect(sorted[0].container).toBe('Container-Plugin-Tools-A');
             expect(sorted[1].container).toBe('Container-Plugin-Tools-B');
+        } finally {
+            rmDir(root);
+        }
+    });
+});
+
+test.describe('discoverPluginsUnified', () => {
+    test('scans plugins/<repo>/<type>/<PluginName>/<configFile> three-level structure', () => {
+        const root = makeTmpDir();
+        try {
+            writeFile(
+                path.join(root, 'core', 'tools', 'Draw', 'config.json'),
+                JSON.stringify({ name: 'Draw', paths: { DrawTool: 'x' } })
+            );
+            writeFile(
+                path.join(root, 'core', 'tools', 'Info', 'config.json'),
+                JSON.stringify({ name: 'Info', paths: { InfoTool: 'y' } })
+            );
+
+            const out = discoverPluginsUnified(root, 'tools', 'config.json');
+            const names = out.map((p) => p.name).sort();
+            expect(names).toEqual(['Draw', 'Info']);
+            expect(out[0].container).toBe('core');
+        } finally {
+            rmDir(root);
+        }
+    });
+
+    test('core is always scanned first, then alphabetical', () => {
+        const root = makeTmpDir();
+        try {
+            writeFile(
+                path.join(root, 'zebra-plugin', 'tools', 'ZebraTool', 'config.json'),
+                JSON.stringify({ name: 'ZebraTool', paths: { Z: 'z' } })
+            );
+            writeFile(
+                path.join(root, 'core', 'tools', 'CoreTool', 'config.json'),
+                JSON.stringify({ name: 'CoreTool', paths: { C: 'c' } })
+            );
+            writeFile(
+                path.join(root, 'alpha-plugin', 'tools', 'AlphaTool', 'config.json'),
+                JSON.stringify({ name: 'AlphaTool', paths: { A: 'a' } })
+            );
+
+            const out = discoverPluginsUnified(root, 'tools', 'config.json');
+            // core first, then alpha, then zebra
+            expect(out[0].container).toBe('core');
+            expect(out[1].container).toBe('alpha-plugin');
+            expect(out[2].container).toBe('zebra-plugin');
+        } finally {
+            rmDir(root);
+        }
+    });
+
+    test('skips repo dirs without the requested type subdirectory', () => {
+        const root = makeTmpDir();
+        try {
+            writeFile(
+                path.join(root, 'core', 'tools', 'Draw', 'config.json'),
+                JSON.stringify({ name: 'Draw', paths: { D: 'd' } })
+            );
+            // 'other' has backend/ but not tools/
+            writeFile(
+                path.join(root, 'other', 'backend', 'Utils', 'setup.js'),
+                'module.exports = {};'
+            );
+
+            const out = discoverPluginsUnified(root, 'tools', 'config.json');
+            expect(out.length).toBe(1);
+            expect(out[0].name).toBe('Draw');
+        } finally {
+            rmDir(root);
+        }
+    });
+
+    test('skips underscore- and dot-prefixed repo dirs', () => {
+        const root = makeTmpDir();
+        try {
+            writeFile(
+                path.join(root, '_disabled', 'tools', 'X', 'config.json'),
+                JSON.stringify({ name: 'X' })
+            );
+            writeFile(
+                path.join(root, '.hidden', 'tools', 'Y', 'config.json'),
+                JSON.stringify({ name: 'Y' })
+            );
+            writeFile(
+                path.join(root, 'active', 'tools', 'Z', 'config.json'),
+                JSON.stringify({ name: 'Z', paths: { Z: 'z' } })
+            );
+
+            const out = discoverPluginsUnified(root, 'tools', 'config.json');
+            expect(out.map((p) => p.name)).toEqual(['Z']);
+        } finally {
+            rmDir(root);
+        }
+    });
+
+    test('returns empty array when pluginsRoot does not exist', () => {
+        const out = discoverPluginsUnified(
+            '/nonexistent/path/that/should/not/exist',
+            'tools',
+            'config.json'
+        );
+        expect(out).toEqual([]);
+    });
+
+    test('loader=require works for backend setup.js', () => {
+        const root = makeTmpDir();
+        try {
+            writeFile(
+                path.join(root, 'core', 'backend', 'Echo', 'setup.js'),
+                'module.exports = { priority: 5, marker: "ok" };'
+            );
+            const out = discoverPluginsUnified(root, 'backend', 'setup.js', {
+                loader: 'require',
+            });
+            expect(out.length).toBe(1);
+            expect(out[0].manifest.marker).toBe('ok');
+            expect(out[0].manifest.priority).toBe(5);
         } finally {
             rmDir(root);
         }

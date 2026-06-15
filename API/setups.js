@@ -2,18 +2,14 @@ const fs = require("fs");
 const path = require("path");
 
 const logger = require("./logger");
-const { discoverPlugins } = require("./pluginDiscovery");
+const { discoverPluginsUnified } = require("./pluginDiscovery");
 
-const STANDARD_BACKEND_PATTERN = ["__exact:Backend"];
-const PLUGIN_BACKEND_PATTERNS = ["Private-Backend", "Plugin-Backend"];
+const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
 
 /**
  * Discover and load all backend setup modules.
  *
- * Backend plugins live under:
- *   - API/Backend/<name>/setup.js (standard)
- *   - API/(...)Private-Backend(...)/<name>/setup.js (private plugins)
- *   - API/(...)Plugin-Backend(...)/<name>/setup.js (third-party plugins)
+ * Backend plugins live under `plugins/*/backend/<name>/setup.js`.
  *
  * Each `setup.js` is `require()`d at discovery time and may export
  * lifecycle callbacks (`onceInit`, `onceStarted`, `onceSynced`),
@@ -24,33 +20,14 @@ const PLUGIN_BACKEND_PATTERNS = ["Private-Backend", "Plugin-Backend"];
  *   lifecycle dispatchers and merged `envs`.
  */
 function getBackendSetups(cb) {
-  const apiPath = path.join(__dirname);
   let setups = {};
 
-  // 1. Standard backends — `API/Backend/<name>/setup.js`.
-  const standardBackends = discoverPlugins(
-    apiPath,
-    STANDARD_BACKEND_PATTERN,
-    "setup.js",
-    { loader: "require", loggerCategory: "Setups" }
-  );
-  for (const plugin of standardBackends) {
-    setups[plugin.name] = plugin.manifest;
-    logger(
-      "loaded",
-      `Backend: ${plugin.name} from ${plugin.container}`,
-      "Setups"
-    );
-  }
-
-  // 2. Plugin/private backends — `API/*Plugin-Backend*` and `API/*Private-Backend*`.
-  const pluginBackends = discoverPlugins(
-    apiPath,
-    PLUGIN_BACKEND_PATTERNS,
-    "setup.js",
-    { loader: "require", loggerCategory: "Setups" }
-  );
-  for (const plugin of pluginBackends) {
+  // Single-pass scan of plugins/*/backend/
+  const allBackends = discoverPluginsUnified(PLUGINS_ROOT, "backend", "setup.js", {
+    loader: "require",
+    loggerCategory: "Setups",
+  });
+  for (const plugin of allBackends) {
     const isOverride = setups[plugin.name] !== undefined;
     setups[plugin.name] = plugin.manifest;
     logger(

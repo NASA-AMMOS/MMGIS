@@ -23,12 +23,11 @@
 const fs = require("fs");
 const path = require("path");
 
-const { discoverPlugins } = require("../API/pluginDiscovery");
+const { discoverPluginsUnified } = require("../API/pluginDiscovery");
 const { validateDependencies } = require("../API/pluginValidation");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
-const ESSENCE_PATH = path.join(REPO_ROOT, "src", "essence");
-const API_PATH = path.join(REPO_ROOT, "API");
+const PLUGINS_ROOT = path.join(REPO_ROOT, "plugins");
 
 const OUTPUT_NPM = path.join(REPO_ROOT, "plugin-package.json");
 const OUTPUT_PIP = path.join(REPO_ROOT, "plugin-python-requirements.txt");
@@ -129,33 +128,13 @@ function mergePython(sources, kind /* "pip" | "conda" */) {
 }
 
 /**
- * Apply override semantics that mirror `API/updateTools.js` and
- * `API/setups.js`: a plugin/private entry with the same directory
- * name as a standard entry replaces the standard one entirely.
- *
- * Returns the post-override set of plugin records — the standard
- * entries that were *not* overridden, plus all plugin/private
- * entries. Aggregating dependencies from this set (rather than from
- * `standard.concat(overrides)`) prevents an override that bumps a
- * package version from spuriously conflicting with the standard
- * entry it's intended to replace.
- *
- * @template T
- * @param {Array<{name:string} & T>} standard  Standard plugins.
- * @param {Array<{name:string} & T>} overrides  Plugin/private plugins
- *   that override standard entries by directory name.
- * @returns {Array<{name:string} & T>}
- */
-function winnersByName(standard, overrides) {
-    const byName = new Map();
-    for (const p of standard) byName.set(p.name, p);
-    for (const p of overrides) byName.set(p.name, p);
-    return Array.from(byName.values());
-}
-
-/**
  * Discover all plugin manifests and return an array of
  * `{ plugin: <displayName>, deps: <dependencies-block-or-null> }`.
+ *
+ * Uses discoverPluginsUnified() for a single-pass scan of the
+ * three-level plugins/ hierarchy. The unified scan already handles
+ * ordering (core first, then alphabetical) so later entries
+ * naturally override earlier ones by name.
  *
  * Validation of `dependencies` happens here so a malformed block is
  * surfaced clearly rather than producing weird merge output.
@@ -164,42 +143,16 @@ function gatherDependencies() {
     const out = [];
     const errors = [];
 
-    const toolStandard = discoverPlugins(
-        ESSENCE_PATH,
-        ["__exact:Tools"],
-        "config.json",
+    const allTools = discoverPluginsUnified(
+        PLUGINS_ROOT, "tools", "config.json",
         { loggerCategory: "PluginDeps" }
     );
-    const toolPlugins = discoverPlugins(
-        ESSENCE_PATH,
-        ["Private-Tools", "Plugin-Tools"],
-        "config.json",
+    const allComponents = discoverPluginsUnified(
+        PLUGINS_ROOT, "components", "config.json",
         { loggerCategory: "PluginDeps" }
     );
-    const componentStandard = discoverPlugins(
-        ESSENCE_PATH,
-        ["__exact:Components"],
-        "config.json",
-        { loggerCategory: "PluginDeps" }
-    );
-    const componentPlugins = discoverPlugins(
-        ESSENCE_PATH,
-        ["Private-Components", "Plugin-Components"],
-        "config.json",
-        { loggerCategory: "PluginDeps" }
-    );
-    // For backends we scan by setup.js presence but don't `require()`
-    // the modules — see depsForBackend() for the rationale.
-    const backendStandard = discoverPlugins(
-        API_PATH,
-        ["__exact:Backend"],
-        "setup.js",
-        { loader: "none", loggerCategory: "PluginDeps" }
-    );
-    const backendPlugins = discoverPlugins(
-        API_PATH,
-        ["Private-Backend", "Plugin-Backend"],
-        "setup.js",
+    const allBackends = discoverPluginsUnified(
+        PLUGINS_ROOT, "backend", "setup.js",
         { loader: "none", loggerCategory: "PluginDeps" }
     );
 
@@ -213,15 +166,20 @@ function gatherDependencies() {
         out.push({ plugin: label, deps });
     };
 
-    // Only aggregate dependencies from the *winning* (post-override)
-    // entry per plugin name — see `winnersByName` for the rationale.
-    for (const p of winnersByName(toolStandard, toolPlugins)) {
+    // Deduplicate by name (last scanned wins — matches unified ordering).
+    const dedup = (plugins) => {
+        const byName = new Map();
+        for (const p of plugins) byName.set(p.name, p);
+        return Array.from(byName.values());
+    };
+
+    for (const p of dedup(allTools)) {
         pushManifest(`tool:${p.name}`, p, depsFromManifest(p.manifest));
     }
-    for (const p of winnersByName(componentStandard, componentPlugins)) {
+    for (const p of dedup(allComponents)) {
         pushManifest(`component:${p.name}`, p, depsFromManifest(p.manifest));
     }
-    for (const p of winnersByName(backendStandard, backendPlugins)) {
+    for (const p of dedup(allBackends)) {
         pushManifest(`backend:${p.name}`, p, depsForBackend(p));
     }
 
@@ -330,7 +288,6 @@ module.exports = {
     resolvePluginDeps,
     mergeNpm,
     mergePython,
-    winnersByName,
     gatherDependencies,
     OUTPUT_NPM,
     OUTPUT_PIP,

@@ -1,12 +1,12 @@
 /**
  * Unit tests for updateTools() / updateComponents() plugin discovery.
  *
- * Strategy: install fixture plugin directories into the live source
- * tree (under `src/essence/Plugin-Tools-Test/...`), invoke the build
+ * Strategy: install fixture plugin directories into the plugins tree
+ * (under `plugins/<test-container>/tools/...`), invoke the build
  * function from API/updateTools.js, then assert on the generated
  * artifacts (`configure/public/toolConfigs.json` and `src/pre/tools.js`).
  *
- * Tests are serial — they mutate the source tree and must clean up in
+ * Tests are serial — they mutate the plugins tree and must clean up in
  * order to avoid leaking fixtures into subsequent runs.
  */
 
@@ -25,8 +25,8 @@ const { updateTools, updateComponents } = require('../../API/updateTools');
 
 // The plugin container name is intentionally unique so it cannot collide
 // with any real plugin directories on disk during development.
-const TOOL_CONTAINER = 'Plugin-Tools-MMGISTest';
-const COMPONENT_CONTAINER = 'Plugin-Components-MMGISTest';
+const TOOL_CONTAINER = 'mmgis-test';
+const COMPONENT_CONTAINER = 'mmgis-test';
 
 const TOOL_CONFIGS_PATH = path.join(
     repoRoot,
@@ -139,9 +139,9 @@ test.describe('updateComponents - plugin discovery and validation', () => {
         // Create a component fixture inline (simple enough to inline here).
         const containerPath = path.join(
             repoRoot,
-            'src',
-            'essence',
+            'plugins',
             COMPONENT_CONTAINER,
+            'components',
             'TestComponent'
         );
         fs.mkdirSync(containerPath, { recursive: true });
@@ -151,7 +151,7 @@ test.describe('updateComponents - plugin discovery and validation', () => {
                 name: 'TestComponent',
                 description: 'fixture',
                 paths: {
-                    TestComponent: 'essence/Plugin-Components-MMGISTest/TestComponent/TestComponent',
+                    TestComponent: '../plugins/mmgis-test/components/TestComponent/TestComponent',
                 },
             })
         );

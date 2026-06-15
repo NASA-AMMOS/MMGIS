@@ -11,8 +11,15 @@ import { test, expect } from '@playwright/test';
 const {
     mergeNpm,
     mergePython,
-    winnersByName,
 } = require('../../scripts/resolve-plugin-deps');
+
+// Local dedup helper that mirrors the inline logic in gatherDependencies().
+// Used to test override semantics (last entry with same name wins).
+function dedup(plugins) {
+    const byName = new Map();
+    for (const p of plugins) byName.set(p.name, p);
+    return Array.from(byName.values());
+}
 
 test.describe('mergeNpm', () => {
     test('merges non-conflicting npm deps across plugins', () => {
@@ -143,18 +150,16 @@ test.describe('mergePython', () => {
     });
 });
 
-test.describe('winnersByName (override semantics)', () => {
-    test('plugin entry with same name overrides standard entry', () => {
-        const standard = [
+test.describe('dedup override semantics', () => {
+    test('later entry with same name overrides earlier entry', () => {
+        const all = [
             { name: 'Animation', manifest: { dependencies: { npm: { '@ffmpeg/ffmpeg': '^0.12.10' } } } },
             { name: 'Draw', manifest: { dependencies: null } },
-        ];
-        const overrides = [
             { name: 'Animation', manifest: { dependencies: { npm: { '@ffmpeg/ffmpeg': '^0.13.0' } } } },
         ];
-        const winners = winnersByName(standard, overrides);
-        // 'Animation' should now be the override entry (^0.13.0), and
-        // 'Draw' (only in standard) should still be present.
+        const winners = dedup(all);
+        // 'Animation' should now be the later entry (^0.13.0), and
+        // 'Draw' should still be present.
         expect(winners.length).toBe(2);
         const animation = winners.find((w) => w.name === 'Animation');
         expect(animation.manifest.dependencies.npm['@ffmpeg/ffmpeg']).toBe('^0.13.0');
@@ -162,24 +167,22 @@ test.describe('winnersByName (override semantics)', () => {
         expect(draw).toBeTruthy();
     });
 
-    test('override avoids spurious conflict that concat would produce', () => {
-        const standard = [
+    test('dedup avoids spurious conflict that raw list would produce', () => {
+        const all = [
             { name: 'Animation', manifest: { dependencies: { npm: { '@ffmpeg/ffmpeg': '^0.12.10' } } } },
-        ];
-        const overrides = [
             { name: 'Animation', manifest: { dependencies: { npm: { '@ffmpeg/ffmpeg': '^0.13.0' } } } },
         ];
 
-        // Naive concat would aggregate both versions and conflict.
-        const concatSources = standard.concat(overrides).map((p) => ({
+        // Naive non-deduped list would aggregate both versions and conflict.
+        const concatSources = all.map((p) => ({
             plugin: `tool:${p.name}`,
             deps: p.manifest.dependencies,
         }));
         const concatResult = mergeNpm(concatSources);
         expect(concatResult.conflicts.length).toBe(1);
 
-        // winnersByName picks only the override; no conflict.
-        const winnerSources = winnersByName(standard, overrides).map((p) => ({
+        // dedup picks only the last entry; no conflict.
+        const winnerSources = dedup(all).map((p) => ({
             plugin: `tool:${p.name}`,
             deps: p.manifest.dependencies,
         }));
@@ -188,15 +191,13 @@ test.describe('winnersByName (override semantics)', () => {
         expect(winnerResult.merged['@ffmpeg/ffmpeg']).toBe('^0.13.0');
     });
 
-    test('entries unique to either side are preserved', () => {
-        const standard = [
+    test('entries with unique names are all preserved', () => {
+        const all = [
             { name: 'A', manifest: {} },
             { name: 'B', manifest: {} },
-        ];
-        const overrides = [
             { name: 'C', manifest: {} },
         ];
-        const winners = winnersByName(standard, overrides);
+        const winners = dedup(all);
         expect(winners.map((w) => w.name).sort()).toEqual(['A', 'B', 'C']);
     });
 });

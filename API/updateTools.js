@@ -3,13 +3,9 @@ const path = require("path");
 
 const logger = require("./logger");
 const { validatePluginConfig } = require("./pluginValidation");
-const { discoverPlugins } = require("./pluginDiscovery");
+const { discoverPluginsUnified } = require("./pluginDiscovery");
 
-const STANDARD_TOOLS_PATH = "./src/essence/Tools";
-const STANDARD_COMPONENTS_PATH = "./src/essence/Components";
-const ESSENCE_PATH = path.join(__dirname, "..", "src", "essence");
-const TOOL_PLUGIN_PATTERNS = ["Private-Tools", "Plugin-Tools"];
-const COMPONENT_PLUGIN_PATTERNS = ["Private-Components", "Plugin-Components"];
+const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
 
 /**
  * Register a single plugin's parsed config.json onto the in-memory
@@ -60,35 +56,9 @@ function registerPlugin({
 function updateTools() {
   let tools = {};
 
-  // 1. Standard tools live directly under src/essence/Tools/<ToolName>/config.json
-  //    Use discoverPlugins() with an exact-name pattern so the shared
-  //    scanner picks up `Tools` as the container.
-  const standardToolPlugins = discoverPlugins(
-    path.join(ESSENCE_PATH),
-    ["__exact:Tools"],
-    "config.json",
-    { loggerCategory: "Tools" }
-  );
-  for (const plugin of standardToolPlugins) {
-    registerPlugin({
-      registry: tools,
-      name: plugin.name,
-      config: plugin.manifest,
-      pluginType: "tool",
-      source: "Tools",
-      loggerCategory: "Tools",
-    });
-  }
-
-  // 2. Plugin/private tool containers (e.g. *Plugin-Tools*, *Private-Tools*).
-  //    Same scan, but with substring matching on container names.
-  const pluginToolPlugins = discoverPlugins(
-    ESSENCE_PATH,
-    TOOL_PLUGIN_PATTERNS,
-    "config.json",
-    { loggerCategory: "Tools" }
-  );
-  for (const plugin of pluginToolPlugins) {
+  // Single-pass scan of plugins/*/tools/
+  const allTools = discoverPluginsUnified(PLUGINS_ROOT, "tools", "config.json", { loggerCategory: "Tools" });
+  for (const plugin of allTools) {
     registerPlugin({
       registry: tools,
       name: plugin.name,
@@ -179,34 +149,9 @@ function updateTools() {
 function updateComponents() {
   let components = {};
 
-  // 1. Standard components: src/essence/Components/<ComponentName>/config.json.
-  //    The standard Components directory is optional — `discoverPlugins`
-  //    will warn but not throw if it doesn't exist.
-  const standardComponentPlugins = discoverPlugins(
-    ESSENCE_PATH,
-    ["__exact:Components"],
-    "config.json",
-    { loggerCategory: "Components" }
-  );
-  for (const plugin of standardComponentPlugins) {
-    registerPlugin({
-      registry: components,
-      name: plugin.name,
-      config: plugin.manifest,
-      pluginType: "component",
-      source: "Components",
-      loggerCategory: "Components",
-    });
-  }
-
-  // 2. Plugin/private component containers.
-  const pluginComponentPlugins = discoverPlugins(
-    ESSENCE_PATH,
-    COMPONENT_PLUGIN_PATTERNS,
-    "config.json",
-    { loggerCategory: "Components" }
-  );
-  for (const plugin of pluginComponentPlugins) {
+  // Single-pass scan of plugins/*/components/
+  const allComponents = discoverPluginsUnified(PLUGINS_ROOT, "components", "config.json", { loggerCategory: "Components" });
+  for (const plugin of allComponents) {
     registerPlugin({
       registry: components,
       name: plugin.name,

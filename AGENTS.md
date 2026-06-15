@@ -46,17 +46,17 @@ Express 5.2 backend (Node.js 22+) with PostgreSQL/PostGIS, Sequelize ORM, and We
 ## Key Patterns
 
 - **Singletons**: `L_` (Layers), `Map_`, `Globe_`, `F_` (Formulae), `ToolController_`, `Viewer_` — global state controllers with trailing underscore
-- **Tool lifecycle**: Each tool implements `make()` (open) and `destroy()` (close) in `src/essence/Tools/ToolName/`
+- **Tool lifecycle**: Each tool implements `make()` (open) and `destroy()` (close) in `plugins/core/tools/ToolName/`
 - **Layer types**: vector, tile, data, model, image, vectortile, velocity, video, header, query
-- **Backend pattern**: Each feature is a module in `API/Backend/FeatureName/` with `setup.js` (registers routes), `routes/` (Express handlers), `models/` (Sequelize definitions)
-- **Plugin system**: `*Private-Tools*`, `*Plugin-Tools*`, `*Private-Backend*`, `*Plugin-Backend*`, `*Private-Components*`, `*Plugin-Components*` directories (auto-gitignored)
+- **Backend pattern**: Each feature is a module in `plugins/core/backend/FeatureName/` with `setup.js` (registers routes), `routes/` (Express handlers), `models/` (Sequelize definitions)
+- **Plugin system**: Unified `/plugins/` directory. Core plugins live in `plugins/core/{tools,backend,components}/`. External plugins go in `plugins/<container>/` (auto-gitignored).
 
 ## Project Structure (Abbreviated)
 
 ```
 MMGIS/
-├── API/Backend/*/        # Feature-domain modules (routes/, models/, setup.js each)
-├── src/essence/          # Frontend: Basics/ (singletons), Tools/ (16 tools), Components/, Helpers/
+├── plugins/core/         # Core plugins: tools/, backend/, components/
+├── src/essence/          # Frontend: Basics/ (singletons), Helpers/, services/
 ├── src/design-system/    # Generic reusable UI components & theming
 ├── configure/            # Separate React admin app (own npm install + build)
 ├── scripts/              # server.js, init-db.js, build.js, middleware.js

@@ -1,0 +1,57 @@
+{
+    "defaultIcon": "tangram",
+    "description": "Segment map features using SAM3 AI model with text prompts.",
+    "descriptionFull": {
+        "title": "Semantic segmentation tool that captures visible tile layers and sends them to a SAM3 GeoServer for AI-powered feature detection. Results are displayed as temporary polygon overlays.",
+        "example": {
+            "sam3_server_url": "http://localhost:8115",
+            "confidence_threshold": 0.7,
+            "default_timeout": 300000
+        }
+    },
+    "hasVars": true,
+    "name": "Segment",
+    "paths": {
+        "SegmentTool": "../plugins/core/tools/SegmentTool/SegmentTool"
+    },
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.sam3_server_url",
+                        "name": "SAM3 Server URL",
+                        "description": "Base URL of the SAM3 GeoServer (e.g., http://localhost:8115)",
+                        "type": "text",
+                        "width": 12,
+                        "default": "http://localhost:8115"
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.confidence_threshold",
+                        "name": "Confidence Threshold",
+                        "description": "Minimum confidence for polygon detection (0.0 - 1.0)",
+                        "type": "number",
+                        "width": 6,
+                        "default": 0.7
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.default_timeout",
+                        "name": "API Timeout (ms)",
+                        "description": "Maximum time to wait for SAM3 response",
+                        "type": "number",
+                        "width": 6,
+                        "default": 300000
+                    }
+                ]
+            }
+        ]
+    }
+}

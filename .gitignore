@@ -14,20 +14,9 @@ nul
 configure/public/toolConfigs.json
 /configure/public/componentConfigs.json
 
-#Nested repos where private backend might reside
-# Wildcard patterns for backend plugins
-/API/*Private-Backend*
-/API/*Plugin-Backend*
-
-#Nested repos where private tools might reside
-# Wildcard patterns for tool plugins
-/src/essence/*Private-Tools*
-/src/essence/*Plugin-Tools*
-
-#Nested repos where private components might reside
-# Wildcard patterns for component plugins
-/src/essence/*Private-Components*
-/src/essence/*Plugin-Components*
+# External/private plugin containers (everything except core is gitignored)
+/plugins/*
+!/plugins/core/
 
 /src/pre/tools.js
 /src/pre/components.js

@@ -326,7 +326,7 @@ MMGIS supports two ways to add backends:
 
 New tools are automatically found and included on start.
 
-1. Go to `src/essence/Tools`
+1. Go to `plugins/core/tools/`
 
    1. Create a new directory here with the name of your new tool
    1. Copy and paste `New Tool Template.js` into your new directory
@@ -347,7 +347,7 @@ New tools are automatically found and included on start.
         "name": "{toolName}",
         "toolbarPriority": 3,
         "paths": {
-            "{toolName}Tool": "essence/Tools/{toolName}/{toolName}Tool"
+            "{toolName}Tool": "../plugins/core/tools/{toolName}/{toolName}Tool"
         },
         "expandable": false
     }
@@ -372,37 +372,38 @@ Ideally all the code for a tool will be in its `[Tool's Name]Tool.js` and built 
 
 ### Plugin System
 
-MMGIS now supports a flexible plugin system that allows you to add custom tools without modifying the core codebase:
+MMGIS uses a unified `/plugins/` directory. All plugins (core and external) are discovered via `discoverPluginsUnified()` which scans the three-level hierarchy `plugins/<container>/<type>/<PluginName>/`.
+
+- **Core plugins** live in `plugins/core/` (committed to the repo).
+- **External/private plugins** live in `plugins/<your-container>/` (auto-gitignored).
 
 #### Tool Plugins
 
-1. **Directory Naming**: Create directories matching these patterns:
-
-   - `/src/essence/*Private-Tools*` (e.g., `My-Private-Tools`, `MMGIS-Private-Tools`)
-   - `/src/essence/*Plugin-Tools*` (e.g., `NASA-Plugin-Tools`, `Custom-Plugin-Tools-v2`)
-
-2. **Structure**: Each plugin directory should contain subdirectories for individual tools, following the same structure as standard tools:
+1. **Directory Structure**: Create a container directory under `plugins/` with a `tools/` subdirectory:
 
    ```
-   /src/essence/My-Plugin-Tools/
-     /MyCustomTool/
-       config.json
-       MyCustomTool.js
-       MyCustomTool.css (optional)
+   plugins/my-custom-plugins/
+     tools/
+       MyCustomTool/
+         config.json
+         MyCustomTool.js
+         MyCustomTool.css (optional)
    ```
 
-3. **Loading**:
+2. **Loading**:
 
    - Tools are automatically discovered and loaded when you run `npm run build`
-   - Plugin tools can override standard tools by using the same tool name
-   - All plugin directories are automatically gitignored
+   - `core` is always scanned first, then containers in alphabetical order
+   - Plugin tools can override core tools by using the same directory name (last scanned wins)
+   - Everything under `plugins/` except `plugins/core/` is gitignored
 
-4. **Example**: To add a custom InfoTool that overrides the standard one:
+3. **Example**: To add a custom InfoTool that overrides the standard one:
    ```
-   /src/essence/My-Plugin-Tools/
-     /Info/
-       config.json (with your custom configuration)
-       InfoTool.js (with your custom implementation)
+   plugins/my-custom-plugins/
+     tools/
+       Info/
+         config.json (with your custom configuration)
+         InfoTool.js (with your custom implementation)
    ```
 
 #### Plugin `config.json` Schema
@@ -431,10 +432,10 @@ Unknown top-level fields are preserved but logged as warnings so that newer plug
 
 Plugins are keyed by their **on-disk directory name**, not the `name` field in their config:
 
-- Standard tools (`src/essence/Tools/*`) are loaded first.
-- Plugin and private directories (`src/essence/*Plugin-Tools*`, `src/essence/*Private-Tools*`) are scanned afterwards and **may override standard tools** (or each other) by re-using the same directory name.
-- When an override occurs the new plugin replaces the previous registration entirely and a `warn`-level log line is emitted (e.g. `Tool 'Info' overridden by My-Plugin-Tools`).
-- Multiple plugin containers are scanned in the order returned by the filesystem; the **last container scanned wins** on collision. Avoid relying on a specific scan order — give override plugins a unique container path if determinism matters.
+- `plugins/core/` is always scanned first.
+- Additional containers under `plugins/` are scanned in alphabetical order and **may override core plugins** by re-using the same directory name.
+- When an override occurs the new plugin replaces the previous registration entirely and a `warn`-level log line is emitted (e.g. `Tool 'Info' overridden by my-custom-plugins`).
+- Scan order is deterministic: `core` first, then alphabetical. The **last container scanned wins** on collision.
 
 #### Plugin Dependencies
 
@@ -443,7 +444,7 @@ Each plugin (tool, component, or backend) may declare its own npm and Python dep
 ```json
 {
     "name": "MyTool",
-    "paths": { "MyTool": "essence/Plugin-Tools-Custom/MyTool/MyTool" },
+    "paths": { "MyTool": "../plugins/my-custom-plugins/tools/MyTool/MyTool" },
     "dependencies": {
         "npm": {
             "html2canvas": "^1.4.1",
@@ -500,8 +501,7 @@ The first plugin to declare its deps in `config.json` is **Animation** (`@ffmpeg
 
 ### Notes
 
-- The original single directory `/src/essence/MMGIS-Private-Tools` is still supported for backward compatibility
-- Multiple plugin sources can coexist (e.g., you can have both `My-Plugin-Tools` and `Private-Tools-Hello-World`)
+- Multiple plugin containers can coexist under `plugins/` (e.g., `plugins/my-private/` and `plugins/nasa-custom/`)
 - Remember to run `npm run build` after adding or modifying tool plugins
 
 ## Developing A New Backend
@@ -512,59 +512,55 @@ MMGIS supports two ways to add backends:
 
 ### Standard Backends (in core codebase)
 
-1. Go to `API/Backend`
+1. Go to `plugins/core/backend/`
    1. Create a new directory here with the name of your new backend
-   1. Copy and paste `setupTemplate.js` into your new directory
+   1. Copy and paste `API/Backend/setupTemplate.js` into your new directory
    1. Rename the pasted file to `setup.js`
    1. Edit `setup.js` based on the development guide below
 1. Restart the server with `npm start`
 
 ### Plugin Backends (gitignored, for private/external backends)
 
-1. **Directory Naming**: Create directories in `/API/` matching these patterns:
-
-   - `*Private-Backend*` (e.g., `My-Private-Backend`, `MMGIS-Private-Backend`)
-   - `*Plugin-Backend*` (e.g., `NASA-Plugin-Backend`, `Custom-Plugin-Backend-v2`)
-
-2. **Structure**: Each plugin directory should contain subdirectories for individual backends, following the same structure as standard backends:
+1. **Directory Structure**: Create a container directory under `plugins/` with a `backend/` subdirectory:
 
    ```
-   /API/My-Plugin-Backend/
-     /MyCustomEndpoint/
-       setup.js
-       models/ (optional)
-       routes/ (optional)
+   plugins/my-custom-plugins/
+     backend/
+       MyCustomEndpoint/
+         setup.js
+         models/ (optional)
+         routes/ (optional)
    ```
 
-3. **Loading**:
+2. **Loading**:
 
    - Backends are automatically discovered and loaded when you run `npm start`
    - No build step required - just restart the server
-   - Plugin backends can override standard backends by using the same name
-   - All plugin directories are automatically gitignored
+   - Plugin backends can override core backends by using the same directory name
+   - Everything under `plugins/` except `plugins/core/` is gitignored
 
-4. **Example**: To add a custom Draw backend:
+3. **Example**: To add a custom Draw backend:
 
    ```
-   /API/My-Plugin-Backend/
-     /Draw/
-       setup.js
-       models/
-         DrawFileModel.js
-       routes/
-         draw.js
+   plugins/my-custom-plugins/
+     backend/
+       Draw/
+         setup.js
+         models/
+           DrawFileModel.js
+         routes/
+           draw.js
    ```
 
-5. **Notes**:
-   - The original single directory `/API/MMGIS-Private-Backend` is still supported for backward compatibility
-   - Multiple plugin sources can coexist
-   - Plugin backends are loaded after standard backends, allowing them to override default functionality
+4. **Notes**:
+   - Multiple plugin containers can coexist
+   - Plugin backends are loaded after core backends (alphabetical order), allowing them to override default functionality
 
 ### Developing
 
 #### Overview
 
-All the code for a backend must stay in its `API/Backend/[name]` directory.
+All the code for a backend must stay in its `plugins/core/backend/[name]` directory.
 
 - Backends should work independently of one another.
 - Use the existing backends as a reference point.
@@ -577,7 +573,7 @@ const router = require("./routes/your_router");
 
 Write scripts within you backend directory and import them. Most backends follow the directory structure:
 
-- API/Backend/[name]
+- plugins/core/backend/[name]
   - models/
   - routes/
   - setup.js
