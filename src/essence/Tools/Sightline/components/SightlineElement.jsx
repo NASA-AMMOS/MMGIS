@@ -50,12 +50,11 @@ const RESOLUTION_OPTIONS = [
 
 const EXPORT_OPTIONS_STATIC = [
     { value: 'png', label: 'Sightline Map (PNG)' },
-    { value: 'geotiff', label: 'Sightline Map (GeoTIFF)' },
+    { value: 'csv', label: 'Results (CSV)' },
     { value: 'grid', label: 'Sightline Grid (TXT)' },
 ]
 const EXPORT_OPTIONS_PLAYBACK = [
     { value: 'png', label: 'Sightline Map (GIF)' },
-    { value: 'geotiff', label: 'Sightline Map (GeoTIFF)' },
 ]
 
 export default function SightlineElement({ elmId, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget, dropPosition }) {
@@ -330,7 +329,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
         try {
             switch (format) {
                 case 'png': SightlineTool.exportPNG(id); break
-                case 'geotiff': SightlineTool.exportGeoTIFF(id); break
+                case 'csv': SightlineTool.exportCSV(id); break
                 case 'grid': SightlineTool.exportGrid(id); break
                 default: SightlineTool.exportPNG(id); break
             }

@@ -2,49 +2,11 @@ import F_ from '../../Basics/Formulae_/Formulae_'
 import L_ from '../../Basics/Layers_/Layers_'
 import Map_ from '../../Basics/Map_/Map_'
 import Toast from '../../../design-system/components/Toast/Toast'
-import { writeArrayBuffer } from 'geotiff'
 
 import HTML2Canvas from 'html2canvas'
 import gifshot from 'gifshot'
 
 import useSightlineStore from './store'
-
-function _geoTiffMeta(data, rows, cols, isFloat) {
-    const bounds = data._bounds
-    if (!bounds || bounds.length < 4) return null
-    const west = bounds[0], south = bounds[1], east = bounds[2], north = bounds[3]
-    const pixelScaleX = (east - west) / cols
-    const pixelScaleY = (north - south) / rows
-    const meta = {
-        height: rows,
-        width: cols,
-        ModelTiepoint: [0, 0, 0, west, north, 0],
-        ModelPixelScale: [pixelScaleX, pixelScaleY, 0],
-        GeographicTypeGeoKey: 4326,
-        GeogCitationGeoKey: 'WGS 84',
-        GTModelTypeGeoKey: 2,
-        GTRasterTypeGeoKey: 1,
-    }
-    if (isFloat) {
-        meta.BitsPerSample = [32]
-        meta.SampleFormat = [3]
-    } else {
-        meta.BitsPerSample = [8]
-        meta.SampleFormat = [1]
-    }
-    return meta
-}
-
-function _downloadBlob(blob, fileName) {
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.setAttribute('download', fileName)
-    link.setAttribute('href', url)
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    setTimeout(() => URL.revokeObjectURL(url), 10000)
-}
 
 const SightlineTool_Export = {
     _buildExportName(elmId, suffix) {
@@ -321,99 +283,71 @@ const SightlineTool_Export = {
         )
     },
 
-    exportGeoTIFF(elmId) {
+    exportCSV(elmId) {
         const store = useSightlineStore.getState()
         const el = store.elements[elmId]
         const ed = store.sweepElData[elmId]
         const mode = el?.sightlineMode
+        const entityName = (store.getSightlineOptions(elmId)?.targets?.[0]?.name || el?.name || 'sightline').toLowerCase()
 
         if (mode === 'static') {
             const grid = el?.lastResultGrid
             const data = el?.lastData || store.lastData
-            if (!grid || grid.length === 0 || !data) {
+            if (!grid || !data?.bottomLeftLatLng || !data?.cellSize) {
                 Toast.warning('No results to export. Generate first.', 6000)
                 return
             }
-            const rows = grid.length
-            const cols = grid[0]?.length || 0
-            const meta = _geoTiffMeta(data, rows, cols, false)
-            if (!meta) { Toast.error('Missing bounds for GeoTIFF export.', 6000); return }
-            // writeArrayBuffer flat path: pass flat TypedArray + height/width in metadata
-            const flat = new Uint8Array(rows * cols)
-            for (let r = 0; r < rows; r++) {
+            const blLat = data.bottomLeftLatLng.lat
+            const blLng = data.bottomLeftLatLng.lng
+            const cellSize = data.cellSize
+            const totalRows = grid.length
+            const timeStr = store.sweepStart || ''
+            const headers = ['entity', 'time', 'lat', 'lng', 'visible']
+            const rows = []
+            for (let r = 0; r < totalRows; r++) {
                 const row = grid[r]
-                const base = r * cols
-                for (let c = 0; c < cols; c++) flat[base + c] = row?.[c] ?? 9
-            }
-            const arrayBuffer = writeArrayBuffer(flat, meta)
-            _downloadBlob(new Blob([arrayBuffer], { type: 'image/tiff' }),
-                SightlineTool_Export._buildExportName(elmId, 'sightmap') + '.tif')
-            Toast.success('GeoTIFF exported.', 3000)
-            return
-        }
-
-        if (mode === 'playback') {
-            const grids = ed?.grids
-            const data = ed?.lastData || el?.lastData || store.lastData
-            if (!grids || grids.length === 0 || !data) {
-                Toast.warning('No results to export. Run a sweep first.', 6000)
-                return
-            }
-            const rows = grids[0]?.length || 0
-            const cols = grids[0]?.[0]?.length || 0
-            const meta = _geoTiffMeta(data, rows, cols, false)
-            if (!meta) { Toast.error('Missing bounds for GeoTIFF export.', 6000); return }
-            meta.BitsPerSample = grids.map(() => 8)
-            meta.SampleFormat = grids.map(() => 1)
-            // writeArrayBuffer 3D path: [band][row][col] native arrays
-            const bands = []
-            for (let f = 0; f < grids.length; f++) {
-                const grid = grids[f]
-                if (grid) {
-                    // grid is already [row][col] — use directly
-                    bands.push(grid)
-                } else {
-                    const emptyBand = []
-                    for (let r = 0; r < rows; r++) {
-                        const row = new Array(cols)
-                        for (let c = 0; c < cols; c++) row[c] = 9
-                        emptyBand.push(row)
-                    }
-                    bands.push(emptyBand)
+                if (!row) continue
+                const pixelLat = (blLat + (totalRows - 1 - r) * cellSize).toFixed(8)
+                for (let c = 0; c < row.length; c++) {
+                    const val = row[c]
+                    if (val == null) continue
+                    const pixelLng = (blLng + c * cellSize).toFixed(8)
+                    const visible = (val === 1 || val === 2) ? 1 : 0
+                    rows.push([entityName, timeStr, pixelLat, pixelLng, visible])
                 }
             }
-            const arrayBuffer = writeArrayBuffer(bands, meta)
-            _downloadBlob(new Blob([arrayBuffer], { type: 'image/tiff' }),
-                SightlineTool_Export._buildExportName(elmId, 'playback') + '.tif')
-            Toast.success('GeoTIFF exported (' + grids.length + ' bands).', 3000)
+            F_.downloadArrayAsCSV(headers, rows, SightlineTool_Export._buildExportName(elmId, 'results'))
             return
         }
 
         // Composite mode
         const heatmap = ed?.heatmap
         const data = ed?.lastData || el?.lastData || store.lastData
-        if (!heatmap || heatmap.length === 0 || !data) {
+        if (!heatmap || !data?.bottomLeftLatLng || !data?.cellSize) {
             Toast.warning('No results to export. Run a sweep first.', 6000)
             return
         }
-        const rows = heatmap.length
-        const cols = heatmap[0]?.length || 0
-        const meta = _geoTiffMeta(data, rows, cols, true)
-        if (!meta) { Toast.error('Missing bounds for GeoTIFF export.', 6000); return }
-        // writeArrayBuffer flat path for float32
-        const flat = new Float32Array(rows * cols)
-        for (let r = 0; r < rows; r++) {
+        const blLat = data.bottomLeftLatLng.lat
+        const blLng = data.bottomLeftLatLng.lng
+        const cellSize = data.cellSize
+        const totalRows = heatmap.length
+        const startTime = store.sweepStart || ''
+        const endTime = store.sweepEnd || ''
+        const headers = ['entity', 'start_time', 'end_time', 'lat', 'lng', 'percent_visible']
+        const rows = []
+        for (let r = 0; r < totalRows; r++) {
             const row = heatmap[r]
-            const base = r * cols
-            for (let c = 0; c < cols; c++) {
-                const v = row?.[c]
-                flat[base + c] = (v != null && Number.isFinite(v)) ? v : -1
+            if (!row) continue
+            const pixelLat = (blLat + (totalRows - 1 - r) * cellSize).toFixed(8)
+            for (let c = 0; c < row.length; c++) {
+                const frac = row[c]
+                if (frac == null || !Number.isFinite(frac)) continue
+                const pixelLng = (blLng + c * cellSize).toFixed(8)
+                const pct = (frac * 100).toFixed(2)
+                rows.push([entityName, startTime, endTime, pixelLat, pixelLng, pct])
             }
         }
-        const arrayBuffer = writeArrayBuffer(flat, meta)
-        _downloadBlob(new Blob([arrayBuffer], { type: 'image/tiff' }),
-            SightlineTool_Export._buildExportName(elmId, 'composite') + '.tif')
-        Toast.success('GeoTIFF exported.', 3000)
+        F_.downloadArrayAsCSV(headers, rows, SightlineTool_Export._buildExportName(elmId, 'results'))
     },
 
     exportGrid(elmId) {
