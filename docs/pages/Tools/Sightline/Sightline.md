@@ -11,17 +11,17 @@ _Computes and visualizes line-of-sight visibility to orbiting or celestial targe
 
 ## SPICE
 
-Site administrators are responsible for keeping SPICE kernels up-to-date in `/private/api/spice/kernels` and CHRONOS setup files relevant in `/private/api/spice/chronosSetups`.
+Site administrators are responsible for keeping SPICE kernels up-to-date in `/spice/kernels/` and CHRONOS setup files relevant in `/spice/chronosSetups/`.
 
 There are two SPICE python scripts that require these backend kernel setups:
 
-- `/private/api/spice/chronos.py`
+- `chronice.py` (time conversion)
   - Converts between time systems.
-  - Looks for `/private/api/spice/chronosSetups/chronos-{target}.setup` where `{target}` here is filled in as a lowercased SightlineTool variables `"observers"`s `"value"`.
-- `/private/api/spice/ll2aer11.py`
+  - Looks for `/spice/chronosSetups/chronos-{target}.setup` where `{target}` here is filled in as a lowercased SightlineTool variables `"observers"`s `"value"`.
+- `ll2aerll.py` (geometry)
   - Turns a lnglat and target into a directional azimuth, elevation, range, and lntlat
-  - Reads in all kernels `/private/api/spice/kernels`.
-  - `/private/api/spice/getKernelUtils` has some wget scripts as examples for downloading new kernels (however these resources will quickly become outdated)
+  - Reads in all kernels from `/spice/kernels/`.
+  - `/spice/getKernelUtils` has some wget scripts as examples for downloading new kernels (however these resources will quickly become outdated)
 
 ## Tool Configuration
 
@@ -163,7 +163,10 @@ A 360° terrain horizon profile centered on the observer (map center). The chart
 - **Current-frame marker** — a dot on the trajectory showing the source's current position.
 - **0° elevation line** (dashed) — the geometric horizon.
 - **Curvature correction** — when the tool's `curvature` option is enabled, the horizon profile accounts for planetary curvature by subtracting `d²/2R` from sampled terrain elevations (where `R` is the planet radius).
-- **Near-field skip** — DEM samples within 50m of the observer are ignored to reduce blockiness from close-in pixels.
+- **Near-field skip** — DEM samples within the configured minimum distance (default 1m) of the observer are ignored to reduce blockiness from close-in pixels.
+- **Fog shading** — The terrain fill opacity varies by distance: nearby horizon terrain is rendered opaque; distant terrain fades out (log-scale mapping). This provides depth perception.
+- **Hover tooltip** — Mousing over the horizon chart shows the azimuth, elevation angle, and distance to the horizon at that point.
+- **Range slider** — A dual-handle log-scale slider in the panel header controls the min/max horizon lookup distance (default 1m–250km). Adjusting and releasing refetches the profile.
 
 The chart is north-centered (0° N at center, ±180° at edges) and adapts to the current light/dark theme.
 
@@ -171,10 +174,9 @@ The chart is north-centered (0° N at center, ±180° at edges) and adapts to th
 
 A per-source horizontal bar showing when the source is visible vs. occluded over the sweep time range:
 
-- **Colored segments indicate the source is visible (line-of-sight above horizon), using the element's configured color.
-- **Gray/white segments indicate the source is occluded.
-- Visibility is computed using the same terrain horizon profile as the chart — the source is visible when its elevation exceeds the interpolated terrain elevation at that azimuth.
-- Transitions between visible/occluded states use a gradient fade.
+- **Colored segments** indicate the source is visible (lit pixel at observer position in the sightmap grid), using the element's configured color.
+- **Gray/white segments** indicate the source is occluded.
+- Visibility is determined by the **sightmap grid pixel** at the observer's position — if the pixel is lit (value 1 or 2) the source is visible, if shadowed (value 0) the source is occluded.
 - A red slider indicator tracks the current playback frame position.
 - Time labels along the bottom show UTC timestamps spanning the full time range.
 
@@ -203,16 +205,81 @@ In playback mode, the results section includes a **Sky Dome** — a polar plot s
 
 The sky dome background uses a fixed dark color for legibility in both light and dark themes.
 
-### Algorithm
+### Algorithms
 
-1. The following are taken and fed into SPICE:
-   - The longitude, latitude, and elevation location at the center of the map (the observer)
-   - The current date
-   - The target/source-entity (which may be an orbiter, the Sun, etc.)
-2. The following are returned
-   - The azimuth, elevation, and range from that location to the target
-     - Source location is assumed to be facing north with no tilt
-   - The longitude, latitude on the map directly under the target and its elevation
-3. All elevation values from the current screen extent and queried
-4. The target's longitude, latitude, elevation are projected onto a plane tangential to the observer
-5. The screen elevation values are placed in an xy grid and the, from the previous values, the target's respective x,y,elev is computed and run through a modified version of [_Generating Viewsheds without Using Sightlines_](https://www.asprs.org/wp-content/uploads/pers/2000journal/january/2000_jan_87-90.pdf) by _Jianjun Wang, Gary J. Robinson, and Kevin White_
+#### Sightmap (Viewshed)
+
+**Endpoint:** `POST /api/sightline/sightmap`
+
+The sightmap computes a 2D visibility grid showing which terrain cells have direct line-of-sight to a source entity.
+
+**Core Algorithm:**
+
+1. **Source position** — SPICE computes the azimuth, elevation, and range from the observer (map center lat/lng/height) to the target entity at the given time. For custom sources, user-supplied az/el is used directly.
+2. **DEM composite** — A terrain raster is read from the configured DEM, padded by `shadowReach` in all directions beyond the viewport to capture shadows cast by off-screen terrain. The composite is read at a managed resolution (working dim proportional to viewport, capped at 4× max working dim) to prevent memory exhaustion.
+3. **Tangent-plane projection** — The observer position and source vector are projected onto a local tangent plane. The source's effective position is expressed as (x, y, z) in a grid-aligned coordinate system.
+4. **Ray-march viewshed** — From each grid cell, a ray is cast toward the source. The algorithm (a modified version of [_Generating Viewsheds without Using Sightlines_](https://www.asprs.org/wp-content/uploads/pers/2000journal/january/2000_jan_87-90.pdf) by _Jianjun Wang, Gary J. Robinson, and Kevin White_) checks if any intervening terrain along the ray exceeds the line-of-sight slope from that cell to the source. If so, the cell is shadowed; otherwise it is visible.
+5. **Output** — A 2D integer grid where: `0` = shadowed, `1` = visible from target, `2` = also visible from secondary source (Earth), `8` = no DEM data, `9` = out of bounds.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `dem` | string | — | Path to DEM raster (under `/Missions/`) |
+| `lat`, `lng` | number | — | Observer latitude/longitude |
+| `height` | number | 0 | Observer height above terrain (meters) |
+| `target` | string | — | SPICE target name (e.g. `SUN`, `MRO`) |
+| `time` | string | — | ISO 8601 UTC time (single mode) |
+| `startTime`, `endTime`, `stepSeconds` | string/number | — | Batch sweep parameters |
+| `obsRefFrame` | string | `IAU_MOON` | SPICE observer reference frame |
+| `obsBody` | string | `MOON` | SPICE observer body name |
+| `planetRadius` | number | 0 | Planet radius in meters (for curvature correction) |
+| `maxOutputDim` | number | 400 | Max grid dimension (capped at 4096) |
+| `shadowReach` | number | 0 | Extra DEM padding in meters for off-screen shadow casting |
+| `isCustom` | string | `'false'` | If `'true'`, use `customAz`/`customEl` instead of SPICE |
+| `customAz`, `customEl` | number | 0 | Custom source azimuth/elevation (degrees) |
+| `viewportBounds` | string | — | Optional viewport bounds for clipping |
+
+**Performance:**
+
+- **Managed resolution** — The composite DEM working dimension is capped (4× max working dim) so large shadow reach values don't cause OOM.
+- **Curvature clamp** — Shadow reach is server-side clamped to `√(2 × planetRadius × 10km)` to prevent excessive padding.
+- **Batch streaming** — In batch mode (multiple timestamps), the DEM and SPICE kernels are loaded once; each frame only recomputes the source vector and re-runs the march kernel. Progress is reported per-frame via stderr.
+- **Frame limits** — Max frames scale inversely with resolution: 2048 frames at low res, 256 at ultra.
+
+---
+
+#### Horizon Profile
+
+**Endpoint:** `POST /api/sightline/horizonprofile`
+
+The horizon profile computes the terrain skyline as seen from the observer in all azimuth directions.
+
+**Core Algorithm:**
+
+For each azimuth (default 360 directions at 1° intervals):
+
+1. **Ray initialization** — A ray is cast outward from the observer pixel in the DEM, in the direction given by the current azimuth angle. The step direction accounts for non-square pixels.
+2. **Sample terrain** — At each step along the ray, the terrain elevation is bilinearly interpolated from the DEM grid.
+3. **Curvature correction** — If a planet radius is provided, the sampled elevation is reduced by `d² / (2R)` to account for the surface curving away from the observer (where `d` is horizontal distance, `R` is planet radius).
+4. **Elevation angle** — The elevation angle from the observer to the sample point is computed: `el = atan2(terrain_elev - observer_elev, horizontal_distance)`.
+5. **Track maximum** — The maximum elevation angle encountered along the entire ray is recorded as "the horizon" for that azimuth. The distance to this maximum-angle point is also recorded.
+6. **Output** — An array of `[azimuth_deg, max_elevation_angle_deg, distance_meters]` for each azimuth direction.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `path` | string | — | Path to DEM raster (under `/Missions/`) |
+| `lat`, `lng` | number | — | Observer latitude/longitude |
+| `observerHeight` | number | 0 | Observer height above terrain (meters) |
+| `numAzimuths` | number | 360 | Number of azimuth directions (capped at 3600) |
+| `maxRadius` | number | 5000 | Maximum ray march distance in meters (capped at 500km) |
+| `minSkipRadius` | number | 0 | Skip terrain samples within this distance (meters) |
+| `planetRadius` | number | 0 | Planet radius in meters (for curvature correction; 0 = flat) |
+
+**Performance:**
+
+- **Logarithmic stepping** — Instead of stepping 1 pixel per sample, the step size increases logarithmically with distance: `step = max(1, log₂(r + 1))` pixels. Near the observer (r < 2px) it steps 1px for fine detail; at r = 1000px it steps ~10px. This preserves accuracy for nearby terrain (which subtends large angles) while skipping redundant samples at distance (where per-pixel angle change is negligible). Reduces ~2500 samples/ray to ~600 for a 250km radius.
+- **Early termination** — After each sample beyond 1km, the algorithm checks: "Could the tallest plausible terrain (10km relief, minus curvature drop) at this distance produce a steeper angle than the current maximum?" If not, the ray terminates immediately. For typical terrain where the horizon is found within a few km, rays terminate well before the max radius — often at 50–200 samples instead of 600+.
+- **Combined speedup** — Together, logarithmic stepping + early termination yield a 4–8× reduction in samples per ray compared to naïve 1px stepping to max radius.

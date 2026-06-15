@@ -4,7 +4,7 @@ import SightlineTool from '../SightlineTool'
 import CardLegend from './CardLegend'
 import { ColorRampPicker, Slider } from '../../../../design-system/components'
 
-export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget }) {
+export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget, dropPosition }) {
     const el = useSightlineStore((s) => s.elements[elmId])
     const vars = useSightlineStore((s) => s.vars)
     const ed = useSightlineStore((s) => s.sweepElData[elmId])
@@ -30,7 +30,8 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrag
 
     const sweepDiscrete = useSightlineStore((s) => s.sweepDiscrete)
     const sweepFitToData = useSightlineStore((s) => s.sweepFitToData)
-    const opacity = ed?.opacity != null ? ed.opacity : 1
+    const elOpacity = useSightlineStore((s) => s.elements[elmId]?.opacity)
+    const opacity = ed?.opacity != null ? ed.opacity : (elOpacity != null ? elOpacity : 1)
     const colorRamp = ed?.colorRamp || 'sightline'
     const discrete = sweepDiscrete || false
 
@@ -105,7 +106,7 @@ export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDrag
     return (
         <div
             ref={cardRef}
-            className={`vstSweepCard${isDropTarget ? ' vstDropTarget' : ''}`}
+            className={`vstSweepCard${isDropTarget ? (dropPosition === 'below' ? ' vstDropTargetBelow' : ' vstDropTargetAbove') : ''}`}
             draggable
             onDragStart={handleCardDragStart}
             onDragEnd={handleCardDragEnd}

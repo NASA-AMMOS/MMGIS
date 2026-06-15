@@ -8,7 +8,6 @@ import Map_ from '../../Basics/Map_/Map_'
 import Globe_ from '../../Basics/Globe_/Globe_'
 import Toast from '../../../design-system/components/Toast/Toast'
 
-import DataShaders from '../../services/DataShaders'
 import TimeControl from '../../Basics/TimeControl_/TimeControl'
 import TimeUI from '../../Basics/TimeControl_/TimeUI'
 
@@ -21,9 +20,10 @@ import {
 import HTML2Canvas from 'html2canvas'
 import gifshot from 'gifshot'
 
-import SightlineTool_Manager from './SightlineTool_Manager'
 import SightlineTool_Algorithm from './SightlineTool_Algorithm'
 import SightlineTool_Graphs from './SightlineTool_Graphs'
+import SightlineTool_Export from './SightlineTool_Export'
+import SightlineTool_Indicators from './SightlineTool_Indicators'
 
 import useSightlineStore, { MULTI_SOURCE_COLORS } from './store'
 import SightlinePanel from './components/SightlinePanel'
@@ -32,6 +32,62 @@ import './SightlineTool.css'
 
 const sunColor = '#d2db58'
 const earthColor = '#58dbb8'
+
+// Decode zlib-compressed base64 grid (gridB64z) into a 2D array
+function _decodeGridB64z(b64str, rows, cols) {
+    const binStr = atob(b64str)
+    const bytes = new Uint8Array(binStr.length)
+    for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i)
+    // Inflate using DecompressionStream (web standard)
+    const ds = new DecompressionStream('deflate')
+    const writer = ds.writable.getWriter()
+    const reader = ds.readable.getReader()
+    const chunks = []
+    let totalLen = 0
+    const readAll = async () => {
+        writer.write(bytes)
+        writer.close()
+        while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            chunks.push(value)
+            totalLen += value.length
+        }
+        const flat = new Uint8Array(totalLen)
+        let off = 0
+        for (const c of chunks) { flat.set(c, off); off += c.length }
+        return flat
+    }
+    return readAll().then((flat) => {
+        const grid = []
+        for (let y = 0; y < rows; y++) {
+            const row = new Array(cols)
+            const base = y * cols
+            for (let x = 0; x < cols; x++) row[x] = flat[base + x]
+            grid.push(row)
+        }
+        return { grid, flat }
+    })
+}
+
+// Apply XOR delta to reconstruct a frame from its predecessor
+function _applyDelta(prevFlat, deltaFlat) {
+    const result = new Uint8Array(prevFlat.length)
+    for (let i = 0; i < result.length; i++) result[i] = prevFlat[i] ^ deltaFlat[i]
+    return result
+}
+
+// Convert flat Uint8Array to 2D grid
+function _flatToGrid(flat, rows, cols) {
+    const grid = []
+    for (let y = 0; y < rows; y++) {
+        const row = new Array(cols)
+        const base = y * cols
+        for (let x = 0; x < cols; x++) row[x] = flat[base + x]
+        grid.push(row)
+    }
+    return grid
+}
 
 let _compositeHoverRaf = null
 let _timeChangeDebounce = null
@@ -57,6 +113,81 @@ function _flushSweepProgress(elmId, pct, msg, force) {
     }
 }
 
+// Returns true if the mission uses a custom projected CRS (polar stereo, etc.)
+// so that the map CRS matches the DEM CRS.
+function _isCustomProjectedCRS() {
+    return (
+        L_.configData &&
+        L_.configData.projection &&
+        L_.configData.projection.custom === true
+    )
+}
+
+// Returns [xmin, ymin, xmax, ymax] in projected CRS coordinates, or null.
+// Samples all 4 container corners so polar/rotated CRS get a correct
+// projected-space envelope (getBounds lat/lng box is wrong for those).
+// Only returns bounds when the map uses a custom projected CRS matching the DEM.
+function _getViewportProjBounds() {
+    if (!_isCustomProjectedCRS()) return null
+    const map = Map_.map
+    if (!map) return null
+    const crs = map.options.crs || window.mmgisglobal?.customCRS
+    if (!crs || typeof crs.project !== 'function') return null
+    const size = map.getSize()
+    const corners = [
+        [0, 0],
+        [size.x, 0],
+        [size.x, size.y],
+        [0, size.y],
+    ]
+    let xmin = Infinity, ymin = Infinity, xmax = -Infinity, ymax = -Infinity
+    for (const [cx, cy] of corners) {
+        const ll = map.containerPointToLatLng([cx, cy])
+        const p = crs.project(ll)
+        if (p.x < xmin) xmin = p.x
+        if (p.y < ymin) ymin = p.y
+        if (p.x > xmax) xmax = p.x
+        if (p.y > ymax) ymax = p.y
+    }
+    if (!isFinite(xmin) || !isFinite(ymin) || !isFinite(xmax) || !isFinite(ymax))
+        return null
+    return [xmin, ymin, xmax, ymax]
+}
+
+// Creates an L.imageOverlay positioned via projected NW/SE corners.
+// In polar/rotated CRS, L.latLngBounds normalises by min/max lat/lng,
+// which shuffles corners and mispositions the overlay.  This helper
+// overrides _reset so pixel position is computed from the projected
+// NW (xmin, ymax) and SE (xmax, ymin) directly.
+function _projImageOverlay(url, projBounds, options) {
+    const crs = Map_.map.options.crs
+    const nwLL = crs.unproject(L.point(projBounds[0], projBounds[3]))
+    const seLL = crs.unproject(L.point(projBounds[2], projBounds[1]))
+    const overlay = L.imageOverlay(url, L.latLngBounds(nwLL, seLL), options)
+    overlay._reset = function () {
+        const img = this._image
+        if (!img || !this._map) return
+        const nw = this._map.latLngToLayerPoint(nwLL)
+        const se = this._map.latLngToLayerPoint(seLL)
+        const b = new L.Bounds(nw, se)
+        const sz = b.getSize()
+        L.DomUtil.setPosition(img, b.min)
+        img.style.width = sz.x + 'px'
+        img.style.height = sz.y + 'px'
+    }
+    // Override zoom animation to use the same projected corners,
+    // otherwise the default _animateZoom reads the normalised
+    // L.latLngBounds and the overlay jumps during zoom transitions.
+    overlay._animateZoom = function (e) {
+        const img = this._image
+        if (!img || !this._map) return
+        const scale = this._map.getZoomScale(e.zoom)
+        const nw = this._map._latLngToNewLayerPoint(nwLL, e.zoom, e.center)
+        L.DomUtil.setTransform(img, nw, scale)
+    }
+    return overlay
+}
+
 let SightlineTool = {
     height: 0,
     width: 300,
@@ -68,16 +199,10 @@ let SightlineTool = {
         useSightlineStore.getState().setVars(vars)
 
         if (vars && vars.__noVars !== true) {
-            if (vars.data == null)
+            if (!vars.dem)
                 console.warn(
-                    'SightlineTool: variables object does not contain key "data"!'
+                    'SightlineTool: variables object does not contain key "dem"!'
                 )
-            else if (vars.data.length == null)
-                console.warn(
-                    'SightlineTool: variables object "data" is not an array!'
-                )
-            else if (vars.data.length == 0)
-                console.warn('SightlineTool: variables object "data" is empty!')
         }
     },
 
@@ -105,6 +230,7 @@ let SightlineTool = {
 
         // Add center crosshair overlay
         SightlineTool._addCenterCrosshair()
+        SightlineTool._addCenterDot()
 
         // Register graph scrub callback for bidirectional sync
         SightlineTool_Graphs.registerScrubCallback(() => {
@@ -149,8 +275,9 @@ let SightlineTool = {
 
         TimeControl.unsubscribe('SightlineTool')
 
-        // Remove center crosshair
+        // Remove center crosshair and dot
         SightlineTool._removeCenterCrosshair()
+        SightlineTool._removeCenterDot()
 
         // Close bottom bar graphs
         SightlineTool_Graphs.cleanup()
@@ -174,44 +301,62 @@ let SightlineTool = {
 
     // === Center Crosshair ===
 
+    _crosshairMarker: null,
+
     _addCenterCrosshair() {
-        if (document.getElementById('sightlineCenterCrosshair')) return
-        const mapEl = document.getElementById('map')
-        if (!mapEl) return
-        const ch = document.createElement('div')
-        ch.id = 'sightlineCenterCrosshair'
-        ch.className = 'sightlineCenterCrosshair'
-        ch.innerHTML = '<div class="sightlineCrosshairCircle"></div><div class="sightlineCrosshairN"></div><div class="sightlineCrosshairS"></div><div class="sightlineCrosshairE"></div><div class="sightlineCrosshairW"></div>'
-        mapEl.appendChild(ch)
+        if (SightlineTool._crosshairMarker) return
+        const icon = L.divIcon({
+            className: 'sightlineCenterCrosshair',
+            html: '<div class="sightlineCrosshairCircle"></div><div class="sightlineCrosshairN"></div><div class="sightlineCrosshairS"></div><div class="sightlineCrosshairE"></div><div class="sightlineCrosshairW"></div>',
+            iconSize: [0, 0],
+            iconAnchor: [0, 0]
+        })
+        SightlineTool._crosshairMarker = L.marker(Map_.map.getCenter(), {
+            icon: icon,
+            interactive: false,
+            zIndexOffset: 10000
+        }).addTo(Map_.map)
         Map_.map.on('move', SightlineTool._updateCrosshairPosition)
+        SightlineTool._updateCrosshairPosition()
     },
 
     _removeCenterCrosshair() {
-        const ch = document.getElementById('sightlineCenterCrosshair')
-        if (ch) ch.remove()
+        if (SightlineTool._crosshairMarker) {
+            Map_.map.removeLayer(SightlineTool._crosshairMarker)
+            SightlineTool._crosshairMarker = null
+        }
         Map_.map.off('move', SightlineTool._updateCrosshairPosition)
         SightlineTool_Graphs.removeAzimuthLine()
         SightlineTool_Graphs._removeSourceAzimuthLines()
     },
 
     _updateCrosshairPosition() {
-        const ch = document.getElementById('sightlineCenterCrosshair')
-        if (!ch) return
+        if (!SightlineTool._crosshairMarker) return
         const store = useSightlineStore.getState()
-        // Find sweep center from active element
         const activeId = store.activeElmId
         const ed = activeId != null ? store.sweepElData[activeId] : null
         if (ed?.sweepCenter) {
-            const pt = Map_.map.latLngToContainerPoint(ed.sweepCenter)
-            ch.style.left = pt.x + 'px'
-            ch.style.top = pt.y + 'px'
+            SightlineTool._crosshairMarker.setLatLng(ed.sweepCenter)
         } else {
-            const mapEl = document.getElementById('map')
-            if (mapEl) {
-                ch.style.left = '50%'
-                ch.style.top = '50%'
-            }
+            SightlineTool._crosshairMarker.setLatLng(Map_.map.getCenter())
         }
+    },
+
+    // === Center Dot (always at visible map center) ===
+
+    _addCenterDot() {
+        if (document.getElementById('sightlineCenterDot')) return
+        const mapEl = document.getElementById('map')
+        if (!mapEl) return
+        const dot = document.createElement('div')
+        dot.id = 'sightlineCenterDot'
+        dot.className = 'sightlineCenterDot'
+        mapEl.appendChild(dot)
+    },
+
+    _removeCenterDot() {
+        const dot = document.getElementById('sightlineCenterDot')
+        if (dot) dot.remove()
     },
 
     // === Map Event Handlers ===
@@ -219,6 +364,9 @@ let SightlineTool = {
     _onMapClick: function (e) {
         if (e && e.latlng) {
             const store = useSightlineStore.getState()
+            const el = store.elements[store.activeElmId]
+            // Only run static sightline on click when in static mode
+            if (el?.sightlineMode && el.sightlineMode !== 'static') return
             SightlineTool.sightline(
                 { lng: e.latlng.lng, lat: e.latlng.lat },
                 store.activeElmId
@@ -229,8 +377,12 @@ let SightlineTool = {
     _onPanEnd: function () {
         const store = useSightlineStore.getState()
 
-        // Invalidate horizon profile cache on pan
-        SightlineTool_Graphs.invalidateHorizonCache()
+        // Invalidate and re-fetch horizon profile on pan — but only when
+        // no sweep center is set (horizon is anchored to map center).
+        const activeEd = store.activeElmId != null ? store.sweepElData[store.activeElmId] : null
+        if (!activeEd?.sweepCenter) {
+            SightlineTool_Graphs.invalidateAndRefetch()
+        }
 
         // Invalidate sweep results and layer cache when viewport changes
         if (store.hasSweepData() && !store.sweepStale) {
@@ -245,6 +397,7 @@ let SightlineTool = {
                 SightlineTool._sweepPlayTimer = null
                 store.setSweepField('sweepPlaying', false)
             }
+            TimeUI.removeIndicator(null, 'sightlinetool')
             // Remove the heatmap/atlas layer from the map for static elements only;
             // composite/playback keep their (stale) layer visible until user re-sweeps
             for (const id in store.elements) {
@@ -260,21 +413,28 @@ let SightlineTool = {
             if (!el) continue
             // Composite/playback: don't auto-regenerate — just re-enable sweep button
             if (el.sightlineMode === 'composite' || el.sightlineMode === 'playback') continue
-            if (el.resolution <= (store.vars?.dynamicUpdateResCutoff ?? 1)) {
-                SightlineTool.sightline(null, parseInt(id))
-            } else {
-                store.updateElement(parseInt(id), { changed: true, lastError: false })
-            }
+            SightlineTool.sightline(null, parseInt(id))
         }
     },
 
     _onCompositeHover: function (e) {
         if (_compositeHoverRaf) return
-        const lat = e.latlng.lat
-        const lng = e.latlng.lng
+        const latlng = e.latlng
         _compositeHoverRaf = requestAnimationFrame(() => {
             _compositeHoverRaf = null
             const store = useSightlineStore.getState()
+            const isProj = _isCustomProjectedCRS()
+
+            // In projected CRS, convert geographic latlng to projected coords
+            let mouseX, mouseY
+            if (isProj && Map_.map.options.crs && typeof Map_.map.options.crs.project === 'function') {
+                const pt = Map_.map.options.crs.project(latlng)
+                mouseX = pt.x
+                mouseY = pt.y
+            } else {
+                mouseX = latlng.lng
+                mouseY = latlng.lat
+            }
 
             for (const id in store.sweepElData) {
                 const ed = store.sweepElData[id]
@@ -282,15 +442,25 @@ let SightlineTool = {
                 if (!ed?.heatmap || !ed?.lastData || el?.sightlineMode !== 'composite') continue
                 const data = ed.lastData
                 const heatmap = ed.heatmap
-                const tileRes = data.tileResolution
-                const topLeft = data.topLeftTile
-                const zoom = topLeft.z
 
-                const tile = Globe_.litho.projection.latLngZ2TileXYZ(lat, lng, zoom, true)
-                const col = Math.floor((tile.x - topLeft.x) * tileRes)
-                const row = Math.floor((tile.y - topLeft.y) * tileRes)
+                const bounds = isProj && data._projBounds ? data._projBounds : data._bounds
+                if (!bounds || bounds.length < 4) {
+                    store.setSweepElField(parseInt(id), 'hoverFrac', null)
+                    continue
+                }
 
-                if (row < 0 || col < 0 || row >= heatmap.length || !heatmap[row] || col >= heatmap[row].length) {
+                const west = bounds[0], south = bounds[1], east = bounds[2], north = bounds[3]
+                const rows = heatmap.length
+                const cols = heatmap[0] ? heatmap[0].length : 0
+                if (rows === 0 || cols === 0) {
+                    store.setSweepElField(parseInt(id), 'hoverFrac', null)
+                    continue
+                }
+
+                const col = Math.floor(((mouseX - west) / (east - west)) * cols)
+                const row = Math.floor(((north - mouseY) / (north - south)) * rows)
+
+                if (row < 0 || col < 0 || row >= rows || !heatmap[row] || col >= cols) {
                     store.setSweepElField(parseInt(id), 'hoverFrac', null)
                     continue
                 }
@@ -312,7 +482,12 @@ let SightlineTool = {
         }
     },
 
+    _lastGeneratedTime: null,
+
     _onTimeChange: function (rawTime) {
+        // Skip regeneration if the time hasn't actually changed
+        if (rawTime === SightlineTool._lastGeneratedTime) return
+        SightlineTool._lastGeneratedTime = rawTime
         if (_timeChangeDebounce) clearTimeout(_timeChangeDebounce)
         _timeChangeDebounce = setTimeout(() => {
             const store = useSightlineStore.getState()
@@ -321,11 +496,7 @@ let SightlineTool = {
                 if (!el) continue
                 // Don't regenerate static sightline for composite/playback elements
                 if (el.sightlineMode === 'composite' || el.sightlineMode === 'playback') continue
-                if (el.resolution <= 1) {
-                    SightlineTool.sightline(null, parseInt(id))
-                } else {
-                    store.updateElement(parseInt(id), { changed: true, lastError: false })
-                }
+                SightlineTool.sightline(null, parseInt(id))
             }
         }, 300)
     },
@@ -348,9 +519,6 @@ let SightlineTool = {
         const hOffset = mapRect.height / 2
         let centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
 
-        if (store.indicatorLastDragPoint)
-            centerLatLng = store.indicatorLastDragPoint
-
         source = {
             lng: parseFloat(centerLatLng.lng),
             lat: parseFloat(centerLatLng.lat),
@@ -364,11 +532,7 @@ let SightlineTool = {
         source.height =
             !isNaN(options.height) ? parseFloat(options.height) : 2
 
-        options.resolution = parseInt(options.resolution) || 0
-
-        const b = Map_.map.getBounds()
         const vars = store.vars
-        let dataLayer = vars.data[options.dataIndex]
 
         const selectedTargets = options.targets || []
         if (selectedTargets.length === 0) {
@@ -388,25 +552,6 @@ let SightlineTool = {
                 )
                 return
             }
-        }
-
-        const targetKeys = selectedTargets.map((t) => t.value).join('_')
-        const sightlineTag =
-            activeElmId +
-            'd' + dataLayer.name.replace(/ /g, '_') +
-            'r' + options.resolution +
-            'n' + b._northEast.lat +
-            'e' + b._northEast.lng +
-            's' + b._southWest.lat +
-            'w' + b._southWest.lng +
-            'g' + targetKeys +
-            't' + options.time.replace(/ /g, '_')
-
-        if (hasCustom) {
-            store.tags[activeElmId] =
-                sightlineTag + `A${customAz}E${customEl}R${customRange}`
-        } else {
-            store.tags[activeElmId] = sightlineTag
         }
 
         let obsRefFrame, obsBody
@@ -433,117 +578,121 @@ let SightlineTool = {
             loadingProgress: 0,
         })
 
+        // Determine target for the sightmap request
+        const primary = selectedTargets[0]
+        const primaryIsCustom =
+            primary.value === false || primary.value === 'false'
+
+        const viewportBounds = _getViewportProjBounds()
+
         calls.api(
-            'getbands',
+            'sightmap',
             {
-                type: 'band',
-                x: source.lat,
-                y: source.lng,
-                xyorll: 'll',
-                bands: '[[1,1]]',
-                path: demUrl,
+                dem: demUrl,
+                lat: source.lat,
+                lng: source.lng,
+                height: options.height || 0,
+                target: primaryIsCustom ? 'CUSTOM' : primary.value,
+                time: options.time + ' UTC',
+                obsRefFrame,
+                obsBody,
+                planetRadius: F_.radiusOfPlanetMajor,
+                maxOutputDim: SightlineTool._resolutionToMaxDim(activeElmId),
+                isCustom: primaryIsCustom ? 'true' : 'false',
+                customAz: primaryIsCustom ? customAz : 0,
+                customEl: primaryIsCustom ? customEl : 0,
+                viewportBounds: viewportBounds ? viewportBounds.join(',') : undefined,
+                shadowReach: parseFloat(options.shadowReach) || 0,
             },
-            function (data) {
-                if (data[0] && data[0][1] != null) {
-                    const centerHeight = data[0][1]
-                    const ll2aerllPromises = selectedTargets.map((tgt) => {
-                        return new Promise((resolve) => {
-                            const tgtIsCustom =
-                                tgt.value === false || tgt.value === 'false'
-                            calls.api(
-                                'll2aerll',
-                                {
-                                    lng: source.lng,
-                                    lat: source.lat,
-                                    height: centerHeight,
-                                    target: tgt.value,
-                                    time: options.time + ' UTC',
-                                    obsRefFrame,
-                                    obsBody,
-                                    includeSunEarth: 'false',
-                                    isCustom: tgtIsCustom,
-                                    customAz: tgtIsCustom ? customAz : undefined,
-                                    customEl: tgtIsCustom ? customEl : undefined,
-                                    customRange: tgtIsCustom
-                                        ? customRange
-                                        : undefined,
-                                },
-                                function (s) {
-                                    resolve({ ...s, _sourceTarget: tgt })
-                                },
-                                function () {
-                                    resolve({ error: true, _sourceTarget: tgt })
-                                }
-                            )
+            function (result) {
+                if (result.error) {
+                    const msg =
+                        (result.message || '').indexOf('INSUFFDATA') >= 0
+                            ? 'Insufficient SPICE kernels for this source entity and time period.'
+                            : 'Sightmap error: ' +
+                              (result.message || 'Unknown')
+                    Toast.error(msg, 6000)
+                    useSightlineStore
+                        .getState()
+                        .updateElement(activeElmId, {
+                            regenerating: false,
+                            loading: false,
+                            lastError: true,
                         })
-                    })
-
-                    Promise.all(ll2aerllPromises).then((results) => {
-                        SightlineTool.updateRAEIndicators(
-                            results[0],
-                            activeElmId,
-                            results
-                        )
-
-                        const validResults = results.filter((s) => !s.error)
-                        if (validResults.length === 0) {
-                            const msg =
-                                results[0].message?.indexOf('INSUFFDATA') >= 0
-                                    ? 'Insufficient SPICE kernels for this source entity and time period.'
-                                    : 'LatLng to AzEl Error'
-                            Toast.error(msg, 6000)
-                            useSightlineStore
-                                .getState()
-                                .updateElement(activeElmId, {
-                                    regenerating: false,
-                                    loading: false,
-                                    lastError: true,
-                                })
-                            return
-                        }
-
-                        const primary = validResults[0]
-                        useSightlineStore
-                            .getState()
-                            .updateElement(activeElmId, {
-                                raeResults: {
-                                    az: primary.azimuth.toFixed(3) + '\u00B0',
-                                    el: primary.elevation.toFixed(3) + '\u00B0',
-                                    range:
-                                        primary.range.toFixed(3) + 'km',
-                                },
-                                raeRaw: results[0],
-                                raeAllResults: results,
-                                allResults: results,
-                            })
-
-                        const targetSources = validResults.map((s) => ({
-                            lat: s.latitude,
-                            lng: s.longitude,
-                            altitude: s.horizontal_altitude,
-                            az: s.azimuth,
-                            el: s.elevation,
-                            range: s.range,
-                            _sourceTarget: s._sourceTarget,
-                        }))
-
-                        keepGoing(targetSources)
-                    })
-                } else {
-                    console.warn(
-                        'SightlineTool: getbands returned null elevation data.'
-                    )
-                    useSightlineStore.getState().updateElement(activeElmId, {
-                        regenerating: false,
-                        loading: false,
-                        lastError: true,
-                    })
+                    return
                 }
-            },
-            function () {
-                console.warn(
-                    'SightlineTool: Failed to query center elevation.'
+
+                const bounds = result.bounds
+                const projBounds = result.projBounds || null
+
+                // Update RAE indicators from backend-computed az/el
+                const syntheticRae = {
+                    azimuth: result.az,
+                    elevation: result.el,
+                    range: 0,
+                }
+
+                useSightlineStore.getState().updateElement(activeElmId, {
+                    raeResults: {
+                        az: result.az.toFixed(3) + '\u00B0',
+                        el: result.el.toFixed(3) + '\u00B0',
+                        range: '',
+                    },
+                    raeRaw: syntheticRae,
+                    raeAllResults: [syntheticRae],
+                })
+
+                // Decode compressed binary grid
+                _decodeGridB64z(result.gridB64z, result.rows, result.cols).then(({ grid }) => {
+
+                const data = {
+                    _bounds: bounds,
+                    _projBounds: projBounds,
+                    result: grid,
+                    bottomLeftLatLng: {
+                        lat: bounds[1],
+                        lng: bounds[0],
+                    },
+                    cellSize:
+                        grid[0] && grid[0].length > 1
+                            ? (bounds[2] - bounds[0]) / grid[0].length
+                            : 0,
+                }
+
+                SightlineTool.renderResultToMap(
+                    data,
+                    grid,
+                    options,
+                    activeElmId
                 )
+
+                const currentStore = useSightlineStore.getState()
+                currentStore.lastData = data
+                currentStore.lastResultGrid = grid
+                currentStore.lastOptions = options
+                // Store the observer position so azimuth indicator lines
+                // compute _localNorthAngle from the correct location
+                // (not the map center, which may be at the pole).
+                currentStore.setSweepElField(activeElmId, 'sweepCenter', {
+                    lat: source.lat,
+                    lng: source.lng,
+                })
+                SightlineTool._updateCrosshairPosition()
+                currentStore.updateElement(activeElmId, {
+                    lastData: data,
+                    lastResultGrid: grid,
+                })
+                currentStore.updateElement(activeElmId, {
+                    regenerating: false,
+                    loading: false,
+                    changed: false,
+                    loadingProgress: 0,
+                })
+                }) // end _decodeGridB64z.then
+            },
+            function (err) {
+                const msg = (err && err.message) ? err.message : 'Sightmap request failed.'
+                Toast.error(msg, 6000)
                 useSightlineStore.getState().updateElement(activeElmId, {
                     regenerating: false,
                     loading: false,
@@ -551,68 +700,6 @@ let SightlineTool = {
                 })
             }
         )
-
-        function keepGoing(targetSources) {
-            const currentTag = useSightlineStore.getState().tags[activeElmId]
-
-            SightlineTool_Manager.gatherTiles(
-                currentTag,
-                dataLayer,
-                options.resolution,
-                source,
-                options,
-                vars,
-                function (progress) {
-                    useSightlineStore.getState().updateElement(activeElmId, {
-                        loadingProgress: progress,
-                        loading: true,
-                    })
-                },
-                function (data) {
-                    const resultGrids = targetSources.map((ts) =>
-                        SightlineTool_Manager.computeSightline(
-                            currentTag,
-                            ts,
-                            options
-                        )
-                    )
-
-                    const compositedResult =
-                        resultGrids.length === 1
-                            ? resultGrids[0]
-                            : SightlineTool_Algorithm.compositeResults(
-                                  resultGrids,
-                                  options.compositeMode || 'or'
-                              )
-
-                    data.result = compositedResult
-
-                    SightlineTool.renderResultToMap(
-                        data,
-                        compositedResult,
-                        options,
-                        activeElmId
-                    )
-
-                    const currentStore = useSightlineStore.getState()
-                    currentStore.lastData = data
-                    currentStore.lastResultGrid = compositedResult
-                    currentStore.lastOptions = options
-                    // Also store per-element for correct export
-                    currentStore.updateElement(activeElmId, {
-                        lastData: data,
-                        lastResultGrid: compositedResult,
-                    })
-
-                    currentStore.updateElement(activeElmId, {
-                        regenerating: false,
-                        loading: false,
-                        changed: false,
-                        loadingProgress: 0,
-                    })
-                }
-            )
-        }
     },
 
     toggleElementVisibility: function (elmId, on) {
@@ -643,39 +730,39 @@ let SightlineTool = {
         }
         // Also remove via Globe_ in case it was added as a litho layer
         try { Globe_.litho.removeLayer(layerName) } catch (e) { /* ignore */ }
-    },
 
-    // Show regular sightline map layers, remove sweep layers from map
-    showSightlinemapLayers: function () {
-        const store = useSightlineStore.getState()
-        for (const id in store.elements) {
-            const el = store.elements[id]
-            if (el?.on && el?.lastData && el?.lastResultGrid) {
-                const options = store.getSightlineOptions(parseInt(id))
+        // Clear the TimeUI playback indicator when leaving playback mode
+        TimeUI.removeIndicator(null, 'sightlinetool')
+
+        // Switching back to static: re-render cached result or mark for regen
+        if (mode === 'static') {
+            if (el.lastData && el.lastResultGrid) {
+                const options = store.getSightlineOptions(elmId)
                 options.color.a = 255
-                SightlineTool.renderResultToMap(el.lastData, el.lastResultGrid, options, parseInt(id))
+                SightlineTool.renderResultToMap(el.lastData, el.lastResultGrid, options, elmId)
+            } else {
+                store.updateElement(elmId, { changed: true })
             }
         }
-    },
 
-    // Show sweep layers (composite heatmaps), remove regular sightline layers from map
-    showSweepLayers: function () {
-        const store = useSightlineStore.getState()
-        // Remove all regular sightline layers first
-        for (const id in store.elements) {
-            Map_.rmNotNull(L_.layers.layer['sightline' + id])
-            L_.layers.layer['sightline' + id] = null
-        }
-        for (const id in store.sweepElData) {
-            const ed = store.sweepElData[id]
+        // Switch to composite: render cached heatmap if available (no re-sweep)
+        if (mode === 'composite') {
+            const ed = store.sweepElData[elmId]
             if (ed?.heatmap && ed?.lastData) {
-                SightlineTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
+                store.setSweepField('sweepViewMode', 'composite')
+                SightlineTool.renderHeatmapToMap(ed.lastData, ed.heatmap, elmId)
             }
         }
-        // Re-apply z-ordering so earlier elements stay on top
-        const cardOrder = store.sweepCardOrder || []
-        if (cardOrder.length > 0) {
-            SightlineTool.reorderSweepLayers(cardOrder)
+
+        // Switch to playback: render cached frames if available (no re-sweep)
+        if (mode === 'playback') {
+            // Ensure sightlineMode is set before sweepShowAllFrames checks it
+            store.updateElement(elmId, { sightlineMode: 'playback' })
+            store.setSweepField('sweepViewMode', 'playback')
+            const ed = store.sweepElData[elmId]
+            if (ed?.frameImages && ed.frameImages.length > 0) {
+                SightlineTool.sweepShowFrame(elmId)
+            }
         }
     },
 
@@ -701,32 +788,89 @@ let SightlineTool = {
 
     // === Rendering ===
 
-    makeDataLayer: function (layerUrl, activeElmId) {
-        const layerName = 'sightline' + activeElmId
+    renderResultToMap: function (data, resultGrid, options, activeElmId) {
+        SightlineTool.renderBackendSightmapToMap(
+            resultGrid,
+            data._bounds,
+            data._projBounds,
+            options,
+            activeElmId
+        )
+    },
 
-        // Invalidate cached layer for current mode since we're creating a new one
+    renderBackendSightmapToMap: function (
+        grid, bounds, projBounds, options, activeElmId
+    ) {
+        const layerName = 'sightline' + activeElmId
+        const rows = grid.length
+        const cols = grid[0] ? grid[0].length : 0
+        if (rows === 0 || cols === 0) return
+
+        // Invalidate cached layer for current mode
         if (SightlineTool._cachedLayers[activeElmId]) {
             const el = useSightlineStore.getState().elements[activeElmId]
-            if (el) delete SightlineTool._cachedLayers[activeElmId][el.sightlineMode]
+            if (el)
+                delete SightlineTool._cachedLayers[activeElmId][
+                    el.sightlineMode
+                ]
         }
 
         Map_.rmNotNull(L_.layers.layer[layerName])
 
-        L_.layers.layer[layerName] = L.tileLayer.gl({
-            options: {
-                tms: false,
-                className: 'nofade',
-                maxNativeZoom: Map_.map.getZoom(),
-                maxZoom: 30,
-            },
-            fragmentShader: DataShaders['image'].frag,
-            tileUrls: [layerUrl],
-            uniforms: {},
-            tileUrlsAsDataUrls: true,
-        })
-        L_.layers.layer[layerName]._noFade = true
+        const c = document.createElement('canvas')
+        c.width = cols
+        c.height = rows
+        const ctx = c.getContext('2d')
+        const imgData = ctx.createImageData(cols, rows)
+        const px = imgData.data
+
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                const idx = (y * cols + x) * 4
+                const val = grid[y][x]
+                let cl
+                switch (val) {
+                    case 0:
+                        cl =
+                            options.invert == 0
+                                ? { r: 0, g: 0, b: 0, a: 0 }
+                                : options.color
+                        break
+                    case 1:
+                    case 2:
+                        cl =
+                            options.invert == 0
+                                ? options.color
+                                : { r: 0, g: 0, b: 0, a: 0 }
+                        break
+                    default:
+                        cl = { r: 0, g: 0, b: 0, a: 0 }
+                }
+                px[idx] = cl.r
+                px[idx + 1] = cl.g
+                px[idx + 2] = cl.b
+                px[idx + 3] = cl.a
+            }
+        }
+        ctx.putImageData(imgData, 0, 0)
+
+        const overlayOpts = { className: 'nofade sightmap-pixelated', interactive: false }
+        if (projBounds && _isCustomProjectedCRS() && Map_.map.options.crs && Map_.map.options.crs.unproject) {
+            L_.layers.layer[layerName] = _projImageOverlay(
+                c.toDataURL(), projBounds, overlayOpts
+            )
+        } else {
+            const leafletBounds = [
+                [bounds[1], bounds[0]], // SW
+                [bounds[3], bounds[2]], // NE
+            ]
+            L_.layers.layer[layerName] = L.imageOverlay(
+                c.toDataURL(), leafletBounds, overlayOpts
+            )
+        }
         L_.layers.layer[layerName].setZIndex(1000)
         Map_.map.addLayer(L_.layers.layer[layerName])
+
         const store = useSightlineStore.getState()
         store.updateElement(activeElmId, { on: true })
         const el = store.elements[activeElmId]
@@ -734,263 +878,72 @@ let SightlineTool = {
             L_.layers.layer[layerName].setOpacity(el.opacity)
         }
 
+        // Re-apply z-order so elements respect the panel drag order
+        const allIds = Object.keys(store.elements).map(Number)
+        const ordered = (store.elementOrder || []).filter((id) => allIds.includes(id))
+        allIds.forEach((id) => { if (!ordered.includes(id)) ordered.push(id) })
+        SightlineTool.reorderSightlineLayers(ordered)
+
         Globe_.litho.removeLayer(layerName)
     },
 
-    renderResultToTileData: function (data, resultGrid, options) {
-        let c = document.createElement('canvas')
-        const res = data.tileResolution * Math.pow(2, data.resolution)
-        c.width = res
-        c.height = res
-        let ctx = c.getContext('2d')
-        let cImgData = ctx.createImageData(res, res)
-        let cData = cImgData.data
-
-        let dl = {}
-        let dlc = {}
-
-        for (let j = 0; j <= data.outputTopLeftTile.h; j++) {
-            for (let i = 0; i <= data.outputTopLeftTile.w; i++) {
-                const z = data.outputTopLeftTile.z
-                const x = data.outputTopLeftTile.x + i
-                const y = data.outputTopLeftTile.y + j
-
-                dl[z] = dl[z] || {}
-                dl[z][Math.floor(x)] = dl[z][Math.floor(x)] || {}
-                dlc[z] = dlc[z] || {}
-                dlc[z][Math.floor(x)] = dlc[z][Math.floor(x)] || {}
-
-                const tileRow =
-                    (y -
-                        Math.floor(data.outputTopLeftTile.y) -
-                        (Math.abs(data.outputTopLeftTile.y) % 1) * 2) *
-                    res
-                const tileCol =
-                    (x -
-                        Math.floor(data.outputTopLeftTile.x) -
-                        (Math.abs(data.outputTopLeftTile.x) % 1) * 2) *
-                    res
-
-                let px = 0
-                let val = null
-                for (let p = 0; p < cData.length; p += 4) {
-                    val = resultGrid[tileRow + Math.floor(px / res)]
-                    if (val != null) {
-                        val = val[tileCol + (px % res)]
-                        let cl
-                        switch (val) {
-                            case 0:
-                                cl =
-                                    options.invert == 0
-                                        ? { r: 0, g: 0, b: 0, a: 0 }
-                                        : options.color
-                                break
-                            case 1:
-                                cl =
-                                    options.invert == 0
-                                        ? options.color
-                                        : { r: 0, g: 0, b: 0, a: 0 }
-                                break
-                            case 2:
-                                cl =
-                                    options.invert == 0
-                                        ? options.color
-                                        : { r: 0, g: 0, b: 0, a: 0 }
-                                break
-                            case 3:
-                                cl = { r: 0, g: 255, b: 0, a: 0 }
-                                break
-                            case 8:
-                                cl = { r: 0, g: 0, b: 0, a: 0 }
-                                break
-                            case 9:
-                                cl = { r: 0, g: 0, b: 0, a: 0 }
-                                break
-                            default:
-                                cl = { r: 0, g: 0, b: 0, a: 0 }
-                        }
-                        cData[p] = cl.r
-                        cData[p + 1] = cl.g
-                        cData[p + 2] = cl.b
-                        cData[p + 3] = cl.a
-                    } else {
-                        cData[p] = 0
-                        cData[p + 1] = 0
-                        cData[p + 2] = 0
-                        cData[p + 3] = 0
-                    }
-                    px++
-                }
-                ctx.putImageData(cImgData, 0, 0)
-                dl[z][Math.floor(x)][Math.floor(y)] = c.toDataURL()
-                dlc[z][Math.floor(x)][Math.floor(y)] = F_.cloneCanvas(c)
-            }
-        }
-        return { dl, dlc }
-    },
-
-    renderResultToMap: function (data, resultGrid, options, activeElmId) {
-        const { dl, dlc } = SightlineTool.renderResultToTileData(
-            data,
-            resultGrid,
-            options
-        )
-        useSightlineStore.getState().canvases[activeElmId] = dlc
-        SightlineTool.makeDataLayer(dl, activeElmId)
-    },
-
-    // Lightweight version for atlas building — only returns canvas objects
-    // without calling toDataURL() or cloneCanvas() (avoids expensive PNG encoding)
-    _renderFrameCanvases: function (data, resultGrid, options) {
-        const res = data.tileResolution * Math.pow(2, data.resolution)
-        let c = document.createElement('canvas')
-        c.width = res
-        c.height = res
-        let ctx = c.getContext('2d')
-        let cImgData = ctx.createImageData(res, res)
-        let cData = cImgData.data
-
-        let canvases = {}
-
-        for (let j = 0; j <= data.outputTopLeftTile.h; j++) {
-            for (let i = 0; i <= data.outputTopLeftTile.w; i++) {
-                const z = data.outputTopLeftTile.z
-                const x = Math.floor(data.outputTopLeftTile.x + i)
-                const y = Math.floor(data.outputTopLeftTile.y + j)
-
-                canvases[z] = canvases[z] || {}
-                canvases[z][x] = canvases[z][x] || {}
-
-                const tileRow =
-                    (data.outputTopLeftTile.y + j -
-                        Math.floor(data.outputTopLeftTile.y) -
-                        (Math.abs(data.outputTopLeftTile.y) % 1) * 2) *
-                    res
-                const tileCol =
-                    (data.outputTopLeftTile.x + i -
-                        Math.floor(data.outputTopLeftTile.x) -
-                        (Math.abs(data.outputTopLeftTile.x) % 1) * 2) *
-                    res
-
-                let px = 0
-                let val = null
-                for (let p = 0; p < cData.length; p += 4) {
-                    val = resultGrid[tileRow + Math.floor(px / res)]
-                    if (val != null) {
-                        val = val[tileCol + (px % res)]
-                        let cl
-                        switch (val) {
-                            case 0:
-                                cl = options.invert == 0
-                                    ? { r: 0, g: 0, b: 0, a: 0 }
-                                    : options.color
-                                break
-                            case 1:
-                            case 2:
-                                cl = options.invert == 0
-                                    ? options.color
-                                    : { r: 0, g: 0, b: 0, a: 0 }
-                                break
-                            case 3:
-                                cl = { r: 0, g: 255, b: 0, a: 0 }
-                                break
-                            case 8:
-                                cl = { r: 0, g: 0, b: 0, a: 0 }
-                                break
-                            case 9:
-                                cl = { r: 0, g: 0, b: 0, a: 0 }
-                                break
-                            default:
-                                cl = { r: 0, g: 0, b: 0, a: 0 }
-                        }
-                        cData[p] = cl.r
-                        cData[p + 1] = cl.g
-                        cData[p + 2] = cl.b
-                        cData[p + 3] = cl.a
-                    } else {
-                        cData[p] = 0
-                        cData[p + 1] = 0
-                        cData[p + 2] = 0
-                        cData[p + 3] = 0
-                    }
-                    px++
-                }
-                ctx.putImageData(cImgData, 0, 0)
-                // Clone canvas without toDataURL — just copy pixel data
-                const clone = document.createElement('canvas')
-                clone.width = res
-                clone.height = res
-                clone.getContext('2d').drawImage(c, 0, 0)
-                canvases[z][x][y] = clone
-            }
-        }
-        return canvases
-    },
-
-    // Returns the list of available sweep color ramp definitions.
-    // Each entry: { name, label, colors (0-1 RGB arrays), reverse, bins }
-    // 'shadow' is always present. Additional ramps come from the tool's
-    // config variable "sweepColorRamps" which references js-colormaps names.
-    // Optional elmColor {r,g,b} adds element-color-based ramps.
+    // Returns the hardcoded list of available sweep color ramp definitions.
+    // Each entry: { name, label, colors (0-1 RGB arrays), reverse, bins, hasAlpha? }
+    // elmColor {r,g,b} is used for the element-color-based ramps.
     getSweepColorRamps: function (elmColor) {
-        const vars = useSightlineStore.getState().vars || {}
-        const configured = vars.sweepColorRamps || [
-            { name: 'viridis' },
-            { name: 'plasma' },
-            { name: 'Greys' },
-            { name: 'RdYlGn_r' },
-        ]
-
         const cr = elmColor ? elmColor.r / 255 : 1.0
         const cg = elmColor ? elmColor.g / 255 : 0.7
         const cb = elmColor ? elmColor.b / 255 : 0.15
-        const ramps = [{
-            name: 'sightline',
-            label: 'Sightline',
-            colors: Array.from({ length: 64 }, () => [cr, cg, cb]),
-            reverse: false,
-            bins: 2,
-        }]
 
-        // Element-color-based ramps (RGBA — 4th component = alpha)
-        if (elmColor) {
-            // [transparent, color, transparent] — 3 stops
-            ramps.push({
-                name: '_tct', label: '◇ Fade', hasAlpha: true,
-                colors: [[cr, cg, cb, 0], [cr, cg, cb, 1], [cr, cg, cb, 0]],
-                reverse: false, bins: 3,
-            })
-            // [color, transparent, color] — 3 stops
-            ramps.push({
-                name: '_ctc', label: '◆ Edges', hasAlpha: true,
-                colors: [[cr, cg, cb, 1], [cr, cg, cb, 0], [cr, cg, cb, 1]],
-                reverse: false, bins: 3,
-            })
-        }
+        const ramps = []
 
-        for (const cfg of configured) {
-            const rawName = cfg.name || cfg
-            let cmapName = rawName
-            let reverse = false
-            if (cmapName.toLowerCase().endsWith('_r')) {
-                cmapName = cmapName.substring(0, cmapName.length - 2)
-                reverse = true
-            }
-            const cmapKey = Object.keys(colormapData).find(
-                (k) => k.toLowerCase() === cmapName.toLowerCase()
-            )
-            if (!cmapKey) continue
-            const entry = colormapData[cmapKey]
-            let colors = entry.colors
-            if (reverse) colors = [...colors].reverse()
-            ramps.push({
-                name: rawName,
-                label: cfg.label || rawName,
-                colors: colors,
-                reverse: false,
-                bins: Math.min(cfg.bins || 6, 12),
-            })
-        }
+        // 1. [transparent, color]
+        ramps.push({
+            name: '_tc', label: 'Color',
+            hasAlpha: true,
+            colors: [[cr, cg, cb, 0], [cr, cg, cb, 1]],
+            reverse: false, bins: 2,
+        })
+
+        // 2. [transparent, color, transparent]
+        ramps.push({
+            name: '_tct', label: 'Color Fade',
+            hasAlpha: true,
+            colors: [[cr, cg, cb, 0], [cr, cg, cb, 1], [cr, cg, cb, 0]],
+            reverse: false, bins: 3,
+        })
+
+        // 3. Inferno
+        const infernoColors = colormapData['inferno'] ? colormapData['inferno'].colors : []
+        ramps.push({
+            name: 'inferno', label: 'Inferno',
+            colors: infernoColors,
+            reverse: false, bins: 6,
+        })
+
+        // 4. Viridis
+        const viridisColors = colormapData['viridis'] ? colormapData['viridis'].colors : []
+        ramps.push({
+            name: 'viridis', label: 'Viridis',
+            colors: viridisColors,
+            reverse: false, bins: 6,
+        })
+
+        // 5. Red to Green (through yellow) — RdYlGn
+        const rdylgnColors = colormapData['RdYlGn'] ? colormapData['RdYlGn'].colors : []
+        ramps.push({
+            name: 'RdYlGn', label: 'Red → Green',
+            colors: rdylgnColors,
+            reverse: false, bins: 6,
+        })
+
+        // 6. Black to White (single gradient)
+        ramps.push({
+            name: 'BlackWhite', label: 'Black → White',
+            colors: [[0, 0, 0], [1, 1, 1]],
+            reverse: false, bins: 1,
+        })
+
         return ramps
     },
 
@@ -1004,7 +957,7 @@ let SightlineTool = {
         if (discrete && bins > 0) {
             const binIdx = Math.min(Math.floor(tc * bins), bins - 1)
             const binCenter = (binIdx + 0.5) / bins
-            const ci = Math.min(Math.floor(binCenter * n), n)
+            const ci = Math.min(Math.round(binCenter * n), n)
             return colors[ci]
         }
         const scaled = tc * n
@@ -1030,7 +983,7 @@ let SightlineTool = {
         const n = colors.length - 1
         const binIdx = SightlineTool.getBinForValue(tc, stops, bins)
         const binCenter = (binIdx + 0.5) / bins
-        const ci = Math.min(Math.floor(binCenter * n), n)
+        const ci = Math.min(Math.round(binCenter * n), n)
         return colors[ci]
     },
 
@@ -1065,91 +1018,80 @@ let SightlineTool = {
         const elMaxFrac = ed?.maxFrac != null ? ed.maxFrac : 1
         const fracRange = elMaxFrac - elMinFrac
 
-        let c = document.createElement('canvas')
-        const res = data.tileResolution * Math.pow(2, data.resolution)
-        c.width = res
-        c.height = res
-        let ctx = c.getContext('2d')
-        let cImgData = ctx.createImageData(res, res)
-        let cData = cImgData.data
+        const rows = heatmap.length
+        const cols = heatmap[0] ? heatmap[0].length : 0
+        if (rows === 0 || cols === 0) return
 
-        let dl = {}
-        let dlc = {}
+        const layerName = 'sightline' + activeElmId
+        if (SightlineTool._cachedLayers[activeElmId]) {
+            delete SightlineTool._cachedLayers[activeElmId]['composite']
+        }
+        Map_.rmNotNull(L_.layers.layer[layerName])
 
-        for (let j = 0; j <= data.outputTopLeftTile.h; j++) {
-            for (let i = 0; i <= data.outputTopLeftTile.w; i++) {
-                const z = data.outputTopLeftTile.z
-                const x = data.outputTopLeftTile.x + i
-                const y = data.outputTopLeftTile.y + j
+        const c = document.createElement('canvas')
+        c.width = cols
+        c.height = rows
+        const ctx = c.getContext('2d')
+        const imgData = ctx.createImageData(cols, rows)
+        const px = imgData.data
 
-                dl[z] = dl[z] || {}
-                dl[z][Math.floor(x)] = dl[z][Math.floor(x)] || {}
-                dlc[z] = dlc[z] || {}
-                dlc[z][Math.floor(x)] = dlc[z][Math.floor(x)] || {}
-
-                const tileRow =
-                    (y -
-                        Math.floor(data.outputTopLeftTile.y) -
-                        (Math.abs(data.outputTopLeftTile.y) % 1) * 2) *
-                    res
-                const tileCol =
-                    (x -
-                        Math.floor(data.outputTopLeftTile.x) -
-                        (Math.abs(data.outputTopLeftTile.x) % 1) * 2) *
-                    res
-
-                let px = 0
-                for (let p = 0; p < cData.length; p += 4) {
-                    const row = heatmap[tileRow + Math.floor(px / res)]
-                    if (row != null) {
-                        let frac = row[tileCol + (px % res)]
-                        if (frac == null || frac < 0 || !Number.isFinite(frac)) {
-                            cData[p] = 0
-                            cData[p + 1] = 0
-                            cData[p + 2] = 0
-                            cData[p + 3] = 0
-                        } else {
-                            const colorFrac = fitToData && fracRange > 0
-                                ? Math.max(0, Math.min(1, (frac - elMinFrac) / fracRange))
-                                : frac
-                            // In discrete mode, snap to bin using custom stops if provided
-                            let alphaFrac = colorFrac
-                            let binIdx = 0
-                            if (discrete && bins > 0) {
-                                binIdx = SightlineTool.getBinForValue(colorFrac, colorStops, bins)
-                                alphaFrac = bins > 1 ? binIdx / (bins - 1) : 0
-                            }
-                            const cl = discrete
-                                ? SightlineTool.evalColorWithStops(colors, colorFrac, bins, colorStops)
-                                : SightlineTool.evalColor(colors, colorFrac, false, bins)
-                            cData[p] = Math.round(cl[0] * 255)
-                            cData[p + 1] = Math.round(cl[1] * 255)
-                            cData[p + 2] = Math.round(cl[2] * 255)
-                            if (isSightlineRamp) {
-                                cData[p + 3] = (fitToData || discrete)
-                                    ? Math.round(alphaFrac * 255)
-                                    : Math.round(alphaFrac * 200 + 55)
-                            } else if (cl.length > 3) {
-                                cData[p + 3] = Math.round(cl[3] * 255)
-                            } else {
-                                cData[p + 3] = 255
-                            }
-                        }
-                    } else {
-                        cData[p] = 0
-                        cData[p + 1] = 0
-                        cData[p + 2] = 0
-                        cData[p + 3] = 0
-                    }
-                    px++
+        for (let y = 0; y < rows; y++) {
+            const row = heatmap[y]
+            for (let x = 0; x < cols; x++) {
+                const idx = (y * cols + x) * 4
+                if (row == null) {
+                    px[idx] = 0; px[idx + 1] = 0; px[idx + 2] = 0; px[idx + 3] = 0
+                    continue
                 }
-                ctx.putImageData(cImgData, 0, 0)
-                dl[z][Math.floor(x)][Math.floor(y)] = c.toDataURL()
-                dlc[z][Math.floor(x)][Math.floor(y)] = F_.cloneCanvas(c)
+                let frac = row[x]
+                if (frac == null || frac < 0 || !Number.isFinite(frac)) {
+                    px[idx] = 0; px[idx + 1] = 0; px[idx + 2] = 0; px[idx + 3] = 0
+                    continue
+                }
+                const colorFrac = fitToData && fracRange > 0
+                    ? Math.max(0, Math.min(1, (frac - elMinFrac) / fracRange))
+                    : frac
+                let alphaFrac = colorFrac
+                if (discrete && bins > 0) {
+                    const binIdx = SightlineTool.getBinForValue(colorFrac, colorStops, bins)
+                    alphaFrac = bins > 1 ? binIdx / (bins - 1) : 0
+                }
+                const cl = discrete
+                    ? SightlineTool.evalColorWithStops(colors, colorFrac, bins, colorStops)
+                    : SightlineTool.evalColor(colors, colorFrac, false, bins)
+                px[idx] = Math.round(cl[0] * 255)
+                px[idx + 1] = Math.round(cl[1] * 255)
+                px[idx + 2] = Math.round(cl[2] * 255)
+                if (isSightlineRamp) {
+                    px[idx + 3] = (fitToData || discrete)
+                        ? Math.round(alphaFrac * 255)
+                        : Math.round(alphaFrac * 200 + 55)
+                } else if (cl.length > 3) {
+                    px[idx + 3] = Math.round(cl[3] * 255)
+                } else {
+                    px[idx + 3] = 255
+                }
             }
         }
-        useSightlineStore.getState().canvases[activeElmId] = dlc
-        SightlineTool.makeDataLayer(dl, activeElmId)
+        ctx.putImageData(imgData, 0, 0)
+
+        const bounds = data._bounds
+        const projBounds = data._projBounds
+        const heatOpts = { className: 'nofade sightmap-pixelated', interactive: false }
+        if (projBounds && _isCustomProjectedCRS() && Map_.map.options.crs && Map_.map.options.crs.unproject) {
+            L_.layers.layer[layerName] = _projImageOverlay(
+                c.toDataURL(), projBounds, heatOpts
+            )
+        } else if (bounds) {
+            L_.layers.layer[layerName] = L.imageOverlay(
+                c.toDataURL(),
+                [[bounds[1], bounds[0]], [bounds[3], bounds[2]]],
+                heatOpts
+            )
+        } else {
+            return
+        }
+        L_.layers.layer[layerName].addTo(Map_.map)
         SightlineTool.applySweepOpacity(activeElmId)
     },
 
@@ -1192,20 +1134,11 @@ let SightlineTool = {
         })
     },
 
-    refreshAllHeatmaps: function () {
-        const store = useSightlineStore.getState()
-        for (const id in store.sweepElData) {
-            const ed = store.sweepElData[id]
-            if (ed?.heatmap && ed?.lastData) {
-                SightlineTool.renderHeatmapToMap(ed.lastData, ed.heatmap, parseInt(id))
-            }
-        }
-    },
-
     applySweepOpacity: function (activeElmId) {
         const store = useSightlineStore.getState()
         const ed = store.sweepElData[activeElmId]
-        const opacity = ed?.opacity != null ? ed.opacity : 1
+        const el = store.elements[activeElmId]
+        const opacity = ed?.opacity != null ? ed.opacity : (el?.opacity != null ? el.opacity : 1)
         const layerName = 'sightline' + activeElmId
         const layer = L_.layers.layer[layerName]
         if (layer && typeof layer.setOpacity === 'function') {
@@ -1213,219 +1146,79 @@ let SightlineTool = {
         }
     },
 
-    // Fragment shader for atlas-based sweep playback.
-    // Samples from a grid atlas texture using frameIndex to compute UV offset.
-    // atlasScaleS/T account for the content region within the POT texture.
-    _sweepAtlasShader: [
-        'void main(void) {',
-        '    float col = mod(frameIndex, atlasCols);',
-        '    float row = floor(frameIndex / atlasCols);',
-        '    vec2 frameUV = vec2(',
-        '        (col + vTextureCoords.s) / atlasCols * atlasScaleS,',
-        '        (row + vTextureCoords.t) / atlasRows * atlasScaleT',
-        '    );',
-        '    gl_FragColor = texture2D(uTexture0, frameUV);',
-        '}',
-    ].join('\n'),
-
-    _nextPow2: function (v) {
-        v--
-        v |= v >> 1; v |= v >> 2; v |= v >> 4
-        v |= v >> 8; v |= v >> 16
-        return v + 1
-    },
-
     buildSweepAtlas: function (data, sweepGrids, options, activeElmId, onDone) {
-        const res = data.tileResolution * Math.pow(2, data.resolution)
         const numFrames = sweepGrids.length
-        const atlasCols = Math.ceil(Math.sqrt(numFrames))
-        const atlasRows = Math.ceil(numFrames / atlasCols)
-
-        const contentW = res * atlasCols
-        const contentH = res * atlasRows
-        const atlasW = SightlineTool._nextPow2(contentW)
-        const atlasH = SightlineTool._nextPow2(contentH)
-
         const store = useSightlineStore.getState()
-        store.setSweepField('sweepProgress', 'Building atlas...')
+        store.setSweepField('sweepProgress', 'Building frames...')
         _flushSweepProgress(activeElmId, 55, undefined, true)
 
-        // Build list of tiles to process
-        const tilesToProcess = []
-        for (let j = 0; j <= data.outputTopLeftTile.h; j++) {
-            for (let i = 0; i <= data.outputTopLeftTile.w; i++) {
-                tilesToProcess.push({ i, j })
-            }
-        }
+        const colorR = options.color ? options.color.r : 0
+        const colorG = options.color ? options.color.g : 0
+        const colorB = options.color ? options.color.b : 0
+        const colorA = options.color ? options.color.a : 0
+        const isInvert = options.invert == 0
 
-        // For each tile: render ALL frames directly into the atlas ImageData
-        // using putImageData at the correct offset. This avoids creating
-        // intermediate canvases (previously 512+ allocations + drawImage clones).
-        const atlasDl = {}
-        let tileIdx = 0
+        const frameImages = []
+        let frameIdx = 0
+        const CHUNK = 4
 
-        function processTile() {
-            if (tileIdx >= tilesToProcess.length) {
-                finalizeAtlas()
-                return
-            }
-
-            const { i, j } = tilesToProcess[tileIdx]
-            const z = data.outputTopLeftTile.z
-            const x = Math.floor(data.outputTopLeftTile.x + i)
-            const y = Math.floor(data.outputTopLeftTile.y + j)
-
-            const tileRow =
-                (data.outputTopLeftTile.y + j -
-                    Math.floor(data.outputTopLeftTile.y) -
-                    (Math.abs(data.outputTopLeftTile.y) % 1) * 2) * res
-            const tileCol =
-                (data.outputTopLeftTile.x + i -
-                    Math.floor(data.outputTopLeftTile.x) -
-                    (Math.abs(data.outputTopLeftTile.x) % 1) * 2) * res
-
-            const atlas = document.createElement('canvas')
-            atlas.width = atlasW
-            atlas.height = atlasH
-            const actx = atlas.getContext('2d')
-            // Reusable ImageData for putImageData (avoids per-frame allocation)
-            const tileImgData = actx.createImageData(res, res)
-            const tileImgBuf = tileImgData.data
-
-            // Process frames in chunks within this tile
-            let frameIdx = 0
-            const FRAME_CHUNK = 16
-
-            // Pre-compute color values to avoid object allocation in hot loop
-            const colorR = options.color ? options.color.r : 0
-            const colorG = options.color ? options.color.g : 0
-            const colorB = options.color ? options.color.b : 0
-            const colorA = options.color ? options.color.a : 0
-            const isInvert = options.invert == 0
-
-            function renderFramesForTile() {
-                const end = Math.min(frameIdx + FRAME_CHUNK, numFrames)
-                for (; frameIdx < end; frameIdx++) {
-                    const resultGrid = sweepGrids[frameIdx]
-                    if (resultGrid == null) continue
-
-                    // Render this frame's pixels for this tile directly
-                    // Optimized: no object allocation per pixel, inline color writes
-                    let px = 0
-                    const bufLen = tileImgBuf.length
-                    for (let p = 0; p < bufLen; p += 4) {
-                        const gridRow = resultGrid[tileRow + ((px / res) | 0)]
-                        const val = gridRow != null ? gridRow[tileCol + (px % res)] : null
+        function processChunk() {
+            const end = Math.min(frameIdx + CHUNK, numFrames)
+            for (; frameIdx < end; frameIdx++) {
+                const grid = sweepGrids[frameIdx]
+                if (grid == null) {
+                    frameImages.push(null)
+                    continue
+                }
+                const rows = grid.length
+                const cols = grid[0] ? grid[0].length : 0
+                const c = document.createElement('canvas')
+                c.width = cols
+                c.height = rows
+                const ctx = c.getContext('2d')
+                const imgData = ctx.createImageData(cols, rows)
+                const px = imgData.data
+                for (let y = 0; y < rows; y++) {
+                    const row = grid[y]
+                    for (let x = 0; x < cols; x++) {
+                        const idx = (y * cols + x) * 4
+                        const val = row ? row[x] : null
                         if (val === 1 || val === 2) {
                             if (isInvert) {
-                                tileImgBuf[p] = colorR
-                                tileImgBuf[p + 1] = colorG
-                                tileImgBuf[p + 2] = colorB
-                                tileImgBuf[p + 3] = colorA
+                                px[idx] = colorR; px[idx + 1] = colorG
+                                px[idx + 2] = colorB; px[idx + 3] = colorA
                             } else {
-                                tileImgBuf[p] = 0; tileImgBuf[p + 1] = 0
-                                tileImgBuf[p + 2] = 0; tileImgBuf[p + 3] = 0
+                                px[idx] = 0; px[idx + 1] = 0; px[idx + 2] = 0; px[idx + 3] = 0
                             }
                         } else if (val === 0) {
                             if (isInvert) {
-                                tileImgBuf[p] = 0; tileImgBuf[p + 1] = 0
-                                tileImgBuf[p + 2] = 0; tileImgBuf[p + 3] = 0
+                                px[idx] = 0; px[idx + 1] = 0; px[idx + 2] = 0; px[idx + 3] = 0
                             } else {
-                                tileImgBuf[p] = colorR
-                                tileImgBuf[p + 1] = colorG
-                                tileImgBuf[p + 2] = colorB
-                                tileImgBuf[p + 3] = colorA
+                                px[idx] = colorR; px[idx + 1] = colorG
+                                px[idx + 2] = colorB; px[idx + 3] = colorA
                             }
-                        } else if (val === 9) {
-                            tileImgBuf[p] = 0; tileImgBuf[p + 1] = 0
-                            tileImgBuf[p + 2] = 0; tileImgBuf[p + 3] = 0
                         } else {
-                            tileImgBuf[p] = 0; tileImgBuf[p + 1] = 0
-                            tileImgBuf[p + 2] = 0; tileImgBuf[p + 3] = 0
+                            px[idx] = 0; px[idx + 1] = 0; px[idx + 2] = 0; px[idx + 3] = 0
                         }
-                        px++
                     }
-
-                    // Place into atlas at correct frame position
-                    // putImageData copies — safe to reuse tileImgData
-                    const col = frameIdx % atlasCols
-                    const row2 = Math.floor(frameIdx / atlasCols)
-                    actx.putImageData(tileImgData, col * res, row2 * res)
                 }
-
-                if (frameIdx < numFrames) {
-                    // Yield between frame chunks — update progress
-                    const totalWork = tilesToProcess.length * numFrames
-                    const doneWork = tileIdx * numFrames + frameIdx
-                    const pct = 55 + Math.round((doneWork / totalWork) * 35)
-                    _flushSweepProgress(activeElmId, pct, 'Building atlas: ' + Math.round((doneWork / totalWork) * 100) + '%')
-                    requestAnimationFrame(renderFramesForTile)
-                } else {
-                    // All frames rendered for this tile — encode to dataURL
-                    atlasDl[z] = atlasDl[z] || {}
-                    atlasDl[z][x] = atlasDl[z][x] || {}
-                    atlasDl[z][x][y] = atlas.toDataURL()
-
-                    tileIdx++
-                    const pct = 55 + Math.round((tileIdx / tilesToProcess.length) * 40)
-                    _flushSweepProgress(activeElmId, Math.min(pct, 95), 'Building atlas: tile ' + tileIdx + '/' + tilesToProcess.length)
-                    requestAnimationFrame(processTile)
-                }
+                ctx.putImageData(imgData, 0, 0)
+                frameImages.push(c.toDataURL())
             }
 
-            renderFramesForTile()
+            const pct = 55 + Math.round((frameIdx / numFrames) * 40)
+            _flushSweepProgress(activeElmId, Math.min(pct, 95), 'Building frames: ' + frameIdx + '/' + numFrames)
+
+            if (frameIdx < numFrames) {
+                requestAnimationFrame(processChunk)
+            } else {
+                useSightlineStore.getState().setSweepElField(activeElmId, 'frameImages', frameImages)
+                useSightlineStore.getState().setSweepField('sweepProgress', '')
+                _flushSweepProgress(activeElmId, 100, undefined, true)
+                if (typeof onDone === 'function') onDone()
+            }
         }
-
-        function finalizeAtlas() {
-            useSightlineStore.getState().setSweepElField(activeElmId, 'atlas', {
-                dl: atlasDl,
-                atlasCols: atlasCols,
-                atlasRows: atlasRows,
-                atlasScaleS: contentW / atlasW,
-                atlasScaleT: contentH / atlasH,
-            })
-            useSightlineStore.getState().setSweepField('sweepProgress', '')
-            _flushSweepProgress(activeElmId, 100, undefined, true)
-            if (typeof onDone === 'function') onDone()
-        }
-
-        processTile()
-    },
-
-    makeSweepLayer: function (atlasDl, activeElmId, atlasCols, atlasRows, atlasScaleS, atlasScaleT) {
-        const layerName = 'sightline' + activeElmId
-
-        // Invalidate cached playback layer since we're creating a new one
-        if (SightlineTool._cachedLayers[activeElmId]) {
-            delete SightlineTool._cachedLayers[activeElmId]['playback']
-        }
-
-        Map_.rmNotNull(L_.layers.layer[layerName])
-
-        L_.layers.layer[layerName] = L.tileLayer.gl({
-            options: {
-                tms: false,
-                className: 'nofade',
-                maxNativeZoom: Map_.map.getZoom(),
-                maxZoom: 30,
-            },
-            fragmentShader: SightlineTool._sweepAtlasShader,
-            tileUrls: [atlasDl],
-            uniforms: {
-                frameIndex: 0,
-                atlasCols: atlasCols,
-                atlasRows: atlasRows,
-                atlasScaleS: atlasScaleS != null ? atlasScaleS : 1,
-                atlasScaleT: atlasScaleT != null ? atlasScaleT : 1,
-            },
-            tileUrlsAsDataUrls: true,
-        })
-        L_.layers.layer[layerName]._noFade = true
-        L_.layers.layer[layerName].setZIndex(1000)
-        Map_.map.addLayer(L_.layers.layer[layerName])
-        useSightlineStore.getState().updateElement(activeElmId, { on: true })
-
-        Globe_.litho.removeLayer(layerName)
+        processChunk()
     },
 
     // === Time-Range Sweep ===
@@ -1446,6 +1239,8 @@ let SightlineTool = {
                 store.updateElement(numId, { regenerating: false, loading: false, loadingProgress: 0 })
             }
         }
+        // Remove TimeUI playback indicator
+        TimeUI.removeIndicator(null, 'sightlinetool')
         Toast.info('Sweep cancelled.', 3000)
     },
 
@@ -1461,6 +1256,8 @@ let SightlineTool = {
             SightlineTool._sweepPlayTimer = null
             store.setSweepField('sweepPlaying', false)
         }
+        // Clear stale TimeUI indicator from previous sweep
+        TimeUI.removeIndicator(null, 'sightlinetool')
 
         const options = store.getSightlineOptions(activeElmId)
         const selectedTargets = options.targets || []
@@ -1490,9 +1287,11 @@ let SightlineTool = {
             timestamps.push(new Date(t).toISOString().replace(/\.\d{3}Z$/, 'Z'))
         }
 
-        if (timestamps.length > 512) {
+        const stepSeconds = stepMinutes * 60
+
+        if (timestamps.length > 2048) {
             Toast.warning(
-                'Too many timesteps (max 512). Increase step size.',
+                'Too many timesteps (max 2048). Increase step size.',
                 6000
             )
             if (onComplete) onComplete()
@@ -1501,14 +1300,10 @@ let SightlineTool = {
 
         // Always render pixels at full alpha; CSS setOpacity controls visual opacity
         options.color.a = 255
-        options.resolution = parseInt(options.resolution) || 0
-
         const mapRect = document.getElementById('map').getBoundingClientRect()
         const wOffset = mapRect.width / 2
         const hOffset = mapRect.height / 2
         let centerLatLng = Map_.map.containerPointToLatLng([wOffset, hOffset])
-        if (store.indicatorLastDragPoint)
-            centerLatLng = store.indicatorLastDragPoint
 
         const source = {
             lng: parseFloat(centerLatLng.lng),
@@ -1518,21 +1313,7 @@ let SightlineTool = {
             ? parseFloat(options.height)
             : 2
 
-        const b = Map_.map.getBounds()
         const vars = store.vars
-        const dataLayer = vars.data[options.dataIndex]
-
-        const sightlineTag =
-            activeElmId +
-            'd' + dataLayer.name.replace(/ /g, '_') +
-            'r' + options.resolution +
-            'n' + b._northEast.lat +
-            'e' + b._northEast.lng +
-            's' + b._southWest.lat +
-            'w' + b._southWest.lng +
-            'sweep_' + startMs + '_' + endMs
-
-        SightlineTool_Manager.data[sightlineTag] = null
 
         let obsRefFrame, obsBody
         if (vars?.observers) {
@@ -1555,287 +1336,291 @@ let SightlineTool = {
         const curElm = store.sweepCurrentElm || 1
         const totElms = store.sweepTotalElms || 1
         const pfx = totElms > 1 ? ('Sightline ' + curElm + ' of ' + totElms + ': ') : ''
-        store.setSweepField('sweepProgress', pfx + 'Loading tiles...')
+        store.setSweepField('sweepProgress', pfx + 'Computing sightmaps (backend)...')
         _flushSweepProgress(activeElmId, ((curElm - 1) / totElms) * 100, undefined, true)
 
-        calls.api(
-            'getbands',
-            {
-                type: 'band',
-                x: source.lat,
-                y: source.lng,
-                xyorll: 'll',
-                bands: '[[1,1]]',
-                path: demUrl,
-            },
-            function (bandData) {
-                const centerHeight =
-                    bandData?.[0]?.[1] != null
-                        ? bandData[0][1]
-                        : source.height
+        // Determine primary target
+        const primary = selectedTargets[0]
+        const primaryIsCustom =
+            primary.value === false || primary.value === 'false'
 
-                SightlineTool_Manager.gatherTiles(
-                    sightlineTag,
-                    dataLayer,
-                    options.resolution,
-                    source,
-                    options,
-                    vars,
-                    function (progress) {
-                        const s = useSightlineStore.getState()
-                        const ce = s.sweepCurrentElm || 1
-                        const te = s.sweepTotalElms || 1
-                        const p = te > 1 ? ('Sightline ' + ce + ' of ' + te + ': ') : ''
-                        // Tile loading is 0-5% of overall progress
-                        const tilePct = ((ce - 1) / te) * 100 + ((parseInt(progress) * 0.05) / te)
-                        _flushSweepProgress(activeElmId, tilePct, p + 'Tiles: ' + parseInt(progress) + '%')
-                    },
-                    function (data) {
-                        const sweepResults = []
-                        const sweepGrids = []
-                        const total = timestamps.length
+        const sweepMaxDim = SightlineTool._resolutionToMaxDim(activeElmId)
+        const sweepViewportBounds = _getViewportProjBounds()
 
-                        // Build UTC time strings for all timestamps
-                        const timeStrs = timestamps.map((ts) =>
-                            SightlineTool.parseToUTCTime(ts) + ' UTC'
-                        )
+        // Send start/end/step instead of full timestamps array
+        const batchStartTime = timestamps[0]
+        const batchEndTime = timestamps[timestamps.length - 1]
 
-                        // Fetch all target positions in bulk (one call per target, all times)
-                        const currentStore0 = useSightlineStore.getState()
-                        const curElm0 = currentStore0.sweepCurrentElm || 1
-                        const totElms0 = currentStore0.sweepTotalElms || 1
-                        const prefix0 = totElms0 > 1 ? ('Sightline ' + curElm0 + ' of ' + totElms0 + ': ') : ''
-                        currentStore0.setSweepField('sweepProgress', prefix0 + 'Computing positions...')
-                        // Positions API call is 5-15% of overall progress
-                        _flushSweepProgress(activeElmId, ((curElm0 - 1) / totElms0) * 100 + (5 / totElms0), undefined, true)
+        // Stream NDJSON batch response via fetch
+        const rootPath = window.mmgisglobal.ROOT_PATH ? window.mmgisglobal.ROOT_PATH + '/' : ''
+        const sightmapUrl = `${rootPath}api/sightline/sightmap`
+        const bodyObj = {
+            dem: demUrl,
+            lat: source.lat,
+            lng: source.lng,
+            height: options.height || 0,
+            target: primaryIsCustom ? 'CUSTOM' : primary.value,
+            startTime: batchStartTime,
+            endTime: batchEndTime,
+            stepSeconds: stepSeconds,
+            obsRefFrame,
+            obsBody,
+            planetRadius: F_.radiusOfPlanetMajor,
+            maxOutputDim: sweepMaxDim,
+            isCustom: primaryIsCustom ? 'true' : 'false',
+            customAz: primaryIsCustom ? (el.customAz || 0) : 0,
+            customEl: primaryIsCustom ? (el.customEl || 0) : 0,
+            viewportBounds: sweepViewportBounds ? sweepViewportBounds.join(',') : undefined,
+            shadowReach: parseFloat(options.shadowReach) || 0,
+        }
 
-                        const targetBulkPromises = selectedTargets.map(
-                            (tgt) =>
-                                new Promise((resolve) => {
-                                    calls.api(
-                                        'll2aerll_bulk',
-                                        {
-                                            lng: source.lng,
-                                            lat: source.lat,
-                                            height: centerHeight,
-                                            target: tgt.value,
-                                            times: timeStrs,
-                                            obsRefFrame,
-                                            obsBody,
-                                            includeSunEarth: store.elements[activeElmId]?.sightlineMode === 'playback' ? 'true' : 'false',
-                                            isCustom: 'false',
-                                        },
-                                        function (results) {
-                                            resolve(Array.isArray(results) ? results : [])
-                                        },
-                                        function () {
-                                            resolve([])
-                                        }
-                                    )
-                                })
-                        )
+        fetch(sightmapUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(bodyObj),
+        }).then(async (response) => {
+            if (!response.ok) {
+                let errMsg = 'Sightmap batch request failed'
+                try { const j = await response.json(); errMsg = j.message || errMsg } catch (_) {}
+                throw new Error(errMsg)
+            }
 
-                        Promise.all(targetBulkPromises).then((allTargetResults) => {
-                            if (sweepRunId !== _sweepRunIds[activeElmId]) return
+            // Parse NDJSON stream line by line
+            const reader = response.body.getReader()
+            const decoder = new TextDecoder()
+            let buffer = ''
+            const frames = []
 
-                            // Process timesteps in small batches, yielding to the
-                            // event loop between batches so the UI stays responsive
-                            const CHUNK = 4
-                            let ti = 0
+            while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+                buffer += decoder.decode(value, { stream: true })
+                const lines = buffer.split('\n')
+                buffer = lines.pop()
+                for (const line of lines) {
+                    if (!line.trim()) continue
+                    const frame = JSON.parse(line)
+                    if (frame.error) throw new Error(frame.message || 'Batch frame error')
+                    frames.push(frame)
+                    _flushSweepProgress(activeElmId,
+                        ((curElm - 1) / totElms) * 100 + ((frames.length / timestamps.length) * 40 / totElms),
+                        'Computing ' + frames.length + '/' + timestamps.length + '...', false)
+                }
+            }
+            if (buffer.trim()) {
+                const frame = JSON.parse(buffer.trim())
+                if (!frame.error) frames.push(frame)
+            }
 
-                            function processChunk() {
-                                if (sweepRunId !== _sweepRunIds[activeElmId]) return
-                                const chunkEnd = Math.min(ti + CHUNK, total)
-                                for (; ti < chunkEnd; ti++) {
-                                    const ts = timestamps[ti]
-
-                                    const validTargets = []
-                                    for (let tgtIdx = 0; tgtIdx < allTargetResults.length; tgtIdx++) {
-                                        const r = allTargetResults[tgtIdx][ti]
-                                        if (r && !r.error) validTargets.push(r)
-                                    }
-
-                                    if (validTargets.length > 0) {
-                                        const grids = validTargets.map((s) =>
-                                            SightlineTool_Manager.computeSightline(
-                                                sightlineTag,
-                                                {
-                                                    lat: s.latitude,
-                                                    lng: s.longitude,
-                                                    altitude: s.horizontal_altitude,
-                                                    az: s.azimuth,
-                                                    el: s.elevation,
-                                                    range: s.range,
-                                                },
-                                                options
-                                            )
-                                        )
-                                        const compositedGrid =
-                                            grids.length === 1
-                                                ? grids[0]
-                                                : SightlineTool_Algorithm.compositeResults(
-                                                      grids,
-                                                      options.compositeMode || 'or'
-                                                  )
-
-                                        let visCount = 0
-                                        let totalCells = 0
-                                        for (let y = 0; y < compositedGrid.length; y++) {
-                                            for (let x = 0; x < compositedGrid[y].length; x++) {
-                                                if (compositedGrid[y][x] !== 9) {
-                                                    totalCells++
-                                                    if (compositedGrid[y][x] === 1 || compositedGrid[y][x] === 2)
-                                                        visCount++
-                                                }
-                                            }
-                                        }
-                                        // Check the center cell for observer-point visibility
-                                        const cy = Math.floor(compositedGrid.length / 2)
-                                        const cx = compositedGrid[cy] ? Math.floor(compositedGrid[cy].length / 2) : 0
-                                        const centerVal = compositedGrid[cy]?.[cx]
-                                        const centerVisible = centerVal === 1 || centerVal === 2
-
-                                        const primary = validTargets[0]
-                                        sweepResults.push({
-                                            time: ts,
-                                            visibilityPct: totalCells > 0
-                                                ? ((visCount / totalCells) * 100).toFixed(2)
-                                                : 0,
-                                            centerVisible,
-                                            azimuth: primary.azimuth,
-                                            elevation: primary.elevation,
-                                            range: primary.range,
-                                            ancillary: primary.ancillary || null,
-                                        })
-                                        sweepGrids.push(compositedGrid)
-                                    } else {
-                                        sweepResults.push({
-                                            time: ts,
-                                            visibilityPct: 0,
-                                            centerVisible: false,
-                                            azimuth: 0,
-                                            elevation: 0,
-                                            range: 0,
-                                        })
-                                        sweepGrids.push(null)
-                                    }
-                                }
-
-                                // Update progress after each chunk
-                                // processChunk is 15-50% of overall
-                                // (0-5% tiles, 5-15% positions API, 15-50% sightline, 50-55% heatmap, 55-95% atlas)
-                                const currentStore = useSightlineStore.getState()
-                                const curElm = currentStore.sweepCurrentElm || 1
-                                const totElms = currentStore.sweepTotalElms || 1
-                                const elmFrac = ti / total
-                                const overallPct = ((curElm - 1) / totElms) * 100 + ((15 + elmFrac * 35) / totElms)
-                                const prefix = totElms > 1 ? ('Sightline ' + curElm + ' of ' + totElms + ': ') : ''
-                                _flushSweepProgress(activeElmId, overallPct, prefix + 'Computing sightline ' + ti + '/' + total)
-                                if (ti < total) {
-                                    requestAnimationFrame(processChunk)
-                                    return
-                                }
-
-                                finalizeSweep()
-                            }
-
-                            function finalizeSweep() {
-                                const currentStoreF = useSightlineStore.getState()
-                                currentStoreF.setSweepElField(activeElmId, 'results', sweepResults)
-                                currentStoreF.setSweepElField(activeElmId, 'grids', sweepGrids)
-                                currentStoreF.setSweepField('sweepPlayIndex', 0)
-                                currentStoreF.setSweepElField(activeElmId, 'lastData', data)
-                                currentStoreF.setSweepElField(activeElmId, 'lastOptions', options)
-                                currentStoreF.setSweepElField(activeElmId, 'sweepCenter', {
-                                    lat: source.lat,
-                                    lng: source.lng,
-                                })
-
-                                currentStoreF.setSweepField('sweepProgress', 'Computing heatmap...')
-                                _flushSweepProgress(activeElmId, 50, undefined, true)
-
-                                // Yield to let progress update paint, then compute heatmap
-                                setTimeout(function () {
-                                    const storeH = useSightlineStore.getState()
-
-                                    // Compute heatmap (used by composite mode and as data for playback)
-                                    if (sweepGrids.length > 0) {
-                                        const heatmap = SightlineTool_Algorithm.cumulativeVisibility(sweepGrids)
-                                        const border = 2
-                                        let minFrac = 1, maxFrac = 0
-                                        for (let r = border; r < heatmap.length - border; r++) {
-                                            const row = heatmap[r]
-                                            if (!row) continue
-                                            for (let c = border; c < row.length - border; c++) {
-                                                const f = row[c]
-                                                if (f == null || f < 0 || !Number.isFinite(f)) continue
-                                                if (f < minFrac) minFrac = f
-                                                if (f > maxFrac) maxFrac = f
-                                            }
-                                        }
-                                        if (minFrac > maxFrac) { minFrac = 0; maxFrac = 1 }
-                                        storeH.setSweepElField(activeElmId, 'minFrac', minFrac)
-                                        storeH.setSweepElField(activeElmId, 'maxFrac', maxFrac)
-                                        storeH.setSweepElField(activeElmId, 'heatmap', heatmap)
-
-                                        // Only render composite heatmap layer if element is in composite mode
-                                        const activeEl = storeH.elements[activeElmId]
-                                        if (activeEl?.sightlineMode === 'composite') {
-                                            storeH.setSweepField('sweepViewMode', 'composite')
-                                            SightlineTool.renderHeatmapToMap(data, heatmap, activeElmId)
-                                        }
-                                    }
-
-                                    // Mark sweep as complete — clear sweepStale in case
-                                    // renderHeatmapToMap triggered a moveend event
-                                    storeH.setSweepField('sweepStale', false)
-                                    const curElmF = storeH.sweepCurrentElm || 1
-                                    const totElmsF = storeH.sweepTotalElms || 1
-
-                                    // Build atlas only for playback mode (expensive at high frame counts)
-                                    // onComplete is deferred until atlas finishes so
-                                    // the progress bar stays in loading state throughout
-                                    const activeElAtlas = storeH.elements[activeElmId]
-                                    if (activeElAtlas?.sightlineMode === 'playback') {
-                                        SightlineTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
-                                            SightlineTool.sweepShowAllFrames()
-                                            if (typeof onComplete === 'function') onComplete()
-                                            if (totElmsF > 1) {
-                                                Toast.success('Sightline ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
-                                            } else {
-                                                Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
-                                            }
-                                        })
-                                    } else {
-                                        if (typeof onComplete === 'function') onComplete()
-                                        storeH.setSweepField('sweepProgress', '')
-                                        _flushSweepProgress(activeElmId, 100, undefined, true)
-                                        if (totElmsF > 1) {
-                                            Toast.success('Sightline ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
-                                        } else {
-                                            Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
-                                        }
-                                    }
-                                }, 0)
-                            }
-
-                            processChunk()
-                        })
-                    }
-                )
-            },
-            function () {
-                Toast.error(
-                    'Failed to query terrain elevation for sweep.',
-                    6000
-                )
-                useSightlineStore
-                    .getState()
-                    .setSweepField('sweepProgress', '')
+            if (sweepRunId !== _sweepRunIds[activeElmId]) return
+            if (frames.length === 0) {
+                Toast.error('Sightmap batch returned no results.', 6000)
+                useSightlineStore.getState().setSweepField('sweepProgress', '')
                 _flushSweepProgress(activeElmId, 0, undefined, true)
                 if (typeof onComplete === 'function') onComplete()
+                return
             }
-        )
+
+            // Decode compressed grids: first frame full, rest are XOR deltas
+            const batchResults = []
+            let prevFlat = null
+            for (let fi = 0; fi < frames.length; fi++) {
+                const f = frames[fi]
+                let grid, flat
+                if (f.gridB64z) {
+                    const decoded = await _decodeGridB64z(f.gridB64z, f.rows, f.cols)
+                    grid = decoded.grid
+                    flat = decoded.flat
+                } else if (f.deltaB64z && prevFlat) {
+                    const decoded = await _decodeGridB64z(f.deltaB64z, f.rows, f.cols)
+                    flat = _applyDelta(prevFlat, decoded.flat)
+                    grid = _flatToGrid(flat, f.rows, f.cols)
+                } else {
+                    batchResults.push(null)
+                    continue
+                }
+                prevFlat = flat
+                batchResults.push({ grid, az: f.az, el: f.el, bounds: f.bounds, projBounds: f.projBounds, rows: f.rows, cols: f.cols })
+            }
+
+            const sweepResults = []
+            const sweepGrids = []
+            const total = timestamps.length
+
+            const firstResult = batchResults[0]
+            if (!firstResult) {
+                Toast.error('Sightmap batch returned no valid results.', 6000)
+                useSightlineStore.getState().setSweepField('sweepProgress', '')
+                _flushSweepProgress(activeElmId, 0, undefined, true)
+                if (typeof onComplete === 'function') onComplete()
+                return
+            }
+            const data = {
+                _bounds: firstResult.bounds,
+                _projBounds: firstResult.projBounds || null,
+                result: firstResult.grid,
+                bottomLeftLatLng: {
+                    lat: firstResult.bounds[1],
+                    lng: firstResult.bounds[0],
+                },
+                cellSize:
+                    firstResult.grid[0] && firstResult.grid[0].length > 1
+                        ? (firstResult.bounds[2] - firstResult.bounds[0]) / firstResult.grid[0].length
+                        : 0,
+            }
+
+            // Compute observer pixel position in the grid
+            let obsPixelRow = null
+            let obsPixelCol = null
+            const refGrid = firstResult.grid
+            if (refGrid && refGrid.length > 0) {
+                const gridRows = refGrid.length
+                const gridCols = refGrid[0] ? refGrid[0].length : 0
+                const pb = firstResult.projBounds
+                const gb = firstResult.bounds
+                if (pb && _isCustomProjectedCRS()) {
+                    const crs = Map_.map?.options?.crs
+                    if (crs && typeof crs.project === 'function') {
+                        const obsProj = crs.project({ lng: source.lng, lat: source.lat })
+                        obsPixelCol = Math.round(((obsProj.x - pb[0]) / (pb[2] - pb[0])) * (gridCols - 1))
+                        obsPixelRow = Math.round(((pb[3] - obsProj.y) / (pb[3] - pb[1])) * (gridRows - 1))
+                    }
+                } else if (gb) {
+                    obsPixelCol = Math.round(((source.lng - gb[0]) / (gb[2] - gb[0])) * (gridCols - 1))
+                    obsPixelRow = Math.round(((gb[3] - source.lat) / (gb[3] - gb[1])) * (gridRows - 1))
+                }
+                if (obsPixelRow != null) obsPixelRow = Math.max(0, Math.min(obsPixelRow, gridRows - 1))
+                if (obsPixelCol != null) obsPixelCol = Math.max(0, Math.min(obsPixelCol, gridCols - 1))
+            }
+
+            for (let ti = 0; ti < total; ti++) {
+                const ts = timestamps[ti]
+                const r = batchResults[ti]
+
+                if (!r) {
+                    sweepResults.push({
+                        time: ts,
+                        visibilityPct: 0,
+                        centerVisible: false,
+                        azimuth: 0,
+                        elevation: 0,
+                        range: 0,
+                    })
+                    sweepGrids.push(null)
+                    continue
+                }
+
+                const grid = r.grid
+                let visCount = 0
+                let totalCells = 0
+                for (let y = 0; y < grid.length; y++) {
+                    for (let x = 0; x < grid[y].length; x++) {
+                        if (grid[y][x] !== 9) {
+                            totalCells++
+                            if (grid[y][x] === 1 || grid[y][x] === 2)
+                                visCount++
+                        }
+                    }
+                }
+                const oy = obsPixelRow != null ? obsPixelRow : Math.floor(grid.length / 2)
+                const ox = obsPixelCol != null ? obsPixelCol : (grid[0] ? Math.floor(grid[0].length / 2) : 0)
+                const obsVal = grid[oy]?.[ox]
+                const centerVisible = obsVal === 1 || obsVal === 2
+
+                sweepResults.push({
+                    time: ts,
+                    visibilityPct: totalCells > 0
+                        ? ((visCount / totalCells) * 100).toFixed(2)
+                        : 0,
+                    centerVisible,
+                    azimuth: r.az,
+                    elevation: r.el,
+                    range: 0,
+                })
+                sweepGrids.push(grid)
+            }
+
+            // Update progress
+            const currentStore = useSightlineStore.getState()
+            const curElm2 = currentStore.sweepCurrentElm || 1
+            const totElms2 = currentStore.sweepTotalElms || 1
+            _flushSweepProgress(activeElmId, ((curElm2 - 1) / totElms2) * 100 + (50 / totElms2), undefined, true)
+
+            // Finalize sweep
+            const currentStoreF = useSightlineStore.getState()
+            currentStoreF.setSweepElField(activeElmId, 'results', sweepResults)
+            currentStoreF.setSweepElField(activeElmId, 'grids', sweepGrids)
+            currentStoreF.setSweepField('sweepPlayIndex', 0)
+            currentStoreF.setSweepElField(activeElmId, 'lastData', data)
+            currentStoreF.setSweepElField(activeElmId, 'lastOptions', options)
+            currentStoreF.setSweepElField(activeElmId, 'sweepCenter', {
+                lat: source.lat,
+                lng: source.lng,
+            })
+            SightlineTool._updateCrosshairPosition()
+
+            currentStoreF.setSweepField('sweepProgress', 'Computing heatmap...')
+            _flushSweepProgress(activeElmId, 50, undefined, true)
+
+            // Yield to let progress update paint, then compute heatmap
+            setTimeout(function () {
+                const storeH = useSightlineStore.getState()
+
+                if (sweepGrids.length > 0) {
+                    const heatmap = SightlineTool_Algorithm.cumulativeVisibility(sweepGrids)
+                    const border = 2
+                    let minFrac = 1, maxFrac = 0
+                    for (let r = border; r < heatmap.length - border; r++) {
+                        const row = heatmap[r]
+                        if (!row) continue
+                        for (let c = border; c < row.length - border; c++) {
+                            const f = row[c]
+                            if (f == null || f < 0 || !Number.isFinite(f)) continue
+                            if (f < minFrac) minFrac = f
+                            if (f > maxFrac) maxFrac = f
+                        }
+                    }
+                    if (minFrac > maxFrac) { minFrac = 0; maxFrac = 1 }
+                    storeH.setSweepElField(activeElmId, 'minFrac', minFrac)
+                    storeH.setSweepElField(activeElmId, 'maxFrac', maxFrac)
+                    storeH.setSweepElField(activeElmId, 'heatmap', heatmap)
+
+                    const activeEl = storeH.elements[activeElmId]
+                    if (activeEl?.sightlineMode === 'composite') {
+                        storeH.setSweepField('sweepViewMode', 'composite')
+                        SightlineTool.renderHeatmapToMap(data, heatmap, activeElmId)
+                    }
+                }
+
+                storeH.setSweepField('sweepStale', false)
+                const curElmF = storeH.sweepCurrentElm || 1
+                const totElmsF = storeH.sweepTotalElms || 1
+
+                SightlineTool.buildSweepAtlas(data, sweepGrids, options, activeElmId, function () {
+                    const currentMode = useSightlineStore.getState().elements[activeElmId]?.sightlineMode
+                    if (currentMode === 'playback') {
+                        SightlineTool.sweepShowAllFrames()
+                    }
+                    if (typeof onComplete === 'function') onComplete()
+                    storeH.setSweepField('sweepProgress', '')
+                    _flushSweepProgress(activeElmId, 100, undefined, true)
+                    if (totElmsF > 1) {
+                        Toast.success('Sightline ' + curElmF + ' of ' + totElmsF + ': ' + total + ' timesteps processed.', 3000)
+                    } else {
+                        Toast.success('Sweep complete. ' + total + ' timesteps processed.', 4000)
+                    }
+                })
+            }, 0)
+        }).catch((err) => {
+            const msg = (err && err.message) ? err.message : 'Sightmap sweep request failed.'
+            Toast.error(msg, 6000)
+            useSightlineStore
+                .getState()
+                .setSweepField('sweepProgress', '')
+            _flushSweepProgress(activeElmId, 0, undefined, true)
+            if (typeof onComplete === 'function') onComplete()
+        })
     },
 
     // Single-element sweep triggered from an element's Generate button
@@ -2006,29 +1791,45 @@ let SightlineTool = {
         const ed = store.sweepElData[activeElmId]
         const idx = store.sweepPlayIndex
         const layerName = 'sightline' + activeElmId
+
+        if (!ed?.frameImages || !ed.frameImages[idx]) return
+
+        const imgUrl = ed.frameImages[idx]
+        const data = ed.lastData
+        if (!data) return
+
+        const bounds = data._bounds
+        const projBounds = data._projBounds
+        const frameOpts = { className: 'nofade sightmap-pixelated', interactive: false }
+
         const layer = L_.layers.layer[layerName]
-
-        if (!ed?.atlas) return
-
-        // Lazy-create the atlas layer on first playback frame.
-        if (!layer || !layer._uniformLocations || !layer._uniformLocations.frameIndex) {
-            const atlas = ed.atlas
-            SightlineTool.makeSweepLayer(
-                atlas.dl, activeElmId, atlas.atlasCols, atlas.atlasRows,
-                atlas.atlasScaleS, atlas.atlasScaleT
-            )
-            const newLayer = L_.layers.layer[layerName]
-            if (newLayer) {
-                newLayer.setUniform('frameIndex', idx)
-                newLayer.once('load', function () {
-                    newLayer.reRender()
-                })
-                SightlineTool.applySweepOpacity(activeElmId)
-            }
+        if (layer && layer instanceof L.ImageOverlay) {
+            layer.setUrl(imgUrl)
         } else {
-            layer.setUniform('frameIndex', idx)
-            layer.reRender()
+            Map_.rmNotNull(layer)
+            if (projBounds && _isCustomProjectedCRS() && Map_.map.options.crs && Map_.map.options.crs.unproject) {
+                L_.layers.layer[layerName] = _projImageOverlay(
+                    imgUrl, projBounds, frameOpts
+                )
+            } else if (bounds) {
+                L_.layers.layer[layerName] = L.imageOverlay(
+                    imgUrl,
+                    [[bounds[1], bounds[0]], [bounds[3], bounds[2]]],
+                    frameOpts
+                )
+            } else {
+                return
+            }
+            L_.layers.layer[layerName].addTo(Map_.map)
+            const st = useSightlineStore.getState()
+            st.updateElement(activeElmId, { on: true })
+            // Inherit static-mode opacity as sweep default if not yet set
+            const el = st.elements[activeElmId]
+            if (ed.opacity == null && el?.opacity != null) {
+                st.setSweepElField(activeElmId, 'opacity', el.opacity)
+            }
         }
+        SightlineTool.applySweepOpacity(activeElmId)
     },
 
     sweepShowComposite: function (activeElmId) {
@@ -2076,533 +1877,74 @@ let SightlineTool = {
         }
     },
 
-    // === Export ===
+    // === Export (delegated to SightlineTool_Export) ===
 
     _buildExportName: function (elmId, suffix) {
-        const store = useSightlineStore.getState()
-        const el = store.elements[elmId]
-        const options = store.getSightlineOptions(elmId)
-        const parts = ['sightline']
-        if (options?.targets?.[0]?.name) parts.push(options.targets[0].name.replace(/\s+/g, '-'))
-        if (el?.observer) parts.push(el.observer.replace(/\s+/g, '-'))
-        if (store.rawTime) parts.push(store.rawTime.replace(/[:\s]/g, '').replace(/\.\d{3}Z$/, 'Z'))
-        if (suffix) parts.push(suffix)
-        return parts.join('_').replace(/[^a-zA-Z0-9_\-\.]/g, '')
+        return SightlineTool_Export._buildExportName(elmId, suffix)
     },
 
     exportPNG: function (elmId) {
-        const store = useSightlineStore.getState()
-        const el = store.elements[elmId]
-        const mode = el?.sightlineMode
-
-        // Playback mode: export animated GIF with basemap
-        if (mode === 'playback') {
-            SightlineTool._exportPlaybackGIF(elmId)
-            return
-        }
-
-        // Static/Composite: export PNG
-        const dlc = store.canvases[elmId]
-        if (!dlc) {
-            Toast.warning('No sightline map to export. Generate first.', 6000)
-            return
-        }
-        let allCanvases = []
-        let minX = Infinity,
-            maxX = -Infinity,
-            minY = Infinity,
-            maxY = -Infinity
-        let tileSize = 0
-
-        for (let z in dlc) {
-            for (let x in dlc[z]) {
-                for (let y in dlc[z][x]) {
-                    const cx = parseInt(x)
-                    const cy = parseInt(y)
-                    if (cx < minX) minX = cx
-                    if (cx > maxX) maxX = cx
-                    if (cy < minY) minY = cy
-                    if (cy > maxY) maxY = cy
-                    allCanvases.push({ x: cx, y: cy, canvas: dlc[z][x][y] })
-                    if (dlc[z][x][y].width > tileSize)
-                        tileSize = dlc[z][x][y].width
-                }
-            }
-        }
-
-        if (allCanvases.length === 0) return
-
-        const cols = maxX - minX + 1
-        const rows = maxY - minY + 1
-
-        // Scale up to full map tile size (256px per tile) with pixelated rendering
-        const MAP_TILE_PX = 256
-        const scale = Math.max(1, Math.round(MAP_TILE_PX / tileSize))
-        const outTileSize = tileSize * scale
-
-        const compositeCanvas = document.createElement('canvas')
-        compositeCanvas.width = cols * outTileSize
-        compositeCanvas.height = rows * outTileSize
-        const compositeCtx = compositeCanvas.getContext('2d')
-        compositeCtx.imageSmoothingEnabled = false
-
-        allCanvases.forEach((tc) => {
-            compositeCtx.drawImage(
-                tc.canvas,
-                (tc.x - minX) * outTileSize,
-                (tc.y - minY) * outTileSize,
-                outTileSize,
-                outTileSize
-            )
-        })
-
-        const fileName = SightlineTool._buildExportName(elmId, 'map') + '.png'
-        compositeCanvas.toBlob(function (blob) {
-            const url = URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.setAttribute('download', fileName)
-            link.setAttribute('href', url)
-            document.body.appendChild(link)
-            link.click()
-            link.remove()
-            URL.revokeObjectURL(url)
-        })
+        SightlineTool_Export.exportPNG(elmId)
     },
 
-    _exportPlaybackGIF: async function (elmId) {
-        const store = useSightlineStore.getState()
-        const ed = store.sweepElData[elmId]
-        const el = store.elements[elmId]
-
-        if (!ed?.grids || ed.grids.length === 0) {
-            Toast.warning('No playback frames to export. Run a sweep first.', 6000)
-            return
-        }
-
-        const data = ed.lastData
-        const options = store.getSightlineOptions(elmId)
-        if (!data || !options) {
-            Toast.warning('Missing sweep data for export.', 6000)
-            return
-        }
-        options.color.a = 255
-
-        const totalFrames = ed.grids.filter((g) => g != null).length
-        Toast.info('Generating GIF (' + totalFrames + ' frames)...', 6000)
-
-        // 1. Capture basemap — hide UI controls and sightline overlay
-        const mapEl = document.getElementById('map')
-        let basemapCanvas = null
-        if (mapEl) {
-            const layerName = 'sightline' + elmId
-            const sightlineLayer = L_.layers.layer[layerName]
-            const slContainer = sightlineLayer?._container || sightlineLayer?.getContainer?.()
-            const controlContainer = mapEl.querySelector('.leaflet-control-container')
-
-            // Hide sightline overlay and all map UI controls
-            if (slContainer) slContainer.style.display = 'none'
-            if (controlContainer) controlContainer.style.display = 'none'
-
-            try {
-                basemapCanvas = await HTML2Canvas(mapEl, {
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#1a1a2e',
-                    logging: false,
-                    width: mapEl.offsetWidth,
-                    height: mapEl.offsetHeight,
-                })
-            } catch (e) {
-                console.warn('Could not capture basemap for GIF:', e)
-            }
-
-            // Restore visibility
-            if (slContainer) slContainer.style.display = ''
-            if (controlContainer) controlContainer.style.display = ''
-        }
-
-        // Determine output dimensions (scale down for smaller file size)
-        const mapRect = mapEl.getBoundingClientRect()
-        const GIF_MAX_WIDTH = 720
-        let fullW = (basemapCanvas && basemapCanvas.width > 0) ? basemapCanvas.width : Math.round(mapRect.width)
-        let fullH = (basemapCanvas && basemapCanvas.height > 0) ? basemapCanvas.height : Math.round(mapRect.height)
-        // Invalidate basemap if it came back empty
-        if (basemapCanvas && (basemapCanvas.width === 0 || basemapCanvas.height === 0)) {
-            basemapCanvas = null
-            fullW = Math.round(mapRect.width)
-            fullH = Math.round(mapRect.height)
-        }
-        const scaleFactor = Math.min(1, GIF_MAX_WIDTH / fullW)
-        const outW = Math.round(fullW * scaleFactor)
-        const outH = Math.round(fullH * scaleFactor)
-
-        // 2. For each frame, render sightline grid and composite over basemap
-        const frameImages = []
-        const res = data.tileResolution * Math.pow(2, data.resolution)
-        const tileW = data.outputTopLeftTile.w + 1
-        const tileH = data.outputTopLeftTile.h + 1
-        const sightlineW = tileW * res
-        const sightlineH = tileH * res
-
-        // Compute where the sightline overlay sits within the map viewport
-        const map = Map_.map
-        const topLeftTileLatLng = Globe_.litho.projection.tileXYZ2LatLng(
-            data.outputTopLeftTile.x, data.outputTopLeftTile.y, data.outputTopLeftTile.z
-        )
-        const bottomRightTileLatLng = Globe_.litho.projection.tileXYZ2LatLng(
-            data.outputTopLeftTile.x + tileW, data.outputTopLeftTile.y + tileH, data.outputTopLeftTile.z
-        )
-        const tlPoint = map.latLngToContainerPoint([topLeftTileLatLng.lat, topLeftTileLatLng.lng])
-        const brPoint = map.latLngToContainerPoint([bottomRightTileLatLng.lat, bottomRightTileLatLng.lng])
-        const overlayX = tlPoint.x * scaleFactor
-        const overlayY = tlPoint.y * scaleFactor
-        const overlayW = (brPoint.x - tlPoint.x) * scaleFactor
-        const overlayH = (brPoint.y - tlPoint.y) * scaleFactor
-
-        let processedCount = 0
-        useSightlineStore.getState().setSweepField('exportProgress', 0)
-        for (let f = 0; f < ed.grids.length; f++) {
-            const grid = ed.grids[f]
-            if (!grid) continue
-
-            // Render this frame's sightline grid to a small canvas
-            const frameCanvases = SightlineTool._renderFrameCanvases(data, grid, options)
-
-            // Stitch frame tiles into one canvas
-            const frameCanvas = document.createElement('canvas')
-            frameCanvas.width = sightlineW
-            frameCanvas.height = sightlineH
-            const frameCtx = frameCanvas.getContext('2d')
-            for (let z in frameCanvases) {
-                for (let x in frameCanvases[z]) {
-                    for (let y in frameCanvases[z][x]) {
-                        const tx = parseInt(x) - Math.floor(data.outputTopLeftTile.x)
-                        const ty = parseInt(y) - Math.floor(data.outputTopLeftTile.y)
-                        frameCtx.drawImage(frameCanvases[z][x][y], tx * res, ty * res)
-                    }
-                }
-            }
-
-            // Composite: basemap + sightline overlay at reduced resolution
-            const outCanvas = document.createElement('canvas')
-            outCanvas.width = outW
-            outCanvas.height = outH
-            const outCtx = outCanvas.getContext('2d')
-
-            // Draw basemap (scaled down)
-            if (basemapCanvas) {
-                outCtx.drawImage(basemapCanvas, 0, 0, outW, outH)
-            } else {
-                outCtx.fillStyle = '#1a1a2e'
-                outCtx.fillRect(0, 0, outW, outH)
-            }
-
-            // Draw sightline overlay scaled to viewport position
-            outCtx.imageSmoothingEnabled = false
-            const opacity = el?.opacity != null ? el.opacity : 0.5
-            outCtx.globalAlpha = opacity
-            outCtx.drawImage(frameCanvas, overlayX, overlayY, overlayW, overlayH)
-            outCtx.globalAlpha = 1.0
-
-            // Draw timestamp label
-            const timeLabel = ed.results?.[f]?.time
-                ? ed.results[f].time.replace(/\.\d{3}Z$/, 'Z')
-                : 'Frame ' + (f + 1)
-            const fontSize = Math.max(11, Math.round(outH * 0.03))
-            outCtx.font = 'bold ' + fontSize + 'px sans-serif'
-            outCtx.textBaseline = 'top'
-            const textMetrics = outCtx.measureText(timeLabel)
-            const pad = 4
-            outCtx.fillStyle = 'rgba(0,0,0,0.6)'
-            outCtx.fillRect(pad, pad, textMetrics.width + pad * 2, fontSize + pad * 2)
-            outCtx.fillStyle = '#ffffff'
-            outCtx.fillText(timeLabel, pad * 2, pad * 2)
-
-            frameImages.push(outCanvas.toDataURL('image/png'))
-            processedCount++
-
-            // Update UI progress (cap at 90% — encoding takes the rest)
-            const pct = Math.round((processedCount / totalFrames) * 90)
-            useSightlineStore.getState().setSweepField('exportProgress', pct)
-            if (processedCount % 3 === 0) {
-                await new Promise((r) => setTimeout(r, 0))
-            }
-        }
-
-        if (frameImages.length === 0) {
-            Toast.warning('No valid frames to export.', 6000)
-            return
-        }
-
-        useSightlineStore.getState().setSweepField('exportProgress', 90)
-
-        // 3. Create animated GIF
-        const interval = (store.sweepPlaySpeed || 300) / 1000
-        gifshot.createGIF(
-            {
-                images: frameImages,
-                gifWidth: outW,
-                gifHeight: outH,
-                interval: interval,
-                numFrames: frameImages.length,
-                frameDuration: interval,
-                sampleInterval: 10,
-                numWorkers: 2,
-            },
-            function (obj) {
-                if (!obj.error) {
-                    const byteCharacters = atob(obj.image.split(',')[1])
-                    const byteNumbers = new Array(byteCharacters.length)
-                    for (let i = 0; i < byteCharacters.length; i++) {
-                        byteNumbers[i] = byteCharacters.charCodeAt(i)
-                    }
-                    const byteArray = new Uint8Array(byteNumbers)
-                    const blob = new Blob([byteArray], { type: 'image/gif' })
-                    const url = URL.createObjectURL(blob)
-                    const link = document.createElement('a')
-                    const fileName = SightlineTool._buildExportName(elmId, 'playback') + '.gif'
-                    link.setAttribute('download', fileName)
-                    link.setAttribute('href', url)
-                    document.body.appendChild(link)
-                    link.click()
-                    link.remove()
-                    setTimeout(() => URL.revokeObjectURL(url), 10000)
-                    Toast.success('GIF exported successfully!', 3000)
-                    useSightlineStore.getState().setSweepField('exportProgress', 100)
-                    setTimeout(() => useSightlineStore.getState().setSweepField('exportProgress', null), 500)
-                } else {
-                    console.error('GIF export failed:', obj.errorMsg)
-                    Toast.error('GIF export failed. Try with fewer frames.', 6000)
-                    useSightlineStore.getState().setSweepField('exportProgress', null)
-                }
-            }
-        )
+    _exportPlaybackGIF: function (elmId) {
+        SightlineTool_Export._exportPlaybackGIF(elmId)
     },
 
     exportCSV: function (elmId) {
-        const store = useSightlineStore.getState()
-        const el = store.elements[elmId]
-        const ed = store.sweepElData[elmId]
-        const mode = el?.sightlineMode
-        const entityName = (store.getSightlineOptions(elmId)?.targets?.[0]?.name || el?.name || 'sightline').toLowerCase()
-
-        // === Static mode: one grid, one time, binary visibility ===
-        if (mode === 'static') {
-            const grid = el?.lastResultGrid
-            const data = el?.lastData || store.lastData
-            if (!grid || !data?.bottomLeftLatLng || !data?.cellSize) {
-                Toast.warning('No results to export. Generate first.', 6000)
-                return
-            }
-            const blLat = data.bottomLeftLatLng.lat
-            const blLng = data.bottomLeftLatLng.lng
-            const cellSize = data.cellSize
-            const totalRows = grid.length
-            const timeStr = store.sweepStart || ''
-            const headers = ['entity', 'time', 'lat', 'lng', 'visible']
-            const rows = []
-            for (let r = 0; r < totalRows; r++) {
-                const row = grid[r]
-                if (!row) continue
-                const pixelLat = (blLat + (totalRows - 1 - r) * cellSize).toFixed(8)
-                for (let c = 0; c < row.length; c++) {
-                    const val = row[c]
-                    if (val == null) continue
-                    const pixelLng = (blLng + c * cellSize).toFixed(8)
-                    const visible = (val === 1 || val === 2) ? 1 : 0
-                    rows.push([entityName, timeStr, pixelLat, pixelLng, visible])
-                }
-            }
-            F_.downloadArrayAsCSV(headers, rows, SightlineTool._buildExportName(elmId, 'results'))
-            return
-        }
-
-        // === Playback mode: per-pixel per-frame with individual timestamps ===
-        if (mode === 'playback') {
-            const grids = ed?.grids
-            const results = ed?.results
-            const data = ed?.lastData || el?.lastData || store.lastData
-            if (!grids || grids.length === 0 || !data?.bottomLeftLatLng || !data?.cellSize) {
-                Toast.warning('No results to export. Run a sweep first.', 6000)
-                return
-            }
-            const blLat = data.bottomLeftLatLng.lat
-            const blLng = data.bottomLeftLatLng.lng
-            const cellSize = data.cellSize
-            const headers = ['entity', 'time', 'lat', 'lng', 'visible']
-            const rows = []
-            for (let f = 0; f < grids.length; f++) {
-                const grid = grids[f]
-                if (!grid) continue
-                const frameTime = results?.[f]?.time
-                    ? results[f].time.replace(/\.\d{3}Z$/, 'Z')
-                    : ''
-                const totalRows = grid.length
-                for (let r = 0; r < totalRows; r++) {
-                    const row = grid[r]
-                    if (!row) continue
-                    const pixelLat = (blLat + (totalRows - 1 - r) * cellSize).toFixed(8)
-                    for (let c = 0; c < row.length; c++) {
-                        const val = row[c]
-                        if (val == null) continue
-                        const pixelLng = (blLng + c * cellSize).toFixed(8)
-                        const visible = (val === 1 || val === 2) ? 1 : 0
-                        rows.push([entityName, frameTime, pixelLat, pixelLng, visible])
-                    }
-                }
-            }
-            F_.downloadArrayAsCSV(headers, rows, SightlineTool._buildExportName(elmId, 'results'))
-            return
-        }
-
-        // === Composite mode: heatmap with time range ===
-        const heatmap = ed?.heatmap
-        const data = ed?.lastData || el?.lastData || store.lastData
-        if (!heatmap || !data?.bottomLeftLatLng || !data?.cellSize) {
-            Toast.warning('No results to export. Run a sweep first.', 6000)
-            return
-        }
-        const blLat = data.bottomLeftLatLng.lat
-        const blLng = data.bottomLeftLatLng.lng
-        const cellSize = data.cellSize
-        const totalRows = heatmap.length
-        const startTime = store.sweepStart || ''
-        const endTime = store.sweepEnd || ''
-        const headers = ['entity', 'start_time', 'end_time', 'lat', 'lng', 'percent_visible']
-        const rows = []
-        for (let r = 0; r < totalRows; r++) {
-            const row = heatmap[r]
-            if (!row) continue
-            const pixelLat = (blLat + (totalRows - 1 - r) * cellSize).toFixed(8)
-            for (let c = 0; c < row.length; c++) {
-                const frac = row[c]
-                if (frac == null || !Number.isFinite(frac)) continue
-                const pixelLng = (blLng + c * cellSize).toFixed(8)
-                const pct = (frac * 100).toFixed(2)
-                rows.push([entityName, startTime, endTime, pixelLat, pixelLng, pct])
-            }
-        }
-        F_.downloadArrayAsCSV(headers, rows, SightlineTool._buildExportName(elmId, 'results'))
+        SightlineTool_Export.exportCSV(elmId)
     },
 
     exportGrid: function (elmId) {
-        const store = useSightlineStore.getState()
-        const el = store.elements[elmId]
-        const mode = el?.sightlineMode
-
-        // Select grid based on current mode
-        let grid, isHeatmap, data
-        if (mode === 'static') {
-            grid = el?.lastResultGrid
-            isHeatmap = false
-            data = el?.lastData || store.lastData
-        } else {
-            grid = store.sweepElData[elmId]?.heatmap
-            isHeatmap = true
-            data = store.sweepElData[elmId]?.lastData || el?.lastData || store.lastData
-            if (!grid) {
-                grid = el?.lastResultGrid
-                isHeatmap = false
-            }
-        }
-        if (!grid || grid.length === 0) {
-            Toast.warning('No sightline grid to export. Generate first.', 6000)
-            return
-        }
-
-        // Build header with grid dimensions and metadata
-        const lines = []
-        lines.push('# Sightline Grid Export')
-        lines.push('# Rows: ' + grid.length + ', Cols: ' + (grid[0]?.length || 0))
-        if (isHeatmap) {
-            lines.push('# Values: fractional visibility (0.0 = always shadowed, 1.0 = always visible)')
-        } else {
-            lines.push('# Values: 0=shadowed, 1=visible(sun), 2=visible(earth), 8=no-DEM, 9=out-of-bounds')
-        }
-        const options = store.getSightlineOptions(elmId)
-        if (options?.targets?.[0]?.name) lines.push('# Source: ' + options.targets[0].name)
-        if (el?.observer) lines.push('# Observer: ' + el.observer)
-        if (mode === 'static') {
-            if (store.sweepStart) lines.push('# Time: ' + store.sweepStart)
-        } else {
-            if (store.sweepStart && store.sweepEnd) {
-                lines.push('# Sweep: ' + store.sweepStart + ' to ' + store.sweepEnd)
-            }
-        }
-
-        // Bounding box in projected meters via CRS project/unproject
-        const crs = window.mmgisglobal?.customCRS
-        if (data?.bottomLeftLatLng && data?.cellSize && crs) {
-            const cols = grid[0]?.length || 0
-            const rows = grid.length
-            const blLat = data.bottomLeftLatLng.lat
-            const blLng = data.bottomLeftLatLng.lng
-            const trLat = blLat + rows * data.cellSize
-            const trLng = blLng + cols * data.cellSize
-            lines.push('# Bounding Box (degrees): SW(' + blLat.toFixed(8) + ', ' + blLng.toFixed(8) + ') NE(' + trLat.toFixed(8) + ', ' + trLng.toFixed(8) + ')')
-            const swProj = crs.project({ lng: blLng, lat: blLat })
-            const neProj = crs.project({ lng: trLng, lat: trLat })
-            lines.push('# Bounding Box (projected meters): SW(' + swProj.x.toFixed(4) + ', ' + swProj.y.toFixed(4) + ') NE(' + neProj.x.toFixed(4) + ', ' + neProj.y.toFixed(4) + ')')
-            lines.push('# Cell Size (projected meters): x=' + ((neProj.x - swProj.x) / cols).toFixed(4) + ' y=' + ((neProj.y - swProj.y) / rows).toFixed(4))
-        }
-        const projString = crs?.projString || ''
-        const proj = L_.configData?.projection
-        if (proj) {
-            const projDesc = proj.custom ? (proj.proj || 'custom') : 'EPSG:3857'
-            lines.push('# Projection: ' + projDesc)
-        } else {
-            lines.push('# Projection: EPSG:3857')
-        }
-        if (projString) lines.push('# Proj4: ' + projString)
-        lines.push('')
-
-        // Write grid rows
-        for (let y = 0; y < grid.length; y++) {
-            const row = grid[y]
-            if (!row) {
-                lines.push('')
-                continue
-            }
-            const vals = []
-            for (let x = 0; x < row.length; x++) {
-                const v = row[x]
-                if (v == null) vals.push('-')
-                else if (isHeatmap) vals.push(v.toFixed(3))
-                else vals.push(String(v))
-            }
-            lines.push(vals.join(' '))
-        }
-
-        const text = lines.join('\n')
-        const fileName = SightlineTool._buildExportName(elmId, 'grid') + '.txt'
-        const blob = new Blob([text], { type: 'text/plain' })
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.setAttribute('download', fileName)
-        link.setAttribute('href', url)
-        document.body.appendChild(link)
-        link.click()
-        link.remove()
-        URL.revokeObjectURL(url)
+        SightlineTool_Export.exportGrid(elmId)
     },
 
-    convertUTCToObserver: function (utcTime, observerValue, callback) {
+    _getObserverDef: function (observerValue) {
         const store = useSightlineStore.getState()
         const observers = store.vars?.observers || []
-        let body = null
         for (let i = 0; i < observers.length; i++) {
-            if (observers[i].value === observerValue) {
-                body = observers[i].body
-                break
-            }
+            if (observers[i].value === observerValue) return observers[i]
         }
-        if (!body || !observerValue) {
+        return null
+    },
+
+    _getObserverLng: function () {
+        const store = useSightlineStore.getState()
+        const ed = store.activeElmId != null ? store.sweepElData[store.activeElmId] : null
+        if (ed?.sweepCenter) return parseFloat(ed.sweepCenter.lng)
+        const mapEl = document.getElementById('map')
+        if (mapEl && Map_.map) {
+            const rect = mapEl.getBoundingClientRect()
+            const center = Map_.map.containerPointToLatLng([rect.width / 2, rect.height / 2])
+            return parseFloat(center.lng)
+        }
+        return null
+    },
+
+    // Preserved sub-second precision from last observer→UTC conversion
+    // so that UTC→observer round-trips don't lose a second.
+    _lastConvertedMs: '000',
+
+    convertUTCToObserver: function (utcTime, observerValue, callback) {
+        const obs = SightlineTool._getObserverDef(observerValue)
+        if (!obs?.body || !observerValue) {
             if (callback) callback(null)
             return
         }
+        // Re-attach saved ms precision for exact round-trip
+        let time = utcTime
+        if (SightlineTool._lastConvertedMs !== '000' && time) {
+            time = time.replace('.000Z', '.' + SightlineTool._lastConvertedMs + 'Z')
+                       .replace(/(\d{2}:\d{2}:\d{2})Z$/, '$1.' + SightlineTool._lastConvertedMs + 'Z')
+        }
+        const params = { body: obs.body, target: observerValue, from: 'utc', time: time }
+        if (obs.type === 'lsmt') {
+            const lng = SightlineTool._getObserverLng()
+            if (lng != null) params.lng = lng
+        }
         calls.api(
             'chronice',
-            { body, target: observerValue, from: 'utc', time: utcTime },
+            params,
             function (s) {
                 if (s.error) {
                     if (callback) callback(null)
@@ -2615,22 +1957,19 @@ let SightlineTool = {
     },
 
     convertObserverToUTC: function (localTime, observerValue, callback) {
-        const store = useSightlineStore.getState()
-        const observers = store.vars?.observers || []
-        let body = null
-        for (let i = 0; i < observers.length; i++) {
-            if (observers[i].value === observerValue) {
-                body = observers[i].body
-                break
-            }
-        }
-        if (!body || !observerValue) {
+        const obs = SightlineTool._getObserverDef(observerValue)
+        if (!obs?.body || !observerValue) {
             if (callback) callback(null)
             return
         }
+        const params = { body: obs.body, target: observerValue, from: 'lmst', time: localTime }
+        if (obs.type === 'lsmt') {
+            const lng = SightlineTool._getObserverLng()
+            if (lng != null) params.lng = lng
+        }
         calls.api(
             'chronice',
-            { body, target: observerValue, from: 'lmst', time: localTime },
+            params,
             function (s) {
                 if (s.error) {
                     if (callback) callback(null)
@@ -2642,716 +1981,48 @@ let SightlineTool = {
         )
     },
 
-    // === RAE Indicators (preserved exactly from SightlineTool) ===
+    // === RAE Indicators (delegated to SightlineTool_Indicators) ===
 
     updateRAEIndicators(rae, sightlineId, allResults) {
-        const size = 160
-        const sizeInner = 144
-        const origin = { x: size / 2, y: size / 2 }
-
-        const indicatorEl = document.getElementById(
-            `sightlineTool_indicators_${sightlineId}`
-        )
-        if (indicatorEl) {
-            indicatorEl.style.borderBottom = rae.error
-                ? '3px solid var(--color-red)'
-                : ''
-        }
-
-        // Azimuth
-        const azValueEl = document.getElementById(
-            `sightlineTool_azValue_${sightlineId}`
-        )
-        if (azValueEl) {
-            azValueEl.textContent = rae.error
-                ? 'Az: Error'
-                : 'Az: ' + rae.azimuth.toFixed(2) + '\u00B0'
-        }
-        const cAz = document.getElementById(
-            `sightlineTool_az_${sightlineId}`
-        )
-        if (!cAz) return
-        cAz.width = size
-        cAz.height = size
-        const ctxAz = cAz.getContext('2d')
-
-        ctxAz.clearRect(0, 0, cAz.width, cAz.height)
-
-        ctxAz.beginPath()
-        ctxAz.arc(size / 2, size / 2, sizeInner / 2, 0, 2 * Math.PI)
-        ctxAz.fillStyle = '#3a3e40'
-        ctxAz.fill()
-        ctxAz.strokeStyle = 'rgba(255,255,255,0.3)'
-        ctxAz.lineWidth = 2
-        ctxAz.stroke()
-
-        ctxAz.beginPath()
-        ctxAz.beginPath()
-        ctxAz.moveTo(origin.x, size - (size - sizeInner) / 2)
-        ctxAz.lineTo(origin.x, (size - sizeInner) / 2)
-        ctxAz.lineWidth = 1
-        ctxAz.strokeStyle = 'rgba(255,255,255,0.2)'
-        ctxAz.stroke()
-
-        ctxAz.beginPath()
-        ctxAz.beginPath()
-        ctxAz.moveTo(size - (size - sizeInner) / 2, origin.y)
-        ctxAz.lineTo((size - sizeInner) / 2, origin.y)
-        ctxAz.lineWidth = 1
-        ctxAz.strokeStyle = 'rgba(255,255,255,0.2)'
-        ctxAz.stroke()
-
-        let azGreaterThan180
-        let sunAzGreaterThan180
-        let earthAzGreaterThan180
-        if (rae.error != true) {
-            ctxAz.font = '20px Arial'
-            ctxAz.fillStyle = 'rgba(255,255,255,0.7)'
-            ctxAz.textAlign = 'center'
-            ctxAz.fillText('N', size / 2, (size - sizeInner) * 1.5)
-
-            if (rae.ancillary?.sun_az) {
-                let azim = rae.ancillary.sun_az
-                if (azim < 0) azim += 360
-                sunAzGreaterThan180 = azim > 180
-                azim = azim * (Math.PI / 180)
-                SightlineTool.drawAzAngleGuideOnCanvas(
-                    ctxAz,
-                    origin,
-                    sizeInner,
-                    rae.ancillary.sun_az,
-                    azim,
-                    { color: sunColor, shortenPx: 40 }
-                )
-            }
-            if (rae.ancillary?.earth_az) {
-                let azim = rae.ancillary.earth_az
-                if (azim < 0) azim += 360
-                earthAzGreaterThan180 = azim > 180
-                azim = azim * (Math.PI / 180)
-                SightlineTool.drawAzAngleGuideOnCanvas(
-                    ctxAz,
-                    origin,
-                    sizeInner,
-                    rae.ancillary.earth_az,
-                    azim,
-                    { color: earthColor, shortenPx: 60 }
-                )
-            }
-            let azim = rae.azimuth
-            if (azim < 0) azim += 360
-            azGreaterThan180 = azim > 180
-            azim = azim * (Math.PI / 180)
-            SightlineTool.drawAzAngleGuideOnCanvas(
-                ctxAz,
-                origin,
-                sizeInner,
-                rae.azimuth,
-                azim,
-                {
-                    angleGuide: true,
-                    color:
-                        rae.ancillary?.sun_el || rae.ancillary?.earth_el
-                            ? '#dbb658'
-                            : 'yellow',
-                }
-            )
-
-            if (allResults && allResults.length > 1) {
-                for (let si = 1; si < allResults.length; si++) {
-                    const sr = allResults[si]
-                    if (sr.error || sr.azimuth == null) continue
-                    let srAz = sr.azimuth
-                    if (srAz < 0) srAz += 360
-                    const srAzRad = srAz * (Math.PI / 180)
-                    const srcColor =
-                        MULTI_SOURCE_COLORS[
-                            (sr._sourceTarget?.index || si) %
-                                MULTI_SOURCE_COLORS.length
-                        ]
-                    SightlineTool.drawAzAngleGuideOnCanvas(
-                        ctxAz,
-                        origin,
-                        sizeInner,
-                        sr.azimuth,
-                        srAzRad,
-                        {
-                            color: `rgb(${srcColor.r},${srcColor.g},${srcColor.b})`,
-                            shortenPx: 20 + si * 10,
-                        }
-                    )
-                }
-            }
-        }
-
-        // Elevation
-        const elValueEl = document.getElementById(
-            `sightlineTool_elValue_${sightlineId}`
-        )
-        if (elValueEl) {
-            elValueEl.textContent = rae.error
-                ? 'El: Error'
-                : 'El: ' + rae.elevation.toFixed(2) + '\u00B0'
-        }
-        const cEl = document.getElementById(
-            `sightlineTool_el_${sightlineId}`
-        )
-        if (!cEl) return
-        cEl.width = size
-        cEl.height = size
-        const ctxEl = cEl.getContext('2d')
-
-        ctxEl.clearRect(0, 0, cEl.width, cEl.height)
-
-        ctxEl.beginPath()
-        ctxEl.arc(size / 2, size / 2, sizeInner / 2, 0, 2 * Math.PI)
-        ctxEl.fillStyle = '#3a3e40'
-        ctxEl.fill()
-        ctxEl.strokeStyle = 'rgba(255,255,255,0.3)'
-        ctxEl.lineWidth = 2
-        ctxEl.stroke()
-
-        ctxEl.beginPath()
-        ctxEl.moveTo(origin.x, origin.y)
-        ctxEl.arc(origin.x, origin.y, sizeInner / 2, 0, Math.PI, true)
-        const sky = ctxEl.createLinearGradient(0, 0, 0, sizeInner / 2)
-        sky.addColorStop(
-            0,
-            rae.error
-                ? 'rgba(210, 0, 0, 0.25)'
-                : 'rgba(8, 174, 234, 0.25)'
-        )
-        sky.addColorStop(
-            1,
-            rae.error
-                ? 'rgba(255, 92, 92, 0.25)'
-                : 'rgba(255, 255, 255, 0.25)'
-        )
-        ctxEl.fillStyle = sky
-        ctxEl.fill()
-
-        ctxEl.beginPath()
-        ctxEl.beginPath()
-        ctxEl.moveTo(origin.x, size - (size - sizeInner) / 2)
-        ctxEl.lineTo(origin.x, (size - sizeInner) / 2)
-        ctxEl.lineWidth = 1
-        ctxEl.strokeStyle = 'rgba(255,255,255,0.2)'
-        ctxEl.stroke()
-
-        if (rae.error != true) {
-            if (rae.ancillary?.sun_el) {
-                SightlineTool.drawElAngleGuideOnCanvas(
-                    ctxEl,
-                    origin,
-                    sizeInner,
-                    rae.ancillary.sun_el,
-                    {
-                        azGreaterThan180: sunAzGreaterThan180,
-                        color: sunColor,
-                        shortenPx: 40,
-                    }
-                )
-            }
-            if (rae.ancillary?.earth_el) {
-                SightlineTool.drawElAngleGuideOnCanvas(
-                    ctxEl,
-                    origin,
-                    sizeInner,
-                    rae.ancillary.earth_el,
-                    {
-                        azGreaterThan180: earthAzGreaterThan180,
-                        color: earthColor,
-                        shortenPx: 60,
-                    }
-                )
-            }
-
-            SightlineTool.drawElAngleGuideOnCanvas(
-                ctxEl,
-                origin,
-                sizeInner,
-                rae.elevation,
-                {
-                    azGreaterThan180: azGreaterThan180,
-                    angleGuide: true,
-                    color:
-                        rae.ancillary?.sun_el || rae.ancillary?.earth_el
-                            ? '#dbb658'
-                            : 'yellow',
-                }
-            )
-        }
+        SightlineTool_Indicators.updateRAEIndicators(rae, sightlineId, allResults)
     },
 
     drawAzAngleGuideOnCanvas(ctx, origin, sizeInner, angle, angle2, options) {
-        options = options || {}
-        if (options.angleGuide) {
-            ctx.beginPath()
-            ctx.moveTo(origin.x, origin.y)
-            ctx.arc(
-                origin.x,
-                origin.y,
-                sizeInner / 8,
-                -90 * (Math.PI / 180),
-                angle2 - 90 * (Math.PI / 180)
-            )
-            ctx.lineWidth = options.guideLineWidth || 2
-            ctx.strokeStyle = '#eeeeee'
-            ctx.stroke()
-        }
-
-        const tipInset = options.tipInset || 10
-        const innerInset = options.innerInset || 20
-        const endAzPt = F_.rotatePoint(
-            {
-                x: origin.x,
-                y:
-                    origin.y -
-                    sizeInner / 2 +
-                    tipInset +
-                    (options.shortenPx || 0),
-            },
-            [origin.x, origin.y],
-            angle * (Math.PI / 180)
-        )
-
-        ctx.beginPath()
-        ctx.beginPath()
-        ctx.moveTo(origin.x, origin.y)
-        ctx.lineTo(endAzPt.x, endAzPt.y)
-        ctx.lineWidth = options.lineWidth || 6
-        ctx.strokeStyle = options.color || 'yellow'
-        ctx.stroke()
-
-        const endAzPtInner = F_.rotatePoint(
-            {
-                x: origin.x,
-                y:
-                    origin.y -
-                    sizeInner / 2 +
-                    innerInset +
-                    (options.shortenPx || 0),
-            },
-            [origin.x, origin.y],
-            angle * (Math.PI / 180)
-        )
-        F_.canvasDrawArrow(
-            ctx,
-            endAzPtInner.x,
-            endAzPtInner.y,
-            endAzPt.x,
-            endAzPt.y,
-            options.arrowSize || 4,
-            options.color || 'yellow'
-        )
+        SightlineTool_Indicators.drawAzAngleGuideOnCanvas(ctx, origin, sizeInner, angle, angle2, options)
     },
 
     drawElAngleGuideOnCanvas(ctx, origin, sizeInner, angle, options) {
-        options = options || {}
-        if (options.angleGuide) {
-            ctx.beginPath()
-            ctx.moveTo(origin.x, origin.y)
-            let elev = angle
-            let ccw = true
-            if (elev < 0) ccw = false
-            let startAngle = 0
-            if (options.azGreaterThan180) {
-                startAngle = Math.PI
-                ccw = !ccw
-                elev = -elev - 180
-            }
-            elev = -elev * (Math.PI / 180)
-            ctx.arc(origin.x, origin.y, sizeInner / 4, startAngle, elev, ccw)
-            ctx.lineWidth = options.guideLineWidth || 2
-            ctx.strokeStyle = '#eeeeee'
-            ctx.stroke()
-        }
-
-        let sign = -1
-        let offset = 0
-        if (options.azGreaterThan180) {
-            sign = 1
-            offset = 180
-        }
-
-        const tipInset = options.tipInset || 10
-        const innerInset = options.innerInset || 20
-        const endElPt = F_.rotatePoint(
-            {
-                x:
-                    origin.x +
-                    sizeInner / 2 -
-                    tipInset -
-                    (options.shortenPx || 0),
-                y: origin.y,
-            },
-            [origin.x, origin.y],
-            sign * (offset + angle) * (Math.PI / 180)
-        )
-
-        ctx.beginPath()
-        ctx.beginPath()
-        ctx.moveTo(origin.x, origin.y)
-        ctx.lineTo(endElPt.x, endElPt.y)
-        ctx.lineWidth = options.lineWidth || 6
-        ctx.strokeStyle = options.color || 'yellow'
-        ctx.stroke()
-
-        const endElPtInner = F_.rotatePoint(
-            {
-                x:
-                    origin.x +
-                    sizeInner / 2 -
-                    innerInset -
-                    (options.shortenPx || 0),
-                y: origin.y,
-            },
-            [origin.x, origin.y],
-            sign * (offset + angle) * (Math.PI / 180)
-        )
-        F_.canvasDrawArrow(
-            ctx,
-            endElPtInner.x,
-            endElPtInner.y,
-            endElPt.x,
-            endElPt.y,
-            options.arrowSize || 4,
-            options.color || 'yellow'
-        )
+        SightlineTool_Indicators.drawElAngleGuideOnCanvas(ctx, origin, sizeInner, angle, options)
     },
 
     drawMiniRAEIndicators(azCanvasId, elCanvasId, rae) {
-        const size = 80
-        const sizeInner = 70
-        const origin = { x: size / 2, y: size / 2 }
-
-        // Azimuth
-        const cAz = document.getElementById(azCanvasId)
-        if (cAz) {
-            cAz.width = size
-            cAz.height = size
-            const ctx = cAz.getContext('2d')
-            ctx.clearRect(0, 0, size, size)
-
-            ctx.beginPath()
-            ctx.arc(size / 2, size / 2, sizeInner / 2, 0, 2 * Math.PI)
-            ctx.fillStyle = '#3a3e40'
-            ctx.fill()
-            ctx.strokeStyle = 'rgba(255,255,255,0.3)'
-            ctx.lineWidth = 1
-            ctx.stroke()
-
-            ctx.beginPath()
-            ctx.moveTo(origin.x, size - (size - sizeInner) / 2)
-            ctx.lineTo(origin.x, (size - sizeInner) / 2)
-            ctx.lineWidth = 0.5
-            ctx.strokeStyle = 'rgba(255,255,255,0.2)'
-            ctx.stroke()
-
-            ctx.beginPath()
-            ctx.moveTo(size - (size - sizeInner) / 2, origin.y)
-            ctx.lineTo((size - sizeInner) / 2, origin.y)
-            ctx.lineWidth = 0.5
-            ctx.strokeStyle = 'rgba(255,255,255,0.2)'
-            ctx.stroke()
-
-            if (rae && rae.azimuth != null) {
-                ctx.font = '11px Arial'
-                ctx.fillStyle = 'rgba(255,255,255,0.8)'
-                ctx.textAlign = 'center'
-                ctx.fillText('N', size / 2, (size - sizeInner) * 1.2 + 3)
-
-                SightlineTool.drawAzAngleGuideOnCanvas(
-                    ctx, origin, sizeInner,
-                    rae.azimuth,
-                    rae.azimuth * (Math.PI / 180),
-                    { angleGuide: true, color: '#dbb658', lineWidth: 2, arrowSize: 2, guideLineWidth: 1, tipInset: 5, innerInset: 12 }
-                )
-            }
-        }
-
-        // Elevation
-        const cEl = document.getElementById(elCanvasId)
-        if (cEl) {
-            cEl.width = size
-            cEl.height = size
-            const ctx = cEl.getContext('2d')
-            ctx.clearRect(0, 0, size, size)
-
-            ctx.beginPath()
-            ctx.arc(size / 2, size / 2, sizeInner / 2, 0, 2 * Math.PI)
-            ctx.fillStyle = '#3a3e40'
-            ctx.fill()
-            ctx.strokeStyle = 'rgba(255,255,255,0.3)'
-            ctx.lineWidth = 1
-            ctx.stroke()
-
-            ctx.beginPath()
-            ctx.moveTo(origin.x, origin.y)
-            ctx.arc(origin.x, origin.y, sizeInner / 2, 0, Math.PI, true)
-            const sky = ctx.createLinearGradient(0, 0, 0, sizeInner / 2)
-            sky.addColorStop(0, 'rgba(8, 174, 234, 0.25)')
-            sky.addColorStop(1, 'rgba(255, 255, 255, 0.25)')
-            ctx.fillStyle = sky
-            ctx.fill()
-
-            ctx.beginPath()
-            ctx.moveTo(origin.x, size - (size - sizeInner) / 2)
-            ctx.lineTo(origin.x, (size - sizeInner) / 2)
-            ctx.lineWidth = 0.5
-            ctx.strokeStyle = 'rgba(255,255,255,0.2)'
-            ctx.stroke()
-
-            if (rae && rae.elevation != null) {
-                let azGreaterThan180 = false
-                if (rae.azimuth != null) {
-                    let az = rae.azimuth
-                    if (az < 0) az += 360
-                    azGreaterThan180 = az > 180
-                }
-                SightlineTool.drawElAngleGuideOnCanvas(
-                    ctx, origin, sizeInner,
-                    rae.elevation,
-                    { azGreaterThan180, angleGuide: true, color: '#dbb658', lineWidth: 2, arrowSize: 2, guideLineWidth: 1, tipInset: 5, innerInset: 12 }
-                )
-            }
-        }
+        SightlineTool_Indicators.drawMiniRAEIndicators(azCanvasId, elCanvasId, rae)
     },
 
-    /**
-     * Draw a sky dome polar plot on a canvas.
-     * Center = zenith (90° el), edge = horizon (0° el).
-     * Azimuth runs clockwise from north (top).
-     * @param {string} canvasId - DOM id of the canvas element
-     * @param {Array} results - full sweep results array [{azimuth, elevation, ...}, ...]
-     * @param {number} currentIdx - index into results for the current frame
-     */
     drawSkyDome(canvasId, results, currentIdx) {
-        const c = document.getElementById(canvasId)
-        if (!c) return
-
-        const size = 360
-        const pad = 30
-        const r = (size - pad * 2) / 2
-        const cx = size / 2
-        const cy = size / 2
-
-        c.width = size
-        c.height = size
-        const ctx = c.getContext('2d')
-        ctx.clearRect(0, 0, size, size)
-
-        // Helper: az/el → canvas x,y
-        // az: degrees clockwise from north, el: degrees above horizon
-        function azel2xy(az, el) {
-            const elClamped = Math.max(0, Math.min(90, el))
-            const dist = ((90 - elClamped) / 90) * r
-            const azRad = (az - 90) * (Math.PI / 180) // -90 so north=top
-            return {
-                x: cx + dist * Math.cos(azRad),
-                y: cy + dist * Math.sin(azRad),
-            }
-        }
-
-        // Fixed dark base so the dome is legible in both light and dark themes
-        ctx.beginPath()
-        ctx.arc(cx, cy, r, 0, 2 * Math.PI)
-        ctx.fillStyle = '#3a3e40'
-        ctx.fill()
-
-        // Sky gradient overlay (dark blue center/zenith, lighter at horizon)
-        const skyGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
-        skyGrad.addColorStop(0, 'rgba(8, 40, 80, 0.6)')
-        skyGrad.addColorStop(1, 'rgba(30, 80, 130, 0.3)')
-        ctx.beginPath()
-        ctx.arc(cx, cy, r, 0, 2 * Math.PI)
-        ctx.fillStyle = skyGrad
-        ctx.fill()
-
-        // Horizon circle
-        ctx.beginPath()
-        ctx.arc(cx, cy, r, 0, 2 * Math.PI)
-        ctx.strokeStyle = 'rgba(255,255,255,0.5)'
-        ctx.lineWidth = 2
-        ctx.stroke()
-
-        // Elevation rings (30°, 60°)
-        for (const elDeg of [30, 60]) {
-            const ringR = ((90 - elDeg) / 90) * r
-            ctx.beginPath()
-            ctx.arc(cx, cy, ringR, 0, 2 * Math.PI)
-            ctx.strokeStyle = 'rgba(255,255,255,0.15)'
-            ctx.lineWidth = 1
-            ctx.setLineDash([4, 6])
-            ctx.stroke()
-            ctx.setLineDash([])
-        }
-
-        // Cardinal direction lines (N-S, E-W)
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)'
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        ctx.moveTo(cx, cy - r)
-        ctx.lineTo(cx, cy + r)
-        ctx.stroke()
-        ctx.beginPath()
-        ctx.moveTo(cx - r, cy)
-        ctx.lineTo(cx + r, cy)
-        ctx.stroke()
-
-        // Cardinal labels — use theme-aware color (labels sit outside dome in transparent area)
-        const cardinalColor = getComputedStyle(document.documentElement).getPropertyValue('--color-f').trim() || 'rgba(255,255,255,0.7)'
-        ctx.font = '22px Arial'
-        ctx.fillStyle = cardinalColor
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'bottom'
-        ctx.fillText('N', cx, cy - r - 3)
-        ctx.textBaseline = 'top'
-        ctx.fillText('S', cx, cy + r + 3)
-        ctx.textBaseline = 'middle'
-        ctx.textAlign = 'left'
-        ctx.fillText('E', cx + r + 4, cy)
-        ctx.textAlign = 'right'
-        ctx.fillText('W', cx - r - 4, cy)
-
-        // Elevation labels
-        ctx.font = '18px Arial'
-        ctx.fillStyle = 'rgba(255,255,255,0.45)'
-        ctx.textAlign = 'left'
-        ctx.textBaseline = 'middle'
-        for (const elDeg of [30, 60]) {
-            const ringR = ((90 - elDeg) / 90) * r
-            ctx.fillText(elDeg + '°', cx + 2, cy - ringR)
-        }
-
-        if (!results || results.length === 0) return
-
-        // Filter valid results (those with az/el data, el >= 0 means above horizon)
-        const validResults = results.filter(
-            (r) => r && r.azimuth != null && r.elevation != null
-        )
-        if (validResults.length === 0) return
-
-        // Draw the full sweep path
-        ctx.beginPath()
-        let first = true
-        for (let i = 0; i < results.length; i++) {
-            const pt = results[i]
-            if (!pt || pt.azimuth == null || pt.elevation == null) continue
-            const p = azel2xy(pt.azimuth, pt.elevation)
-            if (first) {
-                ctx.moveTo(p.x, p.y)
-                first = false
-            } else {
-                ctx.lineTo(p.x, p.y)
-            }
-        }
-        ctx.strokeStyle = 'rgba(219, 182, 88, 0.5)'
-        ctx.lineWidth = 3
-        ctx.stroke()
-
-        // Draw below-horizon portions with dashed style
-        ctx.beginPath()
-        first = true
-        for (let i = 0; i < results.length; i++) {
-            const pt = results[i]
-            if (!pt || pt.azimuth == null || pt.elevation == null) continue
-            if (pt.elevation < 0) {
-                const p = azel2xy(pt.azimuth, 0) // clamp to horizon
-                if (first) {
-                    ctx.moveTo(p.x, p.y)
-                    first = false
-                } else {
-                    ctx.lineTo(p.x, p.y)
-                }
-            } else {
-                first = true
-            }
-        }
-        if (!first) {
-            ctx.strokeStyle = 'rgba(219, 182, 88, 0.25)'
-            ctx.lineWidth = 2
-            ctx.setLineDash([4, 6])
-            ctx.stroke()
-            ctx.setLineDash([])
-        }
-
-        // Draw small dots along the path at intervals
-        const dotInterval = Math.max(1, Math.floor(results.length / 20))
-        for (let i = 0; i < results.length; i += dotInterval) {
-            const pt = results[i]
-            if (!pt || pt.azimuth == null || pt.elevation == null) continue
-            if (pt.elevation < 0) continue
-            const p = azel2xy(pt.azimuth, pt.elevation)
-            ctx.beginPath()
-            ctx.arc(p.x, p.y, 3, 0, 2 * Math.PI)
-            ctx.fillStyle = 'rgba(219, 182, 88, 0.4)'
-            ctx.fill()
-        }
-
-        // Start marker (small green circle)
-        const startPt = results[0]
-        if (startPt && startPt.azimuth != null && startPt.elevation != null && startPt.elevation >= 0) {
-            const sp = azel2xy(startPt.azimuth, startPt.elevation)
-            ctx.beginPath()
-            ctx.arc(sp.x, sp.y, 6, 0, 2 * Math.PI)
-            ctx.fillStyle = 'rgba(100, 220, 100, 0.8)'
-            ctx.fill()
-            ctx.strokeStyle = 'rgba(255,255,255,0.5)'
-            ctx.lineWidth = 1
-            ctx.stroke()
-        }
-
-        // End marker (small red circle)
-        const endPt = results[results.length - 1]
-        if (endPt && endPt.azimuth != null && endPt.elevation != null && endPt.elevation >= 0) {
-            const ep = azel2xy(endPt.azimuth, endPt.elevation)
-            ctx.beginPath()
-            ctx.arc(ep.x, ep.y, 6, 0, 2 * Math.PI)
-            ctx.fillStyle = 'rgba(220, 100, 100, 0.8)'
-            ctx.fill()
-            ctx.strokeStyle = 'rgba(255,255,255,0.5)'
-            ctx.lineWidth = 1
-            ctx.stroke()
-        }
-
-        // Current position (larger bright dot)
-        const cur = results[currentIdx]
-        if (cur && cur.azimuth != null && cur.elevation != null) {
-            const cp = azel2xy(cur.azimuth, cur.elevation)
-            // Glow effect
-            const glow = ctx.createRadialGradient(cp.x, cp.y, 0, cp.x, cp.y, 16)
-            glow.addColorStop(0, 'rgba(219, 182, 88, 0.6)')
-            glow.addColorStop(1, 'rgba(219, 182, 88, 0)')
-            ctx.beginPath()
-            ctx.arc(cp.x, cp.y, 16, 0, 2 * Math.PI)
-            ctx.fillStyle = glow
-            ctx.fill()
-
-            // Solid dot
-            ctx.beginPath()
-            ctx.arc(cp.x, cp.y, 7, 0, 2 * Math.PI)
-            ctx.fillStyle = '#dbb658'
-            ctx.fill()
-            ctx.strokeStyle = 'rgba(255,255,255,0.8)'
-            ctx.lineWidth = 2
-            ctx.stroke()
-
-            // Label with current az/el
-            if (cur.elevation >= 0) {
-                ctx.font = '20px Arial'
-                ctx.fillStyle = 'rgba(255,255,255,0.9)'
-                ctx.textAlign = 'left'
-                ctx.textBaseline = 'bottom'
-                ctx.fillText(
-                    cur.azimuth.toFixed(0) + '° / ' + cur.elevation.toFixed(0) + '°',
-                    cp.x + 12, cp.y - 4
-                )
-            }
-        }
+        SightlineTool_Indicators.drawSkyDome(canvasId, results, currentIdx)
     },
 
     // === Utility ===
+
+    /** Compute maxOutputDim from the active element's resolution scale
+     *  and the current map viewport pixel dimensions.
+     *  resolution=1 → native (maxOutputDim = viewport longest dim)
+     *  resolution=0.5 → half, etc.
+     *  @param {number} [elmId] - element id to read resolution from; falls back to activeElmId
+     *  @returns {number} maxOutputDim
+     */
+    _resolutionToMaxDim(elmId) {
+        const store = useSightlineStore.getState()
+        const id = elmId != null ? elmId : store.activeElmId
+        const el = store.elements[id]
+        const scale = el?.resolution || 0.25
+        const map = Map_.map
+        if (!map) return Math.max(Math.round(800 * scale), 50)
+        const size = map.getSize()
+        const longestDim = Math.max(size.x || 800, size.y || 800)
+        return Math.max(Math.round(longestDim * scale), 50)
+    },
 
     parseToUTCTime(time, formatted) {
         const vars = useSightlineStore.getState().vars

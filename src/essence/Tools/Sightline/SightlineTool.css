@@ -25,6 +25,34 @@
     margin-right: 6px;
 }
 
+/* Editable time field — matches old ShadeTool vstOptionTime */
+#sightlineTool .vstOptionTime .flexbetween {
+    position: relative;
+    width: 100%;
+}
+#sightlineTool .vstOptionTime .vstClockIcon {
+    position: absolute;
+    right: 0;
+    padding: 4px 8px;
+    color: var(--color-a1-5);
+    pointer-events: none;
+}
+#sightlineTool .vstOptionTime input {
+    width: 100%;
+    text-align: center;
+    background: var(--color-p0);
+    color: var(--color-a1-5);
+    font-weight: bold;
+    font-size: 14px;
+    padding: 5px 0px;
+    border: none;
+    border-bottom: 1px solid transparent;
+    outline: none;
+}
+#sightlineTool .vstOptionTime input:focus {
+    border-bottom: 1px solid var(--color-c);
+}
+
 /* ====== Header — matches mmgisToolHeader (DrawTool style) ====== */
 
 #sightlineTool .vstTime {
@@ -49,7 +77,7 @@
     text-align: right;
 }
 #sightlineTool .vstTime .vstTimeStep {
-    width: 70px;
+    width: 76px;
     flex: 0 0 auto;
 }
 
@@ -114,7 +142,6 @@
     margin: 6px;
     border-radius: 6px;
     background: var(--color-a1-5);
-    overflow: hidden;
 }
 
 /* Instance header */
@@ -125,6 +152,7 @@
     height: 32px;
     padding: 0 6px;
     background: var(--color-a1);
+    border-radius: 6px 6px 0 0;
 }
 
 #sightlineTool .vstSightlineHeaderLeft {
@@ -190,7 +218,7 @@
 
 #sightlineTool .vstColorPalette {
     position: absolute;
-    top: 18px;
+    top: 22px;
     left: 0;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -200,7 +228,7 @@
     border: 1px solid var(--color-a1);
     border-radius: 4px;
     box-shadow: 0 4px 12px var(--color-shadow);
-    z-index: 100;
+    z-index: 10000;
 }
 
 #sightlineTool .vstColorOption {
@@ -218,6 +246,11 @@
 /* sightline names removed — header is icons only */
 
 /* ====== Collapsible body ====== */
+
+/* Allow dropdowns inside open collapsible panels to overflow */
+#sightlineTool [data-open] {
+    overflow: visible !important;
+}
 
 #sightlineTool .vstSightlineBody {
     padding: 0;
@@ -691,7 +724,6 @@
     background: var(--color-a1-5);
     margin: 4px 6px;
     border-radius: 4px;
-    overflow: hidden;
 }
 #sightlineTool .vstSweepCardsScroll {
     flex: 1;
@@ -709,7 +741,6 @@
 #sightlineTool .vstSweepCard {
     background: var(--color-a2);
     border-radius: 4px;
-    overflow: hidden;
     border: 1px solid var(--color-a2);
     transition: box-shadow 0.15s ease;
 }
@@ -724,6 +755,7 @@
     padding: 5px 6px;
     background: var(--color-a2);
     border-bottom: 2px solid var(--color-a3);
+    border-radius: 4px 4px 0 0;
 }
 
 #sightlineTool .vstSweepCardDragHandle {
@@ -743,7 +775,10 @@
 }
 
 /* Drop indicator for drag-to-reorder */
-#sightlineTool .vstDropTarget {
+#sightlineTool .vstDropTargetAbove {
+    border-top: 2px solid var(--color-mmgis) !important;
+}
+#sightlineTool .vstDropTargetBelow {
     border-bottom: 2px solid var(--color-mmgis) !important;
 }
 
@@ -888,57 +923,70 @@
     margin-bottom: 2px;
 }
 
-/* ====== Center Crosshair ====== */
+/* ====== Center Dot (always at visible map center) ====== */
 
-.sightlineCenterCrosshair {
+.sightlineCenterDot {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    margin-left: -4px;
+    margin-top: -4px;
+    background: limegreen;
+    border: 1px solid black;
+    border-radius: 50%;
     pointer-events: none;
-    z-index: 800;
+    z-index: 799;
+}
+
+/* ====== Center Crosshair ====== */
+
+.sightlineCenterCrosshair {
+    pointer-events: none !important;
+    z-index: 10000;
 }
 .sightlineCrosshairCircle {
     position: absolute;
-    width: 14px;
-    height: 14px;
-    top: -7px;
-    left: -7px;
-    border: 2px solid #fff;
+    width: 10px;
+    height: 10px;
+    top: -5px;
+    left: -5px;
+    border: 1.5px solid limegreen;
     border-radius: 50%;
-    box-shadow: 0 0 3px rgba(0,0,0,0.7), inset 0 0 3px rgba(0,0,0,0.7);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.85);
 }
 .sightlineCrosshairN,
 .sightlineCrosshairS,
 .sightlineCrosshairE,
 .sightlineCrosshairW {
     position: absolute;
-    background: #fff;
-    box-shadow: 0 0 3px rgba(0,0,0,0.7);
+    background: limegreen;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.85);
 }
 .sightlineCrosshairN,
 .sightlineCrosshairS {
-    width: 2px;
-    height: 7px;
-    left: -1px;
+    width: 1.5px;
+    height: 5px;
+    left: -0.75px;
 }
 .sightlineCrosshairN {
-    top: -16px;
+    top: -11px;
 }
 .sightlineCrosshairS {
-    top: 9px;
+    top: 6px;
 }
 .sightlineCrosshairE,
 .sightlineCrosshairW {
-    height: 2px;
-    width: 7px;
-    top: -1px;
+    height: 1.5px;
+    width: 5px;
+    top: -0.75px;
 }
 .sightlineCrosshairE {
-    left: 9px;
+    left: 6px;
 }
 .sightlineCrosshairW {
-    left: -16px;
+    left: -11px;
 }
 
 /* ====== Azimuth Radial Line ====== */
@@ -980,23 +1028,113 @@
     overflow: hidden;
 }
 
+/* ====== Graph header bar ====== */
+
+.sightlineGraphHeader {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    gap: 12px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--color-a2);
+}
+
+.sightlineGraphTitle {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-a7);
+    white-space: nowrap;
+}
+
 .sightlineGraphClose {
-    position: absolute;
-    top: 4px;
-    right: 6px;
-    z-index: 10;
     cursor: pointer;
     color: var(--color-a5);
     transition: color 0.15s ease;
     line-height: 1;
+    margin-left: auto;
 }
 .sightlineGraphClose:hover {
     color: var(--color-f);
 }
 
+/* ====== Horizon distance range slider ====== */
+
+.sightlineHorizonRangeWrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.sightlineHorizonRangeLabel {
+    font-size: 11px;
+    color: var(--color-a5);
+    user-select: none;
+    white-space: nowrap;
+}
+
+.sightlineHorizonRangeValue {
+    font-size: 10px;
+    color: var(--color-a6);
+    white-space: nowrap;
+    min-width: 32px;
+    text-align: center;
+}
+
+.sightlineHorizonRangeTrack {
+    position: relative;
+    flex: 1;
+    height: 4px;
+    background: var(--color-a2);
+    border-radius: 2px;
+    min-width: 60px;
+}
+
+.sightlineHorizonRangeFill {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: var(--color-a4);
+    border-radius: 2px;
+}
+
+.sightlineHorizonRangeHandle {
+    position: absolute;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    background: var(--color-f);
+    border: 1.5px solid var(--color-a4);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    cursor: ew-resize;
+    z-index: 2;
+}
+.sightlineHorizonRangeHandle:hover {
+    background: #fff;
+    border-color: var(--color-a6);
+}
+
+.sightlineHorizonPolygonToggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 10px;
+}
+.sightlineHorizonPolygonLabel {
+    font-size: 11px;
+    color: var(--color-a5);
+    white-space: nowrap;
+    user-select: none;
+}
+.sightlineHorizonPolygonToggle .mmgis-checkbox {
+    transform: scale(0.8);
+}
+
 .sightlineGraphExcludedInfo {
     position: absolute;
-    top: 4px;
+    top: 30px;
     left: 8px;
     z-index: 10;
     font-size: 11px;
@@ -1056,6 +1194,8 @@
     position: relative;
     cursor: pointer;
     overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .sightlineVisRow {
@@ -1124,6 +1264,7 @@
     height: 24px;
     flex-shrink: 0;
     margin-right: 8px;
+    user-select: none;
 }
 
 .sightlineVisTimeTick {
@@ -1158,6 +1299,22 @@
     pointer-events: none;
     z-index: 5;
     display: none;
+}
+
+/* ====== Horizon tooltip ====== */
+
+.sightlineHorizonTooltip {
+    position: absolute;
+    pointer-events: none;
+    z-index: 10;
+    display: none;
+    background: rgba(0, 0, 0, 0.8);
+    color: #eee;
+    font-size: 11px;
+    padding: 3px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    transform: translateX(-50%);
 }
 
 /* ====== Graph time controls bar ====== */
@@ -1209,4 +1366,10 @@
     white-space: nowrap;
     min-width: 50px;
     text-align: right;
+}
+
+/* Backend sightmap overlay — crisp pixel grid, no interpolation */
+img.sightmap-pixelated,
+.sightmap-pixelated img {
+    image-rendering: pixelated;
 }

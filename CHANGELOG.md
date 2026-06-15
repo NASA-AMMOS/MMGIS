@@ -1,16 +1,12 @@
 # MMGIS Changelog
 
-## Unreleased
+## 5.0.15
 
-_TBD_
-
-## 5.0.0
-
-_May 1, 2026_
+_June 11, 2026_
 
 #### Summary
 
-This major release modernizes the MMGIS frontend by migrating core UI infrastructure from jQuery/Materialize to React 18 and Base UI. The separated tools system has been fully rewritten as React components. The Ancillary directory has been dissolved and its components reorganized. A comprehensive mobile UI overhaul improves toolbar layout, TimeUI integration, and responsive positioning. A configurable theme system with High Contrast support has been added. The internal test infrastructure (Test_ module) has been removed in favor of the Playwright-based E2E framework. The Cesium 3D globe link button has been restyled and repositioned. Various bug fixes address TimeControl, Legend, modal, tooltip, and z-index issues.
+This major release modernizes the MMGIS frontend by migrating core UI infrastructure from jQuery/Materialize to React 18 and Base UI. The separated tools system has been fully rewritten as React components. The Ancillary directory has been dissolved and its components reorganized. A comprehensive mobile UI overhaul improves toolbar layout, TimeUI integration, and responsive positioning. A configurable theme system with High Contrast support has been added. The internal test infrastructure (Test\_ module) has been removed in favor of the Playwright-based E2E framework. The Cesium 3D globe link button has been restyled and repositioned. Various bug fixes address TimeControl, Legend, modal, tooltip, and z-index issues. This release also introduces the Segment Tool, 3D gradient polyline and vectortile extrusion, KML import, a Zustand-based React UI migration, a comprehensive E2E and unit test infrastructure overhaul, PostgreSQL 18 and Express v5 upgrades, and extensive SQL parameterization and security hardening across the codebase.
 
 ### Compatibility
 
@@ -25,7 +21,7 @@ The following breaking changes affect **developers who maintain custom tool plug
 - **Breaking (Developers): Ancillary directory dissolved.** Components previously under `src/essence/Ancillary/` have been reorganized into nested locations under `src/essence/Basics/UserInterface_/components/`. Any custom plugin code importing from `Ancillary/` paths will need import path updates.
 - **Breaking (Developers): jQuery UI components replaced with React.** Modal, Tooltip, Toast, Help, ContextMenu, and Coordinates components are now React-based. Any custom plugin code relying on jQuery selectors (e.g., `$('.modal')`, `$('.tooltipped')`) or Materialize CSS classes for these components will need updating to use the new React component APIs or DOM IDs.
 - **Breaking (Developers): Separated tools system rewritten.** The separated/floating tools system is now React-based. Custom tools that used the old jQuery-based separated tools DOM API will need migration. The tool module interface (`make()`, `destroy()`, `initialize()`, `finalize()`) is unchanged — only the DOM container rendering has changed.
-- **Breaking (Developers): Test_ module removed.** The internal `Test_` module, `testModules`, and `DrawTool.test` have been removed. Use the Playwright-based E2E test framework (`tests/e2e/`) instead.
+- **Breaking (Developers): Test\_ module removed.** The internal `Test_` module, `testModules`, and `DrawTool.test` have been removed. Use the Playwright-based E2E test framework (`tests/e2e/`) instead.
 
 #### Added
 
@@ -38,6 +34,22 @@ The following breaking changes affect **developers who maintain custom tool plug
 - Hover effect on MMGIS logo (subtle background highlight)
 - Per-layer fade control: time-enabled and shade/viewshed layers never fade
 - Selective tile fade: fade on pan/zoom, instant on refresh/reload
+- Segment Tool for measuring terrain profiles and distances (PR #940)
+- 3D Cesium gradient polyline support with performance optimizations (PR #936)
+- LithoSphere gradient layer support via lithosphere ^1.6.0 (PR #937)
+- 3D extrusion for vectortile layers and 3D Tiles support (PR #942)
+- KML import support for MMGIS vector layers (PR #945)
+- React UI migration: Zustand store, bridge, components, ToolController\_ and BottomBar React migration (PR #944)
+- Option to set a tool to open by default (PR #923)
+- Secrets Detection workflow via GitHub Actions (PR #921)
+- Comprehensive Playwright E2E and unit test infrastructure (Waves 1–4) (PR #929)
+- TiTiler Planetcantile E2E tests and auto-start of adjacent servers in test harness (PR #943)
+- Bounding box support for ViewshedTool (PR #948)
+- Lunar South Pole reference mission variant (IAU2000:30120) (PR #982)
+- Demo/Testing Mission exposing every feature (PR #919)
+- Per-plugin dependencies, validation, and shared discovery (PR #975)
+- Pass-through of reloadLayer flags in mmgisAPI.reloadLayers (PR #976)
+- Extra E2E test safety improvements: production fail-safe, test DB credentials, AI agent rules (PR #951)
 
 #### Changed
 
@@ -53,6 +65,9 @@ The following breaking changes affect **developers who maintain custom tool plug
 - Removed `separatedTool/justification` config toggles (field silently ignored if present in existing configs)
 - Removed separated tools offset logic from `Globe_.js`
 - Updated docs to remove references to deleted test infrastructure (PR #57)
+- Upgraded PostgreSQL from 16-3.4-alpine to 18-3.6-alpine (v16 still works) (PR #935)
+- Updated server/middleware packages including Express v5 and pg-promise v12 (PR #922)
+- Removed react-dev-utils and pinned all build toolchain dependencies (PR #924)
 
 #### Fixed
 
@@ -83,6 +98,23 @@ The following breaking changes affect **developers who maintain custom tool plug
 - StatusIndicator spacing and title attribute conflict with tippy tooltip
 - Tool headers fixed to 40px height
 - Various tool UI issues: ViewshedTool subheader, AnimationTool header, InfoTool close button
+- BLOCKER fixes and broad correctness improvements for security, correctness, and code quality (PR #928)
+- populateCogScale calculation (PR #926)
+- DrawTool templated point type points not respecting time filtering (PR #961)
+- Poor configure/upsert SQL and WebSocket body causing memory spike (PR #967)
+- Concurrent layer reloads serialized and stop mutating layer.url (PR #974)
+- MeasureTool config DEM field renamed from `dem` to `url` (PR #980)
+- SegmentTool background, Clipboard API, and context menu test selectors (PR #981)
+- Race condition: expose L*.Map* before makeLayers (PR #986)
+- clearGradientHoverPoint missing in mockLitho (PR #957)
+- Login pathing for external proxies (PR #956)
+- Dataset endpoint error catching (PR #953)
+- Infinite redirect loop when ROOT_PATH is set (PR #950)
+- DEM tile corruption by using nearest-neighbor resampling for RGBA-encoded float tiles (PR #947)
+- curl added to runtime Docker stage for healthcheck support (PR #949)
+- 5 security vulnerabilities from MMGIS security audit (PR #941)
+- Fixed Dockerfile COPY for blueprints (PR #920)
+- Fixed typo: Geographical → Geographic (PR #938)
 
 #### Removed
 
@@ -91,6 +123,16 @@ The following breaking changes affect **developers who maintain custom tool plug
 - `separatedTool/justification` configuration toggles
 - Separated tools offset logic from `Globe_.js`
 - Stale `setShowUserCard` call in `handleLogout`
+
+#### Security
+
+- SQL parameterization improvements for Draw/Files filters (PR #930)
+- SQL parameterization improvements in filesutils.js with tests (PR #931)
+- SonarQube taint chain break in queryTilesetTimes fs.readdir (PR #932)
+- SQL parameterization improvements for geodatasets with comprehensive tests (PR #933)
+- SonarQube S3649 taint chain fixes in filesutils.js (PR #934)
+- 7 Sonar security recommendations applied with TDD (PR #983)
+- Security upgrades: 49→13 vulnerabilities, materialize-css removal (PR #987)
 
 ## 4.2.34
 

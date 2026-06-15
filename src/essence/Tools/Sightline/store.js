@@ -2,8 +2,8 @@ import { create } from 'zustand'
 
 export const MULTI_SOURCE_COLORS = [
     { r: 255, g: 180, b: 40 },
-    { r: 230, g: 75, b: 75 },
     { r: 80, g: 140, b: 255 },
+    { r: 230, g: 75, b: 75 },
     { r: 80, g: 210, b: 80 },
     { r: 255, g: 120, b: 200 },
     { r: 170, g: 100, b: 255 },
@@ -26,19 +26,20 @@ function makeDefaultElement(id, vars) {
     const color = MULTI_SOURCE_COLORS[id % MULTI_SOURCE_COLORS.length]
     return {
         id,
-        name: `Sightline ${id}`,
+        name: '',
         on: true,
         expanded: false,
         dataIndex: 0,
         color: { ...color },
         opacity: 0.5,
-        resolution: 1,
+        resolution: 0.25,
         height: vars?.defaultHeight || 0,
         observer: vars?.observers?.[0]?.value || null,
         sourceIndex: 0,
         customAz: NaN,
         customEl: NaN,
         customRange: NaN,
+        shadowReach: 0,
         loading: false,
         loadingProgress: 0,
         regenerating: false,
@@ -60,7 +61,6 @@ const useSightlineStore = create((set, get) => ({
     utcTime: '',
     rawTime: '',
     lastConvertedMs: '000',
-    indicatorLastDragPoint: null,
 
     canvases: {},
     tags: {},
@@ -152,7 +152,7 @@ const useSightlineStore = create((set, get) => ({
 
     setSweepField: (field, value) => set({ [field]: value }),
 
-    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: 1.0, colorRamp: 'sightline', discrete: false, atlas: null, lastData: null, lastOptions: null, minFrac: 0, maxFrac: 1, colorStops: null }),
+    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: null, colorRamp: 'sightline', discrete: false, atlas: null, lastData: null, lastOptions: null, minFrac: 0, maxFrac: 1, colorStops: null }),
     getSweepElData: (elmId) => {
         return get().sweepElData[elmId] || null
     },
@@ -226,6 +226,7 @@ const useSightlineStore = create((set, get) => ({
             observer: el.observer,
             height: el.height,
             time: state.rawTime,
+            shadowReach: parseFloat(el.shadowReach) || 0,
         }
     },
 }))

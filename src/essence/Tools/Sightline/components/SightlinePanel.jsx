@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react'
+import { utcFormat, utcParse } from 'd3-time-format'
 import useSightlineStore, { buildSourcesList } from '../store'
 import SightlineElement from './SightlineElement'
 import SightlineTool from '../SightlineTool'
@@ -23,6 +24,9 @@ export default function SightlinePanel() {
 
     const dragItemRef = useRef(null)
     const [dropTargetId, setDropTargetId] = useState(null)
+    const [dropPosition, setDropPosition] = useState('above')
+    const [editableTime, setEditableTime] = useState('')
+    const [rawTime, setRawTime] = useState('')
 
     useEffect(() => {
         Help.finalize(helpKey)
@@ -36,6 +40,11 @@ export default function SightlinePanel() {
             if (!TimeUI.modes) return 'Range'
             return TimeUI.modes[TimeUI.modeIndex] || 'Range'
         }
+        function updateEditableTime(time) {
+            if (!time) return
+            setRawTime(time)
+            setEditableTime(SightlineTool.parseToUTCTime(time, true))
+        }
 
         // Sync on mount
         const mode = getTimeUIMode()
@@ -44,9 +53,11 @@ export default function SightlinePanel() {
         const currentTime = TimeControl.getTime()
         if (mode === 'Point') {
             if (currentTime) setSweepField('sweepStart', fmtUTC(currentTime))
+            updateEditableTime(currentTime)
         } else {
             if (startTime) setSweepField('sweepStart', fmtUTC(startTime))
             if (endTime) setSweepField('sweepEnd', fmtUTC(endTime))
+            updateEditableTime(endTime)
         }
 
         // Subscribe for ongoing changes
@@ -54,9 +65,11 @@ export default function SightlinePanel() {
             const m = getTimeUIMode()
             if (m === 'Point') {
                 if (t.currentTime) setSweepField('sweepStart', fmtUTC(t.currentTime))
+                updateEditableTime(t.currentTime)
             } else {
                 if (t.startTime) setSweepField('sweepStart', fmtUTC(t.startTime))
                 if (t.endTime) setSweepField('sweepEnd', fmtUTC(t.endTime))
+                updateEditableTime(t.endTime)
             }
         })
 
@@ -108,28 +121,37 @@ export default function SightlinePanel() {
         e.dataTransfer.dropEffect = 'move'
         if (dragItemRef.current != null && targetId !== dragItemRef.current) {
             setDropTargetId(targetId)
+            const rect = e.currentTarget.getBoundingClientRect()
+            const midY = rect.top + rect.height / 2
+            setDropPosition(e.clientY < midY ? 'above' : 'below')
         }
     }, [])
 
     const handleElDragEnd = useCallback(() => {
         setDropTargetId(null)
+        setDropPosition('above')
     }, [])
 
     const handleElDrop = useCallback((e, targetId) => {
         e.preventDefault()
+        const pos = dropPosition
         setDropTargetId(null)
+        setDropPosition('above')
         const draggedId = dragItemRef.current
         if (draggedId == null || draggedId === targetId) return
         const order = [...elementIds]
         const fromIdx = order.indexOf(draggedId)
-        const toIdx = order.indexOf(targetId)
+        let toIdx = order.indexOf(targetId)
         if (fromIdx < 0 || toIdx < 0) return
         order.splice(fromIdx, 1)
+        // Recalculate toIdx after removal
+        toIdx = order.indexOf(targetId)
+        if (pos === 'below') toIdx += 1
         order.splice(toIdx, 0, draggedId)
         setElementOrder(order)
         SightlineTool.reorderSightlineLayers(order)
         dragItemRef.current = null
-    }, [elementIds, setElementOrder])
+    }, [elementIds, setElementOrder, dropPosition])
 
     if (!TimeControl.enabled) {
         return (
@@ -163,6 +185,39 @@ export default function SightlinePanel() {
                             <i className="mdi mdi-close mdi-18px" />
                         </IconButton>
                     </div>
+                </div>
+            </div>
+            {/* Editable current time field — matches old ShadeTool vstOptionTime */}
+            <div className="vstOptionTime">
+                <div className="flexbetween">
+                    <div className="vstClockIcon"><i className="mdi mdi-clock-outline mdi-18px" /></div>
+                    <input
+                        type="text"
+                        value={editableTime}
+                        title={rawTime}
+                        onChange={(e) => setEditableTime(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur() }}
+                        onBlur={() => {
+                            let time = editableTime
+                            if (vars?.utcTimeFormat) {
+                                const parseTime = utcParse(vars.utcTimeFormat)
+                                const parsed = parseTime(time)
+                                if (parsed) {
+                                    time = parsed.toISOString()
+                                } else {
+                                    return
+                                }
+                            } else {
+                                if (!time.endsWith('Z')) time += 'Z'
+                            }
+                            try {
+                                new Date(time).toISOString()
+                            } catch {
+                                return
+                            }
+                            TimeControl.setTime(TimeControl.getStartTime(), time)
+                        }}
+                    />
                 </div>
             </div>
             {/* Time section — single row: [start] [step|min] [end] */}
@@ -207,6 +262,7 @@ export default function SightlinePanel() {
                         onDragEnd={handleElDragEnd}
                         onDrop={handleElDrop}
                         isDropTarget={dropTargetId === id}
+                        dropPosition={dropTargetId === id ? dropPosition : null}
                     />
                 ))}
                 <div className="vstNewBtnWrap">
