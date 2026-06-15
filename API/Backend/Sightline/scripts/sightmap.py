@@ -1367,7 +1367,31 @@ def _compute_bounds_from_viewport(viewport_bounds, srs):
 # Entry point — reads JSON from stdin
 # ---------------------------------------------------------------------------
 
+TIMEOUT_SECONDS = 120  # 2-minute hard timeout
+
+
+def _timeout_handler(signum, frame):
+    raise TimeoutError("sightmap computation exceeded %d-second limit" % TIMEOUT_SECONDS)
+
+
 if __name__ == '__main__':
+    # Set up timeout — signal.alarm on Unix, threading on Windows
+    _timeout_timer = None
+    try:
+        import signal
+        if hasattr(signal, 'SIGALRM'):
+            signal.signal(signal.SIGALRM, _timeout_handler)
+            signal.alarm(TIMEOUT_SECONDS)
+        else:
+            import threading
+            _timeout_timer = threading.Timer(
+                TIMEOUT_SECONDS,
+                lambda: os._exit(1))
+            _timeout_timer.daemon = True
+            _timeout_timer.start()
+    except Exception:
+        pass
+
     try:
         input_data = json.loads(sys.stdin.read())
 
@@ -1440,6 +1464,15 @@ if __name__ == '__main__':
                 shadow_reach=shadow_reach,
             )
         print(json.dumps(result))
+
+        # Cancel timeout on success
+        try:
+            if hasattr(signal, 'SIGALRM'):
+                signal.alarm(0)
+            elif _timeout_timer:
+                _timeout_timer.cancel()
+        except Exception:
+            pass
     except Exception:
         import traceback
         traceback.print_exc(file=sys.stderr)
