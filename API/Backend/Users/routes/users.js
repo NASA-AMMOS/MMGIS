@@ -9,6 +9,7 @@ const bcrypt = require("bcryptjs");
 const buf = crypto.randomBytes(128);
 
 const logger = require("../../../logger");
+const { authLimiter } = require("../../../../scripts/rateLimiters");
 const userModel = require("../models/user");
 const User = userModel.User;
 
@@ -236,7 +237,7 @@ router.post("/signup", function (req, res, next) {
 /**
  * User login
  */
-router.post("/login", function(req,res,next){(router._authLimiter||function(r,s,n){n()})(req,res,next)}, function (req, res) {
+router.post("/login", authLimiter, function (req, res) {
   let MMGISUser;
   try {
     let userCookie = req.cookies.MMGISUser;
