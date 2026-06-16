@@ -659,7 +659,7 @@ Write scripts within you backend directory and import them. Most backends follow
 - plugins/core/backend/[name]
   - models/
   - routes/
-  - setup.js
+  - plugin.js
 
 ```
 let setup = {
@@ -677,7 +677,7 @@ onceInit() is called immediately on `npm start`
 onceStarted() is called once the http server starts up
 onceSynced() is called once all table are created/has their existence verified.
 
-The s parameter is an object containing the app and middleware. A common form to attach an API within a `setup.js` is to fill onceInit() with:
+The s parameter is an object containing the app and middleware. A common form to attach an API within a `plugin.js` is to fill onceInit() with:
 
 ```javascript
 onceInit: (s) => {
