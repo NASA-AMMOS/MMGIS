@@ -39,8 +39,9 @@ const CORE_CONTAINER = "core";
 const RAW_ARGS = process.argv.slice(2);
 const FLAG_NO_COLOR = RAW_ARGS.includes("--no-color") || !!process.env.NO_COLOR;
 const FLAG_JSON = RAW_ARGS.includes("--json");
+const FLAG_LINK = RAW_ARGS.includes("--link");
 // Strip flags so positional command parsing still works.
-const args = RAW_ARGS.filter((a) => a !== "--no-color" && a !== "--json");
+const args = RAW_ARGS.filter((a) => a !== "--no-color" && a !== "--json" && a !== "--link");
 
 // ---------------------------------------------------------------------------
 // ANSI colour helpers (zero deps)
@@ -119,6 +120,22 @@ function loadState() {
 
 function saveState(data) {
     saveJSON(STATE_PATH, data);
+}
+
+/**
+ * Recursively copy a directory. Works cross-platform (no shell deps).
+ */
+function cpDirSync(src, dest) {
+    fs.mkdirSync(dest, { recursive: true });
+    for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+        const srcPath = path.join(src, entry.name);
+        const destPath = path.join(dest, entry.name);
+        if (entry.isDirectory()) {
+            cpDirSync(srcPath, destPath);
+        } else {
+            fs.copyFileSync(srcPath, destPath);
+        }
+    }
 }
 
 /**
@@ -386,8 +403,22 @@ function cmdInstall(target) {
             process.exit(1);
         }
 
-        step(1, 2, `Symlinking ${c.cyan(absPath)} → ${c.cyan(`plugins/${repoName}/`)}`);
-        fs.symlinkSync(absPath, dest, "dir");
+        if (FLAG_LINK) {
+            step(1, 2, `Linking ${c.cyan(absPath)} → ${c.cyan(`plugins/${repoName}/`)}`);
+            try {
+                fs.symlinkSync(absPath, dest, "dir");
+            } catch (err) {
+                if (err.code === "EPERM") {
+                    console.log(`    ${c.yellow("Symlink failed (EPERM), falling back to junction...")}`);
+                    fs.symlinkSync(absPath, dest, "junction");
+                } else {
+                    throw err;
+                }
+            }
+        } else {
+            step(1, 2, `Copying ${c.cyan(absPath)} → ${c.cyan(`plugins/${repoName}/`)}`);
+            cpDirSync(absPath, dest);
+        }
 
         step(2, 2, "Discovering plugins");
         const plugins = discoverAll().filter((p) => p.container === repoName);
@@ -836,7 +867,7 @@ function cmdHelp() {
 
   ${c.bold(c.white("Commands:"))}
 ${h("list", "List all plugins with status")}
-${h("install <git-url|local-path>", "Install a plugin repo (git clone or symlink)")}
+${h("install <git-url|local-path>", "Install a plugin repo (git clone or copy)")}
 ${h("remove <repo-name>", "Remove an installed plugin repo (not core)")}
 ${h("enable <plugin-id>", "Enable a disabled plugin")}
 ${h("disable <plugin-id>", "Disable a plugin (not core)")}
@@ -852,6 +883,7 @@ ${h("help", "Show this help")}
   ${c.bold(c.white("Flags:"))}
     ${c.cyan("--no-color".padEnd(30))} ${c.dim("Disable colored output (also respects NO_COLOR env)")}
     ${c.cyan("--json".padEnd(30))} ${c.dim("Output machine-readable JSON (list, info)")}
+    ${c.cyan("--link".padEnd(30))} ${c.dim("Symlink local paths instead of copy (falls back to junction on Windows)")}
 
   ${c.bold(c.white("Plugin IDs:"))}
     ${c.dim("<container>/<type>/<name>")}     e.g. ${c.cyan("core/tools/Draw")}

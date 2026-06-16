@@ -51,7 +51,7 @@ npm run plugins -- info Draw
 | Command | Description |
 |---------|-------------|
 | `list` | List all plugins with enabled/disabled status |
-| `install <git-url\|local-path>` | Clone a git repo or symlink a local directory into `plugins/` |
+| `install <git-url\|local-path>` | Clone a git repo or copy a local directory into `plugins/` |
 | `remove <repo-name>` | Remove an installed plugin repo (cannot remove `core`) |
 | `enable <plugin-id>` | Mark a plugin as active in `plugin-state.json` |
 | `disable <plugin-id>` | Mark a plugin as inactive (cannot disable `core` plugins) |
@@ -84,7 +84,13 @@ This clones the repository into `plugins/mmgis-geo-plugins/`. The repo must foll
 npm run plugins -- install /path/to/my-plugin-repo
 ```
 
-This creates a symlink from `plugins/<dirname>` to the local directory.
+This copies the directory into `plugins/<dirname>/`. To create a symlink instead (useful during active development so changes are reflected immediately), use the `--link` flag:
+
+```bash
+npm run plugins -- install --link /path/to/my-plugin-repo
+```
+
+On Windows, if symlink creation fails due to permissions, `--link` falls back to a directory junction automatically.
 
 ### After Installing
 
