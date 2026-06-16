@@ -325,6 +325,23 @@ function discoverPluginsUnified(pluginsRoot, type, configFile = "plugin.json", o
             const manifestPath = path.join(pluginPath, configFile);
 
             if (!fs.existsSync(manifestPath)) {
+                // Warn about deprecated manifest formats.
+                const deprecated = [
+                    { file: "config.json", replacement: "plugin.json" },
+                    { file: "setup.js",    replacement: "plugin.json + plugin.js" },
+                ];
+                for (const d of deprecated) {
+                    if (fs.existsSync(path.join(pluginPath, d.file))) {
+                        logger(
+                            "warn",
+                            `Plugin "${repoEntry.name}/${type}/${pluginEntry.name}" has a deprecated ${d.file}. ` +
+                            `Please migrate to ${d.replacement}. See plugins/README.md for the migration guide.`,
+                            loggerCategory,
+                            null,
+                            null
+                        );
+                    }
+                }
                 continue;
             }
 

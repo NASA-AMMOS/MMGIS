@@ -329,8 +329,7 @@ New tools are automatically found and included on start.
 1. Go to `plugins/core/tools/`
 
    1. Create a new directory here with the name of your new tool
-   1. Copy and paste `New Tool Template.js` into your new directory
-   1. Rename the pasted file to `[Your Tool's Name]Tool.js`
+   1. Create `[Your Tool's Name]Tool.js` (see tool template in [plugins/README.md](plugins/README.md#tool-template))
    1. Add a `plugin.json` file so that MMGIS can find it. Do look at the existing tools' `plugin.json` but here's a template:
 
    ```javascript
@@ -362,7 +361,7 @@ New tools are automatically found and included on start.
 
 #### Overview
 
-Ideally all the code for a tool will be in its `[Tool's Name]Tool.js` and built off of the `New Tool Template.js`.
+Ideally all the code for a tool will be in its `[Tool's Name]Tool.js` and built off of the template in [plugins/README.md](plugins/README.md#tool-template).
 
 - All tools must return an object with `make` and `destroy` functions.
   - `make` is called when the user clicks on the tool's icon while `destroy` is called when the user clicks on any other tool's icon.
@@ -569,8 +568,7 @@ MMGIS supports two ways to add backends:
 
 1. Go to `plugins/core/backend/`
    1. Create a new directory here with the name of your new backend
-   1. Copy and paste `API/Backend/setupTemplate.js` into your new directory
-   1. Rename the pasted file to `plugin.js` (lifecycle hooks)
+   1. Create `plugin.js` (lifecycle hooks — see backend template in [plugins/README.md](plugins/README.md#backend-template))
    1. Create a `plugin.json` with metadata (see schema below)
    1. Edit `plugin.js` based on the development guide below
 1. Restart the server with `npm start`
