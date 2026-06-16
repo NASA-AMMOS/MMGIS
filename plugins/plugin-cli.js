@@ -677,8 +677,8 @@ function cmdEnable(pluginIdStr) {
         process.exit(1);
     }
 
-    if (isCore(match)) {
-        console.log(c.yellow(`Plugin '${match.id}' is a core plugin and is always enabled.`));
+    if (isRequired(match)) {
+        console.log(c.yellow(`Plugin '${match.id}' is a required plugin and is always enabled.`));
         return;
     }
 
@@ -1002,10 +1002,11 @@ function cmdInfo(pluginIdStr) {
     console.log(`  ${c.dim("─────────────────────────────")}`);
     console.log(`  ${c.dim("Name:")}        ${m.name || match.name}`);
     if (m.display_name) console.log(`  ${c.dim("Display:")}     ${m.display_name}`);
-    console.log(`  ${c.dim("Type:")}        ${c.yellow(match.type)}`);
+    const displayType = m.type || (match.type === "tools" ? "tool" : match.type === "components" ? "component" : match.type);
+    console.log(`  ${c.dim("Type:")}        ${c.yellow(displayType)}`);
     console.log(`  ${c.dim("Container:")}   ${match.container}`);
     const statusStr = enabled
-        ? c.green("enabled") + (isCore(match) ? c.gray(" (core — always enabled)") : "")
+        ? c.green("enabled") + (isRequired(match) ? c.gray(" (required — cannot be disabled)") : "")
         : c.red("disabled");
     console.log(`  ${c.dim("Status:")}      ${statusStr}`);
     if (m.version) console.log(`  ${c.dim("Version:")}     ${c.yellow(resolveVersion(m.version))}`);

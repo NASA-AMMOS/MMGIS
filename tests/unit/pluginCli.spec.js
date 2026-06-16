@@ -113,8 +113,8 @@ test.describe('plugin-cli', () => {
         expect(exitCode).not.toBe(0);
     });
 
-    test('enable core plugin is a no-op', () => {
-        const { stdout, exitCode } = runCli('enable core/tools/Draw');
+    test('enable required plugin is a no-op', () => {
+        const { stdout, exitCode } = runCli('enable core/backend/Users');
         expect(exitCode).toBe(0);
         expect(stdout).toContain('always enabled');
     });
