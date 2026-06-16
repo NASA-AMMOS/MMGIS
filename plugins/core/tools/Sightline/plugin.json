@@ -5,6 +5,7 @@
     "type": "tool",
     "tier": "core",
     "overridable": true,
+    "aliases": ["shade"],
     "defaultIcon": "brightness-4",
     "description": "Line-of-sight visibility analysis for SPICE bodies over terrain (React).",
     "descriptionFull": {

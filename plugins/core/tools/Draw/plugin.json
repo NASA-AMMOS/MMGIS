@@ -5,6 +5,7 @@
     "type": "tool",
     "tier": "core",
     "overridable": true,
+    "aliases": ["camp"],
     "defaultIcon": "pencil",
     "description": "Advanced and collaborative map drawing.",
     "descriptionFull": {
