@@ -14,5 +14,8 @@
   "routes": {
     "prefix": "/api/sightline",
     "auth": "user"
-  }
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
 }

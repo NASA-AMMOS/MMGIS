@@ -606,11 +606,15 @@ function cmdInfo(pluginIdStr) {
     console.log(`  Container:   ${match.container}`);
     console.log(`  Status:      ${enabled ? "enabled" : "disabled"}${isCore(match) ? " (core — always enabled)" : ""}`);
     if (m.version) console.log(`  Version:     ${resolveVersion(m.version)}`);
+    if (m.author) console.log(`  Author:      ${typeof m.author === "object" ? m.author.name || JSON.stringify(m.author) : m.author}`);
+    if (m.license) console.log(`  License:     ${m.license}`);
+    if (m.repository) console.log(`  Repository:  ${m.repository}`);
     if (m.tier) console.log(`  Tier:        ${m.tier}`);
     if (m.id) console.log(`  Manifest ID: ${m.id}`);
     if (m.uuid) console.log(`  UUID:        ${m.uuid}`);
     if (m.overridable !== undefined) console.log(`  Overridable: ${m.overridable}`);
     if (m.description) console.log(`  Description: ${m.description}`);
+    if (m.keywords && m.keywords.length > 0) console.log(`  Keywords:    ${m.keywords.join(", ")}`);
     if (m.engines) console.log(`  Engines:     ${JSON.stringify(m.engines)}`);
     if (m.aliases && m.aliases.length > 0) console.log(`  Aliases:     ${m.aliases.join(", ")}`);
     if (m.peerDependencies) {

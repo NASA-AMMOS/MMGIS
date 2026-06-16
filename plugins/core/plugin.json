@@ -2,5 +2,8 @@
   "id": "core",
   "display_name": "MMGIS Core",
   "version": "core",
-  "tier": "core"
+  "tier": "core",
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
 }

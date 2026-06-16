@@ -30,6 +30,10 @@ const COMMON_FIELDS = [
   "engines",
   "dependencies",
   "peerDependencies",
+  "author",
+  "license",
+  "repository",
+  "keywords",
 ];
 
 /**

@@ -157,6 +157,10 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for the full guide. In brief:
 | `version` | Recommended | Semver version string, or `"core"` (auto-resolves to MMGIS version) |
 | `id` | Recommended | Unique identifier (e.g. `mmgis.core.draw`) |
 | `uuid` | Recommended | UUID v4 for global uniqueness |
+| `author` | Recommended | Author name (string) or `{ "name": "...", "email": "...", "url": "..." }` |
+| `license` | Recommended | SPDX license identifier (e.g. `"Apache-2.0"`) |
+| `repository` | Recommended | URL to the plugin's source repository |
+| `keywords` | No | Array of tags for discovery (e.g. `["terrain", "analysis"]`) |
 | `tier` | No | `core`, `community`, or `private` |
 | `overridable` | No | Whether external plugins can override this (default `true`) |
 | `description` | No | Short description |
