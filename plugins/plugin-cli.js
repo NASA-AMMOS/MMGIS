@@ -1058,18 +1058,41 @@ function cmdRegistry(subcommand, arg) {
 
     if (subcommand === "add") {
         if (!arg) {
-            console.error(c.red("Usage: plugin-cli registry add <git-url>"));
+            console.error(c.red("Usage: plugin-cli registry add <git-url|local-path>"));
             process.exit(1);
         }
+
+        // Determine type and validate.
+        const isURL = /^(https?:\/\/|git@|ssh:\/\/)/.test(arg);
+        let type = "git";
+        if (!isURL) {
+            // Treat as local path — resolve and verify it exists.
+            const resolved = path.resolve(arg);
+            if (!fs.existsSync(resolved)) {
+                console.error(c.red(`Path not found: ${resolved}`));
+                process.exit(1);
+            }
+            try {
+                if (!fs.statSync(resolved).isDirectory()) {
+                    console.error(c.red(`Not a directory: ${resolved}`));
+                    process.exit(1);
+                }
+            } catch {
+                console.error(c.red(`Cannot access: ${resolved}`));
+                process.exit(1);
+            }
+            type = "local";
+        }
+
         const name = repoNameFromURL(arg);
         const existing = registries.registries.find((r) => r.url === arg || r.name === name);
         if (existing) {
             console.log(c.yellow(`Registry '${name}' already registered.`));
             return;
         }
-        registries.registries.push({ name, url: arg, type: "git" });
+        registries.registries.push({ name, url: arg, type });
         saveRegistries(registries);
-        console.log(`  ${c.green("✓")} Added registry: ${c.cyan(name)} ${c.dim(`(${arg})`)}`);
+        console.log(`  ${c.green("✓")} Added registry: ${c.cyan(name)} ${c.dim(`(${arg})`)} ${c.dim(`[${type}]`)}`);
     } else if (subcommand === "remove") {
         if (!arg) {
             console.error(c.red("Usage: plugin-cli registry remove <name>"));

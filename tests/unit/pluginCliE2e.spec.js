@@ -301,6 +301,68 @@ test.describe('CLI create and destroy', () => {
     });
 });
 
+// ─── registry ───────────────────────────────────────────────────────────────
+
+test.describe('CLI registry', () => {
+
+    test.afterAll(() => {
+        // Ensure registries are clean
+        runCli('registry remove test-plugin-repo');
+    });
+
+    test('registry list shows empty when no registries', () => {
+        const { stdout, exitCode } = runCli('registry list');
+        expect(exitCode).toBe(0);
+        expect(stdout).toContain('No registries configured');
+    });
+
+    test('registry add with valid local path succeeds', () => {
+        const { stdout, exitCode } = runCli(`registry add "${FIXTURE_REPO}"`);
+        expect(exitCode).toBe(0);
+        expect(stdout).toContain('Added registry');
+        expect(stdout).toContain('test-plugin-repo');
+        expect(stdout).toContain('[local]');
+    });
+
+    test('registry list shows added entry', () => {
+        const { stdout, exitCode } = runCli('registry list');
+        expect(exitCode).toBe(0);
+        expect(stdout).toContain('test-plugin-repo');
+        expect(stdout).toContain('[local]');
+    });
+
+    test('registry add duplicate is rejected', () => {
+        const { stdout, exitCode } = runCli(`registry add "${FIXTURE_REPO}"`);
+        expect(exitCode).toBe(0);
+        expect(stdout).toContain('already registered');
+    });
+
+    test('registry add with nonexistent path fails', () => {
+        const { exitCode, stdout } = runCli('registry add /nonexistent/path');
+        expect(exitCode).not.toBe(0);
+    });
+
+    test('registry add with git URL succeeds without path validation', () => {
+        const { stdout, exitCode } = runCli('registry add https://github.com/example-org/mmgis-test-plugins.git');
+        expect(exitCode).toBe(0);
+        expect(stdout).toContain('Added registry');
+        expect(stdout).toContain('[git]');
+        // Clean up
+        runCli('registry remove mmgis-test-plugins');
+    });
+
+    test('registry remove succeeds', () => {
+        const { stdout, exitCode } = runCli('registry remove test-plugin-repo');
+        expect(exitCode).toBe(0);
+        expect(stdout).toContain('Removed registry');
+    });
+
+    test('registry remove nonexistent fails', () => {
+        const { exitCode } = runCli('registry remove nonexistent');
+        expect(exitCode).not.toBe(0);
+    });
+});
+
 // ─── activate ───────────────────────────────────────────────────────────────
 
 test.describe('CLI activate', () => {
