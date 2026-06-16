@@ -106,17 +106,17 @@ All commands support `--json` for machine-readable output. Use `npm run plugin` 
 
 ### Flags
 
-| Flag | Description |
-|------|-------------|
-| `--json` | Output machine-readable JSON (all commands). Errors also emit JSON: `{"error":"..."}` |
-| `--no-color` | Disable colored output (also respects `NO_COLOR` env) |
-| `--link` | Symlink local paths instead of copy (falls back to junction on Windows) |
-| `--container <name>` | Target container for `create` command |
-| `--force` | Skip confirmation prompts (`destroy`) |
-| `--tier <tier>` | Set tier when adding a registry (`core`, `official`, `community`, `private`, `experimental`, `deprecated`) |
-| `--description <text>` | Set description when adding a registry |
-| `--license <spdx>` | Set license when adding a registry (e.g. `Apache-2.0`) |
-| `--author <name>` | Set author when adding a registry |
+| Flag | Applies to | Description |
+|------|-----------|-------------|
+| `--json` | all | Output machine-readable JSON. Errors also emit JSON: `{"error":"..."}` |
+| `--no-color` | all | Disable colored output (also respects `NO_COLOR` env) |
+| `--link` | `install` | Symlink local paths instead of copy (falls back to junction on Windows) |
+| `--container <name>` | `create` | Target container for scaffolding |
+| `--force` | `destroy` | Skip confirmation prompt |
+| `--tier <tier>` | `registry add` | Set tier (`core`, `official`, `community`, `private`, `experimental`, `deprecated`) |
+| `--description <text>` | `registry add` | Set description |
+| `--license <spdx>` | `registry add` | Set license (e.g. `Apache-2.0`) |
+| `--author <name>` | `registry add` | Set author |
 
 ### Plugin IDs
 
