@@ -1,8 +1,8 @@
 //New Tool Template
 import $ from 'jquery'
-import F_ from '../../Basics/Formulae_/Formulae_'
-import L_ from '../../Basics/Layers_/Layers_'
-import Map_ from '../../Basics/Map_/Map_'
+import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
+import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
+import Map_ from '../../../../src/essence/Basics/Map_/Map_'
 
 //Add the tool markup if you want to do it this way
 
