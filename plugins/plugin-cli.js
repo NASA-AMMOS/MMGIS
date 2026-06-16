@@ -192,18 +192,19 @@ function activate({ expectChanges = false } = {}) {
         const origWrite = process.stdout.write;
         const origLog = console.log;
         const origError = console.error;
-        process.stdout.write = () => true;
-        console.log = () => {};
-        console.error = () => {};
+        try {
+            process.stdout.write = () => true;
+            console.log = () => {};
+            console.error = () => {};
 
-        const { updateTools, updateComponents } = require("../API/updateTools");
-        updateTools();
-        updateComponents();
-
-        // Restore console.
-        process.stdout.write = origWrite;
-        console.log = origLog;
-        console.error = origError;
+            const { updateTools, updateComponents } = require("../API/updateTools");
+            updateTools();
+            updateComponents();
+        } finally {
+            process.stdout.write = origWrite;
+            console.log = origLog;
+            console.error = origError;
+        }
 
         const afterTools = parsePreImports(toolsFile);
         const afterComponents = parsePreImports(componentsFile);
