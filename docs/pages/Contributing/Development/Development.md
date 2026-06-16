@@ -89,7 +89,7 @@ New backends are automatically found and included on start.
 
 #### Overview
 
-All the code for a backend must stay in its `API/Backend/[name]` directory.
+All the code for a backend must stay in its `plugins/core/backend/[name]` directory.
 
 - Backends should work independently of one another.
 - Use the existing backends as a reference point.
@@ -102,10 +102,11 @@ const router = require("./routes/your_router");
 
 Write scripts within you backend directory and import them. Most backends follow the directory structure:
 
-- API/Backend/[name]
+- plugins/core/backend/[name]
   - models/
   - routes/
-  - setup.js
+  - plugin.json
+  - plugin.js
 
 ```
 let setup = {

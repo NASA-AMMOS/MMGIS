@@ -23,7 +23,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const { discoverPluginsUnified } = require("../API/pluginDiscovery");
+const { discoverPlugins } = require("../API/pluginDiscovery");
 const { validateDependencies } = require("../API/pluginValidation");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -150,7 +150,7 @@ function mergePython(sources, kind /* "pip" | "conda" */) {
  * Discover all plugin manifests and return an array of
  * `{ plugin: <displayName>, deps: <dependencies-block-or-null> }`.
  *
- * Uses discoverPluginsUnified() for a single-pass scan of the
+ * Uses discoverPlugins() for a single-pass scan of the
  * three-level plugins/ hierarchy. The unified scan already handles
  * ordering (core first, then alphabetical) so later entries
  * naturally override earlier ones by name.
@@ -162,15 +162,15 @@ function gatherDependencies() {
     const out = [];
     const errors = [];
 
-    const allTools = discoverPluginsUnified(
+    const allTools = discoverPlugins(
         PLUGINS_ROOT, "tools", "plugin.json",
         { loggerCategory: "PluginDeps" }
     );
-    const allComponents = discoverPluginsUnified(
+    const allComponents = discoverPlugins(
         PLUGINS_ROOT, "components", "plugin.json",
         { loggerCategory: "PluginDeps" }
     );
-    const allBackends = discoverPluginsUnified(
+    const allBackends = discoverPlugins(
         PLUGINS_ROOT, "backend", "plugin.json",
         { loggerCategory: "PluginDeps" }
     );

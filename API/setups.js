@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 const logger = require("./logger");
-const { discoverPluginsUnified } = require("./pluginDiscovery");
+const { discoverPlugins } = require("./pluginDiscovery");
 
 const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
 
@@ -25,7 +25,7 @@ function getBackendSetups(cb) {
 
   // Single-pass scan of plugins/*/backend/ — discover via plugin.json,
   // then require the sibling plugin.js for lifecycle hooks.
-  const allBackends = discoverPluginsUnified(PLUGINS_ROOT, "backend", "plugin.json", {
+  const allBackends = discoverPlugins(PLUGINS_ROOT, "backend", "plugin.json", {
     loggerCategory: "Setups",
   });
   for (const plugin of allBackends) {

@@ -371,7 +371,7 @@ Ideally all the code for a tool will be in its `[Tool's Name]Tool.js` and built 
 
 ### Plugin System
 
-MMGIS uses a unified `/plugins/` directory. All plugins (core and external) are discovered via `discoverPluginsUnified()` which scans the three-level hierarchy `plugins/<container>/<type>/<PluginName>/`.
+MMGIS uses a `/plugins/` directory. All plugins (core and external) are discovered via `discoverPlugins()` which scans the three-level hierarchy `plugins/<container>/<type>/<PluginName>/`.
 
 - **Core plugins** live in `plugins/core/` (committed to the repo). Core plugins cannot be removed or disabled.
 - **External/private plugins** live in `plugins/<your-container>/` (auto-gitignored). Managed via the Plugin CLI.

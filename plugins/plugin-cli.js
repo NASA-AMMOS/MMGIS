@@ -210,7 +210,22 @@ function discoverAll() {
                 try {
                     manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
                 } catch {
-                    // No valid manifest — still track as discovered but without metadata.
+                    // No plugin.json — check for deprecated formats and warn.
+                    const deprecated = [
+                        { file: "config.json", replacement: "plugin.json" },
+                        { file: "setup.js",    replacement: "plugin.json + plugin.js" },
+                    ];
+                    for (const d of deprecated) {
+                        if (fs.existsSync(path.join(pluginPath, d.file))) {
+                            console.log(
+                                `  ${c.yellow("Warning:")} Plugin "${containerEntry.name}/${type}/${entry.name}" ` +
+                                `has a deprecated ${c.cyan(d.file)}. ` +
+                                `Please migrate to ${c.cyan(d.replacement)}. ` +
+                                `See ${c.cyan("plugins/README.md")} for the migration guide.`
+                            );
+                        }
+                    }
+                    continue;
                 }
 
                 plugins.push({
@@ -423,6 +438,39 @@ function cmdInstall(target) {
         step(2, 2, "Discovering plugins");
         const plugins = discoverAll().filter((p) => p.container === repoName);
         console.log(`  ${c.green(`Discovered ${plugins.length} plugin(s).`)}`);
+
+        // Warn about flat repo structure (no tools/backend/components subdir).
+        if (plugins.length === 0) {
+            const TYPES = ["tools", "backend", "components"];
+            const hasTypeDir = TYPES.some((t) =>
+                fs.existsSync(path.join(dest, t))
+            );
+            if (!hasTypeDir) {
+                const legacyFiles = ["config.json", "setup.js", "plugin.json"];
+                let foundLegacy = false;
+                try {
+                    for (const sub of fs.readdirSync(dest, { withFileTypes: true })) {
+                        if (!sub.isDirectory() || sub.name[0] === "_" || sub.name[0] === ".") continue;
+                        for (const f of legacyFiles) {
+                            if (fs.existsSync(path.join(dest, sub.name, f))) {
+                                foundLegacy = true;
+                                break;
+                            }
+                        }
+                        if (foundLegacy) break;
+                    }
+                } catch { /* ignore */ }
+
+                if (foundLegacy) {
+                    console.log(
+                        `\n  ${c.yellow("Warning:")} This repo appears to have plugins directly under the root ` +
+                        `without a ${c.cyan("tools/")}, ${c.cyan("backend/")}, or ${c.cyan("components/")} subdirectory.\n` +
+                        `  The plugin system expects: ${c.cyan("<repo>/tools/<PluginName>/plugin.json")}\n` +
+                        `  See ${c.cyan("plugins/README.md")} for the expected directory structure.`
+                    );
+                }
+            }
+        }
     }
 
     console.log(`\n  ${c.dim("Run")} ${c.cyan("npm run build")} ${c.dim("to activate frontend plugins.")}`);

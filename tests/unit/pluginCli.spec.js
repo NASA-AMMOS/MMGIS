@@ -1,6 +1,6 @@
 /**
  * Unit tests for plugin-cli.js commands and plugin-state.json integration
- * with discoverPluginsUnified().
+ * with discoverPlugins().
  *
  * Tests build temporary directory trees to simulate plugin containers,
  * and invoke the CLI as a subprocess.
@@ -13,7 +13,7 @@ const os = require('os');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const { discoverPluginsUnified } = require('../../API/pluginDiscovery');
+const { discoverPlugins } = require('../../API/pluginDiscovery');
 
 const CLI_PATH = path.resolve(__dirname, '../../plugins/plugin-cli.js');
 const REPO_ROOT = path.resolve(__dirname, '../..');
@@ -131,9 +131,9 @@ test.describe('plugin-cli', () => {
     });
 });
 
-// ─── discoverPluginsUnified + plugin-state.json ─────────────────────────────
+// ─── discoverPlugins + plugin-state.json ─────────────────────────────
 
-test.describe('discoverPluginsUnified with plugin-state.json', () => {
+test.describe('discoverPlugins with plugin-state.json', () => {
 
     test('skips disabled non-core plugins', () => {
         const root = makeTmpDir();
@@ -154,7 +154,7 @@ test.describe('discoverPluginsUnified with plugin-state.json', () => {
                 JSON.stringify({ plugins: { 'external-repo/tools/Beta': { enabled: false } } })
             );
 
-            const found = discoverPluginsUnified(root, 'tools');
+            const found = discoverPlugins(root, 'tools');
             const names = found.map((p) => p.name);
             expect(names).toContain('Alpha');
             expect(names).not.toContain('Beta');
@@ -176,7 +176,7 @@ test.describe('discoverPluginsUnified with plugin-state.json', () => {
                 JSON.stringify({ plugins: { 'core/tools/Alpha': { enabled: false } } })
             );
 
-            const found = discoverPluginsUnified(root, 'tools');
+            const found = discoverPlugins(root, 'tools');
             const names = found.map((p) => p.name);
             expect(names).toContain('Alpha');
         } finally {
@@ -192,7 +192,7 @@ test.describe('discoverPluginsUnified with plugin-state.json', () => {
                 JSON.stringify({ name: 'Gamma', display_name: 'Gamma', type: 'tool' })
             );
 
-            const found = discoverPluginsUnified(root, 'tools');
+            const found = discoverPlugins(root, 'tools');
             const names = found.map((p) => p.name);
             expect(names).toContain('Gamma');
         } finally {
@@ -212,7 +212,7 @@ test.describe('discoverPluginsUnified with plugin-state.json', () => {
                 JSON.stringify({ plugins: { 'external-repo/tools/Delta': { enabled: true } } })
             );
 
-            const found = discoverPluginsUnified(root, 'tools');
+            const found = discoverPlugins(root, 'tools');
             const names = found.map((p) => p.name);
             expect(names).toContain('Delta');
         } finally {
@@ -229,7 +229,7 @@ test.describe('discoverPluginsUnified with plugin-state.json', () => {
             );
             writeFile(path.join(root, 'plugin-state.json'), '{ invalid json }}}');
 
-            const found = discoverPluginsUnified(root, 'tools');
+            const found = discoverPlugins(root, 'tools');
             const names = found.map((p) => p.name);
             expect(names).toContain('Epsilon');
         } finally {
@@ -247,7 +247,7 @@ test.describe('discoverPluginsUnified with plugin-state.json', () => {
             // Valid JSON but missing "plugins" key
             writeFile(path.join(root, 'plugin-state.json'), '{"version": 1}');
 
-            const found = discoverPluginsUnified(root, 'tools');
+            const found = discoverPlugins(root, 'tools');
             const names = found.map((p) => p.name);
             expect(names).toContain('Zeta');
         } finally {

@@ -4,7 +4,7 @@ const semver = require("semver");
 
 const logger = require("./logger");
 const { validatePluginConfig } = require("./pluginValidation");
-const { discoverPluginsUnified } = require("./pluginDiscovery");
+const { discoverPlugins } = require("./pluginDiscovery");
 
 const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
 const MMGIS_VERSION = require("../package.json").version;
@@ -85,7 +85,7 @@ function updateTools() {
   let tools = {};
 
   // Single-pass scan of plugins/*/tools/
-  const allTools = discoverPluginsUnified(PLUGINS_ROOT, "tools", "plugin.json", { loggerCategory: "Tools" });
+  const allTools = discoverPlugins(PLUGINS_ROOT, "tools", "plugin.json", { loggerCategory: "Tools" });
   for (const plugin of allTools) {
     registerPlugin({
       registry: tools,
@@ -154,7 +154,7 @@ function updateTools() {
   if (kindsModule == null) {
     logger(
       "error",
-      "Kinds tool is required but is not found. Are you missing a config.js?",
+      "Kinds tool is required but is not found. Are you missing a plugin.json?",
       "Tools",
       null
     );
@@ -178,7 +178,7 @@ function updateComponents() {
   let components = {};
 
   // Single-pass scan of plugins/*/components/
-  const allComponents = discoverPluginsUnified(PLUGINS_ROOT, "components", "plugin.json", { loggerCategory: "Components" });
+  const allComponents = discoverPlugins(PLUGINS_ROOT, "components", "plugin.json", { loggerCategory: "Components" });
   for (const plugin of allComponents) {
     registerPlugin({
       registry: components,

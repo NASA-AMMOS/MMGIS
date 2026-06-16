@@ -27,7 +27,7 @@ plugins/
 | `plugins/plugin-cli.js` | CLI for plugin management (`npm run plugins -- <cmd>`) |
 | `plugins/plugin-registries.json` | Git URLs of known plugin sources |
 | `plugins/plugin-state.json` | Enable/disable state (gitignored, instance-specific) |
-| `API/pluginDiscovery.js` | Discovery logic — `discoverPluginsUnified()` scans all containers |
+| `API/pluginDiscovery.js` | Discovery logic — `discoverPlugins()` scans all containers |
 | `API/pluginValidation.js` | Manifest validation — `validatePluginConfig()` |
 | `API/updateTools.js` | Build-time tool/component discovery → generates `src/pre/tools.js` |
 | `API/setups.js` | Runtime backend discovery → loads `plugin.js` lifecycle hooks |
