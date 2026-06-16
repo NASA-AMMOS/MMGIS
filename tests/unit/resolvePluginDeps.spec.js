@@ -11,6 +11,7 @@ import { test, expect } from '@playwright/test';
 const {
     mergeNpm,
     mergePython,
+    checkPeerDependencies,
 } = require('../../scripts/resolve-plugin-deps');
 
 // Local dedup helper that mirrors the inline logic in gatherDependencies().
@@ -199,5 +200,66 @@ test.describe('dedup override semantics', () => {
         ];
         const winners = dedup(all);
         expect(winners.map((w) => w.name).sort()).toEqual(['A', 'B', 'C']);
+    });
+});
+
+test.describe('semver-aware mergeNpm', () => {
+    test('compatible ranges do not conflict', () => {
+        const sources = [
+            { plugin: 'tool:A', deps: { npm: { lodash: '^4.17.0' } } },
+            { plugin: 'tool:B', deps: { npm: { lodash: '^4.18.0' } } },
+        ];
+        const { conflicts } = mergeNpm(sources);
+        expect(conflicts).toEqual([]);
+    });
+
+    test('incompatible ranges produce a conflict', () => {
+        const sources = [
+            { plugin: 'tool:A', deps: { npm: { lodash: '^3.0.0' } } },
+            { plugin: 'tool:B', deps: { npm: { lodash: '^4.0.0' } } },
+        ];
+        const { conflicts } = mergeNpm(sources);
+        expect(conflicts.length).toBe(1);
+        expect(conflicts[0].package).toBe('lodash');
+    });
+
+    test('identical versions never conflict', () => {
+        const sources = [
+            { plugin: 'tool:A', deps: { npm: { chalk: '^5.0.0' } } },
+            { plugin: 'tool:B', deps: { npm: { chalk: '^5.0.0' } } },
+        ];
+        const { conflicts, merged } = mergeNpm(sources);
+        expect(conflicts).toEqual([]);
+        expect(merged.chalk).toBe('^5.0.0');
+    });
+});
+
+test.describe('checkPeerDependencies', () => {
+    test('returns empty when all peers are satisfied', () => {
+        const plugins = [
+            { name: 'Draw', manifest: { id: 'core-draw', version: '5.1.4' } },
+            { name: 'Sightline', manifest: { id: 'core-sightline', version: '5.1.4', peerDependencies: { 'core-draw': '>=5.0.0' } } },
+        ];
+        const warnings = checkPeerDependencies(plugins);
+        expect(warnings).toEqual([]);
+    });
+
+    test('warns when peer plugin is missing', () => {
+        const plugins = [
+            { name: 'Sightline', manifest: { id: 'core-sightline', version: '5.1.4', peerDependencies: { 'core-draw': '>=5.0.0' } } },
+        ];
+        const warnings = checkPeerDependencies(plugins);
+        expect(warnings.length).toBe(1);
+        expect(warnings[0]).toContain('not installed');
+    });
+
+    test('warns when peer version is incompatible', () => {
+        const plugins = [
+            { name: 'Draw', manifest: { id: 'core-draw', version: '4.0.0' } },
+            { name: 'Sightline', manifest: { id: 'core-sightline', version: '5.1.4', peerDependencies: { 'core-draw': '>=5.0.0' } } },
+        ];
+        const warnings = checkPeerDependencies(plugins);
+        expect(warnings.length).toBe(1);
+        expect(warnings[0]).toContain('requires peer');
     });
 });

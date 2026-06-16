@@ -1,0 +1,17 @@
+{
+  "uuid": "7aace5bd-8a5d-4cc9-a6a1-17688a3f0546",
+  "id": "core-generaloptions",
+  "name": "GeneralOptions",
+  "display_name": "General Options",
+  "aliases": [
+    "generaloptions"
+  ],
+  "version": "5.1.4-20260616",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/generaloptions",
+    "auth": "public"
+  }
+}

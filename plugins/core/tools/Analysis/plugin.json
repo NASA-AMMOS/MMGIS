@@ -1,0 +1,41 @@
+{
+    "uuid": "54820d32-93b3-4cd9-9f78-73941ea70534",
+    "id": "core-analysis",
+    "version": "5.1.4-20260616",
+    "type": "tool",
+    "tier": "core",
+    "overridable": true,
+    "defaultIcon": "chart-line",
+    "description": "A graphing and analysis tool for data visualization and statistical analysis.",
+    "descriptionFull": {
+        "title": "Provides graphing and analysis capabilities using ECharts for interactive data visualization and statistical analysis of layer data.",
+        "example": {
+            "width": "(number) custom panel width in pixels [default 350]",
+            "expanded": "(bool) initial state expanded [default true]",
+            "apiBaseUrl": "(string) Base URL for the Analysis Tool API endpoint. Required."
+        }
+    },
+    "hasVars": true,
+    "name": "Analysis",
+    "toolbarPriority": 4,
+    "paths": {
+        "AnalysisTool": "../plugins/core/tools/Analysis/AnalysisTool"
+    },
+    "expandable": true,
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.apiBaseUrl",
+                        "name": "API Base URL",
+                        "description": "Base URL for the Analysis Tool API endpoint (e.g., https://example.com/api). Required for tool to function.",
+                        "type": "text",
+                        "width": 12,
+                        "placeholder": "https://example.com/api"
+                    }
+                ]
+            }
+        ]
+    }
+}

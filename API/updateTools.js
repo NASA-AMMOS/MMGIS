@@ -1,11 +1,13 @@
 const fs = require("fs");
 const path = require("path");
+const semver = require("semver");
 
 const logger = require("./logger");
 const { validatePluginConfig } = require("./pluginValidation");
 const { discoverPluginsUnified } = require("./pluginDiscovery");
 
 const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
+const MMGIS_VERSION = require("../package.json").version;
 
 /**
  * Register a single plugin's parsed config.json onto the in-memory
@@ -34,7 +36,33 @@ function registerPlugin({
     );
     return false;
   }
+
+  // Check engines.mmgis compatibility.
+  if (config.engines && config.engines.mmgis) {
+    const coercedVersion = semver.coerce(MMGIS_VERSION);
+    if (coercedVersion && !semver.satisfies(coercedVersion, config.engines.mmgis)) {
+      logger(
+        "error",
+        `${pluginType[0].toUpperCase() + pluginType.slice(1)} '${name}' requires MMGIS ${config.engines.mmgis} but current version is ${MMGIS_VERSION} — skipping`,
+        loggerCategory
+      );
+      return false;
+    }
+  }
+
   const isOverride = registry[name] !== undefined;
+
+  // Enforce overridable: false — reject external plugins trying to
+  // override a core plugin that explicitly disallows it.
+  if (isOverride && registry[name].overridable === false) {
+    logger(
+      "error",
+      `${pluginType[0].toUpperCase() + pluginType.slice(1)} '${name}' is marked overridable:false and cannot be overridden by ${source}`,
+      loggerCategory
+    );
+    return false;
+  }
+
   registry[name] = config;
   logger(
     "loaded",
@@ -57,7 +85,7 @@ function updateTools() {
   let tools = {};
 
   // Single-pass scan of plugins/*/tools/
-  const allTools = discoverPluginsUnified(PLUGINS_ROOT, "tools", "config.json", { loggerCategory: "Tools" });
+  const allTools = discoverPluginsUnified(PLUGINS_ROOT, "tools", "plugin.json", { loggerCategory: "Tools" });
   for (const plugin of allTools) {
     registerPlugin({
       registry: tools,
@@ -150,7 +178,7 @@ function updateComponents() {
   let components = {};
 
   // Single-pass scan of plugins/*/components/
-  const allComponents = discoverPluginsUnified(PLUGINS_ROOT, "components", "config.json", { loggerCategory: "Components" });
+  const allComponents = discoverPluginsUnified(PLUGINS_ROOT, "components", "plugin.json", { loggerCategory: "Components" });
   for (const plugin of allComponents) {
     registerPlugin({
       registry: components,

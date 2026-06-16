@@ -1,0 +1,17 @@
+{
+  "uuid": "15f7ac9e-2da4-40de-8665-ee10d3a1d91a",
+  "id": "core-webhooks",
+  "name": "Webhooks",
+  "display_name": "Webhook Management",
+  "aliases": [
+    "webhooks"
+  ],
+  "version": "5.1.4-20260616",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/webhooks",
+    "auth": "admin"
+  }
+}

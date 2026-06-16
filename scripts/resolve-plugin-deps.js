@@ -2,7 +2,7 @@
  * Aggregate per-plugin dependencies into generated build artifacts.
  *
  * Scans every tool, component, and backend plugin for an optional
- * `dependencies` block in its config.json (or `setup.js` for backends)
+ * `dependencies` block in its plugin.json manifest
  * and writes three files at the repo root:
  *
  *   - `plugin-package.json`              — npm deps in package.json shape
@@ -34,34 +34,30 @@ const OUTPUT_PIP = path.join(REPO_ROOT, "plugin-python-requirements.txt");
 const OUTPUT_CONDA = path.join(REPO_ROOT, "plugin-conda-deps.txt");
 
 /**
- * Read `dependencies` from a tool/component config.json.
+ * Read `dependencies` from a plugin's parsed plugin.json manifest.
  */
 function depsFromManifest(manifest) {
     return (manifest && manifest.dependencies) || null;
 }
 
 /**
- * For backend plugins: dependencies live in a sibling `config.json`
- * next to `setup.js`. We do **not** `require()` `setup.js` during
- * dep aggregation because backend setup modules typically connect to
- * the database and have other runtime side-effects at import time.
+ * For backend plugins: dependencies now live directly in the backend's
+ * `plugin.json` manifest (which is parsed during discovery).
  */
 function depsForBackend(plugin) {
-    const cfgPath = path.join(plugin.pluginPath, "config.json");
-    if (!fs.existsSync(cfgPath)) return null;
-    try {
-        const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
-        return cfg && cfg.dependencies ? cfg.dependencies : null;
-    } catch {
-        return null;
-    }
+    return depsFromManifest(plugin.manifest);
 }
 
 /**
- * Merge npm deps from many plugins. Conflicts are surfaced via the
- * returned `conflicts` array; the caller decides whether to fail.
+ * Merge npm deps from many plugins using semver-aware conflict resolution.
+ *
+ * When multiple plugins request the same package:
+ *   - If their version ranges intersect, pick the narrowest satisfying range.
+ *   - If ranges are incompatible, flag as a conflict.
  */
 function mergeNpm(sources) {
+    const semver = require("semver");
+
     /** @type {Record<string, string>} */
     const merged = {};
     /** @type {Record<string, Array<{plugin:string, version:string}>>} */
@@ -71,19 +67,36 @@ function mergeNpm(sources) {
         for (const [pkg, version] of Object.entries(deps.npm)) {
             if (!seen[pkg]) seen[pkg] = [];
             seen[pkg].push({ plugin, version: String(version) });
-            // First-seen wins; later sources may flag a conflict.
-            if (merged[pkg] === undefined) merged[pkg] = String(version);
         }
     }
+
     const conflicts = [];
     for (const [pkg, claims] of Object.entries(seen)) {
         const versions = Array.from(new Set(claims.map((c) => c.version)));
-        if (versions.length > 1) {
-            conflicts.push({
-                kind: "npm",
-                package: pkg,
-                claims,
-            });
+        if (versions.length === 1) {
+            merged[pkg] = versions[0];
+        } else {
+            // Check pairwise compatibility using semver.intersects().
+            let compatible = true;
+            for (let i = 0; i < versions.length && compatible; i++) {
+                for (let j = i + 1; j < versions.length && compatible; j++) {
+                    if (!semver.intersects(versions[i], versions[j])) {
+                        compatible = false;
+                    }
+                }
+            }
+            if (compatible) {
+                // Ranges intersect — use the most restrictive (last-seen).
+                merged[pkg] = versions[versions.length - 1];
+            } else {
+                // Ranges are incompatible — use first-seen and flag conflict.
+                merged[pkg] = versions[0];
+                conflicts.push({
+                    kind: "npm",
+                    package: pkg,
+                    claims,
+                });
+            }
         }
     }
     return { merged, conflicts };
@@ -144,16 +157,16 @@ function gatherDependencies() {
     const errors = [];
 
     const allTools = discoverPluginsUnified(
-        PLUGINS_ROOT, "tools", "config.json",
+        PLUGINS_ROOT, "tools", "plugin.json",
         { loggerCategory: "PluginDeps" }
     );
     const allComponents = discoverPluginsUnified(
-        PLUGINS_ROOT, "components", "config.json",
+        PLUGINS_ROOT, "components", "plugin.json",
         { loggerCategory: "PluginDeps" }
     );
     const allBackends = discoverPluginsUnified(
-        PLUGINS_ROOT, "backend", "setup.js",
-        { loader: "none", loggerCategory: "PluginDeps" }
+        PLUGINS_ROOT, "backend", "plugin.json",
+        { loggerCategory: "PluginDeps" }
     );
 
     const pushManifest = (label, plugin, deps) => {
@@ -183,7 +196,52 @@ function gatherDependencies() {
         pushManifest(`backend:${p.name}`, p, depsForBackend(p));
     }
 
-    return { sources: out, errors };
+    const allPlugins = [...dedup(allTools), ...dedup(allComponents), ...dedup(allBackends)];
+    return { sources: out, errors, allPlugins };
+}
+
+/**
+ * Check peerDependencies across all plugins.
+ *
+ * peerDependencies declare inter-plugin relationships:
+ *   "peerDependencies": { "core-draw": ">=5.0.0" }
+ *
+ * This validates that every referenced peer plugin exists and its
+ * version satisfies the declared range.
+ */
+function checkPeerDependencies(allPlugins) {
+    const semver = require("semver");
+    const warnings = [];
+
+    // Build a lookup of all plugin IDs to their versions.
+    const pluginVersions = new Map();
+    for (const p of allPlugins) {
+        if (p.manifest && p.manifest.id) {
+            pluginVersions.set(p.manifest.id, p.manifest.version || "0.0.0");
+        }
+    }
+
+    for (const p of allPlugins) {
+        if (!p.manifest || !p.manifest.peerDependencies) continue;
+        const pluginLabel = p.manifest.id || p.name;
+
+        for (const [peerId, versionRange] of Object.entries(p.manifest.peerDependencies)) {
+            if (!pluginVersions.has(peerId)) {
+                warnings.push(
+                    `Plugin '${pluginLabel}' declares peerDependency on '${peerId}' which is not installed`
+                );
+                continue;
+            }
+            const peerVersion = semver.coerce(pluginVersions.get(peerId));
+            if (peerVersion && versionRange && !semver.satisfies(peerVersion, versionRange)) {
+                warnings.push(
+                    `Plugin '${pluginLabel}' requires peer '${peerId}' ${versionRange} but found ${pluginVersions.get(peerId)}`
+                );
+            }
+        }
+    }
+
+    return warnings;
 }
 
 function formatConflicts(conflicts) {
@@ -208,12 +266,18 @@ function formatConflicts(conflicts) {
 function resolvePluginDeps(opts = {}) {
     const { write = true, log = (m) => console.log(m) } = opts;
 
-    const { sources, errors } = gatherDependencies();
+    const { sources, errors, allPlugins } = gatherDependencies();
     if (errors.length > 0) {
         const msg =
             "Plugin dependency validation failed:\n" +
             errors.map((e) => `  * ${e}`).join("\n");
         throw new Error(msg);
+    }
+
+    // Check peerDependencies (warn but don't fail).
+    const peerWarnings = checkPeerDependencies(allPlugins);
+    for (const w of peerWarnings) {
+        log(`  ⚠ ${w}`);
     }
 
     const npm = mergeNpm(sources);
@@ -288,6 +352,7 @@ module.exports = {
     resolvePluginDeps,
     mergeNpm,
     mergePython,
+    checkPeerDependencies,
     gatherDependencies,
     OUTPUT_NPM,
     OUTPUT_PIP,

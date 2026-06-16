@@ -7,11 +7,11 @@ const { discoverPluginsUnified } = require("./pluginDiscovery");
 const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
 
 /**
- * Discover and load all backend setup modules.
+ * Discover and load all backend lifecycle modules.
  *
- * Backend plugins live under plugins/{container}/backend/{name}/setup.js.
+ * Backend plugins live under plugins/{container}/backend/{name}/plugin.js.
  *
- * Each `setup.js` is `require()`d at discovery time and may export
+ * Each `plugin.js` is `require()`d at discovery time and may export
  * lifecycle callbacks (`onceInit`, `onceStarted`, `onceSynced`),
  * a `priority` number, and optional `envs`.
  *
@@ -22,14 +22,40 @@ const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
 function getBackendSetups(cb) {
   let setups = {};
 
-  // Single-pass scan of plugins/*/backend/
-  const allBackends = discoverPluginsUnified(PLUGINS_ROOT, "backend", "setup.js", {
-    loader: "require",
+  // Single-pass scan of plugins/*/backend/ — discover via plugin.json,
+  // then require the sibling plugin.js for lifecycle hooks.
+  const allBackends = discoverPluginsUnified(PLUGINS_ROOT, "backend", "plugin.json", {
     loggerCategory: "Setups",
   });
   for (const plugin of allBackends) {
+    const lifecyclePath = path.join(plugin.pluginPath, "plugin.js");
+    let lifecycle;
+    try {
+      delete require.cache[require.resolve(lifecyclePath)];
+      lifecycle = require(lifecyclePath);
+    } catch (err) {
+      logger(
+        "error",
+        `Failed to require plugin.js for backend ${plugin.name}`,
+        "Setups",
+        null,
+        err
+      );
+      continue;
+    }
     const isOverride = setups[plugin.name] !== undefined;
-    setups[plugin.name] = plugin.manifest;
+
+    // Enforce overridable: false from plugin.json metadata.
+    if (isOverride && plugin.manifest && plugin.manifest.overridable === false) {
+      logger(
+        "error",
+        `Backend '${plugin.name}' is marked overridable:false and cannot be overridden by ${plugin.container}`,
+        "Setups"
+      );
+      continue;
+    }
+
+    setups[plugin.name] = lifecycle;
     logger(
       "loaded",
       `Backend: ${plugin.name} from ${plugin.container}${

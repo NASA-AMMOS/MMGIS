@@ -25,12 +25,12 @@ const logger = require("./logger");
  *   <basePath>/
  *     My-Plugin-Tools/        ← container (matches one of `patterns`)
  *       FooTool/              ← plugin
- *         config.json         ← manifest (matches `configFile`)
+ *         plugin.json         ← manifest (matches `configFile`)
  *       BarTool/
- *         config.json
+ *         plugin.json
  *     Other-Plugin-Tools/
  *       BazTool/
- *         config.json
+ *         plugin.json
  *
  * Subdirectories whose names start with `_` or `.` are skipped at every
  * level. Plugin subdirectories that don't contain the requested
@@ -44,7 +44,7 @@ const logger = require("./logger");
  *   (or any pattern that matches every name) to disable filtering.
  *   Alternatively, pass `["__exact:<name>"]` to require a name match
  *   exactly (useful for the standard `Tools` and `Components` dirs).
- * @param {string} [configFile="config.json"]  Manifest filename to
+ * @param {string} [configFile="plugin.json"]  Manifest filename to
  *   require inside each plugin subdirectory. Pass `"setup.js"` for
  *   backend plugins.
  * @param {object} [opts]  Additional options.
@@ -68,7 +68,7 @@ const logger = require("./logger");
  *   yields containers and plugin subdirectories. Callers that care
  *   about deterministic ordering should sort the result.
  */
-function discoverPlugins(basePath, patterns, configFile = "config.json", opts = {}) {
+function discoverPlugins(basePath, patterns, configFile = "plugin.json", opts = {}) {
     const {
         loader = "parse",
         loggerCategory = "PluginDiscovery",
@@ -211,11 +211,11 @@ function discoverPlugins(basePath, patterns, configFile = "config.json", opts = 
  *     core/               ← repo container (always scanned first)
  *       tools/            ← type subdirectory (matches `type` param)
  *         DrawTool/       ← plugin
- *           config.json   ← manifest (matches `configFile`)
+ *           plugin.json   ← manifest (matches `configFile`)
  *     alice-spectral/     ← external repo container
  *       tools/
  *         SpectralTool/
- *           config.json
+ *           plugin.json
  *
  * Scan order: `core` is always first, then remaining containers in
  * alphabetical order. This ensures deterministic plugin ordering and
@@ -225,14 +225,14 @@ function discoverPlugins(basePath, patterns, configFile = "config.json", opts = 
  * @param {string} pluginsRoot  Absolute path to the `plugins/` directory.
  * @param {string} type  Plugin type subdirectory to look for inside each
  *   container (e.g. `"tools"`, `"backend"`, `"components"`).
- * @param {string} [configFile="config.json"]  Manifest filename.
+ * @param {string} [configFile="plugin.json"]  Manifest filename.
  * @param {object} [opts]  Additional options.
  * @param {("parse"|"require"|"none")} [opts.loader="parse"]  How to
  *   load the manifest (same semantics as `discoverPlugins`).
  * @param {string} [opts.loggerCategory="PluginDiscovery"]  Logger category.
  * @returns {Array<{name:string, container:string, pluginPath:string, manifestPath:string, manifest:any}>}
  */
-function discoverPluginsUnified(pluginsRoot, type, configFile = "config.json", opts = {}) {
+function discoverPluginsUnified(pluginsRoot, type, configFile = "plugin.json", opts = {}) {
     const {
         loader = "parse",
         loggerCategory = "PluginDiscovery",

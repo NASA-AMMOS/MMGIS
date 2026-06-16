@@ -1,0 +1,17 @@
+{
+  "uuid": "ddb42129-e502-48fb-8544-005ed4e0a353",
+  "id": "core-accounts",
+  "name": "Accounts",
+  "display_name": "Account Management",
+  "aliases": [
+    "accounts"
+  ],
+  "version": "5.1.4-20260616",
+  "type": "backend",
+  "tier": "core",
+  "overridable": false,
+  "routes": {
+    "prefix": "/api/accounts",
+    "auth": "admin"
+  }
+}

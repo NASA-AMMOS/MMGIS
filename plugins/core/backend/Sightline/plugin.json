@@ -1,0 +1,18 @@
+{
+  "uuid": "f37ec932-34a2-4eaa-bf0b-9f7eb6c9c143",
+  "id": "core-sightline",
+  "name": "Sightline",
+  "display_name": "Sightline Backend",
+  "aliases": [
+    "sightline",
+    "sightmap"
+  ],
+  "version": "5.1.4-20260616",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/sightline",
+    "auth": "user"
+  }
+}

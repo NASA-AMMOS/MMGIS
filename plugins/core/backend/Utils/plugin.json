@@ -1,0 +1,17 @@
+{
+  "uuid": "60e4fc7b-1e55-49c4-b91a-eeee95d3a229",
+  "id": "core-utils",
+  "name": "Utils",
+  "display_name": "Utility Endpoints",
+  "aliases": [
+    "utils"
+  ],
+  "version": "5.1.4-20260616",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/utils",
+    "auth": "public"
+  }
+}

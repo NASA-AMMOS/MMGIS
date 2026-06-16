@@ -1,0 +1,18 @@
+{
+  "uuid": "39dbf879-8b3e-405d-a917-9c8196f740a0",
+  "id": "core-config",
+  "name": "Config",
+  "display_name": "Mission Configuration",
+  "aliases": [
+    "config",
+    "configure"
+  ],
+  "version": "5.1.4-20260616",
+  "type": "backend",
+  "tier": "core",
+  "overridable": false,
+  "routes": {
+    "prefix": "/api/configure",
+    "auth": "admin"
+  }
+}

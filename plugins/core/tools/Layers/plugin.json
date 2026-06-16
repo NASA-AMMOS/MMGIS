@@ -1,0 +1,39 @@
+{
+    "uuid": "68aeb9f7-46c0-4f33-96ba-8aa30138126c",
+    "id": "core-layers",
+    "version": "5.1.4-20260616",
+    "type": "tool",
+    "tier": "core",
+    "overridable": true,
+    "defaultIcon": "layers",
+    "description": "Hierarchically toggle layers on and off and alter their opacities.",
+    "descriptionFull": {
+        "title": "Allows users to toggle on and off layers, download them, filter their features and change some parameters such as opacity.",
+        "example": {
+            "expanded": "(bool) is initial state expanded [default false]"
+        }
+    },
+    "hasVars": true,
+    "name": "Layers",
+    "toolbarPriority": 1,
+    "paths": {
+        "LayersTool": "../plugins/core/tools/Layers/LayersTool"
+    },
+    "expandable": true,
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.expanded",
+                        "name": "Expanded",
+                        "description": "Whether all layer groupings default to being expanded (as opposed to being collapsed).",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    }
+                ]
+            }
+        ]
+    }
+}

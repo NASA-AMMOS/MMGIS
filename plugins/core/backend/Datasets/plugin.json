@@ -1,0 +1,17 @@
+{
+  "uuid": "687ed05a-b20e-4fd8-8c2d-de96d9b8e54c",
+  "id": "core-datasets",
+  "name": "Datasets",
+  "display_name": "Dataset Management",
+  "aliases": [
+    "datasets"
+  ],
+  "version": "5.1.4-20260616",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/datasets",
+    "auth": "user"
+  }
+}

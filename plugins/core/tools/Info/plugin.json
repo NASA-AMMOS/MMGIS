@@ -1,0 +1,39 @@
+{
+    "uuid": "1621e080-eb44-433a-b325-1d93f9dccf54",
+    "id": "core-info",
+    "version": "5.1.4-20260616",
+    "type": "tool",
+    "tier": "core",
+    "overridable": true,
+    "defaultIcon": "information-variant",
+    "description": "Display the geojson properties field of a clicked feature.",
+    "descriptionFull": {
+        "title": "Lists out the geojson properties of any clicked feature. Any clicked feature will open the Info tool and display the data in JSON formatting. Some layer 'kinds' disable opening the Info tool and displaying data automatically, like the 'Waypoints' kind layer.",
+        "example": {
+            "sortAlphabetically": true
+        }
+    },
+    "hasVars": true,
+    "name": "Info",
+    "toolbarPriority": 3,
+    "paths": {
+        "InfoTool": "../plugins/core/tools/Info/InfoTool"
+    },
+    "expandable": true,
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.sortAlphabetically",
+                        "name": "Sort Alphabetically",
+                        "description": "Whether to sort the feature's fields alphabetically instead of listing them in their native order.",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    }
+                ]
+            }
+        ]
+    }
+}

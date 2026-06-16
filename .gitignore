@@ -18,6 +18,14 @@ configure/public/toolConfigs.json
 /plugins/*
 !/plugins/core/
 
+# Legacy plugin directories (kept for backward compatibility during migration)
+/API/*Private-Backend*
+/API/*Plugin-Backend*
+/src/essence/*Private-Tools*
+/src/essence/*Plugin-Tools*
+/src/essence/*Private-Components*
+/src/essence/*Plugin-Components*
+
 /src/pre/tools.js
 /src/pre/components.js
 

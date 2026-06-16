@@ -1,0 +1,17 @@
+{
+  "uuid": "a128a136-b56f-4ca5-98dc-94c2154d9483",
+  "id": "core-longtermtoken",
+  "name": "LongTermToken",
+  "display_name": "Long-Term Token Management",
+  "aliases": [
+    "longtermtoken"
+  ],
+  "version": "5.1.4-20260616",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/longtermtoken",
+    "auth": "user"
+  }
+}

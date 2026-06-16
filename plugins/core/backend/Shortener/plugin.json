@@ -1,0 +1,17 @@
+{
+  "uuid": "9f3c3f37-d7df-4513-ab09-5128e65b7af9",
+  "id": "core-shortener",
+  "name": "Shortener",
+  "display_name": "URL Shortener",
+  "aliases": [
+    "shortener"
+  ],
+  "version": "5.1.4-20260616",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/shortener",
+    "auth": "public"
+  }
+}

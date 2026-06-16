@@ -11,11 +11,14 @@ export default defineConfig({
     ? undefined
     : "./tests/global-setup.js",
 
-  // Test directory
-  testDir: "./tests",
+  // Test directory — root so we can scan both tests/ and plugins/**/tests/
+  testDir: ".",
 
-  // Test file patterns
-  testMatch: "**/*.spec.js",
+  // Test file patterns — scan both centralized tests and co-located plugin tests
+  testMatch: [
+    "tests/**/*.spec.js",
+    "plugins/**/tests/*.spec.js",
+  ],
 
   // Timeout per test (3 minutes — E2E tests may need extra time on slower machines)
   timeout: 180 * 1000,

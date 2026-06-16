@@ -1,0 +1,17 @@
+{
+  "uuid": "483bdf7d-dcb0-4bae-84a7-9af95bc6e7aa",
+  "id": "core-users",
+  "name": "Users",
+  "display_name": "User Management",
+  "aliases": [
+    "users"
+  ],
+  "version": "5.1.4-20260616",
+  "type": "backend",
+  "tier": "core",
+  "overridable": false,
+  "routes": {
+    "prefix": "/api/users",
+    "auth": "public"
+  }
+}

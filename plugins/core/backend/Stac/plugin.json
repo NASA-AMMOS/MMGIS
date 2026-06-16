@@ -1,0 +1,17 @@
+{
+  "uuid": "de7cc3f0-800f-4282-9167-bf8c58fcf814",
+  "id": "core-stac",
+  "name": "Stac",
+  "display_name": "STAC Integration",
+  "aliases": [
+    "stac"
+  ],
+  "version": "5.1.4-20260616",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/stac",
+    "auth": "public"
+  }
+}

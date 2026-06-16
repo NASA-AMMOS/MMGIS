@@ -146,7 +146,7 @@ test.describe('updateComponents - plugin discovery and validation', () => {
         );
         fs.mkdirSync(containerPath, { recursive: true });
         fs.writeFileSync(
-            path.join(containerPath, 'config.json'),
+            path.join(containerPath, 'plugin.json'),
             JSON.stringify({
                 name: 'TestComponent',
                 description: 'fixture',
