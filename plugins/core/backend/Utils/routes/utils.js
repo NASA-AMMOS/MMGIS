@@ -15,7 +15,7 @@ const logger = require("../../../../../API/logger");
 const { computeLimiter } = require("../../../../../scripts/rateLimiters");
 const validateMissionsPath = require("../../../../../API/validateMissionsPath");
 
-const rootDir = `${__dirname}/../../../..`;
+const rootDir = `${__dirname}/../../../../..`;
 
 const dirStore = {};
 const DIR_STORE_MAX_AGE = 3600000 / 2; // 1hours / 2

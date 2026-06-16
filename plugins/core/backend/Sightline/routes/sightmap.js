@@ -8,7 +8,7 @@ const logger = require("../../../../../API/logger");
 const { computeLimiter } = require("../../../../../scripts/rateLimiters");
 const validateMissionsPath = require("../../../../../API/validateMissionsPath");
 
-const rootDir = `${__dirname}/../../../..`;
+const rootDir = `${__dirname}/../../../../..`;
 const scriptsDir = path.join(__dirname, "..", "scripts");
 
 router.post("/sightmap", computeLimiter, function (req, res) {
