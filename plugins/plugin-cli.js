@@ -268,7 +268,7 @@ function cmdList() {
 
     // Type display helpers — colour per type and friendly labels.
     const TYPE_LABELS = { tools: "Tools", backend: "Backend", components: "Components" };
-    const TYPE_COLOR = { tools: c.cyan, backend: c.magenta, components: c.blue };
+    const TYPE_COLOR = { tools: c.cyan, backend: c.yellow, components: c.green };
 
     // Compute column widths for alignment (name only, since type is a header).
     let maxName = 0;
@@ -732,7 +732,7 @@ function cmdInfo(pluginIdStr) {
     console.log(`  ${c.dim("─────────────────────────────")}`);
     console.log(`  ${c.dim("Name:")}        ${m.name || match.name}`);
     if (m.display_name) console.log(`  ${c.dim("Display:")}     ${m.display_name}`);
-    console.log(`  ${c.dim("Type:")}        ${c.magenta(match.type)}`);
+    console.log(`  ${c.dim("Type:")}        ${c.yellow(match.type)}`);
     console.log(`  ${c.dim("Container:")}   ${match.container}`);
     const statusStr = enabled
         ? c.green("enabled") + (isCore(match) ? c.gray(" (core — always enabled)") : "")
@@ -741,7 +741,7 @@ function cmdInfo(pluginIdStr) {
     if (m.version) console.log(`  ${c.dim("Version:")}     ${c.yellow(resolveVersion(m.version))}`);
     if (m.author) console.log(`  ${c.dim("Author:")}      ${typeof m.author === "object" ? m.author.name || JSON.stringify(m.author) : m.author}`);
     if (m.license) console.log(`  ${c.dim("License:")}     ${m.license}`);
-    if (m.repository) console.log(`  ${c.dim("Repository:")}  ${c.blue(m.repository)}`);
+    if (m.repository) console.log(`  ${c.dim("Repository:")}  ${c.cyan(m.repository)}`);
     if (m.tier) console.log(`  ${c.dim("Tier:")}        ${m.tier}`);
     if (m.id) console.log(`  ${c.dim("Manifest ID:")} ${m.id}`);
     if (m.uuid) console.log(`  ${c.dim("UUID:")}        ${m.uuid}`);
@@ -815,7 +815,8 @@ function cmdRegistry(subcommand, arg) {
         }
         console.log(`\n  ${c.bold(c.white("Registered plugin sources:"))}`);
         for (const r of registries.registries) {
-            console.log(`    ${c.cyan(r.name)}: ${c.blue(r.url)} ${c.dim(`[${r.type}]`)}`);
+            console.log(`    ${c.cyan(r.name)}: ${c.white(r.url)} ${c.dim(`[${r.type}]`)}`);
+
         }
         console.log("");
     } else {
