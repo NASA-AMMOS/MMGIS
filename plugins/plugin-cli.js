@@ -488,7 +488,7 @@ function cmdInstall(target) {
                 console.log(`    ${c.cyan(p.type + "/" + p.name)}`);
             }
         } else {
-            console.log(`\n  ${c.yellow("Warning: No plugins found in the cloned repo.")}`);
+            console.log(`\n  ${c.red("Discovered 0 plugin(s).")}`);
             console.log(c.dim("  Ensure the repo has the structure: <repo>/{tools,backend,components}/<Name>/plugin.json"));
         }
     } else {
@@ -526,7 +526,11 @@ function cmdInstall(target) {
 
         step(2, 2, "Discovering plugins");
         const plugins = discoverAll().filter((p) => p.container === repoName);
-        console.log(`  ${c.green(`Discovered ${plugins.length} plugin(s).`)}`);
+        if (plugins.length === 0) {
+            console.log(`  ${c.red(`Discovered ${plugins.length} plugin(s).`)}`);
+        } else {
+            console.log(`  ${c.green(`Discovered ${plugins.length} plugin(s).`)}`);
+        }
 
         // Warn about flat repo structure (no tools/backend/components subdir).
         if (plugins.length === 0) {
