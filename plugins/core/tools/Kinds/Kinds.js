@@ -1,7 +1,7 @@
 import $ from 'jquery'
-import F_ from '../../Basics/Formulae_/Formulae_'
-import L_ from '../../Basics/Layers_/Layers_'
-import TC_ from '../../Basics/ToolController_/ToolController_'
+import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
+import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
+import TC_ from '../../../../src/essence/Basics/ToolController_/ToolController_'
 
 var Kinds = {
     use(

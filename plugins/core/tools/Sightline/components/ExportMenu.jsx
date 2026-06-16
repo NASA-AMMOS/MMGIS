@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react'
 import SightlineTool from '../SightlineTool'
-import { Button } from '../../../../design-system/components'
+import { Button } from '../../../../../src/design-system/components'
 
 export default function ExportMenu({ elmId }) {
     const handlePNG = useCallback(() => SightlineTool.exportPNG(elmId), [elmId])

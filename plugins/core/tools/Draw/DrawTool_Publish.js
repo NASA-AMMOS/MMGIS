@@ -1,6 +1,6 @@
 import $ from 'jquery'
 
-import calls from '../../../pre/calls'
+import calls from '../../../../src/pre/calls'
 
 var DrawTool = null
 var Publish = {

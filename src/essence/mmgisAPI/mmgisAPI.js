@@ -4,7 +4,7 @@ import ToolController_ from '../Basics/ToolController_/ToolController_'
 import QueryURL from '../services/QueryURL'
 import TimeControl from '../Basics/TimeControl_/TimeControl'
 import Login from '../Basics/UserInterface_/components/Login/Login'
-import LegendTool from '../Tools/Legend/LegendTool.js'
+import LegendTool from '../../../plugins/core/tools/Legend/LegendTool.js'
 
 import $ from 'jquery'
 

@@ -1,12 +1,12 @@
 import $ from 'jquery'
 import * as d3 from 'd3'
 import * as echarts from 'echarts'
-import F_ from '../../Basics/Formulae_/Formulae_'
-import L_ from '../../Basics/Layers_/Layers_'
-import Map_ from '../../Basics/Map_/Map_'
+import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
+import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
+import Map_ from '../../../../src/essence/Basics/Map_/Map_'
 
-import Help from '../../Basics/UserInterface_/components/Help/Help'
-import TimeControl from '../../Basics/TimeControl_/TimeControl'
+import Help from '../../../../src/essence/Basics/UserInterface_/components/Help/Help'
+import TimeControl from '../../../../src/essence/Basics/TimeControl_/TimeControl'
 
 import './AnalysisTool.css'
 

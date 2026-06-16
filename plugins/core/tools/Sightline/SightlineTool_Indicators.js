@@ -1,4 +1,4 @@
-import F_ from '../../Basics/Formulae_/Formulae_'
+import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
 import { MULTI_SOURCE_COLORS } from './store'
 
 const sunColor = '#d2db58'

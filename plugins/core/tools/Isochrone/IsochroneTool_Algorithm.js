@@ -1,5 +1,5 @@
 
-import Map_ from "../../Basics/Map_/Map_";
+import Map_ from "../../../../src/essence/Basics/Map_/Map_";
 
 /*
 Runs Dijkstra's Algorithm on a given subsection of the map

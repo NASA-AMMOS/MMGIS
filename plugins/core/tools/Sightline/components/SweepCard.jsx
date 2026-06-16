@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from 'react'
 import useSightlineStore, { buildSourcesList } from '../store'
 import SightlineTool from '../SightlineTool'
 import CardLegend from './CardLegend'
-import { ColorRampPicker, Slider } from '../../../../design-system/components'
+import { ColorRampPicker, Slider } from '../../../../../src/design-system/components'
 
 export default function SweepCard({ elmId, mode, onDragStart, onDragOver, onDragEnd, onDrop, isDropTarget, dropPosition }) {
     const el = useSightlineStore((s) => s.elements[elmId])

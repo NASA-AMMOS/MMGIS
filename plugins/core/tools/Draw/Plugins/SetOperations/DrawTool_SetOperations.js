@@ -1,12 +1,12 @@
 import $ from 'jquery'
-import F_ from '../../../../Basics/Formulae_/Formulae_'
-import L_ from '../../../../Basics/Layers_/Layers_'
-import Map_ from '../../../../Basics/Map_/Map_'
-import CursorInfo from '../../../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
-import Toast from '../../../../../design-system/components/Toast/Toast'
+import F_ from '../../../../../../src/essence/Basics/Formulae_/Formulae_'
+import L_ from '../../../../../../src/essence/Basics/Layers_/Layers_'
+import Map_ from '../../../../../../src/essence/Basics/Map_/Map_'
+import CursorInfo from '../../../../../../src/essence/Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '../../../../../../src/design-system/components/Toast/Toast'
 import 'markjs'
 
-import calls from '../../../../../pre/calls'
+import calls from '../../../../../../src/pre/calls'
 
 import './DrawTool_SetOperations.css'
 

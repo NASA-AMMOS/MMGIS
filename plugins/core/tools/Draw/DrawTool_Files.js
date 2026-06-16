@@ -1,22 +1,22 @@
 import $ from 'jquery'
-import { safeHTML } from '../../services/Sanitize'
-import F_ from '../../Basics/Formulae_/Formulae_'
-import L_ from '../../Basics/Layers_/Layers_'
-import LayerGeologic from '../../Basics/Layers_/LayerGeologic/LayerGeologic'
-import Globe_ from '../../Basics/Globe_/Globe_'
-import Map_ from '../../Basics/Map_/Map_'
-import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
-import Toast from '../../../design-system/components/Toast/Toast'
-import Modal from '../../Basics/UserInterface_/components/Modal/Modal'
+import { safeHTML } from '../../../../src/essence/services/Sanitize'
+import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
+import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
+import LayerGeologic from '../../../../src/essence/Basics/Layers_/LayerGeologic/LayerGeologic'
+import Globe_ from '../../../../src/essence/Basics/Globe_/Globe_'
+import Map_ from '../../../../src/essence/Basics/Map_/Map_'
+import CursorInfo from '../../../../src/essence/Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '../../../../src/design-system/components/Toast/Toast'
+import Modal from '../../../../src/essence/Basics/UserInterface_/components/Modal/Modal'
 
 import DrawTool_Templater from './DrawTool_Templater'
 
-import '../../../external/JQuery/jquery.autocomplete'
+import '../../../../src/external/JQuery/jquery.autocomplete'
 import * as tokml from '@maphubs/tokml'
 import shpwrite from '@mapbox/shp-write'
 import { saveAs } from 'file-saver'
 
-import calls from '../../../pre/calls'
+import calls from '../../../../src/pre/calls'
 
 var DrawTool = null
 var Files = {

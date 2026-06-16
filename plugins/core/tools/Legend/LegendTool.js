@@ -1,8 +1,8 @@
 import $ from 'jquery'
-import L_ from '../../Basics/Layers_/Layers_'
-import Map_ from '../../Basics/Map_/Map_'
-import ToolController_ from '../../Basics/ToolController_/ToolController_'
-import Help from '../../Basics/UserInterface_/components/Help/Help'
+import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
+import Map_ from '../../../../src/essence/Basics/Map_/Map_'
+import ToolController_ from '../../../../src/essence/Basics/ToolController_/ToolController_'
+import Help from '../../../../src/essence/Basics/UserInterface_/components/Help/Help'
 
 const helpKey = 'LegendTool'
 

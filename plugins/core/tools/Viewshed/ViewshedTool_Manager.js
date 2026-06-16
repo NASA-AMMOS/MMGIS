@@ -1,9 +1,9 @@
 // See https://www.asprs.org/wp-content/uploads/pers/2000journal/january/2000_jan_87-90.pdf for viewshedding algorithm
 
-import F_ from '../../Basics/Formulae_/Formulae_'
-import L_ from '../../Basics/Layers_/Layers_'
-import Map_ from '../../Basics/Map_/Map_'
-import G_ from '../../Basics/Globe_/Globe_'
+import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
+import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
+import Map_ from '../../../../src/essence/Basics/Map_/Map_'
+import G_ from '../../../../src/essence/Basics/Globe_/Globe_'
 import ViewshedTool_Algorithm from './ViewshedTool_Algorithm'
 
 let ViewshedTool_Manager = {

@@ -2,9 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useSightlineStore from '../store'
 import SightlineTool from '../SightlineTool'
 import SweepCard from './SweepCard'
-import TimeControl from '../../../Basics/TimeControl_/TimeControl'
-import TimeUI from '../../../Basics/TimeControl_/TimeUI'
-import { IconButton, InputWithUnit, ProgressButton, Select, Slider, Tabs } from '../../../../design-system/components'
+import TimeControl from '../../../../../src/essence/Basics/TimeControl_/TimeControl'
+import TimeUI from '../../../../../src/essence/Basics/TimeControl_/TimeUI'
+import { IconButton, InputWithUnit, ProgressButton, Select, Slider, Tabs } from '../../../../../src/design-system/components'
 
 const SPEED_NORMAL = 500
 const SPEED_FAST = 150

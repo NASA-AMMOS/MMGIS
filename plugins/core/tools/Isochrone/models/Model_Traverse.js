@@ -1,4 +1,4 @@
-import F_ from "../../../Basics/Formulae_/Formulae_";
+import F_ from "../../../../../src/essence/Basics/Formulae_/Formulae_";
 import Model from "./Model";
 
 const getPx = (arr, px) => arr[px[0]][px[1]];

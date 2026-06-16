@@ -1,17 +1,17 @@
 import $ from 'jquery'
-import F_ from '../../Basics/Formulae_/Formulae_'
-import L_ from '../../Basics/Layers_/Layers_'
-import LayerGeologic from '../../Basics/Layers_/LayerGeologic/LayerGeologic'
-import Globe_ from '../../Basics/Globe_/Globe_'
-import Map_ from '../../Basics/Map_/Map_'
-import Viewer_ from '../../Basics/Viewer_/Viewer_'
-import CursorInfo from '../../Basics/UserInterface_/components/CursorInfo/CursorInfo'
-import Toast from '../../../design-system/components/Toast/Toast'
+import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
+import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
+import LayerGeologic from '../../../../src/essence/Basics/Layers_/LayerGeologic/LayerGeologic'
+import Globe_ from '../../../../src/essence/Basics/Globe_/Globe_'
+import Map_ from '../../../../src/essence/Basics/Map_/Map_'
+import Viewer_ from '../../../../src/essence/Basics/Viewer_/Viewer_'
+import CursorInfo from '../../../../src/essence/Basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '../../../../src/design-system/components/Toast/Toast'
 import { bbox as turfBbox } from '@turf/turf'
 
 import DrawTool_Templater from './DrawTool_Templater'
 
-import calls from '../../../pre/calls'
+import calls from '../../../../src/pre/calls'
 
 var DrawTool = null
 var Editing = {
