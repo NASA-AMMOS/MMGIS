@@ -2,19 +2,39 @@
 
 MMGIS uses a plugin-based architecture for tools, backend modules, and components. Plugins are organized under `/plugins/` in a three-level hierarchy: `<container>/<type>/<PluginName>/`.
 
+## Table of Contents
+
+1. [Directory Structure](#directory-structure)
+2. [Key Files](#key-files)
+3. [Quick Start](#quick-start)
+4. [CLI Commands](#cli-commands)
+5. [Plugin Types](#plugin-types)
+6. [Installing Plugins](#installing-plugins)
+7. [Creating Plugins](#creating-plugins)
+8. [`plugin.json` Reference](#pluginjson-reference)
+9. [Discovery & State](#discovery--state)
+10. [Webpack Aliases](#webpack-aliases)
+11. [Validation](#validation)
+12. [Registries](#registries)
+13. [Testing Plugins](#testing-plugins)
+14. [Migrating from Legacy Formats](#migrating-from-legacy-formats)
+15. [AI Agent Notes](#ai-agent-notes)
+
+---
+
 ## Directory Structure
 
 ```
 plugins/
 ├── plugin-cli.js              # CLI tool for plugin management
-├── plugin-registries.json     # Registered git-based plugin sources
+├── plugin-registries.json     # Registered plugin sources (git URLs, local paths)
 ├── plugin-state.json          # Enable/disable state per plugin (gitignored)
 ├── README.md                  # This file
-├── core/                      # Core plugins (always enabled, committed)
+├── core/                      # Core plugins (committed, version-controlled)
 │   ├── tools/                 # Frontend tools (Draw, Measure, Legend, etc.)
-│   ├── backend/               # Server modules (Accounts, Config, etc.)
-│   └── components/            # UI components (OperationsClock, etc.)
-└── <external-repo>/           # Cloned from git (gitignored)
+│   ├── backend/               # Server modules (Accounts, Config, Users, etc.)
+│   └── components/            # UI components (OperationsClock, TimeUI, etc.)
+└── <external-container>/      # Installed from git or local path (gitignored)
     ├── tools/
     ├── backend/
     └── components/
@@ -25,7 +45,7 @@ plugins/
 | File | Purpose |
 |------|---------|
 | `plugins/plugin-cli.js` | CLI for plugin management (`npm run plugins -- <cmd>`) |
-| `plugins/plugin-registries.json` | Git URLs of known plugin sources |
+| `plugins/plugin-registries.json` | Git URLs / local paths of known plugin sources |
 | `plugins/plugin-state.json` | Enable/disable state (gitignored, instance-specific) |
 | `API/pluginDiscovery.js` | Discovery logic — `discoverPlugins()` scans all containers |
 | `API/pluginValidation.js` | Manifest validation — `validatePluginConfig()` |
@@ -65,36 +85,60 @@ npm run plugins -- validate --json
 
 ## CLI Commands
 
+All commands support `--json` for machine-readable output. Use `npm run plugin` or `npm run plugins` interchangeably.
+
 | Command | Description |
 |---------|-------------|
 | `list` | List all plugins with enabled/disabled status |
+| `info <plugin-id>` | Show detailed metadata for a plugin |
+| `validate` | Validate all `plugin.json` manifests |
+| `deps` | Show aggregated npm/pip/conda dependencies with conflict detection |
 | `install <git-url\|local-path>` | Clone a git repo or copy a local directory into `plugins/` |
 | `remove <repo-name>` | Remove an installed plugin repo (cannot remove `core`) |
 | `enable <plugin-id>` | Mark a plugin as active in `plugin-state.json` |
 | `disable <plugin-id>` | Mark a plugin as inactive (cannot disable `required` plugins) |
-| `update [repo-name]` | `git pull` latest for one or all installed repos |
 | `create <type> <Name>` | Scaffold a new plugin (tool, backend, component) |
+| `destroy <plugin-id>` | Delete a plugin (prompts confirmation, `--force` to skip) |
 | `activate` | Regenerate frontend plugin imports without a full build |
-| `validate` | Validate all `plugin.json` manifests |
-| `deps` | Show aggregated npm/pip/conda dependencies with conflict detection |
-| `info <plugin-id>` | Show detailed metadata for a plugin |
-| `registry add <git-url>` | Register a plugin source URL |
-| `registry remove <name>` | Unregister a plugin source |
-| `registry list` | Show all registered sources |
+| `update [repo-name]` | `git pull` latest for one or all installed repos |
+| `registry add\|remove\|list` | Manage plugin source URLs |
 | `help` | Show CLI help |
 
 ### Flags
 
 | Flag | Description |
 |------|-------------|
+| `--json` | Output machine-readable JSON (all commands). Errors also emit JSON: `{"error":"..."}` |
 | `--no-color` | Disable colored output (also respects `NO_COLOR` env) |
-| `--json` | Output machine-readable JSON (all commands) |
 | `--link` | Symlink local paths instead of copy (falls back to junction on Windows) |
 | `--container <name>` | Target container for `create` command |
+| `--force` | Skip confirmation prompts (`destroy`) |
 
 ### Plugin IDs
 
 Plugins are identified as `<container>/<type>/<name>` (e.g. `core/tools/Draw`). For convenience, the CLI also accepts just `<name>` and matches the first plugin found.
+
+## Plugin Types
+
+### Tools
+
+Frontend UI tools that appear in the MMGIS toolbar. Directory name is plural (`tools/`) but manifest type is singular (`"type": "tool"`).
+
+Must implement `make()` and `destroy()` lifecycle methods.
+
+**Required manifest fields**: `name`, `paths` (mapping of tool name → entry point).
+
+### Backend
+
+Server-side Express modules. Have `plugin.json` (metadata) + `plugin.js` (lifecycle hooks: `onceInit`, `onceStarted`, `onceSynced`). Routes go in `routes/`, models in `models/`.
+
+**Required manifest fields**: `name` (recommended but optional — backends are keyed by directory name).
+
+### Components
+
+UI components loaded into the MMGIS interface. Directory name is plural (`components/`) but manifest type is singular (`"type": "component"`).
+
+**Required manifest fields**: `name`, `paths`.
 
 ## Installing Plugins
 
@@ -126,51 +170,7 @@ On Windows, if symlink creation fails due to permissions, `--link` falls back to
 - Restart the server to activate backend plugins.
 - Run `npm run plugins:install` to install any new npm/pip dependencies declared by the plugins.
 
-## Plugin Types
-
-### Tools
-
-Frontend UI tools that appear in the MMGIS toolbar. Must implement `make()` and `destroy()` lifecycle methods.
-
-**Required manifest fields**: `name`, `paths` (mapping of tool name → entry point).
-
-### Backend
-
-Server-side Express modules. Have `plugin.json` (metadata) + `plugin.js` (lifecycle hooks: `onceInit`, `onceStarted`, `onceSynced`). Routes go in `routes/`, models in `models/`.
-
-**Required manifest fields**: `name`.
-
-### Components
-
-UI components loaded into the MMGIS interface. Have `plugin.json` with component metadata.
-
-**Required manifest fields**: `name`, `paths`.
-
-## Plugin Manifest (`plugin.json`)
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | Plugin name (must match directory name) |
-| `display_name` | No | Human-readable display name |
-| `type` | Recommended | `tool`, `backend`, or `component` |
-| `version` | Recommended | Semver string, or `"core"` (auto-resolves to MMGIS version) |
-| `id` | Recommended | Unique identifier (e.g. `core-draw`) |
-| `uuid` | Recommended | UUID v4 for global uniqueness |
-| `author` | Recommended | Author name (string) or `{ "name": "...", "email": "...", "url": "..." }` |
-| `license` | Recommended | SPDX license identifier (e.g. `"Apache-2.0"`) |
-| `repository` | Recommended | URL to the plugin's source repository |
-| `keywords` | No | Array of tags for discovery (e.g. `["terrain", "analysis"]`) |
-| `tier` | No | `core`, `community`, or `private` |
-| `overridable` | No | Whether external plugins can override this (default `true`) |
-| `required` | No | Plugin cannot be disabled or destroyed (default `false`). Implied by `overridable: false` |
-| `description` | No | Short description |
-| `engines` | No | `{ "mmgis": ">=5.0.0" }` — MMGIS version compatibility |
-| `peerDependencies` | No | Other plugins this depends on (by plugin ID + semver range) |
-| `dependencies` | No | `{ "npm": {}, "python": { "pip": [], "conda": [] } }` |
-| `aliases` | No | Alternative names for backward compatibility |
-| `paths` | Tools/Components | Map of tool name → entry point path |
-
-## Creating a Plugin
+## Creating Plugins
 
 The fastest way to create a new plugin is with the `create` command:
 
@@ -207,6 +207,8 @@ plugins/<container>/tools/MyTool/
 {
     "name": "MyTool",
     "type": "tool",
+    "defaultIcon": "puzzle-outline",
+    "description": "Short description of what this tool does.",
     "paths": {
         "MyToolTool": "../plugins/<container>/tools/MyTool/MyToolTool"
     }
@@ -251,43 +253,32 @@ let MyToolTool = {
 export default MyToolTool
 ```
 
-**Webpack aliases** available for imports (no fragile relative paths needed):
-
-| Alias | Resolves to |
-|-------|-------------|
-| `@basics` | `src/essence/Basics/` |
-| `@essence` | `src/essence/` |
-| `@design` | `src/design-system/` |
-| `@pre` | `src/pre/` |
-| `@external` | `src/external/` |
-
 ### Backend Template
 
 Directory structure:
 ```
-plugins/<your-repo>/backend/MyModule/
+plugins/<container>/backend/MyModule/
 ├── plugin.json
 ├── plugin.js
-└── routes/
-    └── my_routes.js
+├── routes/
+│   └── myModule.js
+└── tests/
+    └── myModule.spec.js
 ```
 
 **`plugin.json`**:
 ```json
 {
     "name": "MyModule",
-    "display_name": "My Backend Module",
     "type": "backend",
     "version": "1.0.0",
-    "description": "A custom backend module.",
-    "author": "Your Name",
-    "license": "Apache-2.0"
+    "description": "A custom backend module."
 }
 ```
 
 **`plugin.js`**:
 ```js
-const router = require("./routes/my_routes");
+const router = require("./routes/myModule");
 
 let setup = {
     // Once the app initializes — register routes
@@ -303,10 +294,6 @@ let setup = {
     onceStarted: (s) => {},
     // Once all database tables sync
     onceSynced: (s) => {},
-    // Environment variables this module needs
-    envs: [
-        { name: "MY_ENV_VAR", description: "Description", required: false, private: false }
-    ],
 };
 
 module.exports = setup;
@@ -316,58 +303,267 @@ module.exports = setup;
 
 Directory structure:
 ```
-plugins/<your-repo>/components/MyComponent/
+plugins/<container>/components/MyComponent/
 ├── plugin.json
-└── MyComponent.js
+├── MyComponent.js
+├── MyComponent.css
+└── tests/
+    └── myComponent.spec.js
 ```
 
 **`plugin.json`**:
 ```json
 {
     "name": "MyComponent",
-    "display_name": "My Component",
     "type": "component",
-    "version": "1.0.0",
+    "defaultIcon": "puzzle-outline",
     "description": "A custom UI component.",
-    "author": "Your Name",
-    "license": "Apache-2.0",
     "paths": {
-        "MyComponent": "MyComponent"
+        "MyComponent": "../plugins/<container>/components/MyComponent/MyComponent"
     }
 }
 ```
 
-### Validate Your Plugin
+---
 
-```bash
-npm run plugins -- validate
-npm run plugins -- info MyTool
+## `plugin.json` Reference
+
+Every MMGIS plugin has a `plugin.json` manifest at the root of its directory. This section describes every recognized field.
+
+### Required Fields
+
+#### `name`
+
+| | |
+|---|---|
+| **Type** | `string` |
+| **Required** | Yes (all types) |
+
+The canonical name of the plugin. Used as the display name in the CLI, configure page, and internal lookups. Should match the directory name by convention.
+
+#### `paths`
+
+| | |
+|---|---|
+| **Type** | `object` — `{ [entryName: string]: string }` |
+| **Required** | Yes (tools and components only) |
+
+Maps entry-point names to their file paths (relative to the project root, prefixed with `../plugins/`). For tools, the key is typically `<Name>Tool`. For components, it's the component name.
+
+These paths are written into `src/pre/tools.js` and `src/pre/components.js` as webpack dynamic imports.
+
+```json
+"paths": {
+    "DrawTool": "../plugins/core/tools/Draw/DrawTool"
+}
 ```
 
-## Migrating from Legacy Formats
+### Recommended Fields
 
-If you have plugins using the old `config.json` (tools) or `setup.js` (backends) format, the discovery system will log a deprecation warning:
+#### `type`
 
-> Plugin "container/type/Name" has a deprecated config.json. Please migrate to plugin.json.
+| | |
+|---|---|
+| **Type** | `string` — one of `"tool"`, `"component"`, `"backend"` |
+| **Required** | No (inferred from directory structure) |
 
-### Tools: `config.json` → `plugin.json`
+Uses **singular** form even though directory names are plural (`tools/`, `components/`).
 
-Rename `config.json` to `plugin.json` and add the recommended fields (`version`, `type`, `id`, `author`, etc.). The existing fields (`name`, `paths`, `description`, etc.) are unchanged.
+#### `version`
 
-### Backends: `setup.js` → `plugin.json` + `plugin.js`
+| | |
+|---|---|
+| **Type** | `string` |
 
-1. Create a `plugin.json` with the backend's metadata (name, version, type, etc.)
-2. Rename `setup.js` to `plugin.js` — the lifecycle hooks (`onceInit`, `onceStarted`, `onceSynced`, `envs`) are the same
+Semantic version. Core plugins use `"core"` which resolves to the MMGIS application version at runtime.
 
-## Discovery Order
+#### `defaultIcon`
+
+| | |
+|---|---|
+| **Type** | `string` |
+| **Default** | Falls back to `"puzzle-outline"` if not set |
+| **Applies to** | Tools, Components |
+
+Icon displayed in the toolbar and configure page. Uses [Ionicons](https://ionic.io/ionicons) icon names.
+
+### Identity Fields
+
+#### `id`
+
+| | |
+|---|---|
+| **Type** | `string` |
+
+A short human-friendly identifier, typically `<container>-<name>` in lowercase. Not used for lookups — the runtime ID is computed as `<container>/<type>/<name>`.
+
+#### `uuid`
+
+| | |
+|---|---|
+| **Type** | `string` |
+
+Currently informational — not used in any lookup or logic. May become relevant if a plugin marketplace is added.
+
+#### `display_name`
+
+| | |
+|---|---|
+| **Type** | `string` |
+
+A human-friendly display name, potentially different from `name`.
+
+#### `aliases`
+
+| | |
+|---|---|
+| **Type** | `string[]` |
+
+Alternative names for the plugin. Currently informational — may be used in future CLI lookup resolution.
+
+### Protection & Behavior Fields
+
+#### `required`
+
+| | |
+|---|---|
+| **Type** | `boolean` |
+| **Default** | `false` |
+
+When `true`, the plugin cannot be disabled (`disable`) or destroyed (`destroy`). Used for critical infrastructure plugins (e.g., Users, Config, Accounts). Also implied by `overridable: false`.
+
+#### `overridable`
+
+| | |
+|---|---|
+| **Type** | `boolean` |
+| **Default** | `true` |
+
+When `false`: (1) no other plugin can override this one, and (2) the plugin is treated as **required** — it cannot be disabled or destroyed.
+
+#### `tier`
+
+| | |
+|---|---|
+| **Type** | `string` — one of `"core"`, `"community"`, `"private"`, `"official"`, `"experimental"`, `"deprecated"` |
+
+A classification tag displayed in CLI output.
+
+| Value | Meaning |
+|-------|---------|
+| `core` | Ships with MMGIS |
+| `official` | Maintained by the MMGIS team, distributed separately |
+| `community` | Third-party contributed |
+| `private` | Internal/organization-specific |
+| `experimental` | Unstable, API may change |
+| `deprecated` | Scheduled for removal |
+
+### Metadata Fields
+
+#### `description`
+
+| | |
+|---|---|
+| **Type** | `string` |
+
+A one-line summary. Shown in `list --json` and `info` output.
+
+#### `descriptionFull`
+
+| | |
+|---|---|
+| **Type** | `object` — `{ title: string, example: object }` |
+| **Applies to** | Tools, Components |
+
+Extended description with a long-form `title` and an `example` object showing all available configuration variables.
+
+#### `author` / `license` / `repository` / `keywords`
+
+Standard package metadata. `author` can be a string or `{ name, email, url }`. `license` is an SPDX identifier. `keywords` is a `string[]`.
+
+### Tool-Specific Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `toolbarPriority` | `number` | Position in toolbar (lower = first). Core tools range ~1001–1020 |
+| `expandable` | `boolean` | Whether the tool panel can expand to full width |
+| `separatedTool` | `boolean\|string` | Renders the tool separately from the main tool panel |
+| `hasVars` | `boolean` | Plugin reads per-mission config variables from `config.rows` |
+| `config` | `object` | Defines the configuration UI shown in the configure page. Has `rows[]` with form field definitions |
+| `kinds` | `object` | Sub-types or modes for the tool (used by Kinds tool) |
+
+### Backend-Specific Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `priority` | `number` | Initialization order (lower = first, default 1000) |
+| `routes` | `object` | Informational: `{ prefix, auth }` documenting the API surface |
+| `envs` | `object` | Documents environment variables the plugin reads |
+
+### Dependency Fields
+
+#### `dependencies`
+
+Declares runtime dependencies. Aggregated by the `deps` command and `scripts/resolve-plugin-deps.js`.
+
+```json
+"dependencies": {
+    "npm": {
+        "@ffmpeg/ffmpeg": "^0.12.10",
+        "gifshot": "^0.4.5"
+    },
+    "python": {
+        "pip": ["numpy>=1.21", "scipy"],
+        "conda": ["gdal>=3.0"]
+    }
+}
+```
+
+#### `peerDependencies`
+
+Other MMGIS plugins that must be present. The `deps` command checks for peer warnings.
+
+```json
+"peerDependencies": { "core/backend/Draw": ">=1.0.0" }
+```
+
+#### `engines`
+
+Required runtime versions. Currently informational — not enforced.
+
+```json
+"engines": { "mmgis": ">=5.0.0", "node": ">=22.0.0" }
+```
+
+---
+
+## Discovery & State
+
+### Discovery Order
 
 1. `core` container is always scanned first.
 2. External containers scanned alphabetically.
 3. Last-discovered plugin wins when names collide (allows overrides).
-4. Plugins marked `"overridable": false` block overrides.
-5. Disabled plugins in `plugin-state.json` are skipped entirely.
+4. Plugins marked `"overridable": false` in their manifest block overrides.
+5. Disabled plugins in `plugin-state.json` are skipped (including core plugins without `required: true`).
 
-## Plugin State
+### Core & Required Protection
+
+- Core plugins (`plugins/core/`) cannot be **removed** (`remove`) or **destroyed** (`destroy`).
+- Plugins with `"required": true` or `"overridable": false` cannot be **disabled** or **destroyed**.
+- Core plugins **without** `required: true` **can** be disabled via `disable`.
+- Protection is manifest-driven (`required`/`overridable`), not container-driven.
+
+### Core Plugins
+
+Core plugins ship with MMGIS and live in `plugins/core/`. They:
+
+- Cannot be removed or destroyed via the CLI.
+- Use `"version": "core"` which auto-resolves to the MMGIS version.
+- Are version-controlled with the main repository.
+- Can be overridden by external plugins if `"overridable": true`.
+
+### State File
 
 `plugin-state.json` tracks which plugins are enabled or disabled. This file is:
 
@@ -386,36 +582,82 @@ Rename `config.json` to `plugin.json` and add the recommended fields (`version`,
 
 Disabled plugins are skipped during discovery — they won't be loaded by the build system or the server.
 
+## Webpack Aliases
+
+Frontend plugins can use these aliases instead of fragile relative paths:
+
+| Alias | Resolves to |
+|-------|-------------|
+| `@basics` | `src/essence/Basics/` |
+| `@essence` | `src/essence/` |
+| `@design` | `src/design-system/` |
+| `@pre` | `src/pre/` |
+| `@external` | `src/external/` |
+
+Backend plugins use Node.js `require()` with relative paths — aliases do not apply.
+
+## Validation
+
+Run `npm run plugins -- validate` to check all manifests. The validator:
+- **Errors** on missing required fields, wrong types, invalid enum values.
+- **Warns** on unrecognized top-level fields (forward compatibility — the field is preserved).
+- Unknown fields do **not** cause validation failure.
+
+```bash
+npm run plugins -- validate          # Human-readable
+npm run plugins -- validate --json   # Structured output with per-plugin results
+```
+
+See `API/pluginValidation.js` for the implementation.
+
 ## Registries
 
-`plugin-registries.json` tracks known plugin sources (git repositories). When you `install` a git-based plugin repo, it is automatically added to the registries file.
+`plugin-registries.json` tracks known plugin sources. When you `install` a git-based plugin repo, it is automatically added. Local paths are validated on `registry add`.
 
 ```bash
 npm run plugins -- registry add https://github.com/org/mmgis-plugins.git
+npm run plugins -- registry add /local/path/to/plugins
 npm run plugins -- registry list
 npm run plugins -- registry remove mmgis-plugins
 ```
 
-## Core Plugins
-
-Core plugins ship with MMGIS and live in `plugins/core/`. They:
-
-- Cannot be removed or destroyed via the CLI.
-- Use `"version": "core"` which auto-resolves to the MMGIS version.
-- Are version-controlled with the main repository.
-- Core plugins with `"required": true` or `"overridable": false` cannot be disabled.
-- Core plugins without `required` **can** be disabled — this allows admins to turn off optional core tools.
-
-External plugins can override core plugins if the core plugin's manifest has `"overridable": true`.
-
 ## Testing Plugins
 
-Plugin-specific tests live in `plugins/<container>/<type>/<Name>/tests/`. Playwright config scans both `tests/` and `plugins/**/tests/`.
+Plugin-specific tests live in `plugins/<container>/<type>/<Name>/tests/`.
+Playwright config scans both `tests/` and `plugins/**/tests/`.
 
 ```bash
-# Run a specific plugin's tests
-npx playwright test plugins/core/tools/Draw/tests/
-
-# Run all tests
-npm test
+npx playwright test plugins/core/tools/Draw/tests/  # Specific plugin
+npm run test:unit                                     # All unit tests
+npm test                                              # All tests
 ```
+
+## Migrating from Legacy Formats
+
+If you have plugins using the old `config.json` (tools) or `setup.js` (backends) format, the discovery system will log a deprecation warning.
+
+### Tools: `config.json` → `plugin.json`
+
+Rename `config.json` to `plugin.json` and add the recommended fields (`version`, `type`, `id`, `author`, etc.). The existing fields (`name`, `paths`, `description`, etc.) are unchanged.
+
+### Backends: `setup.js` → `plugin.json` + `plugin.js`
+
+1. Create a `plugin.json` with the backend's metadata (name, version, type, etc.)
+2. Rename `setup.js` to `plugin.js` — the lifecycle hooks (`onceInit`, `onceStarted`, `onceSynced`) are the same.
+
+---
+
+## AI Agent Notes
+
+Compact reference for agents working with the plugin CLI programmatically.
+
+- All commands support `--json`. Error paths also emit JSON when `--json` is set: `{"error": "message"}`.
+- The `enable` command returns `{"noop": true, "reason": "required"}` for required plugins (exit 0, not an error).
+- The `type` field in JSON output is always **singular** (`tool`, `backend`, `component`) — never the plural directory name.
+- `list --json` includes: `id`, `name`, `type`, `container`, `enabled`, `core`, `required`, `version`, `tier`, `author`, `description`, `path`.
+- `info --json` includes the full `manifest` object plus computed fields (`enabled`, `core`, `required`, `path`).
+- `validate --json` returns `{ valid, total, passed, errors, warnings, results: [{ plugin, valid, errors }] }`.
+- `activate --json` returns `{ added: [], removed: [], error }`.
+- `install --json` returns `{ command, repo, discovered: [{ id, type, name }], activated: { added, removed } }`.
+- Discovery processes `core` first, then external containers alphabetically. `overridable: false` blocks overrides.
+- `plugin-state.json` is optional. Missing = all enabled. `required`/`overridable: false` plugins ignore state.
