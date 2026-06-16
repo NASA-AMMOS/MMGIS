@@ -157,20 +157,84 @@ function pluginId(container, type, name) {
 }
 
 /**
+ * Parse tool/component names from the generated src/pre/ files.
+ * Returns a Set of import identifiers (e.g. "DrawTool", "OperationsClock").
+ */
+function parsePreImports(filePath) {
+    const names = new Set();
+    try {
+        const content = fs.readFileSync(filePath, "utf8");
+        for (const line of content.split("\n")) {
+            const m = line.match(/^import\s+(\S+)\s+from\s+/);
+            if (m) names.add(m[1]);
+        }
+    } catch { /* file doesn't exist yet */ }
+    return names;
+}
+
+/**
  * Re-generate src/pre/tools.js and src/pre/components.js so that newly
  * installed (or removed) frontend plugins are picked up by webpack without
  * requiring a full `npm run build`.
  *
- * In dev mode webpack-dev-server watches for file changes and will
- * hot-reload automatically. In production a full build is still needed
- * to bundle the output.
+ * Only prints the diff (added/removed) rather than the full list.
  */
 function activate() {
     try {
+        const repoRoot = path.resolve(__dirname, "..");
+        const toolsFile = path.join(repoRoot, "src", "pre", "tools.js");
+        const componentsFile = path.join(repoRoot, "src", "pre", "components.js");
+
+        const beforeTools = parsePreImports(toolsFile);
+        const beforeComponents = parsePreImports(componentsFile);
+
+        // Suppress logger console output during regeneration.
+        const origWrite = process.stdout.write;
+        const origLog = console.log;
+        const origError = console.error;
+        process.stdout.write = () => true;
+        console.log = () => {};
+        console.error = () => {};
+
         const { updateTools, updateComponents } = require("../API/updateTools");
         updateTools();
         updateComponents();
-        console.log(`\n  ${c.green("Frontend plugins activated.")}`);
+
+        // Restore console.
+        process.stdout.write = origWrite;
+        console.log = origLog;
+        console.error = origError;
+
+        const afterTools = parsePreImports(toolsFile);
+        const afterComponents = parsePreImports(componentsFile);
+
+        // Compute diffs.
+        const added = [];
+        const removed = [];
+        for (const name of afterTools) {
+            if (!beforeTools.has(name)) added.push({ name, type: "tool" });
+        }
+        for (const name of afterComponents) {
+            if (!beforeComponents.has(name)) added.push({ name, type: "component" });
+        }
+        for (const name of beforeTools) {
+            if (!afterTools.has(name)) removed.push({ name, type: "tool" });
+        }
+        for (const name of beforeComponents) {
+            if (!afterComponents.has(name)) removed.push({ name, type: "component" });
+        }
+
+        if (added.length === 0 && removed.length === 0) {
+            console.log(`\n  ${c.green("Frontend plugins activated.")} ${c.dim("No changes.")}`);
+        } else {
+            console.log(`\n  ${c.green("Frontend plugins activated.")}`);
+            for (const a of added) {
+                console.log(`    ${c.green("+")} ${c.cyan(a.name)} ${c.dim(`(${a.type})`)}`);
+            }
+            for (const r of removed) {
+                console.log(`    ${c.red("-")} ${c.dim(r.name)} ${c.dim(`(${r.type})`)}`);
+            }
+        }
     } catch (err) {
         console.error(`\n  ${c.red("Failed to activate frontend plugins:")} ${err.message}`);
         console.log(`  ${c.dim("You may need to run")} ${c.cyan("npm run build")} ${c.dim("instead.")}`);
