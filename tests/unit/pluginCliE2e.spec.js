@@ -361,6 +361,47 @@ test.describe('CLI registry', () => {
         const { exitCode } = runCli('registry remove nonexistent');
         expect(exitCode).not.toBe(0);
     });
+
+    test('registry --json round-trip', () => {
+        // add
+        const add = runCli(`registry add "${FIXTURE_REPO}" --json`);
+        expect(add.exitCode).toBe(0);
+        const addResult = JSON.parse(add.stdout);
+        expect(addResult.command).toBe('registry');
+        expect(addResult.action).toBe('add');
+        expect(addResult.name).toBe('test-plugin-repo');
+        expect(addResult.type).toBe('local');
+
+        // list
+        const list = runCli('registry list --json');
+        expect(list.exitCode).toBe(0);
+        const listResult = JSON.parse(list.stdout);
+        expect(listResult.registries).toHaveLength(1);
+        expect(listResult.registries[0].name).toBe('test-plugin-repo');
+
+        // remove
+        const rm = runCli('registry remove test-plugin-repo --json');
+        expect(rm.exitCode).toBe(0);
+        const rmResult = JSON.parse(rm.stdout);
+        expect(rmResult.action).toBe('remove');
+
+        // list empty
+        const empty = runCli('registry list --json');
+        const emptyResult = JSON.parse(empty.stdout);
+        expect(emptyResult.registries).toHaveLength(0);
+    });
+
+    test('registry error paths produce JSON with --json flag', () => {
+        const notFound = runCli('registry remove nonexistent --json');
+        expect(notFound.exitCode).not.toBe(0);
+        const result = JSON.parse(notFound.stdout);
+        expect(result).toHaveProperty('error');
+
+        const badPath = runCli('registry add /nonexistent/path --json');
+        expect(badPath.exitCode).not.toBe(0);
+        const pathResult = JSON.parse(badPath.stdout);
+        expect(pathResult).toHaveProperty('error');
+    });
 });
 
 // ─── activate ───────────────────────────────────────────────────────────────
@@ -383,5 +424,63 @@ test.describe('CLI activate', () => {
         const result = JSON.parse(stdout);
         expect(result).toHaveProperty('added');
         expect(result).toHaveProperty('removed');
+    });
+});
+
+// ─── --json output quality ──────────────────────────────────────────────────
+
+test.describe('CLI --json output quality', () => {
+
+    test('list --json uses singular types and includes required/description/path', () => {
+        const { stdout, exitCode } = runCli('list --json');
+        expect(exitCode).toBe(0);
+        const plugins = JSON.parse(stdout);
+        expect(plugins.length).toBeGreaterThan(0);
+
+        for (const p of plugins) {
+            // Type should be singular (tool, backend, component) — never plural
+            expect(['tool', 'backend', 'component']).toContain(p.type);
+            expect(p).toHaveProperty('required');
+            expect(p).toHaveProperty('path');
+            // description may be null but key must exist
+            expect('description' in p).toBe(true);
+        }
+    });
+
+    test('info --json uses singular type and includes required field', () => {
+        const { stdout, exitCode } = runCli('info Draw --json');
+        expect(exitCode).toBe(0);
+        const result = JSON.parse(stdout);
+        expect(result.type).toBe('tool');
+        expect(result).toHaveProperty('required');
+        expect(result).toHaveProperty('path');
+    });
+
+    test('error paths produce JSON with --json flag', () => {
+        // info not found
+        const info = runCli('info NoSuchPlugin --json');
+        expect(info.exitCode).not.toBe(0);
+        const infoResult = JSON.parse(info.stdout);
+        expect(infoResult).toHaveProperty('error');
+
+        // disable required
+        const dis = runCli('disable core/backend/Users --json');
+        expect(dis.exitCode).not.toBe(0);
+        const disResult = JSON.parse(dis.stdout);
+        expect(disResult).toHaveProperty('error');
+
+        // destroy core
+        const dest = runCli('destroy core/tools/Draw --json');
+        expect(dest.exitCode).not.toBe(0);
+        const destResult = JSON.parse(dest.stdout);
+        expect(destResult).toHaveProperty('error');
+    });
+
+    test('enable required plugin --json returns noop', () => {
+        const { stdout, exitCode } = runCli('enable core/backend/Users --json');
+        expect(exitCode).toBe(0);
+        const result = JSON.parse(stdout);
+        expect(result.noop).toBe(true);
+        expect(result.reason).toBe('required');
     });
 });

@@ -377,6 +377,28 @@ function isRequired(plugin) {
     return plugin.manifest.required === true || plugin.manifest.overridable === false;
 }
 
+/**
+ * Normalize directory-based type name to singular manifest form.
+ * "tools" → "tool", "components" → "component", "backend" → "backend"
+ */
+function singularType(dirType, manifest) {
+    if (manifest && manifest.type) return manifest.type;
+    if (dirType === "tools") return "tool";
+    if (dirType === "components") return "component";
+    return dirType;
+}
+
+/**
+ * Emit a JSON error and exit. Used to ensure --json always produces JSON,
+ * even for error paths.
+ */
+function jsonError(message, exitCode = 1) {
+    if (FLAG_JSON) {
+        console.log(JSON.stringify({ error: message }));
+        process.exit(exitCode);
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Commands
 // ---------------------------------------------------------------------------
@@ -395,13 +417,16 @@ function cmdList() {
         const out = plugins.map((p) => ({
             id: p.id,
             name: p.name,
-            type: p.type,
+            type: singularType(p.type, p.manifest),
             container: p.container,
             enabled: isPluginEnabled(p, state),
             core: isCore(p),
+            required: isRequired(p),
             version: (p.manifest && p.manifest.version) || null,
             tier: (p.manifest && p.manifest.tier) || null,
             author: (p.manifest && p.manifest.author) || null,
+            description: (p.manifest && p.manifest.description) || null,
+            path: p.pluginPath,
         }));
         console.log(JSON.stringify(out, null, 2));
         return;
@@ -469,6 +494,7 @@ function cmdList() {
 
 function cmdInstall(target) {
     if (!target) {
+        jsonError("Usage: plugin-cli install <git-url|local-path>");
         console.error(c.red("Usage: plugin-cli install <git-url|local-path>"));
         process.exit(1);
     }
@@ -516,7 +542,7 @@ function cmdInstall(target) {
         if (!FLAG_JSON) step(3, 3, "Discovering plugins");
         const plugins = discoverAll().filter((p) => p.container === repoName);
         if (FLAG_JSON) {
-            jsonResult.discovered = plugins.map((p) => ({ id: p.id, type: p.type, name: p.name }));
+            jsonResult.discovered = plugins.map((p) => ({ id: p.id, type: singularType(p.type, p.manifest), name: p.name }));
         } else if (plugins.length > 0) {
             console.log(`\n  ${c.green(`Discovered ${plugins.length} plugin(s):`)}`)
             for (const p of plugins) {
@@ -564,7 +590,7 @@ function cmdInstall(target) {
         if (!FLAG_JSON) step(2, 2, "Discovering plugins");
         const plugins = discoverAll().filter((p) => p.container === repoName);
         if (FLAG_JSON) {
-            jsonResult.discovered = plugins.map((p) => ({ id: p.id, type: p.type, name: p.name }));
+            jsonResult.discovered = plugins.map((p) => ({ id: p.id, type: singularType(p.type, p.manifest), name: p.name }));
         } else if (plugins.length === 0) {
             console.log(`  ${c.red(`Discovered ${plugins.length} plugin(s).`)}`);
         } else {
@@ -621,17 +647,20 @@ function cmdInstall(target) {
 
 function cmdRemove(repoName) {
     if (!repoName) {
+        jsonError("Usage: plugin-cli remove <repo-name>");
         console.error(c.red("Usage: plugin-cli remove <repo-name>"));
         process.exit(1);
     }
 
     if (repoName === CORE_CONTAINER) {
+        jsonError("Cannot remove core plugins.");
         console.error(c.red("Cannot remove core plugins."));
         process.exit(1);
     }
 
     const dest = path.join(PLUGINS_ROOT, repoName);
     if (!fs.existsSync(dest)) {
+        jsonError(`Plugin repo '${repoName}' not found.`);
         console.error(c.red(`Plugin repo '${repoName}' not found.`));
         process.exit(1);
     }
@@ -669,6 +698,7 @@ function cmdRemove(repoName) {
 
 function cmdEnable(pluginIdStr) {
     if (!pluginIdStr) {
+        jsonError("Usage: plugin-cli enable <plugin-id>");
         console.error(c.red("Usage: plugin-cli enable <plugin-id>"));
         console.error(c.dim("Plugin IDs look like: my-plugins/tools/CustomTool"));
         process.exit(1);
@@ -678,12 +708,17 @@ function cmdEnable(pluginIdStr) {
     const match = plugins.find((p) => p.id === pluginIdStr || p.name === pluginIdStr);
 
     if (!match) {
+        jsonError(`Plugin '${pluginIdStr}' not found.`);
         console.error(c.red(`Plugin '${pluginIdStr}' not found.`));
         console.error(c.dim("Run 'npm run plugins -- list' to see available plugins."));
         process.exit(1);
     }
 
     if (isRequired(match)) {
+        if (FLAG_JSON) {
+            console.log(JSON.stringify({ command: "enable", plugin: match.id, noop: true, reason: "required" }));
+            return;
+        }
         console.log(c.yellow(`Plugin '${match.id}' is a required plugin and is always enabled.`));
         return;
     }
@@ -704,6 +739,7 @@ function cmdEnable(pluginIdStr) {
 
 function cmdDisable(pluginIdStr) {
     if (!pluginIdStr) {
+        jsonError("Usage: plugin-cli disable <plugin-id>");
         console.error(c.red("Usage: plugin-cli disable <plugin-id>"));
         process.exit(1);
     }
@@ -712,11 +748,13 @@ function cmdDisable(pluginIdStr) {
     const match = plugins.find((p) => p.id === pluginIdStr || p.name === pluginIdStr);
 
     if (!match) {
+        jsonError(`Plugin '${pluginIdStr}' not found.`);
         console.error(c.red(`Plugin '${pluginIdStr}' not found.`));
         process.exit(1);
     }
 
     if (isRequired(match)) {
+        jsonError(`Cannot disable required plugin '${match.id}'.`);
         console.error(c.red(`Cannot disable required plugin '${match.id}'.`));
         process.exit(1);
     }
@@ -982,6 +1020,7 @@ function cmdInfo(pluginIdStr) {
     const match = plugins.find((p) => p.id === pluginIdStr || p.name === pluginIdStr);
 
     if (!match) {
+        jsonError(`Plugin '${pluginIdStr}' not found.`);
         console.error(c.red(`Plugin '${pluginIdStr}' not found.`));
         process.exit(1);
     }
@@ -990,10 +1029,11 @@ function cmdInfo(pluginIdStr) {
     if (FLAG_JSON) {
         const m = match.manifest || {};
         const out = {
-            id: match.id, name: match.name, type: match.type,
+            id: match.id, name: match.name, type: singularType(match.type, match.manifest),
             container: match.container,
             enabled: isPluginEnabled(match, state),
             core: isCore(match),
+            required: isRequired(match),
             manifest: m,
             path: match.pluginPath,
         };
@@ -1058,6 +1098,7 @@ function cmdRegistry(subcommand, arg) {
 
     if (subcommand === "add") {
         if (!arg) {
+            jsonError("Usage: plugin-cli registry add <git-url|local-path>");
             console.error(c.red("Usage: plugin-cli registry add <git-url|local-path>"));
             process.exit(1);
         }
@@ -1069,15 +1110,18 @@ function cmdRegistry(subcommand, arg) {
             // Treat as local path — resolve and verify it exists.
             const resolved = path.resolve(arg);
             if (!fs.existsSync(resolved)) {
+                jsonError(`Path not found: ${resolved}`);
                 console.error(c.red(`Path not found: ${resolved}`));
                 process.exit(1);
             }
             try {
                 if (!fs.statSync(resolved).isDirectory()) {
+                    jsonError(`Not a directory: ${resolved}`);
                     console.error(c.red(`Not a directory: ${resolved}`));
                     process.exit(1);
                 }
             } catch {
+                jsonError(`Cannot access: ${resolved}`);
                 console.error(c.red(`Cannot access: ${resolved}`));
                 process.exit(1);
             }
@@ -1087,14 +1131,23 @@ function cmdRegistry(subcommand, arg) {
         const name = repoNameFromURL(arg);
         const existing = registries.registries.find((r) => r.url === arg || r.name === name);
         if (existing) {
+            if (FLAG_JSON) {
+                console.log(JSON.stringify({ command: "registry", action: "add", noop: true, reason: "already_registered", name }));
+                return;
+            }
             console.log(c.yellow(`Registry '${name}' already registered.`));
             return;
         }
         registries.registries.push({ name, url: arg, type });
         saveRegistries(registries);
-        console.log(`  ${c.green("✓")} Added registry: ${c.cyan(name)} ${c.dim(`(${arg})`)} ${c.dim(`[${type}]`)}`);
+        if (FLAG_JSON) {
+            console.log(JSON.stringify({ command: "registry", action: "add", name, url: arg, type }));
+        } else {
+            console.log(`  ${c.green("✓")} Added registry: ${c.cyan(name)} ${c.dim(`(${arg})`)} ${c.dim(`[${type}]`)}`);
+        }
     } else if (subcommand === "remove") {
         if (!arg) {
+            jsonError("Usage: plugin-cli registry remove <name>");
             console.error(c.red("Usage: plugin-cli registry remove <name>"));
             process.exit(1);
         }
@@ -1103,12 +1156,21 @@ function cmdRegistry(subcommand, arg) {
             (r) => r.name !== arg && r.url !== arg
         );
         if (registries.registries.length === before) {
+            jsonError(`Registry '${arg}' not found.`);
             console.error(c.red(`Registry '${arg}' not found.`));
             process.exit(1);
         }
         saveRegistries(registries);
-        console.log(`  ${c.green("✓")} Removed registry: ${c.cyan(arg)}`);
+        if (FLAG_JSON) {
+            console.log(JSON.stringify({ command: "registry", action: "remove", name: arg }));
+        } else {
+            console.log(`  ${c.green("✓")} Removed registry: ${c.cyan(arg)}`);
+        }
     } else if (subcommand === "list" || !subcommand) {
+        if (FLAG_JSON) {
+            console.log(JSON.stringify({ command: "registry", action: "list", registries: registries.registries }));
+            return;
+        }
         if (registries.registries.length === 0) {
             console.log(c.yellow("No registries configured."));
             return;
@@ -1116,10 +1178,10 @@ function cmdRegistry(subcommand, arg) {
         console.log(`\n  ${c.bold(c.white("Registered plugin sources:"))}`);
         for (const r of registries.registries) {
             console.log(`    ${c.cyan(r.name)}: ${c.white(r.url)} ${c.dim(`[${r.type}]`)}`);
-
         }
         console.log("");
     } else {
+        jsonError(`Unknown registry subcommand: ${subcommand}`);
         console.error(c.red(`Unknown registry subcommand: ${subcommand}`));
         console.error(c.dim("Available: add, remove, list"));
         process.exit(1);
@@ -1324,15 +1386,18 @@ function cmdCreate(type, name) {
     const typeDir = type === "tool" ? "tools" : type === "backend" ? "backend" : "components";
 
     if (!type || !VALID_TYPES.includes(type)) {
+        jsonError(`Invalid type. Usage: plugin-cli create <${VALID_TYPES.join("|")}> <Name> --container <container>`);
         console.error(c.red(`Usage: plugin-cli create <${VALID_TYPES.join("|")}> <Name> --container <container>`));
         process.exit(1);
     }
     if (!name) {
+        jsonError(`Missing plugin name. Usage: plugin-cli create ${type} <Name> --container <container>`);
         console.error(c.red("Missing plugin name."));
         console.error(c.dim(`Usage: plugin-cli create ${type} <Name> --container <container>`));
         process.exit(1);
     }
     if (!FLAG_CONTAINER) {
+        jsonError(`Missing --container flag. Usage: plugin-cli create ${type} ${name} --container <container>`);
         console.error(c.red("Missing --container flag."));
         console.error(c.dim(`Usage: plugin-cli create ${type} ${name} --container <container>`));
         process.exit(1);
@@ -1342,6 +1407,7 @@ function cmdCreate(type, name) {
     const pluginDir = path.join(PLUGINS_ROOT, container, typeDir, name);
 
     if (fs.existsSync(pluginDir)) {
+        jsonError(`Plugin already exists: ${container}/${typeDir}/${name}`);
         console.error(c.red(`Plugin already exists: ${pluginDir}`));
         process.exit(1);
     }
@@ -1422,6 +1488,7 @@ function cmdCreate(type, name) {
 
 function cmdDestroy(pluginIdStr) {
     if (!pluginIdStr) {
+        jsonError("Usage: plugin-cli destroy <plugin-id> [--force]");
         console.error(c.red("Usage: plugin-cli destroy <plugin-id> [--force]"));
         console.error(c.dim("Plugin IDs look like: my-plugins/tools/CustomTool"));
         process.exit(1);
@@ -1431,17 +1498,20 @@ function cmdDestroy(pluginIdStr) {
     const match = plugins.find((p) => p.id === pluginIdStr || p.name === pluginIdStr);
 
     if (!match) {
+        jsonError(`Plugin '${pluginIdStr}' not found.`);
         console.error(c.red(`Plugin '${pluginIdStr}' not found.`));
         console.error(c.dim("Run 'npm run plugins -- list' to see available plugins."));
         process.exit(1);
     }
 
     if (isCore(match)) {
+        jsonError(`Cannot destroy core plugin '${match.id}'.`);
         console.error(c.red(`Cannot destroy core plugin '${match.id}'.`));
         process.exit(1);
     }
 
     if (isRequired(match)) {
+        jsonError(`Cannot destroy required plugin '${match.id}' (required: true or overridable: false).`);
         console.error(c.red(`Cannot destroy required plugin '${match.id}' (required: true or overridable: false).`));
         process.exit(1);
     }
