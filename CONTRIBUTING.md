@@ -374,8 +374,35 @@ Ideally all the code for a tool will be in its `[Tool's Name]Tool.js` and built 
 
 MMGIS uses a unified `/plugins/` directory. All plugins (core and external) are discovered via `discoverPluginsUnified()` which scans the three-level hierarchy `plugins/<container>/<type>/<PluginName>/`.
 
-- **Core plugins** live in `plugins/core/` (committed to the repo).
-- **External/private plugins** live in `plugins/<your-container>/` (auto-gitignored).
+- **Core plugins** live in `plugins/core/` (committed to the repo). Core plugins cannot be removed or disabled.
+- **External/private plugins** live in `plugins/<your-container>/` (auto-gitignored). Managed via the Plugin CLI.
+
+#### Plugin CLI
+
+MMGIS includes a CLI tool for managing plugins (`plugins/plugin-cli.js`). Run it with:
+
+```bash
+npm run plugins -- <command>
+```
+
+Key commands:
+
+| Command | Description |
+|---------|-------------|
+| `list` | List all plugins with enabled/disabled status |
+| `install <git-url\|path>` | Clone a git repo or symlink a local directory |
+| `remove <repo-name>` | Remove an installed plugin repo (not `core`) |
+| `enable <plugin-id>` | Enable a plugin |
+| `disable <plugin-id>` | Disable a plugin (not core plugins) |
+| `update [repo-name]` | Pull latest for installed repo(s) |
+| `validate` | Validate all `plugin.json` manifests |
+| `deps` | Show aggregated dependency graph |
+| `info <plugin-id>` | Show plugin details |
+| `registry add <url>` | Register a plugin source |
+
+Registries are configured in `plugins/plugin-registries.json`. Plugin enable/disable state is tracked in `plugins/plugin-state.json` (gitignored — instance-specific).
+
+See `plugins/README.md` for the full CLI reference.
 
 #### Tool Plugins
 

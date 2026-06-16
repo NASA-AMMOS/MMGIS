@@ -240,6 +240,18 @@ function discoverPluginsUnified(pluginsRoot, type, configFile = "plugin.json", o
 
     const out = [];
 
+    // Load plugin-state.json for enable/disable tracking.
+    // Core plugins are always enabled regardless of state.
+    let pluginState = { plugins: {} };
+    try {
+        const statePath = path.join(pluginsRoot, "plugin-state.json");
+        if (fs.existsSync(statePath)) {
+            pluginState = JSON.parse(fs.readFileSync(statePath, "utf8"));
+        }
+    } catch {
+        // Missing or invalid state file — treat all plugins as enabled.
+    }
+
     let repoDirs = [];
     try {
         repoDirs = fs.readdirSync(pluginsRoot, { withFileTypes: true });
@@ -289,6 +301,22 @@ function discoverPluginsUnified(pluginsRoot, type, configFile = "plugin.json", o
             }
             if (!pIsDir) continue;
             if (pluginEntry.name[0] === "_" || pluginEntry.name[0] === ".") continue;
+
+            // Check plugin-state.json — skip disabled non-core plugins.
+            if (repoEntry.name !== "core") {
+                const stateKey = `${repoEntry.name}/${type}/${pluginEntry.name}`;
+                const stateEntry = pluginState.plugins[stateKey];
+                if (stateEntry && stateEntry.enabled === false) {
+                    logger(
+                        "info",
+                        `Skipping disabled plugin: ${stateKey}`,
+                        loggerCategory,
+                        null,
+                        null
+                    );
+                    continue;
+                }
+            }
 
             const pluginPath = path.join(typePath, pluginEntry.name);
             const manifestPath = path.join(pluginPath, configFile);
