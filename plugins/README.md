@@ -373,7 +373,7 @@ Rename `config.json` to `plugin.json` and add the recommended fields (`version`,
 
 - **Gitignored** — it is instance-specific configuration.
 - **Optional** — if absent, all installed plugins are enabled by default.
-- **Core-protected** — core plugins are always enabled regardless of state.
+- **Required-protected** — plugins with `required: true` or `overridable: false` are always enabled regardless of state.
 
 ```json
 {

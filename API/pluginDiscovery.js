@@ -50,7 +50,7 @@ function discoverPlugins(pluginsRoot, type, configFile = "plugin.json", opts = {
     const out = [];
 
     // Load plugin-state.json for enable/disable tracking.
-    // Core plugins are always enabled regardless of state.
+    // Required plugins (required: true or overridable: false) are never skipped.
     let pluginState = { plugins: {} };
     try {
         const statePath = path.join(pluginsRoot, "plugin-state.json");
