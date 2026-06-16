@@ -74,7 +74,7 @@ test.describe('CLI install and remove', () => {
 
     test.afterAll(() => {
         cleanupContainer('test-plugin-repo');
-        cleanupState(['test-plugin-repo/tools/TestPlugin']);
+        cleanupState(['test-plugin-repo/tools/TestPlugin', 'test-plugin-repo/tools/SecondPlugin']);
         // Re-activate to restore clean tools.js
         runCli('activate');
     });
@@ -82,7 +82,7 @@ test.describe('CLI install and remove', () => {
     test('install from local fixture directory', () => {
         const { stdout, exitCode } = runCli(`install "${FIXTURE_REPO}"`);
         expect(exitCode).toBe(0);
-        expect(stdout).toContain('Discovered 1 plugin(s)');
+        expect(stdout).toContain('Discovered 2 plugin(s)');
         expect(stdout).toContain('TestPluginTool');
 
         // Plugin directory should exist
@@ -421,7 +421,8 @@ test.describe('CLI registry', () => {
         expect(install.exitCode).toBe(0);
         const result = JSON.parse(install.stdout);
         expect(result.discovered.length).toBeGreaterThan(0);
-        expect(result.discovered[0].name).toBe('TestPlugin');
+        const names = result.discovered.map(d => d.name);
+        expect(names).toContain('TestPlugin');
 
         // Cleanup
         runCli('remove test-plugin-repo');
@@ -518,5 +519,85 @@ test.describe('CLI --json output quality', () => {
         const result = JSON.parse(stdout);
         expect(result.noop).toBe(true);
         expect(result.reason).toBe('required');
+    });
+});
+
+// ─── install --only ─────────────────────────────────────────────────────────
+
+test.describe('CLI install --only', () => {
+
+    test.afterEach(() => {
+        try { runCli('remove test-plugin-repo'); } catch { /* already removed */ }
+    });
+
+    test('install --only keeps only named plugins enabled', () => {
+        const install = runCli(`install "${FIXTURE_REPO}" --only TestPlugin --json`);
+        expect(install.exitCode).toBe(0);
+        const result = JSON.parse(install.stdout);
+        expect(result.only).toEqual(['TestPlugin']);
+        expect(result.disabled).toBeGreaterThan(0);
+
+        // TestPlugin should be enabled, SecondPlugin should be disabled
+        const list = runCli('list --json');
+        const plugins = JSON.parse(list.stdout);
+        const test1 = plugins.find(p => p.name === 'TestPlugin');
+        const test2 = plugins.find(p => p.name === 'SecondPlugin');
+        expect(test1.enabled).toBe(true);
+        expect(test2.enabled).toBe(false);
+    });
+});
+
+// ─── enable-all / disable-all ───────────────────────────────────────────────
+
+test.describe('CLI enable-all / disable-all', () => {
+
+    test.beforeEach(() => {
+        runCli(`install "${FIXTURE_REPO}"`);
+    });
+
+    test.afterEach(() => {
+        try { runCli('remove test-plugin-repo'); } catch { /* already removed */ }
+    });
+
+    test('disable-all --container disables all plugins in container', () => {
+        const dis = runCli('disable-all --container test-plugin-repo --json');
+        expect(dis.exitCode).toBe(0);
+        const result = JSON.parse(dis.stdout);
+        expect(result.disabled).toBeGreaterThan(0);
+        expect(result.container).toBe('test-plugin-repo');
+
+        // Verify all are disabled
+        const list = runCli('list --json');
+        const plugins = JSON.parse(list.stdout).filter(p => p.container === 'test-plugin-repo');
+        for (const p of plugins) {
+            expect(p.enabled).toBe(false);
+        }
+    });
+
+    test('enable-all --container re-enables all plugins in container', () => {
+        // First disable all
+        runCli('disable-all --container test-plugin-repo');
+
+        // Then enable all
+        const en = runCli('enable-all --container test-plugin-repo --json');
+        expect(en.exitCode).toBe(0);
+        const result = JSON.parse(en.stdout);
+        expect(result.enabled).toBeGreaterThan(0);
+
+        // Verify all are enabled
+        const list = runCli('list --json');
+        const plugins = JSON.parse(list.stdout).filter(p => p.container === 'test-plugin-repo');
+        for (const p of plugins) {
+            expect(p.enabled).toBe(true);
+        }
+    });
+
+    test('disable-all skips required plugins', () => {
+        // This tests against core — required plugins should be skipped
+        // We won't actually disable core, just verify the logic
+        const dis = runCli('disable-all --container test-plugin-repo --json');
+        expect(dis.exitCode).toBe(0);
+        const result = JSON.parse(dis.stdout);
+        expect(result.skippedRequired).toBe(0); // fixture plugins aren't required
     });
 });

@@ -10,7 +10,7 @@
  *
  * Commands:
  *   list                          List all plugins with status
- *   install <git-url|path|name>   Install a plugin repo
+ *   install <git-url|path|name>   Install a plugin repo (--only to filter)
  *   remove <repo-name>            Remove an installed plugin repo
  *   enable <plugin-id>            Enable a plugin
  *   disable <plugin-id>           Disable a plugin
@@ -55,7 +55,8 @@ const FLAG_TIER = flagValue("--tier");
 const FLAG_DESCRIPTION = flagValue("--description");
 const FLAG_LICENSE = flagValue("--license");
 const FLAG_AUTHOR = flagValue("--author");
-const VALUE_FLAGS = ["--container", "--tier", "--description", "--license", "--author"];
+const FLAG_ONLY = flagValue("--only");
+const VALUE_FLAGS = ["--container", "--tier", "--description", "--license", "--author", "--only"];
 // Strip flags so positional command parsing still works.
 const args = RAW_ARGS.filter((a, i) =>
     a !== "--no-color" && a !== "--json" && a !== "--link" && a !== "--force" &&
@@ -654,6 +655,30 @@ function cmdInstall(target) {
         }
     }
 
+    // --only: disable all plugins in this container except the named ones.
+    if (FLAG_ONLY) {
+        const keepNames = FLAG_ONLY.split(",").map((n) => n.trim());
+        const containerName = isGit ? repoNameFromURL(target) : path.basename(path.resolve(target));
+        const allInContainer = discoverAll().filter((p) => p.container === containerName);
+        const state = loadState();
+        let disabledCount = 0;
+        for (const p of allInContainer) {
+            const shouldKeep = keepNames.some((k) => p.name === k || p.id === k || p.id.endsWith("/" + k));
+            if (!shouldKeep) {
+                state.plugins[p.id] = { enabled: false };
+                disabledCount++;
+            }
+        }
+        saveState(state);
+        if (!FLAG_JSON && disabledCount > 0) {
+            console.log(`\n  ${c.dim(`--only: disabled ${disabledCount} plugin(s), kept: ${keepNames.join(", ")}`)}`);
+        }
+        if (jsonResult) {
+            jsonResult.only = keepNames;
+            jsonResult.disabled = disabledCount;
+        }
+    }
+
     if (FLAG_JSON) {
         const act = activate({ expectChanges: true, silent: true });
         jsonResult.activated = { added: act.added, removed: act.removed };
@@ -788,6 +813,78 @@ function cmdDisable(pluginIdStr) {
         console.log(JSON.stringify({ command: "disable", plugin: match.id, activated: { added: act.added, removed: act.removed } }, null, 2));
     } else {
         console.log(`  ${c.red("✗")} Disabled: ${c.cyan(match.id)}`);
+        activate({ expectChanges: true });
+        console.log(`  ${c.dim("Restart the server to apply backend changes.")}`);
+    }
+}
+
+function cmdEnableAll() {
+    const plugins = discoverAll();
+    const container = FLAG_CONTAINER;
+    const targets = container
+        ? plugins.filter((p) => p.container === container)
+        : plugins.filter((p) => p.container !== CORE_CONTAINER);
+
+    if (targets.length === 0) {
+        const msg = container ? `No plugins found in container '${container}'.` : "No external plugins found.";
+        jsonError(msg);
+        console.error(c.red(msg));
+        process.exit(1);
+    }
+
+    const state = loadState();
+    let count = 0;
+    for (const p of targets) {
+        if (!isRequired(p)) {
+            state.plugins[p.id] = { enabled: true };
+            count++;
+        }
+    }
+    saveState(state);
+
+    if (FLAG_JSON) {
+        const act = activate({ expectChanges: true, silent: true });
+        console.log(JSON.stringify({ command: "enable-all", container: container || "all-external", enabled: count, activated: { added: act.added, removed: act.removed } }, null, 2));
+    } else {
+        console.log(`  ${c.green("✓")} Enabled ${count} plugin(s)${container ? ` in ${c.cyan(container)}` : ""}`);
+        activate({ expectChanges: true });
+        console.log(`  ${c.dim("Restart the server to apply backend changes.")}`);
+    }
+}
+
+function cmdDisableAll() {
+    const plugins = discoverAll();
+    const container = FLAG_CONTAINER;
+    const targets = container
+        ? plugins.filter((p) => p.container === container)
+        : plugins.filter((p) => p.container !== CORE_CONTAINER);
+
+    if (targets.length === 0) {
+        const msg = container ? `No plugins found in container '${container}'.` : "No external plugins found.";
+        jsonError(msg);
+        console.error(c.red(msg));
+        process.exit(1);
+    }
+
+    const state = loadState();
+    let count = 0;
+    let skippedRequired = 0;
+    for (const p of targets) {
+        if (isRequired(p)) {
+            skippedRequired++;
+        } else {
+            state.plugins[p.id] = { enabled: false };
+            count++;
+        }
+    }
+    saveState(state);
+
+    if (FLAG_JSON) {
+        const act = activate({ expectChanges: true, silent: true });
+        console.log(JSON.stringify({ command: "disable-all", container: container || "all-external", disabled: count, skippedRequired, activated: { added: act.added, removed: act.removed } }, null, 2));
+    } else {
+        console.log(`  ${c.red("✗")} Disabled ${count} plugin(s)${container ? ` in ${c.cyan(container)}` : ""}`);
+        if (skippedRequired > 0) console.log(`  ${c.dim(`(${skippedRequired} required plugin(s) skipped)`)}`);
         activate({ expectChanges: true });
         console.log(`  ${c.dim("Restart the server to apply backend changes.")}`);
     }
@@ -1630,6 +1727,8 @@ ${h("install <git-url|path|name>", "Install a plugin repo (git clone, copy, or r
 ${h("remove <repo-name>", "Remove an installed plugin repo (not core)")}
 ${h("enable <plugin-id>", "Enable a disabled plugin")}
 ${h("disable <plugin-id>", "Disable a plugin (not core)")}
+${h("enable-all", "Enable all plugins (use --container to scope)")}
+${h("disable-all", "Disable all non-required plugins (use --container to scope)")}
 ${h("update [repo-name]", "Pull latest for repo(s)")}
 ${h("create <type> <Name>", "Scaffold a new plugin (tool, backend, component)")}
 ${h("destroy <plugin-id>", "Delete a plugin (prompts for confirmation, --force to skip)")}
@@ -1646,12 +1745,13 @@ ${h("help", "Show this help")}
     ${c.cyan("--no-color".padEnd(30))} ${c.dim("Disable colored output (also respects NO_COLOR env)")}
     ${c.cyan("--json".padEnd(30))} ${c.dim("Output machine-readable JSON (all commands)")}
     ${c.cyan("--link".padEnd(30))} ${c.dim("Symlink local paths instead of copy (falls back to junction on Windows)")}
-    ${c.cyan("--container <name>".padEnd(30))} ${c.dim("Target container for create command")}
+    ${c.cyan("--container <name>".padEnd(30))} ${c.dim("Target container (create, enable-all, disable-all)")}
     ${c.cyan("--force".padEnd(30))} ${c.dim("Skip confirmation prompts (destroy)")}
     ${c.cyan("--tier <tier>".padEnd(30))} ${c.dim("Set tier when adding a registry (core, official, community, private, experimental, deprecated)")}
     ${c.cyan("--description <text>".padEnd(30))} ${c.dim("Set description when adding a registry")}
     ${c.cyan("--license <spdx>".padEnd(30))} ${c.dim("Set license when adding a registry (e.g. Apache-2.0)")}
     ${c.cyan("--author <name>".padEnd(30))} ${c.dim("Set author when adding a registry")}
+    ${c.cyan("--only <names>".padEnd(30))} ${c.dim("Comma-separated plugin names to keep enabled (install)")}
 
   ${c.bold(c.white("Plugin IDs:"))}
     ${c.dim("<container>/<type>/<name>")}     e.g. ${c.cyan("core/tools/Draw")}
@@ -1660,6 +1760,8 @@ ${h("help", "Show this help")}
   ${c.bold(c.white("Examples:"))}
     ${c.dim("$")} npm run plugins -- list
     ${c.dim("$")} npm run plugins -- install https://github.com/org/mmgis-geo-plugins.git
+    ${c.dim("$")} npm run plugins -- install mmgis-geo-plugins --only ToolX,ToolY
+    ${c.dim("$")} npm run plugins -- disable-all --container my-plugins
     ${c.dim("$")} npm run plugins -- enable my-plugins/tools/SpectralTool
     ${c.dim("$")} npm run plugins -- info Draw
     ${c.dim("$")} npm run plugins -- list --json
@@ -1689,6 +1791,12 @@ switch (command) {
         break;
     case "disable":
         cmdDisable(args[1]);
+        break;
+    case "enable-all":
+        cmdEnableAll();
+        break;
+    case "disable-all":
+        cmdDisableAll();
         break;
     case "update":
         cmdUpdate(args[1]);

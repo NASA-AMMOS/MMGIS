@@ -97,6 +97,8 @@ All commands support `--json` for machine-readable output. Use `npm run plugin` 
 | `remove <repo-name>` | Remove an installed plugin repo (cannot remove `core`) |
 | `enable <plugin-id>` | Mark a plugin as active in `plugin-state.json` |
 | `disable <plugin-id>` | Mark a plugin as inactive (cannot disable `required` plugins) |
+| `enable-all` | Enable all plugins (use `--container` to scope) |
+| `disable-all` | Disable all non-required plugins (use `--container` to scope) |
 | `create <type> <Name>` | Scaffold a new plugin (tool, backend, component) |
 | `destroy <plugin-id>` | Delete a plugin (prompts confirmation, `--force` to skip) |
 | `activate` | Regenerate frontend plugin imports without a full build |
@@ -111,7 +113,8 @@ All commands support `--json` for machine-readable output. Use `npm run plugin` 
 | `--json` | all | Output machine-readable JSON. Errors also emit JSON: `{"error":"..."}` |
 | `--no-color` | all | Disable colored output (also respects `NO_COLOR` env) |
 | `--link` | `install` | Symlink local paths instead of copy (falls back to junction on Windows) |
-| `--container <name>` | `create` | Target container for scaffolding |
+| `--container <name>` | `create`, `enable-all`, `disable-all` | Target container |
+| `--only <names>` | `install` | Comma-separated plugin names to keep enabled (disables the rest) |
 | `--force` | `destroy` | Skip confirmation prompt |
 | `--tier <tier>` | `registry add` | Set tier (`core`, `official`, `community`, `private`, `experimental`, `deprecated`) |
 | `--description <text>` | `registry add` | Set description |
@@ -167,6 +170,25 @@ npm run plugins -- install mmgis-geo-plugins
 ```
 
 This resolves the name to its registered URL and clones/copies from there.
+
+### Selective Install with `--only`
+
+When installing a repo with many plugins but you only need a few:
+
+```bash
+npm run plugins -- install mmgis-geo-plugins --only SpectralTool,ElevationTool
+```
+
+This installs the full repo (so `update` works later) but immediately disables all plugins except the ones listed. Disabled plugins are excluded from the build and server — no code or dependencies are bundled.
+
+You can also use `disable-all` / `enable` for the same effect after install:
+
+```bash
+npm run plugins -- install mmgis-geo-plugins
+npm run plugins -- disable-all --container mmgis-geo-plugins
+npm run plugins -- enable mmgis-geo-plugins/tools/SpectralTool
+npm run plugins -- enable mmgis-geo-plugins/tools/ElevationTool
+```
 
 ### From a Local Path
 
