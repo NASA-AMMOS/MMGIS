@@ -179,7 +179,7 @@ function parsePreImports(filePath) {
  *
  * Only prints the diff (added/removed) rather than the full list.
  */
-function activate() {
+function activate({ expectChanges = false } = {}) {
     try {
         const repoRoot = path.resolve(__dirname, "..");
         const toolsFile = path.join(repoRoot, "src", "pre", "tools.js");
@@ -225,7 +225,10 @@ function activate() {
         }
 
         if (added.length === 0 && removed.length === 0) {
-            console.log(`\n  ${c.green("Frontend plugins activated.")} ${c.dim("No changes.")}`);
+            const noChange = expectChanges
+                ? c.yellow("No changes detected.")
+                : c.dim("No changes.");
+            console.log(`\n  ${c.green("Frontend plugins activated.")} ${noChange}`);
         } else {
             console.log(`\n  ${c.green("Frontend plugins activated.")}`);
             for (const a of added) {
@@ -559,7 +562,7 @@ function cmdInstall(target) {
         }
     }
 
-    activate();
+    activate({ expectChanges: true });
     console.log(`  ${c.dim("Restart the server to activate backend plugins.")}\n`);
 }
 
@@ -602,7 +605,7 @@ function cmdRemove(repoName) {
     }
 
     console.log(`\n  ${c.green(`Removed plugin repo '${repoName}'.`)}`);
-    activate();
+    activate({ expectChanges: true });
     console.log(`  ${c.dim("Restart the server to apply backend changes.")}\n`);
 }
 
@@ -631,7 +634,7 @@ function cmdEnable(pluginIdStr) {
     state.plugins[match.id] = { enabled: true };
     saveState(state);
     console.log(`  ${c.green("✓")} Enabled: ${c.cyan(match.id)}`);
-    activate();
+    activate({ expectChanges: true });
     console.log(`  ${c.dim("Restart the server to apply backend changes.")}`);
 }
 
@@ -658,7 +661,7 @@ function cmdDisable(pluginIdStr) {
     state.plugins[match.id] = { enabled: false };
     saveState(state);
     console.log(`  ${c.red("✗")} Disabled: ${c.cyan(match.id)}`);
-    activate();
+    activate({ expectChanges: true });
     console.log(`  ${c.dim("Restart the server to apply backend changes.")}`);
 }
 
@@ -708,7 +711,7 @@ function cmdUpdate(repoName) {
         console.log(`\n  ${c.green(`Updated ${updated} repo(s).`)}`);
     }
 
-    activate();
+    activate({ expectChanges: true });
     console.log(`  ${c.dim("Restart the server to apply backend changes.")}\n`);
 }
 
