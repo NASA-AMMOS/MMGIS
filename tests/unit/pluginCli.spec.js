@@ -65,15 +65,15 @@ test.describe('plugin-cli', () => {
         const { stdout, exitCode } = runCli('list');
         expect(exitCode).toBe(0);
         expect(stdout).toContain('core/');
-        expect(stdout).toContain('tools/Draw');
+        expect(stdout).toContain('Draw');
         expect(stdout).toContain('(core)');
-        expect(stdout).toContain('Total:');
+        expect(stdout).toContain('plugin(s)');
     });
 
     test('info command shows plugin details', () => {
         const { stdout, exitCode } = runCli('info Draw');
         expect(exitCode).toBe(0);
-        expect(stdout).toContain('Plugin: core/tools/Draw');
+        expect(stdout).toContain('core/tools/Draw');
         expect(stdout).toContain('Name:');
         expect(stdout).toContain('Type:');
         expect(stdout).toContain('Status:');
@@ -82,7 +82,7 @@ test.describe('plugin-cli', () => {
     test('info command with full ID', () => {
         const { stdout, exitCode } = runCli('info core/tools/Draw');
         expect(exitCode).toBe(0);
-        expect(stdout).toContain('Plugin: core/tools/Draw');
+        expect(stdout).toContain('core/tools/Draw');
     });
 
     test('info fails for nonexistent plugin', () => {
@@ -99,8 +99,8 @@ test.describe('plugin-cli', () => {
     test('deps command shows dependency info', () => {
         const { stdout, exitCode } = runCli('deps');
         expect(exitCode).toBe(0);
-        expect(stdout).toContain('npm dependencies:');
-        expect(stdout).toContain('conflict(s)');
+        expect(stdout).toContain('npm dep');
+        expect(stdout).toContain('conflict');
     });
 
     test('remove core is rejected', () => {

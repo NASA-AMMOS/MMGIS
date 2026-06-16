@@ -258,47 +258,55 @@ function cmdList() {
         return;
     }
 
-    // Group by container.
+    // Group by container → type → plugins.
     const groups = {};
     for (const p of plugins) {
-        if (!groups[p.container]) groups[p.container] = [];
-        groups[p.container].push(p);
+        if (!groups[p.container]) groups[p.container] = {};
+        if (!groups[p.container][p.type]) groups[p.container][p.type] = [];
+        groups[p.container][p.type].push(p);
     }
 
-    // Compute column widths for alignment.
-    let maxId = 0;
+    // Type display helpers — colour per type and friendly labels.
+    const TYPE_LABELS = { tools: "Tools", backend: "Backend", components: "Components" };
+    const TYPE_COLOR = { tools: c.cyan, backend: c.magenta, components: c.blue };
+
+    // Compute column widths for alignment (name only, since type is a header).
+    let maxName = 0;
     let maxVer = 0;
-    const rows = [];
-    for (const [container, items] of Object.entries(groups)) {
-        for (const p of items) {
-            const id = `${p.type}/${p.name}`;
-            const ver = p.manifest && p.manifest.version ? `v${p.manifest.version === "core" ? getMMGISVersion() : p.manifest.version}` : "";
-            if (id.length > maxId) maxId = id.length;
-            if (ver.length > maxVer) maxVer = ver.length;
-            rows.push({ container, p, id, ver });
-        }
+    for (const p of plugins) {
+        if (p.name.length > maxName) maxName = p.name.length;
+        const ver = p.manifest && p.manifest.version ? `v${p.manifest.version === "core" ? getMMGISVersion() : p.manifest.version}` : "";
+        if (ver.length > maxVer) maxVer = ver.length;
     }
 
     let enabledCount = 0;
     let disabledCount = 0;
-    let currentContainer = null;
+    const TYPE_ORDER = ["tools", "backend", "components"];
 
-    for (const { container, p, id, ver } of rows) {
-        if (container !== currentContainer) {
-            currentContainer = container;
-            console.log(`\n  ${c.bold(c.white(container + "/"))}`);
+    for (const [container, types] of Object.entries(groups)) {
+        console.log(`\n  ${c.bold(c.white(container + "/"))}`);
+        for (const type of TYPE_ORDER) {
+            const items = types[type];
+            if (!items || items.length === 0) continue;
+            const colorFn = TYPE_COLOR[type] || c.white;
+            const label = TYPE_LABELS[type] || type;
+            console.log(`    ${colorFn(c.bold(label))}`);
+
+            for (const p of items) {
+                const enabled = isPluginEnabled(p, state);
+                if (enabled) enabledCount++;
+                else disabledCount++;
+
+                const status = enabled ? c.green("✓") : c.red("✗");
+                const paddedName = p.name.padEnd(maxName);
+                const ver = p.manifest && p.manifest.version ? `v${p.manifest.version === "core" ? getMMGISVersion() : p.manifest.version}` : "";
+                const verStr = ver ? c.yellow(ver.padEnd(maxVer)) : "".padEnd(maxVer);
+                const tier = p.manifest && p.manifest.tier ? c.dim(`[${p.manifest.tier}]`) : "";
+                const coreLabel = isCore(p) ? c.gray(" (core)") : "";
+
+                console.log(`      ${status} ${colorFn(paddedName)}  ${verStr}  ${tier}${coreLabel}`);
+            }
         }
-        const enabled = isPluginEnabled(p, state);
-        if (enabled) enabledCount++;
-        else disabledCount++;
-
-        const status = enabled ? c.green("✓") : c.red("✗");
-        const paddedId = id.padEnd(maxId);
-        const verStr = ver ? c.yellow(ver.padEnd(maxVer)) : "".padEnd(maxVer);
-        const tier = p.manifest && p.manifest.tier ? c.dim(`[${p.manifest.tier}]`) : "";
-        const coreLabel = isCore(p) ? c.gray(" (core)") : "";
-
-        console.log(`    ${status} ${c.cyan(paddedId)}  ${verStr}  ${tier}${coreLabel}`);
     }
 
     // Summary bar
@@ -720,59 +728,51 @@ function cmdInfo(pluginIdStr) {
     const enabled = isPluginEnabled(match, state);
     const m = match.manifest || {};
 
-    // Build rows for the info box.
-    const rows = [];
-    const row = (label, value) => { if (value !== undefined && value !== null) rows.push([label, value]); };
-
-    row("Name", c.bold(c.white(m.name || match.name)));
-    if (m.display_name) row("Display", m.display_name);
-    row("Type", c.magenta(match.type));
-    row("Container", match.container);
+    console.log(`\n  ${c.bold("Plugin:")} ${c.cyan(match.id)}`);
+    console.log(`  ${c.dim("─────────────────────────────")}`);
+    console.log(`  ${c.dim("Name:")}        ${m.name || match.name}`);
+    if (m.display_name) console.log(`  ${c.dim("Display:")}     ${m.display_name}`);
+    console.log(`  ${c.dim("Type:")}        ${c.magenta(match.type)}`);
+    console.log(`  ${c.dim("Container:")}   ${match.container}`);
     const statusStr = enabled
         ? c.green("enabled") + (isCore(match) ? c.gray(" (core — always enabled)") : "")
         : c.red("disabled");
-    row("Status", statusStr);
-    if (m.version) row("Version", c.yellow(resolveVersion(m.version)));
-    if (m.author) row("Author", typeof m.author === "object" ? m.author.name || JSON.stringify(m.author) : m.author);
-    if (m.license) row("License", m.license);
-    if (m.repository) row("Repository", c.blue(m.repository));
-    if (m.tier) row("Tier", m.tier);
-    if (m.id) row("Manifest ID", c.dim(m.id));
-    if (m.uuid) row("UUID", c.dim(m.uuid));
-    if (m.overridable !== undefined) row("Overridable", m.overridable ? c.green("yes") : c.red("no"));
-    if (m.description) row("Description", m.description);
-    if (m.keywords && m.keywords.length > 0) row("Keywords", m.keywords.map((k) => c.cyan(k)).join(", "));
-    if (m.engines) row("Engines", Object.entries(m.engines).map(([k, v]) => `${k}: ${c.yellow(v)}`).join(", "));
-    if (m.aliases && m.aliases.length > 0) row("Aliases", m.aliases.join(", "));
+    console.log(`  ${c.dim("Status:")}      ${statusStr}`);
+    if (m.version) console.log(`  ${c.dim("Version:")}     ${c.yellow(resolveVersion(m.version))}`);
+    if (m.author) console.log(`  ${c.dim("Author:")}      ${typeof m.author === "object" ? m.author.name || JSON.stringify(m.author) : m.author}`);
+    if (m.license) console.log(`  ${c.dim("License:")}     ${m.license}`);
+    if (m.repository) console.log(`  ${c.dim("Repository:")}  ${c.blue(m.repository)}`);
+    if (m.tier) console.log(`  ${c.dim("Tier:")}        ${m.tier}`);
+    if (m.id) console.log(`  ${c.dim("Manifest ID:")} ${m.id}`);
+    if (m.uuid) console.log(`  ${c.dim("UUID:")}        ${m.uuid}`);
+    if (m.overridable !== undefined) console.log(`  ${c.dim("Overridable:")} ${m.overridable ? c.green("yes") : c.red("no")}`);
+    if (m.description) console.log(`  ${c.dim("Description:")} ${m.description}`);
+    if (m.keywords && m.keywords.length > 0) console.log(`  ${c.dim("Keywords:")}    ${m.keywords.map((k) => c.cyan(k)).join(", ")}`);
+    if (m.engines) console.log(`  ${c.dim("Engines:")}     ${JSON.stringify(m.engines)}`);
+    if (m.aliases && m.aliases.length > 0) console.log(`  ${c.dim("Aliases:")}     ${m.aliases.join(", ")}`);
     if (m.peerDependencies) {
-        row("Peer Deps", Object.entries(m.peerDependencies).map(([k, v]) => `${c.cyan(k)}: ${c.yellow(v)}`).join(", "));
+        console.log(`  ${c.dim("Peer Deps:")}`);
+        for (const [peer, range] of Object.entries(m.peerDependencies)) {
+            console.log(`    ${c.cyan(peer)}: ${c.yellow(range)}`);
+        }
     }
     if (m.dependencies) {
         if (m.dependencies.npm) {
-            row("npm Deps", Object.entries(m.dependencies.npm).map(([k, v]) => `${c.cyan(k)}: ${c.yellow(v)}`).join(", "));
+            console.log(`  ${c.dim("npm Deps:")}`);
+            for (const [pkg, ver] of Object.entries(m.dependencies.npm)) {
+                console.log(`    ${c.cyan(pkg)}: ${c.yellow(ver)}`);
+            }
         }
         if (m.dependencies.python) {
-            if (m.dependencies.python.pip) row("pip Deps", m.dependencies.python.pip.map((d) => c.cyan(d)).join(", "));
-            if (m.dependencies.python.conda) row("conda Deps", m.dependencies.python.conda.map((d) => c.cyan(d)).join(", "));
+            if (m.dependencies.python.pip) {
+                console.log(`  ${c.dim("pip Deps:")}    ${m.dependencies.python.pip.join(", ")}`);
+            }
+            if (m.dependencies.python.conda) {
+                console.log(`  ${c.dim("conda Deps:")}  ${m.dependencies.python.conda.join(", ")}`);
+            }
         }
     }
-    row("Path", c.dim(match.pluginPath));
-
-    // Box drawing
-    const title = match.id;
-    const labelWidth = Math.max(...rows.map(([l]) => l.length));
-    // Compute inner width from the title or widest plain-text row.
-    const innerWidth = Math.max(title.length + 2, labelWidth + 4 + 40);
-
-    console.log("");
-    console.log(`  ${c.dim("┌" + "─".repeat(innerWidth + 2) + "┐")}`);
-    console.log(`  ${c.dim("│")} ${c.bold(c.cyan(title))}${" ".repeat(Math.max(0, innerWidth - title.length))} ${c.dim("│")}`);
-    console.log(`  ${c.dim("├" + "─".repeat(innerWidth + 2) + "┤")}`);
-    for (const [label, value] of rows) {
-        const paddedLabel = c.dim(label.padEnd(labelWidth));
-        console.log(`  ${c.dim("│")} ${paddedLabel}  ${value}`);
-    }
-    console.log(`  ${c.dim("└" + "─".repeat(innerWidth + 2) + "┘")}`);
+    console.log(`  ${c.dim("Path:")}        ${c.dim(match.pluginPath)}`);
     console.log("");
 }
 
