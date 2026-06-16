@@ -187,7 +187,7 @@ function parsePreImports(filePath) {
  *
  * Only prints the diff (added/removed) rather than the full list.
  */
-function activate({ expectChanges = false } = {}) {
+function activate({ expectChanges = false, silent = false } = {}) {
     try {
         const repoRoot = path.resolve(__dirname, "..");
         const toolsFile = path.join(repoRoot, "src", "pre", "tools.js");
@@ -233,23 +233,30 @@ function activate({ expectChanges = false } = {}) {
             if (!afterComponents.has(name)) removed.push({ name, type: "component" });
         }
 
-        if (added.length === 0 && removed.length === 0) {
-            const noChange = expectChanges
-                ? c.yellow("No changes detected.")
-                : c.dim("No changes.");
-            console.log(`\n  ${c.green("Frontend plugins activated.")} ${noChange}`);
-        } else {
-            console.log(`\n  ${c.green("Frontend plugins activated.")}`);
-            for (const a of added) {
-                console.log(`    ${c.green("+")} ${c.cyan(a.name)} ${c.dim(`(${a.type})`)}`);
-            }
-            for (const r of removed) {
-                console.log(`    ${c.red("-")} ${c.dim(r.name)} ${c.dim(`(${r.type})`)}`);
+        if (!silent) {
+            if (added.length === 0 && removed.length === 0) {
+                const noChange = expectChanges
+                    ? c.yellow("No changes detected.")
+                    : c.dim("No changes.");
+                console.log(`\n  ${c.green("Frontend plugins activated.")} ${noChange}`);
+            } else {
+                console.log(`\n  ${c.green("Frontend plugins activated.")}`);
+                for (const a of added) {
+                    console.log(`    ${c.green("+")} ${c.cyan(a.name)} ${c.dim(`(${a.type})`)}`);
+                }
+                for (const r of removed) {
+                    console.log(`    ${c.red("-")} ${c.dim(r.name)} ${c.dim(`(${r.type})`)}`);
+                }
             }
         }
+
+        return { added, removed, error: null };
     } catch (err) {
-        console.error(`\n  ${c.red("Failed to activate frontend plugins:")} ${err.message}`);
-        console.log(`  ${c.dim("You may need to run")} ${c.cyan("npm run build")} ${c.dim("instead.")}`);
+        if (!silent) {
+            console.error(`\n  ${c.red("Failed to activate frontend plugins:")} ${err.message}`);
+            console.log(`  ${c.dim("You may need to run")} ${c.cyan("npm run build")} ${c.dim("instead.")}`);
+        }
+        return { added: [], removed: [], error: err.message };
     }
 }
 
@@ -457,26 +464,31 @@ function cmdInstall(target) {
     const isGit = target.startsWith("http://") || target.startsWith("https://") ||
                   target.startsWith("git@") || target.endsWith(".git");
 
+    const jsonResult = FLAG_JSON ? { command: "install", source: target, method: null, discovered: [], activated: null, warnings: [] } : null;
+
     if (isGit) {
         const repoName = repoNameFromURL(target);
         const dest = path.join(PLUGINS_ROOT, repoName);
 
         if (fs.existsSync(dest)) {
+            if (FLAG_JSON) { console.log(JSON.stringify({ error: `Plugin repo '${repoName}' already exists` })); process.exit(1); }
             console.error(c.red(`Plugin repo '${repoName}' already exists at ${dest}`));
             console.error(c.yellow("Use 'update' to pull latest, or 'remove' first."));
             process.exit(1);
         }
 
-        step(1, 3, `Cloning ${c.cyan(target)} → ${c.cyan(`plugins/${repoName}/`)}`);
+        if (jsonResult) jsonResult.method = "git-clone";
+        if (!FLAG_JSON) step(1, 3, `Cloning ${c.cyan(target)} → ${c.cyan(`plugins/${repoName}/`)}`);
         try {
-            execSync(`git clone "${target}" "${dest}"`, { stdio: "inherit" });
+            execSync(`git clone "${target}" "${dest}"`, { stdio: FLAG_JSON ? "pipe" : "inherit" });
         } catch (err) {
+            if (FLAG_JSON) { console.log(JSON.stringify({ error: `Failed to clone: ${err.message}` })); process.exit(1); }
             console.error(c.red(`Failed to clone: ${err.message}`));
             process.exit(1);
         }
 
         // Auto-register in registries if not already present.
-        step(2, 3, "Registering in plugin-registries.json");
+        if (!FLAG_JSON) step(2, 3, "Registering in plugin-registries.json");
         const registries = loadRegistries();
         const existing = registries.registries.find((r) => r.url === target);
         if (!existing) {
@@ -489,9 +501,11 @@ function cmdInstall(target) {
         }
 
         // Discover what was installed and report.
-        step(3, 3, "Discovering plugins");
+        if (!FLAG_JSON) step(3, 3, "Discovering plugins");
         const plugins = discoverAll().filter((p) => p.container === repoName);
-        if (plugins.length > 0) {
+        if (FLAG_JSON) {
+            jsonResult.discovered = plugins.map((p) => ({ id: p.id, type: p.type, name: p.name }));
+        } else if (plugins.length > 0) {
             console.log(`\n  ${c.green(`Discovered ${plugins.length} plugin(s):`)}`)
             for (const p of plugins) {
                 console.log(`    ${c.cyan(p.type + "/" + p.name)}`);
@@ -517,7 +531,8 @@ function cmdInstall(target) {
         }
 
         if (FLAG_LINK) {
-            step(1, 2, `Linking ${c.cyan(absPath)} → ${c.cyan(`plugins/${repoName}/`)}`);
+            if (jsonResult) jsonResult.method = "symlink";
+            if (!FLAG_JSON) step(1, 2, `Linking ${c.cyan(absPath)} → ${c.cyan(`plugins/${repoName}/`)}`);
             try {
                 fs.symlinkSync(absPath, dest, "dir");
             } catch (err) {
@@ -529,13 +544,16 @@ function cmdInstall(target) {
                 }
             }
         } else {
-            step(1, 2, `Copying ${c.cyan(absPath)} → ${c.cyan(`plugins/${repoName}/`)}`);
+            if (jsonResult) jsonResult.method = "copy";
+            if (!FLAG_JSON) step(1, 2, `Copying ${c.cyan(absPath)} → ${c.cyan(`plugins/${repoName}/`)}`);
             cpDirSync(absPath, dest);
         }
 
-        step(2, 2, "Discovering plugins");
+        if (!FLAG_JSON) step(2, 2, "Discovering plugins");
         const plugins = discoverAll().filter((p) => p.container === repoName);
-        if (plugins.length === 0) {
+        if (FLAG_JSON) {
+            jsonResult.discovered = plugins.map((p) => ({ id: p.id, type: p.type, name: p.name }));
+        } else if (plugins.length === 0) {
             console.log(`  ${c.red(`Discovered ${plugins.length} plugin(s).`)}`);
         } else {
             console.log(`  ${c.green(`Discovered ${plugins.length} plugin(s).`)}`);
@@ -564,19 +582,29 @@ function cmdInstall(target) {
                 } catch { /* ignore */ }
 
                 if (foundLegacy) {
-                    console.log(
-                        `\n  ${c.yellow("Warning:")} This repo appears to have plugins directly under the root ` +
-                        `without a ${c.cyan("tools/")}, ${c.cyan("backend/")}, or ${c.cyan("components/")} subdirectory.\n` +
-                        `  The plugin system expects: ${c.cyan("<repo>/tools/<PluginName>/plugin.json")}\n` +
-                        `  See ${c.cyan("plugins/README.md")} for the expected directory structure.`
-                    );
+                    if (jsonResult) jsonResult.warnings.push("Repo has flat structure — no tools/backend/components subdirectory");
+                    if (!FLAG_JSON) {
+                        console.log(
+                            `\n  ${c.yellow("Warning:")} This repo appears to have plugins directly under the root ` +
+                            `without a ${c.cyan("tools/")}, ${c.cyan("backend/")}, or ${c.cyan("components/")} subdirectory.\n` +
+                            `  The plugin system expects: ${c.cyan("<repo>/tools/<PluginName>/plugin.json")}\n` +
+                            `  See ${c.cyan("plugins/README.md")} for the expected directory structure.`
+                        );
+                    }
                 }
             }
         }
     }
 
-    activate({ expectChanges: true });
-    console.log(`  ${c.dim("Restart the server to activate backend plugins.")}\n`);
+    if (FLAG_JSON) {
+        const act = activate({ expectChanges: true, silent: true });
+        jsonResult.activated = { added: act.added, removed: act.removed };
+        if (act.error) jsonResult.warnings.push(act.error);
+        console.log(JSON.stringify(jsonResult, null, 2));
+    } else {
+        activate({ expectChanges: true });
+        console.log(`  ${c.dim("Restart the server to activate backend plugins.")}\n`);
+    }
 }
 
 function cmdRemove(repoName) {
@@ -596,7 +624,7 @@ function cmdRemove(repoName) {
         process.exit(1);
     }
 
-    step(1, 3, "Removing from state file");
+    if (!FLAG_JSON) step(1, 3, "Removing from state file");
     const state = loadState();
     const keysToRemove = Object.keys(state.plugins).filter((k) => k.startsWith(repoName + "/"));
     for (const k of keysToRemove) {
@@ -604,12 +632,12 @@ function cmdRemove(repoName) {
     }
     saveState(state);
 
-    step(2, 3, "Removing from registries");
+    if (!FLAG_JSON) step(2, 3, "Removing from registries");
     const registries = loadRegistries();
     registries.registries = registries.registries.filter((r) => r.name !== repoName);
     saveRegistries(registries);
 
-    step(3, 3, "Deleting directory");
+    if (!FLAG_JSON) step(3, 3, "Deleting directory");
     const stat = fs.lstatSync(dest);
     if (stat.isSymbolicLink()) {
         fs.unlinkSync(dest);
@@ -617,9 +645,14 @@ function cmdRemove(repoName) {
         fs.rmSync(dest, { recursive: true, force: true });
     }
 
-    console.log(`\n  ${c.green(`Removed plugin repo '${repoName}'.`)}`);
-    activate({ expectChanges: true });
-    console.log(`  ${c.dim("Restart the server to apply backend changes.")}\n`);
+    if (FLAG_JSON) {
+        const act = activate({ expectChanges: true, silent: true });
+        console.log(JSON.stringify({ command: "remove", repo: repoName, activated: { added: act.added, removed: act.removed } }, null, 2));
+    } else {
+        console.log(`\n  ${c.green(`Removed plugin repo '${repoName}'.`)}`);
+        activate({ expectChanges: true });
+        console.log(`  ${c.dim("Restart the server to apply backend changes.")}\n`);
+    }
 }
 
 function cmdEnable(pluginIdStr) {
@@ -646,9 +679,15 @@ function cmdEnable(pluginIdStr) {
     const state = loadState();
     state.plugins[match.id] = { enabled: true };
     saveState(state);
-    console.log(`  ${c.green("✓")} Enabled: ${c.cyan(match.id)}`);
-    activate({ expectChanges: true });
-    console.log(`  ${c.dim("Restart the server to apply backend changes.")}`);
+
+    if (FLAG_JSON) {
+        const act = activate({ expectChanges: true, silent: true });
+        console.log(JSON.stringify({ command: "enable", plugin: match.id, activated: { added: act.added, removed: act.removed } }, null, 2));
+    } else {
+        console.log(`  ${c.green("✓")} Enabled: ${c.cyan(match.id)}`);
+        activate({ expectChanges: true });
+        console.log(`  ${c.dim("Restart the server to apply backend changes.")}`);
+    }
 }
 
 function cmdDisable(pluginIdStr) {
@@ -673,9 +712,15 @@ function cmdDisable(pluginIdStr) {
     const state = loadState();
     state.plugins[match.id] = { enabled: false };
     saveState(state);
-    console.log(`  ${c.red("✗")} Disabled: ${c.cyan(match.id)}`);
-    activate({ expectChanges: true });
-    console.log(`  ${c.dim("Restart the server to apply backend changes.")}`);
+
+    if (FLAG_JSON) {
+        const act = activate({ expectChanges: true, silent: true });
+        console.log(JSON.stringify({ command: "disable", plugin: match.id, activated: { added: act.added, removed: act.removed } }, null, 2));
+    } else {
+        console.log(`  ${c.red("✗")} Disabled: ${c.cyan(match.id)}`);
+        activate({ expectChanges: true });
+        console.log(`  ${c.dim("Restart the server to apply backend changes.")}`);
+    }
 }
 
 function cmdUpdate(repoName) {
@@ -691,41 +736,50 @@ function cmdUpdate(repoName) {
             console.error(c.yellow("Core plugins are updated with the main MMGIS repo."));
             process.exit(1);
         }
-        step(1, 1, `Pulling latest for ${c.cyan(repoName)}`);
+        if (!FLAG_JSON) step(1, 1, `Pulling latest for ${c.cyan(repoName)}`);
         try {
-            execSync("git pull", { cwd: dest, stdio: "inherit" });
-            console.log(`  ${c.green("Done.")}`);
+            execSync("git pull", { cwd: dest, stdio: FLAG_JSON ? "pipe" : "inherit" });
+            if (!FLAG_JSON) console.log(`  ${c.green("Done.")}`);
         } catch (err) {
+            if (FLAG_JSON) { console.log(JSON.stringify({ error: `Failed to update ${repoName}: ${err.message}` })); process.exit(1); }
             console.error(c.red(`Failed to update ${repoName}: ${err.message}`));
             process.exit(1);
         }
     } else {
         const repos = registries.registries;
         if (repos.length === 0) {
+            if (FLAG_JSON) { console.log(JSON.stringify({ command: "update", updated: 0, repos: [] })); return; }
             console.log(c.yellow("No registered plugin repos to update."));
             return;
         }
         let updated = 0;
+        const updatedRepos = [];
         for (let i = 0; i < repos.length; i++) {
             const reg = repos[i];
             const dest = path.join(PLUGINS_ROOT, reg.name);
             if (!fs.existsSync(dest) || !fs.existsSync(path.join(dest, ".git"))) {
-                step(i + 1, repos.length, `Skipping ${c.dim(reg.name)} (not a git repo on disk)`);
+                if (!FLAG_JSON) step(i + 1, repos.length, `Skipping ${c.dim(reg.name)} (not a git repo on disk)`);
                 continue;
             }
-            step(i + 1, repos.length, `Pulling latest for ${c.cyan(reg.name)}`);
+            if (!FLAG_JSON) step(i + 1, repos.length, `Pulling latest for ${c.cyan(reg.name)}`);
             try {
-                execSync("git pull", { cwd: dest, stdio: "inherit" });
+                execSync("git pull", { cwd: dest, stdio: FLAG_JSON ? "pipe" : "inherit" });
                 updated++;
+                updatedRepos.push(reg.name);
             } catch (err) {
-                console.error(`    ${c.red("Failed:")} ${err.message}`);
+                if (!FLAG_JSON) console.error(`    ${c.red("Failed:")} ${err.message}`);
             }
         }
-        console.log(`\n  ${c.green(`Updated ${updated} repo(s).`)}`);
+        if (!FLAG_JSON) console.log(`\n  ${c.green(`Updated ${updated} repo(s).`)}`);
     }
 
-    activate({ expectChanges: true });
-    console.log(`  ${c.dim("Restart the server to apply backend changes.")}\n`);
+    if (FLAG_JSON) {
+        const act = activate({ expectChanges: true, silent: true });
+        console.log(JSON.stringify({ command: "update", repo: repoName || "all", activated: { added: act.added, removed: act.removed } }, null, 2));
+    } else {
+        activate({ expectChanges: true });
+        console.log(`  ${c.dim("Restart the server to apply backend changes.")}\n`);
+    }
 }
 
 function cmdValidate() {
@@ -735,18 +789,22 @@ function cmdValidate() {
 
     const plugins = discoverAll();
     const state = loadState();
+    const results = [];
     let errors = 0;
     let warnings = 0;
     let passed = 0;
 
-    console.log("");
+    if (!FLAG_JSON) console.log("");
     for (const p of plugins) {
         const enabled = isPluginEnabled(p, state);
         const prefix = p.id;
+        const pluginErrors = [];
 
         if (!p.manifest) {
-            console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red("missing or invalid plugin.json")}`);
+            pluginErrors.push("missing or invalid plugin.json");
+            if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red("missing or invalid plugin.json")}`);
             errors++;
+            results.push({ plugin: prefix, valid: false, enabled, errors: pluginErrors });
             continue;
         }
 
@@ -756,7 +814,8 @@ function cmdValidate() {
         const errs = validatePluginConfig(p.manifest, p.name, validationType);
         if (errs.length > 0) {
             for (const e of errs) {
-                console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`);
+                pluginErrors.push(e);
+                if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`);
             }
             errors += errs.length;
         }
@@ -764,17 +823,26 @@ function cmdValidate() {
         if (p.manifest.dependencies) {
             const depErrs = validateDependencies(p.manifest.dependencies, p.name);
             for (const e of depErrs) {
-                console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`);
+                pluginErrors.push(e);
+                if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`);
             }
             errors += depErrs.length;
         }
 
         if (!enabled) {
-            console.log(`  ${c.yellow("⚠")} ${c.cyan(prefix)}: ${c.yellow("disabled")}`);
+            if (!FLAG_JSON) console.log(`  ${c.yellow("⚠")} ${c.cyan(prefix)}: ${c.yellow("disabled")}`);
             warnings++;
         } else if (errs.length === 0) {
             passed++;
         }
+
+        results.push({ plugin: prefix, valid: pluginErrors.length === 0, enabled, errors: pluginErrors });
+    }
+
+    if (FLAG_JSON) {
+        console.log(JSON.stringify({ valid: errors === 0, total: plugins.length, passed, errors, warnings, results }, null, 2));
+        if (errors > 0) process.exit(1);
+        return;
     }
 
     if (errors === 0) {
@@ -806,9 +874,23 @@ function cmdDeps() {
             deps: p.manifest.dependencies,
         }));
 
-    console.log(`\n  ${c.bold(c.white("npm dependencies:"))}`);
     const { merged: npmMerged, conflicts: npmConflicts } = mergeNpm(sources);
     const npmKeys = Object.keys(npmMerged);
+    const { merged: pipMerged, conflicts: pipConflicts } = mergePython(sources, "pip");
+    const { merged: condaMerged, conflicts: condaConflicts } = mergePython(sources, "conda");
+    const peerWarnings = checkPeerDependencies(active);
+
+    if (FLAG_JSON) {
+        console.log(JSON.stringify({
+            npm: { merged: npmMerged, conflicts: npmConflicts },
+            pip: { merged: pipMerged, conflicts: pipConflicts },
+            conda: { merged: condaMerged, conflicts: condaConflicts },
+            peerWarnings,
+        }, null, 2));
+        return;
+    }
+
+    console.log(`\n  ${c.bold(c.white("npm dependencies:"))}`);
     if (npmKeys.length === 0) {
         console.log(`    ${c.dim("(none)")}`);
     } else {
@@ -828,7 +910,6 @@ function cmdDeps() {
     }
 
     // Python deps — pip.
-    const { merged: pipMerged, conflicts: pipConflicts } = mergePython(sources, "pip");
     if (pipMerged.length > 0) {
         console.log(`\n  ${c.bold(c.white("pip dependencies:"))}`);
         for (const dep of pipMerged) {
@@ -847,7 +928,6 @@ function cmdDeps() {
     }
 
     // Python deps — conda.
-    const { merged: condaMerged, conflicts: condaConflicts } = mergePython(sources, "conda");
     if (condaMerged.length > 0) {
         console.log(`\n  ${c.bold(c.white("conda dependencies:"))}`);
         for (const dep of condaMerged) {
@@ -866,7 +946,6 @@ function cmdDeps() {
     }
 
     // Peer dependencies.
-    const peerWarnings = checkPeerDependencies(active);
     if (peerWarnings.length > 0) {
         console.log(`\n  ${c.yellow("⚠ peerDependency warnings:")}`);
         for (const w of peerWarnings) {
@@ -1208,7 +1287,7 @@ function cmdCreate(type, name) {
     const containerDir = path.join(PLUGINS_ROOT, container);
     if (!fs.existsSync(containerDir)) {
         fs.mkdirSync(containerDir, { recursive: true });
-        console.log(`  ${c.green("✓")} Created container: ${c.cyan(container + "/")}`);
+        if (!FLAG_JSON) console.log(`  ${c.green("✓")} Created container: ${c.cyan(container + "/")}`);
     }
 
     // Generate scaffold files.
@@ -1237,6 +1316,20 @@ function cmdCreate(type, name) {
         fs.mkdirSync(path.dirname(fullPath), { recursive: true });
         fs.writeFileSync(fullPath, content, "utf8");
         created.push(relPath);
+    }
+
+    if (FLAG_JSON) {
+        let activated = null;
+        if (type === "tool" || type === "component") {
+            activated = activate({ expectChanges: true, silent: true });
+        }
+        console.log(JSON.stringify({
+            command: "create", type, name,
+            container, path: `${container}/${typeDir}/${name}`,
+            files: created,
+            activated: activated ? { added: activated.added, removed: activated.removed } : null,
+        }, null, 2));
+        return;
     }
 
     console.log(`\n  ${c.green("Created")} ${c.cyan(`${container}/${typeDir}/${name}`)}:`);
@@ -1291,7 +1384,7 @@ ${h("help", "Show this help")}
 
   ${c.bold(c.white("Flags:"))}
     ${c.cyan("--no-color".padEnd(30))} ${c.dim("Disable colored output (also respects NO_COLOR env)")}
-    ${c.cyan("--json".padEnd(30))} ${c.dim("Output machine-readable JSON (list, info)")}
+    ${c.cyan("--json".padEnd(30))} ${c.dim("Output machine-readable JSON (all commands)")}
     ${c.cyan("--link".padEnd(30))} ${c.dim("Symlink local paths instead of copy (falls back to junction on Windows)")}
     ${c.cyan("--container <name>".padEnd(30))} ${c.dim("Target container for create command")}
 
@@ -1339,7 +1432,12 @@ switch (command) {
         cmdCreate(args[1], args[2]);
         break;
     case "activate":
-        activate();
+        if (FLAG_JSON) {
+            const act = activate({ silent: true });
+            console.log(JSON.stringify(act, null, 2));
+        } else {
+            activate();
+        }
         break;
     case "validate":
         cmdValidate();
