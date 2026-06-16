@@ -8,6 +8,6 @@
     "hasVars": false,
     "toolbarPriority": 9999,
     "paths": {
-        "TestPluginTool": "essence/Plugin-Tools-Test/TestPlugin/TestPluginTool"
+        "TestPluginTool": "../plugins/mmgis-test/tools/TestPlugin/TestPluginTool"
     }
 }

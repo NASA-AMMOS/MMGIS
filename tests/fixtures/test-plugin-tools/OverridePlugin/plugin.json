@@ -5,6 +5,6 @@
     "hasVars": false,
     "toolbarPriority": 9998,
     "paths": {
-        "IdentifierTool": "essence/Plugin-Tools-Test/OverridePlugin/IdentifierTool"
+        "IdentifierTool": "../plugins/mmgis-test/tools/Identifier/IdentifierTool"
     }
 }
