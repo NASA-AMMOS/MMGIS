@@ -1163,9 +1163,6 @@ function _scaffoldTool(name) {
         [`${name}Tool.css`]: [
             `.${name[0].toLowerCase() + name.slice(1)}Tool {`,
             `}`,
-            `.${name[0].toLowerCase() + name.slice(1)}Tool .mmgisToolHeader > div > div:last-child {`,
-            `    margin-right: 6px;`,
-            `}`,
             `.${name[0].toLowerCase() + name.slice(1)}Tool_content {`,
             `    padding: 8px;`,
             `}`,

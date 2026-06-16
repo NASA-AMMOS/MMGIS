@@ -21,10 +21,6 @@
     color: var(--color-h);
 }
 
-#sightlineTool .mmgisToolHeader > div > div:last-child {
-    margin-right: 6px;
-}
-
 /* Editable time field — matches old ShadeTool vstOptionTime */
 #sightlineTool .vstOptionTime .flexbetween {
     position: relative;
