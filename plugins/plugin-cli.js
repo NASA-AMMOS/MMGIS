@@ -538,7 +538,7 @@ function cmdDeps() {
         for (const c of pipConflicts) {
             console.log(`    ${c.package}:`);
             for (const claim of c.claims) {
-                console.log(`      ${claim.plugin}: ${claim.version}`);
+                console.log(`      ${claim.plugin}: ${claim.entry}`);
             }
         }
     }
