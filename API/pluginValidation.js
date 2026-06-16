@@ -61,6 +61,7 @@ const KNOWN_FIELDS = {
   ]),
   backend: new Set([
     ...COMMON_FIELDS,
+    "description",
     "priority",
     "envs",
     "routes",
