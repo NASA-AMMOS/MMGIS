@@ -21,6 +21,7 @@ const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
  */
 function getBackendSetups(cb) {
   let setups = {};
+  const setupManifests = {};
 
   // Single-pass scan of plugins/*/backend/ — discover via plugin.json,
   // then require the sibling plugin.js for lifecycle hooks.
@@ -45,8 +46,9 @@ function getBackendSetups(cb) {
     }
     const isOverride = setups[plugin.name] !== undefined;
 
-    // Enforce overridable: false from plugin.json metadata.
-    if (isOverride && plugin.manifest && plugin.manifest.overridable === false) {
+    // Enforce overridable: false — check the *already-registered* plugin's
+    // manifest to see if it forbids being overridden.
+    if (isOverride && setupManifests[plugin.name] && setupManifests[plugin.name].overridable === false) {
       logger(
         "error",
         `Backend '${plugin.name}' is marked overridable:false and cannot be overridden by ${plugin.container}`,
@@ -56,6 +58,7 @@ function getBackendSetups(cb) {
     }
 
     setups[plugin.name] = lifecycle;
+    setupManifests[plugin.name] = plugin.manifest;
     logger(
       "loaded",
       `Backend: ${plugin.name} from ${plugin.container}${
