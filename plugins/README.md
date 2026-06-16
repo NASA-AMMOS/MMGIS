@@ -39,6 +39,9 @@ plugins/
 # List all plugins
 npm run plugins -- list
 
+# Create a new plugin
+npm run plugins -- create tool MyTool --container my-plugins
+
 # Install from a git repo
 npm run plugins -- install https://github.com/org/mmgis-geo-plugins.git
 
@@ -54,6 +57,10 @@ npm run plugins -- deps
 
 # Plugin details
 npm run plugins -- info Draw
+
+# Machine-readable output (works with all commands)
+npm run plugins -- list --json
+npm run plugins -- validate --json
 ```
 
 ## CLI Commands
@@ -66,6 +73,7 @@ npm run plugins -- info Draw
 | `enable <plugin-id>` | Mark a plugin as active in `plugin-state.json` |
 | `disable <plugin-id>` | Mark a plugin as inactive (cannot disable `core` plugins) |
 | `update [repo-name]` | `git pull` latest for one or all installed repos |
+| `create <type> <Name>` | Scaffold a new plugin (tool, backend, component) |
 | `activate` | Regenerate frontend plugin imports without a full build |
 | `validate` | Validate all `plugin.json` manifests |
 | `deps` | Show aggregated npm/pip/conda dependencies with conflict detection |
@@ -80,8 +88,9 @@ npm run plugins -- info Draw
 | Flag | Description |
 |------|-------------|
 | `--no-color` | Disable colored output (also respects `NO_COLOR` env) |
-| `--json` | Output machine-readable JSON (`list`, `info`) |
+| `--json` | Output machine-readable JSON (all commands) |
 | `--link` | Symlink local paths instead of copy (falls back to junction on Windows) |
+| `--container <name>` | Target container for `create` command |
 
 ### Plugin IDs
 
@@ -162,75 +171,83 @@ UI components loaded into the MMGIS interface. Have `plugin.json` with component
 
 ## Creating a Plugin
 
+The fastest way to create a new plugin is with the `create` command:
+
+```bash
+# Create a tool
+npm run plugins -- create tool MyTool --container my-plugins
+
+# Create a backend module
+npm run plugins -- create backend MyModule --container my-plugins
+
+# Create a component
+npm run plugins -- create component MyWidget --container my-plugins
+
+# Create a core plugin
+npm run plugins -- create tool NewCoreTool --container core
+```
+
+This scaffolds the directory structure, `plugin.json`, entry point, CSS, and a test spec. Frontend plugins are auto-activated.
+
 ### Tool Template
 
-Directory structure:
+Directory structure (scaffolded by `create tool`):
 ```
-plugins/<your-repo>/tools/MyTool/
+plugins/<container>/tools/MyTool/
 ├── plugin.json
-└── MyTool.js
+├── MyToolTool.js
+├── MyToolTool.css
+└── tests/
+    └── myToolTool.spec.js
 ```
 
-**`plugin.json`**:
+**`plugin.json`** (minimal required):
 ```json
 {
     "name": "MyTool",
-    "display_name": "My Tool",
     "type": "tool",
-    "version": "1.0.0",
-    "description": "A custom MMGIS tool.",
-    "author": "Your Name",
-    "license": "Apache-2.0",
     "paths": {
-        "MyTool": "MyTool"
+        "MyToolTool": "../plugins/<container>/tools/MyTool/MyToolTool"
     }
 }
 ```
 
-**`MyTool.js`**:
+**`MyToolTool.js`** (React-based, following Sightline pattern):
 ```js
-import $ from 'jquery'
-import F_ from '@basics/Formulae_/Formulae_'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+
 import L_ from '@basics/Layers_/Layers_'
 import Map_ from '@basics/Map_/Map_'
 
-// prettier-ignore
-const markup = [
-    `<div id='myTool'>`,
-    `</div>`
-].join('\n')
+import './MyToolTool.css'
 
-const MyTool = {
+let MyToolTool = {
     height: 0,
     width: 300,
-    MMGISInterface: null,
+    _root: null,
+
     make: function () {
-        this.MMGISInterface = new interfaceWithMMGIS()
+        const toolPanel = document.getElementById('toolPanel')
+        if (toolPanel) toolPanel.innerHTML = ''
+
+        MyToolTool._root = createRoot(toolPanel)
+        MyToolTool._root.render(
+            <div className='myToolTool'>
+                MyTool
+            </div>
+        )
     },
+
     destroy: function () {
-        this.MMGISInterface.separateFromMMGIS()
-    },
-    getUrlString: function () {
-        return ''
+        if (MyToolTool._root) {
+            MyToolTool._root.unmount()
+            MyToolTool._root = null
+        }
     },
 }
 
-function interfaceWithMMGIS() {
-    this.separateFromMMGIS = function () {
-        separateFromMMGIS()
-    }
-
-    const toolsContainer = $('#toolPanel')
-    toolsContainer.css('background', 'transparent')
-    toolsContainer.empty()
-
-    const tools = $('<div>').css('height', '100%').html(markup)
-    toolsContainer.append(tools)
-
-    function separateFromMMGIS() {}
-}
-
-export default MyTool
+export default MyToolTool
 ```
 
 **Webpack aliases** available for imports (no fragile relative paths needed):
