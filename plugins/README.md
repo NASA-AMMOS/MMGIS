@@ -219,7 +219,7 @@ plugins/<container>/tools/MyTool/
 }
 ```
 
-**`MyToolTool.js`** (React-based, following Sightline pattern):
+**`MyToolTool.js`**:
 ```js
 import React from 'react'
 import { createRoot } from 'react-dom/client'
@@ -338,19 +338,13 @@ Every MMGIS plugin has a `plugin.json` manifest at the root of its directory. Th
 
 #### `name`
 
-| | |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes (all types) |
+**Type:** `string` · **Required:** Yes (all types)
 
 The canonical name of the plugin. Used as the display name in the CLI, configure page, and internal lookups. Should match the directory name by convention.
 
 #### `paths`
 
-| | |
-|---|---|
-| **Type** | `object` — `{ [entryName: string]: string }` |
-| **Required** | Yes (tools and components only) |
+**Type:** `object` — `{ [entryName: string]: string }` · **Required:** Yes (tools and components only)
 
 Maps entry-point names to their file paths (relative to the project root, prefixed with `../plugins/`). For tools, the key is typically `<Name>Tool`. For components, it's the component name.
 
@@ -366,28 +360,19 @@ These paths are written into `src/pre/tools.js` and `src/pre/components.js` as w
 
 #### `type`
 
-| | |
-|---|---|
-| **Type** | `string` — one of `"tool"`, `"component"`, `"backend"` |
-| **Required** | No (inferred from directory structure) |
+**Type:** `string` — one of `"tool"`, `"component"`, `"backend"` · **Required:** No (inferred from directory structure)
 
 Uses **singular** form even though directory names are plural (`tools/`, `components/`).
 
 #### `version`
 
-| | |
-|---|---|
-| **Type** | `string` |
+**Type:** `string`
 
 Semantic version. Core plugins use `"core"` which resolves to the MMGIS application version at runtime.
 
 #### `defaultIcon`
 
-| | |
-|---|---|
-| **Type** | `string` |
-| **Default** | Falls back to `"puzzle-outline"` if not set |
-| **Applies to** | Tools, Components |
+**Type:** `string` · **Default:** `"puzzle-outline"` · **Applies to:** Tools, Components
 
 Icon displayed in the toolbar and configure page. Uses [Ionicons](https://ionic.io/ionicons) icon names.
 
@@ -395,33 +380,25 @@ Icon displayed in the toolbar and configure page. Uses [Ionicons](https://ionic.
 
 #### `id`
 
-| | |
-|---|---|
-| **Type** | `string` |
+**Type:** `string`
 
 A short human-friendly identifier, typically `<container>-<name>` in lowercase. Not used for lookups — the runtime ID is computed as `<container>/<type>/<name>`.
 
 #### `uuid`
 
-| | |
-|---|---|
-| **Type** | `string` |
+**Type:** `string`
 
 Currently informational — not used in any lookup or logic. May become relevant if a plugin marketplace is added.
 
 #### `display_name`
 
-| | |
-|---|---|
-| **Type** | `string` |
+**Type:** `string`
 
 A human-friendly display name, potentially different from `name`.
 
 #### `aliases`
 
-| | |
-|---|---|
-| **Type** | `string[]` |
+**Type:** `string[]`
 
 Alternative names for the plugin. Currently informational — may be used in future CLI lookup resolution.
 
@@ -429,27 +406,19 @@ Alternative names for the plugin. Currently informational — may be used in fut
 
 #### `required`
 
-| | |
-|---|---|
-| **Type** | `boolean` |
-| **Default** | `false` |
+**Type:** `boolean` · **Default:** `false`
 
 When `true`, the plugin cannot be disabled (`disable`) or destroyed (`destroy`). Used for critical infrastructure plugins (e.g., Users, Config, Accounts). Also implied by `overridable: false`.
 
 #### `overridable`
 
-| | |
-|---|---|
-| **Type** | `boolean` |
-| **Default** | `true` |
+**Type:** `boolean` · **Default:** `true`
 
 When `false`: (1) no other plugin can override this one, and (2) the plugin is treated as **required** — it cannot be disabled or destroyed.
 
 #### `tier`
 
-| | |
-|---|---|
-| **Type** | `string` — one of `"core"`, `"community"`, `"private"`, `"official"`, `"experimental"`, `"deprecated"` |
+**Type:** `string` — one of `"core"`, `"community"`, `"private"`, `"official"`, `"experimental"`, `"deprecated"`
 
 A classification tag displayed in CLI output.
 
@@ -466,18 +435,13 @@ A classification tag displayed in CLI output.
 
 #### `description`
 
-| | |
-|---|---|
-| **Type** | `string` |
+**Type:** `string`
 
 A one-line summary. Shown in `list --json` and `info` output.
 
 #### `descriptionFull`
 
-| | |
-|---|---|
-| **Type** | `object` — `{ title: string, example: object }` |
-| **Applies to** | Tools, Components |
+**Type:** `object` — `{ title: string, example: object }` · **Applies to:** Tools, Components
 
 Extended description with a long-form `title` and an `example` object showing all available configuration variables.
 
