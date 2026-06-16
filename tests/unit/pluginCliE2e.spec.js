@@ -391,6 +391,27 @@ test.describe('CLI registry', () => {
         expect(emptyResult.registries).toHaveLength(0);
     });
 
+    test('registry add with metadata flags', () => {
+        const { stdout, exitCode } = runCli(
+            `registry add "${FIXTURE_REPO}" --tier official --description "Test plugins" --license Apache-2.0 --author NASA --json`
+        );
+        expect(exitCode).toBe(0);
+        const result = JSON.parse(stdout);
+        expect(result.tier).toBe('official');
+        expect(result.description).toBe('Test plugins');
+        expect(result.license).toBe('Apache-2.0');
+        expect(result.author).toBe('NASA');
+
+        // Verify metadata persists in list
+        const list = runCli('registry list --json');
+        const entry = JSON.parse(list.stdout).registries[0];
+        expect(entry.tier).toBe('official');
+        expect(entry.description).toBe('Test plugins');
+
+        // Cleanup
+        runCli('registry remove test-plugin-repo');
+    });
+
     test('registry error paths produce JSON with --json flag', () => {
         const notFound = runCli('registry remove nonexistent --json');
         expect(notFound.exitCode).not.toBe(0);

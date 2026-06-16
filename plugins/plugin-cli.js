@@ -47,10 +47,19 @@ const FLAG_CONTAINER = (() => {
     const idx = RAW_ARGS.indexOf("--container");
     return idx !== -1 && idx + 1 < RAW_ARGS.length ? RAW_ARGS[idx + 1] : null;
 })();
+function flagValue(name) {
+    const idx = RAW_ARGS.indexOf(name);
+    return idx !== -1 && idx + 1 < RAW_ARGS.length ? RAW_ARGS[idx + 1] : null;
+}
+const FLAG_TIER = flagValue("--tier");
+const FLAG_DESCRIPTION = flagValue("--description");
+const FLAG_LICENSE = flagValue("--license");
+const FLAG_AUTHOR = flagValue("--author");
+const VALUE_FLAGS = ["--container", "--tier", "--description", "--license", "--author"];
 // Strip flags so positional command parsing still works.
 const args = RAW_ARGS.filter((a, i) =>
     a !== "--no-color" && a !== "--json" && a !== "--link" && a !== "--force" &&
-    a !== "--container" && (i === 0 || RAW_ARGS[i - 1] !== "--container")
+    !VALUE_FLAGS.includes(a) && (i === 0 || !VALUE_FLAGS.includes(RAW_ARGS[i - 1]))
 );
 
 // ---------------------------------------------------------------------------
@@ -1138,12 +1147,20 @@ function cmdRegistry(subcommand, arg) {
             console.log(c.yellow(`Registry '${name}' already registered.`));
             return;
         }
-        registries.registries.push({ name, url: arg, type });
+        const entry = { name, url: arg, type };
+        if (FLAG_TIER) entry.tier = FLAG_TIER;
+        if (FLAG_DESCRIPTION) entry.description = FLAG_DESCRIPTION;
+        if (FLAG_LICENSE) entry.license = FLAG_LICENSE;
+        if (FLAG_AUTHOR) entry.author = FLAG_AUTHOR;
+        registries.registries.push(entry);
         saveRegistries(registries);
         if (FLAG_JSON) {
-            console.log(JSON.stringify({ command: "registry", action: "add", name, url: arg, type }));
+            console.log(JSON.stringify({ command: "registry", action: "add", ...entry }));
         } else {
-            console.log(`  ${c.green("✓")} Added registry: ${c.cyan(name)} ${c.dim(`(${arg})`)} ${c.dim(`[${type}]`)}`);
+            let line = `  ${c.green("✓")} Added registry: ${c.cyan(name)} ${c.dim(`(${arg})`)} ${c.dim(`[${type}]`)}`;
+            if (entry.tier) line += ` ${c.dim(`tier=${entry.tier}`)}`;
+            if (entry.description) line += `\n    ${c.dim(entry.description)}`;
+            console.log(line);
         }
     } else if (subcommand === "remove") {
         if (!arg) {
@@ -1177,7 +1194,12 @@ function cmdRegistry(subcommand, arg) {
         }
         console.log(`\n  ${c.bold(c.white("Registered plugin sources:"))}`);
         for (const r of registries.registries) {
-            console.log(`    ${c.cyan(r.name)}: ${c.white(r.url)} ${c.dim(`[${r.type}]`)}`);
+            let line = `    ${c.cyan(r.name)}: ${c.white(r.url)} ${c.dim(`[${r.type}]`)}`;
+            if (r.tier) line += ` ${c.dim(`(${r.tier})`)}`;
+            console.log(line);
+            if (r.description) console.log(`      ${c.dim(r.description)}`);
+            const meta = [r.author, r.license].filter(Boolean).join(" · ");
+            if (meta) console.log(`      ${c.dim(meta)}`);
         }
         console.log("");
     } else {
@@ -1615,6 +1637,10 @@ ${h("help", "Show this help")}
     ${c.cyan("--link".padEnd(30))} ${c.dim("Symlink local paths instead of copy (falls back to junction on Windows)")}
     ${c.cyan("--container <name>".padEnd(30))} ${c.dim("Target container for create command")}
     ${c.cyan("--force".padEnd(30))} ${c.dim("Skip confirmation prompts (destroy)")}
+    ${c.cyan("--tier <tier>".padEnd(30))} ${c.dim("Set tier when adding a registry (core, official, community, private, experimental, deprecated)")}
+    ${c.cyan("--description <text>".padEnd(30))} ${c.dim("Set description when adding a registry")}
+    ${c.cyan("--license <spdx>".padEnd(30))} ${c.dim("Set license when adding a registry (e.g. Apache-2.0)")}
+    ${c.cyan("--author <name>".padEnd(30))} ${c.dim("Set author when adding a registry")}
 
   ${c.bold(c.white("Plugin IDs:"))}
     ${c.dim("<container>/<type>/<name>")}     e.g. ${c.cyan("core/tools/Draw")}

@@ -113,6 +113,10 @@ All commands support `--json` for machine-readable output. Use `npm run plugin` 
 | `--link` | Symlink local paths instead of copy (falls back to junction on Windows) |
 | `--container <name>` | Target container for `create` command |
 | `--force` | Skip confirmation prompts (`destroy`) |
+| `--tier <tier>` | Set tier when adding a registry (`core`, `official`, `community`, `private`, `experimental`, `deprecated`) |
+| `--description <text>` | Set description when adding a registry |
+| `--license <spdx>` | Set license when adding a registry (e.g. `Apache-2.0`) |
+| `--author <name>` | Set author when adding a registry |
 
 ### Plugin IDs
 
@@ -619,7 +623,16 @@ npm run plugins -- registry add https://github.com/org/mmgis-plugins.git
 npm run plugins -- registry add /local/path/to/plugins
 npm run plugins -- registry list
 npm run plugins -- registry remove mmgis-plugins
+
+# Add with metadata
+npm run plugins -- registry add https://github.com/NASA-AMMOS/mmgis-plugins.git \
+    --tier official \
+    --description "Official MMGIS plugin collection" \
+    --license "Apache-2.0" \
+    --author "NASA-AMMOS"
 ```
+
+Registry entries can include optional metadata (`tier`, `description`, `license`, `author`) which is displayed in `registry list` and included in `--json` output. This metadata is set at add-time by the MMGIS administrator, not by the external repo.
 
 ## Testing Plugins
 
