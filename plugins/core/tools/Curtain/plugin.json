@@ -1,7 +1,7 @@
 {
     "uuid": "39e8cf0c-35ff-42f0-a3ea-9fd04eaea95e",
     "id": "core-curtain",
-    "version": "5.1.4-20260616",
+    "version": "core",
     "type": "tool",
     "tier": "core",
     "overridable": true,

@@ -1,7 +1,7 @@
 {
     "uuid": "903d31e7-581c-4ae2-8b10-d614a55ac4ff",
     "id": "core-sites",
-    "version": "5.1.4-20260616",
+    "version": "core",
     "type": "tool",
     "tier": "core",
     "overridable": true,

@@ -1,7 +1,7 @@
 {
     "uuid": "36d8748f-7a3a-4a13-86e5-9d7ed863a182",
     "id": "core-draw",
-    "version": "5.1.4-20260616",
+    "version": "core",
     "type": "tool",
     "tier": "core",
     "overridable": true,

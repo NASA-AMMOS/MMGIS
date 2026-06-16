@@ -1,7 +1,7 @@
 {
     "uuid": "752889f1-790f-4e23-871d-bea8bf1f7f1a",
     "id": "core-viewshed",
-    "version": "5.1.4-20260616",
+    "version": "core",
     "type": "tool",
     "tier": "core",
     "overridable": true,

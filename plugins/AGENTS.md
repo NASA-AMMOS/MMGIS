@@ -60,7 +60,7 @@ npm run build              # Rebuild frontend
 ## Plugin Manifest Schema
 
 Required fields: `name`. Tools/components also require `paths` (mapping of tool name → entry point path).
-Recommended fields: `type`, `version`.
+Recommended fields: `type`, `version`. Core plugins use `"version": "core"` which auto-resolves to the MMGIS version.
 
 Optional: `id`, `uuid`, `tier`, `overridable`, `description`, `engines`, `peerDependencies`, `dependencies`, `aliases`.
 

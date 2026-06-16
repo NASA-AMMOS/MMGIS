@@ -1,7 +1,7 @@
 {
     "uuid": "08149807-c453-4834-a1c6-6694d7e11d82",
     "id": "core-kinds",
-    "version": "5.1.4-20260616",
+    "version": "core",
     "type": "tool",
     "tier": "core",
     "overridable": true,

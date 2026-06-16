@@ -1,7 +1,7 @@
 {
     "uuid": "3b2d885a-0e0d-43fd-8973-4e026d97b3f1",
     "id": "core-animation",
-    "version": "5.1.4-20260616",
+    "version": "core",
     "type": "tool",
     "tier": "core",
     "overridable": true,

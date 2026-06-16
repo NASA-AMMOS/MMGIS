@@ -1,7 +1,7 @@
 {
     "uuid": "7a593ce1-3013-4850-86df-b2f184dad33b",
     "id": "core-identifier",
-    "version": "5.1.4-20260616",
+    "version": "core",
     "type": "tool",
     "tier": "core",
     "overridable": true,

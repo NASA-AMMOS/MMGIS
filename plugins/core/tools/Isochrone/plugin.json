@@ -1,7 +1,7 @@
 {
     "uuid": "6f2c52aa-c1b1-407c-8153-6c3b079a0b84",
     "id": "core-isochrone",
-    "version": "5.1.4-20260616",
+    "version": "core",
     "type": "tool",
     "tier": "core",
     "overridable": true,

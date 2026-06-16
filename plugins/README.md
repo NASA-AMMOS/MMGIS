@@ -154,7 +154,7 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for the full guide. In brief:
 | `name` | Yes | Plugin name (must match directory name) |
 | `display_name` | No | Human-readable display name |
 | `type` | Recommended | `tool`, `backend`, or `component` |
-| `version` | Recommended | Semver version string |
+| `version` | Recommended | Semver version string, or `"core"` (auto-resolves to MMGIS version) |
 | `id` | Recommended | Unique identifier (e.g. `mmgis.core.draw`) |
 | `uuid` | Recommended | UUID v4 for global uniqueness |
 | `tier` | No | `core`, `community`, or `private` |

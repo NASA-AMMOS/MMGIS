@@ -7,7 +7,7 @@
     "sightline",
     "sightmap"
   ],
-  "version": "5.1.4-20260616",
+  "version": "core",
   "type": "backend",
   "tier": "core",
   "overridable": true,

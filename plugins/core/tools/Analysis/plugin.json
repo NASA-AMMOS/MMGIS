@@ -1,7 +1,7 @@
 {
     "uuid": "54820d32-93b3-4cd9-9f78-73941ea70534",
     "id": "core-analysis",
-    "version": "5.1.4-20260616",
+    "version": "core",
     "type": "tool",
     "tier": "core",
     "overridable": true,

@@ -1,7 +1,7 @@
 {
     "uuid": "68aeb9f7-46c0-4f33-96ba-8aa30138126c",
     "id": "core-layers",
-    "version": "5.1.4-20260616",
+    "version": "core",
     "type": "tool",
     "tier": "core",
     "overridable": true,

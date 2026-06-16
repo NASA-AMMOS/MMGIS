@@ -32,6 +32,30 @@ const REGISTRIES_PATH = path.join(PLUGINS_ROOT, "plugin-registries.json");
 const STATE_PATH = path.join(PLUGINS_ROOT, "plugin-state.json");
 const CORE_CONTAINER = "core";
 
+/**
+ * Read the MMGIS version from package.json.  Used to resolve
+ * `"version": "core"` in plugin manifests.
+ */
+function getMMGISVersion() {
+    try {
+        const pkg = JSON.parse(
+            fs.readFileSync(path.join(PLUGINS_ROOT, "..", "package.json"), "utf8")
+        );
+        return pkg.version || "unknown";
+    } catch {
+        return "unknown";
+    }
+}
+
+/**
+ * Resolve a plugin version string.  `"core"` is replaced with the
+ * current MMGIS version; everything else is returned as-is.
+ */
+function resolveVersion(version) {
+    if (version === "core") return `${getMMGISVersion()} (core)`;
+    return version;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -196,7 +220,7 @@ function cmdList() {
         for (const p of items) {
             const enabled = isPluginEnabled(p, state);
             const status = enabled ? "\x1b[32m✓\x1b[0m" : "\x1b[31m✗\x1b[0m";
-            const version = p.manifest && p.manifest.version ? `v${p.manifest.version}` : "";
+            const version = p.manifest && p.manifest.version ? `v${resolveVersion(p.manifest.version)}` : "";
             const tier = p.manifest && p.manifest.tier ? `[${p.manifest.tier}]` : "";
             const core = isCore(p) ? " (core)" : "";
             console.log(`    ${status} ${p.type}/${p.name}  ${version} ${tier}${core}`);
@@ -581,7 +605,7 @@ function cmdInfo(pluginIdStr) {
     console.log(`  Type:        ${match.type}`);
     console.log(`  Container:   ${match.container}`);
     console.log(`  Status:      ${enabled ? "enabled" : "disabled"}${isCore(match) ? " (core — always enabled)" : ""}`);
-    if (m.version) console.log(`  Version:     ${m.version}`);
+    if (m.version) console.log(`  Version:     ${resolveVersion(m.version)}`);
     if (m.tier) console.log(`  Tier:        ${m.tier}`);
     if (m.id) console.log(`  Manifest ID: ${m.id}`);
     if (m.uuid) console.log(`  UUID:        ${m.uuid}`);

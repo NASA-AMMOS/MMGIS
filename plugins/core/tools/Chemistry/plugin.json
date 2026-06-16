@@ -1,7 +1,7 @@
 {
     "uuid": "976db0d5-9382-4b2a-bf31-4b7f7a316b27",
     "id": "core-chemistry",
-    "version": "5.1.4-20260616",
+    "version": "core",
     "type": "tool",
     "tier": "core",
     "overridable": true,

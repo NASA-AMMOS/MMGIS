@@ -1,7 +1,7 @@
 {
     "uuid": "73f373fb-0a6a-4727-b628-85c79236ff52",
     "id": "core-segmenttool",
-    "version": "5.1.4-20260616",
+    "version": "core",
     "type": "tool",
     "tier": "core",
     "overridable": true,

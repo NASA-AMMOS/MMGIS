@@ -1,7 +1,7 @@
 {
     "uuid": "9d0d2ce9-8a9f-4753-abcc-5c3d9e081e29",
     "id": "core-sightline",
-    "version": "5.1.4-20260616",
+    "version": "core",
     "type": "tool",
     "tier": "core",
     "overridable": true,
