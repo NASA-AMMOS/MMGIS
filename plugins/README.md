@@ -93,7 +93,7 @@ All commands support `--json` for machine-readable output. Use `npm run plugin` 
 | `info <plugin-id>` | Show detailed metadata for a plugin |
 | `validate` | Validate all `plugin.json` manifests |
 | `deps` | Show aggregated npm/pip/conda dependencies with conflict detection |
-| `install <git-url\|local-path>` | Clone a git repo or copy a local directory into `plugins/` |
+| `install <git-url\|path\|name>` | Install a plugin repo (git clone, local copy, or registry name) |
 | `remove <repo-name>` | Remove an installed plugin repo (cannot remove `core`) |
 | `enable <plugin-id>` | Mark a plugin as active in `plugin-state.json` |
 | `disable <plugin-id>` | Mark a plugin as inactive (cannot disable `required` plugins) |
@@ -153,6 +153,20 @@ npm run plugins -- install https://github.com/org/mmgis-geo-plugins.git
 ```
 
 This clones the repository into `plugins/mmgis-geo-plugins/`. The repo must follow the standard directory structure with `tools/`, `backend/`, and/or `components/` subdirectories.
+
+### By Registry Name
+
+If the argument isn't a URL or existing path, the CLI looks it up in `plugin-registries.json` by name:
+
+```bash
+# First, register a source (or use a pre-populated registries file)
+npm run plugins -- registry add https://github.com/org/mmgis-geo-plugins.git --tier official
+
+# Then install by name
+npm run plugins -- install mmgis-geo-plugins
+```
+
+This resolves the name to its registered URL and clones/copies from there.
 
 ### From a Local Path
 

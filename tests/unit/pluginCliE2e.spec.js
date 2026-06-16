@@ -412,6 +412,21 @@ test.describe('CLI registry', () => {
         runCli('registry remove test-plugin-repo');
     });
 
+    test('install by registry name resolves to registered URL', () => {
+        // Register the fixture repo
+        runCli(`registry add "${FIXTURE_REPO}" --tier community`);
+
+        // Install by name (not by path)
+        const install = runCli('install test-plugin-repo --json');
+        expect(install.exitCode).toBe(0);
+        const result = JSON.parse(install.stdout);
+        expect(result.discovered.length).toBeGreaterThan(0);
+        expect(result.discovered[0].name).toBe('TestPlugin');
+
+        // Cleanup
+        runCli('remove test-plugin-repo');
+    });
+
     test('registry error paths produce JSON with --json flag', () => {
         const notFound = runCli('registry remove nonexistent --json');
         expect(notFound.exitCode).not.toBe(0);

@@ -10,7 +10,7 @@
  *
  * Commands:
  *   list                          List all plugins with status
- *   install <git-url|local-path>  Install a plugin repo
+ *   install <git-url|path|name>   Install a plugin repo
  *   remove <repo-name>            Remove an installed plugin repo
  *   enable <plugin-id>            Enable a plugin
  *   disable <plugin-id>           Disable a plugin
@@ -503,9 +503,20 @@ function cmdList() {
 
 function cmdInstall(target) {
     if (!target) {
-        jsonError("Usage: plugin-cli install <git-url|local-path>");
-        console.error(c.red("Usage: plugin-cli install <git-url|local-path>"));
+        jsonError("Usage: plugin-cli install <git-url|local-path|registry-name>");
+        console.error(c.red("Usage: plugin-cli install <git-url|local-path|registry-name>"));
         process.exit(1);
+    }
+
+    // Resolve registry names — if target isn't a URL or existing path, look it up.
+    const isURL = /^(https?:\/\/|git@|ssh:\/\/)/.test(target) || target.endsWith(".git");
+    if (!isURL && !fs.existsSync(path.resolve(target))) {
+        const registries = loadRegistries();
+        const match = registries.registries.find((r) => r.name === target);
+        if (match) {
+            if (!FLAG_JSON) console.log(`  ${c.dim(`Resolved registry '${target}' → ${match.url}`)}`);
+            target = match.url;
+        }
     }
 
     const isGit = target.startsWith("http://") || target.startsWith("https://") ||
@@ -1615,7 +1626,7 @@ function cmdHelp() {
 
   ${c.bold(c.white("Commands:"))}
 ${h("list", "List all plugins with status")}
-${h("install <git-url|local-path>", "Install a plugin repo (git clone or copy)")}
+${h("install <git-url|path|name>", "Install a plugin repo (git clone, copy, or registry name)")}
 ${h("remove <repo-name>", "Remove an installed plugin repo (not core)")}
 ${h("enable <plugin-id>", "Enable a disabled plugin")}
 ${h("disable <plugin-id>", "Disable a plugin (not core)")}
