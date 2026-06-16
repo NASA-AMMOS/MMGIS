@@ -15,6 +15,7 @@
  *   enable <plugin-id>            Enable a plugin
  *   disable <plugin-id>           Disable a plugin
  *   update [repo-name]            Pull latest for installed repo(s)
+ *   create <type> <Name>          Scaffold a new plugin
  *   activate                      Regenerate frontend plugin imports
  *   validate                      Validate all active plugin manifests
  *   deps                          Show dependency graph and conflicts
@@ -41,8 +42,15 @@ const RAW_ARGS = process.argv.slice(2);
 const FLAG_NO_COLOR = RAW_ARGS.includes("--no-color") || !!process.env.NO_COLOR;
 const FLAG_JSON = RAW_ARGS.includes("--json");
 const FLAG_LINK = RAW_ARGS.includes("--link");
+const FLAG_CONTAINER = (() => {
+    const idx = RAW_ARGS.indexOf("--container");
+    return idx !== -1 && idx + 1 < RAW_ARGS.length ? RAW_ARGS[idx + 1] : null;
+})();
 // Strip flags so positional command parsing still works.
-const args = RAW_ARGS.filter((a) => a !== "--no-color" && a !== "--json" && a !== "--link");
+const args = RAW_ARGS.filter((a, i) =>
+    a !== "--no-color" && a !== "--json" && a !== "--link" &&
+    a !== "--container" && (i === 0 || RAW_ARGS[i - 1] !== "--container")
+);
 
 // ---------------------------------------------------------------------------
 // ANSI colour helpers (zero deps)
@@ -1003,6 +1011,259 @@ function cmdRegistry(subcommand, arg) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Scaffold templates
+// ---------------------------------------------------------------------------
+
+function _scaffoldTool(name) {
+    return {
+        "plugin.json": JSON.stringify({
+            name,
+            type: "tool",
+            paths: {}  // placeholder — filled dynamically below
+        }, null, 4) + "\n",
+        [`${name}Tool.js`]: [
+            `import React from 'react'`,
+            `import { createRoot } from 'react-dom/client'`,
+            ``,
+            `import L_ from '@basics/Layers_/Layers_'`,
+            `import Map_ from '@basics/Map_/Map_'`,
+            ``,
+            `import './${name}Tool.css'`,
+            ``,
+            `let ${name}Tool = {`,
+            `    height: 0,`,
+            `    width: 300,`,
+            `    _root: null,`,
+            ``,
+            `    make: function () {`,
+            `        const toolPanel = document.getElementById('toolPanel')`,
+            `        if (toolPanel) toolPanel.innerHTML = ''`,
+            ``,
+            `        ${name}Tool._root = createRoot(toolPanel)`,
+            `        ${name}Tool._root.render(`,
+            `            <div className='${name[0].toLowerCase() + name.slice(1)}Tool'>`,
+            `                <div className='${name[0].toLowerCase() + name.slice(1)}Tool_title'>`,
+            `                    ${name}`,
+            `                </div>`,
+            `            </div>`,
+            `        )`,
+            `    },`,
+            ``,
+            `    destroy: function () {`,
+            `        if (${name}Tool._root) {`,
+            `            ${name}Tool._root.unmount()`,
+            `            ${name}Tool._root = null`,
+            `        }`,
+            `    },`,
+            `}`,
+            ``,
+            `export default ${name}Tool`,
+            ``,
+        ].join("\n"),
+        [`${name}Tool.css`]: `.${name[0].toLowerCase() + name.slice(1)}Tool {\n}\n`,
+        [`tests/${name[0].toLowerCase() + name.slice(1)}Tool.spec.js`]: [
+            `const { test, expect } = require('@playwright/test')`,
+            `const path = require('path')`,
+            ``,
+            `test.describe('${name}Tool', () => {`,
+            `    test('plugin.json is valid', () => {`,
+            `        const manifest = require(path.resolve(__dirname, '..', 'plugin.json'))`,
+            `        expect(manifest.name).toBe('${name}')`,
+            `        expect(manifest.type).toBe('tool')`,
+            `        expect(manifest.paths).toBeDefined()`,
+            `        expect(manifest.paths['${name}Tool']).toBeDefined()`,
+            `    })`,
+            `})`,
+            ``,
+        ].join("\n"),
+    };
+}
+
+function _scaffoldBackend(name) {
+    const lower = name[0].toLowerCase() + name.slice(1);
+    return {
+        "plugin.json": JSON.stringify({
+            name,
+            type: "backend",
+        }, null, 4) + "\n",
+        "plugin.js": [
+            `const router = require('./routes/${lower}')`,
+            ``,
+            `let setup = {`,
+            `    onceInit: (s) => {`,
+            `        s.app.use(`,
+            `            s.ROOT_PATH + '/api/${lower}',`,
+            `            s.checkHeadersCodeInjection,`,
+            `            s.setContentType,`,
+            `            router`,
+            `        )`,
+            `    },`,
+            `    onceStarted: (s) => {},`,
+            `    onceSynced: (s) => {},`,
+            `}`,
+            ``,
+            `module.exports = setup`,
+            ``,
+        ].join("\n"),
+        [`routes/${lower}.js`]: [
+            `const express = require('express')`,
+            `const router = express.Router()`,
+            ``,
+            `router.get('/', (req, res) => {`,
+            `    res.json({ status: 'ok' })`,
+            `})`,
+            ``,
+            `module.exports = router`,
+            ``,
+        ].join("\n"),
+        [`tests/${lower}.spec.js`]: [
+            `const { test, expect } = require('@playwright/test')`,
+            `const path = require('path')`,
+            ``,
+            `test.describe('${name} backend', () => {`,
+            `    test('plugin.json is valid', () => {`,
+            `        const manifest = require(path.resolve(__dirname, '..', 'plugin.json'))`,
+            `        expect(manifest.name).toBe('${name}')`,
+            `        expect(manifest.type).toBe('backend')`,
+            `    })`,
+            `})`,
+            ``,
+        ].join("\n"),
+    };
+}
+
+function _scaffoldComponent(name) {
+    const lower = name[0].toLowerCase() + name.slice(1);
+    return {
+        "plugin.json": JSON.stringify({
+            name,
+            type: "component",
+            paths: {}  // placeholder — filled dynamically below
+        }, null, 4) + "\n",
+        [`${name}.js`]: [
+            `import L_ from '@basics/Layers_/Layers_'`,
+            ``,
+            `import './${name}.css'`,
+            ``,
+            `const ${name} = {`,
+            `    state: {},`,
+            ``,
+            `    init: function (vars) {`,
+            `        // Called when the component is initialized.`,
+            `        // 'vars' contains configuration from the Configure page.`,
+            `    },`,
+            `}`,
+            ``,
+            `export default ${name}`,
+            ``,
+        ].join("\n"),
+        [`${name}.css`]: `.${lower} {\n}\n`,
+        [`tests/${lower}.spec.js`]: [
+            `const { test, expect } = require('@playwright/test')`,
+            `const path = require('path')`,
+            ``,
+            `test.describe('${name} component', () => {`,
+            `    test('plugin.json is valid', () => {`,
+            `        const manifest = require(path.resolve(__dirname, '..', 'plugin.json'))`,
+            `        expect(manifest.name).toBe('${name}')`,
+            `        expect(manifest.type).toBe('component')`,
+            `        expect(manifest.paths).toBeDefined()`,
+            `        expect(manifest.paths['${name}']).toBeDefined()`,
+            `    })`,
+            `})`,
+            ``,
+        ].join("\n"),
+    };
+}
+
+function cmdCreate(type, name) {
+    const VALID_TYPES = ["tool", "backend", "component"];
+    const typeDir = type === "tool" ? "tools" : type === "backend" ? "backend" : "components";
+
+    if (!type || !VALID_TYPES.includes(type)) {
+        console.error(c.red(`Usage: plugin-cli create <${VALID_TYPES.join("|")}> <Name> --container <container>`));
+        process.exit(1);
+    }
+    if (!name) {
+        console.error(c.red("Missing plugin name."));
+        console.error(c.dim(`Usage: plugin-cli create ${type} <Name> --container <container>`));
+        process.exit(1);
+    }
+    if (!FLAG_CONTAINER) {
+        console.error(c.red("Missing --container flag."));
+        console.error(c.dim(`Usage: plugin-cli create ${type} ${name} --container <container>`));
+        process.exit(1);
+    }
+
+    const container = FLAG_CONTAINER;
+    const pluginDir = path.join(PLUGINS_ROOT, container, typeDir, name);
+
+    if (fs.existsSync(pluginDir)) {
+        console.error(c.red(`Plugin already exists: ${pluginDir}`));
+        process.exit(1);
+    }
+
+    // Ensure container directory exists.
+    const containerDir = path.join(PLUGINS_ROOT, container);
+    if (!fs.existsSync(containerDir)) {
+        fs.mkdirSync(containerDir, { recursive: true });
+        console.log(`  ${c.green("✓")} Created container: ${c.cyan(container + "/")}`);
+    }
+
+    // Generate scaffold files.
+    let files;
+    switch (type) {
+        case "tool":      files = _scaffoldTool(name); break;
+        case "backend":   files = _scaffoldBackend(name); break;
+        case "component": files = _scaffoldComponent(name); break;
+    }
+
+    // Fix the paths field in plugin.json to use the actual relative path.
+    if (type === "tool") {
+        const manifest = JSON.parse(files["plugin.json"]);
+        manifest.paths = { [`${name}Tool`]: `../plugins/${container}/tools/${name}/${name}Tool` };
+        files["plugin.json"] = JSON.stringify(manifest, null, 4) + "\n";
+    } else if (type === "component") {
+        const manifest = JSON.parse(files["plugin.json"]);
+        manifest.paths = { [name]: `../plugins/${container}/components/${name}/${name}` };
+        files["plugin.json"] = JSON.stringify(manifest, null, 4) + "\n";
+    }
+
+    // Write all files.
+    const created = [];
+    for (const [relPath, content] of Object.entries(files)) {
+        const fullPath = path.join(pluginDir, relPath);
+        fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+        fs.writeFileSync(fullPath, content, "utf8");
+        created.push(relPath);
+    }
+
+    console.log(`\n  ${c.green("Created")} ${c.cyan(`${container}/${typeDir}/${name}`)}:`);
+    for (const f of created) {
+        console.log(`    ${c.dim("+")} ${f}`);
+    }
+
+    // Auto-activate for frontend plugins.
+    if (type === "tool" || type === "component") {
+        activate({ expectChanges: true });
+    }
+
+    console.log(`\n  ${c.dim("Next steps:")}`);
+    if (type === "tool") {
+        console.log(`    ${c.dim("1.")} Edit ${c.cyan(`${name}Tool.js`)} to build your tool UI`);
+        console.log(`    ${c.dim("2.")} Configure variables in ${c.cyan("plugin.json")} under ${c.cyan('"config"')}`);
+    } else if (type === "backend") {
+        console.log(`    ${c.dim("1.")} Edit ${c.cyan(`routes/${name[0].toLowerCase() + name.slice(1)}.js`)} to add your API routes`);
+        console.log(`    ${c.dim("2.")} Edit ${c.cyan("plugin.js")} to configure middleware and lifecycle hooks`);
+        console.log(`    ${c.dim("3.")} Restart the server to load the backend`);
+    } else {
+        console.log(`    ${c.dim("1.")} Edit ${c.cyan(`${name}.js`)} to build your component`);
+        console.log(`    ${c.dim("2.")} Configure variables in ${c.cyan("plugin.json")} under ${c.cyan('"config"')}`);
+    }
+    console.log("");
+}
+
 function cmdHelp() {
     const h = (cmd, desc) => `    ${c.cyan(cmd.padEnd(30))} ${c.dim(desc)}`;
     console.log(`
@@ -1018,6 +1279,7 @@ ${h("remove <repo-name>", "Remove an installed plugin repo (not core)")}
 ${h("enable <plugin-id>", "Enable a disabled plugin")}
 ${h("disable <plugin-id>", "Disable a plugin (not core)")}
 ${h("update [repo-name]", "Pull latest for repo(s)")}
+${h("create <type> <Name>", "Scaffold a new plugin (tool, backend, component)")}
 ${h("activate", "Regenerate frontend plugin imports (no full build needed)")}
 ${h("validate", "Validate all plugin manifests")}
 ${h("deps", "Show dependency graph and conflicts")}
@@ -1031,6 +1293,7 @@ ${h("help", "Show this help")}
     ${c.cyan("--no-color".padEnd(30))} ${c.dim("Disable colored output (also respects NO_COLOR env)")}
     ${c.cyan("--json".padEnd(30))} ${c.dim("Output machine-readable JSON (list, info)")}
     ${c.cyan("--link".padEnd(30))} ${c.dim("Symlink local paths instead of copy (falls back to junction on Windows)")}
+    ${c.cyan("--container <name>".padEnd(30))} ${c.dim("Target container for create command")}
 
   ${c.bold(c.white("Plugin IDs:"))}
     ${c.dim("<container>/<type>/<name>")}     e.g. ${c.cyan("core/tools/Draw")}
@@ -1042,6 +1305,8 @@ ${h("help", "Show this help")}
     ${c.dim("$")} npm run plugins -- enable my-plugins/tools/SpectralTool
     ${c.dim("$")} npm run plugins -- info Draw
     ${c.dim("$")} npm run plugins -- list --json
+    ${c.dim("$")} npm run plugins -- create tool SpectralAnalysis --container my-plugins
+    ${c.dim("$")} npm run plugins -- create backend DataIngest --container core
 `);
 }
 
@@ -1069,6 +1334,9 @@ switch (command) {
         break;
     case "update":
         cmdUpdate(args[1]);
+        break;
+    case "create":
+        cmdCreate(args[1], args[2]);
         break;
     case "activate":
         activate();
