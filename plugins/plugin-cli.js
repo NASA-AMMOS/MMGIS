@@ -668,7 +668,7 @@ function cmdEnable(pluginIdStr) {
 
     if (!match) {
         console.error(c.red(`Plugin '${pluginIdStr}' not found.`));
-        console.error(c.dim("Run 'plugin-cli list' to see available plugins."));
+        console.error(c.dim("Run 'npm run plugins -- list' to see available plugins."));
         process.exit(1);
     }
 
@@ -1397,7 +1397,7 @@ function cmdDestroy(pluginIdStr) {
 
     if (!match) {
         console.error(c.red(`Plugin '${pluginIdStr}' not found.`));
-        console.error(c.dim("Run 'plugin-cli list' to see available plugins."));
+        console.error(c.dim("Run 'npm run plugins -- list' to see available plugins."));
         process.exit(1);
     }
 
@@ -1465,8 +1465,11 @@ function _performDestroy(match) {
         const isFrontend = match.type === "tools" || match.type === "components";
         if (isFrontend) {
             activate({ expectChanges: true });
+            console.log(`  ${c.yellow("Note:")} If webpack-dev-server is running, restart it to clear its module cache.`);
+        } else {
+            console.log(`  ${c.dim("Restart the server to apply backend changes.")}`);
         }
-        console.log(`  ${c.dim("Restart the server if this was a backend plugin.")}\n`);
+        console.log("");
     }
 }
 
