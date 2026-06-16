@@ -20,7 +20,7 @@ MMGIS plugins are organized under `/plugins/` in a three-level hierarchy:
 
 ## Plugin Types
 
-- **tools** — Frontend UI tools in `plugins/<container>/tools/<Name>/`. Must have `plugin.json` with `display_name` and `toolbarPriority`. Implement `make()` and `destroy()`.
+- **tools** — Frontend UI tools in `plugins/<container>/tools/<Name>/`. Must have `plugin.json` with `name` and `paths`. Implement `make()` and `destroy()`.
 - **backend** — Server modules in `plugins/<container>/backend/<Name>/`. Have `plugin.json` (metadata) + `plugin.js` (lifecycle: `getRoutes`, `setup`). Routes in `routes/`, models in `models/`.
 - **components** — UI components in `plugins/<container>/components/<Name>/`. Have `plugin.json` with component metadata.
 
@@ -60,7 +60,7 @@ npm run build              # Rebuild frontend
 ## Plugin Manifest Schema
 
 Required fields: `name`, `type`, `version`.
-Tools also require: `display_name`.
+Tools/components also require: `paths` (mapping of tool name → entry point path).
 
 Optional: `id`, `uuid`, `tier`, `overridable`, `description`, `engines`, `peerDependencies`, `dependencies`, `aliases`.
 

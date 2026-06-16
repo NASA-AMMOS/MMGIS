@@ -236,4 +236,22 @@ test.describe('discoverPluginsUnified with plugin-state.json', () => {
             rmDir(root);
         }
     });
+
+    test('handles state file without plugins key gracefully', () => {
+        const root = makeTmpDir();
+        try {
+            writeFile(
+                path.join(root, 'external-repo', 'tools', 'Zeta', 'plugin.json'),
+                JSON.stringify({ name: 'Zeta', display_name: 'Zeta', type: 'tool' })
+            );
+            // Valid JSON but missing "plugins" key
+            writeFile(path.join(root, 'plugin-state.json'), '{"version": 1}');
+
+            const found = discoverPluginsUnified(root, 'tools');
+            const names = found.map((p) => p.name);
+            expect(names).toContain('Zeta');
+        } finally {
+            rmDir(root);
+        }
+    });
 });

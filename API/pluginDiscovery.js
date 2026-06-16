@@ -247,6 +247,9 @@ function discoverPluginsUnified(pluginsRoot, type, configFile = "plugin.json", o
         const statePath = path.join(pluginsRoot, "plugin-state.json");
         if (fs.existsSync(statePath)) {
             pluginState = JSON.parse(fs.readFileSync(statePath, "utf8"));
+            if (!pluginState || typeof pluginState.plugins !== "object") {
+                pluginState = { plugins: {} };
+            }
         }
     } catch {
         // Missing or invalid state file — treat all plugins as enabled.

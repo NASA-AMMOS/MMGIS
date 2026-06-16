@@ -152,12 +152,12 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for the full guide. In brief:
 | Field | Required | Description |
 |-------|----------|-------------|
 | `name` | Yes | Plugin name (must match directory name) |
-| `display_name` | Yes (tools) | Human-readable display name |
+| `display_name` | No | Human-readable display name |
 | `type` | Yes | `tool`, `backend`, or `component` |
 | `version` | Yes | Semver version string |
 | `id` | Recommended | Unique identifier (e.g. `mmgis.core.draw`) |
 | `uuid` | Recommended | UUID v4 for global uniqueness |
-| `tier` | No | `core`, `extended`, or `community` |
+| `tier` | No | `core`, `community`, or `private` |
 | `overridable` | No | Whether external plugins can override this (default `true`) |
 | `description` | No | Short description |
 | `engines` | No | `{ "mmgis": ">=5.0.0" }` — MMGIS version compatibility |
