@@ -366,6 +366,11 @@ function isCore(plugin) {
     return plugin.container === CORE_CONTAINER;
 }
 
+function isRequired(plugin) {
+    if (!plugin.manifest) return false;
+    return plugin.manifest.required === true || plugin.manifest.overridable === false;
+}
+
 // ---------------------------------------------------------------------------
 // Commands
 // ---------------------------------------------------------------------------
@@ -705,8 +710,8 @@ function cmdDisable(pluginIdStr) {
         process.exit(1);
     }
 
-    if (isCore(match)) {
-        console.error(c.red(`Cannot disable core plugin '${match.id}'.`));
+    if (isRequired(match)) {
+        console.error(c.red(`Cannot disable required plugin '${match.id}'.`));
         process.exit(1);
     }
 
@@ -1403,6 +1408,11 @@ function cmdDestroy(pluginIdStr) {
 
     if (isCore(match)) {
         console.error(c.red(`Cannot destroy core plugin '${match.id}'.`));
+        process.exit(1);
+    }
+
+    if (isRequired(match)) {
+        console.error(c.red(`Cannot destroy required plugin '${match.id}' (required: true or overridable: false).`));
         process.exit(1);
     }
 

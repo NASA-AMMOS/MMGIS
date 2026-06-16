@@ -71,7 +71,7 @@ npm run plugins -- validate --json
 | `install <git-url\|local-path>` | Clone a git repo or copy a local directory into `plugins/` |
 | `remove <repo-name>` | Remove an installed plugin repo (cannot remove `core`) |
 | `enable <plugin-id>` | Mark a plugin as active in `plugin-state.json` |
-| `disable <plugin-id>` | Mark a plugin as inactive (cannot disable `core` plugins) |
+| `disable <plugin-id>` | Mark a plugin as inactive (cannot disable `required` plugins) |
 | `update [repo-name]` | `git pull` latest for one or all installed repos |
 | `create <type> <Name>` | Scaffold a new plugin (tool, backend, component) |
 | `activate` | Regenerate frontend plugin imports without a full build |
@@ -162,6 +162,7 @@ UI components loaded into the MMGIS interface. Have `plugin.json` with component
 | `keywords` | No | Array of tags for discovery (e.g. `["terrain", "analysis"]`) |
 | `tier` | No | `core`, `community`, or `private` |
 | `overridable` | No | Whether external plugins can override this (default `true`) |
+| `required` | No | Plugin cannot be disabled or destroyed (default `false`). Implied by `overridable: false` |
 | `description` | No | Short description |
 | `engines` | No | `{ "mmgis": ">=5.0.0" }` — MMGIS version compatibility |
 | `peerDependencies` | No | Other plugins this depends on (by plugin ID + semver range) |
@@ -399,10 +400,11 @@ npm run plugins -- registry remove mmgis-plugins
 
 Core plugins ship with MMGIS and live in `plugins/core/`. They:
 
-- Are always enabled (cannot be disabled via the CLI or state file).
-- Cannot be removed via the CLI.
+- Cannot be removed or destroyed via the CLI.
 - Use `"version": "core"` which auto-resolves to the MMGIS version.
 - Are version-controlled with the main repository.
+- Core plugins with `"required": true` or `"overridable": false` cannot be disabled.
+- Core plugins without `required` **can** be disabled — this allows admins to turn off optional core tools.
 
 External plugins can override core plugins if the core plugin's manifest has `"overridable": true`.
 

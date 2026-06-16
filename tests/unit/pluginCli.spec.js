@@ -108,8 +108,8 @@ test.describe('plugin-cli', () => {
         expect(exitCode).not.toBe(0);
     });
 
-    test('disable core plugin is rejected', () => {
-        const { exitCode } = runCli('disable core/tools/Draw');
+    test('disable required plugin is rejected', () => {
+        const { exitCode } = runCli('disable core/backend/Users');
         expect(exitCode).not.toBe(0);
     });
 
@@ -163,14 +163,14 @@ test.describe('discoverPlugins with plugin-state.json', () => {
         }
     });
 
-    test('does not skip core plugins even if state says disabled', () => {
+    test('does not skip required plugins even if state says disabled', () => {
         const root = makeTmpDir();
         try {
             writeFile(
                 path.join(root, 'core', 'tools', 'Alpha', 'plugin.json'),
-                JSON.stringify({ name: 'Alpha', display_name: 'Alpha', type: 'tool' })
+                JSON.stringify({ name: 'Alpha', display_name: 'Alpha', type: 'tool', required: true })
             );
-            // Try to disable a core plugin via state file.
+            // Try to disable a required plugin via state file.
             writeFile(
                 path.join(root, 'plugin-state.json'),
                 JSON.stringify({ plugins: { 'core/tools/Alpha': { enabled: false } } })

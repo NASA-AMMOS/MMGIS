@@ -71,15 +71,19 @@ Backend plugins use Node.js `require()` with relative paths — aliases do not a
 4. Plugins marked `"overridable": false` in their manifest block overrides.
 5. Disabled plugins in `plugin-state.json` are skipped entirely.
 
-## Core Protection
+## Core & Required Protection
 
-Core plugins (`plugins/core/`) cannot be removed, disabled, or overridden (unless `"overridable": true`).
+Core plugins (`plugins/core/`) cannot be removed via `remove` or destroyed.
+Plugins with `"required": true` or `"overridable": false` cannot be disabled or destroyed.
+Core plugins without `required: true` **can** be disabled.
 
 ## Plugin Manifest Schema
 
 Required: `name`. Tools/components also require `paths`.
 Recommended: `type`, `version`, `defaultIcon`.
-Optional: `id`, `uuid`, `tier`, `overridable`, `description`, `engines`, `peerDependencies`, `dependencies`, `aliases`, `author`, `license`, `repository`, `keywords`.
+Optional: `id`, `uuid`, `tier`, `overridable`, `required`, `description`, `engines`, `peerDependencies`, `dependencies`, `aliases`, `author`, `license`, `repository`, `keywords`.
+
+`required: true` — plugin cannot be disabled or destroyed. Implied by `overridable: false`.
 
 ## State File Format
 

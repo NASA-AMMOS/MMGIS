@@ -49,7 +49,7 @@ New tools are automatically found and included on start.
         "name": "{toolName}",
         "toolbarPriority": 3,
         "paths": {
-            "{toolName}Tool": "essence/Tools/{toolName}/{toolName}Tool"
+            "{toolName}Tool": "../plugins/core/tools/{toolName}/{toolName}Tool"
         },
         "expandable": false
     }

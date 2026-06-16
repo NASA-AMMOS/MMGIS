@@ -27,6 +27,7 @@ const COMMON_FIELDS = [
   "type",
   "tier",
   "overridable",
+  "required",
   "engines",
   "dependencies",
   "peerDependencies",
@@ -200,6 +201,11 @@ function validatePluginConfig(config, pluginName, pluginType) {
   if (config.overridable !== undefined && typeof config.overridable !== "boolean") {
     errors.push(
       `Plugin '${pluginName}' (${pluginType}): 'overridable' must be a boolean`
+    );
+  }
+  if (config.required !== undefined && typeof config.required !== "boolean") {
+    errors.push(
+      `Plugin '${pluginName}' (${pluginType}): 'required' must be a boolean`
     );
   }
   if (config.aliases !== undefined && !Array.isArray(config.aliases)) {

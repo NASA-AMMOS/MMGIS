@@ -10,6 +10,7 @@
   "type": "backend",
   "tier": "core",
   "overridable": false,
+  "required": true,
   "routes": {
     "prefix": "/api/accounts",
     "auth": "admin"

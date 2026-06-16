@@ -114,22 +114,6 @@ function discoverPlugins(pluginsRoot, type, configFile = "plugin.json", opts = {
             if (!pIsDir) continue;
             if (pluginEntry.name[0] === "_" || pluginEntry.name[0] === ".") continue;
 
-            // Check plugin-state.json — skip disabled non-core plugins.
-            if (repoEntry.name !== "core") {
-                const stateKey = `${repoEntry.name}/${type}/${pluginEntry.name}`;
-                const stateEntry = pluginState.plugins[stateKey];
-                if (stateEntry && stateEntry.enabled === false) {
-                    logger(
-                        "info",
-                        `Skipping disabled plugin: ${stateKey}`,
-                        loggerCategory,
-                        null,
-                        null
-                    );
-                    continue;
-                }
-            }
-
             const pluginPath = path.join(typePath, pluginEntry.name);
             const manifestPath = path.join(pluginPath, configFile);
 
@@ -180,6 +164,25 @@ function discoverPlugins(pluginsRoot, type, configFile = "plugin.json", opts = {
                         loggerCategory,
                         null,
                         err
+                    );
+                    continue;
+                }
+            }
+
+            // Check plugin-state.json — skip disabled plugins.
+            // Required plugins (required: true or overridable: false) cannot be disabled.
+            const stateKey = `${repoEntry.name}/${type}/${pluginEntry.name}`;
+            const stateEntry = pluginState.plugins[stateKey];
+            if (stateEntry && stateEntry.enabled === false) {
+                const isRequired = manifest &&
+                    (manifest.required === true || manifest.overridable === false);
+                if (!isRequired) {
+                    logger(
+                        "info",
+                        `Skipping disabled plugin: ${stateKey}`,
+                        loggerCategory,
+                        null,
+                        null
                     );
                     continue;
                 }
