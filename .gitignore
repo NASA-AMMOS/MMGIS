@@ -21,6 +21,7 @@ configure/public/toolConfigs.json
 !/plugins/plugin-registries.json
 !/plugins/README.md
 !/plugins/AGENTS.md
+!/plugins/PLUGIN-JSON.md
 /plugins/plugin-state.json
 
 # Legacy plugin directories (kept for backward compatibility during migration)
