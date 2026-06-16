@@ -193,9 +193,9 @@ function validatePluginConfig(config, pluginName, pluginType) {
       `Plugin '${pluginName}' (${pluginType}): 'type' must be one of: tool, component, backend`
     );
   }
-  if (config.tier !== undefined && !["core", "community", "private"].includes(config.tier)) {
+  if (config.tier !== undefined && !["core", "community", "private", "official", "experimental", "deprecated"].includes(config.tier)) {
     errors.push(
-      `Plugin '${pluginName}' (${pluginType}): 'tier' must be one of: core, community, private`
+      `Plugin '${pluginName}' (${pluginType}): 'tier' must be one of: core, community, private, official, experimental, deprecated`
     );
   }
   if (config.overridable !== undefined && typeof config.overridable !== "boolean") {
