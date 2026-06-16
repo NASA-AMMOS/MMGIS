@@ -163,7 +163,7 @@ export default function Tools() {
                   <div className={c.cardIcon}>
                     <i
                       className={`mdi mdi-${
-                        t.icon || tConfig.defaultIcon
+                        t.icon || tConfig.defaultIcon || "puzzle-outline"
                       } mdi-36px`}
                     ></i>
                   </div>
@@ -199,16 +199,16 @@ export default function Tools() {
             </div>
             <div className={c.cardOff}></div>
           </div>
-          <div className={c.cardName}>Custom Tools</div>
+          <div className={c.cardName}>External Plugins</div>
           <div className={c.cardContent}>
             <div className={c.cardContentTitle}>
-              Develop and add your own tools via the plugin system.
+              Manage tools via the Plugin CLI.
             </div>
             <div className={c.cardContentBody}>
-              Create directories matching *Private-Tools* or *Plugin-Tools* in
-              /src/essence/. Run npm run build again to include new custom
-              tools. If tool names match, custom tools can override standard
-              ones.
+              Run <code>npm run plugins -- list</code> to see installed plugins
+              or <code>npm run plugins -- create tool &lt;Name&gt; --container
+              &lt;container&gt;</code> to scaffold a new one. See
+              plugins/README.md for details.
             </div>
           </div>
         </div>

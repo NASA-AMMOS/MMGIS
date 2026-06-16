@@ -132,6 +132,11 @@ function updateTools() {
   let toolConfigs = "";
   const toolModules = {};
   let kindsModule = null;
+  // Paths values in plugin.json must start with "../" because generated
+  // imports in src/pre/tools.js are prefixed with another "../". For example,
+  // a path of "../plugins/core/tools/X/XTool" produces the import:
+  //   import XTool from '../../plugins/core/tools/X/XTool'
+  // which correctly resolves from src/pre/ to the repo root.
   for (const t in tools) {
     for (const p in tools[t].paths) {
       if (p === "Kinds") {

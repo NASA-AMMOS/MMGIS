@@ -56,7 +56,7 @@ function discoverPlugins(pluginsRoot, type, configFile = "plugin.json", opts = {
         const statePath = path.join(pluginsRoot, "plugin-state.json");
         if (fs.existsSync(statePath)) {
             pluginState = JSON.parse(fs.readFileSync(statePath, "utf8"));
-            if (!pluginState || typeof pluginState.plugins !== "object") {
+            if (!pluginState || !pluginState.plugins || typeof pluginState.plugins !== "object") {
                 pluginState = { plugins: {} };
             }
         }
