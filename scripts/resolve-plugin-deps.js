@@ -86,8 +86,14 @@ function mergeNpm(sources) {
                 }
             }
             if (compatible) {
-                // Ranges intersect — use the most restrictive (last-seen).
-                merged[pkg] = versions[versions.length - 1];
+                // Ranges intersect — pick the one with the highest lower bound.
+                const sorted = [...versions].sort((a, b) => {
+                    const minA = semver.minVersion(a);
+                    const minB = semver.minVersion(b);
+                    if (minA && minB) return semver.compare(minB, minA);
+                    return 0;
+                });
+                merged[pkg] = sorted[0];
             } else {
                 // Ranges are incompatible — use first-seen and flag conflict.
                 merged[pkg] = versions[0];

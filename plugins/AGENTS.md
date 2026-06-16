@@ -59,8 +59,8 @@ npm run build              # Rebuild frontend
 
 ## Plugin Manifest Schema
 
-Required fields: `name`, `type`, `version`.
-Tools/components also require: `paths` (mapping of tool name → entry point path).
+Required fields: `name`. Tools/components also require `paths` (mapping of tool name → entry point path).
+Recommended fields: `type`, `version`.
 
 Optional: `id`, `uuid`, `tier`, `overridable`, `description`, `engines`, `peerDependencies`, `dependencies`, `aliases`.
 
