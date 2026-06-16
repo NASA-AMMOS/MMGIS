@@ -352,14 +352,20 @@ function discoverAll() {
 
 /**
  * Get the effective enabled/disabled status for a plugin.
- * Core plugins are always enabled and cannot be disabled.
+ * Required plugins (required: true or overridable: false) are always enabled.
  */
 function isPluginEnabled(plugin, state) {
-    if (plugin.container === CORE_CONTAINER) return true;
     const entry = state.plugins[plugin.id];
     // Default: enabled (new plugins are active unless explicitly disabled).
     if (entry === undefined) return true;
-    return entry.enabled !== false;
+    if (entry.enabled === false) {
+        // Required plugins cannot be disabled.
+        if (plugin.manifest && (plugin.manifest.required === true || plugin.manifest.overridable === false)) {
+            return true;
+        }
+        return false;
+    }
+    return true;
 }
 
 function isCore(plugin) {
