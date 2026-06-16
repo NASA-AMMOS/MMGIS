@@ -219,11 +219,20 @@ function checkPeerDependencies(allPlugins) {
     const semver = require("semver");
     const warnings = [];
 
+    // Resolve "core" → actual MMGIS version so semver checks work.
+    let mmgisVersion;
+    try {
+        mmgisVersion = require(path.join(__dirname, "..", "package.json")).version;
+    } catch {
+        mmgisVersion = "0.0.0";
+    }
+
     // Build a lookup of all plugin IDs to their versions.
     const pluginVersions = new Map();
     for (const p of allPlugins) {
         if (p.manifest && p.manifest.id) {
-            pluginVersions.set(p.manifest.id, p.manifest.version || "0.0.0");
+            const v = p.manifest.version === "core" ? mmgisVersion : (p.manifest.version || "0.0.0");
+            pluginVersions.set(p.manifest.id, v);
         }
     }
 

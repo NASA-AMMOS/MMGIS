@@ -32,10 +32,38 @@ const REGISTRIES_PATH = path.join(PLUGINS_ROOT, "plugin-registries.json");
 const STATE_PATH = path.join(PLUGINS_ROOT, "plugin-state.json");
 const CORE_CONTAINER = "core";
 
-/**
- * Read the MMGIS version from package.json.  Used to resolve
- * `"version": "core"` in plugin manifests.
- */
+// ---------------------------------------------------------------------------
+// CLI flags — parsed early so colour helpers can reference them.
+// ---------------------------------------------------------------------------
+
+const RAW_ARGS = process.argv.slice(2);
+const FLAG_NO_COLOR = RAW_ARGS.includes("--no-color") || !!process.env.NO_COLOR;
+const FLAG_JSON = RAW_ARGS.includes("--json");
+// Strip flags so positional command parsing still works.
+const args = RAW_ARGS.filter((a) => a !== "--no-color" && a !== "--json");
+
+// ---------------------------------------------------------------------------
+// ANSI colour helpers (zero deps)
+// ---------------------------------------------------------------------------
+
+const _esc = (code, text) => (FLAG_NO_COLOR ? text : `\x1b[${code}m${text}\x1b[0m`);
+const c = {
+    bold:    (t) => _esc("1", t),
+    dim:     (t) => _esc("2", t),
+    red:     (t) => _esc("31", t),
+    green:   (t) => _esc("32", t),
+    yellow:  (t) => _esc("33", t),
+    blue:    (t) => _esc("34", t),
+    magenta: (t) => _esc("35", t),
+    cyan:    (t) => _esc("36", t),
+    white:   (t) => _esc("37", t),
+    gray:    (t) => _esc("90", t),
+};
+
+// ---------------------------------------------------------------------------
+// Version helpers
+// ---------------------------------------------------------------------------
+
 function getMMGISVersion() {
     try {
         const pkg = JSON.parse(
@@ -47,13 +75,18 @@ function getMMGISVersion() {
     }
 }
 
-/**
- * Resolve a plugin version string.  `"core"` is replaced with the
- * current MMGIS version; everything else is returned as-is.
- */
 function resolveVersion(version) {
-    if (version === "core") return `${getMMGISVersion()} (core)`;
+    if (version === "core") return `${getMMGISVersion()} ${c.dim("(core)")}`;
     return version;
+}
+
+// ---------------------------------------------------------------------------
+// Step indicator for long-running operations
+// ---------------------------------------------------------------------------
+
+function step(current, total, msg) {
+    const label = c.cyan(`[${current}/${total}]`);
+    console.log(`  ${label} ${msg}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -204,7 +237,24 @@ function cmdList() {
     const state = loadState();
 
     if (plugins.length === 0) {
-        console.log("No plugins found.");
+        console.log(c.yellow("No plugins found."));
+        return;
+    }
+
+    // --json: structured output
+    if (FLAG_JSON) {
+        const out = plugins.map((p) => ({
+            id: p.id,
+            name: p.name,
+            type: p.type,
+            container: p.container,
+            enabled: isPluginEnabled(p, state),
+            core: isCore(p),
+            version: (p.manifest && p.manifest.version) || null,
+            tier: (p.manifest && p.manifest.tier) || null,
+            author: (p.manifest && p.manifest.author) || null,
+        }));
+        console.log(JSON.stringify(out, null, 2));
         return;
     }
 
@@ -215,23 +265,54 @@ function cmdList() {
         groups[p.container].push(p);
     }
 
+    // Compute column widths for alignment.
+    let maxId = 0;
+    let maxVer = 0;
+    const rows = [];
     for (const [container, items] of Object.entries(groups)) {
-        console.log(`\n  ${container}/`);
         for (const p of items) {
-            const enabled = isPluginEnabled(p, state);
-            const status = enabled ? "\x1b[32m✓\x1b[0m" : "\x1b[31m✗\x1b[0m";
-            const version = p.manifest && p.manifest.version ? `v${resolveVersion(p.manifest.version)}` : "";
-            const tier = p.manifest && p.manifest.tier ? `[${p.manifest.tier}]` : "";
-            const core = isCore(p) ? " (core)" : "";
-            console.log(`    ${status} ${p.type}/${p.name}  ${version} ${tier}${core}`);
+            const id = `${p.type}/${p.name}`;
+            const ver = p.manifest && p.manifest.version ? `v${p.manifest.version === "core" ? getMMGISVersion() : p.manifest.version}` : "";
+            if (id.length > maxId) maxId = id.length;
+            if (ver.length > maxVer) maxVer = ver.length;
+            rows.push({ container, p, id, ver });
         }
     }
-    console.log(`\n  Total: ${plugins.length} plugin(s)\n`);
+
+    let enabledCount = 0;
+    let disabledCount = 0;
+    let currentContainer = null;
+
+    for (const { container, p, id, ver } of rows) {
+        if (container !== currentContainer) {
+            currentContainer = container;
+            console.log(`\n  ${c.bold(c.white(container + "/"))}`);
+        }
+        const enabled = isPluginEnabled(p, state);
+        if (enabled) enabledCount++;
+        else disabledCount++;
+
+        const status = enabled ? c.green("✓") : c.red("✗");
+        const paddedId = id.padEnd(maxId);
+        const verStr = ver ? c.yellow(ver.padEnd(maxVer)) : "".padEnd(maxVer);
+        const tier = p.manifest && p.manifest.tier ? c.dim(`[${p.manifest.tier}]`) : "";
+        const coreLabel = isCore(p) ? c.gray(" (core)") : "";
+
+        console.log(`    ${status} ${c.cyan(paddedId)}  ${verStr}  ${tier}${coreLabel}`);
+    }
+
+    // Summary bar
+    const total = plugins.length;
+    const summary = `${c.bold(String(total))} plugin(s)`;
+    const en = c.green(`${enabledCount} enabled`);
+    const dis = disabledCount > 0 ? `, ${c.red(`${disabledCount} disabled`)}` : "";
+    const containers = Object.keys(groups).length;
+    console.log(`\n  ${summary} (${en}${dis}) across ${c.cyan(String(containers))} container(s)\n`);
 }
 
 function cmdInstall(target) {
     if (!target) {
-        console.error("Usage: plugin-cli install <git-url|local-path>");
+        console.error(c.red("Usage: plugin-cli install <git-url|local-path>"));
         process.exit(1);
     }
 
@@ -243,20 +324,21 @@ function cmdInstall(target) {
         const dest = path.join(PLUGINS_ROOT, repoName);
 
         if (fs.existsSync(dest)) {
-            console.error(`Plugin repo '${repoName}' already exists at ${dest}`);
-            console.error("Use 'update' to pull latest, or 'remove' first.");
+            console.error(c.red(`Plugin repo '${repoName}' already exists at ${dest}`));
+            console.error(c.yellow("Use 'update' to pull latest, or 'remove' first."));
             process.exit(1);
         }
 
-        console.log(`Cloning ${target} → plugins/${repoName}/`);
+        step(1, 3, `Cloning ${c.cyan(target)} → ${c.cyan(`plugins/${repoName}/`)}`);
         try {
             execSync(`git clone "${target}" "${dest}"`, { stdio: "inherit" });
         } catch (err) {
-            console.error(`Failed to clone: ${err.message}`);
+            console.error(c.red(`Failed to clone: ${err.message}`));
             process.exit(1);
         }
 
         // Auto-register in registries if not already present.
+        step(2, 3, "Registering in plugin-registries.json");
         const registries = loadRegistries();
         const existing = registries.registries.find((r) => r.url === target);
         if (!existing) {
@@ -266,25 +348,25 @@ function cmdInstall(target) {
                 type: "git",
             });
             saveRegistries(registries);
-            console.log(`Registered ${repoName} in plugin-registries.json`);
         }
 
         // Discover what was installed and report.
+        step(3, 3, "Discovering plugins");
         const plugins = discoverAll().filter((p) => p.container === repoName);
         if (plugins.length > 0) {
-            console.log(`\nDiscovered ${plugins.length} plugin(s):`);
+            console.log(`\n  ${c.green(`Discovered ${plugins.length} plugin(s):`)}`)
             for (const p of plugins) {
-                console.log(`  ${p.type}/${p.name}`);
+                console.log(`    ${c.cyan(p.type + "/" + p.name)}`);
             }
         } else {
-            console.log("\nWarning: No plugins found in the cloned repo.");
-            console.log("Ensure the repo has the structure: <repo>/{tools,backend,components}/<Name>/plugin.json");
+            console.log(`\n  ${c.yellow("Warning: No plugins found in the cloned repo.")}`);
+            console.log(c.dim("  Ensure the repo has the structure: <repo>/{tools,backend,components}/<Name>/plugin.json"));
         }
     } else {
         // Local path — copy or symlink.
         const absPath = path.resolve(target);
         if (!fs.existsSync(absPath)) {
-            console.error(`Path not found: ${absPath}`);
+            console.error(c.red(`Path not found: ${absPath}`));
             process.exit(1);
         }
 
@@ -292,39 +374,40 @@ function cmdInstall(target) {
         const dest = path.join(PLUGINS_ROOT, repoName);
 
         if (fs.existsSync(dest)) {
-            console.error(`Plugin directory '${repoName}' already exists at ${dest}`);
+            console.error(c.red(`Plugin directory '${repoName}' already exists at ${dest}`));
             process.exit(1);
         }
 
-        console.log(`Symlinking ${absPath} → plugins/${repoName}/`);
+        step(1, 2, `Symlinking ${c.cyan(absPath)} → ${c.cyan(`plugins/${repoName}/`)}`);
         fs.symlinkSync(absPath, dest, "dir");
 
+        step(2, 2, "Discovering plugins");
         const plugins = discoverAll().filter((p) => p.container === repoName);
-        console.log(`Discovered ${plugins.length} plugin(s).`);
+        console.log(`  ${c.green(`Discovered ${plugins.length} plugin(s).`)}`);
     }
 
-    console.log("\nRun 'npm run build' to activate frontend plugins.");
-    console.log("Restart the server to activate backend plugins.");
+    console.log(`\n  ${c.dim("Run")} ${c.cyan("npm run build")} ${c.dim("to activate frontend plugins.")}`);
+    console.log(`  ${c.dim("Restart the server to activate backend plugins.")}\n`);
 }
 
 function cmdRemove(repoName) {
     if (!repoName) {
-        console.error("Usage: plugin-cli remove <repo-name>");
+        console.error(c.red("Usage: plugin-cli remove <repo-name>"));
         process.exit(1);
     }
 
     if (repoName === CORE_CONTAINER) {
-        console.error("Cannot remove core plugins.");
+        console.error(c.red("Cannot remove core plugins."));
         process.exit(1);
     }
 
     const dest = path.join(PLUGINS_ROOT, repoName);
     if (!fs.existsSync(dest)) {
-        console.error(`Plugin repo '${repoName}' not found.`);
+        console.error(c.red(`Plugin repo '${repoName}' not found.`));
         process.exit(1);
     }
 
-    // Remove from state.
+    step(1, 3, "Removing from state file");
     const state = loadState();
     const keysToRemove = Object.keys(state.plugins).filter((k) => k.startsWith(repoName + "/"));
     for (const k of keysToRemove) {
@@ -332,12 +415,12 @@ function cmdRemove(repoName) {
     }
     saveState(state);
 
-    // Remove from registries.
+    step(2, 3, "Removing from registries");
     const registries = loadRegistries();
     registries.registries = registries.registries.filter((r) => r.name !== repoName);
     saveRegistries(registries);
 
-    // Delete the directory.
+    step(3, 3, "Deleting directory");
     const stat = fs.lstatSync(dest);
     if (stat.isSymbolicLink()) {
         fs.unlinkSync(dest);
@@ -345,42 +428,41 @@ function cmdRemove(repoName) {
         fs.rmSync(dest, { recursive: true, force: true });
     }
 
-    console.log(`Removed plugin repo '${repoName}'.`);
-    console.log("Run 'npm run build' and restart the server to apply changes.");
+    console.log(`\n  ${c.green(`Removed plugin repo '${repoName}'.`)}`);
+    console.log(`  ${c.dim("Run")} ${c.cyan("npm run build")} ${c.dim("and restart the server to apply changes.")}\n`);
 }
 
 function cmdEnable(pluginIdStr) {
     if (!pluginIdStr) {
-        console.error("Usage: plugin-cli enable <plugin-id>");
-        console.error("Plugin IDs look like: my-plugins/tools/CustomTool");
+        console.error(c.red("Usage: plugin-cli enable <plugin-id>"));
+        console.error(c.dim("Plugin IDs look like: my-plugins/tools/CustomTool"));
         process.exit(1);
     }
 
-    // Find the plugin.
     const plugins = discoverAll();
     const match = plugins.find((p) => p.id === pluginIdStr || p.name === pluginIdStr);
 
     if (!match) {
-        console.error(`Plugin '${pluginIdStr}' not found.`);
-        console.error("Run 'plugin-cli list' to see available plugins.");
+        console.error(c.red(`Plugin '${pluginIdStr}' not found.`));
+        console.error(c.dim("Run 'plugin-cli list' to see available plugins."));
         process.exit(1);
     }
 
     if (isCore(match)) {
-        console.log(`Plugin '${match.id}' is a core plugin and is always enabled.`);
+        console.log(c.yellow(`Plugin '${match.id}' is a core plugin and is always enabled.`));
         return;
     }
 
     const state = loadState();
     state.plugins[match.id] = { enabled: true };
     saveState(state);
-    console.log(`Enabled: ${match.id}`);
-    console.log("Run 'npm run build' and restart the server to apply changes.");
+    console.log(`  ${c.green("✓")} Enabled: ${c.cyan(match.id)}`);
+    console.log(`  ${c.dim("Run")} ${c.cyan("npm run build")} ${c.dim("and restart the server to apply changes.")}`);
 }
 
 function cmdDisable(pluginIdStr) {
     if (!pluginIdStr) {
-        console.error("Usage: plugin-cli disable <plugin-id>");
+        console.error(c.red("Usage: plugin-cli disable <plugin-id>"));
         process.exit(1);
     }
 
@@ -388,72 +470,72 @@ function cmdDisable(pluginIdStr) {
     const match = plugins.find((p) => p.id === pluginIdStr || p.name === pluginIdStr);
 
     if (!match) {
-        console.error(`Plugin '${pluginIdStr}' not found.`);
+        console.error(c.red(`Plugin '${pluginIdStr}' not found.`));
         process.exit(1);
     }
 
     if (isCore(match)) {
-        console.error(`Cannot disable core plugin '${match.id}'.`);
+        console.error(c.red(`Cannot disable core plugin '${match.id}'.`));
         process.exit(1);
     }
 
     const state = loadState();
     state.plugins[match.id] = { enabled: false };
     saveState(state);
-    console.log(`Disabled: ${match.id}`);
-    console.log("Run 'npm run build' and restart the server to apply changes.");
+    console.log(`  ${c.red("✗")} Disabled: ${c.cyan(match.id)}`);
+    console.log(`  ${c.dim("Run")} ${c.cyan("npm run build")} ${c.dim("and restart the server to apply changes.")}`);
 }
 
 function cmdUpdate(repoName) {
     const registries = loadRegistries();
 
     if (repoName) {
-        // Update a specific repo.
         const dest = path.join(PLUGINS_ROOT, repoName);
         if (!fs.existsSync(dest) || !fs.existsSync(path.join(dest, ".git"))) {
-            console.error(`'${repoName}' is not a git-based plugin repo.`);
+            console.error(c.red(`'${repoName}' is not a git-based plugin repo.`));
             process.exit(1);
         }
         if (repoName === CORE_CONTAINER) {
-            console.error("Core plugins are updated with the main MMGIS repo.");
+            console.error(c.yellow("Core plugins are updated with the main MMGIS repo."));
             process.exit(1);
         }
-        console.log(`Updating ${repoName}...`);
+        step(1, 1, `Pulling latest for ${c.cyan(repoName)}`);
         try {
             execSync("git pull", { cwd: dest, stdio: "inherit" });
+            console.log(`  ${c.green("Done.")}`);
         } catch (err) {
-            console.error(`Failed to update ${repoName}: ${err.message}`);
+            console.error(c.red(`Failed to update ${repoName}: ${err.message}`));
             process.exit(1);
         }
     } else {
-        // Update all registered repos.
+        const repos = registries.registries;
+        if (repos.length === 0) {
+            console.log(c.yellow("No registered plugin repos to update."));
+            return;
+        }
         let updated = 0;
-        for (const reg of registries.registries) {
+        for (let i = 0; i < repos.length; i++) {
+            const reg = repos[i];
             const dest = path.join(PLUGINS_ROOT, reg.name);
             if (!fs.existsSync(dest) || !fs.existsSync(path.join(dest, ".git"))) {
-                console.log(`Skipping ${reg.name} (not a git repo on disk)`);
+                step(i + 1, repos.length, `Skipping ${c.dim(reg.name)} (not a git repo on disk)`);
                 continue;
             }
-            console.log(`Updating ${reg.name}...`);
+            step(i + 1, repos.length, `Pulling latest for ${c.cyan(reg.name)}`);
             try {
                 execSync("git pull", { cwd: dest, stdio: "inherit" });
                 updated++;
             } catch (err) {
-                console.error(`  Failed: ${err.message}`);
+                console.error(`    ${c.red("Failed:")} ${err.message}`);
             }
         }
-        if (updated === 0 && registries.registries.length === 0) {
-            console.log("No registered plugin repos to update.");
-        } else {
-            console.log(`\nUpdated ${updated} repo(s).`);
-        }
+        console.log(`\n  ${c.green(`Updated ${updated} repo(s).`)}`);
     }
 
-    console.log("Run 'npm run build' and restart the server to apply changes.");
+    console.log(`  ${c.dim("Run")} ${c.cyan("npm run build")} ${c.dim("and restart the server to apply changes.")}\n`);
 }
 
 function cmdValidate() {
-    // Import the validation module.
     const { validatePluginConfig, validateDependencies } = require(
         path.join(__dirname, "..", "API", "pluginValidation")
     );
@@ -462,25 +544,26 @@ function cmdValidate() {
     const state = loadState();
     let errors = 0;
     let warnings = 0;
+    let passed = 0;
 
+    console.log("");
     for (const p of plugins) {
         const enabled = isPluginEnabled(p, state);
-        const prefix = `${p.id}`;
+        const prefix = p.id;
 
         if (!p.manifest) {
-            console.error(`  ✗ ${prefix}: missing or invalid plugin.json`);
+            console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red("missing or invalid plugin.json")}`);
             errors++;
             continue;
         }
 
-        // Map plugin type directory name to validation type.
         const typeMap = { tools: "tool", components: "component", backend: "backend" };
         const validationType = typeMap[p.type] || p.type;
 
         const errs = validatePluginConfig(p.manifest, p.name, validationType);
         if (errs.length > 0) {
             for (const e of errs) {
-                console.error(`  ✗ ${prefix}: ${e}`);
+                console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`);
             }
             errors += errs.length;
         }
@@ -488,24 +571,27 @@ function cmdValidate() {
         if (p.manifest.dependencies) {
             const depErrs = validateDependencies(p.manifest.dependencies, p.name);
             for (const e of depErrs) {
-                console.error(`  ✗ ${prefix}: ${e}`);
+                console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`);
             }
             errors += depErrs.length;
         }
 
         if (!enabled) {
-            console.log(`  ⚠ ${prefix}: disabled`);
+            console.log(`  ${c.yellow("⚠")} ${c.cyan(prefix)}: ${c.yellow("disabled")}`);
             warnings++;
+        } else if (errs.length === 0) {
+            passed++;
         }
     }
 
     if (errors === 0) {
-        console.log(`\n  All ${plugins.length} plugin(s) valid.`);
-        if (warnings > 0) console.log(`  ${warnings} disabled plugin(s).`);
+        console.log(`\n  ${c.green("✓")} All ${c.bold(String(plugins.length))} plugin(s) valid.`);
+        if (warnings > 0) console.log(`  ${c.yellow(String(warnings))} disabled plugin(s).`);
     } else {
-        console.error(`\n  ${errors} error(s) across ${plugins.length} plugin(s).`);
+        console.error(`\n  ${c.red(`${errors} error(s)`)} across ${c.bold(String(plugins.length))} plugin(s). ${c.green(`${passed} passed`)}.`);
         process.exit(1);
     }
+    console.log("");
 }
 
 function cmdDeps() {
@@ -527,42 +613,61 @@ function cmdDeps() {
             deps: p.manifest.dependencies,
         }));
 
-    console.log("\n  npm dependencies:");
+    console.log(`\n  ${c.bold(c.white("npm dependencies:"))}`);
     const { merged: npmMerged, conflicts: npmConflicts } = mergeNpm(sources);
     const npmKeys = Object.keys(npmMerged);
     if (npmKeys.length === 0) {
-        console.log("    (none)");
+        console.log(`    ${c.dim("(none)")}`);
     } else {
         for (const [pkg, ver] of Object.entries(npmMerged)) {
-            console.log(`    ${pkg}: ${ver}`);
+            console.log(`    ${c.cyan(pkg)}: ${c.yellow(ver)}`);
         }
     }
 
     if (npmConflicts.length > 0) {
-        console.log("\n  ⚠ npm conflicts:");
-        for (const c of npmConflicts) {
-            console.log(`    ${c.package}:`);
-            for (const claim of c.claims) {
-                console.log(`      ${claim.plugin}: ${claim.version}`);
+        console.log(`\n  ${c.yellow("⚠ npm conflicts:")}`);
+        for (const cf of npmConflicts) {
+            console.log(`    ${c.red(cf.package)}:`);
+            for (const claim of cf.claims) {
+                console.log(`      ${c.dim(claim.plugin)}: ${c.yellow(claim.version)}`);
             }
         }
     }
 
-    // Python deps.
+    // Python deps — pip.
     const { merged: pipMerged, conflicts: pipConflicts } = mergePython(sources, "pip");
     if (pipMerged.length > 0) {
-        console.log("\n  pip dependencies:");
+        console.log(`\n  ${c.bold(c.white("pip dependencies:"))}`);
         for (const dep of pipMerged) {
-            console.log(`    ${dep}`);
+            console.log(`    ${c.cyan(dep)}`);
         }
     }
 
     if (pipConflicts.length > 0) {
-        console.log("\n  ⚠ pip conflicts:");
-        for (const c of pipConflicts) {
-            console.log(`    ${c.package}:`);
-            for (const claim of c.claims) {
-                console.log(`      ${claim.plugin}: ${claim.entry}`);
+        console.log(`\n  ${c.yellow("⚠ pip conflicts:")}`);
+        for (const cf of pipConflicts) {
+            console.log(`    ${c.red(cf.package)}:`);
+            for (const claim of cf.claims) {
+                console.log(`      ${c.dim(claim.plugin)}: ${c.yellow(claim.entry)}`);
+            }
+        }
+    }
+
+    // Python deps — conda.
+    const { merged: condaMerged, conflicts: condaConflicts } = mergePython(sources, "conda");
+    if (condaMerged.length > 0) {
+        console.log(`\n  ${c.bold(c.white("conda dependencies:"))}`);
+        for (const dep of condaMerged) {
+            console.log(`    ${c.cyan(dep)}`);
+        }
+    }
+
+    if (condaConflicts.length > 0) {
+        console.log(`\n  ${c.yellow("⚠ conda conflicts:")}`);
+        for (const cf of condaConflicts) {
+            console.log(`    ${c.red(cf.package)}:`);
+            for (const claim of cf.claims) {
+                console.log(`      ${c.dim(claim.plugin)}: ${c.yellow(claim.entry)}`);
             }
         }
     }
@@ -570,19 +675,21 @@ function cmdDeps() {
     // Peer dependencies.
     const peerWarnings = checkPeerDependencies(active);
     if (peerWarnings.length > 0) {
-        console.log("\n  ⚠ peerDependency warnings:");
+        console.log(`\n  ${c.yellow("⚠ peerDependency warnings:")}`);
         for (const w of peerWarnings) {
-            console.log(`    ${w}`);
+            console.log(`    ${c.yellow(w)}`);
         }
     }
 
-    const totalConflicts = npmConflicts.length + pipConflicts.length;
-    console.log(`\n  ${npmKeys.length} npm, ${pipMerged.length} pip dep(s). ${totalConflicts} conflict(s). ${peerWarnings.length} peer warning(s).\n`);
+    const totalConflicts = npmConflicts.length + pipConflicts.length + condaConflicts.length;
+    const conflictStr = totalConflicts > 0 ? c.red(`${totalConflicts} conflict(s)`) : c.green("0 conflicts");
+    const peerStr = peerWarnings.length > 0 ? c.yellow(`${peerWarnings.length} peer warning(s)`) : c.green("0 peer warnings");
+    console.log(`\n  ${c.bold(String(npmKeys.length))} npm, ${c.bold(String(pipMerged.length))} pip, ${c.bold(String(condaMerged.length))} conda dep(s). ${conflictStr}. ${peerStr}.\n`);
 }
 
 function cmdInfo(pluginIdStr) {
     if (!pluginIdStr) {
-        console.error("Usage: plugin-cli info <plugin-id>");
+        console.error(c.red("Usage: plugin-cli info <plugin-id>"));
         process.exit(1);
     }
 
@@ -591,55 +698,81 @@ function cmdInfo(pluginIdStr) {
     const match = plugins.find((p) => p.id === pluginIdStr || p.name === pluginIdStr);
 
     if (!match) {
-        console.error(`Plugin '${pluginIdStr}' not found.`);
+        console.error(c.red(`Plugin '${pluginIdStr}' not found.`));
         process.exit(1);
+    }
+
+    // --json: structured output
+    if (FLAG_JSON) {
+        const m = match.manifest || {};
+        const out = {
+            id: match.id, name: match.name, type: match.type,
+            container: match.container,
+            enabled: isPluginEnabled(match, state),
+            core: isCore(match),
+            manifest: m,
+            path: match.pluginPath,
+        };
+        console.log(JSON.stringify(out, null, 2));
+        return;
     }
 
     const enabled = isPluginEnabled(match, state);
     const m = match.manifest || {};
 
-    console.log(`\n  Plugin: ${match.id}`);
-    console.log(`  ─────────────────────────────`);
-    console.log(`  Name:        ${m.name || match.name}`);
-    if (m.display_name) console.log(`  Display:     ${m.display_name}`);
-    console.log(`  Type:        ${match.type}`);
-    console.log(`  Container:   ${match.container}`);
-    console.log(`  Status:      ${enabled ? "enabled" : "disabled"}${isCore(match) ? " (core — always enabled)" : ""}`);
-    if (m.version) console.log(`  Version:     ${resolveVersion(m.version)}`);
-    if (m.author) console.log(`  Author:      ${typeof m.author === "object" ? m.author.name || JSON.stringify(m.author) : m.author}`);
-    if (m.license) console.log(`  License:     ${m.license}`);
-    if (m.repository) console.log(`  Repository:  ${m.repository}`);
-    if (m.tier) console.log(`  Tier:        ${m.tier}`);
-    if (m.id) console.log(`  Manifest ID: ${m.id}`);
-    if (m.uuid) console.log(`  UUID:        ${m.uuid}`);
-    if (m.overridable !== undefined) console.log(`  Overridable: ${m.overridable}`);
-    if (m.description) console.log(`  Description: ${m.description}`);
-    if (m.keywords && m.keywords.length > 0) console.log(`  Keywords:    ${m.keywords.join(", ")}`);
-    if (m.engines) console.log(`  Engines:     ${JSON.stringify(m.engines)}`);
-    if (m.aliases && m.aliases.length > 0) console.log(`  Aliases:     ${m.aliases.join(", ")}`);
+    // Build rows for the info box.
+    const rows = [];
+    const row = (label, value) => { if (value !== undefined && value !== null) rows.push([label, value]); };
+
+    row("Name", c.bold(c.white(m.name || match.name)));
+    if (m.display_name) row("Display", m.display_name);
+    row("Type", c.magenta(match.type));
+    row("Container", match.container);
+    const statusStr = enabled
+        ? c.green("enabled") + (isCore(match) ? c.gray(" (core — always enabled)") : "")
+        : c.red("disabled");
+    row("Status", statusStr);
+    if (m.version) row("Version", c.yellow(resolveVersion(m.version)));
+    if (m.author) row("Author", typeof m.author === "object" ? m.author.name || JSON.stringify(m.author) : m.author);
+    if (m.license) row("License", m.license);
+    if (m.repository) row("Repository", c.blue(m.repository));
+    if (m.tier) row("Tier", m.tier);
+    if (m.id) row("Manifest ID", c.dim(m.id));
+    if (m.uuid) row("UUID", c.dim(m.uuid));
+    if (m.overridable !== undefined) row("Overridable", m.overridable ? c.green("yes") : c.red("no"));
+    if (m.description) row("Description", m.description);
+    if (m.keywords && m.keywords.length > 0) row("Keywords", m.keywords.map((k) => c.cyan(k)).join(", "));
+    if (m.engines) row("Engines", Object.entries(m.engines).map(([k, v]) => `${k}: ${c.yellow(v)}`).join(", "));
+    if (m.aliases && m.aliases.length > 0) row("Aliases", m.aliases.join(", "));
     if (m.peerDependencies) {
-        console.log(`  Peer Deps:`);
-        for (const [peer, range] of Object.entries(m.peerDependencies)) {
-            console.log(`    ${peer}: ${range}`);
-        }
+        row("Peer Deps", Object.entries(m.peerDependencies).map(([k, v]) => `${c.cyan(k)}: ${c.yellow(v)}`).join(", "));
     }
     if (m.dependencies) {
         if (m.dependencies.npm) {
-            console.log(`  npm Deps:`);
-            for (const [pkg, ver] of Object.entries(m.dependencies.npm)) {
-                console.log(`    ${pkg}: ${ver}`);
-            }
+            row("npm Deps", Object.entries(m.dependencies.npm).map(([k, v]) => `${c.cyan(k)}: ${c.yellow(v)}`).join(", "));
         }
         if (m.dependencies.python) {
-            if (m.dependencies.python.pip) {
-                console.log(`  pip Deps:    ${m.dependencies.python.pip.join(", ")}`);
-            }
-            if (m.dependencies.python.conda) {
-                console.log(`  conda Deps:  ${m.dependencies.python.conda.join(", ")}`);
-            }
+            if (m.dependencies.python.pip) row("pip Deps", m.dependencies.python.pip.map((d) => c.cyan(d)).join(", "));
+            if (m.dependencies.python.conda) row("conda Deps", m.dependencies.python.conda.map((d) => c.cyan(d)).join(", "));
         }
     }
-    console.log(`  Path:        ${match.pluginPath}`);
+    row("Path", c.dim(match.pluginPath));
+
+    // Box drawing
+    const title = match.id;
+    const labelWidth = Math.max(...rows.map(([l]) => l.length));
+    // Compute inner width from the title or widest plain-text row.
+    const innerWidth = Math.max(title.length + 2, labelWidth + 4 + 40);
+
+    console.log("");
+    console.log(`  ${c.dim("┌" + "─".repeat(innerWidth + 2) + "┐")}`);
+    console.log(`  ${c.dim("│")} ${c.bold(c.cyan(title))}${" ".repeat(Math.max(0, innerWidth - title.length))} ${c.dim("│")}`);
+    console.log(`  ${c.dim("├" + "─".repeat(innerWidth + 2) + "┤")}`);
+    for (const [label, value] of rows) {
+        const paddedLabel = c.dim(label.padEnd(labelWidth));
+        console.log(`  ${c.dim("│")} ${paddedLabel}  ${value}`);
+    }
+    console.log(`  ${c.dim("└" + "─".repeat(innerWidth + 2) + "┘")}`);
     console.log("");
 }
 
@@ -648,21 +781,21 @@ function cmdRegistry(subcommand, arg) {
 
     if (subcommand === "add") {
         if (!arg) {
-            console.error("Usage: plugin-cli registry add <git-url>");
+            console.error(c.red("Usage: plugin-cli registry add <git-url>"));
             process.exit(1);
         }
         const name = repoNameFromURL(arg);
         const existing = registries.registries.find((r) => r.url === arg || r.name === name);
         if (existing) {
-            console.log(`Registry '${name}' already registered.`);
+            console.log(c.yellow(`Registry '${name}' already registered.`));
             return;
         }
         registries.registries.push({ name, url: arg, type: "git" });
         saveRegistries(registries);
-        console.log(`Added registry: ${name} (${arg})`);
+        console.log(`  ${c.green("✓")} Added registry: ${c.cyan(name)} ${c.dim(`(${arg})`)}`);
     } else if (subcommand === "remove") {
         if (!arg) {
-            console.error("Usage: plugin-cli registry remove <name>");
+            console.error(c.red("Usage: plugin-cli registry remove <name>"));
             process.exit(1);
         }
         const before = registries.registries.length;
@@ -670,61 +803,65 @@ function cmdRegistry(subcommand, arg) {
             (r) => r.name !== arg && r.url !== arg
         );
         if (registries.registries.length === before) {
-            console.error(`Registry '${arg}' not found.`);
+            console.error(c.red(`Registry '${arg}' not found.`));
             process.exit(1);
         }
         saveRegistries(registries);
-        console.log(`Removed registry: ${arg}`);
+        console.log(`  ${c.green("✓")} Removed registry: ${c.cyan(arg)}`);
     } else if (subcommand === "list" || !subcommand) {
         if (registries.registries.length === 0) {
-            console.log("No registries configured.");
+            console.log(c.yellow("No registries configured."));
             return;
         }
-        console.log("\n  Registered plugin sources:");
+        console.log(`\n  ${c.bold(c.white("Registered plugin sources:"))}`);
         for (const r of registries.registries) {
-            console.log(`    ${r.name}: ${r.url} [${r.type}]`);
+            console.log(`    ${c.cyan(r.name)}: ${c.blue(r.url)} ${c.dim(`[${r.type}]`)}`);
         }
         console.log("");
     } else {
-        console.error(`Unknown registry subcommand: ${subcommand}`);
-        console.error("Available: add, remove, list");
+        console.error(c.red(`Unknown registry subcommand: ${subcommand}`));
+        console.error(c.dim("Available: add, remove, list"));
         process.exit(1);
     }
 }
 
 function cmdHelp() {
+    const h = (cmd, desc) => `    ${c.cyan(cmd.padEnd(30))} ${c.dim(desc)}`;
     console.log(`
-  MMGIS Plugin CLI
+  ${c.bold(c.white("MMGIS Plugin CLI"))} ${c.dim(`v${getMMGISVersion()}`)}
 
-  Usage: node plugins/plugin-cli.js <command> [options]
-         npm run plugins -- <command> [options]
+  ${c.dim("Usage:")} node plugins/plugin-cli.js ${c.cyan("<command>")} [options]
+         npm run plugins -- ${c.cyan("<command>")} [options]
 
-  Commands:
-    list                          List all plugins with status
-    install <git-url|local-path>  Install a plugin repo (git clone or symlink)
-    remove <repo-name>            Remove an installed plugin repo (not core)
-    enable <plugin-id>            Enable a disabled plugin
-    disable <plugin-id>           Disable a plugin (not core)
-    update [repo-name]            Pull latest for repo(s)
-    validate                      Validate all plugin manifests
-    deps                          Show dependency graph and conflicts
-    info <plugin-id>              Show detailed plugin info
-    registry add <git-url>        Add a registry URL
-    registry remove <name>        Remove a registry URL
-    registry list                 List registered URLs
-    help                          Show this help
+  ${c.bold(c.white("Commands:"))}
+${h("list", "List all plugins with status")}
+${h("install <git-url|local-path>", "Install a plugin repo (git clone or symlink)")}
+${h("remove <repo-name>", "Remove an installed plugin repo (not core)")}
+${h("enable <plugin-id>", "Enable a disabled plugin")}
+${h("disable <plugin-id>", "Disable a plugin (not core)")}
+${h("update [repo-name]", "Pull latest for repo(s)")}
+${h("validate", "Validate all plugin manifests")}
+${h("deps", "Show dependency graph and conflicts")}
+${h("info <plugin-id>", "Show detailed plugin info")}
+${h("registry add <git-url>", "Add a registry URL")}
+${h("registry remove <name>", "Remove a registry URL")}
+${h("registry list", "List registered URLs")}
+${h("help", "Show this help")}
 
-  Plugin IDs:
-    <container>/<type>/<name>     e.g. core/tools/Draw
-    <name>                        Short form (matches first found)
+  ${c.bold(c.white("Flags:"))}
+    ${c.cyan("--no-color".padEnd(30))} ${c.dim("Disable colored output (also respects NO_COLOR env)")}
+    ${c.cyan("--json".padEnd(30))} ${c.dim("Output machine-readable JSON (list, info)")}
 
-  Examples:
-    node plugins/plugin-cli.js list
-    node plugins/plugin-cli.js install https://github.com/org/mmgis-geo-plugins.git
-    node plugins/plugin-cli.js enable my-plugins/tools/SpectralTool
-    node plugins/plugin-cli.js disable SpectralTool
-    node plugins/plugin-cli.js info Draw
-    node plugins/plugin-cli.js registry add https://github.com/org/mmgis-plugins.git
+  ${c.bold(c.white("Plugin IDs:"))}
+    ${c.dim("<container>/<type>/<name>")}     e.g. ${c.cyan("core/tools/Draw")}
+    ${c.dim("<name>")}                        Short form (matches first found)
+
+  ${c.bold(c.white("Examples:"))}
+    ${c.dim("$")} npm run plugins -- list
+    ${c.dim("$")} npm run plugins -- install https://github.com/org/mmgis-geo-plugins.git
+    ${c.dim("$")} npm run plugins -- enable my-plugins/tools/SpectralTool
+    ${c.dim("$")} npm run plugins -- info Draw
+    ${c.dim("$")} npm run plugins -- list --json
 `);
 }
 
@@ -732,7 +869,6 @@ function cmdHelp() {
 // Main
 // ---------------------------------------------------------------------------
 
-const args = process.argv.slice(2);
 const command = args[0];
 
 switch (command) {
@@ -773,7 +909,7 @@ switch (command) {
         break;
     default:
         if (command) {
-            console.error(`Unknown command: ${command}`);
+            console.error(c.red(`Unknown command: ${command}`));
         }
         cmdHelp();
         if (command) process.exit(1);

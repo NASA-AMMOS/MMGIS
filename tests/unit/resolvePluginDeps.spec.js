@@ -262,4 +262,27 @@ test.describe('checkPeerDependencies', () => {
         expect(warnings.length).toBe(1);
         expect(warnings[0]).toContain('requires peer');
     });
+
+    test('resolves "core" version to MMGIS version for peer checks', () => {
+        // "version": "core" should resolve to the MMGIS package.json version
+        // (which is >=5.0.0), so this peer dep should be satisfied.
+        const plugins = [
+            { name: 'Draw', manifest: { id: 'core-draw', version: 'core' } },
+            { name: 'Sightline', manifest: { id: 'core-sightline', version: 'core', peerDependencies: { 'core-draw': '>=5.0.0' } } },
+        ];
+        const warnings = checkPeerDependencies(plugins);
+        expect(warnings).toEqual([]);
+    });
+
+    test('warns when "core" version does not satisfy peer range', () => {
+        // If a plugin requires a version higher than the MMGIS version,
+        // even "core" should trigger a warning.
+        const plugins = [
+            { name: 'Draw', manifest: { id: 'core-draw', version: 'core' } },
+            { name: 'FuturePlugin', manifest: { id: 'future-plugin', version: '1.0.0', peerDependencies: { 'core-draw': '>=99.0.0' } } },
+        ];
+        const warnings = checkPeerDependencies(plugins);
+        expect(warnings.length).toBe(1);
+        expect(warnings[0]).toContain('requires peer');
+    });
 });
