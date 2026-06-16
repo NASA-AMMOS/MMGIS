@@ -33,7 +33,7 @@ plugins/
 ├── core/                      # Core plugins (committed, version-controlled)
 │   ├── tools/                 # Frontend tools (Draw, Measure, Legend, etc.)
 │   ├── backend/               # Server modules (Accounts, Config, Users, etc.)
-│   └── components/            # UI components (OperationsClock, TimeUI, etc.)
+│   └── components/            # UI components (OperationsClock, etc.)
 └── <external-container>/      # Installed from git or local path (gitignored)
     ├── tools/
     ├── backend/
