@@ -1,4 +1,4 @@
-import F_ from "../../../../../src/essence/Basics/Formulae_/Formulae_";
+import F_ from "@basics/Formulae_/Formulae_";
 import Model from "./Model";
 import { createInput } from "../ui";
 

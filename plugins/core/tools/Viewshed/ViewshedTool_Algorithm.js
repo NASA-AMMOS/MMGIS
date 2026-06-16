@@ -1,8 +1,8 @@
 // See https://www.asprs.org/wp-content/uploads/pers/2000journal/january/2000_jan_87-90.pdf for viewshedding algorithm
 import $ from 'jquery'
-import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
-import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
-import G_ from '../../../../src/essence/Basics/Globe_/Globe_'
+import F_ from '@basics/Formulae_/Formulae_'
+import L_ from '@basics/Layers_/Layers_'
+import G_ from '@basics/Globe_/Globe_'
 
 let ViewshedTool_Algorithm = {
     // Returns a viewshed grid where

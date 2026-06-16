@@ -1,7 +1,7 @@
 import $ from 'jquery';
 
-import Map_ from '../../../../src/essence/Basics/Map_/Map_';
-import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_';
+import Map_ from '@basics/Map_/Map_';
+import F_ from '@basics/Formulae_/Formulae_';
 
 import generateIsochrone from './IsochroneTool_Algorithm';
 import QueryJob from './IsochroneTool_Query';

@@ -1,6 +1,6 @@
 import $ from 'jquery'
-import L_ from '../../../../../src/essence/Basics/Layers_/Layers_'
-import Modal from '../../../../../src/essence/Basics/UserInterface_/components/Modal/Modal'
+import L_ from '@basics/Layers_/Layers_'
+import Modal from '@basics/UserInterface_/components/Modal/Modal'
 import showdown from 'showdown'
 
 import './LayerInfoModal.css'

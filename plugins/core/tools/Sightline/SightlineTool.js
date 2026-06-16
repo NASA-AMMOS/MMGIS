@@ -2,20 +2,20 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { utcFormat } from 'd3-time-format'
 
-import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
-import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
-import Map_ from '../../../../src/essence/Basics/Map_/Map_'
-import Globe_ from '../../../../src/essence/Basics/Globe_/Globe_'
-import Toast from '../../../../src/design-system/components/Toast/Toast'
+import F_ from '@basics/Formulae_/Formulae_'
+import L_ from '@basics/Layers_/Layers_'
+import Map_ from '@basics/Map_/Map_'
+import Globe_ from '@basics/Globe_/Globe_'
+import Toast from '@design/components/Toast/Toast'
 
-import TimeControl from '../../../../src/essence/Basics/TimeControl_/TimeControl'
-import TimeUI from '../../../../src/essence/Basics/TimeControl_/TimeUI'
+import TimeControl from '@basics/TimeControl_/TimeControl'
+import TimeUI from '@basics/TimeControl_/TimeUI'
 
-import calls from '../../../../src/pre/calls'
+import calls from '@pre/calls'
 import {
     data as colormapData,
     evaluate_cmap,
-} from '../../../../src/external/js-colormaps/js-colormaps.js'
+} from '@external/js-colormaps/js-colormaps.js'
 
 import HTML2Canvas from 'html2canvas'
 import gifshot from 'gifshot'

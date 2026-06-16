@@ -1,31 +1,31 @@
 import $ from 'jquery'
 import Sortable from 'sortablejs'
-import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
-import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
-import Map_ from '../../../../src/essence/Basics/Map_/Map_'
+import F_ from '@basics/Formulae_/Formulae_'
+import L_ from '@basics/Layers_/Layers_'
+import Map_ from '@basics/Map_/Map_'
 
-import DataShaders from '../../../../src/essence/services/DataShaders'
+import DataShaders from '@essence/services/DataShaders'
 import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
-import Filtering from '../../../../src/essence/Basics/Layers_/Filtering/Filtering'
-import Help from '../../../../src/essence/Basics/UserInterface_/components/Help/Help'
-import CursorInfo from '../../../../src/essence/Basics/UserInterface_/components/CursorInfo/CursorInfo'
-import Toast from '../../../../src/design-system/components/Toast/Toast'
-import TimeUI from '../../../../src/essence/Basics/TimeControl_/TimeUI'
+import Filtering from '@basics/Layers_/Filtering/Filtering'
+import Help from '@basics/UserInterface_/components/Help/Help'
+import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '@design/components/Toast/Toast'
+import TimeUI from '@basics/TimeControl_/TimeUI'
 
 import LegendTool from '../Legend/LegendTool.js'
 
 import tippy from 'tippy.js'
 import 'markjs'
-import calls from '../../../../src/pre/calls'
+import calls from '@pre/calls'
 import * as tokml from '@maphubs/tokml'
 import shpwrite from '@mapbox/shp-write'
 
 import {
     evaluate_cmap,
     data as colormapData,
-} from '../../../../src/external/js-colormaps/js-colormaps.js'
+} from '@external/js-colormaps/js-colormaps.js'
 
-import { isKmlUrl, fetchKmlAsGeoJSON } from '../../../../src/essence/Basics/Layers_/LayerCapturer'
+import { isKmlUrl, fetchKmlAsGeoJSON } from '@basics/Layers_/LayerCapturer'
 import './LayersTool.css'
 
 const helpKey = 'LayersTool'

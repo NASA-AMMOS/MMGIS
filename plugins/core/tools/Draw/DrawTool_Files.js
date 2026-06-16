@@ -1,13 +1,13 @@
 import $ from 'jquery'
-import { safeHTML } from '../../../../src/essence/services/Sanitize'
-import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
-import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
-import LayerGeologic from '../../../../src/essence/Basics/Layers_/LayerGeologic/LayerGeologic'
-import Globe_ from '../../../../src/essence/Basics/Globe_/Globe_'
-import Map_ from '../../../../src/essence/Basics/Map_/Map_'
-import CursorInfo from '../../../../src/essence/Basics/UserInterface_/components/CursorInfo/CursorInfo'
-import Toast from '../../../../src/design-system/components/Toast/Toast'
-import Modal from '../../../../src/essence/Basics/UserInterface_/components/Modal/Modal'
+import { safeHTML } from '@essence/services/Sanitize'
+import F_ from '@basics/Formulae_/Formulae_'
+import L_ from '@basics/Layers_/Layers_'
+import LayerGeologic from '@basics/Layers_/LayerGeologic/LayerGeologic'
+import Globe_ from '@basics/Globe_/Globe_'
+import Map_ from '@basics/Map_/Map_'
+import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '@design/components/Toast/Toast'
+import Modal from '@basics/UserInterface_/components/Modal/Modal'
 
 import DrawTool_Templater from './DrawTool_Templater'
 
@@ -16,7 +16,7 @@ import * as tokml from '@maphubs/tokml'
 import shpwrite from '@mapbox/shp-write'
 import { saveAs } from 'file-saver'
 
-import calls from '../../../../src/pre/calls'
+import calls from '@pre/calls'
 
 var DrawTool = null
 var Files = {

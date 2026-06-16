@@ -4,8 +4,8 @@ import SightlineResults from './SightlineResults'
 import CardLegend, { getDefaultStops } from './CardLegend'
 import SightlineTool from '../SightlineTool'
 import SightlineTool_Graphs from '../SightlineTool_Graphs'
-import L_ from '../../../../../src/essence/Basics/Layers_/Layers_'
-import TimeControl from '../../../../../src/essence/Basics/TimeControl_/TimeControl'
+import L_ from '@basics/Layers_/Layers_'
+import TimeControl from '@basics/TimeControl_/TimeControl'
 import {
     Button,
     Checkbox,
@@ -19,7 +19,7 @@ import {
     Slider,
     Tabs,
     Tooltip,
-} from '../../../../../src/design-system/components'
+} from '@design/components'
 
 function rgbStr(c) {
     return `rgb(${c.r},${c.g},${c.b})`

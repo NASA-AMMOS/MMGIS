@@ -1,5 +1,5 @@
 import $ from 'jquery'
-import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
+import F_ from '@basics/Formulae_/Formulae_'
 
 var DrawTool = null
 var History = {

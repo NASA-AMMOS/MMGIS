@@ -1,13 +1,13 @@
 import $ from 'jquery'
-import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
-import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
+import F_ from '@basics/Formulae_/Formulae_'
+import L_ from '@basics/Layers_/Layers_'
 
-import CursorInfo from '../../../../src/essence/Basics/UserInterface_/components/CursorInfo/CursorInfo'
-import Toast from '../../../../src/design-system/components/Toast/Toast'
-import Modal from '../../../../src/essence/Basics/UserInterface_/components/Modal/Modal'
-import Dropy from '../../../../src/external/Dropy/dropy'
+import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '@design/components/Toast/Toast'
+import Modal from '@basics/UserInterface_/components/Modal/Modal'
+import Dropy from '@external/Dropy/dropy'
 import tippy from 'tippy.js'
-import shp from '../../../../src/external/shpjs/shapefile'
+import shp from '@external/shpjs/shapefile'
 
 import DrawTool_Templater from './DrawTool_Templater'
 

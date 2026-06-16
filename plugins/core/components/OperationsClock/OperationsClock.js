@@ -15,8 +15,8 @@
  * - Interfaces with TimeControl
  */
 
-import TimeControl from '../../../../src/essence/Basics/TimeControl_/TimeControl'
-import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
+import TimeControl from '@basics/TimeControl_/TimeControl'
+import L_ from '@basics/Layers_/Layers_'
 import tippy from 'tippy.js'
 import { TempusDominus, Namespace, DateTime } from '@eonasdan/tempus-dominus'
 import '@eonasdan/tempus-dominus/dist/css/tempus-dominus.css'

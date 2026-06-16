@@ -1,9 +1,9 @@
 import $ from 'jquery'
 import * as d3 from 'd3'
-import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
-import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
-import CursorInfo from '../../../../src/essence/Basics/UserInterface_/components/CursorInfo/CursorInfo'
-import Toast from '../../../../src/design-system/components/Toast/Toast'
+import F_ from '@basics/Formulae_/Formulae_'
+import L_ from '@basics/Layers_/Layers_'
+import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '@design/components/Toast/Toast'
 
 function makeChemistryChart(chems, chemLayerVar, divId) {
     var chemsNameArr // = ["Al2O3", "CaO", "FeOT", "K2O", "MgO", "Na2O", "SiO2", "TiO2"];

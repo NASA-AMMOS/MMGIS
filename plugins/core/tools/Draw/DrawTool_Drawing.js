@@ -1,12 +1,12 @@
 import $ from 'jquery'
-import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
-import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
-import Map_ from '../../../../src/essence/Basics/Map_/Map_'
-import CursorInfo from '../../../../src/essence/Basics/UserInterface_/components/CursorInfo/CursorInfo'
-import Toast from '../../../../src/design-system/components/Toast/Toast'
+import F_ from '@basics/Formulae_/Formulae_'
+import L_ from '@basics/Layers_/Layers_'
+import Map_ from '@basics/Map_/Map_'
+import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
+import Toast from '@design/components/Toast/Toast'
 import { bbox as turfBbox, difference as turfDifference } from '@turf/turf'
 
-import calls from '../../../../src/pre/calls'
+import calls from '@pre/calls'
 
 var DrawTool = null
 var Drawing = {

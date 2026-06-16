@@ -1,9 +1,9 @@
 import $ from 'jquery'
-import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
-import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
-import TC_ from '../../../../src/essence/Basics/ToolController_/ToolController_'
-import Globe_ from '../../../../src/essence/Basics/Globe_/Globe_'
-import Help from '../../../../src/essence/Basics/UserInterface_/components/Help/Help'
+import F_ from '@basics/Formulae_/Formulae_'
+import L_ from '@basics/Layers_/Layers_'
+import TC_ from '@basics/ToolController_/ToolController_'
+import Globe_ from '@basics/Globe_/Globe_'
+import Help from '@basics/UserInterface_/components/Help/Help'
 
 const helpKey = 'SitesTool'
 

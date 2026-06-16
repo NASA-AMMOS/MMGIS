@@ -4,15 +4,15 @@
 //Send data to viewshedder
 
 import $ from 'jquery'
-import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
-import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
-import Map_ from '../../../../src/essence/Basics/Map_/Map_'
-import Globe_ from '../../../../src/essence/Basics/Globe_/Globe_'
-import CursorInfo from '../../../../src/essence/Basics/UserInterface_/components/CursorInfo/CursorInfo'
-import DataShaders from '../../../../src/essence/services/DataShaders'
-import Help from '../../../../src/essence/Basics/UserInterface_/components/Help/Help'
+import F_ from '@basics/Formulae_/Formulae_'
+import L_ from '@basics/Layers_/Layers_'
+import Map_ from '@basics/Map_/Map_'
+import Globe_ from '@basics/Globe_/Globe_'
+import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
+import DataShaders from '@essence/services/DataShaders'
+import Help from '@basics/UserInterface_/components/Help/Help'
 
-import arc from '../../../../src/external/Arc/arc'
+import arc from '@external/Arc/arc'
 import '../../../../src/external/ColorPicker/jqColorPicker'
 import '../../../../src/external/PNG/zlib'
 import '../../../../src/external/PNG/png'

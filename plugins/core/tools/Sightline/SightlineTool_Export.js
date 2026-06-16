@@ -1,7 +1,7 @@
-import F_ from '../../../../src/essence/Basics/Formulae_/Formulae_'
-import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
-import Map_ from '../../../../src/essence/Basics/Map_/Map_'
-import Toast from '../../../../src/design-system/components/Toast/Toast'
+import F_ from '@basics/Formulae_/Formulae_'
+import L_ from '@basics/Layers_/Layers_'
+import Map_ from '@basics/Map_/Map_'
+import Toast from '@design/components/Toast/Toast'
 
 import HTML2Canvas from 'html2canvas'
 import gifshot from 'gifshot'

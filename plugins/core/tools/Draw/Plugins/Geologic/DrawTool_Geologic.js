@@ -1,9 +1,9 @@
 import $ from 'jquery'
-import F_ from '../../../../../../src/essence/Basics/Formulae_/Formulae_'
-import L_ from '../../../../../../src/essence/Basics/Layers_/Layers_'
-import LayerGeologic from '../../../../../../src/essence/Basics/Layers_/LayerGeologic/LayerGeologic'
-import Map_ from '../../../../../../src/essence/Basics/Map_/Map_'
-import Dropy from '../../../../../../src/external/Dropy/dropy'
+import F_ from '@basics/Formulae_/Formulae_'
+import L_ from '@basics/Layers_/Layers_'
+import LayerGeologic from '@basics/Layers_/LayerGeologic/LayerGeologic'
+import Map_ from '@basics/Map_/Map_'
+import Dropy from '@external/Dropy/dropy'
 
 import './DrawTool_Geologic.css'
 
