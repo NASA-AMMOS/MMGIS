@@ -42,13 +42,14 @@ const RAW_ARGS = process.argv.slice(2);
 const FLAG_NO_COLOR = RAW_ARGS.includes("--no-color") || !!process.env.NO_COLOR;
 const FLAG_JSON = RAW_ARGS.includes("--json");
 const FLAG_LINK = RAW_ARGS.includes("--link");
+const FLAG_FORCE = RAW_ARGS.includes("--force");
 const FLAG_CONTAINER = (() => {
     const idx = RAW_ARGS.indexOf("--container");
     return idx !== -1 && idx + 1 < RAW_ARGS.length ? RAW_ARGS[idx + 1] : null;
 })();
 // Strip flags so positional command parsing still works.
 const args = RAW_ARGS.filter((a, i) =>
-    a !== "--no-color" && a !== "--json" && a !== "--link" &&
+    a !== "--no-color" && a !== "--json" && a !== "--link" && a !== "--force" &&
     a !== "--container" && (i === 0 || RAW_ARGS[i - 1] !== "--container")
 );
 
@@ -1384,6 +1385,91 @@ function cmdCreate(type, name) {
     console.log("");
 }
 
+function cmdDestroy(pluginIdStr) {
+    if (!pluginIdStr) {
+        console.error(c.red("Usage: plugin-cli destroy <plugin-id> [--force]"));
+        console.error(c.dim("Plugin IDs look like: my-plugins/tools/CustomTool"));
+        process.exit(1);
+    }
+
+    const plugins = discoverAll();
+    const match = plugins.find((p) => p.id === pluginIdStr || p.name === pluginIdStr);
+
+    if (!match) {
+        console.error(c.red(`Plugin '${pluginIdStr}' not found.`));
+        console.error(c.dim("Run 'plugin-cli list' to see available plugins."));
+        process.exit(1);
+    }
+
+    if (isCore(match)) {
+        console.error(c.red(`Cannot destroy core plugin '${match.id}'.`));
+        process.exit(1);
+    }
+
+    if (!FLAG_FORCE && !FLAG_JSON) {
+        const readline = require("readline");
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        rl.question(`  ${c.yellow("Are you sure you want to destroy")} ${c.cyan(match.id)}${c.yellow("?")} ${c.dim("[y/N]")} `, (answer) => {
+            rl.close();
+            if (answer.trim().toLowerCase() !== "y" && answer.trim().toLowerCase() !== "yes") {
+                console.log(c.dim("  Aborted."));
+                process.exit(0);
+            }
+            _performDestroy(match);
+        });
+    } else {
+        _performDestroy(match);
+    }
+}
+
+function _performDestroy(match) {
+    const pluginDir = match.pluginPath;
+
+    // Remove from state file.
+    const state = loadState();
+    if (state.plugins[match.id]) {
+        delete state.plugins[match.id];
+        saveState(state);
+    }
+
+    // Delete the plugin directory.
+    fs.rmSync(pluginDir, { recursive: true, force: true });
+
+    // Check if the container type directory is now empty and clean up.
+    const typeDir = path.dirname(pluginDir);
+    try {
+        const remaining = fs.readdirSync(typeDir).filter((f) => f[0] !== "." && f[0] !== "_");
+        if (remaining.length === 0) {
+            fs.rmSync(typeDir, { recursive: true, force: true });
+            // Check if the container itself is now empty.
+            const containerDir = path.dirname(typeDir);
+            const containerRemaining = fs.readdirSync(containerDir).filter((f) => f[0] !== "." && f[0] !== "_");
+            if (containerRemaining.length === 0) {
+                fs.rmSync(containerDir, { recursive: true, force: true });
+            }
+        }
+    } catch { /* ignore cleanup errors */ }
+
+    if (FLAG_JSON) {
+        const isFrontend = match.type === "tools" || match.type === "components";
+        let activated = null;
+        if (isFrontend) {
+            activated = activate({ expectChanges: true, silent: true });
+        }
+        console.log(JSON.stringify({
+            command: "destroy", plugin: match.id,
+            activated: activated ? { added: activated.added, removed: activated.removed } : null,
+        }, null, 2));
+    } else {
+        console.log(`\n  ${c.green("Destroyed:")} ${c.cyan(match.id)}`);
+        const isFrontend = match.type === "tools" || match.type === "components";
+        if (isFrontend) {
+            activate({ expectChanges: true });
+        }
+        console.log(`  ${c.dim("Restart the server if this was a backend plugin.")}\n`);
+    }
+}
+
 function cmdHelp() {
     const h = (cmd, desc) => `    ${c.cyan(cmd.padEnd(30))} ${c.dim(desc)}`;
     console.log(`
@@ -1400,6 +1486,7 @@ ${h("enable <plugin-id>", "Enable a disabled plugin")}
 ${h("disable <plugin-id>", "Disable a plugin (not core)")}
 ${h("update [repo-name]", "Pull latest for repo(s)")}
 ${h("create <type> <Name>", "Scaffold a new plugin (tool, backend, component)")}
+${h("destroy <plugin-id>", "Delete a plugin (prompts for confirmation, --force to skip)")}
 ${h("activate", "Regenerate frontend plugin imports (no full build needed)")}
 ${h("validate", "Validate all plugin manifests")}
 ${h("deps", "Show dependency graph and conflicts")}
@@ -1414,6 +1501,7 @@ ${h("help", "Show this help")}
     ${c.cyan("--json".padEnd(30))} ${c.dim("Output machine-readable JSON (all commands)")}
     ${c.cyan("--link".padEnd(30))} ${c.dim("Symlink local paths instead of copy (falls back to junction on Windows)")}
     ${c.cyan("--container <name>".padEnd(30))} ${c.dim("Target container for create command")}
+    ${c.cyan("--force".padEnd(30))} ${c.dim("Skip confirmation prompts (destroy)")}
 
   ${c.bold(c.white("Plugin IDs:"))}
     ${c.dim("<container>/<type>/<name>")}     e.g. ${c.cyan("core/tools/Draw")}
@@ -1457,6 +1545,10 @@ switch (command) {
         break;
     case "create":
         cmdCreate(args[1], args[2]);
+        break;
+    case "destroy":
+    case "delete":
+        cmdDestroy(args[1]);
         break;
     case "activate":
         if (FLAG_JSON) {
