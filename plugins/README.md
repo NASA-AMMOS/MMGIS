@@ -66,6 +66,7 @@ npm run plugins -- info Draw
 | `enable <plugin-id>` | Mark a plugin as active in `plugin-state.json` |
 | `disable <plugin-id>` | Mark a plugin as inactive (cannot disable `core` plugins) |
 | `update [repo-name]` | `git pull` latest for one or all installed repos |
+| `activate` | Regenerate frontend plugin imports without a full build |
 | `validate` | Validate all `plugin.json` manifests |
 | `deps` | Show aggregated npm/pip/conda dependencies with conflict detection |
 | `info <plugin-id>` | Show detailed metadata for a plugin |
@@ -112,7 +113,7 @@ On Windows, if symlink creation fails due to permissions, `--link` falls back to
 
 ### After Installing
 
-- Run `npm run build` to activate frontend plugins (tools, components).
+- Frontend plugins are auto-activated by the CLI (regenerates `src/pre/tools.js` and `src/pre/components.js`). In dev mode, webpack-dev-server hot-reloads automatically. For production, run `npm run build`.
 - Restart the server to activate backend plugins.
 - Run `npm run plugins:install` to install any new npm/pip dependencies declared by the plugins.
 

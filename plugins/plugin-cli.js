@@ -15,6 +15,7 @@
  *   enable <plugin-id>            Enable a plugin
  *   disable <plugin-id>           Disable a plugin
  *   update [repo-name]            Pull latest for installed repo(s)
+ *   activate                      Regenerate frontend plugin imports
  *   validate                      Validate all active plugin manifests
  *   deps                          Show dependency graph and conflicts
  *   info <plugin-id>              Show detailed plugin info
@@ -153,6 +154,27 @@ function repoNameFromURL(url) {
  */
 function pluginId(container, type, name) {
     return `${container}/${type}/${name}`;
+}
+
+/**
+ * Re-generate src/pre/tools.js and src/pre/components.js so that newly
+ * installed (or removed) frontend plugins are picked up by webpack without
+ * requiring a full `npm run build`.
+ *
+ * In dev mode webpack-dev-server watches for file changes and will
+ * hot-reload automatically. In production a full build is still needed
+ * to bundle the output.
+ */
+function activate() {
+    try {
+        const { updateTools, updateComponents } = require("../API/updateTools");
+        updateTools();
+        updateComponents();
+        console.log(`\n  ${c.green("Frontend plugins activated.")}`);
+    } catch (err) {
+        console.error(`\n  ${c.red("Failed to activate frontend plugins:")} ${err.message}`);
+        console.log(`  ${c.dim("You may need to run")} ${c.cyan("npm run build")} ${c.dim("instead.")}`);
+    }
 }
 
 /**
@@ -473,7 +495,7 @@ function cmdInstall(target) {
         }
     }
 
-    console.log(`\n  ${c.dim("Run")} ${c.cyan("npm run build")} ${c.dim("to activate frontend plugins.")}`);
+    activate();
     console.log(`  ${c.dim("Restart the server to activate backend plugins.")}\n`);
 }
 
@@ -516,7 +538,8 @@ function cmdRemove(repoName) {
     }
 
     console.log(`\n  ${c.green(`Removed plugin repo '${repoName}'.`)}`);
-    console.log(`  ${c.dim("Run")} ${c.cyan("npm run build")} ${c.dim("and restart the server to apply changes.")}\n`);
+    activate();
+    console.log(`  ${c.dim("Restart the server to apply backend changes.")}\n`);
 }
 
 function cmdEnable(pluginIdStr) {
@@ -544,7 +567,8 @@ function cmdEnable(pluginIdStr) {
     state.plugins[match.id] = { enabled: true };
     saveState(state);
     console.log(`  ${c.green("✓")} Enabled: ${c.cyan(match.id)}`);
-    console.log(`  ${c.dim("Run")} ${c.cyan("npm run build")} ${c.dim("and restart the server to apply changes.")}`);
+    activate();
+    console.log(`  ${c.dim("Restart the server to apply backend changes.")}`);
 }
 
 function cmdDisable(pluginIdStr) {
@@ -570,7 +594,8 @@ function cmdDisable(pluginIdStr) {
     state.plugins[match.id] = { enabled: false };
     saveState(state);
     console.log(`  ${c.red("✗")} Disabled: ${c.cyan(match.id)}`);
-    console.log(`  ${c.dim("Run")} ${c.cyan("npm run build")} ${c.dim("and restart the server to apply changes.")}`);
+    activate();
+    console.log(`  ${c.dim("Restart the server to apply backend changes.")}`);
 }
 
 function cmdUpdate(repoName) {
@@ -619,7 +644,8 @@ function cmdUpdate(repoName) {
         console.log(`\n  ${c.green(`Updated ${updated} repo(s).`)}`);
     }
 
-    console.log(`  ${c.dim("Run")} ${c.cyan("npm run build")} ${c.dim("and restart the server to apply changes.")}\n`);
+    activate();
+    console.log(`  ${c.dim("Restart the server to apply backend changes.")}\n`);
 }
 
 function cmdValidate() {
@@ -920,6 +946,7 @@ ${h("remove <repo-name>", "Remove an installed plugin repo (not core)")}
 ${h("enable <plugin-id>", "Enable a disabled plugin")}
 ${h("disable <plugin-id>", "Disable a plugin (not core)")}
 ${h("update [repo-name]", "Pull latest for repo(s)")}
+${h("activate", "Regenerate frontend plugin imports (no full build needed)")}
 ${h("validate", "Validate all plugin manifests")}
 ${h("deps", "Show dependency graph and conflicts")}
 ${h("info <plugin-id>", "Show detailed plugin info")}
@@ -970,6 +997,9 @@ switch (command) {
         break;
     case "update":
         cmdUpdate(args[1]);
+        break;
+    case "activate":
+        activate();
         break;
     case "validate":
         cmdValidate();

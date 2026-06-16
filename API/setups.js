@@ -1,10 +1,12 @@
 const fs = require("fs");
 const path = require("path");
+const semver = require("semver");
 
 const logger = require("./logger");
 const { discoverPlugins } = require("./pluginDiscovery");
 
 const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
+const MMGIS_VERSION = require("../package.json").version;
 
 /**
  * Discover and load all backend lifecycle modules.
@@ -44,6 +46,19 @@ function getBackendSetups(cb) {
       );
       continue;
     }
+    // Check engines.mmgis compatibility.
+    if (plugin.manifest && plugin.manifest.engines && plugin.manifest.engines.mmgis) {
+      const coercedVersion = semver.coerce(MMGIS_VERSION);
+      if (coercedVersion && !semver.satisfies(coercedVersion, plugin.manifest.engines.mmgis)) {
+        logger(
+          "error",
+          `Backend '${plugin.name}' requires MMGIS ${plugin.manifest.engines.mmgis} but current version is ${MMGIS_VERSION} — skipping`,
+          "Setups"
+        );
+        continue;
+      }
+    }
+
     const isOverride = setups[plugin.name] !== undefined;
 
     // Enforce overridable: false — check the *already-registered* plugin's
