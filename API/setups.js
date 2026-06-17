@@ -90,10 +90,12 @@ function getBackendSetups(cb) {
     }
   }
 
-  // 3. Sort by priority (preserves previous behavior).
+  // 3. Sort by priority from plugin.json manifest (falls back to lifecycle module for compat).
   setups = Object.keys(setups)
     .sort(function (a, b) {
-      return (setups[a].priority || 1000) - (setups[b].priority || 1000);
+      const pa = (setupManifests[a] && setupManifests[a].priority) || setups[a].priority || 1000;
+      const pb = (setupManifests[b] && setupManifests[b].priority) || setups[b].priority || 1000;
+      return pa - pb;
     })
     .reduce((obj, key) => {
       obj[key] = setups[key];
