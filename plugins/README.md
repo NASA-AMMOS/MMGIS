@@ -549,14 +549,14 @@ Required runtime versions. Currently informational — not enforced.
 2. External containers scanned alphabetically.
 3. Last-discovered plugin wins when names collide (allows overrides).
 4. Plugins marked `"overridable": false` in their manifest block overrides.
-5. Disabled plugins in `plugin-state.json` are skipped (including core plugins without `required: true`).
+5. Disabled plugins in `plugin-state.json` are skipped during discovery.
 
 ### Core & Required Protection
 
-- Core plugins (`plugins/core/`) cannot be **removed** (`remove`) or **destroyed** (`destroy`).
-- Plugins with `"required": true` or `"overridable": false` cannot be **disabled** or **destroyed**.
-- Core plugins **without** `required: true` **can** be disabled via `disable`.
-- Protection is manifest-driven (`required`/`overridable`), not container-driven.
+- Core plugins (`plugins/core/`) cannot be **removed**, **destroyed**, or **disabled** via the CLI.
+- `enable-all`/`disable-all` reject `--container core`.
+- `create` rejects `--container core` (core plugins are maintained in the main repo).
+- Plugins with `"required": true` or `"overridable": false` cannot be **disabled** or **destroyed** regardless of container.
 
 ### Core Plugins
 
