@@ -224,8 +224,8 @@ npm run plugins -- create backend MyModule --container my-plugins
 # Create a component
 npm run plugins -- create component MyWidget --container my-plugins
 
-# Create a core plugin
-npm run plugins -- create tool NewCoreTool --container core
+# Container is auto-created if it doesn't exist
+npm run plugins -- create tool AnotherTool --container my-plugins
 ```
 
 This scaffolds the directory structure, `plugin.json`, entry point, CSS, and a test spec. Frontend plugins are auto-activated.

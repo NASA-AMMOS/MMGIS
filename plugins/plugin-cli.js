@@ -1827,7 +1827,7 @@ ${h("help", "Show this help")}
     ${c.dim("$")} npm run plugins -- info Draw
     ${c.dim("$")} npm run plugins -- list --json
     ${c.dim("$")} npm run plugins -- create tool SpectralAnalysis --container my-plugins
-    ${c.dim("$")} npm run plugins -- create backend DataIngest --container core
+    ${c.dim("$")} npm run plugins -- create backend DataIngest --container my-plugins
 `);
 }
 
