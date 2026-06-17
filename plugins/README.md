@@ -548,7 +548,7 @@ Other MMGIS plugins that must be present (version-range checked). The `deps` com
 
 #### `engines`
 
-Required runtime versions. Currently informational — not enforced.
+Required runtime versions. Enforced at registration time — if the current MMGIS version does not satisfy the declared range, the plugin is skipped with an error log.
 
 ```json
 "engines": { "mmgis": ">=5.0.0", "node": ">=22.0.0" }
