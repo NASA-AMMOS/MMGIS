@@ -1,3 +1,13 @@
 {
-    "registries": []
+    "registries": [
+        {
+            "name": "MMGIS-Plugins",
+            "url": "https://github.com/NASA-AMMOS/MMGIS-Plugins.git",
+            "type": "git",
+            "tier": "official",
+            "description": "Official MMGIS plugin collection",
+            "license": "Apache-2.0",
+            "author": "NASA-AMMOS"
+        }
+    ]
 }
