@@ -201,4 +201,57 @@ function discoverPlugins(pluginsRoot, type, configFile = "plugin.json", opts = {
     return out;
 }
 
-module.exports = { discoverPlugins };
+/**
+ * Cross-check pluginDependencies across all plugin types.
+ *
+ * Does a lightweight scan of tools, backend, and components, then warns
+ * about any pluginDependency that references a plugin that is missing
+ * or disabled.  Called at build time (updateTools) and server startup
+ * (setups) so operators see problems before they hit 404s at runtime.
+ *
+ * @param {string} pluginsRoot  Absolute path to the `plugins/` directory.
+ * @param {string} [loggerCategory="PluginDeps"]
+ */
+function checkPluginDependencies(pluginsRoot, loggerCategory = "PluginDeps") {
+    // Discover all types with a lightweight parse-only scan.
+    const allPlugins = [];
+    for (const type of ["tools", "backend", "components"]) {
+        const discovered = discoverPlugins(pluginsRoot, type, "plugin.json", {
+            loader: "parse",
+            loggerCategory,
+        });
+        for (const p of discovered) {
+            allPlugins.push({
+                id: `${p.container}/${type}/${p.name}`,
+                name: p.name,
+                type,
+                manifest: p.manifest,
+            });
+        }
+    }
+
+    // Build set of enabled plugin IDs.
+    const enabledIds = new Set(allPlugins.map((p) => p.id));
+
+    // Check each plugin's pluginDependencies.
+    let warningCount = 0;
+    for (const p of allPlugins) {
+        if (!p.manifest || !Array.isArray(p.manifest.pluginDependencies)) continue;
+        for (const depId of p.manifest.pluginDependencies) {
+            if (!enabledIds.has(depId)) {
+                warningCount++;
+                logger(
+                    "warn",
+                    `Plugin '${p.id}' depends on '${depId}' which is not enabled — ` +
+                    `features requiring this dependency may not work correctly`,
+                    loggerCategory,
+                    null,
+                    null
+                );
+            }
+        }
+    }
+    return warningCount;
+}
+
+module.exports = { discoverPlugins, checkPluginDependencies };

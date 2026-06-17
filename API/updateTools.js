@@ -4,7 +4,7 @@ const semver = require("semver");
 
 const logger = require("./logger");
 const { validatePluginConfig } = require("./pluginValidation");
-const { discoverPlugins } = require("./pluginDiscovery");
+const { discoverPlugins, checkPluginDependencies } = require("./pluginDiscovery");
 
 const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
 const MMGIS_VERSION = require("../package.json").version;
@@ -177,6 +177,9 @@ function updateTools() {
       );
     }
   }
+
+  // Check inter-plugin dependencies (warns if a tool's backend dep is missing/disabled).
+  checkPluginDependencies(PLUGINS_ROOT, "Tools");
 }
 
 function updateComponents() {

@@ -1083,15 +1083,39 @@ function cmdValidate() {
         results.push({ plugin: prefix, valid: pluginErrors.length === 0, enabled, errors: pluginErrors });
     }
 
+    // Check inter-plugin dependencies.
+    const pluginIds = new Set(plugins.map((p) => p.id));
+    const enabledIds = new Set(plugins.filter((p) => isPluginEnabled(p, state)).map((p) => p.id));
+    let depWarnings = 0;
+    const depWarningMessages = [];
+    for (const p of plugins) {
+        if (!p.manifest || !Array.isArray(p.manifest.pluginDependencies)) continue;
+        if (!isPluginEnabled(p, state)) continue;
+        for (const depId of p.manifest.pluginDependencies) {
+            if (!pluginIds.has(depId)) {
+                depWarnings++;
+                const msg = `${p.id} depends on '${depId}' which was not found`;
+                depWarningMessages.push(msg);
+                if (!FLAG_JSON) console.log(`  ${c.yellow("⚠")} ${c.cyan(p.id)}: depends on ${c.red(depId)} ${c.yellow("(not found)")}`);
+            } else if (!enabledIds.has(depId)) {
+                depWarnings++;
+                const msg = `${p.id} depends on '${depId}' which is disabled`;
+                depWarningMessages.push(msg);
+                if (!FLAG_JSON) console.log(`  ${c.yellow("⚠")} ${c.cyan(p.id)}: depends on ${c.red(depId)} ${c.yellow("(disabled)")}`);
+            }
+        }
+    }
+
     if (FLAG_JSON) {
-        console.log(JSON.stringify({ valid: errors === 0, total: plugins.length, passed, errors, warnings, results }, null, 2));
+        console.log(JSON.stringify({ valid: errors === 0, total: plugins.length, passed, errors, warnings, depWarnings, depWarningMessages, results }, null, 2));
         if (errors > 0) process.exit(1);
         return;
     }
 
     if (errors === 0) {
-        console.log(`\n  ${c.green("✓")} All ${c.bold(String(plugins.length))} plugin(s) valid.`);
+        console.log(`\n  ${c.green("\u2713")} All ${c.bold(String(plugins.length))} plugin(s) valid.`);
         if (warnings > 0) console.log(`  ${c.yellow(String(warnings))} disabled plugin(s).`);
+        if (depWarnings > 0) console.log(`  ${c.yellow(String(depWarnings))} plugin dependency warning(s).`);
     } else {
         console.error(`\n  ${c.red(`${errors} error(s)`)} across ${c.bold(String(plugins.length))} plugin(s). ${c.green(`${passed} passed`)}.`);
         process.exit(1);

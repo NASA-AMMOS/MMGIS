@@ -3,7 +3,7 @@ const path = require("path");
 const semver = require("semver");
 
 const logger = require("./logger");
-const { discoverPlugins } = require("./pluginDiscovery");
+const { discoverPlugins, checkPluginDependencies } = require("./pluginDiscovery");
 
 const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
 const MMGIS_VERSION = require("../package.json").version;
@@ -119,6 +119,9 @@ function getBackendSetups(cb) {
       }
     }
   }
+
+  // Check inter-plugin dependencies at startup.
+  checkPluginDependencies(PLUGINS_ROOT, "Setups");
 
   cb({
     init: (s) => {
