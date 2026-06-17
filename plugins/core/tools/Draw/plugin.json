@@ -390,7 +390,6 @@
     "repository": "https://github.com/NASA-AMMOS/MMGIS",
     "pluginDependencies": [
         "core/backend/Draw",
-        "core/backend/Datasets",
         "core/backend/Geodatasets",
         "core/backend/Utils"
     ]
