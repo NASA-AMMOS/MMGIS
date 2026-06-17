@@ -523,9 +523,24 @@ Declares runtime dependencies. Aggregated by the `deps` command and `scripts/res
 }
 ```
 
+#### `pluginDependencies`
+
+Array of plugin IDs that this plugin depends on at runtime. Primarily used by tools to declare which backends they need.
+
+**Type:** `string[]` · **Required:** No · **Default:** `[]`
+
+```json
+"pluginDependencies": ["core/backend/Draw", "core/backend/Utils"]
+```
+
+The CLI uses this field to:
+- **`deps`**: Show an inter-plugin dependency graph and warn if a dependency is missing or disabled.
+- **`disable`**: Warn when disabling a plugin that other enabled plugins depend on.
+- **`info`**: Show "Depends on" and "Depended on by" relationships.
+
 #### `peerDependencies`
 
-Other MMGIS plugins that must be present. The `deps` command checks for peer warnings.
+Other MMGIS plugins that must be present (version-range checked). The `deps` command checks for peer warnings.
 
 ```json
 "peerDependencies": { "core/backend/Draw": ">=1.0.0" }

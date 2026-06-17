@@ -5,7 +5,9 @@
     "type": "tool",
     "tier": "core",
     "overridable": true,
-    "aliases": ["shade"],
+    "aliases": [
+        "shade"
+    ],
     "defaultIcon": "brightness-4",
     "description": "Line-of-sight visibility analysis for SPICE bodies over terrain (React).",
     "descriptionFull": {
@@ -149,5 +151,9 @@
     },
     "author": "NASA-AMMOS/MMGIS",
     "license": "Apache-2.0",
-    "repository": "https://github.com/NASA-AMMOS/MMGIS"
+    "repository": "https://github.com/NASA-AMMOS/MMGIS",
+    "pluginDependencies": [
+        "core/backend/Sightline",
+        "core/backend/Utils"
+    ]
 }

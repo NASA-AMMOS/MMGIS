@@ -31,6 +31,7 @@ const COMMON_FIELDS = [
   "engines",
   "dependencies",
   "peerDependencies",
+  "pluginDependencies",
   "author",
   "license",
   "repository",
@@ -225,6 +226,21 @@ function validatePluginConfig(config, pluginName, pluginType) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): 'peerDependencies' must be an object mapping plugin-id to version range`
       );
+    }
+  }
+  if (config.pluginDependencies !== undefined) {
+    if (!Array.isArray(config.pluginDependencies)) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'pluginDependencies' must be an array of plugin IDs (e.g. ["core/backend/Draw"])`
+      );
+    } else {
+      for (const dep of config.pluginDependencies) {
+        if (typeof dep !== "string" || dep.length === 0) {
+          errors.push(
+            `Plugin '${pluginName}' (${pluginType}): each entry in 'pluginDependencies' must be a non-empty string (plugin ID)`
+          );
+        }
+      }
     }
   }
 

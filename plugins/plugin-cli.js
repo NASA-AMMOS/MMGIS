@@ -417,6 +417,18 @@ function findPlugin(plugins, str, { silent = false } = {}) {
 }
 
 /**
+ * Find all enabled plugins that declare `pluginDependencies` containing
+ * the given plugin ID.
+ */
+function findDependents(plugins, pluginId, state) {
+    return plugins.filter((p) => {
+        if (!isPluginEnabled(p, state)) return false;
+        if (!p.manifest || !Array.isArray(p.manifest.pluginDependencies)) return false;
+        return p.manifest.pluginDependencies.includes(pluginId);
+    });
+}
+
+/**
  * Normalize directory-based type name to singular manifest form.
  * "tools" → "tool", "components" → "component", "backend" → "backend"
  */
@@ -840,15 +852,27 @@ function cmdDisable(pluginIdStr) {
         process.exit(1);
     }
 
+    // Warn if other enabled plugins depend on this one.
     const state = loadState();
+    const dependents = findDependents(plugins, match.id, state);
+
     state.plugins[match.id] = { enabled: false };
     saveState(state);
 
     if (FLAG_JSON) {
         const act = activate({ expectChanges: true, silent: true });
-        console.log(JSON.stringify({ command: "disable", plugin: match.id, activated: { added: act.added, removed: act.removed } }, null, 2));
+        const result = { command: "disable", plugin: match.id, activated: { added: act.added, removed: act.removed } };
+        if (dependents.length > 0) result.warnings = [`The following enabled plugins depend on '${match.id}': ${dependents.map((d) => d.id).join(", ")}`];
+        console.log(JSON.stringify(result, null, 2));
     } else {
         console.log(`  ${c.red("✗")} Disabled: ${c.cyan(match.id)}`);
+        if (dependents.length > 0) {
+            console.log(`  ${c.yellow("Warning:")} The following enabled plugins depend on '${match.id}':`);
+            for (const dep of dependents) {
+                console.log(`    ${c.dim("→")} ${c.cyan(dep.id)}`);
+            }
+            console.log(`  ${c.dim("Those plugins may not work correctly until this plugin is re-enabled.")}`);
+        }
         activate({ expectChanges: true });
         console.log(`  ${c.dim("Restart the server to apply backend changes.")}`);
     }
@@ -1100,12 +1124,30 @@ function cmdDeps() {
     const { merged: condaMerged, conflicts: condaConflicts } = mergePython(sources, "conda");
     const peerWarnings = checkPeerDependencies(active);
 
+    // Build inter-plugin dependency graph.
+    const pluginDepGraph = [];
+    const pluginDepWarnings = [];
+    for (const p of active) {
+        if (p.manifest && Array.isArray(p.manifest.pluginDependencies) && p.manifest.pluginDependencies.length > 0) {
+            pluginDepGraph.push({ plugin: p.id, dependsOn: p.manifest.pluginDependencies });
+            for (const depId of p.manifest.pluginDependencies) {
+                const depPlugin = plugins.find((pp) => pp.id === depId);
+                if (!depPlugin) {
+                    pluginDepWarnings.push(`${p.id} depends on '${depId}' which was not found`);
+                } else if (!isPluginEnabled(depPlugin, state)) {
+                    pluginDepWarnings.push(`${p.id} depends on '${depId}' which is disabled`);
+                }
+            }
+        }
+    }
+
     if (FLAG_JSON) {
         console.log(JSON.stringify({
             npm: { merged: npmMerged, conflicts: npmConflicts },
             pip: { merged: pipMerged, conflicts: pipConflicts },
             conda: { merged: condaMerged, conflicts: condaConflicts },
             peerWarnings,
+            pluginDependencies: { graph: pluginDepGraph, warnings: pluginDepWarnings },
         }, null, 2));
         return;
     }
@@ -1169,6 +1211,20 @@ function cmdDeps() {
     if (peerWarnings.length > 0) {
         console.log(`\n  ${c.yellow("⚠ peerDependency warnings:")}`);
         for (const w of peerWarnings) {
+            console.log(`    ${c.yellow(w)}`);
+        }
+    }
+
+    // Inter-plugin dependencies.
+    if (pluginDepGraph.length > 0) {
+        console.log(`\n  ${c.bold(c.white("Plugin dependencies:"))}`);
+        for (const entry of pluginDepGraph) {
+            console.log(`    ${c.cyan(entry.plugin)} ${c.dim("→")} ${entry.dependsOn.map((d) => c.yellow(d)).join(", ")}`);
+        }
+    }
+    if (pluginDepWarnings.length > 0) {
+        console.log(`\n  ${c.yellow("⚠ plugin dependency warnings:")}`);
+        for (const w of pluginDepWarnings) {
             console.log(`    ${c.yellow(w)}`);
         }
     }
@@ -1238,6 +1294,21 @@ function cmdInfo(pluginIdStr) {
     if (m.keywords && m.keywords.length > 0) console.log(`  ${c.dim("Keywords:")}    ${m.keywords.map((k) => c.cyan(k)).join(", ")}`);
     if (m.engines) console.log(`  ${c.dim("Engines:")}     ${JSON.stringify(m.engines)}`);
     if (m.aliases && m.aliases.length > 0) console.log(`  ${c.dim("Aliases:")}     ${m.aliases.join(", ")}`);
+    if (m.pluginDependencies && m.pluginDependencies.length > 0) {
+        console.log(`  ${c.dim("Depends on:")}`);
+        for (const dep of m.pluginDependencies) {
+            console.log(`    ${c.dim("\u2192")} ${c.cyan(dep)}`);
+        }
+    }
+    const revDeps = plugins.filter((p) =>
+        p.manifest && Array.isArray(p.manifest.pluginDependencies) && p.manifest.pluginDependencies.includes(match.id)
+    );
+    if (revDeps.length > 0) {
+        console.log(`  ${c.dim("Depended on by:")}`);
+        for (const dep of revDeps) {
+            console.log(`    ${c.dim("\u2190")} ${c.cyan(dep.id)}`);
+        }
+    }
     if (m.peerDependencies) {
         console.log(`  ${c.dim("Peer Deps:")}`);
         for (const [peer, range] of Object.entries(m.peerDependencies)) {
