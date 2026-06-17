@@ -14,18 +14,19 @@ nul
 configure/public/toolConfigs.json
 /configure/public/componentConfigs.json
 
-#Nested repos where private backend might reside
-# Wildcard patterns for backend plugins
+# External/private plugin containers (everything except core + CLI files is gitignored)
+/plugins/*
+!/plugins/core/
+!/plugins/plugin-cli.js
+!/plugins/plugin-registries.json
+!/plugins/README.md
+/plugins/plugin-state.json
+
+# Legacy plugin directories (kept for backward compatibility during migration)
 /API/*Private-Backend*
 /API/*Plugin-Backend*
-
-#Nested repos where private tools might reside
-# Wildcard patterns for tool plugins
 /src/essence/*Private-Tools*
 /src/essence/*Plugin-Tools*
-
-#Nested repos where private components might reside
-# Wildcard patterns for component plugins
 /src/essence/*Private-Components*
 /src/essence/*Plugin-Components*
 

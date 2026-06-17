@@ -1,9 +1,9 @@
 /**
- * Plugin config.json validation.
+ * Plugin plugin.json validation.
  *
  * Used by `updateTools.js` (for tool & component plugins) and by
  * `scripts/resolve-plugin-deps.js` to validate that a parsed
- * config.json conforms to the MMGIS plugin schema before it is
+ * plugin.json conforms to the MMGIS plugin schema before it is
  * accepted into the plugin registry.
  *
  * Returns an array of error strings (empty array == valid).
@@ -15,12 +15,36 @@
 const logger = require("./logger");
 
 /**
+ * Common fields shared across all plugin types (Phase 2 manifest fields).
+ */
+const COMMON_FIELDS = [
+  "uuid",
+  "id",
+  "name",
+  "display_name",
+  "aliases",
+  "version",
+  "type",
+  "tier",
+  "overridable",
+  "required",
+  "engines",
+  "dependencies",
+  "peerDependencies",
+  "pluginDependencies",
+  "author",
+  "license",
+  "repository",
+  "keywords",
+];
+
+/**
  * Known top-level fields for each plugin type. Anything else triggers a
  * warning (but not an error).
  */
 const KNOWN_FIELDS = {
   tool: new Set([
-    "name",
+    ...COMMON_FIELDS,
     "paths",
     "defaultIcon",
     "description",
@@ -31,23 +55,22 @@ const KNOWN_FIELDS = {
     "separatedTool",
     "config",
     "kinds",
-    "dependencies",
   ]),
   component: new Set([
-    "name",
+    ...COMMON_FIELDS,
     "paths",
     "defaultIcon",
     "description",
     "descriptionFull",
     "hasVars",
     "config",
-    "dependencies",
   ]),
   backend: new Set([
-    "name",
+    ...COMMON_FIELDS,
+    "description",
     "priority",
     "envs",
-    "dependencies",
+    "routes",
   ]),
 };
 
@@ -143,12 +166,83 @@ function validatePluginConfig(config, pluginName, pluginType) {
 
   if (config === null || typeof config !== "object" || Array.isArray(config)) {
     errors.push(
-      `Plugin '${pluginName}' (${pluginType}): config.json must be a JSON object`
+      `Plugin '${pluginName}' (${pluginType}): plugin.json must be a JSON object`
     );
     return errors;
   }
 
   const knownFields = KNOWN_FIELDS[pluginType] || KNOWN_FIELDS.tool;
+
+  // Validate common Phase 2 manifest fields (optional but typed).
+  if (config.uuid !== undefined && typeof config.uuid !== "string") {
+    errors.push(
+      `Plugin '${pluginName}' (${pluginType}): 'uuid' must be a string`
+    );
+  }
+  if (config.id !== undefined && typeof config.id !== "string") {
+    errors.push(
+      `Plugin '${pluginName}' (${pluginType}): 'id' must be a string`
+    );
+  }
+  if (config.version !== undefined && typeof config.version !== "string") {
+    errors.push(
+      `Plugin '${pluginName}' (${pluginType}): 'version' must be a string`
+    );
+  }
+  if (config.type !== undefined && !["tool", "component", "backend"].includes(config.type)) {
+    errors.push(
+      `Plugin '${pluginName}' (${pluginType}): 'type' must be one of: tool, component, backend`
+    );
+  }
+  if (config.tier !== undefined && !["core", "community", "private", "official", "experimental", "deprecated"].includes(config.tier)) {
+    errors.push(
+      `Plugin '${pluginName}' (${pluginType}): 'tier' must be one of: core, community, private, official, experimental, deprecated`
+    );
+  }
+  if (config.overridable !== undefined && typeof config.overridable !== "boolean") {
+    errors.push(
+      `Plugin '${pluginName}' (${pluginType}): 'overridable' must be a boolean`
+    );
+  }
+  if (config.required !== undefined && typeof config.required !== "boolean") {
+    errors.push(
+      `Plugin '${pluginName}' (${pluginType}): 'required' must be a boolean`
+    );
+  }
+  if (config.aliases !== undefined && !Array.isArray(config.aliases)) {
+    errors.push(
+      `Plugin '${pluginName}' (${pluginType}): 'aliases' must be an array of strings`
+    );
+  }
+  if (config.engines !== undefined) {
+    if (typeof config.engines !== "object" || Array.isArray(config.engines) || config.engines === null) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'engines' must be an object (e.g. { "mmgis": ">=5.0.0" })`
+      );
+    }
+  }
+  if (config.peerDependencies !== undefined) {
+    if (typeof config.peerDependencies !== "object" || Array.isArray(config.peerDependencies) || config.peerDependencies === null) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'peerDependencies' must be an object mapping plugin-id to version range`
+      );
+    }
+  }
+  if (config.pluginDependencies !== undefined) {
+    if (!Array.isArray(config.pluginDependencies)) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'pluginDependencies' must be an array of plugin IDs (e.g. ["core/backend/Draw"])`
+      );
+    } else {
+      for (const dep of config.pluginDependencies) {
+        if (typeof dep !== "string" || dep.length === 0) {
+          errors.push(
+            `Plugin '${pluginName}' (${pluginType}): each entry in 'pluginDependencies' must be a non-empty string (plugin ID)`
+          );
+        }
+      }
+    }
+  }
 
   // For tools and components, both `name` and `paths` are required.
   if (pluginType === "tool" || pluginType === "component") {
@@ -203,7 +297,7 @@ function validatePluginConfig(config, pluginName, pluginType) {
     if (!knownFields.has(key)) {
       logger(
         "warn",
-        `Plugin '${pluginName}' (${pluginType}): unknown top-level field '${key}' in config.json — this field will be preserved but may not be recognized by MMGIS`,
+        `Plugin '${pluginName}' (${pluginType}): unknown top-level field '${key}' in plugin.json — this field will be preserved but may not be recognized by MMGIS`,
         "PluginValidation"
       );
     }

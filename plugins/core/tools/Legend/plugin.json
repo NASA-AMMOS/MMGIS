@@ -1,0 +1,50 @@
+{
+    "uuid": "bee2ba09-3238-4fdb-93f9-492d023917a6",
+    "id": "core-legend",
+    "version": "core",
+    "type": "tool",
+    "tier": "core",
+    "overridable": true,
+    "defaultIcon": "map-legend",
+    "description": "Show a chart legend that maps colors and symbols to meaning.",
+    "descriptionFull": {
+        "title": "A layer can be configured with a legend by pointing its Legend field to a .csv file or by including a JSON legend array into the layer's Raw Variables. The Legend Tool renders symbologies and gradient scales for any properly configured on layer.",
+        "example": {
+            "displayOnStart": true
+        }
+    },
+    "hasVars": true,
+    "name": "Legend",
+    "toolbarPriority": 2,
+    "separatedTool": true,
+    "paths": {
+        "LegendTool": "../plugins/core/tools/Legend/LegendTool"
+    },
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.displayOnStart",
+                        "name": "Display on Start",
+                        "description": "Whether the expanded legend should automatically be displayed on start.",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    },
+                    {
+                        "field": "variables.showHeadersInLegend",
+                        "name": "Show Headers in Legend",
+                        "description": "If true, the legend will display the name of Header layer types.",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    }
+                ]
+            }
+        ]
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0",
+    "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

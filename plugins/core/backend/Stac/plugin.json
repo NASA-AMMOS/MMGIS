@@ -1,0 +1,20 @@
+{
+  "uuid": "de7cc3f0-800f-4282-9167-bf8c58fcf814",
+  "id": "core-stac",
+  "name": "Stac",
+  "display_name": "STAC Integration",
+  "aliases": [
+    "stac"
+  ],
+  "version": "core",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/stac",
+    "auth": "public"
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

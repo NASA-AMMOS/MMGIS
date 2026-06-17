@@ -320,7 +320,7 @@ const ToolModal = (props) => {
               className={c.text}
               variant="filled"
               size="small"
-              value={tool?.icon || toolConfig?.defaultIcon || ""}
+              value={tool?.icon || toolConfig?.defaultIcon || "puzzle-outline"}
               label={"MDI Icon Name"}
               onChange={(e) => {
                 const nextConfiguration = JSON.parse(

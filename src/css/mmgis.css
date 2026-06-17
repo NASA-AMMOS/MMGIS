@@ -1396,6 +1396,7 @@ mark {
     display: flex;
     align-items: center;
     gap: 2px;
+    margin-right: 6px;
 }
 .mmgisToolTitle {
     height: 40px;

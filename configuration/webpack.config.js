@@ -280,6 +280,13 @@ module.exports = function (webpackEnv) {
         }),
         ...(modules.webpackAliases || {}),
         markjs: "mark.js/dist/jquery.mark.js",
+        // Plugin-friendly aliases — allow tools/components to import
+        // without fragile relative paths (e.g. ../../../../src/...).
+        "@basics":  path.resolve(__dirname, "..", "src", "essence", "Basics"),
+        "@essence": path.resolve(__dirname, "..", "src", "essence"),
+        "@design":  path.resolve(__dirname, "..", "src", "design-system"),
+        "@pre":     path.resolve(__dirname, "..", "src", "pre"),
+        "@external": path.resolve(__dirname, "..", "src", "external"),
       },
       plugins: [],
       fallback: {
@@ -318,7 +325,7 @@ module.exports = function (webpackEnv) {
             // The preset includes JSX, Flow, TypeScript, and some ESnext features.
             {
               test: /\.(js|mjs|jsx|ts|tsx)$/,
-              include: paths.appSrc,
+              include: [paths.appSrc, path.resolve(__dirname, '..', 'plugins')],
               loader: require.resolve("babel-loader"),
               options: {
                 customize: require.resolve(

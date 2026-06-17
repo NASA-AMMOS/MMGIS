@@ -1,0 +1,22 @@
+{
+  "uuid": "39dbf879-8b3e-405d-a917-9c8196f740a0",
+  "id": "core-config",
+  "name": "Config",
+  "display_name": "Mission Configuration",
+  "aliases": [
+    "config",
+    "configure"
+  ],
+  "version": "core",
+  "type": "backend",
+  "tier": "core",
+  "overridable": false,
+  "required": true,
+  "routes": {
+    "prefix": "/api/configure",
+    "auth": "admin"
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@basics/*":   ["src/essence/Basics/*"],
+            "@essence/*":  ["src/essence/*"],
+            "@design/*":   ["src/design-system/*"],
+            "@pre/*":      ["src/pre/*"],
+            "@external/*": ["src/external/*"]
+        }
+    },
+    "include": ["src/**/*", "plugins/**/*"]
+}

@@ -2,15 +2,8 @@
  * Shared plugin-discovery utility used by `API/updateTools.js`,
  * `API/setups.js`, and `scripts/resolve-plugin-deps.js`.
  *
- * MMGIS keeps tool, component, and backend plugins under "container"
- * directories whose names match a pattern (e.g. `*Plugin-Tools*`,
- * `*Private-Backend*`). Each container holds one or more plugin
- * subdirectories which expose a manifest file (typically `config.json`,
- * but `setup.js` for backends).
- *
- * `discoverPlugins()` consolidates the duplicated scanning logic so all
- * three consumers share the same skip rules (underscore-prefixed,
- * dot-prefixed, non-directories), error handling, and return shape.
+ * `discoverPlugins()` performs a three-level scan under `/plugins/`:
+ * `plugins/<repoDir>/<type>/<PluginName>/<configFile>`.
  */
 
 const fs = require("fs");
@@ -19,57 +12,36 @@ const path = require("path");
 const logger = require("./logger");
 
 /**
- * Resolve plugin manifests under a base path.
+ * Three-level plugin discovery for the `/plugins/` directory.
  *
- * Directory layout (e.g. for tools):
+ * Directory layout:
  *
- *   <basePath>/
- *     My-Plugin-Tools/        ← container (matches one of `patterns`)
- *       FooTool/              ← plugin
- *         config.json         ← manifest (matches `configFile`)
- *       BarTool/
- *         config.json
- *     Other-Plugin-Tools/
- *       BazTool/
- *         config.json
+ *   <pluginsRoot>/
+ *     core/               ← repo container (always scanned first)
+ *       tools/            ← type subdirectory (matches `type` param)
+ *         DrawTool/       ← plugin
+ *           plugin.json   ← manifest (matches `configFile`)
+ *     alice-spectral/     ← external repo container
+ *       tools/
+ *         SpectralTool/
+ *           plugin.json
  *
- * Subdirectories whose names start with `_` or `.` are skipped at every
- * level. Plugin subdirectories that don't contain the requested
- * manifest file are skipped silently. Containers that don't exist on
- * disk or aren't readable are skipped with a `warn` log line.
+ * Scan order: `core` is always first, then remaining containers in
+ * alphabetical order. This ensures deterministic plugin ordering and
+ * that external plugins can override core plugins (last scanned wins
+ * at the caller level).
  *
- * @param {string} basePath  Directory in which to look for matching
- *   container directories.
- * @param {string[]} patterns  Substrings — a container directory name
- *   matches if it `.includes(p)` for any `p` in `patterns`. Pass `["*"]`
- *   (or any pattern that matches every name) to disable filtering.
- *   Alternatively, pass `["__exact:<name>"]` to require a name match
- *   exactly (useful for the standard `Tools` and `Components` dirs).
- * @param {string} [configFile="config.json"]  Manifest filename to
- *   require inside each plugin subdirectory. Pass `"setup.js"` for
- *   backend plugins.
+ * @param {string} pluginsRoot  Absolute path to the `plugins/` directory.
+ * @param {string} type  Plugin type subdirectory to look for inside each
+ *   container (e.g. `"tools"`, `"backend"`, `"components"`).
+ * @param {string} [configFile="plugin.json"]  Manifest filename.
  * @param {object} [opts]  Additional options.
  * @param {("parse"|"require"|"none")} [opts.loader="parse"]  How to
- *   load the manifest:
- *     - `"parse"`: read the file as UTF-8 and `JSON.parse()` it.
- *     - `"require"`: `require()` the file (used for `setup.js`).
- *     - `"none"`: don't load — just return the absolute path.
- * @param {string} [opts.loggerCategory="PluginDiscovery"]  Category
- *   passed to `logger()` for any warning/error messages.
+ *   load the manifest.
+ * @param {string} [opts.loggerCategory="PluginDiscovery"]  Logger category.
  * @returns {Array<{name:string, container:string, pluginPath:string, manifestPath:string, manifest:any}>}
- *   An array of plugin records. Each record contains:
- *     - `name`: the plugin subdirectory name (e.g. `"FooTool"`).
- *     - `container`: the container directory name (e.g. `"My-Plugin-Tools"`).
- *     - `pluginPath`: absolute path to the plugin subdirectory.
- *     - `manifestPath`: absolute path to the manifest file.
- *     - `manifest`: parsed manifest contents (or `null` when
- *       `loader === "none"`).
- *
- *   The returned array preserves the order in which the filesystem
- *   yields containers and plugin subdirectories. Callers that care
- *   about deterministic ordering should sort the result.
  */
-function discoverPlugins(basePath, patterns, configFile = "config.json", opts = {}) {
+function discoverPlugins(pluginsRoot, type, configFile = "plugin.json", opts = {}) {
     const {
         loader = "parse",
         loggerCategory = "PluginDiscovery",
@@ -77,31 +49,28 @@ function discoverPlugins(basePath, patterns, configFile = "config.json", opts = 
 
     const out = [];
 
-    if (!Array.isArray(patterns) || patterns.length === 0) {
-        return out;
-    }
-
-    const exactNames = patterns
-        .filter((p) => typeof p === "string" && p.startsWith("__exact:"))
-        .map((p) => p.slice("__exact:".length));
-    const substrings = patterns.filter(
-        (p) => typeof p === "string" && !p.startsWith("__exact:") && p !== "*"
-    );
-    const matchAny = patterns.some((p) => p === "*");
-
-    function nameMatches(name) {
-        if (matchAny) return true;
-        if (exactNames.includes(name)) return true;
-        return substrings.some((s) => name.includes(s));
-    }
-
-    let containers = [];
+    // Load plugin-state.json for enable/disable tracking.
+    // Required plugins (required: true or overridable: false) are never skipped.
+    let pluginState = { plugins: {} };
     try {
-        containers = fs.readdirSync(basePath, { withFileTypes: true });
+        const statePath = path.join(pluginsRoot, "plugin-state.json");
+        if (fs.existsSync(statePath)) {
+            pluginState = JSON.parse(fs.readFileSync(statePath, "utf8"));
+            if (!pluginState || !pluginState.plugins || typeof pluginState.plugins !== "object") {
+                pluginState = { plugins: {} };
+            }
+        }
+    } catch {
+        // Missing or invalid state file — treat all plugins as enabled.
+    }
+
+    let repoDirs = [];
+    try {
+        repoDirs = fs.readdirSync(pluginsRoot, { withFileTypes: true });
     } catch (err) {
         logger(
             "warn",
-            `Could not read plugin base directory: ${basePath}`,
+            `Could not read plugins root directory: ${pluginsRoot}`,
             loggerCategory,
             null,
             err
@@ -109,32 +78,29 @@ function discoverPlugins(basePath, patterns, configFile = "config.json", opts = 
         return out;
     }
 
-    for (const containerEntry of containers) {
-        let isDir = false;
-        try {
-            isDir = containerEntry.isDirectory();
-        } catch {
-            continue;
-        }
-        if (!isDir) continue;
-        if (containerEntry.name[0] === "_" || containerEntry.name[0] === ".") continue;
-        if (!nameMatches(containerEntry.name)) continue;
+    // Sort: `core` first, then alphabetical for deterministic order.
+    const sorted = repoDirs
+        .filter((d) => {
+            try {
+                return d.isDirectory() && d.name[0] !== "_" && d.name[0] !== ".";
+            } catch {
+                return false;
+            }
+        })
+        .sort((a, b) => {
+            if (a.name === "core") return -1;
+            if (b.name === "core") return 1;
+            return a.name.localeCompare(b.name);
+        });
 
-        const containerPath = path.join(basePath, containerEntry.name);
+    for (const repoEntry of sorted) {
+        const typePath = path.join(pluginsRoot, repoEntry.name, type);
 
         let pluginEntries = [];
         try {
-            pluginEntries = fs.readdirSync(containerPath, {
-                withFileTypes: true,
-            });
-        } catch (err) {
-            logger(
-                "warn",
-                `Could not read plugin container: ${containerEntry.name}`,
-                loggerCategory,
-                null,
-                err
-            );
+            pluginEntries = fs.readdirSync(typePath, { withFileTypes: true });
+        } catch {
+            // Type subdirectory doesn't exist in this container — skip silently.
             continue;
         }
 
@@ -148,12 +114,27 @@ function discoverPlugins(basePath, patterns, configFile = "config.json", opts = 
             if (!pIsDir) continue;
             if (pluginEntry.name[0] === "_" || pluginEntry.name[0] === ".") continue;
 
-            const pluginPath = path.join(containerPath, pluginEntry.name);
+            const pluginPath = path.join(typePath, pluginEntry.name);
             const manifestPath = path.join(pluginPath, configFile);
 
             if (!fs.existsSync(manifestPath)) {
-                // Plugin directory without manifest is silently skipped
-                // — matches existing MMGIS behavior.
+                // Warn about deprecated manifest formats.
+                const deprecated = [
+                    { file: "config.json", replacement: "plugin.json" },
+                    { file: "setup.js",    replacement: "plugin.json + plugin.js" },
+                ];
+                for (const d of deprecated) {
+                    if (fs.existsSync(path.join(pluginPath, d.file))) {
+                        logger(
+                            "warn",
+                            `Plugin "${repoEntry.name}/${type}/${pluginEntry.name}" has a deprecated ${d.file}. ` +
+                            `Please migrate to ${d.replacement}. See plugins/README.md for the migration guide.`,
+                            loggerCategory,
+                            null,
+                            null
+                        );
+                    }
+                }
                 continue;
             }
 
@@ -165,7 +146,7 @@ function discoverPlugins(basePath, patterns, configFile = "config.json", opts = 
                 } catch (err) {
                     logger(
                         "error",
-                        `Failed to parse ${configFile} for plugin ${pluginEntry.name} in ${containerEntry.name}`,
+                        `Failed to parse ${configFile} for plugin ${pluginEntry.name} in ${repoEntry.name}/${type}`,
                         loggerCategory,
                         null,
                         err
@@ -174,14 +155,12 @@ function discoverPlugins(basePath, patterns, configFile = "config.json", opts = 
                 }
             } else if (loader === "require") {
                 try {
-                    // Bust Node's require cache so repeated discovery in
-                    // tests picks up fresh files.
                     delete require.cache[require.resolve(manifestPath)];
                     manifest = require(manifestPath);
                 } catch (err) {
                     logger(
                         "error",
-                        `Failed to require ${configFile} for plugin ${pluginEntry.name} in ${containerEntry.name}`,
+                        `Failed to require ${configFile} for plugin ${pluginEntry.name} in ${repoEntry.name}/${type}`,
                         loggerCategory,
                         null,
                         err
@@ -190,9 +169,28 @@ function discoverPlugins(basePath, patterns, configFile = "config.json", opts = 
                 }
             }
 
+            // Check plugin-state.json — skip disabled plugins.
+            // Required plugins (required: true or overridable: false) cannot be disabled.
+            const stateKey = `${repoEntry.name}/${type}/${pluginEntry.name}`;
+            const stateEntry = pluginState.plugins[stateKey];
+            if (stateEntry && stateEntry.enabled === false) {
+                const isRequired = manifest &&
+                    (manifest.required === true || manifest.overridable === false);
+                if (!isRequired) {
+                    logger(
+                        "info",
+                        `Skipping disabled plugin: ${stateKey}`,
+                        loggerCategory,
+                        null,
+                        null
+                    );
+                    continue;
+                }
+            }
+
             out.push({
                 name: pluginEntry.name,
-                container: containerEntry.name,
+                container: repoEntry.name,
                 pluginPath,
                 manifestPath,
                 manifest,
@@ -203,4 +201,57 @@ function discoverPlugins(basePath, patterns, configFile = "config.json", opts = 
     return out;
 }
 
-module.exports = { discoverPlugins };
+/**
+ * Cross-check pluginDependencies across all plugin types.
+ *
+ * Does a lightweight scan of tools, backend, and components, then warns
+ * about any pluginDependency that references a plugin that is missing
+ * or disabled.  Called at build time (updateTools) and server startup
+ * (setups) so operators see problems before they hit 404s at runtime.
+ *
+ * @param {string} pluginsRoot  Absolute path to the `plugins/` directory.
+ * @param {string} [loggerCategory="PluginDeps"]
+ */
+function checkPluginDependencies(pluginsRoot, loggerCategory = "PluginDeps") {
+    // Discover all types with a lightweight parse-only scan.
+    const allPlugins = [];
+    for (const type of ["tools", "backend", "components"]) {
+        const discovered = discoverPlugins(pluginsRoot, type, "plugin.json", {
+            loader: "parse",
+            loggerCategory,
+        });
+        for (const p of discovered) {
+            allPlugins.push({
+                id: `${p.container}/${type}/${p.name}`,
+                name: p.name,
+                type,
+                manifest: p.manifest,
+            });
+        }
+    }
+
+    // Build set of enabled plugin IDs.
+    const enabledIds = new Set(allPlugins.map((p) => p.id));
+
+    // Check each plugin's pluginDependencies.
+    let warningCount = 0;
+    for (const p of allPlugins) {
+        if (!p.manifest || !Array.isArray(p.manifest.pluginDependencies)) continue;
+        for (const depId of p.manifest.pluginDependencies) {
+            if (!enabledIds.has(depId)) {
+                warningCount++;
+                logger(
+                    "warn",
+                    `Plugin '${p.id}' depends on '${depId}' which is not enabled — ` +
+                    `features requiring this dependency may not work correctly`,
+                    loggerCategory,
+                    null,
+                    null
+                );
+            }
+        }
+    }
+    return warningCount;
+}
+
+module.exports = { discoverPlugins, checkPluginDependencies };

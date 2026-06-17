@@ -326,12 +326,11 @@ MMGIS supports two ways to add backends:
 
 New tools are automatically found and included on start.
 
-1. Go to `src/essence/Tools`
+1. Go to `plugins/core/tools/`
 
    1. Create a new directory here with the name of your new tool
-   1. Copy and paste `New Tool Template.js` into your new directory
-   1. Rename the pasted file to `[Your Tool's Name]Tool.js`
-   1. Add a `config.json` file so that MMGIS can find it. Do look at the existing tools' `config.json` but here's a template:
+   1. Create `[Your Tool's Name]Tool.js` (see tool template in [plugins/README.md](plugins/README.md#tool-template))
+   1. Add a `plugin.json` file so that MMGIS can find it. Do look at the existing tools' `plugin.json` but here's a template:
 
    ```javascript
    {
@@ -347,7 +346,7 @@ New tools are automatically found and included on start.
         "name": "{toolName}",
         "toolbarPriority": 3,
         "paths": {
-            "{toolName}Tool": "essence/Tools/{toolName}/{toolName}Tool"
+            "{toolName}Tool": "../plugins/core/tools/{toolName}/{toolName}Tool"
         },
         "expandable": false
     }
@@ -362,7 +361,7 @@ New tools are automatically found and included on start.
 
 #### Overview
 
-Ideally all the code for a tool will be in its `[Tool's Name]Tool.js` and built off of the `New Tool Template.js`.
+Ideally all the code for a tool will be in its `[Tool's Name]Tool.js` and built off of the template in [plugins/README.md](plugins/README.md#tool-template).
 
 - All tools must return an object with `make` and `destroy` functions.
   - `make` is called when the user clicks on the tool's icon while `destroy` is called when the user clicks on any other tool's icon.
@@ -372,49 +371,91 @@ Ideally all the code for a tool will be in its `[Tool's Name]Tool.js` and built 
 
 ### Plugin System
 
-MMGIS now supports a flexible plugin system that allows you to add custom tools without modifying the core codebase:
+MMGIS uses a `/plugins/` directory. All plugins (core and external) are discovered via `discoverPlugins()` which scans the three-level hierarchy `plugins/<container>/<type>/<PluginName>/`.
+
+- **Core plugins** live in `plugins/core/` (committed to the repo). Core plugins cannot be removed or disabled.
+- **External/private plugins** live in `plugins/<your-container>/` (auto-gitignored). Managed via the Plugin CLI.
+
+#### Plugin CLI
+
+MMGIS includes a CLI tool for managing plugins (`plugins/plugin-cli.js`). Run it with:
+
+```bash
+npm run plugins -- <command>
+```
+
+Key commands:
+
+| Command | Description |
+|---------|-------------|
+| `list` | List all plugins with enabled/disabled status |
+| `install <git-url\|path>` | Clone a git repo or symlink a local directory |
+| `remove <repo-name>` | Remove an installed plugin repo (not `core`) |
+| `enable <plugin-id>` | Enable a plugin |
+| `disable <plugin-id>` | Disable a plugin (not core plugins) |
+| `update [repo-name]` | Pull latest for installed repo(s) |
+| `validate` | Validate all `plugin.json` manifests |
+| `deps` | Show aggregated dependency graph |
+| `info <plugin-id>` | Show plugin details |
+| `registry add <url>` | Register a plugin source |
+
+Registries are configured in `plugins/plugin-registries.json`. Plugin enable/disable state is tracked in `plugins/plugin-state.json` (gitignored — instance-specific).
+
+See `plugins/README.md` for the full CLI reference.
 
 #### Tool Plugins
 
-1. **Directory Naming**: Create directories matching these patterns:
-
-   - `/src/essence/*Private-Tools*` (e.g., `My-Private-Tools`, `MMGIS-Private-Tools`)
-   - `/src/essence/*Plugin-Tools*` (e.g., `NASA-Plugin-Tools`, `Custom-Plugin-Tools-v2`)
-
-2. **Structure**: Each plugin directory should contain subdirectories for individual tools, following the same structure as standard tools:
+1. **Directory Structure**: Create a container directory under `plugins/` with a `tools/` subdirectory:
 
    ```
-   /src/essence/My-Plugin-Tools/
-     /MyCustomTool/
-       config.json
-       MyCustomTool.js
-       MyCustomTool.css (optional)
+   plugins/my-custom-plugins/
+     tools/
+       MyCustomTool/
+         plugin.json
+         MyCustomTool.js
+         MyCustomTool.css (optional)
+         tests/ (optional, co-located E2E tests)
    ```
 
-3. **Loading**:
+2. **Loading**:
 
    - Tools are automatically discovered and loaded when you run `npm run build`
-   - Plugin tools can override standard tools by using the same tool name
-   - All plugin directories are automatically gitignored
+   - `core` is always scanned first, then containers in alphabetical order
+   - Plugin tools can override core tools by using the same directory name (last scanned wins)
+   - Everything under `plugins/` except `plugins/core/` is gitignored
 
-4. **Example**: To add a custom InfoTool that overrides the standard one:
+3. **Example**: To add a custom InfoTool that overrides the standard one:
    ```
-   /src/essence/My-Plugin-Tools/
-     /Info/
-       config.json (with your custom configuration)
-       InfoTool.js (with your custom implementation)
+   plugins/my-custom-plugins/
+     tools/
+       Info/
+         plugin.json (with your custom configuration)
+         InfoTool.js (with your custom implementation)
    ```
 
-#### Plugin `config.json` Schema
+#### Plugin `plugin.json` Schema
 
-Every tool or component plugin must include a `config.json`. The build step (`API/updateTools.js` → `validatePluginConfig()`) validates each config and refuses to register a plugin that fails validation. Failed plugins are logged and skipped — they do **not** abort the build.
+Every tool or component plugin must include a `plugin.json`. The build step (`API/updateTools.js` → `validatePluginConfig()`) validates each manifest and refuses to register a plugin that fails validation. Failed plugins are logged and skipped — they do **not** abort the build.
+
+Common fields (all plugin types):
+
+- `uuid` *(string)* — Unique identifier (UUID v4). Generated once when the plugin is created.
+- `id` *(string)* — Stable plugin identifier (e.g. `core-draw`, `my-org-custom-draw`).
+- `version` *(string)* — Semver-compatible version string.
+- `type` *(string)* — One of: `tool`, `component`, `backend`.
+- `tier` *(string)* — One of: `core`, `community`, `private`.
+- `overridable` *(boolean)* — If `false`, external plugins cannot override this plugin.
+- `engines` *(object)* — Compatibility constraints, e.g. `{ "mmgis": ">=5.0.0" }`.
+- `peerDependencies` *(object)* — Inter-plugin dependencies, e.g. `{ "core-draw": ">=5.0.0" }`.
+- `aliases` *(array of strings)* — Alternative names for discovery.
+- `dependencies` *(object)* — Per-plugin npm/Python dependencies (see "Plugin Dependencies" below).
 
 Required fields (for tools and components):
 
 - `name` *(string, non-empty)* — The display name of the plugin. Must match the directory name when overriding a standard tool/component.
 - `paths` *(object of `string` → `string`)* — Maps the module name(s) the tool registers to the import path(s) of the corresponding `.js` file(s). At least one entry is required.
 
-Optional fields:
+Optional fields (tools and components):
 
 - `description`, `descriptionFull`, `defaultIcon` *(strings/object)* — UI metadata.
 - `hasVars` *(boolean)* — Marks whether the plugin exposes user-configurable variables.
@@ -423,7 +464,6 @@ Optional fields:
 - `separatedTool` *(boolean)* — Render the tool outside the main toolbar.
 - `kinds` *(any)* — Reserved for the `Kinds` tool.
 - `config` *(object)* — Configuration schema shown to admins on the Configure page.
-- `dependencies` *(object)* — Per-plugin npm/Python dependencies (see "Plugin Dependencies" below).
 
 Unknown top-level fields are preserved but logged as warnings so that newer plugins remain forward compatible.
 
@@ -431,19 +471,32 @@ Unknown top-level fields are preserved but logged as warnings so that newer plug
 
 Plugins are keyed by their **on-disk directory name**, not the `name` field in their config:
 
-- Standard tools (`src/essence/Tools/*`) are loaded first.
-- Plugin and private directories (`src/essence/*Plugin-Tools*`, `src/essence/*Private-Tools*`) are scanned afterwards and **may override standard tools** (or each other) by re-using the same directory name.
-- When an override occurs the new plugin replaces the previous registration entirely and a `warn`-level log line is emitted (e.g. `Tool 'Info' overridden by My-Plugin-Tools`).
-- Multiple plugin containers are scanned in the order returned by the filesystem; the **last container scanned wins** on collision. Avoid relying on a specific scan order — give override plugins a unique container path if determinism matters.
+- `plugins/core/` is always scanned first.
+- Additional containers under `plugins/` are scanned in alphabetical order and **may override core plugins** by re-using the same directory name.
+- **`overridable: false`** — If a core plugin sets this in its `plugin.json`, no external plugin can override it. Attempts are rejected with an error log.
+- When an override occurs the new plugin replaces the previous registration entirely and a `warn`-level log line is emitted (e.g. `Tool 'Info' overridden by my-custom-plugins`).
+- Scan order is deterministic: `core` first, then alphabetical. The **last container scanned wins** on collision.
+
+#### Engine Compatibility
+
+Plugins can declare minimum MMGIS version requirements via the `engines` field:
+
+```json
+{
+    "engines": { "mmgis": ">=5.0.0" }
+}
+```
+
+At registration time, if the current MMGIS version doesn't satisfy the range, the plugin is skipped with an error log.
 
 #### Plugin Dependencies
 
-Each plugin (tool, component, or backend) may declare its own npm and Python dependencies in `config.json` (backend plugins place the same declaration in a sibling `config.json` next to `setup.js`):
+Each plugin (tool, component, or backend) may declare its own npm and Python dependencies in its `plugin.json`:
 
 ```json
 {
     "name": "MyTool",
-    "paths": { "MyTool": "essence/Plugin-Tools-Custom/MyTool/MyTool" },
+    "paths": { "MyTool": "../plugins/my-custom-plugins/tools/MyTool/MyTool" },
     "dependencies": {
         "npm": {
             "html2canvas": "^1.4.1",
@@ -481,7 +534,9 @@ Plugin dependency conflicts detected:
 Resolve by aligning version specifiers across plugins, or removing the duplicated declaration.
 ```
 
-To debug: search the offending plugins' `config.json` files for the conflicting key and align the version specifiers.
+To debug: search the offending plugins' `plugin.json` files for the conflicting key and align the version specifiers.
+
+Note: Semver-compatible ranges (e.g. `^1.4.1` and `^1.5.0`) are automatically resolved when they intersect. Only truly incompatible ranges (e.g. `^3.0.0` vs `^4.0.0`) trigger a conflict error.
 
 ##### Docker Build Integration
 
@@ -500,8 +555,7 @@ The first plugin to declare its deps in `config.json` is **Animation** (`@ffmpeg
 
 ### Notes
 
-- The original single directory `/src/essence/MMGIS-Private-Tools` is still supported for backward compatibility
-- Multiple plugin sources can coexist (e.g., you can have both `My-Plugin-Tools` and `Private-Tools-Hello-World`)
+- Multiple plugin containers can coexist under `plugins/` (e.g., `plugins/my-private/` and `plugins/nasa-custom/`)
 - Remember to run `npm run build` after adding or modifying tool plugins
 
 ## Developing A New Backend
@@ -512,59 +566,82 @@ MMGIS supports two ways to add backends:
 
 ### Standard Backends (in core codebase)
 
-1. Go to `API/Backend`
+1. Go to `plugins/core/backend/`
    1. Create a new directory here with the name of your new backend
-   1. Copy and paste `setupTemplate.js` into your new directory
-   1. Rename the pasted file to `setup.js`
-   1. Edit `setup.js` based on the development guide below
+   1. Create `plugin.js` (lifecycle hooks — see backend template in [plugins/README.md](plugins/README.md#backend-template))
+   1. Create a `plugin.json` with metadata (see schema below)
+   1. Edit `plugin.js` based on the development guide below
 1. Restart the server with `npm start`
+
+#### Backend `plugin.json` Schema
+
+Backend plugins require a `plugin.json` manifest alongside `plugin.js`:
+
+```json
+{
+    "uuid": "<uuid-v4>",
+    "id": "core-mybackend",
+    "name": "MyBackend",
+    "display_name": "My Backend Service",
+    "aliases": ["mybackend"],
+    "version": "5.1.4-20260616",
+    "type": "backend",
+    "tier": "core",
+    "overridable": true,
+    "routes": {
+        "prefix": "/api/mybackend",
+        "auth": "user"
+    }
+}
+```
+
+The `routes` field documents the backend's HTTP mount point and auth level (`"admin"`, `"user"`, or `"none"`).
 
 ### Plugin Backends (gitignored, for private/external backends)
 
-1. **Directory Naming**: Create directories in `/API/` matching these patterns:
-
-   - `*Private-Backend*` (e.g., `My-Private-Backend`, `MMGIS-Private-Backend`)
-   - `*Plugin-Backend*` (e.g., `NASA-Plugin-Backend`, `Custom-Plugin-Backend-v2`)
-
-2. **Structure**: Each plugin directory should contain subdirectories for individual backends, following the same structure as standard backends:
+1. **Directory Structure**: Create a container directory under `plugins/` with a `backend/` subdirectory:
 
    ```
-   /API/My-Plugin-Backend/
-     /MyCustomEndpoint/
-       setup.js
-       models/ (optional)
-       routes/ (optional)
+   plugins/my-custom-plugins/
+     backend/
+       MyCustomEndpoint/
+         plugin.json
+         plugin.js
+         models/ (optional)
+         routes/ (optional)
+         tests/ (optional, co-located E2E tests)
    ```
 
-3. **Loading**:
+2. **Loading**:
 
    - Backends are automatically discovered and loaded when you run `npm start`
    - No build step required - just restart the server
-   - Plugin backends can override standard backends by using the same name
-   - All plugin directories are automatically gitignored
+   - Plugin backends can override core backends by using the same directory name
+   - Everything under `plugins/` except `plugins/core/` is gitignored
 
-4. **Example**: To add a custom Draw backend:
+3. **Example**: To add a custom Draw backend:
 
    ```
-   /API/My-Plugin-Backend/
-     /Draw/
-       setup.js
-       models/
-         DrawFileModel.js
-       routes/
-         draw.js
+   plugins/my-custom-plugins/
+     backend/
+       Draw/
+         plugin.json
+         plugin.js
+         models/
+           DrawFileModel.js
+         routes/
+           draw.js
    ```
 
-5. **Notes**:
-   - The original single directory `/API/MMGIS-Private-Backend` is still supported for backward compatibility
-   - Multiple plugin sources can coexist
-   - Plugin backends are loaded after standard backends, allowing them to override default functionality
+4. **Notes**:
+   - Multiple plugin containers can coexist
+   - Plugin backends are loaded after core backends (alphabetical order), allowing them to override default functionality
 
 ### Developing
 
 #### Overview
 
-All the code for a backend must stay in its `API/Backend/[name]` directory.
+All the code for a backend must stay in its `plugins/core/backend/[name]` directory.
 
 - Backends should work independently of one another.
 - Use the existing backends as a reference point.
@@ -577,10 +654,10 @@ const router = require("./routes/your_router");
 
 Write scripts within you backend directory and import them. Most backends follow the directory structure:
 
-- API/Backend/[name]
+- plugins/core/backend/[name]
   - models/
   - routes/
-  - setup.js
+  - plugin.js
 
 ```
 let setup = {
@@ -598,7 +675,7 @@ onceInit() is called immediately on `npm start`
 onceStarted() is called once the http server starts up
 onceSynced() is called once all table are created/has their existence verified.
 
-The s parameter is an object containing the app and middleware. A common form to attach an API within a `setup.js` is to fill onceInit() with:
+The s parameter is an object containing the app and middleware. A common form to attach an API within a `plugin.js` is to fill onceInit() with:
 
 ```javascript
 onceInit: (s) => {

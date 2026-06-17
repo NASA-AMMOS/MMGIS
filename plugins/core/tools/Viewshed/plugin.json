@@ -1,0 +1,183 @@
+{
+    "uuid": "752889f1-790f-4e23-871d-bea8bf1f7f1a",
+    "id": "core-viewshed",
+    "version": "core",
+    "type": "tool",
+    "tier": "core",
+    "overridable": true,
+    "defaultIcon": "wifi-strength-2",
+    "description": "Realtime user generated viewsheds.",
+    "descriptionFull": {
+        "title": "Renders dynamic tilesets based on line-of-sight visibilities from user defined source points. DEM tiles are used to generate these. At least one DEM tileset must be configured. curvature is optional and can be set to false to disable using the Major Radius to account for curvature during generations. cameraPresets are optional and the objects within only require the name field.",
+        "example": {
+            "data": [
+                {
+                    "name": "Unique Name 1",
+                    "demtileurl": "Layers/Example/demtileset/{z}/{x}/{y}.png",
+                    "minZoom": 8,
+                    "maxNativeZoom": 18,
+                    "boundingBox": [
+                        -122.51,
+                        37.71,
+                        -122.41,
+                        37.78
+                    ]
+                },
+                {
+                    "...": "..."
+                }
+            ],
+            "curvature": false,
+            "cameraPresets": [
+                {
+                    "name": "CAM A",
+                    "height": 2,
+                    "azCenter": 0,
+                    "azFOV": 70,
+                    "elCenter": -10,
+                    "elFOV": 30
+                },
+                {
+                    "...": "..."
+                }
+            ],
+            "defaultObserverHeight": 2,
+            "defaultTargetHeight": 0
+        }
+    },
+    "hasVars": true,
+    "name": "Viewshed",
+    "toolbarPriority": 101,
+    "paths": {
+        "ViewshedTool": "../plugins/core/tools/Viewshed/ViewshedTool",
+        "ViewshedTool_Manager": "../plugins/core/tools/Viewshed/ViewshedTool_Manager",
+        "ViewshedTool_Algorithm": "../plugins/core/tools/Viewshed/ViewshedTool_Algorithm"
+    },
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.data",
+                        "name": "Layer specific DEMs",
+                        "description": "Only show DEM if associated layer is on.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "User-friendly name for DEM",
+                                "type": "text",
+                                "width": 2
+                            },
+                            {
+                                "field": "demtileurl",
+                                "name": "DEM Path",
+                                "description": "",
+                                "type": "text",
+                                "width": 8
+                            },
+                            {
+                                "field": "minZoom",
+                                "name": "Minimum Zoom",
+                                "description": "",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 1
+                            },
+                            {
+                                "field": "maxNativeZoom",
+                                "name": "Maximum Native Zoom",
+                                "description": "",
+                                "type": "number",
+                                "min": 0,
+                                "step": 1,
+                                "width": 1
+                            },
+                            {
+                                "field": "boundingBox",
+                                "name": "Bounding Box",
+                                "description": "west,south,east,north in EPSG:4326. Clamps tile requests to this extent.",
+                                "type": "textarray",
+                                "width": 4
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.cameraPresets",
+                        "name": "Camera Presets",
+                        "description": "Only show DEM if associated layer is on.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "Camera Name",
+                                "type": "text",
+                                "width": 10
+                            },
+                            {
+                                "field": "height",
+                                "name": "Height",
+                                "description": "Height in meters",
+                                "type": "number",
+                                "min": 0,
+                                "width": 2
+                            },
+                            {
+                                "field": "azCenter",
+                                "name": "Azimuth Center",
+                                "description": "",
+                                "type": "number",
+                                "width": 3
+                            },
+                            {
+                                "field": "azFOV",
+                                "name": "Azimuth FOV",
+                                "description": "",
+                                "type": "number",
+                                "width": 3
+                            },
+                            {
+                                "field": "elCenter",
+                                "name": "Elevation Center",
+                                "description": "",
+                                "type": "number",
+                                "width": 3
+                            },
+                            {
+                                "field": "elFOV",
+                                "name": "Elevation FOV",
+                                "description": "",
+                                "type": "number",
+                                "width": 3
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.curvature",
+                        "name": "Curvature",
+                        "description": "Whether to account for planetary curvature while computing viewsheds.",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    }
+                ]
+            }
+        ]
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0",
+    "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}
