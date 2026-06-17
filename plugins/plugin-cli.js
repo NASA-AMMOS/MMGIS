@@ -618,6 +618,7 @@ function cmdInstall(target) {
         // Local path — copy or symlink.
         const absPath = path.resolve(target);
         if (!fs.existsSync(absPath)) {
+            jsonError(`Path not found: ${absPath}`);
             console.error(c.red(`Path not found: ${absPath}`));
             process.exit(1);
         }
@@ -626,6 +627,7 @@ function cmdInstall(target) {
         const dest = path.join(PLUGINS_ROOT, repoName);
 
         if (fs.existsSync(dest)) {
+            jsonError(`Plugin directory '${repoName}' already exists at ${dest}`);
             console.error(c.red(`Plugin directory '${repoName}' already exists at ${dest}`));
             process.exit(1);
         }
