@@ -388,6 +388,35 @@ function isRequired(plugin) {
 }
 
 /**
+ * Find a plugin by ID, name, or alias.
+ * Returns the first match. If multiple plugins match a short name,
+ * logs a warning (unless silent) and returns the first.
+ */
+function findPlugin(plugins, str, { silent = false } = {}) {
+    if (!str) return null;
+    // Exact ID match first.
+    const byId = plugins.find((p) => p.id === str);
+    if (byId) return byId;
+    // Name match.
+    const byName = plugins.filter((p) => p.name === str);
+    if (byName.length === 1) return byName[0];
+    if (byName.length > 1) {
+        if (!silent && !FLAG_JSON) {
+            console.log(`  ${c.yellow("Warning:")} Multiple plugins named '${str}': ${byName.map((p) => p.id).join(", ")}`);
+            console.log(`  ${c.dim("Using first match. Use the full plugin ID to be precise.")}`);
+        }
+        return byName[0];
+    }
+    // Alias match.
+    for (const p of plugins) {
+        if (p.manifest && Array.isArray(p.manifest.aliases) && p.manifest.aliases.includes(str)) {
+            return p;
+        }
+    }
+    return null;
+}
+
+/**
  * Normalize directory-based type name to singular manifest form.
  * "tools" → "tool", "components" → "component", "backend" → "backend"
  */
@@ -686,6 +715,7 @@ function cmdInstall(target) {
         console.log(JSON.stringify(jsonResult, null, 2));
     } else {
         activate({ expectChanges: true });
+        console.log(`  ${c.dim("Run")} ${c.cyan("npm run plugins:install")} ${c.dim("to install plugin dependencies.")}`);
         console.log(`  ${c.dim("Restart the server to activate backend plugins.")}\n`);
     }
 }
@@ -750,7 +780,7 @@ function cmdEnable(pluginIdStr) {
     }
 
     const plugins = discoverAll();
-    const match = plugins.find((p) => p.id === pluginIdStr || p.name === pluginIdStr);
+    const match = findPlugin(plugins, pluginIdStr);
 
     if (!match) {
         jsonError(`Plugin '${pluginIdStr}' not found.`);
@@ -790,11 +820,17 @@ function cmdDisable(pluginIdStr) {
     }
 
     const plugins = discoverAll();
-    const match = plugins.find((p) => p.id === pluginIdStr || p.name === pluginIdStr);
+    const match = findPlugin(plugins, pluginIdStr);
 
     if (!match) {
         jsonError(`Plugin '${pluginIdStr}' not found.`);
         console.error(c.red(`Plugin '${pluginIdStr}' not found.`));
+        process.exit(1);
+    }
+
+    if (isCore(match)) {
+        jsonError(`Cannot disable core plugin '${match.id}'.`);
+        console.error(c.red(`Cannot disable core plugin '${match.id}'.`));
         process.exit(1);
     }
 
@@ -821,6 +857,14 @@ function cmdDisable(pluginIdStr) {
 function cmdEnableAll() {
     const plugins = discoverAll();
     const container = FLAG_CONTAINER;
+
+    if (container === CORE_CONTAINER) {
+        const msg = "Core plugins are always enabled and cannot be bulk-managed.";
+        jsonError(msg);
+        console.error(c.red(msg));
+        process.exit(1);
+    }
+
     const targets = container
         ? plugins.filter((p) => p.container === container)
         : plugins.filter((p) => p.container !== CORE_CONTAINER);
@@ -855,6 +899,14 @@ function cmdEnableAll() {
 function cmdDisableAll() {
     const plugins = discoverAll();
     const container = FLAG_CONTAINER;
+
+    if (container === CORE_CONTAINER) {
+        const msg = "Cannot disable core plugins. Core plugins are protected.";
+        jsonError(msg);
+        console.error(c.red(msg));
+        process.exit(1);
+    }
+
     const targets = container
         ? plugins.filter((p) => p.container === container)
         : plugins.filter((p) => p.container !== CORE_CONTAINER);
@@ -945,6 +997,7 @@ function cmdUpdate(repoName) {
         console.log(JSON.stringify({ command: "update", repo: repoName || "all", activated: { added: act.added, removed: act.removed } }, null, 2));
     } else {
         activate({ expectChanges: true });
+        console.log(`  ${c.dim("Run")} ${c.cyan("npm run plugins:install")} ${c.dim("if dependencies changed.")}`);
         console.log(`  ${c.dim("Restart the server to apply backend changes.")}\n`);
     }
 }
@@ -1128,13 +1181,14 @@ function cmdDeps() {
 
 function cmdInfo(pluginIdStr) {
     if (!pluginIdStr) {
+        jsonError("Usage: plugin-cli info <plugin-id>");
         console.error(c.red("Usage: plugin-cli info <plugin-id>"));
         process.exit(1);
     }
 
     const plugins = discoverAll();
     const state = loadState();
-    const match = plugins.find((p) => p.id === pluginIdStr || p.name === pluginIdStr);
+    const match = findPlugin(plugins, pluginIdStr);
 
     if (!match) {
         jsonError(`Plugin '${pluginIdStr}' not found.`);
@@ -1533,6 +1587,13 @@ function cmdCreate(type, name) {
         process.exit(1);
     }
 
+    if (FLAG_CONTAINER === CORE_CONTAINER) {
+        jsonError("Cannot create plugins in the core container. Use a different --container name.");
+        console.error(c.red("Cannot create plugins in the core container."));
+        console.error(c.dim("Core plugins are maintained as part of the main MMGIS repository."));
+        process.exit(1);
+    }
+
     const container = FLAG_CONTAINER;
     const pluginDir = path.join(PLUGINS_ROOT, container, typeDir, name);
 
@@ -1625,7 +1686,7 @@ function cmdDestroy(pluginIdStr) {
     }
 
     const plugins = discoverAll();
-    const match = plugins.find((p) => p.id === pluginIdStr || p.name === pluginIdStr);
+    const match = findPlugin(plugins, pluginIdStr);
 
     if (!match) {
         jsonError(`Plugin '${pluginIdStr}' not found.`);
