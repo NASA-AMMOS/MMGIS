@@ -305,9 +305,19 @@ test.describe('CLI create and destroy', () => {
 
 test.describe('CLI registry', () => {
 
+    const REGISTRIES_PATH = path.join(PLUGINS_ROOT, 'plugin-registries.json');
+    let savedRegistries;
+
+    test.beforeAll(() => {
+        // Save original registries and start with empty set
+        savedRegistries = fs.readFileSync(REGISTRIES_PATH, 'utf8');
+        fs.writeFileSync(REGISTRIES_PATH, JSON.stringify({ registries: [] }, null, 4));
+    });
+
     test.afterAll(() => {
-        // Ensure registries are clean
+        // Ensure test registries are clean then restore original
         runCli('registry remove test-plugin-repo');
+        fs.writeFileSync(REGISTRIES_PATH, savedRegistries);
     });
 
     test('registry list shows empty when no registries', () => {

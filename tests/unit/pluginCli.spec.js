@@ -120,9 +120,16 @@ test.describe('plugin-cli', () => {
     });
 
     test('registry list shows empty when no registries', () => {
-        const { stdout, exitCode } = runCli('registry list');
-        expect(exitCode).toBe(0);
-        expect(stdout).toContain('No registries configured');
+        const regPath = path.join(REPO_ROOT, 'plugins', 'plugin-registries.json');
+        const saved = fs.readFileSync(regPath, 'utf8');
+        fs.writeFileSync(regPath, JSON.stringify({ registries: [] }, null, 4));
+        try {
+            const { stdout, exitCode } = runCli('registry list');
+            expect(exitCode).toBe(0);
+            expect(stdout).toContain('No registries configured');
+        } finally {
+            fs.writeFileSync(regPath, saved);
+        }
     });
 
     test('unknown command shows help and exits with error', () => {
