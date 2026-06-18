@@ -34,7 +34,7 @@ plugins/
 │   ├── tools/                 # Frontend tools (Draw, Measure, Legend, etc.)
 │   ├── backend/               # Server modules (Accounts, Config, Users, etc.)
 │   └── components/            # UI components (OperationsClock, etc.)
-└── <external-container>/      # Installed from git or local path (gitignored)
+└── <org--repo>/               # Installed from git (org--repo naming, gitignored)
     ├── tools/
     ├── backend/
     └── components/
@@ -62,7 +62,7 @@ npm run plugins -- list
 # Create a new plugin
 npm run plugins -- create tool MyTool --container my-plugins
 
-# Install from a git repo
+# Install from a git repo (clones to plugins/org--mmgis-geo-plugins/)
 npm run plugins -- install https://github.com/org/mmgis-geo-plugins.git
 
 # Enable/disable a specific plugin
@@ -155,7 +155,7 @@ UI components loaded into the MMGIS interface. Directory name is plural (`compon
 npm run plugins -- install https://github.com/org/mmgis-geo-plugins.git
 ```
 
-This clones the repository into `plugins/mmgis-geo-plugins/`. The repo must follow the standard directory structure with `tools/`, `backend/`, and/or `components/` subdirectories.
+This clones the repository into `plugins/org--mmgis-geo-plugins/`. The container directory uses `org--repo` naming (double-hyphen separator) so that repos with the same name under different organizations don't collide. The repo must follow the standard directory structure with `tools/`, `backend/`, and/or `components/` subdirectories.
 
 ### By Registry Name
 
@@ -196,7 +196,7 @@ npm run plugins -- enable mmgis-geo-plugins/tools/ElevationTool
 npm run plugins -- install /path/to/my-plugin-repo
 ```
 
-This copies the directory into `plugins/<dirname>/`. To create a symlink instead (useful during active development so changes are reflected immediately), use the `--link` flag:
+This copies the directory into `plugins/<dirname>/` (local paths use the directory basename as-is since there is no org to infer). To create a symlink instead (useful during active development so changes are reflected immediately), use the `--link` flag:
 
 ```bash
 npm run plugins -- install --link /path/to/my-plugin-repo

@@ -193,7 +193,7 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 
 ## Plugins
 
-MMGIS uses a plugin-based architecture organized under `/plugins/` in a three-level hierarchy: `<container>/<type>/<PluginName>/`. Core plugins ship with MMGIS; external plugins can be installed from Git repositories or local paths without modifying the core codebase.
+MMGIS uses a plugin-based architecture organized under `/plugins/` in a three-level hierarchy: `<container>/<type>/<PluginName>/`. Core plugins ship with MMGIS; external plugins can be installed from Git repositories or local paths without modifying the core codebase. Git repos are cloned into `plugins/<org>--<repo>/` (double-hyphen separator) to avoid name collisions across organizations.
 
 ### Official Plugin Repository
 
