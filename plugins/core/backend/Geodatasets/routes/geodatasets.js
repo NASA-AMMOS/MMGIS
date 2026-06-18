@@ -15,14 +15,13 @@ const makeNewGeodatasetTable = geodatasets.makeNewGeodatasetTable;
 
 //Returns a geodataset table as a geojson
 router.get("/get/:layer", function (req, res, next) {
-  req.query.layer = req.params.layer;
-  get("get", req, res, next);
+  get("get", req, res, next, { layer: req.params.layer });
 });
 router.get("/get", function (req, res, next) {
   get("get", req, res, next);
 });
 
-function get(reqtype, req, res, next) {
+function get(reqtype, req, res, next, options) {
   let layer = null;
   let type = "geojson";
   let xyz = {};
@@ -55,7 +54,7 @@ function get(reqtype, req, res, next) {
       };
     }
   } else if (reqtype === "get") {
-    layer = req.query.layer;
+    layer = (options && options.layer) || req.query.layer;
     type = req.query.type || type;
     if (req.query._source && typeof req.query._source === "string")
       _source = req.query._source.split(",");
