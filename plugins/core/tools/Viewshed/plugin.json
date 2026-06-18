@@ -49,9 +49,9 @@
     "name": "Viewshed",
     "toolbarPriority": 101,
     "paths": {
-        "ViewshedTool": "../plugins/core/tools/Viewshed/ViewshedTool",
-        "ViewshedTool_Manager": "../plugins/core/tools/Viewshed/ViewshedTool_Manager",
-        "ViewshedTool_Algorithm": "../plugins/core/tools/Viewshed/ViewshedTool_Algorithm"
+        "ViewshedTool": "./ViewshedTool",
+        "ViewshedTool_Manager": "./ViewshedTool_Manager",
+        "ViewshedTool_Algorithm": "./ViewshedTool_Algorithm"
     },
     "config": {
         "rows": [

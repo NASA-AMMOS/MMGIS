@@ -17,7 +17,7 @@
     "name": "Info",
     "toolbarPriority": 3,
     "paths": {
-        "InfoTool": "../plugins/core/tools/Info/InfoTool"
+        "InfoTool": "./InfoTool"
     },
     "expandable": true,
     "config": {

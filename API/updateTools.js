@@ -7,7 +7,30 @@ const { validatePluginConfig } = require("./pluginValidation");
 const { discoverPlugins, checkPluginDependencies } = require("./pluginDiscovery");
 
 const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
+const REPO_ROOT = path.join(__dirname, "..");
+const SRC_PRE_DIR = path.join(REPO_ROOT, "src", "pre");
 const MMGIS_VERSION = require("../package.json").version;
+
+/**
+ * Resolve a plugin path value for use in generated import statements.
+ * - Relative paths (starting with "./") are resolved from the plugin's
+ *   directory and converted to a path relative to src/pre/.
+ * - Legacy absolute-ish paths (starting with "../") are prefixed with
+ *   "../" as before (from src/pre/ → src/ → repo root).
+ */
+function resolvePluginPath(pathValue, pluginPath) {
+  if (pathValue.startsWith("./") || pathValue.startsWith("../")) {
+    if (pathValue.startsWith("./") && pluginPath) {
+      const abs = path.resolve(pluginPath, pathValue);
+      const rel = path.relative(SRC_PRE_DIR, abs);
+      return rel;
+    }
+    // Legacy "../" prefix — keep existing behavior.
+    return `../${pathValue}`;
+  }
+  // Bare path — treat as legacy.
+  return `../${pathValue}`;
+}
 
 /**
  * Register a single plugin's parsed config.json onto the in-memory
@@ -87,6 +110,8 @@ function updateTools() {
   // Single-pass scan of plugins/*/tools/
   const allTools = discoverPlugins(PLUGINS_ROOT, "tools", "plugin.json", { loggerCategory: "Tools" });
   for (const plugin of allTools) {
+    // Attach pluginPath so the import generator can resolve relative paths.
+    plugin.manifest._pluginPath = plugin.pluginPath;
     registerPlugin({
       registry: tools,
       name: plugin.name,
@@ -132,19 +157,20 @@ function updateTools() {
   let toolConfigs = "";
   const toolModules = {};
   let kindsModule = null;
-  // Paths values in plugin.json must start with "../" because generated
-  // imports in src/pre/tools.js are prefixed with another "../". For example,
-  // a path of "../plugins/core/tools/X/XTool" produces the import:
-  //   import XTool from '../../plugins/core/tools/X/XTool'
-  // which correctly resolves from src/pre/ to the repo root.
+  // Paths values in plugin.json can be:
+  //   - Relative ("./DrawTool") — resolved from the plugin's directory
+  //   - Legacy ("../plugins/core/tools/X/XTool") — prefixed with "../"
+  // Both produce correct import paths relative to src/pre/.
   for (const t in tools) {
+    const pluginPath = tools[t]._pluginPath || null;
     for (const p in tools[t].paths) {
+      const resolved = resolvePluginPath(tools[t].paths[p], pluginPath);
       if (p === "Kinds") {
         kindsModule = p;
-        toolConfigs += `import kinds from '../${tools[t].paths[p]}'\n`;
+        toolConfigs += `import kinds from '${resolved}'\n`;
       } else {
         toolModules[p] = p;
-        toolConfigs += `import ${p} from '../${tools[t].paths[p]}'\n`;
+        toolConfigs += `import ${p} from '${resolved}'\n`;
       }
     }
   }
@@ -188,6 +214,7 @@ function updateComponents() {
   // Single-pass scan of plugins/*/components/
   const allComponents = discoverPlugins(PLUGINS_ROOT, "components", "plugin.json", { loggerCategory: "Components" });
   for (const plugin of allComponents) {
+    plugin.manifest._pluginPath = plugin.pluginPath;
     registerPlugin({
       registry: components,
       name: plugin.name,
@@ -222,9 +249,11 @@ function updateComponents() {
   let componentConfigs = "";
   const componentModules = {};
   for (const c in components) {
+    const pluginPath = components[c]._pluginPath || null;
     for (const p in components[c].paths) {
+      const resolved = resolvePluginPath(components[c].paths[p], pluginPath);
       componentModules[p] = p;
-      componentConfigs += `import ${p} from '../${components[c].paths[p]}'\n`;
+      componentConfigs += `import ${p} from '${resolved}'\n`;
     }
   }
 

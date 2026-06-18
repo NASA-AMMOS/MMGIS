@@ -21,7 +21,7 @@
   "defaultIcon": "clock-fast",
   "hasVars": true,
   "paths": {
-    "OperationsClock": "../plugins/core/components/OperationsClock/OperationsClock"
+    "OperationsClock": "./OperationsClock"
   },
   "config": {
     "rows": [

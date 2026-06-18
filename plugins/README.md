@@ -250,7 +250,7 @@ plugins/<container>/tools/MyTool/
     "defaultIcon": "puzzle-outline",
     "description": "Short description of what this tool does.",
     "paths": {
-        "MyToolTool": "../plugins/<container>/tools/MyTool/MyToolTool"
+        "MyToolTool": "./MyToolTool"
     }
 }
 ```
@@ -359,7 +359,7 @@ plugins/<container>/components/MyComponent/
     "defaultIcon": "puzzle-outline",
     "description": "A custom UI component.",
     "paths": {
-        "MyComponent": "../plugins/<container>/components/MyComponent/MyComponent"
+        "MyComponent": "./MyComponent"
     }
 }
 ```
@@ -382,13 +382,22 @@ The canonical name of the plugin. Used as the display name in the CLI, configure
 
 **Type:** `object` — `{ [entryName: string]: string }` · **Required:** Yes (tools and components only)
 
-Maps entry-point names to their file paths (relative to the project root, prefixed with `../plugins/`). For tools, the key is typically `<Name>Tool`. For components, it's the component name.
+Maps entry-point names to their file paths relative to the plugin's own directory. For tools, the key is typically `<Name>Tool`. For components, it's the component name.
 
-These paths are written into `src/pre/tools.js` and `src/pre/components.js` as webpack dynamic imports.
+These paths are resolved at build time and written into `src/pre/tools.js` and `src/pre/components.js` as webpack imports. Use `./` prefix for paths relative to the plugin directory.
 
 ```json
 "paths": {
-    "DrawTool": "../plugins/core/tools/Draw/DrawTool"
+    "DrawTool": "./DrawTool"
+}
+```
+
+Plugins with multiple entry points:
+
+```json
+"paths": {
+    "SightlineTool": "./SightlineTool",
+    "SightlineTool_Algorithm": "./SightlineTool_Algorithm"
 }
 ```
 

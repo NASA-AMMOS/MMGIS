@@ -1759,14 +1759,14 @@ function cmdCreate(type, name) {
         case "component": files = _scaffoldComponent(name); break;
     }
 
-    // Fix the paths field in plugin.json to use the actual relative path.
+    // Fix the paths field in plugin.json to use relative paths.
     if (type === "tool") {
         const manifest = JSON.parse(files["plugin.json"]);
-        manifest.paths = { [`${name}Tool`]: `../plugins/${container}/tools/${name}/${name}Tool` };
+        manifest.paths = { [`${name}Tool`]: `./${name}Tool` };
         files["plugin.json"] = JSON.stringify(manifest, null, 4) + "\n";
     } else if (type === "component") {
         const manifest = JSON.parse(files["plugin.json"]);
-        manifest.paths = { [name]: `../plugins/${container}/components/${name}/${name}` };
+        manifest.paths = { [name]: `./${name}` };
         files["plugin.json"] = JSON.stringify(manifest, null, 4) + "\n";
     }
 

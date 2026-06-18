@@ -25,7 +25,7 @@
     "toolbarPriority": 1,
     "separatedTool": true,
     "paths": {
-        "IdentifierTool": "../plugins/core/tools/Identifier/IdentifierTool"
+        "IdentifierTool": "./IdentifierTool"
     },
     "config": {
         "rows": [
