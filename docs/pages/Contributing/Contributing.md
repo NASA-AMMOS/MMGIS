@@ -24,95 +24,68 @@ Since we're an open source project, we also accept and encourage ad-hoc contribu
 
 ## Plugin System
 
-MMGIS supports a flexible plugin system for adding custom tools and backend functionality without modifying the core codebase. This allows teams to maintain private or mission-specific functionality while still benefiting from MMGIS updates.
+MMGIS uses a plugin-based architecture organized under `/plugins/` in a three-level hierarchy: `<container>/<type>/<PluginName>/`. Core plugins ship with MMGIS in `plugins/core/`; external plugins can be installed from Git repositories or local paths without modifying the core codebase.
 
-### Tool Plugins
+### Official Plugin Repository
 
-Custom tools can be added by creating directories in `/src/essence/` that match these patterns:
-- `*Private-Tools*` (e.g., `My-Private-Tools`, `MMGIS-Private-Tools`)
-- `*Plugin-Tools*` (e.g., `NASA-Plugin-Tools`, `Mission-Plugin-Tools-v2`)
+Community and mission-specific plugins are maintained in the official collection:
 
-Each plugin directory should contain subdirectories for individual tools with the standard structure:
-- `config.json` - Tool configuration
-- `[ToolName]Tool.js` - Tool implementation
-- `[ToolName]Tool.css` - Optional styling
+**[NASA-AMMOS/MMGIS-Plugins](https://github.com/NASA-AMMOS/MMGIS-Plugins)**
 
-**Important**: Run `npm run build` after adding or modifying tool plugins.
+Install the official plugins with:
 
-### Backend Plugins
-
-Custom backends can be added by creating directories in `/API/` that match these patterns:
-- `*Private-Backend*` (e.g., `My-Private-Backend`, `MMGIS-Private-Backend`)
-- `*Plugin-Backend*` (e.g., `NASA-Plugin-Backend`, `Mission-Plugin-Backend-v2`)
-
-Each plugin directory should contain subdirectories for individual backends with:
-- `setup.js` - Backend setup file
-- `models/` - Optional data models
-- `routes/` - Optional API routes
-
-**Important**: Only `npm start` is required - backends are loaded dynamically.
-
-### Component Plugins
-
-Custom components can be added by creating directories in `/src/essence/` that match these patterns:
-- `*Private-Components*` (e.g., `My-Private-Components`, `MMGIS-Private-Components`)
-- `*Plugin-Components*` (e.g., `NASA-Plugin-Components`, `Mission-Plugin-Components-v2`)
-
-Components are lightweight initialization plugins that run once after the UI is finalized. They're ideal for:
-- Analytics integrations
-- Global keyboard shortcuts
-- Custom page-level enhancements
-- Background services
-
-Each plugin directory should contain subdirectories for individual components with:
-- `config.json` - Component metadata and configuration schema
-- `[ComponentName].js` - Component implementation with `init()` method
-
-**Important**: Run `npm run build` after adding or modifying component plugins.
-
-**Component Lifecycle**: Components have a single `init(vars)` method that is called once after the MMGIS UI is finalized (after `fina()`). Components receive their configured variables as a parameter and should handle initialization quickly (< 100ms recommended).
-
-**Example Component Structure**:
-```
-/src/essence/MMGIS-Private-Components/
-  └── ExampleComponent/
-      ├── config.json           # Component metadata and config schema
-      ├── ExampleComponent.js   # Component with init() method
-      └── README.md             # Optional documentation
+```bash
+npm run plugins -- install https://github.com/NASA-AMMOS/MMGIS-Plugins.git
 ```
 
-All plugin directories are automatically gitignored and can override standard tools/backends/components by using the same names.
+### Plugin Types
 
-### Plugin `config.json` Validation
+| Type | Location | Description |
+|------|----------|-------------|
+| **tools** | `plugins/<container>/tools/` | Frontend sidebar tools (Draw, Measure, Legend, etc.) |
+| **backend** | `plugins/<container>/backend/` | Server-side Express route modules (Accounts, Config, Users, etc.) |
+| **components** | `plugins/<container>/components/` | Lightweight UI widgets (OperationsClock, etc.) |
 
-Every tool or component plugin is run through a validator (`API/pluginValidation.js → validatePluginConfig`) at build time. If a plugin's `config.json` is missing required fields it is **skipped** (errors are logged but the build continues for all other plugins).
+Each plugin directory contains a `plugin.json` manifest describing the plugin's metadata, paths, and optional dependencies. See [`plugins/README.md`](/plugins/README.md) for the full manifest reference.
 
-Required fields for tool and component plugins:
+### Plugin CLI
 
-| Field   | Type   | Notes |
-|---------|--------|-------|
-| `name`  | string | Non-empty. |
-| `paths` | object | Non-empty `{ string: string }` map of module names to import paths. |
+Manage plugins via the built-in CLI (`npm run plugins -- <command>`):
 
-Optional fields include `description`, `descriptionFull`, `defaultIcon`, `hasVars`, `toolbarPriority`, `expandable`, `separatedTool`, `kinds`, `config`, and `dependencies` (see the Plugin Dependencies section). Unknown top-level fields are preserved but logged as warnings, so newer plugins remain forward compatible.
+| Command | Description |
+|---------|-------------|
+| `list` | List all plugins with enabled/disabled status |
+| `install <git-url\|path\|name>` | Install a plugin repo (git clone, local copy, or registry name) |
+| `remove <repo-name>` | Remove an installed plugin repo (cannot remove `core`) |
+| `enable <plugin-id>` | Mark a plugin as active |
+| `disable <plugin-id>` | Mark a plugin as inactive |
+| `create <type> <Name>` | Scaffold a new plugin (tool, backend, component) |
+| `validate` | Validate all `plugin.json` manifests |
+| `deps` | Show aggregated dependencies with conflict detection |
+| `update [repo-name]` | `git pull` latest for one or all installed repos |
+
+### Creating a New Plugin
+
+```bash
+# Scaffold a new tool plugin in a custom container
+npm run plugins -- create tool MyTool --container my-plugins
+
+# Scaffold a new backend plugin
+npm run plugins -- create backend MyBackend --container my-plugins
+```
+
+This generates the directory structure and starter files under `plugins/<container>/<type>/<Name>/`. External plugin containers (anything outside `plugins/core/`) are automatically gitignored.
 
 ### Override Behavior
 
-Plugins are keyed by their **on-disk directory name**, not by the `name` field inside `config.json`. To override a standard MMGIS tool, name your plugin directory the same as the standard tool (e.g. `/src/essence/My-Plugin-Tools/Info` to override the standard `Info` tool).
-
-- Standard tools/components are loaded first.
-- Plugin/private directories are scanned afterwards and may override what was already registered.
-- When an override happens, MMGIS logs a `warn` line such as `Tool 'Info' overridden by My-Plugin-Tools` so the override is auditable in build/server logs.
-- Multiple plugin containers are scanned in the order returned by the filesystem; the **last container scanned wins** on a collision.
+Plugins are keyed by their **on-disk directory name**. To override a core plugin, create a plugin with the same directory name in an external container. Core plugins load first; external containers are scanned afterwards and override what was already registered. Overrides are logged for auditability.
 
 ### Plugin Dependencies
 
-Plugins may declare their own npm and Python dependencies inside `config.json` (for tools and components) or a sibling `config.json` next to `setup.js` (for backends):
+Plugins may declare npm and Python dependencies in their `plugin.json`:
 
 ```json
 {
-    "name": "MyTool",
-    "paths": { "MyTool": "essence/Plugin-Tools-Custom/MyTool/MyTool" },
     "dependencies": {
         "npm": { "html2canvas": "^1.4.1" },
         "python": { "pip": ["spiceypy==5.1.2"], "conda": ["gdal==3.12.2"] }
@@ -120,19 +93,9 @@ Plugins may declare their own npm and Python dependencies inside `config.json` (
 }
 ```
 
-At build time, `scripts/resolve-plugin-deps.js` aggregates these declarations across every plugin and emits three gitignored artifacts at the repo root:
+At build time, `scripts/resolve-plugin-deps.js` aggregates these into `plugin-package.json`, `plugin-python-requirements.txt`, and `plugin-conda-deps.txt` at the repo root. Plugin npm deps are installed automatically via a `postinstall` hook. Python deps must be installed manually — see the [Installation page](../Setup/Installation/Installation.md#setup) for details.
 
-- `plugin-package.json` — npm-style dependency manifest.
-- `plugin-python-requirements.txt` — pip-style requirements file.
-- `plugin-conda-deps.txt` — conda-style requirements file.
-
-The Dockerfile installs the npm and pip deps after the root `npm ci` so each plugin contributes only what it actually needs. For local development a `postinstall` hook on the root `package.json` runs the same resolve + install step automatically, so a plain `npm install` picks up every plugin's declared npm deps without any extra commands.
-
-Plugin **Python** deps are not installed automatically by `npm install` — see the [Installation page](../Setup/Installation/Installation.md#setup) for the `pip install -r plugin-python-requirements.txt` and optional `micromamba install --file plugin-conda-deps.txt` commands. Re-run those after pulling new plugins or editing an existing plugin's Python deps.
-
-If two plugins declare the same package with conflicting versions, the build fails with a clear message listing the conflicting declarations.
-
-See `CONTRIBUTING.md` (Plugin Dependencies section) for the full reference and Docker integration details.
+For the complete plugin development guide, CLI reference, and `plugin.json` format, see [`plugins/README.md`](/plugins/README.md).
 
 ### Quickstart to Contributing
 
