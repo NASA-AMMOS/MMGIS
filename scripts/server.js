@@ -72,11 +72,12 @@ process.on("unhandledRejection", (reason) => {
 process.on("uncaughtException", (err) => {
   logger(
     "error",
-    "Uncaught exception.",
+    "Uncaught exception — shutting down.",
     "process",
     null,
     err,
   );
+  process.exit(1);
 });
 
 ///////////////////////////
