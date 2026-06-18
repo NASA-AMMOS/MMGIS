@@ -1,0 +1,21 @@
+{
+  "uuid": "e601dde6-a624-499c-a5e1-30fc4914d430",
+  "id": "core-draw",
+  "name": "Draw",
+  "display_name": "Draw Backend",
+  "aliases": [
+    "draw",
+    "files"
+  ],
+  "version": "core",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/draw",
+    "auth": "user"
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

@@ -1,0 +1,20 @@
+{
+  "uuid": "a128a136-b56f-4ca5-98dc-94c2154d9483",
+  "id": "core-longtermtoken",
+  "name": "LongTermToken",
+  "display_name": "Long-Term Token Management",
+  "aliases": [
+    "longtermtoken"
+  ],
+  "version": "core",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/longtermtoken",
+    "auth": "user"
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

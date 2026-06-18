@@ -137,7 +137,7 @@ export default function Components() {
                   <div className={c.cardIcon}>
                     <i
                       className={`mdi mdi-${
-                        comp.icon || cConfig.defaultIcon || "puzzle"
+                        comp.icon || cConfig.defaultIcon || "puzzle-outline"
                       } mdi-36px`}
                     ></i>
                   </div>
@@ -173,15 +173,16 @@ export default function Components() {
             </div>
             <div className={c.cardOff}></div>
           </div>
-          <div className={c.cardName}>Custom Components</div>
+          <div className={c.cardName}>External Plugins</div>
           <div className={c.cardContent}>
             <div className={c.cardContentTitle}>
-              Develop and add your own components via the plugin system.
+              Manage components via the Plugin CLI.
             </div>
             <div className={c.cardContentBody}>
-              Create directories matching *Private-Components* or *Plugin-Components* in
-              /src/essence/. Run npm run build again to include new custom
-              components. Components initialize after the UI is finalized.
+              Run <code>npm run plugins -- list</code> to see installed plugins
+              or <code>npm run plugins -- create component &lt;Name&gt;
+              --container &lt;container&gt;</code> to scaffold a new one. See
+              plugins/README.md for details.
             </div>
           </div>
         </div>

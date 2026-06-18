@@ -1,0 +1,10 @@
+{
+    "name": "Identifier",
+    "description": "Override fixture: shares its 'name' with the standard Identifier tool to exercise the override-warning code path.",
+    "defaultIcon": "map-marker",
+    "hasVars": false,
+    "toolbarPriority": 9998,
+    "paths": {
+        "IdentifierTool": "../plugins/mmgis-test/tools/Identifier/IdentifierTool"
+    }
+}

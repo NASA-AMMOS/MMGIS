@@ -1,0 +1,20 @@
+{
+  "uuid": "687ed05a-b20e-4fd8-8c2d-de96d9b8e54c",
+  "id": "core-datasets",
+  "name": "Datasets",
+  "display_name": "Dataset Management",
+  "aliases": [
+    "datasets"
+  ],
+  "version": "core",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/datasets",
+    "auth": "user"
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

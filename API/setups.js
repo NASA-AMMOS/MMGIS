@@ -1,21 +1,19 @@
 const fs = require("fs");
 const path = require("path");
+const semver = require("semver");
 
 const logger = require("./logger");
-const { discoverPlugins } = require("./pluginDiscovery");
+const { discoverPlugins, checkPluginDependencies } = require("./pluginDiscovery");
 
-const STANDARD_BACKEND_PATTERN = ["__exact:Backend"];
-const PLUGIN_BACKEND_PATTERNS = ["Private-Backend", "Plugin-Backend"];
+const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
+const MMGIS_VERSION = require("../package.json").version;
 
 /**
- * Discover and load all backend setup modules.
+ * Discover and load all backend lifecycle modules.
  *
- * Backend plugins live under:
- *   - API/Backend/<name>/setup.js (standard)
- *   - API/(...)Private-Backend(...)/<name>/setup.js (private plugins)
- *   - API/(...)Plugin-Backend(...)/<name>/setup.js (third-party plugins)
+ * Backend plugins live under plugins/{container}/backend/{name}/plugin.js.
  *
- * Each `setup.js` is `require()`d at discovery time and may export
+ * Each `plugin.js` is `require()`d at discovery time and may export
  * lifecycle callbacks (`onceInit`, `onceStarted`, `onceSynced`),
  * a `priority` number, and optional `envs`.
  *
@@ -24,35 +22,58 @@ const PLUGIN_BACKEND_PATTERNS = ["Private-Backend", "Plugin-Backend"];
  *   lifecycle dispatchers and merged `envs`.
  */
 function getBackendSetups(cb) {
-  const apiPath = path.join(__dirname);
   let setups = {};
+  const setupManifests = {};
 
-  // 1. Standard backends — `API/Backend/<name>/setup.js`.
-  const standardBackends = discoverPlugins(
-    apiPath,
-    STANDARD_BACKEND_PATTERN,
-    "setup.js",
-    { loader: "require", loggerCategory: "Setups" }
-  );
-  for (const plugin of standardBackends) {
-    setups[plugin.name] = plugin.manifest;
-    logger(
-      "loaded",
-      `Backend: ${plugin.name} from ${plugin.container}`,
-      "Setups"
-    );
-  }
+  // Single-pass scan of plugins/*/backend/ — discover via plugin.json,
+  // then require the sibling plugin.js for lifecycle hooks.
+  const allBackends = discoverPlugins(PLUGINS_ROOT, "backend", "plugin.json", {
+    loggerCategory: "Setups",
+  });
+  for (const plugin of allBackends) {
+    const lifecyclePath = path.join(plugin.pluginPath, "plugin.js");
+    let lifecycle;
+    try {
+      delete require.cache[require.resolve(lifecyclePath)];
+      lifecycle = require(lifecyclePath);
+    } catch (err) {
+      logger(
+        "error",
+        `Failed to require plugin.js for backend ${plugin.name}`,
+        "Setups",
+        null,
+        err
+      );
+      continue;
+    }
+    // Check engines.mmgis compatibility.
+    if (plugin.manifest && plugin.manifest.engines && plugin.manifest.engines.mmgis) {
+      const coercedVersion = semver.coerce(MMGIS_VERSION);
+      if (coercedVersion && !semver.satisfies(coercedVersion, plugin.manifest.engines.mmgis)) {
+        logger(
+          "error",
+          `Backend '${plugin.name}' requires MMGIS ${plugin.manifest.engines.mmgis} but current version is ${MMGIS_VERSION} — skipping`,
+          "Setups"
+        );
+        continue;
+      }
+    }
 
-  // 2. Plugin/private backends — `API/*Plugin-Backend*` and `API/*Private-Backend*`.
-  const pluginBackends = discoverPlugins(
-    apiPath,
-    PLUGIN_BACKEND_PATTERNS,
-    "setup.js",
-    { loader: "require", loggerCategory: "Setups" }
-  );
-  for (const plugin of pluginBackends) {
     const isOverride = setups[plugin.name] !== undefined;
-    setups[plugin.name] = plugin.manifest;
+
+    // Enforce overridable: false — check the *already-registered* plugin's
+    // manifest to see if it forbids being overridden.
+    if (isOverride && setupManifests[plugin.name] && setupManifests[plugin.name].overridable === false) {
+      logger(
+        "error",
+        `Backend '${plugin.name}' is marked overridable:false and cannot be overridden by ${plugin.container}`,
+        "Setups"
+      );
+      continue;
+    }
+
+    setups[plugin.name] = lifecycle;
+    setupManifests[plugin.name] = plugin.manifest;
     logger(
       "loaded",
       `Backend: ${plugin.name} from ${plugin.container}${
@@ -69,10 +90,12 @@ function getBackendSetups(cb) {
     }
   }
 
-  // 3. Sort by priority (preserves previous behavior).
+  // 3. Sort by priority from plugin.json manifest (falls back to lifecycle module for compat).
   setups = Object.keys(setups)
     .sort(function (a, b) {
-      return (setups[a].priority || 1000) - (setups[b].priority || 1000);
+      const pa = (setupManifests[a] && setupManifests[a].priority) || setups[a].priority || 1000;
+      const pb = (setupManifests[b] && setupManifests[b].priority) || setups[b].priority || 1000;
+      return pa - pb;
     })
     .reduce((obj, key) => {
       obj[key] = setups[key];
@@ -96,6 +119,9 @@ function getBackendSetups(cb) {
       }
     }
   }
+
+  // Check inter-plugin dependencies at startup.
+  checkPluginDependencies(PLUGINS_ROOT, "Setups");
 
   cb({
     init: (s) => {

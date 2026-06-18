@@ -1,10 +1,13 @@
 /**
- * Test helpers for installing fixture plugins into the live MMGIS source
- * tree (`src/essence/*Plugin-Tools*`, `src/essence/*Plugin-Components*`,
- * `API/*Plugin-Backend*`) and cleaning them up afterwards.
+ * Test helpers for installing fixture plugins into the MMGIS plugins/
+ * directory and cleaning them up afterwards.
+ *
+ * Plugins live under `plugins/<containerName>/<type>/<PluginName>/`.
+ * The unified discovery scans plugins/{container}/tools/,
+ * plugins/{container}/backend/, and plugins/{container}/components/.
  *
  * These helpers are designed for **unit and E2E tests only** — they
- * physically copy directories into the source tree, so tests that use
+ * physically copy directories into the plugins tree, so tests that use
  * them must run sequentially or in a context where the working tree is
  * otherwise undisturbed. Always pair `installFixturePlugin` with
  * `uninstallFixturePlugin` in a `finally` block (or a Playwright
@@ -17,6 +20,7 @@ const path = require('path');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 const fixturesRoot = path.resolve(__dirname, '..', 'fixtures');
+const pluginsRoot = path.resolve(repoRoot, 'plugins');
 
 /**
  * Recursively copy a directory. Uses `fs.cpSync` when available
@@ -42,71 +46,52 @@ function copyDir(src, dest) {
 /**
  * Recursively delete a directory if it exists. Wraps `fs.rmSync` with a
  * safety guard so callers can't accidentally pass paths outside of
- * `src/essence/` or `API/`.
+ * `plugins/`.
  */
 function safeRmDir(target) {
     const resolved = path.resolve(target);
-    const allowedRoots = [
-        path.resolve(repoRoot, 'src', 'essence'),
-        path.resolve(repoRoot, 'API'),
-    ];
-    const inside = allowedRoots.some((root) =>
-        resolved === root || resolved.startsWith(root + path.sep)
-    );
+    const allowedRoot = path.resolve(pluginsRoot);
+    const inside =
+        resolved === allowedRoot || resolved.startsWith(allowedRoot + path.sep);
     if (!inside) {
         throw new Error(
-            `safeRmDir refusing to delete ${resolved} — outside allowed plugin roots`
+            `safeRmDir refusing to delete ${resolved} — outside allowed plugins root`
         );
     }
     if (!fs.existsSync(resolved)) return;
     fs.rmSync(resolved, { recursive: true, force: true });
 }
 
+/** Map plugin type to its subdirectory name under a container. */
+const TYPE_DIRS = {
+    tool: 'tools',
+    component: 'components',
+    backend: 'backend',
+};
+
 /**
- * Resolve the on-disk plugin directory for a given plugin type. The
- * returned path is the *container* directory (e.g.
- * `src/essence/Plugin-Tools-Test`) that holds individual plugin
- * subdirectories.
+ * Resolve the on-disk plugin directory for a given plugin type.
+ * Returns `plugins/<containerName>/<typeDir>/` path.
  *
  * @param {"tool"|"component"|"backend"} pluginType
- * @param {string} containerName  Container directory name. Must match
- *   the MMGIS plugin-discovery patterns (see CONTRIBUTING.md).
+ * @param {string} containerName  Container directory name (e.g.
+ *   `'test-container'`). Any non-underscore, non-dot name is valid.
  */
 function pluginContainerPath(pluginType, containerName) {
-    if (pluginType === 'tool') {
-        if (!/(Private-Tools|Plugin-Tools)/.test(containerName)) {
-            throw new Error(
-                `Tool plugin container '${containerName}' must include 'Private-Tools' or 'Plugin-Tools'`
-            );
-        }
-        return path.join(repoRoot, 'src', 'essence', containerName);
+    const typeDir = TYPE_DIRS[pluginType];
+    if (!typeDir) {
+        throw new Error(`Unknown plugin type: ${pluginType}`);
     }
-    if (pluginType === 'component') {
-        if (!/(Private-Components|Plugin-Components)/.test(containerName)) {
-            throw new Error(
-                `Component plugin container '${containerName}' must include 'Private-Components' or 'Plugin-Components'`
-            );
-        }
-        return path.join(repoRoot, 'src', 'essence', containerName);
-    }
-    if (pluginType === 'backend') {
-        if (!/(Private-Backend|Plugin-Backend)/.test(containerName)) {
-            throw new Error(
-                `Backend plugin container '${containerName}' must include 'Private-Backend' or 'Plugin-Backend'`
-            );
-        }
-        return path.join(repoRoot, 'API', containerName);
-    }
-    throw new Error(`Unknown plugin type: ${pluginType}`);
+    return path.join(pluginsRoot, containerName, typeDir);
 }
 
 /**
- * Install a fixture plugin into the live source tree.
+ * Install a fixture plugin into the plugins tree.
  *
  * @param {object} opts
  * @param {"tool"|"component"|"backend"} opts.pluginType
  * @param {string} opts.containerName  Container directory name, e.g.
- *   `'Plugin-Tools-Test'`.
+ *   `'test-container'`.
  * @param {string} opts.fixtureName  Name of the fixture directory under
  *   `tests/fixtures/test-plugin-tools/` (or another fixture root).
  * @param {string} [opts.installAs]  Optional override for the installed
@@ -139,16 +124,23 @@ function installFixturePlugin(opts) {
 
 /**
  * Remove an installed fixture plugin (and, optionally, its empty
- * container directory).
+ * container directory tree).
  */
 function uninstallFixturePlugin(opts) {
     const { pluginType, containerName, fixtureName, removeContainer = true } = opts;
     const container = pluginContainerPath(pluginType, containerName);
     safeRmDir(path.join(container, fixtureName));
-    if (removeContainer && fs.existsSync(container)) {
+    if (removeContainer) {
+        // Remove the type dir if empty.
         try {
             const remaining = fs.readdirSync(container);
-            if (remaining.length === 0) safeRmDir(container);
+            if (remaining.length === 0) {
+                safeRmDir(container);
+                // Remove the container dir if empty.
+                const containerDir = path.dirname(container);
+                const cRemaining = fs.readdirSync(containerDir);
+                if (cRemaining.length === 0) safeRmDir(containerDir);
+            }
         } catch {
             // ignore — best-effort cleanup
         }
@@ -161,7 +153,19 @@ function uninstallFixturePlugin(opts) {
  * container and wants to wipe them all in one shot.
  */
 function uninstallContainer(pluginType, containerName) {
-    safeRmDir(pluginContainerPath(pluginType, containerName));
+    // Remove the type-specific subdir and, if the container is then
+    // empty, remove the container itself.
+    const typeDir = pluginContainerPath(pluginType, containerName);
+    safeRmDir(typeDir);
+    const containerDir = path.join(pluginsRoot, containerName);
+    try {
+        if (fs.existsSync(containerDir)) {
+            const remaining = fs.readdirSync(containerDir);
+            if (remaining.length === 0) safeRmDir(containerDir);
+        }
+    } catch {
+        // ignore — best-effort cleanup
+    }
 }
 
 module.exports = {

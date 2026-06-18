@@ -11,8 +11,16 @@ import { test, expect } from '@playwright/test';
 const {
     mergeNpm,
     mergePython,
-    winnersByName,
+    checkPeerDependencies,
 } = require('../../scripts/resolve-plugin-deps');
+
+// Local dedup helper that mirrors the inline logic in gatherDependencies().
+// Used to test override semantics (last entry with same name wins).
+function dedup(plugins) {
+    const byName = new Map();
+    for (const p of plugins) byName.set(p.name, p);
+    return Array.from(byName.values());
+}
 
 test.describe('mergeNpm', () => {
     test('merges non-conflicting npm deps across plugins', () => {
@@ -143,18 +151,16 @@ test.describe('mergePython', () => {
     });
 });
 
-test.describe('winnersByName (override semantics)', () => {
-    test('plugin entry with same name overrides standard entry', () => {
-        const standard = [
+test.describe('dedup override semantics', () => {
+    test('later entry with same name overrides earlier entry', () => {
+        const all = [
             { name: 'Animation', manifest: { dependencies: { npm: { '@ffmpeg/ffmpeg': '^0.12.10' } } } },
             { name: 'Draw', manifest: { dependencies: null } },
-        ];
-        const overrides = [
             { name: 'Animation', manifest: { dependencies: { npm: { '@ffmpeg/ffmpeg': '^0.13.0' } } } },
         ];
-        const winners = winnersByName(standard, overrides);
-        // 'Animation' should now be the override entry (^0.13.0), and
-        // 'Draw' (only in standard) should still be present.
+        const winners = dedup(all);
+        // 'Animation' should now be the later entry (^0.13.0), and
+        // 'Draw' should still be present.
         expect(winners.length).toBe(2);
         const animation = winners.find((w) => w.name === 'Animation');
         expect(animation.manifest.dependencies.npm['@ffmpeg/ffmpeg']).toBe('^0.13.0');
@@ -162,24 +168,22 @@ test.describe('winnersByName (override semantics)', () => {
         expect(draw).toBeTruthy();
     });
 
-    test('override avoids spurious conflict that concat would produce', () => {
-        const standard = [
+    test('dedup avoids spurious conflict that raw list would produce', () => {
+        const all = [
             { name: 'Animation', manifest: { dependencies: { npm: { '@ffmpeg/ffmpeg': '^0.12.10' } } } },
-        ];
-        const overrides = [
             { name: 'Animation', manifest: { dependencies: { npm: { '@ffmpeg/ffmpeg': '^0.13.0' } } } },
         ];
 
-        // Naive concat would aggregate both versions and conflict.
-        const concatSources = standard.concat(overrides).map((p) => ({
+        // Naive non-deduped list would aggregate both versions and conflict.
+        const concatSources = all.map((p) => ({
             plugin: `tool:${p.name}`,
             deps: p.manifest.dependencies,
         }));
         const concatResult = mergeNpm(concatSources);
         expect(concatResult.conflicts.length).toBe(1);
 
-        // winnersByName picks only the override; no conflict.
-        const winnerSources = winnersByName(standard, overrides).map((p) => ({
+        // dedup picks only the last entry; no conflict.
+        const winnerSources = dedup(all).map((p) => ({
             plugin: `tool:${p.name}`,
             deps: p.manifest.dependencies,
         }));
@@ -188,15 +192,97 @@ test.describe('winnersByName (override semantics)', () => {
         expect(winnerResult.merged['@ffmpeg/ffmpeg']).toBe('^0.13.0');
     });
 
-    test('entries unique to either side are preserved', () => {
-        const standard = [
+    test('entries with unique names are all preserved', () => {
+        const all = [
             { name: 'A', manifest: {} },
             { name: 'B', manifest: {} },
-        ];
-        const overrides = [
             { name: 'C', manifest: {} },
         ];
-        const winners = winnersByName(standard, overrides);
+        const winners = dedup(all);
         expect(winners.map((w) => w.name).sort()).toEqual(['A', 'B', 'C']);
+    });
+});
+
+test.describe('semver-aware mergeNpm', () => {
+    test('compatible ranges do not conflict', () => {
+        const sources = [
+            { plugin: 'tool:A', deps: { npm: { lodash: '^4.17.0' } } },
+            { plugin: 'tool:B', deps: { npm: { lodash: '^4.18.0' } } },
+        ];
+        const { conflicts } = mergeNpm(sources);
+        expect(conflicts).toEqual([]);
+    });
+
+    test('incompatible ranges produce a conflict', () => {
+        const sources = [
+            { plugin: 'tool:A', deps: { npm: { lodash: '^3.0.0' } } },
+            { plugin: 'tool:B', deps: { npm: { lodash: '^4.0.0' } } },
+        ];
+        const { conflicts } = mergeNpm(sources);
+        expect(conflicts.length).toBe(1);
+        expect(conflicts[0].package).toBe('lodash');
+    });
+
+    test('identical versions never conflict', () => {
+        const sources = [
+            { plugin: 'tool:A', deps: { npm: { chalk: '^5.0.0' } } },
+            { plugin: 'tool:B', deps: { npm: { chalk: '^5.0.0' } } },
+        ];
+        const { conflicts, merged } = mergeNpm(sources);
+        expect(conflicts).toEqual([]);
+        expect(merged.chalk).toBe('^5.0.0');
+    });
+});
+
+test.describe('checkPeerDependencies', () => {
+    test('returns empty when all peers are satisfied', () => {
+        const plugins = [
+            { name: 'Draw', manifest: { id: 'core-draw', version: '5.1.4' } },
+            { name: 'Sightline', manifest: { id: 'core-sightline', version: '5.1.4', peerDependencies: { 'core-draw': '>=5.0.0' } } },
+        ];
+        const warnings = checkPeerDependencies(plugins);
+        expect(warnings).toEqual([]);
+    });
+
+    test('warns when peer plugin is missing', () => {
+        const plugins = [
+            { name: 'Sightline', manifest: { id: 'core-sightline', version: '5.1.4', peerDependencies: { 'core-draw': '>=5.0.0' } } },
+        ];
+        const warnings = checkPeerDependencies(plugins);
+        expect(warnings.length).toBe(1);
+        expect(warnings[0]).toContain('not installed');
+    });
+
+    test('warns when peer version is incompatible', () => {
+        const plugins = [
+            { name: 'Draw', manifest: { id: 'core-draw', version: '4.0.0' } },
+            { name: 'Sightline', manifest: { id: 'core-sightline', version: '5.1.4', peerDependencies: { 'core-draw': '>=5.0.0' } } },
+        ];
+        const warnings = checkPeerDependencies(plugins);
+        expect(warnings.length).toBe(1);
+        expect(warnings[0]).toContain('requires peer');
+    });
+
+    test('resolves "core" version to MMGIS version for peer checks', () => {
+        // "version": "core" should resolve to the MMGIS package.json version
+        // (which is >=5.0.0), so this peer dep should be satisfied.
+        const plugins = [
+            { name: 'Draw', manifest: { id: 'core-draw', version: 'core' } },
+            { name: 'Sightline', manifest: { id: 'core-sightline', version: 'core', peerDependencies: { 'core-draw': '>=5.0.0' } } },
+        ];
+        const warnings = checkPeerDependencies(plugins);
+        expect(warnings).toEqual([]);
+    });
+
+    test('warns when "core" version does not satisfy peer range', () => {
+        // If a plugin requires a version higher than the MMGIS version,
+        // even "core" should trigger a warning.
+        const plugins = [
+            { name: 'Draw', manifest: { id: 'core-draw', version: 'core' } },
+            { name: 'FuturePlugin', manifest: { id: 'future-plugin', version: '1.0.0', peerDependencies: { 'core-draw': '>=99.0.0' } } },
+        ];
+        const warnings = checkPeerDependencies(plugins);
+        expect(warnings.length).toBe(1);
+        expect(warnings[0]).toContain('requires peer');
     });
 });

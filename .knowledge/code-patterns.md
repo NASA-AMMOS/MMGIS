@@ -19,12 +19,11 @@ MMGIS/
 │   │   ├── Users/                # User auth & management (routes/, models/, setup.js)
 │   │   ├── Utils/                # Shared backend utilities (routes/)
 │   │   ├── Webhooks/             # Webhook processing (routes/, models/, processes/)
-│   │   ├── GeneralOptions/       # General options (models/, setup.js)
-│   │   └── setupTemplate.js      # Template for new backend modules
+│   │   └── GeneralOptions/       # General options (models/, setup.js)
 │   ├── connection.js             # Database connection config
 │   ├── database.js               # Database initialization
 │   ├── logger.js                 # Winston logger configuration
-│   ├── setups.js                 # Loads all Backend/*/setup.js modules
+│   ├── setups.js                 # Loads all plugin.js lifecycle hooks via discovery
 │   ├── utils.js                  # Shared API utilities
 │   └── websocket.js              # WebSocket server setup
 ├── src/                          # Frontend source code
@@ -115,10 +114,10 @@ MMGIS/
 
 ### Key Directories
 
-- **`API/Backend/*/`** — Each backend feature is a self-contained module with `setup.js` (registers routes), `routes/` (Express handlers), and `models/` (Sequelize definitions). See `API/Backend/setupTemplate.js` for the pattern.
+- **`plugins/core/backend/*/`** — Each backend feature is a self-contained module with `plugin.js` (lifecycle hooks), `plugin.json` (manifest), `routes/` (Express handlers), and `models/` (Sequelize definitions). See `plugins/README.md` for templates.
 - **`src/design-system/`** — Generic, reusable UI components and theming. Components here (Toast, Modal, Tooltip, Button, Toggle, Dropdown, IconButton) are **not MMGIS-specific**. New generic UI components belong here.
 - **`src/essence/Basics/UserInterface_/`** — MMGIS-specific UI (TopBar, Toolbar, Coordinates, CursorInfo, BottomBar). Tightly coupled to MMGIS state. **Do not place generic components here** — use `src/design-system/` instead.
-- **`src/essence/Tools/`** — Plugin-based interactive mapping tools. Each tool is self-contained with `make()`/`destroy()` lifecycle.
+- **`plugins/core/tools/`** — Core tool plugins. Each tool is self-contained with `make()`/`destroy()` lifecycle and a `plugin.json` manifest.
 - **`src/essence/Basics/Layers_/`** — The `L_` singleton — manages all layer state, visibility, and lifecycle. One of the most important modules.
 - **`src/essence/Basics/Map_/`** — The `Map_` singleton — core 2D map rendering engine (Leaflet).
 - **`configure/`** — Separate admin interface for mission configuration. Needs its own `npm install && npm run build`.

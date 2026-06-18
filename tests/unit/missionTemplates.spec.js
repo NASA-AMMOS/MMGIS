@@ -13,7 +13,7 @@ import fs from 'fs';
 const {
     REFERENCE_MISSION_VARIANTS,
     resolveVariantBlueprintPath,
-} = require('../../API/Backend/Utils/missionTemplates');
+} = require('../../plugins/core/backend/Utils/missionTemplates');
 
 test.describe('REFERENCE_MISSION_VARIANTS registry', () => {
     test('contains the default Earth variant', () => {

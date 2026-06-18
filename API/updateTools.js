@@ -1,15 +1,13 @@
 const fs = require("fs");
 const path = require("path");
+const semver = require("semver");
 
 const logger = require("./logger");
 const { validatePluginConfig } = require("./pluginValidation");
-const { discoverPlugins } = require("./pluginDiscovery");
+const { discoverPlugins, checkPluginDependencies } = require("./pluginDiscovery");
 
-const STANDARD_TOOLS_PATH = "./src/essence/Tools";
-const STANDARD_COMPONENTS_PATH = "./src/essence/Components";
-const ESSENCE_PATH = path.join(__dirname, "..", "src", "essence");
-const TOOL_PLUGIN_PATTERNS = ["Private-Tools", "Plugin-Tools"];
-const COMPONENT_PLUGIN_PATTERNS = ["Private-Components", "Plugin-Components"];
+const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
+const MMGIS_VERSION = require("../package.json").version;
 
 /**
  * Register a single plugin's parsed config.json onto the in-memory
@@ -38,7 +36,33 @@ function registerPlugin({
     );
     return false;
   }
+
+  // Check engines.mmgis compatibility.
+  if (config.engines && config.engines.mmgis) {
+    const coercedVersion = semver.coerce(MMGIS_VERSION);
+    if (coercedVersion && !semver.satisfies(coercedVersion, config.engines.mmgis)) {
+      logger(
+        "error",
+        `${pluginType[0].toUpperCase() + pluginType.slice(1)} '${name}' requires MMGIS ${config.engines.mmgis} but current version is ${MMGIS_VERSION} — skipping`,
+        loggerCategory
+      );
+      return false;
+    }
+  }
+
   const isOverride = registry[name] !== undefined;
+
+  // Enforce overridable: false — reject external plugins trying to
+  // override a core plugin that explicitly disallows it.
+  if (isOverride && registry[name].overridable === false) {
+    logger(
+      "error",
+      `${pluginType[0].toUpperCase() + pluginType.slice(1)} '${name}' is marked overridable:false and cannot be overridden by ${source}`,
+      loggerCategory
+    );
+    return false;
+  }
+
   registry[name] = config;
   logger(
     "loaded",
@@ -60,35 +84,9 @@ function registerPlugin({
 function updateTools() {
   let tools = {};
 
-  // 1. Standard tools live directly under src/essence/Tools/<ToolName>/config.json
-  //    Use discoverPlugins() with an exact-name pattern so the shared
-  //    scanner picks up `Tools` as the container.
-  const standardToolPlugins = discoverPlugins(
-    path.join(ESSENCE_PATH),
-    ["__exact:Tools"],
-    "config.json",
-    { loggerCategory: "Tools" }
-  );
-  for (const plugin of standardToolPlugins) {
-    registerPlugin({
-      registry: tools,
-      name: plugin.name,
-      config: plugin.manifest,
-      pluginType: "tool",
-      source: "Tools",
-      loggerCategory: "Tools",
-    });
-  }
-
-  // 2. Plugin/private tool containers (e.g. *Plugin-Tools*, *Private-Tools*).
-  //    Same scan, but with substring matching on container names.
-  const pluginToolPlugins = discoverPlugins(
-    ESSENCE_PATH,
-    TOOL_PLUGIN_PATTERNS,
-    "config.json",
-    { loggerCategory: "Tools" }
-  );
-  for (const plugin of pluginToolPlugins) {
+  // Single-pass scan of plugins/*/tools/
+  const allTools = discoverPlugins(PLUGINS_ROOT, "tools", "plugin.json", { loggerCategory: "Tools" });
+  for (const plugin of allTools) {
     registerPlugin({
       registry: tools,
       name: plugin.name,
@@ -134,6 +132,11 @@ function updateTools() {
   let toolConfigs = "";
   const toolModules = {};
   let kindsModule = null;
+  // Paths values in plugin.json must start with "../" because generated
+  // imports in src/pre/tools.js are prefixed with another "../". For example,
+  // a path of "../plugins/core/tools/X/XTool" produces the import:
+  //   import XTool from '../../plugins/core/tools/X/XTool'
+  // which correctly resolves from src/pre/ to the repo root.
   for (const t in tools) {
     for (const p in tools[t].paths) {
       if (p === "Kinds") {
@@ -156,7 +159,7 @@ function updateTools() {
   if (kindsModule == null) {
     logger(
       "error",
-      "Kinds tool is required but is not found. Are you missing a config.js?",
+      "Kinds tool is required but is not found. Are you missing a plugin.json?",
       "Tools",
       null
     );
@@ -174,39 +177,17 @@ function updateTools() {
       );
     }
   }
+
+  // Check inter-plugin dependencies (warns if a tool's backend dep is missing/disabled).
+  checkPluginDependencies(PLUGINS_ROOT, "Tools");
 }
 
 function updateComponents() {
   let components = {};
 
-  // 1. Standard components: src/essence/Components/<ComponentName>/config.json.
-  //    The standard Components directory is optional — `discoverPlugins`
-  //    will warn but not throw if it doesn't exist.
-  const standardComponentPlugins = discoverPlugins(
-    ESSENCE_PATH,
-    ["__exact:Components"],
-    "config.json",
-    { loggerCategory: "Components" }
-  );
-  for (const plugin of standardComponentPlugins) {
-    registerPlugin({
-      registry: components,
-      name: plugin.name,
-      config: plugin.manifest,
-      pluginType: "component",
-      source: "Components",
-      loggerCategory: "Components",
-    });
-  }
-
-  // 2. Plugin/private component containers.
-  const pluginComponentPlugins = discoverPlugins(
-    ESSENCE_PATH,
-    COMPONENT_PLUGIN_PATTERNS,
-    "config.json",
-    { loggerCategory: "Components" }
-  );
-  for (const plugin of pluginComponentPlugins) {
+  // Single-pass scan of plugins/*/components/
+  const allComponents = discoverPlugins(PLUGINS_ROOT, "components", "plugin.json", { loggerCategory: "Components" });
+  for (const plugin of allComponents) {
     registerPlugin({
       registry: components,
       name: plugin.name,
