@@ -373,7 +373,7 @@ Ideally all the code for a tool will be in its `[Tool's Name]Tool.js` and built 
 
 MMGIS uses a `/plugins/` directory. All plugins (core and external) are discovered via `discoverPlugins()` which scans the three-level hierarchy `plugins/<container>/<type>/<PluginName>/`.
 
-- **Core plugins** live in `plugins/core/` (committed to the repo). Core plugins cannot be removed or disabled.
+- **Core plugins** live in `plugins/core/` (committed to the repo). Core plugins cannot be uninstalled or disabled.
 - **External/private plugins** live in `plugins/<your-container>/` (auto-gitignored). Managed via the Plugin CLI.
 
 #### Plugin CLI
@@ -390,7 +390,7 @@ Key commands:
 |---------|-------------|
 | `list` | List all plugins with enabled/disabled status |
 | `install <git-url\|path>` | Clone a git repo or symlink a local directory |
-| `remove <repo-name>` | Remove an installed plugin repo (not `core`) |
+| `uninstall <repo-name>` | Uninstall an installed plugin repo (not `core`) |
 | `enable <plugin-id>` | Enable a plugin |
 | `disable <plugin-id>` | Disable a plugin (not core plugins) |
 | `update [repo-name]` | Pull latest for installed repo(s) |
