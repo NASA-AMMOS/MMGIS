@@ -1287,6 +1287,12 @@ const compile = function (req, res, callback) {
                   } else {
                     let tree = JSON.parse(published_family_tree[0].value);
                     let fh = tree.flatHierarchy;
+
+                    if (!Array.isArray(fh)) {
+                      cb(false);
+                      return;
+                    }
+
                     let oldFeatures = {};
                     let newFeatures = {};
                     let added = [];
@@ -1350,6 +1356,16 @@ const compile = function (req, res, callback) {
 
                     cb({ added, changed, removed });
                   }
+                })
+                .catch((err) => {
+                  logger(
+                    "error",
+                    "Failed to find changes.",
+                    req.originalUrl,
+                    req,
+                    err
+                  );
+                  cb(false);
                 });
             }
 
@@ -1530,6 +1546,10 @@ router.post("/publish", function (req, res, next) {
     let Publisheds = req.body.test === "true" ? PublishedTEST : Published;
     req.query.verbose = true;
     compile(req, res, (body) => {
+      if (!body) {
+        cb(false, " Failed to compile.");
+        return null;
+      }
       if (body.issues.length > 0) {
         cb(false, " File has unresolved issues.");
       } else if (req.body.test === "true") {
