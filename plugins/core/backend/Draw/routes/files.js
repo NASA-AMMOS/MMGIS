@@ -611,7 +611,7 @@ router.post("/modifykeyword", function (req, res, next) {
  *  test: bool
  * }
  */
-const compile = function (req, res, callback) {
+const compile = function (req, res, callback, options) {
   const isTest = req.query.test === "true" || req.body.test === "true";
   let Table = isTest ? UserfilesTEST : Userfiles;
 
@@ -1375,7 +1375,7 @@ const compile = function (req, res, callback) {
                 issues: issues,
                 changes: changes,
               };
-              if (req.query.verbose) {
+              if (req.query.verbose || (options && options.verbose)) {
                 body = {
                   hierarchy: hierarchy,
                   flatHierarchy: flatHierarchy,
@@ -1544,7 +1544,6 @@ router.post("/publish", function (req, res, next) {
 
   function publishToPublished(cb) {
     let Publisheds = req.body.test === "true" ? PublishedTEST : Published;
-    req.query.verbose = true;
     compile(req, res, (body) => {
       if (!body) {
         cb(false, " Failed to compile.");
@@ -1625,7 +1624,7 @@ router.post("/publish", function (req, res, next) {
             return null;
           });
       }
-    });
+    }, { verbose: true });
   }
 });
 
