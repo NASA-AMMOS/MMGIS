@@ -59,15 +59,17 @@ if (!(process.env.PUBLIC_URL == null || process.env.PUBLIC_URL == ""))
 
 const rootDir = `${__dirname}/..`;
 
-// Process-level safety nets — log and survive rather than crash.
+// Process-level safety nets — log then exit, relying on the process
+// manager (Docker, PM2, systemd) to restart in a clean state.
 process.on("unhandledRejection", (reason) => {
   logger(
     "error",
-    "Unhandled promise rejection.",
+    "Unhandled promise rejection — shutting down.",
     "process",
     null,
     reason,
   );
+  process.exit(1);
 });
 process.on("uncaughtException", (err) => {
   logger(
