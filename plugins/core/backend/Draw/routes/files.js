@@ -611,7 +611,7 @@ router.post("/modifykeyword", function (req, res, next) {
  *  test: bool
  * }
  */
-const compile = function (req, res, callback) {
+const compile = function (req, res, callback, options) {
   const isTest = req.query.test === "true" || req.body.test === "true";
   let Table = isTest ? UserfilesTEST : Userfiles;
 
@@ -1287,6 +1287,12 @@ const compile = function (req, res, callback) {
                   } else {
                     let tree = JSON.parse(published_family_tree[0].value);
                     let fh = tree.flatHierarchy;
+
+                    if (!Array.isArray(fh)) {
+                      cb(false);
+                      return;
+                    }
+
                     let oldFeatures = {};
                     let newFeatures = {};
                     let added = [];
@@ -1350,6 +1356,16 @@ const compile = function (req, res, callback) {
 
                     cb({ added, changed, removed });
                   }
+                })
+                .catch((err) => {
+                  logger(
+                    "error",
+                    "Failed to find changes.",
+                    req.originalUrl,
+                    req,
+                    err
+                  );
+                  cb(false);
                 });
             }
 
@@ -1359,7 +1375,7 @@ const compile = function (req, res, callback) {
                 issues: issues,
                 changes: changes,
               };
-              if (req.query.verbose) {
+              if (req.query.verbose || (options && options.verbose)) {
                 body = {
                   hierarchy: hierarchy,
                   flatHierarchy: flatHierarchy,
@@ -1528,8 +1544,11 @@ router.post("/publish", function (req, res, next) {
 
   function publishToPublished(cb) {
     let Publisheds = req.body.test === "true" ? PublishedTEST : Published;
-    req.query.verbose = true;
     compile(req, res, (body) => {
+      if (!body) {
+        cb(false, " Failed to compile.");
+        return null;
+      }
       if (body.issues.length > 0) {
         cb(false, " File has unresolved issues.");
       } else if (req.body.test === "true") {
@@ -1605,7 +1624,7 @@ router.post("/publish", function (req, res, next) {
             return null;
           });
       }
-    });
+    }, { verbose: true });
   }
 });
 
