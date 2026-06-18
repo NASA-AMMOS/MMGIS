@@ -96,7 +96,7 @@
     "name": "Draw",
     "toolbarPriority": 1001,
     "paths": {
-        "DrawTool": "../plugins/core/tools/Draw/DrawTool"
+        "DrawTool": "./DrawTool"
     },
     "expandable": true,
     "config": {

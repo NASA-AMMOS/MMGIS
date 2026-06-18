@@ -17,7 +17,7 @@
     "name": "Layers",
     "toolbarPriority": 1,
     "paths": {
-        "LayersTool": "../plugins/core/tools/Layers/LayersTool"
+        "LayersTool": "./LayersTool"
     },
     "expandable": true,
     "config": {

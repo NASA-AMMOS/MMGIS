@@ -11,7 +11,7 @@
  * Commands:
  *   list                          List all plugins with status
  *   install <git-url|path|name>   Install a plugin repo (--only to filter)
- *   remove <repo-name>            Remove an installed plugin repo
+ *   uninstall <repo-name>         Uninstall an installed plugin repo
  *   enable <plugin-id>            Enable a plugin
  *   disable <plugin-id>           Disable a plugin
  *   update [repo-name]            Pull latest for installed repo(s)
@@ -159,12 +159,56 @@ function cpDirSync(src, dest) {
 }
 
 /**
- * Derive a container name from a git URL.
- * e.g. "https://github.com/org/mmgis-geo-plugins.git" → "mmgis-geo-plugins"
+ * Derive a container directory name from a git URL.
+ * For URLs with a recognizable org/owner segment (e.g. GitHub, GitLab),
+ * returns "org--repo" so that repos with the same name under different
+ * orgs don't clobber each other.  Falls back to just the repo basename
+ * when the org can't be determined.
+ *
+ * Examples:
+ *   https://github.com/NASA-AMMOS/MMGIS-Plugins.git → NASA-AMMOS--MMGIS-Plugins
+ *   git@github.com:NASA-AMMOS/MMGIS-Plugins.git     → NASA-AMMOS--MMGIS-Plugins
+ *   https://example.com/repo.git                     → repo
  */
 function repoNameFromURL(url) {
-    const basename = path.basename(url.replace(/\.git$/, ""));
+    const cleaned = url.replace(/\.git$/, "");
+
+    // Try SSH style: git@host:org/repo
+    const sshMatch = cleaned.match(/:([^/]+)\/([^/]+)$/);
+    if (sshMatch) return `${sshMatch[1]}--${sshMatch[2]}`;
+
+    // Try HTTPS style: grab last two path segments as org/repo
+    try {
+        const parsed = new URL(cleaned);
+        const segments = parsed.pathname.split("/").filter(Boolean);
+        if (segments.length >= 2) {
+            const org = segments[segments.length - 2];
+            const repo = segments[segments.length - 1];
+            return `${org}--${repo}`;
+        }
+        if (segments.length === 1) return segments[0];
+    } catch { /* not a valid URL — fall through */ }
+
+    // Fallback: basename
+    const basename = path.basename(cleaned);
     return basename || url;
+}
+
+/**
+ * Resolve a name (registry short name or container directory name) to the
+ * actual on-disk container directory name.  Returns the input unchanged if
+ * it already matches a directory, otherwise checks the registry for a
+ * matching short name and derives the container name from its URL.
+ */
+function resolveContainerName(name) {
+    if (fs.existsSync(path.join(PLUGINS_ROOT, name))) return name;
+    const registries = loadRegistries();
+    const match = registries.registries.find((r) => r.name === name);
+    if (match && match.url) {
+        const derived = repoNameFromURL(match.url);
+        if (fs.existsSync(path.join(PLUGINS_ROOT, derived))) return derived;
+    }
+    return name; // fallback — caller decides what to do with a missing dir
 }
 
 /**
@@ -573,7 +617,7 @@ function cmdInstall(target) {
         if (fs.existsSync(dest)) {
             if (FLAG_JSON) { console.log(JSON.stringify({ error: `Plugin repo '${repoName}' already exists` })); process.exit(1); }
             console.error(c.red(`Plugin repo '${repoName}' already exists at ${dest}`));
-            console.error(c.yellow("Use 'update' to pull latest, or 'remove' first."));
+            console.error(c.yellow("Use 'update' to pull latest, or 'uninstall' first."));
             process.exit(1);
         }
 
@@ -734,40 +778,38 @@ function cmdInstall(target) {
     }
 }
 
-function cmdRemove(repoName) {
+function cmdUninstall(repoName) {
     if (!repoName) {
-        jsonError("Usage: plugin-cli remove <repo-name>");
-        console.error(c.red("Usage: plugin-cli remove <repo-name>"));
+        jsonError("Usage: plugin-cli uninstall <repo-name>");
+        console.error(c.red("Usage: plugin-cli uninstall <repo-name>"));
         process.exit(1);
     }
 
-    if (repoName === CORE_CONTAINER) {
-        jsonError("Cannot remove core plugins.");
-        console.error(c.red("Cannot remove core plugins."));
+    // Resolve: accept either the on-disk container name or a registry short name.
+    const containerName = resolveContainerName(repoName);
+    const dest = path.join(PLUGINS_ROOT, containerName);
+
+    if (containerName === CORE_CONTAINER) {
+        jsonError("Cannot uninstall core plugins.");
+        console.error(c.red("Cannot uninstall core plugins."));
         process.exit(1);
     }
 
-    const dest = path.join(PLUGINS_ROOT, repoName);
     if (!fs.existsSync(dest)) {
         jsonError(`Plugin repo '${repoName}' not found.`);
         console.error(c.red(`Plugin repo '${repoName}' not found.`));
         process.exit(1);
     }
 
-    if (!FLAG_JSON) step(1, 3, "Removing from state file");
+    if (!FLAG_JSON) step(1, 2, "Uninstalling from state file");
     const state = loadState();
-    const keysToRemove = Object.keys(state.plugins).filter((k) => k.startsWith(repoName + "/"));
+    const keysToRemove = Object.keys(state.plugins).filter((k) => k.startsWith(containerName + "/"));
     for (const k of keysToRemove) {
         delete state.plugins[k];
     }
     saveState(state);
 
-    if (!FLAG_JSON) step(2, 3, "Removing from registries");
-    const registries = loadRegistries();
-    registries.registries = registries.registries.filter((r) => r.name !== repoName);
-    saveRegistries(registries);
-
-    if (!FLAG_JSON) step(3, 3, "Deleting directory");
+    if (!FLAG_JSON) step(2, 2, "Removing directory");
     const stat = fs.lstatSync(dest);
     if (stat.isSymbolicLink()) {
         fs.unlinkSync(dest);
@@ -777,9 +819,9 @@ function cmdRemove(repoName) {
 
     if (FLAG_JSON) {
         const act = activate({ expectChanges: true, silent: true });
-        console.log(JSON.stringify({ command: "remove", repo: repoName, activated: { added: act.added, removed: act.removed } }, null, 2));
+        console.log(JSON.stringify({ command: "uninstall", repo: containerName, activated: { added: act.added, removed: act.removed } }, null, 2));
     } else {
-        console.log(`\n  ${c.green(`Removed plugin repo '${repoName}'.`)}`);
+        console.log(`\n  ${c.green(`Uninstalled plugin repo '${containerName}'.`)}`);
         activate({ expectChanges: true });
         console.log(`  ${c.dim("Restart the server to apply backend changes.")}\n`);
     }
@@ -972,12 +1014,13 @@ function cmdUpdate(repoName) {
     const registries = loadRegistries();
 
     if (repoName) {
-        const dest = path.join(PLUGINS_ROOT, repoName);
+        const resolved = resolveContainerName(repoName);
+        const dest = path.join(PLUGINS_ROOT, resolved);
         if (!fs.existsSync(dest) || !fs.existsSync(path.join(dest, ".git"))) {
             console.error(c.red(`'${repoName}' is not a git-based plugin repo.`));
             process.exit(1);
         }
-        if (repoName === CORE_CONTAINER) {
+        if (resolved === CORE_CONTAINER) {
             console.error(c.yellow("Core plugins are updated with the main MMGIS repo."));
             process.exit(1);
         }
@@ -1001,7 +1044,8 @@ function cmdUpdate(repoName) {
         const updatedRepos = [];
         for (let i = 0; i < repos.length; i++) {
             const reg = repos[i];
-            const dest = path.join(PLUGINS_ROOT, reg.name);
+            const containerDir = resolveContainerName(reg.name);
+            const dest = path.join(PLUGINS_ROOT, containerDir);
             if (!fs.existsSync(dest) || !fs.existsSync(path.join(dest, ".git"))) {
                 if (!FLAG_JSON) step(i + 1, repos.length, `Skipping ${c.dim(reg.name)} (not a git repo on disk)`);
                 continue;
@@ -1715,14 +1759,14 @@ function cmdCreate(type, name) {
         case "component": files = _scaffoldComponent(name); break;
     }
 
-    // Fix the paths field in plugin.json to use the actual relative path.
+    // Fix the paths field in plugin.json to use relative paths.
     if (type === "tool") {
         const manifest = JSON.parse(files["plugin.json"]);
-        manifest.paths = { [`${name}Tool`]: `../plugins/${container}/tools/${name}/${name}Tool` };
+        manifest.paths = { [`${name}Tool`]: `./${name}Tool` };
         files["plugin.json"] = JSON.stringify(manifest, null, 4) + "\n";
     } else if (type === "component") {
         const manifest = JSON.parse(files["plugin.json"]);
-        manifest.paths = { [name]: `../plugins/${container}/components/${name}/${name}` };
+        manifest.paths = { [name]: `./${name}` };
         files["plugin.json"] = JSON.stringify(manifest, null, 4) + "\n";
     }
 
@@ -1882,7 +1926,7 @@ function cmdHelp() {
   ${c.bold(c.white("Commands:"))}
 ${h("list", "List all plugins with status")}
 ${h("install <git-url|path|name>", "Install a plugin repo (git clone, copy, or registry name)")}
-${h("remove <repo-name>", "Remove an installed plugin repo (not core)")}
+${h("uninstall <repo-name>", "Uninstall an installed plugin repo (not core)")}
 ${h("enable <plugin-id>", "Enable a disabled plugin")}
 ${h("disable <plugin-id>", "Disable a plugin (not core)")}
 ${h("enable-all", "Enable all plugins (use --container to scope)")}
@@ -1941,8 +1985,8 @@ switch (command) {
     case "install":
         cmdInstall(args[1]);
         break;
-    case "remove":
-        cmdRemove(args[1]);
+    case "uninstall":
+        cmdUninstall(args[1]);
         break;
     case "enable":
         cmdEnable(args[1]);

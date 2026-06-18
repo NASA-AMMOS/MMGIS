@@ -21,7 +21,7 @@
     "hasVars": true,
     "name": "Measure",
     "paths": {
-        "MeasureTool": "../plugins/core/tools/Measure/MeasureTool"
+        "MeasureTool": "./MeasureTool"
     },
     "config": {
         "rows": [

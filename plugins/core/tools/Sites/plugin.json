@@ -30,7 +30,7 @@
     "name": "Sites",
     "toolbarPriority": 4,
     "paths": {
-        "SitesTool": "../plugins/core/tools/Sites/SitesTool"
+        "SitesTool": "./SitesTool"
     },
     "config": {
         "rows": [

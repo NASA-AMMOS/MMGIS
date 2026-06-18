@@ -34,7 +34,7 @@ plugins/
 │   ├── tools/                 # Frontend tools (Draw, Measure, Legend, etc.)
 │   ├── backend/               # Server modules (Accounts, Config, Users, etc.)
 │   └── components/            # UI components (OperationsClock, etc.)
-└── <external-container>/      # Installed from git or local path (gitignored)
+└── <org--repo>/               # Installed from git (org--repo naming, gitignored)
     ├── tools/
     ├── backend/
     └── components/
@@ -62,7 +62,7 @@ npm run plugins -- list
 # Create a new plugin
 npm run plugins -- create tool MyTool --container my-plugins
 
-# Install from a git repo
+# Install from a git repo (clones to plugins/org--mmgis-geo-plugins/)
 npm run plugins -- install https://github.com/org/mmgis-geo-plugins.git
 
 # Enable/disable a specific plugin
@@ -94,7 +94,7 @@ All commands support `--json` for machine-readable output. Use `npm run plugin` 
 | `validate` | Validate all `plugin.json` manifests |
 | `deps` | Show aggregated npm/pip/conda dependencies with conflict detection |
 | `install <git-url\|path\|name>` | Install a plugin repo (git clone, local copy, or registry name) |
-| `remove <repo-name>` | Remove an installed plugin repo (cannot remove `core`) |
+| `uninstall <repo-name>` | Uninstall an installed plugin repo (cannot uninstall `core`) |
 | `enable <plugin-id>` | Mark a plugin as active in `plugin-state.json` |
 | `disable <plugin-id>` | Mark a plugin as inactive (cannot disable `required` plugins) |
 | `enable-all` | Enable all plugins (use `--container` to scope) |
@@ -155,7 +155,7 @@ UI components loaded into the MMGIS interface. Directory name is plural (`compon
 npm run plugins -- install https://github.com/org/mmgis-geo-plugins.git
 ```
 
-This clones the repository into `plugins/mmgis-geo-plugins/`. The repo must follow the standard directory structure with `tools/`, `backend/`, and/or `components/` subdirectories.
+This clones the repository into `plugins/org--mmgis-geo-plugins/`. The container directory uses `org--repo` naming (double-hyphen separator) so that repos with the same name under different organizations don't collide. The repo must follow the standard directory structure with `tools/`, `backend/`, and/or `components/` subdirectories.
 
 ### By Registry Name
 
@@ -196,7 +196,7 @@ npm run plugins -- enable mmgis-geo-plugins/tools/ElevationTool
 npm run plugins -- install /path/to/my-plugin-repo
 ```
 
-This copies the directory into `plugins/<dirname>/`. To create a symlink instead (useful during active development so changes are reflected immediately), use the `--link` flag:
+This copies the directory into `plugins/<dirname>/` (local paths use the directory basename as-is since there is no org to infer). To create a symlink instead (useful during active development so changes are reflected immediately), use the `--link` flag:
 
 ```bash
 npm run plugins -- install --link /path/to/my-plugin-repo
@@ -250,7 +250,7 @@ plugins/<container>/tools/MyTool/
     "defaultIcon": "puzzle-outline",
     "description": "Short description of what this tool does.",
     "paths": {
-        "MyToolTool": "../plugins/<container>/tools/MyTool/MyToolTool"
+        "MyToolTool": "./MyToolTool"
     }
 }
 ```
@@ -359,7 +359,7 @@ plugins/<container>/components/MyComponent/
     "defaultIcon": "puzzle-outline",
     "description": "A custom UI component.",
     "paths": {
-        "MyComponent": "../plugins/<container>/components/MyComponent/MyComponent"
+        "MyComponent": "./MyComponent"
     }
 }
 ```
@@ -382,13 +382,22 @@ The canonical name of the plugin. Used as the display name in the CLI, configure
 
 **Type:** `object` — `{ [entryName: string]: string }` · **Required:** Yes (tools and components only)
 
-Maps entry-point names to their file paths (relative to the project root, prefixed with `../plugins/`). For tools, the key is typically `<Name>Tool`. For components, it's the component name.
+Maps entry-point names to their file paths relative to the plugin's own directory. For tools, the key is typically `<Name>Tool`. For components, it's the component name.
 
-These paths are written into `src/pre/tools.js` and `src/pre/components.js` as webpack dynamic imports.
+These paths are resolved at build time and written into `src/pre/tools.js` and `src/pre/components.js` as webpack imports. Use `./` prefix for paths relative to the plugin directory.
 
 ```json
 "paths": {
-    "DrawTool": "../plugins/core/tools/Draw/DrawTool"
+    "DrawTool": "./DrawTool"
+}
+```
+
+Plugins with multiple entry points:
+
+```json
+"paths": {
+    "SightlineTool": "./SightlineTool",
+    "SightlineTool_Algorithm": "./SightlineTool_Algorithm"
 }
 ```
 
@@ -568,7 +577,7 @@ Required runtime versions. Enforced at registration time — if the current MMGI
 
 ### Core & Required Protection
 
-- Core plugins (`plugins/core/`) cannot be **removed**, **destroyed**, or **disabled** via the CLI.
+- Core plugins (`plugins/core/`) cannot be **uninstalled**, **destroyed**, or **disabled** via the CLI.
 - `enable-all`/`disable-all` reject `--container core`.
 - `create` rejects `--container core` (core plugins are maintained in the main repo).
 - Plugins with `"required": true` or `"overridable": false` cannot be **disabled** or **destroyed** regardless of container.
@@ -577,7 +586,7 @@ Required runtime versions. Enforced at registration time — if the current MMGI
 
 Core plugins ship with MMGIS and live in `plugins/core/`. They:
 
-- Cannot be removed or destroyed via the CLI.
+- Cannot be uninstalled or destroyed via the CLI.
 - Use `"version": "core"` which auto-resolves to the MMGIS version.
 - Are version-controlled with the main repository.
 - Can be overridden by external plugins if `"overridable": true`.
