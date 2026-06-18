@@ -785,15 +785,15 @@ function cmdUninstall(repoName) {
         process.exit(1);
     }
 
-    if (repoName === CORE_CONTAINER) {
+    // Resolve: accept either the on-disk container name or a registry short name.
+    const containerName = resolveContainerName(repoName);
+    const dest = path.join(PLUGINS_ROOT, containerName);
+
+    if (containerName === CORE_CONTAINER) {
         jsonError("Cannot uninstall core plugins.");
         console.error(c.red("Cannot uninstall core plugins."));
         process.exit(1);
     }
-
-    // Resolve: accept either the on-disk container name or a registry short name.
-    const containerName = resolveContainerName(repoName);
-    const dest = path.join(PLUGINS_ROOT, containerName);
 
     if (!fs.existsSync(dest)) {
         jsonError(`Plugin repo '${repoName}' not found.`);
