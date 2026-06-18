@@ -245,6 +245,6 @@ services:
       timeout: 8s
     restart: on-failure
     volumes:
-      - mmgis-db:/var/lib/postgresql/data
+      - mmgis-db:/var/lib/postgresql
 volumes:
   mmgis-db:
