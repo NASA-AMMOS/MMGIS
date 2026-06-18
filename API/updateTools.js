@@ -17,14 +17,17 @@ const MMGIS_VERSION = require("../package.json").version;
  *   directory and converted to a path relative to src/pre/.
  * - Legacy absolute-ish paths (starting with "../") are prefixed with
  *   "../" as before (from src/pre/ → src/ → repo root).
+ *
+ * Always returns POSIX separators (/) since the result is used in JS
+ * import statements, not filesystem operations.
  */
 function resolvePluginPath(pathValue, pluginPath) {
-  if (pathValue.startsWith("./") || pathValue.startsWith("../")) {
-    if (pathValue.startsWith("./") && pluginPath) {
-      const abs = path.resolve(pluginPath, pathValue);
-      const rel = path.relative(SRC_PRE_DIR, abs);
-      return rel;
-    }
+  if (pathValue.startsWith("./") && pluginPath) {
+    const abs = path.resolve(pluginPath, pathValue);
+    const rel = path.relative(SRC_PRE_DIR, abs).split(path.sep).join("/");
+    return rel;
+  }
+  if (pathValue.startsWith("../")) {
     // Legacy "../" prefix — keep existing behavior.
     return `../${pathValue}`;
   }
@@ -106,12 +109,13 @@ function registerPlugin({
 
 function updateTools() {
   let tools = {};
+  // Separate map from plugin name → pluginPath so we don't mutate manifests.
+  const toolPluginPaths = {};
 
   // Single-pass scan of plugins/*/tools/
   const allTools = discoverPlugins(PLUGINS_ROOT, "tools", "plugin.json", { loggerCategory: "Tools" });
   for (const plugin of allTools) {
-    // Attach pluginPath so the import generator can resolve relative paths.
-    plugin.manifest._pluginPath = plugin.pluginPath;
+    toolPluginPaths[plugin.name] = plugin.pluginPath;
     registerPlugin({
       registry: tools,
       name: plugin.name,
@@ -162,7 +166,7 @@ function updateTools() {
   //   - Legacy ("../plugins/core/tools/X/XTool") — prefixed with "../"
   // Both produce correct import paths relative to src/pre/.
   for (const t in tools) {
-    const pluginPath = tools[t]._pluginPath || null;
+    const pluginPath = toolPluginPaths[t] || null;
     for (const p in tools[t].paths) {
       const resolved = resolvePluginPath(tools[t].paths[p], pluginPath);
       if (p === "Kinds") {
@@ -210,11 +214,12 @@ function updateTools() {
 
 function updateComponents() {
   let components = {};
+  const componentPluginPaths = {};
 
   // Single-pass scan of plugins/*/components/
   const allComponents = discoverPlugins(PLUGINS_ROOT, "components", "plugin.json", { loggerCategory: "Components" });
   for (const plugin of allComponents) {
-    plugin.manifest._pluginPath = plugin.pluginPath;
+    componentPluginPaths[plugin.name] = plugin.pluginPath;
     registerPlugin({
       registry: components,
       name: plugin.name,
@@ -249,7 +254,7 @@ function updateComponents() {
   let componentConfigs = "";
   const componentModules = {};
   for (const c in components) {
-    const pluginPath = components[c]._pluginPath || null;
+    const pluginPath = componentPluginPaths[c] || null;
     for (const p in components[c].paths) {
       const resolved = resolvePluginPath(components[c].paths[p], pluginPath);
       componentModules[p] = p;
