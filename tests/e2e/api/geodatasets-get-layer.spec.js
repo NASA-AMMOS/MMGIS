@@ -38,10 +38,11 @@ test.describe('Geodatasets /get/:layer — path parameter route', () => {
       data &&
       data.status === 'success' &&
       data.body &&
-      Array.isArray(data.body) &&
-      data.body.length > 0
+      data.body.entries &&
+      Array.isArray(data.body.entries) &&
+      data.body.entries.length > 0
     ) {
-      geodatasetName = data.body[0].name;
+      geodatasetName = data.body.entries[0].name;
     }
   });
 
