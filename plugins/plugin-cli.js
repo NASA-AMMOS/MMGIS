@@ -11,7 +11,7 @@
  * Commands:
  *   list                          List all plugins with status
  *   install <git-url|path|name>   Install a plugin repo (--only to filter)
- *   remove <repo-name>            Remove an installed plugin repo
+ *   uninstall <repo-name>         Uninstall an installed plugin repo
  *   enable <plugin-id>            Enable a plugin
  *   disable <plugin-id>           Disable a plugin
  *   update [repo-name]            Pull latest for installed repo(s)
@@ -573,7 +573,7 @@ function cmdInstall(target) {
         if (fs.existsSync(dest)) {
             if (FLAG_JSON) { console.log(JSON.stringify({ error: `Plugin repo '${repoName}' already exists` })); process.exit(1); }
             console.error(c.red(`Plugin repo '${repoName}' already exists at ${dest}`));
-            console.error(c.yellow("Use 'update' to pull latest, or 'remove' first."));
+            console.error(c.yellow("Use 'update' to pull latest, or 'uninstall' first."));
             process.exit(1);
         }
 
@@ -734,16 +734,16 @@ function cmdInstall(target) {
     }
 }
 
-function cmdRemove(repoName) {
+function cmdUninstall(repoName) {
     if (!repoName) {
-        jsonError("Usage: plugin-cli remove <repo-name>");
-        console.error(c.red("Usage: plugin-cli remove <repo-name>"));
+        jsonError("Usage: plugin-cli uninstall <repo-name>");
+        console.error(c.red("Usage: plugin-cli uninstall <repo-name>"));
         process.exit(1);
     }
 
     if (repoName === CORE_CONTAINER) {
-        jsonError("Cannot remove core plugins.");
-        console.error(c.red("Cannot remove core plugins."));
+        jsonError("Cannot uninstall core plugins.");
+        console.error(c.red("Cannot uninstall core plugins."));
         process.exit(1);
     }
 
@@ -754,7 +754,7 @@ function cmdRemove(repoName) {
         process.exit(1);
     }
 
-    if (!FLAG_JSON) step(1, 3, "Removing from state file");
+    if (!FLAG_JSON) step(1, 3, "Uninstalling from state file");
     const state = loadState();
     const keysToRemove = Object.keys(state.plugins).filter((k) => k.startsWith(repoName + "/"));
     for (const k of keysToRemove) {
@@ -762,12 +762,12 @@ function cmdRemove(repoName) {
     }
     saveState(state);
 
-    if (!FLAG_JSON) step(2, 3, "Removing from registries");
+    if (!FLAG_JSON) step(2, 3, "Uninstalling from registries");
     const registries = loadRegistries();
     registries.registries = registries.registries.filter((r) => r.name !== repoName);
     saveRegistries(registries);
 
-    if (!FLAG_JSON) step(3, 3, "Deleting directory");
+    if (!FLAG_JSON) step(3, 3, "Removing directory");
     const stat = fs.lstatSync(dest);
     if (stat.isSymbolicLink()) {
         fs.unlinkSync(dest);
@@ -777,9 +777,9 @@ function cmdRemove(repoName) {
 
     if (FLAG_JSON) {
         const act = activate({ expectChanges: true, silent: true });
-        console.log(JSON.stringify({ command: "remove", repo: repoName, activated: { added: act.added, removed: act.removed } }, null, 2));
+        console.log(JSON.stringify({ command: "uninstall", repo: repoName, activated: { added: act.added, removed: act.removed } }, null, 2));
     } else {
-        console.log(`\n  ${c.green(`Removed plugin repo '${repoName}'.`)}`);
+        console.log(`\n  ${c.green(`Uninstalled plugin repo '${repoName}'.`)}`);
         activate({ expectChanges: true });
         console.log(`  ${c.dim("Restart the server to apply backend changes.")}\n`);
     }
@@ -1882,7 +1882,7 @@ function cmdHelp() {
   ${c.bold(c.white("Commands:"))}
 ${h("list", "List all plugins with status")}
 ${h("install <git-url|path|name>", "Install a plugin repo (git clone, copy, or registry name)")}
-${h("remove <repo-name>", "Remove an installed plugin repo (not core)")}
+${h("uninstall <repo-name>", "Uninstall an installed plugin repo (not core)")}
 ${h("enable <plugin-id>", "Enable a disabled plugin")}
 ${h("disable <plugin-id>", "Disable a plugin (not core)")}
 ${h("enable-all", "Enable all plugins (use --container to scope)")}
@@ -1941,8 +1941,8 @@ switch (command) {
     case "install":
         cmdInstall(args[1]);
         break;
-    case "remove":
-        cmdRemove(args[1]);
+    case "uninstall":
+        cmdUninstall(args[1]);
         break;
     case "enable":
         cmdEnable(args[1]);

@@ -35,7 +35,7 @@ Community and mission-specific plugins are maintained in the official collection
 Install the official plugins with:
 
 ```bash
-npm run plugins -- install https://github.com/NASA-AMMOS/MMGIS-Plugins.git
+npm run plugins -- install MMGIS-Plugins
 ```
 
 ### Plugin Types
@@ -56,7 +56,7 @@ Manage plugins via the built-in CLI (`npm run plugins -- <command>`):
 |---------|-------------|
 | `list` | List all plugins with enabled/disabled status |
 | `install <git-url\|path\|name>` | Install a plugin repo (git clone, local copy, or registry name) |
-| `remove <repo-name>` | Remove an installed plugin repo (cannot remove `core`) |
+| `uninstall <repo-name>` | Uninstall an installed plugin repo (cannot uninstall `core`) |
 | `enable <plugin-id>` | Mark a plugin as active |
 | `disable <plugin-id>` | Mark a plugin as inactive |
 | `create <type> <Name>` | Scaffold a new plugin (tool, backend, component) |

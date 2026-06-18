@@ -94,7 +94,7 @@ All commands support `--json` for machine-readable output. Use `npm run plugin` 
 | `validate` | Validate all `plugin.json` manifests |
 | `deps` | Show aggregated npm/pip/conda dependencies with conflict detection |
 | `install <git-url\|path\|name>` | Install a plugin repo (git clone, local copy, or registry name) |
-| `remove <repo-name>` | Remove an installed plugin repo (cannot remove `core`) |
+| `uninstall <repo-name>` | Uninstall an installed plugin repo (cannot uninstall `core`) |
 | `enable <plugin-id>` | Mark a plugin as active in `plugin-state.json` |
 | `disable <plugin-id>` | Mark a plugin as inactive (cannot disable `required` plugins) |
 | `enable-all` | Enable all plugins (use `--container` to scope) |
@@ -568,7 +568,7 @@ Required runtime versions. Enforced at registration time — if the current MMGI
 
 ### Core & Required Protection
 
-- Core plugins (`plugins/core/`) cannot be **removed**, **destroyed**, or **disabled** via the CLI.
+- Core plugins (`plugins/core/`) cannot be **uninstalled**, **destroyed**, or **disabled** via the CLI.
 - `enable-all`/`disable-all` reject `--container core`.
 - `create` rejects `--container core` (core plugins are maintained in the main repo).
 - Plugins with `"required": true` or `"overridable": false` cannot be **disabled** or **destroyed** regardless of container.
@@ -577,7 +577,7 @@ Required runtime versions. Enforced at registration time — if the current MMGI
 
 Core plugins ship with MMGIS and live in `plugins/core/`. They:
 
-- Cannot be removed or destroyed via the CLI.
+- Cannot be uninstalled or destroyed via the CLI.
 - Use `"version": "core"` which auto-resolves to the MMGIS version.
 - Are version-controlled with the main repository.
 - Can be overridden by external plugins if `"overridable": true`.
