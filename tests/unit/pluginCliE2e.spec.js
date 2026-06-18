@@ -1,6 +1,6 @@
 /**
  * E2E tests for plugin-cli.js commands that modify state:
- * install, remove, enable, disable, create, destroy, activate.
+ * install, uninstall, enable, disable, create, destroy, activate.
  *
  * Uses the fixture repo at tests/fixtures/test-plugin-repo/ which has
  * the correct directory structure: tools/TestPlugin/plugin.json.
@@ -68,9 +68,9 @@ function cleanupState(keys) {
     writeState(state);
 }
 
-// ─── install / remove ───────────────────────────────────────────────────────
+// ─── install / uninstall ─────────────────────────────────────────────────────
 
-test.describe('CLI install and remove', () => {
+test.describe('CLI install and uninstall', () => {
 
     test.afterAll(() => {
         cleanupContainer('test-plugin-repo');
@@ -122,8 +122,8 @@ test.describe('CLI install and remove', () => {
         expect(stdout).toContain('0.1.0');
     });
 
-    test('remove installed plugin repo', () => {
-        const { stdout, exitCode } = runCli('remove test-plugin-repo');
+    test('uninstall installed plugin repo', () => {
+        const { stdout, exitCode } = runCli('uninstall test-plugin-repo');
         expect(exitCode).toBe(0);
 
         // Directory should be gone
@@ -134,8 +134,8 @@ test.describe('CLI install and remove', () => {
         expect(toolsJs).not.toContain('TestPluginTool');
     });
 
-    test('remove nonexistent repo fails', () => {
-        const { exitCode } = runCli('remove nonexistent-repo');
+    test('uninstall nonexistent repo fails', () => {
+        const { exitCode } = runCli('uninstall nonexistent-repo');
         expect(exitCode).not.toBe(0);
     });
 });
@@ -435,7 +435,7 @@ test.describe('CLI registry', () => {
         expect(names).toContain('TestPlugin');
 
         // Cleanup
-        runCli('remove test-plugin-repo');
+        runCli('uninstall test-plugin-repo');
     });
 
     test('registry error paths produce JSON with --json flag', () => {
@@ -537,7 +537,7 @@ test.describe('CLI --json output quality', () => {
 test.describe('CLI install --only', () => {
 
     test.afterEach(() => {
-        try { runCli('remove test-plugin-repo'); } catch { /* already removed */ }
+        try { runCli('uninstall test-plugin-repo'); } catch { /* already uninstalled */ }
     });
 
     test('install --only keeps only named plugins enabled', () => {
@@ -566,7 +566,7 @@ test.describe('CLI enable-all / disable-all', () => {
     });
 
     test.afterEach(() => {
-        try { runCli('remove test-plugin-repo'); } catch { /* already removed */ }
+        try { runCli('uninstall test-plugin-repo'); } catch { /* already uninstalled */ }
     });
 
     test('disable-all --container disables all plugins in container', () => {
