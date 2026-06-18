@@ -635,6 +635,9 @@ const compile = function (req, res, callback, options) {
     .then((files) => {
       let featureIds = [];
       let finished = 0;
+      if (files.length === 0) {
+        tryProcessFeatures(0);
+      }
       for (let f = 0; f < files.length; f++) {
         sequelize
           .query(
