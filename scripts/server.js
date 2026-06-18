@@ -59,6 +59,26 @@ if (!(process.env.PUBLIC_URL == null || process.env.PUBLIC_URL == ""))
 
 const rootDir = `${__dirname}/..`;
 
+// Process-level safety nets — log and survive rather than crash.
+process.on("unhandledRejection", (reason) => {
+  logger(
+    "error",
+    "Unhandled promise rejection.",
+    "process",
+    null,
+    reason,
+  );
+});
+process.on("uncaughtException", (err) => {
+  logger(
+    "error",
+    "Uncaught exception.",
+    "process",
+    null,
+    err,
+  );
+});
+
 ///////////////////////////
 const app = express();
 
@@ -830,10 +850,29 @@ setups.getBackendSetups(function (setups) {
     //////Setups Started//////
     setups.started(s);
 
-    // error handler
+    // 404 handler
     app.all("/{*splat}", (req, res, next) => {
-      // render the error page
       res.status(404).render("error");
+    });
+
+    // Global error handler — catches errors forwarded by next(err) or thrown
+    // in async route handlers. Prevents unhandled errors from crashing the
+    // process; returns a 500 response instead.
+    app.use((err, req, res, next) => {
+      logger(
+        "error",
+        "Unhandled route error.",
+        req.originalUrl,
+        req,
+        err,
+      );
+      if (res.headersSent) {
+        return next(err);
+      }
+      res.status(500).send({
+        status: "error",
+        message: "Internal server error.",
+      });
     });
 
     logger(
