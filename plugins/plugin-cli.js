@@ -801,7 +801,7 @@ function cmdUninstall(repoName) {
         process.exit(1);
     }
 
-    if (!FLAG_JSON) step(1, 3, "Uninstalling from state file");
+    if (!FLAG_JSON) step(1, 2, "Uninstalling from state file");
     const state = loadState();
     const keysToRemove = Object.keys(state.plugins).filter((k) => k.startsWith(containerName + "/"));
     for (const k of keysToRemove) {
@@ -809,15 +809,7 @@ function cmdUninstall(repoName) {
     }
     saveState(state);
 
-    if (!FLAG_JSON) step(2, 3, "Uninstalling from registries");
-    const registries = loadRegistries();
-    // Remove by both container name and short name to handle either form.
-    registries.registries = registries.registries.filter(
-        (r) => r.name !== repoName && r.name !== containerName
-    );
-    saveRegistries(registries);
-
-    if (!FLAG_JSON) step(3, 3, "Removing directory");
+    if (!FLAG_JSON) step(2, 2, "Removing directory");
     const stat = fs.lstatSync(dest);
     if (stat.isSymbolicLink()) {
         fs.unlinkSync(dest);
