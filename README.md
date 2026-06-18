@@ -193,21 +193,43 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 
 ## Plugins
 
-MMGIS supports a flexible plugin system for adding custom tools and backend functionality without modifying the core codebase.
+MMGIS uses a plugin-based architecture organized under `/plugins/` in a three-level hierarchy: `<container>/<type>/<PluginName>/`. Core plugins ship with MMGIS; external plugins can be installed from Git repositories or local paths without modifying the core codebase. Git repos are cloned into `plugins/<org>--<repo>/` (double-hyphen separator) to avoid name collisions across organizations.
 
-### Tool Plugins
+### Official Plugin Repository
 
-Place custom tools in directories matching `/src/essence/*Private-Tools*` or `/src/essence/*Plugin-Tools*`. These directories are automatically gitignored and loaded when you run `npm run build`.
+Community and mission-specific plugins are maintained in the official collection:
 
-### Component Plugins
+**[NASA-AMMOS/MMGIS-Plugins](https://github.com/NASA-AMMOS/MMGIS-Plugins)**
 
-Place miscellaneous custom UI behaviors and components in directories matching `/src/essence/*Private-Components*` or `/src/essence/*Plugin-Components*`. These directories are automatically gitignored and loaded when you run `npm run build`.
+Install the official plugins with:
 
-### Backend Plugins
+```bash
+npm run plugins -- install MMGIS-Plugins
+```
 
-Place custom backends in directories matching `/API/*Private-Backend*` or `/API/*Plugin-Backend*`. These directories are automatically gitignored and loaded when you run `npm start`.
+### Plugin Types
 
-For detailed plugin development instructions, see the [Contributing Guide](https://nasa-ammos.github.io/MMGIS/contributing/).
+| Type | Description |
+|------|-------------|
+| **tools** | Frontend sidebar tools (Draw, Measure, Legend, etc.) |
+| **backend** | Server-side Express route modules (Accounts, Config, Users, etc.) |
+| **components** | Lightweight UI widgets (OperationsClock, etc.) |
+
+### Plugin CLI
+
+Manage plugins via the built-in CLI:
+
+```bash
+npm run plugins -- list                    # List all plugins
+npm run plugins -- install <git-url|path>  # Install a plugin repo
+npm run plugins -- uninstall <repo-name>   # Uninstall a plugin repo
+npm run plugins -- enable <plugin-id>      # Enable a plugin
+npm run plugins -- disable <plugin-id>     # Disable a plugin
+npm run plugins -- create <type> <Name>    # Scaffold a new plugin
+npm run plugins -- validate                # Validate all manifests
+```
+
+See [`plugins/README.md`](plugins/README.md) for the full CLI reference, `plugin.json` manifest format, and development guide.
 
 <div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 

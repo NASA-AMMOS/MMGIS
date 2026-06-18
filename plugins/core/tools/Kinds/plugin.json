@@ -17,7 +17,7 @@
         "draw_tool"
     ],
     "paths": {
-        "Kinds": "../plugins/core/tools/Kinds/Kinds"
+        "Kinds": "./Kinds"
     },
     "author": "NASA-AMMOS/MMGIS",
     "license": "Apache-2.0",

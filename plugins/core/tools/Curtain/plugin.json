@@ -16,7 +16,7 @@
   "hasVars": true,
   "name": "Curtain",
   "paths": {
-    "CurtainTool": "../plugins/core/tools/Curtain/CurtainTool"
+    "CurtainTool": "./CurtainTool"
   },
   "config": {
     "rows": [

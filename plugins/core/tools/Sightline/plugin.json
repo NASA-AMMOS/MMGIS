@@ -42,8 +42,8 @@
     "name": "Sightline",
     "toolbarPriority": 102,
     "paths": {
-        "SightlineTool": "../plugins/core/tools/Sightline/SightlineTool",
-        "SightlineTool_Algorithm": "../plugins/core/tools/Sightline/SightlineTool_Algorithm"
+        "SightlineTool": "./SightlineTool",
+        "SightlineTool_Algorithm": "./SightlineTool_Algorithm"
     },
     "expandable": true,
     "config": {

@@ -14,7 +14,7 @@
     "name": "Animation",
     "toolbarPriority": 1002,
     "paths": {
-        "AnimationTool": "../plugins/core/tools/Animation/AnimationTool"
+        "AnimationTool": "./AnimationTool"
     },
     "dependencies": {
         "npm": {
