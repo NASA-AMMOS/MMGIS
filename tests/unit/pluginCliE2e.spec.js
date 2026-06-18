@@ -357,8 +357,8 @@ test.describe('CLI registry', () => {
         expect(exitCode).toBe(0);
         expect(stdout).toContain('Added registry');
         expect(stdout).toContain('[git]');
-        // Clean up
-        runCli('registry remove mmgis-test-plugins');
+        // Clean up (org--repo naming from git URL)
+        runCli('registry remove example-org--mmgis-test-plugins');
     });
 
     test('registry remove succeeds', () => {
