@@ -1,0 +1,40 @@
+{
+  "uuid": "39e8cf0c-35ff-42f0-a3ea-9fd04eaea95e",
+  "id": "core-curtain",
+  "version": "core",
+  "type": "tool",
+  "tier": "core",
+  "overridable": true,
+  "defaultIcon": "waves",
+  "description": "Curtain views of Ground Penetrating Radar data.",
+  "descriptionFull": {
+    "title": "Vertical imagery aligned under terrain for visualizing data from ground penetrating radar.",
+    "example": {
+      "withCredentials": false
+    }
+  },
+  "hasVars": true,
+  "name": "Curtain",
+  "paths": {
+    "CurtainTool": "../plugins/core/tools/Curtain/CurtainTool"
+  },
+  "config": {
+    "rows": [
+      {
+        "components": [
+          {
+            "field": "variables.withCredentials",
+            "name": "With Credentials",
+            "description": "",
+            "type": "checkbox",
+            "width": 3,
+            "defaultChecked": false
+          }
+        ]
+      }
+    ]
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}
