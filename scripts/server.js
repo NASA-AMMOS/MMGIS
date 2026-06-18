@@ -830,10 +830,29 @@ setups.getBackendSetups(function (setups) {
     //////Setups Started//////
     setups.started(s);
 
-    // error handler
+    // 404 handler
     app.all("/{*splat}", (req, res, next) => {
-      // render the error page
       res.status(404).render("error");
+    });
+
+    // Global error handler — catches errors forwarded by next(err) or thrown
+    // in async route handlers. Prevents unhandled errors from crashing the
+    // process; returns a 500 response instead.
+    app.use((err, req, res, next) => {
+      logger(
+        "error",
+        "Unhandled route error.",
+        req.originalUrl,
+        req,
+        err,
+      );
+      if (res.headersSent) {
+        return next(err);
+      }
+      res.status(500).send({
+        status: "error",
+        message: "Internal server error.",
+      });
     });
 
     logger(

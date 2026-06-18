@@ -149,11 +149,13 @@ function checkMissionPermission(req, res, next) {
     });
 }
 
-function get(req, res, next, cb) {
+function get(req, res, next, cb, options) {
+  const qMission = (options && options.mission) || req.query.mission;
+  const qFull = (options && options.full) || req.query.full;
   Config.findAll({
     limit: 1,
     where: {
-      mission: req.query.mission,
+      mission: qMission,
     },
     order: [["id", "DESC"]],
   })
@@ -180,7 +182,7 @@ function get(req, res, next, cb) {
       } else {
         Config.findOne({
           where: {
-            mission: req.query.mission,
+            mission: qMission,
             version: version,
           },
         })
@@ -195,7 +197,7 @@ function get(req, res, next, cb) {
               config.msv.missionFolderName = config.msv.mission || "";
             }
 
-            if (req.query.full) {
+            if (qFull) {
               if (cb)
                 cb({
                   status: "success",
@@ -221,14 +223,14 @@ function get(req, res, next, cb) {
               cb({
                 status: "failure",
                 message: `Mission '${sanitizeInput(
-                  req.query.mission
+                  qMission
                 )} v${version}' not found.`,
               });
             else
               res.send({
                 status: "failure",
                 message: `Mission '${sanitizeInput(
-                  req.query.mission
+                  qMission
                 )} v${version}' not found.`,
               });
             return null;
@@ -857,9 +859,6 @@ function relativizePaths(config, mission) {
 //hasPaths
 if (fullAccess)
   router.post("/clone", function (req, res, next) {
-    req.query.full = true;
-    req.query.mission = req.body.existingMission;
-
     get(req, res, next, function (r) {
       if (r.status == "success") {
         r.config.msv.mission = req.body.cloneMission;
@@ -892,7 +891,7 @@ if (fullAccess)
       } else {
         res.send(r);
       }
-    });
+    }, { full: true, mission: req.body.existingMission });
   });
 
 if (fullAccess) router.post("/rename", function (req, res, next) {});
