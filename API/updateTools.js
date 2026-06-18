@@ -115,8 +115,7 @@ function updateTools() {
   // Single-pass scan of plugins/*/tools/
   const allTools = discoverPlugins(PLUGINS_ROOT, "tools", "plugin.json", { loggerCategory: "Tools" });
   for (const plugin of allTools) {
-    toolPluginPaths[plugin.name] = plugin.pluginPath;
-    registerPlugin({
+    const registered = registerPlugin({
       registry: tools,
       name: plugin.name,
       config: plugin.manifest,
@@ -124,6 +123,7 @@ function updateTools() {
       source: plugin.container,
       loggerCategory: "Tools",
     });
+    if (registered) toolPluginPaths[plugin.name] = plugin.pluginPath;
   }
 
   // 3. Sort by toolbarPriority (preserve previous behavior).
@@ -219,8 +219,7 @@ function updateComponents() {
   // Single-pass scan of plugins/*/components/
   const allComponents = discoverPlugins(PLUGINS_ROOT, "components", "plugin.json", { loggerCategory: "Components" });
   for (const plugin of allComponents) {
-    componentPluginPaths[plugin.name] = plugin.pluginPath;
-    registerPlugin({
+    const registered = registerPlugin({
       registry: components,
       name: plugin.name,
       config: plugin.manifest,
@@ -228,6 +227,7 @@ function updateComponents() {
       source: plugin.container,
       loggerCategory: "Components",
     });
+    if (registered) componentPluginPaths[plugin.name] = plugin.pluginPath;
   }
 
   // 3. Write componentConfigs.json (Configure page) and src/pre/components.js.
