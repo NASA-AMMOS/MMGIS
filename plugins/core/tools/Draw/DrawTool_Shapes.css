@@ -710,3 +710,7 @@
     line-height: 1.4;
     word-wrap: break-word;
 }
+#drawToolShapesModeMessage.truncated {
+    background: #ff9800;
+    color: white;
+}
