@@ -1531,13 +1531,10 @@ var Shapes = {
             messageEl.text(message)
             messageEl.css('display', 'block')
 
-            // Set background to orange if truncated, otherwise use default
             if (anyTruncated) {
-                messageEl.css('background', '#ff9800')
-                messageEl.css('color', 'white')
+                messageEl.addClass('truncated')
             } else {
-                messageEl.css('background', 'var(--color-a1)')
-                messageEl.css('color', 'var(--color-a5)')
+                messageEl.removeClass('truncated')
             }
         } else {
             // In 'all' mode: hide message (pagination info will show instead)

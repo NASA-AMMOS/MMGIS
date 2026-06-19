@@ -699,12 +699,18 @@
 
 /* Mode Message Styles */
 #drawToolShapesModeMessage {
-    background: var(--color-a1);
-    color: var(--color-a5);
+    background: var(--color-a1-5);
+    color: var(--color-h);
+    border: 1px solid var(--color-a2);
+    margin: 5px;
+    border-radius: 3px;
+    padding: 4px 8px;
     font-size: 12px;
     text-align: center;
-    padding: 8px 10px;
-    border-top: 1px solid rgba(0, 0, 0, 0.3);
     line-height: 1.4;
     word-wrap: break-word;
+}
+#drawToolShapesModeMessage.truncated {
+    background: #ff9800;
+    color: white;
 }
