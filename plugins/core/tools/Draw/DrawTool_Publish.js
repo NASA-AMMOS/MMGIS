@@ -14,12 +14,17 @@ var Publish = {
         DrawTool.isReviewOpen = true
         $('#drawToolReview').remove()
 
-        var state = useUIStore.getState()
+        var currentWidth = useUIStore.getState().toolPanelWidth
         if (previousToolPanelWidth == null) {
-            previousToolPanelWidth = state.toolPanelWidth
+            previousToolPanelWidth = currentWidth
         }
-        if (state.toolPanelWidth < 390) {
-            state.setToolPanelWidth(390)
+        if (currentWidth < 390) {
+            useUIStore.getState().setToolPanelWidth(390)
+            $('#toolPanel').css('width', '390px')
+            $('#toolPanelDrag').css(
+                'left',
+                parseInt($('#toolPanel').css('left')) + 390 + 'px'
+            )
         }
 
         if (switchContent !== false && DrawTool.activeContent != 'shapes')
@@ -87,6 +92,16 @@ var Publish = {
                         useUIStore
                             .getState()
                             .setToolPanelWidth(previousToolPanelWidth)
+                        $('#toolPanel').css(
+                            'width',
+                            previousToolPanelWidth + 'px'
+                        )
+                        $('#toolPanelDrag').css(
+                            'left',
+                            parseInt($('#toolPanel').css('left')) +
+                                previousToolPanelWidth +
+                                'px'
+                        )
                         previousToolPanelWidth = null
                     }
                 }
