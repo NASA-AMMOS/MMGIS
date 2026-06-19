@@ -1,8 +1,10 @@
 import $ from 'jquery'
 
 import calls from '@pre/calls'
+import useUIStore from '@basics/UserInterface_/store/uiStore'
 
 var DrawTool = null
+var previousToolPanelWidth = null
 var Publish = {
     init: function (tool) {
         DrawTool = tool
@@ -11,6 +13,14 @@ var Publish = {
     showReview: function (switchContent) {
         DrawTool.isReviewOpen = true
         $('#drawToolReview').remove()
+
+        var state = useUIStore.getState()
+        if (previousToolPanelWidth == null) {
+            previousToolPanelWidth = state.toolPanelWidth
+        }
+        if (state.toolPanelWidth < 390) {
+            state.setToolPanelWidth(390)
+        }
 
         if (switchContent !== false && DrawTool.activeContent != 'shapes')
             DrawTool.showContent('shapes')
@@ -73,6 +83,12 @@ var Publish = {
                 function () {
                     $('#drawToolReview').remove()
                     DrawTool.isReviewOpen = false
+                    if (previousToolPanelWidth != null) {
+                        useUIStore
+                            .getState()
+                            .setToolPanelWidth(previousToolPanelWidth)
+                        previousToolPanelWidth = null
+                    }
                 }
             )
         })
