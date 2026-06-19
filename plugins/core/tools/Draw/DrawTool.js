@@ -2201,6 +2201,9 @@ function interfaceWithMMGIS() {
         L_.unsubscribeOnTimeUIToggle('DrawTool')
         $('#DrawTool_TimeToggle').remove()
 
+        // Restore tool panel width if review was open
+        if (DrawTool.cleanupReview) DrawTool.cleanupReview()
+
         // Clean up tooltip (Fix #3)
         $('#drawToolMouseoverText').removeClass('active')
 

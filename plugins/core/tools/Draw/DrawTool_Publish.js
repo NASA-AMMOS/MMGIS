@@ -1,16 +1,49 @@
 import $ from 'jquery'
 
 import calls from '@pre/calls'
+import useUIStore from '@basics/UserInterface_/store/uiStore'
 
 var DrawTool = null
+var previousToolPanelWidth = null
 var Publish = {
     init: function (tool) {
         DrawTool = tool
         DrawTool.showReview = Publish.showReview
+        DrawTool.cleanupReview = Publish.cleanupReview
+    },
+    cleanupReview: function () {
+        $('#drawToolReview').remove()
+        DrawTool.isReviewOpen = false
+        if (previousToolPanelWidth != null) {
+            useUIStore
+                .getState()
+                .setToolPanelWidth(previousToolPanelWidth)
+            $('#toolPanel').css('width', previousToolPanelWidth + 'px')
+            $('#toolPanelDrag').css(
+                'left',
+                parseInt($('#toolPanel').css('left')) +
+                    previousToolPanelWidth +
+                    'px'
+            )
+            previousToolPanelWidth = null
+        }
     },
     showReview: function (switchContent) {
         DrawTool.isReviewOpen = true
         $('#drawToolReview').remove()
+
+        var currentWidth = useUIStore.getState().toolPanelWidth
+        if (previousToolPanelWidth == null) {
+            previousToolPanelWidth = currentWidth
+        }
+        if (currentWidth < 390) {
+            useUIStore.getState().setToolPanelWidth(390)
+            $('#toolPanel').css('width', '390px')
+            $('#toolPanelDrag').css(
+                'left',
+                parseInt($('#toolPanel').css('left')) + 390 + 'px'
+            )
+        }
 
         if (switchContent !== false && DrawTool.activeContent != 'shapes')
             DrawTool.showContent('shapes')
@@ -71,8 +104,7 @@ var Publish = {
                 },
                 250,
                 function () {
-                    $('#drawToolReview').remove()
-                    DrawTool.isReviewOpen = false
+                    Publish.cleanupReview()
                 }
             )
         })

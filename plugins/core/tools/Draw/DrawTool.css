@@ -1,6 +1,8 @@
 #drawTool {
     color: white;
     font-size: 14px;
+    position: relative;
+    height: 100%;
 }
 
 #drawToolNotLoggedIn {
@@ -1897,12 +1899,18 @@
 }
 
 #drawToolReview {
-    position: fixed;
-    left: 305px;
-    top: 40px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     color: #ededed;
     background: var(--color-a);
     padding: 4px;
+    z-index: 100;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
 }
 #drawToolReviewTopbar {
     display: flex;
@@ -1919,7 +1927,8 @@
     color: white;
 }
 #drawToolReviewContent {
-    max-height: 50vh;
+    flex: 1;
+    min-height: 0;
     margin-top: 0px;
     overflow-y: auto;
 }
