@@ -9,6 +9,24 @@ var Publish = {
     init: function (tool) {
         DrawTool = tool
         DrawTool.showReview = Publish.showReview
+        DrawTool.cleanupReview = Publish.cleanupReview
+    },
+    cleanupReview: function () {
+        $('#drawToolReview').remove()
+        DrawTool.isReviewOpen = false
+        if (previousToolPanelWidth != null) {
+            useUIStore
+                .getState()
+                .setToolPanelWidth(previousToolPanelWidth)
+            $('#toolPanel').css('width', previousToolPanelWidth + 'px')
+            $('#toolPanelDrag').css(
+                'left',
+                parseInt($('#toolPanel').css('left')) +
+                    previousToolPanelWidth +
+                    'px'
+            )
+            previousToolPanelWidth = null
+        }
     },
     showReview: function (switchContent) {
         DrawTool.isReviewOpen = true
@@ -86,24 +104,7 @@ var Publish = {
                 },
                 250,
                 function () {
-                    $('#drawToolReview').remove()
-                    DrawTool.isReviewOpen = false
-                    if (previousToolPanelWidth != null) {
-                        useUIStore
-                            .getState()
-                            .setToolPanelWidth(previousToolPanelWidth)
-                        $('#toolPanel').css(
-                            'width',
-                            previousToolPanelWidth + 'px'
-                        )
-                        $('#toolPanelDrag').css(
-                            'left',
-                            parseInt($('#toolPanel').css('left')) +
-                                previousToolPanelWidth +
-                                'px'
-                        )
-                        previousToolPanelWidth = null
-                    }
+                    Publish.cleanupReview()
                 }
             )
         })
