@@ -170,6 +170,7 @@ COPY --from=builder /usr/src/app/adjacent-servers ./adjacent-servers
 COPY --from=builder /usr/src/app/examples ./examples
 COPY --from=builder /usr/src/app/private ./private
 COPY --from=builder /usr/src/app/blueprints ./blueprints
+COPY --from=builder /usr/src/app/plugins ./plugins
 
 RUN chmod 755 _docker-entrypoint.sh
 
