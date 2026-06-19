@@ -1,6 +1,6 @@
 {
   "name": "mmgis",
-  "version": "5.2.3-20260618",
+  "version": "5.2.4-20260619",
   "description": "A web-based mapping and localization solution for science operation on planetary missions.",
   "homepage": "build",
   "repository": {
