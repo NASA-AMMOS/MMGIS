@@ -104,6 +104,11 @@ function get(reqtype, req, res, next, options) {
     }
   }
 
+  // Validate _source entries - only allow alphanumeric, underscores, and dots
+  if (_source && Array.isArray(_source)) {
+    _source = _source.filter((s) => /^[a-zA-Z0-9_.]+$/.test(s));
+  }
+
   //First Find the table name
   Geodatasets.findOne({ where: { name: layer } })
     .then(async (result) => {
