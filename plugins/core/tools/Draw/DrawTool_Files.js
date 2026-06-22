@@ -907,40 +907,53 @@ var Files = {
                 file,
                 true
             )
+            const buildTagItemHtml = (tag, type, itemClass, showClose) => {
+                const el = $('<div>')
+                    .attr('tag', tag)
+                    .attr('type', type)
+                    .addClass(itemClass)
+                el.append(
+                    $('<div>')
+                        .addClass('drawToolFileEditOnTagName')
+                        .text(tag)
+                )
+                if (showClose) {
+                    el.append(
+                        $('<div>')
+                            .addClass('drawToolFileEditOnTagClose')
+                            .attr('title', 'Delete Tag')
+                            .append(
+                                $('<i>').addClass(
+                                    'mdi mdi-close mdi-14px'
+                                )
+                            )
+                    )
+                } else {
+                    el.append(
+                        $('<span>').css('width', '6px')
+                    )
+                }
+                return el[0].outerHTML
+            }
             let efoldersHtml =
                 existingTagFol.efolders.length > 0
                     ? existingTagFol.efolders
-                          .map(
-                              (tag, i) =>
-                                  `<div tag='${tag}' type='efolders' class='drawToolFileEditOnEFolder'><div class='drawToolFileEditOnTagName'>${tag}</div>${
-                                      leadIsEdit
-                                          ? `<div class='drawToolFileEditOnTagClose' title='Delete Tag'><i class='mdi mdi-close mdi-14px'></i></div>`
-                                          : `<span style="width: 6px;"></span>`
-                                  }</div>`
+                          .map((tag) =>
+                              buildTagItemHtml(tag, 'efolders', 'drawToolFileEditOnEFolder', leadIsEdit)
                           )
                           .join('\n')
                     : null
             let foldersHtml =
                 existingTagFol.folders.length > 0
                     ? existingTagFol.folders
-                          .map(
-                              (tag, i) =>
-                                  `<div tag='${tag}' type='folders' class='drawToolFileEditOnFolder'><div class='drawToolFileEditOnTagName'>${tag}</div>${
-                                      ownedByUser || leadIsEdit
-                                          ? `<div class='drawToolFileEditOnTagClose' title='Delete Tag'><i class='mdi mdi-close mdi-14px'></i></div>`
-                                          : `<span style="width: 6px;"></span>`
-                                  }</div>`
+                          .map((tag) =>
+                              buildTagItemHtml(tag, 'folders', 'drawToolFileEditOnFolder', ownedByUser || leadIsEdit)
                           )
                           .join('\n')
                     : null
             let tagsHtml = existingTagFol.tags
-                .map(
-                    (tag, i) =>
-                        `<div tag='${tag}' type='tags' class='drawToolFileEditOnTag'><div class='drawToolFileEditOnTagName'>${tag}</div>${
-                            ownedByUser || leadIsEdit
-                                ? `<div class='drawToolFileEditOnTagClose' title='Delete Tag'><i class='mdi mdi-close mdi-14px'></i></div>`
-                                : `<span style="width: 6px;"></span>`
-                        }</div>`
+                .map((tag) =>
+                    buildTagItemHtml(tag, 'tags', 'drawToolFileEditOnTag', ownedByUser || leadIsEdit)
                 )
                 .join('\n')
 
