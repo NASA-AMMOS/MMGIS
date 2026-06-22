@@ -185,10 +185,12 @@ const Utils = {
 
     return isDockerCached;
   },
-  forceAlphaNumUnder: function (str) {
+  forceAlphaNumUnder: function (str, allowList) {
     if (typeof str === "string") {
       return str
-        .replace(/[`~!@#$%^&*|+\-=?;:'",.<>\{\}\[\]\\\//() ]/gi, "")
+        .replace(/[`~!@#$%^&*|+\-=?;:'",.<>\{\}\[\]\\\//() ]/gi, function (match) {
+          return allowList && allowList.indexOf(match) !== -1 ? match : "";
+        })
         .replace(/[^ -~]+/g, "");
     } else if (typeof str === "number") {
       // Reject unsafe number values (NaN, Infinity, -Infinity)
@@ -201,7 +203,9 @@ const Utils = {
     } else if (Array.isArray(str)) {
       return str
         .join(",")
-        .replace(/[`~!@#$%^&*|+\-=?;:'".<>\{\}\[\]\\\//() ]/gi, "")
+        .replace(/[`~!@#$%^&*|+\-=?;:'".<>\{\}\[\]\\\//() ]/gi, function (match) {
+          return allowList && allowList.indexOf(match) !== -1 ? match : "";
+        })
         .replace(/[^ -~]+/g, "")
         .split(",");
     } else {
