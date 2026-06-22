@@ -104,10 +104,10 @@ function get(reqtype, req, res, next, options) {
     }
   }
 
-  // Sanitize _source entries - allow only alphanumeric, underscores, and dots (path separator)
+  // Sanitize _source entries - allow alphanumeric, underscores, dots (path separator), and hyphens
   if (_source && Array.isArray(_source)) {
     _source = _source
-      .map((s) => Utils.forceAlphaNumUnder(s, ["."]))
+      .map((s) => Utils.forceAlphaNumUnder(s, [".", "-"]))
       .filter(Boolean);
     if (_source.length === 0) _source = null;
   }
