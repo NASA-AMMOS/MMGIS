@@ -681,7 +681,7 @@ var Editing = {
                 "<div class='drawToolContextMenuProperties'>",
                     "<div class='drawToolContextMenuPropertiesName flexbetween'>",
                         "<div class='drawToolContextMenuPropertiesTitle'>Name</div>",
-                        "<input id='drawToolContextMenuPropertiesName' type='text' value='" + F_.sanitize(defaultName) + "'/>",
+                        "<input id='drawToolContextMenuPropertiesName' type='text'/>",
                     "</div>",
                     "<div class='drawToolContextMenuPropertiesDescription flexbetween'>",
                         "<div class='drawToolContextMenuPropertiesTitle'>Description</div>",
@@ -962,6 +962,7 @@ var Editing = {
       ].join('\n');
         $('#uiRightPanel').empty()
         $('#uiRightPanel').append(markup)
+        $('#drawToolContextMenuPropertiesName').val(F_.sanitize(defaultName))
 
         // Save a deep copy of original properties for reset/cancel functionality
         if (DrawTool.contextMenuLayer?.feature?.properties) {

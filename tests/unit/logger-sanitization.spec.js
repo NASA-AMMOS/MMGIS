@@ -1,16 +1,16 @@
 /**
  * Unit tests for Fix 5: Log sanitization
  *
- * Tests that sanitizeForLog strips ANSI escape sequences and ALL control
- * characters (0x00-0x1F, 0x7F) including newlines, tabs, and carriage returns
- * to eliminate log injection risk.
+ * Tests that sanitizeForLog strips ANSI escape sequences and dangerous control
+ * characters while preserving newlines and tabs for readable stack traces.
+ * Carriage returns are stripped to prevent log injection.
  */
 
 import { test, expect } from '@playwright/test';
 
 function sanitizeForLog(str) {
   if (typeof str !== 'string') return str;
-  return str.replace(/\x1B\[[0-9;]*m/g, '').replace(/[\x00-\x1F\x7F]/g, ' ');
+  return str.replace(/\x1B\[[0-9;]*m/g, '').replace(/[\x00-\x08\x0B-\x1F\x7F]/g, ' ');
 }
 
 test.describe('Fix 5: Log sanitization', () => {
@@ -18,16 +18,16 @@ test.describe('Fix 5: Log sanitization', () => {
     expect(sanitizeForLog('normal message')).toBe('normal message');
   });
 
-  test('newlines are replaced to prevent log injection', () => {
-    expect(sanitizeForLog('line1\nline2')).toBe('line1 line2');
+  test('newlines are preserved for stack traces', () => {
+    expect(sanitizeForLog('line1\nline2')).toBe('line1\nline2');
   });
 
-  test('carriage returns are replaced to prevent log injection', () => {
+  test('carriage returns are stripped to prevent log injection', () => {
     expect(sanitizeForLog('line1\rline2')).toBe('line1 line2');
   });
 
-  test('tabs are replaced', () => {
-    expect(sanitizeForLog('col1\tcol2')).toBe('col1 col2');
+  test('tabs are preserved for indentation', () => {
+    expect(sanitizeForLog('col1\tcol2')).toBe('col1\tcol2');
   });
 
   test('ANSI escape sequences are stripped', () => {
@@ -54,9 +54,9 @@ test.describe('Fix 5: Log sanitization', () => {
     expect(sanitizeForLog('data\x00injected')).toBe('data injected');
   });
 
-  test('mixed control chars and ANSI are all replaced', () => {
+  test('mixed control chars and ANSI are handled, newlines and tabs preserved', () => {
     const input = '\x1B[31mERROR\x1B[0m\nDetails:\tsome\x00thing';
-    const expected = 'ERROR Details: some thing';
+    const expected = 'ERROR\nDetails:\tsome thing';
     expect(sanitizeForLog(input)).toBe(expected);
   });
 });

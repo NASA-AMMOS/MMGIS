@@ -1246,19 +1246,31 @@ var Files = {
                         // Remove 'None' if any
                         $(`#${listId} .drawToolNoTagFol`).remove()
 
-                        // prettier-ignore
-                        $(`#${listId}`).append(
-                            `<div tag='${newTag}'type='${type}' class=${itemClass}>
-                                <div class='drawToolFileEditOnTagName'>${newTag}</div>
-                                <div class='drawToolFileEditOnTagClose' title='${
+                        const tagItem = $('<div>')
+                            .attr('tag', newTag)
+                            .attr('type', type)
+                            .addClass(itemClass)
+                        tagItem.append(
+                            $('<div>')
+                                .addClass('drawToolFileEditOnTagName')
+                                .text(newTag)
+                        )
+                        tagItem.append(
+                            $('<div>')
+                                .addClass('drawToolFileEditOnTagClose')
+                                .attr(
+                                    'title',
                                     type === 'tags'
                                         ? 'Delete Tag'
                                         : 'Remove from Folder'
-                                }'>
-                                    <i class='mdi mdi-close mdi-14px'></i>
-                                </div>
-                            </div>`
+                                )
+                                .append(
+                                    $('<i>').addClass(
+                                        'mdi mdi-close mdi-14px'
+                                    )
+                                )
                         )
+                        $(`#${listId}`).append(tagItem)
                         $('.drawToolFileEditOnTagClose').off('click')
                         $('.drawToolFileEditOnTagClose').on(
                             'click',

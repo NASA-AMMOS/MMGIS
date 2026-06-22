@@ -34,7 +34,7 @@ const filelogger = winston.createLogger({
 
 function sanitizeForLog(str) {
   if (typeof str !== "string") return str;
-  return str.replace(/\x1B\[[0-9;]*m/g, "").replace(/[\x00-\x1F\x7F]/g, " ");
+  return str.replace(/\x1B\[[0-9;]*m/g, "").replace(/[\x00-\x08\x0B-\x1F\x7F]/g, " ");
 }
 
 const logger = function (level, message, caller, req, err) {
