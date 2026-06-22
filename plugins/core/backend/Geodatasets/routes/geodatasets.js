@@ -104,9 +104,17 @@ function get(reqtype, req, res, next, options) {
     }
   }
 
-  // Validate _source entries - only allow alphanumeric, underscores, and dots
+  // Sanitize _source entries - allow only alphanumeric, underscores (per segment) and dots (path separator)
   if (_source && Array.isArray(_source)) {
-    _source = _source.filter((s) => /^[a-zA-Z0-9_.]+$/.test(s));
+    _source = _source
+      .map((s) =>
+        s
+          .split(".")
+          .map((seg) => Utils.forceAlphaNumUnder(seg))
+          .filter(Boolean)
+          .join(".")
+      )
+      .filter(Boolean);
   }
 
   //First Find the table name
