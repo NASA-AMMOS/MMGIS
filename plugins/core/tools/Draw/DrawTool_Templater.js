@@ -668,9 +668,7 @@ const DrawTool_Templater = {
             if (hasNameOptions) {
                 nameField = `<div class='drawToolTemplaterPointNameDropdown' id='drawToolTemplaterPointNameDropdown_${fieldIdx}_${i}' data-point-idx='${i}'></div>`
             } else {
-                nameField = `<input class='drawToolTemplaterPointNameInput' type='text' value='${F_.sanitize(
-                    point.name
-                )}' data-point-idx='${i}' />`
+                nameField = `<input class='drawToolTemplaterPointNameInput' type='text' data-point-idx='${i}' />`
             }
 
             const li = $(`
@@ -699,6 +697,13 @@ const DrawTool_Templater = {
                     </div>
                 </li>
             `)
+
+            // Set input value safely via jQuery to prevent attribute injection
+            if (!hasNameOptions) {
+                li.find('.drawToolTemplaterPointNameInput').val(
+                    F_.sanitize(point.name)
+                )
+            }
 
             // Attach name handler - either input or dropdown
             if (hasNameOptions) {
