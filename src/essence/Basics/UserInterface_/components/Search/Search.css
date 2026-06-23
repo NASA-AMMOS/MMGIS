@@ -133,12 +133,37 @@
 }
 
 .searchDropdownFieldType {
-    color: var(--color-f);
-    opacity: 0.6;
     font-size: 10px;
     flex-shrink: 0;
-    padding: 1px 4px;
-    border-radius: 2px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+.searchDropdownFieldType[data-type='string'] {
+    color: #16a34a;
+    background: rgba(22, 163, 74, 0.12);
+    border: 1px solid rgba(22, 163, 74, 0.25);
+}
+.searchDropdownFieldType[data-type='number'] {
+    color: #2563eb;
+    background: rgba(37, 99, 235, 0.12);
+    border: 1px solid rgba(37, 99, 235, 0.25);
+}
+.searchDropdownFieldType[data-type='boolean'] {
+    color: #d97706;
+    background: rgba(217, 119, 6, 0.12);
+    border: 1px solid rgba(217, 119, 6, 0.25);
+}
+.searchDropdownFieldType[data-type='object'],
+.searchDropdownFieldType[data-type='array'] {
+    color: #9333ea;
+    background: rgba(147, 51, 234, 0.12);
+    border: 1px solid rgba(147, 51, 234, 0.25);
+}
+.searchDropdownFieldType[data-type='null'],
+.searchDropdownFieldType:not([data-type='string']):not([data-type='number']):not([data-type='boolean']):not([data-type='object']):not([data-type='array']) {
+    color: var(--color-a4);
     background: var(--color-a1);
     border: 1px solid var(--color-a2, var(--color-a1));
 }
@@ -300,13 +325,7 @@
     z-index: 1;
 }
 
-.searchAdvancedBtn {
-    margin-left: 2px;
-    z-index: 1;
-}
-
 .searchClearBtn:hover,
-.searchGoBtn:hover,
-.searchAdvancedBtn:hover {
+.searchGoBtn:hover {
     color: var(--color-mmgis);
 }

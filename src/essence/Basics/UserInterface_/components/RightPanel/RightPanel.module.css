@@ -1,0 +1,60 @@
+/* Floating right panel styling — mirrors ToolPanel */
+
+.rightPanel {
+    position: absolute;
+    background: color-mix(in srgb, var(--color-a) 88%, transparent);
+    border-radius: 10px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    overflow: hidden;
+    z-index: 1400;
+}
+
+.rightPanelOpen {
+    border: 1px solid var(--color-a1);
+    box-shadow: 0 8px 32px var(--color-shadow);
+    opacity: 1;
+}
+
+.rightPanelClosed {
+    border: 1px solid transparent;
+    box-shadow: none;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.dragHandle {
+    position: absolute;
+    width: 6px;
+    cursor: col-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1401;
+    background: transparent;
+    border-radius: 3px;
+}
+
+.dragHandle:hover {
+    background: var(--color-mmgis);
+    opacity: 0.5;
+}
+
+:global(#uiRightPanel) {
+    overflow-y: auto !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: var(--color-a2) transparent !important;
+}
+
+:global(#uiRightPanel)::-webkit-scrollbar {
+    width: 4px;
+}
+
+:global(#uiRightPanel)::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+:global(#uiRightPanel)::-webkit-scrollbar-thumb {
+    background: var(--color-a2);
+    border-radius: 2px;
+}

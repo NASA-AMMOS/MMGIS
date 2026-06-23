@@ -3,8 +3,8 @@ import { test, expect } from '@playwright/test'
 /**
  * Global Feature Search — Unit Tests
  *
- * Tests the pure utility functions used by the Search and GlobalSearchPanel
- * components: field parsing, filter encoding, and factory helpers.
+ * Tests the pure utility functions used by the Search component:
+ * field parsing, filter encoding, and factory helpers.
  *
  * These are imported directly (no DOM or React needed).
  */
@@ -33,7 +33,7 @@ function makeSearchFields(vars) {
 }
 
 // ---------------------------------------------------------------------------
-// encodeFilters, createFilterRow, createGroupRow (from GlobalSearchPanel.jsx)
+// encodeFilters, createFilterRow, createGroupRow (filter encoding utilities)
 // ---------------------------------------------------------------------------
 
 let _nextId = 1

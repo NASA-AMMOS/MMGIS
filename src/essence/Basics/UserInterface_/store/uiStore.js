@@ -226,6 +226,14 @@ const useUIStore = create((set, get) => ({
         set({ toolPanelWidth: 0 })
     },
 
+    openRightPanel: (width) => {
+        set({ rightPanelWidth: width })
+    },
+
+    closeRightPanel: () => {
+        set({ rightPanelWidth: 0 })
+    },
+
     setToolWidth: (newWidth) => {
         const isMobile = get().isMobile
         // Mobile: toolbar is at bottom, no left sidebar offset; Desktop: 40px

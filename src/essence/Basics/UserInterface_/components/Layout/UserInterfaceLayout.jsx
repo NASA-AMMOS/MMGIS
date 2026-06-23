@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import useUIStore from '../../store/uiStore'
 import TopBar from '../TopBar/TopBar'
 import Toolbar from '../Toolbar/Toolbar'
 import SplitScreens from '../SplitScreens/SplitScreens'
 import ToolPanel from '../ToolPanel/ToolPanel'
+import RightPanel from '../RightPanel/RightPanel'
 import BottomElementPositioner from '../BottomElementPositioner/BottomElementPositioner'
 
 import '../../BottomBar.css'
@@ -122,25 +122,10 @@ function UserInterfaceLayout() {
             <TopBar userInterface={bridge} />
             <Toolbar userInterface={bridge} />
             <ToolPanel />
+            <RightPanel />
             <SplitScreens />
             <BottomElementPositioner />
         </div>
-        {createPortal(
-            <div
-                id="uiRightPanel"
-                style={{
-                    display: 'none',
-                    position: 'absolute',
-                    right: '0px',
-                    top: '0px',
-                    height: '100vh',
-                    width: '0px',
-                    background: '#000',
-                    zIndex: 2000,
-                }}
-            ></div>,
-            document.body
-        )}
     </>)
 }
 

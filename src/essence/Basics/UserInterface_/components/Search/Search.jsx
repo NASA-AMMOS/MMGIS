@@ -953,40 +953,6 @@ function SearchBar() {
         setArrayToSearch([])
     }, [restoreLayerState])
 
-    const handleAdvancedSearch = useCallback(() => {
-        const UserInterfaceBridge =
-            require('../../UserInterfaceBridge').default
-        const rightPanel = document.getElementById('uiRightPanel')
-
-        if (UserInterfaceBridge.rightPanelOpen) {
-            // Unmount the React root so useEffect cleanup fires
-            if (rightPanel && rightPanel._reactRoot) {
-                rightPanel._reactRoot.unmount()
-                rightPanel._reactRoot = null
-            }
-            UserInterfaceBridge.closeRightPanel()
-        } else {
-            UserInterfaceBridge.openRightPanel(400)
-            if (rightPanel) {
-                const { GlobalSearchPanel } = require('./GlobalSearchPanel')
-                const { createRoot } = require('react-dom/client')
-
-                let root = createRoot(rightPanel)
-                rightPanel._reactRoot = root
-                root.render(
-                    React.createElement(GlobalSearchPanel, {
-                        onClose: () => {
-                            if (rightPanel._reactRoot) {
-                                rightPanel._reactRoot.unmount()
-                                rightPanel._reactRoot = null
-                            }
-                            UserInterfaceBridge.closeRightPanel()
-                        },
-                    })
-                )
-            }
-        }
-    }, [])
 
     // Field selection from dropdown
     const handleFieldSelect = useCallback(
@@ -1073,7 +1039,7 @@ function SearchBar() {
             const next = !prev
             if (next) {
                 setFieldFilterText('')
-                setLayerSectionExpanded(false)
+                setLayerSectionExpanded(true)
                 setTimeout(() => {
                     if (fieldFilterRef.current) fieldFilterRef.current.focus()
                 }, 50)
@@ -1172,7 +1138,7 @@ function SearchBar() {
                                         <span className="searchDropdownFieldName">
                                             {field.name}
                                         </span>
-                                        <span className="searchDropdownFieldType">
+                                        <span className="searchDropdownFieldType" data-type={field.type}>
                                             {field.type}
                                         </span>
                                         <span className="searchDropdownFieldLayers">
@@ -1327,15 +1293,7 @@ function SearchBar() {
                     <i className="mdi mdi-magnify mdi-18px" />
                 </IconButton>
             </Tooltip>
-            <Tooltip content="Advanced Search" placement="bottom">
-                <IconButton
-                    className="searchAdvancedBtn"
-                    onClick={handleAdvancedSearch}
-                    size="sm"
-                >
-                    <i className="mdi mdi-filter-outline mdi-18px" />
-                </IconButton>
-            </Tooltip>
+
         </div>
     )
 }

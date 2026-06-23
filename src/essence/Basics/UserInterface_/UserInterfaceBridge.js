@@ -195,21 +195,13 @@ const UserInterfaceBridge = {
 
     openRightPanel: function (width) {
         if (UserInterfaceBridge.rightPanelOpen != null) return
-        const rightPanel = document.getElementById('uiRightPanel')
-        if (rightPanel) {
-            rightPanel.style.display = 'inherit'
-            rightPanel.style.width = width + 'px'
-        }
+        useUIStore.getState().openRightPanel(width)
         UserInterfaceBridge.rightPanelOpen = true
     },
 
     closeRightPanel: function () {
         if (UserInterfaceBridge.rightPanelOpen == null) return
-        const rightPanel = document.getElementById('uiRightPanel')
-        if (rightPanel) {
-            rightPanel.style.display = 'none'
-            rightPanel.style.width = '0'
-        }
+        useUIStore.getState().closeRightPanel()
         UserInterfaceBridge.rightPanelOpen = null
     },
 
