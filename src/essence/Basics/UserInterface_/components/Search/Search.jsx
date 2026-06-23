@@ -710,15 +710,22 @@ function SearchBar() {
                     }
                 })
 
-                // Also turn off geodataset layers not in candidateLayers
-                geodatasetLayers.forEach((gl) => {
+                // Turn off all other visible vector layers (not just geodatasets)
+                for (let lname in L_.layers.on) {
                     if (
-                        !candidateLayers.find((c) => c.value === gl.value) &&
-                        L_.layers.on[gl.value] === true
+                        L_.layers.on[lname] === true &&
+                        !layersWithHits.has(lname) &&
+                        L_.layers.data[lname]
                     ) {
-                        L_.toggleLayer(L_.layers.data[gl.value])
+                        const ltype = L_.layers.data[lname].type
+                        if (
+                            ltype === 'vector' ||
+                            ltype === 'vectortile'
+                        ) {
+                            L_.toggleLayer(L_.layers.data[lname])
+                        }
                     }
-                })
+                }
 
                 // Pan to fit all results
                 if (allResultCoords.length > 0) {
