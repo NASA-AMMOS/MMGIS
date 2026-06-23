@@ -153,6 +153,10 @@ function SearchBar() {
 
     const lastGeodatasetLayerName = useRef(null)
 
+    // Pre-search layer state for restore on cancel
+    const preSearchLayerState = useRef(null) // { on: { layerName: bool }, filters: { layerName: filterEncoded } }
+    const searchFilteredLayers = useRef([]) // layer names that have _filterEncoded applied by search
+
     const inputRef = useRef(null)
     const suggestionsRef = useRef(null)
     const dropdownRef = useRef(null)
@@ -164,6 +168,62 @@ function SearchBar() {
     const getMap_ = useCallback(() => {
         return require('../../../Map_/Map_').default
     }, [])
+
+    // Save the current layer visibility and filter state (before search modifies it)
+    const saveLayerState = useCallback(() => {
+        if (preSearchLayerState.current != null) return // already saved
+        const L_ = getL_()
+        const onState = {}
+        const filterState = {}
+        for (let lname in L_.layers.on) {
+            onState[lname] = L_.layers.on[lname]
+        }
+        // Save existing _filterEncoded for geodataset layers
+        geodatasetLayers.forEach((gl) => {
+            const ld = L_.layers.data[gl.value]
+            if (ld && ld._filterEncoded) {
+                filterState[gl.value] = JSON.parse(
+                    JSON.stringify(ld._filterEncoded)
+                )
+            }
+        })
+        preSearchLayerState.current = { on: onState, filters: filterState }
+    }, [getL_, geodatasetLayers])
+
+    // Restore layer visibility and filter state saved before search
+    const restoreLayerState = useCallback(() => {
+        if (preSearchLayerState.current == null) return
+        const L_ = getL_()
+        const { on: savedOn, filters: savedFilters } =
+            preSearchLayerState.current
+
+        // Clear search-applied filters
+        searchFilteredLayers.current.forEach((layerName) => {
+            const ld = L_.layers.data[layerName]
+            if (ld) {
+                if (savedFilters[layerName]) {
+                    ld._filterEncoded = JSON.parse(
+                        JSON.stringify(savedFilters[layerName])
+                    )
+                } else {
+                    delete ld._filterEncoded
+                }
+                L_.Map_.refreshLayer(ld, null, null, true)
+            }
+        })
+        searchFilteredLayers.current = []
+
+        // Restore layer on/off state
+        for (let lname in savedOn) {
+            const isCurrentlyOn = L_.layers.on[lname] === true
+            const shouldBeOn = savedOn[lname] === true
+            if (isCurrentlyOn !== shouldBeOn) {
+                L_.toggleLayer(L_.layers.data[lname])
+            }
+        }
+
+        preSearchLayerState.current = null
+    }, [getL_])
 
     // Initialize search when layers are loaded
     useEffect(() => {
@@ -539,6 +599,8 @@ function SearchBar() {
     )
 
     // Search by selected field across all geodataset layers that have it
+    // - Saves layer state, applies filter to matching layers, turns off non-matching,
+    //   pans to fit all results
     const searchByField = useCallback(
         (value) => {
             const L_ = getL_()
@@ -548,16 +610,46 @@ function SearchBar() {
 
             const fieldName = selectedField.name
             const fieldLayers = selectedField.layers
+            const fieldType = selectedField.type || 'string'
 
-            // Find the first matching geodataset layer
-            const matchingLayers = geodatasetLayers.filter((gl) =>
+            // Save layer state before modifying anything
+            saveLayerState()
+
+            // Clear any previous search filters
+            searchFilteredLayers.current.forEach((layerName) => {
+                const ld = L_.layers.data[layerName]
+                if (ld && ld._filterEncoded) {
+                    delete ld._filterEncoded.filters
+                }
+            })
+            searchFilteredLayers.current = []
+
+            // All geodataset layers that could have this field
+            const candidateLayers = geodatasetLayers.filter((gl) =>
                 fieldLayers.includes(gl.geodatasetName)
             )
-            if (matchingLayers.length === 0) return
+            if (candidateLayers.length === 0) return
 
-            let hasPanned = false
+            // Build the filter string: fieldName+=+type+value
+            const filterEncoded = `${fieldName}+=+${fieldType}+${searchValue.replaceAll(',', '$')}`
 
-            matchingLayers.forEach((gl) => {
+            // Track which layers have hits via search API, then pan to fit all
+            let pendingSearches = candidateLayers.length
+            const allResultCoords = []
+            const layersWithHits = new Set()
+
+            candidateLayers.forEach((gl) => {
+                const layerName = gl.value
+
+                // Apply filter to layer so only matching features render
+                if (!L_.layers.data[layerName]._filterEncoded) {
+                    L_.layers.data[layerName]._filterEncoded = {}
+                }
+                L_.layers.data[layerName]._filterEncoded.filters =
+                    filterEncoded
+                searchFilteredLayers.current.push(layerName)
+
+                // Search to check if this layer has any matching features
                 calls.api(
                     'geodatasets_search',
                     {
@@ -566,70 +658,95 @@ function SearchBar() {
                         value: searchValue,
                     },
                     function (d) {
-                        if (!d.body || d.body.length === 0) return
-                        const r = d.body[0]
-                        const layerName = gl.value
-
-                        if (!L_.layers.on[layerName]) {
-                            L_.toggleLayer(L_.layers.data[layerName])
-                        }
-
-                        // Pan only once (first match wins)
-                        if (!hasPanned) {
-                            hasPanned = true
-                            const c = center(r)
-                            const coords = c.geometry.coordinates
-                            Map_.map.setView(
-                                [coords[1], coords[0]],
-                                Map_.mapScaleZoom || Map_.map.getZoom()
-                            )
-                        }
-
-                        // Select the feature in vector tiles
-                        const layer = L_.layers.layer[layerName]
-                        if (!layer) return
-
-                        let selectTimeout = setTimeout(() => {
-                            layer.off('load')
-                            selectFeature()
-                        }, 1500)
-
-                        layer.on('load', function onLoad() {
-                            layer.off('load')
-                            clearTimeout(selectTimeout)
-                            selectFeature()
-                        })
-
-                        function selectFeature() {
-                            const vts = layer._vectorTiles
-                            if (!vts) return
-                            for (let i in vts) {
-                                for (let j in vts[i]._features) {
-                                    const feature =
-                                        vts[i]._features[j].feature
-                                    if (
-                                        String(
-                                            feature.properties[fieldName]
-                                        ) === String(searchValue)
-                                    ) {
-                                        feature._layerName =
-                                            vts[i].options.layerName
-                                        feature._layer = feature
-                                        layer._events.click[0].fn({
-                                            layer: feature,
-                                            sourceTarget: feature,
-                                        })
-                                        return
-                                    }
+                        if (d.body && d.body.length > 0) {
+                            layersWithHits.add(layerName)
+                            d.body.forEach((r) => {
+                                try {
+                                    const c = center(r)
+                                    allResultCoords.push(
+                                        c.geometry.coordinates
+                                    )
+                                } catch (e) {
+                                    // skip invalid geometries
                                 }
-                            }
+                            })
+                        }
+
+                        pendingSearches--
+                        if (pendingSearches <= 0) {
+                            applySearchResults()
                         }
                     },
-                    function () {}
+                    function () {
+                        pendingSearches--
+                        if (pendingSearches <= 0) {
+                            applySearchResults()
+                        }
+                    }
                 )
             })
+
+            function applySearchResults() {
+                // Turn on layers with hits, turn off those without
+                candidateLayers.forEach((gl) => {
+                    const layerName = gl.value
+                    const hasHits = layersWithHits.has(layerName)
+                    const isOn = L_.layers.on[layerName] === true
+
+                    if (hasHits && !isOn) {
+                        L_.toggleLayer(L_.layers.data[layerName])
+                    } else if (!hasHits && isOn) {
+                        L_.toggleLayer(L_.layers.data[layerName])
+                    }
+
+                    // Refresh filtered layers that are on
+                    if (hasHits) {
+                        L_.Map_.refreshLayer(
+                            L_.layers.data[layerName],
+                            null,
+                            null,
+                            true
+                        )
+                    }
+                })
+
+                // Also turn off geodataset layers not in candidateLayers
+                geodatasetLayers.forEach((gl) => {
+                    if (
+                        !candidateLayers.find((c) => c.value === gl.value) &&
+                        L_.layers.on[gl.value] === true
+                    ) {
+                        L_.toggleLayer(L_.layers.data[gl.value])
+                    }
+                })
+
+                // Pan to fit all results
+                if (allResultCoords.length > 0) {
+                    if (allResultCoords.length === 1) {
+                        Map_.map.setView(
+                            [allResultCoords[0][1], allResultCoords[0][0]],
+                            Map_.mapScaleZoom || Map_.map.getZoom()
+                        )
+                    } else {
+                        const lats = allResultCoords.map((c) => c[1])
+                        const lngs = allResultCoords.map((c) => c[0])
+                        const bounds = [
+                            [Math.min(...lats), Math.min(...lngs)],
+                            [Math.max(...lats), Math.max(...lngs)],
+                        ]
+                        Map_.map.fitBounds(bounds, { padding: [40, 40] })
+                    }
+                }
+            }
         },
-        [inputValue, selectedField, geodatasetLayers, getL_, getMap_]
+        [
+            inputValue,
+            selectedField,
+            geodatasetLayers,
+            saveLayerState,
+            getL_,
+            getMap_,
+        ]
     )
 
     const doWithSearch = useCallback(
@@ -816,6 +933,7 @@ function SearchBar() {
     )
 
     const handleClear = useCallback(() => {
+        restoreLayerState()
         setInputValue('')
         setSuggestions([])
         setShowSuggestions(false)
@@ -826,7 +944,7 @@ function SearchBar() {
         setSelectedLayer(null)
         setPlaceholder('Search features...')
         setArrayToSearch([])
-    }, [])
+    }, [restoreLayerState])
 
     const handleAdvancedSearch = useCallback(() => {
         const UserInterfaceBridge =
@@ -931,15 +1049,17 @@ function SearchBar() {
         }, 50)
     }, [])
 
-    // Remove selected field/layer chip to go back to default
+    // Remove selected field/layer chip to go back to default — restores layer state
     const handleRemoveChip = useCallback(() => {
+        restoreLayerState()
         setSearchMode(MODE_DEFAULT)
         setSelectedField(null)
         setSelectedLayer(null)
         setInputValue('')
+        setFieldValues([])
         setPlaceholder('Search features...')
         setArrayToSearch([])
-    }, [])
+    }, [restoreLayerState])
 
     const toggleDropdown = useCallback(() => {
         setDropdownOpen((prev) => {
