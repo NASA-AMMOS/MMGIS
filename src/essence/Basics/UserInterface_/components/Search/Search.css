@@ -258,8 +258,11 @@
 .searchSuggestionCount {
     flex-shrink: 0;
     font-size: 11px;
-    color: var(--color-d);
-    background: var(--color-b);
+    font-weight: 600;
+    color: var(--color-f);
+    opacity: 0.7;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
     padding: 1px 6px;
     min-width: 18px;
@@ -268,8 +271,10 @@
 
 .searchSuggestionItem:hover .searchSuggestionCount,
 .searchSuggestionItemActive .searchSuggestionCount {
-    color: rgba(255, 255, 255, 0.7);
-    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    opacity: 0.85;
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.25);
 }
 
 .searchSuggestionItem:hover,

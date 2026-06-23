@@ -534,12 +534,8 @@ function SearchBar() {
                 }
             }
 
-            // Also search geodataset layers by field:value if in field mode
-            if (searchMode === MODE_FIELD && selectedField) {
-                searchByField(value)
-            }
         },
-        [inputValue, searchFields, searchMode, selectedField, getL_, getMap_]
+        [inputValue, searchFields, getL_, getMap_]
     )
 
     // Search by selected field across all geodataset layers that have it
@@ -553,10 +549,15 @@ function SearchBar() {
             const fieldName = selectedField.name
             const fieldLayers = selectedField.layers
 
-            // Search each geodataset layer that has this field
-            geodatasetLayers.forEach((gl) => {
-                if (!fieldLayers.includes(gl.geodatasetName)) return
+            // Find the first matching geodataset layer
+            const matchingLayers = geodatasetLayers.filter((gl) =>
+                fieldLayers.includes(gl.geodatasetName)
+            )
+            if (matchingLayers.length === 0) return
 
+            let hasPanned = false
+
+            matchingLayers.forEach((gl) => {
                 calls.api(
                     'geodatasets_search',
                     {
@@ -565,17 +566,63 @@ function SearchBar() {
                         value: searchValue,
                     },
                     function (d) {
-                        if (d.body && d.body.length > 0) {
-                            const r = d.body[0]
-                            if (!L_.layers.on[gl.value]) {
-                                L_.toggleLayer(L_.layers.data[gl.value])
-                            }
+                        if (!d.body || d.body.length === 0) return
+                        const r = d.body[0]
+                        const layerName = gl.value
+
+                        if (!L_.layers.on[layerName]) {
+                            L_.toggleLayer(L_.layers.data[layerName])
+                        }
+
+                        // Pan only once (first match wins)
+                        if (!hasPanned) {
+                            hasPanned = true
                             const c = center(r)
                             const coords = c.geometry.coordinates
                             Map_.map.setView(
                                 [coords[1], coords[0]],
                                 Map_.mapScaleZoom || Map_.map.getZoom()
                             )
+                        }
+
+                        // Select the feature in vector tiles
+                        const layer = L_.layers.layer[layerName]
+                        if (!layer) return
+
+                        let selectTimeout = setTimeout(() => {
+                            layer.off('load')
+                            selectFeature()
+                        }, 1500)
+
+                        layer.on('load', function onLoad() {
+                            layer.off('load')
+                            clearTimeout(selectTimeout)
+                            selectFeature()
+                        })
+
+                        function selectFeature() {
+                            const vts = layer._vectorTiles
+                            if (!vts) return
+                            for (let i in vts) {
+                                for (let j in vts[i]._features) {
+                                    const feature =
+                                        vts[i]._features[j].feature
+                                    if (
+                                        String(
+                                            feature.properties[fieldName]
+                                        ) === String(searchValue)
+                                    ) {
+                                        feature._layerName =
+                                            vts[i].options.layerName
+                                        feature._layer = feature
+                                        layer._events.click[0].fn({
+                                            layer: feature,
+                                            sourceTarget: feature,
+                                        })
+                                        return
+                                    }
+                                }
+                            }
                         }
                     },
                     function () {}
@@ -846,12 +893,21 @@ function SearchBar() {
                         ) {
                             const aggs =
                                 data.aggregations[field.name].aggs
-                            const vals = Object.keys(aggs)
-                                .sort()
-                                .map((v) => ({
-                                    value: v,
-                                    count: aggs[v],
-                                }))
+                            const fieldType =
+                                data.aggregations[field.name].type
+                            const keys = Object.keys(aggs)
+                            if (fieldType === 'number') {
+                                keys.sort(
+                                    (a, b) =>
+                                        parseFloat(a) - parseFloat(b)
+                                )
+                            } else {
+                                keys.sort()
+                            }
+                            const vals = keys.map((v) => ({
+                                value: v,
+                                count: aggs[v],
+                            }))
                             setFieldValues(vals)
                         }
                     },
