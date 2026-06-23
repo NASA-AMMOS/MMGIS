@@ -149,7 +149,7 @@ function SearchBar() {
     const [schemaFields, setSchemaFields] = useState([]) // [{ name, type, layers }]
     const [geodatasetLayers, setGeodatasetLayers] = useState([]) // [{ value, label, geodatasetName }]
     const [vectorLayers, setVectorLayers] = useState([]) // [{ value, label }]
-    const [fieldValues, setFieldValues] = useState([]) // autocomplete values for selected field
+    const [fieldValues, setFieldValues] = useState([]) // [{ value, count }] autocomplete values for selected field
 
     const lastGeodatasetLayerName = useRef(null)
 
@@ -317,26 +317,53 @@ function SearchBar() {
             setShowSuggestions(false)
             return
         }
+
+        // In field mode, show all values when input is empty (on focus)
+        if (searchMode === MODE_FIELD) {
+            if (!inputValue || inputValue.length < 1) {
+                const all = fieldValues.slice(0, 100)
+                setSuggestions(all)
+                setShowSuggestions(all.length > 0)
+                setActiveSuggestionIdx(-1)
+                return
+            }
+            const query = inputValue.toLowerCase()
+            const filtered = fieldValues
+                .filter(
+                    (item) =>
+                        String(item.value)
+                            .toLowerCase()
+                            .indexOf(query) !== -1
+                )
+                .slice(0, 100)
+            filtered.sort((a, b) => {
+                const aIdx = String(a.value).toLowerCase().indexOf(query)
+                const bIdx = String(b.value).toLowerCase().indexOf(query)
+                if (aIdx !== bIdx) return aIdx - bIdx
+                return a.value > b.value ? 1 : -1
+            })
+            setSuggestions(filtered)
+            setShowSuggestions(filtered.length > 0)
+            setActiveSuggestionIdx(-1)
+            return
+        }
+
+        // Layer mode
         if (!inputValue || inputValue.length < 1) {
             setSuggestions([])
             setShowSuggestions(false)
             return
         }
-
-        const source =
-            searchMode === MODE_FIELD ? fieldValues : arrayToSearch
         const query = inputValue.toLowerCase()
-        const filtered = source
+        const filtered = arrayToSearch
             .filter((item) => String(item).toLowerCase().indexOf(query) !== -1)
             .slice(0, 100)
-
         filtered.sort((a, b) => {
             const aIdx = String(a).toLowerCase().indexOf(query)
             const bIdx = String(b).toLowerCase().indexOf(query)
             if (aIdx !== bIdx) return aIdx - bIdx
             return a > b ? 1 : -1
         })
-
         setSuggestions(filtered)
         setShowSuggestions(filtered.length > 0)
         setActiveSuggestionIdx(-1)
@@ -699,9 +726,16 @@ function SearchBar() {
                     activeSuggestionIdx >= 0 &&
                     suggestions[activeSuggestionIdx]
                 ) {
-                    setInputValue(String(suggestions[activeSuggestionIdx]))
+                    const sel = suggestions[activeSuggestionIdx]
+                    const val =
+                        sel != null &&
+                        typeof sel === 'object' &&
+                        sel.value != null
+                            ? String(sel.value)
+                            : String(sel)
+                    setInputValue(val)
                     setShowSuggestions(false)
-                    handleSearch(String(suggestions[activeSuggestionIdx]))
+                    handleSearch(val)
                 } else {
                     setShowSuggestions(false)
                     handleSearch()
@@ -722,10 +756,14 @@ function SearchBar() {
     )
 
     const handleSuggestionClick = useCallback(
-        (value) => {
-            setInputValue(String(value))
+        (item) => {
+            const val =
+                item != null && typeof item === 'object' && item.value != null
+                    ? String(item.value)
+                    : String(item)
+            setInputValue(val)
             setShowSuggestions(false)
-            handleSearch(String(value))
+            handleSearch(val)
         },
         [handleSearch]
     )
@@ -806,9 +844,14 @@ function SearchBar() {
                             data.aggregations[field.name] &&
                             data.aggregations[field.name].aggs
                         ) {
-                            const vals = Object.keys(
+                            const aggs =
                                 data.aggregations[field.name].aggs
-                            ).sort()
+                            const vals = Object.keys(aggs)
+                                .sort()
+                                .map((v) => ({
+                                    value: v,
+                                    count: aggs[v],
+                                }))
                             setFieldValues(vals)
                         }
                     },
@@ -1034,28 +1077,52 @@ function SearchBar() {
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={handleKeyDown}
                     onFocus={() => {
-                        if (suggestions.length > 0) setShowSuggestions(true)
+                        if (searchMode === MODE_FIELD && fieldValues.length > 0) {
+                            const all = fieldValues.slice(0, 100)
+                            setSuggestions(all)
+                            setShowSuggestions(true)
+                        } else if (suggestions.length > 0) {
+                            setShowSuggestions(true)
+                        }
                     }}
                     tabIndex={401}
                 />
                 {showSuggestions && suggestions.length > 0 && (
                     <div className="searchSuggestions" ref={suggestionsRef}>
-                        {suggestions.map((s, idx) => (
-                            <div
-                                key={idx}
-                                className={`searchSuggestionItem ${
-                                    idx === activeSuggestionIdx
-                                        ? 'searchSuggestionItemActive'
-                                        : ''
-                                }`}
-                                onMouseDown={() => handleSuggestionClick(s)}
-                                onMouseEnter={() =>
-                                    setActiveSuggestionIdx(idx)
-                                }
-                            >
-                                {String(s)}
-                            </div>
-                        ))}
+                        {suggestions.map((s, idx) => {
+                            const isObj =
+                                s != null &&
+                                typeof s === 'object' &&
+                                s.value != null
+                            const label = isObj
+                                ? String(s.value)
+                                : String(s)
+                            return (
+                                <div
+                                    key={idx}
+                                    className={`searchSuggestionItem ${
+                                        idx === activeSuggestionIdx
+                                            ? 'searchSuggestionItemActive'
+                                            : ''
+                                    }`}
+                                    onMouseDown={() =>
+                                        handleSuggestionClick(s)
+                                    }
+                                    onMouseEnter={() =>
+                                        setActiveSuggestionIdx(idx)
+                                    }
+                                >
+                                    <span className="searchSuggestionLabel">
+                                        {label}
+                                    </span>
+                                    {isObj && s.count != null && (
+                                        <span className="searchSuggestionCount">
+                                            {s.count}
+                                        </span>
+                                    )}
+                                </div>
+                            )
+                        })}
                     </div>
                 )}
             </div>

@@ -242,6 +242,34 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.searchSuggestionLabel {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.searchSuggestionCount {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: var(--color-d);
+    background: var(--color-b);
+    border-radius: 8px;
+    padding: 1px 6px;
+    min-width: 18px;
+    text-align: center;
+}
+
+.searchSuggestionItem:hover .searchSuggestionCount,
+.searchSuggestionItemActive .searchSuggestionCount {
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.15);
 }
 
 .searchSuggestionItem:hover,
