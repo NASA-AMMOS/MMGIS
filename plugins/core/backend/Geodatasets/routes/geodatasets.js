@@ -1400,7 +1400,7 @@ router.post("/search", function (req, res, next) {
         const replacements = {
           orderBy: orderBy || "id",
           key: req.body.key,
-          geomType: req.body.restrictToGeometryType,
+          geomtype: req.body.restrictToGeometryType,
           value: sanitizedValue,
         };
 

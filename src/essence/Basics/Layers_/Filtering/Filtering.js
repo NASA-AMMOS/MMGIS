@@ -745,6 +745,11 @@ const Filtering = {
 
         // Value AutoComplete
         Filtering.updateValuesAutoComplete(id, layerName)
+
+        // If initial operator is isnull/isnotnull, disable the value input
+        if (options.op === 'isnull' || options.op === 'isnotnull') {
+            Filtering.toggleValueInput(id, layerName, options.op)
+        }
     },
     toggleValueInput: function (id, layerName, operator) {
         const elmId = `#layersTool_filtering_value_value_input_${F_.getSafeName(
