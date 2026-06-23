@@ -96,7 +96,7 @@ test.describe('Global Feature Search', () => {
         await expect(firstCheckbox).toBeChecked()
     })
 
-    test('selecting a field shows chip and changes placeholder', async ({
+    test('selecting a field updates trigger label and changes placeholder', async ({
         page,
     }) => {
         await expect(page.locator('.searchBar')).toBeVisible({ timeout: 15000 })
@@ -121,41 +121,9 @@ test.describe('Global Feature Search', () => {
         // Dropdown should close
         await expect(panel).not.toBeVisible()
 
-        // Chip should appear with the field name
-        const chip = page.locator('.searchChip')
-        await expect(chip).toBeVisible()
-        await expect(chip.locator('.searchChipLabel')).toContainText(fieldName)
-    })
-
-    test('removing chip returns to default search mode', async ({ page }) => {
-        await expect(page.locator('.searchBar')).toBeVisible({ timeout: 15000 })
-        await page.waitForTimeout(2000)
-
-        // Select a field first
-        await page.locator('.searchDropdownTrigger').nth(1).click()
-        const panel = page.locator('.searchDropdownPanel').last()
-        await expect(panel).toBeVisible({ timeout: 5000 })
-
-        const firstField = panel.locator('.searchDropdownFieldItem').first()
-        await expect(firstField).toBeVisible({ timeout: 10000 })
-        await firstField.click()
-
-        // Chip should be visible
-        const chip = page.locator('.searchChip')
-        await expect(chip).toBeVisible()
-
-        // Click remove on chip
-        await chip.locator('.searchChipRemove').click()
-
-        // Chip should disappear
-        await expect(chip).not.toBeVisible()
-
-        // Placeholder should be back to default
-        const searchInput = page.locator(
-            '.searchInputWrapper input[type="text"]'
-        )
-        const placeholder = await searchInput.getAttribute('placeholder')
-        expect(placeholder).toBe('Search features...')
+        // Fields trigger label should show the selected field name
+        const triggerLabel = page.locator('.searchDropdownTrigger').nth(1).locator('.searchDropdownTriggerLabel')
+        await expect(triggerLabel).toContainText(fieldName)
     })
 
     test('field filter input narrows the field list', async ({ page }) => {
@@ -188,7 +156,7 @@ test.describe('Global Feature Search', () => {
 
     // ----- Clear / basic search -----
 
-    test('clear button resets search input and chip', async ({ page }) => {
+    test('clear button resets search input', async ({ page }) => {
         await expect(page.locator('.searchBar')).toBeVisible({ timeout: 15000 })
 
         const searchInput = page.locator(
@@ -202,8 +170,5 @@ test.describe('Global Feature Search', () => {
 
         // Input should be empty
         expect(await searchInput.inputValue()).toBe('')
-
-        // No chip should be visible
-        await expect(page.locator('.searchChip')).not.toBeVisible()
     })
 })

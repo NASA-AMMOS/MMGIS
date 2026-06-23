@@ -35,7 +35,8 @@
 
 .searchDropdownTriggerLabel {
     font-size: 11px;
-    max-width: 60px;
+    min-width: 24px;
+    text-align: center;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -241,67 +242,13 @@
 }
 
 .searchDropdownLayerCheckItem {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
+    padding: 2px 12px;
     cursor: pointer;
-    font-size: 12px;
-    color: var(--color-a5);
     transition: background 0.1s;
 }
 
 .searchDropdownLayerCheckItem:hover {
     background: var(--color-a1);
-    color: var(--color-f);
-}
-
-.searchDropdownLayerCheckItem input[type='checkbox'] {
-    margin: 0;
-    cursor: pointer;
-    accent-color: var(--color-mmgis);
-}
-
-.searchDropdownLayerCheckLabel {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* Selection chip */
-.searchChip {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    height: 22px;
-    padding: 0 4px 0 8px;
-    margin: 0 2px;
-    background: var(--color-mmgis);
-    color: #fff;
-    border-radius: 3px;
-    font-size: 11px;
-    white-space: nowrap;
-    max-width: 160px;
-    flex-shrink: 0;
-}
-
-.searchChipLabel {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.searchChipRemove {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    opacity: 0.7;
-    transition: opacity 0.1s;
-    padding: 0 2px;
-}
-
-.searchChipRemove:hover {
-    opacity: 1;
 }
 
 /* Operator dropdown */

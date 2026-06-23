@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { center } from '@turf/turf'
 
+import Checkbox from '../../../../../design-system/components/Checkbox/Checkbox'
 import IconButton from '../../../../../design-system/components/IconButton/IconButton'
 import Tooltip from '../../../../../design-system/components/Tooltip/Tooltip'
 
@@ -652,7 +653,8 @@ function SearchBar() {
             const L_ = getL_()
             const Map_ = getMap_()
             const searchValue = (value || inputValue).trim()
-            if (!searchValue || !selectedField) return
+            const isNullOp = searchOperator === 'isnull' || searchOperator === 'isnotnull'
+            if ((!searchValue && !isNullOp) || !selectedField) return
 
             const fieldName = selectedField.name
             const fieldLayers = selectedField.layers
@@ -682,7 +684,9 @@ function SearchBar() {
             // Map frontend operator names to filterEncoded format
             const opMap = { ',': 'in', 'contains': 'contains', 'beginswith': 'beginswith', 'endswith': 'endswith' }
             const filterOp = opMap[searchOperator] || searchOperator
-            const filterEncoded = `${fieldName}+${filterOp}+${fieldType}+${searchValue.replaceAll(',', '$')}`
+            const filterEncoded = isNullOp
+                ? `${fieldName}+${filterOp}+${fieldType}+`
+                : `${fieldName}+${filterOp}+${fieldType}+${searchValue.replaceAll(',', '$')}`
 
             // Track which layers have hits via search API, then pan to fit all
             let pendingSearches = candidateLayers.length
@@ -1086,18 +1090,6 @@ function SearchBar() {
         setCheckedLayers(new Set())
     }, [])
 
-    // Remove selected field chip to go back to default — restores layer state
-    const handleRemoveChip = useCallback(() => {
-        restoreLayerState()
-        setSearchMode(MODE_DEFAULT)
-        setSelectedField(null)
-        setSelectedLayer(null)
-        setSearchOperator('=')
-        setInputValue('')
-        setFieldValues([])
-        setPlaceholder('Search features...')
-        setArrayToSearch([])
-    }, [restoreLayerState])
 
     const toggleDropdown = useCallback(() => {
         setDropdownOpen((prev) => {
@@ -1160,11 +1152,6 @@ function SearchBar() {
         : geodatasetLayers
 
     if (!initialized) return null
-
-    const chipLabel =
-        searchMode === MODE_FIELD && selectedField
-            ? selectedField.name
-            : null
 
     // Layer dropdown summary label
     const allLayersChecked = checkedLayers.size === geodatasetLayers.length
@@ -1229,21 +1216,22 @@ function SearchBar() {
                             </div>
                             <div className="searchDropdownLayerList">
                                 {filteredLayerList.map((layer) => (
-                                    <label
+                                    <div
                                         key={layer.value}
                                         className="searchDropdownLayerCheckItem"
+                                        onClick={() =>
+                                            handleLayerToggle(layer.geodatasetName)
+                                        }
                                     >
-                                        <input
-                                            type="checkbox"
+                                        <Checkbox
                                             checked={checkedLayers.has(layer.geodatasetName)}
-                                            onChange={() =>
+                                            onCheckedChange={() =>
                                                 handleLayerToggle(layer.geodatasetName)
                                             }
-                                        />
-                                        <span className="searchDropdownLayerCheckLabel">
+                                        >
                                             {layer.label}
-                                        </span>
-                                    </label>
+                                        </Checkbox>
+                                    </div>
                                 ))}
                             </div>
                         </div>
@@ -1332,19 +1320,6 @@ function SearchBar() {
                 )}
             </div>
 
-            {/* Chip for selected field or layer */}
-            {chipLabel && (
-                <div className="searchChip">
-                    <span className="searchChipLabel">{chipLabel}</span>
-                    <span
-                        className="searchChipRemove"
-                        onClick={handleRemoveChip}
-                    >
-                        <i className="mdi mdi-close mdi-12px" />
-                    </span>
-                </div>
-            )}
-
             {/* Operator dropdown (field mode only) */}
             {searchMode === MODE_FIELD && selectedField && (() => {
                 const ops = selectedField.type === 'number' ? NUMBER_OPS : STRING_OPS
@@ -1399,11 +1374,20 @@ function SearchBar() {
                     ref={inputRef}
                     className="topBarSearch"
                     type="text"
-                    placeholder={placeholder}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder={
+                        searchOperator === 'isnull' || searchOperator === 'isnotnull'
+                            ? searchOperator === 'isnull' ? 'Is Null' : 'Is Not Null'
+                            : placeholder
+                    }
+                    value={searchOperator === 'isnull' || searchOperator === 'isnotnull' ? '' : inputValue}
+                    onChange={(e) => {
+                        if (searchOperator !== 'isnull' && searchOperator !== 'isnotnull') {
+                            setInputValue(e.target.value)
+                        }
+                    }}
                     onKeyDown={handleKeyDown}
                     onFocus={() => {
+                        if (searchOperator === 'isnull' || searchOperator === 'isnotnull') return
                         if (searchMode === MODE_FIELD && fieldValues.length > 0) {
                             const all = fieldValues.slice(0, 100)
                             setSuggestions(all)
@@ -1412,6 +1396,8 @@ function SearchBar() {
                             setShowSuggestions(true)
                         }
                     }}
+                    disabled={searchOperator === 'isnull' || searchOperator === 'isnotnull'}
+                    style={searchOperator === 'isnull' || searchOperator === 'isnotnull' ? { opacity: 0.4 } : undefined}
                     tabIndex={401}
                 />
                 {showSuggestions && suggestions.length > 0 && (
