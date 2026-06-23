@@ -440,17 +440,25 @@ function get(reqtype, req, res, next, options) {
             q += ` ORDER BY id DESC LIMIT 3;`;
           } else if (distinctField != null) {
             q += ` ORDER BY ${distinctField}, id DESC`;
-            if (Number.isFinite(paginationLimit) && paginationLimit > 0)
-              q += ` LIMIT ${paginationLimit}`;
-            if (Number.isFinite(paginationOffset) && paginationOffset >= 0)
-              q += ` OFFSET ${paginationOffset}`;
+            if (Number.isFinite(paginationLimit) && paginationLimit > 0) {
+              q += ` LIMIT :paginationLimit`;
+              replacements.paginationLimit = paginationLimit;
+            }
+            if (Number.isFinite(paginationOffset) && paginationOffset >= 0) {
+              q += ` OFFSET :paginationOffset`;
+              replacements.paginationOffset = paginationOffset;
+            }
             q += `;`;
           } else {
             q += ` ORDER BY id DESC`;
-            if (Number.isFinite(paginationLimit) && paginationLimit > 0)
-              q += ` LIMIT ${paginationLimit}`;
-            if (Number.isFinite(paginationOffset) && paginationOffset >= 0)
-              q += ` OFFSET ${paginationOffset}`;
+            if (Number.isFinite(paginationLimit) && paginationLimit > 0) {
+              q += ` LIMIT :paginationLimit`;
+              replacements.paginationLimit = paginationLimit;
+            }
+            if (Number.isFinite(paginationOffset) && paginationOffset >= 0) {
+              q += ` OFFSET :paginationOffset`;
+              replacements.paginationOffset = paginationOffset;
+            }
             q += `;`;
           }
 
@@ -1065,6 +1073,103 @@ router.get("/schema", function (req, res, next) {
       res.send({
         status: "failure",
         message: "Failure querying geodataset schema.",
+      });
+    });
+});
+
+// Bulk aggregations endpoint — returns aggregated field values across
+// multiple geodataset layers in a single call.
+// GET /api/geodatasets/bulk_aggregations?layers=layer1,layer2,...&limit=500
+router.get("/bulk_aggregations", function (req, res, next) {
+  const layersParam = req.query.layers;
+  if (!layersParam) {
+    res.send({ status: "failure", message: "Missing 'layers' parameter." });
+    return;
+  }
+
+  const layerNames = layersParam
+    .split(",")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (layerNames.length === 0) {
+    res.send({ status: "failure", message: "No valid layer names provided." });
+    return;
+  }
+
+  const cappedLayerNames = layerNames.slice(0, 100);
+  const sampleLimit = req.query.limit != null ? parseInt(req.query.limit) : 500;
+
+  const Op = require("sequelize").Op;
+  Geodatasets.findAll({ where: { name: { [Op.in]: cappedLayerNames } } })
+    .then(async (results) => {
+      if (!results || results.length === 0) {
+        res.send({ status: "success", aggregations: {} });
+        return;
+      }
+
+      const aggs = {};
+      const promises = results.map((result) => {
+        const table = result.dataValues.table;
+        const q = `SELECT properties FROM ${Utils.forceAlphaNumUnder(
+          table
+        )} ORDER BY RANDOM() DESC LIMIT :limit;`;
+        return sequelize
+          .query(q, { replacements: { limit: sampleLimit } })
+          .then(([rows]) => {
+            rows.forEach((row) => {
+              const flatProps = row.properties;
+              for (let p in flatProps) {
+                let value = flatProps[p];
+                let type = null;
+
+                if (!isNaN(value) && !isNaN(parseFloat(value))) type = "number";
+                else if (typeof value === "string") type = "string";
+                else if (typeof value === "number") type = "number";
+                else if (typeof value === "boolean") type = "boolean";
+
+                if (type != null) {
+                  aggs[p] = aggs[p] || { type: type, aggs: {} };
+                  if (aggs[p].type === "number" && type === "string")
+                    aggs[p].type = type;
+                  aggs[p].aggs[flatProps[p]] = aggs[p].aggs[flatProps[p]] || 0;
+                  aggs[p].aggs[flatProps[p]]++;
+                }
+              }
+            });
+          })
+          .catch(() => {
+            // Skip layers that fail
+          });
+      });
+
+      await Promise.all(promises);
+
+      // Sort values within each field
+      Object.keys(aggs).forEach((agg) => {
+        const sortedAggs = {};
+        Object.keys(aggs[agg].aggs)
+          .sort()
+          .reverse()
+          .forEach((agg2) => {
+            sortedAggs[agg2] = aggs[agg].aggs[agg2];
+          });
+        aggs[agg].aggs = sortedAggs;
+      });
+
+      res.send({ status: "success", aggregations: aggs });
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        "Failure querying bulk geodataset aggregations.",
+        req.originalUrl,
+        req,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: "Failure querying bulk geodataset aggregations.",
       });
     });
 });

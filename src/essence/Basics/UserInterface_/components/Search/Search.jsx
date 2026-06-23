@@ -149,6 +149,7 @@ function SearchBar() {
     const [schemaFields, setSchemaFields] = useState([]) // [{ name, type, layers }]
     const [geodatasetLayers, setGeodatasetLayers] = useState([]) // [{ value, label, geodatasetName }]
     const [vectorLayers, setVectorLayers] = useState([]) // [{ value, label }]
+    const [fieldValues, setFieldValues] = useState([]) // autocomplete values for selected field
 
     const lastGeodatasetLayerName = useRef(null)
 
@@ -309,9 +310,9 @@ function SearchBar() {
         setPlaceholder(getSearchFieldKeys(searchFields, lname) || 'Search...')
     }, [searchMode, selectedLayer, searchFields, getL_, getMap_])
 
-    // Filter suggestions based on input (only for layer mode)
+    // Filter suggestions based on input (layer mode and field mode)
     useEffect(() => {
-        if (searchMode !== MODE_LAYER) {
+        if (searchMode !== MODE_LAYER && searchMode !== MODE_FIELD) {
             setSuggestions([])
             setShowSuggestions(false)
             return
@@ -322,8 +323,10 @@ function SearchBar() {
             return
         }
 
+        const source =
+            searchMode === MODE_FIELD ? fieldValues : arrayToSearch
         const query = inputValue.toLowerCase()
-        const filtered = arrayToSearch
+        const filtered = source
             .filter((item) => String(item).toLowerCase().indexOf(query) !== -1)
             .slice(0, 100)
 
@@ -337,7 +340,7 @@ function SearchBar() {
         setSuggestions(filtered)
         setShowSuggestions(filtered.length > 0)
         setActiveSuggestionIdx(-1)
-    }, [inputValue, arrayToSearch, searchMode])
+    }, [inputValue, arrayToSearch, fieldValues, searchMode])
 
     // Close dropdown and suggestions on outside click
     useEffect(() => {
@@ -731,6 +734,7 @@ function SearchBar() {
         setInputValue('')
         setSuggestions([])
         setShowSuggestions(false)
+        setFieldValues([])
         // Reset to default mode
         setSearchMode(MODE_DEFAULT)
         setSelectedField(null)
@@ -745,6 +749,11 @@ function SearchBar() {
         const rightPanel = document.getElementById('uiRightPanel')
 
         if (UserInterfaceBridge.rightPanelOpen) {
+            // Unmount the React root so useEffect cleanup fires
+            if (rightPanel && rightPanel._reactRoot) {
+                rightPanel._reactRoot.unmount()
+                rightPanel._reactRoot = null
+            }
             UserInterfaceBridge.closeRightPanel()
         } else {
             UserInterfaceBridge.openRightPanel(400)
@@ -752,14 +761,15 @@ function SearchBar() {
                 const { GlobalSearchPanel } = require('./GlobalSearchPanel')
                 const { createRoot } = require('react-dom/client')
 
-                let root = rightPanel._reactRoot
-                if (!root) {
-                    root = createRoot(rightPanel)
-                    rightPanel._reactRoot = root
-                }
+                let root = createRoot(rightPanel)
+                rightPanel._reactRoot = root
                 root.render(
                     React.createElement(GlobalSearchPanel, {
                         onClose: () => {
+                            if (rightPanel._reactRoot) {
+                                rightPanel._reactRoot.unmount()
+                                rightPanel._reactRoot = null
+                            }
                             UserInterfaceBridge.closeRightPanel()
                         },
                     })
@@ -769,19 +779,45 @@ function SearchBar() {
     }, [])
 
     // Field selection from dropdown
-    const handleFieldSelect = useCallback((field) => {
-        setSearchMode(MODE_FIELD)
-        setSelectedField(field)
-        setSelectedLayer(null)
-        setInputValue('')
-        setPlaceholder(`Search by ${field.name}...`)
-        setDropdownOpen(false)
-        setFieldFilterText('')
-        // Focus the input after selecting
-        setTimeout(() => {
-            if (inputRef.current) inputRef.current.focus()
-        }, 50)
-    }, [])
+    const handleFieldSelect = useCallback(
+        (field) => {
+            setSearchMode(MODE_FIELD)
+            setSelectedField(field)
+            setSelectedLayer(null)
+            setInputValue('')
+            setFieldValues([])
+            setPlaceholder(`Search by ${field.name}...`)
+            setDropdownOpen(false)
+            setFieldFilterText('')
+            // Focus the input after selecting
+            setTimeout(() => {
+                if (inputRef.current) inputRef.current.focus()
+            }, 50)
+
+            // Fetch field values via bulk aggregations
+            if (field.layers && field.layers.length > 0) {
+                calls.api(
+                    'geodatasets_bulk_aggregations',
+                    { layers: field.layers.join(',') },
+                    function (data) {
+                        if (
+                            data.status === 'success' &&
+                            data.aggregations &&
+                            data.aggregations[field.name] &&
+                            data.aggregations[field.name].aggs
+                        ) {
+                            const vals = Object.keys(
+                                data.aggregations[field.name].aggs
+                            ).sort()
+                            setFieldValues(vals)
+                        }
+                    },
+                    function () {}
+                )
+            }
+        },
+        []
+    )
 
     // Layer selection from dropdown
     const handleLayerSelect = useCallback((layer) => {

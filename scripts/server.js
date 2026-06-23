@@ -325,6 +325,7 @@ function ensureAdmin(
       url.endsWith("/api/geodatasets/intersect") ||
       url.endsWith("/api/geodatasets/aggregations") ||
       url.endsWith("/api/geodatasets/schema") ||
+      url.endsWith("/api/geodatasets/bulk_aggregations") ||
       url.endsWith("/api/geodatasets/search") ||
       url.endsWith("/api/datasets/get") ||
       req.session.permission === "111" ||
