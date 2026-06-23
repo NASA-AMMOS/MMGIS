@@ -15,7 +15,6 @@ function UserInterfaceLayout() {
     const containerRef = useRef(null)
     const [bridge, setBridge] = useState(null)
     const visible = useUIStore((s) => s.visible)
-    const rightPanelWidth = useUIStore((s) => s.rightPanelWidth)
     const isMobile = useUIStore((s) => s.isMobile)
     const modalBlurCount = useUIStore((s) => s.modalBlurCount)
 
@@ -114,7 +113,7 @@ function UserInterfaceLayout() {
                 opacity: visible ? 1 : 0,
                 filter: !visible ? 'blur(5px)' : modalBlurCount > 0 ? `blur(${3 * modalBlurCount}px)` : 'none',
                 transition: visible ? 'opacity 1s, filter 0.3s ease-in-out' : 'none',
-                width: rightPanelWidth > 0 ? `calc(100% - ${rightPanelWidth}px)` : '100%',
+                width: '100%',
                 height: '100vh',
                 overflow: 'hidden',
                 position: 'relative',

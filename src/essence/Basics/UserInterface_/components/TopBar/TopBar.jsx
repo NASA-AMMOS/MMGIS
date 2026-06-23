@@ -8,6 +8,7 @@ import Tooltip from '../../../../../design-system/components/Tooltip/Tooltip'
 import ConfirmationModal from '../ConfirmationModal/ConfirmationModal'
 import Modal from '../Modal/Modal'
 
+import SearchBar from '../Search/Search'
 import styles from './TopBar.module.css'
 
 const STATUS_CONFIG = {
@@ -336,7 +337,7 @@ function TopBar({ userInterface }) {
                 </div>
             </div>
             <div id="topBarRight">
-                <div className="Search"></div>
+                <SearchBar />
             </div>
 
             {/* Panel toggles + user area + kebab menu */}

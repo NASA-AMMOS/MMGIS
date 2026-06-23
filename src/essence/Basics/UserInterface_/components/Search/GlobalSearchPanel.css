@@ -1,0 +1,233 @@
+.gspContainer {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--color-a);
+    color: var(--color-f);
+    font-family: inherit;
+}
+
+.gspHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--color-b);
+    min-height: 40px;
+}
+
+.gspTitle {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+.gspBody {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 12px;
+}
+
+.gspSection {
+    margin-bottom: 14px;
+}
+
+.gspSectionLabel {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-a4);
+    margin-bottom: 6px;
+}
+
+/* Layer chips */
+.gspLayerChips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.gspChip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    font-size: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--color-b);
+    cursor: pointer;
+    background: transparent;
+    color: var(--color-f);
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.gspChip:hover {
+    border-color: var(--color-mmgis);
+}
+
+.gspChipActive {
+    background: var(--color-mmgis);
+    border-color: var(--color-mmgis);
+    color: #fff;
+}
+
+.gspNoLayers {
+    font-size: 12px;
+    color: var(--color-a4);
+    font-style: italic;
+}
+
+/* Filters */
+.gspFilters {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.gspFilterRow {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.gspFilterRowInputs {
+    display: flex;
+    flex: 1;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.gspFilterGroup {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+}
+
+.gspInput {
+    height: 28px;
+    padding: 0 6px;
+    font-size: 12px;
+    background: var(--color-a);
+    color: var(--color-f);
+    border: 1px solid var(--color-b);
+    border-radius: 3px;
+    outline: none;
+}
+
+.gspInput:focus {
+    border-color: var(--color-mmgis);
+}
+
+.gspKeyInput {
+    flex: 2;
+    min-width: 60px;
+}
+
+.gspValueInput {
+    flex: 2;
+    min-width: 60px;
+}
+
+.gspOpSelect {
+    min-width: 50px;
+    height: 28px;
+    font-size: 11px;
+}
+
+.gspGroupOpSelect {
+    min-width: 80px;
+    height: 28px;
+    font-size: 11px;
+}
+
+.gspTypeSelect {
+    min-width: 60px;
+    height: 28px;
+    font-size: 11px;
+}
+
+.gspFilterActions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.gspSearchAction {
+    margin-bottom: 14px;
+}
+
+/* Results */
+.gspResults {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.gspResultGroup {
+    margin-bottom: 8px;
+}
+
+.gspResultGroupHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--color-b);
+    margin-bottom: 2px;
+}
+
+.gspResultGroupName {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.gspResultGroupCount {
+    font-size: 11px;
+    color: var(--color-a4);
+}
+
+.gspResultItem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.1s;
+}
+
+.gspResultItem:hover {
+    background: var(--color-i);
+}
+
+.gspResultIcon {
+    color: var(--color-mmgis);
+    flex-shrink: 0;
+}
+
+.gspResultName {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gspLoadMore {
+    padding: 4px 6px;
+    font-size: 12px;
+    color: var(--color-mmgis);
+    cursor: pointer;
+    text-align: center;
+}
+
+.gspLoadMore:hover {
+    text-decoration: underline;
+}
+
+.gspNoResults {
+    font-size: 12px;
+    color: var(--color-a4);
+    font-style: italic;
+    padding: 8px 0;
+}

@@ -31,6 +31,8 @@ function get(reqtype, req, res, next, options) {
   let get_id = null;
   let filters = null;
   let spatialFilter = null; // Not implemented
+  let paginationLimit = null;
+  let paginationOffset = null;
 
   if (reqtype === "post") {
     layer = req.body.layer;
@@ -45,6 +47,8 @@ function get(reqtype, req, res, next, options) {
     if (req.body.id != null) get_id = req.body.id;
     if (req.body.filters != null) filters = req.body.filters;
     if (req.body.spatialFilter != null) spatialFilter = req.body.spatialFilter;
+    if (req.body.limit != null) paginationLimit = parseInt(req.body.limit);
+    if (req.body.offset != null) paginationOffset = parseInt(req.body.offset);
 
     if (type === "mvt") {
       xyz = {
@@ -94,6 +98,8 @@ function get(reqtype, req, res, next, options) {
         radius: spatialFilterSplit[2],
       };
     }
+    if (req.query.limit != null) paginationLimit = parseInt(req.query.limit);
+    if (req.query.offset != null) paginationOffset = parseInt(req.query.offset);
 
     if (type === "mvt") {
       xyz = {
@@ -433,8 +439,20 @@ function get(reqtype, req, res, next, options) {
           if (req.query?.limited) {
             q += ` ORDER BY id DESC LIMIT 3;`;
           } else if (distinctField != null) {
-            q += ` ORDER BY ${distinctField}, id DESC;`;
-          } else q += ` ORDER BY id DESC;`;
+            q += ` ORDER BY ${distinctField}, id DESC`;
+            if (Number.isFinite(paginationLimit) && paginationLimit > 0)
+              q += ` LIMIT ${paginationLimit}`;
+            if (Number.isFinite(paginationOffset) && paginationOffset >= 0)
+              q += ` OFFSET ${paginationOffset}`;
+            q += `;`;
+          } else {
+            q += ` ORDER BY id DESC`;
+            if (Number.isFinite(paginationLimit) && paginationLimit > 0)
+              q += ` LIMIT ${paginationLimit}`;
+            if (Number.isFinite(paginationOffset) && paginationOffset >= 0)
+              q += ` OFFSET ${paginationOffset}`;
+            q += `;`;
+          }
 
           sequelize
             .query(q, {
@@ -473,6 +491,14 @@ function get(reqtype, req, res, next, options) {
                 geojson.feature_id_field = result.dataValues.feature_id_field;
               if (get_group_id != null)
                 geojson.group_id_field = result.dataValues.group_id_field;
+
+              if (
+                paginationLimit != null &&
+                Number.isFinite(paginationLimit)
+              ) {
+                geojson.limit = paginationLimit;
+                geojson.offset = paginationOffset || 0;
+              }
 
               res.setHeader("Access-Control-Allow-Origin", "*");
 

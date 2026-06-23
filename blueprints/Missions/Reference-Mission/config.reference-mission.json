@@ -222,7 +222,7 @@
           ]
         },
         {
-          "name": "📄 GeoJSON Data Features",
+          "name": "\ud83d\udcc4 GeoJSON Data Features",
           "uuid": "29dd6328-4333-40d4-be4c-94c018e512c8",
           "sublayers": [
             {
@@ -932,7 +932,9 @@
                 "getFeaturePropertiesOnClick": false,
                 "style": {
                   "nointeraction": false
-                }
+                },
+                "search": "name(name) category(category)",
+                "useKeyAsName": "name"
               },
               "description": "Demonstrates the simplest geodataset layer: sourceType='geodatasets' routes to the PostGIS-backed geodatasets API instead of a static file.",
               "demparser": ""
@@ -974,7 +976,9 @@
                 "useKeyAsId": "id",
                 "style": {
                   "nointeraction": false
-                }
+                },
+                "search": "name(name) site(site)",
+                "useKeyAsName": "name"
               },
               "description": "Demonstrates dynamicExtent: only features within the current map viewport are queried from the database. Pan or zoom to trigger a re-query. dynamicExtentMoveThreshold='500/z' throttles re-queries to 500m of pan at zoom 0, scaled by zoom level.",
               "demparser": ""
@@ -1014,9 +1018,11 @@
                 "getFeaturePropertiesOnClick": false,
                 "style": {
                   "nointeraction": false
-                }
+                },
+                "search": "name(name) site_id(site_id)",
+                "useKeyAsName": "name"
               },
-              "description": "Demonstrates noDuplicates: the geodataset has multiple records per location sharing a group_id (site_id). With noDuplicates=true, only one feature per group is rendered using DISTINCT ON (group_id). The dataset has 8 records at 4 locations — only 4 points appear on the map.",
+              "description": "Demonstrates noDuplicates: the geodataset has multiple records per location sharing a group_id (site_id). With noDuplicates=true, only one feature per group is rendered using DISTINCT ON (group_id). The dataset has 8 records at 4 locations \u2014 only 4 points appear on the map.",
               "demparser": ""
             },
             {
@@ -1055,7 +1061,9 @@
                 "useKeyAsId": "feature_code",
                 "style": {
                   "nointeraction": false
-                }
+                },
+                "search": "name(name) feature_code(feature_code)",
+                "useKeyAsName": "name"
               },
               "description": "Demonstrates getFeaturePropertiesOnClick: the initial map load fetches only geometry and feature IDs (feature_code). Full properties (address, area, visitor stats, etc.) are fetched from the database only when a feature is clicked, reducing initial load size.",
               "demparser": ""
@@ -1098,9 +1106,11 @@
                 "getFeaturePropertiesOnClick": false,
                 "style": {
                   "nointeraction": false
-                }
+                },
+                "search": "name(name) status(status)",
+                "useKeyAsName": "name"
               },
-              "description": "Demonstrates time.type='requery' for geodatasets: the time range is sent to PostGIS as a server-side SQL filter on the start_time/end_time BIGINT columns. Use the Time Control tool to filter events by date range (Jan–Jun 2024).",
+              "description": "Demonstrates time.type='requery' for geodatasets: the time range is sent to PostGIS as a server-side SQL filter on the start_time/end_time BIGINT columns. Use the Time Control tool to filter events by date range (Jan\u2013Jun 2024).",
               "demparser": ""
             }
           ],
@@ -1316,7 +1326,7 @@
                 },
                 "hideMainFeature": false
               },
-              "description": "Rover waypoint for Sol 1051. Click to open the 360° Navcam panoramic mosaic. The Mosaic Targets layer must be enabled to see target dots overlaid on the sphere."
+              "description": "Rover waypoint for Sol 1051. Click to open the 360\u00b0 Navcam panoramic mosaic. The Mosaic Targets layer must be enabled to see target dots overlaid on the sphere."
             },
             {
               "name": "Mosaic - Receivers",
@@ -1426,7 +1436,7 @@
           "uuid": "12b7b891-c234-4d56-b789-94c018e215a9"
         },
         {
-          "name": "⚙️ Layer Configuration (Configure Page)",
+          "name": "\u2699\ufe0f Layer Configuration (Configure Page)",
           "type": "header",
           "sublayers": [
             {
@@ -2566,7 +2576,7 @@
                 "type:elevation",
                 "ramps:2"
               ],
-              "description": "USGS 1/3 arc-second DEM for the San Francisco Bay area via TiTiler (.npy — raw float32). **Alt+1** to toggle.\n\n**Ramp 0:** RdYlBu diverging — cold blues low, warm reds high.\n**Ramp 1:** Earth tones terrain palette.",
+              "description": "USGS 1/3 arc-second DEM for the San Francisco Bay area via TiTiler (.npy \u2014 raw float32). **Alt+1** to toggle.\n\n**Ramp 0:** RdYlBu diverging \u2014 cold blues low, warm reds high.\n**Ramp 1:** Earth tones terrain palette.",
               "style": {
                 "className": "elevation-rdylbu(cog/npy)"
               }
@@ -2631,7 +2641,7 @@
                 "parser:terrarium",
                 "type:elevation"
               ],
-              "description": "Mapzen **Terrarium**-encoded PNG tiles — ~10–50 KB/tile vs ~256 KB for .npy; much faster network transfer with ~1 cm precision. No-data (−32768) renders transparent.\n\n**Ramp 0:** Plasma · **Ramp 1:** Viridis",
+              "description": "Mapzen **Terrarium**-encoded PNG tiles \u2014 ~10\u201350 KB/tile vs ~256 KB for .npy; much faster network transfer with ~1 cm precision. No-data (\u221232768) renders transparent.\n\n**Ramp 0:** Plasma \u00b7 **Ramp 1:** Viridis",
               "style": {
                 "className": "elevation-terrarium(cog)"
               }
@@ -2685,7 +2695,7 @@
                 "parser:terrainrgb",
                 "type:elevation"
               ],
-              "description": "Mapbox **TerrainRGB**-encoded PNG tiles — ~0.1 m elevation precision. This layer is **controlled** (programmatic visibility) and starts at **80% opacity** for basemap blending.\n\n**Ramp:** Magma — black to pale yellow.",
+              "description": "Mapbox **TerrainRGB**-encoded PNG tiles \u2014 ~0.1 m elevation precision. This layer is **controlled** (programmatic visibility) and starts at **80% opacity** for basemap blending.\n\n**Ramp:** Magma \u2014 black to pale yellow.",
               "style": {
                 "className": "elevation-terrainrgb(cog)"
               }
@@ -2739,7 +2749,7 @@
                 "parser:terrainrgb",
                 "type:elevation"
               ],
-              "description": "Mapbox **TerrainRGB**-encoded PNG tiles — ~0.1 m elevation precision. This layer is **controlled** (programmatic visibility) and starts at **80% opacity** for basemap blending.\n\n**Ramp:** Magma — black to pale yellow.",
+              "description": "Mapbox **TerrainRGB**-encoded PNG tiles \u2014 ~0.1 m elevation precision. This layer is **controlled** (programmatic visibility) and starts at **80% opacity** for basemap blending.\n\n**Ramp:** Magma \u2014 black to pale yellow.",
               "style": {
                 "className": "elevation-terrainrgb(cog)image"
               }
@@ -2794,7 +2804,7 @@
                 "parser:npy",
                 "shader:grayscale"
               ],
-              "description": "Grayscale elevation overlay at **70% opacity** — useful for compositing over imagery. **Ramp 0:** black = low, white = high. **Ramp 1:** inverted (white = low, black = high) for relief-shading composites.",
+              "description": "Grayscale elevation overlay at **70% opacity** \u2014 useful for compositing over imagery. **Ramp 0:** black = low, white = high. **Ramp 1:** inverted (white = low, black = high) for relief-shading composites.",
               "style": {
                 "className": "elevation-grayscale(cog)"
               }
@@ -2850,7 +2860,7 @@
                 "shader:overlay",
                 "type:elevation"
               ],
-              "description": "Demonstrates **transparent ramp stops**: the two lowest stops are transparent, so only mid-to-high elevations are colored (yellow → orange → red). The basemap shows through at low altitudes. Initial opacity 50% for blending.",
+              "description": "Demonstrates **transparent ramp stops**: the two lowest stops are transparent, so only mid-to-high elevations are colored (yellow \u2192 orange \u2192 red). The basemap shows through at low altitudes. Initial opacity 50% for blending.",
               "style": {
                 "className": "elevation-transparentoverlay"
               }
@@ -3059,7 +3069,7 @@
                 "parser:terrarium",
                 "type:elevation"
               ],
-              "description": "**STAC + Terrarium** combination: COG mosaic from titiler-pgstac served as compact Terrarium PNG tiles. Combines STAC multi-item mosaic benefits with bandwidth savings (~10–50 KB/tile). No-data (−32768) renders transparent. **Ramp:** Viridis.",
+              "description": "**STAC + Terrarium** combination: COG mosaic from titiler-pgstac served as compact Terrarium PNG tiles. Combines STAC multi-item mosaic benefits with bandwidth savings (~10\u201350 KB/tile). No-data (\u221232768) renders transparent. **Ramp:** Viridis.",
               "style": {
                 "className": "elevation-stacterrarium(stac)"
               }
@@ -3089,49 +3099,49 @@
                   "type": "colorize",
                   "units": "m",
                   "sigfigs": 1,
-                      "noDataValues": [
-                        -999999,
-                        0
-                      ],
-                      "ramps": [
-                        [
-                          "#313695",
-                          "#4575b4",
-                          "#74add1",
-                          "#abd9e9",
-                          "#e0f3f8",
-                          "#ffffbf",
-                          "#fee090",
-                          "#fdae61",
-                          "#f46d43",
-                          "#d73027",
-                          "#a50026"
-                        ],
-                        [
-                          "#440154",
-                          "#482878",
-                          "#3e4989",
-                          "#31688e",
-                          "#26828e",
-                          "#1f9e89",
-                          "#35b779",
-                          "#6ece58",
-                          "#b5de2b",
-                          "#fde725"
-                        ],
-                        [
-                          "#000004",
-                          "#1b0c41",
-                          "#4a0c6b",
-                          "#781c6d",
-                          "#a52c60",
-                          "#cf4446",
-                          "#ed6925",
-                          "#fb9b06",
-                          "#f7d13d",
-                          "#fcffa4"
-                        ]
-                      ]
+                  "noDataValues": [
+                    -999999,
+                    0
+                  ],
+                  "ramps": [
+                    [
+                      "#313695",
+                      "#4575b4",
+                      "#74add1",
+                      "#abd9e9",
+                      "#e0f3f8",
+                      "#ffffbf",
+                      "#fee090",
+                      "#fdae61",
+                      "#f46d43",
+                      "#d73027",
+                      "#a50026"
+                    ],
+                    [
+                      "#440154",
+                      "#482878",
+                      "#3e4989",
+                      "#31688e",
+                      "#26828e",
+                      "#1f9e89",
+                      "#35b779",
+                      "#6ece58",
+                      "#b5de2b",
+                      "#fde725"
+                    ],
+                    [
+                      "#000004",
+                      "#1b0c41",
+                      "#4a0c6b",
+                      "#781c6d",
+                      "#a52c60",
+                      "#cf4446",
+                      "#ed6925",
+                      "#fb9b06",
+                      "#f7d13d",
+                      "#fcffa4"
+                    ]
+                  ]
                 }
               },
               "time": {
@@ -3201,7 +3211,7 @@
               "description": "EMIT L2B Methane Enhancement Data 60 m V002 - STAC COG collection. Requires WITH_STAC=true and WITH_TITILER_PGSTAC=true."
             },
             {
-              "name": "USGS SF DEM — Elevation",
+              "name": "USGS SF DEM \u2014 Elevation",
               "uuid": "e57468ef-b6f9-473f-973a-59d9dacfe016",
               "type": "tile",
               "visibility": false,
@@ -3243,7 +3253,7 @@
                   "measure": {
                     "layerDems": [
                       {
-                        "layer": "USGS SF DEM — Elevation",
+                        "layer": "USGS SF DEM \u2014 Elevation",
                         "url": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif"
                       }
                     ]
@@ -3253,7 +3263,7 @@
               "description": "USGS 1/3 arc-second DEM for San Francisco Bay area, terrain colormap. Requires WITH_STAC=true and WITH_TITILER_PGSTAC=true."
             },
             {
-              "name": "USGS SF DEM — Grayscale",
+              "name": "USGS SF DEM \u2014 Grayscale",
               "uuid": "1d00b1f1-507a-4edb-aa5f-56b834a4058f",
               "type": "tile",
               "visibility": false,
@@ -3292,7 +3302,7 @@
               "variables": {
                 "legendOrientation": "vertical"
               },
-              "description": "USGS SF DEM grayscale — cogExpressionEditable enabled for expression editing demo. Requires WITH_STAC=true and WITH_TITILER_PGSTAC=true."
+              "description": "USGS SF DEM grayscale \u2014 cogExpressionEditable enabled for expression editing demo. Requires WITH_STAC=true and WITH_TITILER_PGSTAC=true."
             }
           ],
           "type": "header",
@@ -3375,7 +3385,7 @@
                 "legendOrientation": "vertical"
               },
               "description": "",
-              "attribution": "Esri, HERE, Garmin, Intermap, increment P Corp., GEBCO, USGS, FAO, NPS, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), swisstopo, © OpenStreetMap contributors, and the GIS User Community"
+              "attribution": "Esri, HERE, Garmin, Intermap, increment P Corp., GEBCO, USGS, FAO, NPS, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), swisstopo, \u00a9 OpenStreetMap contributors, and the GIS User Community"
             },
             {
               "name": "ArcGIS World Imagery",
@@ -3642,7 +3652,12 @@
             "demtileurl": "Data/dem_rgba_tiles/{z}/{x}/{y}.png",
             "minZoom": 10,
             "maxNativeZoom": 14,
-            "boundingBox": [-122.50722222192965, 37.70980728349467, -122.41428489305366, 37.78111111121456]
+            "boundingBox": [
+              -122.50722222192965,
+              37.70980728349467,
+              -122.41428489305366,
+              37.78111111121456
+            ]
           }
         ],
         "cameraPresets": [

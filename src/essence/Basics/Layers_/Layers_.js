@@ -1,7 +1,7 @@
 // Holds all layer data
 import F_ from '../Formulae_/Formulae_'
 import Description from '../UserInterface_/components/Description/Description'
-import Search from '../UserInterface_/components/Search/Search'
+// Search is now a React component rendered in TopBar.jsx
 import Attributions from '../UserInterface_/components/Attributions/Attributions'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import LayerGeologic from './LayerGeologic/LayerGeologic'
@@ -162,7 +162,8 @@ const L_ = {
     fullyLoaded: function () {
         this.selectPoint(this.FUTURES.activePoint)
 
-        Search.init('.Search', L_, this.Viewer_, this.Map_, this.Globe_)
+        // Search is now a React component (SearchBar) mounted in TopBar.jsx
+        // It initializes itself via useEffect when L_.layers.data is available
         Description.updateInfo()
 
         $('#main-container').css('filter', '')

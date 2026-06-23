@@ -1,47 +1,83 @@
-#SearchType .dropy {
-    font-size: 13px;
-    margin-bottom: 0;
+.searchBar {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    pointer-events: auto;
+    position: relative;
+    gap: 0;
 }
 
-#SearchType {
+.searchLayerSelect {
+    height: 30px;
+    min-width: 120px;
+    max-width: 180px;
+    font-size: 12px;
     background: var(--color-a);
     color: var(--color-f);
     border: none;
     border-right: 1px solid var(--color-b);
-    cursor: pointer;
-    border-top-left-radius: 3px;
-    border-bottom-left-radius: 3px;
+    border-radius: 3px 0 0 3px;
 }
-#SearchType .dropy__title > i {
-    transform: translateY(35%);
+
+.searchInputWrapper {
+    position: relative;
+    flex: 1;
+    height: 100%;
+    display: flex;
+    align-items: center;
 }
-#SearchClear {
-    margin-left: 0px;
-    display: inherit;
+
+.searchSuggestions {
     position: absolute;
-    right: 33px;
-    width: 30px;
-    height: 30px;
-    padding-left: 7px;
-    line-height: 30px;
-    color: var(--color-f);
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 60vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background-color: var(--color-a);
+    border: 1px solid var(--color-mmgis);
+    border-top: none;
+    z-index: 9999;
+}
+
+.searchSuggestionItem {
+    padding: 6px 10px;
     cursor: pointer;
+    font-size: 13px;
+    color: var(--color-f);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-#SearchClear:hover {
-    color: var(--color-mmgis);
+
+.searchSuggestionItem:hover,
+.searchSuggestionItemActive {
+    background: var(--color-mmgis);
+    color: #fff;
 }
-#SearchBoth {
-    margin-left: 0px;
-    display: inherit;
+
+.searchClearBtn {
     position: absolute;
-    right: 3px;
-    width: 30px;
-    height: 30px;
-    padding-left: 7px;
-    line-height: 30px;
-    color: var(--color-f);
-    cursor: pointer;
+    right: 62px;
+    mix-blend-mode: difference;
+    z-index: 1;
 }
-#SearchBoth:hover {
+
+.searchGoBtn {
+    position: absolute;
+    right: 32px;
+    mix-blend-mode: difference;
+    z-index: 1;
+}
+
+.searchAdvancedBtn {
+    margin-left: 2px;
+    z-index: 1;
+}
+
+.searchClearBtn:hover,
+.searchGoBtn:hover,
+.searchAdvancedBtn:hover {
     color: var(--color-mmgis);
 }

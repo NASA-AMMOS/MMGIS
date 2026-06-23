@@ -2593,6 +2593,28 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of features to return. When provided, results are paginated. If omitted, all results are returned (backward-compatible).",
+            "example": 50,
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of features to skip before returning results. Used with 'limit' for pagination.",
+            "example": 0,
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
           }
         ],
         "responses": {
@@ -2824,6 +2846,28 @@
             "required": false,
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of features to return. When provided, results are paginated. If omitted, all results are returned (backward-compatible).",
+            "example": 50,
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of features to skip before returning results. Used with 'limit' for pagination.",
+            "example": 0,
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
             }
           }
         ],

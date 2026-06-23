@@ -195,10 +195,6 @@ const UserInterfaceBridge = {
 
     openRightPanel: function (width) {
         if (UserInterfaceBridge.rightPanelOpen != null) return
-        const coordsDiv = document.getElementById('CoordinatesDiv')
-        if (coordsDiv) coordsDiv.style.right = width + 'px'
-        useUIStore.getState().setRightPanelWidth(width)
-        // Splitscreens dimensions are recaptured by ResizeObserver
         const rightPanel = document.getElementById('uiRightPanel')
         if (rightPanel) {
             rightPanel.style.display = 'inherit'
@@ -209,10 +205,6 @@ const UserInterfaceBridge = {
 
     closeRightPanel: function () {
         if (UserInterfaceBridge.rightPanelOpen == null) return
-        const coordsDiv = document.getElementById('CoordinatesDiv')
-        if (coordsDiv) coordsDiv.style.right = '0px'
-        useUIStore.getState().setRightPanelWidth(0)
-        // Splitscreens dimensions are recaptured by ResizeObserver
         const rightPanel = document.getElementById('uiRightPanel')
         if (rightPanel) {
             rightPanel.style.display = 'none'
