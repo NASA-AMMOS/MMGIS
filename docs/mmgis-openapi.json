@@ -3222,6 +3222,62 @@
         }
       }
     },
+    "/api/geodatasets/schema": {
+      "get": {
+        "summary": "Return field names, types, and source layers for multiple geodataset layers in bulk.",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "layers",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated list of geodataset layer names to query.",
+            "example": "reference_mission_basic,reference_mission_time_series"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the combined schema across all requested layers.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "schema": {
+                        "name": {
+                          "type": "string",
+                          "layers": ["reference_mission_basic", "reference_mission_time_series"]
+                        },
+                        "category": {
+                          "type": "string",
+                          "layers": ["reference_mission_basic"]
+                        },
+                        "elevation": {
+                          "type": "number",
+                          "layers": ["reference_mission_basic"]
+                        }
+                      }
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failure querying geodataset schema."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/geodatasets/append/{name}": {
       "post": {
         "summary": "Append to a geodataset",

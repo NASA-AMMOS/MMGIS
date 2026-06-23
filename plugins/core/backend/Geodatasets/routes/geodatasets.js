@@ -980,6 +980,95 @@ router.get("/aggregations", function (req, res, next) {
     });
 });
 
+// Bulk schema endpoint — returns field names, types and source layers for
+// multiple geodataset layers in a single call.
+// GET /api/geodatasets/schema?layers=layer1,layer2,...
+router.get("/schema", function (req, res, next) {
+  const layersParam = req.query.layers;
+  if (!layersParam) {
+    res.send({ status: "failure", message: "Missing 'layers' parameter." });
+    return;
+  }
+
+  const layerNames = layersParam
+    .split(",")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (layerNames.length === 0) {
+    res.send({ status: "failure", message: "No valid layer names provided." });
+    return;
+  }
+
+  // Cap at 100 layers to prevent abuse
+  const cappedLayerNames = layerNames.slice(0, 100);
+
+  const Op = require("sequelize").Op;
+  Geodatasets.findAll({ where: { name: { [Op.in]: cappedLayerNames } } })
+    .then(async (results) => {
+      if (!results || results.length === 0) {
+        res.send({ status: "success", schema: {} });
+        return;
+      }
+
+      // schema: { fieldName: { type, layers: [{ name, displayName }] } }
+      const schema = {};
+      const promises = results.map((result) => {
+        const table = result.dataValues.table;
+        const layerName = result.dataValues.name;
+        // Sample one row to discover JSONB keys and types
+        const q = `SELECT properties FROM ${Utils.forceAlphaNumUnder(
+          table
+        )} LIMIT 1`;
+        return sequelize
+          .query(q)
+          .then(([rows]) => {
+            if (rows.length > 0 && rows[0].properties) {
+              const props = rows[0].properties;
+              for (const key in props) {
+                const value = props[key];
+                let type = "string";
+                if (typeof value === "number") type = "number";
+                else if (typeof value === "boolean") type = "boolean";
+                else if (!isNaN(value) && !isNaN(parseFloat(value)))
+                  type = "number";
+
+                if (!schema[key]) {
+                  schema[key] = { type: type, layers: [] };
+                }
+                // Strings usurp numbers (same logic as aggregations)
+                if (schema[key].type === "number" && type === "string") {
+                  schema[key].type = type;
+                }
+                schema[key].layers.push(layerName);
+              }
+            }
+          })
+          .catch(() => {
+            // Skip layers that fail
+          });
+      });
+
+      await Promise.all(promises);
+
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.send({ status: "success", schema: schema });
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        "Failure querying geodataset schema.",
+        req.originalUrl,
+        req,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: "Failure querying geodataset schema.",
+      });
+    });
+});
+
 //Returns a list of entries in the geodatasets table
 router.post("/entries", function (req, res, next) {
   Geodatasets.findAll()
