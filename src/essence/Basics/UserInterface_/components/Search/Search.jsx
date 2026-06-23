@@ -133,6 +133,8 @@ const STRING_OPS = [
     { value: 'beginswith', icon: 'mdi-contain-start', label: 'Begins With' },
     { value: 'endswith', icon: 'mdi-contain-end', label: 'Ends With' },
     { value: ',', icon: null, text: 'in', label: 'In List' },
+    { value: 'isnull', icon: 'mdi-null', label: 'Is Null' },
+    { value: 'isnotnull', icon: 'mdi-check-circle-outline', label: 'Is Not Null' },
 ]
 const NUMBER_OPS = [
     { value: '=', icon: 'mdi-equal', label: 'Equals' },
@@ -142,6 +144,8 @@ const NUMBER_OPS = [
     { value: '<=', icon: 'mdi-less-than-or-equal', label: 'Less Than or Equal' },
     { value: '>=', icon: 'mdi-greater-than-or-equal', label: 'Greater Than or Equal' },
     { value: ',', icon: null, text: 'in', label: 'In List' },
+    { value: 'isnull', icon: 'mdi-null', label: 'Is Null' },
+    { value: 'isnotnull', icon: 'mdi-check-circle-outline', label: 'Is Not Null' },
 ]
 
 function SearchBar() {

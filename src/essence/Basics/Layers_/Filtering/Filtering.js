@@ -712,6 +712,8 @@ const Filtering = {
             'contains',
             'beginswith',
             'endswith',
+            'isnull',
+            'isnotnull',
         ]
         const opId = Math.max(ops.indexOf(options.op), 0)
         $(elmId).html(
@@ -727,6 +729,8 @@ const Filtering = {
                     `<i class='mdi mdi-contain mdi-18px' title='Contains'></i>`,
                     `<i class='mdi mdi-contain-start mdi-18px' title='Begins With'></i>`,
                     `<i class='mdi mdi-contain-end mdi-18px' title='Ends With'></i>`,
+                    `<i class='mdi mdi-null mdi-18px' title='Is Null (No Value)'></i>`,
+                    `<i class='mdi mdi-check-circle-outline mdi-18px' title='Is Not Null (Has Value)'></i>`,
                 ],
                 'op',
                 opId,
@@ -735,11 +739,23 @@ const Filtering = {
         )
         Dropy.init($(elmId), function (idx) {
             Filtering.filters[layerName].values[id].op = ops[idx]
+            Filtering.toggleValueInput(id, layerName, ops[idx])
             Filtering.setSubmitButtonState(true)
         })
 
         // Value AutoComplete
         Filtering.updateValuesAutoComplete(id, layerName)
+    },
+    toggleValueInput: function (id, layerName, operator) {
+        const elmId = `#layersTool_filtering_value_value_input_${F_.getSafeName(
+            layerName
+        )}_${id}`
+        if (operator === 'isnull' || operator === 'isnotnull') {
+            $(elmId).prop('disabled', true).css('opacity', '0.3').val('')
+            Filtering.filters[layerName].values[id].value = ''
+        } else {
+            $(elmId).prop('disabled', false).css('opacity', '1')
+        }
     },
     submit: async function (layerName, updateValuesOrder) {
         const layerObj = L_.layers.data[layerName]

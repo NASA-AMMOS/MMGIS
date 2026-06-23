@@ -346,12 +346,27 @@ function get(reqtype, req, res, next, options) {
                   case "!=":
                     op = "!=";
                     break;
+                  case "isnull":
+                    op = "IS NULL";
+                    break;
+                  case "isnotnull":
+                    op = "IS NOT NULL";
+                    break;
                   case "=":
                   default:
                     break;
                 }
                 let value = "";
-                if (op === "IN") {
+                if (op === "IS NULL" || op === "IS NOT NULL") {
+                  const qNull = `${
+                    derivedKey === true
+                      ? `${fkey}`
+                      : `properties->>:filter_key_${i}`
+                  } ${op}`;
+                  if (currentGroupOp == null) filterSQL.push(qNull);
+                  else currentGroup.push(qNull);
+                  return;
+                } else if (op === "IN") {
                   const valueSplit = f.value.split("$");
                   const values = [];
                   valueSplit.forEach((v) => {
@@ -1302,8 +1317,8 @@ router.post("/search", function (req, res, next) {
           });
           return;
         }
-        offset = parseInt(offset);
-        featureId = parseInt(featureId);
+        offset = offset != null ? parseInt(offset) : null;
+        featureId = featureId != null ? parseInt(featureId) : null;
 
         let orderBy = "id";
         if (req.body.orderBy != null) orderBy = `properties->>:orderBy`;
@@ -1354,6 +1369,10 @@ router.post("/search", function (req, res, next) {
           opClause = `properties ->> :key ILIKE '%' || :value`;
         } else if (searchOp === "," || searchOp === "in") {
           opClause = `properties ->> :key IN (:valueList)`;
+        } else if (searchOp === "isnull") {
+          opClause = `properties ->> :key IS NULL`;
+        } else if (searchOp === "isnotnull") {
+          opClause = `properties ->> :key IS NOT NULL`;
         } else {
           opClause = `properties ->> :key = :value`;
         }
