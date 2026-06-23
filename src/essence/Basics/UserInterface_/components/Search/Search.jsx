@@ -335,7 +335,7 @@ function SearchBar() {
 
     const searchWithURLParams = useCallback(
         (L_, fields) => {
-            doWithSearch('both', L_.searchStrings, null, true, null, fields, L_)
+            doWithSearch('both', L_.searchStrings, L_.searchFile, true, null, fields, L_)
         },
         []
     )

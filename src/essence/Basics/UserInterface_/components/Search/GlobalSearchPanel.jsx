@@ -307,6 +307,8 @@ export function GlobalSearchPanel({ onClose }) {
         setFilterValues((prev) => [...prev, createGroupRow()])
     }, [])
 
+    const pendingRef = useRef(0)
+
     const fetchLayerResults = useCallback(
         (layerName, encodedFilters, offset, existingFeatures) => {
             const L_ = getL_()
@@ -320,6 +322,16 @@ export function GlobalSearchPanel({ onClose }) {
                 offset: offset,
             }
             if (encodedFilters) params.filters = encodedFilters
+
+            pendingRef.current++
+
+            const onDone = () => {
+                pendingRef.current--
+                if (pendingRef.current <= 0) {
+                    pendingRef.current = 0
+                    setSearching(false)
+                }
+            }
 
             calls.api(
                 'geodatasets_get',
@@ -353,8 +365,11 @@ export function GlobalSearchPanel({ onClose }) {
                         })
                         return next
                     })
+                    onDone()
                 },
-                function () {}
+                function () {
+                    onDone()
+                }
             )
         },
         [getL_]
@@ -388,7 +403,7 @@ export function GlobalSearchPanel({ onClose }) {
             fetchLayerResults(layerName, encodedFilters, 0, null)
         })
 
-        setSearching(false)
+        if (selectedLayers.length === 0) setSearching(false)
     }, [filterValues, selectedLayers, fetchLayerResults, getL_])
 
     const handleFeatureClick = useCallback(
