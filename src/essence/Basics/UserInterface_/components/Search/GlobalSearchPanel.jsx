@@ -262,10 +262,10 @@ export function GlobalSearchPanel({ onClose }) {
                             allKeys.add(key)
                             if (!allValues[key]) allValues[key] = []
                             const vals = data.aggregations[key]
-                            if (Array.isArray(vals)) {
-                                vals.forEach((v) => {
-                                    if (!allValues[key].includes(v))
-                                        allValues[key].push(v)
+                            if (vals && vals.aggs && typeof vals.aggs === 'object') {
+                                Object.keys(vals.aggs).forEach((v) => {
+                                    if (!allValues[key].includes(String(v)))
+                                        allValues[key].push(String(v))
                                 })
                             }
                         })

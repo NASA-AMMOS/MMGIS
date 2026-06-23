@@ -415,7 +415,7 @@ function SearchBar() {
                     })
 
                     Map_.map.setView(
-                        [r.coordinates[1], r.coordinates[0]],
+                        [r.geometry.coordinates[1], r.geometry.coordinates[0]],
                         Map_.mapScaleZoom || Map_.map.getZoom()
                     )
                     if (!L_.layers.on[layerName]) {
@@ -538,7 +538,7 @@ function SearchBar() {
                                 L_.toggleLayer(L_.layers.data[gl.value])
                             }
                             Map_.map.setView(
-                                [r.coordinates[1], r.coordinates[0]],
+                                [r.geometry.coordinates[1], r.geometry.coordinates[0]],
                                 Map_.mapScaleZoom || Map_.map.getZoom()
                             )
                         }
