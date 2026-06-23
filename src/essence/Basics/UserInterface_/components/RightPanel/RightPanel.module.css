@@ -52,10 +52,18 @@
     flex-shrink: 0;
 }
 
-:global(#uiRightPanel .drawToolContextMenuTab) {
+/* .drawToolContextMenuTabs is the wrapper — takes remaining space and scrolls */
+:global(#uiRightPanel .drawToolContextMenuTabs) {
     flex: 1 !important;
     min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+/* Individual tabs fill their parent wrapper */
+:global(#uiRightPanel .drawToolContextMenuTab) {
     height: auto !important;
+    overflow: visible !important;
 }
 
 :global(#uiRightPanel .drawToolContextMenuTabProperties) {
@@ -66,25 +74,26 @@
     height: auto !important;
 }
 
+/* Save bar pinned at bottom */
 :global(#uiRightPanel .drawToolContextMenuSave) {
     flex-shrink: 0;
 }
 
-/* Scrollbar styling for scrollable children */
-:global(#uiRightPanel .drawToolContextMenuTab) {
+/* Scrollbar styling for the scrollable wrapper */
+:global(#uiRightPanel .drawToolContextMenuTabs) {
     scrollbar-width: thin !important;
     scrollbar-color: var(--color-a2) transparent !important;
 }
 
-:global(#uiRightPanel .drawToolContextMenuTab)::-webkit-scrollbar {
+:global(#uiRightPanel .drawToolContextMenuTabs)::-webkit-scrollbar {
     width: 4px;
 }
 
-:global(#uiRightPanel .drawToolContextMenuTab)::-webkit-scrollbar-track {
+:global(#uiRightPanel .drawToolContextMenuTabs)::-webkit-scrollbar-track {
     background: transparent;
 }
 
-:global(#uiRightPanel .drawToolContextMenuTab)::-webkit-scrollbar-thumb {
+:global(#uiRightPanel .drawToolContextMenuTabs)::-webkit-scrollbar-thumb {
     background: var(--color-a2);
     border-radius: 2px;
 }

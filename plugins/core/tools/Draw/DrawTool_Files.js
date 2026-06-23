@@ -513,7 +513,7 @@ var Files = {
 
         if (Files.currentOpenFolderName != null)
             $(
-                `.drawToolDrawFilesGroupElemHead[group_name="${decodeURIComponent(
+                `.drawToolDrawFilesGroupElemHead[group_name="${CSS.escape(
                     Files.currentOpenFolderName
                 )}"]`
             ).trigger('click')
