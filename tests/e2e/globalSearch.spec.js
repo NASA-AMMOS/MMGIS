@@ -227,7 +227,7 @@ test.describe('Global Feature Search', () => {
         await expect(panel).toBeVisible({ timeout: 5000 })
 
         // Should have layer chips
-        const chips = panel.locator('.gspLayerChip')
+        const chips = panel.locator('.gspChip')
         await expect(chips).toHaveCount(5, { timeout: 5000 })
     })
 
