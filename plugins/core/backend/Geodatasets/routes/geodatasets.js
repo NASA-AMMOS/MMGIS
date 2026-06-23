@@ -1407,8 +1407,8 @@ router.post("/search", function (req, res, next) {
         // For IN operator, split value by comma into a list
         if (searchOp === "," || searchOp === "in") {
           replacements.valueList = sanitizedValue
-            ? sanitizedValue.split(",").map((v) => v.trim())
-            : [];
+            ? sanitizedValue.split(",").map((v) => v.trim()).filter(Boolean)
+            : [""];
         }
 
         sequelize
