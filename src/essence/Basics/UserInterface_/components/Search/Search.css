@@ -239,6 +239,40 @@
     opacity: 1;
 }
 
+/* Operator dropdown */
+.searchOperatorSelect {
+    height: 22px;
+    padding: 0 2px;
+    margin: 0 2px;
+    border: 1px solid var(--color-a2);
+    border-radius: 3px;
+    background: var(--color-a);
+    color: var(--color-f);
+    font-size: 12px;
+    font-family: monospace;
+    cursor: pointer;
+    flex-shrink: 0;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    text-align: center;
+    min-width: 32px;
+}
+
+.searchOperatorSelect:hover {
+    border-color: var(--color-mmgis);
+}
+
+.searchOperatorSelect:focus {
+    border-color: var(--color-mmgis);
+    box-shadow: 0 0 0 1px var(--color-mmgis);
+}
+
+.searchOperatorSelect option {
+    background: var(--color-a);
+    color: var(--color-f);
+}
+
 /* Search input wrapper */
 .searchInputWrapper {
     position: relative;

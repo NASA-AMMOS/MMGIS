@@ -125,6 +125,25 @@ const MODE_DEFAULT = 'default' // cross-layer search by display name
 const MODE_FIELD = 'field' // search by a specific field across layers
 const MODE_LAYER = 'layer' // search scoped to a specific layer
 
+// Operators available per field type
+const STRING_OPS = [
+    { value: '=', label: '=' },
+    { value: '!=', label: '≠' },
+    { value: 'contains', label: '∋' },
+    { value: 'beginswith', label: 'A..' },
+    { value: 'endswith', label: '..Z' },
+    { value: ',', label: 'in' },
+]
+const NUMBER_OPS = [
+    { value: '=', label: '=' },
+    { value: '!=', label: '≠' },
+    { value: '<', label: '<' },
+    { value: '>', label: '>' },
+    { value: '<=', label: '≤' },
+    { value: '>=', label: '≥' },
+    { value: ',', label: 'in' },
+]
+
 function SearchBar() {
     const [inputValue, setInputValue] = useState('')
     const [suggestions, setSuggestions] = useState([])
@@ -144,6 +163,7 @@ function SearchBar() {
     const [searchMode, setSearchMode] = useState(MODE_DEFAULT)
     const [selectedField, setSelectedField] = useState(null) // { name, type, layers }
     const [selectedLayer, setSelectedLayer] = useState(null) // layer uuid
+    const [searchOperator, setSearchOperator] = useState('=') // default operator
 
     // Schema and layer data
     const [schemaFields, setSchemaFields] = useState([]) // [{ name, type, layers }]
@@ -630,8 +650,11 @@ function SearchBar() {
             )
             if (candidateLayers.length === 0) return
 
-            // Build the filter string: fieldName+=+type+value
-            const filterEncoded = `${fieldName}+=+${fieldType}+${searchValue.replaceAll(',', '$')}`
+            // Build the filter string: fieldName+op+type+value
+            // Map frontend operator names to filterEncoded format
+            const opMap = { ',': 'in', 'contains': 'contains', 'beginswith': 'beginswith', 'endswith': 'endswith' }
+            const filterOp = opMap[searchOperator] || searchOperator
+            const filterEncoded = `${fieldName}+${filterOp}+${fieldType}+${searchValue.replaceAll(',', '$')}`
 
             // Track which layers have hits via search API, then pan to fit all
             let pendingSearches = candidateLayers.length
@@ -656,6 +679,7 @@ function SearchBar() {
                         layer: gl.geodatasetName,
                         key: fieldName,
                         value: searchValue,
+                        operator: searchOperator,
                     },
                     function (d) {
                         if (d.body && d.body.length > 0) {
@@ -749,6 +773,7 @@ function SearchBar() {
         [
             inputValue,
             selectedField,
+            searchOperator,
             geodatasetLayers,
             saveLayerState,
             getL_,
@@ -949,6 +974,7 @@ function SearchBar() {
         setSearchMode(MODE_DEFAULT)
         setSelectedField(null)
         setSelectedLayer(null)
+        setSearchOperator('=')
         setPlaceholder('Search features...')
         setArrayToSearch([])
     }, [restoreLayerState])
@@ -962,6 +988,7 @@ function SearchBar() {
             setSelectedLayer(null)
             setInputValue('')
             setFieldValues([])
+            setSearchOperator('=')
             setPlaceholder(`Search by ${field.name}...`)
             setDropdownOpen(false)
             setFieldFilterText('')
@@ -1028,6 +1055,7 @@ function SearchBar() {
         setSearchMode(MODE_DEFAULT)
         setSelectedField(null)
         setSelectedLayer(null)
+        setSearchOperator('=')
         setInputValue('')
         setFieldValues([])
         setPlaceholder('Search features...')
@@ -1213,6 +1241,25 @@ function SearchBar() {
                         <i className="mdi mdi-close mdi-12px" />
                     </span>
                 </div>
+            )}
+
+            {/* Operator dropdown (field mode only) */}
+            {searchMode === MODE_FIELD && selectedField && (
+                <select
+                    className="searchOperatorSelect"
+                    value={searchOperator}
+                    onChange={(e) => setSearchOperator(e.target.value)}
+                    title="Search operator"
+                >
+                    {(selectedField.type === 'number'
+                        ? NUMBER_OPS
+                        : STRING_OPS
+                    ).map((op) => (
+                        <option key={op.value} value={op.value}>
+                            {op.label}
+                        </option>
+                    ))}
+                </select>
             )}
 
             {/* Main search input */}

@@ -502,7 +502,8 @@ function get(reqtype, req, res, next, options) {
 
               if (
                 paginationLimit != null &&
-                Number.isFinite(paginationLimit)
+                Number.isFinite(paginationLimit) &&
+                paginationLimit > 0
               ) {
                 geojson.limit = paginationLimit;
                 geojson.offset = paginationOffset || 0;
@@ -1337,6 +1338,31 @@ router.post("/search", function (req, res, next) {
             ? " AND geometry_type = :geomtype"
             : "";
 
+        // Build operator clause for search
+        const allowedOps = ["=", "!=", "<", ">", "<=", ">="];
+        const textOps = ["contains", "beginswith", "endswith"];
+        let searchOp = req.body.operator || "=";
+        let opClause;
+
+        if (allowedOps.indexOf(searchOp) !== -1) {
+          opClause = `properties ->> :key ${searchOp} :value`;
+        } else if (searchOp === "contains") {
+          opClause = `properties ->> :key ILIKE '%' || :value || '%'`;
+        } else if (searchOp === "beginswith") {
+          opClause = `properties ->> :key ILIKE :value || '%'`;
+        } else if (searchOp === "endswith") {
+          opClause = `properties ->> :key ILIKE '%' || :value`;
+        } else if (searchOp === "," || searchOp === "in") {
+          opClause = `properties ->> :key IN (:valueList)`;
+        } else {
+          opClause = `properties ->> :key = :value`;
+        }
+
+        // For numeric operators, cast to numeric
+        if (["<", ">", "<=", ">="].indexOf(searchOp) !== -1) {
+          opClause = `(properties ->> :key)::NUMERIC ${searchOp} :value::NUMERIC`;
+        }
+
         let q =
           `SELECT properties, ST_AsGeoJSON(geom), id FROM ${Utils.forceAlphaNumUnder(
             table
@@ -1345,19 +1371,30 @@ router.post("/search", function (req, res, next) {
             ? `${where}${geomTypeWhere} ORDER BY id ${
                 offset != null && !req.body.last ? "ASC" : "DESC LIMIT 1"
               }`
-            : ` WHERE properties ->> :key = :value${geomTypeWhere}`);
+            : ` WHERE ${opClause}${geomTypeWhere}`);
+
+        const sanitizedValue =
+          typeof req.body.value === "string"
+            ? req.body.value.replace(/[`;'"]/gi, "")
+            : null;
+
+        const replacements = {
+          orderBy: orderBy || "id",
+          key: req.body.key,
+          geomType: req.body.restrictToGeometryType,
+          value: sanitizedValue,
+        };
+
+        // For IN operator, split value by comma into a list
+        if (searchOp === "," || searchOp === "in") {
+          replacements.valueList = sanitizedValue
+            ? sanitizedValue.split(",").map((v) => v.trim())
+            : [];
+        }
 
         sequelize
           .query(q + ";", {
-            replacements: {
-              orderBy: orderBy || "id",
-              key: req.body.key,
-              geomType: req.body.restrictToGeometryType,
-              value:
-                typeof req.body.value === "string"
-                  ? req.body.value.replace(/[`;'"]/gi, "")
-                  : null,
-            },
+            replacements,
           })
           .then(([results]) => {
             let r = [];
