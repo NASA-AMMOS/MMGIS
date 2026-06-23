@@ -2,15 +2,15 @@
  * Unit tests for Fix 5: Log sanitization
  *
  * Tests that sanitizeForLog strips ANSI escape sequences and dangerous control
- * characters while preserving newlines, tabs, and carriage returns for
- * readable stack traces.
+ * characters while preserving newlines and tabs for readable stack traces.
+ * Carriage returns are stripped to prevent log injection.
  */
 
 import { test, expect } from '@playwright/test';
 
 function sanitizeForLog(str) {
   if (typeof str !== 'string') return str;
-  return str.replace(/\x1B\[[0-9;]*m/g, '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ' ');
+  return str.replace(/\x1B\[[0-9;]*m/g, '').replace(/[\x00-\x08\x0B-\x1F\x7F]/g, ' ');
 }
 
 test.describe('Fix 5: Log sanitization', () => {
@@ -22,8 +22,8 @@ test.describe('Fix 5: Log sanitization', () => {
     expect(sanitizeForLog('line1\nline2')).toBe('line1\nline2');
   });
 
-  test('carriage returns are preserved', () => {
-    expect(sanitizeForLog('line1\rline2')).toBe('line1\rline2');
+  test('carriage returns are stripped to prevent log injection', () => {
+    expect(sanitizeForLog('line1\rline2')).toBe('line1 line2');
   });
 
   test('tabs are preserved for indentation', () => {
@@ -54,7 +54,7 @@ test.describe('Fix 5: Log sanitization', () => {
     expect(sanitizeForLog('data\x00injected')).toBe('data injected');
   });
 
-  test('mixed control chars and ANSI are handled, newlines preserved', () => {
+  test('mixed control chars and ANSI are handled, newlines and tabs preserved', () => {
     const input = '\x1B[31mERROR\x1B[0m\nDetails:\tsome\x00thing';
     const expected = 'ERROR\nDetails:\tsome thing';
     expect(sanitizeForLog(input)).toBe(expected);
