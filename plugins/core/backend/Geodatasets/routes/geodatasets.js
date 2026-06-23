@@ -1023,17 +1023,20 @@ router.get("/schema", function (req, res, next) {
       const promises = results.map((result) => {
         const table = result.dataValues.table;
         const layerName = result.dataValues.name;
-        // Sample one row to discover JSONB keys and types
+        // Sample multiple rows to discover JSONB keys and types
         const q = `SELECT properties FROM ${Utils.forceAlphaNumUnder(
           table
-        )} LIMIT 1`;
+        )} LIMIT 50`;
         return sequelize
           .query(q)
           .then(([rows]) => {
-            if (rows.length > 0 && rows[0].properties) {
-              const props = rows[0].properties;
+            const seenKeys = new Set();
+            rows.forEach((row) => {
+              if (!row.properties) return;
+              const props = row.properties;
               for (const key in props) {
                 const value = props[key];
+                if (value == null) continue;
                 let type = "string";
                 if (typeof value === "number") type = "number";
                 else if (typeof value === "boolean") type = "boolean";
@@ -1047,9 +1050,12 @@ router.get("/schema", function (req, res, next) {
                 if (schema[key].type === "number" && type === "string") {
                   schema[key].type = type;
                 }
-                schema[key].layers.push(layerName);
+                if (!seenKeys.has(key)) {
+                  schema[key].layers.push(layerName);
+                  seenKeys.add(key);
+                }
               }
-            }
+            });
           })
           .catch(() => {
             // Skip layers that fail
