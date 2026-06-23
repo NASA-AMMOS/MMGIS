@@ -190,6 +190,7 @@ export function GlobalSearchPanel({ onClose }) {
     const [aggregationValues, setAggregationValues] = useState({})
     const [geodatasetLayerOptions, setGeodatasetLayerOptions] = useState([])
     const offsetsRef = useRef({})
+    const appliedFiltersRef = useRef([])
 
     const getL_ = useCallback(() => {
         return require('../../../Layers_/Layers_').default
@@ -197,6 +198,24 @@ export function GlobalSearchPanel({ onClose }) {
     const getMap_ = useCallback(() => {
         return require('../../../Map_/Map_').default
     }, [])
+
+    const clearAppliedFilters = useCallback(() => {
+        const L_ = getL_()
+        appliedFiltersRef.current.forEach((layerName) => {
+            const layerData = L_.layers.data[layerName]
+            if (layerData && layerData._filterEncoded) {
+                delete layerData._filterEncoded.filters
+                L_.Map_.refreshLayer(layerData, null, null, true)
+            }
+        })
+        appliedFiltersRef.current = []
+    }, [getL_])
+
+    useEffect(() => {
+        return () => {
+            clearAppliedFilters()
+        }
+    }, [clearAppliedFilters])
 
     // Discover geodataset layers
     useEffect(() => {
@@ -387,6 +406,9 @@ export function GlobalSearchPanel({ onClose }) {
         const encodedFilters =
             validFilters.length > 0 ? encodeFilters(validFilters) : null
 
+        // Clear any previously applied filters before applying new ones
+        clearAppliedFilters()
+
         // Apply filters to map layers
         selectedLayers.forEach((layerName) => {
             const layerData = L_.layers.data[layerName]
@@ -397,6 +419,7 @@ export function GlobalSearchPanel({ onClose }) {
                 layerData._filterEncoded = layerData._filterEncoded || {}
                 layerData._filterEncoded.filters = encodedFilters
                 L_.Map_.refreshLayer(layerData, null, null, true)
+                appliedFiltersRef.current.push(layerName)
             }
 
             // Query for results list
@@ -404,7 +427,7 @@ export function GlobalSearchPanel({ onClose }) {
         })
 
         if (selectedLayers.length === 0) setSearching(false)
-    }, [filterValues, selectedLayers, fetchLayerResults, getL_])
+    }, [filterValues, selectedLayers, fetchLayerResults, clearAppliedFilters, getL_])
 
     const handleFeatureClick = useCallback(
         (feature, layerName) => {

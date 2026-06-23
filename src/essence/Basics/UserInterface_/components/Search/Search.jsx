@@ -415,8 +415,10 @@ function SearchBar() {
                         selectFeature()
                     })
 
+                    const c = center(r)
+                    const coords = c.geometry.coordinates
                     Map_.map.setView(
-                        [r.geometry.coordinates[1], r.geometry.coordinates[0]],
+                        [coords[1], coords[0]],
                         Map_.mapScaleZoom || Map_.map.getZoom()
                     )
                     if (!L_.layers.on[layerName]) {
@@ -538,8 +540,10 @@ function SearchBar() {
                             if (!L_.layers.on[gl.value]) {
                                 L_.toggleLayer(L_.layers.data[gl.value])
                             }
+                            const c = center(r)
+                            const coords = c.geometry.coordinates
                             Map_.map.setView(
-                                [r.geometry.coordinates[1], r.geometry.coordinates[0]],
+                                [coords[1], coords[0]],
                                 Map_.mapScaleZoom || Map_.map.getZoom()
                             )
                         }
