@@ -125,23 +125,23 @@ const MODE_DEFAULT = 'default' // cross-layer search by display name
 const MODE_FIELD = 'field' // search by a specific field across layers
 const MODE_LAYER = 'layer' // search scoped to a specific layer
 
-// Operators available per field type
+// Operators available per field type — icons match LayersTool Filtering
 const STRING_OPS = [
-    { value: '=', label: '=' },
-    { value: '!=', label: '≠' },
-    { value: 'contains', label: '∋' },
-    { value: 'beginswith', label: 'A..' },
-    { value: 'endswith', label: '..Z' },
-    { value: ',', label: 'in' },
+    { value: '=', icon: 'mdi-equal', label: 'Equals' },
+    { value: '!=', icon: null, text: '!=', label: 'Not Equals' },
+    { value: 'contains', icon: 'mdi-contain', label: 'Contains' },
+    { value: 'beginswith', icon: 'mdi-contain-start', label: 'Begins With' },
+    { value: 'endswith', icon: 'mdi-contain-end', label: 'Ends With' },
+    { value: ',', icon: null, text: 'in', label: 'In List' },
 ]
 const NUMBER_OPS = [
-    { value: '=', label: '=' },
-    { value: '!=', label: '≠' },
-    { value: '<', label: '<' },
-    { value: '>', label: '>' },
-    { value: '<=', label: '≤' },
-    { value: '>=', label: '≥' },
-    { value: ',', label: 'in' },
+    { value: '=', icon: 'mdi-equal', label: 'Equals' },
+    { value: '!=', icon: null, text: '!=', label: 'Not Equals' },
+    { value: '<', icon: 'mdi-less-than', label: 'Less Than' },
+    { value: '>', icon: 'mdi-greater-than', label: 'Greater Than' },
+    { value: '<=', icon: 'mdi-less-than-or-equal', label: 'Less Than or Equal' },
+    { value: '>=', icon: 'mdi-greater-than-or-equal', label: 'Greater Than or Equal' },
+    { value: ',', icon: null, text: 'in', label: 'In List' },
 ]
 
 function SearchBar() {
@@ -181,6 +181,8 @@ function SearchBar() {
     const suggestionsRef = useRef(null)
     const dropdownRef = useRef(null)
     const fieldFilterRef = useRef(null)
+    const operatorDropdownRef = useRef(null)
+    const [operatorDropdownOpen, setOperatorDropdownOpen] = useState(false)
 
     const getL_ = useCallback(() => {
         return require('../../../Layers_/Layers_').default
@@ -465,6 +467,12 @@ function SearchBar() {
                 !dropdownRef.current.contains(e.target)
             ) {
                 setDropdownOpen(false)
+            }
+            if (
+                operatorDropdownRef.current &&
+                !operatorDropdownRef.current.contains(e.target)
+            ) {
+                setOperatorDropdownOpen(false)
             }
         }
         document.addEventListener('mousedown', handleClick)
@@ -1244,23 +1252,52 @@ function SearchBar() {
             )}
 
             {/* Operator dropdown (field mode only) */}
-            {searchMode === MODE_FIELD && selectedField && (
-                <select
-                    className="searchOperatorSelect"
-                    value={searchOperator}
-                    onChange={(e) => setSearchOperator(e.target.value)}
-                    title="Search operator"
-                >
-                    {(selectedField.type === 'number'
-                        ? NUMBER_OPS
-                        : STRING_OPS
-                    ).map((op) => (
-                        <option key={op.value} value={op.value}>
-                            {op.label}
-                        </option>
-                    ))}
-                </select>
-            )}
+            {searchMode === MODE_FIELD && selectedField && (() => {
+                const ops = selectedField.type === 'number' ? NUMBER_OPS : STRING_OPS
+                const activeOp = ops.find((o) => o.value === searchOperator) || ops[0]
+                return (
+                    <div className="searchOperatorContainer" ref={operatorDropdownRef}>
+                        <button
+                            className="searchOperatorTrigger"
+                            onClick={() => setOperatorDropdownOpen((p) => !p)}
+                            title={activeOp.label}
+                        >
+                            {activeOp.icon ? (
+                                <i className={`mdi ${activeOp.icon} mdi-14px`} />
+                            ) : (
+                                <span className="searchOperatorText">{activeOp.text}</span>
+                            )}
+                        </button>
+                        {operatorDropdownOpen && (
+                            <div className="searchOperatorDropdown">
+                                {ops.map((op) => (
+                                    <div
+                                        key={op.value}
+                                        className={`searchOperatorItem ${
+                                            op.value === searchOperator
+                                                ? 'searchOperatorItemActive'
+                                                : ''
+                                        }`}
+                                        onClick={() => {
+                                            setSearchOperator(op.value)
+                                            setOperatorDropdownOpen(false)
+                                        }}
+                                    >
+                                        <span className="searchOperatorItemIcon">
+                                            {op.icon ? (
+                                                <i className={`mdi ${op.icon} mdi-14px`} />
+                                            ) : (
+                                                <span className="searchOperatorText">{op.text}</span>
+                                            )}
+                                        </span>
+                                        <span className="searchOperatorItemLabel">{op.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )
+            })()}
 
             {/* Main search input */}
             <div className="searchInputWrapper">

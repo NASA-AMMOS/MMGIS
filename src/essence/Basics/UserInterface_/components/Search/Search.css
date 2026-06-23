@@ -240,37 +240,86 @@
 }
 
 /* Operator dropdown */
-.searchOperatorSelect {
-    height: 22px;
-    padding: 0 2px;
+.searchOperatorContainer {
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+.searchOperatorTrigger {
+    height: 24px;
+    min-width: 28px;
+    padding: 0 4px;
     margin: 0 2px;
     border: 1px solid var(--color-a2);
     border-radius: 3px;
     background: var(--color-a);
     color: var(--color-f);
-    font-size: 12px;
-    font-family: monospace;
     cursor: pointer;
-    flex-shrink: 0;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    text-align: center;
-    min-width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
 }
 
-.searchOperatorSelect:hover {
+.searchOperatorTrigger:hover {
     border-color: var(--color-mmgis);
+    background: var(--color-a1);
 }
 
-.searchOperatorSelect:focus {
-    border-color: var(--color-mmgis);
-    box-shadow: 0 0 0 1px var(--color-mmgis);
+.searchOperatorText {
+    font-family: monospace;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
 }
 
-.searchOperatorSelect option {
+.searchOperatorDropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
     background: var(--color-a);
+    border: 1px solid var(--color-a2);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px var(--color-shadow);
+    z-index: 10000;
+    min-width: 150px;
+    padding: 4px 0;
+}
+
+.searchOperatorItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    cursor: pointer;
+    color: var(--color-a5);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.searchOperatorItem:hover {
+    background: var(--color-a1);
     color: var(--color-f);
+}
+
+.searchOperatorItemActive {
+    background: color-mix(in srgb, var(--color-mmgis) 20%, transparent);
+    color: var(--color-f);
+}
+
+.searchOperatorItemIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    flex-shrink: 0;
+}
+
+.searchOperatorItemLabel {
+    flex: 1;
 }
 
 /* Search input wrapper */
