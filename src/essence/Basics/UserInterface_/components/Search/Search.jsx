@@ -1228,6 +1228,7 @@ function SearchBar() {
                                             onCheckedChange={() =>
                                                 handleLayerToggle(layer.geodatasetName)
                                             }
+                                            showCheck
                                         >
                                             {layer.label}
                                         </Checkbox>
@@ -1300,17 +1301,24 @@ function SearchBar() {
                                             {field.type}
                                         </span>
                                         <span className="searchDropdownFieldLayers">
-                                            {field.layers
-                                                .slice(0, 2)
-                                                .map((l) =>
-                                                    getLayerDisplayName(l)
+                                            {(() => {
+                                                const visibleLayers = field.layers.filter(
+                                                    (l) => checkedLayers.has(l)
                                                 )
-                                                .join(', ')}
-                                            {field.layers.length > 2
-                                                ? ` +${
-                                                      field.layers.length - 2
-                                                  }`
-                                                : ''}
+                                                return (
+                                                    <>
+                                                        {visibleLayers
+                                                            .slice(0, 2)
+                                                            .map((l) =>
+                                                                getLayerDisplayName(l)
+                                                            )
+                                                            .join(', ')}
+                                                        {visibleLayers.length > 2
+                                                            ? ` +${visibleLayers.length - 2}`
+                                                            : ''}
+                                                    </>
+                                                )
+                                            })()}
                                         </span>
                                     </div>
                                 ))}
