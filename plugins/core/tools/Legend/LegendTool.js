@@ -604,7 +604,7 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             let measureText
             try {
                 const mctx = document.createElement('canvas').getContext('2d')
-                mctx.font = `${HORIZONTAL_LABEL_FONT_PX}px sans-serif`
+                mctx.font = `${HORIZONTAL_LABEL_FONT_PX}px Roboto, sans-serif`
                 measureText = (s) => mctx.measureText(String(s)).width
             } catch (e) {
                 measureText = (s) => String(s).length * 7
