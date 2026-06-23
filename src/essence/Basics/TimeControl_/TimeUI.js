@@ -38,10 +38,6 @@ const MS = {
     decade: 315576000000,
 }
 
-// Indicator lines that tools can add/remove on the timeline
-// Map<string, {id, groupId, color, time (ms timestamp)}>
-const _indicators = new Map()
-
 const TimeUI = {
     height: 0,
     width: 0,
@@ -1918,7 +1914,11 @@ const TimeUI = {
             TimeUI.alignPopovers()
         } else {
             // Collapse the TimeUI
-            $('#timeUI').removeClass('expanded')
+            // Also clear the 'defaultExpanded' marker: it represents the initial
+            // expanded-by-default state, and if left on, the store observer
+            // (which treats expanded||defaultExpanded as expanded) would keep the
+            // layout stuck at expanded height even after the user collapses.
+            $('#timeUI').removeClass('expanded').removeClass('defaultExpanded')
             $('#mmgisTimeUIExpandedContent').removeClass('show')
             $('#mmgisTimeUIExpand > i')
                 .removeClass('mdi-chevron-down')
@@ -2821,8 +2821,6 @@ const TimeUI = {
         const useUIStore = require('../UserInterface_/store/uiStore').default
         if (useUIStore.getState().timeUIActive && ignoreHistogram !== true)
             TimeUI._makeHistogram()
-
-        TimeUI._renderIndicators()
     },
     _addRangeShiftButtons: function () {
         // Remove any existing buttons first
@@ -3527,7 +3525,6 @@ const TimeUI = {
         }
 
         TimeUI._remakeTimeSlider(true)
-        TimeUI._renderIndicators()
     },
     _updateBottomUIHeight() {
         if (_getUIStore().getState().isMobile === true) {
@@ -3540,65 +3537,6 @@ const TimeUI = {
         // class changes and updates timeUIActive/timeUIExpanded in the
         // store, which triggers BottomElementPositioner to recalculate.
         // No direct CSS manipulation needed here.
-    },
-
-    /**
-     * Add an indicator line to the timeline.
-     * @param {string} id - unique identifier for this indicator
-     * @param {string} groupId - group identifier (for bulk removal)
-     * @param {string} color - CSS color for the line
-     * @param {string|number} time - ISO string or ms timestamp
-     */
-    addIndicator(id, groupId, color, time) {
-        const ts = typeof time === 'string' ? new Date(time).getTime() : time
-        _indicators.set(id, { id, groupId, color, time: ts })
-        TimeUI._renderIndicators()
-    },
-
-    /**
-     * Remove indicator(s) from the timeline.
-     * @param {string|null} id - specific indicator id, or null to match by group
-     * @param {string|null} groupId - remove all indicators with this group id
-     */
-    removeIndicator(id, groupId) {
-        if (id != null) {
-            _indicators.delete(id)
-        }
-        if (groupId != null) {
-            for (const [key, val] of _indicators) {
-                if (val.groupId === groupId) _indicators.delete(key)
-            }
-        }
-        TimeUI._renderIndicators()
-    },
-
-    _renderIndicators() {
-        // Remove existing indicator DOM elements
-        $('.mmgisTimeUIIndicatorLine').remove()
-
-        if (
-            TimeUI._timelineStartTimestamp == null ||
-            TimeUI._timelineEndTimestamp == null
-        ) return
-
-        const timeline = document.getElementById('mmgisTimeUITimeline')
-        if (!timeline) return
-
-        for (const [, ind] of _indicators) {
-            const leftPct = F_.linearScale(
-                [TimeUI._timelineStartTimestamp, TimeUI._timelineEndTimestamp],
-                [0, 100],
-                ind.time
-            )
-            if (leftPct < 0 || leftPct > 100) continue
-
-            const line = document.createElement('div')
-            line.className = 'mmgisTimeUIIndicatorLine'
-            line.style.left = leftPct + '%'
-            line.style.borderLeftColor = ind.color
-            line.dataset.indicatorId = ind.id
-            timeline.appendChild(line)
-        }
     },
 }
 

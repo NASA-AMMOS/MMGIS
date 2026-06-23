@@ -18,6 +18,9 @@ function BottomElementPositioner() {
     const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
     const topSize = useUIStore((s) => s.topSize)
     const isDragging = useUIStore((s) => s.isDraggingSplitter)
+    // Re-run when separated tool panels (e.g. Legend) open/close so the
+    // legend-height reserve is (re)computed once #LegendTool exists in the DOM.
+    const activeSeparatedTools = useUIStore((s) => s.activeSeparatedTools)
 
     useEffect(() => {
         const ease = isDragging ? 'none' : 'bottom 0.3s ease-out, left 0.3s ease-out'
@@ -140,8 +143,25 @@ function BottomElementPositioner() {
                 sepContent.style.transition = 'left 0.2s ease-out'
                 sepContent.style.left = (12 + tpShift + (tpShift > 0 ? 12 : 0)) + 'px'
             }
+
+            // Cap the Legend panel's height so it never overlaps the bottom-left
+            // compass + scale bar. That stack's top sits ~70px above the bottom
+            // bar (mapToolBar bottom = totalOffset), so the legend's bottom must
+            // clear totalOffset + 70 + a 12px gap. totalOffset already grows with
+            // the expanded timeline, so the legend shrinks exactly as needed.
+            const legendEl = document.getElementById('LegendTool')
+            if (legendEl) {
+                const compassStack = 70 // compass + scale bar height above the bar
+                const gap = 12
+                const legendTop = legendEl.getBoundingClientRect().top
+                const reserve = legendTop + totalOffset + compassStack + gap
+                document.documentElement.style.setProperty(
+                    '--mmgis-legend-bottom-reserve',
+                    reserve + 'px'
+                )
+            }
         }
-    }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded, toolPanelWidth, topSize, isDragging])
+    }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded, toolPanelWidth, topSize, isDragging, activeSeparatedTools])
 
     return null
 }

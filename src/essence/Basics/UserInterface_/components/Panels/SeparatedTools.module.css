@@ -1,3 +1,5 @@
+
+
 /* SeparatedTools — glassmorphism floating panels over the map */
 
 .container {
@@ -89,5 +91,11 @@
 
 .panel :global(#toolContentSeparated_Legend #LegendTool) {
     height: auto !important;
-    max-height: calc(100vh - 200px) !important;
+    /* Reserve space at the bottom so the legend never overlaps the bottom-left
+       compass + scale bar. The reserve is dynamic — BottomElementPositioner sets
+       --mmgis-legend-bottom-reserve from the live layout (it grows when the
+       timeline is expanded) so the legend shrinks/scrolls instead of clipping.
+       Falls back to 240px before the positioner first runs. */
+    max-height: calc(100vh - var(--mmgis-legend-bottom-reserve, 240px)) !important;
 }
+

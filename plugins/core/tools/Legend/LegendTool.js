@@ -1,8 +1,10 @@
+
+
 import $ from 'jquery'
-import L_ from '@basics/Layers_/Layers_'
-import Map_ from '@basics/Map_/Map_'
-import ToolController_ from '@basics/ToolController_/ToolController_'
-import Help from '@basics/UserInterface_/components/Help/Help'
+import L_ from '../../../../src/essence/Basics/Layers_/Layers_'
+import Map_ from '../../../../src/essence/Basics/Map_/Map_'
+import ToolController_ from '../../../../src/essence/Basics/ToolController_/ToolController_'
+import Help from '../../../../src/essence/Basics/UserInterface_/components/Help/Help'
 
 const helpKey = 'LegendTool'
 
@@ -278,7 +280,8 @@ function drawLegendHeader() {
             'color': 'var(--color-a6)',
             'height': 'calc(100% - 40px)',
             'max-height': 'calc(100vh - 189px)',
-            'overflow-y': 'auto'
+            'overflow-y': 'auto',
+            'overflow-x': 'hidden'
         })
     tools.append(legendContainer)
 
@@ -554,8 +557,9 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 'flex-direction': orientation === 'horizontal' ? 'column' : 'row',
                 'align-items': orientation === 'horizontal' ? 'flex-start' : 'center',
                 'gap': orientation === 'horizontal' ? '4px' : '8px',
-                'width': orientation === 'horizontal' ? '320px' : 'auto', // Set to 320px for horizontal legends
-                'max-width': orientation === 'horizontal' ? '320px' : 'none', // Ensure it doesn't exceed 320px
+                'width': orientation === 'horizontal' ? '100%' : 'auto', // Fit the legend panel width
+                'max-width': orientation === 'horizontal' ? '100%' : 'none', // Never exceed the panel width
+                'box-sizing': 'border-box',
                 'padding-left': orientation === 'horizontal' ? '8px' : '0px' // Add left padding to align with vertical legends
             })
         r.append(legendContainer)
@@ -583,62 +587,74 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
         // Start with all legend entries, reduce labels if needed for horizontal legends
         let visibleLabels = legendEntries
 
-        // Calculate available width per label in horizontal mode
-        const containerWidth = orientation === 'horizontal' ? 320 : 'auto'
-        let labelWidth = orientation === 'horizontal' ? (containerWidth / visibleLabels.length) : 'auto'
-        
-        // For horizontal legends, check if we need to reduce labels based on actual text overflow
-        if (orientation === 'horizontal') {
-            const maxWidth = 320
-            
-            // Calculate if labels would overflow with current setup
-            const maxLabelLength = Math.max(...visibleLabels.map(c => String(c.value).length))
-            const estimatedCharWidth = 7
-            const estimatedLabelWidth = maxLabelLength * estimatedCharWidth
-            const minViableWidth = estimatedLabelWidth * 0.6
-            
-            // Only reduce labels if the estimated width per label is too small
-            if (labelWidth < minViableWidth && visibleLabels.length > 2) {
-                const maxLabels = Math.floor(maxWidth / minViableWidth)
-                
-                if (visibleLabels.length > maxLabels) {
-                    // Always keep first and last labels
-                    const keepIndices = new Set([0, visibleLabels.length - 1])
-                    
-                    // Calculate how many intermediate labels we can show
-                    const intermediateSlots = Math.max(0, maxLabels - 2)
-                    
-                    if (intermediateSlots > 0) {
-                        // Distribute intermediate labels evenly
-                        const step = (visibleLabels.length - 1) / (intermediateSlots + 1)
-                        for (let i = 1; i <= intermediateSlots; i++) {
-                            const index = Math.round(i * step)
-                            if (index > 0 && index < visibleLabels.length - 1) {
-                                keepIndices.add(index)
-                            }
-                        }
-                    }
-                    
-                    // Create new array with only the selected labels
-                    visibleLabels = legendEntries.filter((_, index) => keepIndices.has(index))
-                    // Recalculate label width with reduced labels
-                    labelWidth = containerWidth / visibleLabels.length
+        // Calculate available width per label in horizontal mode.
+        // Measure the actual rendered legend panel width instead of assuming a fixed size,
+        // so labels and the gradient never overflow the panel (which clips them on the right).
+        const measuredWidth = Math.floor(legendContainer.width()) || 0
+        const containerWidth = orientation === 'horizontal' ? (measuredWidth > 0 ? measuredWidth : 240) : 'auto'
+
+        // Consistent font size for horizontal labels (no per-legend shrinking)
+        const HORIZONTAL_LABEL_FONT_PX = 12
+
+        // For horizontal legends, thin the labels to an evenly-spaced subset. Aim for a
+        // consistent target tick count across legends, preferring divisions of the range
+        // that land on clean, symmetric values, and only reduce the count when the labels
+        // would actually overlap (real text widths measured via canvas).
+        if (orientation === 'horizontal' && visibleLabels.length > 2) {
+            let measureText
+            try {
+                const mctx = document.createElement('canvas').getContext('2d')
+                mctx.font = `${HORIZONTAL_LABEL_FONT_PX}px sans-serif`
+                measureText = (s) => mctx.measureText(String(s)).width
+            } catch (e) {
+                measureText = (s) => String(s).length * 7
+            }
+            const gap = 12 // minimum space between adjacent labels
+            const targetTicks = 5 // preferred number of labels, for consistency across legends
+            const n = visibleLabels.length
+
+            // Evenly-spaced indices for a given number of intervals (ticks = intervals + 1)
+            const evenIndices = (intervals) => {
+                const step = (n - 1) / intervals
+                const out = []
+                for (let k = 0; k <= intervals; k++) out.push(Math.round(k * step))
+                return [...new Set(out)]
+            }
+            // Do these labels fit without overlapping? Labels are evenly spaced along the
+            // bar, so the center-to-center spacing just needs to clear the widest label + gap.
+            const fits = (idxs) => {
+                const intervals = idxs.length - 1
+                if (intervals < 1) return true
+                const widest = Math.max(...idxs.map((ix) => measureText(visibleLabels[ix].value)))
+                return containerWidth / intervals >= widest + gap
+            }
+
+            // First choice: the most ticks (up to the target) whose interval count divides the
+            // range evenly — these give clean values (e.g. 0, 100, 200, 300, 400) and a
+            // consistent count across same-sized legends.
+            let chosen = null
+            for (let intervals = Math.min(targetTicks - 1, n - 1); intervals >= 1; intervals--) {
+                if ((n - 1) % intervals !== 0) continue
+                const idxs = evenIndices(intervals)
+                if (fits(idxs)) { chosen = idxs; break }
+            }
+            // Fallback (range doesn't divide evenly): rounded even spacing that still fits.
+            if (!chosen) {
+                for (let ticks = Math.min(targetTicks, n); ticks >= 2; ticks--) {
+                    const idxs = evenIndices(ticks - 1)
+                    if (ticks === 2 || fits(idxs)) { chosen = idxs; break }
                 }
             }
-        }
-        
-        const calculateFontSize = () => {
-            if (orientation === 'horizontal') {
-                const maxLabelLength = Math.max(...visibleLabels.map(c => String(c.value).length))
-                const baseSize = 14
-                const minSize = 9
-                const maxSize = 14
-                const averageCharWidth = 7
-                const availableWidth = labelWidth * 0.95 // Use more of the available space
-                const calculatedSize = (availableWidth / (maxLabelLength * averageCharWidth)) * baseSize
-                return Math.min(maxSize, Math.max(minSize, calculatedSize))
+            if (chosen) {
+                const keep = new Set(chosen)
+                visibleLabels = legendEntries.filter((_, index) => keep.has(index))
             }
-            return 14
+        }
+
+        const calculateFontSize = () => {
+            // Horizontal labels are already thinned to fit, so keep a fixed, consistent
+            // size instead of shrinking per-legend (which looked uneven).
+            return orientation === 'horizontal' ? HORIZONTAL_LABEL_FONT_PX : 14
         }
 
         const fontSize = calculateFontSize()
@@ -925,7 +941,10 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 if (i === 0 && labelPosition < 0.1) {
                     transform = 'translateX(0%)'
                 }
-                // Keep last label center-justified (no special transform)
+                // For last label, shift it left to prevent right overflow (clipping)
+                else if (i === visibleLabels.length - 1 && labelPosition > 0.9) {
+                    transform = 'translateX(-100%)'
+                }
 
                 v.css({
                     'position': 'absolute',
@@ -1035,3 +1054,4 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
 //Other functions
 
 export default LegendTool
+
