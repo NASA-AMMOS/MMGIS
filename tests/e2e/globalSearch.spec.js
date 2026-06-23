@@ -31,15 +31,16 @@ test.describe('Global Feature Search', () => {
 
     // ----- Search bar presence -----
 
-    test('search bar renders with dropdown trigger and input', async ({
+    test('search bar renders with layers and fields dropdowns and input', async ({
         page,
     }) => {
         const searchBar = page.locator('.searchBar')
         await expect(searchBar).toBeVisible({ timeout: 15000 })
 
-        // Dropdown trigger button exists
-        const dropdownTrigger = searchBar.locator('.searchDropdownTrigger')
-        await expect(dropdownTrigger).toBeVisible()
+        // Should have two dropdown triggers (layers + fields)
+        const triggers = searchBar.locator('.searchDropdownTrigger')
+        await expect(triggers.first()).toBeVisible()
+        await expect(triggers.nth(1)).toBeVisible()
 
         // Search input exists
         const searchInput = searchBar.locator(
@@ -48,14 +49,14 @@ test.describe('Global Feature Search', () => {
         await expect(searchInput).toBeVisible()
     })
 
-    test('dropdown opens with Search by Field section', async ({ page }) => {
+    test('fields dropdown opens with Search by Field section', async ({ page }) => {
         await expect(page.locator('.searchBar')).toBeVisible({ timeout: 15000 })
 
-        // Click the dropdown trigger
-        await page.locator('.searchDropdownTrigger').click()
+        // Click the fields dropdown trigger (second trigger)
+        await page.locator('.searchDropdownTrigger').nth(1).click()
 
         // Dropdown panel should appear
-        const panel = page.locator('.searchDropdownPanel')
+        const panel = page.locator('.searchDropdownPanel').last()
         await expect(panel).toBeVisible({ timeout: 5000 })
 
         // Should have "Search by Field" section header
@@ -69,50 +70,30 @@ test.describe('Global Feature Search', () => {
         ).toBeVisible()
     })
 
-    test('dropdown shows Search Specific Layer section (expanded)', async ({
+    test('layers dropdown shows checkboxes for geodataset layers', async ({
         page,
     }) => {
         await expect(page.locator('.searchBar')).toBeVisible({ timeout: 15000 })
-        await page.locator('.searchDropdownTrigger').click()
 
-        const panel = page.locator('.searchDropdownPanel')
+        // Click the layers dropdown trigger (first trigger)
+        await page.locator('.searchDropdownTrigger').first().click()
+
+        const panel = page.locator('.searchDropdownPanel').first()
         await expect(panel).toBeVisible({ timeout: 5000 })
 
-        // Should have the collapsible layer section header
-        const layerHeader = panel.locator('.searchDropdownCollapsible')
-        await expect(layerHeader).toBeVisible()
-        await expect(layerHeader).toContainText('Search Specific Layer')
-
-        // Layer list should be visible (expanded by default)
+        // Should have "Layers" section header
         await expect(
-            panel.locator('.searchDropdownLayerList')
-        ).toBeVisible()
-    })
+            panel.locator('.searchDropdownSectionHeader').first()
+        ).toContainText('Layers')
 
-    test('collapsing then expanding layer section shows geodataset layers', async ({
-        page,
-    }) => {
-        await expect(page.locator('.searchBar')).toBeVisible({ timeout: 15000 })
-        await page.locator('.searchDropdownTrigger').click()
-
-        const panel = page.locator('.searchDropdownPanel')
-        await expect(panel).toBeVisible({ timeout: 5000 })
-
-        // Collapse the layer section
-        await panel.locator('.searchDropdownCollapsible').click()
-        await expect(panel.locator('.searchDropdownLayerList')).not.toBeVisible()
-
-        // Re-expand
-        await panel.locator('.searchDropdownCollapsible').click()
-
-        // Layer list should now be visible
-        const layerList = panel.locator('.searchDropdownLayerList')
-        await expect(layerList).toBeVisible({ timeout: 3000 })
-
-        // Should have at least one layer item
-        const layerItems = layerList.locator('.searchDropdownLayerItem')
-        const count = await layerItems.count()
+        // Should have checkbox items
+        const checkItems = panel.locator('.searchDropdownLayerCheckItem')
+        const count = await checkItems.count()
         expect(count).toBeGreaterThan(0)
+
+        // All should be checked by default
+        const firstCheckbox = checkItems.first().locator('input[type="checkbox"]')
+        await expect(firstCheckbox).toBeChecked()
     })
 
     test('selecting a field shows chip and changes placeholder', async ({
@@ -123,8 +104,8 @@ test.describe('Global Feature Search', () => {
         // Wait for schema to load
         await page.waitForTimeout(2000)
 
-        await page.locator('.searchDropdownTrigger').click()
-        const panel = page.locator('.searchDropdownPanel')
+        await page.locator('.searchDropdownTrigger').nth(1).click()
+        const panel = page.locator('.searchDropdownPanel').last()
         await expect(panel).toBeVisible({ timeout: 5000 })
 
         // Wait for fields to appear
@@ -151,8 +132,8 @@ test.describe('Global Feature Search', () => {
         await page.waitForTimeout(2000)
 
         // Select a field first
-        await page.locator('.searchDropdownTrigger').click()
-        const panel = page.locator('.searchDropdownPanel')
+        await page.locator('.searchDropdownTrigger').nth(1).click()
+        const panel = page.locator('.searchDropdownPanel').last()
         await expect(panel).toBeVisible({ timeout: 5000 })
 
         const firstField = panel.locator('.searchDropdownFieldItem').first()
@@ -181,8 +162,8 @@ test.describe('Global Feature Search', () => {
         await expect(page.locator('.searchBar')).toBeVisible({ timeout: 15000 })
         await page.waitForTimeout(2000)
 
-        await page.locator('.searchDropdownTrigger').click()
-        const panel = page.locator('.searchDropdownPanel')
+        await page.locator('.searchDropdownTrigger').nth(1).click()
+        const panel = page.locator('.searchDropdownPanel').last()
         await expect(panel).toBeVisible({ timeout: 5000 })
 
         // Wait for fields

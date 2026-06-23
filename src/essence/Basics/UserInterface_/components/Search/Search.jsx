@@ -157,7 +157,11 @@ function SearchBar() {
     // Dropdown state
     const [dropdownOpen, setDropdownOpen] = useState(false)
     const [fieldFilterText, setFieldFilterText] = useState('')
-    const [layerSectionExpanded, setLayerSectionExpanded] = useState(true)
+
+    // Layer dropdown state
+    const [layerDropdownOpen, setLayerDropdownOpen] = useState(false)
+    const [layerFilterText, setLayerFilterText] = useState('')
+    const [checkedLayers, setCheckedLayers] = useState(new Set()) // geodataset names checked in layers dropdown
 
     // Search mode and selection
     const [searchMode, setSearchMode] = useState(MODE_DEFAULT)
@@ -183,6 +187,8 @@ function SearchBar() {
     const fieldFilterRef = useRef(null)
     const operatorDropdownRef = useRef(null)
     const [operatorDropdownOpen, setOperatorDropdownOpen] = useState(false)
+    const layerDropdownRef = useRef(null)
+    const layerFilterRef = useRef(null)
 
     const getL_ = useCallback(() => {
         return require('../../../Layers_/Layers_').default
@@ -300,6 +306,8 @@ function SearchBar() {
 
             setGeodatasetLayers(geoLayers)
             setVectorLayers(vecLayers)
+            // Default: all geodataset layers checked
+            setCheckedLayers(new Set(geoLayers.map((gl) => gl.geodatasetName)))
 
             // Fetch bulk schema for geodataset layers
             if (geoLayers.length > 0) {
@@ -473,6 +481,12 @@ function SearchBar() {
                 !operatorDropdownRef.current.contains(e.target)
             ) {
                 setOperatorDropdownOpen(false)
+            }
+            if (
+                layerDropdownRef.current &&
+                !layerDropdownRef.current.contains(e.target)
+            ) {
+                setLayerDropdownOpen(false)
             }
         }
         document.addEventListener('mousedown', handleClick)
@@ -652,9 +666,11 @@ function SearchBar() {
             })
             searchFilteredLayers.current = []
 
-            // All geodataset layers that could have this field
-            const candidateLayers = geodatasetLayers.filter((gl) =>
-                fieldLayers.includes(gl.geodatasetName)
+            // All geodataset layers that could have this field AND are checked
+            const candidateLayers = geodatasetLayers.filter(
+                (gl) =>
+                    fieldLayers.includes(gl.geodatasetName) &&
+                    checkedLayers.has(gl.geodatasetName)
             )
             if (candidateLayers.length === 0) return
 
@@ -783,6 +799,7 @@ function SearchBar() {
             selectedField,
             searchOperator,
             geodatasetLayers,
+            checkedLayers,
             saveLayerState,
             getL_,
             getMap_,
@@ -1044,20 +1061,28 @@ function SearchBar() {
         []
     )
 
-    // Layer selection from dropdown
-    const handleLayerSelect = useCallback((layer) => {
-        setSearchMode(MODE_LAYER)
-        setSelectedLayer(layer.value)
-        setSelectedField(null)
-        setInputValue('')
-        setDropdownOpen(false)
-        setFieldFilterText('')
-        setTimeout(() => {
-            if (inputRef.current) inputRef.current.focus()
-        }, 50)
+    // Toggle a layer in the layers dropdown
+    const handleLayerToggle = useCallback((geodatasetName) => {
+        setCheckedLayers((prev) => {
+            const next = new Set(prev)
+            if (next.has(geodatasetName)) {
+                next.delete(geodatasetName)
+            } else {
+                next.add(geodatasetName)
+            }
+            return next
+        })
     }, [])
 
-    // Remove selected field/layer chip to go back to default — restores layer state
+    const handleLayerSelectAll = useCallback(() => {
+        setCheckedLayers(new Set(geodatasetLayers.map((gl) => gl.geodatasetName)))
+    }, [geodatasetLayers])
+
+    const handleLayerDeselectAll = useCallback(() => {
+        setCheckedLayers(new Set())
+    }, [])
+
+    // Remove selected field chip to go back to default — restores layer state
     const handleRemoveChip = useCallback(() => {
         restoreLayerState()
         setSearchMode(MODE_DEFAULT)
@@ -1075,9 +1100,21 @@ function SearchBar() {
             const next = !prev
             if (next) {
                 setFieldFilterText('')
-                setLayerSectionExpanded(true)
                 setTimeout(() => {
                     if (fieldFilterRef.current) fieldFilterRef.current.focus()
+                }, 50)
+            }
+            return next
+        })
+    }, [])
+
+    const toggleLayerDropdown = useCallback(() => {
+        setLayerDropdownOpen((prev) => {
+            const next = !prev
+            if (next) {
+                setLayerFilterText('')
+                setTimeout(() => {
+                    if (layerFilterRef.current) layerFilterRef.current.focus()
                 }, 50)
             }
             return next
@@ -1095,39 +1132,133 @@ function SearchBar() {
         [geodatasetLayers]
     )
 
-    // Filtered field list for dropdown
+    // Filtered field list for dropdown — filter by checked layers + text filter
+    const layerFilteredFields = checkedLayers.size > 0
+        ? schemaFields.filter((f) =>
+              f.layers.some((l) => checkedLayers.has(l))
+          )
+        : schemaFields
     const filteredFields = fieldFilterText
-        ? schemaFields.filter(
+        ? layerFilteredFields.filter(
               (f) =>
                   f.name
                       .toLowerCase()
                       .indexOf(fieldFilterText.toLowerCase()) !== -1
           )
-        : schemaFields
+        : layerFilteredFields
+
+    // Filtered layer list for layer dropdown
+    const filteredLayerList = layerFilterText
+        ? geodatasetLayers.filter(
+              (l) =>
+                  l.label.toLowerCase().indexOf(layerFilterText.toLowerCase()) !== -1
+          )
+        : geodatasetLayers
 
     if (!initialized) return null
 
     const chipLabel =
         searchMode === MODE_FIELD && selectedField
             ? selectedField.name
-            : searchMode === MODE_LAYER && selectedLayer
-            ? (
-                  vectorLayers.find((l) => l.value === selectedLayer) ||
-                  geodatasetLayers.find((l) => l.value === selectedLayer) ||
-                  {}
-              ).label || selectedLayer
             : null
+
+    // Layer dropdown summary label
+    const allLayersChecked = checkedLayers.size === geodatasetLayers.length
+    const layerCountLabel = allLayersChecked
+        ? 'All'
+        : checkedLayers.size === 0
+        ? 'None'
+        : `${checkedLayers.size}`
 
     return (
         <div id="Search" className="searchBar">
-            {/* Dropdown trigger */}
+            {/* Layers dropdown */}
+            <div className="searchDropdownContainer" ref={layerDropdownRef}>
+                <button
+                    className="searchDropdownTrigger"
+                    onClick={toggleLayerDropdown}
+                    aria-expanded={layerDropdownOpen}
+                    title="Select layers"
+                >
+                    <i className="mdi mdi-layers mdi-14px" />
+                    <span className="searchDropdownTriggerLabel">{layerCountLabel}</span>
+                    <i
+                        className={`mdi mdi-chevron-${
+                            layerDropdownOpen ? 'up' : 'down'
+                        } mdi-14px`}
+                    />
+                </button>
+
+                {layerDropdownOpen && (
+                    <div className="searchDropdownPanel">
+                        <div className="searchDropdownSection">
+                            <div className="searchDropdownSectionHeader">
+                                <span>Layers</span>
+                                <span className="searchDropdownHeaderActions">
+                                    <span
+                                        className="searchDropdownHeaderAction"
+                                        onClick={handleLayerSelectAll}
+                                    >
+                                        All
+                                    </span>
+                                    <span className="searchDropdownHeaderSep">/</span>
+                                    <span
+                                        className="searchDropdownHeaderAction"
+                                        onClick={handleLayerDeselectAll}
+                                    >
+                                        None
+                                    </span>
+                                </span>
+                            </div>
+                            <div className="searchDropdownFieldFilter">
+                                <input
+                                    ref={layerFilterRef}
+                                    type="text"
+                                    className="searchDropdownFieldFilterInput"
+                                    placeholder="Filter layers..."
+                                    value={layerFilterText}
+                                    onChange={(e) =>
+                                        setLayerFilterText(e.target.value)
+                                    }
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                            </div>
+                            <div className="searchDropdownLayerList">
+                                {filteredLayerList.map((layer) => (
+                                    <label
+                                        key={layer.value}
+                                        className="searchDropdownLayerCheckItem"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={checkedLayers.has(layer.geodatasetName)}
+                                            onChange={() =>
+                                                handleLayerToggle(layer.geodatasetName)
+                                            }
+                                        />
+                                        <span className="searchDropdownLayerCheckLabel">
+                                            {layer.label}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Fields dropdown */}
             <div className="searchDropdownContainer" ref={dropdownRef}>
                 <button
                     className="searchDropdownTrigger"
                     onClick={toggleDropdown}
                     aria-expanded={dropdownOpen}
+                    title="Select field"
                 >
-                    <i className="mdi mdi-magnify mdi-14px" />
+                    <i className="mdi mdi-form-textbox mdi-14px" />
+                    <span className="searchDropdownTriggerLabel">
+                        {selectedField ? selectedField.name : 'Field'}
+                    </span>
                     <i
                         className={`mdi mdi-chevron-${
                             dropdownOpen ? 'up' : 'down'
@@ -1137,7 +1268,6 @@ function SearchBar() {
 
                 {dropdownOpen && (
                     <div className="searchDropdownPanel">
-                        {/* Search by Field section */}
                         <div className="searchDropdownSection">
                             <div className="searchDropdownSectionHeader">
                                 Search by Field
@@ -1193,46 +1323,6 @@ function SearchBar() {
                                     </div>
                                 ))}
                             </div>
-                        </div>
-
-                        {/* Search Specific Layer section */}
-                        <div className="searchDropdownSection">
-                            <div
-                                className="searchDropdownSectionHeader searchDropdownCollapsible"
-                                onClick={() =>
-                                    setLayerSectionExpanded((prev) => !prev)
-                                }
-                            >
-                                <span>Search Specific Layer</span>
-                                <i
-                                    className={`mdi mdi-chevron-${
-                                        layerSectionExpanded ? 'up' : 'down'
-                                    } mdi-14px`}
-                                />
-                            </div>
-                            {layerSectionExpanded && (
-                                <div className="searchDropdownLayerList">
-                                    {[...geodatasetLayers, ...vectorLayers]
-                                        .filter(
-                                            (l, i, arr) =>
-                                                arr.findIndex(
-                                                    (a) =>
-                                                        a.value === l.value
-                                                ) === i
-                                        )
-                                        .map((layer) => (
-                                            <div
-                                                key={layer.value}
-                                                className="searchDropdownLayerItem"
-                                                onClick={() =>
-                                                    handleLayerSelect(layer)
-                                                }
-                                            >
-                                                {layer.label}
-                                            </div>
-                                        ))}
-                                </div>
-                            )}
                         </div>
                     </div>
                 )}

@@ -85,7 +85,7 @@ function get(reqtype, req, res, next, options) {
             key: fSplit[0],
             op: fSplit[1],
             type: fSplit[2],
-            value: fSplit[3],
+            value: fSplit.slice(3).join("+"),
           });
         }
       });

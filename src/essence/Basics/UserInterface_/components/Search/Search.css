@@ -24,10 +24,21 @@
     color: var(--color-f);
     border: none;
     border-right: 1px solid var(--color-b);
-    border-radius: 3px 0 0 3px;
     cursor: pointer;
     font-size: 12px;
     transition: background 0.1s;
+}
+
+.searchDropdownContainer:first-child .searchDropdownTrigger {
+    border-radius: 3px 0 0 3px;
+}
+
+.searchDropdownTriggerLabel {
+    font-size: 11px;
+    max-width: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .searchDropdownTrigger:hover {
@@ -39,8 +50,7 @@
     position: absolute;
     top: 100%;
     left: 0;
-    right: 0;
-    width: auto;
+    min-width: 220px;
     max-height: 70vh;
     overflow-y: auto;
     background: var(--color-a);
@@ -67,6 +77,33 @@
     letter-spacing: 0.5px;
     color: var(--color-h);
     user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.searchDropdownHeaderActions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 10px;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.searchDropdownHeaderAction {
+    cursor: pointer;
+    color: var(--color-mmgis);
+    font-weight: 500;
+}
+
+.searchDropdownHeaderAction:hover {
+    text-decoration: underline;
+}
+
+.searchDropdownHeaderSep {
+    color: var(--color-a3);
+    margin: 0 1px;
 }
 
 .searchDropdownCollapsible {
@@ -201,6 +238,34 @@
 .searchDropdownLayerItem:hover {
     background: var(--color-a1);
     color: var(--color-f);
+}
+
+.searchDropdownLayerCheckItem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--color-a5);
+    transition: background 0.1s;
+}
+
+.searchDropdownLayerCheckItem:hover {
+    background: var(--color-a1);
+    color: var(--color-f);
+}
+
+.searchDropdownLayerCheckItem input[type='checkbox'] {
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--color-mmgis);
+}
+
+.searchDropdownLayerCheckLabel {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Selection chip */
