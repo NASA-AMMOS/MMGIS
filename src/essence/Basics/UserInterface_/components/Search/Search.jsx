@@ -401,6 +401,7 @@ function SearchBar() {
                     value: searchValue,
                 },
                 function (d) {
+                    if (!d.body || d.body.length === 0) return
                     const r = d.body[0]
 
                     let selectTimeout = setTimeout(() => {
