@@ -9,7 +9,6 @@
 
 /* Dropdown trigger button */
 .searchDropdownContainer {
-    position: relative;
     height: 100%;
     display: flex;
     align-items: center;
@@ -40,7 +39,8 @@
     position: absolute;
     top: 100%;
     left: 0;
-    width: 380px;
+    right: 0;
+    width: auto;
     max-height: 70vh;
     overflow-y: auto;
     background: var(--color-a);
@@ -65,7 +65,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--color-a3);
+    color: var(--color-h);
     user-select: none;
 }
 
@@ -133,16 +133,19 @@
 }
 
 .searchDropdownFieldType {
-    color: var(--color-a3);
+    color: var(--color-f);
+    opacity: 0.6;
     font-size: 10px;
     flex-shrink: 0;
     padding: 1px 4px;
     border-radius: 2px;
     background: var(--color-a1);
+    border: 1px solid var(--color-a2, var(--color-a1));
 }
 
 .searchDropdownFieldLayers {
-    color: var(--color-a3);
+    color: var(--color-f);
+    opacity: 0.5;
     font-size: 10px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -261,8 +264,8 @@
     font-weight: 600;
     color: var(--color-f);
     opacity: 0.7;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--color-a1);
+    border: 1px solid var(--color-a2, var(--color-a1));
     border-radius: 8px;
     padding: 1px 6px;
     min-width: 18px;
@@ -286,14 +289,14 @@
 .searchClearBtn {
     position: absolute;
     right: 62px;
-    mix-blend-mode: difference;
+    color: var(--color-a3);
     z-index: 1;
 }
 
 .searchGoBtn {
     position: absolute;
     right: 32px;
-    mix-blend-mode: difference;
+    color: var(--color-a3);
     z-index: 1;
 }
 

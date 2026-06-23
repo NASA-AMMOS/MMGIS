@@ -138,7 +138,7 @@ function SearchBar() {
     // Dropdown state
     const [dropdownOpen, setDropdownOpen] = useState(false)
     const [fieldFilterText, setFieldFilterText] = useState('')
-    const [layerSectionExpanded, setLayerSectionExpanded] = useState(false)
+    const [layerSectionExpanded, setLayerSectionExpanded] = useState(true)
 
     // Search mode and selection
     const [searchMode, setSearchMode] = useState(MODE_DEFAULT)
