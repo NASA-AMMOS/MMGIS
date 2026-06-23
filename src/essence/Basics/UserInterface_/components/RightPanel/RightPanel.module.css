@@ -23,38 +23,68 @@
     pointer-events: none;
 }
 
-.dragHandle {
-    position: absolute;
-    width: 6px;
-    cursor: col-resize;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1401;
-    background: transparent;
-    border-radius: 3px;
-}
-
-.dragHandle:hover {
-    background: var(--color-mmgis);
-    opacity: 0.5;
-}
-
+/*
+ * DrawTool context menu overrides — when .drawToolContextMenu is injected
+ * into the floating right panel, adapt its layout:
+ *  - Fill the panel instead of using absolute positioning
+ *  - Let the tab body flex instead of using fixed calc(100vh - ...) heights
+ *  - Keep header and save bar pinned to top/bottom
+ */
 :global(#uiRightPanel) {
-    overflow-y: auto !important;
+    overflow: hidden !important;
+    display: flex;
+    flex-direction: column;
+}
+
+:global(#uiRightPanel .drawToolContextMenu) {
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+}
+
+:global(#uiRightPanel .drawToolContextMenuHeader) {
+    flex-shrink: 0;
+}
+
+:global(#uiRightPanel .drawToolContextMenuTabBar) {
+    flex-shrink: 0;
+}
+
+:global(#uiRightPanel .drawToolContextMenuTab) {
+    flex: 1 !important;
+    min-height: 0 !important;
+    height: auto !important;
+}
+
+:global(#uiRightPanel .drawToolContextMenuTabProperties) {
+    height: auto !important;
+}
+
+:global(#uiRightPanel .drawToolContextMenuTabStyle) {
+    height: auto !important;
+}
+
+:global(#uiRightPanel .drawToolContextMenuSave) {
+    flex-shrink: 0;
+}
+
+/* Scrollbar styling for scrollable children */
+:global(#uiRightPanel .drawToolContextMenuTab) {
     scrollbar-width: thin !important;
     scrollbar-color: var(--color-a2) transparent !important;
 }
 
-:global(#uiRightPanel)::-webkit-scrollbar {
+:global(#uiRightPanel .drawToolContextMenuTab)::-webkit-scrollbar {
     width: 4px;
 }
 
-:global(#uiRightPanel)::-webkit-scrollbar-track {
+:global(#uiRightPanel .drawToolContextMenuTab)::-webkit-scrollbar-track {
     background: transparent;
 }
 
-:global(#uiRightPanel)::-webkit-scrollbar-thumb {
+:global(#uiRightPanel .drawToolContextMenuTab)::-webkit-scrollbar-thumb {
     background: var(--color-a2);
     border-radius: 2px;
 }

@@ -69,7 +69,7 @@ test.describe('Global Feature Search', () => {
         ).toBeVisible()
     })
 
-    test('dropdown shows Search Specific Layer section (collapsed)', async ({
+    test('dropdown shows Search Specific Layer section (expanded)', async ({
         page,
     }) => {
         await expect(page.locator('.searchBar')).toBeVisible({ timeout: 15000 })
@@ -83,13 +83,13 @@ test.describe('Global Feature Search', () => {
         await expect(layerHeader).toBeVisible()
         await expect(layerHeader).toContainText('Search Specific Layer')
 
-        // Layer list should not be visible initially (collapsed)
+        // Layer list should be visible (expanded by default)
         await expect(
             panel.locator('.searchDropdownLayerList')
-        ).not.toBeVisible()
+        ).toBeVisible()
     })
 
-    test('expanding layer section shows geodataset layers', async ({
+    test('collapsing then expanding layer section shows geodataset layers', async ({
         page,
     }) => {
         await expect(page.locator('.searchBar')).toBeVisible({ timeout: 15000 })
@@ -98,7 +98,11 @@ test.describe('Global Feature Search', () => {
         const panel = page.locator('.searchDropdownPanel')
         await expect(panel).toBeVisible({ timeout: 5000 })
 
-        // Click to expand layer section
+        // Collapse the layer section
+        await panel.locator('.searchDropdownCollapsible').click()
+        await expect(panel.locator('.searchDropdownLayerList')).not.toBeVisible()
+
+        // Re-expand
         await panel.locator('.searchDropdownCollapsible').click()
 
         // Layer list should now be visible

@@ -141,16 +141,13 @@ function BottomElementPositioner() {
                 sepContent.style.left = (12 + tpShift + (tpShift > 0 ? 12 : 0)) + 'px'
             }
 
-            // Adjust right panel height so it doesn't overlap the bottom bar
+            // Adjust right panel height: clear both bottom bar and CoordinatesDiv
             const rightPanel = document.getElementById('uiRightPanel')
             if (rightPanel) {
-                const panelBottom = totalOffset > 0 ? (totalOffset + 12) : 12
+                // CoordinatesDiv: 30px tall, sitting at totalOffset + 12 from bottom
+                const coordsClearance = totalOffset + 12 + 30 + 12
+                const panelBottom = Math.max(coordsClearance, totalOffset > 0 ? (totalOffset + 12) : 54)
                 rightPanel.style.height = `calc(100% - ${topSize + 12 + panelBottom}px)`
-            }
-            const rightPanelDrag = document.getElementById('rightPanelDrag')
-            if (rightPanelDrag) {
-                const panelBottom = totalOffset > 0 ? (totalOffset + 12) : 12
-                rightPanelDrag.style.height = `calc(100% - ${topSize + 12 + panelBottom}px)`
             }
         }
     }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded, toolPanelWidth, topSize, isDragging])
