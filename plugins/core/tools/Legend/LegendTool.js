@@ -655,6 +655,36 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             }
         }
 
+        // Reserve horizontal room at the bar ends (≈ half the widest label) so the first
+        // and last labels can stay centered on their ticks, overhanging into this margin
+        // instead of clipping the panel.
+        if (
+            orientation === 'horizontal' &&
+            legendEntries[0]?.shape === 'continuous' &&
+            visibleLabels.length > 0
+        ) {
+            let measureLabel
+            try {
+                const lctx = document.createElement('canvas').getContext('2d')
+                lctx.font = `${HORIZONTAL_LABEL_FONT_PX}px Roboto, sans-serif`
+                measureLabel = (s) => lctx.measureText(String(s)).width
+            } catch (e) {
+                measureLabel = (s) => String(s).length * 7
+            }
+            const numericPart = (val) => {
+                const m = String(val).trim().match(/^([0-9.,\-\s]+)(.*)$/)
+                return m ? m[1].trim() : String(val).trim()
+            }
+            const widest = Math.max(
+                ...visibleLabels.map((l) => measureLabel(numericPart(l.value)))
+            )
+            const edgePad = Math.ceil(widest / 2) + 2
+            legendContainer.css({
+                'padding-left': `${edgePad}px`,
+                'padding-right': `${edgePad}px`,
+            })
+        }
+
         const calculateFontSize = () => {
             // Horizontal labels are already thinned to fit, so keep a fixed, consistent
             // size instead of shrinking per-legend (which looked uneven).
@@ -672,8 +702,8 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 'height': orientation === 'horizontal' ? 'auto' : (19 * visibleLabels.length + 'px'),
                 'gap': orientation === 'horizontal' ? '0' : '0',
                 'position': 'relative',
-                'padding-left': (orientation === 'horizontal' && legendEntries[0].shape === 'continuous') ? '8px' : '0px',
-                'padding-right': (orientation === 'horizontal' && legendEntries[0].shape === 'continuous') ? '8px' : '0px',
+                'padding-left': '0px', // bar-end inset is handled by legendContainer (edgePad)
+                'padding-right': '0px',
                 'padding-bottom': (orientation === 'horizontal' && legendEntries[0].shape === 'continuous') ? '12px' : '0px'
             })
         legendContainer.append(values)
@@ -936,24 +966,14 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             values.append(v)
 
             if (orientation === 'horizontal' && visibleLabels[i].shape === 'continuous') {
-                // Position labels to align exactly with tick marks for continuous legends only
-                // Adjust positioning to prevent leftmost labels from extending outside container
-                let adjustedPosition = labelPosition
-                let transform = 'translateX(-50%)'
-
-                // For first label, shift it right to prevent left overflow
-                if (i === 0 && labelPosition < 0.1) {
-                    transform = 'translateX(0%)'
-                }
-                // For last label, shift it left to prevent right overflow (clipping)
-                else if (i === visibleLabels.length - 1 && labelPosition > 0.9) {
-                    transform = 'translateX(-100%)'
-                }
-
+                // Center every label on its tick. The gradient bar is inset by `edgePad`
+                // (≈ half the widest label) on both sides, so the first and last labels
+                // can overhang into that margin without clipping the panel, keeping all
+                // labels evenly spaced.
                 v.css({
                     'position': 'absolute',
-                    'left': `${adjustedPosition * 100}%`,
-                    'transform': transform,
+                    'left': `${labelPosition * 100}%`,
+                    'transform': 'translateX(-50%)',
                     'text-align': 'center',
                     'width': 'auto',
                     'max-width': '80px' // Prevent overlap
