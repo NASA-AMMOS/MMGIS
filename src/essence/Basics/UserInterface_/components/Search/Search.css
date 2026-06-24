@@ -170,6 +170,11 @@
     font-size: 11px;
 }
 
+.searchUnifiedLayerLoading {
+    margin-left: 6px;
+    opacity: 0.6;
+}
+
 /* ===== Field items (column 2) ===== */
 .searchUnifiedFieldItem {
     display: flex;

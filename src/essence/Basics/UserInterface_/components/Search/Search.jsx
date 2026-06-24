@@ -174,10 +174,19 @@ function SearchBar() {
     // Schema and layer data
     const [schemaFields, setSchemaFields] = useState([])
     const [geodatasetLayers, setGeodatasetLayers] = useState([])
+    const [vectorSearchLayers, setVectorSearchLayers] = useState([])
     const [vectorLayers, setVectorLayers] = useState([])
     const [fieldValues, setFieldValues] = useState([])
+    const [loadingVectorLayers, setLoadingVectorLayers] = useState(new Set())
 
     const lastGeodatasetLayerName = useRef(null)
+
+    // Cached GeoJSON features for lazy-loaded vector layers { layerName: GeoJSON }
+    const vectorLayerCache = useRef({})
+    // Schema fields discovered from vector layers { fieldName: { type, layers: [layerName, ...] } }
+    const vectorSchemaRef = useRef({})
+    // Base geodataset schema (from API) stored separately for clean merges
+    const geodatasetSchemaRef = useRef([])
 
     // Pre-search layer state for restore on cancel
     const preSearchLayerState = useRef(null)
@@ -196,6 +205,160 @@ function SearchBar() {
     const getMap_ = useCallback(() => {
         return require('../../../Map_/Map_').default
     }, [])
+    const getF_ = useCallback(() => {
+        return require('../../../Formulae_/Formulae_').default
+    }, [])
+
+    // Discover schema from GeoJSON features (inspect first N features)
+    const discoverVectorSchema = useCallback((geojson, layerName) => {
+        const features = geojson.features || []
+        const fieldMap = {} // { fieldName: { types: Set, count } }
+        const sampleSize = Math.min(features.length, 50)
+
+        const walkProps = (obj, prefix) => {
+            for (const key in obj) {
+                const fullKey = prefix ? `${prefix}.${key}` : key
+                const val = obj[key]
+                if (val != null && typeof val === 'object' && !Array.isArray(val)) {
+                    walkProps(val, fullKey)
+                } else {
+                    if (!fieldMap[fullKey]) fieldMap[fullKey] = { types: new Set(), count: 0 }
+                    let t = 'string'
+                    if (typeof val === 'number') t = 'number'
+                    else if (typeof val === 'boolean') t = 'boolean'
+                    else if (Array.isArray(val)) t = 'array'
+                    fieldMap[fullKey].types.add(t)
+                    fieldMap[fullKey].count++
+                }
+            }
+        }
+
+        for (let i = 0; i < sampleSize; i++) {
+            if (features[i].properties) walkProps(features[i].properties, '')
+        }
+
+        const schema = {}
+        for (const fk in fieldMap) {
+            const types = fieldMap[fk].types
+            let type = 'string'
+            if (types.has('number') && !types.has('string')) type = 'number'
+            else if (types.has('boolean') && types.size === 1) type = 'boolean'
+            schema[fk] = { type, layers: [layerName] }
+        }
+        return schema
+    }, [])
+
+    // Merge vector schema into the ref and rebuild schemaFields
+    const rebuildMergedSchema = useCallback((geodatasetSchemaFields) => {
+        const merged = {}
+
+        // Add geodataset schema fields
+        ;(geodatasetSchemaFields || []).forEach((f) => {
+            merged[f.name] = { type: f.type, layers: [...f.layers] }
+        })
+
+        // Add vector layer schema fields
+        for (const fieldName in vectorSchemaRef.current) {
+            const vs = vectorSchemaRef.current[fieldName]
+            if (merged[fieldName]) {
+                vs.layers.forEach((l) => {
+                    if (!merged[fieldName].layers.includes(l))
+                        merged[fieldName].layers.push(l)
+                })
+                // Let string usurp number
+                if (merged[fieldName].type === 'number' && vs.type === 'string')
+                    merged[fieldName].type = vs.type
+            } else {
+                merged[fieldName] = { type: vs.type, layers: [...vs.layers] }
+            }
+        }
+
+        const fieldList = Object.keys(merged)
+            .map((key) => ({
+                name: key,
+                type: merged[key].type,
+                layers: merged[key].layers,
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name))
+        setSchemaFields(fieldList)
+    }, [])
+
+    // Merge vector schema into vectorSchemaRef from a discovered schema object
+    const mergeVectorSchemaForLayer = useCallback((schema, layerName) => {
+        for (const fk in schema) {
+            if (vectorSchemaRef.current[fk]) {
+                if (!vectorSchemaRef.current[fk].layers.includes(layerName))
+                    vectorSchemaRef.current[fk].layers.push(layerName)
+            } else {
+                vectorSchemaRef.current[fk] = schema[fk]
+            }
+        }
+        rebuildMergedSchema(geodatasetSchemaRef.current)
+    }, [rebuildMergedSchema])
+
+    // Fetch and cache GeoJSON for a vector layer
+    const loadVectorLayerData = useCallback(
+        (layerName) => {
+            const L_ = getL_()
+            const layerData = L_.layers.data[layerName]
+            if (!layerData) return
+
+            // Already cached
+            if (vectorLayerCache.current[layerName]) return
+
+            // If the layer is already loaded in Leaflet, use its data
+            if (L_.layers.layer[layerName] && L_.layers.layer[layerName] !== false) {
+                try {
+                    const geojson = L_.layers.layer[layerName].toGeoJSON(L_.GEOJSON_PRECISION)
+                    vectorLayerCache.current[layerName] = geojson
+                    const schema = discoverVectorSchema(geojson, layerName)
+                    mergeVectorSchemaForLayer(schema, layerName)
+                    return
+                } catch (e) {
+                    // fall through to fetch
+                }
+            }
+
+            // Fetch the GeoJSON
+            let url = layerData.url
+            if (!url) return
+
+            const F_ = getF_()
+            if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
+
+            setLoadingVectorLayers((prev) => {
+                const next = new Set(prev)
+                next.add(layerName)
+                return next
+            })
+
+            fetch(url)
+                .then((res) => res.json())
+                .then((data) => {
+                    const F2_ = require('../../../Formulae_/Formulae_').default
+                    const geojson = F2_.parseIntoGeoJSON(data)
+                    if (!geojson || !geojson.features) return
+
+                    vectorLayerCache.current[layerName] = geojson
+                    const schema = discoverVectorSchema(geojson, layerName)
+                    mergeVectorSchemaForLayer(schema, layerName)
+                })
+                .catch((err) => {
+                    console.warn(`Search: failed to fetch vector layer ${layerName}`, err)
+                })
+                .finally(() => {
+                    setLoadingVectorLayers((prev) => {
+                        const next = new Set(prev)
+                        next.delete(layerName)
+                        return next
+                    })
+                })
+        },
+        [getL_, getF_, discoverVectorSchema, mergeVectorSchemaForLayer]
+    )
+
+    // Track vector layers whose features were replaced by filtered results
+    const vectorFilteredLayers = useRef({})
 
     // Save the current layer visibility and filter state (before search modifies it)
     const saveLayerState = useCallback(() => {
@@ -224,6 +387,7 @@ function SearchBar() {
         const { on: savedOn, filters: savedFilters } =
             preSearchLayerState.current
 
+        // Restore geodataset filters
         searchFilteredLayers.current.forEach((layerName) => {
             const ld = L_.layers.data[layerName]
             if (ld) {
@@ -238,6 +402,16 @@ function SearchBar() {
             }
         })
         searchFilteredLayers.current = []
+
+        // Restore vector layers to their original full features
+        for (const lname in vectorFilteredLayers.current) {
+            const origGeoJSON = vectorFilteredLayers.current[lname]
+            if (origGeoJSON && L_.layers.layer[lname] && L_.layers.layer[lname] !== false) {
+                L_.clearVectorLayer(lname)
+                L_.updateVectorLayer(lname, origGeoJSON)
+            }
+        }
+        vectorFilteredLayers.current = {}
 
         for (let lname in savedOn) {
             const isCurrentlyOn = L_.layers.on[lname] === true
@@ -259,32 +433,44 @@ function SearchBar() {
             const searchvars = {}
             const geoLayers = []
             const vecLayers = []
+            const vecSearchLayers = []
+
+            const buildPath = (l) => {
+                const pathParts = []
+                let parent = L_._layersParent[l]
+                while (parent) {
+                    const parentData = L_.layers.data[parent]
+                    pathParts.unshift(
+                        parentData ? (parentData.display_name || parent) : parent
+                    )
+                    parent = L_._layersParent[parent]
+                }
+                return pathParts.length > 0 ? pathParts.join(' / ') : null
+            }
 
             for (let l in L_.layers.data) {
-                if (
-                    L_.layers.data[l].variables &&
-                    L_.layers.data[l].variables.search
-                )
-                    searchvars[l] = L_.layers.data[l].variables.search
+                const ld = L_.layers.data[l]
+                if (ld.variables && ld.variables.search)
+                    searchvars[l] = ld.variables.search
 
-                if (
-                    L_.layers.data[l].url &&
-                    L_.layers.data[l].url.startsWith('geodatasets:')
-                ) {
-                    const pathParts = []
-                    let parent = L_._layersParent[l]
-                    while (parent) {
-                        const parentData = L_.layers.data[parent]
-                        pathParts.unshift(
-                            parentData ? (parentData.display_name || parent) : parent
-                        )
-                        parent = L_._layersParent[parent]
-                    }
+                if (ld.url && ld.url.startsWith('geodatasets:')) {
                     geoLayers.push({
                         value: l,
-                        label: L_.layers.data[l].display_name || l,
-                        geodatasetName: L_.layers.data[l].url.split(':')[1],
-                        path: pathParts.length > 0 ? pathParts.join(' / ') : null,
+                        label: ld.display_name || l,
+                        geodatasetName: ld.url.split(':')[1],
+                        path: buildPath(l),
+                        kind: 'geodataset',
+                    })
+                } else if (
+                    ld.type === 'vector' &&
+                    ld.url &&
+                    !ld.url.startsWith('geodatasets:')
+                ) {
+                    vecSearchLayers.push({
+                        value: l,
+                        label: ld.display_name || l,
+                        path: buildPath(l),
+                        kind: 'vector',
                     })
                 }
             }
@@ -307,12 +493,15 @@ function SearchBar() {
 
             if (
                 Object.keys(searchvars).length === 0 &&
-                geoLayers.length === 0
+                geoLayers.length === 0 &&
+                vecSearchLayers.length === 0
             )
                 return false
 
             setGeodatasetLayers(geoLayers)
+            setVectorSearchLayers(vecSearchLayers)
             setVectorLayers(vecLayers)
+            // Default: check all geodataset layers on, vector layers off
             setCheckedLayers(new Set(geoLayers.map((gl) => gl.geodatasetName)))
 
             if (geoLayers.length > 0) {
@@ -331,7 +520,8 @@ function SearchBar() {
                                     layers: data.schema[key].layers || [],
                                 }))
                                 .sort((a, b) => a.name.localeCompare(b.name))
-                            setSchemaFields(fieldList)
+                            geodatasetSchemaRef.current = fieldList
+                            rebuildMergedSchema(fieldList)
                         }
                     },
                     function () {}
@@ -361,7 +551,7 @@ function SearchBar() {
             }, 500)
             return () => clearInterval(interval)
         }
-    }, [getL_])
+    }, [getL_, rebuildMergedSchema])
 
     // Update array to search + placeholder when in layer mode
     useEffect(() => {
@@ -622,11 +812,40 @@ function SearchBar() {
         [inputValue, searchFields, getL_, getMap_]
     )
 
-    // Search by selected field across all geodataset layers that have it
+    // Match a single feature value against the search operator/value (client-side)
+    const matchFeatureValue = useCallback((featureValue, searchValue, op, fieldType) => {
+        if (op === 'isnull') return featureValue == null
+        if (op === 'isnotnull') return featureValue != null
+        if (featureValue == null) return false
+
+        let fv = featureValue
+        let sv = searchValue
+        if (fieldType === 'number' && op !== ',') {
+            fv = parseFloat(fv)
+            sv = parseFloat(sv)
+        }
+
+        switch (op) {
+            case '=': return fv == sv
+            case '!=': return fv != sv
+            case '<': return fv < sv
+            case '>': return fv > sv
+            case '<=': return fv <= sv
+            case '>=': return fv >= sv
+            case 'contains': return String(fv).indexOf(String(sv)) !== -1
+            case 'beginswith': return String(fv).startsWith(String(sv))
+            case 'endswith': return String(fv).endsWith(String(sv))
+            case ',': return sv.split(',').includes(String(fv))
+            default: return false
+        }
+    }, [])
+
+    // Search by selected field across geodataset + vector layers
     const searchByField = useCallback(
         (value) => {
             const L_ = getL_()
             const Map_ = getMap_()
+            const F_ = getF_()
             const searchValue = (value || inputValue).trim()
             const isNullOp = searchOperator === 'isnull' || searchOperator === 'isnotnull'
             if ((!searchValue && !isNullOp) || !selectedField) return
@@ -645,12 +864,19 @@ function SearchBar() {
             })
             searchFilteredLayers.current = []
 
-            const candidateLayers = geodatasetLayers.filter(
+            // Split candidate layers into geodataset and vector
+            const candidateGeo = geodatasetLayers.filter(
                 (gl) =>
                     fieldLayers.includes(gl.geodatasetName) &&
                     checkedLayers.has(gl.geodatasetName)
             )
-            if (candidateLayers.length === 0) return
+            const candidateVec = vectorSearchLayers.filter(
+                (vl) =>
+                    fieldLayers.includes(vl.value) &&
+                    checkedLayers.has(vl.value)
+            )
+
+            if (candidateGeo.length === 0 && candidateVec.length === 0) return
 
             const opMap = { ',': 'in', 'contains': 'contains', 'beginswith': 'beginswith', 'endswith': 'endswith' }
             const filterOp = opMap[searchOperator] || searchOperator
@@ -658,11 +884,49 @@ function SearchBar() {
                 ? `${fieldName}+${filterOp}+${fieldType}+`
                 : `${fieldName}+${filterOp}+${fieldType}+${searchValue.replaceAll(',', '$')}`
 
-            let pendingSearches = candidateLayers.length
+            let pendingSearches = candidateGeo.length
             const allResultCoords = []
             const layersWithHits = new Set()
 
-            candidateLayers.forEach((gl) => {
+            // --- Process vector layers client-side (synchronous) ---
+            candidateVec.forEach((vl) => {
+                const layerName = vl.value
+                const geojson = vectorLayerCache.current[layerName]
+                if (!geojson || !geojson.features) return
+
+                const matchingFeatures = geojson.features.filter((feat) => {
+                    const fv = F_.getIn(feat.properties, fieldName)
+                    return matchFeatureValue(fv, searchValue, searchOperator, fieldType)
+                })
+
+                if (matchingFeatures.length > 0) {
+                    layersWithHits.add(layerName)
+                    matchingFeatures.forEach((feat) => {
+                        try {
+                            const c = center(feat)
+                            allResultCoords.push(c.geometry.coordinates)
+                        } catch (e) { /* skip invalid geometries */ }
+                    })
+
+                    // Apply visual filter to the Leaflet layer
+                    if (L_.layers.layer[layerName] && L_.layers.layer[layerName] !== false) {
+                        // Save original features before filtering
+                        if (!vectorFilteredLayers.current[layerName]) {
+                            vectorFilteredLayers.current[layerName] =
+                                L_.layers.layer[layerName].toGeoJSON(L_.GEOJSON_PRECISION)
+                        }
+                        const filteredGeoJSON = {
+                            type: 'FeatureCollection',
+                            features: matchingFeatures,
+                        }
+                        L_.clearVectorLayer(layerName)
+                        L_.updateVectorLayer(layerName, filteredGeoJSON)
+                    }
+                }
+            })
+
+            // --- Process geodataset layers via API ---
+            candidateGeo.forEach((gl) => {
                 const layerName = gl.value
 
                 if (!L_.layers.data[layerName]._filterEncoded) {
@@ -709,9 +973,18 @@ function SearchBar() {
                 )
             })
 
+            // If no geodataset layers to search, apply results immediately
+            if (candidateGeo.length === 0) {
+                applySearchResults()
+            }
+
             function applySearchResults() {
-                candidateLayers.forEach((gl) => {
-                    const layerName = gl.value
+                const allCandidateLayerNames = new Set([
+                    ...candidateGeo.map((gl) => gl.value),
+                    ...candidateVec.map((vl) => vl.value),
+                ])
+
+                allCandidateLayerNames.forEach((layerName) => {
                     const hasHits = layersWithHits.has(layerName)
                     const isOn = L_.layers.on[layerName] === true
 
@@ -721,7 +994,8 @@ function SearchBar() {
                         L_.toggleLayer(L_.layers.data[layerName])
                     }
 
-                    if (hasHits) {
+                    // Refresh geodataset layers to apply backend filter
+                    if (hasHits && geodatasetLayers.some((gl) => gl.value === layerName)) {
                         L_.Map_.refreshLayer(
                             L_.layers.data[layerName],
                             null,
@@ -731,6 +1005,7 @@ function SearchBar() {
                     }
                 })
 
+                // Turn off all other vector/vectortile layers not in search
                 for (let lname in L_.layers.on) {
                     if (
                         L_.layers.on[lname] === true &&
@@ -770,10 +1045,13 @@ function SearchBar() {
             selectedField,
             searchOperator,
             geodatasetLayers,
+            vectorSearchLayers,
             checkedLayers,
             saveLayerState,
+            matchFeatureValue,
             getL_,
             getMap_,
+            getF_,
         ]
     )
 
@@ -975,6 +1253,25 @@ function SearchBar() {
         setArrayToSearch([])
     }, [restoreLayerState])
 
+    // Compute client-side aggregations from cached vector layer features
+    const computeVectorAggregations = useCallback((fieldName, layerNames) => {
+        const F_ = getF_()
+        const aggs = {}
+        layerNames.forEach((lname) => {
+            const geojson = vectorLayerCache.current[lname]
+            if (!geojson || !geojson.features) return
+            geojson.features.forEach((feat) => {
+                if (!feat.properties) return
+                const val = F_.getIn(feat.properties, fieldName)
+                if (val != null) {
+                    const key = String(val)
+                    aggs[key] = (aggs[key] || 0) + 1
+                }
+            })
+        })
+        return aggs
+    }, [getF_])
+
     // Field selection from the unified panel
     const handleFieldSelect = useCallback(
         (field) => {
@@ -987,61 +1284,93 @@ function SearchBar() {
             setPlaceholder(`Search by ${field.name}...`)
             setFieldFilterText('')
 
-            // Fetch field values via bulk aggregations
-            if (field.layers && field.layers.length > 0) {
+            if (!field.layers || field.layers.length === 0) return
+
+            // Split layers into geodataset and vector
+            const geodatasetLayerNames = field.layers.filter((l) =>
+                geodatasetLayers.some((gl) => gl.geodatasetName === l)
+            )
+            const vectorLayerNames = field.layers.filter((l) =>
+                vectorSearchLayers.some((vl) => vl.value === l)
+            )
+
+            // Collect vector layer aggregations immediately (client-side)
+            const vectorAggs = computeVectorAggregations(field.name, vectorLayerNames)
+
+            // Merge function that combines geodataset and vector aggs
+            const mergeAndSetFieldValues = (geoAggs) => {
+                const allAggs = { ...geoAggs }
+                for (const k in vectorAggs) {
+                    allAggs[k] = (allAggs[k] || 0) + vectorAggs[k]
+                }
+                const keys = Object.keys(allAggs)
+                if (field.type === 'number') {
+                    keys.sort((a, b) => parseFloat(a) - parseFloat(b))
+                } else {
+                    keys.sort()
+                }
+                const vals = keys.map((v) => ({
+                    value: v,
+                    count: allAggs[v],
+                }))
+                setFieldValues(vals)
+            }
+
+            if (geodatasetLayerNames.length > 0) {
+                // Fetch geodataset aggregations via API
                 calls.api(
                     'geodatasets_bulk_aggregations',
-                    { layers: field.layers.join(',') },
+                    { layers: geodatasetLayerNames.join(',') },
                     function (data) {
+                        let geoAggs = {}
                         if (
                             data.status === 'success' &&
                             data.aggregations &&
                             data.aggregations[field.name] &&
                             data.aggregations[field.name].aggs
                         ) {
-                            const aggs =
-                                data.aggregations[field.name].aggs
-                            const fieldType =
-                                data.aggregations[field.name].type
-                            const keys = Object.keys(aggs)
-                            if (fieldType === 'number') {
-                                keys.sort(
-                                    (a, b) =>
-                                        parseFloat(a) - parseFloat(b)
-                                )
-                            } else {
-                                keys.sort()
-                            }
-                            const vals = keys.map((v) => ({
-                                value: v,
-                                count: aggs[v],
-                            }))
-                            setFieldValues(vals)
+                            geoAggs = data.aggregations[field.name].aggs
                         }
+                        mergeAndSetFieldValues(geoAggs)
                     },
-                    function () {}
+                    function () {
+                        mergeAndSetFieldValues({})
+                    }
                 )
+            } else {
+                // Only vector layers — just use vector aggs
+                mergeAndSetFieldValues({})
             }
         },
-        []
+        [geodatasetLayers, vectorSearchLayers, computeVectorAggregations]
     )
 
     // Toggle a layer in the layers section
-    const handleLayerToggle = useCallback((geodatasetName) => {
+    const handleLayerToggle = useCallback((layerKey, layer) => {
         setCheckedLayers((prev) => {
             const next = new Set(prev)
-            if (next.has(geodatasetName)) {
-                next.delete(geodatasetName)
+            if (next.has(layerKey)) {
+                next.delete(layerKey)
             } else {
-                next.add(geodatasetName)
+                next.add(layerKey)
+                // Lazy-load vector layer data when first checked
+                if (layer && layer.kind === 'vector') {
+                    loadVectorLayerData(layer.value)
+                }
             }
             return next
         })
-    }, [])
+    }, [loadVectorLayerData])
 
     const handleLayerSelectAll = useCallback(() => {
-        setCheckedLayers(new Set(geodatasetLayers.map((gl) => gl.geodatasetName)))
-    }, [geodatasetLayers])
+        const allKeys = new Set([
+            ...geodatasetLayers.map((gl) => gl.geodatasetName),
+            ...vectorSearchLayers.map((vl) => vl.value),
+        ])
+        setCheckedLayers(allKeys)
+        // Trigger lazy-load for all uncached vector layers
+        vectorSearchLayers.forEach((vl) => loadVectorLayerData(vl.value))
+    }, [geodatasetLayers, vectorSearchLayers, loadVectorLayerData])
 
     const handleLayerDeselectAll = useCallback(() => {
         setCheckedLayers(new Set())
@@ -1055,15 +1384,17 @@ function SearchBar() {
         }
     }, [panelOpen])
 
-    // Get display name for layer given its geodataset table name
+    // Get display name for layer given its key (geodatasetName or layer value)
     const getLayerDisplayName = useCallback(
-        (geodatasetName) => {
+        (layerKey) => {
             const gl = geodatasetLayers.find(
-                (l) => l.geodatasetName === geodatasetName
+                (l) => l.geodatasetName === layerKey
             )
-            return gl ? gl.label : geodatasetName
+            if (gl) return gl.label
+            const vl = vectorSearchLayers.find((l) => l.value === layerKey)
+            return vl ? vl.label : layerKey
         },
-        [geodatasetLayers]
+        [geodatasetLayers, vectorSearchLayers]
     )
 
     // Filtered field list — filter by checked layers + text filter
@@ -1081,9 +1412,10 @@ function SearchBar() {
           )
         : layerFilteredFields
 
-    // Filtered layer list
+    // Combined layer list: geodatasets + vector layers
+    const allLayerList = [...geodatasetLayers, ...vectorSearchLayers]
     const filteredLayerList = layerFilterText
-        ? geodatasetLayers.filter(
+        ? allLayerList.filter(
               (l) => {
                   const q = layerFilterText.toLowerCase()
                   return (
@@ -1092,7 +1424,7 @@ function SearchBar() {
                   )
               }
           )
-        : geodatasetLayers
+        : allLayerList
 
     // Operators for current field type
     const ops = selectedField && selectedField.type === 'number' ? NUMBER_OPS : STRING_OPS
@@ -1193,30 +1525,41 @@ function SearchBar() {
                                 />
                             </div>
                             <div className="searchUnifiedColBody">
-                                {filteredLayerList.map((layer) => (
-                                    <div
-                                        key={layer.value}
-                                        className="searchUnifiedLayerItem"
-                                        onClick={() =>
-                                            handleLayerToggle(layer.geodatasetName)
-                                        }
-                                    >
-                                        <Checkbox
-                                            checked={checkedLayers.has(layer.geodatasetName)}
-                                            onCheckedChange={() =>
-                                                handleLayerToggle(layer.geodatasetName)
+                                {filteredLayerList.map((layer) => {
+                                    const layerKey = layer.kind === 'geodataset'
+                                        ? layer.geodatasetName
+                                        : layer.value
+                                    const isLoading = layer.kind === 'vector' && loadingVectorLayers.has(layer.value)
+                                    return (
+                                        <div
+                                            key={layer.value}
+                                            className="searchUnifiedLayerItem"
+                                            onClick={() =>
+                                                handleLayerToggle(layerKey, layer)
                                             }
-                                            showCheck
                                         >
-                                            {layer.path && (
-                                                <span className="searchUnifiedLayerPath">
-                                                    {layer.path} /{' '}
-                                                </span>
-                                            )}
-                                            {layer.label}
-                                        </Checkbox>
-                                    </div>
-                                ))}
+                                            <Checkbox
+                                                checked={checkedLayers.has(layerKey)}
+                                                onCheckedChange={() =>
+                                                    handleLayerToggle(layerKey, layer)
+                                                }
+                                                showCheck
+                                            >
+                                                {layer.path && (
+                                                    <span className="searchUnifiedLayerPath">
+                                                        {layer.path} /{' '}
+                                                    </span>
+                                                )}
+                                                {layer.label}
+                                                {isLoading && (
+                                                    <span className="searchUnifiedLayerLoading">
+                                                        <i className="mdi mdi-loading mdi-spin mdi-12px" />
+                                                    </span>
+                                                )}
+                                            </Checkbox>
+                                        </div>
+                                    )
+                                })}
                                 {filteredLayerList.length === 0 && (
                                     <div className="searchUnifiedEmpty">No layers</div>
                                 )}
