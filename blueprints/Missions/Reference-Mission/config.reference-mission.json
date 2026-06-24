@@ -1883,6 +1883,130 @@
                   "demparser": "",
                   "controlled": false,
                   "uuid": "f408bdf4-f190-4c5c-bb0c-e0c20850d496"
+                },
+                {
+                  "name": "Legend from CSV",
+                  "type": "vector",
+                  "url": "Layers/Vectors/points-styled.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "legend": "Layers/Legends/legend-continuous.csv",
+                  "variables": {
+                    "legendOrientation": "horizontal"
+                  },
+                  "style": {
+                    "className": "legendfromcsv"
+                  },
+                  "description": "Legend test: horizontal continuous gradient legend loaded from a CSV file (value,color,label,shape).",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "0a41cc1b-c5a8-4829-9fa3-3f02b11bef0a"
+                },
+                {
+                  "name": "Legend from JSON",
+                  "type": "vector",
+                  "url": "Layers/Vectors/polygons-styled.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "variables": {
+                    "legendOrientation": "horizontal",
+                    "legend": [
+                      {
+                        "value": "0",
+                        "color": "#0d0887",
+                        "shape": "continuous"
+                      },
+                      {
+                        "value": "50",
+                        "color": "#6a00a8",
+                        "shape": "continuous"
+                      },
+                      {
+                        "value": "100",
+                        "color": "#b12a90",
+                        "shape": "continuous"
+                      },
+                      {
+                        "value": "150",
+                        "color": "#e16462",
+                        "shape": "continuous"
+                      },
+                      {
+                        "value": "200",
+                        "color": "#fca636",
+                        "shape": "continuous"
+                      },
+                      {
+                        "value": "250",
+                        "color": "#f0f921",
+                        "shape": "continuous"
+                      }
+                    ]
+                  },
+                  "style": {
+                    "className": "legendfromjson"
+                  },
+                  "description": "Legend test: horizontal continuous legend defined inline as a JSON array in variables.legend (no file).",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "bce84ca8-bf94-4b2a-bfc5-853c719ebe99"
+                },
+                {
+                  "name": "Legend from Image",
+                  "type": "vector",
+                  "url": "Layers/Vectors/lines-styled.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "legend": "Layers/Legends/legend-image.svg",
+                  "style": {
+                    "className": "legendfromimage"
+                  },
+                  "description": "Legend test: legend rendered directly from an image file (SVG).",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "6b63f7af-9ed6-4df0-bc05-5e4de22dd25f"
+                },
+                {
+                  "name": "Legend from TiTiler Colorramp",
+                  "type": "tile",
+                  "visibility": false,
+                  "sourceType": "stac-collection",
+                  "url": "reference_mission_EMIT_L2B_Methane_Enhancement_Data_60_m_V002",
+                  "tileformat": "tms",
+                  "controlled": false,
+                  "initialOpacity": 1,
+                  "minZoom": 0,
+                  "maxNativeZoom": 30,
+                  "maxZoom": 30,
+                  "demparser": "rgba",
+                  "throughTileServer": true,
+                  "cogResampling": "nearest",
+                  "cogBands": [
+                    1
+                  ],
+                  "cogExpressionEditable": false,
+                  "cogTransform": true,
+                  "cogMin": 0,
+                  "cogMax": 5000,
+                  "cogUnits": "ppm",
+                  "cogColormap": "viridis",
+                  "style": {
+                    "brightness": 1,
+                    "contrast": 1,
+                    "saturation": 1,
+                    "blend": "none"
+                  },
+                  "time": {
+                    "enabled": false,
+                    "type": "requery",
+                    "compositeTile": false,
+                    "refreshIntervalEnabled": false
+                  },
+                  "variables": {
+                    "legendOrientation": "horizontal"
+                  },
+                  "description": "Legend test: legend auto-generated from a TiTiler color ramp (cogColormap). Requires WITH_STAC=true and WITH_TITILER_PGSTAC=true.",
+                  "uuid": "fd7d0bec-834a-4acf-9f9d-b919d3dfbbbd"
                 }
               ],
               "description": "",
@@ -3468,140 +3592,6 @@
       "demparser": "",
       "controlled": false,
       "uuid": "3acb87e4-2097-41c9-a186-4d4ca61bb143"
-    },
-    {
-      "name": "Legend Source Types",
-      "type": "header",
-      "sublayers": [
-        {
-          "name": "Legend from CSV",
-          "type": "vector",
-          "url": "Layers/Vectors/points-styled.geojson",
-          "initialOpacity": 1,
-          "visibility": false,
-          "legend": "Layers/Legends/legend-continuous.csv",
-          "variables": {
-            "legendOrientation": "horizontal"
-          },
-          "style": {
-            "className": "legendfromcsv"
-          },
-          "description": "Legend test: horizontal continuous gradient legend loaded from a CSV file (value,color,label,shape).",
-          "demparser": "",
-          "controlled": false,
-          "uuid": "0a41cc1b-c5a8-4829-9fa3-3f02b11bef0a"
-        },
-        {
-          "name": "Legend from JSON",
-          "type": "vector",
-          "url": "Layers/Vectors/polygons-styled.geojson",
-          "initialOpacity": 1,
-          "visibility": false,
-          "variables": {
-            "legendOrientation": "horizontal",
-            "legend": [
-              {
-                "value": "0",
-                "color": "#0d0887",
-                "shape": "continuous"
-              },
-              {
-                "value": "50",
-                "color": "#6a00a8",
-                "shape": "continuous"
-              },
-              {
-                "value": "100",
-                "color": "#b12a90",
-                "shape": "continuous"
-              },
-              {
-                "value": "150",
-                "color": "#e16462",
-                "shape": "continuous"
-              },
-              {
-                "value": "200",
-                "color": "#fca636",
-                "shape": "continuous"
-              },
-              {
-                "value": "250",
-                "color": "#f0f921",
-                "shape": "continuous"
-              }
-            ]
-          },
-          "style": {
-            "className": "legendfromjson"
-          },
-          "description": "Legend test: horizontal continuous legend defined inline as a JSON array in variables.legend (no file).",
-          "demparser": "",
-          "controlled": false,
-          "uuid": "bce84ca8-bf94-4b2a-bfc5-853c719ebe99"
-        },
-        {
-          "name": "Legend from Image",
-          "type": "vector",
-          "url": "Layers/Vectors/lines-styled.geojson",
-          "initialOpacity": 1,
-          "visibility": false,
-          "legend": "Layers/Legends/legend-image.svg",
-          "style": {
-            "className": "legendfromimage"
-          },
-          "description": "Legend test: legend rendered directly from an image file (SVG).",
-          "demparser": "",
-          "controlled": false,
-          "uuid": "6b63f7af-9ed6-4df0-bc05-5e4de22dd25f"
-        },
-        {
-          "name": "Legend from TiTiler Colorramp",
-          "type": "tile",
-          "visibility": false,
-          "sourceType": "stac-collection",
-          "url": "reference_mission_EMIT_L2B_Methane_Enhancement_Data_60_m_V002",
-          "tileformat": "tms",
-          "controlled": false,
-          "initialOpacity": 1,
-          "minZoom": 0,
-          "maxNativeZoom": 30,
-          "maxZoom": 30,
-          "demparser": "rgba",
-          "throughTileServer": true,
-          "cogResampling": "nearest",
-          "cogBands": [
-            1
-          ],
-          "cogExpressionEditable": false,
-          "cogTransform": true,
-          "cogMin": 0,
-          "cogMax": 5000,
-          "cogUnits": "ppm",
-          "cogColormap": "viridis",
-          "style": {
-            "brightness": 1,
-            "contrast": 1,
-            "saturation": 1,
-            "blend": "none"
-          },
-          "time": {
-            "enabled": false,
-            "type": "requery",
-            "compositeTile": false,
-            "refreshIntervalEnabled": false
-          },
-          "variables": {
-            "legendOrientation": "horizontal"
-          },
-          "description": "Legend test: legend auto-generated from a TiTiler color ramp (cogColormap). Requires WITH_STAC=true and WITH_TITILER_PGSTAC=true.",
-          "uuid": "fd7d0bec-834a-4acf-9f9d-b919d3dfbbbd"
-        }
-      ],
-      "description": "Test layers exercising each legend source type: CSV file, inline JSON array, image file, and TiTiler color ramp.",
-      "demparser": "",
-      "controlled": false,
-      "uuid": "f8023f00-fbe4-4720-a049-88b362bfae3e"
     }
   ],
   "tools": [
