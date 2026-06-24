@@ -326,6 +326,30 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
     rowDiv.append(legendTitle)
     c.append(rowDiv)
 
+    // Render the layer's units as a small chip on the right of the title row.
+    // Horizontal legends strip units from the per-tick labels and show them once
+    // here, in the title row, so the chip can't overlap the title text.
+    const addTitleUnits = (units) => {
+        if (!units || rowDiv.find('.legendUnits').length > 0) return
+        rowDiv.css({ 'display': 'flex', 'align-items': 'flex-start' })
+        legendTitle.css({ 'flex': '1 1 auto', 'min-width': '0', 'margin-right': '8px' })
+        rowDiv.append(
+            $('<div>')
+                .attr('class', 'legendUnits')
+                .css({
+                    'font-size': '12px',
+                    'color': 'var(--color-f)',
+                    'white-space': 'nowrap',
+                    'background': 'var(--color-k)',
+                    'padding': '2px 6px',
+                    'border-radius': '2px',
+                    'margin-left': 'auto',
+                    'flex-shrink': '0'
+                })
+                .text(units)
+        )
+    }
+
     if (isHeader) return
 
     let legendEntries = []
@@ -339,9 +363,11 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             .css({
                 'display': 'flex',
                 'justify-content': 'center',
-                'margin': '4px',
-                'padding': '4px',
-                'overflow-x': 'hidden'
+                'width': '100%',
+                'box-sizing': 'border-box',
+                'margin': '4px 0',
+                'padding': '4px 8px',
+                'overflow': 'hidden'
             })
         c.append(imageContainer)
 
@@ -349,7 +375,10 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             .attr('src', _legend.startsWith('http') ? _legend : L_.missionPath + _legend)
             .attr('alt', `Legend for ${display_name}`)
             .css({
-                'max-width': '300px',
+                // Scale any supplied image down to fit the panel; smaller images stay
+                // at their natural size and center. Lets users drop in any legend image
+                // without pre-sizing it to the panel width.
+                'max-width': '100%',
                 'max-height': '220px',
                 'height': 'auto',
                 'background-color': 'white',
@@ -357,16 +386,8 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 'border-radius': '3px',
                 'opacity': opacity
             })
-            .on('load', function() {
-                // Set container max-width to image width (capped at 300px)
-                const maxImageWidth = Math.min(this.naturalWidth, 300)
-                imageContainer
-                    .css('max-width', maxImageWidth + 'px')
-                    .css('width', 'fit-content')
-            })
-        imageContainer.append(legendImage)
             .on('error', function() {
-                // Handle image load error
+                // Handle image load error, bound to the <img> where 'error' fires.
                 const errorDiv = $('<div>')
                     .css({
                         'color': '#ff6b6b',
@@ -378,7 +399,8 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 $(this.parentNode).append(errorDiv)
                 $(this).remove()
             })
-        
+        imageContainer.append(legendImage)
+
         return // Exit early since we've rendered the image
     }
 
@@ -840,66 +862,20 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 }
             }
             
-            // Add units label above the last tick mark for horizontal continuous legends
+            // Show units once, as a chip in the title row. The per-tick labels have
+            // units stripped, and the title row never overlaps the bar or its labels.
             if (orientation === 'horizontal') {
-                // Extract units from all visible labels
                 const values = visibleLabels.map(item => item.value)
                 const { units } = extractUnits(values)
-                
-                if (units) {
-                    // Calculate position of last tick mark
-                    const lastIndex = visibleLabels.length - 1
-                    const lastOriginalIndex = legendEntries.findIndex(item => 
-                        item.value === visibleLabels[lastIndex].value && item.color === visibleLabels[lastIndex].color)
-                    const lastTickPosition = lastOriginalIndex !== -1 ? 
-                        lastOriginalIndex / (legendEntries.length - 1) : 
-                        lastIndex / (visibleLabels.length - 1)
-                    
-                    // Add units label above the last tick mark
-                    const unitsLabelContinuous = $('<div>')
-                        .css({
-                            'position': 'absolute',
-                            'right': '0px',
-                            'top': '-20px',
-                            'font-size': '12px',
-                            'color': 'var(--color-f)',
-                            'text-align': 'right',
-                            'white-space': 'nowrap',
-                            'z-index': '100',
-                            'background': 'var(--color-k)',
-                            'padding': '2px 4px',
-                            'border-radius': '2px'
-                        })
-                        .text(units)
-                    gradient.append(unitsLabelContinuous)
-                }
+                addTitleUnits(units)
             }
         }
         
-        // Add units label for non-continuous horizontal legends
+        // Units chip for non-continuous horizontal legends, same title-row placement.
         if (orientation === 'horizontal' && (legendEntries.length === 0 || legendEntries[0].shape !== 'continuous')) {
-            // Extract units from all visible labels
             const values = visibleLabels.map(item => item.value)
             const { units } = extractUnits(values)
-
-            if (units) {
-                const unitsLabel = $('<div>')
-                    .css({
-                        'position': 'absolute',
-                        'top': '-20px',
-                        'right': '8px',
-                        'font-size': '12px',
-                        'color': 'var(--color-f)',
-                        'text-align': 'right',
-                        'white-space': 'nowrap',
-                        'z-index': '100',
-                        'background': 'var(--color-k)',
-                        'padding': '2px 4px',
-                        'border-radius': '2px'
-                    })
-                    .text(units)
-                r.append(unitsLabel)
-            }
+            addTitleUnits(units)
         }
 
         // Create labels using only the visible subset
@@ -1061,13 +1037,19 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                     value = legendEntries[clampedIndex].propertyValue || legendEntries[clampedIndex].value
                 }
                 
-                tooltip
-                    .css({
-                        'visibility': 'visible',
-                        'left': (event.clientX - rect.left - 15) + 'px',
-                        'top': (event.clientY - rect.top - 30) + 'px'
-                    })
-                    .text(value)
+                tooltip.text(value)
+
+                // Keep the tooltip within the bar so the panel edge never clips it.
+                // visibility:hidden still has layout, so outerWidth is measurable.
+                const tipW = tooltip.outerWidth() || 0
+                let left = (event.clientX - rect.left) - 15
+                left = Math.max(0, Math.min(left, rect.width - tipW))
+
+                tooltip.css({
+                    'visibility': 'visible',
+                    'left': left + 'px',
+                    'top': (event.clientY - rect.top - 30) + 'px'
+                })
             })
             .on('mouseleave', function() {
                 tooltip.css('visibility', 'hidden')
