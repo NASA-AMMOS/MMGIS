@@ -13,6 +13,35 @@ const geodatasets = require("../models/geodatasets");
 const Geodatasets = geodatasets.Geodatasets;
 const makeNewGeodatasetTable = geodatasets.makeNewGeodatasetTable;
 
+// Build a PostgreSQL JSONB accessor for a possibly nested key.
+// For a flat key like "name", returns { text: "properties->>:placeholder", replacements: { placeholder: "name" } }
+// For a dotted key like "metadata.author", returns:
+//   { text: "properties->'metadata'->>'author'", replacements: {} }
+// (nested keys are single-quoted inline since parameterized -> chains are awkward)
+function jsonbAccessor(key, placeholder) {
+  const parts = key.split(".");
+  if (parts.length === 1) {
+    return {
+      text: `properties->>:${placeholder}`,
+      replacements: { [placeholder]: key },
+    };
+  }
+  // Nested: properties->'a'->'b'->>'c'
+  const path = parts
+    .map((p, i) => {
+      const safeP = p.replace(/'/g, "''");
+      return i < parts.length - 1 ? `->'${safeP}'` : `->>'${safeP}'`;
+    })
+    .join("");
+  return { text: `properties${path}`, replacements: {} };
+}
+
+// Same as jsonbAccessor but returns the JSONB form (-> not ->>) for casting.
+// e.g., for numeric comparisons: (properties->'a'->>'b')::FLOAT
+function jsonbAccessorText(key, placeholder) {
+  return jsonbAccessor(key, placeholder);
+}
+
 //Returns a geodataset table as a geojson
 router.get("/get/:layer", function (req, res, next) {
   get("get", req, res, next, { layer: req.params.layer });
@@ -319,8 +348,12 @@ function get(reqtype, req, res, next, options) {
                   derivedKey = true;
                 }
 
-                replacements[`filter_key_${i}`] = fkey;
+                // Build JSONB accessor (supports nested keys like "a.b.c")
+                const acc = jsonbAccessor(fkey, `filter_key_${i}`);
+                Object.assign(replacements, acc.replacements);
                 replacements[`filter_value_${i}`] = f.value;
+                const propAccessor = acc.text;
+
                 let op = "=";
                 switch (f.op) {
                   case ">":
@@ -359,9 +392,7 @@ function get(reqtype, req, res, next, options) {
                 let value = "";
                 if (op === "IS NULL" || op === "IS NOT NULL") {
                   const qNull = `${
-                    derivedKey === true
-                      ? `${fkey}`
-                      : `properties->>:filter_key_${i}`
+                    derivedKey === true ? `${fkey}` : propAccessor
                   } ${op}`;
                   if (currentGroupOp == null) filterSQL.push(qNull);
                   else currentGroup.push(qNull);
@@ -391,15 +422,13 @@ function get(reqtype, req, res, next, options) {
                   const q1 = `${
                     derivedKey === true
                       ? `${fkey}`
-                      : `(properties->>:filter_key_${i})`
+                      : `(${propAccessor})`
                   }::FLOAT ${op} ${value}`;
                   if (currentGroupOp == null) filterSQL.push(q1);
                   else currentGroup.push(q1);
                 } else {
                   const q2 = `${
-                    derivedKey === true
-                      ? `${fkey}`
-                      : `properties->>:filter_key_${i}`
+                    derivedKey === true ? `${fkey}` : propAccessor
                   } ${op} ${value}`;
                   if (currentGroupOp == null) filterSQL.push(q2);
                   else currentGroup.push(q2);
@@ -935,10 +964,19 @@ router.get("/aggregations", function (req, res, next) {
           })
           .then(([results]) => {
             let aggs = {};
-            results.forEach((feature) => {
-              const flatProps = feature.properties;
-              for (let p in flatProps) {
-                let value = flatProps[p];
+            // Recursively aggregate values from nested objects
+            function aggProps(obj, prefix) {
+              for (let p in obj) {
+                let value = obj[p];
+                const fullKey = prefix ? `${prefix}.${p}` : p;
+                if (
+                  value != null &&
+                  typeof value === "object" &&
+                  !Array.isArray(value)
+                ) {
+                  aggProps(value, fullKey);
+                  continue;
+                }
                 let type = null;
 
                 if (!isNaN(value) && !isNaN(parseFloat(value))) type = "number";
@@ -947,15 +985,16 @@ router.get("/aggregations", function (req, res, next) {
                 else if (typeof value === "boolean") type = "boolean";
 
                 if (type != null) {
-                  // First type will be from index 0
-                  aggs[p] = aggs[p] || { type: type, aggs: {} };
-                  // Because of that, strings can usurp numbers (ex. ["1", "2", "Melon", "Pastry"])
-                  if (aggs[p].type === "number" && type === "string")
-                    aggs[p].type = type;
-                  aggs[p].aggs[flatProps[p]] = aggs[p].aggs[flatProps[p]] || 0;
-                  aggs[p].aggs[flatProps[p]]++;
+                  aggs[fullKey] = aggs[fullKey] || { type: type, aggs: {} };
+                  if (aggs[fullKey].type === "number" && type === "string")
+                    aggs[fullKey].type = type;
+                  aggs[fullKey].aggs[value] = aggs[fullKey].aggs[value] || 0;
+                  aggs[fullKey].aggs[value]++;
                 }
               }
+            }
+            results.forEach((feature) => {
+              if (feature.properties) aggProps(feature.properties, "");
             });
 
             // sort
@@ -1047,30 +1086,43 @@ router.get("/schema", function (req, res, next) {
           .query(q)
           .then(([rows]) => {
             const seenKeys = new Set();
-            rows.forEach((row) => {
-              if (!row.properties) return;
-              const props = row.properties;
-              for (const key in props) {
-                const value = props[key];
+            // Recursively discover keys from nested objects
+            function discoverKeys(obj, prefix) {
+              for (const key in obj) {
+                const value = obj[key];
+                const fullKey = prefix ? `${prefix}.${key}` : key;
                 if (value == null) continue;
+                if (
+                  typeof value === "object" &&
+                  !Array.isArray(value)
+                ) {
+                  discoverKeys(value, fullKey);
+                  continue;
+                }
                 let type = "string";
                 if (typeof value === "number") type = "number";
                 else if (typeof value === "boolean") type = "boolean";
                 else if (!isNaN(value) && !isNaN(parseFloat(value)))
                   type = "number";
 
-                if (!schema[key]) {
-                  schema[key] = { type: type, layers: [] };
+                if (!schema[fullKey]) {
+                  schema[fullKey] = { type: type, layers: [] };
                 }
-                // Strings usurp numbers (same logic as aggregations)
-                if (schema[key].type === "number" && type === "string") {
-                  schema[key].type = type;
+                if (
+                  schema[fullKey].type === "number" &&
+                  type === "string"
+                ) {
+                  schema[fullKey].type = type;
                 }
-                if (!seenKeys.has(key)) {
-                  schema[key].layers.push(layerName);
-                  seenKeys.add(key);
+                if (!seenKeys.has(fullKey)) {
+                  schema[fullKey].layers.push(layerName);
+                  seenKeys.add(fullKey);
                 }
               }
+            }
+            rows.forEach((row) => {
+              if (!row.properties) return;
+              discoverKeys(row.properties, "");
             });
           })
           .catch(() => {
@@ -1138,10 +1190,19 @@ router.get("/bulk_aggregations", function (req, res, next) {
         return sequelize
           .query(q, { replacements: { limit: sampleLimit } })
           .then(([rows]) => {
-            rows.forEach((row) => {
-              const flatProps = row.properties;
-              for (let p in flatProps) {
-                let value = flatProps[p];
+            // Recursively aggregate values from nested objects
+            function aggProps(obj, prefix) {
+              for (let p in obj) {
+                let value = obj[p];
+                const fullKey = prefix ? `${prefix}.${p}` : p;
+                if (
+                  value != null &&
+                  typeof value === "object" &&
+                  !Array.isArray(value)
+                ) {
+                  aggProps(value, fullKey);
+                  continue;
+                }
                 let type = null;
 
                 if (!isNaN(value) && !isNaN(parseFloat(value))) type = "number";
@@ -1150,13 +1211,16 @@ router.get("/bulk_aggregations", function (req, res, next) {
                 else if (typeof value === "boolean") type = "boolean";
 
                 if (type != null) {
-                  aggs[p] = aggs[p] || { type: type, aggs: {} };
-                  if (aggs[p].type === "number" && type === "string")
-                    aggs[p].type = type;
-                  aggs[p].aggs[flatProps[p]] = aggs[p].aggs[flatProps[p]] || 0;
-                  aggs[p].aggs[flatProps[p]]++;
+                  aggs[fullKey] = aggs[fullKey] || { type: type, aggs: {} };
+                  if (aggs[fullKey].type === "number" && type === "string")
+                    aggs[fullKey].type = type;
+                  aggs[fullKey].aggs[value] = aggs[fullKey].aggs[value] || 0;
+                  aggs[fullKey].aggs[value]++;
                 }
               }
+            }
+            rows.forEach((row) => {
+              if (row.properties) aggProps(row.properties, "");
             });
           })
           .catch(() => {
@@ -1353,33 +1417,35 @@ router.post("/search", function (req, res, next) {
             ? " AND geometry_type = :geomtype"
             : "";
 
-        // Build operator clause for search
+        // Build operator clause for search (supports nested keys via jsonbAccessor)
         const allowedOps = ["=", "!=", "<", ">", "<=", ">="];
-        const textOps = ["contains", "beginswith", "endswith"];
         let searchOp = req.body.operator || "=";
+        const searchKey = req.body.key || "";
+        const keyAcc = jsonbAccessor(searchKey, "key");
+        const keyExpr = keyAcc.text; // e.g. "properties->>'name'" or "properties->'meta'->>'author'"
         let opClause;
 
         if (allowedOps.indexOf(searchOp) !== -1) {
-          opClause = `properties ->> :key ${searchOp} :value`;
+          opClause = `${keyExpr} ${searchOp} :value`;
         } else if (searchOp === "contains") {
-          opClause = `properties ->> :key ILIKE '%' || :value || '%'`;
+          opClause = `${keyExpr} ILIKE '%' || :value || '%'`;
         } else if (searchOp === "beginswith") {
-          opClause = `properties ->> :key ILIKE :value || '%'`;
+          opClause = `${keyExpr} ILIKE :value || '%'`;
         } else if (searchOp === "endswith") {
-          opClause = `properties ->> :key ILIKE '%' || :value`;
+          opClause = `${keyExpr} ILIKE '%' || :value`;
         } else if (searchOp === "," || searchOp === "in") {
-          opClause = `properties ->> :key IN (:valueList)`;
+          opClause = `${keyExpr} IN (:valueList)`;
         } else if (searchOp === "isnull") {
-          opClause = `properties ->> :key IS NULL`;
+          opClause = `${keyExpr} IS NULL`;
         } else if (searchOp === "isnotnull") {
-          opClause = `properties ->> :key IS NOT NULL`;
+          opClause = `${keyExpr} IS NOT NULL`;
         } else {
-          opClause = `properties ->> :key = :value`;
+          opClause = `${keyExpr} = :value`;
         }
 
         // For numeric operators, cast to numeric
         if (["<", ">", "<=", ">="].indexOf(searchOp) !== -1) {
-          opClause = `(properties ->> :key)::NUMERIC ${searchOp} :value::NUMERIC`;
+          opClause = `(${keyExpr})::NUMERIC ${searchOp} :value::NUMERIC`;
         }
 
         let q =
@@ -1399,9 +1465,9 @@ router.post("/search", function (req, res, next) {
 
         const replacements = {
           orderBy: orderBy || "id",
-          key: req.body.key,
           geomtype: req.body.restrictToGeometryType,
           value: sanitizedValue,
+          ...keyAcc.replacements,
         };
 
         // For IN operator, split value by comma into a list
