@@ -131,6 +131,16 @@ const GeodatasetFilterer = {
                     filterValue = filterValue == 'true'
                 }
 
+                // Handle isnull/isnotnull before the null gate
+                if (v.op === 'isnull') {
+                    v.matches = featureValue == null
+                    continue
+                }
+                if (v.op === 'isnotnull') {
+                    v.matches = featureValue != null
+                    continue
+                }
+
                 if (featureValue != null) {
                     switch (v.op) {
                         case '=':
