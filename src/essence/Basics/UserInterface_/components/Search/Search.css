@@ -60,8 +60,7 @@
     position: absolute;
     top: calc(100% + 4px);
     right: 0;
-    width: max(1040px, 70vw);
-    max-width: 90vw;
+
     background: var(--color-a);
     border: 1px solid var(--color-a1);
     border-radius: 8px;
