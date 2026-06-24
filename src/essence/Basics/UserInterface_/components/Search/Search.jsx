@@ -279,10 +279,18 @@ function SearchBar() {
                     L_.layers.data[l].url &&
                     L_.layers.data[l].url.startsWith('geodatasets:')
                 ) {
+                    // Build nesting path by walking _layersParent
+                    const pathParts = []
+                    let parent = L_._layersParent[l]
+                    while (parent) {
+                        pathParts.unshift(parent)
+                        parent = L_._layersParent[parent]
+                    }
                     geoLayers.push({
                         value: l,
                         label: L_.layers.data[l].display_name || l,
                         geodatasetName: L_.layers.data[l].url.split(':')[1],
+                        path: pathParts.length > 0 ? pathParts.join(' / ') : null,
                     })
                 }
             }
@@ -1146,8 +1154,13 @@ function SearchBar() {
     // Filtered layer list for layer dropdown
     const filteredLayerList = layerFilterText
         ? geodatasetLayers.filter(
-              (l) =>
-                  l.label.toLowerCase().indexOf(layerFilterText.toLowerCase()) !== -1
+              (l) => {
+                  const q = layerFilterText.toLowerCase()
+                  return (
+                      l.label.toLowerCase().indexOf(q) !== -1 ||
+                      (l.path && l.path.toLowerCase().indexOf(q) !== -1)
+                  )
+              }
           )
         : geodatasetLayers
 
@@ -1230,6 +1243,11 @@ function SearchBar() {
                                             }
                                             showCheck
                                         >
+                                            {layer.path && (
+                                                <span className="searchDropdownLayerPath">
+                                                    {layer.path} /{' '}
+                                                </span>
+                                            )}
                                             {layer.label}
                                         </Checkbox>
                                     </div>

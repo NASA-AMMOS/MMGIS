@@ -251,6 +251,11 @@
     background: var(--color-a1);
 }
 
+.searchDropdownLayerPath {
+    opacity: 0.45;
+    font-size: 11px;
+}
+
 /* Operator dropdown */
 .searchOperatorContainer {
     position: relative;
