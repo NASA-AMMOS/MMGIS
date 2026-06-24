@@ -610,13 +610,11 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
         let visibleLabels = legendEntries
 
         // Calculate available width per label in horizontal mode.
-        // Measure the actual rendered legend panel width instead of assuming a fixed size,
-        // so labels and the gradient never overflow the panel (which clips them on the right).
-        // Force a reflow by reading offsetWidth on the raw DOM node before measuring
-        // jQuery .width() can return 0 if the browser hasn't laid out the element yet.
-        const rawNode = legendContainer[0]
-        void (rawNode && rawNode.offsetWidth) // trigger reflow
-        const measuredWidth = Math.floor(legendContainer.width()) || 0
+        // Measure from #LegendTool (already in the DOM) rather than legendContainer
+        // (not yet appended), so the measured width is consistent on first render and
+        // on subsequent legend toggles. Falls back to 240 if the panel isn't found.
+        const panelNode = document.getElementById('LegendTool')
+        const measuredWidth = panelNode ? Math.floor($(panelNode).width()) : 0
         const containerWidth = orientation === 'horizontal' ? (measuredWidth > 0 ? measuredWidth : 240) : 'auto'
 
         // Consistent font size for horizontal labels (no per-legend shrinking)
