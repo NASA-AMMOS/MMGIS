@@ -8,7 +8,7 @@
     position: relative;
 }
 
-/* Compact bar: magnify icon + input + clear */
+/* Compact bar: [Layers ▼] | [input] [clear] [⚙] */
 .searchCompactBar {
     display: flex;
     align-items: center;
@@ -20,7 +20,7 @@
     gap: 4px;
     cursor: text;
     transition: border-color 0.15s, box-shadow 0.15s;
-    min-width: 200px;
+    min-width: 280px;
 }
 
 .searchBarExpanded .searchCompactBar {
@@ -28,8 +28,39 @@
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-mmgis) 30%, transparent);
 }
 
-.searchCompactIcon {
-    color: var(--color-a4);
+/* Layers trigger button — width matches .searchRegularColLayers for divider alignment */
+.searchLayersTrigger {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    height: 100%;
+    user-select: none;
+    width: 140px;
+    box-sizing: border-box;
+}
+.searchLayersTrigger:hover {
+    color: var(--color-mmgis);
+}
+.searchLayersTriggerLabel {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-f);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.searchLayersTrigger:hover .searchLayersTriggerLabel {
+    color: var(--color-mmgis);
+}
+
+/* Divider between layers trigger and input */
+.searchBarDivider {
+    width: 1px;
+    height: 18px;
+    background: var(--color-a1);
     flex-shrink: 0;
 }
 
@@ -42,6 +73,7 @@
     font-size: 13px;
     outline: none;
     min-width: 120px;
+    padding: 0 4px;
 }
 .searchCompactInput::placeholder {
     color: var(--color-a4);
@@ -52,6 +84,18 @@
     color: var(--color-a3);
 }
 .searchCompactClear:hover {
+    color: var(--color-mmgis);
+}
+
+/* Advanced search toggle icon */
+.searchAdvancedToggle {
+    flex-shrink: 0;
+    color: var(--color-a3);
+}
+.searchAdvancedToggle:hover {
+    color: var(--color-mmgis);
+}
+.searchAdvancedToggleActive {
     color: var(--color-mmgis);
 }
 
@@ -74,6 +118,46 @@
     height: 50vh;
     max-height: 480px;
     min-height: 260px;
+}
+
+/* ===== Regular Mode Panel ===== */
+.searchRegularPanel {
+    left: 0;
+    right: 0;
+}
+.searchRegularColumns {
+    height: 40vh;
+    max-height: 360px;
+    min-height: 200px;
+}
+.searchRegularColLayers {
+    flex: 0 0 140px;
+    min-width: 140px;
+}
+.searchRegularColValues {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Regular mode layer items (single-select radio style) */
+.searchRegularLayerItem {
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--color-a5);
+    transition: background 0.1s, color 0.1s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.searchRegularLayerItem:hover {
+    background: var(--color-a1);
+    color: var(--color-f);
+}
+.searchRegularLayerItemActive {
+    background: color-mix(in srgb, var(--color-mmgis) 18%, transparent);
+    color: var(--color-f);
+    font-weight: 500;
 }
 
 /* Each column */

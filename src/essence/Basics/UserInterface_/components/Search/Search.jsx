@@ -149,6 +149,10 @@ const NUMBER_OPS = [
     { value: 'isnotnull', icon: 'mdi-check-circle-outline', label: 'Is Not Null' },
 ]
 
+// View modes for the panel
+const VIEW_REGULAR = 'regular'
+const VIEW_ADVANCED = 'advanced'
+
 function SearchBar() {
     const [inputValue, setInputValue] = useState('')
     const [suggestions, setSuggestions] = useState([])
@@ -159,8 +163,9 @@ function SearchBar() {
     const [placeholder, setPlaceholder] = useState('Search...')
     const [initialized, setInitialized] = useState(false)
 
-    // Unified panel state
+    // Panel and view mode state
     const [panelOpen, setPanelOpen] = useState(false)
+    const [viewMode, setViewMode] = useState(VIEW_REGULAR)
     const [fieldFilterText, setFieldFilterText] = useState('')
     const [layerFilterText, setLayerFilterText] = useState('')
     const [checkedLayers, setCheckedLayers] = useState(new Set())
@@ -528,7 +533,16 @@ function SearchBar() {
                 )
             }
 
-            setSearchMode(MODE_DEFAULT)
+            // Default selected layer for regular mode: first search-construct layer that is ON
+            const defaultLayer =
+                vecLayers.find((vl) => L_.layers.on[vl.value] === true) ||
+                vecLayers[0] || null
+            if (defaultLayer) {
+                setSelectedLayer(defaultLayer.value)
+                setSearchMode(MODE_LAYER)
+            } else {
+                setSearchMode(MODE_DEFAULT)
+            }
             setPlaceholder('Search features...')
 
             if (
@@ -630,10 +644,12 @@ function SearchBar() {
             return
         }
 
-        // Layer mode
+        // Layer mode — show all when empty (for regular mode panel), filter when typing
         if (!inputValue || inputValue.length < 1) {
-            setSuggestions([])
-            setShowSuggestions(false)
+            const all = arrayToSearch.slice(0, 100)
+            setSuggestions(all)
+            setShowSuggestions(all.length > 0)
+            setActiveSuggestionIdx(-1)
             return
         }
         const query = inputValue.toLowerCase()
@@ -1245,13 +1261,25 @@ function SearchBar() {
         setSuggestions([])
         setShowSuggestions(false)
         setFieldValues([])
-        setSearchMode(MODE_DEFAULT)
         setSelectedField(null)
-        setSelectedLayer(null)
         setSearchOperator('=')
         setPlaceholder('Search features...')
         setArrayToSearch([])
-    }, [restoreLayerState])
+        // Reset to regular mode with default layer
+        setViewMode(VIEW_REGULAR)
+        const defaultLayer =
+            vectorLayers.find((vl) => {
+                const L_ = getL_()
+                return L_.layers.on[vl.value] === true
+            }) || vectorLayers[0] || null
+        if (defaultLayer) {
+            setSelectedLayer(defaultLayer.value)
+            setSearchMode(MODE_LAYER)
+        } else {
+            setSelectedLayer(null)
+            setSearchMode(MODE_DEFAULT)
+        }
+    }, [restoreLayerState, vectorLayers, getL_])
 
     // Compute client-side aggregations from cached vector layer features
     const computeVectorAggregations = useCallback((fieldName, layerNames) => {
@@ -1384,6 +1412,15 @@ function SearchBar() {
         }
     }, [panelOpen])
 
+    // Select a layer in regular mode (single-select)
+    const handleRegularLayerSelect = useCallback((layerValue) => {
+        setSelectedLayer(layerValue)
+        setSearchMode(MODE_LAYER)
+        setInputValue('')
+        setSuggestions([])
+        setShowSuggestions(false)
+    }, [])
+
     // Get display name for layer given its key (geodatasetName or layer value)
     const getLayerDisplayName = useCallback(
         (layerKey) => {
@@ -1433,10 +1470,10 @@ function SearchBar() {
 
     if (!initialized) return null
 
-    // Summary text for the compact bar
-    const compactSummary = selectedField
-        ? `${selectedField.name} ${activeOp.text || activeOp.value} ${isNullOp ? '' : inputValue}`
-        : null
+    // Selected layer label for the layers trigger
+    const selectedLayerLabel = selectedLayer
+        ? (vectorLayers.find((vl) => vl.value === selectedLayer)?.label || selectedLayer)
+        : 'Layers'
 
     return (
         <div
@@ -1444,35 +1481,61 @@ function SearchBar() {
             className={`searchBar ${panelOpen ? 'searchBarExpanded' : ''}`}
             ref={panelRef}
         >
-            {/* Compact search input */}
+            {/* Top bar: [Layers ▼] | [Search Input] [⚙] */}
             <div className="searchCompactBar">
-                <i className="mdi mdi-magnify mdi-18px searchCompactIcon" />
+                {/* Layers trigger */}
+                <div
+                    className="searchLayersTrigger"
+                    onClick={openPanel}
+                >
+                    <span className="searchLayersTriggerLabel">
+                        {selectedLayerLabel}
+                    </span>
+                    <i className="mdi mdi-chevron-down mdi-14px" />
+                </div>
+                <div className="searchBarDivider" />
+                {/* Search input */}
                 <input
                     ref={inputRef}
                     className="searchCompactInput"
                     type="text"
                     placeholder={placeholder}
-                    value={compactSummary || inputValue}
+                    value={inputValue}
                     onChange={(e) => {
-                        if (!panelOpen) {
-                            setInputValue(e.target.value)
-                        }
+                        setInputValue(e.target.value)
                     }}
                     onFocus={openPanel}
                     onKeyDown={(e) => {
-                        if (!panelOpen && e.key === 'Enter') {
-                            handleSearch()
+                        if (e.key === 'Enter') {
+                            if (activeSuggestionIdx >= 0 && suggestions[activeSuggestionIdx]) {
+                                const sel = suggestions[activeSuggestionIdx]
+                                const val = sel != null && typeof sel === 'object' && sel.value != null
+                                    ? String(sel.value) : String(sel)
+                                setInputValue(val)
+                                setShowSuggestions(false)
+                                handleSearch(val)
+                            } else {
+                                handleSearch()
+                                setShowSuggestions(false)
+                            }
                         } else if (e.key === 'Escape') {
                             setPanelOpen(false)
                             setShowSuggestions(false)
                             inputRef.current?.blur()
+                        } else if (e.key === 'ArrowDown') {
+                            e.preventDefault()
+                            setActiveSuggestionIdx((prev) =>
+                                prev < suggestions.length - 1 ? prev + 1 : prev
+                            )
+                        } else if (e.key === 'ArrowUp') {
+                            e.preventDefault()
+                            setActiveSuggestionIdx((prev) => (prev > 0 ? prev - 1 : -1))
                         }
                     }}
                     tabIndex={401}
-                    readOnly={panelOpen}
                 />
-                {(inputValue || selectedField) && (
-                    <Tooltip content="Clear search" placement="bottom">
+                {inputValue && (
+                    <Tooltip content="Clear" placement="bottom">
                         <IconButton
                             className="searchCompactClear"
                             onClick={(e) => {
@@ -1485,13 +1548,100 @@ function SearchBar() {
                         </IconButton>
                     </Tooltip>
                 )}
+                {/* Advanced search toggle */}
+                <Tooltip content={viewMode === VIEW_ADVANCED ? 'Simple search' : 'Advanced search'} placement="bottom">
+                    <IconButton
+                        className={`searchAdvancedToggle ${viewMode === VIEW_ADVANCED ? 'searchAdvancedToggleActive' : ''}`}
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            const newMode = viewMode === VIEW_ADVANCED ? VIEW_REGULAR : VIEW_ADVANCED
+                            setViewMode(newMode)
+                            if (!panelOpen) setPanelOpen(true)
+                        }}
+                        size="sm"
+                    >
+                        <i className="mdi mdi-tune mdi-18px" />
+                    </IconButton>
+                </Tooltip>
             </div>
 
-            {/* Unified dropdown panel */}
-            {panelOpen && (
+            {/* Dropdown panel */}
+            {panelOpen && viewMode === VIEW_REGULAR && (
+                <div className="searchUnifiedPanel searchRegularPanel">
+                    <div className="searchUnifiedColumns searchRegularColumns">
+                        {/* Column 1: Layers (single-select, search-construct only) */}
+                        <div className="searchUnifiedCol searchRegularColLayers">
+                            <div className="searchUnifiedColHeader">
+                                <span>Layers</span>
+                            </div>
+                            <div className="searchUnifiedColBody">
+                                {vectorLayers.map((layer) => (
+                                    <div
+                                        key={layer.value}
+                                        className={`searchRegularLayerItem ${
+                                            selectedLayer === layer.value
+                                                ? 'searchRegularLayerItemActive'
+                                                : ''
+                                        }`}
+                                        onClick={() => handleRegularLayerSelect(layer.value)}
+                                    >
+                                        {layer.label}
+                                    </div>
+                                ))}
+                                {vectorLayers.length === 0 && (
+                                    <div className="searchUnifiedEmpty">No search layers</div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Column 2: Values (autocomplete from layer features) */}
+                        <div className="searchUnifiedCol searchRegularColValues">
+                            <div className="searchUnifiedColHeader">
+                                <span>Values</span>
+                            </div>
+                            <div className="searchUnifiedColBody">
+                                {suggestions.length > 0 ? (
+                                    suggestions.map((s, idx) => {
+                                        const label = typeof s === 'object' && s.value != null
+                                            ? String(s.value)
+                                            : String(s)
+                                        return (
+                                            <div
+                                                key={idx}
+                                                className={`searchSuggestionItem ${
+                                                    idx === activeSuggestionIdx
+                                                        ? 'searchSuggestionItemActive'
+                                                        : ''
+                                                }`}
+                                                onMouseDown={() => handleSuggestionClick(s)}
+                                                onMouseEnter={() => setActiveSuggestionIdx(idx)}
+                                            >
+                                                <span className="searchSuggestionLabel">
+                                                    {label}
+                                                </span>
+                                            </div>
+                                        )
+                                    })
+                                ) : (
+                                    <div className="searchUnifiedEmpty">
+                                        {!selectedLayer
+                                            ? 'Select a layer'
+                                            : arrayToSearch.length === 0
+                                            ? 'Loading...'
+                                            : 'Type to search'}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Advanced mode panel */}
+            {panelOpen && viewMode === VIEW_ADVANCED && (
                 <div className="searchUnifiedPanel">
                     <div className="searchUnifiedColumns">
-                        {/* Column 1: Layers */}
+                        {/* Column 1: Layers (multi-select) */}
                         <div className="searchUnifiedCol searchUnifiedColLayers">
                             <div className="searchUnifiedColHeader">
                                 <span>Layers</span>
