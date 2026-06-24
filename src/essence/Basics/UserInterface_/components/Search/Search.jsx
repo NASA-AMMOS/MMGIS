@@ -159,41 +159,36 @@ function SearchBar() {
     const [placeholder, setPlaceholder] = useState('Search...')
     const [initialized, setInitialized] = useState(false)
 
-    // Dropdown state
-    const [dropdownOpen, setDropdownOpen] = useState(false)
+    // Unified panel state
+    const [panelOpen, setPanelOpen] = useState(false)
     const [fieldFilterText, setFieldFilterText] = useState('')
-
-    // Layer dropdown state
-    const [layerDropdownOpen, setLayerDropdownOpen] = useState(false)
     const [layerFilterText, setLayerFilterText] = useState('')
-    const [checkedLayers, setCheckedLayers] = useState(new Set()) // geodataset names checked in layers dropdown
+    const [checkedLayers, setCheckedLayers] = useState(new Set())
 
     // Search mode and selection
     const [searchMode, setSearchMode] = useState(MODE_DEFAULT)
-    const [selectedField, setSelectedField] = useState(null) // { name, type, layers }
-    const [selectedLayer, setSelectedLayer] = useState(null) // layer uuid
-    const [searchOperator, setSearchOperator] = useState('=') // default operator
+    const [selectedField, setSelectedField] = useState(null)
+    const [selectedLayer, setSelectedLayer] = useState(null)
+    const [searchOperator, setSearchOperator] = useState('=')
 
     // Schema and layer data
-    const [schemaFields, setSchemaFields] = useState([]) // [{ name, type, layers }]
-    const [geodatasetLayers, setGeodatasetLayers] = useState([]) // [{ value, label, geodatasetName }]
-    const [vectorLayers, setVectorLayers] = useState([]) // [{ value, label }]
-    const [fieldValues, setFieldValues] = useState([]) // [{ value, count }] autocomplete values for selected field
+    const [schemaFields, setSchemaFields] = useState([])
+    const [geodatasetLayers, setGeodatasetLayers] = useState([])
+    const [vectorLayers, setVectorLayers] = useState([])
+    const [fieldValues, setFieldValues] = useState([])
 
     const lastGeodatasetLayerName = useRef(null)
 
     // Pre-search layer state for restore on cancel
-    const preSearchLayerState = useRef(null) // { on: { layerName: bool }, filters: { layerName: filterEncoded } }
-    const searchFilteredLayers = useRef([]) // layer names that have _filterEncoded applied by search
+    const preSearchLayerState = useRef(null)
+    const searchFilteredLayers = useRef([])
 
     const inputRef = useRef(null)
     const suggestionsRef = useRef(null)
-    const dropdownRef = useRef(null)
+    const panelRef = useRef(null)
     const fieldFilterRef = useRef(null)
-    const operatorDropdownRef = useRef(null)
-    const [operatorDropdownOpen, setOperatorDropdownOpen] = useState(false)
-    const layerDropdownRef = useRef(null)
     const layerFilterRef = useRef(null)
+    const valueInputRef = useRef(null)
 
     const getL_ = useCallback(() => {
         return require('../../../Layers_/Layers_').default
@@ -204,14 +199,13 @@ function SearchBar() {
 
     // Save the current layer visibility and filter state (before search modifies it)
     const saveLayerState = useCallback(() => {
-        if (preSearchLayerState.current != null) return // already saved
+        if (preSearchLayerState.current != null) return
         const L_ = getL_()
         const onState = {}
         const filterState = {}
         for (let lname in L_.layers.on) {
             onState[lname] = L_.layers.on[lname]
         }
-        // Save existing _filterEncoded for geodataset layers
         geodatasetLayers.forEach((gl) => {
             const ld = L_.layers.data[gl.value]
             if (ld && ld._filterEncoded) {
@@ -230,7 +224,6 @@ function SearchBar() {
         const { on: savedOn, filters: savedFilters } =
             preSearchLayerState.current
 
-        // Clear search-applied filters
         searchFilteredLayers.current.forEach((layerName) => {
             const ld = L_.layers.data[layerName]
             if (ld) {
@@ -246,7 +239,6 @@ function SearchBar() {
         })
         searchFilteredLayers.current = []
 
-        // Restore layer on/off state
         for (let lname in savedOn) {
             const isCurrentlyOn = L_.layers.on[lname] === true
             const shouldBeOn = savedOn[lname] === true
@@ -279,7 +271,6 @@ function SearchBar() {
                     L_.layers.data[l].url &&
                     L_.layers.data[l].url.startsWith('geodatasets:')
                 ) {
-                    // Build nesting path by walking _layersParent (use display names)
                     const pathParts = []
                     let parent = L_._layersParent[l]
                     while (parent) {
@@ -322,10 +313,8 @@ function SearchBar() {
 
             setGeodatasetLayers(geoLayers)
             setVectorLayers(vecLayers)
-            // Default: all geodataset layers checked
             setCheckedLayers(new Set(geoLayers.map((gl) => gl.geodatasetName)))
 
-            // Fetch bulk schema for geodataset layers
             if (geoLayers.length > 0) {
                 const layerNames = geoLayers
                     .map((gl) => gl.geodatasetName)
@@ -349,11 +338,9 @@ function SearchBar() {
                 )
             }
 
-            // Default: cross-layer search
             setSearchMode(MODE_DEFAULT)
             setPlaceholder('Search features...')
 
-            // URL param search
             if (
                 L_.searchStrings != null &&
                 L_.searchStrings.length > 0 &&
@@ -424,7 +411,6 @@ function SearchBar() {
             return
         }
 
-        // In field mode, show all values when input is empty (on focus)
         if (searchMode === MODE_FIELD) {
             if (!inputValue || inputValue.length < 1) {
                 const all = fieldValues.slice(0, 100)
@@ -475,34 +461,15 @@ function SearchBar() {
         setActiveSuggestionIdx(-1)
     }, [inputValue, arrayToSearch, fieldValues, searchMode])
 
-    // Close dropdown and suggestions on outside click
+    // Close panel on outside click
     useEffect(() => {
         const handleClick = (e) => {
             if (
-                suggestionsRef.current &&
-                !suggestionsRef.current.contains(e.target) &&
-                inputRef.current &&
-                !inputRef.current.contains(e.target)
+                panelRef.current &&
+                !panelRef.current.contains(e.target)
             ) {
+                setPanelOpen(false)
                 setShowSuggestions(false)
-            }
-            if (
-                dropdownRef.current &&
-                !dropdownRef.current.contains(e.target)
-            ) {
-                setDropdownOpen(false)
-            }
-            if (
-                operatorDropdownRef.current &&
-                !operatorDropdownRef.current.contains(e.target)
-            ) {
-                setOperatorDropdownOpen(false)
-            }
-            if (
-                layerDropdownRef.current &&
-                !layerDropdownRef.current.contains(e.target)
-            ) {
-                setLayerDropdownOpen(false)
             }
         }
         document.addEventListener('mousedown', handleClick)
@@ -607,7 +574,6 @@ function SearchBar() {
             const query = (value || inputValue).trim().toLowerCase()
             if (!query) return
 
-            // Search across all layers that have search fields
             const allMatches = []
             for (let lname in searchFields) {
                 const markers = L_.layers.layer[lname]
@@ -657,8 +623,6 @@ function SearchBar() {
     )
 
     // Search by selected field across all geodataset layers that have it
-    // - Saves layer state, applies filter to matching layers, turns off non-matching,
-    //   pans to fit all results
     const searchByField = useCallback(
         (value) => {
             const L_ = getL_()
@@ -671,10 +635,8 @@ function SearchBar() {
             const fieldLayers = selectedField.layers
             const fieldType = selectedField.type || 'string'
 
-            // Save layer state before modifying anything
             saveLayerState()
 
-            // Clear any previous search filters
             searchFilteredLayers.current.forEach((layerName) => {
                 const ld = L_.layers.data[layerName]
                 if (ld && ld._filterEncoded) {
@@ -683,7 +645,6 @@ function SearchBar() {
             })
             searchFilteredLayers.current = []
 
-            // All geodataset layers that could have this field AND are checked
             const candidateLayers = geodatasetLayers.filter(
                 (gl) =>
                     fieldLayers.includes(gl.geodatasetName) &&
@@ -691,15 +652,12 @@ function SearchBar() {
             )
             if (candidateLayers.length === 0) return
 
-            // Build the filter string: fieldName+op+type+value
-            // Map frontend operator names to filterEncoded format
             const opMap = { ',': 'in', 'contains': 'contains', 'beginswith': 'beginswith', 'endswith': 'endswith' }
             const filterOp = opMap[searchOperator] || searchOperator
             const filterEncoded = isNullOp
                 ? `${fieldName}+${filterOp}+${fieldType}+`
                 : `${fieldName}+${filterOp}+${fieldType}+${searchValue.replaceAll(',', '$')}`
 
-            // Track which layers have hits via search API, then pan to fit all
             let pendingSearches = candidateLayers.length
             const allResultCoords = []
             const layersWithHits = new Set()
@@ -707,7 +665,6 @@ function SearchBar() {
             candidateLayers.forEach((gl) => {
                 const layerName = gl.value
 
-                // Apply filter to layer so only matching features render
                 if (!L_.layers.data[layerName]._filterEncoded) {
                     L_.layers.data[layerName]._filterEncoded = {}
                 }
@@ -715,7 +672,6 @@ function SearchBar() {
                     filterEncoded
                 searchFilteredLayers.current.push(layerName)
 
-                // Search to check if this layer has any matching features
                 calls.api(
                     'geodatasets_search',
                     {
@@ -754,7 +710,6 @@ function SearchBar() {
             })
 
             function applySearchResults() {
-                // Turn on layers with hits, turn off those without
                 candidateLayers.forEach((gl) => {
                     const layerName = gl.value
                     const hasHits = layersWithHits.has(layerName)
@@ -766,7 +721,6 @@ function SearchBar() {
                         L_.toggleLayer(L_.layers.data[layerName])
                     }
 
-                    // Refresh filtered layers that are on
                     if (hasHits) {
                         L_.Map_.refreshLayer(
                             L_.layers.data[layerName],
@@ -777,7 +731,6 @@ function SearchBar() {
                     }
                 })
 
-                // Turn off all other visible vector layers (not just geodatasets)
                 for (let lname in L_.layers.on) {
                     if (
                         L_.layers.on[lname] === true &&
@@ -794,7 +747,6 @@ function SearchBar() {
                     }
                 }
 
-                // Pan to fit all results
                 if (allResultCoords.length > 0) {
                     if (allResultCoords.length === 1) {
                         Map_.map.setView(
@@ -990,6 +942,7 @@ function SearchBar() {
                 setActiveSuggestionIdx((prev) => (prev > 0 ? prev - 1 : -1))
             } else if (e.key === 'Escape') {
                 setShowSuggestions(false)
+                setPanelOpen(false)
             }
         },
         [suggestions, activeSuggestionIdx, handleSearch]
@@ -1014,7 +967,6 @@ function SearchBar() {
         setSuggestions([])
         setShowSuggestions(false)
         setFieldValues([])
-        // Reset to default mode
         setSearchMode(MODE_DEFAULT)
         setSelectedField(null)
         setSelectedLayer(null)
@@ -1023,8 +975,7 @@ function SearchBar() {
         setArrayToSearch([])
     }, [restoreLayerState])
 
-
-    // Field selection from dropdown
+    // Field selection from the unified panel
     const handleFieldSelect = useCallback(
         (field) => {
             setSearchMode(MODE_FIELD)
@@ -1034,12 +985,7 @@ function SearchBar() {
             setFieldValues([])
             setSearchOperator('=')
             setPlaceholder(`Search by ${field.name}...`)
-            setDropdownOpen(false)
             setFieldFilterText('')
-            // Focus the input after selecting
-            setTimeout(() => {
-                if (inputRef.current) inputRef.current.focus()
-            }, 50)
 
             // Fetch field values via bulk aggregations
             if (field.layers && field.layers.length > 0) {
@@ -1080,7 +1026,7 @@ function SearchBar() {
         []
     )
 
-    // Toggle a layer in the layers dropdown
+    // Toggle a layer in the layers section
     const handleLayerToggle = useCallback((geodatasetName) => {
         setCheckedLayers((prev) => {
             const next = new Set(prev)
@@ -1101,32 +1047,13 @@ function SearchBar() {
         setCheckedLayers(new Set())
     }, [])
 
-
-    const toggleDropdown = useCallback(() => {
-        setDropdownOpen((prev) => {
-            const next = !prev
-            if (next) {
-                setFieldFilterText('')
-                setTimeout(() => {
-                    if (fieldFilterRef.current) fieldFilterRef.current.focus()
-                }, 50)
-            }
-            return next
-        })
-    }, [])
-
-    const toggleLayerDropdown = useCallback(() => {
-        setLayerDropdownOpen((prev) => {
-            const next = !prev
-            if (next) {
-                setLayerFilterText('')
-                setTimeout(() => {
-                    if (layerFilterRef.current) layerFilterRef.current.focus()
-                }, 50)
-            }
-            return next
-        })
-    }, [])
+    const openPanel = useCallback(() => {
+        if (!panelOpen) {
+            setPanelOpen(true)
+            setFieldFilterText('')
+            setLayerFilterText('')
+        }
+    }, [panelOpen])
 
     // Get display name for layer given its geodataset table name
     const getLayerDisplayName = useCallback(
@@ -1139,7 +1066,7 @@ function SearchBar() {
         [geodatasetLayers]
     )
 
-    // Filtered field list for dropdown — filter by checked layers + text filter
+    // Filtered field list — filter by checked layers + text filter
     const layerFilteredFields = checkedLayers.size > 0
         ? schemaFields.filter((f) =>
               f.layers.some((l) => checkedLayers.has(l))
@@ -1154,7 +1081,7 @@ function SearchBar() {
           )
         : layerFilteredFields
 
-    // Filtered layer list for layer dropdown
+    // Filtered layer list
     const filteredLayerList = layerFilterText
         ? geodatasetLayers.filter(
               (l) => {
@@ -1167,39 +1094,74 @@ function SearchBar() {
           )
         : geodatasetLayers
 
+    // Operators for current field type
+    const ops = selectedField && selectedField.type === 'number' ? NUMBER_OPS : STRING_OPS
+    const activeOp = ops.find((o) => o.value === searchOperator) || ops[0]
+    const isNullOp = searchOperator === 'isnull' || searchOperator === 'isnotnull'
+
     if (!initialized) return null
 
-    // Layer dropdown summary label
-    const allLayersChecked = checkedLayers.size === geodatasetLayers.length
-    const layerCountLabel = allLayersChecked
-        ? 'All'
-        : checkedLayers.size === 0
-        ? 'None'
-        : `${checkedLayers.size}`
+    // Summary text for the compact bar
+    const compactSummary = selectedField
+        ? `${selectedField.name} ${activeOp.text || activeOp.value} ${isNullOp ? '' : inputValue}`
+        : null
 
     return (
-        <div id="Search" className="searchBar">
-            {/* Layers dropdown */}
-            <div className="searchDropdownContainer" ref={layerDropdownRef}>
-                <button
-                    className="searchDropdownTrigger"
-                    onClick={toggleLayerDropdown}
-                    aria-expanded={layerDropdownOpen}
-                    title="Select layers"
-                >
-                    <i className="mdi mdi-layers mdi-14px" />
-                    <span className="searchDropdownTriggerLabel">{layerCountLabel}</span>
-                    <i
-                        className={`mdi mdi-chevron-${
-                            layerDropdownOpen ? 'up' : 'down'
-                        } mdi-14px`}
-                    />
-                </button>
+        <div
+            id="Search"
+            className={`searchBar ${panelOpen ? 'searchBarExpanded' : ''}`}
+            ref={panelRef}
+        >
+            {/* Compact search input */}
+            <div className="searchCompactBar">
+                <i className="mdi mdi-magnify mdi-18px searchCompactIcon" />
+                <input
+                    ref={inputRef}
+                    className="searchCompactInput"
+                    type="text"
+                    placeholder={placeholder}
+                    value={compactSummary || inputValue}
+                    onChange={(e) => {
+                        if (!panelOpen) {
+                            setInputValue(e.target.value)
+                        }
+                    }}
+                    onFocus={openPanel}
+                    onKeyDown={(e) => {
+                        if (!panelOpen && e.key === 'Enter') {
+                            handleSearch()
+                        } else if (e.key === 'Escape') {
+                            setPanelOpen(false)
+                            setShowSuggestions(false)
+                            inputRef.current?.blur()
+                        }
+                    }}
+                    tabIndex={401}
+                    readOnly={panelOpen}
+                />
+                {(inputValue || selectedField) && (
+                    <Tooltip content="Clear search" placement="bottom">
+                        <IconButton
+                            className="searchCompactClear"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                handleClear()
+                            }}
+                            size="sm"
+                        >
+                            <i className="mdi mdi-close mdi-14px" />
+                        </IconButton>
+                    </Tooltip>
+                )}
+            </div>
 
-                {layerDropdownOpen && (
-                    <div className="searchDropdownPanel">
-                        <div className="searchDropdownSection">
-                            <div className="searchDropdownSectionHeader">
+            {/* Unified dropdown panel */}
+            {panelOpen && (
+                <div className="searchUnifiedPanel">
+                    <div className="searchUnifiedColumns">
+                        {/* Column 1: Layers */}
+                        <div className="searchUnifiedCol searchUnifiedColLayers">
+                            <div className="searchUnifiedColHeader">
                                 <span>Layers</span>
                                 <span className="searchDropdownHeaderActions">
                                     <span
@@ -1217,11 +1179,11 @@ function SearchBar() {
                                     </span>
                                 </span>
                             </div>
-                            <div className="searchDropdownFieldFilter">
+                            <div className="searchUnifiedColFilter">
                                 <input
                                     ref={layerFilterRef}
                                     type="text"
-                                    className="searchDropdownFieldFilterInput"
+                                    className="searchUnifiedFilterInput"
                                     placeholder="Filter layers..."
                                     value={layerFilterText}
                                     onChange={(e) =>
@@ -1230,11 +1192,11 @@ function SearchBar() {
                                     onClick={(e) => e.stopPropagation()}
                                 />
                             </div>
-                            <div className="searchDropdownLayerList">
+                            <div className="searchUnifiedColBody">
                                 {filteredLayerList.map((layer) => (
                                     <div
                                         key={layer.value}
-                                        className="searchDropdownLayerCheckItem"
+                                        className="searchUnifiedLayerItem"
                                         onClick={() =>
                                             handleLayerToggle(layer.geodatasetName)
                                         }
@@ -1247,7 +1209,7 @@ function SearchBar() {
                                             showCheck
                                         >
                                             {layer.path && (
-                                                <span className="searchDropdownLayerPath">
+                                                <span className="searchUnifiedLayerPath">
                                                     {layer.path} /{' '}
                                                 </span>
                                             )}
@@ -1255,42 +1217,22 @@ function SearchBar() {
                                         </Checkbox>
                                     </div>
                                 ))}
+                                {filteredLayerList.length === 0 && (
+                                    <div className="searchUnifiedEmpty">No layers</div>
+                                )}
                             </div>
                         </div>
-                    </div>
-                )}
-            </div>
 
-            {/* Fields dropdown */}
-            <div className="searchDropdownContainer" ref={dropdownRef}>
-                <button
-                    className="searchDropdownTrigger"
-                    onClick={toggleDropdown}
-                    aria-expanded={dropdownOpen}
-                    title="Select field"
-                >
-                    <i className="mdi mdi-form-textbox mdi-14px" />
-                    <span className="searchDropdownTriggerLabel">
-                        {selectedField ? selectedField.name : 'Field'}
-                    </span>
-                    <i
-                        className={`mdi mdi-chevron-${
-                            dropdownOpen ? 'up' : 'down'
-                        } mdi-14px`}
-                    />
-                </button>
-
-                {dropdownOpen && (
-                    <div className="searchDropdownPanel">
-                        <div className="searchDropdownSection">
-                            <div className="searchDropdownSectionHeader">
-                                Search by Field
+                        {/* Column 2: Fields */}
+                        <div className="searchUnifiedCol searchUnifiedColFields">
+                            <div className="searchUnifiedColHeader">
+                                <span>Field</span>
                             </div>
-                            <div className="searchDropdownFieldFilter">
+                            <div className="searchUnifiedColFilter">
                                 <input
                                     ref={fieldFilterRef}
                                     type="text"
-                                    className="searchDropdownFieldFilterInput"
+                                    className="searchUnifiedFilterInput"
                                     placeholder="Filter fields..."
                                     value={fieldFilterText}
                                     onChange={(e) =>
@@ -1299,9 +1241,9 @@ function SearchBar() {
                                     onClick={(e) => e.stopPropagation()}
                                 />
                             </div>
-                            <div className="searchDropdownFieldList">
+                            <div className="searchUnifiedColBody">
                                 {filteredFields.length === 0 && (
-                                    <div className="searchDropdownEmpty">
+                                    <div className="searchUnifiedEmpty">
                                         {schemaFields.length === 0
                                             ? 'Loading fields...'
                                             : 'No matching fields'}
@@ -1310,18 +1252,22 @@ function SearchBar() {
                                 {filteredFields.slice(0, 200).map((field) => (
                                     <div
                                         key={field.name}
-                                        className="searchDropdownFieldItem"
+                                        className={`searchUnifiedFieldItem ${
+                                            selectedField && selectedField.name === field.name
+                                                ? 'searchUnifiedFieldItemActive'
+                                                : ''
+                                        }`}
                                         onClick={() =>
                                             handleFieldSelect(field)
                                         }
                                     >
-                                        <span className="searchDropdownFieldName">
+                                        <span className="searchUnifiedFieldName">
                                             {field.name}
                                         </span>
                                         <span className="searchDropdownFieldType" data-type={field.type}>
                                             {field.type}
                                         </span>
-                                        <span className="searchDropdownFieldLayers">
+                                        <span className="searchUnifiedFieldLayers">
                                             {(() => {
                                                 const visibleLayers = field.layers.filter(
                                                     (l) => checkedLayers.has(l)
@@ -1345,148 +1291,138 @@ function SearchBar() {
                                 ))}
                             </div>
                         </div>
-                    </div>
-                )}
-            </div>
 
-            {/* Operator dropdown (field mode only) */}
-            {searchMode === MODE_FIELD && selectedField && (() => {
-                const ops = selectedField.type === 'number' ? NUMBER_OPS : STRING_OPS
-                const activeOp = ops.find((o) => o.value === searchOperator) || ops[0]
-                return (
-                    <div className="searchOperatorContainer" ref={operatorDropdownRef}>
-                        <button
-                            className="searchOperatorTrigger"
-                            onClick={() => setOperatorDropdownOpen((p) => !p)}
-                            title={activeOp.label}
-                        >
-                            {activeOp.icon ? (
-                                <i className={`mdi ${activeOp.icon} mdi-14px`} />
-                            ) : (
-                                <span className="searchOperatorText">{activeOp.text}</span>
-                            )}
-                        </button>
-                        {operatorDropdownOpen && (
-                            <div className="searchOperatorDropdown">
+                        {/* Column 3: Operator */}
+                        <div className="searchUnifiedCol searchUnifiedColOp">
+                            <div className="searchUnifiedColHeader">
+                                <span>Operator</span>
+                            </div>
+                            <div className="searchUnifiedColBody">
                                 {ops.map((op) => (
                                     <div
                                         key={op.value}
-                                        className={`searchOperatorItem ${
+                                        className={`searchUnifiedOpItem ${
                                             op.value === searchOperator
-                                                ? 'searchOperatorItemActive'
+                                                ? 'searchUnifiedOpItemActive'
                                                 : ''
                                         }`}
                                         onClick={() => {
                                             setSearchOperator(op.value)
-                                            setOperatorDropdownOpen(false)
                                         }}
                                     >
-                                        <span className="searchOperatorItemIcon">
+                                        <span className="searchUnifiedOpIcon">
                                             {op.icon ? (
                                                 <i className={`mdi ${op.icon} mdi-14px`} />
                                             ) : (
                                                 <span className="searchOperatorText">{op.text}</span>
                                             )}
                                         </span>
-                                        <span className="searchOperatorItemLabel">{op.label}</span>
+                                        <span className="searchUnifiedOpLabel">{op.label}</span>
                                     </div>
                                 ))}
                             </div>
-                        )}
-                    </div>
-                )
-            })()}
+                        </div>
 
-            {/* Main search input */}
-            <div className="searchInputWrapper">
-                <input
-                    ref={inputRef}
-                    className="topBarSearch"
-                    type="text"
-                    placeholder={
-                        searchOperator === 'isnull' || searchOperator === 'isnotnull'
-                            ? searchOperator === 'isnull' ? 'Is Null' : 'Is Not Null'
-                            : placeholder
-                    }
-                    value={searchOperator === 'isnull' || searchOperator === 'isnotnull' ? '' : inputValue}
-                    onChange={(e) => {
-                        if (searchOperator !== 'isnull' && searchOperator !== 'isnotnull') {
-                            setInputValue(e.target.value)
-                        }
-                    }}
-                    onKeyDown={handleKeyDown}
-                    onFocus={() => {
-                        if (searchOperator === 'isnull' || searchOperator === 'isnotnull') return
-                        if (searchMode === MODE_FIELD && fieldValues.length > 0) {
-                            const all = fieldValues.slice(0, 100)
-                            setSuggestions(all)
-                            setShowSuggestions(true)
-                        } else if (suggestions.length > 0) {
-                            setShowSuggestions(true)
-                        }
-                    }}
-                    disabled={searchOperator === 'isnull' || searchOperator === 'isnotnull'}
-                    style={searchOperator === 'isnull' || searchOperator === 'isnotnull' ? { opacity: 0.4 } : undefined}
-                    tabIndex={401}
-                />
-                {showSuggestions && suggestions.length > 0 && (
-                    <div className="searchSuggestions" ref={suggestionsRef}>
-                        {suggestions.map((s, idx) => {
-                            const isObj =
-                                s != null &&
-                                typeof s === 'object' &&
-                                s.value != null
-                            const label = isObj
-                                ? String(s.value)
-                                : String(s)
-                            return (
-                                <div
-                                    key={idx}
-                                    className={`searchSuggestionItem ${
-                                        idx === activeSuggestionIdx
-                                            ? 'searchSuggestionItemActive'
-                                            : ''
-                                    }`}
-                                    onMouseDown={() =>
-                                        handleSuggestionClick(s)
+                        {/* Column 4: Value + autocomplete */}
+                        <div className="searchUnifiedCol searchUnifiedColValue">
+                            <div className="searchUnifiedColHeader">
+                                <span>Value</span>
+                            </div>
+                            <div className="searchUnifiedValueInputWrap">
+                                <input
+                                    ref={valueInputRef}
+                                    type="text"
+                                    className="searchUnifiedValueInput"
+                                    placeholder={
+                                        isNullOp
+                                            ? (searchOperator === 'isnull' ? 'Is Null' : 'Is Not Null')
+                                            : selectedField
+                                            ? `Search by ${selectedField.name}...`
+                                            : 'Select a field first'
                                     }
-                                    onMouseEnter={() =>
-                                        setActiveSuggestionIdx(idx)
-                                    }
-                                >
-                                    <span className="searchSuggestionLabel">
-                                        {label}
-                                    </span>
-                                    {isObj && s.count != null && (
-                                        <span className="searchSuggestionCount">
-                                            {s.count}
-                                        </span>
-                                    )}
-                                </div>
-                            )
-                        })}
+                                    value={isNullOp ? '' : inputValue}
+                                    onChange={(e) => {
+                                        if (!isNullOp) {
+                                            setInputValue(e.target.value)
+                                        }
+                                    }}
+                                    onKeyDown={handleKeyDown}
+                                    onFocus={() => {
+                                        if (isNullOp) return
+                                        if (searchMode === MODE_FIELD && fieldValues.length > 0) {
+                                            const all = fieldValues.slice(0, 100)
+                                            setSuggestions(all)
+                                            setShowSuggestions(true)
+                                        } else if (suggestions.length > 0) {
+                                            setShowSuggestions(true)
+                                        }
+                                    }}
+                                    disabled={isNullOp || !selectedField}
+                                    style={isNullOp ? { opacity: 0.4 } : undefined}
+                                />
+                                <Tooltip content="Search" placement="bottom">
+                                    <IconButton
+                                        className="searchUnifiedSearchBtn"
+                                        onClick={() => handleSearch()}
+                                        size="sm"
+                                    >
+                                        <i className="mdi mdi-magnify mdi-18px" />
+                                    </IconButton>
+                                </Tooltip>
+                            </div>
+                            <div className="searchUnifiedColBody searchUnifiedValueBody">
+                                {showSuggestions && suggestions.length > 0 ? (
+                                    suggestions.map((s, idx) => {
+                                        const isObj =
+                                            s != null &&
+                                            typeof s === 'object' &&
+                                            s.value != null
+                                        const label = isObj
+                                            ? String(s.value)
+                                            : String(s)
+                                        return (
+                                            <div
+                                                key={idx}
+                                                className={`searchSuggestionItem ${
+                                                    idx === activeSuggestionIdx
+                                                        ? 'searchSuggestionItemActive'
+                                                        : ''
+                                                }`}
+                                                onMouseDown={() =>
+                                                    handleSuggestionClick(s)
+                                                }
+                                                onMouseEnter={() =>
+                                                    setActiveSuggestionIdx(idx)
+                                                }
+                                            >
+                                                <span className="searchSuggestionLabel">
+                                                    {label}
+                                                </span>
+                                                {isObj && s.count != null && (
+                                                    <span className="searchSuggestionCount">
+                                                        {s.count}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )
+                                    })
+                                ) : (
+                                    !selectedField && (
+                                        <div className="searchUnifiedEmpty">
+                                            Select a field to see values
+                                        </div>
+                                    )
+                                )}
+                                {selectedField && !showSuggestions && fieldValues.length === 0 && (
+                                    <div className="searchUnifiedEmpty">
+                                        Loading values...
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
-                )}
-            </div>
-            <Tooltip content="Clear search" placement="bottom">
-                <IconButton
-                    className="searchClearBtn"
-                    onClick={handleClear}
-                    size="sm"
-                >
-                    <i className="mdi mdi-close mdi-18px" />
-                </IconButton>
-            </Tooltip>
-            <Tooltip content="Search" placement="bottom">
-                <IconButton
-                    className="searchGoBtn"
-                    onClick={() => handleSearch()}
-                    size="sm"
-                >
-                    <i className="mdi mdi-magnify mdi-18px" />
-                </IconButton>
-            </Tooltip>
-
+                </div>
+            )}
         </div>
     )
 }

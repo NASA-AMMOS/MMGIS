@@ -1,77 +1,116 @@
+/* ===== Search Bar — Compact + Unified Panel ===== */
+
 .searchBar {
     display: flex;
     align-items: center;
     height: 100%;
     pointer-events: auto;
     position: relative;
-    gap: 0;
 }
 
-/* Dropdown trigger button */
-.searchDropdownContainer {
-    height: 100%;
+/* Compact bar: magnify icon + input + clear */
+.searchCompactBar {
     display: flex;
     align-items: center;
-}
-
-.searchDropdownTrigger {
-    display: flex;
-    align-items: center;
-    gap: 2px;
     height: 30px;
-    padding: 0 6px;
-    background: var(--color-a);
-    color: var(--color-f);
-    border: none;
-    border-right: 1px solid var(--color-b);
-    cursor: pointer;
-    font-size: 12px;
-    transition: background 0.1s;
-}
-
-.searchDropdownContainer:first-child .searchDropdownTrigger {
-    border-radius: 3px 0 0 3px;
-}
-
-.searchDropdownTriggerLabel {
-    font-size: 11px;
-    min-width: 24px;
-    text-align: center;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.searchDropdownTrigger:hover {
-    background: var(--color-a1);
-}
-
-/* Dropdown panel */
-.searchDropdownPanel {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    min-width: 220px;
-    max-height: 70vh;
-    overflow-y: auto;
     background: var(--color-a);
     border: 1px solid var(--color-a1);
-    border-radius: 6px;
-    box-shadow: 0 8px 24px var(--color-shadow);
+    border-radius: 4px;
+    padding: 0 4px;
+    gap: 4px;
+    cursor: text;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    min-width: 200px;
+}
+
+.searchBarExpanded .searchCompactBar {
+    border-color: var(--color-mmgis);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-mmgis) 30%, transparent);
+}
+
+.searchCompactIcon {
+    color: var(--color-a4);
+    flex-shrink: 0;
+}
+
+.searchCompactInput {
+    flex: 1;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: var(--color-f);
+    font-size: 13px;
+    outline: none;
+    min-width: 120px;
+}
+.searchCompactInput::placeholder {
+    color: var(--color-a4);
+}
+
+.searchCompactClear {
+    flex-shrink: 0;
+    color: var(--color-a3);
+}
+.searchCompactClear:hover {
+    color: var(--color-mmgis);
+}
+
+/* ===== Unified Panel ===== */
+.searchUnifiedPanel {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    width: max(680px, 60vw);
+    max-width: 90vw;
+    background: var(--color-a);
+    border: 1px solid var(--color-a1);
+    border-radius: 8px;
+    box-shadow: 0 12px 36px var(--color-shadow);
     z-index: 10001;
-    margin-top: 4px;
+    overflow: hidden;
 }
 
-.searchDropdownSection {
-    border-bottom: 1px solid var(--color-a1);
+.searchUnifiedColumns {
+    display: flex;
+    height: 50vh;
+    max-height: 480px;
+    min-height: 260px;
 }
 
-.searchDropdownSection:last-child {
-    border-bottom: none;
+/* Each column */
+.searchUnifiedCol {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--color-a1);
+    min-width: 0;
+}
+.searchUnifiedCol:last-child {
+    border-right: none;
 }
 
-.searchDropdownSectionHeader {
-    padding: 8px 12px 4px;
+.searchUnifiedColLayers {
+    flex: 0 0 200px;
+    min-width: 160px;
+}
+
+.searchUnifiedColFields {
+    flex: 1 1 auto;
+    min-width: 180px;
+}
+
+.searchUnifiedColOp {
+    flex: 0 0 170px;
+    min-width: 140px;
+}
+
+.searchUnifiedColValue {
+    flex: 1 1 auto;
+    min-width: 180px;
+}
+
+/* Column header */
+.searchUnifiedColHeader {
+    padding: 8px 10px 6px;
     font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
@@ -81,50 +120,18 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    border-bottom: 1px solid var(--color-a1);
+    flex-shrink: 0;
 }
 
-.searchDropdownHeaderActions {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    font-size: 10px;
-    text-transform: none;
-    letter-spacing: 0;
+/* Filter input inside column */
+.searchUnifiedColFilter {
+    padding: 4px 6px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--color-a1);
 }
 
-.searchDropdownHeaderAction {
-    cursor: pointer;
-    color: var(--color-mmgis);
-    font-weight: 500;
-}
-
-.searchDropdownHeaderAction:hover {
-    text-decoration: underline;
-}
-
-.searchDropdownHeaderSep {
-    color: var(--color-a3);
-    margin: 0 1px;
-}
-
-.searchDropdownCollapsible {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-}
-
-.searchDropdownCollapsible:hover {
-    background: var(--color-a1);
-}
-
-/* Field filter input inside dropdown */
-.searchDropdownFieldFilter {
-    padding: 4px 8px;
-}
-
-.searchDropdownFieldFilterInput {
+.searchUnifiedFilterInput {
     width: 100%;
     height: 26px;
     padding: 0 8px;
@@ -136,40 +143,71 @@
     outline: none;
     box-sizing: border-box;
 }
-
-.searchDropdownFieldFilterInput:focus {
+.searchUnifiedFilterInput:focus {
     border-color: var(--color-mmgis);
 }
 
-/* Field list */
-.searchDropdownFieldList {
-    max-height: 40vh;
+/* Scrollable column body */
+.searchUnifiedColBody {
+    flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 2px 0;
 }
 
-.searchDropdownFieldItem {
+/* ===== Layer items (column 1) ===== */
+.searchUnifiedLayerItem {
+    padding: 2px 10px;
+    cursor: pointer;
+    transition: background 0.1s;
+    font-size: 12px;
+}
+.searchUnifiedLayerItem:hover {
+    background: var(--color-a1);
+}
+
+.searchUnifiedLayerPath {
+    opacity: 0.45;
+    font-size: 11px;
+}
+
+/* ===== Field items (column 2) ===== */
+.searchUnifiedFieldItem {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 5px 12px;
+    gap: 6px;
+    padding: 5px 10px;
     cursor: pointer;
     font-size: 12px;
     color: var(--color-a5);
     transition: background 0.1s;
 }
-
-.searchDropdownFieldItem:hover {
+.searchUnifiedFieldItem:hover {
     background: var(--color-a1);
     color: var(--color-f);
 }
+.searchUnifiedFieldItemActive {
+    background: color-mix(in srgb, var(--color-mmgis) 18%, transparent);
+    color: var(--color-f);
+}
 
-.searchDropdownFieldName {
+.searchUnifiedFieldName {
     font-weight: 500;
     color: var(--color-f);
     flex-shrink: 0;
 }
 
+.searchUnifiedFieldLayers {
+    color: var(--color-f);
+    opacity: 0.5;
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-left: auto;
+}
+
+/* Field type badges (shared with old CSS) */
 .searchDropdownFieldType {
     font-size: 10px;
     flex-shrink: 0;
@@ -206,83 +244,37 @@
     border: 1px solid var(--color-a2, var(--color-a1));
 }
 
-.searchDropdownFieldLayers {
-    color: var(--color-f);
-    opacity: 0.5;
-    font-size: 10px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    margin-left: auto;
-}
-
-.searchDropdownEmpty {
-    padding: 12px;
-    text-align: center;
-    color: var(--color-a3);
-    font-size: 12px;
-}
-
-/* Layer list */
-.searchDropdownLayerList {
-    padding: 2px 0;
-}
-
-.searchDropdownLayerItem {
-    padding: 5px 12px;
-    cursor: pointer;
-    font-size: 12px;
-    color: var(--color-a5);
-    transition: background 0.1s;
-}
-
-.searchDropdownLayerItem:hover {
-    background: var(--color-a1);
-    color: var(--color-f);
-}
-
-.searchDropdownLayerCheckItem {
-    padding: 2px 12px;
-    cursor: pointer;
-    transition: background 0.1s;
-}
-
-.searchDropdownLayerCheckItem:hover {
-    background: var(--color-a1);
-}
-
-.searchDropdownLayerPath {
-    opacity: 0.45;
-    font-size: 11px;
-}
-
-/* Operator dropdown */
-.searchOperatorContainer {
-    position: relative;
-    flex-shrink: 0;
+/* ===== Operator items (column 3) ===== */
+.searchUnifiedOpItem {
     display: flex;
     align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    cursor: pointer;
+    color: var(--color-a5);
+    font-size: 12px;
+    transition: background 0.1s;
+    white-space: nowrap;
+}
+.searchUnifiedOpItem:hover {
+    background: var(--color-a1);
+    color: var(--color-f);
+}
+.searchUnifiedOpItemActive {
+    background: color-mix(in srgb, var(--color-mmgis) 20%, transparent);
+    color: var(--color-f);
 }
 
-.searchOperatorTrigger {
-    height: 24px;
-    min-width: 28px;
-    padding: 0 4px;
-    margin: 0 2px;
-    border: 1px solid var(--color-a2);
-    border-radius: 3px;
-    background: var(--color-a);
-    color: var(--color-f);
-    cursor: pointer;
+.searchUnifiedOpIcon {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    width: 20px;
+    flex-shrink: 0;
 }
 
-.searchOperatorTrigger:hover {
-    border-color: var(--color-mmgis);
-    background: var(--color-a1);
+.searchUnifiedOpLabel {
+    flex: 1;
 }
 
 .searchOperatorText {
@@ -292,76 +284,49 @@
     line-height: 1;
 }
 
-.searchOperatorDropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    margin-top: 4px;
-    background: var(--color-a);
-    border: 1px solid var(--color-a2);
-    border-radius: 4px;
-    box-shadow: 0 4px 12px var(--color-shadow);
-    z-index: 10000;
-    min-width: 150px;
-    padding: 4px 0;
-}
-
-.searchOperatorItem {
+/* ===== Value column (column 4) ===== */
+.searchUnifiedValueInputWrap {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 5px 10px;
-    cursor: pointer;
-    color: var(--color-a5);
-    font-size: 12px;
-    white-space: nowrap;
-}
-
-.searchOperatorItem:hover {
-    background: var(--color-a1);
-    color: var(--color-f);
-}
-
-.searchOperatorItemActive {
-    background: color-mix(in srgb, var(--color-mmgis) 20%, transparent);
-    color: var(--color-f);
-}
-
-.searchOperatorItemIcon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
+    padding: 4px 6px;
+    gap: 4px;
     flex-shrink: 0;
+    border-bottom: 1px solid var(--color-a1);
 }
 
-.searchOperatorItemLabel {
+.searchUnifiedValueInput {
     flex: 1;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
+    background: var(--color-a);
+    color: var(--color-f);
+    font-size: 12px;
+    outline: none;
+    box-sizing: border-box;
+}
+.searchUnifiedValueInput:focus {
+    border-color: var(--color-mmgis);
+}
+.searchUnifiedValueInput:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
-/* Search input wrapper */
-.searchInputWrapper {
-    position: relative;
-    flex: 1;
-    height: 100%;
-    display: flex;
-    align-items: center;
+.searchUnifiedSearchBtn {
+    flex-shrink: 0;
+    color: var(--color-a4);
+}
+.searchUnifiedSearchBtn:hover {
+    color: var(--color-mmgis);
 }
 
-.searchSuggestions {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    max-height: 60vh;
-    overflow-y: auto;
-    overflow-x: hidden;
-    background-color: var(--color-a);
-    border: 1px solid var(--color-mmgis);
-    border-top: none;
-    z-index: 9999;
+.searchUnifiedValueBody {
+    /* value suggestions scroll area */
 }
 
+/* ===== Shared suggestion items ===== */
 .searchSuggestionItem {
     padding: 6px 10px;
     cursor: pointer;
@@ -411,21 +376,34 @@
     color: #fff;
 }
 
-.searchClearBtn {
-    position: absolute;
-    right: 62px;
+/* ===== Shared helpers ===== */
+.searchUnifiedEmpty {
+    padding: 12px;
+    text-align: center;
     color: var(--color-a3);
-    z-index: 1;
+    font-size: 12px;
 }
 
-.searchGoBtn {
-    position: absolute;
-    right: 32px;
-    color: var(--color-a3);
-    z-index: 1;
+.searchDropdownHeaderActions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 10px;
+    text-transform: none;
+    letter-spacing: 0;
 }
 
-.searchClearBtn:hover,
-.searchGoBtn:hover {
+.searchDropdownHeaderAction {
+    cursor: pointer;
     color: var(--color-mmgis);
+    font-weight: 500;
+}
+
+.searchDropdownHeaderAction:hover {
+    text-decoration: underline;
+}
+
+.searchDropdownHeaderSep {
+    color: var(--color-a3);
+    margin: 0 1px;
 }
