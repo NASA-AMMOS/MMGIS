@@ -337,7 +337,7 @@ function TopBar({ userInterface }) {
                 </div>
             </div>
             <div id="topBarRight">
-                <SearchBar />
+                {!isMobile && <SearchBar />}
             </div>
 
             {/* Panel toggles + user area + kebab menu */}

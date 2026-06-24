@@ -349,7 +349,7 @@ function get(reqtype, req, res, next, options) {
                 }
 
                 // Build JSONB accessor (supports nested keys like "a.b.c")
-                const acc = jsonbAccessor(fkey, `filter_key_${i}`);
+                const acc = derivedKey ? { text: fkey, replacements: {} } : jsonbAccessor(fkey, `filter_key_${i}`);
                 Object.assign(replacements, acc.replacements);
                 replacements[`filter_value_${i}`] = f.value;
                 const propAccessor = acc.text;
