@@ -144,19 +144,20 @@ function BottomElementPositioner() {
                 sepContent.style.left = (12 + tpShift + (tpShift > 0 ? 12 : 0)) + 'px'
             }
 
-            // Cap the Legend panel's height so it never overlaps the bottom-left
-            // compass + scale bar. That stack's top sits ~70px above the bottom
-            // bar (mapToolBar bottom = totalOffset), so the legend's bottom must
-            // clear totalOffset + 70 + a 12px gap. totalOffset already grows with
-            // the expanded timeline, so the legend shrinks exactly as needed.
-            const legendEl = document.getElementById('LegendTool')
-            if (legendEl) {
+            // Cap every separated tool panel (Legend, etc.) so none overlaps the
+            // bottom-left compass + scale bar. All panels share the container's top,
+            // so a single reserve covers them all. That stack's top sits ~70px above
+            // the bottom bar (mapToolBar bottom = totalOffset), so a panel's bottom
+            // must clear totalOffset + 70 + a 12px gap. totalOffset already grows with
+            // the expanded timeline, so the panels shrink exactly as needed.
+            const sepContainer = document.getElementById('toolcontroller_sep_content')
+            if (sepContainer) {
                 const compassStack = 70 // compass + scale bar height above the bar
                 const gap = 12
-                const legendTop = legendEl.getBoundingClientRect().top
-                const reserve = legendTop + totalOffset + compassStack + gap
+                const containerTop = sepContainer.getBoundingClientRect().top
+                const reserve = containerTop + totalOffset + compassStack + gap
                 document.documentElement.style.setProperty(
-                    '--mmgis-legend-bottom-reserve',
+                    '--mmgis-sep-tools-bottom-reserve',
                     reserve + 'px'
                 )
             }

@@ -84,18 +84,25 @@
     min-height: 0;
 }
 
+/* Cap every separated tool panel so none overlaps the bottom-left compass +
+   scale bar. The reserve is dynamic — BottomElementPositioner sets
+   --mmgis-sep-tools-bottom-reserve from the live layout (it grows when the
+   timeline is expanded) so panels shrink instead of clipping. The panel's
+   overflow:hidden + .content overflow:auto makes the content scroll. Falls
+   back to 120px before the positioner first runs. */
+.panel {
+    max-height: calc(100vh - var(--mmgis-sep-tools-bottom-reserve, 120px));
+}
+
 /* Legend-specific overrides */
 .panel :global(#toolContentSeparated_Legend) > div:first-child {
     display: none !important;
 }
 
+/* Let the Legend's inner #LegendTool fill the panel and scroll within the
+   shared cap above instead of imposing its own inline height/max-height. */
 .panel :global(#toolContentSeparated_Legend #LegendTool) {
     height: auto !important;
-    /* Reserve space at the bottom so the legend never overlaps the bottom-left
-       compass + scale bar. The reserve is dynamic — BottomElementPositioner sets
-       --mmgis-legend-bottom-reserve from the live layout (it grows when the
-       timeline is expanded) so the legend shrinks/scrolls instead of clipping.
-       Falls back to 240px before the positioner first runs. */
-    max-height: calc(100vh - var(--mmgis-legend-bottom-reserve, 240px)) !important;
+    max-height: none !important;
 }
 
