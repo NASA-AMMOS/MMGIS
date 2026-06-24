@@ -60,7 +60,7 @@
     position: absolute;
     top: calc(100% + 4px);
     right: 0;
-    width: max(680px, 60vw);
+    width: max(1040px, 70vw);
     max-width: 90vw;
     background: var(--color-a);
     border: 1px solid var(--color-a1);
@@ -89,13 +89,13 @@
 }
 
 .searchUnifiedColLayers {
-    flex: 0 0 200px;
-    min-width: 160px;
+    flex: 0 0 230px;
+    min-width: 230px;
 }
 
 .searchUnifiedColFields {
-    flex: 0 0 280px;
-    min-width: 180px;
+    flex: 0 0 400px;
+    min-width: 400px;
 }
 
 .searchUnifiedColOp {
@@ -104,8 +104,8 @@
 }
 
 .searchUnifiedColValue {
-    flex: 1 1 auto;
-    min-width: 180px;
+    flex: 0 0 240px;
+    min-width: 240px;
 }
 
 /* Column header */
