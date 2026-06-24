@@ -279,11 +279,14 @@ function SearchBar() {
                     L_.layers.data[l].url &&
                     L_.layers.data[l].url.startsWith('geodatasets:')
                 ) {
-                    // Build nesting path by walking _layersParent
+                    // Build nesting path by walking _layersParent (use display names)
                     const pathParts = []
                     let parent = L_._layersParent[l]
                     while (parent) {
-                        pathParts.unshift(parent)
+                        const parentData = L_.layers.data[parent]
+                        pathParts.unshift(
+                            parentData ? (parentData.display_name || parent) : parent
+                        )
                         parent = L_._layersParent[parent]
                     }
                     geoLayers.push({
