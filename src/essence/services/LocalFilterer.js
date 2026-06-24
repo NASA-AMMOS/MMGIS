@@ -133,14 +133,8 @@ const LocalFilterer = {
                         ? feature.geometry.type
                         : F_.getIn(feature.properties, v.key)
                 let filterValue = v.value
-                if (v.type === 'number' && v.op != ',')
-                    filterValue = parseFloat(filterValue)
-                else if (v.type === 'boolean') {
-                    if (featureValue == null) featureValue = false
-                    filterValue = filterValue == 'true'
-                }
 
-                // Handle isnull/isnotnull before the null gate
+                // Handle isnull/isnotnull before any type coercion
                 if (v.op === 'isnull') {
                     v.matches = featureValue == null
                     continue
@@ -148,6 +142,13 @@ const LocalFilterer = {
                 if (v.op === 'isnotnull') {
                     v.matches = featureValue != null
                     continue
+                }
+
+                if (v.type === 'number' && v.op != ',')
+                    filterValue = parseFloat(filterValue)
+                else if (v.type === 'boolean') {
+                    if (featureValue == null) featureValue = false
+                    filterValue = filterValue == 'true'
                 }
 
                 if (featureValue != null) {
