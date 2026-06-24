@@ -40,7 +40,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
+    color: var(--color-a-5);
 }
 
 .text {
