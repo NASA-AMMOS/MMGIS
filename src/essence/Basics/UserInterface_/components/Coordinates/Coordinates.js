@@ -134,7 +134,7 @@ const Coordinates = {
         $('#CoordinatesDiv').remove()
 
         if (!UserInterface.isMobile) {
-            $('body')
+            $('#main-container')
                 .append($('<div>')
                 .attr('id', 'CoordinatesDiv')
                 .html(markup))
