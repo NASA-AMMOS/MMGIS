@@ -983,7 +983,7 @@
                                 "style": {
                                     "nointeraction": false
                                 },
-                                "search": "(name) (site)",
+                                "search": "(name) (sensor)",
                                 "useKeyAsName": "name"
                             },
                             "description": "Demonstrates dynamicExtent: only features within the current map viewport are queried from the database. Pan or zoom to trigger a re-query. dynamicExtentMoveThreshold='500/z' throttles re-queries to 500m of pan at zoom 0, scaled by zoom level.",

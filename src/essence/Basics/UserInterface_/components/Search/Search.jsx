@@ -581,30 +581,61 @@ function SearchBar() {
         const ldata = L_.layers.data[lname]
         if (!ldata) return
 
+        const buildArray = () => {
+            let data
+            try {
+                data = L_.layers.layer[lname].toGeoJSON(L_.GEOJSON_PRECISION)
+            } catch (err) {
+                data = { features: [] }
+            }
+
+            const arr = []
+            for (let i = 0; i < data.features.length; i++) {
+                const props = data.features[i].properties
+                arr.push(getSearchFieldStringForFeature(searchFields, lname, props))
+            }
+
+            if (arr[0]) {
+                if (!isNaN(arr[0])) arr.sort((a, b) => a - b)
+                else arr.sort()
+            }
+
+            setArrayToSearch(arr)
+            setPlaceholder(getSearchFieldKeys(searchFields, lname) || 'Search...')
+        }
+
+        // If layer is off, toggle it on and poll until data is ready
         if (L_.layers.on[lname] !== true) {
             L_.toggleLayer(L_.layers.data[lname])
+            let attempts = 0
+            const poll = setInterval(() => {
+                attempts++
+                if (L_.layers.layer[lname] && typeof L_.layers.layer[lname].toGeoJSON === 'function') {
+                    clearInterval(poll)
+                    buildArray()
+                } else if (attempts > 20) {
+                    clearInterval(poll)
+                }
+            }, 200)
+            return () => clearInterval(poll)
         }
 
-        let data
-        try {
-            data = L_.layers.layer[lname].toGeoJSON(L_.GEOJSON_PRECISION)
-        } catch (err) {
-            data = { features: [] }
+        // Layer already on — check if data is available, poll if not
+        if (L_.layers.layer[lname] && typeof L_.layers.layer[lname].toGeoJSON === 'function') {
+            buildArray()
+        } else {
+            let attempts = 0
+            const poll = setInterval(() => {
+                attempts++
+                if (L_.layers.layer[lname] && typeof L_.layers.layer[lname].toGeoJSON === 'function') {
+                    clearInterval(poll)
+                    buildArray()
+                } else if (attempts > 20) {
+                    clearInterval(poll)
+                }
+            }, 200)
+            return () => clearInterval(poll)
         }
-
-        const arr = []
-        for (let i = 0; i < data.features.length; i++) {
-            const props = data.features[i].properties
-            arr.push(getSearchFieldStringForFeature(searchFields, lname, props))
-        }
-
-        if (arr[0]) {
-            if (!isNaN(arr[0])) arr.sort((a, b) => a - b)
-            else arr.sort()
-        }
-
-        setArrayToSearch(arr)
-        setPlaceholder(getSearchFieldKeys(searchFields, lname) || 'Search...')
     }, [searchMode, selectedLayer, searchFields, getL_, getMap_])
 
     // Filter suggestions based on input (layer mode and field mode)
