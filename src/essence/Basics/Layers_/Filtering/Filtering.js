@@ -527,52 +527,61 @@ const Filtering = {
 
         const ops = ['AND', 'OR', 'NOT_AND', 'NOT_OR']
         const opId = Math.max(ops.indexOf(options.op), 0)
-        $(elmId).html(
-            Dropy.construct(
-                [
-                    `<div style='font-family: monospace;'>All Must Match (AND)</div>`,
-                    `<div style='font-family: monospace;'>Any May Match (OR)</div>`,
-                    `<div style='font-family: monospace;'>Not All May Match (NOT AND)</div>`,
-                    `<div style='font-family: monospace;'>None Must Match (NOT OR)</div>`,
-                ],
-                'op',
-                opId,
-                { openUp: true, hideChevron: true }
-            )
-        )
-        Dropy.init($(elmId), function (idx) {
-            const newOp = ops[idx]
-            Filtering.filters[layerName].values[id].op = newOp
-            switch (newOp) {
-                case 'AND':
-                    $(elmId).removeClass('op_or')
-                    $(elmId).removeClass('op_not_and')
-                    $(elmId).removeClass('op_not_or')
-                    $(elmId).addClass('op_and')
-                    break
-                case 'OR':
-                    $(elmId).removeClass('op_and')
-                    $(elmId).removeClass('op_not_and')
-                    $(elmId).removeClass('op_not_or')
-                    $(elmId).addClass('op_or')
-                    break
-                case 'NOT_AND':
-                    $(elmId).removeClass('op_and')
-                    $(elmId).removeClass('op_or')
-                    $(elmId).removeClass('op_not_or')
-                    $(elmId).addClass('op_not_and')
-                    break
-                case 'NOT_OR':
-                    $(elmId).removeClass('op_and')
-                    $(elmId).removeClass('op_or')
-                    $(elmId).removeClass('op_not_and')
-                    $(elmId).addClass('op_not_or')
-                    break
-                default:
-                    break
-            }
-            Filtering.setSubmitButtonState(true)
+        const groupOpItems = [
+            `<div style='font-family: monospace;'>All Must Match (AND)</div>`,
+            `<div style='font-family: monospace;'>Any May Match (OR)</div>`,
+            `<div style='font-family: monospace;'>Not All May Match (NOT AND)</div>`,
+            `<div style='font-family: monospace;'>None Must Match (NOT OR)</div>`,
+        ]
+        const groupOpConstruct = Dropy.construct(groupOpItems, 'op', opId, {
+            openUp: true,
+            hideChevron: true,
         })
+        $(elmId).html(groupOpConstruct)
+        Dropy.init(
+            $(elmId),
+            function (idx) {
+                const newOp = ops[idx]
+                Filtering.filters[layerName].values[id].op = newOp
+                switch (newOp) {
+                    case 'AND':
+                        $(elmId).removeClass('op_or')
+                        $(elmId).removeClass('op_not_and')
+                        $(elmId).removeClass('op_not_or')
+                        $(elmId).addClass('op_and')
+                        break
+                    case 'OR':
+                        $(elmId).removeClass('op_and')
+                        $(elmId).removeClass('op_not_and')
+                        $(elmId).removeClass('op_not_or')
+                        $(elmId).addClass('op_or')
+                        break
+                    case 'NOT_AND':
+                        $(elmId).removeClass('op_and')
+                        $(elmId).removeClass('op_or')
+                        $(elmId).removeClass('op_not_or')
+                        $(elmId).addClass('op_not_and')
+                        break
+                    case 'NOT_OR':
+                        $(elmId).removeClass('op_and')
+                        $(elmId).removeClass('op_or')
+                        $(elmId).removeClass('op_not_and')
+                        $(elmId).addClass('op_not_or')
+                        break
+                    default:
+                        break
+                }
+                Filtering.setSubmitButtonState(true)
+            },
+            null,
+            null,
+            {
+                globalConstruct: Dropy.construct(groupOpItems, 'op', opId, {
+                    openUp: true,
+                    hideChevron: true,
+                }),
+            }
+        )
     },
     attachValueEvents: function (id, layerName, options) {
         options = options || {}
@@ -714,29 +723,38 @@ const Filtering = {
             'endswith',
         ]
         const opId = Math.max(ops.indexOf(options.op), 0)
-        $(elmId).html(
-            Dropy.construct(
-                [
-                    `<i class='mdi mdi-equal mdi-18px' title='Equals'></i>`,
-                    `<div title='Not Equals' style='font-family: monospace;'>!=</div>`,
-                    `<div title='Comma-separated list' style='font-family: monospace;'>in</div>`,
-                    `<i class='mdi mdi-less-than mdi-18px' title='Less than'></i>`,
-                    `<i class='mdi mdi-greater-than mdi-18px' title='Greater than'></i>`,
-                    `<i class='mdi mdi-less-than-or-equal mdi-18px' title='Less than or Equal'></i>`,
-                    `<i class='mdi mdi-greater-than-or-equal mdi-18px' title='Greater than or Equal'></i>`,
-                    `<i class='mdi mdi-contain mdi-18px' title='Contains'></i>`,
-                    `<i class='mdi mdi-contain-start mdi-18px' title='Begins With'></i>`,
-                    `<i class='mdi mdi-contain-end mdi-18px' title='Ends With'></i>`,
-                ],
-                'op',
-                opId,
-                { openUp: true, hideChevron: true }
-            )
-        )
-        Dropy.init($(elmId), function (idx) {
-            Filtering.filters[layerName].values[id].op = ops[idx]
-            Filtering.setSubmitButtonState(true)
+        const valueOpItems = [
+            `<i class='mdi mdi-equal mdi-18px' title='Equals'></i>`,
+            `<div title='Not Equals' style='font-family: monospace;'>!=</div>`,
+            `<div title='Comma-separated list' style='font-family: monospace;'>in</div>`,
+            `<i class='mdi mdi-less-than mdi-18px' title='Less than'></i>`,
+            `<i class='mdi mdi-greater-than mdi-18px' title='Greater than'></i>`,
+            `<i class='mdi mdi-less-than-or-equal mdi-18px' title='Less than or Equal'></i>`,
+            `<i class='mdi mdi-greater-than-or-equal mdi-18px' title='Greater than or Equal'></i>`,
+            `<i class='mdi mdi-contain mdi-18px' title='Contains'></i>`,
+            `<i class='mdi mdi-contain-start mdi-18px' title='Begins With'></i>`,
+            `<i class='mdi mdi-contain-end mdi-18px' title='Ends With'></i>`,
+        ]
+        const valueOpConstruct = Dropy.construct(valueOpItems, 'op', opId, {
+            openUp: true,
+            hideChevron: true,
         })
+        $(elmId).html(valueOpConstruct)
+        Dropy.init(
+            $(elmId),
+            function (idx) {
+                Filtering.filters[layerName].values[id].op = ops[idx]
+                Filtering.setSubmitButtonState(true)
+            },
+            null,
+            null,
+            {
+                globalConstruct: Dropy.construct(valueOpItems, 'op', opId, {
+                    openUp: true,
+                    hideChevron: true,
+                }),
+            }
+        )
 
         // Value AutoComplete
         Filtering.updateValuesAutoComplete(id, layerName)
