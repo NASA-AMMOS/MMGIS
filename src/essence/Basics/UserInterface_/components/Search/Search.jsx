@@ -1326,8 +1326,8 @@ function SearchBar() {
         setSearchOperator('=')
         setPlaceholder('Search features...')
         setArrayToSearch([])
-        // Reset to regular mode with default layer
-        setViewMode(VIEW_REGULAR)
+        // Reset to initial mode (advanced-only when no search constructs)
+        setViewMode(vectorLayers.length > 0 ? VIEW_REGULAR : VIEW_ADVANCED)
         const defaultLayer =
             vectorLayers.find((vl) => {
                 const L_ = getL_()
@@ -1338,7 +1338,7 @@ function SearchBar() {
             setSearchMode(MODE_LAYER)
         } else {
             setSelectedLayer(null)
-            setSearchMode(MODE_DEFAULT)
+            setSearchMode(vectorLayers.length > 0 ? MODE_DEFAULT : MODE_FIELD)
         }
     }, [restoreLayerState, vectorLayers, getL_])
 
