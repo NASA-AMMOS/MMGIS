@@ -69,6 +69,7 @@ export default {
                     right: bcr.right,
                     top: bcr.top,
                     width: bcr.width,
+                    zIndex: 10000,
                 })
                 const bcr2 = elm.find('ul').get(0).getBoundingClientRect()
                 if (bcr2.left + bcr2.width > window.innerWidth) {
