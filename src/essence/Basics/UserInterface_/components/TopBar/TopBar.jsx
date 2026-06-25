@@ -113,6 +113,7 @@ function TopBar({ userInterface }) {
     const topBarLeftRef = useRef(null)
     const isMobile = useUIStore((s) => s.isMobile)
     const lookConfig = useUIStore((s) => s.lookConfig)
+    const searchBarVisible = useUIStore((s) => s.visibility.searchbar)
     const hasStatus = useUIStore((s) => !!s.statusIndicator)
     const hasViewer = useUIStore((s) => s.hasViewer)
     const hasGlobe = useUIStore((s) => s.hasGlobe)
@@ -337,7 +338,7 @@ function TopBar({ userInterface }) {
                 </div>
             </div>
             <div id="topBarRight">
-                {!isMobile && <SearchBar />}
+                {!isMobile && lookConfig.searchbar !== false && searchBarVisible && <SearchBar />}
             </div>
 
             {/* Panel toggles + user area + kebab menu */}

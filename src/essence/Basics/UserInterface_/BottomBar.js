@@ -388,6 +388,7 @@ let BottomBar = {
                 coordinates: L_.configData.look.coorindates != false,
                 graticule: this.UI_ && this.UI_.Map_ ? this.UI_.Map_.graticule != null : false,
                 miscellaneous: L_.configData.look.miscellaneous != false,
+                searchbar: L_.configData.look.searchbar != false,
             }
             // prettier-ignore
             const modalContent = [
@@ -425,6 +426,12 @@ let BottomBar = {
                                     `<div class="mmgis-checkbox"><input type="checkbox" ${BottomBar.settings.visibility.miscellaneous ? 'checked ' : ''}id="checkbox_msmsUIV6" value='miscellaneous'/><label for="checkbox_msmsUIV6"></label></div>`,
                                     `<div>Miscellaneous</div>`,
                                 `</li>`,
+                                (L_.configData.look.searchbar !== false ? [
+                                `<li>`,
+                                    `<div class="mmgis-checkbox"><input type="checkbox" ${BottomBar.settings.visibility.searchbar ? 'checked ' : ''}id="checkbox_msmsUIV8" value='searchbar'/><label for="checkbox_msmsUIV8"></label></div>`,
+                                    `<div>Search Bar</div>`,
+                                `</li>`,
+                                ].join('') : ''),
                                 (L_.configData.time && L_.configData.time.enabled === true && !L_.UserInterface_?.isMobile ? [
                                 `<li>`,
                                     `<div class="mmgis-checkbox"><input type="checkbox" ${$('#timeUI').hasClass('active') ? 'checked ' : ''}id="checkbox_msmsUIV7" value='timeui'/><label for="checkbox_msmsUIV7"></label></div>`,
@@ -521,6 +528,9 @@ let BottomBar = {
                     $('.leaflet-control-container').css('display', 'none')
                     $('.splitterVInner').css('display', 'none')
                     break
+                case 'searchbar':
+                    useUIStore.getState().setVisibility('searchbar', false)
+                    break
                 case 'timeui':
                     import('./components/Coordinates/Coordinates').then(m => m.default.toggleTimeUI(false))
                     break
@@ -558,6 +568,9 @@ let BottomBar = {
                 case 'miscellaneous':
                     $('.leaflet-control-container').css('display', 'block')
                     $('.splitterVInner').css('display', 'inline-flex')
+                    break
+                case 'searchbar':
+                    useUIStore.getState().setVisibility('searchbar', true)
                     break
                 case 'timeui':
                     import('./components/Coordinates/Coordinates').then(m => m.default.toggleTimeUI(true))

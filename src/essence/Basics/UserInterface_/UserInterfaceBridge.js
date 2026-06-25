@@ -340,6 +340,8 @@ const UserInterfaceBridge = {
             BottomBar.changeUIVisibility('coordinates', false)
         if (look.miscellaneous === false)
             BottomBar.changeUIVisibility('miscellaneous', false)
+        if (look.searchbar === false)
+            BottomBar.changeUIVisibility('searchbar', false)
 
         // Mobile-specific fina behavior
         if (this.isMobile) {

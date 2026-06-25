@@ -535,15 +535,21 @@ function SearchBar() {
                 )
             }
 
-            // Default selected layer for regular mode: first search-construct layer that is ON
-            const defaultLayer =
-                vecLayers.find((vl) => L_.layers.on[vl.value] === true) ||
-                vecLayers[0] || null
-            if (defaultLayer) {
-                setSelectedLayer(defaultLayer.value)
-                setSearchMode(MODE_LAYER)
+            // If no search constructs exist, default to advanced-only mode
+            if (vecLayers.length === 0) {
+                setViewMode(VIEW_ADVANCED)
+                setSearchMode(MODE_FIELD)
             } else {
-                setSearchMode(MODE_DEFAULT)
+                // Default selected layer for regular mode: first search-construct layer that is ON
+                const defaultLayer =
+                    vecLayers.find((vl) => L_.layers.on[vl.value] === true) ||
+                    vecLayers[0] || null
+                if (defaultLayer) {
+                    setSelectedLayer(defaultLayer.value)
+                    setSearchMode(MODE_LAYER)
+                } else {
+                    setSearchMode(MODE_DEFAULT)
+                }
             }
             setPlaceholder('Search features...')
 
@@ -1521,17 +1527,21 @@ function SearchBar() {
         >
             {/* Top bar: [Layers ▼] | [Search Input] [⚙] */}
             <div className="searchCompactBar">
-                {/* Layers trigger */}
-                <div
-                    className="searchLayersTrigger"
-                    onClick={openPanel}
-                >
-                    <span className="searchLayersTriggerLabel">
-                        {selectedLayerLabel}
-                    </span>
-                    <i className="mdi mdi-chevron-down mdi-14px" />
-                </div>
-                <div className="searchBarDivider" />
+                {/* Layers trigger (only shown when search constructs exist) */}
+                {vectorLayers.length > 0 && (
+                    <>
+                        <div
+                            className="searchLayersTrigger"
+                            onClick={openPanel}
+                        >
+                            <span className="searchLayersTriggerLabel">
+                                {selectedLayerLabel}
+                            </span>
+                            <i className="mdi mdi-chevron-down mdi-14px" />
+                        </div>
+                        <div className="searchBarDivider" />
+                    </>
+                )}
                 {/* Search input */}
                 <input
                     ref={inputRef}
@@ -1585,31 +1595,33 @@ function SearchBar() {
                         <i className="mdi mdi-close mdi-14px" />
                     </IconButton>
                 </Tooltip>
-                {/* Advanced search toggle */}
-                <Tooltip content={viewMode === VIEW_ADVANCED ? 'Simple search' : 'Advanced search'} placement="bottom">
-                    <IconButton
-                        className={`searchAdvancedToggle ${viewMode === VIEW_ADVANCED ? 'searchAdvancedToggleActive' : ''}`}
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            const newMode = viewMode === VIEW_ADVANCED ? VIEW_REGULAR : VIEW_ADVANCED
-                            setViewMode(newMode)
-                            if (newMode === VIEW_ADVANCED) {
-                                // Clear regular mode state when entering advanced
-                                setCheckedLayers(new Set())
-                                setSuggestions([])
-                                setShowSuggestions(false)
-                                setFieldValues([])
-                                setSelectedField(null)
-                                setSearchMode(MODE_FIELD)
-                                setInputValue('')
-                            }
-                            if (!panelOpen) setPanelOpen(true)
-                        }}
-                        size="sm"
-                    >
-                        <i className="mdi mdi-tune mdi-18px" />
-                    </IconButton>
-                </Tooltip>
+                {/* Advanced search toggle (only shown when search constructs exist, otherwise always advanced) */}
+                {vectorLayers.length > 0 && (
+                    <Tooltip content={viewMode === VIEW_ADVANCED ? 'Simple search' : 'Advanced search'} placement="bottom">
+                        <IconButton
+                            className={`searchAdvancedToggle ${viewMode === VIEW_ADVANCED ? 'searchAdvancedToggleActive' : ''}`}
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                const newMode = viewMode === VIEW_ADVANCED ? VIEW_REGULAR : VIEW_ADVANCED
+                                setViewMode(newMode)
+                                if (newMode === VIEW_ADVANCED) {
+                                    // Clear regular mode state when entering advanced
+                                    setCheckedLayers(new Set())
+                                    setSuggestions([])
+                                    setShowSuggestions(false)
+                                    setFieldValues([])
+                                    setSelectedField(null)
+                                    setSearchMode(MODE_FIELD)
+                                    setInputValue('')
+                                }
+                                if (!panelOpen) setPanelOpen(true)
+                            }}
+                            size="sm"
+                        >
+                            <i className="mdi mdi-tune mdi-18px" />
+                        </IconButton>
+                    </Tooltip>
+                )}
             </div>
 
             {/* Dropdown panel */}

@@ -328,6 +328,14 @@
     {
       "components": [
         {
+          "field": "look.searchbar",
+          "name": "Search Bar",
+          "description": "Display the global feature search bar in the top bar. If null or unset, the search bar is shown by default.",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        },
+        {
           "field": "look.zoomcontrol",
           "name": "Map Zoom Control",
           "description": "",

@@ -84,6 +84,7 @@ const useUIStore = create((set, get) => ({
         coordinates: true,
         graticule: true,
         miscellaneous: true,
+        searchbar: true,
     },
 
     // Config look flags (set by UserInterfaceBridge.fina from mission config)
