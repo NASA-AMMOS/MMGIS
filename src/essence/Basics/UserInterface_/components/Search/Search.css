@@ -133,8 +133,8 @@
 .searchUnifiedColumns {
     display: flex;
     height: 50vh;
-    max-height: 480px;
-    min-height: 260px;
+    max-height: 420px;
+    min-height: 222px;
 }
 
 /* ===== Regular Mode Panel ===== */
