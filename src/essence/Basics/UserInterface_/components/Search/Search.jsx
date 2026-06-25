@@ -1502,7 +1502,7 @@ function SearchBar() {
         if (viewMode === VIEW_ADVANCED) {
             const checked = [...checkedLayers]
             if (checked.length === 0) return 'Layers'
-            const firstName = getLayerLabel(checked[0])
+            const firstName = getLayerDisplayName(checked[0])
             return checked.length > 1 ? `${firstName} +${checked.length - 1}` : firstName
         }
         // Regular mode
