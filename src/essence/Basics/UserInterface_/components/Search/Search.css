@@ -247,12 +247,6 @@
     flex-shrink: 0;
     border-bottom: 1px solid var(--color-a1);
 }
-.searchUnifiedColFilterSpacer {
-    height: 34px;
-    min-height: 34px;
-    flex-shrink: 0;
-    border-bottom: 1px solid var(--color-a1);
-}
 
 .searchUnifiedFilterInput {
     width: 100%;
