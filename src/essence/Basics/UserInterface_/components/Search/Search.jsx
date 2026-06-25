@@ -1757,11 +1757,6 @@ function SearchBar() {
                             className={`searchAdvancedToggle ${viewMode === VIEW_ADVANCED ? 'searchAdvancedToggleActive' : ''}`}
                             onClick={(e) => {
                                 e.stopPropagation()
-                                // If panel is closed and already in advanced mode, just re-open
-                                if (!panelOpen && viewMode === VIEW_ADVANCED) {
-                                    setPanelOpen(true)
-                                    return
-                                }
                                 const newMode = viewMode === VIEW_ADVANCED ? VIEW_REGULAR : VIEW_ADVANCED
                                 // Turn off any layer we toggled on in regular mode
                                 if (regModeToggledLayer.current) {
