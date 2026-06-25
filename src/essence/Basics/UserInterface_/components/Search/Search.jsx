@@ -1968,15 +1968,6 @@ function SearchBar() {
                                     disabled={isNullOp || !selectedField}
                                     style={isNullOp ? { opacity: 0.4 } : undefined}
                                 />
-                                <Tooltip content="Search" placement="bottom">
-                                    <IconButton
-                                        className="searchUnifiedSearchBtn"
-                                        onClick={() => handleSearch()}
-                                        size="sm"
-                                    >
-                                        <i className="mdi mdi-magnify mdi-18px" />
-                                    </IconButton>
-                                </Tooltip>
                             </div>
                             <div className="searchUnifiedColBody searchUnifiedValueBody">
                                 {showSuggestions && suggestions.length > 0 ? (

@@ -422,17 +422,17 @@
 
 /* ===== Value column (column 4) ===== */
 .searchUnifiedValueInputWrap {
-    display: flex;
-    align-items: center;
     padding: 4px 6px;
-    gap: 4px;
+    height: 34px;
+    min-height: 34px;
+    box-sizing: border-box;
     flex-shrink: 0;
     border-bottom: 1px solid var(--color-a1);
 }
 
 .searchUnifiedValueInput {
-    flex: 1;
-    height: 28px;
+    width: 100%;
+    height: 26px;
     padding: 0 8px;
     border: 1px solid var(--color-a1);
     border-radius: 4px;
@@ -448,14 +448,6 @@
 .searchUnifiedValueInput:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-}
-
-.searchUnifiedSearchBtn {
-    flex-shrink: 0;
-    color: var(--color-a4);
-}
-.searchUnifiedSearchBtn:hover {
-    color: var(--color-mmgis);
 }
 
 .searchUnifiedValueBody {
