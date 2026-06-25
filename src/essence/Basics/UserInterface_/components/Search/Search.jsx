@@ -1326,6 +1326,17 @@ function SearchBar() {
         ]
     )
 
+    // Auto-execute search when isnull/isnotnull operator is selected
+    useEffect(() => {
+        const nullOp = searchOperator === 'isnull' || searchOperator === 'isnotnull'
+        if (nullOp && selectedField && searchMode === MODE_FIELD) {
+            const label = searchOperator === 'isnull' ? 'is null' : 'is not null'
+            setInputValue(label)
+            setSubmittedValue(label)
+            handleSearch('')
+        }
+    }, [searchOperator, selectedField, searchMode, handleSearch])
+
     const handleKeyDown = useCallback(
         (e) => {
             if (e.key === 'Enter') {
