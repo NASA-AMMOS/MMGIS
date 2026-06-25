@@ -3,6 +3,7 @@ import { center } from '@turf/turf'
 
 import Checkbox from '../../../../../design-system/components/Checkbox/Checkbox'
 import IconButton from '../../../../../design-system/components/IconButton/IconButton'
+import Switch from '../../../../../design-system/components/Switch/Switch'
 import Tooltip from '../../../../../design-system/components/Tooltip/Tooltip'
 
 import calls from '../../../../../pre/calls'
@@ -169,6 +170,7 @@ function SearchBar() {
     const [fieldFilterText, setFieldFilterText] = useState('')
     const [layerFilterText, setLayerFilterText] = useState('')
     const [checkedLayers, setCheckedLayers] = useState(new Set())
+    const [commonFieldsOnly, setCommonFieldsOnly] = useState(false)
 
     // Search mode and selection
     const [searchMode, setSearchMode] = useState(MODE_DEFAULT)
@@ -1466,11 +1468,16 @@ function SearchBar() {
     )
 
     // Filtered field list — filter by checked layers + text filter
+    // When no layers are checked, show no fields (user must select layers first)
     const layerFilteredFields = checkedLayers.size > 0
-        ? schemaFields.filter((f) =>
-              f.layers.some((l) => checkedLayers.has(l))
-          )
-        : schemaFields
+        ? (commonFieldsOnly
+            ? schemaFields.filter((f) =>
+                  [...checkedLayers].every((l) => f.layers.includes(l))
+              )
+            : schemaFields.filter((f) =>
+                  f.layers.some((l) => checkedLayers.has(l))
+              ))
+        : []
     const filteredFields = fieldFilterText
         ? layerFilteredFields.filter(
               (f) =>
@@ -1761,6 +1768,15 @@ function SearchBar() {
                         <div className="searchUnifiedCol searchUnifiedColFields">
                             <div className="searchUnifiedColHeader">
                                 <span>Field</span>
+                                <Tooltip content={commonFieldsOnly ? 'Showing common fields' : 'Showing all fields'} placement="top">
+                                    <span className="searchFieldsToggle" onClick={(e) => e.stopPropagation()}>
+                                        <Switch
+                                            size="sm"
+                                            checked={commonFieldsOnly}
+                                            onCheckedChange={setCommonFieldsOnly}
+                                        />
+                                    </span>
+                                </Tooltip>
                             </div>
                             <div className="searchUnifiedColFilter">
                                 <input
@@ -1778,9 +1794,11 @@ function SearchBar() {
                             <div className="searchUnifiedColBody">
                                 {filteredFields.length === 0 && (
                                     <div className="searchUnifiedEmpty">
-                                        {schemaFields.length === 0
-                                            ? 'Loading fields...'
-                                            : 'No matching fields'}
+                                        {checkedLayers.size === 0
+                                            ? 'Select layers first'
+                                            : schemaFields.length === 0
+                                                ? 'Loading fields...'
+                                                : 'No matching fields'}
                                     </div>
                                 )}
                                 {filteredFields.slice(0, 200).map((field) => (
