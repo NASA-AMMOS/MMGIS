@@ -73,13 +73,15 @@ export default {
                 elm.find('ul').css({ width: 'fit-content' })
                 const bcr = initialDropyElm.get(0).getBoundingClientRect()
                 const openDown = bcr.top < window.innerHeight / 2
+                if (openDown) {
+                    elm.find('.dropy').removeClass('openUp')
+                }
                 elm.css({
                     position: 'fixed',
                     left: bcr.left + 5,
                     width: bcr.width,
                     zIndex: 10000,
-                    top: openDown ? bcr.bottom : 'auto',
-                    bottom: openDown ? 'auto' : (window.innerHeight - bcr.top),
+                    top: openDown ? bcr.bottom : bcr.top,
                 })
                 const bcr2 = elm.find('ul').get(0).getBoundingClientRect()
                 if (bcr2.left + bcr2.width > window.innerWidth) {
