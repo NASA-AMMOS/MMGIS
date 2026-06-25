@@ -247,6 +247,15 @@ let BottomBar = {
                             `</div>`
                         ].join('\n') : '',
                         `<div class='mainHotkeysModalSection'>`,
+                            `<div class='mainHotkeysModalSectionTitle'>Search</div>`,
+                            `<ul class='mainHotkeysModalSectionOptions'>`,
+                                `<li>`,
+                                    `<div>Open Advanced Search</div>`,
+                                    `<div>/</div>`,
+                                `</li>`,
+                            `</ul>`,
+                        `</div>`,
+                        `<div class='mainHotkeysModalSection'>`,
                             `<div class='mainHotkeysModalSectionTitle'>Draw</div>`,
                             `<ul class='mainHotkeysModalSectionOptions'>`,
                                 `<li class='mainHotkeysModalSectionSubtitle'>Toggle</li>`,
@@ -358,6 +367,16 @@ let BottomBar = {
         }
     },
     attachHotkeys: function () {
+        // "/" opens advanced search (only when not focused on an input/textarea)
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return
+            const tag = document.activeElement?.tagName?.toLowerCase()
+            const isEditable = document.activeElement?.isContentEditable
+            if (tag === 'input' || tag === 'textarea' || tag === 'select' || isEditable) return
+            e.preventDefault()
+            document.dispatchEvent(new CustomEvent('mmgis-open-advanced-search'))
+        })
+
         Object.keys(L_.layers.data).forEach((layerId, i) => {
             const l = L_.layers.data[layerId]
             if (
