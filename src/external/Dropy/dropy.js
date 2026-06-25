@@ -37,11 +37,22 @@ export default {
 
         const initialDropyElm = dropyElm
         dropyElm = dropyElm.find('.dropy')
+        let globalScrollHandler = null
         if (options.globalConstruct != null) {
             dropyElm.find('ul').css({ display: 'none' })
             dropyElm = $('body').append(
                 `<div id="${initialDropyElm.attr('id')}_global"></div>`
             )
+        }
+
+        function closeGlobal() {
+            const elm = $(`#${initialDropyElm.attr('id')}_global`)
+            elm.empty()
+            $('.dropy').removeClass(self.openClass)
+            if (globalScrollHandler) {
+                document.removeEventListener('scroll', globalScrollHandler, true)
+                globalScrollHandler = null
+            }
         }
 
         // Opening a dropy
@@ -57,24 +68,33 @@ export default {
                 elm.find('.dropy__header')
                     .css({ pointerEvents: 'all' })
                     .click(function () {
-                        $('.dropy').removeClass(self.openClass)
-                        const elm = $(`#${initialDropyElm.attr('id')}_global`)
-                        elm.empty()
+                        closeGlobal()
                     })
                 elm.find('ul').css({ width: 'fit-content' })
                 const bcr = initialDropyElm.get(0).getBoundingClientRect()
+                const openDown = bcr.top < window.innerHeight / 2
                 elm.css({
                     position: 'fixed',
                     left: bcr.left + 5,
-                    right: bcr.right,
-                    top: bcr.top,
                     width: bcr.width,
                     zIndex: 10000,
+                    top: openDown ? bcr.bottom : 'auto',
+                    bottom: openDown ? 'auto' : (window.innerHeight - bcr.top),
                 })
                 const bcr2 = elm.find('ul').get(0).getBoundingClientRect()
                 if (bcr2.left + bcr2.width > window.innerWidth) {
                     elm.css({ left: window.innerWidth - bcr2.width - 5 })
                 }
+
+                // Close on scroll (capture phase catches nested containers)
+                if (globalScrollHandler) {
+                    document.removeEventListener('scroll', globalScrollHandler, true)
+                }
+                globalScrollHandler = () => {
+                    closeGlobal()
+                    if (typeof onClose === 'function') onClose()
+                }
+                document.addEventListener('scroll', globalScrollHandler, true)
 
                 elm.find('.dropy__content ul li a').click(function () {
                     var $that = $(this)
@@ -105,10 +125,7 @@ export default {
                     }
 
                     // Close dropdown
-                    $dropy.removeClass(self.openClass)
-                    $('.dropy').removeClass(self.openClass)
-                    const elm = $(`#${initialDropyElm.attr('id')}_global`)
-                    elm.empty()
+                    closeGlobal()
 
                     if (typeof onClose === 'function') {
                         onClose()
@@ -175,6 +192,9 @@ export default {
         $(document).bind('click', function (e) {
             if (!$(e.target).parents().hasClass('dropy')) {
                 $('.dropy').removeClass(self.openClass)
+                if (options.globalConstruct != null) {
+                    closeGlobal()
+                }
                 if (typeof onClose === 'function') {
                     onClose()
                 }
