@@ -506,8 +506,8 @@ function SearchBar() {
             setGeodatasetLayers(geoLayers)
             setVectorSearchLayers(vecSearchLayers)
             setVectorLayers(vecLayers)
-            // Default: check all geodataset layers on, vector layers off
-            setCheckedLayers(new Set(geoLayers.map((gl) => gl.geodatasetName)))
+            // Advanced mode: no layers checked by default
+            setCheckedLayers(new Set())
 
             if (geoLayers.length > 0) {
                 const layerNames = geoLayers
@@ -1587,6 +1587,16 @@ function SearchBar() {
                             e.stopPropagation()
                             const newMode = viewMode === VIEW_ADVANCED ? VIEW_REGULAR : VIEW_ADVANCED
                             setViewMode(newMode)
+                            if (newMode === VIEW_ADVANCED) {
+                                // Clear regular mode state when entering advanced
+                                setCheckedLayers(new Set())
+                                setSuggestions([])
+                                setShowSuggestions(false)
+                                setFieldValues([])
+                                setSelectedField(null)
+                                setSearchMode(MODE_FIELD)
+                                setInputValue('')
+                            }
                             if (!panelOpen) setPanelOpen(true)
                         }}
                         size="sm"

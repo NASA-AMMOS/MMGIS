@@ -38,7 +38,7 @@
     flex-shrink: 0;
     height: 100%;
     user-select: none;
-    width: 140px;
+    width: 200px;
     box-sizing: border-box;
 }
 .searchLayersTrigger:hover {
@@ -72,7 +72,7 @@
     color: var(--color-f);
     font-size: 13px;
     outline: none;
-    min-width: 220px;
+    min-width: 240px;
     padding: 0 4px;
 }
 .searchCompactInput::placeholder {
@@ -131,8 +131,8 @@
     min-height: 200px;
 }
 .searchRegularColLayers {
-    flex: 0 0 140px;
-    min-width: 140px;
+    flex: 0 0 200px;
+    min-width: 200px;
 }
 .searchRegularColValues {
     flex: 1;
