@@ -192,6 +192,7 @@ const Filtering = {
         // Clear Spatial Filter
         Map_.rmNotNull(Filtering.mapSpatialLayer)
 
+        $('[id^="layersTool_filtering_"][id$="_global"]').remove()
         $('#layersTool_filtering').remove()
     },
     addGroup: function (layerName, group) {
@@ -440,18 +441,22 @@ const Filtering = {
                 layerName
             ].values.filter((v) => {
                 if (v) {
-                    if (v.isGroup === true)
+                    const safeName = F_.getSafeName(layerName)
+                    if (v.isGroup === true) {
                         $(
-                            `#layersTool_filtering_group_${F_.getSafeName(
-                                layerName
-                            )}_${v.id}`
+                            `#layersTool_filtering_group_${safeName}_${v.id}`
                         ).remove()
-                    else
                         $(
-                            `#layersTool_filtering_value_${F_.getSafeName(
-                                layerName
-                            )}_${v.id}`
+                            `#layersTool_filtering_group_operator_${safeName}_${v.id}_global`
                         ).remove()
+                    } else {
+                        $(
+                            `#layersTool_filtering_value_${safeName}_${v.id}`
+                        ).remove()
+                        $(
+                            `#layersTool_filtering_value_operator_${safeName}_${v.id}_global`
+                        ).remove()
+                    }
                 }
                 return false
             })
