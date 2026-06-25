@@ -21,15 +21,18 @@ var LegendTool = {
     displayOnStart: false,
 
     initialize: function () {
+        const vars = L_.getToolVars('legend')
+
         if (L_.UserInterface_.isMobile === true) {
             const mapRect = document.getElementById('map').getBoundingClientRect()
             this.width = 'full'
             this.height = Math.round(mapRect.height * 0.25)
+        } else if (vars['width'] != null && !isNaN(parseInt(vars['width']))) {
+            this.width = Math.max(100, parseInt(vars['width']))
         }
 
-        //Get tool variables
-        this.displayOnStart = L_.getToolVars('legend')['displayOnStart']
-        this.showHeadersInLegend = L_.getToolVars('legend')['showHeadersInLegend']
+        this.displayOnStart = vars['displayOnStart']
+        this.showHeadersInLegend = vars['showHeadersInLegend']
     },
     make: function (targetId) {
         this.targetId =
@@ -319,7 +322,7 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             'font-size': '13px',
             'color': 'var(--color-f)',
             'margin-bottom': isHeader ? '' : '5px',
-            'padding-left': '8px',
+            'padding-left': '9px',
             'font-weight': isHeader ? 'bold' : ''
         })
         .text(hideLegendLayerName ? '' : display_name)
@@ -620,6 +623,12 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
         // Consistent font size for horizontal labels (no per-legend shrinking)
         const HORIZONTAL_LABEL_FONT_PX = 14
 
+        // Fixed right-side reserve for the last (centered) label, matching the 8px
+        // left padding. Constant so every horizontal bar ends up the same width and
+        // left-aligned; the container's own 12px right padding gives the last label
+        // extra room to overhang without clipping.
+        const HORIZONTAL_END_RESERVE = 8
+
         // For horizontal legends, thin the labels to an evenly-spaced subset. Aim for a
         // consistent target tick count across legends, preferring divisions of the range
         // that land on clean, symmetric values, and only reduce the count when the labels
@@ -675,33 +684,13 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             }
         }
 
-        // Reserve horizontal room at the bar ends (≈ half the widest label) so the first
-        // and last labels can stay centered on their ticks, overhanging into this margin
-        // instead of clipping the panel.
-        if (
-            orientation === 'horizontal' &&
-            legendEntries[0]?.shape === 'continuous' &&
-            visibleLabels.length > 0
-        ) {
-            let measureLabel
-            try {
-                const lctx = document.createElement('canvas').getContext('2d')
-                lctx.font = `${HORIZONTAL_LABEL_FONT_PX}px Roboto, sans-serif`
-                measureLabel = (s) => lctx.measureText(String(s)).width
-            } catch (e) {
-                measureLabel = (s) => String(s).length * 7
-            }
-            const numericPart = (val) => {
-                const m = String(val).trim().match(/^([0-9.,\-\s]+)(.*)$/)
-                return m ? m[1].trim() : String(val).trim()
-            }
-            const widest = Math.max(
-                ...visibleLabels.map((l) => measureLabel(numericPart(l.value)))
-            )
-            const edgePad = Math.ceil(widest / 2) + 2
+        // Indent the bar 9px so it lines up with the layer title, and reserve a fixed
+        // strip on the right for the last (centered) label. Constant padding keeps
+        // every legend's bar the same width and start.
+        if (orientation === 'horizontal' && legendEntries[0]?.shape === 'continuous') {
             legendContainer.css({
-                'padding-left': `${edgePad}px`,
-                'padding-right': `${edgePad}px`,
+                'padding-left': '9px',
+                'padding-right': `${HORIZONTAL_END_RESERVE}px`,
             })
         }
 
@@ -722,7 +711,7 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 'height': orientation === 'horizontal' ? 'auto' : (19 * visibleLabels.length + 'px'),
                 'gap': orientation === 'horizontal' ? '0' : '0',
                 'position': 'relative',
-                'padding-left': '0px', // bar-end inset is handled by legendContainer (edgePad)
+                'padding-left': '0px', // bar-end reserve is handled by legendContainer
                 'padding-right': '0px',
                 'padding-bottom': (orientation === 'horizontal' && legendEntries[0].shape === 'continuous') ? '12px' : '0px'
             })
@@ -940,15 +929,15 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             values.append(v)
 
             if (orientation === 'horizontal' && visibleLabels[i].shape === 'continuous') {
-                // Center every label on its tick. The gradient bar is inset by `edgePad`
-                // (≈ half the widest label) on both sides, so the first and last labels
-                // can overhang into that margin without clipping the panel, keeping all
-                // labels evenly spaced.
+                // Left-align the first label so it sits with the bar's left edge,
+                // center the rest on their ticks. The fixed right reserve gives the last
+                // centered label room, so the bar stays left-aligned and full-reserve width.
+                const isFirst = i === 0
                 v.css({
                     'position': 'absolute',
                     'left': `${labelPosition * 100}%`,
-                    'transform': 'translateX(-50%)',
-                    'text-align': 'center',
+                    'transform': isFirst ? 'translateX(0)' : 'translateX(-50%)',
+                    'text-align': isFirst ? 'left' : 'center',
                     'width': 'auto',
                     'max-width': '80px' // Prevent overlap
                 })
