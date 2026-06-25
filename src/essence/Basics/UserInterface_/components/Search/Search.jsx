@@ -942,6 +942,7 @@ function SearchBar() {
             let pendingSearches = candidateGeo.length
             const allResultCoords = []
             const layersWithHits = new Set()
+            const vectorMatchedFeatures = {} // { layerName: [matchingFeatures] }
 
             // --- Process vector layers client-side (synchronous) ---
             candidateVec.forEach((vl) => {
@@ -963,9 +964,11 @@ function SearchBar() {
                         } catch (e) { /* skip invalid geometries */ }
                     })
 
-                    // Apply visual filter to the Leaflet layer
+                    // Store matching features for deferred application in applySearchResults
+                    vectorMatchedFeatures[layerName] = matchingFeatures
+
+                    // Apply visual filter immediately if the layer is already on
                     if (L_.layers.layer[layerName] && L_.layers.layer[layerName] !== false) {
-                        // Save original features before filtering
                         if (!vectorFilteredLayers.current[layerName]) {
                             vectorFilteredLayers.current[layerName] =
                                 L_.layers.layer[layerName].toGeoJSON(L_.GEOJSON_PRECISION)
@@ -1045,6 +1048,29 @@ function SearchBar() {
 
                     if (hasHits && !isOn) {
                         L_.toggleLayer(L_.layers.data[layerName])
+
+                        // For vector layers toggled on, apply filtered features after load
+                        if (vectorMatchedFeatures[layerName]) {
+                            const filtered = vectorMatchedFeatures[layerName]
+                            let attempts = 0
+                            const poll = setInterval(() => {
+                                attempts++
+                                if (L_.layers.layer[layerName] && L_.layers.layer[layerName] !== false) {
+                                    clearInterval(poll)
+                                    if (!vectorFilteredLayers.current[layerName]) {
+                                        vectorFilteredLayers.current[layerName] =
+                                            L_.layers.layer[layerName].toGeoJSON(L_.GEOJSON_PRECISION)
+                                    }
+                                    L_.clearVectorLayer(layerName)
+                                    L_.updateVectorLayer(layerName, {
+                                        type: 'FeatureCollection',
+                                        features: filtered,
+                                    })
+                                } else if (attempts > 30) {
+                                    clearInterval(poll)
+                                }
+                            }, 200)
+                        }
                     } else if (!hasHits && isOn) {
                         L_.toggleLayer(L_.layers.data[layerName])
                     }
