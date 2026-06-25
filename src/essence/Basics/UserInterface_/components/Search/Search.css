@@ -501,6 +501,21 @@
     color: #fff;
 }
 
+.searchSuggestionItemSubmitted {
+    background: var(--color-a2);
+    color: #fff;
+    border-left: 3px solid var(--color-mmgis);
+}
+.searchSuggestionItemSubmitted .searchSuggestionCount {
+    color: #fff;
+    opacity: 0.85;
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+.searchSuggestionItemSubmitted:hover {
+    background: var(--color-mmgis);
+}
+
 /* ===== Shared helpers ===== */
 .searchUnifiedEmpty {
     padding: 12px;

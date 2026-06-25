@@ -159,6 +159,7 @@ function SearchBar() {
     const [suggestions, setSuggestions] = useState([])
     const [showSuggestions, setShowSuggestions] = useState(false)
     const [activeSuggestionIdx, setActiveSuggestionIdx] = useState(-1)
+    const [submittedValue, setSubmittedValue] = useState(null)
     const [searchFields, setSearchFields] = useState({})
     const [arrayToSearch, setArrayToSearch] = useState([])
     const [placeholder, setPlaceholder] = useState('Search...')
@@ -654,8 +655,12 @@ function SearchBar() {
             return
         }
 
+        // When inputValue matches the submitted value, show all values
+        // (don't filter down to just the submitted item)
+        const isSubmitted = submittedValue != null && inputValue === submittedValue
+
         if (searchMode === MODE_FIELD) {
-            if (!inputValue || inputValue.length < 1) {
+            if (!inputValue || inputValue.length < 1 || isSubmitted) {
                 const all = fieldValues.slice(0, 100)
                 setSuggestions(all)
                 setShowSuggestions(all.length > 0)
@@ -683,8 +688,8 @@ function SearchBar() {
             return
         }
 
-        // Layer mode — show all when empty (for regular mode panel), filter when typing
-        if (!inputValue || inputValue.length < 1) {
+        // Layer mode — show all when empty or when showing submitted value
+        if (!inputValue || inputValue.length < 1 || isSubmitted) {
             const all = arrayToSearch.slice(0, 100)
             setSuggestions(all)
             setShowSuggestions(all.length > 0)
@@ -704,7 +709,7 @@ function SearchBar() {
         setSuggestions(filtered)
         setShowSuggestions(filtered.length > 0)
         setActiveSuggestionIdx(-1)
-    }, [inputValue, arrayToSearch, fieldValues, searchMode])
+    }, [inputValue, arrayToSearch, fieldValues, searchMode, submittedValue])
 
     // Close panel on outside click
     useEffect(() => {
@@ -1296,16 +1301,24 @@ function SearchBar() {
                 item != null && typeof item === 'object' && item.value != null
                     ? String(item.value)
                     : String(item)
-            setInputValue(val)
-            setShowSuggestions(false)
-            handleSearch(val)
+            setSubmittedValue(val)
+            if (viewMode === VIEW_ADVANCED) {
+                // Advanced mode: keep panel open, keep full value list, just execute search
+                setInputValue(val)
+                handleSearch(val)
+            } else {
+                // Regular mode: execute search, keep suggestions visible
+                setInputValue(val)
+                handleSearch(val)
+            }
         },
-        [handleSearch]
+        [handleSearch, viewMode]
     )
 
     const handleClear = useCallback(() => {
         restoreLayerState()
         setInputValue('')
+        setSubmittedValue(null)
         setSuggestions([])
         setShowSuggestions(false)
         setFieldValues([])
@@ -1355,6 +1368,7 @@ function SearchBar() {
             setSelectedField(field)
             setSelectedLayer(null)
             setInputValue('')
+            setSubmittedValue(null)
             setFieldValues([])
             setSearchOperator('=')
             setPlaceholder(`Search by ${field.name}...`)
@@ -1465,6 +1479,7 @@ function SearchBar() {
         setSelectedLayer(layerValue)
         setSearchMode(MODE_LAYER)
         setInputValue('')
+        setSubmittedValue(null)
         setSuggestions([])
         setShowSuggestions(false)
     }, [])
@@ -1565,6 +1580,7 @@ function SearchBar() {
                     placeholder={placeholder}
                     value={inputValue}
                     onChange={(e) => {
+                        setSubmittedValue(null)
                         setInputValue(e.target.value)
                     }}
                     onFocus={openPanel}
@@ -1617,6 +1633,11 @@ function SearchBar() {
                             className={`searchAdvancedToggle ${viewMode === VIEW_ADVANCED ? 'searchAdvancedToggleActive' : ''}`}
                             onClick={(e) => {
                                 e.stopPropagation()
+                                // If panel is closed and already in advanced mode, just re-open
+                                if (!panelOpen && viewMode === VIEW_ADVANCED) {
+                                    setPanelOpen(true)
+                                    return
+                                }
                                 const newMode = viewMode === VIEW_ADVANCED ? VIEW_REGULAR : VIEW_ADVANCED
                                 setViewMode(newMode)
                                 if (newMode === VIEW_ADVANCED) {
@@ -1627,6 +1648,7 @@ function SearchBar() {
                                     setSelectedField(null)
                                     setSearchMode(MODE_FIELD)
                                     setInputValue('')
+                                    setSubmittedValue(null)
                                 }
                                 if (!panelOpen) setPanelOpen(true)
                             }}
@@ -1678,11 +1700,14 @@ function SearchBar() {
                                         const label = typeof s === 'object' && s.value != null
                                             ? String(s.value)
                                             : String(s)
+                                        const isSubmitted = submittedValue != null && label === submittedValue
                                         return (
                                             <div
                                                 key={idx}
                                                 className={`searchSuggestionItem ${
-                                                    idx === activeSuggestionIdx
+                                                    isSubmitted
+                                                        ? 'searchSuggestionItemSubmitted'
+                                                        : idx === activeSuggestionIdx
                                                         ? 'searchSuggestionItemActive'
                                                         : ''
                                                 }`}
@@ -1923,6 +1948,7 @@ function SearchBar() {
                                     value={isNullOp ? '' : inputValue}
                                     onChange={(e) => {
                                         if (!isNullOp) {
+                                            setSubmittedValue(null)
                                             setInputValue(e.target.value)
                                         }
                                     }}
@@ -1960,11 +1986,14 @@ function SearchBar() {
                                         const label = isObj
                                             ? String(s.value)
                                             : String(s)
+                                        const isSubmitted = submittedValue != null && label === submittedValue
                                         return (
                                             <div
                                                 key={idx}
                                                 className={`searchSuggestionItem ${
-                                                    idx === activeSuggestionIdx
+                                                    isSubmitted
+                                                        ? 'searchSuggestionItemSubmitted'
+                                                        : idx === activeSuggestionIdx
                                                         ? 'searchSuggestionItemActive'
                                                         : ''
                                                 }`}

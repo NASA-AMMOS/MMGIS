@@ -678,19 +678,15 @@ test.describe('Global Feature Search', () => {
                 data: ADMIN_CREDS,
             })
 
-            const res = await request.post(
-                `${BASE_URL}/api/geodatasets/schema`,
-                {
-                    data: { layers: 'reference_mission_basic' },
-                }
+            const res = await request.get(
+                `${BASE_URL}/api/geodatasets/schema?layers=reference_mission_basic`
             )
 
-            if (res.status() === 200) {
-                const data = await res.json()
-                expect(data.status).toBe('success')
-                expect(data.schema).toBeDefined()
-                expect(data.schema.name).toBeDefined()
-            }
+            expect(res.status()).toBe(200)
+            const data = await res.json()
+            expect(data.status).toBe('success')
+            expect(data.schema).toBeDefined()
+            expect(data.schema.name).toBeDefined()
         })
 
         test('aggregations endpoint returns distinct values', async ({
@@ -700,21 +696,14 @@ test.describe('Global Feature Search', () => {
                 data: ADMIN_CREDS,
             })
 
-            const res = await request.post(
-                `${BASE_URL}/api/geodatasets/aggregations`,
-                {
-                    data: {
-                        layer: 'reference_mission_basic',
-                        fields: 'name',
-                    },
-                }
+            const res = await request.get(
+                `${BASE_URL}/api/geodatasets/aggregations?layer=reference_mission_basic&fields=name`
             )
 
-            if (res.status() === 200) {
-                const data = await res.json()
-                expect(data.status).toBe('success')
-                expect(data.aggregations).toBeDefined()
-            }
+            expect(res.status()).toBe(200)
+            const data = await res.json()
+            expect(data.status).toBe('success')
+            expect(data.aggregations).toBeDefined()
         })
 
         test('search with > operator filters numerics', async ({
