@@ -1605,10 +1605,7 @@ function SearchBar() {
         ? allLayerList.filter(
               (l) => {
                   const q = layerFilterText.toLowerCase()
-                  return (
-                      l.label.toLowerCase().indexOf(q) !== -1 ||
-                      (l.path && l.path.toLowerCase().indexOf(q) !== -1)
-                  )
+                  return l.label.toLowerCase().indexOf(q) !== -1
               }
           )
         : allLayerList
