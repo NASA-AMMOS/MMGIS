@@ -1744,17 +1744,19 @@ function SearchBar() {
                                                 }
                                                 showCheck
                                             >
-                                                {layer.path && (
-                                                    <span className="searchUnifiedLayerPath">
-                                                        {layer.path} /{' '}
+                                                <span className="searchUnifiedLayerContent">
+                                                    {layer.path && (
+                                                        <span className="searchUnifiedLayerPath">
+                                                            {layer.path}
+                                                        </span>
+                                                    )}
+                                                    <span className="searchUnifiedLayerName">
+                                                        {layer.label}
+                                                        {isLoading && (
+                                                            <i className="mdi mdi-loading mdi-spin mdi-12px searchUnifiedLayerLoading" />
+                                                        )}
                                                     </span>
-                                                )}
-                                                {layer.label}
-                                                {isLoading && (
-                                                    <span className="searchUnifiedLayerLoading">
-                                                        <i className="mdi mdi-loading mdi-spin mdi-12px" />
-                                                    </span>
-                                                )}
+                                                </span>
                                             </Checkbox>
                                         </div>
                                     )
