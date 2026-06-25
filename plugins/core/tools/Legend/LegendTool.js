@@ -70,6 +70,13 @@ function interfaceWithMMWebGIS() {
     this.separateFromMMWebGIS = function () {
         separateFromMMWebGIS()
     }
+
+    LegendTool._cachedImages = {}
+    $('#LegendTool img').each(function () {
+        const src = $(this).attr('src')
+        if (src) LegendTool._cachedImages[src] = $(this).detach()
+    })
+
     separateFromMMWebGIS()
 
     LegendTool.tools = drawLegendHeader()
@@ -374,34 +381,37 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             })
         c.append(imageContainer)
 
-        const legendImage = $('<img>')
-            .attr('src', _legend.startsWith('http') ? _legend : L_.missionPath + _legend)
-            .attr('alt', `Legend for ${display_name}`)
-            .css({
-                // Scale any supplied image down to fit the panel; smaller images stay
-                // at their natural size and center. Lets users drop in any legend image
-                // without pre-sizing it to the panel width.
-                'max-width': '100%',
-                'max-height': '220px',
-                'height': 'auto',
-                'background-color': 'white',
-                'border': '1px solid var(--color-i)',
-                'border-radius': '3px',
-                'opacity': opacity
-            })
-            .on('error', function() {
-                // Handle image load error, bound to the <img> where 'error' fires.
-                const errorDiv = $('<div>')
-                    .css({
-                        'color': '#ff6b6b',
-                        'padding': '8px',
-                        'text-align': 'center',
-                        'font-size': '12px'
-                    })
-                    .text('Failed to load legend.')
-                $(this.parentNode).append(errorDiv)
-                $(this).remove()
-            })
+        const resolvedSrc = _legend.startsWith('http') ? _legend : L_.missionPath + _legend
+        const legendImage = LegendTool._cachedImages?.[resolvedSrc]
+            ? LegendTool._cachedImages[resolvedSrc].css('opacity', opacity)
+            : $('<img>')
+                .attr('src', resolvedSrc)
+                .attr('alt', `Legend for ${display_name}`)
+                .css({
+                    // Scale any supplied image down to fit the panel; smaller images stay
+                    // at their natural size and center. Lets users drop in any legend image
+                    // without pre-sizing it to the panel width.
+                    'max-width': '100%',
+                    'max-height': '220px',
+                    'height': 'auto',
+                    'background-color': 'white',
+                    'border': '1px solid var(--color-i)',
+                    'border-radius': '3px',
+                    'opacity': opacity
+                })
+                .on('error', function() {
+                    // Handle image load error, bound to the <img> where 'error' fires.
+                    const errorDiv = $('<div>')
+                        .css({
+                            'color': '#ff6b6b',
+                            'padding': '8px',
+                            'text-align': 'center',
+                            'font-size': '12px'
+                        })
+                        .text('Failed to load legend.')
+                    $(this.parentNode).append(errorDiv)
+                    $(this).remove()
+                })
         imageContainer.append(legendImage)
 
         return // Exit early since we've rendered the image
