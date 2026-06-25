@@ -1645,16 +1645,36 @@ function SearchBar() {
                                     return
                                 }
                                 const newMode = viewMode === VIEW_ADVANCED ? VIEW_REGULAR : VIEW_ADVANCED
+                                // Restore layer state from previous search before switching modes
+                                restoreLayerState()
                                 setViewMode(newMode)
+                                // Reset state for the new mode
+                                setSuggestions([])
+                                setShowSuggestions(false)
+                                setFieldValues([])
+                                setInputValue('')
+                                setSubmittedValue(null)
+                                setArrayToSearch([])
                                 if (newMode === VIEW_ADVANCED) {
                                     setCheckedLayers(new Set())
-                                    setSuggestions([])
-                                    setShowSuggestions(false)
-                                    setFieldValues([])
                                     setSelectedField(null)
                                     setSearchMode(MODE_FIELD)
-                                    setInputValue('')
-                                    setSubmittedValue(null)
+                                } else {
+                                    setSearchOperator('=')
+                                    setSelectedField(null)
+                                    // Restore default layer for regular mode
+                                    const defaultLayer =
+                                        vectorLayers.find((vl) => {
+                                            const L_ = getL_()
+                                            return L_.layers.on[vl.value] === true
+                                        }) || vectorLayers[0] || null
+                                    if (defaultLayer) {
+                                        setSelectedLayer(defaultLayer.value)
+                                        setSearchMode(MODE_LAYER)
+                                    } else {
+                                        setSelectedLayer(null)
+                                        setSearchMode(MODE_DEFAULT)
+                                    }
                                 }
                                 if (!panelOpen) setPanelOpen(true)
                             }}
