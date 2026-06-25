@@ -1541,17 +1541,18 @@ function SearchBar() {
     if (!initialized) return null
 
     // Selected layer label for the layers trigger — mode-responsive
-    const selectedLayerLabel = (() => {
+    const selectedLayerInfo = (() => {
         if (viewMode === VIEW_ADVANCED) {
             const checked = [...checkedLayers]
-            if (checked.length === 0) return 'Layers'
+            if (checked.length === 0) return { name: 'Layers', extra: 0 }
             const firstName = getLayerDisplayName(checked[0])
-            return checked.length > 1 ? `${firstName} +${checked.length - 1}` : firstName
+            return { name: firstName, extra: checked.length - 1 }
         }
         // Regular mode
-        return selectedLayer
+        const name = selectedLayer
             ? (vectorLayers.find((vl) => vl.value === selectedLayer)?.label || selectedLayer)
             : 'Layers'
+        return { name, extra: 0 }
     })()
 
     return (
@@ -1569,9 +1570,12 @@ function SearchBar() {
                     onClick={openPanel}
                 >
                     <span className="searchLayersTriggerLabel">
-                        {selectedLayerLabel}
+                        {selectedLayerInfo.name}
                     </span>
-                    <i className="mdi mdi-chevron-down mdi-14px" />
+                    {selectedLayerInfo.extra > 0 && (
+                        <span className="searchLayersTriggerCount">+{selectedLayerInfo.extra}</span>
+                    )}
+                    <i className="mdi mdi-chevron-down mdi-14px searchLayersTriggerChevron" />
                 </div>
                 <div className="searchBarDivider" />
                 {/* Search input */}

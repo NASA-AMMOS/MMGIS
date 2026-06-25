@@ -50,7 +50,7 @@
     flex-shrink: 0;
     height: 100%;
     user-select: none;
-    width: 200px;
+    width: 180px;
     box-sizing: border-box;
 }
 .searchLayersTrigger:hover {
@@ -63,6 +63,19 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+.searchLayersTriggerCount {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-a5);
+    flex-shrink: 0;
+    margin-left: 2px;
+}
+.searchLayersTriggerChevron {
+    flex-shrink: 0;
+    margin-left: auto;
 }
 .searchLayersTrigger:hover .searchLayersTriggerLabel {
     color: var(--color-mmgis);
@@ -84,7 +97,8 @@
     color: var(--color-f);
     font-size: 13px;
     outline: none;
-    min-width: 240px;
+    min-width: 180px;
+    width: 180px;
     padding: 0 4px;
 }
 .searchCompactInput::placeholder {
