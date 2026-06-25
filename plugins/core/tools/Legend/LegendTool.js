@@ -1,3 +1,5 @@
+
+
 import $ from 'jquery'
 import L_ from '@basics/Layers_/Layers_'
 import Map_ from '@basics/Map_/Map_'
@@ -19,15 +21,18 @@ var LegendTool = {
     displayOnStart: false,
 
     initialize: function () {
+        const vars = L_.getToolVars('legend')
+
         if (L_.UserInterface_.isMobile === true) {
             const mapRect = document.getElementById('map').getBoundingClientRect()
             this.width = 'full'
             this.height = Math.round(mapRect.height * 0.25)
+        } else if (vars['width'] != null && !isNaN(parseInt(vars['width']))) {
+            this.width = Math.max(100, parseInt(vars['width']))
         }
 
-        //Get tool variables
-        this.displayOnStart = L_.getToolVars('legend')['displayOnStart']
-        this.showHeadersInLegend = L_.getToolVars('legend')['showHeadersInLegend']
+        this.displayOnStart = vars['displayOnStart']
+        this.showHeadersInLegend = vars['showHeadersInLegend']
     },
     make: function (targetId) {
         this.targetId =
@@ -65,6 +70,13 @@ function interfaceWithMMWebGIS() {
     this.separateFromMMWebGIS = function () {
         separateFromMMWebGIS()
     }
+
+    LegendTool._cachedImages = {}
+    $('#LegendTool img').each(function () {
+        const src = $(this).attr('src')
+        if (src) LegendTool._cachedImages[src] = $(this).detach()
+    })
+
     separateFromMMWebGIS()
 
     LegendTool.tools = drawLegendHeader()
@@ -278,7 +290,8 @@ function drawLegendHeader() {
             'color': 'var(--color-a6)',
             'height': 'calc(100% - 40px)',
             'max-height': 'calc(100vh - 189px)',
-            'overflow-y': 'auto'
+            'overflow-y': 'auto',
+            'overflow-x': 'hidden'
         })
     tools.append(legendContainer)
 
@@ -316,12 +329,36 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             'font-size': '13px',
             'color': 'var(--color-f)',
             'margin-bottom': isHeader ? '' : '5px',
-            'padding-left': '8px',
+            'padding-left': '9px',
             'font-weight': isHeader ? 'bold' : ''
         })
         .text(hideLegendLayerName ? '' : display_name)
     rowDiv.append(legendTitle)
     c.append(rowDiv)
+
+    // Render the layer's units as a small chip on the right of the title row.
+    // Horizontal legends strip units from the per-tick labels and show them once
+    // here, in the title row, so the chip can't overlap the title text.
+    const addTitleUnits = (units) => {
+        if (!units || rowDiv.find('.legendUnits').length > 0) return
+        rowDiv.css({ 'display': 'flex', 'align-items': 'flex-start' })
+        legendTitle.css({ 'flex': '1 1 auto', 'min-width': '0', 'margin-right': '8px' })
+        rowDiv.append(
+            $('<div>')
+                .attr('class', 'legendUnits')
+                .css({
+                    'font-size': '12px',
+                    'color': 'var(--color-f)',
+                    'white-space': 'nowrap',
+                    'background': 'var(--color-k)',
+                    'padding': '2px 6px',
+                    'border-radius': '2px',
+                    'margin-left': 'auto',
+                    'flex-shrink': '0'
+                })
+                .text(units)
+        )
+    }
 
     if (isHeader) return
 
@@ -336,46 +373,47 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             .css({
                 'display': 'flex',
                 'justify-content': 'center',
-                'margin': '4px',
-                'padding': '4px',
-                'overflow-x': 'hidden'
+                'width': '100%',
+                'box-sizing': 'border-box',
+                'margin': '4px 0',
+                'padding': '4px 8px',
+                'overflow': 'hidden'
             })
         c.append(imageContainer)
 
-        const legendImage = $('<img>')
-            .attr('src', _legend.startsWith('http') ? _legend : L_.missionPath + _legend)
-            .attr('alt', `Legend for ${display_name}`)
-            .css({
-                'max-width': '300px',
-                'max-height': '220px',
-                'height': 'auto',
-                'background-color': 'white',
-                'border': '1px solid var(--color-i)',
-                'border-radius': '3px',
-                'opacity': opacity
-            })
-            .on('load', function() {
-                // Set container max-width to image width (capped at 300px)
-                const maxImageWidth = Math.min(this.naturalWidth, 300)
-                imageContainer
-                    .css('max-width', maxImageWidth + 'px')
-                    .css('width', 'fit-content')
-            })
+        const resolvedSrc = _legend.startsWith('http') ? _legend : L_.missionPath + _legend
+        const legendImage = LegendTool._cachedImages?.[resolvedSrc]
+            ? LegendTool._cachedImages[resolvedSrc].css('opacity', opacity)
+            : $('<img>')
+                .attr('src', resolvedSrc)
+                .attr('alt', `Legend for ${display_name}`)
+                .css({
+                    // Scale any supplied image down to fit the panel; smaller images stay
+                    // at their natural size and center. Lets users drop in any legend image
+                    // without pre-sizing it to the panel width.
+                    'max-width': '100%',
+                    'max-height': '220px',
+                    'height': 'auto',
+                    'background-color': 'white',
+                    'border': '1px solid var(--color-i)',
+                    'border-radius': '3px',
+                    'opacity': opacity
+                })
+                .on('error', function() {
+                    // Handle image load error, bound to the <img> where 'error' fires.
+                    const errorDiv = $('<div>')
+                        .css({
+                            'color': '#ff6b6b',
+                            'padding': '8px',
+                            'text-align': 'center',
+                            'font-size': '12px'
+                        })
+                        .text('Failed to load legend.')
+                    $(this.parentNode).append(errorDiv)
+                    $(this).remove()
+                })
         imageContainer.append(legendImage)
-            .on('error', function() {
-                // Handle image load error
-                const errorDiv = $('<div>')
-                    .css({
-                        'color': '#ff6b6b',
-                        'padding': '8px',
-                        'text-align': 'center',
-                        'font-size': '12px'
-                    })
-                    .text('Failed to load legend.')
-                $(this.parentNode).append(errorDiv)
-                $(this).remove()
-            })
-        
+
         return // Exit early since we've rendered the image
     }
 
@@ -554,8 +592,9 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 'flex-direction': orientation === 'horizontal' ? 'column' : 'row',
                 'align-items': orientation === 'horizontal' ? 'flex-start' : 'center',
                 'gap': orientation === 'horizontal' ? '4px' : '8px',
-                'width': orientation === 'horizontal' ? '320px' : 'auto', // Set to 320px for horizontal legends
-                'max-width': orientation === 'horizontal' ? '320px' : 'none', // Ensure it doesn't exceed 320px
+                'width': orientation === 'horizontal' ? '100%' : 'auto', // Fit the legend panel width
+                'max-width': orientation === 'horizontal' ? '100%' : 'none', // Never exceed the panel width
+                'box-sizing': 'border-box',
                 'padding-left': orientation === 'horizontal' ? '8px' : '0px' // Add left padding to align with vertical legends
             })
         r.append(legendContainer)
@@ -583,62 +622,92 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
         // Start with all legend entries, reduce labels if needed for horizontal legends
         let visibleLabels = legendEntries
 
-        // Calculate available width per label in horizontal mode
-        const containerWidth = orientation === 'horizontal' ? 320 : 'auto'
-        let labelWidth = orientation === 'horizontal' ? (containerWidth / visibleLabels.length) : 'auto'
-        
-        // For horizontal legends, check if we need to reduce labels based on actual text overflow
-        if (orientation === 'horizontal') {
-            const maxWidth = 320
-            
-            // Calculate if labels would overflow with current setup
-            const maxLabelLength = Math.max(...visibleLabels.map(c => String(c.value).length))
-            const estimatedCharWidth = 7
-            const estimatedLabelWidth = maxLabelLength * estimatedCharWidth
-            const minViableWidth = estimatedLabelWidth * 0.6
-            
-            // Only reduce labels if the estimated width per label is too small
-            if (labelWidth < minViableWidth && visibleLabels.length > 2) {
-                const maxLabels = Math.floor(maxWidth / minViableWidth)
-                
-                if (visibleLabels.length > maxLabels) {
-                    // Always keep first and last labels
-                    const keepIndices = new Set([0, visibleLabels.length - 1])
-                    
-                    // Calculate how many intermediate labels we can show
-                    const intermediateSlots = Math.max(0, maxLabels - 2)
-                    
-                    if (intermediateSlots > 0) {
-                        // Distribute intermediate labels evenly
-                        const step = (visibleLabels.length - 1) / (intermediateSlots + 1)
-                        for (let i = 1; i <= intermediateSlots; i++) {
-                            const index = Math.round(i * step)
-                            if (index > 0 && index < visibleLabels.length - 1) {
-                                keepIndices.add(index)
-                            }
-                        }
-                    }
-                    
-                    // Create new array with only the selected labels
-                    visibleLabels = legendEntries.filter((_, index) => keepIndices.has(index))
-                    // Recalculate label width with reduced labels
-                    labelWidth = containerWidth / visibleLabels.length
+        // Calculate available width per label in horizontal mode.
+        // Measure from #LegendTool (already in the DOM) rather than legendContainer
+        // (not yet appended), so the measured width is consistent on first render and
+        // on subsequent legend toggles. Falls back to 240 if the panel isn't found.
+        const panelNode = document.getElementById('LegendTool')
+        const measuredWidth = panelNode ? Math.floor($(panelNode).width()) : 0
+        const containerWidth = orientation === 'horizontal' ? (measuredWidth > 0 ? measuredWidth : 240) : 'auto'
+
+        // Consistent font size for horizontal labels (no per-legend shrinking)
+        const HORIZONTAL_LABEL_FONT_PX = 14
+
+        // Fixed right-side reserve for the last (centered) label, matching the 8px
+        // left padding. Constant so every horizontal bar ends up the same width and
+        // left-aligned; the container's own 12px right padding gives the last label
+        // extra room to overhang without clipping.
+        const HORIZONTAL_END_RESERVE = 8
+
+        // For horizontal legends, thin the labels to an evenly-spaced subset. Aim for a
+        // consistent target tick count across legends, preferring divisions of the range
+        // that land on clean, symmetric values, and only reduce the count when the labels
+        // would actually overlap (real text widths measured via canvas).
+        if (orientation === 'horizontal' && visibleLabels.length > 2) {
+            let measureText
+            try {
+                const mctx = document.createElement('canvas').getContext('2d')
+                mctx.font = `${HORIZONTAL_LABEL_FONT_PX}px Roboto, sans-serif`
+                measureText = (s) => mctx.measureText(String(s)).width
+            } catch (e) {
+                measureText = (s) => String(s).length * 7
+            }
+            const gap = 12 // minimum space between adjacent labels
+            const targetTicks = 5 // preferred number of labels, for consistency across legends
+            const n = visibleLabels.length
+
+            // Evenly-spaced indices for a given number of intervals (ticks = intervals + 1)
+            const evenIndices = (intervals) => {
+                const step = (n - 1) / intervals
+                const out = []
+                for (let k = 0; k <= intervals; k++) out.push(Math.round(k * step))
+                return [...new Set(out)]
+            }
+            // Do these labels fit without overlapping? Labels are evenly spaced along the
+            // bar, so the center-to-center spacing just needs to clear the widest label + gap.
+            const fits = (idxs) => {
+                const intervals = idxs.length - 1
+                if (intervals < 1) return true
+                const widest = Math.max(...idxs.map((ix) => measureText(visibleLabels[ix].value)))
+                return containerWidth / intervals >= widest + gap
+            }
+
+            // First choice: the most ticks (up to the target) whose interval count divides the
+            // range evenly — these give clean values (e.g. 0, 100, 200, 300, 400) and a
+            // consistent count across same-sized legends.
+            let chosen = null
+            for (let intervals = Math.min(targetTicks - 1, n - 1); intervals >= 1; intervals--) {
+                if ((n - 1) % intervals !== 0) continue
+                const idxs = evenIndices(intervals)
+                if (fits(idxs)) { chosen = idxs; break }
+            }
+            // Fallback (range doesn't divide evenly): rounded even spacing that still fits.
+            if (!chosen) {
+                for (let ticks = Math.min(targetTicks, n); ticks >= 2; ticks--) {
+                    const idxs = evenIndices(ticks - 1)
+                    if (ticks === 2 || fits(idxs)) { chosen = idxs; break }
                 }
             }
-        }
-        
-        const calculateFontSize = () => {
-            if (orientation === 'horizontal') {
-                const maxLabelLength = Math.max(...visibleLabels.map(c => String(c.value).length))
-                const baseSize = 14
-                const minSize = 9
-                const maxSize = 14
-                const averageCharWidth = 7
-                const availableWidth = labelWidth * 0.95 // Use more of the available space
-                const calculatedSize = (availableWidth / (maxLabelLength * averageCharWidth)) * baseSize
-                return Math.min(maxSize, Math.max(minSize, calculatedSize))
+            if (chosen) {
+                const keep = new Set(chosen)
+                visibleLabels = legendEntries.filter((_, index) => keep.has(index))
             }
-            return 14
+        }
+
+        // Indent the bar 9px so it lines up with the layer title, and reserve a fixed
+        // strip on the right for the last (centered) label. Constant padding keeps
+        // every legend's bar the same width and start.
+        if (orientation === 'horizontal' && legendEntries[0]?.shape === 'continuous') {
+            legendContainer.css({
+                'padding-left': '9px',
+                'padding-right': `${HORIZONTAL_END_RESERVE}px`,
+            })
+        }
+
+        const calculateFontSize = () => {
+            // Horizontal labels are already thinned to fit, so keep a fixed, consistent
+            // size instead of shrinking per-legend (which looked uneven).
+            return orientation === 'horizontal' ? HORIZONTAL_LABEL_FONT_PX : 14
         }
 
         const fontSize = calculateFontSize()
@@ -652,8 +721,8 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 'height': orientation === 'horizontal' ? 'auto' : (19 * visibleLabels.length + 'px'),
                 'gap': orientation === 'horizontal' ? '0' : '0',
                 'position': 'relative',
-                'padding-left': (orientation === 'horizontal' && legendEntries[0].shape === 'continuous') ? '8px' : '0px',
-                'padding-right': (orientation === 'horizontal' && legendEntries[0].shape === 'continuous') ? '8px' : '0px',
+                'padding-left': '0px', // bar-end reserve is handled by legendContainer
+                'padding-right': '0px',
                 'padding-bottom': (orientation === 'horizontal' && legendEntries[0].shape === 'continuous') ? '12px' : '0px'
             })
         legendContainer.append(values)
@@ -790,66 +859,20 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 }
             }
             
-            // Add units label above the last tick mark for horizontal continuous legends
+            // Show units once, as a chip in the title row. The per-tick labels have
+            // units stripped, and the title row never overlaps the bar or its labels.
             if (orientation === 'horizontal') {
-                // Extract units from all visible labels
                 const values = visibleLabels.map(item => item.value)
                 const { units } = extractUnits(values)
-                
-                if (units) {
-                    // Calculate position of last tick mark
-                    const lastIndex = visibleLabels.length - 1
-                    const lastOriginalIndex = legendEntries.findIndex(item => 
-                        item.value === visibleLabels[lastIndex].value && item.color === visibleLabels[lastIndex].color)
-                    const lastTickPosition = lastOriginalIndex !== -1 ? 
-                        lastOriginalIndex / (legendEntries.length - 1) : 
-                        lastIndex / (visibleLabels.length - 1)
-                    
-                    // Add units label above the last tick mark
-                    const unitsLabelContinuous = $('<div>')
-                        .css({
-                            'position': 'absolute',
-                            'right': '0px',
-                            'top': '-20px',
-                            'font-size': '12px',
-                            'color': 'var(--color-f)',
-                            'text-align': 'right',
-                            'white-space': 'nowrap',
-                            'z-index': '100',
-                            'background': 'var(--color-k)',
-                            'padding': '2px 4px',
-                            'border-radius': '2px'
-                        })
-                        .text(units)
-                    gradient.append(unitsLabelContinuous)
-                }
+                addTitleUnits(units)
             }
         }
         
-        // Add units label for non-continuous horizontal legends
+        // Units chip for non-continuous horizontal legends, same title-row placement.
         if (orientation === 'horizontal' && (legendEntries.length === 0 || legendEntries[0].shape !== 'continuous')) {
-            // Extract units from all visible labels
             const values = visibleLabels.map(item => item.value)
             const { units } = extractUnits(values)
-
-            if (units) {
-                const unitsLabel = $('<div>')
-                    .css({
-                        'position': 'absolute',
-                        'top': '-20px',
-                        'right': '8px',
-                        'font-size': '12px',
-                        'color': 'var(--color-f)',
-                        'text-align': 'right',
-                        'white-space': 'nowrap',
-                        'z-index': '100',
-                        'background': 'var(--color-k)',
-                        'padding': '2px 4px',
-                        'border-radius': '2px'
-                    })
-                    .text(units)
-                r.append(unitsLabel)
-            }
+            addTitleUnits(units)
         }
 
         // Create labels using only the visible subset
@@ -916,22 +939,15 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             values.append(v)
 
             if (orientation === 'horizontal' && visibleLabels[i].shape === 'continuous') {
-                // Position labels to align exactly with tick marks for continuous legends only
-                // Adjust positioning to prevent leftmost labels from extending outside container
-                let adjustedPosition = labelPosition
-                let transform = 'translateX(-50%)'
-
-                // For first label, shift it right to prevent left overflow
-                if (i === 0 && labelPosition < 0.1) {
-                    transform = 'translateX(0%)'
-                }
-                // Keep last label center-justified (no special transform)
-
+                // Left-align the first label so it sits with the bar's left edge,
+                // center the rest on their ticks. The fixed right reserve gives the last
+                // centered label room, so the bar stays left-aligned and full-reserve width.
+                const isFirst = i === 0
                 v.css({
                     'position': 'absolute',
-                    'left': `${adjustedPosition * 100}%`,
-                    'transform': transform,
-                    'text-align': 'center',
+                    'left': `${labelPosition * 100}%`,
+                    'transform': isFirst ? 'translateX(0)' : 'translateX(-50%)',
+                    'text-align': isFirst ? 'left' : 'center',
                     'width': 'auto',
                     'max-width': '80px' // Prevent overlap
                 })
@@ -1018,13 +1034,19 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                     value = legendEntries[clampedIndex].propertyValue || legendEntries[clampedIndex].value
                 }
                 
-                tooltip
-                    .css({
-                        'visibility': 'visible',
-                        'left': (event.clientX - rect.left - 15) + 'px',
-                        'top': (event.clientY - rect.top - 30) + 'px'
-                    })
-                    .text(value)
+                tooltip.text(value)
+
+                // Keep the tooltip within the bar so the panel edge never clips it.
+                // visibility:hidden still has layout, so outerWidth is measurable.
+                const tipW = tooltip.outerWidth() || 0
+                let left = (event.clientX - rect.left) - 15
+                left = Math.max(0, Math.min(left, rect.width - tipW))
+
+                tooltip.css({
+                    'visibility': 'visible',
+                    'left': left + 'px',
+                    'top': (event.clientY - rect.top - 30) + 'px'
+                })
             })
             .on('mouseleave', function() {
                 tooltip.css('visibility', 'hidden')
@@ -1035,3 +1057,4 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
 //Other functions
 
 export default LegendTool
+

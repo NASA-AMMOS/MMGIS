@@ -1918,7 +1918,11 @@ const TimeUI = {
             TimeUI.alignPopovers()
         } else {
             // Collapse the TimeUI
-            $('#timeUI').removeClass('expanded')
+            // Also clear the 'defaultExpanded' marker: it represents the initial
+            // expanded-by-default state, and if left on, the store observer
+            // (which treats expanded||defaultExpanded as expanded) would keep the
+            // layout stuck at expanded height even after the user collapses.
+            $('#timeUI').removeClass('expanded').removeClass('defaultExpanded')
             $('#mmgisTimeUIExpandedContent').removeClass('show')
             $('#mmgisTimeUIExpand > i')
                 .removeClass('mdi-chevron-down')

@@ -18,6 +18,9 @@ function BottomElementPositioner() {
     const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
     const topSize = useUIStore((s) => s.topSize)
     const isDragging = useUIStore((s) => s.isDraggingSplitter)
+    // Re-run when separated tool panels (e.g. Legend) open/close so the
+    // legend-height reserve is (re)computed once #LegendTool exists in the DOM.
+    const activeSeparatedTools = useUIStore((s) => s.activeSeparatedTools)
 
     useEffect(() => {
         const ease = isDragging ? 'none' : 'bottom 0.3s ease-out, left 0.3s ease-out'
@@ -140,8 +143,26 @@ function BottomElementPositioner() {
                 sepContent.style.transition = 'left 0.2s ease-out'
                 sepContent.style.left = (12 + tpShift + (tpShift > 0 ? 12 : 0)) + 'px'
             }
+
+            // Cap every separated tool panel (Legend, etc.) so none overlaps the
+            // bottom-left compass + scale bar. All panels share the container's top,
+            // so a single reserve covers them all. That stack's top sits ~70px above
+            // the bottom bar (mapToolBar bottom = totalOffset), so a panel's bottom
+            // must clear totalOffset + 70 + a 12px gap. totalOffset already grows with
+            // the expanded timeline, so the panels shrink exactly as needed.
+            const sepContainer = document.getElementById('toolcontroller_sep_content')
+            if (sepContainer) {
+                const compassStack = 70 // compass + scale bar height above the bar
+                const gap = 12
+                const containerTop = sepContainer.getBoundingClientRect().top
+                const reserve = containerTop + totalOffset + compassStack + gap
+                document.documentElement.style.setProperty(
+                    '--mmgis-sep-tools-bottom-reserve',
+                    reserve + 'px'
+                )
+            }
         }
-    }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded, toolPanelWidth, topSize, isDragging])
+    }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded, toolPanelWidth, topSize, isDragging, activeSeparatedTools])
 
     return null
 }
