@@ -201,6 +201,8 @@ function SearchBar() {
     const searchFilteredLayers = useRef([])
     // Track layer toggled on by regular mode (so we can turn it off when switching layers)
     const regModeToggledLayer = useRef(null)
+    // Track layer on/off state saved when entering advanced mode
+    const advModeLayerState = useRef(null)
 
     const inputRef = useRef(null)
     const suggestionsRef = useRef(null)
@@ -374,11 +376,16 @@ function SearchBar() {
     const saveLayerState = useCallback(() => {
         if (preSearchLayerState.current != null) return
         const L_ = getL_()
-        const onState = {}
-        const filterState = {}
-        for (let lname in L_.layers.on) {
-            onState[lname] = L_.layers.on[lname]
+        // If advanced mode has already saved original state, use that as baseline
+        const onState = advModeLayerState.current
+            ? { ...advModeLayerState.current }
+            : {}
+        if (!advModeLayerState.current) {
+            for (let lname in L_.layers.on) {
+                onState[lname] = L_.layers.on[lname]
+            }
         }
+        const filterState = {}
         geodatasetLayers.forEach((gl) => {
             const ld = L_.layers.data[gl.value]
             if (ld && ld._filterEncoded) {
@@ -739,6 +746,53 @@ function SearchBar() {
         document.addEventListener('mousedown', handleClick)
         return () => document.removeEventListener('mousedown', handleClick)
     }, [])
+
+    // Advanced mode: temporarily hide non-checked vector layers while panel is open
+    useEffect(() => {
+        const L_ = getL_()
+        if (!L_) return
+
+        if (panelOpen && viewMode === VIEW_ADVANCED) {
+            // Save initial layer state on first entry
+            if (advModeLayerState.current == null) {
+                const saved = {}
+                for (let lname in L_.layers.on) {
+                    saved[lname] = L_.layers.on[lname]
+                }
+                advModeLayerState.current = saved
+            }
+
+            // Get all vector layer names (both geodataset-backed and GeoJSON)
+            const allVectorNames = new Set([
+                ...geodatasetLayers.map((gl) => gl.value),
+                ...vectorSearchLayers.map((vl) => vl.value),
+            ])
+
+            // Turn off unchecked vector layers, turn on checked ones
+            allVectorNames.forEach((lname) => {
+                const isOn = L_.layers.on[lname] === true
+                const isChecked = checkedLayers.has(
+                    geodatasetLayers.find((gl) => gl.value === lname)?.geodatasetName || lname
+                )
+                if (isChecked && !isOn && L_.layers.data[lname]) {
+                    L_.toggleLayer(L_.layers.data[lname])
+                } else if (!isChecked && isOn && L_.layers.data[lname]) {
+                    L_.toggleLayer(L_.layers.data[lname])
+                }
+            })
+        } else if (advModeLayerState.current != null) {
+            // Panel closed or left advanced mode — restore original state
+            const saved = advModeLayerState.current
+            for (let lname in saved) {
+                const isOn = L_.layers.on[lname] === true
+                const shouldBeOn = saved[lname] === true
+                if (isOn !== shouldBeOn && L_.layers.data[lname]) {
+                    L_.toggleLayer(L_.layers.data[lname])
+                }
+            }
+            advModeLayerState.current = null
+        }
+    }, [panelOpen, viewMode, checkedLayers, geodatasetLayers, vectorSearchLayers, getL_])
 
     const searchWithURLParams = useCallback(
         (L_, fields) => {
@@ -1340,6 +1394,8 @@ function SearchBar() {
             }
             regModeToggledLayer.current = null
         }
+        // Clear advMode state so restoreLayerState restores to true original
+        advModeLayerState.current = null
         restoreLayerState()
         setInputValue('')
         setSubmittedValue(null)
@@ -1679,7 +1735,8 @@ function SearchBar() {
                                     }
                                     regModeToggledLayer.current = null
                                 }
-                                // Restore layer state from previous search before switching modes
+                                // Clear advMode state and restore layer state from previous search
+                                advModeLayerState.current = null
                                 restoreLayerState()
                                 setViewMode(newMode)
                                 // Reset state for the new mode
