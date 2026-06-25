@@ -199,6 +199,8 @@ function SearchBar() {
     // Pre-search layer state for restore on cancel
     const preSearchLayerState = useRef(null)
     const searchFilteredLayers = useRef([])
+    // Track layer toggled on by regular mode (so we can turn it off when switching layers)
+    const regModeToggledLayer = useRef(null)
 
     const inputRef = useRef(null)
     const suggestionsRef = useRef(null)
@@ -613,8 +615,18 @@ function SearchBar() {
             setPlaceholder(getSearchFieldKeys(searchFields, lname) || 'Search...')
         }
 
+        // Turn off any previously search-toggled layer (regular mode only)
+        if (regModeToggledLayer.current && regModeToggledLayer.current !== lname) {
+            const prevName = regModeToggledLayer.current
+            if (L_.layers.on[prevName] === true && L_.layers.data[prevName]) {
+                L_.toggleLayer(L_.layers.data[prevName])
+            }
+            regModeToggledLayer.current = null
+        }
+
         // If layer is off, toggle it on and poll until data is ready
         if (L_.layers.on[lname] !== true) {
+            regModeToggledLayer.current = lname
             L_.toggleLayer(L_.layers.data[lname])
             let attempts = 0
             const poll = setInterval(() => {
@@ -1316,6 +1328,15 @@ function SearchBar() {
     )
 
     const handleClear = useCallback(() => {
+        // Turn off any layer we toggled on in regular mode
+        if (regModeToggledLayer.current) {
+            const L_ = getL_()
+            const prevName = regModeToggledLayer.current
+            if (L_.layers.on[prevName] === true && L_.layers.data[prevName]) {
+                L_.toggleLayer(L_.layers.data[prevName])
+            }
+            regModeToggledLayer.current = null
+        }
         restoreLayerState()
         setInputValue('')
         setSubmittedValue(null)
@@ -1645,6 +1666,15 @@ function SearchBar() {
                                     return
                                 }
                                 const newMode = viewMode === VIEW_ADVANCED ? VIEW_REGULAR : VIEW_ADVANCED
+                                // Turn off any layer we toggled on in regular mode
+                                if (regModeToggledLayer.current) {
+                                    const L_ = getL_()
+                                    const prevName = regModeToggledLayer.current
+                                    if (L_.layers.on[prevName] === true && L_.layers.data[prevName]) {
+                                        L_.toggleLayer(L_.layers.data[prevName])
+                                    }
+                                    regModeToggledLayer.current = null
+                                }
                                 // Restore layer state from previous search before switching modes
                                 restoreLayerState()
                                 setViewMode(newMode)
