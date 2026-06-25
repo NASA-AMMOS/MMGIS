@@ -72,7 +72,7 @@
     color: var(--color-f);
     font-size: 13px;
     outline: none;
-    min-width: 120px;
+    min-width: 220px;
     padding: 0 4px;
 }
 .searchCompactInput::placeholder {
@@ -136,7 +136,7 @@
 }
 .searchRegularColValues {
     flex: 1;
-    min-width: 0;
+    min-width: 200px;
 }
 
 /* Regular mode layer items (single-select radio style) */
