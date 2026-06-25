@@ -1904,6 +1904,7 @@ function SearchBar() {
                             <div className="searchUnifiedColHeader">
                                 <span>Operator</span>
                             </div>
+                            <div className="searchUnifiedColFilterSpacer" />
                             <div className="searchUnifiedColBody">
                                 {ops.map((op) => (
                                     <div
@@ -1935,6 +1936,7 @@ function SearchBar() {
                             <div className="searchUnifiedColHeader">
                                 <span>Value</span>
                             </div>
+                            <div className="searchUnifiedColFilterSpacer" />
                             <div className="searchUnifiedValueInputWrap">
                                 <input
                                     ref={valueInputRef}

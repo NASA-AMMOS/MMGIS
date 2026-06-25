@@ -210,7 +210,10 @@
 
 /* Column header */
 .searchUnifiedColHeader {
-    padding: 8px 10px 6px;
+    padding: 0 10px;
+    height: 30px;
+    min-height: 30px;
+    box-sizing: border-box;
     font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
@@ -238,6 +241,15 @@
 /* Filter input inside column */
 .searchUnifiedColFilter {
     padding: 4px 6px;
+    height: 34px;
+    min-height: 34px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--color-a1);
+}
+.searchUnifiedColFilterSpacer {
+    height: 34px;
+    min-height: 34px;
     flex-shrink: 0;
     border-bottom: 1px solid var(--color-a1);
 }
