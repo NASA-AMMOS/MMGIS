@@ -157,9 +157,7 @@
     right: 0;
 }
 .searchRegularColumns {
-    height: 40vh;
-    max-height: 360px;
-    min-height: 200px;
+    height: 300px;
 }
 .searchRegularColLayers {
     flex: 0 0 200px;
