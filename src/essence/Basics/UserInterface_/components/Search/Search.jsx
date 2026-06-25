@@ -1571,6 +1571,19 @@ function SearchBar() {
                     }}
                     tabIndex={401}
                 />
+                <Tooltip content="Clear" placement="bottom">
+                    <IconButton
+                        className="searchCompactClear"
+                        style={{ visibility: inputValue ? 'visible' : 'hidden' }}
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            handleClear()
+                        }}
+                        size="sm"
+                    >
+                        <i className="mdi mdi-close mdi-14px" />
+                    </IconButton>
+                </Tooltip>
                 {/* Advanced search toggle (only shown when search constructs exist, otherwise always advanced) */}
                 {vectorLayers.length > 0 && (
                     <Tooltip content={viewMode === VIEW_ADVANCED ? 'Simple search' : 'Advanced search'} placement="bottom">
@@ -1581,7 +1594,6 @@ function SearchBar() {
                                 const newMode = viewMode === VIEW_ADVANCED ? VIEW_REGULAR : VIEW_ADVANCED
                                 setViewMode(newMode)
                                 if (newMode === VIEW_ADVANCED) {
-                                    // Clear regular mode state when entering advanced
                                     setCheckedLayers(new Set())
                                     setSuggestions([])
                                     setShowSuggestions(false)
@@ -1598,19 +1610,6 @@ function SearchBar() {
                         </IconButton>
                     </Tooltip>
                 )}
-                <Tooltip content="Clear" placement="bottom">
-                    <IconButton
-                        className="searchCompactClear"
-                        style={{ visibility: inputValue ? 'visible' : 'hidden' }}
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            handleClear()
-                        }}
-                        size="sm"
-                    >
-                        <i className="mdi mdi-close mdi-14px" />
-                    </IconButton>
-                </Tooltip>
             </div>
 
             {/* Dropdown panel */}
