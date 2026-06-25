@@ -747,9 +747,13 @@ function SearchBar() {
         return () => document.removeEventListener('mousedown', handleClick)
     }, [])
 
-    // Listen for keyboard shortcut to open advanced search
+    // Listen for keyboard shortcut to toggle advanced search
     useEffect(() => {
-        const handleOpenAdvanced = () => {
+        const handleToggleAdvanced = () => {
+            if (panelOpen && viewMode === VIEW_ADVANCED) {
+                setPanelOpen(false)
+                return
+            }
             setViewMode(VIEW_ADVANCED)
             setCheckedLayers(new Set())
             setSuggestions([])
@@ -761,9 +765,9 @@ function SearchBar() {
             setSubmittedValue(null)
             setPanelOpen(true)
         }
-        document.addEventListener('mmgis-open-advanced-search', handleOpenAdvanced)
-        return () => document.removeEventListener('mmgis-open-advanced-search', handleOpenAdvanced)
-    }, [])
+        document.addEventListener('mmgis-open-advanced-search', handleToggleAdvanced)
+        return () => document.removeEventListener('mmgis-open-advanced-search', handleToggleAdvanced)
+    }, [panelOpen, viewMode])
 
     // Advanced mode: temporarily hide non-checked vector layers while panel is open
     useEffect(() => {

@@ -8,9 +8,15 @@
     display: flex;
     align-items: center;
     height: 30px;
-    transition: bottom 0.2s ease-in;
+    transition: bottom 0.2s ease-in, opacity 0.3s ease-in;
     background: transparent;
     border-radius: 8px;
+    opacity: 0;
+    animation: coordsFadeIn 0.3s ease-in 0.4s forwards;
+}
+@keyframes coordsFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 #CoordinatesDiv .mouseLngLat {
