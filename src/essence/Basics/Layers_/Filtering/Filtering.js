@@ -513,6 +513,11 @@ const Filtering = {
                                 layerName
                             )}_${vId}`
                         ).remove()
+                        $(
+                            `#layersTool_filtering_group_operator_${F_.getSafeName(
+                                layerName
+                            )}_${vId}_global`
+                        ).remove()
                         Filtering.filters[layerName].values[i] = null
                     }
                 }
@@ -527,6 +532,7 @@ const Filtering = {
 
         const ops = ['AND', 'OR', 'NOT_AND', 'NOT_OR']
         const opId = Math.max(ops.indexOf(options.op), 0)
+        let currentGroupOpIdx = opId
         const groupOpItems = [
             `<div style='font-family: monospace;'>All Must Match (AND)</div>`,
             `<div style='font-family: monospace;'>Any May Match (OR)</div>`,
@@ -541,6 +547,7 @@ const Filtering = {
         Dropy.init(
             $(elmId),
             function (idx) {
+                currentGroupOpIdx = idx
                 const newOp = ops[idx]
                 Filtering.filters[layerName].values[id].op = newOp
                 $(elmId).find('.dropy__title span').html(groupOpItems[idx])
@@ -577,10 +584,11 @@ const Filtering = {
             null,
             null,
             {
-                globalConstruct: Dropy.construct(groupOpItems, 'op', opId, {
-                    openUp: true,
-                    hideChevron: true,
-                }),
+                globalConstruct: () =>
+                    Dropy.construct(groupOpItems, 'op', currentGroupOpIdx, {
+                        openUp: true,
+                        hideChevron: true,
+                    }),
             }
         )
     },
@@ -628,6 +636,11 @@ const Filtering = {
                             `#layersTool_filtering_value_${F_.getSafeName(
                                 layerName
                             )}_${vId}`
+                        ).remove()
+                        $(
+                            `#layersTool_filtering_value_operator_${F_.getSafeName(
+                                layerName
+                            )}_${vId}_global`
                         ).remove()
                         Filtering.filters[layerName].values[i] = null
                     }
@@ -741,9 +754,11 @@ const Filtering = {
             hideChevron: true,
         })
         $(elmId).html(valueOpConstruct)
+        let currentValueOpIdx = opId
         Dropy.init(
             $(elmId),
             function (idx) {
+                currentValueOpIdx = idx
                 Filtering.filters[layerName].values[id].op = ops[idx]
                 $(elmId).find('.dropy__title span').html(valueOpItems[idx])
                 Filtering.setSubmitButtonState(true)
@@ -751,10 +766,11 @@ const Filtering = {
             null,
             null,
             {
-                globalConstruct: Dropy.construct(valueOpItems, 'op', opId, {
-                    openUp: true,
-                    hideChevron: true,
-                }),
+                globalConstruct: () =>
+                    Dropy.construct(valueOpItems, 'op', currentValueOpIdx, {
+                        openUp: true,
+                        hideChevron: true,
+                    }),
             }
         )
 

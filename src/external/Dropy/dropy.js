@@ -51,7 +51,7 @@ export default {
             if (options.globalConstruct != null) {
                 const elm = $(`#${initialDropyElm.attr('id')}_global`)
                 elm.empty()
-                elm.append(options.globalConstruct)
+                elm.append(typeof options.globalConstruct === 'function' ? options.globalConstruct() : options.globalConstruct)
                 elm.find('.dropy').addClass(self.openClass)
                 elm.find('.dropy__title').remove()
                 elm.find('.dropy__header')
