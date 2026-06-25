@@ -1572,20 +1572,19 @@ function SearchBar() {
                     }}
                     tabIndex={401}
                 />
-                {inputValue && (
-                    <Tooltip content="Clear" placement="bottom">
-                        <IconButton
-                            className="searchCompactClear"
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                handleClear()
-                            }}
-                            size="sm"
-                        >
-                            <i className="mdi mdi-close mdi-14px" />
-                        </IconButton>
-                    </Tooltip>
-                )}
+                <Tooltip content="Clear" placement="bottom">
+                    <IconButton
+                        className="searchCompactClear"
+                        style={{ visibility: inputValue ? 'visible' : 'hidden' }}
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            handleClear()
+                        }}
+                        size="sm"
+                    >
+                        <i className="mdi mdi-close mdi-14px" />
+                    </IconButton>
+                </Tooltip>
                 {/* Advanced search toggle */}
                 <Tooltip content={viewMode === VIEW_ADVANCED ? 'Simple search' : 'Advanced search'} placement="bottom">
                     <IconButton
@@ -1676,6 +1675,8 @@ function SearchBar() {
                                             ? 'Select a layer'
                                             : arrayToSearch.length === 0
                                             ? 'Loading...'
+                                            : inputValue
+                                            ? 'No matches'
                                             : 'Type to search'}
                                     </div>
                                 )}
