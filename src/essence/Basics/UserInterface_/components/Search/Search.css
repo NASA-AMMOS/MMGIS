@@ -123,6 +123,11 @@
     box-shadow: 0 12px 36px var(--color-shadow);
     z-index: 10001;
     overflow: hidden;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+}
+.searchUnifiedPanel:not(:hover) {
+    opacity: 0.65;
 }
 
 .searchUnifiedColumns {
