@@ -732,6 +732,8 @@ function SearchBar() {
             ) {
                 setPanelOpen(false)
                 setShowSuggestions(false)
+                // Adopt search-toggled layer as genuinely on
+                regModeToggledLayer.current = null
             }
         }
         document.addEventListener('mousedown', handleClick)
@@ -1302,6 +1304,7 @@ function SearchBar() {
             } else if (e.key === 'Escape') {
                 setShowSuggestions(false)
                 setPanelOpen(false)
+                regModeToggledLayer.current = null
             }
         },
         [suggestions, activeSuggestionIdx, handleSearch]
@@ -1627,6 +1630,7 @@ function SearchBar() {
                         } else if (e.key === 'Escape') {
                             setPanelOpen(false)
                             setShowSuggestions(false)
+                            regModeToggledLayer.current = null
                             inputRef.current?.blur()
                         } else if (e.key === 'ArrowDown') {
                             e.preventDefault()
