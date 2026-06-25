@@ -203,6 +203,8 @@ function SearchBar() {
     const regModeToggledLayer = useRef(null)
     // Track layer on/off state saved when entering advanced mode
     const advModeLayerState = useRef(null)
+    // Guard: last auto-fired null-op key to prevent double-execution
+    const lastNullAutoFire = useRef(null)
 
     const inputRef = useRef(null)
     const suggestionsRef = useRef(null)
@@ -1352,10 +1354,15 @@ function SearchBar() {
     useEffect(() => {
         const nullOp = searchOperator === 'isnull' || searchOperator === 'isnotnull'
         if (nullOp && selectedField && searchMode === MODE_FIELD) {
+            const key = `${searchOperator}:${selectedField.name}`
+            if (lastNullAutoFire.current === key) return
+            lastNullAutoFire.current = key
             const label = searchOperator === 'isnull' ? 'is null' : 'is not null'
             setInputValue(label)
             setSubmittedValue(label)
             handleSearch('')
+        } else {
+            lastNullAutoFire.current = null
         }
     }, [searchOperator, selectedField, searchMode, handleSearch])
 
