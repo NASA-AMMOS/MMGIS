@@ -543,6 +543,7 @@ const Filtering = {
             function (idx) {
                 const newOp = ops[idx]
                 Filtering.filters[layerName].values[id].op = newOp
+                $(elmId).find('.dropy__title span').html(groupOpItems[idx])
                 switch (newOp) {
                     case 'AND':
                         $(elmId).removeClass('op_or')
@@ -744,6 +745,7 @@ const Filtering = {
             $(elmId),
             function (idx) {
                 Filtering.filters[layerName].values[id].op = ops[idx]
+                $(elmId).find('.dropy__title span').html(valueOpItems[idx])
                 Filtering.setSubmitButtonState(true)
             },
             null,
