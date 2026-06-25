@@ -170,7 +170,7 @@ function SearchBar() {
     const [fieldFilterText, setFieldFilterText] = useState('')
     const [layerFilterText, setLayerFilterText] = useState('')
     const [checkedLayers, setCheckedLayers] = useState(new Set())
-    const [commonFieldsOnly, setCommonFieldsOnly] = useState(false)
+    const [commonFieldsOnly, setCommonFieldsOnly] = useState(true)
 
     // Search mode and selection
     const [searchMode, setSearchMode] = useState(MODE_DEFAULT)
@@ -1060,23 +1060,6 @@ function SearchBar() {
                     }
                 })
 
-                // Turn off all other vector/vectortile layers not in search
-                for (let lname in L_.layers.on) {
-                    if (
-                        L_.layers.on[lname] === true &&
-                        !layersWithHits.has(lname) &&
-                        L_.layers.data[lname]
-                    ) {
-                        const ltype = L_.layers.data[lname].type
-                        if (
-                            ltype === 'vector' ||
-                            ltype === 'vectortile'
-                        ) {
-                            L_.toggleLayer(L_.layers.data[lname])
-                        }
-                    }
-                }
-
                 if (allResultCoords.length > 0) {
                     if (allResultCoords.length === 1) {
                         Map_.map.setView(
@@ -1514,10 +1497,19 @@ function SearchBar() {
 
     if (!initialized) return null
 
-    // Selected layer label for the layers trigger
-    const selectedLayerLabel = selectedLayer
-        ? (vectorLayers.find((vl) => vl.value === selectedLayer)?.label || selectedLayer)
-        : 'Layers'
+    // Selected layer label for the layers trigger — mode-responsive
+    const selectedLayerLabel = (() => {
+        if (viewMode === VIEW_ADVANCED) {
+            const checked = [...checkedLayers]
+            if (checked.length === 0) return 'Layers'
+            const firstName = getLayerLabel(checked[0])
+            return checked.length > 1 ? `${firstName} +${checked.length - 1}` : firstName
+        }
+        // Regular mode
+        return selectedLayer
+            ? (vectorLayers.find((vl) => vl.value === selectedLayer)?.label || selectedLayer)
+            : 'Layers'
+    })()
 
     return (
         <div
@@ -1525,23 +1517,20 @@ function SearchBar() {
             className={`searchBar ${panelOpen ? 'searchBarExpanded' : ''}`}
             ref={panelRef}
         >
-            {/* Top bar: [Layers ▼] | [Search Input] [⚙] */}
+            {/* Top bar: [🔍] [Layers ▼] | [Search Input] [⚙] */}
             <div className="searchCompactBar">
-                {/* Layers trigger (only shown when search constructs exist) */}
-                {vectorLayers.length > 0 && (
-                    <>
-                        <div
-                            className="searchLayersTrigger"
-                            onClick={openPanel}
-                        >
-                            <span className="searchLayersTriggerLabel">
-                                {selectedLayerLabel}
-                            </span>
-                            <i className="mdi mdi-chevron-down mdi-14px" />
-                        </div>
-                        <div className="searchBarDivider" />
-                    </>
-                )}
+                <i className="mdi mdi-magnify mdi-18px searchCompactIcon" onClick={openPanel} />
+                {/* Layers trigger */}
+                <div
+                    className="searchLayersTrigger"
+                    onClick={openPanel}
+                >
+                    <span className="searchLayersTriggerLabel">
+                        {selectedLayerLabel}
+                    </span>
+                    <i className="mdi mdi-chevron-down mdi-14px" />
+                </div>
+                <div className="searchBarDivider" />
                 {/* Search input */}
                 <input
                     ref={inputRef}
@@ -1582,19 +1571,6 @@ function SearchBar() {
                     }}
                     tabIndex={401}
                 />
-                <Tooltip content="Clear" placement="bottom">
-                    <IconButton
-                        className="searchCompactClear"
-                        style={{ visibility: inputValue ? 'visible' : 'hidden' }}
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            handleClear()
-                        }}
-                        size="sm"
-                    >
-                        <i className="mdi mdi-close mdi-14px" />
-                    </IconButton>
-                </Tooltip>
                 {/* Advanced search toggle (only shown when search constructs exist, otherwise always advanced) */}
                 {vectorLayers.length > 0 && (
                     <Tooltip content={viewMode === VIEW_ADVANCED ? 'Simple search' : 'Advanced search'} placement="bottom">
@@ -1622,6 +1598,19 @@ function SearchBar() {
                         </IconButton>
                     </Tooltip>
                 )}
+                <Tooltip content="Clear" placement="bottom">
+                    <IconButton
+                        className="searchCompactClear"
+                        style={{ visibility: inputValue ? 'visible' : 'hidden' }}
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            handleClear()
+                        }}
+                        size="sm"
+                    >
+                        <i className="mdi mdi-close mdi-14px" />
+                    </IconButton>
+                </Tooltip>
             </div>
 
             {/* Dropdown panel */}
@@ -1783,15 +1772,14 @@ function SearchBar() {
                         <div className="searchUnifiedCol searchUnifiedColFields">
                             <div className="searchUnifiedColHeader">
                                 <span>Field</span>
-                                <Tooltip content={commonFieldsOnly ? 'Showing common fields' : 'Showing all fields'} placement="top">
-                                    <span className="searchFieldsToggle" onClick={(e) => e.stopPropagation()}>
-                                        <Switch
-                                            size="sm"
-                                            checked={commonFieldsOnly}
-                                            onCheckedChange={setCommonFieldsOnly}
-                                        />
-                                    </span>
-                                </Tooltip>
+                                <span className="searchFieldsToggle" onClick={(e) => e.stopPropagation()}>
+                                    <span className="searchFieldsToggleLabel">{commonFieldsOnly ? 'Common' : 'All'}</span>
+                                    <Switch
+                                        size="sm"
+                                        checked={commonFieldsOnly}
+                                        onCheckedChange={setCommonFieldsOnly}
+                                    />
+                                </span>
                             </div>
                             <div className="searchUnifiedColFilter">
                                 <input

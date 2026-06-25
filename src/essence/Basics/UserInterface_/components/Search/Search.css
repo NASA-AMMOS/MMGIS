@@ -28,6 +28,17 @@
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-mmgis) 30%, transparent);
 }
 
+/* Search icon in compact bar */
+.searchCompactIcon {
+    cursor: pointer;
+    opacity: 0.6;
+    flex-shrink: 0;
+    padding: 0 2px;
+}
+.searchCompactIcon:hover {
+    opacity: 1;
+}
+
 /* Layers trigger button — width matches .searchRegularColLayers for divider alignment */
 .searchLayersTrigger {
     display: flex;
@@ -209,6 +220,13 @@
 .searchFieldsToggle {
     display: flex;
     align-items: center;
+    gap: 4px;
+}
+.searchFieldsToggleLabel {
+    font-size: 10px;
+    opacity: 0.6;
+    white-space: nowrap;
+    user-select: none;
 }
 
 /* Filter input inside column */
