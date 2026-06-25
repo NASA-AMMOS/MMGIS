@@ -1376,12 +1376,14 @@ function SearchBar() {
 
             if (!field.layers || field.layers.length === 0) return
 
-            // Split layers into geodataset and vector
+            // Split layers into geodataset and vector, filtered to only checked layers
             const geodatasetLayerNames = field.layers.filter((l) =>
-                geodatasetLayers.some((gl) => gl.geodatasetName === l)
+                geodatasetLayers.some((gl) => gl.geodatasetName === l) &&
+                checkedLayers.has(l)
             )
             const vectorLayerNames = field.layers.filter((l) =>
-                vectorSearchLayers.some((vl) => vl.value === l)
+                vectorSearchLayers.some((vl) => vl.value === l) &&
+                checkedLayers.has(l)
             )
 
             // Collect vector layer aggregations immediately (client-side)
@@ -1432,7 +1434,7 @@ function SearchBar() {
                 mergeAndSetFieldValues({})
             }
         },
-        [geodatasetLayers, vectorSearchLayers, computeVectorAggregations]
+        [geodatasetLayers, vectorSearchLayers, computeVectorAggregations, checkedLayers]
     )
 
     // Toggle a layer in the layers section
