@@ -39,6 +39,14 @@
                         "type": "checkbox",
                         "width": 3,
                         "defaultChecked": false
+                    },
+                    {
+                        "field": "variables.width",
+                        "name": "Panel Width (px)",
+                        "description": "Width of the legend panel in pixels. Defaults to 200. Values below 100 are treated as 100.",
+                        "type": "number",
+                        "default": 200,
+                        "width": 3
                     }
                 ]
             }

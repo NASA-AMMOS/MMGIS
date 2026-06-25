@@ -66,7 +66,6 @@ function SeparatedTools() {
                                 ? undefined
                                 : {
                                       width: toolWidth + 'px',
-                                      maxHeight: 'calc(100vh - 120px)',
                                   }
                         }
                     >
