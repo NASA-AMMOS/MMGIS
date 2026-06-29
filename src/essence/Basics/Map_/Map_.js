@@ -927,7 +927,7 @@ function onEachFeatureDefault(feature, layer) {
             runInteractions(hooks.hover, ctx)
         })
     }
-    if (hooks.mouseout) {
+    if (typeof layer['useKeyAsName'] === 'string' && hooks.mouseout) {
         layer.on('mouseout', function (e) {
             const ctx = {
                 Map_,
