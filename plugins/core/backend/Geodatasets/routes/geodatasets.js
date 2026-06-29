@@ -85,7 +85,7 @@ function get(reqtype, req, res, next, options) {
     if (req.body.id != null) get_id = req.body.id;
     if (req.body.filters != null) filters = req.body.filters;
     if (req.body.spatialFilter != null) spatialFilter = req.body.spatialFilter;
-    if (req.body.limit != null) paginationLimit = parseInt(req.body.limit);
+    if (req.body.limit != null) paginationLimit = Math.min(parseInt(req.body.limit), 10000) || null;
     if (req.body.offset != null) paginationOffset = parseInt(req.body.offset);
 
     if (type === "mvt") {
@@ -136,7 +136,7 @@ function get(reqtype, req, res, next, options) {
         radius: spatialFilterSplit[2],
       };
     }
-    if (req.query.limit != null) paginationLimit = parseInt(req.query.limit);
+    if (req.query.limit != null) paginationLimit = Math.min(parseInt(req.query.limit), 10000) || null;
     if (req.query.offset != null) paginationOffset = parseInt(req.query.offset);
 
     if (type === "mvt") {
@@ -1454,8 +1454,8 @@ router.post("/search", function (req, res, next) {
           opClause = `${keyExpr} = :value`;
         }
 
-        // For numeric operators, cast to numeric
-        if (["<", ">", "<=", ">="].indexOf(searchOp) !== -1) {
+        // For numeric operators, cast to numeric only when the field type is number
+        if (["<", ">", "<=", ">="].indexOf(searchOp) !== -1 && req.body.type === "number") {
           opClause = `(${keyExpr})::NUMERIC ${searchOp} :value::NUMERIC`;
         }
 
@@ -1471,7 +1471,7 @@ router.post("/search", function (req, res, next) {
 
         const sanitizedValue =
           typeof req.body.value === "string"
-            ? req.body.value.replace(/[`;'"]/gi, "")
+            ? req.body.value
             : null;
 
         const replacements = {

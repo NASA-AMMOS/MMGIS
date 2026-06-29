@@ -1098,6 +1098,7 @@ function SearchBar() {
                         key: fieldName,
                         value: searchValue,
                         operator: searchOperator,
+                        type: fieldType,
                     },
                     function (d) {
                         if (d.body && d.body.length > 0) {
