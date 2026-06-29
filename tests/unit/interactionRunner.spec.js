@@ -1,5 +1,6 @@
 /**
- * Unit tests for InteractionRunner — runInteractions() and kindToInteractions().
+ * Unit tests for InteractionRunner — runInteractions(), kindToInteractions(),
+ * buildFullPipeline(), and default preamble/postamble behavior.
  *
  * These tests use mock handlers rather than the real interaction plugins
  * to keep them fast and free of browser dependencies.
@@ -10,148 +11,283 @@ import { test, expect } from '@playwright/test';
 const {
     runInteractions,
     kindToInteractions,
+    buildFullPipeline,
     KIND_PIPELINES,
+    CLICK_PREAMBLE,
+    CLICK_POSTAMBLE,
+    DEFAULT_HOVER_PIPELINE,
+    DEFAULT_MOUSEOUT_PIPELINE,
 } = require('../../src/essence/Basics/InteractionRunner');
 
 test.describe('kindToInteractions', () => {
-    test('translates "none" to default click pipeline', () => {
+    test('"none" returns empty click pipeline (defaults are implicit)', () => {
         const result = kindToInteractions('none');
-        expect(result.click).toEqual(KIND_PIPELINES.none);
-        expect(result.click).toContain('select');
-        expect(result.click).toContain('info:silent');
-        expect(result.click).toContain('viewer:update');
-        expect(result.click).toContain('search:url');
-        expect(result.click).toContain('event:notify');
+        expect(result.click).toEqual([]);
     });
 
-    test('translates "info" — uses info:open instead of info:silent', () => {
+    test('"info" returns only info:open', () => {
         const result = kindToInteractions('info');
-        expect(result.click).toContain('info:open');
-        expect(result.click).not.toContain('info:silent');
+        expect(result.click).toEqual(['info:open']);
     });
 
-    test('translates "waypoint" — includes waypoint:image and waypoint:model', () => {
+    test('"waypoint" returns waypoint:image and waypoint:model', () => {
         const result = kindToInteractions('waypoint');
-        expect(result.click).toContain('waypoint:image');
-        expect(result.click).toContain('waypoint:model');
-        expect(result.click).toContain('info:silent');
+        expect(result.click).toEqual(['waypoint:image', 'waypoint:model']);
     });
 
-    test('translates "chemistry_tool" — includes chemistry:use', () => {
+    test('"chemistry_tool" returns chemistry:use', () => {
         const result = kindToInteractions('chemistry_tool');
-        expect(result.click).toContain('chemistry:use');
+        expect(result.click).toEqual(['chemistry:use']);
     });
 
-    test('translates "draw_tool" — includes draw:context_menu', () => {
+    test('"draw_tool" returns draw:context_menu', () => {
         const result = kindToInteractions('draw_tool');
-        expect(result.click).toContain('draw:context_menu');
+        expect(result.click).toEqual(['draw:context_menu']);
     });
 
-    test('translates "viewer_open" — includes viewer:open_panel', () => {
+    test('"viewer_open" returns viewer:open_panel', () => {
         const result = kindToInteractions('viewer_open');
-        expect(result.click).toContain('viewer:open_panel');
+        expect(result.click).toEqual(['viewer:open_panel']);
     });
 
-    test('unknown kind falls back to "none" pipeline', () => {
+    test('unknown kind falls back to empty pipeline (same as "none")', () => {
         const result = kindToInteractions('nonexistent_kind');
-        expect(result.click).toEqual(KIND_PIPELINES.none);
+        expect(result.click).toEqual([]);
     });
 
     test('always includes hover and mouseout pipelines', () => {
         const result = kindToInteractions('info');
-        expect(result.hover).toEqual(['cursor:show']);
-        expect(result.mouseout).toEqual(['cursor:hide']);
+        expect(result.hover).toEqual(DEFAULT_HOVER_PIPELINE);
+        expect(result.mouseout).toEqual(DEFAULT_MOUSEOUT_PIPELINE);
     });
 
-    test('all pipeline entries start with select', () => {
-        for (const kind of Object.keys(KIND_PIPELINES)) {
-            expect(KIND_PIPELINES[kind][0]).toBe('select');
-        }
+    test('hover defaults to cursor:show', () => {
+        expect(DEFAULT_HOVER_PIPELINE).toEqual(['cursor:show']);
     });
 
-    test('all pipelines contain cleanup_temp after select', () => {
-        for (const kind of Object.keys(KIND_PIPELINES)) {
-            const pipeline = KIND_PIPELINES[kind];
-            const selectIdx = pipeline.indexOf('select');
-            const cleanupIdx = pipeline.indexOf('cleanup_temp');
-            expect(cleanupIdx).toBeGreaterThan(selectIdx);
-        }
+    test('mouseout defaults to cursor:hide', () => {
+        expect(DEFAULT_MOUSEOUT_PIPELINE).toEqual(['cursor:hide']);
+    });
+});
+
+test.describe('buildFullPipeline', () => {
+    test('wraps click pipeline with preamble and postamble', () => {
+        const full = buildFullPipeline(['info:open'], 'click');
+        expect(full).toEqual([
+            ...CLICK_PREAMBLE,
+            'info:open',
+            ...CLICK_POSTAMBLE.filter((id) => id !== 'info:silent'),
+        ]);
+    });
+
+    test('empty user pipeline still gets preamble + postamble', () => {
+        const full = buildFullPipeline([], 'click');
+        expect(full).toEqual([...CLICK_PREAMBLE, ...CLICK_POSTAMBLE]);
+    });
+
+    test('preamble starts with select and cleanup_temp', () => {
+        expect(CLICK_PREAMBLE[0]).toBe('select');
+        expect(CLICK_PREAMBLE[1]).toBe('cleanup_temp');
+    });
+
+    test('postamble contains info:silent, viewer:update, search:url, event:notify', () => {
+        expect(CLICK_POSTAMBLE).toContain('info:silent');
+        expect(CLICK_POSTAMBLE).toContain('viewer:update');
+        expect(CLICK_POSTAMBLE).toContain('search:url');
+        expect(CLICK_POSTAMBLE).toContain('event:notify');
+    });
+
+    test('info:open suppresses info:silent in postamble', () => {
+        const full = buildFullPipeline(['info:open'], 'click');
+        expect(full).toContain('info:open');
+        expect(full).not.toContain('info:silent');
+    });
+
+    test('without info:open, postamble includes info:silent', () => {
+        const full = buildFullPipeline(['waypoint:image'], 'click');
+        expect(full).toContain('info:silent');
+        expect(full).not.toContain('info:open');
+    });
+
+    test('non-click events pass through without wrapping', () => {
+        const hover = buildFullPipeline(['cursor:show'], 'hover');
+        expect(hover).toEqual(['cursor:show']);
+
+        const mouseout = buildFullPipeline(['cursor:hide'], 'mouseout');
+        expect(mouseout).toEqual(['cursor:hide']);
+    });
+
+    test('legacy kind "none" produces correct full pipeline', () => {
+        const kind = kindToInteractions('none');
+        const full = buildFullPipeline(kind.click, 'click');
+        expect(full).toEqual([...CLICK_PREAMBLE, ...CLICK_POSTAMBLE]);
+    });
+
+    test('legacy kind "info" produces correct full pipeline', () => {
+        const kind = kindToInteractions('info');
+        const full = buildFullPipeline(kind.click, 'click');
+        expect(full).toEqual([
+            'select',
+            'cleanup_temp',
+            'info:open',
+            'viewer:update',
+            'search:url',
+            'event:notify',
+        ]);
+    });
+
+    test('legacy kind "waypoint" produces correct full pipeline', () => {
+        const kind = kindToInteractions('waypoint');
+        const full = buildFullPipeline(kind.click, 'click');
+        expect(full).toEqual([
+            'select',
+            'cleanup_temp',
+            'waypoint:image',
+            'waypoint:model',
+            'info:silent',
+            'viewer:update',
+            'search:url',
+            'event:notify',
+        ]);
     });
 });
 
 test.describe('runInteractions', () => {
-    test('runs handlers in order and passes context', async () => {
+    test('wraps click pipeline with defaults and runs in order', async () => {
         const callOrder = [];
         const mockHandlers = {
-            'a': { use(ctx) { callOrder.push('a'); ctx.state.aRan = true; } },
-            'b': { use(ctx) { callOrder.push('b'); expect(ctx.state.aRan).toBe(true); } },
+            'select': { use() { callOrder.push('select'); } },
+            'cleanup_temp': { use() { callOrder.push('cleanup_temp'); } },
+            'info:open': { use() { callOrder.push('info:open'); } },
+            'viewer:update': { use() { callOrder.push('viewer:update'); } },
+            'search:url': { use() { callOrder.push('search:url'); } },
+            'event:notify': { use() { callOrder.push('event:notify'); } },
         };
 
-        const ctx = { stop: false, state: {} };
-        await runInteractions(['a', 'b'], ctx, mockHandlers);
+        const ctx = { stop: false, state: {}, eventType: 'click' };
+        await runInteractions(['info:open'], ctx, mockHandlers);
 
-        expect(callOrder).toEqual(['a', 'b']);
+        expect(callOrder).toEqual([
+            'select',
+            'cleanup_temp',
+            'info:open',
+            'viewer:update',
+            'search:url',
+            'event:notify',
+        ]);
+    });
+
+    test('hover events pass through without wrapping', async () => {
+        const callOrder = [];
+        const mockHandlers = {
+            'cursor:show': { use() { callOrder.push('cursor:show'); } },
+        };
+
+        const ctx = { stop: false, state: {}, eventType: 'hover' };
+        await runInteractions(['cursor:show'], ctx, mockHandlers);
+
+        expect(callOrder).toEqual(['cursor:show']);
     });
 
     test('stops pipeline when ctx.stop is set', async () => {
         const callOrder = [];
         const mockHandlers = {
-            'a': { use(ctx) { callOrder.push('a'); ctx.stop = true; } },
-            'b': { use(ctx) { callOrder.push('b'); } },
+            'select': { use(ctx) { callOrder.push('select'); ctx.stop = true; } },
+            'cleanup_temp': { use() { callOrder.push('cleanup_temp'); } },
+            'info:silent': { use() { callOrder.push('info:silent'); } },
+            'viewer:update': { use() { callOrder.push('viewer:update'); } },
+            'search:url': { use() { callOrder.push('search:url'); } },
+            'event:notify': { use() { callOrder.push('event:notify'); } },
         };
 
-        const ctx = { stop: false, state: {} };
-        await runInteractions(['a', 'b'], ctx, mockHandlers);
+        const ctx = { stop: false, state: {}, eventType: 'click' };
+        await runInteractions([], ctx, mockHandlers);
 
-        expect(callOrder).toEqual(['a']);
+        expect(callOrder).toEqual(['select']);
     });
 
     test('skips unknown interaction IDs without throwing', async () => {
         const callOrder = [];
         const mockHandlers = {
-            'a': { use(ctx) { callOrder.push('a'); } },
+            'select': { use() { callOrder.push('select'); } },
+            'cleanup_temp': { use() { callOrder.push('cleanup_temp'); } },
+            'custom': { use() { callOrder.push('custom'); } },
+            'info:silent': { use() { callOrder.push('info:silent'); } },
+            'viewer:update': { use() { callOrder.push('viewer:update'); } },
+            'search:url': { use() { callOrder.push('search:url'); } },
+            'event:notify': { use() { callOrder.push('event:notify'); } },
         };
 
-        const ctx = { stop: false, state: {} };
-        // 'unknown' is not in mockHandlers — should be skipped
-        await runInteractions(['a', 'unknown', 'a'], ctx, mockHandlers);
+        const ctx = { stop: false, state: {}, eventType: 'click' };
+        await runInteractions(['custom', 'unknown_handler'], ctx, mockHandlers);
 
-        expect(callOrder).toEqual(['a', 'a']);
+        // unknown_handler skipped, everything else runs
+        expect(callOrder).toContain('custom');
+        expect(callOrder).not.toContain('unknown_handler');
     });
 
     test('handles async handlers', async () => {
         const callOrder = [];
         const mockHandlers = {
-            'async_a': {
-                async use(ctx) {
+            'select': { use() { callOrder.push('select'); } },
+            'cleanup_temp': { use() { callOrder.push('cleanup_temp'); } },
+            'async_handler': {
+                async use() {
                     await new Promise((r) => setTimeout(r, 10));
-                    callOrder.push('async_a');
+                    callOrder.push('async_handler');
                 },
             },
-            'sync_b': {
-                use(ctx) { callOrder.push('sync_b'); },
-            },
+            'info:silent': { use() { callOrder.push('info:silent'); } },
+            'viewer:update': { use() { callOrder.push('viewer:update'); } },
+            'search:url': { use() { callOrder.push('search:url'); } },
+            'event:notify': { use() { callOrder.push('event:notify'); } },
         };
 
-        const ctx = { stop: false, state: {} };
-        await runInteractions(['async_a', 'sync_b'], ctx, mockHandlers);
+        const ctx = { stop: false, state: {}, eventType: 'click' };
+        await runInteractions(['async_handler'], ctx, mockHandlers);
 
-        expect(callOrder).toEqual(['async_a', 'sync_b']);
+        expect(callOrder.indexOf('async_handler')).toBeLessThan(
+            callOrder.indexOf('info:silent')
+        );
     });
 
-    test('runs with empty pipeline without error', async () => {
-        const ctx = { stop: false, state: {} };
-        await runInteractions([], ctx, {});
-        // No error, no-op
+    test('runs empty user pipeline (defaults only) without error', async () => {
+        const callOrder = [];
+        const mockHandlers = {
+            'select': { use() { callOrder.push('select'); } },
+            'cleanup_temp': { use() { callOrder.push('cleanup_temp'); } },
+            'info:silent': { use() { callOrder.push('info:silent'); } },
+            'viewer:update': { use() { callOrder.push('viewer:update'); } },
+            'search:url': { use() { callOrder.push('search:url'); } },
+            'event:notify': { use() { callOrder.push('event:notify'); } },
+        };
+
+        const ctx = { stop: false, state: {}, eventType: 'click' };
+        await runInteractions([], ctx, mockHandlers);
+
+        expect(callOrder).toEqual([
+            'select',
+            'cleanup_temp',
+            'info:silent',
+            'viewer:update',
+            'search:url',
+            'event:notify',
+        ]);
     });
 
     test('shares mutable state between handlers', async () => {
         const mockHandlers = {
+            'select': { use() {} },
+            'cleanup_temp': { use() {} },
             'writer': { use(ctx) { ctx.state.value = 42; } },
             'reader': { use(ctx) { ctx.state.readValue = ctx.state.value; } },
+            'info:silent': { use() {} },
+            'viewer:update': { use() {} },
+            'search:url': { use() {} },
+            'event:notify': { use() {} },
         };
 
-        const ctx = { stop: false, state: {} };
+        const ctx = { stop: false, state: {}, eventType: 'click' };
         await runInteractions(['writer', 'reader'], ctx, mockHandlers);
 
         expect(ctx.state.readValue).toBe(42);
