@@ -344,14 +344,74 @@ function updateInteractions() {
     );
   }
 
-  // 5. Generate src/pre/interactions.js with static imports.
+  // 5. Build phase arrays, suppression map, and kind pipelines from manifests.
+  const phaseBuckets = {
+    click: { preamble: [], postamble: [] },
+    hover: { preamble: [], postamble: [] },
+    mouseout: { preamble: [], postamble: [] },
+  };
+  const suppressionMap = {};
+  const kindAliasEntries = []; // { kind, interactionId, order }
+
+  for (const name in interactions) {
+    const manifest = interactions[name];
+    const id = manifest.interactionId;
+    const phase = manifest.phase;
+    const order = typeof manifest.order === "number" ? manifest.order : 0;
+    const events = manifest.applicableEvents || [];
+
+    if (phase === "preamble" || phase === "postamble") {
+      for (const evt of events) {
+        if (phaseBuckets[evt]) {
+          phaseBuckets[evt][phase].push({ id, order });
+        }
+      }
+    }
+
+    if (Array.isArray(manifest.suppresses) && manifest.suppresses.length > 0) {
+      suppressionMap[id] = manifest.suppresses;
+    }
+
+    if (Array.isArray(manifest.kindAlias)) {
+      for (const kind of manifest.kindAlias) {
+        kindAliasEntries.push({ kind, id, order });
+      }
+    }
+  }
+
+  // Sort each phase bucket by order.
+  for (const evt of Object.keys(phaseBuckets)) {
+    phaseBuckets[evt].preamble.sort((a, b) => a.order - b.order);
+    phaseBuckets[evt].postamble.sort((a, b) => a.order - b.order);
+  }
+
+  // Build kind pipelines by grouping and sorting kindAlias entries.
+  const kindPipelines = { none: [] };
+  for (const entry of kindAliasEntries) {
+    if (!kindPipelines[entry.kind]) kindPipelines[entry.kind] = [];
+    kindPipelines[entry.kind].push({ id: entry.id, order: entry.order });
+  }
+  for (const kind of Object.keys(kindPipelines)) {
+    kindPipelines[kind].sort((a, b) => a.order - b.order);
+    kindPipelines[kind] = kindPipelines[kind].map((e) => e.id);
+  }
+
+  const clickPreamble = phaseBuckets.click.preamble.map((e) => e.id);
+  const clickPostamble = phaseBuckets.click.postamble.map((e) => e.id);
+  const hoverDefaults = phaseBuckets.hover.preamble.map((e) => e.id);
+  const mouseoutDefaults = phaseBuckets.mouseout.preamble.map((e) => e.id);
+
+  // 6. Generate src/pre/interactions.js with static imports and config.
   let output = "";
   const handlerEntries = [];
 
   for (const name in interactions) {
     const manifest = interactions[name];
     const pluginPath = interactionPluginPaths[name] || null;
-    for (const p in manifest.paths) {
+    const pathKeys = Object.keys(manifest.paths);
+    // Use first path entry — interactions are single-handler by design.
+    const p = pathKeys[0];
+    if (p) {
       const resolved = resolvePluginPath(manifest.paths[p], pluginPath);
       const safeName = `interaction_${name}_${p}`;
       output += `import ${safeName} from '${resolved}'\n`;
@@ -368,9 +428,13 @@ function updateInteractions() {
     output += `  '${entry.interactionId}': ${entry.importName},\n`;
   }
   output += "}\n\n";
-  output += `export const interactionConfigs = ${JSON.stringify(
-    interactions
-  )}\n`;
+  output += `export const interactionConfigs = ${JSON.stringify(interactions)}\n\n`;
+  output += `export const CLICK_PREAMBLE = ${JSON.stringify(clickPreamble)}\n`;
+  output += `export const CLICK_POSTAMBLE = ${JSON.stringify(clickPostamble)}\n`;
+  output += `export const HOVER_DEFAULTS = ${JSON.stringify(hoverDefaults)}\n`;
+  output += `export const MOUSEOUT_DEFAULTS = ${JSON.stringify(mouseoutDefaults)}\n`;
+  output += `export const SUPPRESSION_MAP = ${JSON.stringify(suppressionMap)}\n`;
+  output += `export const KIND_PIPELINES = ${JSON.stringify(kindPipelines)}\n`;
 
   try {
     fs.writeFileSync("./src/pre/interactions.js", output);
@@ -385,7 +449,7 @@ function updateInteractions() {
     );
   }
 
-  // 6. Cross-type dependency check.
+  // 7. Cross-type dependency check.
   checkPluginDependencies(PLUGINS_ROOT, "Interactions");
 }
 

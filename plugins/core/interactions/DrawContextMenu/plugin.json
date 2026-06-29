@@ -10,6 +10,8 @@
     "description": "Opens the Draw tool's context menu for the clicked feature.",
     "applicableLayerTypes": ["vector", "vectortile", "query"],
     "applicableEvents": ["click"],
+    "phase": "user",
+    "kindAlias": ["draw_tool"],
     "pluginDependencies": ["core/tools/Draw"],
     "paths": {
         "DrawContextMenu": "./DrawContextMenu"

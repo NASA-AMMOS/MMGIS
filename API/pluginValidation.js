@@ -79,6 +79,10 @@ const KNOWN_FIELDS = {
     "description",
     "applicableLayerTypes",
     "applicableEvents",
+    "phase",
+    "order",
+    "suppresses",
+    "kindAlias",
   ]),
 };
 
@@ -286,6 +290,30 @@ function validatePluginConfig(config, pluginName, pluginType) {
             `Plugin '${pluginName}' (${pluginType}): 'paths.${key}' must be a string`
           );
         }
+      }
+    }
+    if (config.phase !== undefined && !["preamble", "postamble", "user"].includes(config.phase)) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'phase' must be one of: preamble, postamble, user`
+      );
+    }
+    if (config.order !== undefined && typeof config.order !== "number") {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'order' must be a number`
+      );
+    }
+    if (config.suppresses !== undefined) {
+      if (!Array.isArray(config.suppresses)) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'suppresses' must be an array of interaction IDs`
+        );
+      }
+    }
+    if (config.kindAlias !== undefined) {
+      if (!Array.isArray(config.kindAlias)) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'kindAlias' must be an array of legacy kind strings`
+        );
       }
     }
   }

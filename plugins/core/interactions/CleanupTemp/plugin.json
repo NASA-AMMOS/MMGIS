@@ -4,12 +4,14 @@
     "version": "core",
     "type": "interaction",
     "tier": "core",
-    "overridable": true,
+    "overridable": false,
     "name": "CleanupTemp",
     "interactionId": "cleanup_temp",
     "description": "Removes temporary overlay images and 3D models from the previous click.",
     "applicableLayerTypes": ["vector", "vectortile", "query"],
     "applicableEvents": ["click"],
+    "phase": "preamble",
+    "order": 1,
     "paths": {
         "CleanupTemp": "./CleanupTemp"
     },

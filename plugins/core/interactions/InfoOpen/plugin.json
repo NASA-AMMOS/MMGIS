@@ -4,12 +4,15 @@
     "version": "core",
     "type": "interaction",
     "tier": "core",
-    "overridable": true,
+    "overridable": false,
     "name": "InfoOpen",
     "interactionId": "info:open",
     "description": "Gathers intersecting features and opens the Info panel.",
     "applicableLayerTypes": ["vector", "vectortile", "query"],
     "applicableEvents": ["click"],
+    "phase": "user",
+    "suppresses": ["info:silent"],
+    "kindAlias": ["info"],
     "pluginDependencies": ["core/tools/Info"],
     "paths": {
         "InfoOpen": "./InfoOpen"

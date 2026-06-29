@@ -4,12 +4,14 @@
     "version": "core",
     "type": "interaction",
     "tier": "core",
-    "overridable": true,
+    "overridable": false,
     "name": "Select",
     "interactionId": "select",
     "description": "Sets the clicked feature as the active feature, triggering highlight, description bar, and cross-renderer sync.",
     "applicableLayerTypes": ["vector", "vectortile", "query"],
     "applicableEvents": ["click"],
+    "phase": "preamble",
+    "order": 0,
     "paths": {
         "Select": "./Select"
     },

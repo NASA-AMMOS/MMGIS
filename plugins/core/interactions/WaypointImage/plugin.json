@@ -10,6 +10,9 @@
     "description": "Adds a rotated image overlay on the 2D map at the clicked waypoint position.",
     "applicableLayerTypes": ["vector", "vectortile", "query"],
     "applicableEvents": ["click"],
+    "phase": "user",
+    "order": 0,
+    "kindAlias": ["waypoint"],
     "paths": {
         "WaypointImage": "./WaypointImage"
     },

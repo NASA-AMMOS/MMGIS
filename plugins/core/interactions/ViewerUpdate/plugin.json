@@ -4,12 +4,14 @@
     "version": "core",
     "type": "interaction",
     "tier": "core",
-    "overridable": true,
+    "overridable": false,
     "name": "ViewerUpdate",
     "interactionId": "viewer:update",
     "description": "Updates the Viewer panel images for the clicked feature.",
     "applicableLayerTypes": ["vector", "vectortile", "query"],
     "applicableEvents": ["click"],
+    "phase": "postamble",
+    "order": 1,
     "paths": {
         "ViewerUpdate": "./ViewerUpdate"
     },

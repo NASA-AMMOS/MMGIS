@@ -4,12 +4,14 @@
     "version": "core",
     "type": "interaction",
     "tier": "core",
-    "overridable": true,
+    "overridable": false,
     "name": "CursorShow",
     "interactionId": "cursor:show",
     "description": "Shows the feature name in the cursor info tooltip on hover.",
     "applicableLayerTypes": ["vector", "vectortile", "query"],
     "applicableEvents": ["hover"],
+    "phase": "preamble",
+    "order": 0,
     "paths": {
         "CursorShow": "./CursorShow"
     },

@@ -4,12 +4,14 @@
     "version": "core",
     "type": "interaction",
     "tier": "core",
-    "overridable": true,
+    "overridable": false,
     "name": "CursorHide",
     "interactionId": "cursor:hide",
     "description": "Hides the cursor info tooltip on mouseout.",
     "applicableLayerTypes": ["vector", "vectortile", "query"],
     "applicableEvents": ["mouseout"],
+    "phase": "preamble",
+    "order": 0,
     "paths": {
         "CursorHide": "./CursorHide"
     },

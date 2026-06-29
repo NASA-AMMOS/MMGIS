@@ -10,6 +10,8 @@
     "description": "Opens the Viewer panel if hidden, then zooms the map to the clicked feature.",
     "applicableLayerTypes": ["vector", "vectortile", "query"],
     "applicableEvents": ["click"],
+    "phase": "user",
+    "kindAlias": ["viewer_open"],
     "paths": {
         "ViewerOpenPanel": "./ViewerOpenPanel"
     },

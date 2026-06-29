@@ -4,12 +4,14 @@
     "version": "core",
     "type": "interaction",
     "tier": "core",
-    "overridable": true,
+    "overridable": false,
     "name": "EventNotify",
     "interactionId": "event:notify",
     "description": "Dispatches a 'newActiveFeature' CustomEvent on the document.",
     "applicableLayerTypes": ["vector", "vectortile", "query"],
     "applicableEvents": ["click"],
+    "phase": "postamble",
+    "order": 3,
     "paths": {
         "EventNotify": "./EventNotify"
     },

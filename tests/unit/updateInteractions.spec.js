@@ -152,4 +152,78 @@ test.describe('updateInteractions - plugin discovery and generation', () => {
             /const\s+\w+\s*=\s*\(\)\s*=>\s*import\(/
         );
     });
+
+    test('generated interactions.js exports CLICK_PREAMBLE from phase=preamble manifests', () => {
+        updateInteractions();
+
+        const contents = fs.readFileSync(INTERACTIONS_JS_PATH, 'utf8');
+        expect(contents).toContain('export const CLICK_PREAMBLE');
+        // Preamble should contain select and cleanup_temp in order
+        const match = contents.match(/export const CLICK_PREAMBLE = (\[.*?\])/);
+        expect(match).not.toBeNull();
+        const preamble = JSON.parse(match[1]);
+        expect(preamble).toContain('select');
+        expect(preamble).toContain('cleanup_temp');
+        expect(preamble.indexOf('select')).toBeLessThan(preamble.indexOf('cleanup_temp'));
+    });
+
+    test('generated interactions.js exports CLICK_POSTAMBLE from phase=postamble manifests', () => {
+        updateInteractions();
+
+        const contents = fs.readFileSync(INTERACTIONS_JS_PATH, 'utf8');
+        expect(contents).toContain('export const CLICK_POSTAMBLE');
+        const match = contents.match(/export const CLICK_POSTAMBLE = (\[.*?\])/);
+        expect(match).not.toBeNull();
+        const postamble = JSON.parse(match[1]);
+        expect(postamble).toContain('info:silent');
+        expect(postamble).toContain('viewer:update');
+        expect(postamble).toContain('search:url');
+        expect(postamble).toContain('event:notify');
+        // Verify order matches manifest order values
+        expect(postamble.indexOf('info:silent')).toBeLessThan(postamble.indexOf('viewer:update'));
+        expect(postamble.indexOf('viewer:update')).toBeLessThan(postamble.indexOf('search:url'));
+        expect(postamble.indexOf('search:url')).toBeLessThan(postamble.indexOf('event:notify'));
+    });
+
+    test('generated interactions.js exports SUPPRESSION_MAP from suppresses fields', () => {
+        updateInteractions();
+
+        const contents = fs.readFileSync(INTERACTIONS_JS_PATH, 'utf8');
+        expect(contents).toContain('export const SUPPRESSION_MAP');
+        const match = contents.match(/export const SUPPRESSION_MAP = ({.*?})/);
+        expect(match).not.toBeNull();
+        const map = JSON.parse(match[1]);
+        expect(map).toHaveProperty('info:open');
+        expect(map['info:open']).toEqual(['info:silent']);
+    });
+
+    test('generated interactions.js exports KIND_PIPELINES from kindAlias fields', () => {
+        updateInteractions();
+
+        const contents = fs.readFileSync(INTERACTIONS_JS_PATH, 'utf8');
+        expect(contents).toContain('export const KIND_PIPELINES');
+        const match = contents.match(/export const KIND_PIPELINES = ({.*?})\n/);
+        expect(match).not.toBeNull();
+        const pipelines = JSON.parse(match[1]);
+        expect(pipelines.none).toEqual([]);
+        expect(pipelines.info).toEqual(['info:open']);
+        expect(pipelines.waypoint).toContain('waypoint:image');
+        expect(pipelines.waypoint).toContain('waypoint:model');
+    });
+
+    test('generated interactions.js exports HOVER_DEFAULTS and MOUSEOUT_DEFAULTS', () => {
+        updateInteractions();
+
+        const contents = fs.readFileSync(INTERACTIONS_JS_PATH, 'utf8');
+        expect(contents).toContain('export const HOVER_DEFAULTS');
+        expect(contents).toContain('export const MOUSEOUT_DEFAULTS');
+
+        const hoverMatch = contents.match(/export const HOVER_DEFAULTS = (\[.*?\])/);
+        expect(hoverMatch).not.toBeNull();
+        expect(JSON.parse(hoverMatch[1])).toContain('cursor:show');
+
+        const mouseoutMatch = contents.match(/export const MOUSEOUT_DEFAULTS = (\[.*?\])/);
+        expect(mouseoutMatch).not.toBeNull();
+        expect(JSON.parse(mouseoutMatch[1])).toContain('cursor:hide');
+    });
 });

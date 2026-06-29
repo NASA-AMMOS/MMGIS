@@ -4,12 +4,14 @@
     "version": "core",
     "type": "interaction",
     "tier": "core",
-    "overridable": true,
+    "overridable": false,
     "name": "SearchUrl",
     "interactionId": "search:url",
     "description": "Writes the search string to the URL for deeplinking.",
     "applicableLayerTypes": ["vector", "vectortile", "query"],
     "applicableEvents": ["click"],
+    "phase": "postamble",
+    "order": 2,
     "paths": {
         "SearchUrl": "./SearchUrl"
     },

@@ -4,12 +4,14 @@
     "version": "core",
     "type": "interaction",
     "tier": "core",
-    "overridable": true,
+    "overridable": false,
     "name": "InfoSilent",
     "interactionId": "info:silent",
     "description": "Gathers intersecting features and updates InfoTool without opening the panel.",
     "applicableLayerTypes": ["vector", "vectortile", "query"],
     "applicableEvents": ["click"],
+    "phase": "postamble",
+    "order": 0,
     "pluginDependencies": ["core/tools/Info"],
     "paths": {
         "InfoSilent": "./InfoSilent"
