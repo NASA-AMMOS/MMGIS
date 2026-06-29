@@ -26,6 +26,15 @@ function jsonbAccessor(key, placeholder) {
       replacements: { [placeholder]: key },
     };
   }
+  // Validate each part: only allow alphanumeric, underscores, hyphens, spaces
+  for (const p of parts) {
+    if (!/^[\w\s\-]+$/.test(p)) {
+      return {
+        text: `properties->>:${placeholder}`,
+        replacements: { [placeholder]: key },
+      };
+    }
+  }
   // Nested: properties->'a'->'b'->>'c'
   const path = parts
     .map((p, i) => {
@@ -1418,8 +1427,10 @@ router.post("/search", function (req, res, next) {
             : "";
 
         // Build operator clause for search (supports nested keys via jsonbAccessor)
-        const allowedOps = ["=", "!=", "<", ">", "<=", ">="];
+        const validOps = ["=", "!=", "<", ">", "<=", ">=", "contains", "beginswith", "endswith", ",", "in", "isnull", "isnotnull"];
         let searchOp = req.body.operator || "=";
+        if (validOps.indexOf(searchOp) === -1) searchOp = "=";
+        const allowedOps = ["=", "!=", "<", ">", "<=", ">="];
         const searchKey = req.body.key || "";
         const keyAcc = jsonbAccessor(searchKey, "key");
         const keyExpr = keyAcc.text; // e.g. "properties->>'name'" or "properties->'meta'->>'author'"
