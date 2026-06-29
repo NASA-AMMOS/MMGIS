@@ -685,7 +685,7 @@ var InfoTool = {
         let e = JSON.parse(JSON.stringify(InfoTool.initialEvent))
         MetadataCapturer.populateMetadata(
             InfoTool.featureLayers[idx] || InfoTool.currentLayer,
-            () => {
+            async () => {
                 const layerName = InfoTool.currentLayerName
                 const layerData = L_.layers.data[layerName] || {}
                 const pipeline =
@@ -717,7 +717,7 @@ var InfoTool = {
                     },
                 }
 
-                runInteractions(pipeline, ctx)
+                await runInteractions(pipeline, ctx)
             }
         )
     },
