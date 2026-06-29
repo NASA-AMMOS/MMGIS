@@ -15,7 +15,7 @@ const {
 
 // Standard config matching what the core plugin.json manifests produce
 const CORE_CONFIG = {
-    clickPreamble: ['select', 'cleanup_temp'],
+    clickPreamble: ['select'],
     clickPostamble: ['info:silent', 'viewer:update', 'search:url', 'event:notify'],
     hoverDefaults: ['cursor:show'],
     mouseoutDefaults: ['cursor:hide'],
@@ -77,7 +77,7 @@ test.describe('buildFullPipeline', () => {
     test('wraps click pipeline with preamble and postamble', () => {
         const full = buildFullPipeline(['info:open'], 'click', CORE_CONFIG);
         expect(full).toEqual([
-            'select', 'cleanup_temp',
+            'select',
             'info:open',
             'viewer:update', 'search:url', 'event:notify',
         ]);
@@ -86,7 +86,7 @@ test.describe('buildFullPipeline', () => {
     test('empty user pipeline gets preamble + postamble', () => {
         const full = buildFullPipeline([], 'click', CORE_CONFIG);
         expect(full).toEqual([
-            'select', 'cleanup_temp',
+            'select',
             'info:silent', 'viewer:update', 'search:url', 'event:notify',
         ]);
     });
@@ -127,7 +127,7 @@ test.describe('buildFullPipeline', () => {
         const kind = kindToInteractions('none', CORE_CONFIG);
         const full = buildFullPipeline(kind.click, 'click', CORE_CONFIG);
         expect(full).toEqual([
-            'select', 'cleanup_temp',
+            'select',
             'info:silent', 'viewer:update', 'search:url', 'event:notify',
         ]);
     });
@@ -136,7 +136,7 @@ test.describe('buildFullPipeline', () => {
         const kind = kindToInteractions('info', CORE_CONFIG);
         const full = buildFullPipeline(kind.click, 'click', CORE_CONFIG);
         expect(full).toEqual([
-            'select', 'cleanup_temp',
+            'select',
             'info:open',
             'viewer:update', 'search:url', 'event:notify',
         ]);
@@ -146,7 +146,7 @@ test.describe('buildFullPipeline', () => {
         const kind = kindToInteractions('waypoint', CORE_CONFIG);
         const full = buildFullPipeline(kind.click, 'click', CORE_CONFIG);
         expect(full).toEqual([
-            'select', 'cleanup_temp',
+            'select',
             'waypoint:image', 'waypoint:model',
             'info:silent', 'viewer:update', 'search:url', 'event:notify',
         ]);
@@ -168,7 +168,6 @@ test.describe('buildFullPipeline', () => {
 test.describe('runInteractions', () => {
     const allHandlers = {
         'select': { use() {} },
-        'cleanup_temp': { use() {} },
         'info:open': { use() {} },
         'info:silent': { use() {} },
         'viewer:update': { use() {} },
@@ -192,7 +191,7 @@ test.describe('runInteractions', () => {
         });
 
         expect(callOrder).toEqual([
-            'select', 'cleanup_temp',
+            'select',
             'info:open',
             'viewer:update', 'search:url', 'event:notify',
         ]);
@@ -217,7 +216,6 @@ test.describe('runInteractions', () => {
         const callOrder = [];
         const handlers = {
             'select': { use(ctx) { callOrder.push('select'); ctx.stop = true; } },
-            'cleanup_temp': { use() { callOrder.push('cleanup_temp'); } },
         };
 
         const ctx = { stop: false, state: {}, eventType: 'click' };
@@ -233,7 +231,6 @@ test.describe('runInteractions', () => {
         const callOrder = [];
         const handlers = {
             'select': { use() { callOrder.push('select'); } },
-            'cleanup_temp': { use() { callOrder.push('cleanup_temp'); } },
             'custom': { use() { callOrder.push('custom'); } },
             'info:silent': { use() { callOrder.push('info:silent'); } },
             'viewer:update': { use() { callOrder.push('viewer:update'); } },
@@ -255,7 +252,6 @@ test.describe('runInteractions', () => {
         const callOrder = [];
         const handlers = {
             'select': { use() { callOrder.push('select'); } },
-            'cleanup_temp': { use() { callOrder.push('cleanup_temp'); } },
             'async_handler': {
                 async use() {
                     await new Promise((r) => setTimeout(r, 10));
@@ -283,7 +279,6 @@ test.describe('runInteractions', () => {
         const callOrder = [];
         const handlers = {
             'select': { use() { callOrder.push('select'); } },
-            'cleanup_temp': { use() { callOrder.push('cleanup_temp'); } },
             'info:silent': { use() { callOrder.push('info:silent'); } },
             'viewer:update': { use() { callOrder.push('viewer:update'); } },
             'search:url': { use() { callOrder.push('search:url'); } },
@@ -297,7 +292,7 @@ test.describe('runInteractions', () => {
         });
 
         expect(callOrder).toEqual([
-            'select', 'cleanup_temp',
+            'select',
             'info:silent', 'viewer:update', 'search:url', 'event:notify',
         ]);
     });
@@ -305,7 +300,6 @@ test.describe('runInteractions', () => {
     test('shares mutable state between handlers', async () => {
         const handlers = {
             'select': { use() {} },
-            'cleanup_temp': { use() {} },
             'writer': { use(ctx) { ctx.state.value = 42; } },
             'reader': { use(ctx) { ctx.state.readValue = ctx.state.value; } },
             'info:silent': { use() {} },

@@ -158,13 +158,12 @@ test.describe('updateInteractions - plugin discovery and generation', () => {
 
         const contents = fs.readFileSync(INTERACTIONS_JS_PATH, 'utf8');
         expect(contents).toContain('export const CLICK_PREAMBLE');
-        // Preamble should contain select and cleanup_temp in order
+        // Preamble should contain select
         const match = contents.match(/export const CLICK_PREAMBLE = (\[.*?\])/);
         expect(match).not.toBeNull();
         const preamble = JSON.parse(match[1]);
         expect(preamble).toContain('select');
-        expect(preamble).toContain('cleanup_temp');
-        expect(preamble.indexOf('select')).toBeLessThan(preamble.indexOf('cleanup_temp'));
+        expect(preamble).not.toContain('cleanup_temp');
     });
 
     test('generated interactions.js exports CLICK_POSTAMBLE from phase=postamble manifests', () => {

@@ -972,6 +972,9 @@ function featureDefaultClick(feature, layer, e) {
             layerData.interactions?.click ||
             kindToInteractions(layerData.kind || 'none').click
 
+        Map_.rmNotNull(Map_.tempOverlayImage)
+        L_.Globe_.litho.removeLayer('markerAttachmentTempModel')
+
         const ctx = {
             Map_,
             feature,
@@ -1600,6 +1603,9 @@ function makeVectorTileLayer(layerObj, mapContext = null) {
                         const pipeline =
                             layerData.interactions?.click ||
                             kindToInteractions(layerData.kind || 'none').click
+
+                        Map_.rmNotNull(Map_.tempOverlayImage)
+                        L_.Globe_.litho.removeLayer('markerAttachmentTempModel')
 
                         const ctx = {
                             Map_,
