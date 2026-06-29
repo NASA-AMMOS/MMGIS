@@ -199,7 +199,7 @@ function validatePluginConfig(config, pluginName, pluginType) {
   }
   if (config.type !== undefined && !["tool", "component", "backend", "interaction"].includes(config.type)) {
     errors.push(
-      `Plugin '${pluginName}' (${pluginType}): 'type' must be one of: tool, component, backend`
+      `Plugin '${pluginName}' (${pluginType}): 'type' must be one of: tool, component, backend, interaction`
     );
   }
   if (config.tier !== undefined && !["core", "community", "private", "official", "experimental", "deprecated"].includes(config.tier)) {

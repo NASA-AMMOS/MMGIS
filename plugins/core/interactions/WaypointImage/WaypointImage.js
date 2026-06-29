@@ -80,7 +80,7 @@ const WaypointImage = {
                 roverSettings.angleProp,
                 0
             )
-            if (roverSettings.angleProp === 'deg')
+            if (roverSettings.angleUnit === 'deg')
                 angle = angle * (Math.PI / 180)
 
             var topLeft = F_.rotatePoint(

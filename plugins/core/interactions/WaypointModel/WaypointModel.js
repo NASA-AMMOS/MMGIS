@@ -99,7 +99,7 @@ const WaypointModel = {
 
         if (modelSettings.model && modelSettings.show === 'click') {
             if (
-                !F_.isUrlAbsolute(modelSettings.image) &&
+                !F_.isUrlAbsolute(modelSettings.model) &&
                 !modelSettings.model.startsWith('public')
             )
                 modelSettings.model = L_.missionPath + modelSettings.model

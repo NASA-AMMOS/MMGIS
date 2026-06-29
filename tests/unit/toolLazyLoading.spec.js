@@ -95,7 +95,7 @@ test.describe('Generated interactions.js (static imports)', () => {
     test('emits static default imports for interactions', () => {
         const contents = fs.readFileSync(INTERACTIONS_JS, 'utf8');
         expect(contents).toMatch(
-            /^\s*import\s+interaction_Select\s+from\s+'[^']+'/m
+            /^\s*import\s+interaction_Select_\w+\s+from\s+'[^']+'/m
         );
     });
 

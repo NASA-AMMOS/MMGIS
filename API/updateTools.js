@@ -353,7 +353,7 @@ function updateInteractions() {
     const pluginPath = interactionPluginPaths[name] || null;
     for (const p in manifest.paths) {
       const resolved = resolvePluginPath(manifest.paths[p], pluginPath);
-      const safeName = `interaction_${name}`;
+      const safeName = `interaction_${name}_${p}`;
       output += `import ${safeName} from '${resolved}'\n`;
       handlerEntries.push({
         interactionId: manifest.interactionId,

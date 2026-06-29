@@ -77,7 +77,7 @@ test.describe('updateInteractions - plugin discovery and generation', () => {
         const contents = fs.readFileSync(INTERACTIONS_JS_PATH, 'utf8');
         expect(contents).toContain('export const interactionHandlers');
         // Should contain at least the select handler
-        expect(contents).toMatch(/'select':\s*interaction_Select/);
+        expect(contents).toMatch(/'select':\s*interaction_Select_\w+/);
     });
 
     test('generated interactions.js exports interactionConfigs', () => {

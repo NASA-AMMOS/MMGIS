@@ -787,7 +787,7 @@ var DrawTool = {
                         e.on(
                             'click',
                             (function (l) {
-                                return function (d) {
+                                return async function (d) {
                                     if (
                                         ToolController_.activeTool &&
                                         ToolController_.activeTool
@@ -844,7 +844,7 @@ var DrawTool = {
                                             layerData.kind || 'none'
                                         ).click
 
-                                    runInteractions(pipeline, {
+                                    await runInteractions(pipeline, {
                                         Map_,
                                         feature: layer.feature,
                                         layer,
