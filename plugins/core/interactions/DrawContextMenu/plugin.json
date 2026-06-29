@@ -1,0 +1,19 @@
+{
+    "uuid": "int-draw-ctx-0001-0000-000000000007",
+    "id": "core-interaction-draw-context-menu",
+    "version": "core",
+    "type": "interaction",
+    "tier": "core",
+    "overridable": true,
+    "name": "DrawContextMenu",
+    "interactionId": "draw:context_menu",
+    "description": "Opens the Draw tool's context menu for the clicked feature.",
+    "applicableLayerTypes": ["vector", "vectortile", "query"],
+    "applicableEvents": ["click"],
+    "pluginDependencies": ["core/tools/Draw"],
+    "paths": {
+        "DrawContextMenu": "./DrawContextMenu"
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0"
+}

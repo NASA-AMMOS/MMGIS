@@ -1,0 +1,18 @@
+{
+    "uuid": "int-viewer-upd-0001-0000-000000000010",
+    "id": "core-interaction-viewer-update",
+    "version": "core",
+    "type": "interaction",
+    "tier": "core",
+    "overridable": true,
+    "name": "ViewerUpdate",
+    "interactionId": "viewer:update",
+    "description": "Updates the Viewer panel images for the clicked feature.",
+    "applicableLayerTypes": ["vector", "vectortile", "query"],
+    "applicableEvents": ["click"],
+    "paths": {
+        "ViewerUpdate": "./ViewerUpdate"
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0"
+}

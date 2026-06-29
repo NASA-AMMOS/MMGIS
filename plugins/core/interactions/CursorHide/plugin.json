@@ -1,0 +1,18 @@
+{
+    "uuid": "int-cursor-hd-0001-0000-000000000014",
+    "id": "core-interaction-cursor-hide",
+    "version": "core",
+    "type": "interaction",
+    "tier": "core",
+    "overridable": true,
+    "name": "CursorHide",
+    "interactionId": "cursor:hide",
+    "description": "Hides the cursor info tooltip on mouseout.",
+    "applicableLayerTypes": ["vector", "vectortile", "query"],
+    "applicableEvents": ["mouseout"],
+    "paths": {
+        "CursorHide": "./CursorHide"
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0"
+}

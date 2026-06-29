@@ -54,7 +54,7 @@ const KNOWN_FIELDS = {
     "expandable",
     "separatedTool",
     "config",
-    "kinds",
+    "providesInteractions",
   ]),
   component: new Set([
     ...COMMON_FIELDS,
@@ -71,6 +71,14 @@ const KNOWN_FIELDS = {
     "priority",
     "envs",
     "routes",
+  ]),
+  interaction: new Set([
+    ...COMMON_FIELDS,
+    "paths",
+    "interactionId",
+    "description",
+    "applicableLayerTypes",
+    "applicableEvents",
   ]),
 };
 
@@ -189,7 +197,7 @@ function validatePluginConfig(config, pluginName, pluginType) {
       `Plugin '${pluginName}' (${pluginType}): 'version' must be a string`
     );
   }
-  if (config.type !== undefined && !["tool", "component", "backend"].includes(config.type)) {
+  if (config.type !== undefined && !["tool", "component", "backend", "interaction"].includes(config.type)) {
     errors.push(
       `Plugin '${pluginName}' (${pluginType}): 'type' must be one of: tool, component, backend`
     );
@@ -238,6 +246,44 @@ function validatePluginConfig(config, pluginName, pluginType) {
         if (typeof dep !== "string" || dep.length === 0) {
           errors.push(
             `Plugin '${pluginName}' (${pluginType}): each entry in 'pluginDependencies' must be a non-empty string (plugin ID)`
+          );
+        }
+      }
+    }
+  }
+
+  // For interactions, name, interactionId, and paths are required.
+  if (pluginType === "interaction") {
+    if (typeof config.name !== "string" || config.name.length === 0) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): missing required 'name' field (must be a non-empty string)`
+      );
+    }
+    if (typeof config.interactionId !== "string" || config.interactionId.length === 0) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): missing required 'interactionId' field (must be a non-empty string)`
+      );
+    }
+    if (
+      config.paths === undefined ||
+      config.paths === null ||
+      typeof config.paths !== "object" ||
+      Array.isArray(config.paths)
+    ) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): missing required 'paths' object`
+      );
+    } else {
+      const pathKeys = Object.keys(config.paths);
+      if (pathKeys.length === 0) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'paths' object must contain at least one entry`
+        );
+      }
+      for (const key of pathKeys) {
+        if (typeof config.paths[key] !== "string") {
+          errors.push(
+            `Plugin '${pluginName}' (${pluginType}): 'paths.${key}' must be a string`
           );
         }
       }

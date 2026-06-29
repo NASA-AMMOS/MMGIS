@@ -1,0 +1,18 @@
+{
+    "uuid": "int-cleanup-0001-0000-000000000002",
+    "id": "core-interaction-cleanup-temp",
+    "version": "core",
+    "type": "interaction",
+    "tier": "core",
+    "overridable": true,
+    "name": "CleanupTemp",
+    "interactionId": "cleanup_temp",
+    "description": "Removes temporary overlay images and 3D models from the previous click.",
+    "applicableLayerTypes": ["vector", "vectortile", "query"],
+    "applicableEvents": ["click"],
+    "paths": {
+        "CleanupTemp": "./CleanupTemp"
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0"
+}

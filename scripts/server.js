@@ -29,7 +29,7 @@ const { sequelize } = require("../API/connection");
 
 const setups = require("../API/setups");
 
-const { updateTools, updateComponents } = require("../API/updateTools");
+const { updateTools, updateComponents, updateInteractions } = require("../API/updateTools");
 
 const { websocket } = require("../API/websocket");
 
@@ -743,6 +743,9 @@ setups.getBackendSetups(function (setups) {
 
     console.log(chalk.cyan("\nPlugging in Components..."));
     updateComponents();
+
+    console.log(chalk.cyan("\nPlugging in Interactions..."));
+    updateInteractions();
   }
 
   //////Setups Init//////

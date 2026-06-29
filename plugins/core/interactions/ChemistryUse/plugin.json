@@ -1,0 +1,19 @@
+{
+    "uuid": "int-chem-use-0001-0000-000000000008",
+    "id": "core-interaction-chemistry-use",
+    "version": "core",
+    "type": "interaction",
+    "tier": "core",
+    "overridable": true,
+    "name": "ChemistryUse",
+    "interactionId": "chemistry:use",
+    "description": "Invokes the ChemistryTool on the clicked feature.",
+    "applicableLayerTypes": ["vector", "vectortile", "query"],
+    "applicableEvents": ["click"],
+    "pluginDependencies": ["core/tools/ChemistryTool"],
+    "paths": {
+        "ChemistryUse": "./ChemistryUse"
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0"
+}

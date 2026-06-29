@@ -1,0 +1,18 @@
+{
+    "uuid": "int-wp-model-0001-0000-000000000006",
+    "id": "core-interaction-waypoint-model",
+    "version": "core",
+    "type": "interaction",
+    "tier": "core",
+    "overridable": true,
+    "name": "WaypointModel",
+    "interactionId": "waypoint:model",
+    "description": "Adds a temporary 3D model on the globe at the clicked waypoint position.",
+    "applicableLayerTypes": ["vector", "vectortile", "query"],
+    "applicableEvents": ["click"],
+    "paths": {
+        "WaypointModel": "./WaypointModel"
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0"
+}

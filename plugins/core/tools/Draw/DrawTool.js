@@ -19,7 +19,10 @@ import Toast from '@design/components/Toast/Toast'
 import Description from '@basics/UserInterface_/components/Description/Description'
 import TimeControl from '@basics/TimeControl_/TimeControl'
 import useUIStore from '@basics/UserInterface_/store/uiStore'
-import { Kinds } from '@pre/tools'
+import {
+    runInteractions,
+    kindToInteractions,
+} from '@basics/InteractionRunner'
 
 import calls from '@pre/calls'
 
@@ -833,16 +836,28 @@ var DrawTool = {
                                         L_.Map_._justSetActiveLayer = true
                                     Description.updatePoint(Map_.activeLayer)
 
-                                    Kinds.use(
-                                        'none',
+                                    const layerData =
+                                        L_.layers.data[l] || {}
+                                    const pipeline =
+                                        layerData.interactions?.click ||
+                                        kindToInteractions(
+                                            layerData.kind || 'none'
+                                        ).click
+
+                                    runInteractions(pipeline, {
                                         Map_,
-                                        layer.feature,
+                                        feature: layer.feature,
                                         layer,
-                                        l,
-                                        null,
-                                        d
-                                    )
-                                    Viewer_.changeImages(layer.feature, layer)
+                                        layerName: l,
+                                        layerData,
+                                        layerVar:
+                                            layerData.variables || {},
+                                        event: d,
+                                        eventType: 'click',
+                                        additional: null,
+                                        stop: false,
+                                        state: {},
+                                    })
                                     Globe_.highlight(
                                         Globe_.findSpriteObject(
                                             layer.options.layerName,

@@ -1,0 +1,18 @@
+{
+    "uuid": "int-select-0001-0000-000000000001",
+    "id": "core-interaction-select",
+    "version": "core",
+    "type": "interaction",
+    "tier": "core",
+    "overridable": true,
+    "name": "Select",
+    "interactionId": "select",
+    "description": "Sets the clicked feature as the active feature, triggering highlight, description bar, and cross-renderer sync.",
+    "applicableLayerTypes": ["vector", "vectortile", "query"],
+    "applicableEvents": ["click"],
+    "paths": {
+        "Select": "./Select"
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0"
+}

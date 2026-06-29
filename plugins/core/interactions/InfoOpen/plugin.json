@@ -1,0 +1,19 @@
+{
+    "uuid": "int-info-open-0001-0000-000000000003",
+    "id": "core-interaction-info-open",
+    "version": "core",
+    "type": "interaction",
+    "tier": "core",
+    "overridable": true,
+    "name": "InfoOpen",
+    "interactionId": "info:open",
+    "description": "Gathers intersecting features and opens the Info panel.",
+    "applicableLayerTypes": ["vector", "vectortile", "query"],
+    "applicableEvents": ["click"],
+    "pluginDependencies": ["core/tools/Info"],
+    "paths": {
+        "InfoOpen": "./InfoOpen"
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0"
+}

@@ -1,0 +1,18 @@
+{
+    "uuid": "int-wp-image-0001-0000-000000000005",
+    "id": "core-interaction-waypoint-image",
+    "version": "core",
+    "type": "interaction",
+    "tier": "core",
+    "overridable": true,
+    "name": "WaypointImage",
+    "interactionId": "waypoint:image",
+    "description": "Adds a rotated image overlay on the 2D map at the clicked waypoint position.",
+    "applicableLayerTypes": ["vector", "vectortile", "query"],
+    "applicableEvents": ["click"],
+    "paths": {
+        "WaypointImage": "./WaypointImage"
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0"
+}

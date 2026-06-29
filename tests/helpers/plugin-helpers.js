@@ -67,6 +67,7 @@ const TYPE_DIRS = {
     tool: 'tools',
     component: 'components',
     backend: 'backend',
+    interaction: 'interactions',
 };
 
 /**

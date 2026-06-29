@@ -160,7 +160,6 @@ function updateTools() {
   //    available the moment `ToolController_` is initialised.
   let toolConfigs = "";
   const toolModules = {};
-  let kindsModule = null;
   // Paths values in plugin.json can be:
   //   - Relative ("./DrawTool") — resolved from the plugin's directory
   //   - Legacy ("../plugins/core/tools/X/XTool") — prefixed with "../"
@@ -169,13 +168,8 @@ function updateTools() {
     const pluginPath = toolPluginPaths[t] || null;
     for (const p in tools[t].paths) {
       const resolved = resolvePluginPath(tools[t].paths[p], pluginPath);
-      if (p === "Kinds") {
-        kindsModule = p;
-        toolConfigs += `import kinds from '${resolved}'\n`;
-      } else {
-        toolModules[p] = p;
-        toolConfigs += `import ${p} from '${resolved}'\n`;
-      }
+      toolModules[p] = p;
+      toolConfigs += `import ${p} from '${resolved}'\n`;
     }
   }
 
@@ -184,28 +178,18 @@ function updateTools() {
   toolConfigs += `export const toolModules = ${JSON.stringify(
     toolModules
   ).replace(/"/g, "")}\n`;
-  toolConfigs += `export const Kinds = kinds`;
 
-  if (kindsModule == null) {
+  try {
+    fs.writeFileSync("./src/pre/tools.js", toolConfigs);
+    logger("success", "Successfully plugged-in tools.", "Tools");
+  } catch (err) {
     logger(
       "error",
-      "Kinds tool is required but is not found. Are you missing a plugin.json?",
+      "Failed to write tool paths to src tools.js",
       "Tools",
-      null
+      null,
+      err
     );
-  } else {
-    try {
-      fs.writeFileSync("./src/pre/tools.js", toolConfigs);
-      logger("success", "Successfully plugged-in tools.", "Tools");
-    } catch (err) {
-      logger(
-        "error",
-        "Failed to write tool paths to src tools.js",
-        "Tools",
-        null,
-        err
-      );
-    }
   }
 
   // Check inter-plugin dependencies (warns if a tool's backend dep is missing/disabled).
@@ -284,4 +268,125 @@ function updateComponents() {
   }
 }
 
-module.exports = { updateTools, updateComponents };
+function updateInteractions() {
+  let interactions = {};
+  const interactionPluginPaths = {};
+
+  // 1. Discover all interaction plugins.
+  const allInteractions = discoverPlugins(
+    PLUGINS_ROOT,
+    "interactions",
+    "plugin.json",
+    { loggerCategory: "Interactions" }
+  );
+
+  // 2. Build set of all enabled plugin IDs (tools + backend + components)
+  //    for hard dependency checking.
+  const enabledPluginIds = new Set();
+  for (const type of ["tools", "backend", "components"]) {
+    const plugins = discoverPlugins(PLUGINS_ROOT, type, "plugin.json", {
+      loader: "parse",
+      loggerCategory: "Interactions",
+    });
+    for (const p of plugins) {
+      enabledPluginIds.add(`${p.container}/${type}/${p.name}`);
+    }
+  }
+
+  // 3. Register each interaction, enforcing hard dependencies.
+  for (const plugin of allInteractions) {
+    // Hard dependency check — exclude interactions whose deps are missing.
+    if (Array.isArray(plugin.manifest.pluginDependencies)) {
+      const missing = plugin.manifest.pluginDependencies.filter(
+        (dep) => !enabledPluginIds.has(dep)
+      );
+      if (missing.length > 0) {
+        logger(
+          "warn",
+          `Interaction '${plugin.name}' skipped — missing dependencies: ${missing.join(", ")}`,
+          "Interactions"
+        );
+        continue;
+      }
+    }
+
+    const registered = registerPlugin({
+      registry: interactions,
+      name: plugin.name,
+      config: plugin.manifest,
+      pluginType: "interaction",
+      source: plugin.container,
+      loggerCategory: "Interactions",
+    });
+    if (registered) {
+      interactionPluginPaths[plugin.name] = plugin.pluginPath;
+    }
+  }
+
+  // 4. Write interactionConfigs.json for the Configure page.
+  try {
+    fs.writeFileSync(
+      "./configure/public/interactionConfigs.json",
+      JSON.stringify(interactions)
+    );
+    logger(
+      "success",
+      "Successfully updated interaction configurations.",
+      "Interactions"
+    );
+  } catch (err) {
+    logger(
+      "error",
+      "Failed to write interactionConfigs.json",
+      "Interactions",
+      null,
+      err
+    );
+  }
+
+  // 5. Generate src/pre/interactions.js with static imports.
+  let output = "";
+  const handlerEntries = [];
+
+  for (const name in interactions) {
+    const manifest = interactions[name];
+    const pluginPath = interactionPluginPaths[name] || null;
+    for (const p in manifest.paths) {
+      const resolved = resolvePluginPath(manifest.paths[p], pluginPath);
+      const safeName = `interaction_${name}`;
+      output += `import ${safeName} from '${resolved}'\n`;
+      handlerEntries.push({
+        interactionId: manifest.interactionId,
+        importName: safeName,
+      });
+    }
+  }
+
+  output += "\n";
+  output += "export const interactionHandlers = {\n";
+  for (const entry of handlerEntries) {
+    output += `  '${entry.interactionId}': ${entry.importName},\n`;
+  }
+  output += "}\n\n";
+  output += `export const interactionConfigs = ${JSON.stringify(
+    interactions
+  )}\n`;
+
+  try {
+    fs.writeFileSync("./src/pre/interactions.js", output);
+    logger("success", "Successfully plugged-in interactions.", "Interactions");
+  } catch (err) {
+    logger(
+      "error",
+      "Failed to write src/pre/interactions.js",
+      "Interactions",
+      null,
+      err
+    );
+  }
+
+  // 6. Cross-type dependency check.
+  checkPluginDependencies(PLUGINS_ROOT, "Interactions");
+}
+
+module.exports = { updateTools, updateComponents, updateInteractions };

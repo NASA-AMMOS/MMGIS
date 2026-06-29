@@ -1,0 +1,18 @@
+{
+    "uuid": "int-search-url-0001-0000-000000000011",
+    "id": "core-interaction-search-url",
+    "version": "core",
+    "type": "interaction",
+    "tier": "core",
+    "overridable": true,
+    "name": "SearchUrl",
+    "interactionId": "search:url",
+    "description": "Writes the search string to the URL for deeplinking.",
+    "applicableLayerTypes": ["vector", "vectortile", "query"],
+    "applicableEvents": ["click"],
+    "paths": {
+        "SearchUrl": "./SearchUrl"
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0"
+}
