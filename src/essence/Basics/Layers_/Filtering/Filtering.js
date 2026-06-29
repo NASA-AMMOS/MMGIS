@@ -703,7 +703,7 @@ const Filtering = {
         ]
 
         OpGridSelector.init($(elmId), valueOpItems, opId, {
-            columns: 4,
+            columns: 5,
             onSelect: function (idx) {
                 Filtering.filters[layerName].values[id].op = ops[idx]
                 Filtering.setSubmitButtonState(true)

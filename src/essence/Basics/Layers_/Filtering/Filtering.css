@@ -183,6 +183,7 @@
 }
 .layersTool_filtering_value_operator {
     box-sizing: border-box;
+    width: 30px;
 }
 .layersTool_filtering_value .layersTool_filtering_value_value {
     flex: 1;
