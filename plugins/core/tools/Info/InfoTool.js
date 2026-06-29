@@ -5,7 +5,7 @@ import Map_ from '@basics/Map_/Map_'
 import {
     runInteractions,
     kindToInteractions,
-} from '@basics/InteractionRunner'
+} from '@basics/InteractionRunner/InteractionRunner'
 import Dropy from '@external/Dropy/dropy'
 
 import MetadataCapturer from '@basics/Layers_/MetadataCapturer'

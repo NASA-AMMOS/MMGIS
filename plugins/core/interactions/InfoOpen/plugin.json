@@ -1,5 +1,5 @@
 {
-    "uuid": "int-info-open-0001-0000-000000000003",
+    "uuid": "e0b9236b-6d85-43bf-ba9e-90ecf7e96331",
     "id": "core-interaction-info-open",
     "version": "core",
     "type": "interaction",
@@ -8,12 +8,24 @@
     "name": "InfoOpen",
     "interactionId": "info:open",
     "description": "Gathers intersecting features and opens the Info panel.",
-    "applicableLayerTypes": ["vector", "vectortile", "query"],
-    "applicableEvents": ["click"],
+    "applicableLayerTypes": [
+        "vector",
+        "vectortile",
+        "query"
+    ],
+    "applicableEvents": [
+        "click"
+    ],
     "phase": "main",
-    "suppresses": ["info:silent"],
-    "kindAlias": ["info"],
-    "pluginDependencies": ["core/tools/Info"],
+    "suppresses": [
+        "info:silent"
+    ],
+    "kindAlias": [
+        "info"
+    ],
+    "pluginDependencies": [
+        "core/tools/Info"
+    ],
     "paths": {
         "InfoOpen": "./InfoOpen"
     },

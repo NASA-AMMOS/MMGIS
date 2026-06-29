@@ -1,5 +1,5 @@
 {
-    "uuid": "int-cursor-sh-0001-0000-000000000013",
+    "uuid": "cd5fcd17-0a48-4adf-9f9b-5856fb7db4d5",
     "id": "core-interaction-cursor-show",
     "version": "core",
     "type": "interaction",
@@ -8,8 +8,14 @@
     "name": "CursorShow",
     "interactionId": "cursor:show",
     "description": "Shows the feature name in the cursor info tooltip on hover.",
-    "applicableLayerTypes": ["vector", "vectortile", "query"],
-    "applicableEvents": ["hover"],
+    "applicableLayerTypes": [
+        "vector",
+        "vectortile",
+        "query"
+    ],
+    "applicableEvents": [
+        "hover"
+    ],
     "phase": "preamble",
     "order": 0,
     "paths": {

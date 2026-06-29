@@ -1,5 +1,5 @@
 import TC_ from '@basics/ToolController_/ToolController_'
-import { gatherFeatures } from '../InfoOpen/FeatureGatherer'
+import { gatherFeatures } from './FeatureGatherer'
 
 const InfoSilent = {
     use(ctx) {

@@ -18,7 +18,7 @@ import MetadataCapturer from '../Layers_/MetadataCapturer.js'
 import {
     runInteractions,
     kindToInteractions,
-} from '../InteractionRunner'
+} from '../InteractionRunner/InteractionRunner'
 import DataShaders from '../../services/DataShaders'
 import calls from '../../../pre/calls'
 import TimeControl from '../TimeControl_/TimeControl'

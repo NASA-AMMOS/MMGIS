@@ -1,5 +1,5 @@
 {
-    "uuid": "int-select-0001-0000-000000000001",
+    "uuid": "823bc5cd-7ba8-482f-939a-b983ce463adb",
     "id": "core-interaction-select",
     "version": "core",
     "type": "interaction",
@@ -8,8 +8,14 @@
     "name": "Select",
     "interactionId": "select",
     "description": "Sets the clicked feature as the active feature, triggering highlight, description bar, and cross-renderer sync.",
-    "applicableLayerTypes": ["vector", "vectortile", "query"],
-    "applicableEvents": ["click"],
+    "applicableLayerTypes": [
+        "vector",
+        "vectortile",
+        "query"
+    ],
+    "applicableEvents": [
+        "click"
+    ],
     "phase": "preamble",
     "order": 0,
     "paths": {

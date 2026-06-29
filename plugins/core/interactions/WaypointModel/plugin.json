@@ -1,5 +1,5 @@
 {
-    "uuid": "int-wp-model-0001-0000-000000000006",
+    "uuid": "d1b7758b-97fa-4983-8544-042d337887b5",
     "id": "core-interaction-waypoint-model",
     "version": "core",
     "type": "interaction",
@@ -8,11 +8,19 @@
     "name": "WaypointModel",
     "interactionId": "waypoint:model",
     "description": "Adds a temporary 3D model on the globe at the clicked waypoint position.",
-    "applicableLayerTypes": ["vector", "vectortile", "query"],
-    "applicableEvents": ["click"],
+    "applicableLayerTypes": [
+        "vector",
+        "vectortile",
+        "query"
+    ],
+    "applicableEvents": [
+        "click"
+    ],
     "phase": "main",
     "order": 1,
-    "kindAlias": ["waypoint"],
+    "kindAlias": [
+        "waypoint"
+    ],
     "paths": {
         "WaypointModel": "./WaypointModel"
     },

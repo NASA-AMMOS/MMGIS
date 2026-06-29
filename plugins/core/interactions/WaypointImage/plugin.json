@@ -1,5 +1,5 @@
 {
-    "uuid": "int-wp-image-0001-0000-000000000005",
+    "uuid": "cf4dbb99-1765-483d-bb71-6562b9c8220b",
     "id": "core-interaction-waypoint-image",
     "version": "core",
     "type": "interaction",
@@ -8,11 +8,19 @@
     "name": "WaypointImage",
     "interactionId": "waypoint:image",
     "description": "Adds a rotated image overlay on the 2D map at the clicked waypoint position.",
-    "applicableLayerTypes": ["vector", "vectortile", "query"],
-    "applicableEvents": ["click"],
+    "applicableLayerTypes": [
+        "vector",
+        "vectortile",
+        "query"
+    ],
+    "applicableEvents": [
+        "click"
+    ],
     "phase": "main",
     "order": 0,
-    "kindAlias": ["waypoint"],
+    "kindAlias": [
+        "waypoint"
+    ],
     "paths": {
         "WaypointImage": "./WaypointImage"
     },

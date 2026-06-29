@@ -22,7 +22,7 @@ import useUIStore from '@basics/UserInterface_/store/uiStore'
 import {
     runInteractions,
     kindToInteractions,
-} from '@basics/InteractionRunner'
+} from '@basics/InteractionRunner/InteractionRunner'
 
 import calls from '@pre/calls'
 

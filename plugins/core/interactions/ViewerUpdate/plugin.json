@@ -1,5 +1,5 @@
 {
-    "uuid": "int-viewer-upd-0001-0000-000000000010",
+    "uuid": "e7a80679-2b7b-4786-8bef-7989eee55449",
     "id": "core-interaction-viewer-update",
     "version": "core",
     "type": "interaction",
@@ -8,8 +8,14 @@
     "name": "ViewerUpdate",
     "interactionId": "viewer:update",
     "description": "Updates the Viewer panel images for the clicked feature.",
-    "applicableLayerTypes": ["vector", "vectortile", "query"],
-    "applicableEvents": ["click"],
+    "applicableLayerTypes": [
+        "vector",
+        "vectortile",
+        "query"
+    ],
+    "applicableEvents": [
+        "click"
+    ],
     "phase": "postamble",
     "order": 1,
     "paths": {

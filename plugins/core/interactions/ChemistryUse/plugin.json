@@ -1,5 +1,5 @@
 {
-    "uuid": "int-chem-use-0001-0000-000000000008",
+    "uuid": "a192e7b4-e624-41ed-a237-5102a7771a19",
     "id": "core-interaction-chemistry-use",
     "version": "core",
     "type": "interaction",
@@ -8,11 +8,21 @@
     "name": "ChemistryUse",
     "interactionId": "chemistry:use",
     "description": "Invokes the ChemistryTool on the clicked feature.",
-    "applicableLayerTypes": ["vector", "vectortile", "query"],
-    "applicableEvents": ["click"],
+    "applicableLayerTypes": [
+        "vector",
+        "vectortile",
+        "query"
+    ],
+    "applicableEvents": [
+        "click"
+    ],
     "phase": "main",
-    "kindAlias": ["chemistry_tool"],
-    "pluginDependencies": ["core/tools/ChemistryTool"],
+    "kindAlias": [
+        "chemistry_tool"
+    ],
+    "pluginDependencies": [
+        "core/tools/ChemistryTool"
+    ],
     "paths": {
         "ChemistryUse": "./ChemistryUse"
     },

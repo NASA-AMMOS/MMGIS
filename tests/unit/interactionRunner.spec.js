@@ -11,7 +11,7 @@ const {
     runInteractions,
     kindToInteractions,
     buildFullPipeline,
-} = require('../../src/essence/Basics/InteractionRunner');
+} = require('../../src/essence/Basics/InteractionRunner/InteractionRunner');
 
 // Standard config matching what the core plugin.json manifests produce
 const CORE_CONFIG = {

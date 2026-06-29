@@ -1,5 +1,5 @@
 {
-    "uuid": "int-viewer-open-0001-0000-000000000009",
+    "uuid": "f7dfa5b2-dec8-4f5d-b0b0-177616585d8a",
     "id": "core-interaction-viewer-open-panel",
     "version": "core",
     "type": "interaction",
@@ -8,10 +8,18 @@
     "name": "ViewerOpenPanel",
     "interactionId": "viewer:open_panel",
     "description": "Opens the Viewer panel if hidden, then zooms the map to the clicked feature.",
-    "applicableLayerTypes": ["vector", "vectortile", "query"],
-    "applicableEvents": ["click"],
+    "applicableLayerTypes": [
+        "vector",
+        "vectortile",
+        "query"
+    ],
+    "applicableEvents": [
+        "click"
+    ],
     "phase": "main",
-    "kindAlias": ["viewer_open"],
+    "kindAlias": [
+        "viewer_open"
+    ],
     "paths": {
         "ViewerOpenPanel": "./ViewerOpenPanel"
     },
