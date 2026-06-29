@@ -844,6 +844,9 @@ var DrawTool = {
                                             layerData.kind || 'none'
                                         ).click
 
+                                    Map_.rmNotNull(Map_.tempOverlayImage)
+                                    L_.Globe_.litho.removeLayer('markerAttachmentTempModel')
+
                                     await runInteractions(pipeline, {
                                         Map_,
                                         feature: layer.feature,
