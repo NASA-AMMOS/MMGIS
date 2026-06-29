@@ -183,6 +183,7 @@
 }
 .layersTool_filtering_value_operator {
     box-sizing: border-box;
+    width: 30px;
 }
 .layersTool_filtering_value .layersTool_filtering_value_value {
     flex: 1;
@@ -264,14 +265,6 @@
 .layersTool_filtering_group_operator_select.op_not_or {
     background: var(--color-p4);
 }
-.layersTool_filtering_group_operator_select .dropy__title span {
-    padding: 4px 0px !important;
-    width: 100%;
-    font-size: 12px;
-    font-weight: bold;
-    letter-spacing: 1px;
-    text-align: center !important;
-}
 
 .layersTool_filtering_value_operator_select:hover {
     background: var(--color-a2);
@@ -301,26 +294,6 @@
     background: #fffb80;
 }
 
-#layersTool_filtering .dropy,
-#layersTool_filtering .dropy__title {
-    height: 30px;
-    border: none;
-}
-#layersTool_filtering .dropy__title span {
-    padding: 6px;
-}
-#layersTool_filtering .dropy .dropy__content li a {
-    padding: 6px;
-    border-top: 1px solid var(--color-m);
-    margin-bottom: 0px;
-    height: 30px;
-}
-#layersTool_filtering .dropy__content .dropy__header {
-    display: none;
-}
-#layersTool_filtering .dropy__content ul {
-    transition: none;
-}
 
 #layersTool_filtering_submit_loading {
     display: none;

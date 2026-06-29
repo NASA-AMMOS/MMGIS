@@ -10,7 +10,7 @@ import ESFilterer from './ESFilterer'
 import GeodatasetFilterer from './GeodatasetFilterer'
 
 import Help from '../../UserInterface_/components/Help/Help'
-import Dropy from '../../../../external/Dropy/dropy'
+import OpGridSelector from './OpGridSelector'
 import { circle } from '@turf/turf'
 
 import Sortable from 'sortablejs'
@@ -191,6 +191,7 @@ const Filtering = {
     destroy: function () {
         // Clear Spatial Filter
         Map_.rmNotNull(Filtering.mapSpatialLayer)
+        OpGridSelector.destroy()
 
         $('#layersTool_filtering').remove()
     },
@@ -520,58 +521,31 @@ const Filtering = {
             Filtering.setSubmitButtonState(true)
         })
 
-        // Operator Dropdown
+        // Operator Grid Selector
         elmId = `#layersTool_filtering_group_operator_${F_.getSafeName(
             layerName
         )}_${id}`
 
         const ops = ['AND', 'OR', 'NOT_AND', 'NOT_OR']
         const opId = Math.max(ops.indexOf(options.op), 0)
-        $(elmId).html(
-            Dropy.construct(
-                [
-                    `<div style='font-family: monospace;'>All Must Match (AND)</div>`,
-                    `<div style='font-family: monospace;'>Any May Match (OR)</div>`,
-                    `<div style='font-family: monospace;'>Not All May Match (NOT AND)</div>`,
-                    `<div style='font-family: monospace;'>None Must Match (NOT OR)</div>`,
-                ],
-                'op',
-                opId,
-                { openUp: true, hideChevron: true }
-            )
-        )
-        Dropy.init($(elmId), function (idx) {
-            const newOp = ops[idx]
-            Filtering.filters[layerName].values[id].op = newOp
-            switch (newOp) {
-                case 'AND':
-                    $(elmId).removeClass('op_or')
-                    $(elmId).removeClass('op_not_and')
-                    $(elmId).removeClass('op_not_or')
-                    $(elmId).addClass('op_and')
-                    break
-                case 'OR':
-                    $(elmId).removeClass('op_and')
-                    $(elmId).removeClass('op_not_and')
-                    $(elmId).removeClass('op_not_or')
-                    $(elmId).addClass('op_or')
-                    break
-                case 'NOT_AND':
-                    $(elmId).removeClass('op_and')
-                    $(elmId).removeClass('op_or')
-                    $(elmId).removeClass('op_not_or')
-                    $(elmId).addClass('op_not_and')
-                    break
-                case 'NOT_OR':
-                    $(elmId).removeClass('op_and')
-                    $(elmId).removeClass('op_or')
-                    $(elmId).removeClass('op_not_and')
-                    $(elmId).addClass('op_not_or')
-                    break
-                default:
-                    break
-            }
-            Filtering.setSubmitButtonState(true)
+
+        const groupOpItems = [
+            { html: `<div style='font-family: monospace; font-size: 11px; white-space: nowrap;'>AND</div>`, title: 'All Must Match (AND)' },
+            { html: `<div style='font-family: monospace; font-size: 11px; white-space: nowrap;'>OR</div>`, title: 'Any May Match (OR)' },
+            { html: `<div style='font-family: monospace; font-size: 11px; white-space: nowrap;'>NAND</div>`, title: 'Not All May Match (NOT AND)' },
+            { html: `<div style='font-family: monospace; font-size: 11px; white-space: nowrap;'>NOR</div>`, title: 'None Must Match (NOT OR)' },
+        ]
+
+        OpGridSelector.init($(elmId), groupOpItems, opId, {
+            columns: 4,
+            onSelect: function (idx) {
+                const newOp = ops[idx]
+                Filtering.filters[layerName].values[id].op = newOp
+                $(elmId)
+                    .removeClass('op_and op_or op_not_and op_not_or')
+                    .addClass('op_' + newOp.toLowerCase())
+                Filtering.setSubmitButtonState(true)
+            },
         })
     },
     attachValueEvents: function (id, layerName, options) {
@@ -696,7 +670,7 @@ const Filtering = {
             } else $(this).css('border', '1px solid var(--color-p4)')
         })
 
-        // Operator Dropdown
+        // Operator Grid Selector
         elmId = `#layersTool_filtering_value_operator_${F_.getSafeName(
             layerName
         )}_${id}`
@@ -716,31 +690,29 @@ const Filtering = {
             'isnotnull',
         ]
         const opId = Math.max(ops.indexOf(options.op), 0)
-        $(elmId).html(
-            Dropy.construct(
-                [
-                    `<i class='mdi mdi-equal mdi-18px' title='Equals'></i>`,
-                    `<div title='Not Equals' style='font-family: monospace;'>!=</div>`,
-                    `<div title='Comma-separated list' style='font-family: monospace;'>in</div>`,
-                    `<i class='mdi mdi-less-than mdi-18px' title='Less than'></i>`,
-                    `<i class='mdi mdi-greater-than mdi-18px' title='Greater than'></i>`,
-                    `<i class='mdi mdi-less-than-or-equal mdi-18px' title='Less than or Equal'></i>`,
-                    `<i class='mdi mdi-greater-than-or-equal mdi-18px' title='Greater than or Equal'></i>`,
-                    `<i class='mdi mdi-contain mdi-18px' title='Contains'></i>`,
-                    `<i class='mdi mdi-contain-start mdi-18px' title='Begins With'></i>`,
-                    `<i class='mdi mdi-contain-end mdi-18px' title='Ends With'></i>`,
-                    `<i class='mdi mdi-null mdi-18px' title='Is Null (No Value)'></i>`,
-                    `<i class='mdi mdi-check-circle-outline mdi-18px' title='Is Not Null (Has Value)'></i>`,
-                ],
-                'op',
-                opId,
-                { openUp: true, hideChevron: true }
-            )
-        )
-        Dropy.init($(elmId), function (idx) {
-            Filtering.filters[layerName].values[id].op = ops[idx]
-            Filtering.toggleValueInput(id, layerName, ops[idx])
-            Filtering.setSubmitButtonState(true)
+
+        const valueOpItems = [
+            { html: `<i class='mdi mdi-equal mdi-18px'></i>`, title: 'Equals' },
+            { html: `<div style='font-family: monospace;'>!=</div>`, title: 'Not Equals' },
+            { html: `<div style='font-family: monospace;'>in</div>`, title: 'Comma-separated list' },
+            { html: `<i class='mdi mdi-less-than mdi-18px'></i>`, title: 'Less than' },
+            { html: `<i class='mdi mdi-greater-than mdi-18px'></i>`, title: 'Greater than' },
+            { html: `<i class='mdi mdi-less-than-or-equal mdi-18px'></i>`, title: 'Less than or Equal' },
+            { html: `<i class='mdi mdi-greater-than-or-equal mdi-18px'></i>`, title: 'Greater than or Equal' },
+            { html: `<i class='mdi mdi-contain mdi-18px'></i>`, title: 'Contains' },
+            { html: `<i class='mdi mdi-contain-start mdi-18px'></i>`, title: 'Begins With' },
+            { html: `<i class='mdi mdi-contain-end mdi-18px'></i>`, title: 'Ends With' },
+            { html: `<i class='mdi mdi-null mdi-18px'></i>`, title: 'Is Null (No Value)' },
+            { html: `<i class='mdi mdi-check-circle-outline mdi-18px'></i>`, title: 'Is Not Null (Has Value)' },
+        ]
+
+        OpGridSelector.init($(elmId), valueOpItems, opId, {
+            columns: 6,
+            onSelect: function (idx) {
+                Filtering.filters[layerName].values[id].op = ops[idx]
+                Filtering.toggleValueInput(id, layerName, ops[idx])
+                Filtering.setSubmitButtonState(true)
+            },
         })
 
         // Value AutoComplete
