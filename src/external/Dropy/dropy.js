@@ -37,22 +37,11 @@ export default {
 
         const initialDropyElm = dropyElm
         dropyElm = dropyElm.find('.dropy')
-        let globalScrollHandler = null
         if (options.globalConstruct != null) {
             dropyElm.find('ul').css({ display: 'none' })
             dropyElm = $('body').append(
                 `<div id="${initialDropyElm.attr('id')}_global"></div>`
             )
-        }
-
-        function closeGlobal() {
-            const elm = $(`#${initialDropyElm.attr('id')}_global`)
-            elm.empty()
-            $('.dropy').removeClass(self.openClass)
-            if (globalScrollHandler) {
-                document.removeEventListener('scroll', globalScrollHandler, true)
-                globalScrollHandler = null
-            }
         }
 
         // Opening a dropy
@@ -62,41 +51,29 @@ export default {
             if (options.globalConstruct != null) {
                 const elm = $(`#${initialDropyElm.attr('id')}_global`)
                 elm.empty()
-                elm.append(typeof options.globalConstruct === 'function' ? options.globalConstruct() : options.globalConstruct)
+                elm.append(options.globalConstruct)
                 elm.find('.dropy').addClass(self.openClass)
                 elm.find('.dropy__title').remove()
                 elm.find('.dropy__header')
                     .css({ pointerEvents: 'all' })
                     .click(function () {
-                        closeGlobal()
+                        $('.dropy').removeClass(self.openClass)
+                        const elm = $(`#${initialDropyElm.attr('id')}_global`)
+                        elm.empty()
                     })
                 elm.find('ul').css({ width: 'fit-content' })
                 const bcr = initialDropyElm.get(0).getBoundingClientRect()
-                const openDown = bcr.top < window.innerHeight / 2
-                if (openDown) {
-                    elm.find('.dropy').removeClass('openUp')
-                }
                 elm.css({
                     position: 'fixed',
                     left: bcr.left + 5,
+                    right: bcr.right,
+                    top: bcr.top,
                     width: bcr.width,
-                    zIndex: 10000,
-                    top: openDown ? bcr.bottom : bcr.top,
                 })
                 const bcr2 = elm.find('ul').get(0).getBoundingClientRect()
                 if (bcr2.left + bcr2.width > window.innerWidth) {
                     elm.css({ left: window.innerWidth - bcr2.width - 5 })
                 }
-
-                // Close on scroll (capture phase catches nested containers)
-                if (globalScrollHandler) {
-                    document.removeEventListener('scroll', globalScrollHandler, true)
-                }
-                globalScrollHandler = () => {
-                    closeGlobal()
-                    if (typeof onClose === 'function') onClose()
-                }
-                document.addEventListener('scroll', globalScrollHandler, true)
 
                 elm.find('.dropy__content ul li a').click(function () {
                     var $that = $(this)
@@ -127,7 +104,10 @@ export default {
                     }
 
                     // Close dropdown
-                    closeGlobal()
+                    $dropy.removeClass(self.openClass)
+                    $('.dropy').removeClass(self.openClass)
+                    const elm = $(`#${initialDropyElm.attr('id')}_global`)
+                    elm.empty()
 
                     if (typeof onClose === 'function') {
                         onClose()
@@ -194,9 +174,6 @@ export default {
         $(document).bind('click', function (e) {
             if (!$(e.target).parents().hasClass('dropy')) {
                 $('.dropy').removeClass(self.openClass)
-                if (options.globalConstruct != null) {
-                    closeGlobal()
-                }
                 if (typeof onClose === 'function') {
                     onClose()
                 }
