@@ -283,7 +283,7 @@ function updateInteractions() {
   // 2. Build set of all enabled plugin IDs (tools + backend + components)
   //    for hard dependency checking.
   const enabledPluginIds = new Set();
-  for (const type of ["tools", "backend", "components"]) {
+  for (const type of ["tools", "backend", "components", "interactions"]) {
     const plugins = discoverPlugins(PLUGINS_ROOT, type, "plugin.json", {
       loader: "parse",
       loggerCategory: "Interactions",

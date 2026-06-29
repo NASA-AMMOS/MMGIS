@@ -10,7 +10,7 @@
     "description": "Gathers intersecting features and opens the Info panel.",
     "applicableLayerTypes": ["vector", "vectortile", "query"],
     "applicableEvents": ["click"],
-    "phase": "user",
+    "phase": "main",
     "suppresses": ["info:silent"],
     "kindAlias": ["info"],
     "pluginDependencies": ["core/tools/Info"],

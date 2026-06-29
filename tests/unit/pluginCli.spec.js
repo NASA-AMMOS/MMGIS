@@ -261,4 +261,146 @@ test.describe('discoverPlugins with plugin-state.json', () => {
             rmDir(root);
         }
     });
+
+    test('discovers interaction plugins', () => {
+        const root = makeTmpDir();
+        try {
+            writeFile(
+                path.join(root, 'core', 'interactions', 'TestHook', 'plugin.json'),
+                JSON.stringify({
+                    name: 'TestHook',
+                    type: 'interaction',
+                    interactionId: 'test:hook',
+                    phase: 'main',
+                    paths: { TestHook: './TestHook' },
+                })
+            );
+
+            const found = discoverPlugins(root, 'interactions');
+            const names = found.map((p) => p.name);
+            expect(names).toContain('TestHook');
+        } finally {
+            rmDir(root);
+        }
+    });
+});
+
+// ─── CLI interaction support ──────────────────────────────────────────
+
+test.describe('plugin-cli interaction support', () => {
+
+    test('list command shows interaction plugins', () => {
+        const { stdout, exitCode } = runCli('list');
+        expect(exitCode).toBe(0);
+        expect(stdout).toContain('Interactions');
+        expect(stdout).toContain('Select');
+        expect(stdout).toContain('InfoOpen');
+    });
+
+    test('list --json includes interaction plugins', () => {
+        const { stdout, exitCode } = runCli('list --json');
+        expect(exitCode).toBe(0);
+        const plugins = JSON.parse(stdout);
+        const interactions = plugins.filter((p) => p.type === 'interaction');
+        expect(interactions.length).toBeGreaterThan(0);
+        const names = interactions.map((p) => p.name);
+        expect(names).toContain('Select');
+        expect(names).toContain('InfoOpen');
+    });
+
+    test('info command shows interaction-specific fields', () => {
+        const { stdout, exitCode } = runCli('info InfoOpen');
+        expect(exitCode).toBe(0);
+        expect(stdout).toContain('interaction');
+        expect(stdout).toContain('info:open');
+        expect(stdout).toContain('Phase:');
+        expect(stdout).toContain('Suppresses:');
+    });
+
+    test('info --json includes interaction manifest fields', () => {
+        const { stdout, exitCode } = runCli('info core/interactions/InfoOpen --json');
+        expect(exitCode).toBe(0);
+        const info = JSON.parse(stdout);
+        expect(info.type).toBe('interaction');
+        expect(info.manifest.interactionId).toBe('info:open');
+        expect(info.manifest.phase).toBe('main');
+        expect(info.manifest.suppresses).toEqual(['info:silent']);
+    });
+
+    test('validate passes with interactions included', () => {
+        const { stdout, exitCode } = runCli('validate');
+        expect(exitCode).toBe(0);
+        expect(stdout).toContain('valid');
+    });
+
+    test('validate --json includes interaction plugins', () => {
+        const { stdout, exitCode } = runCli('validate --json');
+        expect(exitCode).toBe(0);
+        const result = JSON.parse(stdout);
+        const interactionResults = result.results.filter((r) => r.plugin.includes('interactions/'));
+        expect(interactionResults.length).toBeGreaterThan(0);
+        expect(interactionResults.every((r) => r.valid)).toBe(true);
+    });
+
+    test('validate --json reports no order collisions for core interactions', () => {
+        const { stdout, exitCode } = runCli('validate --json');
+        expect(exitCode).toBe(0);
+        const result = JSON.parse(stdout);
+        expect(result.interactionWarnings).toBe(0);
+    });
+
+    test('create interaction requires --container flag', () => {
+        const { exitCode } = runCli('create interaction TestHook');
+        expect(exitCode).not.toBe(0);
+    });
+
+    test('create interaction rejects core container', () => {
+        const { exitCode } = runCli('create interaction TestHook --container core');
+        expect(exitCode).not.toBe(0);
+    });
+
+    test('help mentions interaction type', () => {
+        const { stdout, exitCode } = runCli('help');
+        expect(exitCode).toBe(0);
+        expect(stdout).toContain('interaction');
+    });
+
+    test('create and destroy interaction scaffold', () => {
+        const container = 'testint' + Date.now();
+        const pluginDir = path.join(REPO_ROOT, 'plugins', container, 'interactions', 'FeatureGlow');
+        try {
+            const createResult = runCli(`create interaction FeatureGlow --container ${container} --json`);
+            expect(createResult.exitCode).toBe(0);
+            const created = JSON.parse(createResult.stdout);
+            expect(created.type).toBe('interaction');
+            expect(created.files).toContain('plugin.json');
+            expect(created.files).toContain('FeatureGlow.js');
+
+            // Verify generated manifest
+            const manifest = JSON.parse(fs.readFileSync(path.join(pluginDir, 'plugin.json'), 'utf8'));
+            expect(manifest.type).toBe('interaction');
+            expect(manifest.interactionId).toBeDefined();
+            expect(manifest.phase).toBe('main');
+            expect(manifest.paths.FeatureGlow).toBe('./FeatureGlow');
+
+            // Verify handler module
+            const handler = fs.readFileSync(path.join(pluginDir, 'FeatureGlow.js'), 'utf8');
+            expect(handler).toContain('use(ctx)');
+            expect(handler).toContain('export default FeatureGlow');
+
+            // Verify test file
+            expect(fs.existsSync(path.join(pluginDir, 'tests', 'featureGlow.spec.js'))).toBe(true);
+
+            // Destroy
+            const destroyResult = runCli(`destroy ${container}/interactions/FeatureGlow --force --json`);
+            expect(destroyResult.exitCode).toBe(0);
+            expect(fs.existsSync(pluginDir)).toBe(false);
+        } finally {
+            // Cleanup in case test failed
+            const containerDir = path.join(REPO_ROOT, 'plugins', container);
+            if (fs.existsSync(containerDir)) {
+                fs.rmSync(containerDir, { recursive: true, force: true });
+            }
+        }
+    });
 });

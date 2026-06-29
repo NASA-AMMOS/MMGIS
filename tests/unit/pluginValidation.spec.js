@@ -302,7 +302,7 @@ test.describe('validatePluginConfig - interaction manifest fields', () => {
     });
 
     test('accepts all valid phase values', () => {
-        for (const phase of ['preamble', 'postamble', 'user']) {
+        for (const phase of ['preamble', 'postamble', 'main']) {
             const config = { ...validInteraction, phase };
             const errors = validatePluginConfig(config, 'TestHook', 'interaction');
             expect(errors).toEqual([]);

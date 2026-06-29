@@ -485,8 +485,8 @@ test.describe('CLI --json output quality', () => {
         expect(plugins.length).toBeGreaterThan(0);
 
         for (const p of plugins) {
-            // Type should be singular (tool, backend, component) — never plural
-            expect(['tool', 'backend', 'component']).toContain(p.type);
+            // Type should be singular (tool, backend, component, interaction) — never plural
+            expect(['tool', 'backend', 'component', 'interaction']).toContain(p.type);
             expect(p).toHaveProperty('required');
             expect(p).toHaveProperty('path');
             // description may be null but key must exist

@@ -10,7 +10,7 @@
     "description": "Invokes the ChemistryTool on the clicked feature.",
     "applicableLayerTypes": ["vector", "vectortile", "query"],
     "applicableEvents": ["click"],
-    "phase": "user",
+    "phase": "main",
     "kindAlias": ["chemistry_tool"],
     "pluginDependencies": ["core/tools/ChemistryTool"],
     "paths": {

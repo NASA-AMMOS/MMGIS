@@ -292,9 +292,9 @@ function validatePluginConfig(config, pluginName, pluginType) {
         }
       }
     }
-    if (config.phase !== undefined && !["preamble", "postamble", "user"].includes(config.phase)) {
+    if (config.phase !== undefined && !["preamble", "postamble", "main"].includes(config.phase)) {
       errors.push(
-        `Plugin '${pluginName}' (${pluginType}): 'phase' must be one of: preamble, postamble, user`
+        `Plugin '${pluginName}' (${pluginType}): 'phase' must be one of: preamble, postamble, main`
       );
     }
     if (config.order !== undefined && typeof config.order !== "number") {

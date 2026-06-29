@@ -247,9 +247,11 @@ function activate({ expectChanges = false, silent = false } = {}) {
         const repoRoot = path.resolve(__dirname, "..");
         const toolsFile = path.join(repoRoot, "src", "pre", "tools.js");
         const componentsFile = path.join(repoRoot, "src", "pre", "components.js");
+        const interactionsFile = path.join(repoRoot, "src", "pre", "interactions.js");
 
         const beforeTools = parsePreImports(toolsFile);
         const beforeComponents = parsePreImports(componentsFile);
+        const beforeInteractions = parsePreImports(interactionsFile);
 
         // Suppress logger console output during regeneration.
         const origWrite = process.stdout.write;
@@ -260,9 +262,10 @@ function activate({ expectChanges = false, silent = false } = {}) {
             console.log = () => {};
             console.error = () => {};
 
-            const { updateTools, updateComponents } = require("../API/updateTools");
+            const { updateTools, updateComponents, updateInteractions } = require("../API/updateTools");
             updateTools();
             updateComponents();
+            updateInteractions();
         } finally {
             process.stdout.write = origWrite;
             console.log = origLog;
@@ -271,6 +274,7 @@ function activate({ expectChanges = false, silent = false } = {}) {
 
         const afterTools = parsePreImports(toolsFile);
         const afterComponents = parsePreImports(componentsFile);
+        const afterInteractions = parsePreImports(interactionsFile);
 
         // Compute diffs.
         const added = [];
@@ -281,11 +285,17 @@ function activate({ expectChanges = false, silent = false } = {}) {
         for (const name of afterComponents) {
             if (!beforeComponents.has(name)) added.push({ name, type: "component" });
         }
+        for (const name of afterInteractions) {
+            if (!beforeInteractions.has(name)) added.push({ name, type: "interaction" });
+        }
         for (const name of beforeTools) {
             if (!afterTools.has(name)) removed.push({ name, type: "tool" });
         }
         for (const name of beforeComponents) {
             if (!afterComponents.has(name)) removed.push({ name, type: "component" });
+        }
+        for (const name of beforeInteractions) {
+            if (!afterInteractions.has(name)) removed.push({ name, type: "interaction" });
         }
 
         if (!silent) {
@@ -321,7 +331,7 @@ function activate({ expectChanges = false, silent = false } = {}) {
  */
 function discoverAll() {
     const plugins = [];
-    const TYPES = ["tools", "backend", "components"];
+    const TYPES = ["tools", "backend", "components", "interactions"];
 
     let containers;
     try {
@@ -480,6 +490,7 @@ function singularType(dirType, manifest) {
     if (manifest && manifest.type) return manifest.type;
     if (dirType === "tools") return "tool";
     if (dirType === "components") return "component";
+    if (dirType === "interactions") return "interaction";
     return dirType;
 }
 
@@ -536,8 +547,8 @@ function cmdList() {
     }
 
     // Type display helpers — colour per type and friendly labels.
-    const TYPE_LABELS = { tools: "Tools", backend: "Backend", components: "Components" };
-    const TYPE_COLOR = { tools: c.cyan, backend: c.yellow, components: c.green };
+    const TYPE_LABELS = { tools: "Tools", backend: "Backend", components: "Components", interactions: "Interactions" };
+    const TYPE_COLOR = { tools: c.cyan, backend: c.yellow, components: c.green, interactions: c.magenta };
 
     // Compute column widths for alignment (name only, since type is a header).
     let maxName = 0;
@@ -550,7 +561,7 @@ function cmdList() {
 
     let enabledCount = 0;
     let disabledCount = 0;
-    const TYPE_ORDER = ["tools", "backend", "components"];
+    const TYPE_ORDER = ["tools", "backend", "components", "interactions"];
 
     for (const [container, types] of Object.entries(groups)) {
         console.log(`\n  ${c.bold(c.white(container + "/"))}`);
@@ -656,7 +667,7 @@ function cmdInstall(target) {
             }
         } else {
             console.log(`\n  ${c.red("Discovered 0 plugin(s).")}`);
-            console.log(c.dim("  Ensure the repo has the structure: <repo>/{tools,backend,components}/<Name>/plugin.json"));
+            console.log(c.dim("  Ensure the repo has the structure: <repo>/{tools,backend,components,interactions}/<Name>/plugin.json"));
         }
     } else {
         // Local path — copy or symlink.
@@ -707,7 +718,7 @@ function cmdInstall(target) {
 
         // Warn about flat repo structure (no tools/backend/components subdir).
         if (plugins.length === 0) {
-            const TYPES = ["tools", "backend", "components"];
+            const TYPES = ["tools", "backend", "components", "interactions"];
             const hasTypeDir = TYPES.some((t) =>
                 fs.existsSync(path.join(dest, t))
             );
@@ -728,11 +739,11 @@ function cmdInstall(target) {
                 } catch { /* ignore */ }
 
                 if (foundLegacy) {
-                    if (jsonResult) jsonResult.warnings.push("Repo has flat structure — no tools/backend/components subdirectory");
+                    if (jsonResult) jsonResult.warnings.push("Repo has flat structure — no tools/backend/components/interactions subdirectory");
                     if (!FLAG_JSON) {
                         console.log(
                             `\n  ${c.yellow("Warning:")} This repo appears to have plugins directly under the root ` +
-                            `without a ${c.cyan("tools/")}, ${c.cyan("backend/")}, or ${c.cyan("components/")} subdirectory.\n` +
+                            `without a ${c.cyan("tools/")}, ${c.cyan("backend/")}, ${c.cyan("components/")}, or ${c.cyan("interactions/")} subdirectory.\n` +
                             `  The plugin system expects: ${c.cyan("<repo>/tools/<PluginName>/plugin.json")}\n` +
                             `  See ${c.cyan("plugins/README.md")} for the expected directory structure.`
                         );
@@ -1098,7 +1109,7 @@ function cmdValidate() {
             continue;
         }
 
-        const typeMap = { tools: "tool", components: "component", backend: "backend" };
+        const typeMap = { tools: "tool", components: "component", backend: "backend", interactions: "interaction" };
         const validationType = typeMap[p.type] || p.type;
 
         const errs = validatePluginConfig(p.manifest, p.name, validationType);
@@ -1152,8 +1163,55 @@ function cmdValidate() {
         }
     }
 
+    // Interaction-specific validation: order collisions, suppression targets, kindAlias coverage.
+    const interactionPlugins = plugins.filter((p) => p.type === "interactions" && p.manifest && isPluginEnabled(p, state));
+    const interactionIds = new Set(interactionPlugins.map((p) => p.manifest.interactionId).filter(Boolean));
+    let interactionWarnings = 0;
+    const interactionWarningMessages = [];
+
+    // Check for order collisions within the same (phase, event) bucket.
+    const phaseBuckets = {};
+    for (const p of interactionPlugins) {
+        const m = p.manifest;
+        if (!m.phase || m.phase === "main" || m.order === undefined) continue;
+        const events = Array.isArray(m.applicableEvents) ? m.applicableEvents : ["click"];
+        for (const evt of events) {
+            const key = `${m.phase}:${evt}`;
+            if (!phaseBuckets[key]) phaseBuckets[key] = [];
+            phaseBuckets[key].push({ id: p.id, interactionId: m.interactionId, order: m.order });
+        }
+    }
+    for (const [bucket, entries] of Object.entries(phaseBuckets)) {
+        const orderMap = {};
+        for (const e of entries) {
+            if (!orderMap[e.order]) orderMap[e.order] = [];
+            orderMap[e.order].push(e.interactionId || e.id);
+        }
+        for (const [order, ids] of Object.entries(orderMap)) {
+            if (ids.length > 1) {
+                interactionWarnings++;
+                const msg = `Order collision in ${bucket}: interactions ${ids.join(", ")} share order ${order}`;
+                interactionWarningMessages.push(msg);
+                if (!FLAG_JSON) console.log(`  ${c.yellow("⚠")} ${c.yellow("Order collision")} in ${c.cyan(bucket)}: ${ids.map((i) => c.magenta(i)).join(", ")} share order ${c.yellow(order)}`);
+            }
+        }
+    }
+
+    // Check suppression targets exist.
+    for (const p of interactionPlugins) {
+        if (!Array.isArray(p.manifest.suppresses)) continue;
+        for (const target of p.manifest.suppresses) {
+            if (!interactionIds.has(target)) {
+                interactionWarnings++;
+                const msg = `${p.id} suppresses '${target}' which is not a registered interaction`;
+                interactionWarningMessages.push(msg);
+                if (!FLAG_JSON) console.log(`  ${c.yellow("⚠")} ${c.cyan(p.id)}: suppresses ${c.red(target)} ${c.yellow("(not found)")}`);
+            }
+        }
+    }
+
     if (FLAG_JSON) {
-        console.log(JSON.stringify({ valid: errors === 0, total: plugins.length, passed, errors, warnings, depWarnings, depWarningMessages, results }, null, 2));
+        console.log(JSON.stringify({ valid: errors === 0, total: plugins.length, passed, errors, warnings, depWarnings, depWarningMessages, interactionWarnings, interactionWarningMessages, results }, null, 2));
         if (errors > 0) process.exit(1);
         return;
     }
@@ -1162,6 +1220,7 @@ function cmdValidate() {
         console.log(`\n  ${c.green("\u2713")} All ${c.bold(String(plugins.length))} plugin(s) valid.`);
         if (warnings > 0) console.log(`  ${c.yellow(String(warnings))} disabled plugin(s).`);
         if (depWarnings > 0) console.log(`  ${c.yellow(String(depWarnings))} plugin dependency warning(s).`);
+        if (interactionWarnings > 0) console.log(`  ${c.yellow(String(interactionWarnings))} interaction warning(s).`);
     } else {
         console.error(`\n  ${c.red(`${errors} error(s)`)} across ${c.bold(String(plugins.length))} plugin(s). ${c.green(`${passed} passed`)}.`);
         process.exit(1);
@@ -1360,6 +1419,12 @@ function cmdInfo(pluginIdStr) {
     if (m.id) console.log(`  ${c.dim("Manifest ID:")} ${m.id}`);
     if (m.uuid) console.log(`  ${c.dim("UUID:")}        ${m.uuid}`);
     if (m.overridable !== undefined) console.log(`  ${c.dim("Overridable:")} ${m.overridable ? c.green("yes") : c.red("no")}`);
+    if (m.interactionId) console.log(`  ${c.dim("Hook ID:")}     ${c.magenta(m.interactionId)}`);
+    if (m.phase) console.log(`  ${c.dim("Phase:")}       ${c.magenta(m.phase)}${m.order !== undefined ? c.dim(` (order: ${m.order})`) : ""}`);
+    if (m.suppresses && m.suppresses.length > 0) console.log(`  ${c.dim("Suppresses:")}  ${m.suppresses.map((s) => c.red(s)).join(", ")}`);
+    if (m.kindAlias && m.kindAlias.length > 0) console.log(`  ${c.dim("Kind Alias:")}  ${m.kindAlias.map((k) => c.cyan(k)).join(", ")}`);
+    if (m.applicableEvents && m.applicableEvents.length > 0) console.log(`  ${c.dim("Events:")}      ${m.applicableEvents.join(", ")}`);
+    if (m.applicableLayerTypes && m.applicableLayerTypes.length > 0) console.log(`  ${c.dim("Layer Types:")} ${m.applicableLayerTypes.join(", ")}`);
     if (m.description) console.log(`  ${c.dim("Description:")} ${m.description}`);
     if (m.keywords && m.keywords.length > 0) console.log(`  ${c.dim("Keywords:")}    ${m.keywords.map((k) => c.cyan(k)).join(", ")}`);
     if (m.engines) console.log(`  ${c.dim("Engines:")}     ${JSON.stringify(m.engines)}`);
@@ -1706,9 +1771,57 @@ function _scaffoldComponent(name) {
     };
 }
 
+function _scaffoldInteraction(name) {
+    const lower = name[0].toLowerCase() + name.slice(1);
+    const interactionId = lower.replace(/([A-Z])/g, (m) => `:${m.toLowerCase()}`);
+    return {
+        "plugin.json": JSON.stringify({
+            name,
+            type: "interaction",
+            interactionId,
+            description: "",
+            applicableLayerTypes: ["vector", "vectortile", "query"],
+            applicableEvents: ["click"],
+            phase: "main",
+            paths: {}  // placeholder — filled dynamically below
+        }, null, 4) + "\n",
+        [`${name}.js`]: [
+            `const ${name} = {`,
+            `    use(ctx) {`,
+            `        // ctx.feature  — the clicked GeoJSON feature`,
+            `        // ctx.layer    — the Leaflet layer`,
+            `        // ctx.layerName — name of the layer`,
+            `        // ctx.state    — shared state between interactions`,
+            `        // ctx.stop     — set to true to halt the pipeline`,
+            `    },`,
+            `}`,
+            ``,
+            `export default ${name}`,
+            ``,
+        ].join("\n"),
+        [`tests/${lower}.spec.js`]: [
+            `const { test, expect } = require('@playwright/test')`,
+            `const path = require('path')`,
+            ``,
+            `test.describe('${name} interaction', () => {`,
+            `    test('plugin.json is valid', () => {`,
+            `        const manifest = require(path.resolve(__dirname, '..', 'plugin.json'))`,
+            `        expect(manifest.name).toBe('${name}')`,
+            `        expect(manifest.type).toBe('interaction')`,
+            `        expect(manifest.interactionId).toBeDefined()`,
+            `        expect(manifest.paths).toBeDefined()`,
+            `        expect(manifest.paths['${name}']).toBeDefined()`,
+            `    })`,
+            `})`,
+            ``,
+        ].join("\n"),
+    };
+}
+
 function cmdCreate(type, name) {
-    const VALID_TYPES = ["tool", "backend", "component"];
-    const typeDir = type === "tool" ? "tools" : type === "backend" ? "backend" : "components";
+    const VALID_TYPES = ["tool", "backend", "component", "interaction"];
+    const TYPE_DIRS = { tool: "tools", backend: "backend", component: "components", interaction: "interactions" };
+    const typeDir = TYPE_DIRS[type] || type;
 
     if (!type || !VALID_TYPES.includes(type)) {
         jsonError(`Invalid type. Usage: plugin-cli create <${VALID_TYPES.join("|")}> <Name> --container <container>`);
@@ -1754,9 +1867,10 @@ function cmdCreate(type, name) {
     // Generate scaffold files.
     let files;
     switch (type) {
-        case "tool":      files = _scaffoldTool(name); break;
-        case "backend":   files = _scaffoldBackend(name); break;
-        case "component": files = _scaffoldComponent(name); break;
+        case "tool":        files = _scaffoldTool(name); break;
+        case "backend":     files = _scaffoldBackend(name); break;
+        case "component":   files = _scaffoldComponent(name); break;
+        case "interaction": files = _scaffoldInteraction(name); break;
     }
 
     // Fix the paths field in plugin.json to use relative paths.
@@ -1765,6 +1879,10 @@ function cmdCreate(type, name) {
         manifest.paths = { [`${name}Tool`]: `./${name}Tool` };
         files["plugin.json"] = JSON.stringify(manifest, null, 4) + "\n";
     } else if (type === "component") {
+        const manifest = JSON.parse(files["plugin.json"]);
+        manifest.paths = { [name]: `./${name}` };
+        files["plugin.json"] = JSON.stringify(manifest, null, 4) + "\n";
+    } else if (type === "interaction") {
         const manifest = JSON.parse(files["plugin.json"]);
         manifest.paths = { [name]: `./${name}` };
         files["plugin.json"] = JSON.stringify(manifest, null, 4) + "\n";
@@ -1781,7 +1899,7 @@ function cmdCreate(type, name) {
 
     if (FLAG_JSON) {
         let activated = null;
-        if (type === "tool" || type === "component") {
+        if (type === "tool" || type === "component" || type === "interaction") {
             activated = activate({ expectChanges: true, silent: true });
         }
         console.log(JSON.stringify({
@@ -1799,7 +1917,7 @@ function cmdCreate(type, name) {
     }
 
     // Auto-activate for frontend plugins.
-    if (type === "tool" || type === "component") {
+    if (type === "tool" || type === "component" || type === "interaction") {
         activate({ expectChanges: true });
     }
 
@@ -1811,6 +1929,10 @@ function cmdCreate(type, name) {
         console.log(`    ${c.dim("1.")} Edit ${c.cyan(`routes/${name[0].toLowerCase() + name.slice(1)}.js`)} to add your API routes`);
         console.log(`    ${c.dim("2.")} Edit ${c.cyan("plugin.js")} to configure middleware and lifecycle hooks`);
         console.log(`    ${c.dim("3.")} Restart the server to load the backend`);
+    } else if (type === "interaction") {
+        console.log(`    ${c.dim("1.")} Edit ${c.cyan(`${name}.js`)} to implement the ${c.cyan("use(ctx)")} handler`);
+        console.log(`    ${c.dim("2.")} Set ${c.cyan("interactionId")}, ${c.cyan("phase")}, and ${c.cyan("order")} in ${c.cyan("plugin.json")}`);
+        console.log(`    ${c.dim("3.")} Run ${c.cyan("npm run build")} to regenerate interactions`);
     } else {
         console.log(`    ${c.dim("1.")} Edit ${c.cyan(`${name}.js`)} to build your component`);
         console.log(`    ${c.dim("2.")} Configure variables in ${c.cyan("plugin.json")} under ${c.cyan('"config"')}`);
@@ -1893,7 +2015,7 @@ function _performDestroy(match) {
     } catch { /* ignore cleanup errors */ }
 
     if (FLAG_JSON) {
-        const isFrontend = match.type === "tools" || match.type === "components";
+        const isFrontend = match.type === "tools" || match.type === "components" || match.type === "interactions";
         let activated = null;
         if (isFrontend) {
             activated = activate({ expectChanges: true, silent: true });
@@ -1904,7 +2026,7 @@ function _performDestroy(match) {
         }, null, 2));
     } else {
         console.log(`\n  ${c.green("Destroyed:")} ${c.cyan(match.id)}`);
-        const isFrontend = match.type === "tools" || match.type === "components";
+        const isFrontend = match.type === "tools" || match.type === "components" || match.type === "interactions";
         if (isFrontend) {
             activate({ expectChanges: true });
             console.log(`  ${c.yellow("Note:")} If webpack-dev-server is running, restart it to clear its module cache.`);
@@ -1932,7 +2054,7 @@ ${h("disable <plugin-id>", "Disable a plugin (not core)")}
 ${h("enable-all", "Enable all plugins (use --container to scope)")}
 ${h("disable-all", "Disable all non-required plugins (use --container to scope)")}
 ${h("update [repo-name]", "Pull latest for repo(s)")}
-${h("create <type> <Name>", "Scaffold a new plugin (tool, backend, component)")}
+${h("create <type> <Name>", "Scaffold a new plugin (tool, backend, component, interaction)")}
 ${h("destroy <plugin-id>", "Delete a plugin (prompts for confirmation, --force to skip)")}
 ${h("activate", "Regenerate frontend plugin imports (no full build needed)")}
 ${h("validate", "Validate all plugin manifests")}
@@ -1969,6 +2091,7 @@ ${h("help", "Show this help")}
     ${c.dim("$")} npm run plugins -- list --json
     ${c.dim("$")} npm run plugins -- create tool SpectralAnalysis --container my-plugins
     ${c.dim("$")} npm run plugins -- create backend DataIngest --container my-plugins
+    ${c.dim("$")} npm run plugins -- create interaction FeatureHighlight --container my-plugins
 `);
 }
 

@@ -435,14 +435,14 @@ See `plugins/README.md` for the full CLI reference.
 
 #### Plugin `plugin.json` Schema
 
-Every tool or component plugin must include a `plugin.json`. The build step (`API/updateTools.js` → `validatePluginConfig()`) validates each manifest and refuses to register a plugin that fails validation. Failed plugins are logged and skipped — they do **not** abort the build.
+Every plugin must include a `plugin.json`. The build step (`API/updateTools.js` → `validatePluginConfig()`) validates each manifest and refuses to register a plugin that fails validation. Failed plugins are logged and skipped — they do **not** abort the build.
 
 Common fields (all plugin types):
 
 - `uuid` *(string)* — Unique identifier (UUID v4). Generated once when the plugin is created.
 - `id` *(string)* — Stable plugin identifier (e.g. `core-draw`, `my-org-custom-draw`).
 - `version` *(string)* — Semver-compatible version string.
-- `type` *(string)* — One of: `tool`, `component`, `backend`.
+- `type` *(string)* — One of: `tool`, `component`, `backend`, `interaction`.
 - `tier` *(string)* — One of: `core`, `community`, `private`.
 - `overridable` *(boolean)* — If `false`, external plugins cannot override this plugin.
 - `engines` *(object)* — Compatibility constraints, e.g. `{ "mmgis": ">=5.0.0" }`.
@@ -450,10 +450,14 @@ Common fields (all plugin types):
 - `aliases` *(array of strings)* — Alternative names for discovery.
 - `dependencies` *(object)* — Per-plugin npm/Python dependencies (see "Plugin Dependencies" below).
 
-Required fields (for tools and components):
+Required fields (for tools, components, and interactions):
 
 - `name` *(string, non-empty)* — The display name of the plugin. Must match the directory name when overriding a standard tool/component.
 - `paths` *(object of `string` → `string`)* — Maps the module name(s) the tool registers to the import path(s) of the corresponding `.js` file(s). At least one entry is required.
+
+Additional required fields (interactions only):
+
+- `interactionId` *(string)* — The string ID used in layer config pipelines (e.g. `select`, `info:open`).
 
 Optional fields (tools and components):
 
@@ -462,8 +466,17 @@ Optional fields (tools and components):
 - `toolbarPriority` *(number)* — Sort order in the toolbar (lower = earlier).
 - `expandable` *(boolean)* — Whether the tool can be vertically expanded.
 - `separatedTool` *(boolean)* — Render the tool outside the main toolbar.
-- `kinds` *(any)* — Reserved for the `Kinds` tool.
+- `providesInteractions` *(array of strings)* — Lists interaction plugin IDs that this tool provides (informational, e.g. `["core/interactions/DrawContextMenu"]`).
 - `config` *(object)* — Configuration schema shown to admins on the Configure page.
+
+Optional fields (interactions only):
+
+- `phase` *(string)* — One of: `preamble`, `postamble`, `main`. Determines pipeline position.
+- `order` *(number)* — Sort key within the phase (lower = earlier).
+- `suppresses` *(array of strings)* — Interaction IDs that this interaction replaces when present (e.g. `["info:silent"]`).
+- `kindAlias` *(array of strings)* — Legacy kind strings this interaction maps to for backward compatibility.
+- `applicableLayerTypes` *(array of strings)* — Layer types this interaction applies to.
+- `applicableEvents` *(array of strings)* — Event types this interaction handles (`click`, `hover`, `mouseout`).
 
 Unknown top-level fields are preserved but logged as warnings so that newer plugins remain forward compatible.
 
