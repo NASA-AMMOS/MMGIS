@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { center } from '@turf/turf'
 
-import Checkbox from '../../../../../design-system/components/Checkbox/Checkbox'
 import IconButton from '../../../../../design-system/components/IconButton/IconButton'
-import Switch from '../../../../../design-system/components/Switch/Switch'
 import Tooltip from '../../../../../design-system/components/Tooltip/Tooltip'
 
 import calls from '../../../../../pre/calls'
@@ -122,37 +120,63 @@ function getMapZoomCoordinate(layers) {
     }
 }
 
-// Modes for the search bar
-const MODE_DEFAULT = 'default' // cross-layer search by display name
-const MODE_FIELD = 'field' // search by a specific field across layers
-const MODE_LAYER = 'layer' // search scoped to a specific layer
-
-// Operators available per field type — icons match LayersTool Filtering
-const STRING_OPS = [
-    { value: '=', icon: 'mdi-equal', label: 'Equals' },
-    { value: '!=', icon: null, text: '!=', label: 'Not Equals' },
-    { value: 'contains', icon: 'mdi-contain', label: 'Contains' },
-    { value: 'beginswith', icon: 'mdi-contain-start', label: 'Begins With' },
-    { value: 'endswith', icon: 'mdi-contain-end', label: 'Ends With' },
-    { value: ',', icon: null, text: 'in', label: 'In List' },
-    { value: 'isnull', icon: 'mdi-null', label: 'Is Null' },
-    { value: 'isnotnull', icon: 'mdi-check-circle-outline', label: 'Is Not Null' },
-]
-const NUMBER_OPS = [
-    { value: '=', icon: 'mdi-equal', label: 'Equals' },
-    { value: '!=', icon: null, text: '!=', label: 'Not Equals' },
-    { value: '<', icon: 'mdi-less-than', label: 'Less Than' },
-    { value: '>', icon: 'mdi-greater-than', label: 'Greater Than' },
-    { value: '<=', icon: 'mdi-less-than-or-equal', label: 'Less Than or Equal' },
-    { value: '>=', icon: 'mdi-greater-than-or-equal', label: 'Greater Than or Equal' },
-    { value: ',', icon: null, text: 'in', label: 'In List' },
-    { value: 'isnull', icon: 'mdi-null', label: 'Is Null' },
-    { value: 'isnotnull', icon: 'mdi-check-circle-outline', label: 'Is Not Null' },
+// All supported operators for the :field:op:value syntax
+const ALL_OPS = [
+    { value: '=', label: 'Equals', symbol: '=' },
+    { value: '!=', label: 'Not Equals', symbol: '!=' },
+    { value: '<', label: 'Less Than', symbol: '<' },
+    { value: '>', label: 'Greater Than', symbol: '>' },
+    { value: '<=', label: 'Less Than or Equal', symbol: '<=' },
+    { value: '>=', label: 'Greater Than or Equal', symbol: '>=' },
+    { value: '*=', label: 'Contains', symbol: '*=' },
+    { value: '^=', label: 'Begins With', symbol: '^=' },
+    { value: '$=', label: 'Ends With', symbol: '$=' },
+    { value: '~=', label: 'Regex Match', symbol: '~=' },
+    { value: 'in', label: 'In List (comma-separated)', symbol: 'in' },
+    { value: 'isnull', label: 'Is Null', symbol: 'isnull' },
+    { value: 'isnotnull', label: 'Is Not Null', symbol: 'isnotnull' },
 ]
 
-// View modes for the panel
-const VIEW_REGULAR = 'regular'
-const VIEW_ADVANCED = 'advanced'
+// Map op symbols to backend operator values
+const OP_TO_BACKEND = {
+    '=': '=',
+    '!=': '!=',
+    '<': '<',
+    '>': '>',
+    '<=': '<=',
+    '>=': '>=',
+    '*=': 'contains',
+    '^=': 'beginswith',
+    '$=': 'endswith',
+    '~=': 'regex',
+    'in': ',',
+    'isnull': 'isnull',
+    'isnotnull': 'isnotnull',
+}
+
+// Autocomplete stages for the structured query
+const STAGE_FIELD = 'field'
+const STAGE_OP = 'op'
+const STAGE_VALUE = 'value'
+
+function parseColonQuery(text) {
+    if (!text.startsWith(':')) return null
+    const content = text.substring(1)
+    const parts = content.split(':')
+    if (parts.length === 1) {
+        return { stage: STAGE_FIELD, field: parts[0], op: null, value: null }
+    }
+    if (parts.length === 2) {
+        return { stage: STAGE_OP, field: parts[0], op: parts[1], value: null }
+    }
+    // parts.length >= 3: value may contain colons
+    return {
+        stage: STAGE_VALUE,
+        field: parts[0],
+        op: parts[1],
+        value: parts.slice(2).join(':'),
+    }
+}
 
 function SearchBar() {
     const [inputValue, setInputValue] = useState('')
@@ -165,53 +189,40 @@ function SearchBar() {
     const [placeholder, setPlaceholder] = useState('Search...')
     const [initialized, setInitialized] = useState(false)
 
-    // Panel and view mode state
+    // Panel state
     const [panelOpen, setPanelOpen] = useState(false)
-    const [viewMode, setViewMode] = useState(VIEW_REGULAR)
-    const [fieldFilterText, setFieldFilterText] = useState('')
-    const [layerFilterText, setLayerFilterText] = useState('')
-    const [checkedLayers, setCheckedLayers] = useState(new Set())
-    const [commonFieldsOnly, setCommonFieldsOnly] = useState(true)
 
-    // Search mode and selection
-    const [searchMode, setSearchMode] = useState(MODE_DEFAULT)
-    const [selectedField, setSelectedField] = useState(null)
+    // Layer selection (regular mode)
     const [selectedLayer, setSelectedLayer] = useState(null)
-    const [searchOperator, setSearchOperator] = useState('=')
 
-    // Schema and layer data
+    // Schema for structured queries
     const [schemaFields, setSchemaFields] = useState([])
     const [geodatasetLayers, setGeodatasetLayers] = useState([])
     const [vectorSearchLayers, setVectorSearchLayers] = useState([])
     const [vectorLayers, setVectorLayers] = useState([])
     const [fieldValues, setFieldValues] = useState([])
-    const [loadingVectorLayers, setLoadingVectorLayers] = useState(new Set())
+
+    // Search groups: { groupId: { label, layers: [...] } }
+    const [searchGroups, setSearchGroups] = useState({})
+
+    // Help modal
+    const [helpOpen, setHelpOpen] = useState(false)
 
     const lastGeodatasetLayerName = useRef(null)
-
-    // Cached GeoJSON features for lazy-loaded vector layers { layerName: GeoJSON }
     const vectorLayerCache = useRef({})
-    // Schema fields discovered from vector layers { fieldName: { type, layers: [layerName, ...] } }
     const vectorSchemaRef = useRef({})
-    // Base geodataset schema (from API) stored separately for clean merges
     const geodatasetSchemaRef = useRef([])
 
     // Pre-search layer state for restore on cancel
     const preSearchLayerState = useRef(null)
     const searchFilteredLayers = useRef([])
-    // Track layer toggled on by regular mode (so we can turn it off when switching layers)
     const regModeToggledLayer = useRef(null)
-    // Track layer on/off state saved when entering advanced mode
-    const advModeLayerState = useRef(null)
-    // Guard: last auto-fired null-op key to prevent double-execution
-    const lastNullAutoFire = useRef(null)
+    const vectorFilteredLayers = useRef({})
 
     const inputRef = useRef(null)
     const suggestionsRef = useRef(null)
     const panelRef = useRef(null)
-    const fieldFilterRef = useRef(null)
-    const layerFilterRef = useRef(null)
-    const valueInputRef = useRef(null)
+    const helpRef = useRef(null)
 
     const getL_ = useCallback(() => {
         return require('../../../Layers_/Layers_').default
@@ -223,10 +234,10 @@ function SearchBar() {
         return require('../../../Formulae_/Formulae_').default
     }, [])
 
-    // Discover schema from GeoJSON features (inspect first N features)
+    // Discover schema from GeoJSON features
     const discoverVectorSchema = useCallback((geojson, layerName) => {
         const features = geojson.features || []
-        const fieldMap = {} // { fieldName: { types: Set, count } }
+        const fieldMap = {}
         const sampleSize = Math.min(features.length, 50)
 
         const walkProps = (obj, prefix) => {
@@ -265,13 +276,9 @@ function SearchBar() {
     // Merge vector schema into the ref and rebuild schemaFields
     const rebuildMergedSchema = useCallback((geodatasetSchemaFields) => {
         const merged = {}
-
-        // Add geodataset schema fields
         ;(geodatasetSchemaFields || []).forEach((f) => {
             merged[f.name] = { type: f.type, layers: [...f.layers] }
         })
-
-        // Add vector layer schema fields
         for (const fieldName in vectorSchemaRef.current) {
             const vs = vectorSchemaRef.current[fieldName]
             if (merged[fieldName]) {
@@ -279,14 +286,12 @@ function SearchBar() {
                     if (!merged[fieldName].layers.includes(l))
                         merged[fieldName].layers.push(l)
                 })
-                // Let string usurp number
                 if (merged[fieldName].type === 'number' && vs.type === 'string')
                     merged[fieldName].type = vs.type
             } else {
                 merged[fieldName] = { type: vs.type, layers: [...vs.layers] }
             }
         }
-
         const fieldList = Object.keys(merged)
             .map((key) => ({
                 name: key,
@@ -297,7 +302,6 @@ function SearchBar() {
         setSchemaFields(fieldList)
     }, [])
 
-    // Merge vector schema into vectorSchemaRef from a discovered schema object
     const mergeVectorSchemaForLayer = useCallback((schema, layerName) => {
         for (const fk in schema) {
             if (vectorSchemaRef.current[fk]) {
@@ -316,11 +320,8 @@ function SearchBar() {
             const L_ = getL_()
             const layerData = L_.layers.data[layerName]
             if (!layerData) return
-
-            // Already cached
             if (vectorLayerCache.current[layerName]) return
 
-            // If the layer is already loaded in Leaflet, use its data
             if (L_.layers.layer[layerName] && L_.layers.layer[layerName] !== false) {
                 try {
                     const geojson = L_.layers.layer[layerName].toGeoJSON(L_.GEOJSON_PRECISION)
@@ -328,23 +329,13 @@ function SearchBar() {
                     const schema = discoverVectorSchema(geojson, layerName)
                     mergeVectorSchemaForLayer(schema, layerName)
                     return
-                } catch (e) {
-                    // fall through to fetch
-                }
+                } catch (e) { /* fall through */ }
             }
 
-            // Fetch the GeoJSON
             let url = layerData.url
             if (!url) return
-
             const F_ = getF_()
             if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
-
-            setLoadingVectorLayers((prev) => {
-                const next = new Set(prev)
-                next.add(layerName)
-                return next
-            })
 
             fetch(url)
                 .then((res) => res.json())
@@ -352,68 +343,44 @@ function SearchBar() {
                     const F2_ = require('../../../Formulae_/Formulae_').default
                     const geojson = F2_.parseIntoGeoJSON(data)
                     if (!geojson || !geojson.features) return
-
                     vectorLayerCache.current[layerName] = geojson
                     const schema = discoverVectorSchema(geojson, layerName)
                     mergeVectorSchemaForLayer(schema, layerName)
                 })
-                .catch((err) => {
-                    console.warn(`Search: failed to fetch vector layer ${layerName}`, err)
-                })
-                .finally(() => {
-                    setLoadingVectorLayers((prev) => {
-                        const next = new Set(prev)
-                        next.delete(layerName)
-                        return next
-                    })
-                })
+                .catch(() => {})
         },
         [getL_, getF_, discoverVectorSchema, mergeVectorSchemaForLayer]
     )
 
-    // Track vector layers whose features were replaced by filtered results
-    const vectorFilteredLayers = useRef({})
-
-    // Save the current layer visibility and filter state (before search modifies it)
+    // Save the current layer visibility state (before search modifies it)
     const saveLayerState = useCallback(() => {
         if (preSearchLayerState.current != null) return
         const L_ = getL_()
-        // If advanced mode has already saved original state, use that as baseline
-        const onState = advModeLayerState.current
-            ? { ...advModeLayerState.current }
-            : {}
-        if (!advModeLayerState.current) {
-            for (let lname in L_.layers.on) {
-                onState[lname] = L_.layers.on[lname]
-            }
+        const onState = {}
+        for (let lname in L_.layers.on) {
+            onState[lname] = L_.layers.on[lname]
         }
         const filterState = {}
         geodatasetLayers.forEach((gl) => {
             const ld = L_.layers.data[gl.value]
             if (ld && ld._filterEncoded) {
-                filterState[gl.value] = JSON.parse(
-                    JSON.stringify(ld._filterEncoded)
-                )
+                filterState[gl.value] = JSON.parse(JSON.stringify(ld._filterEncoded))
             }
         })
         preSearchLayerState.current = { on: onState, filters: filterState }
     }, [getL_, geodatasetLayers])
 
-    // Restore layer visibility and filter state saved before search
+    // Restore layer visibility and filter state
     const restoreLayerState = useCallback(() => {
         if (preSearchLayerState.current == null) return
         const L_ = getL_()
-        const { on: savedOn, filters: savedFilters } =
-            preSearchLayerState.current
+        const { on: savedOn, filters: savedFilters } = preSearchLayerState.current
 
-        // Restore geodataset filters
         searchFilteredLayers.current.forEach((layerName) => {
             const ld = L_.layers.data[layerName]
             if (ld) {
                 if (savedFilters[layerName]) {
-                    ld._filterEncoded = JSON.parse(
-                        JSON.stringify(savedFilters[layerName])
-                    )
+                    ld._filterEncoded = JSON.parse(JSON.stringify(savedFilters[layerName]))
                 } else {
                     delete ld._filterEncoded
                 }
@@ -422,7 +389,6 @@ function SearchBar() {
         })
         searchFilteredLayers.current = []
 
-        // Restore vector layers to their original full features
         for (const lname in vectorFilteredLayers.current) {
             const origGeoJSON = vectorFilteredLayers.current[lname]
             if (origGeoJSON && L_.layers.layer[lname] && L_.layers.layer[lname] !== false) {
@@ -439,7 +405,6 @@ function SearchBar() {
                 L_.toggleLayer(L_.layers.data[lname])
             }
         }
-
         preSearchLayerState.current = null
     }, [getL_])
 
@@ -453,6 +418,7 @@ function SearchBar() {
             const geoLayers = []
             const vecLayers = []
             const vecSearchLayers = []
+            const groups = {}
 
             const buildPath = (l) => {
                 const pathParts = []
@@ -471,6 +437,18 @@ function SearchBar() {
                 const ld = L_.layers.data[l]
                 if (ld.variables && ld.variables.search)
                     searchvars[l] = ld.variables.search
+
+                // Collect search groups
+                if (ld.variables && ld.variables.searchGroup) {
+                    const gid = ld.variables.searchGroup
+                    if (!groups[gid]) {
+                        groups[gid] = {
+                            label: gid,
+                            layers: [],
+                        }
+                    }
+                    groups[gid].layers.push(l)
+                }
 
                 if (ld.url && ld.url.startsWith('geodatasets:')) {
                     geoLayers.push({
@@ -496,6 +474,7 @@ function SearchBar() {
 
             const fields = makeSearchFields(searchvars)
             setSearchFields(fields)
+            setSearchGroups(groups)
 
             for (let l in fields) {
                 if (
@@ -520,8 +499,6 @@ function SearchBar() {
             setGeodatasetLayers(geoLayers)
             setVectorSearchLayers(vecSearchLayers)
             setVectorLayers(vecLayers)
-            // Advanced mode: no layers checked by default
-            setCheckedLayers(new Set())
 
             if (geoLayers.length > 0) {
                 const layerNames = geoLayers
@@ -547,21 +524,15 @@ function SearchBar() {
                 )
             }
 
-            // If no search constructs exist, default to advanced-only mode
-            if (vecLayers.length === 0) {
-                setViewMode(VIEW_ADVANCED)
-                setSearchMode(MODE_FIELD)
-            } else {
-                // Default selected layer for regular mode: first search-construct layer that is ON
-                const defaultLayer =
-                    vecLayers.find((vl) => L_.layers.on[vl.value] === true) ||
-                    vecLayers[0] || null
-                if (defaultLayer) {
-                    setSelectedLayer(defaultLayer.value)
-                    setSearchMode(MODE_LAYER)
-                } else {
-                    setSearchMode(MODE_DEFAULT)
-                }
+            // Load all vector layer schemas eagerly for structured query autocomplete
+            vecSearchLayers.forEach((vl) => loadVectorLayerData(vl.value))
+
+            // Default selected layer for regular mode
+            const defaultLayer =
+                vecLayers.find((vl) => L_.layers.on[vl.value] === true) ||
+                vecLayers[0] || null
+            if (defaultLayer) {
+                setSelectedLayer(defaultLayer.value)
             }
             setPlaceholder('Search features...')
 
@@ -571,7 +542,6 @@ function SearchBar() {
                 L_.searchFile != null
             ) {
                 setSelectedLayer(L_.searchFile)
-                setSearchMode(MODE_LAYER)
                 searchWithURLParams(L_, fields)
             }
 
@@ -585,13 +555,13 @@ function SearchBar() {
             }, 500)
             return () => clearInterval(interval)
         }
-    }, [getL_, rebuildMergedSchema])
+    }, [getL_, rebuildMergedSchema, loadVectorLayerData])
 
-    // Update array to search + placeholder when in layer mode
+    // Build values array when layer changes (regular mode)
     useEffect(() => {
-        if (searchMode !== MODE_LAYER || !selectedLayer) {
-            return
-        }
+        if (!selectedLayer) return
+        // Only for plain text mode (non-colon queries)
+        if (inputValue.startsWith(':')) return
 
         const L_ = getL_()
         const Map_ = getMap_()
@@ -624,7 +594,7 @@ function SearchBar() {
             setPlaceholder(getSearchFieldKeys(searchFields, lname) || 'Search...')
         }
 
-        // Turn off any previously search-toggled layer (regular mode only)
+        // Turn off any previously search-toggled layer
         if (regModeToggledLayer.current && regModeToggledLayer.current !== lname) {
             const prevName = regModeToggledLayer.current
             if (L_.layers.on[prevName] === true && L_.layers.data[prevName]) {
@@ -633,7 +603,7 @@ function SearchBar() {
             regModeToggledLayer.current = null
         }
 
-        // If layer is off, toggle it on and poll until data is ready
+        // If layer is off, toggle it on and poll
         if (L_.layers.on[lname] !== true) {
             regModeToggledLayer.current = lname
             L_.toggleLayer(L_.layers.data[lname])
@@ -650,7 +620,6 @@ function SearchBar() {
             return () => clearInterval(poll)
         }
 
-        // Layer already on — check if data is available, poll if not
         if (L_.layers.layer[lname] && typeof L_.layers.layer[lname].toGeoJSON === 'function') {
             buildArray()
         } else {
@@ -666,82 +635,194 @@ function SearchBar() {
             }, 200)
             return () => clearInterval(poll)
         }
-    }, [searchMode, selectedLayer, searchFields, getL_, getMap_])
+    }, [selectedLayer, searchFields, getL_, getMap_, inputValue])
 
-    // Filter suggestions based on input (layer mode and field mode)
+    // Compute suggestions based on input
     useEffect(() => {
-        if (searchMode !== MODE_LAYER && searchMode !== MODE_FIELD) {
-            setSuggestions([])
-            setShowSuggestions(false)
-            return
-        }
+        const parsed = parseColonQuery(inputValue)
 
-        // When inputValue matches the submitted value, show all values
-        // (don't filter down to just the submitted item)
-        const isSubmitted = submittedValue != null && inputValue === submittedValue
-
-        if (searchMode === MODE_FIELD) {
-            if (!inputValue || inputValue.length < 1 || isSubmitted) {
-                const all = fieldValues.slice(0, 100)
-                setSuggestions(all)
-                setShowSuggestions(all.length > 0)
+        if (parsed) {
+            // Structured query mode
+            if (parsed.stage === STAGE_FIELD) {
+                const q = parsed.field.toLowerCase()
+                const filtered = schemaFields
+                    .filter((f) => f.name.toLowerCase().indexOf(q) !== -1)
+                    .slice(0, 50)
+                    .map((f) => ({
+                        type: 'field',
+                        label: f.name,
+                        detail: f.type,
+                        field: f,
+                    }))
+                setSuggestions(filtered)
+                setShowSuggestions(filtered.length > 0)
                 setActiveSuggestionIdx(-1)
-                return
-            }
-            const query = inputValue.toLowerCase()
-            const filtered = fieldValues
-                .filter(
-                    (item) =>
-                        String(item.value)
-                            .toLowerCase()
-                            .indexOf(query) !== -1
+            } else if (parsed.stage === STAGE_OP) {
+                const q = parsed.op.toLowerCase()
+                const filtered = ALL_OPS
+                    .filter((op) =>
+                        op.symbol.toLowerCase().indexOf(q) !== -1 ||
+                        op.label.toLowerCase().indexOf(q) !== -1
+                    )
+                    .map((op) => ({
+                        type: 'op',
+                        label: op.symbol,
+                        detail: op.label,
+                        op: op,
+                    }))
+                setSuggestions(filtered)
+                setShowSuggestions(filtered.length > 0)
+                setActiveSuggestionIdx(-1)
+            } else if (parsed.stage === STAGE_VALUE) {
+                // Show values for the selected field
+                const q = parsed.value.toLowerCase()
+                const field = schemaFields.find(
+                    (f) => f.name.toLowerCase() === parsed.field.toLowerCase()
                 )
-                .slice(0, 100)
-            filtered.sort((a, b) => {
-                const aIdx = String(a.value).toLowerCase().indexOf(query)
-                const bIdx = String(b.value).toLowerCase().indexOf(query)
-                if (aIdx !== bIdx) return aIdx - bIdx
-                return a.value > b.value ? 1 : -1
-            })
-            setSuggestions(filtered)
-            setShowSuggestions(filtered.length > 0)
+                if (field && fieldValues.length > 0) {
+                    const filtered = fieldValues
+                        .filter((v) =>
+                            String(v.value).toLowerCase().indexOf(q) !== -1
+                        )
+                        .slice(0, 100)
+                        .map((v) => ({
+                            type: 'value',
+                            label: String(v.value),
+                            detail: v.count != null ? `(${v.count})` : '',
+                        }))
+                    setSuggestions(filtered)
+                    setShowSuggestions(filtered.length > 0)
+                } else {
+                    setSuggestions([])
+                    setShowSuggestions(false)
+                }
+                setActiveSuggestionIdx(-1)
+            }
+            return
+        }
+
+        // Plain text mode — search construct values
+        if (!selectedLayer || !inputValue) {
+            const all = arrayToSearch.slice(0, 100).map((s) => ({
+                type: 'plain',
+                label: String(s),
+            }))
+            setSuggestions(all)
+            setShowSuggestions(all.length > 0 && panelOpen)
             setActiveSuggestionIdx(-1)
             return
         }
 
-        // Layer mode — show all when empty or when showing submitted value
-        if (!inputValue || inputValue.length < 1 || isSubmitted) {
-            const all = arrayToSearch.slice(0, 100)
+        const isSubmitted = submittedValue != null && inputValue === submittedValue
+        if (isSubmitted) {
+            const all = arrayToSearch.slice(0, 100).map((s) => ({
+                type: 'plain',
+                label: String(s),
+            }))
             setSuggestions(all)
-            setShowSuggestions(all.length > 0)
+            setShowSuggestions(all.length > 0 && panelOpen)
             setActiveSuggestionIdx(-1)
             return
         }
+
         const query = inputValue.toLowerCase()
         const filtered = arrayToSearch
             .filter((item) => String(item).toLowerCase().indexOf(query) !== -1)
             .slice(0, 100)
+            .map((s) => ({ type: 'plain', label: String(s) }))
         filtered.sort((a, b) => {
-            const aIdx = String(a).toLowerCase().indexOf(query)
-            const bIdx = String(b).toLowerCase().indexOf(query)
+            const aIdx = a.label.toLowerCase().indexOf(query)
+            const bIdx = b.label.toLowerCase().indexOf(query)
             if (aIdx !== bIdx) return aIdx - bIdx
-            return a > b ? 1 : -1
+            return a.label > b.label ? 1 : -1
         })
         setSuggestions(filtered)
-        setShowSuggestions(filtered.length > 0)
+        setShowSuggestions(filtered.length > 0 && panelOpen)
         setActiveSuggestionIdx(-1)
-    }, [inputValue, arrayToSearch, fieldValues, searchMode, submittedValue])
+    }, [inputValue, arrayToSearch, schemaFields, fieldValues, submittedValue, panelOpen, selectedLayer])
+
+    // Load field values when we enter the value stage of a structured query
+    useEffect(() => {
+        const parsed = parseColonQuery(inputValue)
+        if (!parsed || parsed.stage !== STAGE_VALUE) {
+            return
+        }
+        const field = schemaFields.find(
+            (f) => f.name.toLowerCase() === parsed.field.toLowerCase()
+        )
+        if (!field) return
+
+        // Fetch aggregations for this field
+        const geodatasetLayerNames = field.layers.filter((l) =>
+            geodatasetLayers.some((gl) => gl.geodatasetName === l)
+        )
+        const vectorLayerNames = field.layers.filter((l) =>
+            vectorSearchLayers.some((vl) => vl.value === l)
+        )
+
+        // Compute vector aggregations
+        const F_ = getF_()
+        const vectorAggs = {}
+        vectorLayerNames.forEach((lname) => {
+            const geojson = vectorLayerCache.current[lname]
+            if (!geojson || !geojson.features) return
+            geojson.features.forEach((feat) => {
+                if (!feat.properties) return
+                const val = F_.getIn(feat.properties, field.name)
+                if (val != null) {
+                    const key = String(val)
+                    vectorAggs[key] = (vectorAggs[key] || 0) + 1
+                }
+            })
+        })
+
+        const mergeAndSet = (geoAggs) => {
+            const allAggs = { ...geoAggs }
+            for (const k in vectorAggs) {
+                allAggs[k] = (allAggs[k] || 0) + vectorAggs[k]
+            }
+            const keys = Object.keys(allAggs)
+            if (field.type === 'number') {
+                keys.sort((a, b) => parseFloat(a) - parseFloat(b))
+            } else {
+                keys.sort()
+            }
+            setFieldValues(keys.map((v) => ({ value: v, count: allAggs[v] })))
+        }
+
+        if (geodatasetLayerNames.length > 0) {
+            calls.api(
+                'geodatasets_bulk_aggregations',
+                { layers: geodatasetLayerNames.join(',') },
+                function (data) {
+                    let geoAggs = {}
+                    if (
+                        data.status === 'success' &&
+                        data.aggregations &&
+                        data.aggregations[field.name] &&
+                        data.aggregations[field.name].aggs
+                    ) {
+                        geoAggs = data.aggregations[field.name].aggs
+                    }
+                    mergeAndSet(geoAggs)
+                },
+                function () { mergeAndSet({}) }
+            )
+        } else {
+            mergeAndSet({})
+        }
+    }, [inputValue, schemaFields, geodatasetLayers, vectorSearchLayers, getF_])
 
     // Close panel on outside click
     useEffect(() => {
         const handleClick = (e) => {
             if (
                 panelRef.current &&
-                !panelRef.current.contains(e.target)
+                !panelRef.current.contains(e.target) &&
+                (!helpRef.current || !helpRef.current.contains(e.target))
             ) {
                 setPanelOpen(false)
                 setShowSuggestions(false)
-                // Adopt search-toggled layer as genuinely on
                 regModeToggledLayer.current = null
             }
         }
@@ -749,74 +830,20 @@ function SearchBar() {
         return () => document.removeEventListener('mousedown', handleClick)
     }, [])
 
-    // Listen for keyboard shortcut to toggle advanced search
+    // Listen for "/" keyboard shortcut to focus search
     useEffect(() => {
-        const handleToggleAdvanced = () => {
-            if (panelOpen && viewMode === VIEW_ADVANCED) {
+        const handleSlash = () => {
+            if (panelOpen) {
                 setPanelOpen(false)
-                return
+                inputRef.current?.blur()
+            } else {
+                setPanelOpen(true)
+                setTimeout(() => inputRef.current?.focus(), 50)
             }
-            setViewMode(VIEW_ADVANCED)
-            setCheckedLayers(new Set())
-            setSuggestions([])
-            setShowSuggestions(false)
-            setFieldValues([])
-            setSelectedField(null)
-            setSearchMode(MODE_FIELD)
-            setInputValue('')
-            setSubmittedValue(null)
-            setPanelOpen(true)
         }
-        document.addEventListener('mmgis-open-advanced-search', handleToggleAdvanced)
-        return () => document.removeEventListener('mmgis-open-advanced-search', handleToggleAdvanced)
-    }, [panelOpen, viewMode])
-
-    // Advanced mode: temporarily hide non-checked vector layers while panel is open
-    useEffect(() => {
-        const L_ = getL_()
-        if (!L_) return
-
-        if (panelOpen && viewMode === VIEW_ADVANCED) {
-            // Save initial layer state on first entry
-            if (advModeLayerState.current == null) {
-                const saved = {}
-                for (let lname in L_.layers.on) {
-                    saved[lname] = L_.layers.on[lname]
-                }
-                advModeLayerState.current = saved
-            }
-
-            // Get all vector layer names (both geodataset-backed and GeoJSON)
-            const allVectorNames = new Set([
-                ...geodatasetLayers.map((gl) => gl.value),
-                ...vectorSearchLayers.map((vl) => vl.value),
-            ])
-
-            // Turn off unchecked vector layers, turn on checked ones
-            allVectorNames.forEach((lname) => {
-                const isOn = L_.layers.on[lname] === true
-                const isChecked = checkedLayers.has(
-                    geodatasetLayers.find((gl) => gl.value === lname)?.geodatasetName || lname
-                )
-                if (isChecked && !isOn && L_.layers.data[lname]) {
-                    L_.toggleLayer(L_.layers.data[lname])
-                } else if (!isChecked && isOn && L_.layers.data[lname]) {
-                    L_.toggleLayer(L_.layers.data[lname])
-                }
-            })
-        } else if (advModeLayerState.current != null) {
-            // Panel closed or left advanced mode — restore original state
-            const saved = advModeLayerState.current
-            for (let lname in saved) {
-                const isOn = L_.layers.on[lname] === true
-                const shouldBeOn = saved[lname] === true
-                if (isOn !== shouldBeOn && L_.layers.data[lname]) {
-                    L_.toggleLayer(L_.layers.data[lname])
-                }
-            }
-            advModeLayerState.current = null
-        }
-    }, [panelOpen, viewMode, checkedLayers, geodatasetLayers, vectorSearchLayers, getL_])
+        document.addEventListener('mmgis-open-advanced-search', handleSlash)
+        return () => document.removeEventListener('mmgis-open-advanced-search', handleSlash)
+    }, [panelOpen])
 
     const searchWithURLParams = useCallback(
         (L_, fields) => {
@@ -833,6 +860,239 @@ function SearchBar() {
         []
     )
 
+    // Match a single feature value against operator (client-side)
+    const matchFeatureValue = useCallback((featureValue, searchValue, op, fieldType) => {
+        if (op === 'isnull') return featureValue == null
+        if (op === 'isnotnull') return featureValue != null
+        if (featureValue == null) return false
+
+        let fv = featureValue
+        let sv = searchValue
+        if (fieldType === 'number' && op !== ',' && op !== 'in') {
+            fv = parseFloat(fv)
+            sv = parseFloat(sv)
+        }
+
+        switch (op) {
+            case '=': return fv == sv
+            case '!=': return fv != sv
+            case '<': return fv < sv
+            case '>': return fv > sv
+            case '<=': return fv <= sv
+            case '>=': return fv >= sv
+            case '*=':
+            case 'contains': return String(fv).toLowerCase().indexOf(String(sv).toLowerCase()) !== -1
+            case '^=':
+            case 'beginswith': return String(fv).toLowerCase().startsWith(String(sv).toLowerCase())
+            case '$=':
+            case 'endswith': return String(fv).toLowerCase().endsWith(String(sv).toLowerCase())
+            case '~=':
+            case 'regex':
+                try {
+                    const pattern = sv.startsWith('/') && sv.lastIndexOf('/') > 0
+                        ? sv.substring(1, sv.lastIndexOf('/'))
+                        : sv
+                    const flags = sv.startsWith('/') && sv.lastIndexOf('/') > 0
+                        ? sv.substring(sv.lastIndexOf('/') + 1)
+                        : 'i'
+                    return new RegExp(pattern, flags).test(String(fv))
+                } catch (e) { return false }
+            case ',':
+            case 'in': return sv.split(',').map((s) => s.trim()).includes(String(fv))
+            default: return false
+        }
+    }, [])
+
+    // Execute a structured query (:field:op:value)
+    const executeStructuredQuery = useCallback(
+        (field, op, value) => {
+            const L_ = getL_()
+            const Map_ = getMap_()
+            const F_ = getF_()
+
+            const backendOp = OP_TO_BACKEND[op] || '='
+            const isNullOp = op === 'isnull' || op === 'isnotnull'
+            if (!value && !isNullOp) return
+
+            const fieldObj = schemaFields.find(
+                (f) => f.name.toLowerCase() === field.toLowerCase()
+            )
+            if (!fieldObj) return
+
+            const fieldName = fieldObj.name
+            const fieldType = fieldObj.type || 'string'
+            const fieldLayers = fieldObj.layers
+
+            saveLayerState()
+
+            searchFilteredLayers.current.forEach((layerName) => {
+                const ld = L_.layers.data[layerName]
+                if (ld && ld._filterEncoded) {
+                    delete ld._filterEncoded.filters
+                }
+            })
+            searchFilteredLayers.current = []
+
+            // Split candidate layers
+            const candidateGeo = geodatasetLayers.filter(
+                (gl) => fieldLayers.includes(gl.geodatasetName)
+            )
+            const candidateVec = vectorSearchLayers.filter(
+                (vl) => fieldLayers.includes(vl.value)
+            )
+
+            if (candidateGeo.length === 0 && candidateVec.length === 0) return
+
+            const opMap = { ',': 'in', 'contains': 'contains', 'beginswith': 'beginswith', 'endswith': 'endswith' }
+            const filterOp = opMap[backendOp] || backendOp
+            const filterEncoded = isNullOp
+                ? `${fieldName}+${filterOp}+${fieldType}+`
+                : `${fieldName}+${filterOp}+${fieldType}+${(value || '').replaceAll(',', '$')}`
+
+            let pendingSearches = candidateGeo.length
+            const allResultCoords = []
+            const layersWithHits = new Set()
+            const vectorMatchedFeatures = {}
+
+            // Process vector layers client-side
+            candidateVec.forEach((vl) => {
+                const layerName = vl.value
+                const geojson = vectorLayerCache.current[layerName]
+                if (!geojson || !geojson.features) return
+
+                const matchingFeatures = geojson.features.filter((feat) => {
+                    const fv = F_.getIn(feat.properties, fieldName)
+                    return matchFeatureValue(fv, value, op, fieldType)
+                })
+
+                if (matchingFeatures.length > 0) {
+                    layersWithHits.add(layerName)
+                    matchingFeatures.forEach((feat) => {
+                        try {
+                            const c = center(feat)
+                            allResultCoords.push(c.geometry.coordinates)
+                        } catch (e) { /* skip */ }
+                    })
+                    vectorMatchedFeatures[layerName] = matchingFeatures
+
+                    if (L_.layers.layer[layerName] && L_.layers.layer[layerName] !== false) {
+                        if (!vectorFilteredLayers.current[layerName]) {
+                            vectorFilteredLayers.current[layerName] =
+                                L_.layers.layer[layerName].toGeoJSON(L_.GEOJSON_PRECISION)
+                        }
+                        L_.clearVectorLayer(layerName)
+                        L_.updateVectorLayer(layerName, {
+                            type: 'FeatureCollection',
+                            features: matchingFeatures,
+                        })
+                    }
+                }
+            })
+
+            // Process geodataset layers via API
+            candidateGeo.forEach((gl) => {
+                const layerName = gl.value
+
+                if (!L_.layers.data[layerName]._filterEncoded) {
+                    L_.layers.data[layerName]._filterEncoded = {}
+                }
+                L_.layers.data[layerName]._filterEncoded.filters = filterEncoded
+                searchFilteredLayers.current.push(layerName)
+
+                calls.api(
+                    'geodatasets_search',
+                    {
+                        layer: gl.geodatasetName,
+                        key: fieldName,
+                        value: value || '',
+                        operator: backendOp,
+                        type: fieldType,
+                    },
+                    function (d) {
+                        if (d.body && d.body.length > 0) {
+                            layersWithHits.add(layerName)
+                            d.body.forEach((r) => {
+                                try {
+                                    const c = center(r)
+                                    allResultCoords.push(c.geometry.coordinates)
+                                } catch (e) { /* skip */ }
+                            })
+                        }
+                        pendingSearches--
+                        if (pendingSearches <= 0) applySearchResults()
+                    },
+                    function () {
+                        pendingSearches--
+                        if (pendingSearches <= 0) applySearchResults()
+                    }
+                )
+            })
+
+            if (candidateGeo.length === 0) applySearchResults()
+
+            function applySearchResults() {
+                const allCandidateLayerNames = new Set([
+                    ...candidateGeo.map((gl) => gl.value),
+                    ...candidateVec.map((vl) => vl.value),
+                ])
+
+                allCandidateLayerNames.forEach((layerName) => {
+                    const hasHits = layersWithHits.has(layerName)
+                    const isOn = L_.layers.on[layerName] === true
+
+                    if (hasHits && !isOn) {
+                        L_.toggleLayer(L_.layers.data[layerName])
+                        if (vectorMatchedFeatures[layerName]) {
+                            const filtered = vectorMatchedFeatures[layerName]
+                            let attempts = 0
+                            const poll = setInterval(() => {
+                                attempts++
+                                if (L_.layers.layer[layerName] && L_.layers.layer[layerName] !== false) {
+                                    clearInterval(poll)
+                                    if (!vectorFilteredLayers.current[layerName]) {
+                                        vectorFilteredLayers.current[layerName] =
+                                            L_.layers.layer[layerName].toGeoJSON(L_.GEOJSON_PRECISION)
+                                    }
+                                    L_.clearVectorLayer(layerName)
+                                    L_.updateVectorLayer(layerName, {
+                                        type: 'FeatureCollection',
+                                        features: filtered,
+                                    })
+                                } else if (attempts > 30) {
+                                    clearInterval(poll)
+                                }
+                            }, 200)
+                        }
+                    } else if (!hasHits && isOn) {
+                        L_.toggleLayer(L_.layers.data[layerName])
+                    }
+
+                    if (hasHits && geodatasetLayers.some((gl) => gl.value === layerName)) {
+                        L_.Map_.refreshLayer(L_.layers.data[layerName], null, null, true)
+                    }
+                })
+
+                if (allResultCoords.length > 0) {
+                    if (allResultCoords.length === 1) {
+                        Map_.map.setView(
+                            [allResultCoords[0][1], allResultCoords[0][0]],
+                            Map_.mapScaleZoom || Map_.map.getZoom()
+                        )
+                    } else {
+                        const lats = allResultCoords.map((c) => c[1])
+                        const lngs = allResultCoords.map((c) => c[0])
+                        const bounds = [
+                            [Math.min(...lats), Math.min(...lngs)],
+                            [Math.max(...lats), Math.max(...lngs)],
+                        ]
+                        Map_.map.fitBounds(bounds, { padding: [40, 40] })
+                    }
+                }
+            }
+        },
+        [schemaFields, geodatasetLayers, vectorSearchLayers, saveLayerState, matchFeatureValue, getL_, getMap_, getF_]
+    )
+
     const searchGeodatasets = useCallback(
         (lname, value) => {
             const L_ = getL_()
@@ -846,14 +1106,12 @@ function SearchBar() {
                     : null
             if (key == null) return
 
-            const geodatasetName =
-                L_.layers.data[layerName]?.url?.split(':')[1]
+            const geodatasetName = L_.layers.data[layerName]?.url?.split(':')[1]
 
             calls.api(
                 'geodatasets_search',
                 {
-                    layer:
-                        geodatasetName || lastGeodatasetLayerName.current,
+                    layer: geodatasetName || lastGeodatasetLayerName.current,
                     key: key,
                     value: searchValue,
                 },
@@ -888,11 +1146,9 @@ function SearchBar() {
                             for (let j in vts[i]._features) {
                                 const feature = vts[i]._features[j].feature
                                 if (feature.properties[key] === searchValue) {
-                                    feature._layerName =
-                                        vts[i].options.layerName
+                                    feature._layerName = vts[i].options.layerName
                                     feature._layer = feature
-                                    L_.layers.layer[layerName]._events
-                                        .click[0].fn({
+                                    L_.layers.layer[layerName]._events.click[0].fn({
                                         layer: feature,
                                         sourceTarget: feature,
                                     })
@@ -908,325 +1164,8 @@ function SearchBar() {
         [selectedLayer, inputValue, searchFields, getL_, getMap_]
     )
 
-    // Cross-layer search by display name (default mode)
-    const searchCrossLayer = useCallback(
-        (value) => {
-            const L_ = getL_()
-            const Map_ = getMap_()
-            const query = (value || inputValue).trim().toLowerCase()
-            if (!query) return
-
-            const allMatches = []
-            for (let lname in searchFields) {
-                const markers = L_.layers.layer[lname]
-                if (!markers || typeof markers.eachLayer !== 'function')
-                    continue
-
-                if (!L_.layers.on[lname]) continue
-
-                markers.eachLayer((layer) => {
-                    const props = layer.feature.properties
-                    const comparer = getSearchFieldStringForFeature(
-                        searchFields,
-                        lname,
-                        props
-                    )
-                    if (comparer.toLowerCase().indexOf(query) !== -1) {
-                        allMatches.push({ layer, lname })
-                    }
-                })
-            }
-
-            if (allMatches.length > 0) {
-                L_.resetLayerFills()
-
-                allMatches.forEach(({ layer }) => {
-                    L_.highlight(layer)
-                    if (typeof layer.bringToFront === 'function')
-                        layer.bringToFront()
-                })
-
-                if (allMatches.length === 1) {
-                    allMatches[0].layer.fireEvent('click')
-                }
-
-                const gotoLayers = allMatches.map(({ layer }) => layer)
-                const coordinate = getMapZoomCoordinate(gotoLayers)
-                if (coordinate) {
-                    Map_.map.setView(
-                        [coordinate.latitude, coordinate.longitude],
-                        Map_.mapScaleZoom || Map_.map.getZoom()
-                    )
-                }
-            }
-
-        },
-        [inputValue, searchFields, getL_, getMap_]
-    )
-
-    // Match a single feature value against the search operator/value (client-side)
-    const matchFeatureValue = useCallback((featureValue, searchValue, op, fieldType) => {
-        if (op === 'isnull') return featureValue == null
-        if (op === 'isnotnull') return featureValue != null
-        if (featureValue == null) return false
-
-        let fv = featureValue
-        let sv = searchValue
-        if (fieldType === 'number' && op !== ',') {
-            fv = parseFloat(fv)
-            sv = parseFloat(sv)
-        }
-
-        switch (op) {
-            case '=': return fv == sv
-            case '!=': return fv != sv
-            case '<': return fv < sv
-            case '>': return fv > sv
-            case '<=': return fv <= sv
-            case '>=': return fv >= sv
-            case 'contains': return String(fv).indexOf(String(sv)) !== -1
-            case 'beginswith': return String(fv).startsWith(String(sv))
-            case 'endswith': return String(fv).endsWith(String(sv))
-            case ',': return sv.split(',').includes(String(fv))
-            default: return false
-        }
-    }, [])
-
-    // Search by selected field across geodataset + vector layers
-    const searchByField = useCallback(
-        (value) => {
-            const L_ = getL_()
-            const Map_ = getMap_()
-            const F_ = getF_()
-            const searchValue = (value || inputValue).trim()
-            const isNullOp = searchOperator === 'isnull' || searchOperator === 'isnotnull'
-            if ((!searchValue && !isNullOp) || !selectedField) return
-
-            const fieldName = selectedField.name
-            const fieldLayers = selectedField.layers
-            const fieldType = selectedField.type || 'string'
-
-            saveLayerState()
-
-            searchFilteredLayers.current.forEach((layerName) => {
-                const ld = L_.layers.data[layerName]
-                if (ld && ld._filterEncoded) {
-                    delete ld._filterEncoded.filters
-                }
-            })
-            searchFilteredLayers.current = []
-
-            // Split candidate layers into geodataset and vector
-            const candidateGeo = geodatasetLayers.filter(
-                (gl) =>
-                    fieldLayers.includes(gl.geodatasetName) &&
-                    checkedLayers.has(gl.geodatasetName)
-            )
-            const candidateVec = vectorSearchLayers.filter(
-                (vl) =>
-                    fieldLayers.includes(vl.value) &&
-                    checkedLayers.has(vl.value)
-            )
-
-            if (candidateGeo.length === 0 && candidateVec.length === 0) return
-
-            const opMap = { ',': 'in', 'contains': 'contains', 'beginswith': 'beginswith', 'endswith': 'endswith' }
-            const filterOp = opMap[searchOperator] || searchOperator
-            const filterEncoded = isNullOp
-                ? `${fieldName}+${filterOp}+${fieldType}+`
-                : `${fieldName}+${filterOp}+${fieldType}+${searchValue.replaceAll(',', '$')}`
-
-            let pendingSearches = candidateGeo.length
-            const allResultCoords = []
-            const layersWithHits = new Set()
-            const vectorMatchedFeatures = {} // { layerName: [matchingFeatures] }
-
-            // --- Process vector layers client-side (synchronous) ---
-            candidateVec.forEach((vl) => {
-                const layerName = vl.value
-                const geojson = vectorLayerCache.current[layerName]
-                if (!geojson || !geojson.features) return
-
-                const matchingFeatures = geojson.features.filter((feat) => {
-                    const fv = F_.getIn(feat.properties, fieldName)
-                    return matchFeatureValue(fv, searchValue, searchOperator, fieldType)
-                })
-
-                if (matchingFeatures.length > 0) {
-                    layersWithHits.add(layerName)
-                    matchingFeatures.forEach((feat) => {
-                        try {
-                            const c = center(feat)
-                            allResultCoords.push(c.geometry.coordinates)
-                        } catch (e) { /* skip invalid geometries */ }
-                    })
-
-                    // Store matching features for deferred application in applySearchResults
-                    vectorMatchedFeatures[layerName] = matchingFeatures
-
-                    // Apply visual filter immediately if the layer is already on
-                    if (L_.layers.layer[layerName] && L_.layers.layer[layerName] !== false) {
-                        if (!vectorFilteredLayers.current[layerName]) {
-                            vectorFilteredLayers.current[layerName] =
-                                L_.layers.layer[layerName].toGeoJSON(L_.GEOJSON_PRECISION)
-                        }
-                        const filteredGeoJSON = {
-                            type: 'FeatureCollection',
-                            features: matchingFeatures,
-                        }
-                        L_.clearVectorLayer(layerName)
-                        L_.updateVectorLayer(layerName, filteredGeoJSON)
-                    }
-                }
-            })
-
-            // --- Process geodataset layers via API ---
-            candidateGeo.forEach((gl) => {
-                const layerName = gl.value
-
-                if (!L_.layers.data[layerName]._filterEncoded) {
-                    L_.layers.data[layerName]._filterEncoded = {}
-                }
-                L_.layers.data[layerName]._filterEncoded.filters =
-                    filterEncoded
-                searchFilteredLayers.current.push(layerName)
-
-                calls.api(
-                    'geodatasets_search',
-                    {
-                        layer: gl.geodatasetName,
-                        key: fieldName,
-                        value: searchValue,
-                        operator: searchOperator,
-                        type: fieldType,
-                    },
-                    function (d) {
-                        if (d.body && d.body.length > 0) {
-                            layersWithHits.add(layerName)
-                            d.body.forEach((r) => {
-                                try {
-                                    const c = center(r)
-                                    allResultCoords.push(
-                                        c.geometry.coordinates
-                                    )
-                                } catch (e) {
-                                    // skip invalid geometries
-                                }
-                            })
-                        }
-
-                        pendingSearches--
-                        if (pendingSearches <= 0) {
-                            applySearchResults()
-                        }
-                    },
-                    function () {
-                        pendingSearches--
-                        if (pendingSearches <= 0) {
-                            applySearchResults()
-                        }
-                    }
-                )
-            })
-
-            // If no geodataset layers to search, apply results immediately
-            if (candidateGeo.length === 0) {
-                applySearchResults()
-            }
-
-            function applySearchResults() {
-                const allCandidateLayerNames = new Set([
-                    ...candidateGeo.map((gl) => gl.value),
-                    ...candidateVec.map((vl) => vl.value),
-                ])
-
-                allCandidateLayerNames.forEach((layerName) => {
-                    const hasHits = layersWithHits.has(layerName)
-                    const isOn = L_.layers.on[layerName] === true
-
-                    if (hasHits && !isOn) {
-                        L_.toggleLayer(L_.layers.data[layerName])
-
-                        // For vector layers toggled on, apply filtered features after load
-                        if (vectorMatchedFeatures[layerName]) {
-                            const filtered = vectorMatchedFeatures[layerName]
-                            let attempts = 0
-                            const poll = setInterval(() => {
-                                attempts++
-                                if (L_.layers.layer[layerName] && L_.layers.layer[layerName] !== false) {
-                                    clearInterval(poll)
-                                    if (!vectorFilteredLayers.current[layerName]) {
-                                        vectorFilteredLayers.current[layerName] =
-                                            L_.layers.layer[layerName].toGeoJSON(L_.GEOJSON_PRECISION)
-                                    }
-                                    L_.clearVectorLayer(layerName)
-                                    L_.updateVectorLayer(layerName, {
-                                        type: 'FeatureCollection',
-                                        features: filtered,
-                                    })
-                                } else if (attempts > 30) {
-                                    clearInterval(poll)
-                                }
-                            }, 200)
-                        }
-                    } else if (!hasHits && isOn) {
-                        L_.toggleLayer(L_.layers.data[layerName])
-                    }
-
-                    // Refresh geodataset layers to apply backend filter
-                    if (hasHits && geodatasetLayers.some((gl) => gl.value === layerName)) {
-                        L_.Map_.refreshLayer(
-                            L_.layers.data[layerName],
-                            null,
-                            null,
-                            true
-                        )
-                    }
-                })
-
-                if (allResultCoords.length > 0) {
-                    if (allResultCoords.length === 1) {
-                        Map_.map.setView(
-                            [allResultCoords[0][1], allResultCoords[0][0]],
-                            Map_.mapScaleZoom || Map_.map.getZoom()
-                        )
-                    } else {
-                        const lats = allResultCoords.map((c) => c[1])
-                        const lngs = allResultCoords.map((c) => c[0])
-                        const bounds = [
-                            [Math.min(...lats), Math.min(...lngs)],
-                            [Math.max(...lats), Math.max(...lngs)],
-                        ]
-                        Map_.map.fitBounds(bounds, { padding: [40, 40] })
-                    }
-                }
-            }
-        },
-        [
-            inputValue,
-            selectedField,
-            searchOperator,
-            geodatasetLayers,
-            vectorSearchLayers,
-            checkedLayers,
-            saveLayerState,
-            matchFeatureValue,
-            getL_,
-            getMap_,
-            getF_,
-        ]
-    )
-
     const doWithSearch = useCallback(
-        (
-            doX,
-            forceX,
-            forceSTS,
-            isURLSearch,
-            value,
-            fieldsOverride,
-            L_Override
-        ) => {
+        (doX, forceX, forceSTS, isURLSearch, value, fieldsOverride, L_Override) => {
             const L_ = L_Override || getL_()
             const Map_ = getMap_()
             const fields = fieldsOverride || searchFields
@@ -1258,23 +1197,14 @@ function SearchBar() {
                 markers.eachLayer((layer) => {
                     const props = layer.feature.properties
                     let shouldSearch = false
-                    const comparer = getSearchFieldStringForFeature(
-                        fields,
-                        lname,
-                        props
-                    )
+                    const comparer = getSearchFieldStringForFeature(fields, lname, props)
 
                     for (let i = 0; i < x.length; i++) {
                         if (
                             x.length === 1
-                                ? x[i].toLowerCase() ===
-                                  comparer.toLowerCase()
-                                : x[i]
-                                      .toLowerCase()
-                                      .indexOf(comparer.toLowerCase()) > -1 ||
-                                  comparer
-                                      .toLowerCase()
-                                      .indexOf(x[i].toLowerCase()) > -1
+                                ? x[i].toLowerCase() === comparer.toLowerCase()
+                                : x[i].toLowerCase().indexOf(comparer.toLowerCase()) > -1 ||
+                                  comparer.toLowerCase().indexOf(x[i].toLowerCase()) > -1
                         ) {
                             shouldSearch = true
                             break
@@ -1282,10 +1212,8 @@ function SearchBar() {
                     }
 
                     if (shouldSearch) {
-                        if (doX === 'both' || doX === 'select')
-                            selectLayers.push(layer)
-                        if (doX === 'both' || doX === 'goto')
-                            gotoLayers.push(layer)
+                        if (doX === 'both' || doX === 'select') selectLayers.push(layer)
+                        if (doX === 'both' || doX === 'goto') gotoLayers.push(layer)
                     }
                 })
 
@@ -1297,9 +1225,7 @@ function SearchBar() {
                 } else if (selectLayers.length > 1) {
                     for (let i = 0; i < selectLayers.length; i++) {
                         L_.highlight(selectLayers[i])
-                        if (
-                            typeof selectLayers[i].bringToFront === 'function'
-                        )
+                        if (typeof selectLayers[i].bringToFront === 'function')
                             selectLayers[i].bringToFront()
                     }
                 }
@@ -1320,113 +1246,74 @@ function SearchBar() {
 
     const handleSearch = useCallback(
         (value) => {
-            if (searchMode === MODE_DEFAULT) {
-                searchCrossLayer(value)
+            const searchValue = value != null ? value : inputValue
+            const parsed = parseColonQuery(searchValue)
+
+            if (parsed && parsed.stage === STAGE_VALUE && parsed.field && parsed.op) {
+                executeStructuredQuery(parsed.field, parsed.op, parsed.value)
                 return
             }
 
-            if (searchMode === MODE_FIELD) {
-                searchByField(value)
-                return
-            }
-
-            // MODE_LAYER
+            // Plain text search
             const L_ = getL_()
+            if (!selectedLayer) return
             const ltype = L_.layers.data[selectedLayer]?.type
 
             if (ltype === 'vectortile') {
-                searchGeodatasets(selectedLayer, value)
+                searchGeodatasets(selectedLayer, searchValue)
             } else {
-                doWithSearch('both', null, null, false, value)
+                doWithSearch('both', null, null, false, searchValue)
             }
         },
-        [
-            searchMode,
-            selectedLayer,
-            searchCrossLayer,
-            searchByField,
-            searchGeodatasets,
-            doWithSearch,
-            getL_,
-        ]
-    )
-
-    // Auto-execute search when isnull/isnotnull operator is selected
-    useEffect(() => {
-        const nullOp = searchOperator === 'isnull' || searchOperator === 'isnotnull'
-        if (nullOp && selectedField && searchMode === MODE_FIELD) {
-            const key = `${searchOperator}:${selectedField.name}`
-            if (lastNullAutoFire.current === key) return
-            lastNullAutoFire.current = key
-            const label = searchOperator === 'isnull' ? 'is null' : 'is not null'
-            setInputValue(label)
-            setSubmittedValue(label)
-            handleSearch('')
-        } else {
-            lastNullAutoFire.current = null
-        }
-    }, [searchOperator, selectedField, searchMode, handleSearch])
-
-    const handleKeyDown = useCallback(
-        (e) => {
-            if (e.key === 'Enter') {
-                if (
-                    activeSuggestionIdx >= 0 &&
-                    suggestions[activeSuggestionIdx]
-                ) {
-                    const sel = suggestions[activeSuggestionIdx]
-                    const val =
-                        sel != null &&
-                        typeof sel === 'object' &&
-                        sel.value != null
-                            ? String(sel.value)
-                            : String(sel)
-                    setInputValue(val)
-                    setShowSuggestions(false)
-                    handleSearch(val)
-                } else {
-                    setShowSuggestions(false)
-                    handleSearch()
-                }
-            } else if (e.key === 'ArrowDown') {
-                e.preventDefault()
-                setActiveSuggestionIdx((prev) =>
-                    prev < suggestions.length - 1 ? prev + 1 : prev
-                )
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault()
-                setActiveSuggestionIdx((prev) => (prev > 0 ? prev - 1 : -1))
-            } else if (e.key === 'Escape') {
-                setShowSuggestions(false)
-                setPanelOpen(false)
-                regModeToggledLayer.current = null
-            }
-        },
-        [suggestions, activeSuggestionIdx, handleSearch]
+        [inputValue, selectedLayer, executeStructuredQuery, searchGeodatasets, doWithSearch, getL_]
     )
 
     const handleSuggestionClick = useCallback(
         (item) => {
-            const val =
-                item != null && typeof item === 'object' && item.value != null
-                    ? String(item.value)
-                    : String(item)
-            setSubmittedValue(val)
-            if (viewMode === VIEW_ADVANCED) {
-                // Advanced mode: keep panel open, keep full value list, just execute search
-                setInputValue(val)
-                handleSearch(val)
-            } else {
-                // Regular mode: execute search, keep suggestions visible
-                setInputValue(val)
-                handleSearch(val)
+            const parsed = parseColonQuery(inputValue)
+
+            if (item.type === 'field') {
+                // Complete field name, add next colon
+                const newVal = `:${item.label}:`
+                setInputValue(newVal)
+                setFieldValues([])
+                inputRef.current?.focus()
+                return
             }
+            if (item.type === 'op') {
+                const parsed2 = parseColonQuery(inputValue)
+                const fieldPart = parsed2 ? parsed2.field : ''
+                const newVal = `:${fieldPart}:${item.label}:`
+                setInputValue(newVal)
+                inputRef.current?.focus()
+
+                // Auto-execute for isnull/isnotnull
+                if (item.label === 'isnull' || item.label === 'isnotnull') {
+                    setSubmittedValue(newVal)
+                    executeStructuredQuery(fieldPart, item.label, '')
+                }
+                return
+            }
+            if (item.type === 'value') {
+                const parsed2 = parseColonQuery(inputValue)
+                const fieldPart = parsed2 ? parsed2.field : ''
+                const opPart = parsed2 ? parsed2.op : '='
+                const newVal = `:${fieldPart}:${opPart}:${item.label}`
+                setInputValue(newVal)
+                setSubmittedValue(newVal)
+                executeStructuredQuery(fieldPart, opPart, item.label)
+                return
+            }
+
+            // Plain text suggestion
+            setInputValue(item.label)
+            setSubmittedValue(item.label)
+            handleSearch(item.label)
         },
-        [handleSearch, viewMode]
+        [inputValue, handleSearch, executeStructuredQuery]
     )
 
     const handleClear = useCallback(() => {
-        // Turn off any layer we toggled on in regular mode
         if (regModeToggledLayer.current) {
             const L_ = getL_()
             const prevName = regModeToggledLayer.current
@@ -1435,20 +1322,14 @@ function SearchBar() {
             }
             regModeToggledLayer.current = null
         }
-        // Clear advMode state so restoreLayerState restores to true original
-        advModeLayerState.current = null
         restoreLayerState()
         setInputValue('')
         setSubmittedValue(null)
         setSuggestions([])
         setShowSuggestions(false)
         setFieldValues([])
-        setSelectedField(null)
-        setSearchOperator('=')
         setPlaceholder('Search features...')
         setArrayToSearch([])
-        // Reset to initial mode (advanced-only when no search constructs)
-        setViewMode(vectorLayers.length > 0 ? VIEW_REGULAR : VIEW_ADVANCED)
         const defaultLayer =
             vectorLayers.find((vl) => {
                 const L_ = getL_()
@@ -1456,222 +1337,66 @@ function SearchBar() {
             }) || vectorLayers[0] || null
         if (defaultLayer) {
             setSelectedLayer(defaultLayer.value)
-            setSearchMode(MODE_LAYER)
         } else {
             setSelectedLayer(null)
-            setSearchMode(vectorLayers.length > 0 ? MODE_DEFAULT : MODE_FIELD)
         }
     }, [restoreLayerState, vectorLayers, getL_])
 
-    // Compute client-side aggregations from cached vector layer features
-    const computeVectorAggregations = useCallback((fieldName, layerNames) => {
-        const F_ = getF_()
-        const aggs = {}
-        layerNames.forEach((lname) => {
-            const geojson = vectorLayerCache.current[lname]
-            if (!geojson || !geojson.features) return
-            geojson.features.forEach((feat) => {
-                if (!feat.properties) return
-                const val = F_.getIn(feat.properties, fieldName)
-                if (val != null) {
-                    const key = String(val)
-                    aggs[key] = (aggs[key] || 0) + 1
-                }
-            })
-        })
-        return aggs
-    }, [getF_])
-
-    // Field selection from the unified panel
-    const handleFieldSelect = useCallback(
-        (field) => {
-            setSearchMode(MODE_FIELD)
-            setSelectedField(field)
-            setSelectedLayer(null)
-            setInputValue('')
-            setSubmittedValue(null)
-            setFieldValues([])
-            setSearchOperator('=')
-            setPlaceholder(`Search by ${field.name}...`)
-            setFieldFilterText('')
-
-            if (!field.layers || field.layers.length === 0) return
-
-            // Split layers into geodataset and vector, filtered to only checked layers
-            const geodatasetLayerNames = field.layers.filter((l) =>
-                geodatasetLayers.some((gl) => gl.geodatasetName === l) &&
-                checkedLayers.has(l)
-            )
-            const vectorLayerNames = field.layers.filter((l) =>
-                vectorSearchLayers.some((vl) => vl.value === l) &&
-                checkedLayers.has(l)
-            )
-
-            // Collect vector layer aggregations immediately (client-side)
-            const vectorAggs = computeVectorAggregations(field.name, vectorLayerNames)
-
-            // Merge function that combines geodataset and vector aggs
-            const mergeAndSetFieldValues = (geoAggs) => {
-                const allAggs = { ...geoAggs }
-                for (const k in vectorAggs) {
-                    allAggs[k] = (allAggs[k] || 0) + vectorAggs[k]
-                }
-                const keys = Object.keys(allAggs)
-                if (field.type === 'number') {
-                    keys.sort((a, b) => parseFloat(a) - parseFloat(b))
-                } else {
-                    keys.sort()
-                }
-                const vals = keys.map((v) => ({
-                    value: v,
-                    count: allAggs[v],
-                }))
-                setFieldValues(vals)
-            }
-
-            if (geodatasetLayerNames.length > 0) {
-                // Fetch geodataset aggregations via API
-                calls.api(
-                    'geodatasets_bulk_aggregations',
-                    { layers: geodatasetLayerNames.join(',') },
-                    function (data) {
-                        let geoAggs = {}
-                        if (
-                            data.status === 'success' &&
-                            data.aggregations &&
-                            data.aggregations[field.name] &&
-                            data.aggregations[field.name].aggs
-                        ) {
-                            geoAggs = data.aggregations[field.name].aggs
-                        }
-                        mergeAndSetFieldValues(geoAggs)
-                    },
-                    function () {
-                        mergeAndSetFieldValues({})
-                    }
-                )
-            } else {
-                // Only vector layers — just use vector aggs
-                mergeAndSetFieldValues({})
-            }
-        },
-        [geodatasetLayers, vectorSearchLayers, computeVectorAggregations, checkedLayers]
-    )
-
-    // Toggle a layer in the layers section
-    const handleLayerToggle = useCallback((layerKey, layer) => {
-        setCheckedLayers((prev) => {
-            const next = new Set(prev)
-            if (next.has(layerKey)) {
-                next.delete(layerKey)
-            } else {
-                next.add(layerKey)
-                // Lazy-load vector layer data when first checked
-                if (layer && layer.kind === 'vector') {
-                    loadVectorLayerData(layer.value)
-                }
-            }
-            return next
-        })
-    }, [loadVectorLayerData])
-
-    const handleLayerSelectAll = useCallback(() => {
-        const allKeys = new Set([
-            ...geodatasetLayers.map((gl) => gl.geodatasetName),
-            ...vectorSearchLayers.map((vl) => vl.value),
-        ])
-        setCheckedLayers(allKeys)
-        // Trigger lazy-load for all uncached vector layers
-        vectorSearchLayers.forEach((vl) => loadVectorLayerData(vl.value))
-    }, [geodatasetLayers, vectorSearchLayers, loadVectorLayerData])
-
-    const handleLayerDeselectAll = useCallback(() => {
-        setCheckedLayers(new Set())
-    }, [])
-
-    const openPanel = useCallback(() => {
-        if (!panelOpen) {
-            setPanelOpen(true)
-            setFieldFilterText('')
-            setLayerFilterText('')
-        }
-    }, [panelOpen])
-
-    // Select a layer in regular mode (single-select)
     const handleRegularLayerSelect = useCallback((layerValue) => {
         setSelectedLayer(layerValue)
-        setSearchMode(MODE_LAYER)
         setInputValue('')
         setSubmittedValue(null)
         setSuggestions([])
         setShowSuggestions(false)
     }, [])
 
-    // Get display name for layer given its key (geodatasetName or layer value)
-    const getLayerDisplayName = useCallback(
-        (layerKey) => {
-            const gl = geodatasetLayers.find(
-                (l) => l.geodatasetName === layerKey
-            )
-            if (gl) return gl.label
-            const vl = vectorSearchLayers.find((l) => l.value === layerKey)
-            return vl ? vl.label : layerKey
-        },
-        [geodatasetLayers, vectorSearchLayers]
-    )
+    const openPanel = useCallback(() => {
+        if (!panelOpen) {
+            setPanelOpen(true)
+        }
+    }, [panelOpen])
 
-    // Filtered field list — filter by checked layers + text filter
-    // When no layers are checked, show no fields (user must select layers first)
-    const layerFilteredFields = checkedLayers.size > 0
-        ? (commonFieldsOnly
-            ? schemaFields.filter((f) =>
-                  [...checkedLayers].every((l) => f.layers.includes(l))
-              )
-            : schemaFields.filter((f) =>
-                  f.layers.some((l) => checkedLayers.has(l))
-              ))
-        : []
-    const filteredFields = fieldFilterText
-        ? layerFilteredFields.filter(
-              (f) =>
-                  f.name
-                      .toLowerCase()
-                      .indexOf(fieldFilterText.toLowerCase()) !== -1
-          )
-        : layerFilteredFields
+    // Layer items for the regular panel (layers with search constructs + groups)
+    const layerListItems = useMemo(() => {
+        const items = []
+        const grouped = new Set()
 
-    // Combined layer list: geodatasets + vector layers
-    const allLayerList = [...geodatasetLayers, ...vectorSearchLayers]
-    const filteredLayerList = layerFilterText
-        ? allLayerList.filter(
-              (l) => {
-                  const q = layerFilterText.toLowerCase()
-                  return l.label.toLowerCase().indexOf(q) !== -1
-              }
-          )
-        : allLayerList
+        // Add search group entries
+        Object.entries(searchGroups).forEach(([gid, group]) => {
+            items.push({
+                value: group.layers[0],
+                label: group.label,
+                isGroup: true,
+                groupId: gid,
+                layers: group.layers,
+            })
+            group.layers.forEach((l) => grouped.add(l))
+        })
 
-    // Operators for current field type
-    const ops = selectedField && selectedField.type === 'number' ? NUMBER_OPS : STRING_OPS
-    const activeOp = ops.find((o) => o.value === searchOperator) || ops[0]
-    const isNullOp = searchOperator === 'isnull' || searchOperator === 'isnotnull'
+        // Add individual layers that aren't in a group
+        vectorLayers.forEach((vl) => {
+            if (!grouped.has(vl.value)) {
+                items.push({ ...vl, isGroup: false })
+            }
+        })
+
+        return items
+    }, [vectorLayers, searchGroups])
+
+    // Selected layer label for the trigger
+    const selectedLayerLabel = useMemo(() => {
+        if (!selectedLayer) return 'Layers'
+        const item = layerListItems.find((li) =>
+            li.isGroup ? li.layers.includes(selectedLayer) : li.value === selectedLayer
+        )
+        return item ? item.label : selectedLayer
+    }, [selectedLayer, layerListItems])
 
     if (!initialized) return null
 
-    // Selected layer label for the layers trigger — mode-responsive
-    const selectedLayerInfo = (() => {
-        if (viewMode === VIEW_ADVANCED) {
-            const checked = [...checkedLayers]
-            if (checked.length === 0) return { name: 'Layers', extra: 0 }
-            const firstName = getLayerDisplayName(checked[0])
-            return { name: firstName, extra: checked.length - 1 }
-        }
-        // Regular mode
-        const name = selectedLayer
-            ? (vectorLayers.find((vl) => vl.value === selectedLayer)?.label || selectedLayer)
-            : 'Layers'
-        return { name, extra: 0 }
-    })()
+    // Determine if we're in colon-query mode
+    const isColonMode = inputValue.startsWith(':')
+    const parsed = parseColonQuery(inputValue)
 
     return (
         <div
@@ -1679,45 +1404,48 @@ function SearchBar() {
             className={`searchBar ${panelOpen ? 'searchBarExpanded' : ''}`}
             ref={panelRef}
         >
-            {/* Top bar: [🔍] [Layers ▼] | [Search Input] [⚙] */}
+            {/* Top bar */}
             <div className="searchCompactBar">
                 <i className="mdi mdi-magnify mdi-18px searchCompactIcon" onClick={openPanel} />
-                {/* Layers trigger */}
-                <div
-                    className="searchLayersTrigger"
-                    onClick={openPanel}
-                >
-                    <span className="searchLayersTriggerLabel">
-                        {selectedLayerInfo.name}
-                    </span>
-                    {selectedLayerInfo.extra > 0 && (
-                        <span className="searchLayersTriggerCount">+{selectedLayerInfo.extra}</span>
-                    )}
-                    <i className="mdi mdi-chevron-down mdi-14px searchLayersTriggerChevron" />
-                </div>
-                <div className="searchBarDivider" />
+                {/* Layers trigger (only in plain text mode) */}
+                {!isColonMode && vectorLayers.length > 0 && (
+                    <>
+                        <div className="searchLayersTrigger" onClick={openPanel}>
+                            <span className="searchLayersTriggerLabel">
+                                {selectedLayerLabel}
+                            </span>
+                            <i className="mdi mdi-chevron-down mdi-14px searchLayersTriggerChevron" />
+                        </div>
+                        <div className="searchBarDivider" />
+                    </>
+                )}
                 {/* Search input */}
                 <input
                     ref={inputRef}
                     className="searchCompactInput"
                     type="text"
-                    placeholder={placeholder}
+                    placeholder={isColonMode ? ':field:op:value' : placeholder}
                     value={inputValue}
                     onChange={(e) => {
                         setSubmittedValue(null)
                         setInputValue(e.target.value)
+                        if (!panelOpen) setPanelOpen(true)
                     }}
-                    onFocus={openPanel}
+                    onFocus={() => {
+                        openPanel()
+                        if (arrayToSearch.length > 0 || isColonMode) {
+                            setShowSuggestions(true)
+                        }
+                    }}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                             if (activeSuggestionIdx >= 0 && suggestions[activeSuggestionIdx]) {
-                                const sel = suggestions[activeSuggestionIdx]
-                                const val = sel != null && typeof sel === 'object' && sel.value != null
-                                    ? String(sel.value) : String(sel)
-                                setInputValue(val)
+                                handleSuggestionClick(suggestions[activeSuggestionIdx])
+                            } else if (isColonMode && parsed && parsed.stage === STAGE_VALUE) {
+                                setSubmittedValue(inputValue)
+                                executeStructuredQuery(parsed.field, parsed.op, parsed.value)
                                 setShowSuggestions(false)
-                                handleSearch(val)
-                            } else {
+                            } else if (!isColonMode) {
                                 handleSearch()
                                 setShowSuggestions(false)
                             }
@@ -1751,113 +1479,47 @@ function SearchBar() {
                         <i className="mdi mdi-close mdi-14px" />
                     </IconButton>
                 </Tooltip>
-                {/* Advanced search toggle (only shown when search constructs exist, otherwise always advanced) */}
-                {vectorLayers.length > 0 && (
-                    <Tooltip content={viewMode === VIEW_ADVANCED ? 'Simple search' : 'Advanced search'} placement="bottom">
-                        <IconButton
-                            className={`searchAdvancedToggle ${viewMode === VIEW_ADVANCED ? 'searchAdvancedToggleActive' : ''}`}
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                const newMode = viewMode === VIEW_ADVANCED ? VIEW_REGULAR : VIEW_ADVANCED
-                                // Turn off any layer we toggled on in regular mode
-                                if (regModeToggledLayer.current) {
-                                    const L_ = getL_()
-                                    const prevName = regModeToggledLayer.current
-                                    if (L_.layers.on[prevName] === true && L_.layers.data[prevName]) {
-                                        L_.toggleLayer(L_.layers.data[prevName])
-                                    }
-                                    regModeToggledLayer.current = null
-                                }
-                                // Clear advMode state and restore layer state from previous search
-                                advModeLayerState.current = null
-                                restoreLayerState()
-                                setViewMode(newMode)
-                                // Reset state for the new mode
-                                setSuggestions([])
-                                setShowSuggestions(false)
-                                setFieldValues([])
-                                setInputValue('')
-                                setSubmittedValue(null)
-                                setArrayToSearch([])
-                                if (newMode === VIEW_ADVANCED) {
-                                    setCheckedLayers(new Set())
-                                    setSelectedField(null)
-                                    setSearchMode(MODE_FIELD)
-                                } else {
-                                    setSearchOperator('=')
-                                    setSelectedField(null)
-                                    // Restore default layer for regular mode
-                                    const defaultLayer =
-                                        vectorLayers.find((vl) => {
-                                            const L_ = getL_()
-                                            return L_.layers.on[vl.value] === true
-                                        }) || vectorLayers[0] || null
-                                    if (defaultLayer) {
-                                        setSelectedLayer(defaultLayer.value)
-                                        setSearchMode(MODE_LAYER)
-                                    } else {
-                                        setSelectedLayer(null)
-                                        setSearchMode(MODE_DEFAULT)
-                                    }
-                                }
-                                if (!panelOpen) setPanelOpen(true)
-                            }}
-                            size="sm"
-                        >
-                            <i className="mdi mdi-tune mdi-18px" />
-                        </IconButton>
-                    </Tooltip>
-                )}
+                {/* Help button */}
+                <Tooltip content="Search help" placement="bottom">
+                    <IconButton
+                        className={`searchHelpToggle ${helpOpen ? 'searchHelpToggleActive' : ''}`}
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            setHelpOpen(!helpOpen)
+                        }}
+                        size="sm"
+                    >
+                        <i className="mdi mdi-help-circle-outline mdi-16px" />
+                    </IconButton>
+                </Tooltip>
             </div>
 
             {/* Dropdown panel */}
-            {panelOpen && viewMode === VIEW_REGULAR && (
+            {panelOpen && (
                 <div className="searchUnifiedPanel searchRegularPanel">
-                    <div className="searchUnifiedColumns searchRegularColumns">
-                        {/* Column 1: Layers (single-select, search-construct only) */}
-                        <div className="searchUnifiedCol searchRegularColLayers">
-                            <div className="searchUnifiedColHeader">
-                                <span>Layers</span>
-                            </div>
-                            <div className="searchUnifiedColBody">
-                                {vectorLayers.map((layer) => (
-                                    <div
-                                        key={layer.value}
-                                        className={`searchRegularLayerItem ${
-                                            selectedLayer === layer.value
-                                                ? 'searchRegularLayerItemActive'
-                                                : ''
-                                        }`}
-                                        onClick={() => handleRegularLayerSelect(layer.value)}
-                                    >
-                                        {layer.label}
-                                    </div>
-                                ))}
-                                {vectorLayers.length === 0 && (
-                                    <div className="searchUnifiedEmpty">No search layers</div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Column 2: Values (autocomplete from layer features) */}
-                        <div className="searchUnifiedCol searchRegularColValues">
-                            <div className="searchUnifiedColHeader">
-                                <span>Values</span>
-                            </div>
-                            <div className="searchUnifiedColBody">
-                                {suggestions.length > 0 ? (
-                                    suggestions.map((s, idx) => {
-                                        const label = typeof s === 'object' && s.value != null
-                                            ? String(s.value)
-                                            : String(s)
-                                        const isSubmitted = submittedValue != null && label === submittedValue
-                                        return (
+                    {isColonMode ? (
+                        /* Structured query autocomplete */
+                        <div className="searchUnifiedColumns searchStructuredColumns">
+                            <div className="searchUnifiedCol searchStructuredCol">
+                                <div className="searchUnifiedColHeader">
+                                    <span>
+                                        {parsed?.stage === STAGE_FIELD && 'Fields'}
+                                        {parsed?.stage === STAGE_OP && 'Operators'}
+                                        {parsed?.stage === STAGE_VALUE && 'Values'}
+                                    </span>
+                                    <span className="searchStructuredHint">
+                                        {parsed?.stage === STAGE_FIELD && ':field'}
+                                        {parsed?.stage === STAGE_OP && ':field:op'}
+                                        {parsed?.stage === STAGE_VALUE && ':field:op:value'}
+                                    </span>
+                                </div>
+                                <div className="searchUnifiedColBody">
+                                    {suggestions.length > 0 ? (
+                                        suggestions.map((s, idx) => (
                                             <div
                                                 key={idx}
                                                 className={`searchSuggestionItem ${
-                                                    isSubmitted
-                                                        ? 'searchSuggestionItemSubmitted'
-                                                        : idx === activeSuggestionIdx
+                                                    idx === activeSuggestionIdx
                                                         ? 'searchSuggestionItemActive'
                                                         : ''
                                                 }`}
@@ -1865,309 +1527,161 @@ function SearchBar() {
                                                 onMouseEnter={() => setActiveSuggestionIdx(idx)}
                                             >
                                                 <span className="searchSuggestionLabel">
-                                                    {label}
+                                                    {s.label}
                                                 </span>
-                                            </div>
-                                        )
-                                    })
-                                ) : (
-                                    <div className="searchUnifiedEmpty">
-                                        {!selectedLayer
-                                            ? 'Select a layer'
-                                            : arrayToSearch.length === 0
-                                            ? 'Loading...'
-                                            : inputValue
-                                            ? 'No matches'
-                                            : 'Type to search'}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Advanced mode panel */}
-            {panelOpen && viewMode === VIEW_ADVANCED && (
-                <div className="searchUnifiedPanel">
-                    <div className="searchUnifiedColumns">
-                        {/* Column 1: Layers (multi-select) */}
-                        <div className="searchUnifiedCol searchUnifiedColLayers">
-                            <div className="searchUnifiedColHeader">
-                                <span>Layers</span>
-                                <span className="searchDropdownHeaderActions">
-                                    <span
-                                        className="searchDropdownHeaderAction"
-                                        onClick={handleLayerSelectAll}
-                                    >
-                                        All
-                                    </span>
-                                    <span className="searchDropdownHeaderSep">/</span>
-                                    <span
-                                        className="searchDropdownHeaderAction"
-                                        onClick={handleLayerDeselectAll}
-                                    >
-                                        None
-                                    </span>
-                                </span>
-                            </div>
-                            <div className="searchUnifiedColFilter">
-                                <input
-                                    ref={layerFilterRef}
-                                    type="text"
-                                    className="searchUnifiedFilterInput"
-                                    placeholder="Filter layers..."
-                                    value={layerFilterText}
-                                    onChange={(e) =>
-                                        setLayerFilterText(e.target.value)
-                                    }
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                            </div>
-                            <div className="searchUnifiedColBody">
-                                {filteredLayerList.map((layer) => {
-                                    const layerKey = layer.kind === 'geodataset'
-                                        ? layer.geodatasetName
-                                        : layer.value
-                                    const isLoading = layer.kind === 'vector' && loadingVectorLayers.has(layer.value)
-                                    return (
-                                        <div
-                                            key={layer.value}
-                                            className="searchUnifiedLayerItem"
-                                            onClick={() =>
-                                                handleLayerToggle(layerKey, layer)
-                                            }
-                                        >
-                                            <Checkbox
-                                                checked={checkedLayers.has(layerKey)}
-                                                onCheckedChange={() =>
-                                                    handleLayerToggle(layerKey, layer)
-                                                }
-                                                showCheck
-                                            >
-                                                <span className="searchUnifiedLayerContent">
-                                                    {layer.path && (
-                                                        <span className="searchUnifiedLayerPath">
-                                                            {layer.path}
-                                                        </span>
-                                                    )}
-                                                    <span className="searchUnifiedLayerName">
-                                                        {layer.label}
-                                                        {isLoading && (
-                                                            <i className="mdi mdi-loading mdi-spin mdi-12px searchUnifiedLayerLoading" />
-                                                        )}
-                                                    </span>
-                                                </span>
-                                            </Checkbox>
-                                        </div>
-                                    )
-                                })}
-                                {filteredLayerList.length === 0 && (
-                                    <div className="searchUnifiedEmpty">No layers</div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Column 2: Fields */}
-                        <div className="searchUnifiedCol searchUnifiedColFields">
-                            <div className="searchUnifiedColHeader">
-                                <span>Field</span>
-                                <span className="searchFieldsToggle" onClick={(e) => e.stopPropagation()}>
-                                    <span className="searchFieldsToggleLabel">{commonFieldsOnly ? 'Common' : 'All'}</span>
-                                    <Switch
-                                        size="sm"
-                                        checked={commonFieldsOnly}
-                                        onCheckedChange={setCommonFieldsOnly}
-                                    />
-                                </span>
-                            </div>
-                            <div className="searchUnifiedColFilter">
-                                <input
-                                    ref={fieldFilterRef}
-                                    type="text"
-                                    className="searchUnifiedFilterInput"
-                                    placeholder="Filter fields..."
-                                    value={fieldFilterText}
-                                    onChange={(e) =>
-                                        setFieldFilterText(e.target.value)
-                                    }
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                            </div>
-                            <div className="searchUnifiedColBody">
-                                {filteredFields.length === 0 && (
-                                    <div className="searchUnifiedEmpty">
-                                        {checkedLayers.size === 0
-                                            ? 'Select layers first'
-                                            : schemaFields.length === 0
-                                                ? 'Loading fields...'
-                                                : 'No matching fields'}
-                                    </div>
-                                )}
-                                {filteredFields.slice(0, 200).map((field) => (
-                                    <div
-                                        key={field.name}
-                                        className={`searchUnifiedFieldItem ${
-                                            selectedField && selectedField.name === field.name
-                                                ? 'searchUnifiedFieldItemActive'
-                                                : ''
-                                        }`}
-                                        onClick={() =>
-                                            handleFieldSelect(field)
-                                        }
-                                    >
-                                        <span className="searchUnifiedFieldName">
-                                            {field.name}
-                                        </span>
-                                        <span className="searchDropdownFieldType" data-type={field.type}>
-                                            {field.type}
-                                        </span>
-                                        <span className="searchUnifiedFieldLayers">
-                                            {(() => {
-                                                const visibleLayers = field.layers.filter(
-                                                    (l) => checkedLayers.has(l)
-                                                )
-                                                return (
-                                                    <>
-                                                        {visibleLayers
-                                                            .slice(0, 2)
-                                                            .map((l) =>
-                                                                getLayerDisplayName(l)
-                                                            )
-                                                            .join(', ')}
-                                                        {visibleLayers.length > 2
-                                                            ? ` +${visibleLayers.length - 2}`
-                                                            : ''}
-                                                    </>
-                                                )
-                                            })()}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Column 3: Operator */}
-                        <div className="searchUnifiedCol searchUnifiedColOp">
-                            <div className="searchUnifiedColHeader">
-                                <span>Operator</span>
-                            </div>
-                            <div className="searchUnifiedColBody">
-                                {ops.map((op) => (
-                                    <div
-                                        key={op.value}
-                                        className={`searchUnifiedOpItem ${
-                                            op.value === searchOperator
-                                                ? 'searchUnifiedOpItemActive'
-                                                : ''
-                                        }`}
-                                        onClick={() => {
-                                            setSearchOperator(op.value)
-                                        }}
-                                    >
-                                        <span className="searchUnifiedOpIcon">
-                                            {op.icon ? (
-                                                <i className={`mdi ${op.icon} mdi-14px`} />
-                                            ) : (
-                                                <span className="searchOperatorText">{op.text}</span>
-                                            )}
-                                        </span>
-                                        <span className="searchUnifiedOpLabel">{op.label}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Column 4: Value + autocomplete */}
-                        <div className="searchUnifiedCol searchUnifiedColValue">
-                            <div className="searchUnifiedColHeader">
-                                <span>Value</span>
-                            </div>
-                            <div className="searchUnifiedValueInputWrap">
-                                <input
-                                    ref={valueInputRef}
-                                    type="text"
-                                    className="searchUnifiedValueInput"
-                                    placeholder={
-                                        isNullOp
-                                            ? (searchOperator === 'isnull' ? 'Is Null' : 'Is Not Null')
-                                            : selectedField
-                                            ? `Search by ${selectedField.name}...`
-                                            : 'Select a field first'
-                                    }
-                                    value={isNullOp ? '' : inputValue}
-                                    onChange={(e) => {
-                                        if (!isNullOp) {
-                                            setSubmittedValue(null)
-                                            setInputValue(e.target.value)
-                                        }
-                                    }}
-                                    onKeyDown={handleKeyDown}
-                                    onFocus={() => {
-                                        if (isNullOp) return
-                                        if (searchMode === MODE_FIELD && fieldValues.length > 0) {
-                                            const all = fieldValues.slice(0, 100)
-                                            setSuggestions(all)
-                                            setShowSuggestions(true)
-                                        } else if (suggestions.length > 0) {
-                                            setShowSuggestions(true)
-                                        }
-                                    }}
-                                    disabled={isNullOp || !selectedField}
-                                    style={isNullOp ? { opacity: 0.4 } : undefined}
-                                />
-                            </div>
-                            <div className="searchUnifiedColBody searchUnifiedValueBody">
-                                {showSuggestions && suggestions.length > 0 ? (
-                                    suggestions.map((s, idx) => {
-                                        const isObj =
-                                            s != null &&
-                                            typeof s === 'object' &&
-                                            s.value != null
-                                        const label = isObj
-                                            ? String(s.value)
-                                            : String(s)
-                                        const isSubmitted = submittedValue != null && label === submittedValue
-                                        return (
-                                            <div
-                                                key={idx}
-                                                className={`searchSuggestionItem ${
-                                                    isSubmitted
-                                                        ? 'searchSuggestionItemSubmitted'
-                                                        : idx === activeSuggestionIdx
-                                                        ? 'searchSuggestionItemActive'
-                                                        : ''
-                                                }`}
-                                                onMouseDown={() =>
-                                                    handleSuggestionClick(s)
-                                                }
-                                                onMouseEnter={() =>
-                                                    setActiveSuggestionIdx(idx)
-                                                }
-                                            >
-                                                <span className="searchSuggestionLabel">
-                                                    {label}
-                                                </span>
-                                                {isObj && s.count != null && (
-                                                    <span className="searchSuggestionCount">
-                                                        {s.count}
+                                                {s.detail && (
+                                                    <span className="searchSuggestionDetail">
+                                                        {s.detail}
                                                     </span>
                                                 )}
                                             </div>
-                                        )
-                                    })
-                                ) : (
-                                    !selectedField && (
+                                        ))
+                                    ) : (
                                         <div className="searchUnifiedEmpty">
-                                            Select a field to see values
+                                            {parsed?.stage === STAGE_FIELD && 'Type to filter fields...'}
+                                            {parsed?.stage === STAGE_OP && 'No matching operators'}
+                                            {parsed?.stage === STAGE_VALUE && 'Loading values...'}
                                         </div>
-                                    )
-                                )}
-                                {selectedField && !showSuggestions && fieldValues.length === 0 && (
-                                    <div className="searchUnifiedEmpty">
-                                        Loading values...
-                                    </div>
-                                )}
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        /* Regular mode: Layers + Values */
+                        <div className="searchUnifiedColumns searchRegularColumns">
+                            {/* Column 1: Layers */}
+                            <div className="searchUnifiedCol searchRegularColLayers">
+                                <div className="searchUnifiedColHeader">
+                                    <span>Layers</span>
+                                </div>
+                                <div className="searchUnifiedColBody">
+                                    {layerListItems.map((item) => (
+                                        <div
+                                            key={item.isGroup ? `group-${item.groupId}` : item.value}
+                                            className={`searchRegularLayerItem ${
+                                                (item.isGroup
+                                                    ? item.layers.includes(selectedLayer)
+                                                    : selectedLayer === item.value)
+                                                    ? 'searchRegularLayerItemActive'
+                                                    : ''
+                                            }`}
+                                            onClick={() => handleRegularLayerSelect(
+                                                item.isGroup ? item.layers[0] : item.value
+                                            )}
+                                        >
+                                            {item.isGroup && (
+                                                <i className="mdi mdi-folder-outline mdi-12px searchGroupIcon" />
+                                            )}
+                                            {item.label}
+                                        </div>
+                                    ))}
+                                    {layerListItems.length === 0 && (
+                                        <div className="searchUnifiedEmpty">No search layers</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Column 2: Values */}
+                            <div className="searchUnifiedCol searchRegularColValues">
+                                <div className="searchUnifiedColHeader">
+                                    <span>Values</span>
+                                </div>
+                                <div className="searchUnifiedColBody">
+                                    {suggestions.length > 0 ? (
+                                        suggestions.map((s, idx) => {
+                                            const isSubmitted = submittedValue != null && s.label === submittedValue
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    className={`searchSuggestionItem ${
+                                                        isSubmitted
+                                                            ? 'searchSuggestionItemSubmitted'
+                                                            : idx === activeSuggestionIdx
+                                                            ? 'searchSuggestionItemActive'
+                                                            : ''
+                                                    }`}
+                                                    onMouseDown={() => handleSuggestionClick(s)}
+                                                    onMouseEnter={() => setActiveSuggestionIdx(idx)}
+                                                >
+                                                    <span className="searchSuggestionLabel">
+                                                        {s.label}
+                                                    </span>
+                                                </div>
+                                            )
+                                        })
+                                    ) : (
+                                        <div className="searchUnifiedEmpty">
+                                            {!selectedLayer
+                                                ? 'Select a layer'
+                                                : arrayToSearch.length === 0
+                                                ? 'Loading...'
+                                                : inputValue
+                                                ? 'No matches'
+                                                : 'Type to search'}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Help modal */}
+            {helpOpen && (
+                <div className="searchHelpPanel" ref={helpRef}>
+                    <div className="searchHelpHeader">
+                        <span>Search Help</span>
+                        <IconButton size="sm" onClick={() => setHelpOpen(false)}>
+                            <i className="mdi mdi-close mdi-14px" />
+                        </IconButton>
+                    </div>
+                    <div className="searchHelpBody">
+                        <div className="searchHelpSection">
+                            <div className="searchHelpTitle">Plain Text</div>
+                            <div className="searchHelpDesc">
+                                Type normally to search by display name (search construct).
+                            </div>
+                        </div>
+                        <div className="searchHelpSection">
+                            <div className="searchHelpTitle">Structured Query</div>
+                            <div className="searchHelpDesc">
+                                Start with <code>:</code> to enter field query mode:
+                            </div>
+                            <div className="searchHelpSyntax">:field:operator:value</div>
+                            <div className="searchHelpDesc">
+                                Autocomplete guides you at each step.
+                            </div>
+                        </div>
+                        <div className="searchHelpSection">
+                            <div className="searchHelpTitle">Operators</div>
+                            <table className="searchHelpTable">
+                                <tbody>
+                                    <tr><td><code>=</code></td><td>Equals</td></tr>
+                                    <tr><td><code>!=</code></td><td>Not equals</td></tr>
+                                    <tr><td><code>&lt;</code> <code>&gt;</code> <code>&lt;=</code> <code>&gt;=</code></td><td>Numeric comparison</td></tr>
+                                    <tr><td><code>*=</code></td><td>Contains</td></tr>
+                                    <tr><td><code>^=</code></td><td>Begins with</td></tr>
+                                    <tr><td><code>$=</code></td><td>Ends with</td></tr>
+                                    <tr><td><code>~=</code></td><td>Regex match</td></tr>
+                                    <tr><td><code>in</code></td><td>Comma-separated list</td></tr>
+                                    <tr><td><code>isnull</code></td><td>Is null</td></tr>
+                                    <tr><td><code>isnotnull</code></td><td>Is not null</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="searchHelpSection">
+                            <div className="searchHelpTitle">Examples</div>
+                            <div className="searchHelpExample"><code>:category:=:Commercial</code></div>
+                            <div className="searchHelpExample"><code>:altitude:&gt;:1000</code></div>
+                            <div className="searchHelpExample"><code>:name:~=:/^Mars.*/</code></div>
+                            <div className="searchHelpExample"><code>:sensor:isnull:</code></div>
+                        </div>
+                        <div className="searchHelpSection">
+                            <div className="searchHelpTitle">Keyboard Shortcuts</div>
+                            <div className="searchHelpDesc">
+                                <code>/</code> — Toggle search bar<br />
+                                <code>Escape</code> — Close panel
                             </div>
                         </div>
                     </div>

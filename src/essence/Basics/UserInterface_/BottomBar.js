@@ -250,7 +250,7 @@ let BottomBar = {
                             `<div class='mainHotkeysModalSectionTitle'>Search</div>`,
                             `<ul class='mainHotkeysModalSectionOptions'>`,
                                 `<li>`,
-                                    `<div>Open Advanced Search</div>`,
+                                    `<div>Toggle Search</div>`,
                                     `<div>/</div>`,
                                 `</li>`,
                             `</ul>`,
@@ -367,7 +367,7 @@ let BottomBar = {
         }
     },
     attachHotkeys: function () {
-        // "/" opens advanced search (only when not focused on an input/textarea)
+        // "/" toggles search bar (only when not focused on an input/textarea)
         document.addEventListener('keydown', function (e) {
             if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return
             const tag = document.activeElement?.tagName?.toLowerCase()

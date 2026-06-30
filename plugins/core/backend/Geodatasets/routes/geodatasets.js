@@ -1427,7 +1427,7 @@ router.post("/search", function (req, res, next) {
             : "";
 
         // Build operator clause for search (supports nested keys via jsonbAccessor)
-        const validOps = ["=", "!=", "<", ">", "<=", ">=", "contains", "beginswith", "endswith", ",", "in", "isnull", "isnotnull"];
+        const validOps = ["=", "!=", "<", ">", "<=", ">=", "contains", "beginswith", "endswith", ",", "in", "isnull", "isnotnull", "regex"];
         let searchOp = req.body.operator || "=";
         if (validOps.indexOf(searchOp) === -1) searchOp = "=";
         const allowedOps = ["=", "!=", "<", ">", "<=", ">="];
@@ -1446,6 +1446,8 @@ router.post("/search", function (req, res, next) {
           opClause = `${keyExpr} ILIKE '%' || :value`;
         } else if (searchOp === "," || searchOp === "in") {
           opClause = `${keyExpr} IN (:valueList)`;
+        } else if (searchOp === "regex") {
+          opClause = `${keyExpr} ~* :value`;
         } else if (searchOp === "isnull") {
           opClause = `${keyExpr} IS NULL`;
         } else if (searchOp === "isnotnull") {
@@ -1486,6 +1488,27 @@ router.post("/search", function (req, res, next) {
           replacements.valueList = sanitizedValue
             ? sanitizedValue.split(",").map((v) => v.trim()).filter(Boolean)
             : [""];
+        }
+
+        // For regex operator, strip /pattern/flags delimiters if present
+        if (searchOp === "regex" && sanitizedValue) {
+          const regexMatch = sanitizedValue.match(/^\/(.+)\/([gimsuy]*)$/);
+          if (regexMatch) {
+            replacements.value = regexMatch[1];
+            // Use case-sensitive (~) if no 'i' flag, case-insensitive (~*) otherwise
+            if (!regexMatch[2].includes("i")) {
+              opClause = `${keyExpr} ~ :value`;
+              // Rebuild query with updated opClause
+              q = `SELECT properties, ST_AsGeoJSON(geom), id FROM ${Utils.forceAlphaNumUnder(
+                table
+              )}` +
+              (req.body.last || offset != null
+                ? `${where}${geomTypeWhere} ORDER BY id ${
+                    offset != null && !req.body.last ? "ASC" : "DESC LIMIT 1"
+                  }`
+                : ` WHERE ${opClause}${geomTypeWhere}`);
+            }
+          }
         }
 
         sequelize
