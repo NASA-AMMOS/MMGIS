@@ -176,14 +176,42 @@ function parseColonQuery(text) {
     if (parts.length === 3) {
         return { stage: STAGE_OP, layers: parts[0], field: parts[1], op: parts[2], value: null }
     }
-    // :layer(s):field:op:value(s) — value may contain colons
+    // :layer(s):field:op:value(s) — value may contain colons or quoted strings
+    const rawValue = parts.slice(3).join(':')
     return {
         stage: STAGE_VALUE,
         layers: parts[0],
         field: parts[1],
         op: parts[2],
-        value: parts.slice(3).join(':'),
+        value: rawValue,
     }
+}
+
+// Split a value string by | but respect quoted segments
+function splitValues(val) {
+    const results = []
+    let current = ''
+    let inQuote = false
+    for (let i = 0; i < val.length; i++) {
+        const ch = val[i]
+        if (ch === '"') {
+            inQuote = !inQuote
+            current += ch
+        } else if (ch === '|' && !inQuote) {
+            results.push(current)
+            current = ''
+        } else {
+            current += ch
+        }
+    }
+    if (current) results.push(current)
+    return results
+}
+
+// Strip surrounding quotes from a value
+function unquoteValue(v) {
+    if (v.startsWith('"') && v.endsWith('"') && v.length >= 2) return v.slice(1, -1)
+    return v
 }
 
 function SearchBar() {
@@ -705,8 +733,8 @@ function SearchBar() {
 
                 // Special entries at top
                 const specialEntries = [
-                    { type: 'layer', label: 'Any', layerValue: 'any', detail: 'All layers', isSpecial: true },
-                    { type: 'layer', label: 'On', layerValue: 'on', detail: 'Toggled-on layers', isSpecial: true },
+                    { type: 'layer', label: 'any', layerValue: 'any', detail: 'All layers', isSpecial: true },
+                    { type: 'layer', label: 'on', layerValue: 'on', detail: 'Toggled-on layers', isSpecial: true },
                 ]
                 const allLayers = [...vectorLayers, ...geodatasetLayers.map((gl) => ({
                     value: gl.geodatasetName || gl.value,
@@ -717,7 +745,9 @@ function SearchBar() {
                         const name = (l.value || '').toLowerCase()
                         const label = (l.label || '').toLowerCase()
                         if (alreadySelected.includes(label) || alreadySelected.includes(name)) return false
-                        return label.indexOf(lastSegment) !== -1 || name.indexOf(lastSegment) !== -1
+                        // Filter by last segment (the part user is currently typing)
+                        if (lastSegment && label.indexOf(lastSegment) === -1 && name.indexOf(lastSegment) === -1) return false
+                        return true
                     })
                     .slice(0, 50)
                     .map((l) => ({
@@ -775,19 +805,24 @@ function SearchBar() {
                 setActiveSuggestionIdx(-1)
             } else if (parsed.stage === STAGE_VALUE) {
                 // Show values for the selected field
-                const q = parsed.value.toLowerCase()
-                // Filter by last | segment for multi-value
-                const valSegments = q.split('|')
-                const lastVal = valSegments[valSegments.length - 1] || ''
+                const valSegments = splitValues(parsed.value)
+                const lastVal = (valSegments[valSegments.length - 1] || '').toLowerCase()
+                const lastValUnquoted = unquoteValue(lastVal)
+                // Already-selected values (all segments except the last)
+                const alreadySelectedVals = new Set(
+                    valSegments.slice(0, -1).map((s) => unquoteValue(s.trim().toLowerCase()))
+                )
 
                 const field = schemaFields.find(
                     (f) => f.name.toLowerCase() === parsed.field.toLowerCase()
                 )
                 if (field && fieldValues.length > 0) {
                     const filtered = fieldValues
-                        .filter((v) =>
-                            String(v.value).toLowerCase().indexOf(lastVal) !== -1
-                        )
+                        .filter((v) => {
+                            const vLower = String(v.value).toLowerCase()
+                            if (alreadySelectedVals.has(vLower)) return false
+                            return vLower.indexOf(lastValUnquoted) !== -1
+                        })
                         .slice(0, 100)
                         .map((v) => ({
                             type: 'value',
@@ -988,9 +1023,9 @@ function SearchBar() {
         if (op === 'isnotnull') return featureValue != null
         if (featureValue == null) return false
 
-        // Handle multi-value OR (pipe-separated): match if any sub-value matches
+        // Handle multi-value OR (pipe-separated, respecting quotes): match if any sub-value matches
         if (searchValue && searchValue.indexOf('|') !== -1 && op !== '~=' && op !== 'regex') {
-            const subValues = searchValue.split('|').filter(Boolean)
+            const subValues = splitValues(searchValue).filter(Boolean).map(unquoteValue)
             return subValues.some((sv) => matchFeatureValue(featureValue, sv, op, fieldType))
         }
 
@@ -1040,7 +1075,9 @@ function SearchBar() {
 
             const backendOp = OP_TO_BACKEND[op] || '='
             const isNullOp = op === 'isnull' || op === 'isnotnull'
-            if (!value && !isNullOp) return
+            // Unquote value segments for execution
+            const execValue = splitValues(value || '').map(unquoteValue).join('|')
+            if (!execValue && !isNullOp) return
 
             const fieldObj = schemaFields.find(
                 (f) => f.name.toLowerCase() === field.toLowerCase()
@@ -1077,7 +1114,7 @@ function SearchBar() {
             const filterOp = opMap[backendOp] || backendOp
             const filterEncoded = isNullOp
                 ? `${fieldName}+${filterOp}+${fieldType}+`
-                : `${fieldName}+${filterOp}+${fieldType}+${(value || '').replaceAll(',', '$')}`
+                : `${fieldName}+${filterOp}+${fieldType}+${(execValue || '').replaceAll(',', '$')}`
 
             let pendingSearches = candidateGeo.length
             const allResultCoords = []
@@ -1092,7 +1129,7 @@ function SearchBar() {
 
                 const matchingFeatures = geojson.features.filter((feat) => {
                     const fv = F_.getIn(feat.properties, fieldName)
-                    return matchFeatureValue(fv, value, op, fieldType)
+                    return matchFeatureValue(fv, execValue, op, fieldType)
                 })
 
                 if (matchingFeatures.length > 0) {
@@ -1134,7 +1171,7 @@ function SearchBar() {
                     {
                         layer: gl.geodatasetName,
                         key: fieldName,
-                        value: value || '',
+                        value: execValue || '',
                         operator: backendOp,
                         type: fieldType,
                     },
@@ -1406,7 +1443,11 @@ function SearchBar() {
                 // Append display name with & if there are already layers
                 const currentLayers = parsed ? parsed.layers : ''
                 const segments = currentLayers.split('&').filter(Boolean)
-                segments.push(item.label)
+                // Deduplicate
+                const labelLower = item.label.toLowerCase()
+                if (!segments.some((s) => s.toLowerCase() === labelLower)) {
+                    segments.push(item.label)
+                }
                 const newVal = `:${segments.join('&')}:`
                 setInputValue(newVal)
                 inputRef.current?.focus()
@@ -1442,8 +1483,15 @@ function SearchBar() {
                 const opPart = parsed ? parsed.op : '='
                 // Support multi-value: append to existing values with |
                 const existingValue = parsed ? parsed.value : ''
-                const valSegments = existingValue.split('|').filter(Boolean)
-                valSegments.push(item.label)
+                const valSegments = splitValues(existingValue).filter(Boolean)
+                // Quote the value if it contains special characters
+                const needsQuote = item.label.indexOf('|') !== -1 || item.label.indexOf(':') !== -1
+                const quotedLabel = needsQuote ? `"${item.label}"` : item.label
+                // Deduplicate
+                const labelLower = item.label.toLowerCase()
+                if (!valSegments.some((s) => unquoteValue(s).toLowerCase() === labelLower)) {
+                    valSegments.push(quotedLabel)
+                }
                 const finalValue = valSegments.join('|')
                 const newVal = `:${layersPart}:${fieldPart}:${opPart}:${finalValue}`
                 setInputValue(newVal)
@@ -1809,7 +1857,7 @@ function SearchBar() {
                             </div>
                             <div className="searchHelpSyntax">:layer1&amp;layer2:field:op:val1|val2</div>
                             <div className="searchHelpDesc">
-                                Special layer keywords: <code>Any</code> (all layers), <code>On</code> (toggled-on layers).
+                                Special layer keywords: <code>any</code> (all layers), <code>on</code> (toggled-on layers). Wrap values containing <code>|</code> or <code>:</code> in quotes.
                             </div>
                             <div className="searchHelpDesc">
                                 Autocomplete guides you at each step.
@@ -1839,8 +1887,9 @@ function SearchBar() {
                             <div className="searchHelpExample"><code>:my_layer:name:~=:/^Mars.*/</code></div>
                             <div className="searchHelpExample"><code>:my_layer:name:=:val1|val2</code></div>
                             <div className="searchHelpExample"><code>:my_layer:sensor:isnull:</code></div>
-                            <div className="searchHelpExample"><code>:Any:name:*=:Mars</code></div>
-                            <div className="searchHelpExample"><code>:On:category:=:Park</code></div>
+                            <div className="searchHelpExample"><code>:any:name:*=:Mars</code></div>
+                            <div className="searchHelpExample"><code>:on:category:=:Park</code></div>
+                            <div className="searchHelpExample"><code>:layer:desc:=:"value with | pipe"</code></div>
                         </div>
                         <div className="searchHelpSection">
                             <div className="searchHelpTitle">Keyboard Shortcuts</div>
