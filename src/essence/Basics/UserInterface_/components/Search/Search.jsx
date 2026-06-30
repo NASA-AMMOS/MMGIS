@@ -673,13 +673,14 @@ function SearchBar() {
                         const name = (l.value || '').toLowerCase()
                         const label = (l.label || '').toLowerCase()
                         if (alreadySelected.includes(name)) return false
-                        return name.indexOf(lastSegment) !== -1 || label.indexOf(lastSegment) !== -1
+                        return label.indexOf(lastSegment) !== -1 || name.indexOf(lastSegment) !== -1
                     })
                     .slice(0, 50)
                     .map((l) => ({
                         type: 'layer',
-                        label: l.value,
-                        detail: l.label !== l.value ? l.label : '',
+                        label: l.label || l.value,
+                        layerValue: l.value,
+                        detail: '',
                     }))
                 setSuggestions(filtered)
                 setShowSuggestions(filtered.length > 0)
@@ -1349,10 +1350,10 @@ function SearchBar() {
             const parsed = parseColonQuery(inputValue)
 
             if (item.type === 'layer') {
-                // Append layer name with & if there are already layers
+                // Append layer internal name with & if there are already layers
                 const currentLayers = parsed ? parsed.layers : ''
                 const segments = currentLayers.split('&').filter(Boolean)
-                segments.push(item.label)
+                segments.push(item.layerValue || item.label)
                 const newVal = `:${segments.join('&')}:`
                 setInputValue(newVal)
                 inputRef.current?.focus()
@@ -1518,7 +1519,7 @@ function SearchBar() {
                 {/* Search input */}
                 <input
                     ref={inputRef}
-                    className="searchCompactInput"
+                    className={`searchCompactInput${isColonMode ? ' searchCompactInputWide' : ''}`}
                     type="text"
                     placeholder={placeholder + ' (or ":")'}
                     value={inputValue}
@@ -1576,24 +1577,7 @@ function SearchBar() {
                         <i className="mdi mdi-close mdi-14px" />
                     </IconButton>
                 </Tooltip>
-                {/* Mode toggle */}
-                <div
-                    className="searchModeToggle"
-                    onClick={(e) => {
-                        e.stopPropagation()
-                        if (isColonMode) {
-                            setInputValue('')
-                        } else {
-                            setInputValue(':')
-                            if (!panelOpen) setPanelOpen(true)
-                            setShowSuggestions(true)
-                        }
-                        inputRef.current?.focus()
-                    }}
-                >
-                    <span className={`searchModeOption ${!isColonMode ? 'searchModeOptionActive' : ''}`}>reg</span>
-                    <span className={`searchModeOption ${isColonMode ? 'searchModeOptionActive' : ''}`}>adv</span>
-                </div>
+
                 {/* Help button */}
                 <Tooltip content="Search help" placement="bottom">
                     <IconButton
