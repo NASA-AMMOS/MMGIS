@@ -155,6 +155,7 @@ const OP_TO_BACKEND = {
 }
 
 // Autocomplete stages for the structured query
+const STAGE_LAYER = 'layer'
 const STAGE_FIELD = 'field'
 const STAGE_OP = 'op'
 const STAGE_VALUE = 'value'
@@ -163,18 +164,25 @@ function parseColonQuery(text) {
     if (!text.startsWith(':')) return null
     const content = text.substring(1)
     const parts = content.split(':')
+    // :layer(s) — first segment is always layers
     if (parts.length === 1) {
-        return { stage: STAGE_FIELD, field: parts[0], op: null, value: null }
+        return { stage: STAGE_LAYER, layers: parts[0], field: null, op: null, value: null }
     }
+    // :layer(s):field
     if (parts.length === 2) {
-        return { stage: STAGE_OP, field: parts[0], op: parts[1], value: null }
+        return { stage: STAGE_FIELD, layers: parts[0], field: parts[1], op: null, value: null }
     }
-    // parts.length >= 3: value may contain colons
+    // :layer(s):field:op
+    if (parts.length === 3) {
+        return { stage: STAGE_OP, layers: parts[0], field: parts[1], op: parts[2], value: null }
+    }
+    // :layer(s):field:op:value(s) — value may contain colons
     return {
         stage: STAGE_VALUE,
-        field: parts[0],
-        op: parts[1],
-        value: parts.slice(2).join(':'),
+        layers: parts[0],
+        field: parts[1],
+        op: parts[2],
+        value: parts.slice(3).join(':'),
     }
 }
 
@@ -642,31 +650,47 @@ function SearchBar() {
         const parsed = parseColonQuery(inputValue)
 
         if (parsed) {
-            // Compute active layer set for filtering
-            let activeLayers = []
-            if (selectedLayer) {
-                const groupEntry = Object.values(searchGroups).find(
-                    (g) => g.layers.includes(selectedLayer)
-                )
-                if (groupEntry) {
-                    activeLayers = groupEntry.layers
-                } else {
-                    const geoLayer = geodatasetLayers.find((gl) => gl.value === selectedLayer)
-                    activeLayers = geoLayer
-                        ? [selectedLayer, geoLayer.geodatasetName]
-                        : [selectedLayer]
-                }
-            }
+            // Derive active layer names from the parsed layers segment
+            const parsedLayerNames = parsed.layers
+                ? parsed.layers.split('&').map((l) => l.trim()).filter(Boolean)
+                : []
 
-            // Structured query mode
-            if (parsed.stage === STAGE_FIELD) {
+            // Structured query mode — 4 stages: layer, field, op, value
+            if (parsed.stage === STAGE_LAYER) {
+                // Show available layers (all searchable layers)
+                const q = parsed.layers.toLowerCase()
+                // Get the last segment after & for filtering
+                const segments = q.split('&')
+                const lastSegment = segments[segments.length - 1] || ''
+                const alreadySelected = segments.slice(0, -1).map((s) => s.trim())
+
+                const allLayers = [...vectorLayers, ...geodatasetLayers.map((gl) => ({
+                    value: gl.geodatasetName || gl.value,
+                    label: gl.label || gl.value,
+                }))]
+                const filtered = allLayers
+                    .filter((l) => {
+                        const name = (l.value || '').toLowerCase()
+                        const label = (l.label || '').toLowerCase()
+                        if (alreadySelected.includes(name)) return false
+                        return name.indexOf(lastSegment) !== -1 || label.indexOf(lastSegment) !== -1
+                    })
+                    .slice(0, 50)
+                    .map((l) => ({
+                        type: 'layer',
+                        label: l.value,
+                        detail: l.label !== l.value ? l.label : '',
+                    }))
+                setSuggestions(filtered)
+                setShowSuggestions(filtered.length > 0)
+                setActiveSuggestionIdx(-1)
+            } else if (parsed.stage === STAGE_FIELD) {
                 const q = parsed.field.toLowerCase()
                 const filtered = schemaFields
                     .filter((f) => {
                         if (f.name.toLowerCase().indexOf(q) === -1) return false
-                        // Restrict to fields present on the active layer(s)
-                        if (activeLayers.length > 0) {
-                            return f.layers.some((l) => activeLayers.includes(l))
+                        if (parsedLayerNames.length > 0) {
+                            return f.layers.some((l) => parsedLayerNames.includes(l))
                         }
                         return true
                     })
@@ -699,13 +723,17 @@ function SearchBar() {
             } else if (parsed.stage === STAGE_VALUE) {
                 // Show values for the selected field
                 const q = parsed.value.toLowerCase()
+                // Filter by last | segment for multi-value
+                const valSegments = q.split('|')
+                const lastVal = valSegments[valSegments.length - 1] || ''
+
                 const field = schemaFields.find(
                     (f) => f.name.toLowerCase() === parsed.field.toLowerCase()
                 )
                 if (field && fieldValues.length > 0) {
                     const filtered = fieldValues
                         .filter((v) =>
-                            String(v.value).toLowerCase().indexOf(q) !== -1
+                            String(v.value).toLowerCase().indexOf(lastVal) !== -1
                         )
                         .slice(0, 100)
                         .map((v) => ({
@@ -762,7 +790,7 @@ function SearchBar() {
         setSuggestions(filtered)
         setShowSuggestions(filtered.length > 0 && panelOpen)
         setActiveSuggestionIdx(-1)
-    }, [inputValue, arrayToSearch, schemaFields, fieldValues, submittedValue, panelOpen, selectedLayer, searchGroups, geodatasetLayers])
+    }, [inputValue, arrayToSearch, schemaFields, fieldValues, submittedValue, panelOpen, selectedLayer, searchGroups, geodatasetLayers, vectorLayers])
 
     // Load field values when we enter the value stage of a structured query
     useEffect(() => {
@@ -775,30 +803,19 @@ function SearchBar() {
         )
         if (!field) return
 
-        // Compute active layer set (selected layer or search group members)
-        let activeLayers = []
-        if (selectedLayer) {
-            const groupEntry = Object.values(searchGroups).find(
-                (g) => g.layers.includes(selectedLayer)
-            )
-            if (groupEntry) {
-                activeLayers = groupEntry.layers
-            } else {
-                const geoLayer = geodatasetLayers.find((gl) => gl.value === selectedLayer)
-                activeLayers = geoLayer
-                    ? [selectedLayer, geoLayer.geodatasetName]
-                    : [selectedLayer]
-            }
-        }
+        // Derive active layers from the parsed layers segment
+        const parsedLayerNames = parsed.layers
+            ? parsed.layers.split('&').map((l) => l.trim()).filter(Boolean)
+            : []
 
-        // Fetch aggregations for this field — restricted to active layers
+        // Fetch aggregations for this field — restricted to parsed layers
         const geodatasetLayerNames = field.layers.filter((l) =>
             geodatasetLayers.some((gl) => gl.geodatasetName === l) &&
-            (activeLayers.length === 0 || activeLayers.includes(l))
+            (parsedLayerNames.length === 0 || parsedLayerNames.includes(l))
         )
         const vectorLayerNames = field.layers.filter((l) =>
             vectorSearchLayers.some((vl) => vl.value === l) &&
-            (activeLayers.length === 0 || activeLayers.includes(l))
+            (parsedLayerNames.length === 0 || parsedLayerNames.includes(l))
         )
 
         // Compute vector aggregations
@@ -852,7 +869,7 @@ function SearchBar() {
         } else {
             mergeAndSet({})
         }
-    }, [inputValue, schemaFields, geodatasetLayers, vectorSearchLayers, getF_, selectedLayer, searchGroups])
+    }, [inputValue, schemaFields, geodatasetLayers, vectorSearchLayers, getF_])
 
     // Scroll active suggestion into view on arrow key navigation
     useEffect(() => {
@@ -917,6 +934,12 @@ function SearchBar() {
         if (op === 'isnotnull') return featureValue != null
         if (featureValue == null) return false
 
+        // Handle multi-value OR (pipe-separated): match if any sub-value matches
+        if (searchValue && searchValue.indexOf('|') !== -1 && op !== '~=' && op !== 'regex') {
+            const subValues = searchValue.split('|').filter(Boolean)
+            return subValues.some((sv) => matchFeatureValue(featureValue, sv, op, fieldType))
+        }
+
         let fv = featureValue
         let sv = searchValue
         if (fieldType === 'number' && op !== ',' && op !== 'in') {
@@ -956,7 +979,7 @@ function SearchBar() {
 
     // Execute a structured query (:field:op:value)
     const executeStructuredQuery = useCallback(
-        (field, op, value) => {
+        (field, op, value, targetLayers) => {
             const L_ = getL_()
             const Map_ = getMap_()
             const F_ = getF_()
@@ -984,12 +1007,14 @@ function SearchBar() {
             })
             searchFilteredLayers.current = []
 
-            // Split candidate layers
+            // Split candidate layers — filter by targetLayers if provided
             const candidateGeo = geodatasetLayers.filter(
-                (gl) => fieldLayers.includes(gl.geodatasetName)
+                (gl) => fieldLayers.includes(gl.geodatasetName) &&
+                    (targetLayers == null || targetLayers.length === 0 || targetLayers.includes(gl.geodatasetName))
             )
             const candidateVec = vectorSearchLayers.filter(
-                (vl) => fieldLayers.includes(vl.value)
+                (vl) => fieldLayers.includes(vl.value) &&
+                    (targetLayers == null || targetLayers.length === 0 || targetLayers.includes(vl.value))
             )
 
             if (candidateGeo.length === 0 && candidateVec.length === 0) return
@@ -1323,36 +1348,54 @@ function SearchBar() {
         (item) => {
             const parsed = parseColonQuery(inputValue)
 
+            if (item.type === 'layer') {
+                // Append layer name with & if there are already layers
+                const currentLayers = parsed ? parsed.layers : ''
+                const segments = currentLayers.split('&').filter(Boolean)
+                segments.push(item.label)
+                const newVal = `:${segments.join('&')}:`
+                setInputValue(newVal)
+                inputRef.current?.focus()
+                return
+            }
             if (item.type === 'field') {
-                // Complete field name, add next colon
-                const newVal = `:${item.label}:`
+                // Complete field name, preserve layers
+                const layersPart = parsed ? parsed.layers : ''
+                const newVal = `:${layersPart}:${item.label}:`
                 setInputValue(newVal)
                 setFieldValues([])
                 inputRef.current?.focus()
                 return
             }
             if (item.type === 'op') {
-                const parsed2 = parseColonQuery(inputValue)
-                const fieldPart = parsed2 ? parsed2.field : ''
-                const newVal = `:${fieldPart}:${item.label}:`
+                const layersPart = parsed ? parsed.layers : ''
+                const fieldPart = parsed ? parsed.field : ''
+                const newVal = `:${layersPart}:${fieldPart}:${item.label}:`
                 setInputValue(newVal)
                 inputRef.current?.focus()
 
                 // Auto-execute for isnull/isnotnull
                 if (item.label === 'isnull' || item.label === 'isnotnull') {
                     setSubmittedValue(newVal)
-                    executeStructuredQuery(fieldPart, item.label, '')
+                    const layers = layersPart.split('&').filter(Boolean)
+                    executeStructuredQuery(fieldPart, item.label, '', layers)
                 }
                 return
             }
             if (item.type === 'value') {
-                const parsed2 = parseColonQuery(inputValue)
-                const fieldPart = parsed2 ? parsed2.field : ''
-                const opPart = parsed2 ? parsed2.op : '='
-                const newVal = `:${fieldPart}:${opPart}:${item.label}`
+                const layersPart = parsed ? parsed.layers : ''
+                const fieldPart = parsed ? parsed.field : ''
+                const opPart = parsed ? parsed.op : '='
+                // Support multi-value: append to existing values with |
+                const existingValue = parsed ? parsed.value : ''
+                const valSegments = existingValue.split('|').filter(Boolean)
+                valSegments.push(item.label)
+                const finalValue = valSegments.join('|')
+                const newVal = `:${layersPart}:${fieldPart}:${opPart}:${finalValue}`
                 setInputValue(newVal)
                 setSubmittedValue(newVal)
-                executeStructuredQuery(fieldPart, opPart, item.label)
+                const layers = layersPart.split('&').filter(Boolean)
+                executeStructuredQuery(fieldPart, opPart, finalValue, layers)
                 return
             }
 
@@ -1460,8 +1503,8 @@ function SearchBar() {
             {/* Top bar */}
             <div className="searchCompactBar">
                 <i className="mdi mdi-magnify mdi-18px searchCompactIcon" onClick={openPanel} />
-                {/* Layers trigger */}
-                {vectorLayers.length > 0 && (
+                {/* Layers trigger (hidden in colon/advanced mode) */}
+                {!isColonMode && vectorLayers.length > 0 && (
                     <>
                         <div className="searchLayersTrigger" onClick={openPanel}>
                             <span className="searchLayersTriggerLabel">
@@ -1496,7 +1539,8 @@ function SearchBar() {
                                 handleSuggestionClick(suggestions[activeSuggestionIdx])
                             } else if (isColonMode && parsed && parsed.stage === STAGE_VALUE) {
                                 setSubmittedValue(inputValue)
-                                executeStructuredQuery(parsed.field, parsed.op, parsed.value)
+                                const layers = parsed.layers ? parsed.layers.split('&').filter(Boolean) : []
+                                executeStructuredQuery(parsed.field, parsed.op, parsed.value, layers)
                                 setShowSuggestions(false)
                             } else if (!isColonMode) {
                                 handleSearch()
@@ -1532,6 +1576,24 @@ function SearchBar() {
                         <i className="mdi mdi-close mdi-14px" />
                     </IconButton>
                 </Tooltip>
+                {/* Mode toggle */}
+                <div
+                    className="searchModeToggle"
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        if (isColonMode) {
+                            setInputValue('')
+                        } else {
+                            setInputValue(':')
+                            if (!panelOpen) setPanelOpen(true)
+                            setShowSuggestions(true)
+                        }
+                        inputRef.current?.focus()
+                    }}
+                >
+                    <span className={`searchModeOption ${!isColonMode ? 'searchModeOptionActive' : ''}`}>reg</span>
+                    <span className={`searchModeOption ${isColonMode ? 'searchModeOptionActive' : ''}`}>adv</span>
+                </div>
                 {/* Help button */}
                 <Tooltip content="Search help" placement="bottom">
                     <IconButton
@@ -1556,14 +1618,16 @@ function SearchBar() {
                             <div className="searchUnifiedCol searchStructuredCol">
                                 <div className="searchUnifiedColHeader">
                                     <span>
+                                        {parsed?.stage === STAGE_LAYER && 'Layers'}
                                         {parsed?.stage === STAGE_FIELD && 'Fields'}
                                         {parsed?.stage === STAGE_OP && 'Operators'}
                                         {parsed?.stage === STAGE_VALUE && 'Values'}
                                     </span>
                                     <span className="searchStructuredHint">
-                                        {parsed?.stage === STAGE_FIELD && ':field'}
-                                        {parsed?.stage === STAGE_OP && ':field:op'}
-                                        {parsed?.stage === STAGE_VALUE && ':field:op:value'}
+                                        {parsed?.stage === STAGE_LAYER && ':layer'}
+                                        {parsed?.stage === STAGE_FIELD && ':layer:field'}
+                                        {parsed?.stage === STAGE_OP && ':layer:field:op'}
+                                        {parsed?.stage === STAGE_VALUE && ':layer:field:op:value'}
                                     </span>
                                 </div>
                                 <div className="searchUnifiedColBody" ref={suggestionsRef}>
@@ -1591,6 +1655,7 @@ function SearchBar() {
                                         ))
                                     ) : (
                                         <div className="searchUnifiedEmpty">
+                                            {parsed?.stage === STAGE_LAYER && 'Type to filter layers...'}
                                             {parsed?.stage === STAGE_FIELD && 'Type to filter fields...'}
                                             {parsed?.stage === STAGE_OP && 'No matching operators'}
                                             {parsed?.stage === STAGE_VALUE && 'Loading values...'}
@@ -1697,11 +1762,15 @@ function SearchBar() {
                             </div>
                         </div>
                         <div className="searchHelpSection">
-                            <div className="searchHelpTitle">Structured Query</div>
+                            <div className="searchHelpTitle">Structured Query (Advanced)</div>
                             <div className="searchHelpDesc">
-                                Start with <code>:</code> to enter field query mode:
+                                Start with <code>:</code> to enter advanced mode:
                             </div>
-                            <div className="searchHelpSyntax">:field:operator:value</div>
+                            <div className="searchHelpSyntax">:layer:field:operator:value</div>
+                            <div className="searchHelpDesc">
+                                Use <code>&amp;</code> for multiple layers, <code>|</code> for multiple values:
+                            </div>
+                            <div className="searchHelpSyntax">:layer1&amp;layer2:field:op:val1|val2</div>
                             <div className="searchHelpDesc">
                                 Autocomplete guides you at each step.
                             </div>
@@ -1725,10 +1794,11 @@ function SearchBar() {
                         </div>
                         <div className="searchHelpSection">
                             <div className="searchHelpTitle">Examples</div>
-                            <div className="searchHelpExample"><code>:category:=:Commercial</code></div>
-                            <div className="searchHelpExample"><code>:altitude:&gt;:1000</code></div>
-                            <div className="searchHelpExample"><code>:name:~=:/^Mars.*/</code></div>
-                            <div className="searchHelpExample"><code>:sensor:isnull:</code></div>
+                            <div className="searchHelpExample"><code>:my_layer:category:=:Commercial</code></div>
+                            <div className="searchHelpExample"><code>:layer1&amp;layer2:altitude:&gt;:1000</code></div>
+                            <div className="searchHelpExample"><code>:my_layer:name:~=:/^Mars.*/</code></div>
+                            <div className="searchHelpExample"><code>:my_layer:name:=:val1|val2</code></div>
+                            <div className="searchHelpExample"><code>:my_layer:sensor:isnull:</code></div>
                         </div>
                         <div className="searchHelpSection">
                             <div className="searchHelpTitle">Keyboard Shortcuts</div>

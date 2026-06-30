@@ -85,7 +85,7 @@ function get(reqtype, req, res, next, options) {
     if (req.body.id != null) get_id = req.body.id;
     if (req.body.filters != null) filters = req.body.filters;
     if (req.body.spatialFilter != null) spatialFilter = req.body.spatialFilter;
-    if (req.body.limit != null) paginationLimit = Math.min(parseInt(req.body.limit), 10000) || null;
+    if (req.body.limit != null) { const _parsed = parseInt(req.body.limit); paginationLimit = Number.isNaN(_parsed) ? null : Math.min(Math.max(_parsed, 0), 10000); }
     if (req.body.offset != null) paginationOffset = parseInt(req.body.offset);
 
     if (type === "mvt") {
@@ -136,7 +136,7 @@ function get(reqtype, req, res, next, options) {
         radius: spatialFilterSplit[2],
       };
     }
-    if (req.query.limit != null) paginationLimit = Math.min(parseInt(req.query.limit), 10000) || null;
+    if (req.query.limit != null) { const _parsed = parseInt(req.query.limit); paginationLimit = Number.isNaN(_parsed) ? null : Math.min(Math.max(_parsed, 0), 10000); }
     if (req.query.offset != null) paginationOffset = parseInt(req.query.offset);
 
     if (type === "mvt") {
