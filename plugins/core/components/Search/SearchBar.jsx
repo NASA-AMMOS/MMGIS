@@ -238,6 +238,8 @@ function SearchBar() {
 
     // Search groups: { groupId: { label, layers: [...] } }
     const [searchGroups, setSearchGroups] = useState({})
+    // Tracks whether a whole group is selected (via header click) vs individual layer
+    const [selectedGroupId, setSelectedGroupId] = useState(null)
 
     // Help modal
     const [helpOpen, setHelpOpen] = useState(false)
@@ -1615,8 +1617,9 @@ function SearchBar() {
         }
     }, [restoreLayerState, vectorLayers, getL_])
 
-    const handleRegularLayerSelect = useCallback((layerValue) => {
+    const handleRegularLayerSelect = useCallback((layerValue, groupId) => {
         setSelectedLayer(layerValue)
+        setSelectedGroupId(groupId || null)
         setInputValue('')
         setSubmittedValue(null)
         setSuggestions([])
@@ -1856,12 +1859,18 @@ function SearchBar() {
                                 </div>
                                 <div className="searchUnifiedColBody">
                                     {layerListItems.map((item, idx) => {
-                                        // Highlight entire group when any member is selected
-                                        const isActiveGroup = item.isGroup && item.layers.includes(selectedLayer)
-                                        const isActiveMember = item.isGroupMember &&
-                                            searchGroups[item.parentGroupId] &&
-                                            searchGroups[item.parentGroupId].layers.includes(selectedLayer)
-                                        const isActiveUngrouped = !item.isGroup && !item.isGroupMember && selectedLayer === item.value
+                                        // Group header: highlight if group was selected via header click
+                                        const isActiveGroup = item.isGroup &&
+                                            selectedGroupId === item.groupId
+                                        // Group member: highlight if entire group selected via header,
+                                        // OR if this specific layer was individually selected
+                                        const isActiveMember = item.isGroupMember && (
+                                            selectedGroupId === item.parentGroupId ||
+                                            (!selectedGroupId && selectedLayer === item.value)
+                                        )
+                                        // Ungrouped layer
+                                        const isActiveUngrouped = !item.isGroup && !item.isGroupMember &&
+                                            selectedLayer === item.value
                                         const isActive = isActiveGroup || isActiveMember || isActiveUngrouped
                                         return (
                                         <div
@@ -1875,7 +1884,7 @@ function SearchBar() {
                                             } ${isActive ? 'searchRegularLayerItemActive' : ''}`}
                                             onClick={() => {
                                                 if (item.isGroup) {
-                                                    handleRegularLayerSelect(item.layers[0])
+                                                    handleRegularLayerSelect(item.layers[0], item.groupId)
                                                 } else {
                                                     handleRegularLayerSelect(item.value)
                                                 }
