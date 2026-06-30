@@ -1407,8 +1407,8 @@ function SearchBar() {
             {/* Top bar */}
             <div className="searchCompactBar">
                 <i className="mdi mdi-magnify mdi-18px searchCompactIcon" onClick={openPanel} />
-                {/* Layers trigger (only in plain text mode) */}
-                {!isColonMode && vectorLayers.length > 0 && (
+                {/* Layers trigger */}
+                {vectorLayers.length > 0 && (
                     <>
                         <div className="searchLayersTrigger" onClick={openPanel}>
                             <span className="searchLayersTriggerLabel">
@@ -1424,7 +1424,7 @@ function SearchBar() {
                     ref={inputRef}
                     className="searchCompactInput"
                     type="text"
-                    placeholder={isColonMode ? ':field:op:value' : placeholder}
+                    placeholder={placeholder + ' (or ":")'}
                     value={inputValue}
                     onChange={(e) => {
                         setSubmittedValue(null)
