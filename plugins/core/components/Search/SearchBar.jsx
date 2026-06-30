@@ -722,9 +722,8 @@ function SearchBar() {
 
             // Structured query mode — 4 stages: layer, field, op, value
             if (parsed.stage === STAGE_LAYER) {
-                // Show available layers (all searchable layers)
+                // Show available layers grouped by search group
                 const q = parsed.layers.toLowerCase()
-                // Get the last segment after & for filtering
                 const segments = q.split('&')
                 const lastSegment = segments[segments.length - 1] || ''
                 const alreadySelected = segments.slice(0, -1).map((s) => s.trim().toLowerCase())
@@ -734,34 +733,105 @@ function SearchBar() {
                     { type: 'layer', label: 'any', layerValue: 'any', detail: 'All layers', isSpecial: true },
                     { type: 'layer', label: 'on', layerValue: 'on', detail: 'Toggled-on layers', isSpecial: true },
                 ]
+
+                // Build a lookup from internal name to display info
+                const allLayerMap = {}
+                vectorLayers.forEach((l) => {
+                    allLayerMap[l.value] = { value: l.value, label: l.label || l.value }
+                })
+                geodatasetLayers.forEach((gl) => {
+                    allLayerMap[gl.value] = {
+                        value: gl.geodatasetName || gl.value,
+                        label: gl.label || gl.value,
+                    }
+                })
+
+                const isAlreadySelected = (label, value) => {
+                    const ll = (label || '').toLowerCase()
+                    const vl = (value || '').toLowerCase()
+                    return alreadySelected.includes(ll) || alreadySelected.includes(vl)
+                }
+                const matchesFilter = (label, value) => {
+                    if (!lastSegment) return true
+                    return (label || '').toLowerCase().indexOf(lastSegment) !== -1 ||
+                        (value || '').toLowerCase().indexOf(lastSegment) !== -1
+                }
+
+                const filtered = []
+
+                // Special entries when no layers selected yet
+                if (alreadySelected.length === 0) {
+                    specialEntries.forEach((s) => {
+                        if (matchesFilter(s.label, s.layerValue)) filtered.push(s)
+                    })
+                }
+
+                // Group entries: show group header + indented member layers
+                const groupedLayerNames = new Set()
+                Object.entries(searchGroups).forEach(([gid, group]) => {
+                    group.layers.forEach((l) => groupedLayerNames.add(l))
+
+                    // Check if any member matches the filter
+                    const memberEntries = group.layers
+                        .map((l) => allLayerMap[l])
+                        .filter(Boolean)
+                        .filter((m) => !isAlreadySelected(m.label, m.value))
+                        .filter((m) => matchesFilter(m.label, m.value) || matchesFilter(group.label, gid))
+
+                    if (memberEntries.length === 0) return
+
+                    // Group header — clicking selects all member layers
+                    const allGroupDisplayNames = group.layers
+                        .map((l) => allLayerMap[l])
+                        .filter(Boolean)
+                        .map((m) => m.label)
+                    filtered.push({
+                        type: 'layer',
+                        label: group.label,
+                        layerValue: '__group__',
+                        detail: `${group.layers.length} layers`,
+                        isGroup: true,
+                        groupLayers: allGroupDisplayNames,
+                    })
+
+                    // Individual member layers indented
+                    memberEntries.forEach((m) => {
+                        filtered.push({
+                            type: 'layer',
+                            label: m.label,
+                            layerValue: m.value,
+                            detail: '',
+                            isGroupMember: true,
+                        })
+                    })
+                })
+
+                // Ungrouped layers
                 const allLayers = [...vectorLayers, ...geodatasetLayers.map((gl) => ({
                     value: gl.geodatasetName || gl.value,
                     label: gl.label || gl.value,
                 }))]
-                const filteredLayers = allLayers
+                allLayers
                     .filter((l) => {
-                        const name = (l.value || '').toLowerCase()
-                        const label = (l.label || '').toLowerCase()
-                        if (alreadySelected.includes(label) || alreadySelected.includes(name)) return false
-                        // Filter by last segment (the part user is currently typing)
-                        if (lastSegment && label.indexOf(lastSegment) === -1 && name.indexOf(lastSegment) === -1) return false
+                        // Skip layers that belong to a group
+                        const internalName = Object.keys(allLayerMap).find(
+                            (k) => allLayerMap[k].value === l.value || allLayerMap[k].label === l.label
+                        )
+                        if (internalName && groupedLayerNames.has(internalName)) return false
+                        if (isAlreadySelected(l.label, l.value)) return false
+                        if (!matchesFilter(l.label, l.value)) return false
                         return true
                     })
                     .slice(0, 50)
-                    .map((l) => ({
-                        type: 'layer',
-                        label: l.label || l.value,
-                        layerValue: l.value,
-                        detail: '',
-                    }))
-                // Show special entries when no layers selected yet and filter matches
-                const showSpecial = alreadySelected.length === 0
-                const filteredSpecial = showSpecial
-                    ? specialEntries.filter((s) =>
-                        s.label.toLowerCase().indexOf(lastSegment) !== -1
-                    )
-                    : []
-                const filtered = [...filteredSpecial, ...filteredLayers]
+                    .forEach((l) => {
+                        filtered.push({
+                            type: 'layer',
+                            label: l.label || l.value,
+                            layerValue: l.value,
+                            detail: '',
+                        })
+                    })
+
                 setSuggestions(filtered)
                 setShowSuggestions(filtered.length > 0)
                 setActiveSuggestionIdx(-1)
@@ -1438,13 +1508,22 @@ function SearchBar() {
             const parsed = parseColonQuery(inputValue)
 
             if (item.type === 'layer') {
-                // Append display name with & if there are already layers
                 const currentLayers = parsed ? parsed.layers : ''
                 const segments = currentLayers.split('&').filter(Boolean)
-                // Deduplicate
-                const labelLower = item.label.toLowerCase()
-                if (!segments.some((s) => s.toLowerCase() === labelLower)) {
-                    segments.push(item.label)
+
+                if (item.isGroup && item.groupLayers) {
+                    // Group header click — add all member layers
+                    item.groupLayers.forEach((gl) => {
+                        if (!segments.some((s) => s.toLowerCase() === gl.toLowerCase())) {
+                            segments.push(gl)
+                        }
+                    })
+                } else {
+                    // Individual layer click
+                    const labelLower = item.label.toLowerCase()
+                    if (!segments.some((s) => s.toLowerCase() === labelLower)) {
+                        segments.push(item.label)
+                    }
                 }
                 const newVal = `:${segments.join('&')}:`
                 setInputValue(newVal)
@@ -1722,11 +1801,14 @@ function SearchBar() {
                                                     idx === activeSuggestionIdx
                                                         ? 'searchSuggestionItemActive'
                                                         : ''
-                                                } ${s.isSpecial ? 'searchSuggestionItemSpecial' : ''}`}
+                                                } ${s.isSpecial ? 'searchSuggestionItemSpecial' : ''
+                                                } ${s.isGroup ? 'searchSuggestionItemGroup' : ''
+                                                } ${s.isGroupMember ? 'searchSuggestionItemGroupMember' : ''}`}
                                                 onMouseDown={() => handleSuggestionClick(s)}
                                                 onMouseEnter={() => setActiveSuggestionIdx(idx)}
                                             >
                                                 <span className="searchSuggestionLabel">
+                                                    {s.isGroup && <i className="mdi mdi-folder-outline mdi-14px searchGroupIcon" />}
                                                     {s.label}
                                                 </span>
                                                 {s.detail && (

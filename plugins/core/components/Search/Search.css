@@ -303,6 +303,20 @@
     font-style: italic;
     border-bottom: 1px solid var(--color-a1);
 }
+.searchSuggestionItemGroup {
+    font-weight: 600;
+    border-bottom: none;
+    padding-bottom: 2px;
+}
+.searchSuggestionItemGroup .searchGroupIcon {
+    margin-right: 4px;
+    opacity: 0.7;
+}
+.searchSuggestionItemGroupMember {
+    padding-left: 24px;
+    font-size: 12px;
+    opacity: 0.9;
+}
 
 /* ===== Help Panel ===== */
 .searchHelpPanel {
