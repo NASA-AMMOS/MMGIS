@@ -1855,7 +1855,15 @@ function SearchBar() {
                                     <span>Layers</span>
                                 </div>
                                 <div className="searchUnifiedColBody">
-                                    {layerListItems.map((item, idx) => (
+                                    {layerListItems.map((item, idx) => {
+                                        // Highlight entire group when any member is selected
+                                        const isActiveGroup = item.isGroup && item.layers.includes(selectedLayer)
+                                        const isActiveMember = item.isGroupMember &&
+                                            searchGroups[item.parentGroupId] &&
+                                            searchGroups[item.parentGroupId].layers.includes(selectedLayer)
+                                        const isActiveUngrouped = !item.isGroup && !item.isGroupMember && selectedLayer === item.value
+                                        const isActive = isActiveGroup || isActiveMember || isActiveUngrouped
+                                        return (
                                         <div
                                             key={item.isGroup ? `group-${item.groupId}` : `${item.value}-${idx}`}
                                             className={`searchRegularLayerItem ${
@@ -1864,11 +1872,7 @@ function SearchBar() {
                                                     : item.isGroupMember
                                                     ? 'searchRegularLayerItemGroupMember'
                                                     : ''
-                                            } ${
-                                                !item.isGroup && selectedLayer === item.value
-                                                    ? 'searchRegularLayerItemActive'
-                                                    : ''
-                                            }`}
+                                            } ${isActive ? 'searchRegularLayerItemActive' : ''}`}
                                             onClick={() => {
                                                 if (item.isGroup) {
                                                     handleRegularLayerSelect(item.layers[0])
@@ -1885,7 +1889,8 @@ function SearchBar() {
                                                 <span className="searchRegularLayerDetail">{item.layers.length} layers</span>
                                             )}
                                         </div>
-                                    ))}
+                                        )
+                                    })}
                                     {layerListItems.length === 0 && (
                                         <div className="searchUnifiedEmpty">No search layers</div>
                                     )}
