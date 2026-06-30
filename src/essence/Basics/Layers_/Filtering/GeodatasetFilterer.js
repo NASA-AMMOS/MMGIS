@@ -152,6 +152,10 @@ const GeodatasetFilterer = {
                             if (featureValue == filterValue) v.matches = true
                             else v.matches = false
                             break
+                        case '!=':
+                            if (featureValue != filterValue) v.matches = true
+                            else v.matches = false
+                            break
                         case ',':
                             if (filterValue != null) {
                                 const stringFilterValue = filterValue + ''
@@ -181,6 +185,26 @@ const GeodatasetFilterer = {
                                     ? featureValue.localeCompare(filterValue) <
                                       0
                                     : featureValue > filterValue
+                            )
+                                v.matches = true
+                            else v.matches = false
+                            break
+                        case '<=':
+                            if (
+                                v.type === 'string'
+                                    ? featureValue.localeCompare(filterValue) >=
+                                      0
+                                    : featureValue <= filterValue
+                            )
+                                v.matches = true
+                            else v.matches = false
+                            break
+                        case '>=':
+                            if (
+                                v.type === 'string'
+                                    ? featureValue.localeCompare(filterValue) <=
+                                      0
+                                    : featureValue >= filterValue
                             )
                                 v.matches = true
                             else v.matches = false
