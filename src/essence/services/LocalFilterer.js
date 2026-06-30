@@ -177,7 +177,7 @@ const LocalFilterer = {
                         case '<':
                             if (
                                 v.type === 'string'
-                                    ? featureValue.localeCompare(filterValue) >
+                                    ? featureValue.localeCompare(filterValue) <
                                       0
                                     : featureValue < filterValue
                             )
@@ -187,7 +187,7 @@ const LocalFilterer = {
                         case '>':
                             if (
                                 v.type === 'string'
-                                    ? featureValue.localeCompare(filterValue) <
+                                    ? featureValue.localeCompare(filterValue) >
                                       0
                                     : featureValue > filterValue
                             )
@@ -197,7 +197,7 @@ const LocalFilterer = {
                         case '<=':
                             if (
                                 v.type === 'string'
-                                    ? featureValue.localeCompare(filterValue) >=
+                                    ? featureValue.localeCompare(filterValue) <=
                                       0
                                     : featureValue <= filterValue
                             )
@@ -207,7 +207,7 @@ const LocalFilterer = {
                         case '>=':
                             if (
                                 v.type === 'string'
-                                    ? featureValue.localeCompare(filterValue) <=
+                                    ? featureValue.localeCompare(filterValue) >=
                                       0
                                     : featureValue >= filterValue
                             )
