@@ -1507,7 +1507,11 @@ function SearchBar({ componentVars }) {
             const parsed = parseColonQuery(searchValue)
 
             if (parsed && parsed.stage === STAGE_VALUE && parsed.field && parsed.op) {
-                executeStructuredQuery(parsed.field, parsed.op, parsed.value)
+                const rawNames = parsed.layers
+                    ? parsed.layers.split('&').map((l) => l.trim()).filter(Boolean)
+                    : []
+                const parsedTargetLayers = resolveLayerNames(rawNames)
+                executeStructuredQuery(parsed.field, parsed.op, parsed.value, parsedTargetLayers)
                 return
             }
 
@@ -1522,7 +1526,7 @@ function SearchBar({ componentVars }) {
                 doWithSearch('both', null, null, false, searchValue)
             }
         },
-        [inputValue, selectedLayer, executeStructuredQuery, searchGeodatasets, doWithSearch, getL_]
+        [inputValue, selectedLayer, executeStructuredQuery, searchGeodatasets, doWithSearch, getL_, resolveLayerNames]
     )
 
     const handleSuggestionClick = useCallback(
