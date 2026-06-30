@@ -642,11 +642,34 @@ function SearchBar() {
         const parsed = parseColonQuery(inputValue)
 
         if (parsed) {
+            // Compute active layer set for filtering
+            let activeLayers = []
+            if (selectedLayer) {
+                const groupEntry = Object.values(searchGroups).find(
+                    (g) => g.layers.includes(selectedLayer)
+                )
+                if (groupEntry) {
+                    activeLayers = groupEntry.layers
+                } else {
+                    const geoLayer = geodatasetLayers.find((gl) => gl.value === selectedLayer)
+                    activeLayers = geoLayer
+                        ? [selectedLayer, geoLayer.geodatasetName]
+                        : [selectedLayer]
+                }
+            }
+
             // Structured query mode
             if (parsed.stage === STAGE_FIELD) {
                 const q = parsed.field.toLowerCase()
                 const filtered = schemaFields
-                    .filter((f) => f.name.toLowerCase().indexOf(q) !== -1)
+                    .filter((f) => {
+                        if (f.name.toLowerCase().indexOf(q) === -1) return false
+                        // Restrict to fields present on the active layer(s)
+                        if (activeLayers.length > 0) {
+                            return f.layers.some((l) => activeLayers.includes(l))
+                        }
+                        return true
+                    })
                     .slice(0, 50)
                     .map((f) => ({
                         type: 'field',
@@ -739,7 +762,7 @@ function SearchBar() {
         setSuggestions(filtered)
         setShowSuggestions(filtered.length > 0 && panelOpen)
         setActiveSuggestionIdx(-1)
-    }, [inputValue, arrayToSearch, schemaFields, fieldValues, submittedValue, panelOpen, selectedLayer])
+    }, [inputValue, arrayToSearch, schemaFields, fieldValues, submittedValue, panelOpen, selectedLayer, searchGroups, geodatasetLayers])
 
     // Load field values when we enter the value stage of a structured query
     useEffect(() => {
@@ -752,12 +775,30 @@ function SearchBar() {
         )
         if (!field) return
 
-        // Fetch aggregations for this field
+        // Compute active layer set (selected layer or search group members)
+        let activeLayers = []
+        if (selectedLayer) {
+            const groupEntry = Object.values(searchGroups).find(
+                (g) => g.layers.includes(selectedLayer)
+            )
+            if (groupEntry) {
+                activeLayers = groupEntry.layers
+            } else {
+                const geoLayer = geodatasetLayers.find((gl) => gl.value === selectedLayer)
+                activeLayers = geoLayer
+                    ? [selectedLayer, geoLayer.geodatasetName]
+                    : [selectedLayer]
+            }
+        }
+
+        // Fetch aggregations for this field — restricted to active layers
         const geodatasetLayerNames = field.layers.filter((l) =>
-            geodatasetLayers.some((gl) => gl.geodatasetName === l)
+            geodatasetLayers.some((gl) => gl.geodatasetName === l) &&
+            (activeLayers.length === 0 || activeLayers.includes(l))
         )
         const vectorLayerNames = field.layers.filter((l) =>
-            vectorSearchLayers.some((vl) => vl.value === l)
+            vectorSearchLayers.some((vl) => vl.value === l) &&
+            (activeLayers.length === 0 || activeLayers.includes(l))
         )
 
         // Compute vector aggregations
@@ -811,7 +852,7 @@ function SearchBar() {
         } else {
             mergeAndSet({})
         }
-    }, [inputValue, schemaFields, geodatasetLayers, vectorSearchLayers, getF_])
+    }, [inputValue, schemaFields, geodatasetLayers, vectorSearchLayers, getF_, selectedLayer, searchGroups])
 
     // Close panel on outside click
     useEffect(() => {
@@ -1391,6 +1432,8 @@ function SearchBar() {
         )
         return item ? item.label : selectedLayer
     }, [selectedLayer, layerListItems])
+
+
 
     if (!initialized) return null
 
