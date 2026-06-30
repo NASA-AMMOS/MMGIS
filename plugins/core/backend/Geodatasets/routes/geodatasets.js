@@ -1497,9 +1497,10 @@ router.post("/search", function (req, res, next) {
 
         // For IN operator, split value by comma into a list
         if (searchOp === "," || searchOp === "in") {
-          replacements.valueList = sanitizedValue
+          const parsedList = sanitizedValue
             ? sanitizedValue.split(",").map((v) => v.trim()).filter(Boolean)
-            : [""];
+            : [];
+          replacements.valueList = parsedList.length > 0 ? parsedList : [""];
         }
 
         // For regex operator, strip /pattern/flags delimiters if present
