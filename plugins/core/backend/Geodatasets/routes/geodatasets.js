@@ -1183,7 +1183,8 @@ router.get("/bulk_aggregations", function (req, res, next) {
   }
 
   const cappedLayerNames = layerNames.slice(0, 100);
-  const sampleLimit = req.query.limit != null ? parseInt(req.query.limit) : 500;
+  const _sl = req.query.limit != null ? parseInt(req.query.limit) : 500;
+  const sampleLimit = Number.isNaN(_sl) ? 500 : Math.min(Math.max(_sl, 0), 1000);
 
   const Op = require("sequelize").Op;
   Geodatasets.findAll({ where: { name: { [Op.in]: cappedLayerNames } } })
