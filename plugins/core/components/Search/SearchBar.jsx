@@ -1630,12 +1630,19 @@ function SearchBar() {
     }, [panelOpen])
 
     // Layer items for the regular panel (layers with search constructs + groups)
+    // Shows group headers with indented member layers, then ungrouped layers
     const layerListItems = useMemo(() => {
         const items = []
         const grouped = new Set()
 
-        // Add search group entries
+        // Build display-name lookup
+        const layerLabelMap = {}
+        vectorLayers.forEach((vl) => { layerLabelMap[vl.value] = vl.label || vl.value })
+        geodatasetLayers.forEach((gl) => { layerLabelMap[gl.value] = gl.label || gl.value })
+
+        // Add search group entries with member layers
         Object.entries(searchGroups).forEach(([gid, group]) => {
+            // Group header
             items.push({
                 value: group.layers[0],
                 label: group.label,
@@ -1643,18 +1650,28 @@ function SearchBar() {
                 groupId: gid,
                 layers: group.layers,
             })
-            group.layers.forEach((l) => grouped.add(l))
+            // Member layers indented
+            group.layers.forEach((l) => {
+                grouped.add(l)
+                items.push({
+                    value: l,
+                    label: layerLabelMap[l] || l,
+                    isGroup: false,
+                    isGroupMember: true,
+                    parentGroupId: gid,
+                })
+            })
         })
 
         // Add individual layers that aren't in a group
         vectorLayers.forEach((vl) => {
             if (!grouped.has(vl.value)) {
-                items.push({ ...vl, isGroup: false })
+                items.push({ ...vl, isGroup: false, isGroupMember: false })
             }
         })
 
         return items
-    }, [vectorLayers, searchGroups])
+    }, [vectorLayers, geodatasetLayers, searchGroups])
 
     // Selected layer label for the trigger
     const selectedLayerLabel = useMemo(() => {
@@ -1838,24 +1855,35 @@ function SearchBar() {
                                     <span>Layers</span>
                                 </div>
                                 <div className="searchUnifiedColBody">
-                                    {layerListItems.map((item) => (
+                                    {layerListItems.map((item, idx) => (
                                         <div
-                                            key={item.isGroup ? `group-${item.groupId}` : item.value}
+                                            key={item.isGroup ? `group-${item.groupId}` : `${item.value}-${idx}`}
                                             className={`searchRegularLayerItem ${
-                                                (item.isGroup
-                                                    ? item.layers.includes(selectedLayer)
-                                                    : selectedLayer === item.value)
+                                                item.isGroup
+                                                    ? 'searchRegularLayerItemGroup'
+                                                    : item.isGroupMember
+                                                    ? 'searchRegularLayerItemGroupMember'
+                                                    : ''
+                                            } ${
+                                                !item.isGroup && selectedLayer === item.value
                                                     ? 'searchRegularLayerItemActive'
                                                     : ''
                                             }`}
-                                            onClick={() => handleRegularLayerSelect(
-                                                item.isGroup ? item.layers[0] : item.value
-                                            )}
+                                            onClick={() => {
+                                                if (item.isGroup) {
+                                                    handleRegularLayerSelect(item.layers[0])
+                                                } else {
+                                                    handleRegularLayerSelect(item.value)
+                                                }
+                                            }}
                                         >
                                             {item.isGroup && (
-                                                <i className="mdi mdi-folder-outline mdi-12px searchGroupIcon" />
+                                                <i className="mdi mdi-folder-outline mdi-14px searchGroupIcon" />
                                             )}
-                                            {item.label}
+                                            <span className="searchRegularLayerLabel">{item.label}</span>
+                                            {item.isGroup && (
+                                                <span className="searchRegularLayerDetail">{item.layers.length} layers</span>
+                                            )}
                                         </div>
                                     ))}
                                     {layerListItems.length === 0 && (

@@ -177,6 +177,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    line-height: 18px;
 }
 .searchRegularLayerItem:hover {
     background: var(--color-a1);
@@ -187,9 +188,32 @@
     color: var(--color-f);
     font-weight: 500;
 }
+.searchRegularLayerItemGroup {
+    font-weight: 600;
+    padding-top: 8px;
+    padding-bottom: 4px;
+    cursor: pointer;
+}
+.searchRegularLayerItemGroupMember {
+    padding-left: 24px;
+    font-size: 12px;
+}
+.searchRegularLayerLabel {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.searchRegularLayerDetail {
+    font-size: 10px;
+    opacity: 0.5;
+    flex-shrink: 0;
+    margin-left: 4px;
+}
 .searchGroupIcon {
     opacity: 0.6;
     flex-shrink: 0;
+    vertical-align: middle;
+    line-height: 1;
 }
 
 /* ===== Structured Query Panel ===== */
@@ -308,12 +332,13 @@
     border-bottom: none;
     padding-bottom: 2px;
 }
-.searchSuggestionItemGroup .searchGroupIcon {
-    margin-right: 4px;
-    opacity: 0.7;
+.searchSuggestionItemGroup .searchSuggestionLabel {
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 .searchSuggestionItemGroupMember {
-    padding-left: 24px;
+    padding-left: 28px;
     font-size: 12px;
     opacity: 0.9;
 }
