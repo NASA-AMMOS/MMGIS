@@ -1618,12 +1618,19 @@ function SearchBar() {
     }, [restoreLayerState, vectorLayers, getL_])
 
     const handleRegularLayerSelect = useCallback((layerValue, groupId) => {
-        setSelectedLayer(layerValue)
+        setSelectedLayer((prev) => {
+            if (prev === layerValue) {
+                // Same layer — force suggestion rebuild by creating a new array ref
+                setArrayToSearch((arr) => [...arr])
+            } else {
+                // Different layer — clear stale suggestions until new data loads
+                setArrayToSearch([])
+            }
+            return layerValue
+        })
         setSelectedGroupId(groupId || null)
         setInputValue('')
         setSubmittedValue(null)
-        setSuggestions([])
-        setShowSuggestions(false)
     }, [])
 
     const openPanel = useCallback(() => {
