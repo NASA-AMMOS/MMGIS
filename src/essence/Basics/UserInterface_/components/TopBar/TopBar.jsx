@@ -8,7 +8,6 @@ import Tooltip from '../../../../../design-system/components/Tooltip/Tooltip'
 import ConfirmationModal from '../ConfirmationModal/ConfirmationModal'
 import Modal from '../Modal/Modal'
 
-import SearchBar from '../Search/Search'
 import styles from './TopBar.module.css'
 
 const STATUS_CONFIG = {
@@ -113,7 +112,7 @@ function TopBar({ userInterface }) {
     const topBarLeftRef = useRef(null)
     const isMobile = useUIStore((s) => s.isMobile)
     const lookConfig = useUIStore((s) => s.lookConfig)
-    const searchBarVisible = useUIStore((s) => s.visibility.searchbar)
+
     const hasStatus = useUIStore((s) => !!s.statusIndicator)
     const hasViewer = useUIStore((s) => s.hasViewer)
     const hasGlobe = useUIStore((s) => s.hasGlobe)
@@ -338,7 +337,7 @@ function TopBar({ userInterface }) {
                 </div>
             </div>
             <div id="topBarRight">
-                {!isMobile && lookConfig.searchbar !== false && searchBarVisible && <SearchBar />}
+
             </div>
 
             {/* Panel toggles + user area + kebab menu */}

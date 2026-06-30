@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { center } from '@turf/turf'
 
-import IconButton from '../../../../../design-system/components/IconButton/IconButton'
-import Tooltip from '../../../../../design-system/components/Tooltip/Tooltip'
+import IconButton from '@design/components/IconButton/IconButton'
+import Tooltip from '@design/components/Tooltip/Tooltip'
 
-import calls from '../../../../../pre/calls'
-
-import './Search.css'
+import calls from '@pre/calls'
 
 function makeSearchFields(vars) {
     let searchfields = {}
@@ -27,7 +25,7 @@ function makeSearchFields(vars) {
 }
 
 function getSearchFieldStringForFeature(searchFields, name, props) {
-    const F_ = require('../../../Formulae_/Formulae_').default
+    const F_ = require('@basics/Formulae_/Formulae_').default
     let str = ''
     if (searchFields.hasOwnProperty(name)) {
         const sf = searchFields[name]
@@ -277,13 +275,13 @@ function SearchBar() {
     }, [vectorLayers, geodatasetLayers])
 
     const getL_ = useCallback(() => {
-        return require('../../../Layers_/Layers_').default
+        return require('@basics/Layers_/Layers_').default
     }, [])
     const getMap_ = useCallback(() => {
-        return require('../../../Map_/Map_').default
+        return require('@basics/Map_/Map_').default
     }, [])
     const getF_ = useCallback(() => {
-        return require('../../../Formulae_/Formulae_').default
+        return require('@basics/Formulae_/Formulae_').default
     }, [])
 
     // Resolve an array of display names (from input) to internal layer names
@@ -414,7 +412,7 @@ function SearchBar() {
             fetch(url)
                 .then((res) => res.json())
                 .then((data) => {
-                    const F2_ = require('../../../Formulae_/Formulae_').default
+                    const F2_ = require('@basics/Formulae_/Formulae_').default
                     const geojson = F2_.parseIntoGeoJSON(data)
                     if (!geojson || !geojson.features) return
                     vectorLayerCache.current[layerName] = geojson

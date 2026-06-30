@@ -1,0 +1,27 @@
+{
+  "uuid": "b7e1c3f0-8a2d-4e5b-9f1a-3c7d8e2f4a6b",
+  "id": "core-search",
+  "version": "core",
+  "type": "component",
+  "tier": "core",
+  "overridable": true,
+  "name": "Search",
+  "description": "Global feature search with structured query syntax and autocomplete",
+  "descriptionFull": {
+    "title": "Search",
+    "example": {
+      "enabled": true
+    }
+  },
+  "defaultIcon": "magnify",
+  "hasVars": false,
+  "paths": {
+    "Search": "./Search"
+  },
+  "config": {
+    "rows": []
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

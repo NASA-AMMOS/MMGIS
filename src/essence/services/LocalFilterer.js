@@ -273,7 +273,7 @@ const LocalFilterer = {
             const groupedValuesByOp = {}
             groupedValuesByKey[key].forEach((v) => {
                 let op = v.op
-                if (op === '<' || op === '>') op = '<>'
+                if (op === '<' || op === '>' || op === '<=' || op === '>=') op = '<>'
 
                 groupedValuesByOp[op] = groupedValuesByOp[op] || []
                 groupedValuesByOp[op].push(v)
