@@ -1425,10 +1425,11 @@ router.post("/search", function (req, res, next) {
           "MultiPolygon",
         ];
 
-        const geomTypeWhere =
-          geometryTypes.indexOf(req.body.restrictToGeometryType) != -1
-            ? " AND geometry_type = :geomtype"
-            : "";
+        const hasGeomTypeFilter =
+          geometryTypes.indexOf(req.body.restrictToGeometryType) != -1;
+        const geomTypeWhere = hasGeomTypeFilter
+          ? (where ? " AND geometry_type = :geomtype" : " WHERE geometry_type = :geomtype")
+          : "";
 
         // Build operator clause for search (supports nested keys via jsonbAccessor)
         const validOps = ["=", "!=", "<", ">", "<=", ">=", "contains", "beginswith", "endswith", ",", "in", "isnull", "isnotnull", "regex"];
