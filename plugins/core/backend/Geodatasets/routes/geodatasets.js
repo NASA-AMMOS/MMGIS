@@ -388,6 +388,9 @@ function get(reqtype, req, res, next, options) {
                   case "!=":
                     op = "!=";
                     break;
+                  case "regex":
+                    op = "~*";
+                    break;
                   case "isnull":
                     op = "IS NULL";
                     break;

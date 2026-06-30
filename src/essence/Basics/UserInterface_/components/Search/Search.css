@@ -95,8 +95,8 @@
     padding: 0 4px;
 }
 .searchCompactInput.searchCompactInputWide {
-    width: 360px;
-    min-width: 360px;
+    width: 450px;
+    min-width: 450px;
 }
 .searchCompactInput::placeholder {
     color: var(--color-a4);
