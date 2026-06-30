@@ -232,6 +232,27 @@ function SearchBar() {
     const panelRef = useRef(null)
     const helpRef = useRef(null)
 
+    // Map display names → internal layer names for resolving user input
+    const layerDisplayToInternal = useMemo(() => {
+        const map = {}
+        vectorLayers.forEach((l) => {
+            if (l.label) map[l.label.toLowerCase()] = l.value
+            if (l.value) map[l.value.toLowerCase()] = l.value
+        })
+        geodatasetLayers.forEach((gl) => {
+            const internal = gl.geodatasetName || gl.value
+            const display = gl.label || gl.value
+            if (display) map[display.toLowerCase()] = internal
+            if (internal) map[internal.toLowerCase()] = internal
+        })
+        return map
+    }, [vectorLayers, geodatasetLayers])
+
+    // Resolve an array of display names (from input) to internal layer names
+    const resolveLayerNames = useCallback((displayNames) => {
+        return displayNames.map((dn) => layerDisplayToInternal[dn.toLowerCase()] || dn)
+    }, [layerDisplayToInternal])
+
     const getL_ = useCallback(() => {
         return require('../../../Layers_/Layers_').default
     }, [])
@@ -650,10 +671,11 @@ function SearchBar() {
         const parsed = parseColonQuery(inputValue)
 
         if (parsed) {
-            // Derive active layer names from the parsed layers segment
-            const parsedLayerNames = parsed.layers
+            // Derive active layer names (resolved to internal) from parsed layers
+            const rawLayerNames = parsed.layers
                 ? parsed.layers.split('&').map((l) => l.trim()).filter(Boolean)
                 : []
+            const parsedLayerNames = resolveLayerNames(rawLayerNames)
 
             // Structured query mode — 4 stages: layer, field, op, value
             if (parsed.stage === STAGE_LAYER) {
@@ -662,7 +684,7 @@ function SearchBar() {
                 // Get the last segment after & for filtering
                 const segments = q.split('&')
                 const lastSegment = segments[segments.length - 1] || ''
-                const alreadySelected = segments.slice(0, -1).map((s) => s.trim())
+                const alreadySelected = segments.slice(0, -1).map((s) => s.trim().toLowerCase())
 
                 const allLayers = [...vectorLayers, ...geodatasetLayers.map((gl) => ({
                     value: gl.geodatasetName || gl.value,
@@ -672,7 +694,7 @@ function SearchBar() {
                     .filter((l) => {
                         const name = (l.value || '').toLowerCase()
                         const label = (l.label || '').toLowerCase()
-                        if (alreadySelected.includes(name)) return false
+                        if (alreadySelected.includes(label) || alreadySelected.includes(name)) return false
                         return label.indexOf(lastSegment) !== -1 || name.indexOf(lastSegment) !== -1
                     })
                     .slice(0, 50)
@@ -791,7 +813,7 @@ function SearchBar() {
         setSuggestions(filtered)
         setShowSuggestions(filtered.length > 0 && panelOpen)
         setActiveSuggestionIdx(-1)
-    }, [inputValue, arrayToSearch, schemaFields, fieldValues, submittedValue, panelOpen, selectedLayer, searchGroups, geodatasetLayers, vectorLayers])
+    }, [inputValue, arrayToSearch, schemaFields, fieldValues, submittedValue, panelOpen, selectedLayer, searchGroups, geodatasetLayers, vectorLayers, resolveLayerNames])
 
     // Load field values when we enter the value stage of a structured query
     useEffect(() => {
@@ -804,10 +826,11 @@ function SearchBar() {
         )
         if (!field) return
 
-        // Derive active layers from the parsed layers segment
-        const parsedLayerNames = parsed.layers
+        // Derive active layers (resolved to internal names) from parsed layers
+        const rawNames = parsed.layers
             ? parsed.layers.split('&').map((l) => l.trim()).filter(Boolean)
             : []
+        const parsedLayerNames = resolveLayerNames(rawNames)
 
         // Fetch aggregations for this field — restricted to parsed layers
         const geodatasetLayerNames = field.layers.filter((l) =>
@@ -870,7 +893,7 @@ function SearchBar() {
         } else {
             mergeAndSet({})
         }
-    }, [inputValue, schemaFields, geodatasetLayers, vectorSearchLayers, getF_])
+    }, [inputValue, schemaFields, geodatasetLayers, vectorSearchLayers, getF_, resolveLayerNames])
 
     // Scroll active suggestion into view on arrow key navigation
     useEffect(() => {
@@ -1350,10 +1373,10 @@ function SearchBar() {
             const parsed = parseColonQuery(inputValue)
 
             if (item.type === 'layer') {
-                // Append layer internal name with & if there are already layers
+                // Append display name with & if there are already layers
                 const currentLayers = parsed ? parsed.layers : ''
                 const segments = currentLayers.split('&').filter(Boolean)
-                segments.push(item.layerValue || item.label)
+                segments.push(item.label)
                 const newVal = `:${segments.join('&')}:`
                 setInputValue(newVal)
                 inputRef.current?.focus()
@@ -1378,7 +1401,7 @@ function SearchBar() {
                 // Auto-execute for isnull/isnotnull
                 if (item.label === 'isnull' || item.label === 'isnotnull') {
                     setSubmittedValue(newVal)
-                    const layers = layersPart.split('&').filter(Boolean)
+                    const layers = resolveLayerNames(layersPart.split('&').filter(Boolean))
                     executeStructuredQuery(fieldPart, item.label, '', layers)
                 }
                 return
@@ -1395,7 +1418,7 @@ function SearchBar() {
                 const newVal = `:${layersPart}:${fieldPart}:${opPart}:${finalValue}`
                 setInputValue(newVal)
                 setSubmittedValue(newVal)
-                const layers = layersPart.split('&').filter(Boolean)
+                const layers = resolveLayerNames(layersPart.split('&').filter(Boolean))
                 executeStructuredQuery(fieldPart, opPart, finalValue, layers)
                 return
             }
@@ -1405,7 +1428,7 @@ function SearchBar() {
             setSubmittedValue(item.label)
             handleSearch(item.label)
         },
-        [inputValue, handleSearch, executeStructuredQuery]
+        [inputValue, handleSearch, executeStructuredQuery, resolveLayerNames]
     )
 
     const handleClear = useCallback(() => {
@@ -1540,7 +1563,7 @@ function SearchBar() {
                                 handleSuggestionClick(suggestions[activeSuggestionIdx])
                             } else if (isColonMode && parsed && parsed.stage === STAGE_VALUE) {
                                 setSubmittedValue(inputValue)
-                                const layers = parsed.layers ? parsed.layers.split('&').filter(Boolean) : []
+                                const layers = resolveLayerNames(parsed.layers ? parsed.layers.split('&').filter(Boolean) : [])
                                 executeStructuredQuery(parsed.field, parsed.op, parsed.value, layers)
                                 setShowSuggestions(false)
                             } else if (!isColonMode) {
