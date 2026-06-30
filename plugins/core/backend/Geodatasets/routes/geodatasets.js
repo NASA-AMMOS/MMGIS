@@ -506,10 +506,10 @@ function get(reqtype, req, res, next, options) {
             if (Number.isFinite(paginationLimit) && paginationLimit > 0) {
               q += ` LIMIT :paginationLimit`;
               replacements.paginationLimit = paginationLimit;
-            }
-            if (Number.isFinite(paginationOffset) && paginationOffset >= 0) {
-              q += ` OFFSET :paginationOffset`;
-              replacements.paginationOffset = paginationOffset;
+              if (Number.isFinite(paginationOffset) && paginationOffset >= 0) {
+                q += ` OFFSET :paginationOffset`;
+                replacements.paginationOffset = paginationOffset;
+              }
             }
             q += `;`;
           } else {
@@ -517,10 +517,10 @@ function get(reqtype, req, res, next, options) {
             if (Number.isFinite(paginationLimit) && paginationLimit > 0) {
               q += ` LIMIT :paginationLimit`;
               replacements.paginationLimit = paginationLimit;
-            }
-            if (Number.isFinite(paginationOffset) && paginationOffset >= 0) {
-              q += ` OFFSET :paginationOffset`;
-              replacements.paginationOffset = paginationOffset;
+              if (Number.isFinite(paginationOffset) && paginationOffset >= 0) {
+                q += ` OFFSET :paginationOffset`;
+                replacements.paginationOffset = paginationOffset;
+              }
             }
             q += `;`;
           }
