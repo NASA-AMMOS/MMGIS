@@ -299,6 +299,10 @@
     background: color-mix(in srgb, var(--color-mmgis) 18%, transparent);
     color: var(--color-f);
 }
+.searchSuggestionItemSpecial {
+    font-style: italic;
+    border-bottom: 1px solid var(--color-a1);
+}
 
 /* ===== Help Panel ===== */
 .searchHelpPanel {

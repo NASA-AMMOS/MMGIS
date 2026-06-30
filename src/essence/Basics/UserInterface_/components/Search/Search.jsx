@@ -248,11 +248,6 @@ function SearchBar() {
         return map
     }, [vectorLayers, geodatasetLayers])
 
-    // Resolve an array of display names (from input) to internal layer names
-    const resolveLayerNames = useCallback((displayNames) => {
-        return displayNames.map((dn) => layerDisplayToInternal[dn.toLowerCase()] || dn)
-    }, [layerDisplayToInternal])
-
     const getL_ = useCallback(() => {
         return require('../../../Layers_/Layers_').default
     }, [])
@@ -262,6 +257,28 @@ function SearchBar() {
     const getF_ = useCallback(() => {
         return require('../../../Formulae_/Formulae_').default
     }, [])
+
+    // Resolve an array of display names (from input) to internal layer names
+    // Special keywords: 'any' → all layers, 'on' → currently-on layers
+    const resolveLayerNames = useCallback((displayNames) => {
+        const L_ = getL_()
+        if (displayNames.length === 1) {
+            const kw = displayNames[0].toLowerCase()
+            if (kw === 'any') {
+                return [
+                    ...vectorLayers.map((l) => l.value),
+                    ...geodatasetLayers.map((gl) => gl.geodatasetName || gl.value),
+                ]
+            }
+            if (kw === 'on') {
+                return [
+                    ...vectorLayers.filter((l) => L_.layers.on[l.value] === true).map((l) => l.value),
+                    ...geodatasetLayers.filter((gl) => L_.layers.on[gl.value] === true).map((gl) => gl.geodatasetName || gl.value),
+                ]
+            }
+        }
+        return displayNames.map((dn) => layerDisplayToInternal[dn.toLowerCase()] || dn)
+    }, [layerDisplayToInternal, vectorLayers, geodatasetLayers, getL_])
 
     // Discover schema from GeoJSON features
     const discoverVectorSchema = useCallback((geojson, layerName) => {
@@ -686,11 +703,16 @@ function SearchBar() {
                 const lastSegment = segments[segments.length - 1] || ''
                 const alreadySelected = segments.slice(0, -1).map((s) => s.trim().toLowerCase())
 
+                // Special entries at top
+                const specialEntries = [
+                    { type: 'layer', label: 'Any', layerValue: 'any', detail: 'All layers', isSpecial: true },
+                    { type: 'layer', label: 'On', layerValue: 'on', detail: 'Toggled-on layers', isSpecial: true },
+                ]
                 const allLayers = [...vectorLayers, ...geodatasetLayers.map((gl) => ({
                     value: gl.geodatasetName || gl.value,
                     label: gl.label || gl.value,
                 }))]
-                const filtered = allLayers
+                const filteredLayers = allLayers
                     .filter((l) => {
                         const name = (l.value || '').toLowerCase()
                         const label = (l.label || '').toLowerCase()
@@ -704,6 +726,14 @@ function SearchBar() {
                         layerValue: l.value,
                         detail: '',
                     }))
+                // Show special entries when no layers selected yet and filter matches
+                const showSpecial = alreadySelected.length === 0
+                const filteredSpecial = showSpecial
+                    ? specialEntries.filter((s) =>
+                        s.label.toLowerCase().indexOf(lastSegment) !== -1
+                    )
+                    : []
+                const filtered = [...filteredSpecial, ...filteredLayers]
                 setSuggestions(filtered)
                 setShowSuggestions(filtered.length > 0)
                 setActiveSuggestionIdx(-1)
@@ -1646,7 +1676,7 @@ function SearchBar() {
                                                     idx === activeSuggestionIdx
                                                         ? 'searchSuggestionItemActive'
                                                         : ''
-                                                }`}
+                                                } ${s.isSpecial ? 'searchSuggestionItemSpecial' : ''}`}
                                                 onMouseDown={() => handleSuggestionClick(s)}
                                                 onMouseEnter={() => setActiveSuggestionIdx(idx)}
                                             >
@@ -1779,6 +1809,9 @@ function SearchBar() {
                             </div>
                             <div className="searchHelpSyntax">:layer1&amp;layer2:field:op:val1|val2</div>
                             <div className="searchHelpDesc">
+                                Special layer keywords: <code>Any</code> (all layers), <code>On</code> (toggled-on layers).
+                            </div>
+                            <div className="searchHelpDesc">
                                 Autocomplete guides you at each step.
                             </div>
                         </div>
@@ -1806,6 +1839,8 @@ function SearchBar() {
                             <div className="searchHelpExample"><code>:my_layer:name:~=:/^Mars.*/</code></div>
                             <div className="searchHelpExample"><code>:my_layer:name:=:val1|val2</code></div>
                             <div className="searchHelpExample"><code>:my_layer:sensor:isnull:</code></div>
+                            <div className="searchHelpExample"><code>:Any:name:*=:Mars</code></div>
+                            <div className="searchHelpExample"><code>:On:category:=:Park</code></div>
                         </div>
                         <div className="searchHelpSection">
                             <div className="searchHelpTitle">Keyboard Shortcuts</div>
