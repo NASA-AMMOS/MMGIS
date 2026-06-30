@@ -20,6 +20,13 @@ const makeNewGeodatasetTable = geodatasets.makeNewGeodatasetTable;
 // (nested keys are single-quoted inline since parameterized -> chains are awkward)
 function jsonbAccessor(key, placeholder) {
   const parts = key.split(".");
+  // Cap nesting depth to prevent excessively long SQL expressions
+  if (parts.length > 10) {
+    return {
+      text: `properties->>:${placeholder}`,
+      replacements: { [placeholder]: key },
+    };
+  }
   if (parts.length === 1) {
     return {
       text: `properties->>:${placeholder}`,
@@ -1427,8 +1434,8 @@ router.post("/search", function (req, res, next) {
 
         const hasGeomTypeFilter =
           geometryTypes.indexOf(req.body.restrictToGeometryType) != -1;
-        const geomTypeWhere = hasGeomTypeFilter
-          ? (where ? " AND geometry_type = :geomtype" : " WHERE geometry_type = :geomtype")
+        const geomTypeAnd = hasGeomTypeFilter
+          ? " AND geometry_type = :geomtype"
           : "";
 
         // Build operator clause for search (supports nested keys via jsonbAccessor)
@@ -1471,10 +1478,10 @@ router.post("/search", function (req, res, next) {
             table
           )}` +
           (req.body.last || offset != null
-            ? `${where}${geomTypeWhere} ORDER BY id ${
+            ? `${where || (hasGeomTypeFilter ? ' WHERE geometry_type = :geomtype' : '')}${where ? geomTypeAnd : ''} ORDER BY id ${
                 offset != null && !req.body.last ? "ASC" : "DESC LIMIT 1"
               }`
-            : ` WHERE ${opClause}${geomTypeWhere}`);
+            : ` WHERE ${opClause}${geomTypeAnd}`);
 
         const sanitizedValue =
           typeof req.body.value === "string"
@@ -1508,10 +1515,10 @@ router.post("/search", function (req, res, next) {
                 table
               )}` +
               (req.body.last || offset != null
-                ? `${where}${geomTypeWhere} ORDER BY id ${
+                ? `${where || (hasGeomTypeFilter ? ' WHERE geometry_type = :geomtype' : '')}${where ? geomTypeAnd : ''} ORDER BY id ${
                     offset != null && !req.body.last ? "ASC" : "DESC LIMIT 1"
                   }`
-                : ` WHERE ${opClause}${geomTypeWhere}`);
+                : ` WHERE ${opClause}${geomTypeAnd}`);
             }
           }
         }
