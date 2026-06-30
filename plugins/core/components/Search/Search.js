@@ -9,7 +9,7 @@ const Search = {
     _root: null,
     _container: null,
 
-    init: function () {
+    init: function (vars) {
         const target = document.getElementById('topBarRight')
         if (!target) return
 
@@ -18,11 +18,11 @@ const Search = {
         target.appendChild(this._container)
 
         this._root = createRoot(this._container)
-        this._root.render(<SearchMount />)
+        this._root.render(<SearchMount vars={vars || {}} />)
     },
 }
 
-function SearchMount() {
+function SearchMount({ vars }) {
     const isMobile = useUIStore((s) => s.isMobile)
     const lookConfig = useUIStore((s) => s.lookConfig)
     const searchBarVisible = useUIStore((s) => s.visibility.searchbar)
@@ -31,7 +31,7 @@ function SearchMount() {
         return null
     }
 
-    return <SearchBar />
+    return <SearchBar componentVars={vars} />
 }
 
 export default Search

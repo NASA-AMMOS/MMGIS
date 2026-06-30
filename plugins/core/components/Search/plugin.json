@@ -14,12 +14,49 @@
     }
   },
   "defaultIcon": "magnify",
-  "hasVars": false,
+  "hasVars": true,
   "paths": {
     "Search": "./Search"
   },
   "config": {
-    "rows": []
+    "rows": [
+      {
+        "name": "Search Groups",
+        "description": "Define groups of layers that can be searched together with a shared search construct.",
+        "components": [
+          {
+            "field": "variables.searchGroups",
+            "type": "objectarray",
+            "name": "Search Groups",
+            "description": "Each group bundles layers under a shared name and search construct for cross-layer searching.",
+            "width": 12,
+            "object": [
+              {
+                "field": "searchGroup",
+                "type": "text",
+                "name": "Group Name",
+                "description": "Display name for this search group (e.g., \"Geodatasets\", \"Vectors\")",
+                "width": 3
+              },
+              {
+                "field": "searchConstruct",
+                "type": "text",
+                "name": "Search Construct",
+                "description": "Search fields template, e.g. \"(name) (category)\". Used in regular search mode.",
+                "width": 3
+              },
+              {
+                "field": "layers",
+                "type": "layerMultiSelect",
+                "name": "Layers",
+                "description": "Select which layers belong to this search group.",
+                "width": 6
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
   "author": "NASA-AMMOS/MMGIS",
   "license": "Apache-2.0",

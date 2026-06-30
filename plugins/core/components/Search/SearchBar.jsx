@@ -212,7 +212,7 @@ function unquoteValue(v) {
     return v
 }
 
-function SearchBar() {
+function SearchBar({ componentVars }) {
     const [inputValue, setInputValue] = useState('')
     const [suggestions, setSuggestions] = useState([])
     const [showSuggestions, setShowSuggestions] = useState(false)
@@ -494,6 +494,38 @@ function SearchBar() {
             const vecSearchLayers = []
             const groups = {}
 
+            // Build search groups from component config
+            const configGroups = (componentVars && componentVars.searchGroups) || []
+            // Build a lookup: display_name -> uuid and uuid -> uuid
+            const nameToUuid = {}
+            for (let l in L_.layers.data) {
+                nameToUuid[l] = l
+                const dn = L_.layers.data[l].display_name
+                if (dn) nameToUuid[dn] = l
+            }
+            configGroups.forEach((cg) => {
+                if (!cg.searchGroup || !cg.layers) return
+                const resolvedLayers = []
+                ;(Array.isArray(cg.layers) ? cg.layers : []).forEach((ln) => {
+                    const uuid = nameToUuid[ln]
+                    if (uuid) resolvedLayers.push(uuid)
+                })
+                if (resolvedLayers.length === 0) return
+                groups[cg.searchGroup] = {
+                    label: cg.searchGroup,
+                    layers: resolvedLayers,
+                    searchConstruct: cg.searchConstruct || null,
+                }
+                // Apply group searchConstruct to member layers that lack their own
+                if (cg.searchConstruct) {
+                    resolvedLayers.forEach((uuid) => {
+                        if (!searchvars[uuid]) {
+                            searchvars[uuid] = cg.searchConstruct
+                        }
+                    })
+                }
+            })
+
             const buildPath = (l) => {
                 const pathParts = []
                 let parent = L_._layersParent[l]
@@ -511,18 +543,6 @@ function SearchBar() {
                 const ld = L_.layers.data[l]
                 if (ld.variables && ld.variables.search)
                     searchvars[l] = ld.variables.search
-
-                // Collect search groups
-                if (ld.variables && ld.variables.searchGroup) {
-                    const gid = ld.variables.searchGroup
-                    if (!groups[gid]) {
-                        groups[gid] = {
-                            label: gid,
-                            layers: [],
-                        }
-                    }
-                    groups[gid].layers.push(l)
-                }
 
                 if (ld.url && ld.url.startsWith('geodatasets:')) {
                     geoLayers.push({

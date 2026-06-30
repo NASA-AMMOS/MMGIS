@@ -754,14 +754,7 @@
               "name": "Search Construct",
               "description": "When set, this layer will become searchable through the search bar at the top. The search will look for and autocomplete on the properties specified. All properties are enclosed by parentheses and space-separated. 'round()' can be used like a function to round the property beforehand. 'rmunder()' works similarly but removes all underscores instead. For example: '(RMC) rmunder(sol)'",
               "type": "text",
-              "width": 8
-            },
-            {
-              "field": "variables.searchGroup",
-              "name": "Search Group",
-              "description": "Layers sharing the same Search Group ID appear as a single combined entry in the search bar layer dropdown. Users searching within a group will query all grouped layers together.",
-              "type": "text",
-              "width": 4
+              "width": 12
             }
           ]
         },

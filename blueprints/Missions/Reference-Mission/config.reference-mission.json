@@ -103,7 +103,29 @@
             "name": "Search",
             "js": "Search",
             "on": true,
-            "variables": {}
+            "variables": {
+                "searchGroups": [
+                    {
+                        "searchGroup": "Geodatasets",
+                        "searchConstruct": "(name) (category)",
+                        "layers": [
+                            "Geodatasets - Basic",
+                            "Geodatasets - Dynamic Extent",
+                            "Geodatasets - No Duplicates",
+                            "Geodatasets - Properties on Click",
+                            "Geodatasets - Time Series"
+                        ]
+                    },
+                    {
+                        "searchGroup": "Vectors",
+                        "searchConstruct": "(name)",
+                        "layers": [
+                            "Points Basic",
+                            "Lines Basic"
+                        ]
+                    }
+                ]
+            }
         }
     ],
     "layers": [
@@ -255,8 +277,7 @@
                                     "controlled": false,
                                     "uuid": "a13bd914-d6d2-4150-8964-568accb1849e",
                                     "variables": {
-                                        "search": "(name) (category)",
-                                        "searchGroup": "vectors"
+                                        "search": "(name) (category)"
                                     }
                                 },
                                 {
@@ -276,8 +297,7 @@
                                     "controlled": false,
                                     "uuid": "e26202d3-dd15-4344-a620-8c3d8e1e24b6",
                                     "variables": {
-                                        "search": "(name) (type)",
-                                        "searchGroup": "vectors"
+                                        "search": "(name) (type)"
                                     }
                                 },
                                 {
@@ -948,8 +968,7 @@
                                 "style": {
                                     "nointeraction": false
                                 },
-                                "search": "(name) (category)",
-                                "searchGroup": "geodata"
+                                "search": "(name) (category)"
                             },
                             "description": "Demonstrates the simplest geodataset layer: sourceType='geodatasets' routes to the PostGIS-backed geodatasets API instead of a static file.",
                             "demparser": ""
@@ -992,8 +1011,7 @@
                                 "style": {
                                     "nointeraction": false
                                 },
-                                "search": "(name) (sensor)",
-                                "searchGroup": "geodata"
+                                "search": "(name) (sensor)"
                             },
                             "description": "Demonstrates dynamicExtent: only features within the current map viewport are queried from the database. Pan or zoom to trigger a re-query. dynamicExtentMoveThreshold='500/z' throttles re-queries to 500m of pan at zoom 0, scaled by zoom level.",
                             "demparser": ""
@@ -1034,8 +1052,7 @@
                                 "style": {
                                     "nointeraction": false
                                 },
-                                "search": "(name) (site_id)",
-                                "searchGroup": "geodata"
+                                "search": "(name) (site_id)"
                             },
                             "description": "Demonstrates noDuplicates: the geodataset has multiple records per location sharing a group_id (site_id). With noDuplicates=true, only one feature per group is rendered using DISTINCT ON (group_id). The dataset has 8 records at 4 locations \u2014 only 4 points appear on the map.",
                             "demparser": ""
@@ -1077,8 +1094,7 @@
                                 "style": {
                                     "nointeraction": false
                                 },
-                                "search": "(name) (feature_code)",
-                                "searchGroup": "geodata"
+                                "search": "(name) (feature_code)"
                             },
                             "description": "Demonstrates getFeaturePropertiesOnClick: the initial map load fetches only geometry and feature IDs (feature_code). Full properties (address, area, visitor stats, etc.) are fetched from the database only when a feature is clicked, reducing initial load size.",
                             "demparser": ""
@@ -1122,8 +1138,7 @@
                                 "style": {
                                     "nointeraction": false
                                 },
-                                "search": "(name) (status)",
-                                "searchGroup": "geodata"
+                                "search": "(name) (status)"
                             },
                             "description": "Demonstrates time.type='requery' for geodatasets: the time range is sent to PostGIS as a server-side SQL filter on the start_time/end_time BIGINT columns. Use the Time Control tool to filter events by date range (Jan\u2013Jun 2024).",
                             "demparser": ""
