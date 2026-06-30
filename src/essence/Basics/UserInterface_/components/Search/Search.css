@@ -138,9 +138,6 @@
 
 .searchUnifiedColumns {
     display: flex;
-    height: 50vh;
-    max-height: 420px;
-    min-height: 222px;
 }
 
 /* ===== Regular Mode Panel ===== */
@@ -149,7 +146,8 @@
     right: 0;
 }
 .searchRegularColumns {
-    height: 300px;
+    max-height: 300px;
+    overflow: hidden;
 }
 .searchRegularColLayers {
     flex: 0 0 200px;
@@ -190,11 +188,13 @@
 
 /* ===== Structured Query Panel ===== */
 .searchStructuredColumns {
-    height: 300px;
+    max-height: 300px;
+    overflow: hidden;
 }
 .searchStructuredCol {
     flex: 1;
     min-width: 300px;
+    overflow: hidden;
 }
 .searchStructuredHint {
     font-size: 10px;

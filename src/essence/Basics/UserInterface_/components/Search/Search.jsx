@@ -854,6 +854,16 @@ function SearchBar() {
         }
     }, [inputValue, schemaFields, geodatasetLayers, vectorSearchLayers, getF_, selectedLayer, searchGroups])
 
+    // Scroll active suggestion into view on arrow key navigation
+    useEffect(() => {
+        if (activeSuggestionIdx < 0 || !suggestionsRef.current) return
+        const container = suggestionsRef.current
+        const item = container.children[activeSuggestionIdx]
+        if (item) {
+            item.scrollIntoView({ block: 'nearest' })
+        }
+    }, [activeSuggestionIdx])
+
     // Close panel on outside click
     useEffect(() => {
         const handleClick = (e) => {
@@ -1556,7 +1566,7 @@ function SearchBar() {
                                         {parsed?.stage === STAGE_VALUE && ':field:op:value'}
                                     </span>
                                 </div>
-                                <div className="searchUnifiedColBody">
+                                <div className="searchUnifiedColBody" ref={suggestionsRef}>
                                     {suggestions.length > 0 ? (
                                         suggestions.map((s, idx) => (
                                             <div
@@ -1629,7 +1639,7 @@ function SearchBar() {
                                 <div className="searchUnifiedColHeader">
                                     <span>Values</span>
                                 </div>
-                                <div className="searchUnifiedColBody">
+                                <div className="searchUnifiedColBody" ref={suggestionsRef}>
                                     {suggestions.length > 0 ? (
                                         suggestions.map((s, idx) => {
                                             const isSubmitted = submittedValue != null && s.label === submittedValue
