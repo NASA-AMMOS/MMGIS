@@ -17,7 +17,7 @@
  */
 
 import L_ from '../Layers_/Layers_'
-import { componentModules, componentConfigs } from '../../../pre/components'
+import { componentModules } from '../../../pre/components'
 
 const ComponentController_ = {
     /**
@@ -36,68 +36,58 @@ const ComponentController_ = {
         // L_.configData contains the full mission configuration loaded from the API
         const config = L_.configData
 
-        // Track which components were explicitly configured
-        const initializedModules = new Set()
-
-        // Initialize mission-configured components
-        if (config) {
-            const configuredComponents = config.components || []
-            const enabledComponents = configuredComponents.filter(
-                (component) => component.on === true
-            )
-
-            enabledComponents.forEach((component) => {
-                const componentName = component.name
-                const componentVars = component.variables || {}
-
-                try {
-                    const componentModule = componentModules[component.js]
-
-                    if (!componentModule) {
-                        throw new Error(
-                            `Component module "${component.js}" not found in componentModules. ` +
-                                `Available modules: ${Object.keys(
-                                    componentModules
-                                ).join(', ')}`
-                        )
-                    }
-
-                    if (typeof componentModule.init !== 'function') {
-                        throw new Error(
-                            `Component "${componentName}" does not have an init() method`
-                        )
-                    }
-
-                    componentModule.init(componentVars)
-                    initializedModules.add(component.js)
-                } catch (err) {
-                    console.error(
-                        `[ComponentController] ✗ Error initializing component "${componentName}"):`,
-                        err
-                    )
-                }
-            })
+        // Check if configuration exists and has components
+        if (!config) {
+            return
         }
 
-        // Auto-init core components not explicitly configured in the mission
-        for (const moduleName in componentConfigs) {
-            if (initializedModules.has(moduleName)) continue
-            const cfg = componentConfigs[moduleName]
-            if (cfg.tier !== 'core' || cfg.hasVars) continue
+        // Get components configuration (defaults to empty array if not present)
+        const configuredComponents = config.components || []
 
-            const componentModule = componentModules[moduleName]
-            if (!componentModule || typeof componentModule.init !== 'function')
-                continue
+        if (configuredComponents.length === 0) {
+            return
+        }
+
+        // Filter to only enabled components
+        const enabledComponents = configuredComponents.filter(
+            (component) => component.on === true
+        )
+
+        if (enabledComponents.length === 0) {
+            return
+        }
+
+        // Initialize each enabled component
+        enabledComponents.forEach((component) => {
+            const componentName = component.name
+            const componentVars = component.variables || {}
 
             try {
-                componentModule.init({})
+                const componentModule = componentModules[component.js]
+
+                if (!componentModule) {
+                    throw new Error(
+                        `Component module "${component.js}" not found in componentModules. ` +
+                            `Available modules: ${Object.keys(
+                                componentModules
+                            ).join(', ')}`
+                    )
+                }
+
+                if (typeof componentModule.init !== 'function') {
+                    throw new Error(
+                        `Component "${componentName}" does not have an init() method`
+                    )
+                }
+
+                componentModule.init(componentVars)
             } catch (err) {
                 console.error(
-                    `[ComponentController] ✗ Error auto-initializing core component "${moduleName}"):`,
+                    `[ComponentController] ✗ Error initializing component "${componentName}"):`,
                     err
                 )
             }
-        }
+        })
     },
 }
 
