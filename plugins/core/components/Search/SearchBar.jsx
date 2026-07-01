@@ -953,12 +953,10 @@ function SearchBar({ componentVars }) {
             Filtering.filters[lname].values = filterValues
 
             if (isGeodataset) {
-                // Geodataset layers: use GeodatasetFilterer to build the
-                // _filterEncoded, but skip the built-in refreshLayer call.
-                // refreshLayer's isRefresh toggle cycle has a state bug that
-                // removes the newly-added layer. The caller (handleSearch)
-                // handles the refresh by toggling the layer off/on instead.
-                GeodatasetFilterer.filter(lname, Filtering.filters[lname], null, true)
+                // Geodataset layers: use GeodatasetFilterer directly.
+                // This builds _filterEncoded and calls refreshLayer which
+                // re-fetches data with the filter applied.
+                GeodatasetFilterer.filter(lname, Filtering.filters[lname])
             } else {
                 // Local vector layers: need geojson cached for LocalFilterer
                 if (
@@ -1023,29 +1021,15 @@ function SearchBar({ componentVars }) {
                     applyFilterToLayer(lname, searchValue, parsedFields)
                 })
 
-                // Refresh geodataset layers to apply the filter.
-                // applyFilterToLayer skips refreshLayer for geodatasets (to avoid
-                // the broken isRefresh toggle cycle in makeVectorLayer's add()).
-                // Instead: toggle off, reset layer reference to force makeLayer
-                // to re-fetch data (captureVector reads _filterEncoded), toggle on.
-                const geoTargetLayers = targetLayers.filter(
-                    (l) => L_.layers.data[l]?.url?.startsWith('geodatasets:')
-                )
-                for (const lname of geoTargetLayers) {
-                    if (L_.layers.on[lname]) {
-                        await L_.toggleLayer(L_.layers.data[lname]) // OFF
-                    }
-                    // Reset layer ref so toggleLayer → makeLayer re-fetches with filter
-                    L_.layers.layer[lname] = false
-                    await L_.toggleLayer(L_.layers.data[lname]) // ON: makeLayer fetches filtered data
-                }
-
                 // Pan to matching features.
                 // For geodatasets: search by per-field value, collect results, combined pan.
                 // For vectors: iterate the now-filtered layer.
                 const geoResults = []
                 const vecFeatures = []
 
+                const geoTargetLayers = targetLayers.filter(
+                    (l) => L_.layers.data[l]?.url?.startsWith('geodatasets:')
+                )
                 const geoPromises = geoTargetLayers
                     .map((lname) =>
                         searchGeodatasets(lname, searchValue, parsedFields, true)
