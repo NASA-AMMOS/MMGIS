@@ -198,6 +198,9 @@ function SearchBar({ componentVars }) {
     // Tracks layers that have search-applied filters (for clearing on layer switch)
     const searchFilteredLayers = useRef(new Set())
 
+    // Tracks layers turned off by filter mode (to restore on layer switch or mode change)
+    const filterModeHiddenLayers = useRef(new Set())
+
     const lastGeodatasetLayerName = useRef(null)
 
     const inputRef = useRef(null)
@@ -957,6 +960,20 @@ function SearchBar({ componentVars }) {
                 : [selectedLayer]
 
             if (searchMode === 'filter') {
+                const targetSet = new Set(targetLayers)
+
+                // Turn off all non-target vector/vectortile/query layers
+                for (const lname in L_.layers.data) {
+                    if (targetSet.has(lname)) continue
+                    const ld = L_.layers.data[lname]
+                    if (!ld) continue
+                    const t = ld.type
+                    if ((t === 'vector' || t === 'vectortile' || t === 'query') && L_.layers.on[lname]) {
+                        L_.toggleLayer(ld)
+                        filterModeHiddenLayers.current.add(lname)
+                    }
+                }
+
                 // Filter mode: apply real filters to each target layer
                 targetLayers.forEach((lname) => {
                     if (!L_.layers.on[lname]) {
@@ -999,10 +1016,12 @@ function SearchBar({ componentVars }) {
         // (the rebuild effect won't re-run because selectedLayer hasn't changed)
     }, [])
 
-    // Clear any search-applied filters from all tracked layers
+    // Clear any search-applied filters and restore hidden layers
     const clearSearchFilters = useCallback(() => {
         const L_ = getL_()
         if (!L_) return
+
+        // Clear filters from tracked layers
         searchFilteredLayers.current.forEach((lname) => {
             const ld = L_.layers.data[lname]
             if (!ld) return
@@ -1011,7 +1030,6 @@ function SearchBar({ componentVars }) {
             }
             const isGeodataset = ld.url?.startsWith('geodatasets:')
             if (isGeodataset) {
-                // Clear encoded filter and refresh
                 if (ld._filterEncoded) {
                     delete ld._filterEncoded.filters
                 }
@@ -1019,14 +1037,22 @@ function SearchBar({ componentVars }) {
                     L_.Map_.refreshLayer(ld)
                 }
             } else {
-                // Re-submit with empty filter to restore all features
                 if (Filtering.filters[lname]) {
                     Filtering.submit(lname, false)
                 }
             }
         })
         searchFilteredLayers.current.clear()
-        // Refresh the Filtering panel if open
+
+        // Restore layers that were hidden by filter mode
+        filterModeHiddenLayers.current.forEach((lname) => {
+            const ld = L_.layers.data[lname]
+            if (ld && !L_.layers.on[lname]) {
+                L_.toggleLayer(ld)
+            }
+        })
+        filterModeHiddenLayers.current.clear()
+
         Filtering.refresh()
     }, [getL_])
 
