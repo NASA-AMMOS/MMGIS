@@ -57,6 +57,37 @@ function getSearchFieldStringForFeature(searchFields, name, props) {
     return str
 }
 
+// Returns { label, fields } for a feature — label is the composite display
+// string, fields is { fieldName: transformedValue } for each search field.
+function getSearchFieldEntryForFeature(searchFields, name, props) {
+    const F_ = require('@basics/Formulae_/Formulae_').default
+    const fields = {}
+    let label = ''
+    if (searchFields.hasOwnProperty(name)) {
+        const sf = searchFields[name]
+        for (let i = 0; i < sf.length; i++) {
+            let val = ''
+            switch (sf[i][0].toLowerCase()) {
+                case '':
+                    val = String(F_.getIn(props, sf[i][1]) ?? '')
+                    break
+                case 'round':
+                    val = String(Math.round(F_.getIn(props, sf[i][1])))
+                    break
+                case 'rmunder':
+                    val = F_.getIn(props, sf[i][1])
+                        ? String(F_.getIn(props, sf[i][1])).replace('_', ' ')
+                        : ''
+                    break
+            }
+            fields[sf[i][1]] = val
+            label += val
+            if (i !== sf.length - 1) label += ' '
+        }
+    }
+    return { label, fields }
+}
+
 function getSearchFieldKeys(searchFields, name) {
     let str = ''
     if (searchFields.hasOwnProperty(name)) {
@@ -308,36 +339,45 @@ function SearchBar({ componentVars }) {
         }
     }, [getL_])
 
-    // Merge cached per-layer value sets into the final arrayToSearch.
+    // Merge cached per-layer value Maps into the final arrayToSearch.
+    // Each cached value is a Map<label, {label, fields}>.
     // Runs from cache — no network calls. Called after fetch completes
     // and also when valuesIntersectOnly toggles.
     const mergePerLayerValues = useCallback(
         (targetLayers) => {
             const MAX_VALUES = 500
-            const allSets = targetLayers
+            const allMaps = targetLayers
                 .map((l) => cachedPerLayerValues.current[l])
-                .filter(Boolean)
-            if (allSets.length === 0) {
+                .filter((m) => m && m.size !== undefined)
+            if (allMaps.length === 0) {
                 setArrayToSearch([])
                 setPlaceholder(getSearchFieldKeys(searchFields, targetLayers[0]) || 'Search...')
                 return
             }
-            let finalValues
-            if (valuesIntersectOnly && allSets.length > 1) {
-                finalValues = new Set(allSets[0])
-                for (let i = 1; i < allSets.length; i++) {
-                    finalValues = new Set([...finalValues].filter((v) => allSets[i].has(v)))
+            let merged
+            if (valuesIntersectOnly && allMaps.length > 1) {
+                // Intersection: keep only labels present in ALL maps
+                merged = new Map(allMaps[0])
+                for (let i = 1; i < allMaps.length; i++) {
+                    for (const key of merged.keys()) {
+                        if (!allMaps[i].has(key)) merged.delete(key)
+                    }
                 }
             } else {
-                finalValues = new Set()
-                allSets.forEach((s) => s.forEach((v) => finalValues.add(v)))
+                // Union: combine all maps
+                merged = new Map()
+                allMaps.forEach((m) => {
+                    m.forEach((entry, key) => {
+                        if (!merged.has(key)) merged.set(key, entry)
+                    })
+                })
             }
-            const unique = [...finalValues].filter(Boolean)
-            if (unique[0]) {
-                if (!isNaN(unique[0])) unique.sort((a, b) => a - b)
-                else unique.sort()
+            const entries = [...merged.values()].filter((e) => e && e.label)
+            if (entries.length > 0) {
+                if (!isNaN(entries[0].label)) entries.sort((a, b) => a.label - b.label)
+                else entries.sort((a, b) => a.label > b.label ? 1 : -1)
             }
-            setArrayToSearch(unique.slice(0, MAX_VALUES))
+            setArrayToSearch(entries.slice(0, MAX_VALUES))
             setPlaceholder(getSearchFieldKeys(searchFields, targetLayers[0]) || 'Search...')
         },
         [searchFields, valuesIntersectOnly]
@@ -375,7 +415,7 @@ function SearchBar({ componentVars }) {
         // --- Vector layers: client-side toGeoJSON ---
         const processVecLayers = (layerNames) => {
             layerNames.forEach((lname) => {
-                const vals = new Set()
+                const vals = new Map()
                 let data
                 try {
                     data = L_.layers.layer[lname].toGeoJSON(L_.GEOJSON_PRECISION)
@@ -383,7 +423,10 @@ function SearchBar({ componentVars }) {
                     data = { features: [] }
                 }
                 for (let i = 0; i < data.features.length; i++) {
-                    vals.add(getSearchFieldStringForFeature(searchFields, lname, data.features[i].properties))
+                    const entry = getSearchFieldEntryForFeature(searchFields, lname, data.features[i].properties)
+                    if (entry.label && !vals.has(entry.label)) {
+                        vals.set(entry.label, entry)
+                    }
                 }
                 cachedPerLayerValues.current[lname] = vals
             })
@@ -396,7 +439,7 @@ function SearchBar({ componentVars }) {
                 return new Promise((resolve) => {
                     const geodatasetName = L_.layers.data[lname]?.url?.split(':')[1]
                     if (!geodatasetName) {
-                        cachedPerLayerValues.current[lname] = new Set()
+                        cachedPerLayerValues.current[lname] = new Map()
                         resolve()
                         return
                     }
@@ -404,20 +447,51 @@ function SearchBar({ componentVars }) {
                         'geodatasets_bulk_aggregations',
                         { layers: geodatasetName, limit: 1000 },
                         (d) => {
-                            const vals = new Set()
+                            const vals = new Map()
                             if (d?.status === 'success' && d.aggregations) {
                                 const sf = searchFields[lname]
                                 if (sf && sf.length > 0) {
-                                    const fieldName = sf[0][1]
-                                    const transform = sf[0][0].toLowerCase()
-                                    const fieldAgg = d.aggregations[fieldName]
-                                    if (fieldAgg) {
-                                        Object.keys(fieldAgg.aggs).forEach((val) => {
-                                            let v = val
-                                            if (transform === 'round') v = String(Math.round(Number(v)))
-                                            else if (transform === 'rmunder') v = String(v).replace(/_/g, ' ')
-                                            if (v) vals.add(v)
-                                        })
+                                    // For single-field constructs, build complete entries.
+                                    // For multi-field, use the first field's values as labels.
+                                    if (sf.length === 1) {
+                                        const fieldName = sf[0][1]
+                                        const transform = sf[0][0].toLowerCase()
+                                        const fieldAgg = d.aggregations[fieldName]
+                                        if (fieldAgg) {
+                                            Object.keys(fieldAgg.aggs).forEach((val) => {
+                                                let v = val
+                                                if (transform === 'round') v = String(Math.round(Number(v)))
+                                                else if (transform === 'rmunder') v = String(v).replace(/_/g, ' ')
+                                                if (v && !vals.has(v)) {
+                                                    vals.set(v, { label: v, fields: { [fieldName]: v } })
+                                                }
+                                            })
+                                        }
+                                    } else {
+                                        // Multi-field: build entries from raw row data if available
+                                        if (d.rows) {
+                                            d.rows.forEach((row) => {
+                                                const entry = getSearchFieldEntryForFeature(searchFields, lname, row)
+                                                if (entry.label && !vals.has(entry.label)) {
+                                                    vals.set(entry.label, entry)
+                                                }
+                                            })
+                                        } else {
+                                            // Fallback: use first field values only
+                                            const fieldName = sf[0][1]
+                                            const transform = sf[0][0].toLowerCase()
+                                            const fieldAgg = d.aggregations[fieldName]
+                                            if (fieldAgg) {
+                                                Object.keys(fieldAgg.aggs).forEach((val) => {
+                                                    let v = val
+                                                    if (transform === 'round') v = String(Math.round(Number(v)))
+                                                    else if (transform === 'rmunder') v = String(v).replace(/_/g, ' ')
+                                                    if (v && !vals.has(v)) {
+                                                        vals.set(v, { label: v, fields: { [fieldName]: v } })
+                                                    }
+                                                })
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -425,7 +499,7 @@ function SearchBar({ componentVars }) {
                             resolve()
                         },
                         () => {
-                            cachedPerLayerValues.current[lname] = new Set()
+                            cachedPerLayerValues.current[lname] = new Map()
                             resolve()
                         }
                     )
@@ -495,15 +569,19 @@ function SearchBar({ componentVars }) {
     }, [valuesIntersectOnly, selectedLayer, selectedGroupId, searchGroups, mergePerLayerValues, getL_])
 
     // Compute suggestions based on input.
+    // arrayToSearch items are { label, fields } objects.
     // Supports * wildcard matching (e.g. "* my_cat" matches any name + category).
     useEffect(() => {
         const MAX_SUGGESTIONS = 500
 
+        const toSuggestion = (item) => ({
+            type: 'plain',
+            label: item.label,
+            fields: item.fields,
+        })
+
         if (!selectedLayer || !inputValue) {
-            const all = arrayToSearch.slice(0, MAX_SUGGESTIONS).map((s) => ({
-                type: 'plain',
-                label: String(s),
-            }))
+            const all = arrayToSearch.slice(0, MAX_SUGGESTIONS).map(toSuggestion)
             setSuggestions(all)
             setShowSuggestions(all.length > 0 && panelOpen)
             setActiveSuggestionIdx(-1)
@@ -512,10 +590,7 @@ function SearchBar({ componentVars }) {
 
         const isSubmitted = submittedValue != null && inputValue === submittedValue
         if (isSubmitted) {
-            const all = arrayToSearch.slice(0, MAX_SUGGESTIONS).map((s) => ({
-                type: 'plain',
-                label: String(s),
-            }))
+            const all = arrayToSearch.slice(0, MAX_SUGGESTIONS).map(toSuggestion)
             setSuggestions(all)
             setShowSuggestions(all.length > 0 && panelOpen)
             setActiveSuggestionIdx(-1)
@@ -528,15 +603,15 @@ function SearchBar({ componentVars }) {
         if (hasWildcard) {
             const re = wildcardToRegex(inputValue)
             filtered = arrayToSearch
-                .filter((item) => re.test(String(item)))
+                .filter((item) => re.test(item.label))
                 .slice(0, MAX_SUGGESTIONS)
-                .map((s) => ({ type: 'plain', label: String(s) }))
+                .map(toSuggestion)
         } else {
             const query = inputValue.toLowerCase()
             filtered = arrayToSearch
-                .filter((item) => String(item).toLowerCase().indexOf(query) !== -1)
+                .filter((item) => item.label.toLowerCase().indexOf(query) !== -1)
                 .slice(0, MAX_SUGGESTIONS)
-                .map((s) => ({ type: 'plain', label: String(s) }))
+                .map(toSuggestion)
             filtered.sort((a, b) => {
                 const aIdx = a.label.toLowerCase().indexOf(query)
                 const bIdx = b.label.toLowerCase().indexOf(query)
@@ -773,9 +848,11 @@ function SearchBar({ componentVars }) {
         [selectedLayer, inputValue, searchFields, getL_, getMap_]
     )
 
-    // Apply a real Filtering filter to a layer based on the search construct and value
+    // Apply a real Filtering filter to a layer based on the search construct and value.
+    // parsedFields is an optional { fieldName: value } map from the suggestion item;
+    // when provided, it is used directly instead of trying to decompose the composite string.
     const applyFilterToLayer = useCallback(
-        (lname, searchValue) => {
+        (lname, searchValue, parsedFields) => {
             const L_ = getL_()
             const sf = searchFields[lname]
             if (!sf || sf.length === 0) return
@@ -785,31 +862,25 @@ function SearchBar({ componentVars }) {
 
             const isGeodataset = ld.url?.startsWith('geodatasets:')
 
-            // Split the composite value back into per-field parts.
-            // The composite was built by joining field values with spaces,
-            // but individual field values can contain spaces (e.g. "Oracle Park").
-            // Strategy: split from the right — last N-1 tokens go to the last
-            // N-1 fields, everything remaining goes to the first field.
-            // E.g. construct "(name) (category)", value "Oracle Park Stadium"
-            //   → name="Oracle Park", category="Stadium"
-            const tokens = searchValue.split(/\s+/)
-            const parts = []
-            if (sf.length === 1) {
-                parts.push(searchValue)
-            } else {
-                // Take last (N-1) tokens for fields [1..N-1]
-                const tailTokens = tokens.slice(-(sf.length - 1))
-                // Everything before those tokens is the first field's value
-                const firstFieldTokenCount = tokens.length - (sf.length - 1)
-                parts.push(tokens.slice(0, Math.max(firstFieldTokenCount, 1)).join(' '))
-                tailTokens.forEach((t) => parts.push(t))
-            }
-
             // Build filter values: one per search construct field
             const filterValues = []
             sf.forEach((field, idx) => {
                 const fieldName = field[1]
-                const part = parts[idx]
+                let part
+                if (parsedFields && parsedFields[fieldName] != null) {
+                    part = parsedFields[fieldName]
+                } else if (sf.length === 1) {
+                    part = searchValue
+                } else {
+                    // Fallback for free-typed text without pre-parsed fields:
+                    // split from the right — last N-1 tokens go to last N-1 fields,
+                    // everything remaining goes to the first field.
+                    const tokens = searchValue.split(/\s+/)
+                    const tailTokens = tokens.slice(-(sf.length - 1))
+                    const firstFieldTokenCount = tokens.length - (sf.length - 1)
+                    const parts = [tokens.slice(0, Math.max(firstFieldTokenCount, 1)).join(' '), ...tailTokens]
+                    part = parts[idx]
+                }
                 if (part == null || part === '' || part === '*') return
 
                 // Determine type from aggregations if available
@@ -820,12 +891,12 @@ function SearchBar({ componentVars }) {
                 }
 
                 // Check if the value is a wildcard pattern
-                const hasWildcard = part.includes('*')
+                const hasWildcard = String(part).includes('*')
                 filterValues.push({
                     id: idx,
                     key: fieldName,
                     op: hasWildcard ? 'contains' : '=',
-                    value: hasWildcard ? part.replace(/\*/g, '') : part,
+                    value: hasWildcard ? String(part).replace(/\*/g, '') : String(part),
                     type: type,
                 })
             })
@@ -869,7 +940,7 @@ function SearchBar({ componentVars }) {
     )
 
     const handleSearch = useCallback(
-        (value) => {
+        (value, parsedFields) => {
             const searchValue = value != null ? value : inputValue
             const L_ = getL_()
             if (!selectedLayer) return
@@ -885,7 +956,7 @@ function SearchBar({ componentVars }) {
                     if (!L_.layers.on[lname]) {
                         L_.toggleLayer(L_.layers.data[lname])
                     }
-                    applyFilterToLayer(lname, searchValue)
+                    applyFilterToLayer(lname, searchValue, parsedFields)
                 })
             } else {
                 // Select mode: highlight/pan to matches
@@ -905,10 +976,9 @@ function SearchBar({ componentVars }) {
 
     const handleSuggestionClick = useCallback(
         (item) => {
-            // Plain text suggestion
             setInputValue(item.label)
             setSubmittedValue(item.label)
-            handleSearch(item.label)
+            handleSearch(item.label, item.fields)
         },
         [handleSearch]
     )
