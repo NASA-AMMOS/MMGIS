@@ -254,6 +254,9 @@ function SearchBar({ componentVars }) {
     const searchFilteredLayers = useRef([])
     const regModeToggledLayers = useRef([])
     const vectorFilteredLayers = useRef({})
+    // Tracks what Search set each layer's on/off state to, so restore
+    // can detect if the user changed it externally and preserve user intent
+    const searchSetVisibility = useRef({}) // { layerName: true|false }
 
     // Override indicator state: counts of layers forced on / filters overridden
     const [overrideInfo, setOverrideInfo] = useState({ forcedOn: 0, filtersOverridden: 0 })
@@ -538,6 +541,10 @@ function SearchBar({ componentVars }) {
     }, [getL_, geodatasetLayers])
 
     // Restore layer visibility and filter state
+    // Uses diff-based restore: only undo layers that Search changed AND
+    // whose current state still matches what Search set them to.
+    // If the user changed a layer externally during the search, we preserve
+    // their intent instead of blindly reverting to the pre-search snapshot.
     const restoreLayerState = useCallback(() => {
         if (preSearchLayerState.current == null) return
         const L_ = getL_()
@@ -568,10 +575,24 @@ function SearchBar({ componentVars }) {
         for (let lname in savedOn) {
             const isCurrentlyOn = L_.layers.on[lname] === true
             const shouldBeOn = savedOn[lname] === true
-            if (isCurrentlyOn !== shouldBeOn) {
+            if (isCurrentlyOn === shouldBeOn) continue
+
+            // Only restore if Search was the one that changed this layer
+            // AND the current state matches what Search set it to
+            if (lname in searchSetVisibility.current) {
+                const searchSetTo = searchSetVisibility.current[lname]
+                if (isCurrentlyOn === searchSetTo) {
+                    // State matches what Search set — user didn't touch it, safe to restore
+                    L_.toggleLayer(L_.layers.data[lname])
+                }
+                // else: user changed it after Search did — preserve user intent
+            } else {
+                // Layer wasn't touched by Search but differs from snapshot
+                // (shouldn't normally happen, but restore to be safe)
                 L_.toggleLayer(L_.layers.data[lname])
             }
         }
+        searchSetVisibility.current = {}
         preSearchLayerState.current = null
         updateOverrideInfo()
     }, [getL_, updateOverrideInfo])
@@ -793,6 +814,7 @@ function SearchBar({ componentVars }) {
         regModeToggledLayers.current.forEach((prevName) => {
             if (!targetLayers.includes(prevName) && L_.layers.on[prevName] === true && L_.layers.data[prevName]) {
                 L_.toggleLayer(L_.layers.data[prevName])
+                searchSetVisibility.current[prevName] = false
             }
         })
         regModeToggledLayers.current = []
@@ -802,6 +824,7 @@ function SearchBar({ componentVars }) {
         layersToToggle.forEach((l) => {
             regModeToggledLayers.current.push(l)
             L_.toggleLayer(L_.layers.data[l])
+            searchSetVisibility.current[l] = true
         })
         updateOverrideInfo()
 
@@ -1416,6 +1439,7 @@ function SearchBar({ componentVars }) {
 
                     if (hasHits && !isOn) {
                         L_.toggleLayer(L_.layers.data[layerName])
+                        searchSetVisibility.current[layerName] = true
                         if (vectorMatchedFeatures[layerName]) {
                             const filtered = vectorMatchedFeatures[layerName]
                             let attempts = 0
@@ -1439,6 +1463,7 @@ function SearchBar({ componentVars }) {
                         }
                     } else if (!hasHits && isOn) {
                         L_.toggleLayer(L_.layers.data[layerName])
+                        searchSetVisibility.current[layerName] = false
                     }
 
                     if (hasHits && geodatasetLayers.some((gl) => gl.value === layerName)) {
@@ -1746,7 +1771,11 @@ function SearchBar({ componentVars }) {
             const L_ = getL_()
             regModeToggledLayers.current.forEach((prevName) => {
                 if (L_.layers.on[prevName] === true && L_.layers.data[prevName]) {
-                    L_.toggleLayer(L_.layers.data[prevName])
+                    // Only toggle off if current state matches what Search set
+                    // (i.e., user didn't change it externally)
+                    if (searchSetVisibility.current[prevName] === true) {
+                        L_.toggleLayer(L_.layers.data[prevName])
+                    }
                 }
             })
             regModeToggledLayers.current = []
