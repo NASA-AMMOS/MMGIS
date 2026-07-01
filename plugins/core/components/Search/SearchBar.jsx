@@ -1414,7 +1414,9 @@ function SearchBar({ componentVars }) {
                         }
                     }
 
-                    if (hasHits && geodatasetLayers.some((gl) => gl.value === layerName)) {
+                    // Only refresh layers that were already on — newly toggled
+                    // layers already have the filter applied during makeLayer
+                    if (hasHits && isOn && geodatasetLayers.some((gl) => gl.value === layerName)) {
                         L_.Map_.refreshLayer(L_.layers.data[layerName], null, null, true)
                     }
                 })
