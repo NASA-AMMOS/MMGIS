@@ -83,6 +83,10 @@ function generateMarkup() {
     filterIconsHtml +=
         '<div class="visible" type="visible" title="Hide/Show Off Layers"><i class="mdi mdi-eye mdi-18px"></i></div>'
 
+    // Add the "has filters" toggle icon
+    filterIconsHtml +=
+        '<div class="filtered" type="filtered" title="Show Only Layers With Active Filters"><i class="mdi mdi-filter mdi-18px"></i></div>'
+
     // prettier-ignore
     return [
         "<div id='layersTool'>",
@@ -2724,6 +2728,7 @@ function interfaceWithMMGIS(fromInit) {
             data: $('#filterLayers .right > .data').hasClass('on'),
             model: $('#filterLayers .right > .model').hasClass('on'),
             visible: $('#filterLayers .right > .visible').hasClass('on'),
+            filtered: $('#filterLayers .right > .filtered').hasClass('on'),
         }
         $('#layersToolList > li').each(function () {
             if ($(this).attr('type') !== 'header') {
@@ -2733,6 +2738,13 @@ function interfaceWithMMGIS(fromInit) {
                         if (layerOn) $(this).removeClass('forceOff2')
                         else $(this).addClass('forceOff2')
                     } else $(this).removeClass('forceOff2')
+                } else if (type === 'filtered') {
+                    if (isOn) {
+                        const layerName = $(this).attr('name')
+                        const hasFilter = layerHasActiveFilter(layerName)
+                        if (hasFilter) $(this).removeClass('forceOff3')
+                        else $(this).addClass('forceOff3')
+                    } else $(this).removeClass('forceOff3')
                 } else {
                     if (
                         !ons.vector &&
@@ -3194,6 +3206,31 @@ function interfaceWithMMGIS(fromInit) {
 }
 
 //Other functions
+
+/**
+ * Check if a vector layer has any active filters (value or spatial)
+ * @param {string} layerName
+ * @returns {boolean}
+ */
+function layerHasActiveFilter(layerName) {
+    const ld = L_.layers.data[layerName]
+    if (!ld || ld.type !== 'vector') return false
+
+    // Geodataset-backed filter
+    if (ld._filterEncoded) {
+        if (ld._filterEncoded.filters) return true
+        if (ld._filterEncoded.spatialFilter) return true
+    }
+
+    // Local vector filter via Filtering module
+    const f = Filtering.filters[layerName]
+    if (f) {
+        if (f.values && f.values.some((v) => v && !v.isGroup && v.type != null)) return true
+        if (f.spatial && f.spatial.center != null) return true
+    }
+
+    return false
+}
 
 /**
  * Get a Set of all layer types that exist in the current configuration
