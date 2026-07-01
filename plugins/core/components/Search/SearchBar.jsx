@@ -981,6 +981,38 @@ function SearchBar({ componentVars }) {
                     }
                     applyFilterToLayer(lname, searchValue, parsedFields)
                 })
+
+                // Pan to matching features after filter is applied
+                targetLayers.forEach((lname) => {
+                    const ld = L_.layers.data[lname]
+                    const isGeodataset = ld?.url?.startsWith('geodatasets:')
+                    if (isGeodataset) {
+                        // Geodataset: use searchGeodatasets which pans via API
+                        searchGeodatasets(lname, searchValue)
+                    } else {
+                        // Vector: iterate the now-filtered layer to pan/highlight
+                        const Map_ = getMap_()
+                        const layer = L_.layers.layer[lname]
+                        if (!layer || typeof layer.eachLayer !== 'function') return
+                        const allFeatures = []
+                        layer.eachLayer((feat) => allFeatures.push(feat))
+                        if (allFeatures.length === 1) {
+                            L_.highlight(allFeatures[0])
+                            allFeatures[0].fireEvent('click')
+                            if (typeof allFeatures[0].bringToFront === 'function')
+                                allFeatures[0].bringToFront()
+                        }
+                        if (allFeatures.length > 0 && Map_) {
+                            const coordinate = getMapZoomCoordinate(allFeatures)
+                            if (coordinate) {
+                                Map_.map.setView(
+                                    [coordinate.latitude, coordinate.longitude],
+                                    Map_.mapScaleZoom || Map_.map.getZoom()
+                                )
+                            }
+                        }
+                    }
+                })
             } else {
                 // Select mode: highlight/pan to matches
                 targetLayers.forEach((lname) => {
@@ -994,7 +1026,7 @@ function SearchBar({ componentVars }) {
                 })
             }
         },
-        [inputValue, selectedLayer, selectedGroupId, searchGroups, searchMode, searchGeodatasets, doWithSearch, applyFilterToLayer, getL_]
+        [inputValue, selectedLayer, selectedGroupId, searchGroups, searchMode, searchGeodatasets, doWithSearch, applyFilterToLayer, getL_, getMap_]
     )
 
     const handleSuggestionClick = useCallback(
