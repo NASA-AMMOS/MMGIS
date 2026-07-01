@@ -195,6 +195,9 @@ function SearchBar({ componentVars }) {
     // Cached per-layer value sets — avoids re-fetching when toggling All/Common
     const cachedPerLayerValues = useRef({})
 
+    // Tracks layers that have search-applied filters (for clearing on layer switch)
+    const searchFilteredLayers = useRef(new Set())
+
     const lastGeodatasetLayerName = useRef(null)
 
     const inputRef = useRef(null)
@@ -931,6 +934,9 @@ function SearchBar({ componentVars }) {
                 Filtering.submit(lname, false)
             }
 
+            // Track this layer as having a search-applied filter
+            searchFilteredLayers.current.add(lname)
+
             // Refresh the LayersTool Filtering panel if it's open for this layer
             if (Filtering.current.layerName === lname) {
                 Filtering.refresh()
@@ -993,7 +999,41 @@ function SearchBar({ componentVars }) {
         // (the rebuild effect won't re-run because selectedLayer hasn't changed)
     }, [])
 
+    // Clear any search-applied filters from all tracked layers
+    const clearSearchFilters = useCallback(() => {
+        const L_ = getL_()
+        if (!L_) return
+        searchFilteredLayers.current.forEach((lname) => {
+            const ld = L_.layers.data[lname]
+            if (!ld) return
+            if (Filtering.filters[lname]) {
+                Filtering.filters[lname].values = []
+            }
+            const isGeodataset = ld.url?.startsWith('geodatasets:')
+            if (isGeodataset) {
+                // Clear encoded filter and refresh
+                if (ld._filterEncoded) {
+                    delete ld._filterEncoded.filters
+                }
+                if (L_.layers.on[lname]) {
+                    L_.Map_.refreshLayer(ld)
+                }
+            } else {
+                // Re-submit with empty filter to restore all features
+                if (Filtering.filters[lname]) {
+                    Filtering.submit(lname, false)
+                }
+            }
+        })
+        searchFilteredLayers.current.clear()
+        // Refresh the Filtering panel if open
+        Filtering.refresh()
+    }, [getL_])
+
     const handleRegularLayerSelect = useCallback((layerValue, groupId) => {
+        // Clear any active search filters before switching
+        clearSearchFilters()
+
         setSelectedLayer((prev) => {
             if (prev === layerValue) {
                 // Same layer — force suggestion rebuild by creating a new array ref
@@ -1007,7 +1047,7 @@ function SearchBar({ componentVars }) {
         setSelectedGroupId(groupId || null)
         setInputValue('')
         setSubmittedValue(null)
-    }, [])
+    }, [clearSearchFilters])
 
     const openPanel = useCallback(() => {
         if (!panelOpen) {
