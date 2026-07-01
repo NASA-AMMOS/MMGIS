@@ -685,83 +685,111 @@ function SearchBar({ componentVars }) {
         []
     )
 
+    // Search a geodataset layer via the backend API.
+    // parsedFields: optional { fieldName: value } for per-field search.
+    // skipPan: if true, don't pan/select — just return the result feature.
+    // Returns a Promise that resolves with the matched feature (or null).
     const searchGeodatasets = useCallback(
-        (lname, value) => {
+        (lname, value, parsedFields, skipPan) => {
             const L_ = getL_()
             const Map_ = getMap_()
             const layerName = lname || selectedLayer
-            const searchValue = value || inputValue
+            const sf = searchFields[layerName]
 
-            let key =
-                searchFields[layerName] && searchFields[layerName][0]
-                    ? searchFields[layerName][0][1]
-                    : null
-            if (key == null) return
+            // Determine the search key and value.
+            // If parsedFields is provided, use the first field's actual value
+            // instead of the full composite string.
+            let key = sf && sf[0] ? sf[0][1] : null
+            if (key == null) return Promise.resolve(null)
+
+            let searchValue
+            if (parsedFields && parsedFields[key] != null) {
+                searchValue = String(parsedFields[key])
+            } else if (sf && sf.length === 1) {
+                searchValue = value || inputValue
+            } else {
+                // Multi-field construct without parsed fields — use first field value
+                // from the composite by splitting from right (best effort)
+                searchValue = value || inputValue
+                if (parsedFields) {
+                    // parsedFields provided but doesn't have this key — skip
+                    searchValue = String(Object.values(parsedFields)[0] || value || inputValue)
+                }
+            }
 
             const geodatasetName = L_.layers.data[layerName]?.url?.split(':')[1]
 
-            calls.api(
-                'geodatasets_search',
-                {
-                    layer: geodatasetName || lastGeodatasetLayerName.current,
-                    key: key,
-                    value: searchValue,
-                },
-                function (d) {
-                    if (!d.body || d.body.length === 0) return
-                    const r = d.body[0]
+            return new Promise((resolve) => {
+                calls.api(
+                    'geodatasets_search',
+                    {
+                        layer: geodatasetName || lastGeodatasetLayerName.current,
+                        key: key,
+                        value: searchValue,
+                    },
+                    function (d) {
+                        if (!d.body || d.body.length === 0) { resolve(null); return }
+                        const r = d.body[0]
 
-                    const c = center(r)
-                    const coords = c.geometry.coordinates
-                    Map_.map.setView(
-                        [coords[1], coords[0]],
-                        Map_.mapScaleZoom || Map_.map.getZoom()
-                    )
-                    if (!L_.layers.on[layerName]) {
-                        L_.toggleLayer(L_.layers.data[layerName])
-                    }
+                        if (skipPan) { resolve(r); return }
 
-                    const layer = L_.layers.layer[layerName]
-                    if (!layer) return
+                        const c = center(r)
+                        const coords = c.geometry.coordinates
+                        Map_.map.setView(
+                            [coords[1], coords[0]],
+                            Map_.mapScaleZoom || Map_.map.getZoom()
+                        )
+                        if (!L_.layers.on[layerName]) {
+                            L_.toggleLayer(L_.layers.data[layerName])
+                        }
 
-                    // Vectortile layers use _vectorTiles
-                    if (layer._vectorTiles) {
-                        let selectTimeout = setTimeout(() => {
-                            layer.off('load')
-                            selectVTFeature()
-                        }, 1500)
+                        const layer = L_.layers.layer[layerName]
+                        if (!layer) { resolve(r); return }
 
-                        layer.on('load', function () {
-                            layer.off('load')
-                            clearTimeout(selectTimeout)
-                            selectVTFeature()
-                        })
+                        // Vectortile layers use _vectorTiles
+                        if (layer._vectorTiles) {
+                            let selectTimeout = setTimeout(() => {
+                                layer.off('load')
+                                selectVTFeature()
+                            }, 1500)
 
-                        function selectVTFeature() {
-                            const vts = layer._vectorTiles
-                            for (let i in vts) {
-                                for (let j in vts[i]._features) {
-                                    const feature = vts[i]._features[j].feature
-                                    if (feature.properties[key] === searchValue) {
-                                        feature._layerName = vts[i].options.layerName
-                                        feature._layer = feature
-                                        layer._events.click[0].fn({
-                                            layer: feature,
-                                            sourceTarget: feature,
-                                        })
-                                        return
+                            layer.on('load', function () {
+                                layer.off('load')
+                                clearTimeout(selectTimeout)
+                                selectVTFeature()
+                            })
+
+                            function selectVTFeature() {
+                                const vts = layer._vectorTiles
+                                for (let i in vts) {
+                                    for (let j in vts[i]._features) {
+                                        const feature = vts[i]._features[j].feature
+                                        if (feature.properties[key] === searchValue) {
+                                            feature._layerName = vts[i].options.layerName
+                                            feature._layer = feature
+                                            layer._events.click[0].fn({
+                                                layer: feature,
+                                                sourceTarget: feature,
+                                            })
+                                            resolve(r)
+                                            return
+                                        }
                                     }
                                 }
+                                resolve(r)
                             }
+                        } else if (typeof layer.eachLayer === 'function') {
+                            // Regular vector geodataset layers — use selectFeature
+                            // which persists through dynamic extent refreshes
+                            L_.selectFeature(layerName, r)
+                            resolve(r)
+                        } else {
+                            resolve(r)
                         }
-                    } else if (typeof layer.eachLayer === 'function') {
-                        // Regular vector geodataset layers — use selectFeature
-                        // which persists through dynamic extent refreshes
-                        L_.selectFeature(layerName, r)
-                    }
-                },
-                function () {}
-            )
+                    },
+                    function () { resolve(null) }
+                )
+            })
         },
         [selectedLayer, inputValue, searchFields, getL_, getMap_]
     )
@@ -949,9 +977,10 @@ function SearchBar({ componentVars }) {
     )
 
     const handleSearch = useCallback(
-        (value, parsedFields) => {
+        async (value, parsedFields) => {
             const searchValue = value != null ? value : inputValue
             const L_ = getL_()
+            const Map_ = getMap_()
             if (!selectedLayer) return
 
             // Determine which layers to search
@@ -963,47 +992,122 @@ function SearchBar({ componentVars }) {
                 const targetSet = new Set(targetLayers)
 
                 // Turn off all non-target vector/vectortile/query layers
+                const hidePromises = []
                 for (const lname in L_.layers.data) {
                     if (targetSet.has(lname)) continue
                     const ld = L_.layers.data[lname]
                     if (!ld) continue
                     const t = ld.type
                     if ((t === 'vector' || t === 'vectortile' || t === 'query') && L_.layers.on[lname]) {
-                        L_.toggleLayer(ld)
+                        hidePromises.push(L_.toggleLayer(ld))
                         filterModeHiddenLayers.current.add(lname)
                     }
                 }
 
-                // Filter mode: apply real filters to each target layer
-                targetLayers.forEach((lname) => {
+                // Ensure target layers are on (await each toggle)
+                for (const lname of targetLayers) {
                     if (!L_.layers.on[lname]) {
-                        L_.toggleLayer(L_.layers.data[lname])
+                        await L_.toggleLayer(L_.layers.data[lname])
                     }
+                }
+
+                // Apply filters after layers are ready
+                targetLayers.forEach((lname) => {
                     applyFilterToLayer(lname, searchValue, parsedFields)
                 })
 
-                // Pan to matching features after filter is applied
-                targetLayers.forEach((lname) => {
-                    const ld = L_.layers.data[lname]
-                    const isGeodataset = ld?.url?.startsWith('geodatasets:')
-                    if (isGeodataset) {
-                        // Geodataset: use searchGeodatasets which pans via API
-                        searchGeodatasets(lname, searchValue)
-                    } else {
-                        // Vector: iterate the now-filtered layer to pan/highlight
-                        const Map_ = getMap_()
+                // Pan to matching features.
+                // For geodatasets: search by per-field value, collect results, combined pan.
+                // For vectors: iterate the now-filtered layer.
+                const geoResults = []
+                const vecFeatures = []
+
+                const geoPromises = targetLayers
+                    .filter((l) => L_.layers.data[l]?.url?.startsWith('geodatasets:'))
+                    .map((lname) =>
+                        searchGeodatasets(lname, searchValue, parsedFields, true)
+                            .then((r) => { if (r) geoResults.push({ layerName: lname, feature: r }) })
+                    )
+
+                targetLayers
+                    .filter((l) => !L_.layers.data[l]?.url?.startsWith('geodatasets:'))
+                    .forEach((lname) => {
                         const layer = L_.layers.layer[lname]
                         if (!layer || typeof layer.eachLayer !== 'function') return
-                        const allFeatures = []
-                        layer.eachLayer((feat) => allFeatures.push(feat))
-                        if (allFeatures.length === 1) {
-                            L_.highlight(allFeatures[0])
-                            allFeatures[0].fireEvent('click')
-                            if (typeof allFeatures[0].bringToFront === 'function')
-                                allFeatures[0].bringToFront()
+                        layer.eachLayer((feat) => vecFeatures.push(feat))
+                    })
+
+                await Promise.all(geoPromises)
+
+                // Combine all features for a single pan
+                const allPanTargets = [...vecFeatures]
+                geoResults.forEach((gr) => {
+                    // Wrap GeoJSON feature as a pseudo-layer for getMapZoomCoordinate
+                    allPanTargets.push({ feature: gr.feature })
+                })
+
+                if (vecFeatures.length === 1) {
+                    L_.highlight(vecFeatures[0])
+                    vecFeatures[0].fireEvent('click')
+                    if (typeof vecFeatures[0].bringToFront === 'function')
+                        vecFeatures[0].bringToFront()
+                }
+
+                if (geoResults.length === 1 && vecFeatures.length === 0) {
+                    // Single geodataset result — select it
+                    L_.selectFeature(geoResults[0].layerName, geoResults[0].feature)
+                }
+
+                if (allPanTargets.length > 0 && Map_) {
+                    const coordinate = getMapZoomCoordinate(allPanTargets)
+                    if (coordinate) {
+                        Map_.map.setView(
+                            [coordinate.latitude, coordinate.longitude],
+                            Map_.mapScaleZoom || Map_.map.getZoom()
+                        )
+                    }
+                }
+            } else {
+                // Select mode: highlight/pan to matches.
+                // For groups: collect all geodataset results for combined pan.
+                const isGroup = targetLayers.length > 1
+                if (isGroup) {
+                    const geoResults = []
+                    const vecLayers = []
+
+                    targetLayers.forEach((lname) => {
+                        const ld = L_.layers.data[lname]
+                        const isGeodataset = ld?.url?.startsWith('geodatasets:')
+                        if (ld?.type === 'vectortile' || isGeodataset) {
+                            // Will collect results below
+                        } else {
+                            vecLayers.push(lname)
                         }
-                        if (allFeatures.length > 0 && Map_) {
-                            const coordinate = getMapZoomCoordinate(allFeatures)
+                    })
+
+                    // Non-geodataset layers: use doWithSearch for each
+                    vecLayers.forEach((lname) => {
+                        doWithSearch('both', null, lname, false, searchValue)
+                    })
+
+                    // Geodataset layers: collect results, then combined pan
+                    const geoPromises = targetLayers
+                        .filter((l) => {
+                            const ld = L_.layers.data[l]
+                            return ld?.url?.startsWith('geodatasets:') || ld?.type === 'vectortile'
+                        })
+                        .map((lname) =>
+                            searchGeodatasets(lname, searchValue, parsedFields, true)
+                                .then((r) => { if (r) geoResults.push({ layerName: lname, feature: r }) })
+                        )
+
+                    Promise.all(geoPromises).then(() => {
+                        if (geoResults.length === 0) return
+
+                        // Pan to show all results
+                        const panTargets = geoResults.map((gr) => ({ feature: gr.feature }))
+                        if (panTargets.length > 0 && Map_) {
+                            const coordinate = getMapZoomCoordinate(panTargets)
                             if (coordinate) {
                                 Map_.map.setView(
                                     [coordinate.latitude, coordinate.longitude],
@@ -1011,19 +1115,28 @@ function SearchBar({ componentVars }) {
                                 )
                             }
                         }
-                    }
-                })
-            } else {
-                // Select mode: highlight/pan to matches
-                targetLayers.forEach((lname) => {
-                    const ld = L_.layers.data[lname]
-                    const isGeodataset = ld?.url?.startsWith('geodatasets:')
-                    if (ld?.type === 'vectortile' || isGeodataset) {
-                        searchGeodatasets(lname, searchValue)
-                    } else {
-                        doWithSearch('both', null, lname, false, searchValue)
-                    }
-                })
+
+                        // Select single result
+                        if (geoResults.length === 1) {
+                            const gr = geoResults[0]
+                            if (!L_.layers.on[gr.layerName]) {
+                                L_.toggleLayer(L_.layers.data[gr.layerName])
+                            }
+                            L_.selectFeature(gr.layerName, gr.feature)
+                        }
+                    })
+                } else {
+                    // Single layer select mode
+                    targetLayers.forEach((lname) => {
+                        const ld = L_.layers.data[lname]
+                        const isGeodataset = ld?.url?.startsWith('geodatasets:')
+                        if (ld?.type === 'vectortile' || isGeodataset) {
+                            searchGeodatasets(lname, searchValue, parsedFields)
+                        } else {
+                            doWithSearch('both', null, lname, false, searchValue)
+                        }
+                    })
+                }
             }
         },
         [inputValue, selectedLayer, selectedGroupId, searchGroups, searchMode, searchGeodatasets, doWithSearch, applyFilterToLayer, getL_, getMap_]
