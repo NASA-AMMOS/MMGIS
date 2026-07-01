@@ -143,7 +143,7 @@ function get(reqtype, req, res, next, options) {
         radius: spatialFilterSplit[2],
       };
     }
-    if (req.query.limit != null) { const _parsed = parseInt(req.query.limit); paginationLimit = Number.isNaN(_parsed) ? null : Math.min(Math.max(_parsed, 0), 10000); }
+    if (req.query.limit != null) { const _parsed = parseInt(req.query.limit); paginationLimit = Number.isNaN(_parsed) ? null : Math.min(Math.max(_parsed, 1), 10000); }
     if (req.query.offset != null) { const _parsed = parseInt(req.query.offset); paginationOffset = Number.isNaN(_parsed) ? 0 : Math.max(_parsed, 0); }
 
     if (type === "mvt") {
