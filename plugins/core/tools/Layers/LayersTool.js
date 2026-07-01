@@ -1521,9 +1521,12 @@ function interfaceWithMMGIS(fromInit) {
             if (
                 quasiLayers.includes(li.attr('type')) ||
                 L_.layers.layer[layerName]
-            )
-                checkbox.toggleClass('on')
-            else if (
+            ) {
+                // Set class based on actual state (idempotent — safe with
+                // the onLayerToggle subscription that also syncs the class)
+                const isOn = L_.layers.on[layerName] === true
+                checkbox.toggleClass('on', isOn).toggleClass('off', !isOn)
+            } else if (
                 !quasiLayers.includes(li.attr('type')) &&
                 L_.layers.layer[layerName] == null
             )
@@ -3167,6 +3170,18 @@ function interfaceWithMMGIS(fromInit) {
         handleRefreshStatusChange
     )
 
+    // Sync checkbox UI when a layer is toggled externally (e.g., by Search)
+    L_.subscribeOnLayerToggle('LayersTool', function (layerName, isNowOn) {
+        const safeName = F_.getSafeName(layerName)
+        const checkbox = $(`#LayersTool${safeName} .title .checkbox`)
+        if (checkbox.length === 0) return
+        if (isNowOn && !checkbox.hasClass('on')) {
+            checkbox.removeClass('off').addClass('on')
+        } else if (!isNowOn && checkbox.hasClass('on')) {
+            checkbox.removeClass('on').addClass('off')
+        }
+    })
+
     //Share everything. Don't take things that aren't yours.
     // Put things back where you found them.
     function separateFromMMGIS() {
@@ -3174,6 +3189,7 @@ function interfaceWithMMGIS(fromInit) {
             'layerRefreshStatusChanged',
             handleRefreshStatusChange
         )
+        L_.unsubscribeOnLayerToggle('LayersTool')
     }
 }
 

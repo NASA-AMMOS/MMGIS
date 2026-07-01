@@ -1788,18 +1788,8 @@ function SearchBar({ componentVars }) {
         setFieldValues([])
         setPlaceholder('Search features...')
         setArrayToSearch([])
-        setSelectedGroupId(null)
-        const defaultLayer =
-            vectorLayers.find((vl) => {
-                const L_ = getL_()
-                return L_.layers.on[vl.value] === true
-            }) || vectorLayers[0] || null
-        if (defaultLayer) {
-            setSelectedLayer(defaultLayer.value)
-        } else {
-            setSelectedLayer(null)
-        }
-    }, [restoreLayerState, vectorLayers, getL_])
+        // Preserve current group/layer selection — only clear the search value
+    }, [restoreLayerState, getL_])
 
     const handleRegularLayerSelect = useCallback((layerValue, groupId) => {
         setSelectedLayer((prev) => {
