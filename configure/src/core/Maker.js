@@ -1329,10 +1329,12 @@ const getComponent = (
         </div>
       );
     case "layerMultiSelect": {
+      const allowedTypes = Array.isArray(com.layerTypes) ? com.layerTypes : null;
       const allLayers = [];
       if (configuration && configuration.layers) {
         traverseLayers(configuration.layers, (l) => {
           if (l.type && l.type !== "header") {
+            if (allowedTypes && !allowedTypes.includes(l.type)) return;
             allLayers.push({
               uuid: l.uuid || l.name,
               displayName: l.display_name || l.name,
