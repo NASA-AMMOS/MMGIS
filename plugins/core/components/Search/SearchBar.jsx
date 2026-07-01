@@ -678,8 +678,8 @@ function SearchBar({ componentVars }) {
         setSuggestions([])
         setShowSuggestions(false)
         setPlaceholder('Search features...')
-        setArrayToSearch([])
-        // Preserve current group/layer selection — only clear the search value
+        // Preserve arrayToSearch so re-opening the panel still shows suggestions
+        // (the rebuild effect won't re-run because selectedLayer hasn't changed)
     }, [])
 
     const handleRegularLayerSelect = useCallback((layerValue, groupId) => {
