@@ -50,7 +50,7 @@
                 "type": "layerMultiSelect",
                 "name": "Layers",
                 "description": "Select which layers belong to this search group.",
-                "layerTypes": ["vector", "query", "vectortile"],
+                "layerTypes": ["vector"],
                 "width": 6
               }
             ]
