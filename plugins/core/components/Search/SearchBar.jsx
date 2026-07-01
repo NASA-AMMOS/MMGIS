@@ -249,20 +249,15 @@ function SearchBar({ componentVars }) {
     const vectorSchemaRef = useRef({})
     const geodatasetSchemaRef = useRef([])
 
-    // Pre-search layer state for restore on cancel
-    const preSearchLayerState = useRef(null)
+    // Pre-search filter state for restore on cancel (visibility is NOT restored)
+    const preSearchFilterState = useRef(null)
     const searchFilteredLayers = useRef([])
-    const regModeToggledLayers = useRef([])
     const vectorFilteredLayers = useRef({})
-    // Tracks what Search set each layer's on/off state to, so restore
-    // can detect if the user changed it externally and preserve user intent
-    const searchSetVisibility = useRef({}) // { layerName: true|false }
 
-    // Override indicator state: counts of layers forced on / filters overridden
-    const [overrideInfo, setOverrideInfo] = useState({ forcedOn: 0, filtersOverridden: 0 })
+    // Override indicator state: count of layers with search-applied filters
+    const [overrideInfo, setOverrideInfo] = useState({ filtersOverridden: 0 })
     const updateOverrideInfo = useCallback(() => {
         setOverrideInfo({
-            forcedOn: regModeToggledLayers.current.length,
             filtersOverridden: searchFilteredLayers.current.length + Object.keys(vectorFilteredLayers.current).length,
         })
     }, [])
@@ -522,14 +517,10 @@ function SearchBar({ componentVars }) {
         [getL_, getF_, discoverVectorSchema, mergeVectorSchemaForLayer]
     )
 
-    // Save the current layer visibility state (before search modifies it)
-    const saveLayerState = useCallback(() => {
-        if (preSearchLayerState.current != null) return
+    // Save the current filter state (before search modifies it)
+    const saveFilterState = useCallback(() => {
+        if (preSearchFilterState.current != null) return
         const L_ = getL_()
-        const onState = {}
-        for (let lname in L_.layers.on) {
-            onState[lname] = L_.layers.on[lname]
-        }
         const filterState = {}
         geodatasetLayers.forEach((gl) => {
             const ld = L_.layers.data[gl.value]
@@ -537,18 +528,14 @@ function SearchBar({ componentVars }) {
                 filterState[gl.value] = JSON.parse(JSON.stringify(ld._filterEncoded))
             }
         })
-        preSearchLayerState.current = { on: onState, filters: filterState }
+        preSearchFilterState.current = filterState
     }, [getL_, geodatasetLayers])
 
-    // Restore layer visibility and filter state
-    // Uses diff-based restore: only undo layers that Search changed AND
-    // whose current state still matches what Search set them to.
-    // If the user changed a layer externally during the search, we preserve
-    // their intent instead of blindly reverting to the pre-search snapshot.
-    const restoreLayerState = useCallback(() => {
-        if (preSearchLayerState.current == null) return
+    // Restore filter state only (visibility is permanent — layers stay on)
+    const restoreFilterState = useCallback(() => {
+        if (preSearchFilterState.current == null) return
         const L_ = getL_()
-        const { on: savedOn, filters: savedFilters } = preSearchLayerState.current
+        const savedFilters = preSearchFilterState.current
 
         searchFilteredLayers.current.forEach((layerName) => {
             const ld = L_.layers.data[layerName]
@@ -572,28 +559,7 @@ function SearchBar({ componentVars }) {
         }
         vectorFilteredLayers.current = {}
 
-        for (let lname in savedOn) {
-            const isCurrentlyOn = L_.layers.on[lname] === true
-            const shouldBeOn = savedOn[lname] === true
-            if (isCurrentlyOn === shouldBeOn) continue
-
-            // Only restore if Search was the one that changed this layer
-            // AND the current state matches what Search set it to
-            if (lname in searchSetVisibility.current) {
-                const searchSetTo = searchSetVisibility.current[lname]
-                if (isCurrentlyOn === searchSetTo) {
-                    // State matches what Search set — user didn't touch it, safe to restore
-                    L_.toggleLayer(L_.layers.data[lname])
-                }
-                // else: user changed it after Search did — preserve user intent
-            } else {
-                // Layer wasn't touched by Search but differs from snapshot
-                // (shouldn't normally happen, but restore to be safe)
-                L_.toggleLayer(L_.layers.data[lname])
-            }
-        }
-        searchSetVisibility.current = {}
-        preSearchLayerState.current = null
+        preSearchFilterState.current = null
         updateOverrideInfo()
     }, [getL_, updateOverrideInfo])
 
@@ -810,23 +776,11 @@ function SearchBar({ componentVars }) {
             setPlaceholder(getSearchFieldKeys(searchFields, targetLayers[0]) || 'Search...')
         }
 
-        // Turn off any previously search-toggled layers
-        regModeToggledLayers.current.forEach((prevName) => {
-            if (!targetLayers.includes(prevName) && L_.layers.on[prevName] === true && L_.layers.data[prevName]) {
-                L_.toggleLayer(L_.layers.data[prevName])
-                searchSetVisibility.current[prevName] = false
-            }
-        })
-        regModeToggledLayers.current = []
-
-        // Toggle on any layers that are off, then build suggestions
+        // Turn on any layers that are off (permanently — no restore on clear)
         const layersToToggle = targetLayers.filter((l) => L_.layers.on[l] !== true)
         layersToToggle.forEach((l) => {
-            regModeToggledLayers.current.push(l)
             L_.toggleLayer(L_.layers.data[l])
-            searchSetVisibility.current[l] = true
         })
-        updateOverrideInfo()
 
         // Check which layers still need loading
         const allReady = () => targetLayers.every(
@@ -1209,13 +1163,11 @@ function SearchBar({ componentVars }) {
             ) {
                 setPanelOpen(false)
                 setShowSuggestions(false)
-                regModeToggledLayers.current = []
-                updateOverrideInfo()
             }
         }
         document.addEventListener('mousedown', handleClick)
         return () => document.removeEventListener('mousedown', handleClick)
-    }, [updateOverrideInfo])
+    }, [])
 
     // Listen for "/" keyboard shortcut to focus search
     useEffect(() => {
@@ -1318,7 +1270,7 @@ function SearchBar({ componentVars }) {
             const fieldType = fieldObj.type || 'string'
             const fieldLayers = fieldObj.layers
 
-            saveLayerState()
+            saveFilterState()
 
             searchFilteredLayers.current.forEach((layerName) => {
                 const ld = L_.layers.data[layerName]
@@ -1439,7 +1391,6 @@ function SearchBar({ componentVars }) {
 
                     if (hasHits && !isOn) {
                         L_.toggleLayer(L_.layers.data[layerName])
-                        searchSetVisibility.current[layerName] = true
                         if (vectorMatchedFeatures[layerName]) {
                             const filtered = vectorMatchedFeatures[layerName]
                             let attempts = 0
@@ -1461,9 +1412,6 @@ function SearchBar({ componentVars }) {
                                 }
                             }, 200)
                         }
-                    } else if (!hasHits && isOn) {
-                        L_.toggleLayer(L_.layers.data[layerName])
-                        searchSetVisibility.current[layerName] = false
                     }
 
                     if (hasHits && geodatasetLayers.some((gl) => gl.value === layerName)) {
@@ -1490,7 +1438,7 @@ function SearchBar({ componentVars }) {
                 updateOverrideInfo()
             }
         },
-        [schemaFields, geodatasetLayers, vectorSearchLayers, saveLayerState, matchFeatureValue, getL_, getMap_, getF_, updateOverrideInfo]
+        [schemaFields, geodatasetLayers, vectorSearchLayers, saveFilterState, matchFeatureValue, getL_, getMap_, getF_, updateOverrideInfo]
     )
 
     const searchGeodatasets = useCallback(
@@ -1767,20 +1715,7 @@ function SearchBar({ componentVars }) {
     )
 
     const handleClear = useCallback(() => {
-        if (regModeToggledLayers.current.length > 0) {
-            const L_ = getL_()
-            regModeToggledLayers.current.forEach((prevName) => {
-                if (L_.layers.on[prevName] === true && L_.layers.data[prevName]) {
-                    // Only toggle off if current state matches what Search set
-                    // (i.e., user didn't change it externally)
-                    if (searchSetVisibility.current[prevName] === true) {
-                        L_.toggleLayer(L_.layers.data[prevName])
-                    }
-                }
-            })
-            regModeToggledLayers.current = []
-        }
-        restoreLayerState()
+        restoreFilterState()
         setInputValue('')
         setSubmittedValue(null)
         setSuggestions([])
@@ -1789,7 +1724,7 @@ function SearchBar({ componentVars }) {
         setPlaceholder('Search features...')
         setArrayToSearch([])
         // Preserve current group/layer selection — only clear the search value
-    }, [restoreLayerState, getL_])
+    }, [restoreFilterState])
 
     const handleRegularLayerSelect = useCallback((layerValue, groupId) => {
         setSelectedLayer((prev) => {
@@ -1882,13 +1817,10 @@ function SearchBar({ componentVars }) {
         >
             {/* Top bar */}
             <div className="searchCompactBar">
-                {(overrideInfo.forcedOn > 0 || overrideInfo.filtersOverridden > 0) && (
+                {overrideInfo.filtersOverridden > 0 && (
                     <Tooltip
                         content={
-                            [
-                                overrideInfo.forcedOn > 0 && `${overrideInfo.forcedOn} layer${overrideInfo.forcedOn > 1 ? 's' : ''} temporarily forced on`,
-                                overrideInfo.filtersOverridden > 0 && `${overrideInfo.filtersOverridden} layer filter${overrideInfo.filtersOverridden > 1 ? 's' : ''} temporarily overridden`,
-                            ].filter(Boolean).join(', ') + ' \u2014 clear search to return state'
+                            `${overrideInfo.filtersOverridden} layer filter${overrideInfo.filtersOverridden > 1 ? 's' : ''} temporarily overridden \u2014 clear search to restore`
                         }
                         placement="bottom"
                     >
@@ -1942,8 +1874,6 @@ function SearchBar({ componentVars }) {
                         } else if (e.key === 'Escape') {
                             setPanelOpen(false)
                             setShowSuggestions(false)
-                            regModeToggledLayers.current = []
-                            updateOverrideInfo()
                             inputRef.current?.blur()
                         } else if (e.key === 'ArrowDown') {
                             e.preventDefault()
