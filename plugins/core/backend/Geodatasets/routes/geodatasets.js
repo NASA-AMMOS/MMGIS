@@ -397,6 +397,9 @@ function get(reqtype, req, res, next, options) {
                     break;
                   case "regex":
                     op = "~*";
+                    if (typeof f.value === 'string' && f.value.length > 200) {
+                      f.value = f.value.substring(0, 200);
+                    }
                     break;
                   case "isnull":
                     op = "IS NULL";

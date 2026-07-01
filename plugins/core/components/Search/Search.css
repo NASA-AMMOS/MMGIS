@@ -214,6 +214,14 @@
     color: var(--color-a4);
     user-select: none;
 }
+.searchValuesCount {
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--color-a4);
+    opacity: 0.7;
+    user-select: none;
+    margin-left: 4px;
+}
 
 /* Each column */
 .searchUnifiedCol {

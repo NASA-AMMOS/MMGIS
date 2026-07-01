@@ -7,6 +7,12 @@ import Tooltip from '@design/components/Tooltip/Tooltip'
 
 import calls from '@pre/calls'
 
+// Convert a user wildcard pattern (using *) into a case-insensitive RegExp
+function wildcardToRegex(pattern) {
+    const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+    return new RegExp(escaped.replace(/\*/g, '.*'), 'i')
+}
+
 function makeSearchFields(vars) {
     let searchfields = {}
     for (let layerfield in vars) {
@@ -292,13 +298,19 @@ function SearchBar({ componentVars }) {
     }, [getL_])
 
     // Build values array when layer changes (regular mode)
-    // When a group is selected, merges suggestions from ALL member layers
+    // When a group is selected, merges suggestions from ALL member layers.
+    // Vector layers use client-side toGeoJSON; geodataset layers use the
+    // bulk_aggregations backend API so we get the full dataset, not just
+    // whatever happens to be in the current viewport.
     useEffect(() => {
         if (!selectedLayer) return
 
         const L_ = getL_()
         const Map_ = getMap_()
         if (!Map_ || !L_) return
+
+        let cancelled = false
+        const MAX_VALUES = 500
 
         // Determine which layers to gather suggestions from
         const targetLayers = selectedGroupId && searchGroups[selectedGroupId]
@@ -307,95 +319,148 @@ function SearchBar({ componentVars }) {
 
         if (targetLayers.length === 0) return
 
-        const buildArrayForLayers = (layerNames) => {
-            if (valuesIntersectOnly && layerNames.length > 1) {
-                // Intersection: only values present in every layer
-                const perLayer = layerNames.map((lname) => {
-                    const vals = new Set()
-                    let data
-                    try {
-                        data = L_.layers.layer[lname].toGeoJSON(L_.GEOJSON_PRECISION)
-                    } catch (err) {
-                        data = { features: [] }
-                    }
-                    for (let i = 0; i < data.features.length; i++) {
-                        vals.add(getSearchFieldStringForFeature(searchFields, lname, data.features[i].properties))
-                    }
-                    return vals
-                })
-                let intersection = perLayer[0]
-                for (let i = 1; i < perLayer.length; i++) {
-                    intersection = new Set([...intersection].filter((v) => perLayer[i].has(v)))
-                }
-                const unique = [...intersection]
-                if (unique[0]) {
-                    if (!isNaN(unique[0])) unique.sort((a, b) => a - b)
-                    else unique.sort()
-                }
-                setArrayToSearch(unique)
-            } else {
-                // Union: all values from any layer
-                const arr = []
-                layerNames.forEach((lname) => {
-                    let data
-                    try {
-                        data = L_.layers.layer[lname].toGeoJSON(L_.GEOJSON_PRECISION)
-                    } catch (err) {
-                        data = { features: [] }
-                    }
-                    for (let i = 0; i < data.features.length; i++) {
-                        const props = data.features[i].properties
-                        arr.push(getSearchFieldStringForFeature(searchFields, lname, props))
-                    }
-                })
-                const unique = [...new Set(arr)]
-                if (unique[0]) {
-                    if (!isNaN(unique[0])) unique.sort((a, b) => a - b)
-                    else unique.sort()
-                }
-                setArrayToSearch(unique)
+        // Separate geodataset vs non-geodataset layers
+        const isGeo = (l) => L_.layers.data[l]?.url?.startsWith('geodatasets:')
+        const geoTargets = targetLayers.filter(isGeo)
+        const vecTargets = targetLayers.filter((l) => !isGeo(l))
+
+        // Per-layer value sets (for intersection support)
+        const perLayerValues = {}
+
+        // Merge per-layer sets into final array and update state
+        const finalize = () => {
+            if (cancelled) return
+            const allSets = Object.values(perLayerValues)
+            if (allSets.length === 0) {
+                setArrayToSearch([])
+                setPlaceholder(getSearchFieldKeys(searchFields, targetLayers[0]) || 'Search...')
+                return
             }
+            let finalValues
+            if (valuesIntersectOnly && allSets.length > 1) {
+                finalValues = new Set(allSets[0])
+                for (let i = 1; i < allSets.length; i++) {
+                    finalValues = new Set([...finalValues].filter((v) => allSets[i].has(v)))
+                }
+            } else {
+                finalValues = new Set()
+                allSets.forEach((s) => s.forEach((v) => finalValues.add(v)))
+            }
+            const unique = [...finalValues].filter(Boolean)
+            if (unique[0]) {
+                if (!isNaN(unique[0])) unique.sort((a, b) => a - b)
+                else unique.sort()
+            }
+            setArrayToSearch(unique.slice(0, MAX_VALUES))
             setPlaceholder(getSearchFieldKeys(searchFields, targetLayers[0]) || 'Search...')
         }
 
-        // Turn on any layers that are off (permanently — no restore on clear)
-        const layersToToggle = targetLayers.filter((l) => L_.layers.on[l] !== true)
-        layersToToggle.forEach((l) => {
+        // --- Vector layers: client-side toGeoJSON ---
+        const processVecLayers = (layerNames) => {
+            layerNames.forEach((lname) => {
+                const vals = new Set()
+                let data
+                try {
+                    data = L_.layers.layer[lname].toGeoJSON(L_.GEOJSON_PRECISION)
+                } catch (err) {
+                    data = { features: [] }
+                }
+                for (let i = 0; i < data.features.length; i++) {
+                    vals.add(getSearchFieldStringForFeature(searchFields, lname, data.features[i].properties))
+                }
+                perLayerValues[lname] = vals
+            })
+        }
+
+        // --- Geodataset layers: backend bulk_aggregations API ---
+        const processGeoLayers = () => {
+            if (geoTargets.length === 0) return Promise.resolve()
+            return Promise.all(geoTargets.map((lname) => {
+                return new Promise((resolve) => {
+                    const geodatasetName = L_.layers.data[lname]?.url?.split(':')[1]
+                    if (!geodatasetName) {
+                        perLayerValues[lname] = new Set()
+                        resolve()
+                        return
+                    }
+                    calls.api(
+                        'geodatasets_bulk_aggregations',
+                        { layers: geodatasetName, limit: 1000 },
+                        (d) => {
+                            const vals = new Set()
+                            if (d?.status === 'success' && d.aggregations) {
+                                const sf = searchFields[lname]
+                                if (sf && sf.length > 0) {
+                                    const fieldName = sf[0][1]
+                                    const transform = sf[0][0].toLowerCase()
+                                    const fieldAgg = d.aggregations[fieldName]
+                                    if (fieldAgg) {
+                                        Object.keys(fieldAgg.aggs).forEach((val) => {
+                                            let v = val
+                                            if (transform === 'round') v = String(Math.round(Number(v)))
+                                            else if (transform === 'rmunder') v = String(v).replace(/_/g, ' ')
+                                            if (v) vals.add(v)
+                                        })
+                                    }
+                                }
+                            }
+                            perLayerValues[lname] = vals
+                            resolve()
+                        },
+                        () => {
+                            perLayerValues[lname] = new Set()
+                            resolve()
+                        }
+                    )
+                })
+            }))
+        }
+
+        // Turn on layers that are off (permanently)
+        targetLayers.filter((l) => L_.layers.on[l] !== true).forEach((l) => {
             L_.toggleLayer(L_.layers.data[l])
         })
 
-        // Check which layers still need loading
-        const allReady = () => targetLayers.every(
+        // Wait for vector layers to load, then process both sources
+        const allVecReady = () => vecTargets.every(
             (l) => L_.layers.layer[l] && typeof L_.layers.layer[l].toGeoJSON === 'function'
         )
 
-        if (allReady()) {
-            buildArrayForLayers(targetLayers)
+        const buildAll = (availableVec) => {
+            processVecLayers(availableVec)
+            processGeoLayers().then(finalize)
+        }
+
+        if (vecTargets.length === 0 || allVecReady()) {
+            buildAll(vecTargets)
         } else {
             let attempts = 0
             const poll = setInterval(() => {
+                if (cancelled) { clearInterval(poll); return }
                 attempts++
-                if (allReady()) {
+                if (allVecReady()) {
                     clearInterval(poll)
-                    buildArrayForLayers(targetLayers)
+                    buildAll(vecTargets)
                 } else if (attempts > 40) {
                     clearInterval(poll)
-                    // Build with whatever is available
-                    const available = targetLayers.filter(
+                    const available = vecTargets.filter(
                         (l) => L_.layers.layer[l] && typeof L_.layers.layer[l].toGeoJSON === 'function'
                     )
-                    if (available.length > 0) buildArrayForLayers(available)
+                    buildAll(available)
                 }
             }, 200)
-            return () => clearInterval(poll)
         }
+
+        return () => { cancelled = true }
     }, [selectedLayer, selectedGroupId, searchGroups, searchFields, getL_, getMap_, valuesIntersectOnly])
 
-    // Compute suggestions based on input
+    // Compute suggestions based on input.
+    // Supports * wildcard matching (e.g. "* my_cat" matches any name + category).
     useEffect(() => {
-        // Plain text mode — search construct values
+        const MAX_SUGGESTIONS = 500
+
         if (!selectedLayer || !inputValue) {
-            const all = arrayToSearch.slice(0, 100).map((s) => ({
+            const all = arrayToSearch.slice(0, MAX_SUGGESTIONS).map((s) => ({
                 type: 'plain',
                 label: String(s),
             }))
@@ -407,7 +472,7 @@ function SearchBar({ componentVars }) {
 
         const isSubmitted = submittedValue != null && inputValue === submittedValue
         if (isSubmitted) {
-            const all = arrayToSearch.slice(0, 100).map((s) => ({
+            const all = arrayToSearch.slice(0, MAX_SUGGESTIONS).map((s) => ({
                 type: 'plain',
                 label: String(s),
             }))
@@ -417,17 +482,28 @@ function SearchBar({ componentVars }) {
             return
         }
 
-        const query = inputValue.toLowerCase()
-        const filtered = arrayToSearch
-            .filter((item) => String(item).toLowerCase().indexOf(query) !== -1)
-            .slice(0, 100)
-            .map((s) => ({ type: 'plain', label: String(s) }))
-        filtered.sort((a, b) => {
-            const aIdx = a.label.toLowerCase().indexOf(query)
-            const bIdx = b.label.toLowerCase().indexOf(query)
-            if (aIdx !== bIdx) return aIdx - bIdx
-            return a.label > b.label ? 1 : -1
-        })
+        const hasWildcard = inputValue.includes('*')
+        let filtered
+
+        if (hasWildcard) {
+            const re = wildcardToRegex(inputValue)
+            filtered = arrayToSearch
+                .filter((item) => re.test(String(item)))
+                .slice(0, MAX_SUGGESTIONS)
+                .map((s) => ({ type: 'plain', label: String(s) }))
+        } else {
+            const query = inputValue.toLowerCase()
+            filtered = arrayToSearch
+                .filter((item) => String(item).toLowerCase().indexOf(query) !== -1)
+                .slice(0, MAX_SUGGESTIONS)
+                .map((s) => ({ type: 'plain', label: String(s) }))
+            filtered.sort((a, b) => {
+                const aIdx = a.label.toLowerCase().indexOf(query)
+                const bIdx = b.label.toLowerCase().indexOf(query)
+                if (aIdx !== bIdx) return aIdx - bIdx
+                return a.label > b.label ? 1 : -1
+            })
+        }
         setSuggestions(filtered)
         setShowSuggestions(filtered.length > 0 && panelOpen)
         setActiveSuggestionIdx(-1)
@@ -589,13 +665,21 @@ function SearchBar({ componentVars }) {
             }
 
             if (markers != null && typeof markers.eachLayer === 'function') {
+                // Build regex matchers for wildcard patterns
+                const xRegex = x.map((v) => v.includes('*') ? wildcardToRegex(v) : null)
+
                 markers.eachLayer((layer) => {
                     const props = layer.feature.properties
                     let shouldSearch = false
                     const comparer = getSearchFieldStringForFeature(fields, lname, props)
 
                     for (let i = 0; i < x.length; i++) {
-                        if (
+                        if (xRegex[i]) {
+                            if (xRegex[i].test(comparer)) {
+                                shouldSearch = true
+                                break
+                            }
+                        } else if (
                             x.length === 1
                                 ? x[i].toLowerCase() === comparer.toLowerCase()
                                 : x[i].toLowerCase().indexOf(comparer.toLowerCase()) > -1 ||
@@ -902,14 +986,17 @@ function SearchBar({ componentVars }) {
                         <div className="searchUnifiedCol searchRegularColValues">
                             <div className="searchUnifiedColHeader">
                                 <span>Values</span>
+                                {arrayToSearch.length >= 500 && (
+                                    <span className="searchValuesCount">Top 500</span>
+                                )}
                                 {selectedGroupId && (
                                     <Tooltip
-                                        content={valuesIntersectOnly ? 'Shared by all layers' : 'From any layer'}
+                                        content={valuesIntersectOnly ? 'Common to all layers' : 'From any layer'}
                                         placement="bottom"
                                     >
                                         <div className="searchValuesToggle">
                                             <span className="searchValuesToggleLabel">
-                                                {valuesIntersectOnly ? 'Shared' : 'All'}
+                                                {valuesIntersectOnly ? 'Common' : 'All'}
                                             </span>
                                             <Switch
                                                 checked={valuesIntersectOnly}
