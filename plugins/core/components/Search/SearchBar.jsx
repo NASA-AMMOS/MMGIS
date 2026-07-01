@@ -1025,16 +1025,19 @@ function SearchBar({ componentVars }) {
 
                 // Refresh geodataset layers to apply the filter.
                 // applyFilterToLayer skips refreshLayer for geodatasets (to avoid
-                // the broken isRefresh toggle cycle). Instead we toggle off/on
-                // which properly re-fetches data with the new _filterEncoded.
+                // the broken isRefresh toggle cycle in makeVectorLayer's add()).
+                // Instead: toggle off, reset layer reference to force makeLayer
+                // to re-fetch data (captureVector reads _filterEncoded), toggle on.
                 const geoTargetLayers = targetLayers.filter(
                     (l) => L_.layers.data[l]?.url?.startsWith('geodatasets:')
                 )
                 for (const lname of geoTargetLayers) {
                     if (L_.layers.on[lname]) {
                         await L_.toggleLayer(L_.layers.data[lname]) // OFF
-                        await L_.toggleLayer(L_.layers.data[lname]) // ON with filter
                     }
+                    // Reset layer ref so toggleLayer → makeLayer re-fetches with filter
+                    L_.layers.layer[lname] = false
+                    await L_.toggleLayer(L_.layers.data[lname]) // ON: makeLayer fetches filtered data
                 }
 
                 // Pan to matching features.
