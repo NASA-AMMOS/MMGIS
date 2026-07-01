@@ -6,6 +6,8 @@ import Switch from '@design/components/Switch/Switch'
 import Tooltip from '@design/components/Tooltip/Tooltip'
 
 import calls from '@pre/calls'
+import Filtering from '@basics/Layers_/Filtering/Filtering'
+import GeodatasetFilterer from '@basics/Layers_/Filtering/GeodatasetFilterer'
 
 // Convert a user wildcard pattern (using *) into a case-insensitive RegExp
 function wildcardToRegex(pattern) {
@@ -155,6 +157,9 @@ function SearchBar({ componentVars }) {
 
     // Tracks whether the values-building effect is still running
     const [valuesLoading, setValuesLoading] = useState(false)
+
+    // 'select' (default) = highlight/pan to matches; 'filter' = apply real layer filters
+    const [searchMode, setSearchMode] = useState('select')
 
     const lastGeodatasetLayerName = useRef(null)
 
@@ -762,6 +767,75 @@ function SearchBar({ componentVars }) {
         [selectedLayer, inputValue, searchFields, getL_, getMap_]
     )
 
+    // Apply a real Filtering filter to a layer based on the search construct and value
+    const applyFilterToLayer = useCallback(
+        (lname, searchValue) => {
+            const L_ = getL_()
+            const sf = searchFields[lname]
+            if (!sf || sf.length === 0) return
+
+            const ld = L_.layers.data[lname]
+            if (!ld) return
+
+            // Split the search value by spaces to map back to construct fields
+            // For construct "(name) (category)" and value "John Science",
+            // parts = ["John", "Science"]
+            const parts = searchValue.split(/\s+/)
+
+            // Build filter values: one per search construct field
+            const filterValues = []
+            sf.forEach((field, idx) => {
+                const fieldName = field[1]
+                const part = parts[idx]
+                if (part == null || part === '' || part === '*') return
+
+                // Determine type from aggregations if available
+                const aggs = Filtering.filters[lname]?.aggs
+                let type = 'string'
+                if (aggs && aggs[fieldName]) {
+                    type = aggs[fieldName].type || 'string'
+                }
+
+                // Check if the value is a wildcard pattern
+                const hasWildcard = part.includes('*')
+                filterValues.push({
+                    id: idx,
+                    key: fieldName,
+                    op: hasWildcard ? 'contains' : '=',
+                    value: hasWildcard ? part.replace(/\*/g, '') : part,
+                    type: type,
+                })
+            })
+
+            if (filterValues.length === 0) return
+
+            // Initialize Filtering.filters for this layer if needed
+            Filtering.filters[lname] = Filtering.filters[lname] || {
+                spatial: { center: null, radius: 0 },
+                values: [],
+                geojson: null,
+            }
+
+            // Store original geojson for local vector layers if not already stored
+            if (
+                !ld.url?.startsWith('geodatasets:') &&
+                !Filtering.filters[lname].geojson &&
+                L_.layers.layer[lname] &&
+                typeof L_.layers.layer[lname].toGeoJSON === 'function'
+            ) {
+                Filtering.filters[lname].geojson =
+                    L_.layers.layer[lname].toGeoJSON(L_.GEOJSON_PRECISION)
+            }
+
+            // Set the filter values
+            Filtering.filters[lname].values = filterValues
+
+            // Submit the filter (applies it permanently)
+            Filtering.submit(lname, false)
+        },
+        [searchFields, getL_]
+    )
+
     const handleSearch = useCallback(
         (value) => {
             const searchValue = value != null ? value : inputValue
@@ -773,17 +847,28 @@ function SearchBar({ componentVars }) {
                 ? searchGroups[selectedGroupId].layers.filter((l) => L_.layers.data[l])
                 : [selectedLayer]
 
-            targetLayers.forEach((lname) => {
-                const ld = L_.layers.data[lname]
-                const isGeodataset = ld?.url?.startsWith('geodatasets:')
-                if (ld?.type === 'vectortile' || isGeodataset) {
-                    searchGeodatasets(lname, searchValue)
-                } else {
-                    doWithSearch('both', null, lname, false, searchValue)
-                }
-            })
+            if (searchMode === 'filter') {
+                // Filter mode: apply real filters to each target layer
+                targetLayers.forEach((lname) => {
+                    if (!L_.layers.on[lname]) {
+                        L_.toggleLayer(L_.layers.data[lname])
+                    }
+                    applyFilterToLayer(lname, searchValue)
+                })
+            } else {
+                // Select mode: highlight/pan to matches
+                targetLayers.forEach((lname) => {
+                    const ld = L_.layers.data[lname]
+                    const isGeodataset = ld?.url?.startsWith('geodatasets:')
+                    if (ld?.type === 'vectortile' || isGeodataset) {
+                        searchGeodatasets(lname, searchValue)
+                    } else {
+                        doWithSearch('both', null, lname, false, searchValue)
+                    }
+                })
+            }
         },
-        [inputValue, selectedLayer, selectedGroupId, searchGroups, searchGeodatasets, doWithSearch, getL_]
+        [inputValue, selectedLayer, selectedGroupId, searchGroups, searchMode, searchGeodatasets, doWithSearch, applyFilterToLayer, getL_]
     )
 
     const handleSuggestionClick = useCallback(
@@ -960,6 +1045,21 @@ function SearchBar({ componentVars }) {
                     >
                         <i className="mdi mdi-close mdi-14px" />
                     </IconButton>
+                </Tooltip>
+                <div className="searchBarDivider" />
+                <Tooltip
+                    content={searchMode === 'select' ? 'Select: highlight matching features' : 'Filter: show only matching features'}
+                    placement="bottom"
+                >
+                    <div
+                        className={`searchModeToggle ${searchMode === 'filter' ? 'searchModeToggleActive' : ''}`}
+                        onClick={() => setSearchMode((m) => m === 'select' ? 'filter' : 'select')}
+                    >
+                        <i className={`mdi ${searchMode === 'select' ? 'mdi-crosshairs-gps' : 'mdi-filter'} mdi-16px`} />
+                        <span className="searchModeToggleLabel">
+                            {searchMode === 'select' ? 'Select' : 'Filter'}
+                        </span>
+                    </div>
                 </Tooltip>
             </div>
 

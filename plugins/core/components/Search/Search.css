@@ -223,6 +223,31 @@
     margin-left: 4px;
 }
 
+/* Select / Filter mode toggle */
+.searchModeToggle {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    cursor: pointer;
+    border-radius: 3px;
+    user-select: none;
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+.searchModeToggle:hover {
+    background: var(--color-a1);
+}
+.searchModeToggleActive {
+    color: var(--color-blue, #4fc3f7);
+}
+.searchModeToggleLabel {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
 /* Each column */
 .searchUnifiedCol {
     display: flex;
