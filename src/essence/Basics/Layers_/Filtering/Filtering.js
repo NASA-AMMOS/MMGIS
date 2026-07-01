@@ -22,6 +22,7 @@ const helpKey = 'LayersTool-Filtering'
 const Filtering = {
     filters: {},
     current: {},
+    currentContainer: null,
     mapSpatialLayer: null,
     initialize: function () {
         Object.keys(L_.layers.data).forEach((layerName) => {
@@ -152,6 +153,7 @@ const Filtering = {
             "</div>",
         ].join('\n')
 
+        Filtering.currentContainer = container
         container.append(markup)
 
         // In case of reopening the tool, recreate state
@@ -194,6 +196,20 @@ const Filtering = {
         OpGridSelector.destroy()
 
         $('#layersTool_filtering').remove()
+    },
+    // Re-render the currently open filter panel (if any) to reflect
+    // externally applied filter changes (e.g. from the Search component)
+    refresh: function () {
+        if (
+            Filtering.current.layerName &&
+            Filtering.currentContainer &&
+            $('#layersTool_filtering').length > 0
+        ) {
+            const layerName = Filtering.current.layerName
+            const container = Filtering.currentContainer
+            Filtering.destroy()
+            Filtering.make(container, layerName)
+        }
     },
     addGroup: function (layerName, group) {
         let id, op

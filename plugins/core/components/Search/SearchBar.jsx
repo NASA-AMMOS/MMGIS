@@ -785,10 +785,25 @@ function SearchBar({ componentVars }) {
 
             const isGeodataset = ld.url?.startsWith('geodatasets:')
 
-            // Split the search value by spaces to map back to construct fields
-            // For construct "(name) (category)" and value "John Science",
-            // parts = ["John", "Science"]
-            const parts = searchValue.split(/\s+/)
+            // Split the composite value back into per-field parts.
+            // The composite was built by joining field values with spaces,
+            // but individual field values can contain spaces (e.g. "Oracle Park").
+            // Strategy: split from the right — last N-1 tokens go to the last
+            // N-1 fields, everything remaining goes to the first field.
+            // E.g. construct "(name) (category)", value "Oracle Park Stadium"
+            //   → name="Oracle Park", category="Stadium"
+            const tokens = searchValue.split(/\s+/)
+            const parts = []
+            if (sf.length === 1) {
+                parts.push(searchValue)
+            } else {
+                // Take last (N-1) tokens for fields [1..N-1]
+                const tailTokens = tokens.slice(-(sf.length - 1))
+                // Everything before those tokens is the first field's value
+                const firstFieldTokenCount = tokens.length - (sf.length - 1)
+                parts.push(tokens.slice(0, Math.max(firstFieldTokenCount, 1)).join(' '))
+                tailTokens.forEach((t) => parts.push(t))
+            }
 
             // Build filter values: one per search construct field
             const filterValues = []
@@ -843,6 +858,11 @@ function SearchBar({ componentVars }) {
                         L_.layers.layer[lname].toGeoJSON(L_.GEOJSON_PRECISION)
                 }
                 Filtering.submit(lname, false)
+            }
+
+            // Refresh the LayersTool Filtering panel if it's open for this layer
+            if (Filtering.current.layerName === lname) {
+                Filtering.refresh()
             }
         },
         [searchFields, getL_]
