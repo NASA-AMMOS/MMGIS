@@ -903,6 +903,11 @@ function SearchBar({ componentVars }) {
                 let part
                 if (parsedFields && parsedFields[fieldName] != null) {
                     part = parsedFields[fieldName]
+                } else if (parsedFields) {
+                    // parsedFields provided but this field is missing — skip it.
+                    // Don't fall back to decomposition which would produce
+                    // wrong values (e.g. "Twin Peaks" → name=Twin, category=Peaks).
+                    return
                 } else if (sf.length === 1) {
                     part = searchValue
                 } else {
