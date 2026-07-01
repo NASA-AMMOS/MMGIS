@@ -161,6 +161,9 @@ function SearchBar({ componentVars }) {
     // 'select' (default) = highlight/pan to matches; 'filter' = apply real layer filters
     const [searchMode, setSearchMode] = useState('select')
 
+    // Cached per-layer value sets — avoids re-fetching when toggling All/Common
+    const cachedPerLayerValues = useRef({})
+
     const lastGeodatasetLayerName = useRef(null)
 
     const inputRef = useRef(null)
@@ -305,42 +308,15 @@ function SearchBar({ componentVars }) {
         }
     }, [getL_])
 
-    // Build values array when layer changes (regular mode)
-    // When a group is selected, merges suggestions from ALL member layers.
-    // Vector layers use client-side toGeoJSON; geodataset layers use the
-    // bulk_aggregations backend API so we get the full dataset, not just
-    // whatever happens to be in the current viewport.
-    useEffect(() => {
-        if (!selectedLayer) return
-
-        const L_ = getL_()
-        const Map_ = getMap_()
-        if (!Map_ || !L_) return
-
-        let cancelled = false
-        const MAX_VALUES = 500
-        setValuesLoading(true)
-
-        // Determine which layers to gather suggestions from
-        const targetLayers = selectedGroupId && searchGroups[selectedGroupId]
-            ? searchGroups[selectedGroupId].layers.filter((l) => L_.layers.data[l])
-            : [selectedLayer]
-
-        if (targetLayers.length === 0) return
-
-        // Separate geodataset vs non-geodataset layers
-        const isGeo = (l) => L_.layers.data[l]?.url?.startsWith('geodatasets:')
-        const geoTargets = targetLayers.filter(isGeo)
-        const vecTargets = targetLayers.filter((l) => !isGeo(l))
-
-        // Per-layer value sets (for intersection support)
-        const perLayerValues = {}
-
-        // Merge per-layer sets into final array and update state
-        const finalize = () => {
-            if (cancelled) return
-            setValuesLoading(false)
-            const allSets = Object.values(perLayerValues)
+    // Merge cached per-layer value sets into the final arrayToSearch.
+    // Runs from cache — no network calls. Called after fetch completes
+    // and also when valuesIntersectOnly toggles.
+    const mergePerLayerValues = useCallback(
+        (targetLayers) => {
+            const MAX_VALUES = 500
+            const allSets = targetLayers
+                .map((l) => cachedPerLayerValues.current[l])
+                .filter(Boolean)
             if (allSets.length === 0) {
                 setArrayToSearch([])
                 setPlaceholder(getSearchFieldKeys(searchFields, targetLayers[0]) || 'Search...')
@@ -363,7 +339,38 @@ function SearchBar({ componentVars }) {
             }
             setArrayToSearch(unique.slice(0, MAX_VALUES))
             setPlaceholder(getSearchFieldKeys(searchFields, targetLayers[0]) || 'Search...')
-        }
+        },
+        [searchFields, valuesIntersectOnly]
+    )
+
+    // Build values array when layer changes (regular mode)
+    // When a group is selected, merges suggestions from ALL member layers.
+    // Vector layers use client-side toGeoJSON; geodataset layers use the
+    // bulk_aggregations backend API so we get the full dataset, not just
+    // whatever happens to be in the current viewport.
+    // Per-layer results are cached in cachedPerLayerValues so toggling
+    // All/Common doesn't re-fetch.
+    useEffect(() => {
+        if (!selectedLayer) return
+
+        const L_ = getL_()
+        const Map_ = getMap_()
+        if (!Map_ || !L_) return
+
+        let cancelled = false
+        setValuesLoading(true)
+
+        // Determine which layers to gather suggestions from
+        const targetLayers = selectedGroupId && searchGroups[selectedGroupId]
+            ? searchGroups[selectedGroupId].layers.filter((l) => L_.layers.data[l])
+            : [selectedLayer]
+
+        if (targetLayers.length === 0) return
+
+        // Separate geodataset vs non-geodataset layers
+        const isGeo = (l) => L_.layers.data[l]?.url?.startsWith('geodatasets:')
+        const geoTargets = targetLayers.filter(isGeo)
+        const vecTargets = targetLayers.filter((l) => !isGeo(l))
 
         // --- Vector layers: client-side toGeoJSON ---
         const processVecLayers = (layerNames) => {
@@ -378,7 +385,7 @@ function SearchBar({ componentVars }) {
                 for (let i = 0; i < data.features.length; i++) {
                     vals.add(getSearchFieldStringForFeature(searchFields, lname, data.features[i].properties))
                 }
-                perLayerValues[lname] = vals
+                cachedPerLayerValues.current[lname] = vals
             })
         }
 
@@ -389,7 +396,7 @@ function SearchBar({ componentVars }) {
                 return new Promise((resolve) => {
                     const geodatasetName = L_.layers.data[lname]?.url?.split(':')[1]
                     if (!geodatasetName) {
-                        perLayerValues[lname] = new Set()
+                        cachedPerLayerValues.current[lname] = new Set()
                         resolve()
                         return
                     }
@@ -414,11 +421,11 @@ function SearchBar({ componentVars }) {
                                     }
                                 }
                             }
-                            perLayerValues[lname] = vals
+                            cachedPerLayerValues.current[lname] = vals
                             resolve()
                         },
                         () => {
-                            perLayerValues[lname] = new Set()
+                            cachedPerLayerValues.current[lname] = new Set()
                             resolve()
                         }
                     )
@@ -435,6 +442,12 @@ function SearchBar({ componentVars }) {
         const allVecReady = () => vecTargets.every(
             (l) => L_.layers.layer[l] && typeof L_.layers.layer[l].toGeoJSON === 'function'
         )
+
+        const finalize = () => {
+            if (cancelled) return
+            setValuesLoading(false)
+            mergePerLayerValues(targetLayers)
+        }
 
         const buildAll = (availableVec) => {
             processVecLayers(availableVec)
@@ -462,7 +475,24 @@ function SearchBar({ componentVars }) {
         }
 
         return () => { cancelled = true; setValuesLoading(false) }
-    }, [selectedLayer, selectedGroupId, searchGroups, searchFields, getL_, getMap_, valuesIntersectOnly])
+    }, [selectedLayer, selectedGroupId, searchGroups, searchFields, getL_, getMap_, mergePerLayerValues])
+
+    // Re-merge cached values when All/Common toggle changes (no re-fetch)
+    useEffect(() => {
+        if (!selectedLayer) return
+        const L_ = getL_()
+        if (!L_) return
+
+        const targetLayers = selectedGroupId && searchGroups[selectedGroupId]
+            ? searchGroups[selectedGroupId].layers.filter((l) => L_.layers.data[l])
+            : [selectedLayer]
+
+        // Only re-merge if we have cached data
+        const hasCached = targetLayers.some((l) => cachedPerLayerValues.current[l])
+        if (hasCached) {
+            mergePerLayerValues(targetLayers)
+        }
+    }, [valuesIntersectOnly, selectedLayer, selectedGroupId, searchGroups, mergePerLayerValues, getL_])
 
     // Compute suggestions based on input.
     // Supports * wildcard matching (e.g. "* my_cat" matches any name + category).
