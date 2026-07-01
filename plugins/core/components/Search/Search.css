@@ -29,6 +29,18 @@
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-mmgis) 30%, transparent);
 }
 
+/* Override indicator icon */
+.searchOverrideIcon {
+    color: #4a9eda;
+    flex-shrink: 0;
+    cursor: default;
+    animation: searchOverridePulse 2s ease-in-out infinite;
+}
+@keyframes searchOverridePulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
 /* Search icon */
 .searchCompactIcon {
     cursor: pointer;
@@ -341,6 +353,24 @@
     padding-left: 28px;
     font-size: 12px;
     opacity: 0.9;
+}
+
+/* Numeric ID badge in advanced mode layer autocomplete */
+.searchSuggestionId {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 16px;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: monospace;
+    color: var(--color-a5);
+    background: var(--color-a1);
+    border-radius: 3px;
+    padding: 0 3px;
+    margin-right: 6px;
+    flex-shrink: 0;
 }
 
 /* ===== Help Panel ===== */

@@ -255,6 +255,15 @@ function SearchBar({ componentVars }) {
     const regModeToggledLayers = useRef([])
     const vectorFilteredLayers = useRef({})
 
+    // Override indicator state: counts of layers forced on / filters overridden
+    const [overrideInfo, setOverrideInfo] = useState({ forcedOn: 0, filtersOverridden: 0 })
+    const updateOverrideInfo = useCallback(() => {
+        setOverrideInfo({
+            forcedOn: regModeToggledLayers.current.length,
+            filtersOverridden: searchFilteredLayers.current.length + Object.keys(vectorFilteredLayers.current).length,
+        })
+    }, [])
+
     const inputRef = useRef(null)
     const suggestionsRef = useRef(null)
     const panelRef = useRef(null)
@@ -276,6 +285,70 @@ function SearchBar({ componentVars }) {
         return map
     }, [vectorLayers, geodatasetLayers])
 
+    // Numeric ID map for advanced mode: assigns sequential IDs starting at 1
+    // to each layer and group header for compact input (e.g., :1&3:name:=:foo)
+    const { layerIdToInfo, layerNameToId } = useMemo(() => {
+        const idToInfo = {} // id → { type: 'group'|'layer', label, internalName, groupLayers? }
+        const nameToId = {} // lowercase display/internal name → id
+        let nextId = 1
+
+        // Build allLayerMap for display info
+        const allLayerMap = {}
+        vectorLayers.forEach((l) => {
+            allLayerMap[l.value] = { value: l.value, label: l.label || l.value }
+        })
+        geodatasetLayers.forEach((gl) => {
+            allLayerMap[gl.value] = {
+                value: gl.geodatasetName || gl.value,
+                label: gl.label || gl.value,
+            }
+        })
+
+        // Groups first
+        const grouped = new Set()
+        Object.entries(searchGroups).forEach(([gid, group]) => {
+            const gMembers = group.layers.map((l) => allLayerMap[l]).filter(Boolean)
+            if (gMembers.length === 0) return
+            // Group header gets an ID
+            const groupId = nextId++
+            idToInfo[groupId] = {
+                type: 'group',
+                label: group.label,
+                groupLayers: gMembers.map((m) => m.label),
+            }
+            nameToId[group.label.toLowerCase()] = groupId
+            nameToId[gid.toLowerCase()] = groupId
+            // Member layers
+            group.layers.forEach((l) => {
+                grouped.add(l)
+                const info = allLayerMap[l]
+                if (!info) return
+                const lid = nextId++
+                idToInfo[lid] = { type: 'layer', label: info.label, internalName: info.value }
+                nameToId[info.label.toLowerCase()] = lid
+                nameToId[info.value.toLowerCase()] = lid
+            })
+        })
+
+        // Ungrouped layers
+        const allLayers = [...vectorLayers, ...geodatasetLayers.map((gl) => ({
+            value: gl.geodatasetName || gl.value,
+            label: gl.label || gl.value,
+        }))]
+        allLayers.forEach((l) => {
+            const internalKey = Object.keys(allLayerMap).find(
+                (k) => allLayerMap[k].value === l.value || allLayerMap[k].label === l.label
+            )
+            if (internalKey && grouped.has(internalKey)) return
+            const lid = nextId++
+            idToInfo[lid] = { type: 'layer', label: l.label || l.value, internalName: l.value }
+            nameToId[(l.label || l.value).toLowerCase()] = lid
+            nameToId[l.value.toLowerCase()] = lid
+        })
+
+        return { layerIdToInfo: idToInfo, layerNameToId: nameToId }
+    }, [vectorLayers, geodatasetLayers, searchGroups])
+
     const getL_ = useCallback(() => {
         return require('@basics/Layers_/Layers_').default
     }, [])
@@ -286,7 +359,7 @@ function SearchBar({ componentVars }) {
         return require('@basics/Formulae_/Formulae_').default
     }, [])
 
-    // Resolve an array of display names (from input) to internal layer names
+    // Resolve an array of display names or numeric IDs (from input) to internal layer names
     // Special keywords: 'any' → all layers, 'on' → currently-on layers
     const resolveLayerNames = useCallback((displayNames) => {
         const L_ = getL_()
@@ -305,8 +378,28 @@ function SearchBar({ componentVars }) {
                 ]
             }
         }
-        return displayNames.map((dn) => layerDisplayToInternal[dn.toLowerCase()] || dn)
-    }, [layerDisplayToInternal, vectorLayers, geodatasetLayers, getL_])
+        const resolved = []
+        displayNames.forEach((dn) => {
+            // Check if it's a numeric ID
+            const numId = parseInt(dn, 10)
+            if (!isNaN(numId) && String(numId) === dn.trim() && layerIdToInfo[numId]) {
+                const info = layerIdToInfo[numId]
+                if (info.type === 'group') {
+                    // Group ID → resolve all member layer display names
+                    info.groupLayers.forEach((gl) => {
+                        const internal = layerDisplayToInternal[gl.toLowerCase()]
+                        if (internal && !resolved.includes(internal)) resolved.push(internal)
+                    })
+                } else {
+                    if (!resolved.includes(info.internalName)) resolved.push(info.internalName)
+                }
+            } else {
+                const internal = layerDisplayToInternal[dn.toLowerCase()] || dn
+                if (!resolved.includes(internal)) resolved.push(internal)
+            }
+        })
+        return resolved
+    }, [layerDisplayToInternal, layerIdToInfo, vectorLayers, geodatasetLayers, getL_])
 
     // Discover schema from GeoJSON features
     const discoverVectorSchema = useCallback((geojson, layerName) => {
@@ -480,7 +573,8 @@ function SearchBar({ componentVars }) {
             }
         }
         preSearchLayerState.current = null
-    }, [getL_])
+        updateOverrideInfo()
+    }, [getL_, updateOverrideInfo])
 
     // Initialize search when layers are loaded
     useEffect(() => {
@@ -709,6 +803,7 @@ function SearchBar({ componentVars }) {
             regModeToggledLayers.current.push(l)
             L_.toggleLayer(L_.layers.data[l])
         })
+        updateOverrideInfo()
 
         // Check which layers still need loading
         const allReady = () => targetLayers.every(
@@ -774,15 +869,18 @@ function SearchBar({ componentVars }) {
                     }
                 })
 
-                const isAlreadySelected = (label, value) => {
+                const isAlreadySelected = (label, value, numId) => {
                     const ll = (label || '').toLowerCase()
                     const vl = (value || '').toLowerCase()
-                    return alreadySelected.includes(ll) || alreadySelected.includes(vl)
+                    const idStr = numId != null ? String(numId) : ''
+                    return alreadySelected.includes(ll) || alreadySelected.includes(vl) || (idStr && alreadySelected.includes(idStr))
                 }
-                const matchesFilter = (label, value) => {
+                const matchesFilter = (label, value, numId) => {
                     if (!lastSegment) return true
+                    const idStr = numId != null ? String(numId) : ''
                     return (label || '').toLowerCase().indexOf(lastSegment) !== -1 ||
-                        (value || '').toLowerCase().indexOf(lastSegment) !== -1
+                        (value || '').toLowerCase().indexOf(lastSegment) !== -1 ||
+                        (idStr && idStr.indexOf(lastSegment) !== -1)
                 }
 
                 const filtered = []
@@ -799,12 +897,19 @@ function SearchBar({ componentVars }) {
                 Object.entries(searchGroups).forEach(([gid, group]) => {
                     group.layers.forEach((l) => groupedLayerNames.add(l))
 
+                    const groupNumId = layerNameToId[group.label.toLowerCase()] || layerNameToId[gid.toLowerCase()]
+
                     // Check if any member matches the filter
                     const memberEntries = group.layers
-                        .map((l) => allLayerMap[l])
+                        .map((l) => {
+                            const info = allLayerMap[l]
+                            if (!info) return null
+                            const mid = layerNameToId[info.label.toLowerCase()] || layerNameToId[info.value.toLowerCase()]
+                            return { ...info, numId: mid }
+                        })
                         .filter(Boolean)
-                        .filter((m) => !isAlreadySelected(m.label, m.value))
-                        .filter((m) => matchesFilter(m.label, m.value) || matchesFilter(group.label, gid))
+                        .filter((m) => !isAlreadySelected(m.label, m.value, m.numId))
+                        .filter((m) => matchesFilter(m.label, m.value, m.numId) || matchesFilter(group.label, gid, groupNumId))
 
                     if (memberEntries.length === 0) return
 
@@ -820,6 +925,7 @@ function SearchBar({ componentVars }) {
                         detail: `${group.layers.length} layers`,
                         isGroup: true,
                         groupLayers: allGroupDisplayNames,
+                        numId: groupNumId,
                     })
 
                     // Individual member layers indented
@@ -830,6 +936,7 @@ function SearchBar({ componentVars }) {
                             layerValue: m.value,
                             detail: '',
                             isGroupMember: true,
+                            numId: m.numId,
                         })
                     })
                 })
@@ -846,17 +953,20 @@ function SearchBar({ componentVars }) {
                             (k) => allLayerMap[k].value === l.value || allLayerMap[k].label === l.label
                         )
                         if (internalName && groupedLayerNames.has(internalName)) return false
-                        if (isAlreadySelected(l.label, l.value)) return false
-                        if (!matchesFilter(l.label, l.value)) return false
+                        const lid = layerNameToId[(l.label || l.value).toLowerCase()] || layerNameToId[l.value.toLowerCase()]
+                        if (isAlreadySelected(l.label, l.value, lid)) return false
+                        if (!matchesFilter(l.label, l.value, lid)) return false
                         return true
                     })
                     .slice(0, 50)
                     .forEach((l) => {
+                        const lid = layerNameToId[(l.label || l.value).toLowerCase()] || layerNameToId[l.value.toLowerCase()]
                         filtered.push({
                             type: 'layer',
                             label: l.label || l.value,
                             layerValue: l.value,
                             detail: '',
+                            numId: lid,
                         })
                     })
 
@@ -1077,11 +1187,12 @@ function SearchBar({ componentVars }) {
                 setPanelOpen(false)
                 setShowSuggestions(false)
                 regModeToggledLayers.current = []
+                updateOverrideInfo()
             }
         }
         document.addEventListener('mousedown', handleClick)
         return () => document.removeEventListener('mousedown', handleClick)
-    }, [])
+    }, [updateOverrideInfo])
 
     // Listen for "/" keyboard shortcut to focus search
     useEffect(() => {
@@ -1351,9 +1462,10 @@ function SearchBar({ componentVars }) {
                         Map_.map.fitBounds(bounds, { padding: [40, 40] })
                     }
                 }
+                updateOverrideInfo()
             }
         },
-        [schemaFields, geodatasetLayers, vectorSearchLayers, saveLayerState, matchFeatureValue, getL_, getMap_, getF_]
+        [schemaFields, geodatasetLayers, vectorSearchLayers, saveLayerState, matchFeatureValue, getL_, getMap_, getF_, updateOverrideInfo]
     )
 
     const searchGeodatasets = useCallback(
@@ -1550,18 +1662,22 @@ function SearchBar({ componentVars }) {
                 const currentLayers = parsed ? parsed.layers : ''
                 const segments = currentLayers.split('&').filter(Boolean)
 
-                if (item.isGroup && item.groupLayers) {
-                    // Group header click — add all member layers
-                    item.groupLayers.forEach((gl) => {
-                        if (!segments.some((s) => s.toLowerCase() === gl.toLowerCase())) {
-                            segments.push(gl)
-                        }
-                    })
-                } else {
-                    // Individual layer click
-                    const labelLower = item.label.toLowerCase()
-                    if (!segments.some((s) => s.toLowerCase() === labelLower)) {
+                if (item.isGroup && item.numId != null) {
+                    // Group header click — insert the group's numeric ID
+                    const idStr = String(item.numId)
+                    if (!segments.includes(idStr)) {
+                        segments.push(idStr)
+                    }
+                } else if (item.isSpecial) {
+                    // Special entries (any, on) — insert keyword
+                    if (!segments.some((s) => s.toLowerCase() === item.label.toLowerCase())) {
                         segments.push(item.label)
+                    }
+                } else {
+                    // Individual layer click — insert numeric ID
+                    const idStr = item.numId != null ? String(item.numId) : item.label
+                    if (!segments.includes(idStr)) {
+                        segments.push(idStr)
                     }
                 }
                 const newVal = `:${segments.join('&')}:`
@@ -1747,6 +1863,19 @@ function SearchBar({ componentVars }) {
         >
             {/* Top bar */}
             <div className="searchCompactBar">
+                {(overrideInfo.forcedOn > 0 || overrideInfo.filtersOverridden > 0) && (
+                    <Tooltip
+                        content={
+                            [
+                                overrideInfo.forcedOn > 0 && `${overrideInfo.forcedOn} layer${overrideInfo.forcedOn > 1 ? 's' : ''} temporarily forced on`,
+                                overrideInfo.filtersOverridden > 0 && `${overrideInfo.filtersOverridden} layer filter${overrideInfo.filtersOverridden > 1 ? 's' : ''} temporarily overridden`,
+                            ].filter(Boolean).join(', ') + ' \u2014 clear search to return state'
+                        }
+                        placement="bottom"
+                    >
+                        <i className="mdi mdi-information mdi-16px searchOverrideIcon" />
+                    </Tooltip>
+                )}
                 <i className="mdi mdi-magnify mdi-18px searchCompactIcon" onClick={openPanel} />
                 {/* Layers trigger (hidden in colon/advanced mode) */}
                 {!isColonMode && vectorLayers.length > 0 && (
@@ -1795,6 +1924,7 @@ function SearchBar({ componentVars }) {
                             setPanelOpen(false)
                             setShowSuggestions(false)
                             regModeToggledLayers.current = []
+                            updateOverrideInfo()
                             inputRef.current?.blur()
                         } else if (e.key === 'ArrowDown') {
                             e.preventDefault()
@@ -1852,10 +1982,10 @@ function SearchBar({ componentVars }) {
                                         {parsed?.stage === STAGE_VALUE && 'Values'}
                                     </span>
                                     <span className="searchStructuredHint">
-                                        {parsed?.stage === STAGE_LAYER && ':layer'}
-                                        {parsed?.stage === STAGE_FIELD && ':layer:field'}
-                                        {parsed?.stage === STAGE_OP && ':layer:field:op'}
-                                        {parsed?.stage === STAGE_VALUE && ':layer:field:op:value'}
+                                        {parsed?.stage === STAGE_LAYER && ':id'}
+                                        {parsed?.stage === STAGE_FIELD && ':id:field'}
+                                        {parsed?.stage === STAGE_OP && ':id:field:op'}
+                                        {parsed?.stage === STAGE_VALUE && ':id:field:op:value'}
                                     </span>
                                 </div>
                                 <div className="searchUnifiedColBody" ref={suggestionsRef}>
@@ -1874,6 +2004,9 @@ function SearchBar({ componentVars }) {
                                                 onMouseEnter={() => setActiveSuggestionIdx(idx)}
                                             >
                                                 <span className="searchSuggestionLabel">
+                                                    {s.numId != null && (
+                                                        <span className="searchSuggestionId">{s.numId}</span>
+                                                    )}
                                                     {s.isGroup && <i className="mdi mdi-folder-outline mdi-14px searchGroupIcon" />}
                                                     {s.label}
                                                 </span>
@@ -2021,9 +2154,13 @@ function SearchBar({ componentVars }) {
                             </div>
                             <div className="searchHelpSyntax">:layer:field:operator:value</div>
                             <div className="searchHelpDesc">
+                                Each layer and group has a numeric ID shown in the autocomplete. Use IDs for compact queries:
+                            </div>
+                            <div className="searchHelpSyntax">:3:field:op:value</div>
+                            <div className="searchHelpDesc">
                                 Use <code>&amp;</code> for multiple layers, <code>|</code> for multiple values:
                             </div>
-                            <div className="searchHelpSyntax">:layer1&amp;layer2:field:op:val1|val2</div>
+                            <div className="searchHelpSyntax">:1&amp;3:field:op:val1|val2</div>
                             <div className="searchHelpDesc">
                                 Special layer keywords: <code>any</code> (all layers), <code>on</code> (toggled-on layers). Wrap values containing <code>|</code> or <code>:</code> in quotes.
                             </div>
@@ -2050,14 +2187,13 @@ function SearchBar({ componentVars }) {
                         </div>
                         <div className="searchHelpSection">
                             <div className="searchHelpTitle">Examples</div>
-                            <div className="searchHelpExample"><code>:my_layer:category:=:Commercial</code></div>
-                            <div className="searchHelpExample"><code>:layer1&amp;layer2:altitude:&gt;:1000</code></div>
-                            <div className="searchHelpExample"><code>:my_layer:name:~=:/^Mars.*/</code></div>
-                            <div className="searchHelpExample"><code>:my_layer:name:=:val1|val2</code></div>
-                            <div className="searchHelpExample"><code>:my_layer:sensor:isnull:</code></div>
+                            <div className="searchHelpExample"><code>:3:category:=:Commercial</code></div>
+                            <div className="searchHelpExample"><code>:2&amp;5:altitude:&gt;:1000</code></div>
+                            <div className="searchHelpExample"><code>:1:name:=:val1|val2</code></div>
+                            <div className="searchHelpExample"><code>:4:sensor:isnull:</code></div>
                             <div className="searchHelpExample"><code>:any:name:*=:Mars</code></div>
                             <div className="searchHelpExample"><code>:on:category:=:Park</code></div>
-                            <div className="searchHelpExample"><code>:layer:desc:=:"value with | pipe"</code></div>
+                            <div className="searchHelpExample"><code>:3:desc:=:"value with | pipe"</code></div>
                         </div>
                         <div className="searchHelpSection">
                             <div className="searchHelpTitle">Keyboard Shortcuts</div>
