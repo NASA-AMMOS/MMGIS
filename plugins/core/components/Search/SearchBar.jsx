@@ -674,33 +674,9 @@ function SearchBar({ componentVars }) {
                             }
                         }
                     } else if (typeof layer.eachLayer === 'function') {
-                        // Regular vector geodataset layers — wait for dynamic extent refresh after pan
-                        const trySelect = () => {
-                            L_.resetLayerFills()
-                            const selectLayers = []
-                            layer.eachLayer((feat) => {
-                                const comparer = getSearchFieldStringForFeature(
-                                    searchFields, layerName, feat.feature.properties
-                                )
-                                if (comparer.toLowerCase() === searchValue.toLowerCase()) {
-                                    selectLayers.push(feat)
-                                }
-                            })
-                            if (selectLayers.length === 1) {
-                                L_.highlight(selectLayers[0])
-                                selectLayers[0].fireEvent('click')
-                                if (typeof selectLayers[0].bringToFront === 'function')
-                                    selectLayers[0].bringToFront()
-                            } else if (selectLayers.length > 1) {
-                                selectLayers.forEach((sl) => {
-                                    L_.highlight(sl)
-                                    if (typeof sl.bringToFront === 'function')
-                                        sl.bringToFront()
-                                })
-                            }
-                        }
-                        // Give dynamic extent time to refresh after pan
-                        setTimeout(trySelect, 800)
+                        // Regular vector geodataset layers — use selectFeature
+                        // which persists through dynamic extent refreshes
+                        L_.selectFeature(layerName, r)
                     }
                 },
                 function () {}
@@ -807,6 +783,8 @@ function SearchBar({ componentVars }) {
             const ld = L_.layers.data[lname]
             if (!ld) return
 
+            const isGeodataset = ld.url?.startsWith('geodatasets:')
+
             // Split the search value by spaces to map back to construct fields
             // For construct "(name) (category)" and value "John Science",
             // parts = ["John", "Science"]
@@ -846,22 +824,26 @@ function SearchBar({ componentVars }) {
                 geojson: null,
             }
 
-            // Store original geojson for local vector layers if not already stored
-            if (
-                !ld.url?.startsWith('geodatasets:') &&
-                !Filtering.filters[lname].geojson &&
-                L_.layers.layer[lname] &&
-                typeof L_.layers.layer[lname].toGeoJSON === 'function'
-            ) {
-                Filtering.filters[lname].geojson =
-                    L_.layers.layer[lname].toGeoJSON(L_.GEOJSON_PRECISION)
-            }
-
             // Set the filter values
             Filtering.filters[lname].values = filterValues
 
-            // Submit the filter (applies it permanently)
-            Filtering.submit(lname, false)
+            if (isGeodataset) {
+                // Geodataset layers: use GeodatasetFilterer directly
+                // (Filtering.submit would fall through to LocalFilterer
+                //  if getFeaturePropertiesOnClick is not set)
+                GeodatasetFilterer.filter(lname, Filtering.filters[lname])
+            } else {
+                // Local vector layers: need geojson cached for LocalFilterer
+                if (
+                    !Filtering.filters[lname].geojson &&
+                    L_.layers.layer[lname] &&
+                    typeof L_.layers.layer[lname].toGeoJSON === 'function'
+                ) {
+                    Filtering.filters[lname].geojson =
+                        L_.layers.layer[lname].toGeoJSON(L_.GEOJSON_PRECISION)
+                }
+                Filtering.submit(lname, false)
+            }
         },
         [searchFields, getL_]
     )
