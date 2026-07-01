@@ -6,7 +6,7 @@
   "tier": "core",
   "overridable": true,
   "name": "Search",
-  "description": "Global feature search with structured query syntax and autocomplete",
+  "description": "Global feature search with autocomplete",
   "descriptionFull": {
     "title": "Search",
     "example": {

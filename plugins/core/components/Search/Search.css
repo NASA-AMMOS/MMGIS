@@ -29,18 +29,6 @@
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-mmgis) 30%, transparent);
 }
 
-/* Override indicator icon */
-.searchOverrideIcon {
-    color: #4a9eda;
-    flex-shrink: 0;
-    cursor: default;
-    animation: searchOverridePulse 2s ease-in-out infinite;
-}
-@keyframes searchOverridePulse {
-    0%, 100% { opacity: 0.7; }
-    50% { opacity: 1; }
-}
-
 /* Search icon */
 .searchCompactIcon {
     cursor: pointer;
@@ -106,10 +94,6 @@
     width: 180px;
     padding: 0 4px;
 }
-.searchCompactInput.searchCompactInputWide {
-    width: 450px;
-    min-width: 450px;
-}
 .searchCompactInput::placeholder {
     color: var(--color-a4);
 }
@@ -122,19 +106,6 @@
     color: var(--color-mmgis);
 }
 
-
-
-/* Help toggle */
-.searchHelpToggle {
-    flex-shrink: 0;
-    color: var(--color-a3);
-}
-.searchHelpToggle:hover {
-    color: var(--color-mmgis);
-}
-.searchHelpToggleActive {
-    color: var(--color-mmgis);
-}
 
 /* ===== Panel ===== */
 .searchUnifiedPanel {
@@ -228,22 +199,6 @@
     line-height: 1;
 }
 
-/* ===== Structured Query Panel ===== */
-.searchStructuredColumns {
-    max-height: 300px;
-    overflow: hidden;
-}
-.searchStructuredCol {
-    flex: 1;
-    min-width: 300px;
-    overflow: hidden;
-}
-.searchStructuredHint {
-    font-size: 10px;
-    opacity: 0.5;
-    font-family: monospace;
-}
-
 /* Each column */
 .searchUnifiedCol {
     display: flex;
@@ -335,148 +290,6 @@
     background: color-mix(in srgb, var(--color-mmgis) 18%, transparent);
     color: var(--color-f);
 }
-.searchSuggestionItemSpecial {
-    font-style: italic;
-    border-bottom: 1px solid var(--color-a1);
-}
-.searchSuggestionItemGroup {
-    font-weight: 600;
-    border-bottom: none;
-    padding-bottom: 2px;
-}
-.searchSuggestionItemGroup .searchSuggestionLabel {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-.searchSuggestionItemGroupMember {
-    padding-left: 28px;
-    font-size: 12px;
-    opacity: 0.9;
-}
-
-/* Numeric ID badge in advanced mode layer autocomplete */
-.searchSuggestionId {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 18px;
-    height: 16px;
-    font-size: 10px;
-    font-weight: 600;
-    font-family: monospace;
-    color: var(--color-a5);
-    background: var(--color-a1);
-    border-radius: 3px;
-    padding: 0 3px;
-    margin-right: 6px;
-    flex-shrink: 0;
-}
-
-/* ===== Help Panel ===== */
-.searchHelpPanel {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    width: 340px;
-    background: var(--color-a);
-    border: 1px solid var(--color-a1);
-    border-radius: 8px;
-    box-shadow: 0 12px 36px var(--color-shadow);
-    z-index: 10002;
-    overflow: hidden;
-}
-
-.searchHelpHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--color-a1);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--color-f);
-}
-
-.searchHelpBody {
-    padding: 10px 14px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.searchHelpSection {
-    margin-bottom: 12px;
-}
-.searchHelpSection:last-child {
-    margin-bottom: 0;
-}
-
-.searchHelpTitle {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    color: var(--color-mmgis);
-    margin-bottom: 4px;
-}
-
-.searchHelpDesc {
-    font-size: 12px;
-    color: var(--color-a5);
-    line-height: 1.5;
-}
-.searchHelpDesc code {
-    background: var(--color-a1);
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-size: 11px;
-    color: var(--color-f);
-}
-
-.searchHelpSyntax {
-    font-family: monospace;
-    font-size: 13px;
-    color: var(--color-f);
-    background: var(--color-a1);
-    padding: 6px 10px;
-    border-radius: 4px;
-    margin: 6px 0;
-}
-
-.searchHelpTable {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-}
-.searchHelpTable td {
-    padding: 3px 6px;
-    border-bottom: 1px solid var(--color-a1);
-    color: var(--color-a5);
-}
-.searchHelpTable td:first-child {
-    white-space: nowrap;
-    width: 1%;
-}
-.searchHelpTable td:first-child code {
-    background: var(--color-a1);
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-size: 11px;
-    color: var(--color-f);
-}
-
-.searchHelpExample {
-    font-size: 12px;
-    margin: 3px 0;
-}
-.searchHelpExample code {
-    background: var(--color-a1);
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 11px;
-    color: var(--color-f);
-}
-
 /* ===== Shared helpers ===== */
 .searchUnifiedEmpty {
     padding: 12px;
