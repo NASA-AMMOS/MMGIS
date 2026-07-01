@@ -252,7 +252,7 @@ function SearchBar({ componentVars }) {
     // Pre-search layer state for restore on cancel
     const preSearchLayerState = useRef(null)
     const searchFilteredLayers = useRef([])
-    const regModeToggledLayer = useRef(null)
+    const regModeToggledLayers = useRef([])
     const vectorFilteredLayers = useRef({})
 
     const inputRef = useRef(null)
@@ -652,6 +652,7 @@ function SearchBar({ componentVars }) {
     }, [getL_, rebuildMergedSchema, loadVectorLayerData])
 
     // Build values array when layer changes (regular mode)
+    // When a group is selected, merges suggestions from ALL member layers
     useEffect(() => {
         if (!selectedLayer) return
         // Only for plain text mode (non-colon queries)
@@ -661,75 +662,80 @@ function SearchBar({ componentVars }) {
         const Map_ = getMap_()
         if (!Map_ || !L_) return
 
-        const lname = selectedLayer
-        const ldata = L_.layers.data[lname]
-        if (!ldata) return
+        // Determine which layers to gather suggestions from
+        const targetLayers = selectedGroupId && searchGroups[selectedGroupId]
+            ? searchGroups[selectedGroupId].layers.filter((l) => L_.layers.data[l])
+            : [selectedLayer]
 
-        const buildArray = () => {
-            let data
-            try {
-                data = L_.layers.layer[lname].toGeoJSON(L_.GEOJSON_PRECISION)
-            } catch (err) {
-                data = { features: [] }
-            }
+        if (targetLayers.length === 0) return
 
+        const buildArrayForLayers = (layerNames) => {
             const arr = []
-            for (let i = 0; i < data.features.length; i++) {
-                const props = data.features[i].properties
-                arr.push(getSearchFieldStringForFeature(searchFields, lname, props))
+            layerNames.forEach((lname) => {
+                let data
+                try {
+                    data = L_.layers.layer[lname].toGeoJSON(L_.GEOJSON_PRECISION)
+                } catch (err) {
+                    data = { features: [] }
+                }
+                for (let i = 0; i < data.features.length; i++) {
+                    const props = data.features[i].properties
+                    arr.push(getSearchFieldStringForFeature(searchFields, lname, props))
+                }
+            })
+
+            // Deduplicate
+            const unique = [...new Set(arr)]
+            if (unique[0]) {
+                if (!isNaN(unique[0])) unique.sort((a, b) => a - b)
+                else unique.sort()
             }
 
-            if (arr[0]) {
-                if (!isNaN(arr[0])) arr.sort((a, b) => a - b)
-                else arr.sort()
-            }
-
-            setArrayToSearch(arr)
-            setPlaceholder(getSearchFieldKeys(searchFields, lname) || 'Search...')
+            setArrayToSearch(unique)
+            setPlaceholder(getSearchFieldKeys(searchFields, targetLayers[0]) || 'Search...')
         }
 
-        // Turn off any previously search-toggled layer
-        if (regModeToggledLayer.current && regModeToggledLayer.current !== lname) {
-            const prevName = regModeToggledLayer.current
-            if (L_.layers.on[prevName] === true && L_.layers.data[prevName]) {
+        // Turn off any previously search-toggled layers
+        regModeToggledLayers.current.forEach((prevName) => {
+            if (!targetLayers.includes(prevName) && L_.layers.on[prevName] === true && L_.layers.data[prevName]) {
                 L_.toggleLayer(L_.layers.data[prevName])
             }
-            regModeToggledLayer.current = null
-        }
+        })
+        regModeToggledLayers.current = []
 
-        // If layer is off, toggle it on and poll
-        if (L_.layers.on[lname] !== true) {
-            regModeToggledLayer.current = lname
-            L_.toggleLayer(L_.layers.data[lname])
-            let attempts = 0
-            const poll = setInterval(() => {
-                attempts++
-                if (L_.layers.layer[lname] && typeof L_.layers.layer[lname].toGeoJSON === 'function') {
-                    clearInterval(poll)
-                    buildArray()
-                } else if (attempts > 20) {
-                    clearInterval(poll)
-                }
-            }, 200)
-            return () => clearInterval(poll)
-        }
+        // Toggle on any layers that are off, then build suggestions
+        const layersToToggle = targetLayers.filter((l) => L_.layers.on[l] !== true)
+        layersToToggle.forEach((l) => {
+            regModeToggledLayers.current.push(l)
+            L_.toggleLayer(L_.layers.data[l])
+        })
 
-        if (L_.layers.layer[lname] && typeof L_.layers.layer[lname].toGeoJSON === 'function') {
-            buildArray()
+        // Check which layers still need loading
+        const allReady = () => targetLayers.every(
+            (l) => L_.layers.layer[l] && typeof L_.layers.layer[l].toGeoJSON === 'function'
+        )
+
+        if (allReady()) {
+            buildArrayForLayers(targetLayers)
         } else {
             let attempts = 0
             const poll = setInterval(() => {
                 attempts++
-                if (L_.layers.layer[lname] && typeof L_.layers.layer[lname].toGeoJSON === 'function') {
+                if (allReady()) {
                     clearInterval(poll)
-                    buildArray()
-                } else if (attempts > 20) {
+                    buildArrayForLayers(targetLayers)
+                } else if (attempts > 40) {
                     clearInterval(poll)
+                    // Build with whatever is available
+                    const available = targetLayers.filter(
+                        (l) => L_.layers.layer[l] && typeof L_.layers.layer[l].toGeoJSON === 'function'
+                    )
+                    if (available.length > 0) buildArrayForLayers(available)
                 }
             }, 200)
             return () => clearInterval(poll)
         }
-    }, [selectedLayer, searchFields, getL_, getMap_, inputValue])
+    }, [selectedLayer, selectedGroupId, searchGroups, searchFields, getL_, getMap_, inputValue])
 
     // Compute suggestions based on input
     useEffect(() => {
@@ -1070,7 +1076,7 @@ function SearchBar({ componentVars }) {
             ) {
                 setPanelOpen(false)
                 setShowSuggestions(false)
-                regModeToggledLayer.current = null
+                regModeToggledLayers.current = []
             }
         }
         document.addEventListener('mousedown', handleClick)
@@ -1518,15 +1524,22 @@ function SearchBar({ componentVars }) {
             // Plain text search
             const L_ = getL_()
             if (!selectedLayer) return
-            const ltype = L_.layers.data[selectedLayer]?.type
 
-            if (ltype === 'vectortile') {
-                searchGeodatasets(selectedLayer, searchValue)
-            } else {
-                doWithSearch('both', null, null, false, searchValue)
-            }
+            // Determine which layers to search
+            const targetLayers = selectedGroupId && searchGroups[selectedGroupId]
+                ? searchGroups[selectedGroupId].layers.filter((l) => L_.layers.data[l])
+                : [selectedLayer]
+
+            targetLayers.forEach((lname) => {
+                const ltype = L_.layers.data[lname]?.type
+                if (ltype === 'vectortile') {
+                    searchGeodatasets(lname, searchValue)
+                } else {
+                    doWithSearch('both', null, lname, false, searchValue)
+                }
+            })
         },
-        [inputValue, selectedLayer, executeStructuredQuery, searchGeodatasets, doWithSearch, getL_, resolveLayerNames]
+        [inputValue, selectedLayer, selectedGroupId, searchGroups, executeStructuredQuery, searchGeodatasets, doWithSearch, getL_, resolveLayerNames]
     )
 
     const handleSuggestionClick = useCallback(
@@ -1613,13 +1626,14 @@ function SearchBar({ componentVars }) {
     )
 
     const handleClear = useCallback(() => {
-        if (regModeToggledLayer.current) {
+        if (regModeToggledLayers.current.length > 0) {
             const L_ = getL_()
-            const prevName = regModeToggledLayer.current
-            if (L_.layers.on[prevName] === true && L_.layers.data[prevName]) {
-                L_.toggleLayer(L_.layers.data[prevName])
-            }
-            regModeToggledLayer.current = null
+            regModeToggledLayers.current.forEach((prevName) => {
+                if (L_.layers.on[prevName] === true && L_.layers.data[prevName]) {
+                    L_.toggleLayer(L_.layers.data[prevName])
+                }
+            })
+            regModeToggledLayers.current = []
         }
         restoreLayerState()
         setInputValue('')
@@ -1629,6 +1643,7 @@ function SearchBar({ componentVars }) {
         setFieldValues([])
         setPlaceholder('Search features...')
         setArrayToSearch([])
+        setSelectedGroupId(null)
         const defaultLayer =
             vectorLayers.find((vl) => {
                 const L_ = getL_()
@@ -1779,7 +1794,7 @@ function SearchBar({ componentVars }) {
                         } else if (e.key === 'Escape') {
                             setPanelOpen(false)
                             setShowSuggestions(false)
-                            regModeToggledLayer.current = null
+                            regModeToggledLayers.current = []
                             inputRef.current?.blur()
                         } else if (e.key === 'ArrowDown') {
                             e.preventDefault()

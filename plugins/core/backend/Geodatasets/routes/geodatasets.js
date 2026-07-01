@@ -92,7 +92,7 @@ function get(reqtype, req, res, next, options) {
     if (req.body.id != null) get_id = req.body.id;
     if (req.body.filters != null) filters = req.body.filters;
     if (req.body.spatialFilter != null) spatialFilter = req.body.spatialFilter;
-    if (req.body.limit != null) { const _parsed = parseInt(req.body.limit); paginationLimit = Number.isNaN(_parsed) ? null : Math.min(Math.max(_parsed, 0), 10000); }
+    if (req.body.limit != null) { const _parsed = parseInt(req.body.limit); paginationLimit = Number.isNaN(_parsed) ? null : Math.min(Math.max(_parsed, 1), 10000); }
     if (req.body.offset != null) { const _parsed = parseInt(req.body.offset); paginationOffset = Number.isNaN(_parsed) ? 0 : Math.max(_parsed, 0); }
 
     if (type === "mvt") {
