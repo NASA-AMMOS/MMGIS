@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { center } from '@turf/turf'
 
 import IconButton from '@design/components/IconButton/IconButton'
+import Switch from '@design/components/Switch/Switch'
 import Tooltip from '@design/components/Tooltip/Tooltip'
 
 import calls from '@pre/calls'
@@ -142,6 +143,9 @@ function SearchBar({ componentVars }) {
     const [searchGroups, setSearchGroups] = useState({})
     // Tracks whether a whole group is selected (via header click) vs individual layer
     const [selectedGroupId, setSelectedGroupId] = useState(null)
+
+    // When true, only show values that appear in every layer of the selected group
+    const [valuesIntersectOnly, setValuesIntersectOnly] = useState(false)
 
     const lastGeodatasetLayerName = useRef(null)
 
@@ -304,28 +308,53 @@ function SearchBar({ componentVars }) {
         if (targetLayers.length === 0) return
 
         const buildArrayForLayers = (layerNames) => {
-            const arr = []
-            layerNames.forEach((lname) => {
-                let data
-                try {
-                    data = L_.layers.layer[lname].toGeoJSON(L_.GEOJSON_PRECISION)
-                } catch (err) {
-                    data = { features: [] }
+            if (valuesIntersectOnly && layerNames.length > 1) {
+                // Intersection: only values present in every layer
+                const perLayer = layerNames.map((lname) => {
+                    const vals = new Set()
+                    let data
+                    try {
+                        data = L_.layers.layer[lname].toGeoJSON(L_.GEOJSON_PRECISION)
+                    } catch (err) {
+                        data = { features: [] }
+                    }
+                    for (let i = 0; i < data.features.length; i++) {
+                        vals.add(getSearchFieldStringForFeature(searchFields, lname, data.features[i].properties))
+                    }
+                    return vals
+                })
+                let intersection = perLayer[0]
+                for (let i = 1; i < perLayer.length; i++) {
+                    intersection = new Set([...intersection].filter((v) => perLayer[i].has(v)))
                 }
-                for (let i = 0; i < data.features.length; i++) {
-                    const props = data.features[i].properties
-                    arr.push(getSearchFieldStringForFeature(searchFields, lname, props))
+                const unique = [...intersection]
+                if (unique[0]) {
+                    if (!isNaN(unique[0])) unique.sort((a, b) => a - b)
+                    else unique.sort()
                 }
-            })
-
-            // Deduplicate
-            const unique = [...new Set(arr)]
-            if (unique[0]) {
-                if (!isNaN(unique[0])) unique.sort((a, b) => a - b)
-                else unique.sort()
+                setArrayToSearch(unique)
+            } else {
+                // Union: all values from any layer
+                const arr = []
+                layerNames.forEach((lname) => {
+                    let data
+                    try {
+                        data = L_.layers.layer[lname].toGeoJSON(L_.GEOJSON_PRECISION)
+                    } catch (err) {
+                        data = { features: [] }
+                    }
+                    for (let i = 0; i < data.features.length; i++) {
+                        const props = data.features[i].properties
+                        arr.push(getSearchFieldStringForFeature(searchFields, lname, props))
+                    }
+                })
+                const unique = [...new Set(arr)]
+                if (unique[0]) {
+                    if (!isNaN(unique[0])) unique.sort((a, b) => a - b)
+                    else unique.sort()
+                }
+                setArrayToSearch(unique)
             }
-
-            setArrayToSearch(unique)
             setPlaceholder(getSearchFieldKeys(searchFields, targetLayers[0]) || 'Search...')
         }
 
@@ -360,7 +389,7 @@ function SearchBar({ componentVars }) {
             }, 200)
             return () => clearInterval(poll)
         }
-    }, [selectedLayer, selectedGroupId, searchGroups, searchFields, getL_, getMap_])
+    }, [selectedLayer, selectedGroupId, searchGroups, searchFields, getL_, getMap_, valuesIntersectOnly])
 
     // Compute suggestions based on input
     useEffect(() => {
@@ -873,6 +902,23 @@ function SearchBar({ componentVars }) {
                         <div className="searchUnifiedCol searchRegularColValues">
                             <div className="searchUnifiedColHeader">
                                 <span>Values</span>
+                                {selectedGroupId && (
+                                    <Tooltip
+                                        content={valuesIntersectOnly ? 'Shared by all layers' : 'From any layer'}
+                                        placement="bottom"
+                                    >
+                                        <div className="searchValuesToggle">
+                                            <span className="searchValuesToggleLabel">
+                                                {valuesIntersectOnly ? 'Shared' : 'All'}
+                                            </span>
+                                            <Switch
+                                                checked={valuesIntersectOnly}
+                                                onCheckedChange={setValuesIntersectOnly}
+                                                size="sm"
+                                            />
+                                        </div>
+                                    </Tooltip>
+                                )}
                             </div>
                             <div className="searchUnifiedColBody" ref={suggestionsRef}>
                                 {suggestions.length > 0 ? (

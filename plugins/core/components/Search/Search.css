@@ -199,6 +199,22 @@
     line-height: 1;
 }
 
+/* Values header toggle (All / Shared) */
+.searchValuesToggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+.searchValuesToggleLabel {
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--color-a4);
+    user-select: none;
+}
+
 /* Each column */
 .searchUnifiedCol {
     display: flex;
