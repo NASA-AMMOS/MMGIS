@@ -153,6 +153,9 @@ function SearchBar({ componentVars }) {
     // When true, only show values that appear in every layer of the selected group
     const [valuesIntersectOnly, setValuesIntersectOnly] = useState(false)
 
+    // Tracks whether the values-building effect is still running
+    const [valuesLoading, setValuesLoading] = useState(false)
+
     const lastGeodatasetLayerName = useRef(null)
 
     const inputRef = useRef(null)
@@ -311,6 +314,7 @@ function SearchBar({ componentVars }) {
 
         let cancelled = false
         const MAX_VALUES = 500
+        setValuesLoading(true)
 
         // Determine which layers to gather suggestions from
         const targetLayers = selectedGroupId && searchGroups[selectedGroupId]
@@ -330,6 +334,7 @@ function SearchBar({ componentVars }) {
         // Merge per-layer sets into final array and update state
         const finalize = () => {
             if (cancelled) return
+            setValuesLoading(false)
             const allSets = Object.values(perLayerValues)
             if (allSets.length === 0) {
                 setArrayToSearch([])
@@ -451,7 +456,7 @@ function SearchBar({ componentVars }) {
             }, 200)
         }
 
-        return () => { cancelled = true }
+        return () => { cancelled = true; setValuesLoading(false) }
     }, [selectedLayer, selectedGroupId, searchGroups, searchFields, getL_, getMap_, valuesIntersectOnly])
 
     // Compute suggestions based on input.
@@ -590,17 +595,6 @@ function SearchBar({ componentVars }) {
                     if (!d.body || d.body.length === 0) return
                     const r = d.body[0]
 
-                    let selectTimeout = setTimeout(() => {
-                        L_.layers.layer[layerName].off('load')
-                        selectFeature()
-                    }, 1500)
-
-                    L_.layers.layer[layerName].on('load', function () {
-                        L_.layers.layer[layerName].off('load')
-                        clearTimeout(selectTimeout)
-                        selectFeature()
-                    })
-
                     const c = center(r)
                     const coords = c.geometry.coordinates
                     Map_.map.setView(
@@ -611,22 +605,67 @@ function SearchBar({ componentVars }) {
                         L_.toggleLayer(L_.layers.data[layerName])
                     }
 
-                    function selectFeature() {
-                        const vts = L_.layers.layer[layerName]._vectorTiles
-                        for (let i in vts) {
-                            for (let j in vts[i]._features) {
-                                const feature = vts[i]._features[j].feature
-                                if (feature.properties[key] === searchValue) {
-                                    feature._layerName = vts[i].options.layerName
-                                    feature._layer = feature
-                                    L_.layers.layer[layerName]._events.click[0].fn({
-                                        layer: feature,
-                                        sourceTarget: feature,
-                                    })
-                                    return
+                    const layer = L_.layers.layer[layerName]
+                    if (!layer) return
+
+                    // Vectortile layers use _vectorTiles
+                    if (layer._vectorTiles) {
+                        let selectTimeout = setTimeout(() => {
+                            layer.off('load')
+                            selectVTFeature()
+                        }, 1500)
+
+                        layer.on('load', function () {
+                            layer.off('load')
+                            clearTimeout(selectTimeout)
+                            selectVTFeature()
+                        })
+
+                        function selectVTFeature() {
+                            const vts = layer._vectorTiles
+                            for (let i in vts) {
+                                for (let j in vts[i]._features) {
+                                    const feature = vts[i]._features[j].feature
+                                    if (feature.properties[key] === searchValue) {
+                                        feature._layerName = vts[i].options.layerName
+                                        feature._layer = feature
+                                        layer._events.click[0].fn({
+                                            layer: feature,
+                                            sourceTarget: feature,
+                                        })
+                                        return
+                                    }
                                 }
                             }
                         }
+                    } else if (typeof layer.eachLayer === 'function') {
+                        // Regular vector geodataset layers — wait for dynamic extent refresh after pan
+                        const trySelect = () => {
+                            L_.resetLayerFills()
+                            const selectLayers = []
+                            layer.eachLayer((feat) => {
+                                const comparer = getSearchFieldStringForFeature(
+                                    searchFields, layerName, feat.feature.properties
+                                )
+                                if (comparer.toLowerCase() === searchValue.toLowerCase()) {
+                                    selectLayers.push(feat)
+                                }
+                            })
+                            if (selectLayers.length === 1) {
+                                L_.highlight(selectLayers[0])
+                                selectLayers[0].fireEvent('click')
+                                if (typeof selectLayers[0].bringToFront === 'function')
+                                    selectLayers[0].bringToFront()
+                            } else if (selectLayers.length > 1) {
+                                selectLayers.forEach((sl) => {
+                                    L_.highlight(sl)
+                                    if (typeof sl.bringToFront === 'function')
+                                        sl.bringToFront()
+                                })
+                            }
+                        }
+                        // Give dynamic extent time to refresh after pan
+                        setTimeout(trySelect, 800)
                     }
                 },
                 function () {}
@@ -735,8 +774,9 @@ function SearchBar({ componentVars }) {
                 : [selectedLayer]
 
             targetLayers.forEach((lname) => {
-                const ltype = L_.layers.data[lname]?.type
-                if (ltype === 'vectortile') {
+                const ld = L_.layers.data[lname]
+                const isGeodataset = ld?.url?.startsWith('geodatasets:')
+                if (ld?.type === 'vectortile' || isGeodataset) {
                     searchGeodatasets(lname, searchValue)
                 } else {
                     doWithSearch('both', null, lname, false, searchValue)
@@ -1034,8 +1074,10 @@ function SearchBar({ componentVars }) {
                                     <div className="searchUnifiedEmpty">
                                         {!selectedLayer
                                             ? 'Select a layer'
-                                            : arrayToSearch.length === 0
+                                            : valuesLoading
                                             ? 'Loading...'
+                                            : arrayToSearch.length === 0
+                                            ? (valuesIntersectOnly ? 'No common values' : 'No values')
                                             : inputValue
                                             ? 'No matches'
                                             : 'Type to search'}
