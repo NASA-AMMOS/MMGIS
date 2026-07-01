@@ -63,7 +63,7 @@ const GeodatasetFilterer = {
             )
         })
     },
-    filter: function (layerName, filter, refreshFunction) {
+    filter: function (layerName, filter, refreshFunction, skipRefresh) {
         L_.layers.data[layerName]._stopLoops = true
         L_.layers.data[layerName]._filter = filter
         L_.layers.data[layerName]._filterEncoded = {}
@@ -114,7 +114,9 @@ const GeodatasetFilterer = {
                 }
             }
         }
-        L_.Map_.refreshLayer(L_.layers.data[layerName], null, null, true)
+        if (!skipRefresh) {
+            L_.Map_.refreshLayer(L_.layers.data[layerName], null, null, true)
+        }
     },
     match: function (feature, filter) {
         if (filter.values.length === 0) return true

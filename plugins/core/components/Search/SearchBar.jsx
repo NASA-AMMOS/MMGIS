@@ -948,10 +948,12 @@ function SearchBar({ componentVars }) {
             Filtering.filters[lname].values = filterValues
 
             if (isGeodataset) {
-                // Geodataset layers: use GeodatasetFilterer directly
-                // (Filtering.submit would fall through to LocalFilterer
-                //  if getFeaturePropertiesOnClick is not set)
-                GeodatasetFilterer.filter(lname, Filtering.filters[lname])
+                // Geodataset layers: use GeodatasetFilterer to build the
+                // _filterEncoded, but skip the built-in refreshLayer call.
+                // refreshLayer's isRefresh toggle cycle has a state bug that
+                // removes the newly-added layer. The caller (handleSearch)
+                // handles the refresh by toggling the layer off/on instead.
+                GeodatasetFilterer.filter(lname, Filtering.filters[lname], null, true)
             } else {
                 // Local vector layers: need geojson cached for LocalFilterer
                 if (
@@ -1016,14 +1018,27 @@ function SearchBar({ componentVars }) {
                     applyFilterToLayer(lname, searchValue, parsedFields)
                 })
 
+                // Refresh geodataset layers to apply the filter.
+                // applyFilterToLayer skips refreshLayer for geodatasets (to avoid
+                // the broken isRefresh toggle cycle). Instead we toggle off/on
+                // which properly re-fetches data with the new _filterEncoded.
+                const geoTargetLayers = targetLayers.filter(
+                    (l) => L_.layers.data[l]?.url?.startsWith('geodatasets:')
+                )
+                for (const lname of geoTargetLayers) {
+                    if (L_.layers.on[lname]) {
+                        await L_.toggleLayer(L_.layers.data[lname]) // OFF
+                        await L_.toggleLayer(L_.layers.data[lname]) // ON with filter
+                    }
+                }
+
                 // Pan to matching features.
                 // For geodatasets: search by per-field value, collect results, combined pan.
                 // For vectors: iterate the now-filtered layer.
                 const geoResults = []
                 const vecFeatures = []
 
-                const geoPromises = targetLayers
-                    .filter((l) => L_.layers.data[l]?.url?.startsWith('geodatasets:'))
+                const geoPromises = geoTargetLayers
                     .map((lname) =>
                         searchGeodatasets(lname, searchValue, parsedFields, true)
                             .then((r) => { if (r) geoResults.push({ layerName: lname, feature: r }) })
