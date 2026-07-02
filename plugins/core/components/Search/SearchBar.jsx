@@ -166,6 +166,9 @@ function SearchBar({ componentVars }) {
     const [activeSuggestionIdx, setActiveSuggestionIdx] = useState(-1)
     const [submittedValue, setSubmittedValue] = useState(null)
     const [searchFields, setSearchFields] = useState({})
+    // Layers that have their own individual search construct (ld.variables.search)
+    // as opposed to inheriting the group's construct
+    const [layersWithOwnSearch, setLayersWithOwnSearch] = useState(new Set())
     const [arrayToSearch, setArrayToSearch] = useState([])
     const [placeholder, setPlaceholder] = useState('Search...')
     const [initialized, setInitialized] = useState(false)
@@ -281,10 +284,13 @@ function SearchBar({ componentVars }) {
                 return pathParts.length > 0 ? pathParts.join(' / ') : null
             }
 
+            const ownSearchLayers = new Set()
             for (let l in L_.layers.data) {
                 const ld = L_.layers.data[l]
-                if (ld.variables && ld.variables.search)
+                if (ld.variables && ld.variables.search) {
                     searchvars[l] = ld.variables.search
+                    ownSearchLayers.add(l)
+                }
 
                 if (ld.url && ld.url.startsWith('geodatasets:')) {
                     geoLayers.push({
@@ -306,6 +312,7 @@ function SearchBar({ componentVars }) {
             })
             setSearchFields(fields)
             setSearchGroups(groups)
+            setLayersWithOwnSearch(ownSearchLayers)
 
             for (let l in fields) {
                 if (
@@ -1454,10 +1461,9 @@ function SearchBar({ componentVars }) {
         vectorLayers.forEach((vl) => { layerLabelMap[vl.value] = vl.label || vl.value })
         geodatasetLayers.forEach((gl) => { layerLabelMap[gl.value] = gl.label || gl.value })
 
-        // Track layers with individual search constructs (for hideSublayers)
-        const layersWithOwnConstruct = new Set()
-        vectorLayers.forEach((vl) => { if (searchFields[vl.value]) layersWithOwnConstruct.add(vl.value) })
-        geodatasetLayers.forEach((gl) => { if (searchFields[gl.value]) layersWithOwnConstruct.add(gl.value) })
+        // layersWithOwnSearch tracks layers with their own individual
+        // search construct (ld.variables.search) — NOT those that only
+        // inherited the group's construct.
 
         // Add search group entries with member layers
         Object.entries(searchGroups).forEach(([gid, group]) => {
@@ -1475,7 +1481,7 @@ function SearchBar({ componentVars }) {
                 if (group.hideSublayers) {
                     // When sublayers are hidden, only show layers with their own
                     // individual search construct — but outside the group
-                    if (layersWithOwnConstruct.has(l)) {
+                    if (layersWithOwnSearch.has(l)) {
                         items.push({
                             value: l,
                             label: layerLabelMap[l] || l,
@@ -1503,7 +1509,7 @@ function SearchBar({ componentVars }) {
         })
 
         return items
-    }, [vectorLayers, geodatasetLayers, searchGroups, searchFields])
+    }, [vectorLayers, geodatasetLayers, searchGroups, searchFields, layersWithOwnSearch])
 
     // Selected layer label for the trigger
     const selectedLayerLabel = useMemo(() => {
