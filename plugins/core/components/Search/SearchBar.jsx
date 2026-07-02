@@ -1502,6 +1502,7 @@ function SearchBar({ componentVars }) {
                                 const newMode = v ? 'filter' : 'select'
                                 if (!v) {
                                     clearSearchFilters()
+                                    setInputValue('')
                                     setSubmittedValue(null)
                                 }
                                 setSearchMode(newMode)
