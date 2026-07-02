@@ -148,13 +148,24 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                     ) {
                         // Then query, delete existing and remake
                         const bounds = L_.Map_.map.getBounds()
+                        // When a value filter is active, omit viewport bounds
+                        // so the query returns ALL matching features regardless
+                        // of their location. The filter itself constrains the
+                        // result set; the spatial constraint would hide
+                        // features outside the current view.
+                        const hasValueFilter =
+                            !!layerData._filterEncoded?.filters
                         const body = {
                             layer: urlSplitRaw[1],
                             type: 'geojson',
-                            maxy: bounds._northEast.lat,
-                            maxx: bounds._northEast.lng,
-                            miny: bounds._southWest.lat,
-                            minx: bounds._southWest.lng,
+                            ...(hasValueFilter
+                                ? {}
+                                : {
+                                      maxy: bounds._northEast.lat,
+                                      maxx: bounds._northEast.lng,
+                                      miny: bounds._southWest.lat,
+                                      minx: bounds._southWest.lng,
+                                  }),
                             crsCode: mmgisglobal.customCRS.code.replace(
                                 'EPSG:',
                                 ''
