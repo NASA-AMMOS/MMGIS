@@ -362,3 +362,8 @@
 .searchTimeActive {
     color: var(--color-mmgis);
 }
+
+/* Alternating field shading in multi-field suggestion values */
+.searchFieldOdd {
+    color: #999;
+}

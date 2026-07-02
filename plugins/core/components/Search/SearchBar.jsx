@@ -1755,7 +1755,16 @@ function SearchBar({ componentVars }) {
                                                 onMouseEnter={() => setActiveSuggestionIdx(idx)}
                                             >
                                                 <span className="searchSuggestionLabel">
-                                                    {s.label}
+                                                    {s.fields && Object.keys(s.fields).length > 1
+                                                        ? Object.values(s.fields).map((val, fi) => (
+                                                            <span
+                                                                key={fi}
+                                                                className={fi % 2 === 1 ? 'searchFieldOdd' : ''}
+                                                            >
+                                                                {fi > 0 ? ' ' : ''}{val}
+                                                            </span>
+                                                        ))
+                                                        : s.label}
                                                 </span>
                                             </div>
                                         )
