@@ -1083,8 +1083,19 @@ function SearchBar({ componentVars }) {
                 }
 
                 if (geoResults.length === 1 && vecFeatures.length === 0) {
-                    // Single geodataset result — select it
-                    L_.selectFeature(geoResults[0].layerName, geoResults[0].feature)
+                    // Single geodataset result — select it.
+                    // The filter refresh is async (GeodatasetFilterer rebuilds the layer),
+                    // so poll until the layer has features before attempting selectFeature.
+                    const gr = geoResults[0]
+                    const trySelect = (attempts) => {
+                        const layer = L_.layers.layer[gr.layerName]
+                        if (layer && layer._layers && Object.keys(layer._layers).length > 0) {
+                            L_.selectFeature(gr.layerName, gr.feature)
+                        } else if (attempts > 0) {
+                            setTimeout(() => trySelect(attempts - 1), 200)
+                        }
+                    }
+                    trySelect(20)
                 }
 
                 if (allPanTargets.length > 0 && Map_) {
@@ -1154,7 +1165,16 @@ function SearchBar({ componentVars }) {
                             if (!L_.layers.on[gr.layerName]) {
                                 L_.toggleLayer(L_.layers.data[gr.layerName])
                             }
-                            L_.selectFeature(gr.layerName, gr.feature)
+                            // Poll until layer has features (toggle is async)
+                            const trySelect = (attempts) => {
+                                const layer = L_.layers.layer[gr.layerName]
+                                if (layer && layer._layers && Object.keys(layer._layers).length > 0) {
+                                    L_.selectFeature(gr.layerName, gr.feature)
+                                } else if (attempts > 0) {
+                                    setTimeout(() => trySelect(attempts - 1), 200)
+                                }
+                            }
+                            trySelect(20)
                         }
                     })
                 } else {
