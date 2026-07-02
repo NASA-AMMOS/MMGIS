@@ -184,8 +184,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
 
                         if (
                             layerData.time?.enabled === true &&
-                            layerData.time?.type === 'requery' &&
-                            !hasValueFilter
+                            layerData.time?.type === 'requery'
                         ) {
                             body.starttime = layerData.time.start
                             body.startProp = layerData.time.startProp
@@ -336,8 +335,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
 
                         if (
                             layerData.time?.enabled === true &&
-                            layerData.time?.type === 'requery' &&
-                            !hasValueFilter2
+                            layerData.time?.type === 'requery'
                         ) {
                             body.starttime = layerData.time.start
                             body.startProp = layerData.time.startProp
@@ -497,12 +495,9 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                     layer: urlSplitRaw[1],
                     type: 'geojson',
                 }
-                const hasValueFilter3 =
-                    !!layerData._filterEncoded?.filters
                 if (
                     layerData.time?.enabled === true &&
-                    layerData.time?.type === 'requery' &&
-                    !hasValueFilter3
+                    layerData.time?.type === 'requery'
                 ) {
                     body.starttime = layerData.time.start
                     body.endtime = layerData.time.end

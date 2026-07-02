@@ -1047,10 +1047,8 @@ function SearchBar({ componentVars }) {
                     applyFilterToLayer(lname, searchValue, parsedFields)
                 })
 
-                // Check if any filtered layers are time-enabled.
-                // When a value filter is active, time bounds are bypassed (LayerCapturer),
-                // so show a warning informing the user that results span beyond
-                // the current time window.
+                // Show time-range warning for time-enabled layers so users know
+                // features outside the current window won't be visible.
                 const timeEnabledTargets = filterTargets.filter((lname) => {
                     const ld = L_.layers.data[lname]
                     return ld?.time?.enabled === true && ld?.time?.type === 'requery'
@@ -1061,6 +1059,7 @@ function SearchBar({ componentVars }) {
                         layers: timeEnabledTargets,
                         start: ld.time.start,
                         end: ld.time.end,
+                        filterEncoded: ld._filterEncoded?.filters || null,
                     })
                 } else {
                     setTimeRangeWarning(null)
@@ -1236,47 +1235,60 @@ function SearchBar({ componentVars }) {
         // (the rebuild effect won't re-run because selectedLayer hasn't changed)
     }, [])
 
-    // Fit the time range to encompass all features on time-enabled filtered layers.
-    // Scans loaded features for min/max timestamps, then updates TimeControl.
+    // Query the geodataset API without time bounds to find the time extent
+    // of all matching features, then expand the time slider to fit.
     const handleFitTimeRange = useCallback(() => {
         if (!timeRangeWarning) return
         const L_ = getL_()
         if (!L_) return
 
-        let minTime = Infinity
-        let maxTime = -Infinity
+        const { layers, filterEncoded } = timeRangeWarning
+        const ld = L_.layers.data[layers[0]]
+        if (!ld) return
 
-        timeRangeWarning.layers.forEach((lname) => {
-            const ld = L_.layers.data[lname]
-            const layer = L_.layers.layer[lname]
-            if (!layer || !ld?.time) return
+        const startProp = ld.time?.startProp || 'start_time'
+        const endProp = ld.time?.endProp || 'end_time'
+        const geodatasetName = ld.url?.split(':')[1]
+        if (!geodatasetName) return
 
-            const startProp = ld.time.startProp || 'start_time'
-            const endProp = ld.time.endProp || 'end_time'
+        // Fetch matching features without time bounds
+        const body = {
+            layer: geodatasetName,
+            type: 'geojson',
+            noDuplicates: ld.variables?.noDuplicates === true,
+        }
+        if (filterEncoded) body.filters = filterEncoded
 
-            if (typeof layer.eachLayer === 'function') {
-                layer.eachLayer((feat) => {
-                    const props = feat.feature?.properties || {}
-                    const st = props[startProp]
-                    const et = props[endProp]
-                    if (st != null) {
-                        const t = typeof st === 'number' ? st * 1000 : new Date(st).getTime()
-                        if (t < minTime) minTime = t
-                    }
-                    if (et != null) {
-                        const t = typeof et === 'number' ? et * 1000 : new Date(et).getTime()
-                        if (t > maxTime) maxTime = t
-                    }
+        calls.api('geodatasets_get', body, (data) => {
+            if (!data?.features?.length) return
+
+            let minTime = Infinity
+            let maxTime = -Infinity
+            data.features.forEach((f) => {
+                const props = f.properties || {}
+                const st = props[startProp]
+                const et = props[endProp]
+                if (st != null) {
+                    const t = typeof st === 'number' ? st * 1000 : new Date(st).getTime()
+                    if (t < minTime) minTime = t
+                }
+                if (et != null) {
+                    const t = typeof et === 'number' ? et * 1000 : new Date(et).getTime()
+                    if (t > maxTime) maxTime = t
+                }
+            })
+
+            if (minTime !== Infinity && maxTime !== -Infinity) {
+                const startISO = new Date(minTime).toISOString().split('.')[0] + 'Z'
+                const endISO = new Date(maxTime).toISOString().split('.')[0] + 'Z'
+                TimeControl.setTime(startISO, endISO, false)
+                // Reload time-enabled layers so they re-fetch with the new range
+                layers.forEach((lname) => {
+                    TimeControl.reloadLayer(lname)
                 })
+                setTimeRangeWarning(null)
             }
         })
-
-        if (minTime !== Infinity && maxTime !== -Infinity) {
-            const startISO = new Date(minTime).toISOString().split('.')[0] + 'Z'
-            const endISO = new Date(maxTime).toISOString().split('.')[0] + 'Z'
-            TimeControl.setTime(startISO, endISO, false)
-            setTimeRangeWarning(null)
-        }
     }, [timeRangeWarning, getL_])
 
     // Clear any search-applied filters and restore hidden layers
@@ -1619,14 +1631,14 @@ function SearchBar({ componentVars }) {
                     {timeRangeWarning && (
                         <div className="searchTimeWarning">
                             <span className="searchTimeWarningText">
-                                Results span beyond current time range ({timeRangeWarning.start} – {timeRangeWarning.end}).
-                                Not all may be shown.
+                                Results limited to {timeRangeWarning.start} – {timeRangeWarning.end}.
+                                Not all matches may be shown.
                             </span>
                             <span
                                 className="searchTimeWarningAction"
                                 onClick={handleFitTimeRange}
                             >
-                                Fit time range
+                                Fit time range to results
                             </span>
                         </div>
                     )}
