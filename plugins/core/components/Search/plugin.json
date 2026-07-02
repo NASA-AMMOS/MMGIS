@@ -36,7 +36,7 @@
                 "type": "text",
                 "name": "Group Name",
                 "description": "Display name for this search group (e.g., \"Geodatasets\", \"Vectors\")",
-                "width": 3
+                "width": 2
               },
               {
                 "field": "searchConstruct",
@@ -50,7 +50,7 @@
                 "type": "checkbox",
                 "name": "Hide Sublayers",
                 "description": "When checked, only the group header is shown in the search interface. Layers with their own search construct are still shown outside the group.",
-                "width": 1,
+                "width": 3,
                 "default": false
               },
               {
