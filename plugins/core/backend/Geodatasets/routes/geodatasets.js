@@ -1216,14 +1216,14 @@ router.get("/bulk_aggregations", function (req, res, next) {
         let q = `SELECT properties FROM ${Utils.forceAlphaNumUnder(table)}`;
         const replacements = { limit: sampleLimit };
 
-        // Add time bounds WHERE clause when provided
+        // Add time bounds WHERE clause when provided.
+        // Time fields are top-level table columns (not inside JSONB properties).
         if (starttime && endtime) {
           const spSafe = Utils.forceAlphaNumUnder(startProp);
           const epSafe = Utils.forceAlphaNumUnder(endProp);
-          q += ` WHERE (properties->>'${spSafe}')::TIMESTAMP <= :endtime::TIMESTAMP`
-            + ` AND (properties->>'${epSafe}')::TIMESTAMP >= :starttime::TIMESTAMP`;
-          replacements.starttime = starttime;
-          replacements.endtime = endtime;
+          q += ` WHERE ${spSafe} >= :starttime AND ${epSafe} <= :endtime`;
+          replacements.starttime = new Date(starttime).getTime();
+          replacements.endtime = new Date(endtime).getTime();
         }
 
         q += ` ORDER BY RANDOM() DESC LIMIT :limit;`;
