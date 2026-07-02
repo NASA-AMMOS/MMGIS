@@ -8,6 +8,7 @@ import Tooltip from '@design/components/Tooltip/Tooltip'
 import calls from '@pre/calls'
 import Filtering from '@basics/Layers_/Filtering/Filtering'
 import GeodatasetFilterer from '@basics/Layers_/Filtering/GeodatasetFilterer'
+import TimeControl from '@basics/TimeControl_/TimeControl'
 
 // Convert a user wildcard pattern (using *) into a case-insensitive RegExp
 function wildcardToRegex(pattern) {
@@ -194,6 +195,9 @@ function SearchBar({ componentVars }) {
 
     // Cached per-layer value sets — avoids re-fetching when toggling All/Common
     const cachedPerLayerValues = useRef({})
+
+    // Time-range warning state: { layerName, start, end } when filter bypasses time bounds
+    const [timeRangeWarning, setTimeRangeWarning] = useState(null)
 
     // Tracks layers that have search-applied filters (for clearing on layer switch)
     const searchFilteredLayers = useRef(new Set())
@@ -1043,6 +1047,25 @@ function SearchBar({ componentVars }) {
                     applyFilterToLayer(lname, searchValue, parsedFields)
                 })
 
+                // Check if any filtered layers are time-enabled.
+                // When a value filter is active, time bounds are bypassed (LayerCapturer),
+                // so show a warning informing the user that results span beyond
+                // the current time window.
+                const timeEnabledTargets = filterTargets.filter((lname) => {
+                    const ld = L_.layers.data[lname]
+                    return ld?.time?.enabled === true && ld?.time?.type === 'requery'
+                })
+                if (timeEnabledTargets.length > 0) {
+                    const ld = L_.layers.data[timeEnabledTargets[0]]
+                    setTimeRangeWarning({
+                        layers: timeEnabledTargets,
+                        start: ld.time.start,
+                        end: ld.time.end,
+                    })
+                } else {
+                    setTimeRangeWarning(null)
+                }
+
                 // Pan to matching features.
                 // For geodatasets: search by per-field value, collect results, combined pan.
                 // For vectors: iterate the now-filtered layer.
@@ -1213,6 +1236,49 @@ function SearchBar({ componentVars }) {
         // (the rebuild effect won't re-run because selectedLayer hasn't changed)
     }, [])
 
+    // Fit the time range to encompass all features on time-enabled filtered layers.
+    // Scans loaded features for min/max timestamps, then updates TimeControl.
+    const handleFitTimeRange = useCallback(() => {
+        if (!timeRangeWarning) return
+        const L_ = getL_()
+        if (!L_) return
+
+        let minTime = Infinity
+        let maxTime = -Infinity
+
+        timeRangeWarning.layers.forEach((lname) => {
+            const ld = L_.layers.data[lname]
+            const layer = L_.layers.layer[lname]
+            if (!layer || !ld?.time) return
+
+            const startProp = ld.time.startProp || 'start_time'
+            const endProp = ld.time.endProp || 'end_time'
+
+            if (typeof layer.eachLayer === 'function') {
+                layer.eachLayer((feat) => {
+                    const props = feat.feature?.properties || {}
+                    const st = props[startProp]
+                    const et = props[endProp]
+                    if (st != null) {
+                        const t = typeof st === 'number' ? st * 1000 : new Date(st).getTime()
+                        if (t < minTime) minTime = t
+                    }
+                    if (et != null) {
+                        const t = typeof et === 'number' ? et * 1000 : new Date(et).getTime()
+                        if (t > maxTime) maxTime = t
+                    }
+                })
+            }
+        })
+
+        if (minTime !== Infinity && maxTime !== -Infinity) {
+            const startISO = new Date(minTime).toISOString().split('.')[0] + 'Z'
+            const endISO = new Date(maxTime).toISOString().split('.')[0] + 'Z'
+            TimeControl.setTime(startISO, endISO, false)
+            setTimeRangeWarning(null)
+        }
+    }, [timeRangeWarning, getL_])
+
     // Clear any search-applied filters and restore hidden layers
     const clearSearchFilters = useCallback(() => {
         const L_ = getL_()
@@ -1249,6 +1315,7 @@ function SearchBar({ componentVars }) {
             }
         })
         filterModeHiddenLayers.current.clear()
+        setTimeRangeWarning(null)
 
         Filtering.refresh()
     }, [getL_])
@@ -1549,6 +1616,20 @@ function SearchBar({ componentVars }) {
                             </div>
                         </div>
                     </div>
+                    {timeRangeWarning && (
+                        <div className="searchTimeWarning">
+                            <span className="searchTimeWarningText">
+                                Results span beyond current time range ({timeRangeWarning.start} – {timeRangeWarning.end}).
+                                Not all may be shown.
+                            </span>
+                            <span
+                                className="searchTimeWarningAction"
+                                onClick={handleFitTimeRange}
+                            >
+                                Fit time range
+                            </span>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

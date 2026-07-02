@@ -329,3 +329,31 @@
     color: var(--color-a3);
     font-size: 12px;
 }
+
+/* ===== Time Range Warning ===== */
+.searchTimeWarning {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: color-mix(in srgb, var(--color-yellow, #f0ad4e) 15%, var(--color-a));
+    border-top: 1px solid var(--color-a1);
+    font-size: 11px;
+    color: var(--color-f);
+    flex-wrap: wrap;
+}
+.searchTimeWarningText {
+    flex: 1;
+    min-width: 0;
+    opacity: 0.85;
+}
+.searchTimeWarningAction {
+    cursor: pointer;
+    color: var(--color-mmgis);
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: underline;
+}
+.searchTimeWarningAction:hover {
+    opacity: 0.8;
+}
