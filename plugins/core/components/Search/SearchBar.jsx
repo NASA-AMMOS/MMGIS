@@ -349,12 +349,15 @@ function SearchBar({ componentVars }) {
     // Each cached value is a Map<label, {label, fields}>.
     // Runs from cache — no network calls. Called after fetch completes
     // and also when valuesIntersectOnly toggles.
+    // Each merged entry includes `sourceLayers` — the list of layer names
+    // that contributed this value. Used by filter mode to only apply the
+    // filter to layers that actually have the value.
     const mergePerLayerValues = useCallback(
         (targetLayers) => {
             const MAX_VALUES = 500
             const allMaps = targetLayers
-                .map((l) => cachedPerLayerValues.current[l])
-                .filter((m) => m && m.size !== undefined)
+                .map((l) => [l, cachedPerLayerValues.current[l]])
+                .filter(([, m]) => m && m.size !== undefined)
             if (allMaps.length === 0) {
                 setArrayToSearch([])
                 setPlaceholder(getSearchFieldKeys(searchFields, targetLayers[0]) || 'Search...')
@@ -363,18 +366,29 @@ function SearchBar({ componentVars }) {
             let merged
             if (valuesIntersectOnly && allMaps.length > 1) {
                 // Intersection: keep only labels present in ALL maps
-                merged = new Map(allMaps[0])
+                const firstMap = allMaps[0][1]
+                merged = new Map()
+                firstMap.forEach((entry, key) => merged.set(key, { ...entry, sourceLayers: [allMaps[0][0]] }))
                 for (let i = 1; i < allMaps.length; i++) {
+                    const [layerName, m] = allMaps[i]
                     for (const key of merged.keys()) {
-                        if (!allMaps[i].has(key)) merged.delete(key)
+                        if (!m.has(key)) {
+                            merged.delete(key)
+                        } else {
+                            merged.get(key).sourceLayers.push(layerName)
+                        }
                     }
                 }
             } else {
-                // Union: combine all maps
+                // Union: combine all maps, tracking which layers have each value
                 merged = new Map()
-                allMaps.forEach((m) => {
+                allMaps.forEach(([layerName, m]) => {
                     m.forEach((entry, key) => {
-                        if (!merged.has(key)) merged.set(key, entry)
+                        if (!merged.has(key)) {
+                            merged.set(key, { ...entry, sourceLayers: [layerName] })
+                        } else {
+                            merged.get(key).sourceLayers.push(layerName)
+                        }
                     })
                 })
             }
@@ -584,6 +598,7 @@ function SearchBar({ componentVars }) {
             type: 'plain',
             label: item.label,
             fields: item.fields,
+            sourceLayers: item.sourceLayers,
         })
 
         if (!selectedLayer || !inputValue) {
@@ -982,7 +997,7 @@ function SearchBar({ componentVars }) {
     )
 
     const handleSearch = useCallback(
-        async (value, parsedFields) => {
+        async (value, parsedFields, sourceLayers) => {
             const searchValue = value != null ? value : inputValue
             const L_ = getL_()
             const Map_ = getMap_()
@@ -994,7 +1009,14 @@ function SearchBar({ componentVars }) {
                 : [selectedLayer]
 
             if (searchMode === 'filter') {
-                const targetSet = new Set(targetLayers)
+                // If sourceLayers is provided (clicked from suggestion list),
+                // only apply the filter to layers that actually have the value.
+                // This avoids sending a filter to layers that don't have the
+                // matching data (which would return empty and show nothing).
+                const filterTargets = sourceLayers && sourceLayers.length > 0 && targetLayers.length > 1
+                    ? targetLayers.filter((l) => sourceLayers.includes(l))
+                    : targetLayers
+                const targetSet = new Set(filterTargets)
 
                 // Turn off all non-target vector/vectortile/query layers
                 const hidePromises = []
@@ -1009,15 +1031,15 @@ function SearchBar({ componentVars }) {
                     }
                 }
 
-                // Ensure target layers are on (await each toggle)
-                for (const lname of targetLayers) {
+                // Ensure filter target layers are on (await each toggle)
+                for (const lname of filterTargets) {
                     if (!L_.layers.on[lname]) {
                         await L_.toggleLayer(L_.layers.data[lname])
                     }
                 }
 
-                // Apply filters after layers are ready
-                targetLayers.forEach((lname) => {
+                // Apply filters only to layers that have the value
+                filterTargets.forEach((lname) => {
                     applyFilterToLayer(lname, searchValue, parsedFields)
                 })
 
@@ -1027,7 +1049,7 @@ function SearchBar({ componentVars }) {
                 const geoResults = []
                 const vecFeatures = []
 
-                const geoTargetLayers = targetLayers.filter(
+                const geoTargetLayers = filterTargets.filter(
                     (l) => L_.layers.data[l]?.url?.startsWith('geodatasets:')
                 )
                 const geoPromises = geoTargetLayers
@@ -1036,7 +1058,7 @@ function SearchBar({ componentVars }) {
                             .then((r) => { if (r) geoResults.push({ layerName: lname, feature: r }) })
                     )
 
-                targetLayers
+                filterTargets
                     .filter((l) => !L_.layers.data[l]?.url?.startsWith('geodatasets:'))
                     .forEach((lname) => {
                         const layer = L_.layers.layer[lname]
@@ -1097,12 +1119,15 @@ function SearchBar({ componentVars }) {
                         doWithSearch('both', null, lname, false, searchValue)
                     })
 
-                    // Geodataset layers: collect results, then combined pan
-                    const geoPromises = targetLayers
+                    // Geodataset layers: collect results, then combined pan.
+                    // When sourceLayers is available, only search layers that have the value.
+                    const geoSearchTargets = targetLayers
                         .filter((l) => {
                             const ld = L_.layers.data[l]
                             return ld?.url?.startsWith('geodatasets:') || ld?.type === 'vectortile'
                         })
+                        .filter((l) => !sourceLayers || sourceLayers.length === 0 || sourceLayers.includes(l))
+                    const geoPromises = geoSearchTargets
                         .map((lname) =>
                             searchGeodatasets(lname, searchValue, parsedFields, true)
                                 .then((r) => { if (r) geoResults.push({ layerName: lname, feature: r }) })
@@ -1153,7 +1178,7 @@ function SearchBar({ componentVars }) {
         (item) => {
             setInputValue(item.label)
             setSubmittedValue(item.label)
-            handleSearch(item.label, item.fields)
+            handleSearch(item.label, item.fields, item.sourceLayers)
         },
         [handleSearch]
     )
