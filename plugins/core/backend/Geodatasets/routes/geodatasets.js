@@ -1211,6 +1211,7 @@ router.get("/bulk_aggregations", function (req, res, next) {
       const endProp = req.query.endProp || "end_time";
 
       const aggs = {};
+      const allRows = [];
       const promises = results.map((result) => {
         const table = result.dataValues.table;
         let q = `SELECT properties FROM ${Utils.forceAlphaNumUnder(table)}`;
@@ -1260,7 +1261,10 @@ router.get("/bulk_aggregations", function (req, res, next) {
               }
             }
             rows.forEach((row) => {
-              if (row.properties) aggProps(row.properties, "");
+              if (row.properties) {
+                aggProps(row.properties, "");
+                allRows.push(row.properties);
+              }
             });
           })
           .catch(() => {
@@ -1282,7 +1286,7 @@ router.get("/bulk_aggregations", function (req, res, next) {
         aggs[agg].aggs = sortedAggs;
       });
 
-      res.send({ status: "success", aggregations: aggs });
+      res.send({ status: "success", aggregations: aggs, rows: allRows });
       return null;
     })
     .catch((err) => {

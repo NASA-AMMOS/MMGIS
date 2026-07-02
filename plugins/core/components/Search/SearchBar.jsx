@@ -1259,8 +1259,15 @@ function SearchBar({ componentVars }) {
                                 .then((r) => { if (r) geoResults.push({ layerName: lname, feature: r }) })
                         )
 
-                    Promise.all(geoPromises).then(() => {
+                    Promise.all(geoPromises).then(async () => {
                         if (geoResults.length === 0) return
+
+                        // Toggle on all geodataset layers that returned results
+                        for (const gr of geoResults) {
+                            if (!L_.layers.on[gr.layerName]) {
+                                await L_.toggleLayer(L_.layers.data[gr.layerName])
+                            }
+                        }
 
                         // Pan to show all results
                         const panTargets = geoResults.map((gr) => ({ feature: gr.feature }))
@@ -1277,10 +1284,6 @@ function SearchBar({ componentVars }) {
                         // Select single result
                         if (geoResults.length === 1) {
                             const gr = geoResults[0]
-                            if (!L_.layers.on[gr.layerName]) {
-                                L_.toggleLayer(L_.layers.data[gr.layerName])
-                            }
-                            // Poll until layer has features (toggle is async)
                             const trySelect = (attempts) => {
                                 const layer = L_.layers.layer[gr.layerName]
                                 if (layer && layer._layers && Object.keys(layer._layers).length > 0) {
