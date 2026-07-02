@@ -845,53 +845,68 @@ function SearchBar({ componentVars }) {
                             [coords[1], coords[0]],
                             Map_.mapScaleZoom || Map_.map.getZoom()
                         )
-                        if (!L_.layers.on[layerName]) {
-                            L_.toggleLayer(L_.layers.data[layerName])
-                        }
+                        const ensureLayerOn = L_.layers.on[layerName]
+                            ? Promise.resolve()
+                            : L_.toggleLayer(L_.layers.data[layerName])
 
-                        const layer = L_.layers.layer[layerName]
-                        if (!layer) { resolve(r); return }
-
-                        // Vectortile layers use _vectorTiles
-                        if (layer._vectorTiles) {
-                            let selectTimeout = setTimeout(() => {
-                                layer.off('load')
-                                selectVTFeature()
-                            }, 1500)
-
-                            layer.on('load', function () {
-                                layer.off('load')
-                                clearTimeout(selectTimeout)
-                                selectVTFeature()
-                            })
-
-                            function selectVTFeature() {
-                                const vts = layer._vectorTiles
-                                for (let i in vts) {
-                                    for (let j in vts[i]._features) {
-                                        const feature = vts[i]._features[j].feature
-                                        if (feature.properties[key] === searchValue) {
-                                            feature._layerName = vts[i].options.layerName
-                                            feature._layer = feature
-                                            layer._events.click[0].fn({
-                                                layer: feature,
-                                                sourceTarget: feature,
-                                            })
-                                            resolve(r)
-                                            return
-                                        }
-                                    }
+                        Promise.resolve(ensureLayerOn).then(() => {
+                            // Poll until the layer is ready with features
+                            const tryHighlight = (attempts) => {
+                                const layer = L_.layers.layer[layerName]
+                                if (!layer) {
+                                    if (attempts > 0) setTimeout(() => tryHighlight(attempts - 1), 200)
+                                    else resolve(r)
+                                    return
                                 }
-                                resolve(r)
+
+                                // Vectortile layers use _vectorTiles
+                                if (layer._vectorTiles) {
+                                    let selectTimeout = setTimeout(() => {
+                                        layer.off('load')
+                                        selectVTFeature()
+                                    }, 1500)
+
+                                    layer.on('load', function () {
+                                        layer.off('load')
+                                        clearTimeout(selectTimeout)
+                                        selectVTFeature()
+                                    })
+
+                                    function selectVTFeature() {
+                                        const vts = layer._vectorTiles
+                                        for (let i in vts) {
+                                            for (let j in vts[i]._features) {
+                                                const feature = vts[i]._features[j].feature
+                                                if (feature.properties[key] === searchValue) {
+                                                    feature._layerName = vts[i].options.layerName
+                                                    feature._layer = feature
+                                                    layer._events.click[0].fn({
+                                                        layer: feature,
+                                                        sourceTarget: feature,
+                                                    })
+                                                    resolve(r)
+                                                    return
+                                                }
+                                            }
+                                        }
+                                        resolve(r)
+                                    }
+                                } else if (typeof layer.eachLayer === 'function') {
+                                    // Wait until the layer has features loaded
+                                    if (layer._layers && Object.keys(layer._layers).length > 0) {
+                                        L_.selectFeature(layerName, r)
+                                        resolve(r)
+                                    } else if (attempts > 0) {
+                                        setTimeout(() => tryHighlight(attempts - 1), 200)
+                                    } else {
+                                        resolve(r)
+                                    }
+                                } else {
+                                    resolve(r)
+                                }
                             }
-                        } else if (typeof layer.eachLayer === 'function') {
-                            // Regular vector geodataset layers — use selectFeature
-                            // which persists through dynamic extent refreshes
-                            L_.selectFeature(layerName, r)
-                            resolve(r)
-                        } else {
-                            resolve(r)
-                        }
+                            tryHighlight(20)
+                        })
                     },
                     function () { resolve(null) }
                 )
@@ -1375,8 +1390,17 @@ function SearchBar({ componentVars }) {
             })
 
             if (minTime !== Infinity && maxTime !== -Infinity) {
-                const startISO = new Date(minTime).toISOString().split('.')[0] + 'Z'
-                const endISO = new Date(maxTime).toISOString().split('.')[0] + 'Z'
+                // Only expand the time range — never shrink it.
+                const currentStart = TimeControl.startTime
+                    ? new Date(TimeControl.startTime).getTime()
+                    : Infinity
+                const currentEnd = TimeControl.endTime
+                    ? new Date(TimeControl.endTime).getTime()
+                    : -Infinity
+                const newStart = Math.min(minTime, currentStart)
+                const newEnd = Math.max(maxTime, currentEnd)
+                const startISO = new Date(newStart).toISOString().split('.')[0] + 'Z'
+                const endISO = new Date(newEnd).toISOString().split('.')[0] + 'Z'
                 TimeControl.setTime(startISO, endISO, false)
                 // Reload time-enabled layers so they re-fetch with the new range
                 layers.forEach((lname) => {
