@@ -1498,7 +1498,14 @@ function SearchBar({ componentVars }) {
                     <div className="searchModeSwitch">
                         <Switch
                             checked={searchMode === 'filter'}
-                            onCheckedChange={(v) => setSearchMode(v ? 'filter' : 'select')}
+                            onCheckedChange={(v) => {
+                                const newMode = v ? 'filter' : 'select'
+                                if (!v) {
+                                    clearSearchFilters()
+                                    setSubmittedValue(null)
+                                }
+                                setSearchMode(newMode)
+                            }}
                             size="sm"
                         />
                     </div>
