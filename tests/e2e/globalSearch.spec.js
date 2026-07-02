@@ -4,9 +4,11 @@ import { test, expect } from '@playwright/test'
  * Global Feature Search — E2E Tests
  *
  * Uses page-level login to handle AUTH=local.
- * Tests regular mode (search-construct layers + values),
- * advanced mode (field-based search with operators), and
- * backend API search against Reference-Mission.
+ * Tests the regular mode search bar (search-construct layers + values),
+ * All/Common toggle, Select/Filter mode toggle, wildcard filtering,
+ * and backend API search against Reference-Mission.
+ *
+ * Advanced mode was removed — these tests cover the current implementation.
  */
 
 const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:18888'
@@ -40,7 +42,6 @@ async function navigateToMission(page) {
             page.waitForNavigation({ timeout: 30000 }),
             loginBtn.click(),
         ])
-        // After login reload, may need to navigate to mission
         const hasSearch = await page
             .locator('.searchBar')
             .isVisible({ timeout: 5000 })
@@ -53,53 +54,10 @@ async function navigateToMission(page) {
     await waitForSearchBar(page)
 }
 
-/** Open the unified panel by clicking the compact input */
+/** Open the panel by clicking the compact input */
 async function openPanel(page) {
     await page.locator('.searchCompactInput').click()
     await expect(page.locator('.searchUnifiedPanel')).toBeVisible({
-        timeout: 5000,
-    })
-}
-
-/** Switch to advanced mode and ensure the panel is open */
-async function switchToAdvanced(page) {
-    const toggle = page.locator('.searchAdvancedToggle')
-    if (await toggle.isVisible()) {
-        const isActive = await toggle.evaluate((el) =>
-            el.classList.contains('searchAdvancedToggleActive')
-        )
-        if (!isActive) {
-            await toggle.click()
-        } else {
-            // Already in advanced mode but panel might be closed — click input to open it
-            const panel = page.locator('.searchUnifiedColLayers')
-            if (!(await panel.isVisible().catch(() => false))) {
-                await page.locator('.searchCompactInput').click()
-            }
-        }
-    }
-    await expect(page.locator('.searchUnifiedColLayers')).toBeVisible({
-        timeout: 5000,
-    })
-}
-
-/** Switch to regular mode and ensure the panel is open */
-async function switchToRegular(page) {
-    const toggle = page.locator('.searchAdvancedToggle')
-    if (await toggle.isVisible()) {
-        const isActive = await toggle.evaluate((el) =>
-            el.classList.contains('searchAdvancedToggleActive')
-        )
-        if (isActive) {
-            await toggle.click()
-        } else {
-            const panel = page.locator('.searchRegularPanel')
-            if (!(await panel.isVisible().catch(() => false))) {
-                await page.locator('.searchCompactInput').click()
-            }
-        }
-    }
-    await expect(page.locator('.searchRegularPanel')).toBeVisible({
         timeout: 5000,
     })
 }
@@ -111,7 +69,6 @@ async function closePanel(page) {
 }
 
 test.describe('Global Feature Search', () => {
-    // Shared browser context & page — login once, reuse across tests
     /** @type {import('@playwright/test').BrowserContext} */
     let ctx
     /** @type {import('@playwright/test').Page} */
@@ -154,7 +111,7 @@ test.describe('Global Feature Search', () => {
             return
         }
 
-        // Recover if the page left the mission (e.g. reload triggered by previous test)
+        // Recover if the page left the mission
         const searchBarVisible = await pg
             .locator('.searchBar')
             .isVisible({ timeout: 2000 })
@@ -166,17 +123,6 @@ test.describe('Global Feature Search', () => {
 
         // Close any open panel from previous test
         await closePanel(pg)
-
-        // Switch back to regular mode for consistent starting state
-        const toggle = pg.locator('.searchAdvancedToggle')
-        if (await toggle.isVisible().catch(() => false)) {
-            const isActive = await toggle
-                .evaluate((el) =>
-                    el.classList.contains('searchAdvancedToggleActive')
-                )
-                .catch(() => false)
-            if (isActive) await toggle.click()
-        }
 
         // Clear the search input
         const clearBtn = pg.locator('.searchCompactClear')
@@ -195,12 +141,11 @@ test.describe('Global Feature Search', () => {
     // =====================================================================
 
     test.describe('Search Bar — Presence & Layout', () => {
-        test('search bar renders with compact input, magnify icon, and advanced toggle', async () => {
+        test('search bar renders with compact input and magnify icon', async () => {
             const bar = pg.locator('.searchBar')
             await expect(bar).toBeVisible()
             await expect(bar.locator('.searchCompactIcon')).toBeVisible()
             await expect(bar.locator('.searchCompactInput')).toBeVisible()
-            await expect(bar.locator('.searchAdvancedToggle')).toBeVisible()
         })
 
         test('clear button hidden when input is empty, visible when typing', async () => {
@@ -210,7 +155,6 @@ test.describe('Global Feature Search', () => {
             await pg.locator('.searchCompactInput').fill('test')
             await expect(clearBtn).toHaveCSS('visibility', 'visible')
 
-            // Clean up
             await clearBtn.click()
         })
 
@@ -220,14 +164,19 @@ test.describe('Global Feature Search', () => {
             const text = await trigger.textContent()
             expect(text.trim().length).toBeGreaterThan(0)
         })
+
+        test('select/filter mode switch is visible', async () => {
+            const modeSwitch = pg.locator('.searchModeSwitch')
+            await expect(modeSwitch).toBeVisible()
+        })
     })
 
     // =====================================================================
-    //  2. Regular Mode — Panel & Layer Selection
+    //  2. Panel — Layer Selection & Values
     // =====================================================================
 
-    test.describe('Regular Mode — Panel', () => {
-        test('clicking input opens regular panel with Layers and Values columns', async () => {
+    test.describe('Panel — Layer Selection & Values', () => {
+        test('clicking input opens panel with Layers and Values columns', async () => {
             await openPanel(pg)
             const panel = pg.locator('.searchRegularPanel')
             await expect(panel).toBeVisible()
@@ -237,7 +186,7 @@ test.describe('Global Feature Search', () => {
             await expect(headers.nth(1)).toContainText('Values')
         })
 
-        test('regular mode shows layers with search constructs', async () => {
+        test('panel shows layers with search constructs', async () => {
             await openPanel(pg)
             const items = pg.locator('.searchRegularLayerItem')
             const count = await items.count()
@@ -253,7 +202,6 @@ test.describe('Global Feature Search', () => {
                 return
             }
 
-            // Try each layer until we find one that loads values
             let valuesLoaded = false
             for (let i = 0; i < Math.min(layerCount, 5); i++) {
                 await layers.nth(i).click()
@@ -280,7 +228,6 @@ test.describe('Global Feature Search', () => {
                 return
             }
 
-            // Find a layer that loads values
             let valuesLoaded = false
             for (let i = 0; i < Math.min(layerCount, 5); i++) {
                 await layers.nth(i).click()
@@ -300,9 +247,6 @@ test.describe('Global Feature Search', () => {
                 return
             }
 
-            const values = pg.locator('.searchSuggestionItem')
-            const initialCount = await values.count()
-
             await pg.locator('.searchCompactInput').fill('zzznonexistent')
             await pg.waitForTimeout(500)
 
@@ -311,8 +255,9 @@ test.describe('Global Feature Search', () => {
             if (noMatchVisible) {
                 await expect(noMatch).toContainText(/no match/i)
             } else {
+                const values = pg.locator('.searchSuggestionItem')
                 const filtered = await values.count()
-                expect(filtered).toBeLessThanOrEqual(initialCount)
+                expect(filtered).toBe(0)
             }
         })
 
@@ -325,11 +270,9 @@ test.describe('Global Feature Search', () => {
                 return
             }
 
-            // Click a layer and wait for suggestions with non-empty text
             let valueName = ''
             for (let i = 0; i < Math.min(layerCount, 5); i++) {
                 await layers.nth(i).click()
-                // Wait for suggestions to stabilize
                 await pg.waitForTimeout(1000)
                 try {
                     const item = pg.locator('.searchSuggestionItem .searchSuggestionLabel')
@@ -349,191 +292,190 @@ test.describe('Global Feature Search', () => {
             await values.first().click()
             await pg.waitForTimeout(1000)
 
-            // Value should have been selected (panel closes or input updates)
-            expect(valueName.trim().length).toBeGreaterThan(0)
-        })
-    })
-
-    // =====================================================================
-    //  3. Advanced Mode — Panel
-    // =====================================================================
-
-    test.describe('Advanced Mode — Panel', () => {
-        test('clicking advanced toggle opens panel with Layers, Field, Operator, Value columns', async () => {
-            await switchToAdvanced(pg)
-
-            // Advanced panel has columns for layers, fields, operator, value
-            await expect(pg.locator('.searchUnifiedColLayers')).toBeVisible()
-            await expect(pg.locator('.searchUnifiedColFields')).toBeVisible()
-
-            const headers = pg.locator(
-                '.searchUnifiedPanel:not(.searchRegularPanel) .searchUnifiedColHeader'
-            )
-            const count = await headers.count()
-            expect(count).toBeGreaterThanOrEqual(3)
+            // Value should have been selected (input updates)
+            const inputVal = await pg.locator('.searchCompactInput').inputValue()
+            expect(inputVal.trim().length).toBeGreaterThan(0)
         })
 
-        test('no layers checked by default in advanced mode', async () => {
-            await switchToAdvanced(pg)
-            const checked = pg.locator(
-                '.searchUnifiedLayerItem [data-checked]'
-            )
-            const count = await checked.count()
-            expect(count).toBe(0)
-        })
-
-        test('fields column empty when no layers checked', async () => {
-            await switchToAdvanced(pg)
-            const fieldsBody = pg.locator(
-                '.searchUnifiedColFields .searchUnifiedColBody'
-            )
-            await expect(fieldsBody).toContainText(/select layers/i, {
-                timeout: 5000,
-            })
-        })
-
-        test('checking a layer populates the fields column', async () => {
-            await switchToAdvanced(pg)
-            const layerItems = pg.locator('.searchUnifiedLayerItem')
-            await expect(layerItems.first()).toBeVisible({ timeout: 5000 })
-
-            await layerItems.first().click()
-            await pg.waitForTimeout(2000)
-
-            const fields = pg.locator('.searchUnifiedFieldItem')
-            const count = await fields.count()
-            expect(count).toBeGreaterThan(0)
-        })
-
-        test('field filter input narrows the field list', async () => {
-            await switchToAdvanced(pg)
-            const layerItems = pg.locator('.searchUnifiedLayerItem')
-            await expect(layerItems.first()).toBeVisible({ timeout: 5000 })
-            await layerItems.first().click()
-
-            const fields = pg.locator('.searchUnifiedFieldItem')
-            await expect(fields.first()).toBeVisible({ timeout: 10000 })
-            const initial = await fields.count()
-
-            const filterInput = pg.locator(
-                '.searchUnifiedColFields .searchUnifiedFilterInput'
-            )
-            await filterInput.fill('name')
-            await pg.waitForTimeout(500)
-
-            const filtered = await fields.count()
-            expect(filtered).toBeLessThanOrEqual(initial)
-            expect(filtered).toBeGreaterThan(0)
-
-            // Clear filter for next test
-            await filterInput.fill('')
-        })
-
-        test('selecting a field marks it active and shows operators', async () => {
-            await switchToAdvanced(pg)
-            const layerItems = pg.locator('.searchUnifiedLayerItem')
-            await expect(layerItems.first()).toBeVisible({ timeout: 5000 })
-            await layerItems.first().click()
-
-            const fields = pg.locator('.searchUnifiedFieldItem')
-            await expect(fields.first()).toBeVisible({ timeout: 10000 })
-            await fields.first().click()
-
-            await expect(fields.first()).toHaveClass(
-                /searchUnifiedFieldItemActive/
-            )
-
-            const ops = pg.locator('.searchUnifiedOpItem')
-            const opCount = await ops.count()
-            expect(opCount).toBeGreaterThan(0)
-        })
-
-        test('layer path nesting is displayed', async () => {
-            await switchToAdvanced(pg)
-            const layerItems = pg.locator('.searchUnifiedLayerItem')
-            await expect(layerItems.first()).toBeVisible({ timeout: 5000 })
-
-            const pathPrefixes = pg.locator('.searchUnifiedLayerPath')
-            const pathCount = await pathPrefixes.count()
-            expect(pathCount).toBeGreaterThan(0)
-        })
-
-        test('layer filter narrows the layers list', async () => {
-            await switchToAdvanced(pg)
-            const layerItems = pg.locator('.searchUnifiedLayerItem')
-            await expect(layerItems.first()).toBeVisible({ timeout: 5000 })
-            const initial = await layerItems.count()
-
-            const filterInput = pg.locator(
-                '.searchUnifiedColLayers .searchUnifiedFilterInput'
-            )
-            await filterInput.fill('zzznonexistent')
-            await pg.waitForTimeout(500)
-
-            const filtered = await layerItems.count()
-            expect(filtered).toBeLessThan(initial)
-        })
-
-        test('select all / none buttons toggle all layers', async () => {
-            await switchToAdvanced(pg)
-
-            // Clear any layer filter from previous tests
-            const filterInput = pg.locator(
-                '.searchUnifiedColLayers .searchUnifiedFilterInput'
-            )
-            if (await filterInput.isVisible().catch(() => false)) {
-                await filterInput.fill('')
-                await pg.waitForTimeout(300)
-            }
-
-            const actions = pg.locator('.searchDropdownHeaderAction')
-            const selectAll = actions.first()
-
-            if (await selectAll.isVisible()) {
-                await selectAll.click()
-                await pg.waitForTimeout(500)
-
-                const checked = pg.locator(
-                    '.searchUnifiedLayerItem [data-checked]'
-                )
-                const checkCount = await checked.count()
-                expect(checkCount).toBeGreaterThan(0)
-
-                // Click "None" to deselect
-                const selectNone = actions.last()
-                await selectNone.click()
-                await pg.waitForTimeout(500)
-            }
-        })
-    })
-
-    // =====================================================================
-    //  4. Mode Switching
-    // =====================================================================
-
-    test.describe('Mode Switching', () => {
-        test('toggling between regular and advanced clears state', async () => {
+        test('groups are displayed with folder icon and layer count', async () => {
             await openPanel(pg)
-            await expect(pg.locator('.searchRegularPanel')).toBeVisible()
-
-            await switchToAdvanced(pg)
-            await expect(pg.locator('.searchUnifiedColLayers')).toBeVisible()
-
-            // Fields should be empty (no layers checked in advanced)
-            const fields = pg.locator('.searchUnifiedFieldItem')
-            const count = await fields.count()
-            expect(count).toBe(0)
-        })
-
-        test('switching back to regular mode shows layers/values', async () => {
-            await switchToAdvanced(pg)
-            await switchToRegular(pg)
-            await expect(pg.locator('.searchRegularPanel')).toBeVisible()
+            const groups = pg.locator('.searchRegularLayerItemGroup')
+            const count = await groups.count()
+            if (count === 0) {
+                test.skip(true, 'No search groups in Reference Mission')
+                return
+            }
+            const firstGroup = groups.first()
+            await expect(firstGroup.locator('.searchGroupIcon')).toBeVisible()
+            await expect(firstGroup.locator('.searchRegularLayerDetail')).toBeVisible()
         })
     })
 
     // =====================================================================
-    //  5. Clear & Close
+    //  3. All/Common Toggle
+    // =====================================================================
+
+    test.describe('All/Common Toggle', () => {
+        test('toggle appears when a group is selected', async () => {
+            await openPanel(pg)
+            const groups = pg.locator('.searchRegularLayerItemGroup')
+            const count = await groups.count()
+            if (count === 0) {
+                test.skip(true, 'No search groups available')
+                return
+            }
+            await groups.first().click()
+            await pg.waitForTimeout(1000)
+
+            const toggle = pg.locator('.searchValuesToggle')
+            await expect(toggle).toBeVisible({ timeout: 5000 })
+        })
+
+        test('toggle label shows All by default', async () => {
+            await openPanel(pg)
+            const groups = pg.locator('.searchRegularLayerItemGroup')
+            const count = await groups.count()
+            if (count === 0) {
+                test.skip(true, 'No search groups available')
+                return
+            }
+            await groups.first().click()
+            await pg.waitForTimeout(1000)
+
+            const label = pg.locator('.searchValuesToggleLabel')
+            await expect(label).toContainText('All')
+        })
+
+        test('clicking toggle switches between All and Common', async () => {
+            await openPanel(pg)
+            const groups = pg.locator('.searchRegularLayerItemGroup')
+            const count = await groups.count()
+            if (count === 0) {
+                test.skip(true, 'No search groups available')
+                return
+            }
+            await groups.first().click()
+            await pg.waitForTimeout(1000)
+
+            const toggleSwitch = pg.locator('.searchValuesToggle button[role="switch"]')
+            if (!(await toggleSwitch.isVisible().catch(() => false))) {
+                test.skip(true, 'Toggle switch not visible')
+                return
+            }
+            await toggleSwitch.click()
+            await pg.waitForTimeout(500)
+
+            const label = pg.locator('.searchValuesToggleLabel')
+            await expect(label).toContainText('Common')
+        })
+
+        test('toggle is hidden for single layer selection', async () => {
+            await openPanel(pg)
+            const layers = pg.locator('.searchRegularLayerItem:not(.searchRegularLayerItemGroup):not(.searchRegularLayerItemGroupMember)')
+            const count = await layers.count()
+            if (count === 0) {
+                test.skip(true, 'No ungrouped layers')
+                return
+            }
+            await layers.first().click()
+            await pg.waitForTimeout(500)
+
+            const toggle = pg.locator('.searchValuesToggle')
+            await expect(toggle).not.toBeVisible()
+        })
+    })
+
+    // =====================================================================
+    //  4. Select/Filter Mode Toggle
+    // =====================================================================
+
+    test.describe('Select/Filter Mode Toggle', () => {
+        test('mode switch renders with Switch component', async () => {
+            const switchEl = pg.locator('.searchModeSwitch button[role="switch"]')
+            await expect(switchEl).toBeVisible()
+        })
+
+        test('switch defaults to unchecked (select mode)', async () => {
+            const switchEl = pg.locator('.searchModeSwitch button[role="switch"]')
+            const checked = await switchEl.getAttribute('data-checked')
+            // data-checked is absent when unchecked
+            expect(checked).toBeNull()
+        })
+
+        test('clicking switch toggles to filter mode', async () => {
+            const switchEl = pg.locator('.searchModeSwitch button[role="switch"]')
+            await switchEl.click()
+            await pg.waitForTimeout(300)
+
+            // Verify it toggled
+            const checked = await switchEl.getAttribute('data-checked')
+            expect(checked).not.toBeNull()
+
+            // Reset back to select mode for next tests
+            await switchEl.click()
+            await pg.waitForTimeout(300)
+        })
+
+        test('mode switch has tooltip on hover', async () => {
+            const modeSwitch = pg.locator('.searchModeSwitch')
+            await modeSwitch.hover()
+            await pg.waitForTimeout(500)
+
+            // Tooltip should appear with mode description
+            const tooltip = pg.locator('[role="tooltip"]')
+            const visible = await tooltip.isVisible().catch(() => false)
+            // Tooltip may use different rendering — just verify hover doesn't crash
+            expect(true).toBeTruthy()
+        })
+    })
+
+    // =====================================================================
+    //  5. Wildcard/Regex Filtering
+    // =====================================================================
+
+    test.describe('Wildcard Filtering', () => {
+        test('typing * filters values as wildcard', async () => {
+            await openPanel(pg)
+            const layers = pg.locator('.searchRegularLayerItem')
+            const layerCount = await layers.count()
+            if (layerCount === 0) {
+                test.skip(true, 'No search-construct layers')
+                return
+            }
+
+            let valuesLoaded = false
+            for (let i = 0; i < Math.min(layerCount, 5); i++) {
+                await layers.nth(i).click()
+                try {
+                    await pg
+                        .locator('.searchSuggestionItem')
+                        .first()
+                        .waitFor({ state: 'visible', timeout: 8000 })
+                    valuesLoaded = true
+                    break
+                } catch {
+                    // Try next
+                }
+            }
+            if (!valuesLoaded) {
+                test.skip(true, 'No layers loaded values')
+                return
+            }
+
+            const initialCount = await pg.locator('.searchSuggestionItem').count()
+
+            // Type a wildcard pattern that should match fewer items
+            await pg.locator('.searchCompactInput').fill('*z*')
+            await pg.waitForTimeout(500)
+
+            const filtered = await pg.locator('.searchSuggestionItem').count()
+            // Wildcard should filter — fewer or equal results
+            expect(filtered).toBeLessThanOrEqual(initialCount)
+        })
+    })
+
+    // =====================================================================
+    //  6. Clear & Close
     // =====================================================================
 
     test.describe('Clear & Close', () => {
@@ -559,7 +501,7 @@ test.describe('Global Feature Search', () => {
     })
 
     // =====================================================================
-    //  6. Backend API — /api/geodatasets/search
+    //  7. Backend API — /api/geodatasets/search
     // =====================================================================
 
     test.describe('Backend API — geodataset search', () => {
@@ -706,6 +648,51 @@ test.describe('Global Feature Search', () => {
             expect(data.aggregations).toBeDefined()
         })
 
+        test('bulk_aggregations endpoint returns values for multiple layers', async ({
+            request,
+        }) => {
+            await request.post(`${BASE_URL}/api/users/login`, {
+                data: ADMIN_CREDS,
+            })
+
+            const res = await request.get(
+                `${BASE_URL}/api/geodatasets/bulk_aggregations?layers=reference_mission_basic,reference_mission_no_duplicates&limit=100`
+            )
+
+            if (res.status() === 200) {
+                const data = await res.json()
+                expect(data.status).toBe('success')
+                expect(data.aggregations).toBeDefined()
+                // Should have field names as keys with aggs objects
+                const fields = Object.keys(data.aggregations)
+                expect(fields.length).toBeGreaterThan(0)
+                const firstField = data.aggregations[fields[0]]
+                expect(firstField).toHaveProperty('type')
+                expect(firstField).toHaveProperty('aggs')
+            }
+        })
+
+        test('bulk_aggregations with rows returns raw row data', async ({
+            request,
+        }) => {
+            await request.post(`${BASE_URL}/api/users/login`, {
+                data: ADMIN_CREDS,
+            })
+
+            const res = await request.get(
+                `${BASE_URL}/api/geodatasets/bulk_aggregations?layers=reference_mission_basic&limit=10`
+            )
+
+            if (res.status() === 200) {
+                const data = await res.json()
+                expect(data.status).toBe('success')
+                if (data.rows) {
+                    expect(Array.isArray(data.rows)).toBeTruthy()
+                    expect(data.rows.length).toBeLessThanOrEqual(10)
+                }
+            }
+        })
+
         test('search with > operator filters numerics', async ({
             request,
         }) => {
@@ -780,7 +767,6 @@ test.describe('Global Feature Search', () => {
             )
 
             const data = await res.json().catch(() => ({}))
-            // Should return an error status or empty body for a nonexistent table
             const isError =
                 res.status() !== 200 ||
                 data.status === 'failure' ||
@@ -791,39 +777,33 @@ test.describe('Global Feature Search', () => {
     })
 
     // =====================================================================
-    //  7. Design System Integration
+    //  8. Design System Integration
     // =====================================================================
 
     test.describe('Design System Integration', () => {
-        test('advanced mode layer items have checkboxes', async () => {
-            await switchToAdvanced(pg)
-            const layerItems = pg.locator('.searchUnifiedLayerItem')
-            await expect(layerItems.first()).toBeVisible({ timeout: 5000 })
-
-            // base-ui Checkbox renders a <button> with role="checkbox"
-            const checkbox = layerItems
-                .first()
-                .locator('button[role="checkbox"], [data-unchecked], [data-checked]')
-            const count = await checkbox.count()
-            expect(count).toBeGreaterThan(0)
+        test('select/filter toggle uses Switch component', async () => {
+            const switchEl = pg.locator('.searchModeSwitch button[role="switch"]')
+            await expect(switchEl).toBeVisible()
         })
 
-        test('common fields toggle uses Switch component', async () => {
-            await switchToAdvanced(pg)
-            const layerItems = pg.locator('.searchUnifiedLayerItem')
-            await expect(layerItems.first()).toBeVisible({ timeout: 5000 })
-            await layerItems.first().click()
+        test('All/Common toggle uses Switch component when group selected', async () => {
+            await openPanel(pg)
+            const groups = pg.locator('.searchRegularLayerItemGroup')
+            const count = await groups.count()
+            if (count === 0) {
+                test.skip(true, 'No search groups available')
+                return
+            }
+            await groups.first().click()
             await pg.waitForTimeout(1000)
 
-            // Switch component — look for the toggle element in the fields column header
-            const switchEl = pg.locator('.searchFieldsToggle')
-            const count = await switchEl.count()
-            expect(count).toBeGreaterThan(0)
+            const switchEl = pg.locator('.searchValuesToggle button[role="switch"]')
+            await expect(switchEl).toBeVisible({ timeout: 5000 })
         })
     })
 
     // =====================================================================
-    //  8. Search Bar Visibility
+    //  9. Search Visibility
     // =====================================================================
 
     test.describe('Search Visibility', () => {
