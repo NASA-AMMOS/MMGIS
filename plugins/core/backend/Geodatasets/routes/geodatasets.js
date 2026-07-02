@@ -1204,14 +1204,31 @@ router.get("/bulk_aggregations", function (req, res, next) {
         return;
       }
 
+      // Optional time filtering
+      const starttime = req.query.starttime;
+      const endtime = req.query.endtime;
+      const startProp = req.query.startProp || "start_time";
+      const endProp = req.query.endProp || "end_time";
+
       const aggs = {};
       const promises = results.map((result) => {
         const table = result.dataValues.table;
-        const q = `SELECT properties FROM ${Utils.forceAlphaNumUnder(
-          table
-        )} ORDER BY RANDOM() DESC LIMIT :limit;`;
+        let q = `SELECT properties FROM ${Utils.forceAlphaNumUnder(table)}`;
+        const replacements = { limit: sampleLimit };
+
+        // Add time bounds WHERE clause when provided
+        if (starttime && endtime) {
+          const spSafe = Utils.forceAlphaNumUnder(startProp);
+          const epSafe = Utils.forceAlphaNumUnder(endProp);
+          q += ` WHERE (properties->>'${spSafe}')::TIMESTAMP <= :endtime::TIMESTAMP`
+            + ` AND (properties->>'${epSafe}')::TIMESTAMP >= :starttime::TIMESTAMP`;
+          replacements.starttime = starttime;
+          replacements.endtime = endtime;
+        }
+
+        q += ` ORDER BY RANDOM() DESC LIMIT :limit;`;
         return sequelize
-          .query(q, { replacements: { limit: sampleLimit } })
+          .query(q, { replacements })
           .then(([rows]) => {
             // Recursively aggregate values from nested objects
             function aggProps(obj, prefix) {

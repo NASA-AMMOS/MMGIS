@@ -357,3 +357,8 @@
 .searchTimeWarningAction:hover {
     opacity: 0.8;
 }
+
+/* Time restrict toggle active icon */
+.searchTimeActive {
+    color: var(--color-mmgis);
+}

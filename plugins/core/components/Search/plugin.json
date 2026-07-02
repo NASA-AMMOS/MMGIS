@@ -43,7 +43,15 @@
                 "type": "text",
                 "name": "Search Construct",
                 "description": "Search fields template, e.g. \"(name) (category)\". Used in regular search mode.",
-                "width": 3
+                "width": 2
+              },
+              {
+                "field": "hideSublayers",
+                "type": "checkbox",
+                "name": "Hide Sublayers",
+                "description": "When checked, only the group header is shown in the search interface. Layers with their own search construct are still shown outside the group.",
+                "width": 1,
+                "default": false
               },
               {
                 "field": "layers",

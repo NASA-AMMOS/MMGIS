@@ -193,6 +193,9 @@ function SearchBar({ componentVars }) {
     // 'select' (default) = highlight/pan to matches; 'filter' = apply real layer filters
     const [searchMode, setSearchMode] = useState('select')
 
+    // When true, restrict values and queries to the current time range
+    const [searchTimeRestrict, setSearchTimeRestrict] = useState(false)
+
     // Cached per-layer value sets — avoids re-fetching when toggling All/Common
     const cachedPerLayerValues = useRef({})
 
@@ -253,6 +256,7 @@ function SearchBar({ componentVars }) {
                     label: cg.searchGroup,
                     layers: resolvedLayers,
                     searchConstruct: cg.searchConstruct || null,
+                    hideSublayers: cg.hideSublayers === true,
                 }
                 // Apply group searchConstruct to member layers that lack their own
                 if (cg.searchConstruct) {
@@ -294,6 +298,12 @@ function SearchBar({ componentVars }) {
             }
 
             const fields = makeSearchFields(searchvars)
+            // Also parse group-level constructs into searchFields format
+            Object.entries(groups).forEach(([gid, group]) => {
+                if (group.searchConstruct) {
+                    group.parsedConstruct = makeSearchFields({ _: group.searchConstruct })._
+                }
+            })
             setSearchFields(fields)
             setSearchGroups(groups)
 
@@ -315,6 +325,25 @@ function SearchBar({ componentVars }) {
                 geoLayers.length === 0
             )
                 return false
+
+            // Also add geodataset layers that are in groups but don't appear in vecLayers
+            // (they might not have individual searchvars but have group constructs)
+            Object.values(groups).forEach((group) => {
+                group.layers.forEach((uuid) => {
+                    const ld = L_.layers.data[uuid]
+                    if (ld && ld.url && ld.url.startsWith('geodatasets:')) {
+                        if (!geoLayers.find((gl) => gl.value === uuid)) {
+                            geoLayers.push({
+                                value: uuid,
+                                label: ld.display_name || uuid,
+                                geodatasetName: ld.url.split(':')[1],
+                                path: buildPath(uuid),
+                                kind: 'geodataset',
+                            })
+                        }
+                    }
+                })
+            })
 
             setGeodatasetLayers(geoLayers)
             setVectorLayers(vecLayers)
@@ -349,6 +378,21 @@ function SearchBar({ componentVars }) {
         }
     }, [getL_])
 
+    // Compute effective search fields: when a group header is selected,
+    // override all member layers' fields with the group's parsed construct.
+    // When an individual layer is selected, use its own construct (or group fallback).
+    const effectiveSearchFields = useMemo(() => {
+        if (!selectedGroupId || !searchGroups[selectedGroupId]?.parsedConstruct) {
+            return searchFields
+        }
+        const group = searchGroups[selectedGroupId]
+        const eff = { ...searchFields }
+        group.layers.forEach((l) => {
+            eff[l] = group.parsedConstruct
+        })
+        return eff
+    }, [selectedGroupId, searchGroups, searchFields])
+
     // Merge cached per-layer value Maps into the final arrayToSearch.
     // Each cached value is a Map<label, {label, fields}>.
     // Runs from cache — no network calls. Called after fetch completes
@@ -364,7 +408,7 @@ function SearchBar({ componentVars }) {
                 .filter(([, m]) => m && m.size !== undefined)
             if (allMaps.length === 0) {
                 setArrayToSearch([])
-                setPlaceholder(getSearchFieldKeys(searchFields, targetLayers[0]) || 'Search...')
+                setPlaceholder(getSearchFieldKeys(effectiveSearchFields, targetLayers[0]) || 'Search...')
                 return
             }
             let merged
@@ -402,9 +446,9 @@ function SearchBar({ componentVars }) {
                 else entries.sort((a, b) => a.label > b.label ? 1 : -1)
             }
             setArrayToSearch(entries.slice(0, MAX_VALUES))
-            setPlaceholder(getSearchFieldKeys(searchFields, targetLayers[0]) || 'Search...')
+            setPlaceholder(getSearchFieldKeys(effectiveSearchFields, targetLayers[0]) || 'Search...')
         },
-        [searchFields, valuesIntersectOnly]
+        [effectiveSearchFields, valuesIntersectOnly]
     )
 
     // Build values array when layer changes (regular mode)
@@ -446,8 +490,28 @@ function SearchBar({ componentVars }) {
                 } catch (err) {
                     data = { features: [] }
                 }
-                for (let i = 0; i < data.features.length; i++) {
-                    const entry = getSearchFieldEntryForFeature(searchFields, lname, data.features[i].properties)
+                let features = data.features
+                // When time restriction is on, filter features by time
+                if (searchTimeRestrict && TimeControl.startTime && TimeControl.endTime) {
+                    const ld = L_.layers.data[lname]
+                    const startProp = ld?.time?.startProp || 'start_time'
+                    const endProp = ld?.time?.endProp || 'end_time'
+                    const tcStart = new Date(TimeControl.startTime).getTime()
+                    const tcEnd = new Date(TimeControl.endTime).getTime()
+                    if (ld?.time?.enabled) {
+                        features = features.filter((f) => {
+                            const props = f.properties || {}
+                            const st = props[startProp]
+                            const et = props[endProp]
+                            if (st == null && et == null) return true
+                            const startMs = st != null ? new Date(st).getTime() : -Infinity
+                            const endMs = et != null ? new Date(et).getTime() : Infinity
+                            return startMs <= tcEnd && endMs >= tcStart
+                        })
+                    }
+                }
+                for (let i = 0; i < features.length; i++) {
+                    const entry = getSearchFieldEntryForFeature(effectiveSearchFields, lname, features[i].properties)
                     if (entry.label && !vals.has(entry.label)) {
                         vals.set(entry.label, entry)
                     }
@@ -467,16 +531,25 @@ function SearchBar({ componentVars }) {
                         resolve()
                         return
                     }
+                    const params = { layers: geodatasetName, limit: 1000 }
+                    // When time restriction is on, pass time bounds
+                    if (searchTimeRestrict) {
+                        const ld = L_.layers.data[lname]
+                        if (ld?.time?.enabled === true && ld?.time?.type === 'requery') {
+                            params.starttime = ld.time.start || TimeControl.startTime
+                            params.endtime = ld.time.end || TimeControl.endTime
+                            params.startProp = ld.time.startProp || 'start_time'
+                            params.endProp = ld.time.endProp || 'end_time'
+                        }
+                    }
                     calls.api(
                         'geodatasets_bulk_aggregations',
-                        { layers: geodatasetName, limit: 1000 },
+                        params,
                         (d) => {
                             const vals = new Map()
                             if (d?.status === 'success' && d.aggregations) {
-                                const sf = searchFields[lname]
+                                const sf = effectiveSearchFields[lname]
                                 if (sf && sf.length > 0) {
-                                    // For single-field constructs, build complete entries.
-                                    // For multi-field, use the first field's values as labels.
                                     if (sf.length === 1) {
                                         const fieldName = sf[0][1]
                                         const transform = sf[0][0].toLowerCase()
@@ -492,16 +565,14 @@ function SearchBar({ componentVars }) {
                                             })
                                         }
                                     } else {
-                                        // Multi-field: build entries from raw row data if available
                                         if (d.rows) {
                                             d.rows.forEach((row) => {
-                                                const entry = getSearchFieldEntryForFeature(searchFields, lname, row)
+                                                const entry = getSearchFieldEntryForFeature(effectiveSearchFields, lname, row)
                                                 if (entry.label && !vals.has(entry.label)) {
                                                     vals.set(entry.label, entry)
                                                 }
                                             })
                                         } else {
-                                            // Fallback: use first field values only
                                             const fieldName = sf[0][1]
                                             const transform = sf[0][0].toLowerCase()
                                             const fieldAgg = d.aggregations[fieldName]
@@ -531,8 +602,10 @@ function SearchBar({ componentVars }) {
             }))
         }
 
-        // Turn on layers that are off (permanently)
-        targetLayers.filter((l) => L_.layers.on[l] !== true).forEach((l) => {
+        // Turn on only vector layers at selection time (not geodatasets).
+        // Geodataset search happens on the backend so they only need to be
+        // toggled on when the search query is actually submitted.
+        vecTargets.filter((l) => L_.layers.on[l] !== true).forEach((l) => {
             L_.toggleLayer(L_.layers.data[l])
         })
 
@@ -573,7 +646,7 @@ function SearchBar({ componentVars }) {
         }
 
         return () => { cancelled = true; setValuesLoading(false) }
-    }, [selectedLayer, selectedGroupId, searchGroups, searchFields, getL_, getMap_, mergePerLayerValues])
+    }, [selectedLayer, selectedGroupId, searchGroups, effectiveSearchFields, searchTimeRestrict, getL_, getMap_, mergePerLayerValues])
 
     // Re-merge cached values when All/Common toggle changes (no re-fetch)
     useEffect(() => {
@@ -713,7 +786,7 @@ function SearchBar({ componentVars }) {
             const L_ = getL_()
             const Map_ = getMap_()
             const layerName = lname || selectedLayer
-            const sf = searchFields[layerName]
+            const sf = effectiveSearchFields[layerName]
 
             // Determine the search key and value.
             // If parsedFields is provided, use the first field's actual value
@@ -727,16 +800,22 @@ function SearchBar({ componentVars }) {
             } else if (sf && sf.length === 1) {
                 searchValue = value || inputValue
             } else {
-                // Multi-field construct without parsed fields — use first field value
-                // from the composite by splitting from right (best effort)
                 searchValue = value || inputValue
                 if (parsedFields) {
-                    // parsedFields provided but doesn't have this key — skip
                     searchValue = String(Object.values(parsedFields)[0] || value || inputValue)
                 }
             }
 
             const geodatasetName = L_.layers.data[layerName]?.url?.split(':')[1]
+
+            // Determine operator: use 'contains' for wildcard values
+            const hasWildcard = searchValue.includes('*')
+            let operator = '='
+            let apiValue = searchValue
+            if (hasWildcard) {
+                operator = 'contains'
+                apiValue = searchValue.replace(/\*/g, '')
+            }
 
             return new Promise((resolve) => {
                 calls.api(
@@ -744,7 +823,8 @@ function SearchBar({ componentVars }) {
                     {
                         layer: geodatasetName || lastGeodatasetLayerName.current,
                         key: key,
-                        value: searchValue,
+                        value: apiValue,
+                        operator: operator,
                     },
                     function (d) {
                         if (!d.body || d.body.length === 0) { resolve(null); return }
@@ -810,14 +890,14 @@ function SearchBar({ componentVars }) {
                 )
             })
         },
-        [selectedLayer, inputValue, searchFields, getL_, getMap_]
+        [selectedLayer, inputValue, effectiveSearchFields, getL_, getMap_]
     )
 
     const doWithSearch = useCallback(
         (doX, forceX, forceSTS, isURLSearch, value, fieldsOverride, L_Override) => {
             const L_ = L_Override || getL_()
             const Map_ = getMap_()
-            const fields = fieldsOverride || searchFields
+            const fields = fieldsOverride || effectiveSearchFields
             const lname = forceSTS || selectedLayer
 
             let x
@@ -898,7 +978,7 @@ function SearchBar({ componentVars }) {
                 }
             }
         },
-        [selectedLayer, inputValue, searchFields, getL_, getMap_]
+        [selectedLayer, inputValue, effectiveSearchFields, getL_, getMap_]
     )
 
     // Apply a real Filtering filter to a layer based on the search construct and value.
@@ -907,7 +987,7 @@ function SearchBar({ componentVars }) {
     const applyFilterToLayer = useCallback(
         (lname, searchValue, parsedFields) => {
             const L_ = getL_()
-            const sf = searchFields[lname]
+            const sf = effectiveSearchFields[lname]
             if (!sf || sf.length === 0) return
 
             const ld = L_.layers.data[lname]
@@ -997,7 +1077,7 @@ function SearchBar({ componentVars }) {
                 Filtering.refresh()
             }
         },
-        [searchFields, getL_]
+        [effectiveSearchFields, getL_]
     )
 
     const handleSearch = useCallback(
@@ -1049,18 +1129,24 @@ function SearchBar({ componentVars }) {
 
                 // Show time-range warning for time-enabled layers so users know
                 // features outside the current window won't be visible.
-                const timeEnabledTargets = filterTargets.filter((lname) => {
-                    const ld = L_.layers.data[lname]
-                    return ld?.time?.enabled === true && ld?.time?.type === 'requery'
-                })
-                if (timeEnabledTargets.length > 0) {
-                    const ld = L_.layers.data[timeEnabledTargets[0]]
-                    setTimeRangeWarning({
-                        layers: timeEnabledTargets,
-                        start: ld.time.start,
-                        end: ld.time.end,
-                        filterEncoded: ld._filterEncoded?.filters || null,
+                // When searchTimeRestrict is on, the query already includes
+                // time bounds so no warning is needed.
+                if (!searchTimeRestrict) {
+                    const timeEnabledTargets = filterTargets.filter((lname) => {
+                        const ld = L_.layers.data[lname]
+                        return ld?.time?.enabled === true && ld?.time?.type === 'requery'
                     })
+                    if (timeEnabledTargets.length > 0) {
+                        const ld = L_.layers.data[timeEnabledTargets[0]]
+                        setTimeRangeWarning({
+                            layers: timeEnabledTargets,
+                            start: ld.time.start,
+                            end: ld.time.end,
+                            filterEncoded: ld._filterEncoded?.filters || null,
+                        })
+                    } else {
+                        setTimeRangeWarning(null)
+                    }
                 } else {
                     setTimeRangeWarning(null)
                 }
@@ -1213,7 +1299,7 @@ function SearchBar({ componentVars }) {
                 }
             }
         },
-        [inputValue, selectedLayer, selectedGroupId, searchGroups, searchMode, searchGeodatasets, doWithSearch, applyFilterToLayer, getL_, getMap_]
+        [inputValue, selectedLayer, selectedGroupId, searchGroups, searchMode, searchTimeRestrict, searchGeodatasets, doWithSearch, applyFilterToLayer, getL_, getMap_]
     )
 
     const handleSuggestionClick = useCallback(
@@ -1368,6 +1454,11 @@ function SearchBar({ componentVars }) {
         vectorLayers.forEach((vl) => { layerLabelMap[vl.value] = vl.label || vl.value })
         geodatasetLayers.forEach((gl) => { layerLabelMap[gl.value] = gl.label || gl.value })
 
+        // Track layers with individual search constructs (for hideSublayers)
+        const layersWithOwnConstruct = new Set()
+        vectorLayers.forEach((vl) => { if (searchFields[vl.value]) layersWithOwnConstruct.add(vl.value) })
+        geodatasetLayers.forEach((gl) => { if (searchFields[gl.value]) layersWithOwnConstruct.add(gl.value) })
+
         // Add search group entries with member layers
         Object.entries(searchGroups).forEach(([gid, group]) => {
             // Group header
@@ -1378,16 +1469,29 @@ function SearchBar({ componentVars }) {
                 groupId: gid,
                 layers: group.layers,
             })
-            // Member layers indented
+            // Member layers (indented under group or promoted outside)
             group.layers.forEach((l) => {
                 grouped.add(l)
-                items.push({
-                    value: l,
-                    label: layerLabelMap[l] || l,
-                    isGroup: false,
-                    isGroupMember: true,
-                    parentGroupId: gid,
-                })
+                if (group.hideSublayers) {
+                    // When sublayers are hidden, only show layers with their own
+                    // individual search construct — but outside the group
+                    if (layersWithOwnConstruct.has(l)) {
+                        items.push({
+                            value: l,
+                            label: layerLabelMap[l] || l,
+                            isGroup: false,
+                            isGroupMember: false,
+                        })
+                    }
+                } else {
+                    items.push({
+                        value: l,
+                        label: layerLabelMap[l] || l,
+                        isGroup: false,
+                        isGroupMember: true,
+                        parentGroupId: gid,
+                    })
+                }
             })
         })
 
@@ -1399,7 +1503,7 @@ function SearchBar({ componentVars }) {
         })
 
         return items
-    }, [vectorLayers, geodatasetLayers, searchGroups])
+    }, [vectorLayers, geodatasetLayers, searchGroups, searchFields])
 
     // Selected layer label for the trigger
     const selectedLayerLabel = useMemo(() => {
@@ -1457,6 +1561,12 @@ function SearchBar({ componentVars }) {
                         if (e.key === 'Enter') {
                             if (activeSuggestionIdx >= 0 && suggestions[activeSuggestionIdx]) {
                                 handleSuggestionClick(suggestions[activeSuggestionIdx])
+                            } else if (searchMode === 'filter' && inputValue) {
+                                // In filter mode, Enter wraps with implicit wildcards
+                                const wildVal = inputValue.includes('*') ? inputValue : `*${inputValue}*`
+                                setSubmittedValue(inputValue)
+                                handleSearch(wildVal)
+                                setShowSuggestions(false)
                             } else {
                                 handleSearch()
                                 setShowSuggestions(false)
@@ -1502,10 +1612,16 @@ function SearchBar({ componentVars }) {
                                 const newMode = v ? 'filter' : 'select'
                                 if (!v) {
                                     clearSearchFilters()
-                                    setInputValue('')
+                                    // Re-execute search in select mode with current input
+                                    const currentInput = inputValue
                                     setSubmittedValue(null)
+                                    setSearchMode(newMode)
+                                    if (currentInput) {
+                                        setTimeout(() => handleSearch(currentInput), 100)
+                                    }
+                                } else {
+                                    setSearchMode(newMode)
                                 }
-                                setSearchMode(newMode)
                             }}
                             size="sm"
                         />
@@ -1579,6 +1695,21 @@ function SearchBar({ componentVars }) {
                                 {arrayToSearch.length >= 500 && (
                                     <span className="searchValuesCount">Top 500</span>
                                 )}
+                                <Tooltip
+                                    content={searchTimeRestrict ? 'Restricted to current time range' : 'All time (no time restriction)'}
+                                    placement="bottom"
+                                >
+                                    <div className="searchValuesToggle">
+                                        <span className="searchValuesToggleLabel">
+                                            <i className={`mdi mdi-clock-outline mdi-12px ${searchTimeRestrict ? 'searchTimeActive' : ''}`} />
+                                        </span>
+                                        <Switch
+                                            checked={searchTimeRestrict}
+                                            onCheckedChange={setSearchTimeRestrict}
+                                            size="sm"
+                                        />
+                                    </div>
+                                </Tooltip>
                                 {selectedGroupId && (
                                     <Tooltip
                                         content={valuesIntersectOnly ? 'Common to all layers' : 'From any layer'}
