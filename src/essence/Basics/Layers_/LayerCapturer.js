@@ -184,7 +184,8 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
 
                         if (
                             layerData.time?.enabled === true &&
-                            layerData.time?.type === 'requery'
+                            layerData.time?.type === 'requery' &&
+                            !hasValueFilter
                         ) {
                             body.starttime = layerData.time.start
                             body.startProp = layerData.time.startProp
@@ -314,12 +315,18 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                     ) {
                         // Then query, delete existing and remake
                         const bounds = L_.Map_.map.getBounds()
+                        const hasValueFilter2 =
+                            !!layerData._filterEncoded?.filters
                         const body = {
                             type: 'geojson',
-                            maxy: bounds._northEast.lat,
-                            maxx: bounds._northEast.lng,
-                            miny: bounds._southWest.lat,
-                            minx: bounds._southWest.lng,
+                            ...(hasValueFilter2
+                                ? {}
+                                : {
+                                      maxy: bounds._northEast.lat,
+                                      maxx: bounds._northEast.lng,
+                                      miny: bounds._southWest.lat,
+                                      minx: bounds._southWest.lng,
+                                  }),
                             crsCode: mmgisglobal.customCRS.code.replace(
                                 'EPSG:',
                                 ''
@@ -329,7 +336,8 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
 
                         if (
                             layerData.time?.enabled === true &&
-                            layerData.time?.type === 'requery'
+                            layerData.time?.type === 'requery' &&
+                            !hasValueFilter2
                         ) {
                             body.starttime = layerData.time.start
                             body.startProp = layerData.time.startProp
@@ -489,9 +497,12 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                     layer: urlSplitRaw[1],
                     type: 'geojson',
                 }
+                const hasValueFilter3 =
+                    !!layerData._filterEncoded?.filters
                 if (
                     layerData.time?.enabled === true &&
-                    layerData.time?.type === 'requery'
+                    layerData.time?.type === 'requery' &&
+                    !hasValueFilter3
                 ) {
                     body.starttime = layerData.time.start
                     body.endtime = layerData.time.end
