@@ -50,7 +50,7 @@
                 "type": "checkbox",
                 "name": "Hide Sublayers",
                 "description": "When checked, only the group header is shown in the search interface. Layers with their own search construct are still shown outside the group.",
-                "width": 3,
+                "width": 2,
                 "default": false
               },
               {
