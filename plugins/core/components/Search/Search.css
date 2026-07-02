@@ -50,7 +50,7 @@
     flex-shrink: 0;
     height: 100%;
     user-select: none;
-    width: 180px;
+    width: 130px;
     box-sizing: border-box;
 }
 .searchLayersTrigger:hover {
@@ -90,8 +90,8 @@
     color: var(--color-f);
     font-size: 13px;
     outline: none;
-    min-width: 180px;
-    width: 180px;
+    min-width: 230px;
+    width: 230px;
     padding: 0 4px;
 }
 .searchCompactInput::placeholder {
@@ -224,28 +224,11 @@
 }
 
 /* Select / Filter mode toggle */
-.searchModeToggle {
+.searchModeSwitch {
     display: flex;
     align-items: center;
-    gap: 3px;
-    padding: 2px 6px;
-    cursor: pointer;
-    border-radius: 3px;
-    user-select: none;
-    transition: background 0.15s;
     flex-shrink: 0;
-}
-.searchModeToggle:hover {
-    background: var(--color-a1);
-}
-.searchModeToggleActive {
-    color: var(--color-blue, #4fc3f7);
-}
-.searchModeToggleLabel {
-    font-size: 10px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+    padding: 0 2px;
 }
 
 /* Each column */

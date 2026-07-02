@@ -1371,14 +1371,12 @@ function SearchBar({ componentVars }) {
                     content={searchMode === 'select' ? 'Select: highlight matching features' : 'Filter: show only matching features'}
                     placement="bottom"
                 >
-                    <div
-                        className={`searchModeToggle ${searchMode === 'filter' ? 'searchModeToggleActive' : ''}`}
-                        onClick={() => setSearchMode((m) => m === 'select' ? 'filter' : 'select')}
-                    >
-                        <i className={`mdi ${searchMode === 'select' ? 'mdi-crosshairs-gps' : 'mdi-filter'} mdi-16px`} />
-                        <span className="searchModeToggleLabel">
-                            {searchMode === 'select' ? 'Select' : 'Filter'}
-                        </span>
+                    <div className="searchModeSwitch">
+                        <Switch
+                            checked={searchMode === 'filter'}
+                            onCheckedChange={(v) => setSearchMode(v ? 'filter' : 'select')}
+                            size="sm"
+                        />
                     </div>
                 </Tooltip>
             </div>
