@@ -1107,6 +1107,19 @@ function SearchBar({ componentVars }) {
     const handleSearch = useCallback(
         async (value, parsedFields, sourceLayers) => {
             const searchValue = value != null ? value : inputValue
+
+            // If parsedFields wasn't explicitly provided, try to resolve it
+            // from the known values list. This ensures per-field values are
+            // always correct (avoids incorrect space-based decomposition).
+            if (!parsedFields && searchValue) {
+                const match = arrayToSearch.find(
+                    (item) => item.label === searchValue
+                )
+                if (match) {
+                    parsedFields = match.fields
+                    if (!sourceLayers) sourceLayers = match.sourceLayers
+                }
+            }
             const L_ = getL_()
             const Map_ = getMap_()
             if (!selectedLayer) return
@@ -1360,7 +1373,7 @@ function SearchBar({ componentVars }) {
                 }
             }
         },
-        [inputValue, selectedLayer, selectedGroupId, searchGroups, searchMode, searchTimeRestrict, searchGeodatasets, doWithSearch, applyFilterToLayer, getL_, getMap_]
+        [inputValue, arrayToSearch, selectedLayer, selectedGroupId, searchGroups, searchMode, searchTimeRestrict, searchGeodatasets, doWithSearch, applyFilterToLayer, getL_, getMap_]
     )
 
     const handleSuggestionClick = useCallback(
