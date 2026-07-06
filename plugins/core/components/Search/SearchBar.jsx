@@ -1032,14 +1032,14 @@ function SearchBar({ componentVars }) {
                 } else if (sf.length === 1) {
                     part = searchValue
                 } else {
-                    // Fallback for free-typed text without pre-parsed fields:
-                    // split from the right — last N-1 tokens go to last N-1 fields,
-                    // everything remaining goes to the first field.
-                    const tokens = searchValue.split(/\s+/)
-                    const tailTokens = tokens.slice(-(sf.length - 1))
-                    const firstFieldTokenCount = tokens.length - (sf.length - 1)
-                    const parts = [tokens.slice(0, Math.max(firstFieldTokenCount, 1)).join(' '), ...tailTokens]
-                    part = parts[idx]
+                    // Multi-field construct with free-typed text (no parsedFields):
+                    // We can't reliably split composite text into per-field values
+                    // because field values may contain spaces (e.g. "11 Event C - Phase 4"
+                    // can't be split into id="11" and name="Event C - Phase 4" by spaces).
+                    // Only apply filter to the first field using 'contains' on the
+                    // raw input text (stripped of wildcards).
+                    if (idx > 0) return
+                    part = searchValue
                 }
                 if (part == null || part === '' || part === '*') return
 
@@ -1057,7 +1057,9 @@ function SearchBar({ componentVars }) {
                     key: fieldName,
                     op: hasWildcard ? 'contains' : '=',
                     value: hasWildcard ? String(part).replace(/\*/g, '') : String(part),
-                    type: type,
+                    // Force string type for 'contains' (LIKE) queries to avoid
+                    // attempting ::FLOAT cast on text patterns
+                    type: hasWildcard ? 'string' : type,
                 })
             })
 
