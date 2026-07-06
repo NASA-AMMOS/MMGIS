@@ -1527,8 +1527,9 @@ router.post("/search", function (req, res, next) {
           replacements.valueList = parsedList.length > 0 ? parsedList : [""];
         }
 
-        // For regex operator, strip /pattern/flags delimiters if present
+        // For regex operator, cap length to prevent ReDoS and strip delimiters
         if (searchOp === "regex" && sanitizedValue) {
+          if (sanitizedValue.length > 200) sanitizedValue = sanitizedValue.substring(0, 200);
           const regexMatch = sanitizedValue.match(/^\/(.+)\/([gimsuy]*)$/);
           if (regexMatch) {
             replacements.value = regexMatch[1];
