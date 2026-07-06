@@ -1224,17 +1224,35 @@ function SearchBar({ componentVars }) {
 
                 // Toggle on all target layers (vector layers load synchronously,
                 // geodataset layers create empty layer then load data asynchronously).
+                // Track which geodataset layers were newly toggled on — they
+                // need an explicit refresh because toggleLayer for non-dynamic
+                // geodatasets just re-adds the old Leaflet layer to the map
+                // without making a new API call.
+                const geoNewlyOn = new Set()
                 for (const lname of filterTargets) {
                     if (!L_.layers.on[lname]) {
+                        const isGeo = L_.layers.data[lname]?.url?.startsWith('geodatasets:')
                         await L_.toggleLayer(L_.layers.data[lname])
+                        if (isGeo) geoNewlyOn.add(lname)
                     }
                 }
 
-                // For geodataset layers that were already on, explicitly trigger
-                // a refresh so they re-fetch with the new filter. Newly toggled
-                // layers already fetch data via the toggle subscription.
+                // Refresh geodataset layers that need new data:
+                // - geoAlreadyOn: were on before, need refresh with new filter
+                // - geoNewlyOn non-dynamic: toggleLayer re-added old data, need
+                //   refreshLayer to re-fetch with current _filterEncoded
+                // Dynamic extent layers that were newly toggled on already fire
+                // their subscription callback (which makes the API call), so
+                // only non-dynamic newly-toggled layers need explicit refresh.
+                const geoNeedRefresh = new Set([...geoAlreadyOn])
+                geoNewlyOn.forEach((lname) => {
+                    const ld = L_.layers.data[lname]
+                    if (ld?.variables?.dynamicExtent !== true) {
+                        geoNeedRefresh.add(lname)
+                    }
+                })
                 const nonDynamicRefreshPromises = []
-                ;[...geoAlreadyOn].forEach((lname) => {
+                ;[...geoNeedRefresh].forEach((lname) => {
                     const ld = L_.layers.data[lname]
                     if (ld?.variables?.dynamicExtent === true) {
                         // Dynamic extent: call refreshLayer which fires the
