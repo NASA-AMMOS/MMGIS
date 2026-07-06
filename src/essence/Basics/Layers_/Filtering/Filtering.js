@@ -906,6 +906,20 @@ const Filtering = {
         if (Filtering.filters[layerName]) {
             if (L_.layers.data[layerName].type === 'vector')
                 if (Filtering.filters[layerName]?.values?.[0]?.type != null) {
+                    // If the layer already has _filterEncoded set and is a
+                    // geodataset (url starts with "geodatasets:"), the server
+                    // already filtered the results during captureVector.
+                    // Re-applying a client-side local filter is redundant and
+                    // would cause a visual flash (clear + re-add same data).
+                    const layerData = L_.layers.data[layerName]
+                    if (
+                        layerData?._filterEncoded?.filters &&
+                        layerData?.url
+                            ?.toLowerCase()
+                            .startsWith('geodatasets:')
+                    ) {
+                        return
+                    }
                     if (Filtering.current.needsToQueryGeodataset) {
                         GeodatasetFilterer.filter(
                             layerName,

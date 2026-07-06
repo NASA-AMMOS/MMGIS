@@ -68,17 +68,22 @@ function getSearchFieldEntryForFeature(searchFields, name, props) {
         const sf = searchFields[name]
         for (let i = 0; i < sf.length; i++) {
             let val = ''
+            const raw = F_.getIn(props, sf[i][1])
+            // If the field doesn't exist in this feature's properties,
+            // return empty so the caller can skip it. This handles layers
+            // in a group whose data doesn't have all fields from the
+            // group's search construct (e.g. group uses (id)(name) but
+            // layer only has (name)(category)).
+            if (raw == null) return { label: '', fields: {} }
             switch (sf[i][0].toLowerCase()) {
                 case '':
-                    val = String(F_.getIn(props, sf[i][1]) ?? '')
+                    val = String(raw)
                     break
                 case 'round':
-                    val = String(Math.round(F_.getIn(props, sf[i][1])))
+                    val = String(Math.round(raw))
                     break
                 case 'rmunder':
-                    val = F_.getIn(props, sf[i][1])
-                        ? String(F_.getIn(props, sf[i][1])).replace('_', ' ')
-                        : ''
+                    val = raw ? String(raw).replace('_', ' ') : ''
                     break
             }
             fields[sf[i][1]] = val
@@ -1105,8 +1110,11 @@ function SearchBar({ componentVars }) {
     )
 
     const handleSearch = useCallback(
-        async (value, parsedFields, sourceLayers) => {
+        async (value, parsedFields, sourceLayers, overrideMode) => {
             const searchValue = value != null ? value : inputValue
+            // Use explicit mode if provided (avoids stale closure when called
+            // from setTimeout after a mode switch).
+            const activeMode = overrideMode || searchMode
 
             // If parsedFields wasn't explicitly provided, try to resolve it
             // from the known values list. This ensures per-field values are
@@ -1129,7 +1137,7 @@ function SearchBar({ componentVars }) {
                 ? searchGroups[selectedGroupId].layers.filter((l) => L_.layers.data[l])
                 : [selectedLayer]
 
-            if (searchMode === 'filter') {
+            if (activeMode === 'filter') {
                 // If sourceLayers is provided (clicked from suggestion list),
                 // only apply the filter to layers that actually have the value.
                 // This avoids sending a filter to layers that don't have the
@@ -1692,12 +1700,14 @@ function SearchBar({ componentVars }) {
                                 const newMode = v ? 'filter' : 'select'
                                 if (!v) {
                                     clearSearchFilters()
-                                    // Re-execute search in select mode with current input
+                                    // Re-execute search in select mode with current input.
+                                    // Pass 'select' explicitly as overrideMode to avoid
+                                    // stale closure capturing old searchMode.
                                     const currentInput = inputValue
                                     setSubmittedValue(null)
                                     setSearchMode(newMode)
                                     if (currentInput) {
-                                        setTimeout(() => handleSearch(currentInput), 100)
+                                        setTimeout(() => handleSearch(currentInput, null, null, 'select'), 100)
                                     }
                                 } else {
                                     setSearchMode(newMode)
