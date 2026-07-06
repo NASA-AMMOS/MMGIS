@@ -1007,7 +1007,7 @@ function SearchBar({ componentVars }) {
     // parsedFields is an optional { fieldName: value } map from the suggestion item;
     // when provided, it is used directly instead of trying to decompose the composite string.
     const applyFilterToLayer = useCallback(
-        (lname, searchValue, parsedFields) => {
+        (lname, searchValue, parsedFields, skipRefresh) => {
             const L_ = getL_()
             const sf = effectiveSearchFields[lname]
             if (!sf || sf.length === 0) return
@@ -1075,9 +1075,9 @@ function SearchBar({ componentVars }) {
 
             if (isGeodataset) {
                 // Geodataset layers: use GeodatasetFilterer directly.
-                // This builds _filterEncoded and calls refreshLayer which
-                // re-fetches data with the filter applied.
-                GeodatasetFilterer.filter(lname, Filtering.filters[lname])
+                // This builds _filterEncoded and (unless skipRefresh) calls
+                // refreshLayer to re-fetch data with the filter applied.
+                GeodatasetFilterer.filter(lname, Filtering.filters[lname], null, skipRefresh)
             } else {
                 // Local vector layers: need geojson cached for LocalFilterer
                 if (
@@ -1137,15 +1137,45 @@ function SearchBar({ componentVars }) {
                     }
                 }
 
-                // Ensure filter target layers are on (await each toggle)
+                // For geodataset layers: set filter BEFORE toggling on so the
+                // initial data load already includes the filter (avoids flash of
+                // all features before filter applies).
+                const geoFilterTargets = filterTargets.filter(
+                    (l) => L_.layers.data[l]?.url?.startsWith('geodatasets:')
+                )
+                const vecFilterTargets = filterTargets.filter(
+                    (l) => !L_.layers.data[l]?.url?.startsWith('geodatasets:')
+                )
+
+                // Track which geodataset layers are already on (need refresh after filter set)
+                const geoAlreadyOn = new Set(
+                    geoFilterTargets.filter((l) => L_.layers.on[l])
+                )
+
+                // Pre-set filter on geodataset layers that are OFF (skipRefresh=true).
+                // When they toggle on, the filter is already in _filterEncoded so the
+                // initial data fetch returns only matching features (no flash).
+                geoFilterTargets
+                    .filter((l) => !geoAlreadyOn.has(l))
+                    .forEach((lname) => {
+                        applyFilterToLayer(lname, searchValue, parsedFields, true)
+                    })
+
+                // Toggle on all target layers
                 for (const lname of filterTargets) {
                     if (!L_.layers.on[lname]) {
                         await L_.toggleLayer(L_.layers.data[lname])
                     }
                 }
 
-                // Apply filters only to layers that have the value
-                filterTargets.forEach((lname) => {
+                // For geodataset layers that were already on, apply filter normally
+                // (triggers refreshLayer to re-fetch with filter).
+                geoAlreadyOn.forEach((lname) => {
+                    applyFilterToLayer(lname, searchValue, parsedFields)
+                })
+
+                // Apply filters to non-geodataset layers
+                vecFilterTargets.forEach((lname) => {
                     applyFilterToLayer(lname, searchValue, parsedFields)
                 })
 
@@ -1406,10 +1436,8 @@ function SearchBar({ componentVars }) {
                 const startISO = new Date(newStart).toISOString().split('.')[0] + 'Z'
                 const endISO = new Date(newEnd).toISOString().split('.')[0] + 'Z'
                 TimeControl.setTime(startISO, endISO, false)
-                // Reload time-enabled layers so they re-fetch with the new range
-                layers.forEach((lname) => {
-                    TimeControl.reloadLayer(lname)
-                })
+                // setTime already triggers reloadTimeLayers via the TimeUI
+                // change event — no need to manually call reloadLayer.
                 setTimeRangeWarning(null)
             }
         })
