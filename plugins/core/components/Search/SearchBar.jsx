@@ -1222,7 +1222,23 @@ function SearchBar({ componentVars }) {
                         }
                     })
                     if (boundsArr.length > 0) {
-                        Map_.map.fitBounds(boundsArr, { padding: [40, 40], maxZoom: 16 })
+                        if (boundsArr.length === 1) {
+                            // Single point: pan to it using mapScaleZoom
+                            Map_.map.setView(
+                                boundsArr[0],
+                                Map_.mapScaleZoom || Map_.map.getZoom()
+                            )
+                        } else {
+                            // Multiple features: fitBounds zoomed out one level
+                            // from the natural fit (use current zoom as cap)
+                            const currentZoom = Map_.map.getZoom()
+                            const fitZoom = Map_.map.getBoundsZoom(boundsArr, false, [60, 60])
+                            const targetZoom = Math.min(fitZoom - 1, currentZoom)
+                            Map_.map.fitBounds(boundsArr, {
+                                padding: [60, 60],
+                                maxZoom: Math.max(targetZoom, 1),
+                            })
+                        }
                     }
                 }
             } else {
