@@ -1080,11 +1080,12 @@ function SearchBar({ componentVars }) {
             // Set the filter values
             Filtering.filters[lname].values = filterValues
 
+            let refreshResult
             if (isGeodataset) {
                 // Geodataset layers: use GeodatasetFilterer directly.
                 // This builds _filterEncoded and (unless skipRefresh) calls
                 // refreshLayer to re-fetch data with the filter applied.
-                GeodatasetFilterer.filter(lname, Filtering.filters[lname], null, skipRefresh)
+                refreshResult = GeodatasetFilterer.filter(lname, Filtering.filters[lname], null, skipRefresh)
             } else {
                 // Local vector layers: need geojson cached for LocalFilterer
                 if (
@@ -1105,6 +1106,8 @@ function SearchBar({ componentVars }) {
             if (Filtering.current.layerName === lname) {
                 Filtering.refresh()
             }
+
+            return refreshResult
         },
         [effectiveSearchFields, getL_]
     )
@@ -1175,27 +1178,79 @@ function SearchBar({ componentVars }) {
                     geoFilterTargets.filter((l) => L_.layers.on[l])
                 )
 
-                // Pre-set filter on geodataset layers that are OFF (skipRefresh=true).
-                // When they toggle on, the filter is already in _filterEncoded so the
-                // initial data fetch returns only matching features (no flash).
-                geoFilterTargets
-                    .filter((l) => !geoAlreadyOn.has(l))
-                    .forEach((lname) => {
-                        applyFilterToLayer(lname, searchValue, parsedFields, true)
+                // For dynamic extent geodataset layers, refreshLayer returns
+                // immediately and the actual data loads asynchronously via the
+                // dynamicExtent callback. Subscribe to the reload-finish signal
+                // BEFORE triggering any toggles/refreshes so we catch all signals.
+                const dynamicExtentGeoLayers = geoFilterTargets.filter(
+                    (l) => L_.layers.data[l]?.variables?.dynamicExtent === true
+                )
+                let geoReloadPromise = Promise.resolve()
+                if (dynamicExtentGeoLayers.length > 0) {
+                    geoReloadPromise = new Promise((resolve) => {
+                        const subId = `searchFilter_${Date.now()}`
+                        let resolved = false
+                        let reloadCount = 0
+                        const needed = dynamicExtentGeoLayers.length
+                        const L_ref = L_
+                        L_ref.subscribeTimeLayerReloadFinish(subId, () => {
+                            reloadCount++
+                            if (!resolved && reloadCount >= needed) {
+                                resolved = true
+                                L_ref.unsubscribeTimeLayerReloadFinish(subId)
+                                resolve()
+                            }
+                        })
+                        // Safety timeout — resolves even if the subscription
+                        // doesn't fire (e.g. API error, stale-request guard).
+                        setTimeout(() => {
+                            if (!resolved) {
+                                resolved = true
+                                L_ref.unsubscribeTimeLayerReloadFinish(subId)
+                                resolve()
+                            }
+                        }, 5000)
                     })
+                }
 
-                // Toggle on all target layers
+                // Pre-set filter on ALL geodataset layers (skipRefresh=true) so
+                // that _filterEncoded is correct before any toggles fire. This
+                // prevents stray moveend events during the toggle loop from
+                // making API calls with the old filter and double-firing the
+                // reload-finish subscription.
+                geoFilterTargets.forEach((lname) => {
+                    applyFilterToLayer(lname, searchValue, parsedFields, true)
+                })
+
+                // Toggle on all target layers (vector layers load synchronously,
+                // geodataset layers create empty layer then load data asynchronously).
                 for (const lname of filterTargets) {
                     if (!L_.layers.on[lname]) {
                         await L_.toggleLayer(L_.layers.data[lname])
                     }
                 }
 
-                // For geodataset layers that were already on, apply filter normally
-                // (triggers refreshLayer to re-fetch with filter).
-                geoAlreadyOn.forEach((lname) => {
-                    applyFilterToLayer(lname, searchValue, parsedFields)
+                // For geodataset layers that were already on, explicitly trigger
+                // a refresh so they re-fetch with the new filter. Newly toggled
+                // layers already fetch data via the toggle subscription.
+                const nonDynamicRefreshPromises = []
+                ;[...geoAlreadyOn].forEach((lname) => {
+                    const ld = L_.layers.data[lname]
+                    if (ld?.variables?.dynamicExtent === true) {
+                        // Dynamic extent: call refreshLayer which fires the
+                        // subscription callback to make the API request.
+                        L_.Map_.refreshLayer(ld, null, null, true)
+                    } else {
+                        // Non-dynamic: refreshLayer awaits makeLayer properly.
+                        const p = applyFilterToLayer(lname, searchValue, parsedFields)
+                        if (p) nonDynamicRefreshPromises.push(p)
+                    }
                 })
+
+                // Wait for all geodataset layers to finish reloading:
+                // - Dynamic extent: caught by the reload-finish subscription
+                // - Non-dynamic: awaited via the returned refreshLayer promise
+                await Promise.all([geoReloadPromise, ...nonDynamicRefreshPromises])
 
                 // Apply filters to non-geodataset layers
                 vecFilterTargets.forEach((lname) => {
