@@ -1422,6 +1422,42 @@ function SearchBar({ componentVars }) {
                             trySelect(20)
                         }
                     })
+
+                    // Show time-range warning for time-enabled geodataset layers
+                    // so users know the selected feature may not be visible on the map.
+                    if (!searchTimeRestrict) {
+                        const timeEnabledTargets = targetLayers.filter((lname) => {
+                            const ld = L_.layers.data[lname]
+                            return ld?.time?.enabled === true && ld?.time?.type === 'requery'
+                        })
+                        if (timeEnabledTargets.length > 0) {
+                            const ld = L_.layers.data[timeEnabledTargets[0]]
+                            // Build a filter string for the searched value so "Fit time range"
+                            // can query the API for the correct feature's time extent.
+                            let selectFilter = ld._filterEncoded?.filters || null
+                            if (!selectFilter && parsedFields) {
+                                const parts = Object.entries(parsedFields).map(([k, v]) =>
+                                    `${k}+=+string+${v}`
+                                )
+                                if (parts.length > 0) selectFilter = parts.join(',')
+                            } else if (!selectFilter && searchValue) {
+                                const sf = effectiveSearchFields[timeEnabledTargets[0]]
+                                if (sf && sf.length > 0) {
+                                    selectFilter = `${sf[0][1]}+contains+string+${searchValue}`
+                                }
+                            }
+                            setTimeRangeWarning({
+                                layers: timeEnabledTargets,
+                                start: ld.time.start,
+                                end: ld.time.end,
+                                filterEncoded: selectFilter,
+                            })
+                        } else {
+                            setTimeRangeWarning(null)
+                        }
+                    } else {
+                        setTimeRangeWarning(null)
+                    }
                 } else {
                     // Single layer select mode
                     targetLayers.forEach((lname) => {
@@ -1433,10 +1469,43 @@ function SearchBar({ componentVars }) {
                             doWithSearch('both', null, lname, false, searchValue)
                         }
                     })
+
+                    // Show time-range warning for time-enabled geodataset layers
+                    if (!searchTimeRestrict) {
+                        const timeEnabledTargets = targetLayers.filter((lname) => {
+                            const ld = L_.layers.data[lname]
+                            return ld?.time?.enabled === true && ld?.time?.type === 'requery'
+                        })
+                        if (timeEnabledTargets.length > 0) {
+                            const ld = L_.layers.data[timeEnabledTargets[0]]
+                            let selectFilter = ld._filterEncoded?.filters || null
+                            if (!selectFilter && parsedFields) {
+                                const parts = Object.entries(parsedFields).map(([k, v]) =>
+                                    `${k}+=+string+${v}`
+                                )
+                                if (parts.length > 0) selectFilter = parts.join(',')
+                            } else if (!selectFilter && searchValue) {
+                                const sf = effectiveSearchFields[timeEnabledTargets[0]]
+                                if (sf && sf.length > 0) {
+                                    selectFilter = `${sf[0][1]}+contains+string+${searchValue}`
+                                }
+                            }
+                            setTimeRangeWarning({
+                                layers: timeEnabledTargets,
+                                start: ld.time.start,
+                                end: ld.time.end,
+                                filterEncoded: selectFilter,
+                            })
+                        } else {
+                            setTimeRangeWarning(null)
+                        }
+                    } else {
+                        setTimeRangeWarning(null)
+                    }
                 }
             }
         },
-        [inputValue, arrayToSearch, selectedLayer, selectedGroupId, searchGroups, searchMode, searchTimeRestrict, searchGeodatasets, doWithSearch, applyFilterToLayer, getL_, getMap_]
+        [inputValue, arrayToSearch, selectedLayer, selectedGroupId, searchGroups, searchMode, searchTimeRestrict, effectiveSearchFields, searchGeodatasets, doWithSearch, applyFilterToLayer, getL_, getMap_]
     )
 
     const handleSuggestionClick = useCallback(
