@@ -1529,8 +1529,10 @@ router.post("/search", function (req, res, next) {
 
         // For regex operator, cap length to prevent ReDoS and strip delimiters
         if (searchOp === "regex" && sanitizedValue) {
-          if (sanitizedValue.length > 200) sanitizedValue = sanitizedValue.substring(0, 200);
-          const regexMatch = sanitizedValue.match(/^\/(.+)\/([gimsuy]*)$/);
+          let regexValue = sanitizedValue;
+          if (regexValue.length > 200) regexValue = regexValue.substring(0, 200);
+          replacements.value = regexValue;
+          const regexMatch = regexValue.match(/^\/(.+)\/([gimsuy]*)$/);
           if (regexMatch) {
             replacements.value = regexMatch[1];
             // Use case-sensitive (~) if no 'i' flag, case-insensitive (~*) otherwise
