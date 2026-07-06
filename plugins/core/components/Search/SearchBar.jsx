@@ -1198,43 +1198,31 @@ function SearchBar({ componentVars }) {
 
                 await Promise.all(geoPromises)
 
-                // Combine all features for a single pan
+                // Zoom to fit all filtered results (no highlighting in filter mode)
                 const allPanTargets = [...vecFeatures]
                 geoResults.forEach((gr) => {
-                    // Wrap GeoJSON feature as a pseudo-layer for getMapZoomCoordinate
                     allPanTargets.push({ feature: gr.feature })
                 })
 
-                if (vecFeatures.length === 1) {
-                    L_.highlight(vecFeatures[0])
-                    vecFeatures[0].fireEvent('click')
-                    if (typeof vecFeatures[0].bringToFront === 'function')
-                        vecFeatures[0].bringToFront()
-                }
-
-                if (geoResults.length === 1 && vecFeatures.length === 0) {
-                    // Single geodataset result — select it.
-                    // The filter refresh is async (GeodatasetFilterer rebuilds the layer),
-                    // so poll until the layer has features before attempting selectFeature.
-                    const gr = geoResults[0]
-                    const trySelect = (attempts) => {
-                        const layer = L_.layers.layer[gr.layerName]
-                        if (layer && layer._layers && Object.keys(layer._layers).length > 0) {
-                            L_.selectFeature(gr.layerName, gr.feature)
-                        } else if (attempts > 0) {
-                            setTimeout(() => trySelect(attempts - 1), 200)
-                        }
-                    }
-                    trySelect(20)
-                }
-
                 if (allPanTargets.length > 0 && Map_) {
-                    const coordinate = getMapZoomCoordinate(allPanTargets)
-                    if (coordinate) {
-                        Map_.map.setView(
-                            [coordinate.latitude, coordinate.longitude],
-                            Map_.mapScaleZoom || Map_.map.getZoom()
-                        )
+                    // Build a bounds array from all results
+                    const boundsArr = []
+                    allPanTargets.forEach((t) => {
+                        if (t.feature) {
+                            const c = center(t.feature)
+                            const coords = c.geometry.coordinates
+                            boundsArr.push([coords[1], coords[0]])
+                        } else if (t.getLatLng) {
+                            const ll = t.getLatLng()
+                            boundsArr.push([ll.lat, ll.lng])
+                        } else if (t.getBounds) {
+                            const b = t.getBounds()
+                            boundsArr.push([b.getSouthWest().lat, b.getSouthWest().lng])
+                            boundsArr.push([b.getNorthEast().lat, b.getNorthEast().lng])
+                        }
+                    })
+                    if (boundsArr.length > 0) {
+                        Map_.map.fitBounds(boundsArr, { padding: [40, 40], maxZoom: 16 })
                     }
                 }
             } else {
