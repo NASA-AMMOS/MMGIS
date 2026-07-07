@@ -2593,6 +2593,28 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of features to return. When provided, results are paginated. If omitted, all results are returned (backward-compatible).",
+            "example": 50,
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of features to skip before returning results. Used with 'limit' for pagination.",
+            "example": 0,
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
           }
         ],
         "responses": {
@@ -2824,6 +2846,28 @@
             "required": false,
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of features to return. When provided, results are paginated. If omitted, all results are returned (backward-compatible).",
+            "example": 50,
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of features to skip before returning results. Used with 'limit' for pagination.",
+            "example": 0,
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
             }
           }
         ],
@@ -3169,6 +3213,62 @@
                     "value": {
                       "status": "failure",
                       "message": "Not Found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/schema": {
+      "get": {
+        "summary": "Return field names, types, and source layers for multiple geodataset layers in bulk.",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "layers",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated list of geodataset layer names to query.",
+            "example": "reference_mission_basic,reference_mission_time_series"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the combined schema across all requested layers.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "schema": {
+                        "name": {
+                          "type": "string",
+                          "layers": ["reference_mission_basic", "reference_mission_time_series"]
+                        },
+                        "category": {
+                          "type": "string",
+                          "layers": ["reference_mission_basic"]
+                        },
+                        "elevation": {
+                          "type": "number",
+                          "layers": ["reference_mission_basic"]
+                        }
+                      }
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failure querying geodataset schema."
                     }
                   }
                 }

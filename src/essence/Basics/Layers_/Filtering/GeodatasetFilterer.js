@@ -63,7 +63,7 @@ const GeodatasetFilterer = {
             )
         })
     },
-    filter: function (layerName, filter, refreshFunction) {
+    filter: function (layerName, filter, refreshFunction, skipRefresh) {
         L_.layers.data[layerName]._stopLoops = true
         L_.layers.data[layerName]._filter = filter
         L_.layers.data[layerName]._filterEncoded = {}
@@ -96,7 +96,11 @@ const GeodatasetFilterer = {
                 if (fvalues.length > 0) {
                     let encoded = []
                     fvalues.forEach((v) => {
-                        if (v.value != null && v.key != null)
+                        if (v.key != null && (v.op === 'isnull' || v.op === 'isnotnull'))
+                            encoded.push(
+                                `${v.key}+${v.op}+${v.type}+`
+                            )
+                        else if (v.value != null && v.key != null)
                             encoded.push(
                                 `${v.key}+${v.op === ',' ? 'in' : v.op}+${
                                     v.type
@@ -110,7 +114,9 @@ const GeodatasetFilterer = {
                 }
             }
         }
-        L_.Map_.refreshLayer(L_.layers.data[layerName], null, null, true)
+        if (!skipRefresh) {
+            return L_.Map_.refreshLayer(L_.layers.data[layerName], null, null, true)
+        }
     },
     match: function (feature, filter) {
         if (filter.values.length === 0) return true
@@ -124,6 +130,17 @@ const GeodatasetFilterer = {
                         ? feature.geometry.type
                         : F_.getIn(feature.properties, v.key)
                 let filterValue = v.value
+
+                // Handle isnull/isnotnull before any type coercion
+                if (v.op === 'isnull') {
+                    v.matches = featureValue == null
+                    continue
+                }
+                if (v.op === 'isnotnull') {
+                    v.matches = featureValue != null
+                    continue
+                }
+
                 if (v.type === 'number' && v.op != ',')
                     filterValue = parseFloat(filterValue)
                 else if (v.type === 'boolean') {
@@ -135,6 +152,10 @@ const GeodatasetFilterer = {
                     switch (v.op) {
                         case '=':
                             if (featureValue == filterValue) v.matches = true
+                            else v.matches = false
+                            break
+                        case '!=':
+                            if (featureValue != filterValue) v.matches = true
                             else v.matches = false
                             break
                         case ',':
@@ -153,7 +174,7 @@ const GeodatasetFilterer = {
                         case '<':
                             if (
                                 v.type === 'string'
-                                    ? featureValue.localeCompare(filterValue) >
+                                    ? featureValue.localeCompare(filterValue) <
                                       0
                                     : featureValue < filterValue
                             )
@@ -163,9 +184,29 @@ const GeodatasetFilterer = {
                         case '>':
                             if (
                                 v.type === 'string'
-                                    ? featureValue.localeCompare(filterValue) <
+                                    ? featureValue.localeCompare(filterValue) >
                                       0
                                     : featureValue > filterValue
+                            )
+                                v.matches = true
+                            else v.matches = false
+                            break
+                        case '<=':
+                            if (
+                                v.type === 'string'
+                                    ? featureValue.localeCompare(filterValue) <=
+                                      0
+                                    : featureValue <= filterValue
+                            )
+                                v.matches = true
+                            else v.matches = false
+                            break
+                        case '>=':
+                            if (
+                                v.type === 'string'
+                                    ? featureValue.localeCompare(filterValue) >=
+                                      0
+                                    : featureValue >= filterValue
                             )
                                 v.matches = true
                             else v.matches = false
@@ -228,7 +269,7 @@ const GeodatasetFilterer = {
             const groupedValuesByOp = {}
             groupedValuesByKey[key].forEach((v) => {
                 let op = v.op
-                if (op === '<' || op === '>') op = '<>'
+                if (op === '<' || op === '>' || op === '<=' || op === '>=') op = '<>'
 
                 groupedValuesByOp[op] = groupedValuesByOp[op] || []
                 groupedValuesByOp[op].push(v)

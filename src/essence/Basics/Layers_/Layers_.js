@@ -1,7 +1,7 @@
 // Holds all layer data
 import F_ from '../Formulae_/Formulae_'
 import Description from '../UserInterface_/components/Description/Description'
-import Search from '../UserInterface_/components/Search/Search'
+// Search is now a React component rendered in TopBar.jsx
 import Attributions from '../UserInterface_/components/Attributions/Attributions'
 import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import LayerGeologic from './LayerGeologic/LayerGeologic'
@@ -162,7 +162,8 @@ const L_ = {
     fullyLoaded: function () {
         this.selectPoint(this.FUTURES.activePoint)
 
-        Search.init('.Search', L_, this.Viewer_, this.Map_, this.Globe_)
+        // Search is now a React component (SearchBar) mounted in TopBar.jsx
+        // It initializes itself via useEffect when L_.layers.data is available
         Description.updateInfo()
 
         $('#main-container').css('filter', '')
@@ -2517,8 +2518,43 @@ const L_ = {
 
             for (let i = 0; i < layerKeys.length; i++) {
                 const l = layerKeys[i]
+                const layerFeature = layers[l].feature
+
+                // Fast path: match by feature_id when both features have it.
+                // Geodataset layers with _source have reduced properties that
+                // won't match the full search result via JSON.stringify.
+                // The search API stores the id in properties._.idx while the
+                // GET endpoint stores it in properties.feature_id.
+                const layerFid = layerFeature.properties?.feature_id
+                const inputFid = f.properties?.feature_id ?? f.properties?._?.idx
+                if (
+                    layerFid != null &&
+                    inputFid != null &&
+                    String(layerFid) === String(inputFid)
+                ) {
+                    if (layers[layerKeys[i + (relation || 0)]] != null) {
+                        if (
+                            L_.Globe_ &&
+                            L_.Globe_.litho &&
+                            L_.Globe_.litho._justSelectedFromMap !== undefined
+                        ) {
+                            L_.Globe_.litho._justSelectedFromMap = true
+                            if (L_.Globe_.litho._justSelectedTimeout)
+                                clearTimeout(L_.Globe_.litho._justSelectedTimeout)
+                            L_.Globe_.litho._justSelectedTimeout = setTimeout(
+                                () => { L_.Globe_.litho._justSelectedFromMap = false },
+                                500
+                            )
+                        }
+                        if (L_.Globe_ && L_.Globe_.highlight)
+                            L_.Globe_.highlight(layerName, f)
+                        layers[layerKeys[i + (relation || 0)]].fireEvent('click')
+                    }
+                    return
+                }
+
                 const lfeatureWithout_ = JSON.parse(
-                    JSON.stringify(layers[l].feature)
+                    JSON.stringify(layerFeature)
                 )
                 if (lfeatureWithout_.properties?._ != null)
                     delete lfeatureWithout_.properties._
@@ -2534,7 +2570,7 @@ const L_ = {
                 // precision-reduced GeoJSON) and Leaflet (which has full precision)
                 const roundedClickedGeometry = roundGeometry(f.geometry)
                 const roundedLayerGeometry = roundGeometry(
-                    layers[l].feature.geometry
+                    layerFeature.geometry
                 )
 
                 const geometryMatch = F_.isEqual(

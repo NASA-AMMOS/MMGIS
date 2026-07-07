@@ -97,6 +97,9 @@
 #layersTool #filterLayers div.visible.on {
     border-bottom: 4px solid rgba(255, 255, 255, 1);
 }
+#layersTool #filterLayers div.filtered.on {
+    border-bottom: 4px solid #4a9eda;
+}
 #layersTool #searchLayers input {
     background: var(--color-a1);
     flex: 1;
@@ -180,6 +183,12 @@
     color: var(--color-f);
 }
 #layersToolList > li.forceOff {
+    height: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    overflow: hidden;
+}
+#layersToolList > li.forceOff3 {
     height: 0 !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;

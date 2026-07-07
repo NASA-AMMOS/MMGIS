@@ -17,7 +17,7 @@
  */
 
 import L_ from '../Layers_/Layers_'
-import { componentModules, componentConfigs } from '../../../pre/components'
+import { componentModules } from '../../../pre/components'
 
 const ComponentController_ = {
     /**
@@ -57,17 +57,12 @@ const ComponentController_ = {
             return
         }
 
-        // Track initialization statistics
-        let successCount = 0
-        let errorCount = 0
-
         // Initialize each enabled component
-        enabledComponents.forEach((component, index) => {
+        enabledComponents.forEach((component) => {
             const componentName = component.name
             const componentVars = component.variables || {}
 
             try {
-                // Get the component module from the imported modules
                 const componentModule = componentModules[component.js]
 
                 if (!componentModule) {
@@ -79,25 +74,18 @@ const ComponentController_ = {
                     )
                 }
 
-                // Verify the component has an init method
                 if (typeof componentModule.init !== 'function') {
                     throw new Error(
                         `Component "${componentName}" does not have an init() method`
                     )
                 }
 
-                // Call the component's init() method with its configured variables
                 componentModule.init(componentVars)
-
-                successCount++
             } catch (err) {
-                // Catch and log errors but continue to next component
-                // This ensures one broken component doesn't break the entire page
                 console.error(
                     `[ComponentController] ✗ Error initializing component "${componentName}"):`,
                     err
                 )
-                errorCount++
             }
         })
     },

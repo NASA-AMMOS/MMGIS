@@ -195,29 +195,13 @@ const UserInterfaceBridge = {
 
     openRightPanel: function (width) {
         if (UserInterfaceBridge.rightPanelOpen != null) return
-        const coordsDiv = document.getElementById('CoordinatesDiv')
-        if (coordsDiv) coordsDiv.style.right = width + 'px'
-        useUIStore.getState().setRightPanelWidth(width)
-        // Splitscreens dimensions are recaptured by ResizeObserver
-        const rightPanel = document.getElementById('uiRightPanel')
-        if (rightPanel) {
-            rightPanel.style.display = 'inherit'
-            rightPanel.style.width = width + 'px'
-        }
+        useUIStore.getState().openRightPanel(width)
         UserInterfaceBridge.rightPanelOpen = true
     },
 
     closeRightPanel: function () {
         if (UserInterfaceBridge.rightPanelOpen == null) return
-        const coordsDiv = document.getElementById('CoordinatesDiv')
-        if (coordsDiv) coordsDiv.style.right = '0px'
-        useUIStore.getState().setRightPanelWidth(0)
-        // Splitscreens dimensions are recaptured by ResizeObserver
-        const rightPanel = document.getElementById('uiRightPanel')
-        if (rightPanel) {
-            rightPanel.style.display = 'none'
-            rightPanel.style.width = '0'
-        }
+        useUIStore.getState().closeRightPanel()
         UserInterfaceBridge.rightPanelOpen = null
     },
 
@@ -356,6 +340,8 @@ const UserInterfaceBridge = {
             BottomBar.changeUIVisibility('coordinates', false)
         if (look.miscellaneous === false)
             BottomBar.changeUIVisibility('miscellaneous', false)
+        if (look.searchbar === false)
+            BottomBar.changeUIVisibility('searchbar', false)
 
         // Mobile-specific fina behavior
         if (this.isMobile) {

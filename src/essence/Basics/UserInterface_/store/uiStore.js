@@ -84,6 +84,7 @@ const useUIStore = create((set, get) => ({
         coordinates: true,
         graticule: true,
         miscellaneous: true,
+        searchbar: true,
     },
 
     // Config look flags (set by UserInterfaceBridge.fina from mission config)
@@ -224,6 +225,14 @@ const useUIStore = create((set, get) => ({
 
     closeToolPanel: () => {
         set({ toolPanelWidth: 0 })
+    },
+
+    openRightPanel: (width) => {
+        set({ rightPanelWidth: width })
+    },
+
+    closeRightPanel: () => {
+        set({ rightPanelWidth: 0 })
     },
 
     setToolWidth: (newWidth) => {

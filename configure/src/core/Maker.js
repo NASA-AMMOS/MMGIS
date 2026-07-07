@@ -58,6 +58,7 @@ import { data as colormapData } from "../external/js-colormaps.js";
 import { calls } from "./calls";
 import { parseTileMatrixSetCRS } from "./crsUtils";
 import Autocomplete from "@mui/material/Autocomplete";
+import Chip from "@mui/material/Chip";
 
 const useStyles = makeStyles((theme) => ({
   Maker: {
@@ -1327,10 +1328,105 @@ const getComponent = (
           )}
         </div>
       );
+    case "layerMultiSelect": {
+      const allowedTypes = Array.isArray(com.layerTypes) ? com.layerTypes : null;
+      const allLayers = [];
+      if (configuration && configuration.layers) {
+        traverseLayers(configuration.layers, (l) => {
+          if (l.type && l.type !== "header") {
+            if (allowedTypes && !allowedTypes.includes(l.type)) return;
+            allLayers.push({
+              uuid: l.uuid || l.name,
+              displayName: l.display_name || l.name,
+            });
+          }
+        });
+      }
+      const layerOptions = allLayers.map((l) => l.displayName);
+      const validNames = new Set(allLayers.map((l) => l.displayName));
+      const validUuids = new Set(allLayers.map((l) => l.uuid));
+
+      let selectedLayers = value != null ? value : fieldValue;
+      if (!Array.isArray(selectedLayers)) selectedLayers = [];
+
+      inner = (
+        <Autocomplete
+          className={c.autocomplete}
+          multiple
+          options={layerOptions}
+          value={selectedLayers}
+          onChange={(event, newValue) => {
+            updateConfiguration(forceField || com.field, newValue, layer);
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label={com.name}
+              variant="filled"
+              size="small"
+            />
+          )}
+          renderTags={(tagValue, getTagProps) =>
+            tagValue.map((option, index) => {
+              const isValid = validNames.has(option) || validUuids.has(option);
+              return (
+                <Chip
+                  label={option}
+                  size="small"
+                  {...getTagProps({ index })}
+                  key={option}
+                  sx={
+                    isValid
+                      ? {}
+                      : {
+                          backgroundColor: "rgba(211, 47, 47, 0.2)",
+                          color: "#f44336",
+                          "& .MuiChip-deleteIcon": {
+                            color: "#f44336",
+                          },
+                        }
+                  }
+                />
+              );
+            })
+          }
+          filterOptions={(options, { inputValue }) => {
+            return options.filter(
+              (option) =>
+                option.toLowerCase().includes(inputValue.toLowerCase()) &&
+                !selectedLayers.includes(option)
+            );
+          }}
+          noOptionsText="No matching layers"
+          clearOnBlur={false}
+          selectOnFocus
+          handleHomeEndKeys
+          freeSolo
+        />
+      );
+      return (
+        <div>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <div
+                className={c.subtitle2}
+                dangerouslySetInnerHTML={{ __html: com.description || "" }}
+              ></div>
+            </>
+          ) : (
+            <Tooltip title={com.description || ""} placement="top" arrow>
+              {inner}
+            </Tooltip>
+          )}
+        </div>
+      );
+    }
     case "objectarray":
       const section = [];
       let items;
       if (tool) items = getIn(tool, com.field.split("."), []);
+      else if (component) items = getIn(component, com.field.split("."), []);
       else if (layer) items = getIn(layer, com.field.split("."), []);
       else items = getIn(configuration, com.field.split("."), []);
       if (typeof items.push !== "function") items = [];
@@ -1403,6 +1499,15 @@ const getComponent = (
                     next.splice(idx, 1);
 
                     updateConfiguration(com.field, next, configuration);
+                  } else if (component) {
+                    const comp = getComponentFromConfiguration(component.name, configuration);
+                    let next = getIn(comp, com.field.split("."), []);
+                    next = JSON.parse(JSON.stringify(next));
+                    if (typeof next.push !== "function") next = [];
+
+                    next.splice(idx, 1);
+
+                    updateConfiguration(com.field, next);
                   } else if (layer) {
                     const l = getLayerByUUID(configuration.layers, layer.uuid);
                     let next = getIn(l, com.field.split("."), []);
@@ -1455,6 +1560,18 @@ const getComponent = (
                     next.push(nextObj);
 
                     updateConfiguration(com.field, next, configuration);
+                  } else if (component) {
+                    const comp = getComponentFromConfiguration(component.name, configuration);
+                    let next = getIn(comp, com.field.split("."), []);
+                    next = JSON.parse(JSON.stringify(next));
+                    if (typeof next.push !== "function") next = [];
+                    let nextObj = {};
+                    com.object.forEach((obj) => {
+                      nextObj[obj.field] = null;
+                    });
+                    next.push(nextObj);
+
+                    updateConfiguration(com.field, next);
                   } else if (layer) {
                     const l = getLayerByUUID(configuration.layers, layer.uuid);
                     let next = getIn(l, com.field.split("."), []);
