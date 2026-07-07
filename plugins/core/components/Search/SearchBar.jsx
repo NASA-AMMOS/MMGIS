@@ -1696,13 +1696,12 @@ function SearchBar({ componentVars }) {
                 setTimeRangeWarning(null)
 
                 // Wait for the time-layer reload to finish, then re-search.
-                // Use a longer delay to ensure reloadTimeLayers completes.
-                const reExecDelay = warningCtx.mode === 'filter' ? 2500 : 2000
-                setTimeout(() => {
+                // TimeControl._reloadPromise is set by timeInputChange when
+                // reloadTimeLayers is kicked off — await it instead of a
+                // fixed setTimeout so the UI responds as soon as data arrives.
+                const reloadDone = TimeControl._reloadPromise || Promise.resolve()
+                reloadDone.then(() => {
                     if (warningCtx.mode === 'select') {
-                        // Re-run searchGeodatasets for each time-enabled
-                        // layer. Skip time check since we just expanded
-                        // the range to fit this feature.
                         warningCtx.layers.forEach((lname) => {
                             searchGeodatasets(
                                 lname,
@@ -1713,9 +1712,6 @@ function SearchBar({ componentVars }) {
                             )
                         })
                     } else if (warningCtx.mode === 'filter') {
-                        // Re-apply the filter — the layer has reloaded with
-                        // the expanded time range so the features are now
-                        // available.
                         warningCtx.layers.forEach((lname) => {
                             applyFilterToLayer(
                                 lname,
@@ -1724,7 +1720,7 @@ function SearchBar({ componentVars }) {
                             )
                         })
                     }
-                }, reExecDelay)
+                })
             }
         })
     }, [timeRangeWarning, getL_, searchGeodatasets, applyFilterToLayer])
