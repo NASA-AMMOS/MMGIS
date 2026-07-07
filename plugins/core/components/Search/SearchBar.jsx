@@ -794,7 +794,7 @@ function SearchBar({ componentVars }) {
     // skipPan: if true, don't pan/select — just return the result feature.
     // Returns a Promise that resolves with the matched feature (or null).
     const searchGeodatasets = useCallback(
-        (lname, value, parsedFields, skipPan) => {
+        (lname, value, parsedFields, skipPan, skipTimeCheck) => {
             const L_ = getL_()
             const Map_ = getMap_()
             const layerName = lname || selectedLayer
@@ -855,8 +855,11 @@ function SearchBar({ componentVars }) {
                         // the result feature is outside the current time
                         // range. If so, don't toggle the layer on — it
                         // would show unrelated time-filtered features.
+                        // Skip this check when called from "Fit time range"
+                        // since the range was just expanded.
                         const ld = L_.layers.data[layerName]
                         if (
+                            !skipTimeCheck &&
                             ld?.time?.enabled === true &&
                             ld?.time?.type === 'requery' &&
                             TimeControl.startTime &&
@@ -1318,6 +1321,9 @@ function SearchBar({ componentVars }) {
                             start: ld.time.start,
                             end: ld.time.end,
                             filterEncoded: ld._filterEncoded?.filters || null,
+                            searchValue,
+                            parsedFields,
+                            mode: 'filter',
                         })
                     } else {
                         setTimeRangeWarning(null)
@@ -1539,6 +1545,9 @@ function SearchBar({ componentVars }) {
                                 start: ld.time.start,
                                 end: ld.time.end,
                                 filterEncoded: selectFilter,
+                                searchValue,
+                                parsedFields,
+                                mode: 'select',
                             })
                         } else {
                             setTimeRangeWarning(null)
@@ -1583,6 +1592,9 @@ function SearchBar({ componentVars }) {
                                 start: ld.time.start,
                                 end: ld.time.end,
                                 filterEncoded: selectFilter,
+                                searchValue,
+                                parsedFields,
+                                mode: 'select',
                             })
                         } else {
                             setTimeRangeWarning(null)
@@ -1646,15 +1658,21 @@ function SearchBar({ componentVars }) {
             let maxTime = -Infinity
             data.features.forEach((f) => {
                 const props = f.properties || {}
-                const st = props[startProp]
-                const et = props[endProp]
+                // Time columns are in properties._.start_time / end_time
+                // (epoch ms from the table columns), or top-level props
+                // via startProp/endProp for non-geodataset layers.
+                const st = props._?.start_time ?? props[startProp]
+                const et = props._?.end_time ?? props[endProp]
                 if (st != null) {
-                    const t = typeof st === 'number' ? st * 1000 : new Date(st).getTime()
-                    if (t < minTime) minTime = t
+                    const n = Number(st)
+                    // If it converts cleanly to a number, treat as epoch ms
+                    const t = !isNaN(n) ? n : new Date(st).getTime()
+                    if (!isNaN(t) && t < minTime) minTime = t
                 }
                 if (et != null) {
-                    const t = typeof et === 'number' ? et * 1000 : new Date(et).getTime()
-                    if (t > maxTime) maxTime = t
+                    const n = Number(et)
+                    const t = !isNaN(n) ? n : new Date(et).getTime()
+                    if (!isNaN(t) && t > maxTime) maxTime = t
                 }
             })
 
@@ -1671,12 +1689,45 @@ function SearchBar({ componentVars }) {
                 const startISO = new Date(newStart).toISOString().split('.')[0] + 'Z'
                 const endISO = new Date(newEnd).toISOString().split('.')[0] + 'Z'
                 TimeControl.setTime(startISO, endISO, false)
-                // setTime already triggers reloadTimeLayers via the TimeUI
-                // change event — no need to manually call reloadLayer.
+                // setTime triggers reloadTimeLayers via the TimeUI change
+                // event. After the layer reloads with the expanded range,
+                // re-execute the search so the feature gets selected/filtered.
+                const warningCtx = timeRangeWarning
                 setTimeRangeWarning(null)
+
+                // Wait for the time-layer reload to finish, then re-search.
+                // Use a longer delay to ensure reloadTimeLayers completes.
+                const reExecDelay = warningCtx.mode === 'filter' ? 2500 : 2000
+                setTimeout(() => {
+                    if (warningCtx.mode === 'select') {
+                        // Re-run searchGeodatasets for each time-enabled
+                        // layer. Skip time check since we just expanded
+                        // the range to fit this feature.
+                        warningCtx.layers.forEach((lname) => {
+                            searchGeodatasets(
+                                lname,
+                                warningCtx.searchValue,
+                                warningCtx.parsedFields,
+                                false,
+                                true
+                            )
+                        })
+                    } else if (warningCtx.mode === 'filter') {
+                        // Re-apply the filter — the layer has reloaded with
+                        // the expanded time range so the features are now
+                        // available.
+                        warningCtx.layers.forEach((lname) => {
+                            applyFilterToLayer(
+                                lname,
+                                warningCtx.searchValue,
+                                warningCtx.parsedFields
+                            )
+                        })
+                    }
+                }, reExecDelay)
             }
         })
-    }, [timeRangeWarning, getL_])
+    }, [timeRangeWarning, getL_, searchGeodatasets, applyFilterToLayer])
 
     // Clear any search-applied filters and restore hidden layers
     const clearSearchFilters = useCallback(() => {

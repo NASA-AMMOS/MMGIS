@@ -206,7 +206,7 @@ function get(reqtype, req, res, next, options) {
             cols.push("feature_id");
           cols = cols.join(", ");
 
-          let q = `SELECT${distinct} ${properties}, ST_AsGeoJSON(geom), ${cols} FROM ${Utils.forceAlphaNumUnder(
+          let q = `SELECT${distinct} ${properties}, ST_AsGeoJSON(geom), ${cols}, start_time, end_time FROM ${Utils.forceAlphaNumUnder(
             table
           )}`;
 
@@ -538,6 +538,10 @@ function get(reqtype, req, res, next, options) {
                 let properties = results[i].properties;
                 properties._ = properties._ || {};
                 properties._.idx = results[i].id;
+                if (results[i].start_time != null)
+                  properties._.start_time = results[i].start_time;
+                if (results[i].end_time != null)
+                  properties._.end_time = results[i].end_time;
                 let feature = {};
                 feature.type = "Feature";
                 feature.properties = properties;
