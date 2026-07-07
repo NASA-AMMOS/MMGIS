@@ -1869,12 +1869,12 @@ function SearchBar({ componentVars }) {
     return (
         <div
             id="Search"
-            className={`searchBar ${panelOpen ? 'searchBarExpanded' : ''}`}
+            className={`searchBar ${panelOpen ? 'searchBarExpanded' : ''} ${submittedValue != null ? 'searchBarActive' : ''}`}
             ref={panelRef}
         >
             {/* Top bar */}
             <div className="searchCompactBar">
-                <i className={`mdi mdi-magnify mdi-18px searchCompactIcon${submittedValue != null ? ' searchCompactIconActive' : ''}`} onClick={openPanel} />
+                <i className="mdi mdi-magnify mdi-18px searchCompactIcon" onClick={openPanel} />
                 {/* Layers trigger */}
                 {vectorLayers.length > 0 && (
                     <>
@@ -2128,7 +2128,7 @@ function SearchBar({ componentVars }) {
                     </div>
                     {timeRangeWarning && (
                         <div className="searchTimeWarning">
-                            <i className="mdi mdi-clock-alert-outline mdi-14px searchTimeWarningIcon" />
+                            <i className="mdi mdi-clock-alert-outline mdi-24px searchTimeWarningIcon" />
                             <span className="searchTimeWarningText">
                                 Results limited — not all matches may be shown.
                                 <span className="searchTimeWarningDates">

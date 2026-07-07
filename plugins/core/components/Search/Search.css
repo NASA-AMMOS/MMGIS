@@ -20,7 +20,7 @@
     padding: 0 4px;
     gap: 4px;
     cursor: text;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.2s;
     min-width: 280px;
 }
 
@@ -345,7 +345,7 @@
 .searchTimeWarningIcon {
     color: var(--color-yellow, #f0ad4e);
     flex-shrink: 0;
-    margin-top: 1px;
+    margin-top: 2px;
 }
 .searchTimeWarningText {
     flex: 1;
@@ -355,6 +355,14 @@
 .searchTimeWarningAction {
     white-space: nowrap;
     flex-shrink: 0;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    background: color-mix(in srgb, var(--color-yellow, #f0ad4e) 25%, var(--color-a)) !important;
+    border-color: var(--color-yellow, #f0ad4e) !important;
+    color: var(--color-f) !important;
+}
+.searchTimeWarningAction:hover {
+    background: color-mix(in srgb, var(--color-yellow, #f0ad4e) 40%, var(--color-a)) !important;
 }
 .searchTimeWarningDates {
     display: block;
@@ -372,20 +380,12 @@
     color: #999;
 }
 
-/* Active search indicator on search icon */
-.searchCompactIconActive {
+/* Active search: accent underline + background tint on the compact bar */
+.searchBarActive .searchCompactBar {
+    background: color-mix(in srgb, var(--color-mmgis) 12%, var(--color-a));
+    border-bottom: 2px solid var(--color-mmgis);
+}
+.searchBarActive .searchCompactIcon {
     color: var(--color-mmgis);
     opacity: 1;
-    position: relative;
-}
-.searchCompactIconActive::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    border: 1.5px solid var(--color-a);
-    background: #7CFC00;
 }
