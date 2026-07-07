@@ -850,6 +850,33 @@ function SearchBar({ componentVars }) {
                             [coords[1], coords[0]],
                             Map_.mapScaleZoom || Map_.map.getZoom()
                         )
+
+                        // For time-enabled geodataset layers, check if
+                        // the result feature is outside the current time
+                        // range. If so, don't toggle the layer on — it
+                        // would show unrelated time-filtered features.
+                        const ld = L_.layers.data[layerName]
+                        if (
+                            ld?.time?.enabled === true &&
+                            ld?.time?.type === 'requery' &&
+                            TimeControl.startTime &&
+                            TimeControl.endTime
+                        ) {
+                            const tcStart = new Date(TimeControl.startTime).getTime()
+                            const tcEnd = new Date(TimeControl.endTime).getTime()
+                            const fStart = r.properties?._?.start_time
+                            const fEnd = r.properties?._?.end_time
+                            const ft = fStart != null
+                                ? Number(fStart)
+                                : fEnd != null
+                                    ? Number(fEnd)
+                                    : null
+                            if (ft != null && (ft < tcStart || ft > tcEnd)) {
+                                resolve(r)
+                                return
+                            }
+                        }
+
                         const ensureLayerOn = L_.layers.on[layerName]
                             ? Promise.resolve()
                             : L_.toggleLayer(L_.layers.data[layerName])
@@ -1407,14 +1434,57 @@ function SearchBar({ componentVars }) {
                     Promise.all(geoPromises).then(async () => {
                         if (geoResults.length === 0) return
 
-                        // Toggle on all geodataset layers that returned results
+                        // For time-enabled layers, check whether the result
+                        // feature actually falls within the current time
+                        // range. If it doesn't, toggling the layer on would
+                        // show unrelated features (loaded for the current
+                        // time window) which is confusing.
+                        const tcStart = TimeControl.startTime
+                            ? new Date(TimeControl.startTime).getTime()
+                            : null
+                        const tcEnd = TimeControl.endTime
+                            ? new Date(TimeControl.endTime).getTime()
+                            : null
+
+                        const visibleResults = []
                         for (const gr of geoResults) {
+                            const ld = L_.layers.data[gr.layerName]
+                            if (
+                                ld?.time?.enabled === true &&
+                                ld?.time?.type === 'requery' &&
+                                tcStart != null &&
+                                tcEnd != null
+                            ) {
+                                // The search API returns start_time/end_time
+                                // table columns in properties._.start_time
+                                // and properties._.end_time (epoch ms).
+                                const fStart = gr.feature.properties?._?.start_time
+                                const fEnd = gr.feature.properties?._?.end_time
+                                const ft = fStart != null
+                                    ? Number(fStart)
+                                    : fEnd != null
+                                        ? Number(fEnd)
+                                        : null
+                                if (ft != null && (ft < tcStart || ft > tcEnd)) {
+                                    // Feature is outside time range — don't
+                                    // toggle the layer on (would show wrong
+                                    // features). The time-range warning will
+                                    // let the user expand the range.
+                                    continue
+                                }
+                            }
+                            visibleResults.push(gr)
+                        }
+
+                        // Toggle on layers for results within time range
+                        for (const gr of visibleResults) {
                             if (!L_.layers.on[gr.layerName]) {
                                 await L_.toggleLayer(L_.layers.data[gr.layerName])
                             }
                         }
 
-                        // Pan to show all results
+                        // Pan to show all results (even time-restricted ones,
+                        // so the user sees where the feature would be)
                         const panTargets = geoResults.map((gr) => ({ feature: gr.feature }))
                         if (panTargets.length > 0 && Map_) {
                             const coordinate = getMapZoomCoordinate(panTargets)
@@ -1426,9 +1496,9 @@ function SearchBar({ componentVars }) {
                             }
                         }
 
-                        // Select single result
-                        if (geoResults.length === 1) {
-                            const gr = geoResults[0]
+                        // Select single result (only if layer was toggled on)
+                        if (visibleResults.length === 1) {
+                            const gr = visibleResults[0]
                             const trySelect = (attempts) => {
                                 const layer = L_.layers.layer[gr.layerName]
                                 if (layer && layer._layers && Object.keys(layer._layers).length > 0) {

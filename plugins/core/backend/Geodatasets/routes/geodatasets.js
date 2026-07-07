@@ -1498,7 +1498,7 @@ router.post("/search", function (req, res, next) {
         }
 
         let q =
-          `SELECT properties, ST_AsGeoJSON(geom), id FROM ${Utils.forceAlphaNumUnder(
+          `SELECT properties, ST_AsGeoJSON(geom), id, start_time, end_time FROM ${Utils.forceAlphaNumUnder(
             table
           )}` +
           (req.body.last || offset != null
@@ -1561,6 +1561,12 @@ router.post("/search", function (req, res, next) {
               let properties = results[i].properties;
               properties._ = properties._ || {};
               properties._.idx = results[i].id;
+              // Include time columns so clients can check whether a
+              // feature falls within the active time range.
+              if (results[i].start_time != null)
+                properties._.start_time = results[i].start_time;
+              if (results[i].end_time != null)
+                properties._.end_time = results[i].end_time;
               let feature = {};
               feature.type = "Feature";
               feature.properties = properties;
