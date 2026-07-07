@@ -887,7 +887,7 @@ function interfaceWithMMGIS(fromInit) {
                             additionalSettings = [
                                 `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
                                             window.location.pathname || ''
-                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"
+                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap.toLowerCase()}?format=png"
                                 data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
                             ].join('\n')
                         } else {
@@ -1173,7 +1173,7 @@ function interfaceWithMMGIS(fromInit) {
                             additionalSettings = [
                                 `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
                                             window.location.pathname || ''
-                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap}?format=png"
+                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap.toLowerCase()}?format=png"
                                 data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
                             ].join('\n')
                         } else {
