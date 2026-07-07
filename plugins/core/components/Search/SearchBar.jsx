@@ -2065,7 +2065,7 @@ function SearchBar({ componentVars }) {
                 </Tooltip>
                 <div className="searchBarDivider" />
                 <Tooltip
-                    content={searchMode === 'select' ? 'Select: highlight matching features' : 'Filter: show only matching features'}
+                    content={searchMode === 'select' ? 'Select: highlight matching features' : 'Filter: showing only matching features (wildcards supported)'}
                     placement="bottom"
                 >
                     <div className="searchModeSwitch">
