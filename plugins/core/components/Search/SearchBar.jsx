@@ -2020,9 +2020,11 @@ function SearchBar({ componentVars }) {
                     }}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                            if (activeSuggestionIdx >= 0 && suggestions[activeSuggestionIdx]) {
-                                handleSuggestionClick(suggestions[activeSuggestionIdx])
-                            } else if (searchMode === 'filter' && inputValue) {
+                            // The input has focus (this handler is on the
+                            // input element), so always submit the typed
+                            // query. Arrow-key highlighted suggestions are
+                            // only used when the input does NOT have focus.
+                            if (searchMode === 'filter' && inputValue) {
                                 // In filter mode, Enter wraps with implicit wildcards
                                 const wildVal = inputValue.includes('*') ? inputValue : `*${inputValue}*`
                                 setSubmittedValue(inputValue)
