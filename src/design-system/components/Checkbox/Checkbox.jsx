@@ -3,7 +3,7 @@ import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox'
 import styles from './Checkbox.module.css'
 
 const Checkbox = forwardRef(function Checkbox(
-    { checked, onCheckedChange, children, className, ...props },
+    { checked, onCheckedChange, children, className, showCheck, ...props },
     ref
 ) {
     return (
@@ -15,7 +15,11 @@ const Checkbox = forwardRef(function Checkbox(
                 className={styles.root}
                 {...props}
             >
-                <BaseCheckbox.Indicator className={styles.indicator}>
+                <BaseCheckbox.Indicator
+                    className={
+                        showCheck ? styles.indicatorVisible : styles.indicator
+                    }
+                >
                     <i className="mdi mdi-check mdi-14px" />
                 </BaseCheckbox.Indicator>
             </BaseCheckbox.Root>

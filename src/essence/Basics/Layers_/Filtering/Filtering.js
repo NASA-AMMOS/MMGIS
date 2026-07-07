@@ -22,6 +22,7 @@ const helpKey = 'LayersTool-Filtering'
 const Filtering = {
     filters: {},
     current: {},
+    currentContainer: null,
     mapSpatialLayer: null,
     initialize: function () {
         Object.keys(L_.layers.data).forEach((layerName) => {
@@ -152,6 +153,7 @@ const Filtering = {
             "</div>",
         ].join('\n')
 
+        Filtering.currentContainer = container
         container.append(markup)
 
         // In case of reopening the tool, recreate state
@@ -194,6 +196,20 @@ const Filtering = {
         OpGridSelector.destroy()
 
         $('#layersTool_filtering').remove()
+    },
+    // Re-render the currently open filter panel (if any) to reflect
+    // externally applied filter changes (e.g. from the Search component)
+    refresh: function () {
+        if (
+            Filtering.current.layerName &&
+            Filtering.currentContainer &&
+            $('#layersTool_filtering').length > 0
+        ) {
+            const layerName = Filtering.current.layerName
+            const container = Filtering.currentContainer
+            Filtering.destroy()
+            Filtering.make(container, layerName)
+        }
     },
     addGroup: function (layerName, group) {
         let id, op
@@ -686,6 +702,8 @@ const Filtering = {
             'contains',
             'beginswith',
             'endswith',
+            'isnull',
+            'isnotnull',
         ]
         const opId = Math.max(ops.indexOf(options.op), 0)
 
@@ -700,18 +718,37 @@ const Filtering = {
             { html: `<i class='mdi mdi-contain mdi-18px'></i>`, title: 'Contains' },
             { html: `<i class='mdi mdi-contain-start mdi-18px'></i>`, title: 'Begins With' },
             { html: `<i class='mdi mdi-contain-end mdi-18px'></i>`, title: 'Ends With' },
+            { html: `<i class='mdi mdi-null mdi-18px'></i>`, title: 'Is Null (No Value)' },
+            { html: `<i class='mdi mdi-check-circle-outline mdi-18px'></i>`, title: 'Is Not Null (Has Value)' },
         ]
 
         OpGridSelector.init($(elmId), valueOpItems, opId, {
-            columns: 5,
+            columns: 6,
             onSelect: function (idx) {
                 Filtering.filters[layerName].values[id].op = ops[idx]
+                Filtering.toggleValueInput(id, layerName, ops[idx])
                 Filtering.setSubmitButtonState(true)
             },
         })
 
         // Value AutoComplete
         Filtering.updateValuesAutoComplete(id, layerName)
+
+        // If initial operator is isnull/isnotnull, disable the value input
+        if (options.op === 'isnull' || options.op === 'isnotnull') {
+            Filtering.toggleValueInput(id, layerName, options.op)
+        }
+    },
+    toggleValueInput: function (id, layerName, operator) {
+        const elmId = `#layersTool_filtering_value_value_input_${F_.getSafeName(
+            layerName
+        )}_${id}`
+        if (operator === 'isnull' || operator === 'isnotnull') {
+            $(elmId).prop('disabled', true).css('opacity', '0.3').val('')
+            Filtering.filters[layerName].values[id].value = ''
+        } else {
+            $(elmId).prop('disabled', false).css('opacity', '1')
+        }
     },
     submit: async function (layerName, updateValuesOrder) {
         const layerObj = L_.layers.data[layerName]
@@ -869,6 +906,20 @@ const Filtering = {
         if (Filtering.filters[layerName]) {
             if (L_.layers.data[layerName].type === 'vector')
                 if (Filtering.filters[layerName]?.values?.[0]?.type != null) {
+                    // If the layer already has _filterEncoded set and is a
+                    // geodataset (url starts with "geodatasets:"), the server
+                    // already filtered the results during captureVector.
+                    // Re-applying a client-side local filter is redundant and
+                    // would cause a visual flash (clear + re-add same data).
+                    const layerData = L_.layers.data[layerName]
+                    if (
+                        layerData?._filterEncoded?.filters &&
+                        layerData?.url
+                            ?.toLowerCase()
+                            .startsWith('geodatasets:')
+                    ) {
+                        return
+                    }
                     if (Filtering.current.needsToQueryGeodataset) {
                         GeodatasetFilterer.filter(
                             layerName,

@@ -631,9 +631,11 @@ function timeInputChange(startTime, endTime, currentTime, skipUpdate) {
     })
 
     if (skipUpdate !== true) {
-        // Update layer times and reload
+        // Update layer times and reload.
+        // Store the promise so external callers (e.g. Search "Fit time
+        // range") can await the reload instead of using a fixed delay.
         TimeControl.updateLayersTime()
-        TimeControl.reloadTimeLayers()
+        TimeControl._reloadPromise = TimeControl.reloadTimeLayers()
     }
 }
 

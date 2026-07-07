@@ -11,7 +11,10 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [-122.4783, 37.8199]
+        "coordinates": [
+          -122.4783,
+          37.8199
+        ]
       }
     },
     {
@@ -24,7 +27,10 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [-122.4230, 37.8270]
+        "coordinates": [
+          -122.423,
+          37.827
+        ]
       }
     },
     {
@@ -37,7 +43,10 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [-122.4025, 37.7949]
+        "coordinates": [
+          -122.4025,
+          37.7949
+        ]
       }
     },
     {
@@ -50,7 +59,10 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [-122.4099, 37.8087]
+        "coordinates": [
+          -122.4099,
+          37.8087
+        ]
       }
     },
     {
@@ -63,7 +75,10 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [-122.4058, 37.8024]
+        "coordinates": [
+          -122.4058,
+          37.8024
+        ]
       }
     },
     {
@@ -76,7 +91,10 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [-122.3892, 37.7786]
+        "coordinates": [
+          -122.3892,
+          37.7786
+        ]
       }
     },
     {
@@ -89,7 +107,10 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [-122.4488, 37.8029]
+        "coordinates": [
+          -122.4488,
+          37.8029
+        ]
       }
     },
     {
@@ -102,7 +123,42 @@
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [-122.4475, 37.7544]
+        "coordinates": [
+          -122.4475,
+          37.7544
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.44,
+          37.785
+        ]
+      },
+      "properties": {
+        "id": 9,
+        "name": "Point A",
+        "description": "Shared name with geodataset basic",
+        "category": "Shared"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.46,
+          37.775
+        ]
+      },
+      "properties": {
+        "id": 10,
+        "name": "Point B",
+        "description": "Shared name with geodataset basic",
+        "category": "Shared"
       }
     }
   ]

@@ -133,6 +133,17 @@ const LocalFilterer = {
                         ? feature.geometry.type
                         : F_.getIn(feature.properties, v.key)
                 let filterValue = v.value
+
+                // Handle isnull/isnotnull before any type coercion
+                if (v.op === 'isnull') {
+                    v.matches = featureValue == null
+                    continue
+                }
+                if (v.op === 'isnotnull') {
+                    v.matches = featureValue != null
+                    continue
+                }
+
                 if (v.type === 'number' && v.op != ',')
                     filterValue = parseFloat(filterValue)
                 else if (v.type === 'boolean') {
@@ -166,7 +177,7 @@ const LocalFilterer = {
                         case '<':
                             if (
                                 v.type === 'string'
-                                    ? featureValue.localeCompare(filterValue) >
+                                    ? featureValue.localeCompare(filterValue) <
                                       0
                                     : featureValue < filterValue
                             )
@@ -176,7 +187,7 @@ const LocalFilterer = {
                         case '>':
                             if (
                                 v.type === 'string'
-                                    ? featureValue.localeCompare(filterValue) <
+                                    ? featureValue.localeCompare(filterValue) >
                                       0
                                     : featureValue > filterValue
                             )
@@ -186,7 +197,7 @@ const LocalFilterer = {
                         case '<=':
                             if (
                                 v.type === 'string'
-                                    ? featureValue.localeCompare(filterValue) >=
+                                    ? featureValue.localeCompare(filterValue) <=
                                       0
                                     : featureValue <= filterValue
                             )
@@ -196,7 +207,7 @@ const LocalFilterer = {
                         case '>=':
                             if (
                                 v.type === 'string'
-                                    ? featureValue.localeCompare(filterValue) <=
+                                    ? featureValue.localeCompare(filterValue) >=
                                       0
                                     : featureValue >= filterValue
                             )
@@ -262,7 +273,7 @@ const LocalFilterer = {
             const groupedValuesByOp = {}
             groupedValuesByKey[key].forEach((v) => {
                 let op = v.op
-                if (op === '<' || op === '>') op = '<>'
+                if (op === '<' || op === '>' || op === '<=' || op === '>=') op = '<>'
 
                 groupedValuesByOp[op] = groupedValuesByOp[op] || []
                 groupedValuesByOp[op].push(v)

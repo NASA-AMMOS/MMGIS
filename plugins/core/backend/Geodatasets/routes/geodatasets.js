@@ -13,6 +13,51 @@ const geodatasets = require("../models/geodatasets");
 const Geodatasets = geodatasets.Geodatasets;
 const makeNewGeodatasetTable = geodatasets.makeNewGeodatasetTable;
 
+// Build a PostgreSQL JSONB accessor for a possibly nested key.
+// For a flat key like "name", returns { text: "properties->>:placeholder", replacements: { placeholder: "name" } }
+// For a dotted key like "metadata.author", returns:
+//   { text: "properties->'metadata'->>'author'", replacements: {} }
+// (nested keys are single-quoted inline since parameterized -> chains are awkward)
+function jsonbAccessor(key, placeholder) {
+  const parts = key.split(".");
+  // Cap nesting depth to prevent excessively long SQL expressions
+  if (parts.length > 10) {
+    return {
+      text: `properties->>:${placeholder}`,
+      replacements: { [placeholder]: key },
+    };
+  }
+  if (parts.length === 1) {
+    return {
+      text: `properties->>:${placeholder}`,
+      replacements: { [placeholder]: key },
+    };
+  }
+  // Validate each part: only allow alphanumeric, underscores, hyphens, spaces
+  for (const p of parts) {
+    if (!/^[\w\s\-]+$/.test(p)) {
+      return {
+        text: `properties->>:${placeholder}`,
+        replacements: { [placeholder]: key },
+      };
+    }
+  }
+  // Nested: properties->'a'->'b'->>'c'
+  const path = parts
+    .map((p, i) => {
+      const safeP = p.replace(/'/g, "''");
+      return i < parts.length - 1 ? `->'${safeP}'` : `->>'${safeP}'`;
+    })
+    .join("");
+  return { text: `properties${path}`, replacements: {} };
+}
+
+// Same as jsonbAccessor but returns the JSONB form (-> not ->>) for casting.
+// e.g., for numeric comparisons: (properties->'a'->>'b')::FLOAT
+function jsonbAccessorText(key, placeholder) {
+  return jsonbAccessor(key, placeholder);
+}
+
 //Returns a geodataset table as a geojson
 router.get("/get/:layer", function (req, res, next) {
   get("get", req, res, next, { layer: req.params.layer });
@@ -31,6 +76,8 @@ function get(reqtype, req, res, next, options) {
   let get_id = null;
   let filters = null;
   let spatialFilter = null; // Not implemented
+  let paginationLimit = null;
+  let paginationOffset = null;
 
   if (reqtype === "post") {
     layer = req.body.layer;
@@ -45,6 +92,8 @@ function get(reqtype, req, res, next, options) {
     if (req.body.id != null) get_id = req.body.id;
     if (req.body.filters != null) filters = req.body.filters;
     if (req.body.spatialFilter != null) spatialFilter = req.body.spatialFilter;
+    if (req.body.limit != null) { const _parsed = parseInt(req.body.limit); paginationLimit = Number.isNaN(_parsed) ? null : Math.min(Math.max(_parsed, 1), 10000); }
+    if (req.body.offset != null) { const _parsed = parseInt(req.body.offset); paginationOffset = Number.isNaN(_parsed) ? 0 : Math.max(_parsed, 0); }
 
     if (type === "mvt") {
       xyz = {
@@ -81,7 +130,7 @@ function get(reqtype, req, res, next, options) {
             key: fSplit[0],
             op: fSplit[1],
             type: fSplit[2],
-            value: fSplit[3],
+            value: fSplit.slice(3).join("+"),
           });
         }
       });
@@ -94,6 +143,8 @@ function get(reqtype, req, res, next, options) {
         radius: spatialFilterSplit[2],
       };
     }
+    if (req.query.limit != null) { const _parsed = parseInt(req.query.limit); paginationLimit = Number.isNaN(_parsed) ? null : Math.min(Math.max(_parsed, 1), 10000); }
+    if (req.query.offset != null) { const _parsed = parseInt(req.query.offset); paginationOffset = Number.isNaN(_parsed) ? 0 : Math.max(_parsed, 0); }
 
     if (type === "mvt") {
       xyz = {
@@ -155,7 +206,7 @@ function get(reqtype, req, res, next, options) {
             cols.push("feature_id");
           cols = cols.join(", ");
 
-          let q = `SELECT${distinct} ${properties}, ST_AsGeoJSON(geom), ${cols} FROM ${Utils.forceAlphaNumUnder(
+          let q = `SELECT${distinct} ${properties}, ST_AsGeoJSON(geom), ${cols}, start_time, end_time FROM ${Utils.forceAlphaNumUnder(
             table
           )}`;
 
@@ -313,8 +364,12 @@ function get(reqtype, req, res, next, options) {
                   derivedKey = true;
                 }
 
-                replacements[`filter_key_${i}`] = fkey;
+                // Build JSONB accessor (supports nested keys like "a.b.c")
+                const acc = derivedKey ? { text: fkey, replacements: {} } : jsonbAccessor(fkey, `filter_key_${i}`);
+                Object.assign(replacements, acc.replacements);
                 replacements[`filter_value_${i}`] = f.value;
+                const propAccessor = acc.text;
+
                 let op = "=";
                 switch (f.op) {
                   case ">":
@@ -340,12 +395,31 @@ function get(reqtype, req, res, next, options) {
                   case "!=":
                     op = "!=";
                     break;
+                  case "regex":
+                    op = "~*";
+                    if (typeof f.value === 'string' && f.value.length > 200) {
+                      f.value = f.value.substring(0, 200);
+                    }
+                    break;
+                  case "isnull":
+                    op = "IS NULL";
+                    break;
+                  case "isnotnull":
+                    op = "IS NOT NULL";
+                    break;
                   case "=":
                   default:
                     break;
                 }
                 let value = "";
-                if (op === "IN") {
+                if (op === "IS NULL" || op === "IS NOT NULL") {
+                  const qNull = `${
+                    derivedKey === true ? `${fkey}` : propAccessor
+                  } ${op}`;
+                  if (currentGroupOp == null) filterSQL.push(qNull);
+                  else currentGroup.push(qNull);
+                  return;
+                } else if (op === "IN") {
                   const valueSplit = f.value.split("$");
                   const values = [];
                   valueSplit.forEach((v) => {
@@ -370,15 +444,13 @@ function get(reqtype, req, res, next, options) {
                   const q1 = `${
                     derivedKey === true
                       ? `${fkey}`
-                      : `(properties->>:filter_key_${i})`
+                      : `(${propAccessor})`
                   }::FLOAT ${op} ${value}`;
                   if (currentGroupOp == null) filterSQL.push(q1);
                   else currentGroup.push(q1);
                 } else {
                   const q2 = `${
-                    derivedKey === true
-                      ? `${fkey}`
-                      : `properties->>:filter_key_${i}`
+                    derivedKey === true ? `${fkey}` : propAccessor
                   } ${op} ${value}`;
                   if (currentGroupOp == null) filterSQL.push(q2);
                   else currentGroup.push(q2);
@@ -433,8 +505,28 @@ function get(reqtype, req, res, next, options) {
           if (req.query?.limited) {
             q += ` ORDER BY id DESC LIMIT 3;`;
           } else if (distinctField != null) {
-            q += ` ORDER BY ${distinctField}, id DESC;`;
-          } else q += ` ORDER BY id DESC;`;
+            q += ` ORDER BY ${distinctField}, id DESC`;
+            if (Number.isFinite(paginationLimit) && paginationLimit > 0) {
+              q += ` LIMIT :paginationLimit`;
+              replacements.paginationLimit = paginationLimit;
+              if (Number.isFinite(paginationOffset) && paginationOffset >= 0) {
+                q += ` OFFSET :paginationOffset`;
+                replacements.paginationOffset = paginationOffset;
+              }
+            }
+            q += `;`;
+          } else {
+            q += ` ORDER BY id DESC`;
+            if (Number.isFinite(paginationLimit) && paginationLimit > 0) {
+              q += ` LIMIT :paginationLimit`;
+              replacements.paginationLimit = paginationLimit;
+              if (Number.isFinite(paginationOffset) && paginationOffset >= 0) {
+                q += ` OFFSET :paginationOffset`;
+                replacements.paginationOffset = paginationOffset;
+              }
+            }
+            q += `;`;
+          }
 
           sequelize
             .query(q, {
@@ -446,6 +538,10 @@ function get(reqtype, req, res, next, options) {
                 let properties = results[i].properties;
                 properties._ = properties._ || {};
                 properties._.idx = results[i].id;
+                if (results[i].start_time != null)
+                  properties._.start_time = results[i].start_time;
+                if (results[i].end_time != null)
+                  properties._.end_time = results[i].end_time;
                 let feature = {};
                 feature.type = "Feature";
                 feature.properties = properties;
@@ -473,6 +569,15 @@ function get(reqtype, req, res, next, options) {
                 geojson.feature_id_field = result.dataValues.feature_id_field;
               if (get_group_id != null)
                 geojson.group_id_field = result.dataValues.group_id_field;
+
+              if (
+                paginationLimit != null &&
+                Number.isFinite(paginationLimit) &&
+                paginationLimit > 0
+              ) {
+                geojson.limit = paginationLimit;
+                geojson.offset = paginationOffset || 0;
+              }
 
               res.setHeader("Access-Control-Allow-Origin", "*");
 
@@ -885,10 +990,19 @@ router.get("/aggregations", function (req, res, next) {
           })
           .then(([results]) => {
             let aggs = {};
-            results.forEach((feature) => {
-              const flatProps = feature.properties;
-              for (let p in flatProps) {
-                let value = flatProps[p];
+            // Recursively aggregate values from nested objects
+            function aggProps(obj, prefix) {
+              for (let p in obj) {
+                let value = obj[p];
+                const fullKey = prefix ? `${prefix}.${p}` : p;
+                if (
+                  value != null &&
+                  typeof value === "object" &&
+                  !Array.isArray(value)
+                ) {
+                  aggProps(value, fullKey);
+                  continue;
+                }
                 let type = null;
 
                 if (!isNaN(value) && !isNaN(parseFloat(value))) type = "number";
@@ -897,15 +1011,16 @@ router.get("/aggregations", function (req, res, next) {
                 else if (typeof value === "boolean") type = "boolean";
 
                 if (type != null) {
-                  // First type will be from index 0
-                  aggs[p] = aggs[p] || { type: type, aggs: {} };
-                  // Because of that, strings can usurp numbers (ex. ["1", "2", "Melon", "Pastry"])
-                  if (aggs[p].type === "number" && type === "string")
-                    aggs[p].type = type;
-                  aggs[p].aggs[flatProps[p]] = aggs[p].aggs[flatProps[p]] || 0;
-                  aggs[p].aggs[flatProps[p]]++;
+                  aggs[fullKey] = aggs[fullKey] || { type: type, aggs: {} };
+                  if (aggs[fullKey].type === "number" && type === "string")
+                    aggs[fullKey].type = type;
+                  aggs[fullKey].aggs[value] = aggs[fullKey].aggs[value] || 0;
+                  aggs[fullKey].aggs[value]++;
                 }
               }
+            }
+            results.forEach((feature) => {
+              if (feature.properties) aggProps(feature.properties, "");
             });
 
             // sort
@@ -951,6 +1066,245 @@ router.get("/aggregations", function (req, res, next) {
     .catch((err) => {
       logger("error", "Failure finding geodataset.", req.originalUrl, req, err);
       res.send({ status: "failure", message: "Failure finding geodataset." });
+    });
+});
+
+// Bulk schema endpoint — returns field names, types and source layers for
+// multiple geodataset layers in a single call.
+// GET /api/geodatasets/schema?layers=layer1,layer2,...
+router.get("/schema", function (req, res, next) {
+  const layersParam = req.query.layers;
+  if (!layersParam) {
+    res.send({ status: "failure", message: "Missing 'layers' parameter." });
+    return;
+  }
+
+  const layerNames = layersParam
+    .split(",")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (layerNames.length === 0) {
+    res.send({ status: "failure", message: "No valid layer names provided." });
+    return;
+  }
+
+  // Cap at 100 layers to prevent abuse
+  const cappedLayerNames = layerNames.slice(0, 100);
+
+  const Op = require("sequelize").Op;
+  Geodatasets.findAll({ where: { name: { [Op.in]: cappedLayerNames } } })
+    .then(async (results) => {
+      if (!results || results.length === 0) {
+        res.send({ status: "success", schema: {} });
+        return;
+      }
+
+      // schema: { fieldName: { type, layers: [{ name, displayName }] } }
+      const schema = {};
+      const promises = results.map((result) => {
+        const table = result.dataValues.table;
+        const layerName = result.dataValues.name;
+        // Sample multiple rows to discover JSONB keys and types
+        const q = `SELECT properties FROM ${Utils.forceAlphaNumUnder(
+          table
+        )} LIMIT 50`;
+        return sequelize
+          .query(q)
+          .then(([rows]) => {
+            const seenKeys = new Set();
+            // Recursively discover keys from nested objects
+            function discoverKeys(obj, prefix) {
+              for (const key in obj) {
+                const value = obj[key];
+                const fullKey = prefix ? `${prefix}.${key}` : key;
+                if (value == null) continue;
+                if (
+                  typeof value === "object" &&
+                  !Array.isArray(value)
+                ) {
+                  discoverKeys(value, fullKey);
+                  continue;
+                }
+                let type = "string";
+                if (typeof value === "number") type = "number";
+                else if (typeof value === "boolean") type = "boolean";
+                else if (!isNaN(value) && !isNaN(parseFloat(value)))
+                  type = "number";
+
+                if (!schema[fullKey]) {
+                  schema[fullKey] = { type: type, layers: [] };
+                }
+                if (
+                  schema[fullKey].type === "number" &&
+                  type === "string"
+                ) {
+                  schema[fullKey].type = type;
+                }
+                if (!seenKeys.has(fullKey)) {
+                  schema[fullKey].layers.push(layerName);
+                  seenKeys.add(fullKey);
+                }
+              }
+            }
+            rows.forEach((row) => {
+              if (!row.properties) return;
+              discoverKeys(row.properties, "");
+            });
+          })
+          .catch(() => {
+            // Skip layers that fail
+          });
+      });
+
+      await Promise.all(promises);
+
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.send({ status: "success", schema: schema });
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        "Failure querying geodataset schema.",
+        req.originalUrl,
+        req,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: "Failure querying geodataset schema.",
+      });
+    });
+});
+
+// Bulk aggregations endpoint — returns aggregated field values across
+// multiple geodataset layers in a single call.
+// GET /api/geodatasets/bulk_aggregations?layers=layer1,layer2,...&limit=500
+router.get("/bulk_aggregations", function (req, res, next) {
+  const layersParam = req.query.layers;
+  if (!layersParam) {
+    res.send({ status: "failure", message: "Missing 'layers' parameter." });
+    return;
+  }
+
+  const layerNames = layersParam
+    .split(",")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (layerNames.length === 0) {
+    res.send({ status: "failure", message: "No valid layer names provided." });
+    return;
+  }
+
+  const cappedLayerNames = layerNames.slice(0, 100);
+  const _sl = req.query.limit != null ? parseInt(req.query.limit) : 500;
+  const sampleLimit = Number.isNaN(_sl) ? 500 : Math.min(Math.max(_sl, 1), 1000);
+
+  const Op = require("sequelize").Op;
+  Geodatasets.findAll({ where: { name: { [Op.in]: cappedLayerNames } } })
+    .then(async (results) => {
+      if (!results || results.length === 0) {
+        res.send({ status: "success", aggregations: {} });
+        return;
+      }
+
+      // Optional time filtering
+      const starttime = req.query.starttime;
+      const endtime = req.query.endtime;
+      const startProp = req.query.startProp || "start_time";
+      const endProp = req.query.endProp || "end_time";
+
+      const aggs = {};
+      const allRows = [];
+      const promises = results.map((result) => {
+        const table = result.dataValues.table;
+        let q = `SELECT properties FROM ${Utils.forceAlphaNumUnder(table)}`;
+        const replacements = { limit: sampleLimit };
+
+        // Add time bounds WHERE clause when provided.
+        // Time fields are top-level table columns (not inside JSONB properties).
+        if (starttime && endtime) {
+          const spSafe = Utils.forceAlphaNumUnder(startProp);
+          const epSafe = Utils.forceAlphaNumUnder(endProp);
+          q += ` WHERE ${spSafe} >= :starttime AND ${epSafe} <= :endtime`;
+          replacements.starttime = new Date(starttime).getTime();
+          replacements.endtime = new Date(endtime).getTime();
+        }
+
+        q += ` ORDER BY RANDOM() DESC LIMIT :limit;`;
+        return sequelize
+          .query(q, { replacements })
+          .then(([rows]) => {
+            // Recursively aggregate values from nested objects
+            function aggProps(obj, prefix) {
+              for (let p in obj) {
+                let value = obj[p];
+                const fullKey = prefix ? `${prefix}.${p}` : p;
+                if (
+                  value != null &&
+                  typeof value === "object" &&
+                  !Array.isArray(value)
+                ) {
+                  aggProps(value, fullKey);
+                  continue;
+                }
+                let type = null;
+
+                if (!isNaN(value) && !isNaN(parseFloat(value))) type = "number";
+                else if (typeof value === "string") type = "string";
+                else if (typeof value === "number") type = "number";
+                else if (typeof value === "boolean") type = "boolean";
+
+                if (type != null) {
+                  aggs[fullKey] = aggs[fullKey] || { type: type, aggs: {} };
+                  if (aggs[fullKey].type === "number" && type === "string")
+                    aggs[fullKey].type = type;
+                  aggs[fullKey].aggs[value] = aggs[fullKey].aggs[value] || 0;
+                  aggs[fullKey].aggs[value]++;
+                }
+              }
+            }
+            rows.forEach((row) => {
+              if (row.properties) {
+                aggProps(row.properties, "");
+                allRows.push(row.properties);
+              }
+            });
+          })
+          .catch(() => {
+            // Skip layers that fail
+          });
+      });
+
+      await Promise.all(promises);
+
+      // Sort values within each field
+      Object.keys(aggs).forEach((agg) => {
+        const sortedAggs = {};
+        Object.keys(aggs[agg].aggs)
+          .sort()
+          .reverse()
+          .forEach((agg2) => {
+            sortedAggs[agg2] = aggs[agg].aggs[agg2];
+          });
+        aggs[agg].aggs = sortedAggs;
+      });
+
+      res.send({ status: "success", aggregations: aggs, rows: allRows });
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        "Failure querying bulk geodataset aggregations.",
+        req.originalUrl,
+        req,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: "Failure querying bulk geodataset aggregations.",
+      });
     });
 });
 
@@ -1075,8 +1429,8 @@ router.post("/search", function (req, res, next) {
           });
           return;
         }
-        offset = parseInt(offset);
-        featureId = parseInt(featureId);
+        offset = offset != null ? parseInt(offset) : null;
+        featureId = featureId != null ? parseInt(featureId) : null;
 
         let orderBy = "id";
         if (req.body.orderBy != null) orderBy = `properties->>:orderBy`;
@@ -1106,32 +1460,104 @@ router.post("/search", function (req, res, next) {
           "MultiPolygon",
         ];
 
-        const geomTypeWhere =
-          geometryTypes.indexOf(req.body.restrictToGeometryType) != -1
-            ? " AND geometry_type = :geomtype"
-            : "";
+        const hasGeomTypeFilter =
+          geometryTypes.indexOf(req.body.restrictToGeometryType) != -1;
+        const geomTypeAnd = hasGeomTypeFilter
+          ? " AND geometry_type = :geomtype"
+          : "";
+
+        // Build operator clause for search (supports nested keys via jsonbAccessor)
+        const validOps = ["=", "!=", "<", ">", "<=", ">=", "contains", "beginswith", "endswith", ",", "in", "isnull", "isnotnull", "regex"];
+        let searchOp = req.body.operator || "=";
+        if (validOps.indexOf(searchOp) === -1) searchOp = "=";
+        const allowedOps = ["=", "!=", "<", ">", "<=", ">="];
+        const searchKey = req.body.key || "";
+        const keyAcc = jsonbAccessor(searchKey, "key");
+        const keyExpr = keyAcc.text; // e.g. "properties->>'name'" or "properties->'meta'->>'author'"
+        let opClause;
+
+        if (allowedOps.indexOf(searchOp) !== -1) {
+          opClause = `${keyExpr} ${searchOp} :value`;
+        } else if (searchOp === "contains") {
+          opClause = `${keyExpr} ILIKE '%' || :value || '%'`;
+        } else if (searchOp === "beginswith") {
+          opClause = `${keyExpr} ILIKE :value || '%'`;
+        } else if (searchOp === "endswith") {
+          opClause = `${keyExpr} ILIKE '%' || :value`;
+        } else if (searchOp === "," || searchOp === "in") {
+          opClause = `${keyExpr} IN (:valueList)`;
+        } else if (searchOp === "regex") {
+          opClause = `${keyExpr} ~* :value`;
+        } else if (searchOp === "isnull") {
+          opClause = `${keyExpr} IS NULL`;
+        } else if (searchOp === "isnotnull") {
+          opClause = `${keyExpr} IS NOT NULL`;
+        } else {
+          opClause = `${keyExpr} = :value`;
+        }
+
+        // For numeric operators, cast to numeric only when the field type is number
+        if (["<", ">", "<=", ">="].indexOf(searchOp) !== -1 && req.body.type === "number") {
+          opClause = `(${keyExpr})::NUMERIC ${searchOp} :value::NUMERIC`;
+        }
 
         let q =
-          `SELECT properties, ST_AsGeoJSON(geom), id FROM ${Utils.forceAlphaNumUnder(
+          `SELECT properties, ST_AsGeoJSON(geom), id, start_time, end_time FROM ${Utils.forceAlphaNumUnder(
             table
           )}` +
           (req.body.last || offset != null
-            ? `${where}${geomTypeWhere} ORDER BY id ${
+            ? `${where || (hasGeomTypeFilter ? ' WHERE geometry_type = :geomtype' : '')}${where ? geomTypeAnd : ''} ORDER BY id ${
                 offset != null && !req.body.last ? "ASC" : "DESC LIMIT 1"
               }`
-            : ` WHERE properties ->> :key = :value${geomTypeWhere}`);
+            : ` WHERE ${opClause}${geomTypeAnd}`);
+
+        const sanitizedValue =
+          typeof req.body.value === "string"
+            ? req.body.value
+            : null;
+
+        const replacements = {
+          orderBy: orderBy || "id",
+          geomtype: req.body.restrictToGeometryType,
+          value: sanitizedValue,
+          ...keyAcc.replacements,
+        };
+
+        // For IN operator, split value by comma into a list
+        if (searchOp === "," || searchOp === "in") {
+          const parsedList = sanitizedValue
+            ? sanitizedValue.split(",").map((v) => v.trim()).filter(Boolean)
+            : [];
+          replacements.valueList = parsedList.length > 0 ? parsedList : [""];
+        }
+
+        // For regex operator, cap length to prevent ReDoS and strip delimiters
+        if (searchOp === "regex" && sanitizedValue) {
+          let regexValue = sanitizedValue;
+          if (regexValue.length > 200) regexValue = regexValue.substring(0, 200);
+          replacements.value = regexValue;
+          const regexMatch = regexValue.match(/^\/(.+)\/([gimsuy]*)$/);
+          if (regexMatch) {
+            replacements.value = regexMatch[1];
+            // Use case-sensitive (~) if no 'i' flag, case-insensitive (~*) otherwise
+            if (!regexMatch[2].includes("i")) {
+              opClause = `${keyExpr} ~ :value`;
+              // Rebuild query with updated opClause
+              q = `SELECT properties, ST_AsGeoJSON(geom), id, start_time, end_time FROM ${Utils.forceAlphaNumUnder(
+                table
+              )}` +
+              (req.body.last || offset != null
+                ? `${where || (hasGeomTypeFilter ? ' WHERE geometry_type = :geomtype' : '')}${where ? geomTypeAnd : ''} ORDER BY id ${
+                    offset != null && !req.body.last ? "ASC" : "DESC LIMIT 1"
+                  }`
+                : ` WHERE ${opClause}${geomTypeAnd}`);
+            }
+          }
+        }
 
         sequelize
           .query(q + ";", {
-            replacements: {
-              orderBy: orderBy || "id",
-              key: req.body.key,
-              geomType: req.body.restrictToGeometryType,
-              value:
-                typeof req.body.value === "string"
-                  ? req.body.value.replace(/[`;'"]/gi, "")
-                  : null,
-            },
+            replacements,
           })
           .then(([results]) => {
             let r = [];
@@ -1139,6 +1565,12 @@ router.post("/search", function (req, res, next) {
               let properties = results[i].properties;
               properties._ = properties._ || {};
               properties._.idx = results[i].id;
+              // Include time columns so clients can check whether a
+              // feature falls within the active time range.
+              if (results[i].start_time != null)
+                properties._.start_time = results[i].start_time;
+              if (results[i].end_time != null)
+                properties._.end_time = results[i].end_time;
               let feature = {};
               feature.type = "Feature";
               feature.properties = properties;
