@@ -60,7 +60,7 @@ var colorFilterExtension = {
                 if (this.options.cogColormap != null) {
                     url += `${
                         url.indexOf('?') === -1 ? '?' : '&'
-                    }colormap_name=${this.options.cogColormap}`
+                    }colormap_name=${this.options.cogColormap.toLowerCase()}`
                 }
             }
 
