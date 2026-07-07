@@ -1722,6 +1722,47 @@ function SearchBar({ componentVars }) {
         [handleSearch]
     )
 
+    // Clear any search-applied filters and restore hidden layers
+    const clearSearchFilters = useCallback(() => {
+        const L_ = getL_()
+        if (!L_) return
+
+        // Clear filters from tracked layers
+        searchFilteredLayers.current.forEach((lname) => {
+            const ld = L_.layers.data[lname]
+            if (!ld) return
+            if (Filtering.filters[lname]) {
+                Filtering.filters[lname].values = []
+            }
+            const isGeodataset = ld.url?.startsWith('geodatasets:')
+            if (isGeodataset) {
+                if (ld._filterEncoded) {
+                    delete ld._filterEncoded.filters
+                }
+                if (L_.layers.on[lname]) {
+                    L_.Map_.refreshLayer(ld)
+                }
+            } else {
+                if (Filtering.filters[lname]) {
+                    Filtering.submit(lname, false)
+                }
+            }
+        })
+        searchFilteredLayers.current.clear()
+
+        // Restore layers that were hidden by filter mode
+        filterModeHiddenLayers.current.forEach((lname) => {
+            const ld = L_.layers.data[lname]
+            if (ld && !L_.layers.on[lname]) {
+                L_.toggleLayer(ld)
+            }
+        })
+        filterModeHiddenLayers.current.clear()
+        setTimeRangeWarning(null)
+
+        Filtering.refresh()
+    }, [getL_])
+
     const handleClear = useCallback(() => {
         setInputValue('')
         setSubmittedValue(null)
@@ -1831,46 +1872,6 @@ function SearchBar({ componentVars }) {
         })
     }, [timeRangeWarning, getL_, searchGeodatasets, applyFilterToLayer])
 
-    // Clear any search-applied filters and restore hidden layers
-    const clearSearchFilters = useCallback(() => {
-        const L_ = getL_()
-        if (!L_) return
-
-        // Clear filters from tracked layers
-        searchFilteredLayers.current.forEach((lname) => {
-            const ld = L_.layers.data[lname]
-            if (!ld) return
-            if (Filtering.filters[lname]) {
-                Filtering.filters[lname].values = []
-            }
-            const isGeodataset = ld.url?.startsWith('geodatasets:')
-            if (isGeodataset) {
-                if (ld._filterEncoded) {
-                    delete ld._filterEncoded.filters
-                }
-                if (L_.layers.on[lname]) {
-                    L_.Map_.refreshLayer(ld)
-                }
-            } else {
-                if (Filtering.filters[lname]) {
-                    Filtering.submit(lname, false)
-                }
-            }
-        })
-        searchFilteredLayers.current.clear()
-
-        // Restore layers that were hidden by filter mode
-        filterModeHiddenLayers.current.forEach((lname) => {
-            const ld = L_.layers.data[lname]
-            if (ld && !L_.layers.on[lname]) {
-                L_.toggleLayer(ld)
-            }
-        })
-        filterModeHiddenLayers.current.clear()
-        setTimeRangeWarning(null)
-
-        Filtering.refresh()
-    }, [getL_])
 
     const handleRegularLayerSelect = useCallback((layerValue, groupId) => {
         // Clear any active search filters before switching
