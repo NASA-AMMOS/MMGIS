@@ -1470,7 +1470,10 @@ function SearchBar({ componentVars }) {
                 // Select mode: highlight/pan to matches.
                 // Clear any previous selection so stale highlights don't
                 // persist (e.g. when the new feature is outside time range).
+                // Also clear activeFeature — layer reloads (addGeoJSONData /
+                // updateVectorLayer) re-select it, which fights with search.
                 L_.resetLayerFills()
+                L_.setActiveFeature(null)
 
                 // For groups: collect all geodataset results for combined pan.
                 const isGroup = targetLayers.length > 1
