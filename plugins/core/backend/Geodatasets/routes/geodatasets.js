@@ -1543,7 +1543,7 @@ router.post("/search", function (req, res, next) {
             if (!regexMatch[2].includes("i")) {
               opClause = `${keyExpr} ~ :value`;
               // Rebuild query with updated opClause
-              q = `SELECT properties, ST_AsGeoJSON(geom), id FROM ${Utils.forceAlphaNumUnder(
+              q = `SELECT properties, ST_AsGeoJSON(geom), id, start_time, end_time FROM ${Utils.forceAlphaNumUnder(
                 table
               )}` +
               (req.body.last || offset != null

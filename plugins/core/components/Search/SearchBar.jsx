@@ -1317,7 +1317,7 @@ function SearchBar({ componentVars }) {
                     })
                     if (timeEnabledTargets.length > 0) {
                         const ld = L_.layers.data[timeEnabledTargets[0]]
-                        setTimeRangeWarning({
+                        maybeShowTimeWarning({
                             layers: timeEnabledTargets,
                             start: ld.time.start,
                             end: ld.time.end,
@@ -1541,7 +1541,7 @@ function SearchBar({ componentVars }) {
                                     selectFilter = `${sf[0][1]}+contains+string+${searchValue}`
                                 }
                             }
-                            setTimeRangeWarning({
+                            maybeShowTimeWarning({
                                 layers: timeEnabledTargets,
                                 start: ld.time.start,
                                 end: ld.time.end,
@@ -1588,7 +1588,7 @@ function SearchBar({ componentVars }) {
                                     selectFilter = `${sf[0][1]}+contains+string+${searchValue}`
                                 }
                             }
-                            setTimeRangeWarning({
+                            maybeShowTimeWarning({
                                 layers: timeEnabledTargets,
                                 start: ld.time.start,
                                 end: ld.time.end,
@@ -1606,7 +1606,7 @@ function SearchBar({ componentVars }) {
                 }
             }
         },
-        [inputValue, arrayToSearch, selectedLayer, selectedGroupId, searchGroups, searchMode, searchTimeRestrict, effectiveSearchFields, searchGeodatasets, doWithSearch, applyFilterToLayer, getL_, getMap_]
+        [inputValue, arrayToSearch, selectedLayer, selectedGroupId, searchGroups, searchMode, searchTimeRestrict, effectiveSearchFields, searchGeodatasets, doWithSearch, applyFilterToLayer, maybeShowTimeWarning, getL_, getMap_]
     )
 
     const handleSuggestionClick = useCallback(
@@ -1627,6 +1627,75 @@ function SearchBar({ componentVars }) {
         // Preserve arrayToSearch so re-opening the panel still shows suggestions
         // (the rebuild effect won't re-run because selectedLayer hasn't changed)
     }, [])
+
+    // Check whether matching features exist outside the current time range.
+    // Only shows the time-range warning if the result time extent exceeds the
+    // current slider bounds — avoids erroneous warnings when time already covers
+    // all matching data.
+    const maybeShowTimeWarning = useCallback((warningData) => {
+        const L_ = getL_()
+        if (!L_) return
+        const ld = L_.layers.data[warningData.layers[0]]
+        if (!ld) return
+
+        const startProp = ld.time?.startProp || 'start_time'
+        const endProp = ld.time?.endProp || 'end_time'
+        const geodatasetName = ld.url?.split(':')[1]
+        if (!geodatasetName) return
+
+        // Query without time bounds to get the full temporal extent
+        const body = {
+            layer: geodatasetName,
+            type: 'geojson',
+            noDuplicates: ld.variables?.noDuplicates === true,
+        }
+        if (warningData.filterEncoded) body.filters = warningData.filterEncoded
+
+        calls.api('geodatasets_get', body, (data) => {
+            if (!data?.features?.length) {
+                setTimeRangeWarning(null)
+                return
+            }
+
+            let minTime = Infinity
+            let maxTime = -Infinity
+            data.features.forEach((f) => {
+                const props = f.properties || {}
+                const st = props._?.start_time ?? props[startProp]
+                const et = props._?.end_time ?? props[endProp]
+                if (st != null) {
+                    const n = Number(st)
+                    const t = !isNaN(n) ? n : new Date(st).getTime()
+                    if (!isNaN(t) && t < minTime) minTime = t
+                }
+                if (et != null) {
+                    const n = Number(et)
+                    const t = !isNaN(n) ? n : new Date(et).getTime()
+                    if (!isNaN(t) && t > maxTime) maxTime = t
+                }
+            })
+
+            if (minTime === Infinity || maxTime === -Infinity) {
+                setTimeRangeWarning(null)
+                return
+            }
+
+            // Compare against current time slider
+            const currentStart = TimeControl.startTime
+                ? new Date(TimeControl.startTime).getTime()
+                : Infinity
+            const currentEnd = TimeControl.endTime
+                ? new Date(TimeControl.endTime).getTime()
+                : -Infinity
+
+            // Only show warning if features exist outside the current range
+            if (minTime < currentStart || maxTime > currentEnd) {
+                setTimeRangeWarning(warningData)
+            } else {
+                setTimeRangeWarning(null)
+            }
+        })
+    }, [getL_])
 
     // Query the geodataset API without time bounds to find the time extent
     // of all matching features, then expand the time slider to fit.
