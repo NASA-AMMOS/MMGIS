@@ -2009,6 +2009,7 @@ function SearchBar({ componentVars }) {
                     onChange={(e) => {
                         setSubmittedValue(null)
                         setInputValue(e.target.value)
+                        setActiveSuggestionIdx(-1)
                         if (!panelOpen) setPanelOpen(true)
                     }}
                     onFocus={() => {
