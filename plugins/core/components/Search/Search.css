@@ -16,12 +16,13 @@
     height: 30px;
     background: var(--color-a);
     border: 1px solid var(--color-a1);
+    border-bottom: 2px solid transparent;
     border-radius: 4px;
     padding: 0 4px;
     gap: 4px;
     cursor: text;
     transition: border-color 0.15s, box-shadow 0.15s, background 0.2s;
-    min-width: 293px;
+    min-width: 300px;
 }
 
 /* Search icon */
@@ -375,11 +376,13 @@
     color: #999;
 }
 
-/* Active search: accent underline + background tint on the compact bar */
+/* Focus + active search: accent underline + background tint */
+.searchBarFocused .searchCompactBar,
 .searchBarActive .searchCompactBar {
     background: color-mix(in srgb, var(--color-mmgis) 12%, var(--color-a));
-    border-bottom: 2px solid var(--color-mmgis);
+    border-bottom-color: var(--color-mmgis);
 }
+.searchBarFocused .searchCompactIcon,
 .searchBarActive .searchCompactIcon {
     color: var(--color-mmgis);
     opacity: 1;
