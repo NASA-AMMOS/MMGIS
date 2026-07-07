@@ -857,12 +857,16 @@ async function makeLayer(
             // updateVectorLayer checks _layersBeingMade and bails if the lock is
             // still held, which would leave the layer empty (cleared but not
             // repopulated). Moving this here ensures the lock is free.
-            if (
-                madeSuccessfully &&
-                stopLoops !== true &&
-                layerObj.type === 'vector'
-            ) {
-                Filtering.triggerFilter(layerObj.name)
+            try {
+                if (
+                    madeSuccessfully &&
+                    stopLoops !== true &&
+                    layerObj.type === 'vector'
+                ) {
+                    Filtering.triggerFilter(layerObj.name)
+                }
+            } catch (filterErr) {
+                console.warn('WARNING - triggerFilter failed for', layerObj.name, filterErr)
             }
 
             // Drain any queued reload request for this layer that arrived
