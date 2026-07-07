@@ -227,7 +227,7 @@ export function buildTiTilerQueryParams(options) {
 
         // colormap parameter (only with rescale)
         if (options.cogColormap != null) {
-            params.push(`colormap_name=${options.cogColormap}`)
+            params.push(`colormap_name=${options.cogColormap.toLowerCase()}`)
         }
     }
 
