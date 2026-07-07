@@ -1468,6 +1468,10 @@ function SearchBar({ componentVars }) {
                 }
             } else {
                 // Select mode: highlight/pan to matches.
+                // Clear any previous selection so stale highlights don't
+                // persist (e.g. when the new feature is outside time range).
+                L_.resetLayerFills()
+
                 // For groups: collect all geodataset results for combined pan.
                 const isGroup = targetLayers.length > 1
                 if (isGroup) {
