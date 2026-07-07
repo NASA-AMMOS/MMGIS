@@ -297,7 +297,7 @@ test.describe('Global Feature Search', () => {
             expect(inputVal.trim().length).toBeGreaterThan(0)
         })
 
-        test('groups are displayed with folder icon and layer count', async () => {
+        test('groups are displayed with layers icon and layer count', async () => {
             await openPanel(pg)
             const groups = pg.locator('.searchRegularLayerItemGroup')
             const count = await groups.count()

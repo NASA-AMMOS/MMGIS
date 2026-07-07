@@ -50,7 +50,7 @@ function getSearchFieldStringForFeature(searchFields, name, props) {
                     break
                 case 'rmunder':
                     if (F_.getIn(props, sf[i][1]))
-                        str += F_.getIn(props, sf[i][1]).replace('_', ' ')
+                        str += F_.getIn(props, sf[i][1]).replace(/_/g, ' ')
                     break
             }
             if (i !== sf.length - 1) str += ' '
@@ -84,7 +84,7 @@ function getSearchFieldEntryForFeature(searchFields, name, props) {
                     val = String(Math.round(raw))
                     break
                 case 'rmunder':
-                    val = raw ? String(raw).replace('_', ' ') : ''
+                    val = raw ? String(raw).replace(/_/g, ' ') : ''
                     break
             }
             fields[sf[i][1]] = val
@@ -113,10 +113,10 @@ function getMapZoomCoordinate(layers) {
         0.176, 0.088, 0.044, 0.022, 0.011, 0.005, 0.003, 0.001, 0.0005,
         0.0003, 0.0001,
     ]
-    let boundingBoxNorth = 90
-    let boundingBoxSouth = -90
-    let boundingBoxEast = 180
-    let boundingBoxWest = -180
+    let minLat = 90
+    let maxLat = -90
+    let minLng = 180
+    let maxLng = -180
     const latitudeValidRange = [-90, 90]
     const longitudeValidRange = [-180, 180]
 
@@ -136,18 +136,18 @@ function getMapZoomCoordinate(layers) {
             continue
         }
 
-        if (latitude <= boundingBoxNorth) boundingBoxNorth = latitude
-        if (latitude >= boundingBoxSouth) boundingBoxSouth = latitude
-        if (longitude <= boundingBoxEast) boundingBoxEast = longitude
-        if (longitude >= boundingBoxWest) boundingBoxWest = longitude
+        if (latitude < minLat) minLat = latitude
+        if (latitude > maxLat) maxLat = latitude
+        if (longitude < minLng) minLng = longitude
+        if (longitude > maxLng) maxLng = longitude
     }
 
-    const latitudeDiff = Math.abs(boundingBoxNorth - boundingBoxSouth)
-    const longitudeDiff = Math.abs(boundingBoxEast - boundingBoxWest)
+    const latitudeDiff = maxLat - minLat
+    const longitudeDiff = maxLng - minLng
     if (latitudeDiff === 0 && longitudeDiff === 0) {
         return {
-            latitude: boundingBoxNorth,
-            longitude: boundingBoxEast,
+            latitude: minLat,
+            longitude: minLng,
             zoomLevel: 21,
         }
     }
@@ -156,10 +156,8 @@ function getMapZoomCoordinate(layers) {
     for (let i = 0; i < zoomLevels.length; i++) {
         if (maxDiff < zoomLevels[i] && i !== zoomLevels.length - 1) continue
         return {
-            latitude:
-                boundingBoxSouth + (boundingBoxNorth - boundingBoxSouth) / 2,
-            longitude:
-                boundingBoxWest + (boundingBoxEast - boundingBoxWest) / 2,
+            latitude: minLat + latitudeDiff / 2,
+            longitude: minLng + longitudeDiff / 2,
             zoomLevel: i,
         }
     }
@@ -830,18 +828,48 @@ function SearchBar({ componentVars }) {
                 apiValue = searchValue.replace(/\*/g, '')
             }
 
+            // For multi-field constructs with parsedFields, use the /get
+            // endpoint with filters so ALL fields are matched (AND).
+            // The /search endpoint only supports a single key.
+            const useMultiFieldGet = parsedFields && sf && sf.length > 1 &&
+                Object.keys(parsedFields).length > 1
+            let apiName, apiBody, extractResult
+            if (useMultiFieldGet) {
+                const filterParts = sf.map((field) => {
+                    const fieldName = field[1]
+                    const fieldVal = parsedFields[fieldName]
+                    if (fieldVal == null) return null
+                    const fHasWildcard = String(fieldVal).includes('*')
+                    const fOp = fHasWildcard ? 'contains' : '='
+                    const fVal = fHasWildcard ? String(fieldVal).replace(/\*/g, '') : String(fieldVal)
+                    return `${fieldName}+${fOp}+string+${fVal}`
+                }).filter(Boolean)
+                if (filterParts.length === 0) return Promise.resolve(null)
+                apiName = 'geodatasets_get'
+                apiBody = {
+                    layer: geodatasetName || lastGeodatasetLayerName.current,
+                    type: 'geojson',
+                    filters: filterParts.join(','),
+                }
+                extractResult = (d) => d?.features?.[0] || null
+            } else {
+                apiName = 'geodatasets_search'
+                apiBody = {
+                    layer: geodatasetName || lastGeodatasetLayerName.current,
+                    key: key,
+                    value: apiValue,
+                    operator: operator,
+                }
+                extractResult = (d) => d?.body?.[0] || null
+            }
+
             return new Promise((resolve) => {
                 calls.api(
-                    'geodatasets_search',
-                    {
-                        layer: geodatasetName || lastGeodatasetLayerName.current,
-                        key: key,
-                        value: apiValue,
-                        operator: operator,
-                    },
+                    apiName,
+                    apiBody,
                     function (d) {
-                        if (!d.body || d.body.length === 0) { resolve(null); return }
-                        const r = d.body[0]
+                        const r = extractResult(d)
+                        if (!r) { resolve(null); return }
 
                         if (skipPan) { resolve(r); return }
 
@@ -1700,9 +1728,10 @@ function SearchBar({ componentVars }) {
         setSuggestions([])
         setShowSuggestions(false)
         setPlaceholder('Search features...')
+        clearSearchFilters()
         // Preserve arrayToSearch so re-opening the panel still shows suggestions
         // (the rebuild effect won't re-run because selectedLayer hasn't changed)
-    }, [])
+    }, [clearSearchFilters])
 
     // Query the geodataset API without time bounds to find the time extent
     // of all matching features, then expand the time slider to fit.

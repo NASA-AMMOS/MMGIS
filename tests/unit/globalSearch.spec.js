@@ -47,7 +47,9 @@ function createGroupRow() {
 function encodeFilters(filterValues) {
     const encoded = []
     filterValues.forEach((v) => {
-        if (v.value != null && v.key != null && !v.isGroup)
+        if (v.key != null && (v.op === 'isnull' || v.op === 'isnotnull'))
+            encoded.push(`${v.key}+${v.op}+${v.type}+`)
+        else if (v.value != null && v.key != null && !v.isGroup)
             encoded.push(
                 `${v.key}+${v.op === ',' ? 'in' : v.op}+${v.type}+${v.value.replaceAll(',', '$')}`
             )
