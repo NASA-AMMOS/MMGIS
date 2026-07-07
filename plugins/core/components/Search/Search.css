@@ -86,8 +86,8 @@
     color: var(--color-f);
     font-size: 13px;
     outline: none;
-    min-width: 230px;
-    width: 230px;
+    min-width: 243px;
+    width: 243px;
     padding: 0 4px;
 }
 .searchCompactInput::placeholder {
