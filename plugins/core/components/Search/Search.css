@@ -21,12 +21,7 @@
     gap: 4px;
     cursor: text;
     transition: border-color 0.15s, box-shadow 0.15s, background 0.2s;
-    min-width: 280px;
-}
-
-.searchBarExpanded .searchCompactBar {
-    border-color: var(--color-mmgis);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-mmgis) 30%, transparent);
+    min-width: 293px;
 }
 
 /* Search icon */
@@ -333,7 +328,7 @@
 /* ===== Time Range Warning ===== */
 .searchTimeWarning {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 8px;
     padding: 6px 10px;
     background: color-mix(in srgb, var(--color-yellow, #f0ad4e) 15%, var(--color-a));

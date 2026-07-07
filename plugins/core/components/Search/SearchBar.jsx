@@ -1869,7 +1869,7 @@ function SearchBar({ componentVars }) {
     return (
         <div
             id="Search"
-            className={`searchBar ${panelOpen ? 'searchBarExpanded' : ''} ${submittedValue != null ? 'searchBarActive' : ''}`}
+            className={`searchBar ${submittedValue != null ? 'searchBarActive' : ''}`}
             ref={panelRef}
         >
             {/* Top bar */}
