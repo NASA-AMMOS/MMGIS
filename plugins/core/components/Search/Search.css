@@ -178,7 +178,7 @@
     cursor: pointer;
 }
 .searchRegularLayerItemGroupMember {
-    padding-left: 24px;
+    padding-left: 28px;
     font-size: 12px;
 }
 .searchRegularLayerLabel {
@@ -333,14 +333,19 @@
 /* ===== Time Range Warning ===== */
 .searchTimeWarning {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     padding: 6px 10px;
     background: color-mix(in srgb, var(--color-yellow, #f0ad4e) 15%, var(--color-a));
     border-top: 1px solid var(--color-a1);
-    font-size: 11px;
+    font-size: 12px;
     color: var(--color-f);
     flex-wrap: wrap;
+}
+.searchTimeWarningIcon {
+    color: var(--color-yellow, #f0ad4e);
+    flex-shrink: 0;
+    margin-top: 1px;
 }
 .searchTimeWarningText {
     flex: 1;
@@ -348,14 +353,13 @@
     opacity: 0.85;
 }
 .searchTimeWarningAction {
-    cursor: pointer;
-    color: var(--color-mmgis);
-    font-weight: 500;
     white-space: nowrap;
-    text-decoration: underline;
+    flex-shrink: 0;
 }
-.searchTimeWarningAction:hover {
-    opacity: 0.8;
+.searchTimeWarningDates {
+    display: block;
+    font-weight: 500;
+    margin-top: 2px;
 }
 
 /* Time restrict toggle active icon */
@@ -366,4 +370,22 @@
 /* Alternating field shading in multi-field suggestion values */
 .searchFieldOdd {
     color: #999;
+}
+
+/* Active search indicator on search icon */
+.searchCompactIconActive {
+    color: var(--color-mmgis);
+    opacity: 1;
+    position: relative;
+}
+.searchCompactIconActive::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    border: 1.5px solid var(--color-a);
+    background: #7CFC00;
 }

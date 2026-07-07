@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { center } from '@turf/turf'
 
+import Button from '@design/components/Button/Button'
 import IconButton from '@design/components/IconButton/IconButton'
 import Switch from '@design/components/Switch/Switch'
 import Tooltip from '@design/components/Tooltip/Tooltip'
@@ -1873,7 +1874,7 @@ function SearchBar({ componentVars }) {
         >
             {/* Top bar */}
             <div className="searchCompactBar">
-                <i className="mdi mdi-magnify mdi-18px searchCompactIcon" onClick={openPanel} />
+                <i className={`mdi mdi-magnify mdi-18px searchCompactIcon${submittedValue != null ? ' searchCompactIconActive' : ''}`} onClick={openPanel} />
                 {/* Layers trigger */}
                 {vectorLayers.length > 0 && (
                     <>
@@ -2022,7 +2023,7 @@ function SearchBar({ componentVars }) {
                                         }}
                                     >
                                         {item.isGroup && (
-                                            <i className="mdi mdi-folder-outline mdi-14px searchGroupIcon" />
+                                            <i className="mdi mdi-layers mdi-14px searchGroupIcon" />
                                         )}
                                         <span className="searchRegularLayerLabel">{item.label}</span>
                                         {item.isGroup && (
@@ -2044,21 +2045,6 @@ function SearchBar({ componentVars }) {
                                 {arrayToSearch.length >= 500 && (
                                     <span className="searchValuesCount">Top 500</span>
                                 )}
-                                <Tooltip
-                                    content={searchTimeRestrict ? 'Restricted to current time range' : 'All time (no time restriction)'}
-                                    placement="bottom"
-                                >
-                                    <div className="searchValuesToggle">
-                                        <span className="searchValuesToggleLabel">
-                                            <i className={`mdi mdi-clock-outline mdi-12px ${searchTimeRestrict ? 'searchTimeActive' : ''}`} />
-                                        </span>
-                                        <Switch
-                                            checked={searchTimeRestrict}
-                                            onCheckedChange={setSearchTimeRestrict}
-                                            size="sm"
-                                        />
-                                    </div>
-                                </Tooltip>
                                 {selectedGroupId && (
                                     <Tooltip
                                         content={valuesIntersectOnly ? 'Common to all layers' : 'From any layer'}
@@ -2076,6 +2062,21 @@ function SearchBar({ componentVars }) {
                                         </div>
                                     </Tooltip>
                                 )}
+                                <Tooltip
+                                    content={searchTimeRestrict ? 'Restricted to current time range' : 'All time (no time restriction)'}
+                                    placement="bottom"
+                                >
+                                    <div className="searchValuesToggle">
+                                        <span className="searchValuesToggleLabel">
+                                            <i className={`mdi mdi-clock-outline mdi-12px ${searchTimeRestrict ? 'searchTimeActive' : ''}`} />
+                                        </span>
+                                        <Switch
+                                            checked={searchTimeRestrict}
+                                            onCheckedChange={setSearchTimeRestrict}
+                                            size="sm"
+                                        />
+                                    </div>
+                                </Tooltip>
                             </div>
                             <div className="searchUnifiedColBody" ref={suggestionsRef}>
                                 {suggestions.length > 0 ? (
@@ -2127,16 +2128,21 @@ function SearchBar({ componentVars }) {
                     </div>
                     {timeRangeWarning && (
                         <div className="searchTimeWarning">
+                            <i className="mdi mdi-clock-alert-outline mdi-14px searchTimeWarningIcon" />
                             <span className="searchTimeWarningText">
-                                Results limited to {timeRangeWarning.start} – {timeRangeWarning.end}.
-                                Not all matches may be shown.
+                                Results limited — not all matches may be shown.
+                                <span className="searchTimeWarningDates">
+                                    {timeRangeWarning.start?.replace(/\.\d{3}Z$/, 'Z') || timeRangeWarning.start} – {timeRangeWarning.end?.replace(/\.\d{3}Z$/, 'Z') || timeRangeWarning.end}
+                                </span>
                             </span>
-                            <span
+                            <Button
                                 className="searchTimeWarningAction"
+                                variant="secondary"
+                                size="sm"
                                 onClick={handleFitTimeRange}
                             >
                                 Fit time range to results
-                            </span>
+                            </Button>
                         </div>
                     )}
                 </div>
