@@ -1083,6 +1083,11 @@ function SearchBar({ componentVars }) {
 
             // Build filter values: one per search construct field
             const filterValues = []
+            // Track whether we're doing a multi-field wildcard search
+            // (free-typed text with no parsedFields on a multi-field construct).
+            // In this case we search ALL fields with OR so "* Observation *"
+            // matches on any field, not just the first.
+            let useOrGroup = false
             sf.forEach((field, idx) => {
                 const fieldName = field[1]
                 let part
@@ -1097,13 +1102,10 @@ function SearchBar({ componentVars }) {
                     part = searchValue
                 } else {
                     // Multi-field construct with free-typed text (no parsedFields):
-                    // We can't reliably split composite text into per-field values
-                    // because field values may contain spaces (e.g. "11 Event C - Phase 4"
-                    // can't be split into id="11" and name="Event C - Phase 4" by spaces).
-                    // Only apply filter to the first field using 'contains' on the
-                    // raw input text (stripped of wildcards).
-                    if (idx > 0) return
+                    // Apply 'contains' to every field with OR logic so the
+                    // search matches on any field.
                     part = searchValue
+                    useOrGroup = true
                 }
                 if (part == null || part === '' || part === '*') return
 
@@ -1120,12 +1122,16 @@ function SearchBar({ componentVars }) {
                     id: idx,
                     key: fieldName,
                     op: hasWildcard ? 'contains' : '=',
-                    value: hasWildcard ? String(part).replace(/\*/g, '') : String(part),
+                    value: hasWildcard ? String(part).replace(/\*/g, '').trim() : String(part),
                     // Force string type for 'contains' (LIKE) queries to avoid
                     // attempting ::FLOAT cast on text patterns
                     type: hasWildcard ? 'string' : type,
                 })
             })
+            // Wrap multi-field wildcard entries in an OR group
+            if (useOrGroup && filterValues.length > 1) {
+                filterValues.unshift({ id: -1, isGroup: true, op: 'OR' })
+            }
 
             if (filterValues.length === 0) return
 
