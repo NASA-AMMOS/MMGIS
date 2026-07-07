@@ -1488,8 +1488,12 @@ function SearchBar({ componentVars }) {
                         }
                     })
 
-                    // Non-geodataset layers: use doWithSearch for each
-                    vecLayers.forEach((lname) => {
+                    // Non-geodataset layers: use doWithSearch for each.
+                    // Only search layers that actually have this value.
+                    const vecSearchTargets = sourceLayers && sourceLayers.length > 0
+                        ? vecLayers.filter((l) => sourceLayers.includes(l))
+                        : vecLayers
+                    vecSearchTargets.forEach((lname) => {
                         doWithSearch('both', null, lname, false, searchValue)
                     })
 
