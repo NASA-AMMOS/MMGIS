@@ -219,6 +219,9 @@ function SearchBar({ componentVars }) {
 
     const lastGeodatasetLayerName = useRef(null)
 
+    // Incremented on each search to cancel stale polling loops
+    const searchGeneration = useRef(0)
+
     const inputRef = useRef(null)
     const suggestionsRef = useRef(null)
     const panelRef = useRef(null)
@@ -799,6 +802,7 @@ function SearchBar({ componentVars }) {
             const L_ = getL_()
             const Map_ = getMap_()
             const layerName = lname || selectedLayer
+            const myGen = searchGeneration.current
             const sf = effectiveSearchFields[layerName]
 
             // Determine the search key and value.
@@ -888,6 +892,7 @@ function SearchBar({ componentVars }) {
                         Promise.resolve(ensureLayerOn).then(() => {
                             // Poll until the layer is ready with features
                             const tryHighlight = (attempts) => {
+                                if (myGen !== searchGeneration.current) { resolve(r); return }
                                 const layer = L_.layers.layer[layerName]
                                 if (!layer) {
                                     if (attempts > 0) setTimeout(() => tryHighlight(attempts - 1), 200)
@@ -1211,6 +1216,9 @@ function SearchBar({ componentVars }) {
     const handleSearch = useCallback(
         async (value, parsedFields, sourceLayers, overrideMode) => {
             const searchValue = value != null ? value : inputValue
+            // Cancel stale polling loops from previous searches
+            searchGeneration.current++
+            const gen = searchGeneration.current
             // Use explicit mode if provided (avoids stale closure when called
             // from setTimeout after a mode switch).
             const activeMode = overrideMode || searchMode
@@ -1576,6 +1584,7 @@ function SearchBar({ componentVars }) {
                         if (visibleResults.length === 1) {
                             const gr = visibleResults[0]
                             const trySelect = (attempts) => {
+                                if (gen !== searchGeneration.current) return
                                 const layer = L_.layers.layer[gr.layerName]
                                 if (layer && layer._layers && Object.keys(layer._layers).length > 0) {
                                     L_.selectFeature(gr.layerName, gr.feature)
